@@ -16,38 +16,38 @@ Below you find what has been completed so far.
 
 ### Context-free grammars
 
-[Definition](/src/classes/context_free/basics/definition.lean)
+[Definition](src/Grammars/Classes/ContextFree/Basics/Definition.lean)
 
-[Example](/test/demo_context_free.lean)
+[Example](test/Grammars/Test/DemoContextFree.lean)
 
-[Closure under union](/src/classes/context_free/closure_properties/union.lean)
+[Closure under union](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean)
 
-[Closure under reversal](/src/classes/context_free/closure_properties/reverse.lean)
+[Closure under reversal](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean)
 
-[Closure under concatenation](/src/classes/context_free/closure_properties/concatenation.lean)
+[Closure under concatenation](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean)
 
-[Non-closure under intersection](/src/classes/context_free/closure_properties/intersection.lean) (\*)
+[Non-closure under intersection](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean) (\*)
 
-[Non-closure under complement](/src/classes/context_free/closure_properties/complement.lean) (\*)
+[Non-closure under complement](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean) (\*)
 
-\* missing proof: [Context-free pumping lemma](/src/classes/context_free/basics/pumping.lean), which is independently proven by [Alex Loitzl](https://github.com/AlexLoitzl/pumping_cfg)
+\* missing proof: [Context-free pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean), which is independently proven by [Alex Loitzl](https://github.com/AlexLoitzl/pumping_cfg)
 
 ### Context-sensitive grammars
 
-[Example](/test/demo_context_sensitive.lean)
+[Example](test/Grammars/Test/DemoContextSensitive.lean)
 
 ### Unrestricted grammars
 
 (a.k.a. general grammars, a.k.a. type-0 grammars, a.k.a. recursively-enumerable grammars, a.k.a. phrase-structure grammars, a.k.a. grammars)
 
-[Definition](/src/classes/unrestricted/basics/definition.lean)
+[Definition](src/Grammars/Classes/Unrestricted/Basics/Definition.lean)
 
-[Example](/test/demo_unrestricted.lean)
+[Example](test/Grammars/Test/DemoUnrestricted.lean)
 
-[Closure under union](/src/classes/unrestricted/closure_properties/union.lean)
+[Closure under union](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean)
 
-[Closure under reversal](/src/classes/unrestricted/closure_properties/reverse.lean)
+[Closure under reversal](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean)
 
-[Closure under concatenation](/src/classes/unrestricted/closure_properties/concatenation.lean)
+[Closure under concatenation](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean)
 
-[Closure under Kleene star](/src/classes/unrestricted/closure_properties/star.lean)
+[Closure under Kleene star](src/Grammars/Classes/Unrestricted/ClosureProperties/Star.lean)
