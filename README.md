@@ -10,7 +10,7 @@ In order to check that the proofs are correct, run `lake build` from the root di
 
 ## Overview
 
-> This project is WIP translation of https://github.com/madvorak/grammars, not everything has been ported to Lean 4 yet. Links below are outdated
+> This project is WIP translation of https://github.com/madvorak/grammars, not everything has been ported to Lean 4 yet. Check the status of the build for details: [![CI](https://github.com/nielstron/grammars4/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/grammars4/actions/workflows/build.yml)
 
 Below you find what has been completed so far.
 
@@ -30,7 +30,7 @@ Below you find what has been completed so far.
 
 [Non-closure under complement](/src/classes/context_free/closure_properties/complement.lean) (\*)
 
-\* missing proof: [Context-free pumping lemma](/src/classes/context_free/basics/pumping.lean)
+\* missing proof: [Context-free pumping lemma](/src/classes/context_free/basics/pumping.lean), which is independently proven by [Alex Loitzl](https://github.com/AlexLoitzl/pumping_cfg)
 
 ### Context-sensitive grammars
 
