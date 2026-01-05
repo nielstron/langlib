@@ -12,6 +12,8 @@ In order to check that the proofs are correct, run `lake build` from the root di
 
 > This project is WIP translation of https://github.com/madvorak/grammars, not everything has been ported to Lean 4 yet. Check the status of the build for details: [![CI](https://github.com/nielstron/grammars4/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/grammars4/actions/workflows/build.yml)
 
+> The Context Free part of the proofs, in particular regarding closure under mapping, union and concatenation are being merged into Mathlib / CSlib. You find the corresponding PRs [here](https://github.com/leanprover-community/mathlib4/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen+author%3Anielstron+ContextFreeGrammar)
+
 Below you find what has been completed so far.
 
 ### Context-free grammars
