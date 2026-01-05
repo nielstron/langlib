@@ -122,7 +122,10 @@ by
     use t :: w_tail
     simp [ht, hw_tail]
 
-/-- Pumping lemma for context-free languages. -/
+/-- Pumping lemma for context-free languages.
+  For a correctly formalized proof check out https://github.com/AlexLoitzl/pumping_cfg
+  and the corresponding PR in the Mathlib: https://github.com/leanprover-community/mathlib4/pull/19943
+ -/
 lemma CF_pumping {T : Type} {L : Language T} (cf : is_CF L) :
   ∃ n : ℕ, ∀ w ∈ L, List.length w ≥ n → (
     ∃ u v x y z : List T,
