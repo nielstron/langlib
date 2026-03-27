@@ -731,7 +731,7 @@ private lemma CF_lang_aux_bc : is_CF lang_aux_bc := by
             rw [other_case]
           simp only [List.map_append, List.map_replicate]
   rw [permuted]
-  exact CF_of_permute_CF permut lang_aux_ab CF_lang_aux_ab
+  exact (CF_of_permute_CF permut lang_aux_ab).2 CF_lang_aux_ab
 
 private lemma CF_lang_any_eq : is_CF lang_any_eq := by
   have concatenated : lang_any_eq = lang_aux_a * lang_aux_bc := by
