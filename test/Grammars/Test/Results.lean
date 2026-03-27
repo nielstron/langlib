@@ -4,6 +4,13 @@ import Grammars.Classes.ContextFree.ClosureProperties.Concatenation
 import Grammars.Classes.ContextFree.ClosureProperties.Intersection
 import Grammars.Classes.ContextFree.ClosureProperties.Complement
 
+import Grammars.Classes.Regular.Basics.Pumping
+import Grammars.Classes.Regular.ClosureProperties.Complement
+import Grammars.Classes.Regular.ClosureProperties.Intersection
+import Grammars.Classes.Regular.ClosureProperties.PrefixSuffix
+import Grammars.Classes.Regular.ClosureProperties.Reverse
+import Grammars.Classes.Regular.ClosureProperties.Union
+
 import Grammars.Classes.Unrestricted.ClosureProperties.Union
 import Grammars.Classes.Unrestricted.ClosureProperties.Reverse
 import Grammars.Classes.Unrestricted.ClosureProperties.Concatenation
@@ -30,6 +37,13 @@ This file checks that the main closure and non-closure theorems elaborate.
 - `RE_of_star_RE`
 - `Language.prefixLang`
 - `Language.suffixLang`
+- `Language.IsRegular.prefixLang`
+- `Language.IsRegular.suffixLang`
+- `Language.IsRegular.reverse'`
+- `Language.IsRegular.add'`
+- `Language.IsRegular.inf'`
+- `Language.IsRegular.compl'`
+- `Language.IsRegular.pumping'`
 -/
 
 section language_operations
@@ -40,6 +54,18 @@ section language_operations
 #check            Grammars.suffixLang_eq_reverse_prefixLang_reverse
 
 end language_operations
+
+section regular
+
+#check            Language.IsRegular.prefixLang
+#check            Language.IsRegular.suffixLang
+#check            Language.IsRegular.reverse'
+#check            Language.IsRegular.add'
+#check            Language.IsRegular.inf'
+#check            Language.IsRegular.compl'
+#check            Language.IsRegular.pumping'
+
+end regular
 
 section context_free
 
