@@ -28,11 +28,11 @@ Below you find what has been completed so far.
 
 [Closure under concatenation](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean)
 
-[Non-closure under intersection](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean) (\*)
+[Pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean)
 
-[Non-closure under complement](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean) (\*)
+[Non-closure under intersection](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean)
 
-\* missing proof: [Context-free pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean), which is independently proven by [Alex Loitzl](https://github.com/AlexLoitzl/pumping_cfg)
+[Non-closure under complement](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean)
 
 ### Context-sensitive grammars
 
