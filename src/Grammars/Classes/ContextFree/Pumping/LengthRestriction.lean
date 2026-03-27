@@ -5,9 +5,9 @@ Authors: Alexander Loitzl
 -/
 
 import Mathlib.Computability.ContextFreeGrammar
-import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalForm
-import Grammars.Classes.ContextFree.PumpingCfg.TerminalRestriction
-import Grammars.Classes.ContextFree.PumpingCfg.EpsilonElimination
+import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalForm
+import Grammars.Classes.ContextFree.Pumping.TerminalRestriction
+import Grammars.Classes.ContextFree.Pumping.EpsilonElimination
 
 /-! # Length Restriction for CFGs
 

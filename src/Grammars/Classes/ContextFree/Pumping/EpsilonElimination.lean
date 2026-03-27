@@ -5,8 +5,8 @@ Authors: Alexander Loitzl
 -/
 
 import Mathlib.Computability.ContextFreeGrammar
-import Grammars.Classes.ContextFree.PumpingCfg.Utils
-import Grammars.Classes.ContextFree.PumpingCfg.CountingSteps
+import Grammars.Classes.ContextFree.Pumping.Utils
+import Grammars.Classes.ContextFree.Pumping.CountingSteps
 
 /-! # Epsilon Elimination for CFGs
 

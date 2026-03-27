@@ -4,9 +4,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl
 -/
 
-import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalForm
-import Grammars.Classes.ContextFree.PumpingCfg.ChomskyCountingSteps
-import Grammars.Classes.ContextFree.PumpingCfg.toMathlib
+import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalForm
+import Grammars.Classes.ContextFree.Pumping.ChomskyCountingSteps
+import Grammars.Classes.ContextFree.Pumping.toMathlib
 
 /-! # Parse Trees for Chomsky Grammars
 

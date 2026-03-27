@@ -1,4 +1,4 @@
-import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalForm
+import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalForm
 
 /-! # CNF Bridge Lemmas
 

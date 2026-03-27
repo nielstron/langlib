@@ -18,6 +18,8 @@ import Grammars.Classes.ContextFree.ClosureProperties.Star
 import Grammars.Classes.ContextFree.ClosureProperties.Substitution
 import Grammars.Classes.ContextFree.ClosureProperties.Union
 import Grammars.Classes.ContextFree.ClosureProperties.UnionBonus
+import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalForm
+import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.Intersection
 import Grammars.Classes.Regular.ClosureProperties.PrefixSuffix

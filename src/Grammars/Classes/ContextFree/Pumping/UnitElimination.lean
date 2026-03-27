@@ -6,7 +6,7 @@ Authors: Alexander Loitzl
 
 import Mathlib.Computability.ContextFreeGrammar
 import Mathlib.Data.Finset.Prod
-import Grammars.Classes.ContextFree.PumpingCfg.EpsilonElimination
+import Grammars.Classes.ContextFree.Pumping.EpsilonElimination
 
 /-! # Unit-Rule Elimination for CFGs
 

@@ -4,9 +4,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl, Martin Dvorak
 -/
 
-import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalFormTranslation
-import Grammars.Classes.ContextFree.PumpingCfg.Utils
-import Grammars.Classes.ContextFree.PumpingCfg.ParseTree
+import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
+import Grammars.Classes.ContextFree.Pumping.Utils
+import Grammars.Classes.ContextFree.Pumping.ParseTree
 import Mathlib.Data.Set.Card
 
 /-! # Pumping Lemma via Chomsky Normal Form
