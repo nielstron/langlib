@@ -13,6 +13,7 @@ import Grammars.Classes.ContextFree.ClosureProperties.Concatenation
 import Grammars.Classes.ContextFree.ClosureProperties.Intersection
 import Grammars.Classes.ContextFree.ClosureProperties.Permutation
 import Grammars.Classes.ContextFree.ClosureProperties.Reverse
+import Grammars.Classes.ContextFree.ClosureProperties.Substitution
 import Grammars.Classes.ContextFree.ClosureProperties.Union
 import Grammars.Classes.ContextSensitive.Basics.Definition
 import Grammars.Classes.ContextSensitive.Basics.Inclusion
@@ -41,4 +42,3 @@ This file is the import hub for the `Grammars` library.
 
 - Imports the context-free, context-sensitive, and unrestricted grammar developments.
 -/
-
