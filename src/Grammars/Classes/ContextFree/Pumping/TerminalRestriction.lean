@@ -5,9 +5,9 @@ Authors: Alexander Loitzl
 -/
 
 import Mathlib.Computability.ContextFreeGrammar
-import Grammars.Classes.ContextFree.PumpingCfg.Utils
-import Grammars.Classes.ContextFree.PumpingCfg.EpsilonElimination
-import Grammars.Classes.ContextFree.PumpingCfg.UnitElimination
+import Grammars.Classes.ContextFree.Pumping.Utils
+import Grammars.Classes.ContextFree.Pumping.EpsilonElimination
+import Grammars.Classes.ContextFree.Pumping.UnitElimination
 
 /-! # Terminal Restriction for CFGs
 

@@ -5,11 +5,11 @@ Authors: Alexander Loitzl
 -/
 
 import Mathlib.Computability.ContextFreeGrammar
-import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalForm
-import Grammars.Classes.ContextFree.PumpingCfg.EpsilonElimination
-import Grammars.Classes.ContextFree.PumpingCfg.UnitElimination
-import Grammars.Classes.ContextFree.PumpingCfg.TerminalRestriction
-import Grammars.Classes.ContextFree.PumpingCfg.LengthRestriction
+import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalForm
+import Grammars.Classes.ContextFree.Pumping.EpsilonElimination
+import Grammars.Classes.ContextFree.Pumping.UnitElimination
+import Grammars.Classes.ContextFree.Pumping.TerminalRestriction
+import Grammars.Classes.ContextFree.Pumping.LengthRestriction
 
 
 /-! # Translation to Chomsky Normal Form

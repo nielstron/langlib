@@ -46,6 +46,11 @@ This repository contains a variety of results about various classes of languages
 
 - [Demo grammar and language equality](test/Grammars/Test/DemoContextFree.lean)
 
+#### Normal forms
+
+- [Chomsky normal form grammars](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
+- [Translation to Chomsky normal form](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalFormTranslation.lean)
+
 #### Closure results
 
 - [Substitution](src/Grammars/Classes/ContextFree/ClosureProperties/Substitution.lean)
@@ -103,6 +108,7 @@ This repository contains a variety of results about various classes of languages
 - Regular-language operations `prefixLang`, `suffixLang`, and their regularity theorems
 - Regular closure under reversal, union, intersection, and complement
 - A regular pumping theorem interface
+- Context-free Chomsky normal form grammars and translation to CNF
 - Context-free closure under union, reversal, and concatenation
 - Context-free non-closure under intersection and complement
 - Unrestricted / recursively enumerable closure under union, reversal, concatenation, and star

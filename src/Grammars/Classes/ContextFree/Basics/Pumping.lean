@@ -2,7 +2,7 @@ import Grammars.Classes.ContextFree.Basics.Definition
 import Grammars.Classes.ContextFree.Basics.Inclusion
 import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Utilities.ListUtils
-import Grammars.Classes.ContextFree.PumpingCfg.Pumping
+import Grammars.Classes.ContextFree.Pumping.Pumping
 
 /-! # Elementary Pumping Lemmas
 
