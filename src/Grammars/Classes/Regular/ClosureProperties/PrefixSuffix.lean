@@ -64,7 +64,7 @@ theorem IsRegular.prefixLang {L : Language α} (h : L.IsRegular) :
 /-- Regular languages are closed under the suffix operation. -/
 theorem IsRegular.suffixLang {L : Language α} (h : L.IsRegular) :
     (suffixLang L).IsRegular := by
-  rw [Language.suffixLang_eq_reverse_prefixLang_reverse]
+  rw [suffixLang_eq_reverse_prefixLang_reverse]
   exact (h.reverse.prefixLang).reverse
 
 end Language
