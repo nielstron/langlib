@@ -43,7 +43,10 @@ abbrev transition_fun' (G : ContextFreeGrammar T) [Fintype G.NT] (_ : Q) (Z : S 
   | nonterminal N => { (Q.loop, α) | (α : List (S G)) (_ : ⟨N, α⟩ ∈ G.rules) }
   | _ => ∅
 
--- TODO: Proof that [Fintype G.NT] is not a requirement.
+-- Note: The [Fintype G.NT] requirement can be removed using
+-- ContextFreeGrammar.exists_fintype_nt from FiniteNT.lean,
+-- which shows every CFG has an equivalent one with finite nonterminals.
+-- See is_PDA_of_isContextFree in PDAEquivalence.lean for the full result.
 abbrev M (G : ContextFreeGrammar T) [Fintype G.NT] : PDA' G:= {
   initial_state := Q.loop
   start_symbol := nonterminal G.initial

@@ -1,4 +1,5 @@
 import Grammars.Classes.ContextFree.Basics.Inclusion
+import Grammars.Classes.ContextFree.Basics.FiniteNT
 import Grammars.Classes.Pushdown.Equivalence.CFGToPDA
 import Grammars.Classes.Pushdown.Equivalence.PDAToCFG
 
@@ -32,3 +33,17 @@ theorem is_CF_of_is_PDA {L : Language T} :
   intro h
   rw [is_CF_iff_isContextFree]
   exact isContextFree_of_is_PDA h
+
+/-- Every context-free language (with possibly infinite NT) is accepted by some PDA.
+    This removes the `[Fintype g.NT]` requirement from `is_PDA_of_mathlib_cfg`
+    by first restricting the grammar to one with finite nonterminals. -/
+theorem is_PDA_of_isContextFree {L : Language T} (hL : L.IsContextFree) : is_PDA L := by
+  obtain ⟨g, hfin, hg⟩ := ContextFreeGrammar.exists_fintype_nt L hL
+  rw [← hg]
+  haveI := hfin
+  exact is_PDA_of_mathlib_cfg g
+
+/-- The PDA-recognizable languages are exactly the context-free languages. -/
+theorem is_PDA_iff_isContextFree {L : Language T} :
+    is_PDA L ↔ L.IsContextFree :=
+  ⟨isContextFree_of_is_PDA, is_PDA_of_isContextFree⟩
