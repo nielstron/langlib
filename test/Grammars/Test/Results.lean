@@ -9,6 +9,7 @@ import Grammars.Classes.Unrestricted.ClosureProperties.Reverse
 import Grammars.Classes.Unrestricted.ClosureProperties.Concatenation
 import Grammars.Classes.Unrestricted.ClosureProperties.Star
 
+import Grammars.Utilities.LanguageOperations
 import Grammars.Utilities.WrittenByOthers.PrintSorries
 
 
@@ -27,7 +28,18 @@ This file checks that the main closure and non-closure theorems elaborate.
 - `RE_of_reverse_RE`
 - `RE_of_RE_c_RE`
 - `RE_of_star_RE`
+- `Language.prefixLang`
+- `Language.suffixLang`
 -/
+
+section language_operations
+
+#check            Language.prefixLang
+#check            Language.suffixLang
+#check            Language.prefixLang_prefixLang
+#check            Grammars.suffixLang_eq_reverseLang_prefixLang_reverseLang
+
+end language_operations
 
 section context_free
 
