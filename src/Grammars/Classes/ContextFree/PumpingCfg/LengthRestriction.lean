@@ -9,6 +9,15 @@ import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalForm
 import Grammars.Classes.ContextFree.PumpingCfg.TerminalRestriction
 import Grammars.Classes.ContextFree.PumpingCfg.EpsilonElimination
 
+/-! # Length Restriction for CFGs
+
+This file transforms wellformed grammars so that every rule has Chomsky-normal-form length.
+
+## Main declarations
+
+- `restrictLength_correct`
+-/
+
 universe uN uT
 variable {T : Type uT}
 

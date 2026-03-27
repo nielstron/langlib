@@ -2,6 +2,19 @@ import Grammars.Classes.Unrestricted.Basics.Lifting
 import Grammars.Utilities.ListUtils
 
 
+/-! # RE Closure Under Union
+
+This file constructs an unrestricted grammar for the union of two recursively enumerable languages.
+
+## Main declarations
+
+- `union_grammar`
+- `in_L₁_or_L₂_of_in_union`
+- `in_union_of_in_L₁`
+- `in_union_of_in_L₂`
+- `RE_of_RE_u_RE`
+-/
+
 variable {T : Type}
 
 def union_grammar (g₁ g₂ : grammar T) : grammar T :=

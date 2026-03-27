@@ -8,6 +8,16 @@ import Mathlib.Computability.ContextFreeGrammar
 import Mathlib.Data.Finset.Prod
 import Grammars.Classes.ContextFree.PumpingCfg.EpsilonElimination
 
+/-! # Unit-Rule Elimination for CFGs
+
+This file computes unit pairs and removes unit productions without changing the language.
+
+## Main declarations
+
+- `computeUnitPairs_iff`
+- `eliminateUnitRules_correct`
+-/
+
 universe uN uT
 namespace ContextFreeGrammar
 

@@ -5,6 +5,18 @@ Authors: Alexander Loitzl, Martin Dvorak
 -/
 import Mathlib.Computability.ContextFreeGrammar
 
+/-! # Counting Derivation Steps for CFGs
+
+This file refines context-free derivations by tracking the number of production steps.
+
+## Main declarations
+
+- `derives_iff_derivesIn`
+- `mem_language_iff_derivesIn`
+- `DerivesIn.append_split`
+- `DerivesIn.head_induction_on`
+-/
+
 universe uT uN
 variable {T : Type uT}
 

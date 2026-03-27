@@ -2,6 +2,16 @@ import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Utilities.LanguageOperations
 
 
+/-! # Context-Free Closure Under Bijections
+
+This file proves that context-free languages are preserved under renaming terminals along an equivalence.
+
+## Main declarations
+
+- `CF_of_bijemap_CF`
+- `CF_of_bijemap_CF_rev`
+-/
+
 open Grammars
 
 variable {T₁ T₂ N : Type}

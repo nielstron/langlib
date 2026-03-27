@@ -1,6 +1,17 @@
 import Grammars.Classes.ContextFree.Basics.Toolbox
 
 
+/-! # Context-Free Splitting Lemmas
+
+This file proves decomposition lemmas for derivations that start from short lists of nonterminals.
+
+## Main declarations
+
+- `head_tail_split`
+- `concatenation_can_be_split`
+- `concatenation_can_be_split_2`
+-/
+
 variable {T : Type}
 
 

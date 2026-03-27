@@ -3,6 +3,11 @@ import Grammars.Utilities.ListUtils
 import Grammars.Utilities.WrittenByOthers.TrimAssoc
 
 
+/-! # Context-Free Examples
+
+This file contains example context-free grammars and sample derivation proofs.
+-/
+
 private def a_ : Fin 3 := 0
 private def a : symbol (Fin 3) (Fin 2) := symbol.terminal a_
 

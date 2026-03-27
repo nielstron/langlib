@@ -2,6 +2,15 @@ import Grammars.Classes.ContextFree.ClosureProperties.Union
 import Grammars.Classes.ContextFree.ClosureProperties.Intersection
 
 
+/-! # Context-Free Non-Closure Under Complement
+
+This file derives failure of closure under complement from the corresponding intersection result.
+
+## Main declarations
+
+- `nnyCF_of_complement_CF`
+-/
+
 /-- The class of context-free languages isn't closed under complement. -/
 theorem nnyCF_of_complement_CF : ¬ (∀ T : Type, ∀ L : Language T,
     is_CF L  →  is_CF (Lᶜ)

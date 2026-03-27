@@ -2,6 +2,17 @@ import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Utilities.ListUtils
 import Grammars.Utilities.WrittenByOthers.TrimAssoc
 
+/-! # Elementary Context-Free Languages
+
+This file builds basic context-free grammars witnessing simple languages.
+
+## Main declarations
+
+- `language_of_cfg_empty_lang`
+- `language_of_cfg_empty_word`
+- `language_of_cfg_symbol_star`
+-/
+
 variable {T : Type}
 
 

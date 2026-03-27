@@ -1,5 +1,14 @@
 import Lean
 
+/-! # Print Sorries Compatibility
+
+This file provides a compatibility shim for `#print_sorries_in`.
+
+## Main declarations
+
+- `#print_sorries_in`
+-/
+
 open Lean Elab Command
 
 /--

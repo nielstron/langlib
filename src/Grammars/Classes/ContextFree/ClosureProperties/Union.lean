@@ -1,6 +1,15 @@
 import Grammars.Classes.ContextFree.Basics.Lifting
 
 
+/-! # Context-Free Closure Under Union
+
+This file constructs a context-free grammar for the union of two context-free languages.
+
+## Main declarations
+
+- `CF_of_CF_u_CF`
+-/
+
 variable {T : Type}
 
 private def union_grammar (g₁ g₂ : CF_grammar T) : CF_grammar T :=

@@ -1,6 +1,15 @@
 import Grammars.Classes.ContextSensitive.Basics.Inclusion
 import Grammars.Classes.Unrestricted.ClosureProperties.Concatenation
 
+/-! # Context-Sensitive Concatenation Construction
+
+This file sketches a concatenation construction for context-sensitive languages by reusing the unrestricted one.
+
+## Main declarations
+
+- `bonus_CS_of_CS_c_CS`
+-/
+
 variables {T : Type}
 
 

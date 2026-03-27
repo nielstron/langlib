@@ -3,6 +3,16 @@ import Grammars.Classes.Unrestricted.ClosureProperties.Concatenation
 import Grammars.Utilities.WrittenByOthers.TrimAssoc
 import Grammars.Utilities.WrittenByOthers.PrintSorries
 
+/-! # Auxiliary CFG-to-RE Concatenation Construction
+
+This file records an alternate concatenation proof for context-free languages via unrestricted grammars.
+
+## Main declarations
+
+- `big_CF_grammar_same_language`
+- `bonus_CF_of_CF_c_CF`
+-/
+
 variables {T : Type}
 
 

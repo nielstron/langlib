@@ -2,6 +2,17 @@ import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Classes.ContextSensitive.Basics.Inclusion
 import Mathlib.Computability.ContextFreeGrammar
 
+/-! # Context-Free Inclusions
+
+This file relates the project's context-free grammars to context-sensitive, unrestricted, and mathlib formulations.
+
+## Main declarations
+
+- `CF_subclass_CS`
+- `CF_subclass_RE`
+- `is_CF_iff_isContextFree`
+-/
+
 variable {T : Type}
 
 private def Symbol_of_symbol {T N : Type} : symbol T N → Symbol T N

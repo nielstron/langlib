@@ -2,6 +2,16 @@ import Grammars.Classes.ContextSensitive.Basics.Toolbox
 import Grammars.Utilities.ListUtils
 
 
+/-! # Context-Sensitive Examples
+
+This file contains example context-sensitive grammars and sample derivation proofs.
+
+## Main declarations
+
+- `Te`
+- `Nt`
+-/
+
 inductive Te
 | a_ : Te
 | b_ : Te

@@ -3,6 +3,16 @@ import Grammars.Utilities.ListUtils
 import Grammars.Utilities.WrittenByOthers.TrimAssoc
 
 
+/-! # Unrestricted Grammar Examples
+
+This file contains larger unrestricted-grammar examples used as executable demonstrations.
+
+## Main declarations
+
+- `alphabet`
+- `inner`
+-/
+
 inductive alphabet
 | _a : alphabet
 | _b : alphabet

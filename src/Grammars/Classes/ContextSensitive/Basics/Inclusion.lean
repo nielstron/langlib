@@ -1,6 +1,16 @@
 import Grammars.Classes.ContextSensitive.Basics.Toolbox
 import Grammars.Classes.Unrestricted.Basics.Toolbox
 
+/-! # Context-Sensitive Inclusions
+
+This file embeds context-sensitive grammars into unrestricted grammars and derives the main inclusion result.
+
+## Main declarations
+
+- `CS_language_eq_grammar_language`
+- `CS_subclass_RE`
+-/
+
 variable {T : Type}
 
 

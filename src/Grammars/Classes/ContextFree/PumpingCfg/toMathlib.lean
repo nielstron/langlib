@@ -1,5 +1,15 @@
 import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalForm
 
+/-! # CNF Bridge Lemmas
+
+This file adds small bridge lemmas connecting the project's Chomsky-normal-form API to mathlib conventions.
+
+## Main declarations
+
+- `ChomskyNormalFormRule.Rewrites.word`
+- `ChomskyNormalFormGrammar.Produces.input_output`
+-/
+
 universe uT uN
 variable {T : Type uT}
 

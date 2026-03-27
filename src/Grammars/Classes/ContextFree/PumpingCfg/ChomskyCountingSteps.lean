@@ -5,6 +5,17 @@ Authors: Alexander Loitzl, Martin Dvorak
 -/
 import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalForm
 
+/-! # Counting Derivation Steps in CNF
+
+This file tracks derivation lengths for grammars already in Chomsky normal form.
+
+## Main declarations
+
+- `derives_iff_derivesIn`
+- `mem_language_iff_derivesIn`
+- `DerivesIn.append_split`
+-/
+
 universe uT uN
 variable {T : Type uT}
 

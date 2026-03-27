@@ -1,6 +1,17 @@
 import Mathlib.Data.List.Basic
 import Mathlib.Computability.ContextFreeGrammar
 
+/-! # Pumping CFG Utilities
+
+This file contains helper lemmas for repeated concatenation and derivation induction.
+
+## Main declarations
+
+- `nTimes_add`
+- `nTimes_mul`
+- `Derives.head_induction_on`
+-/
+
 variable {α : Type _}
 
 def nTimes (l : List α) (n : ℕ) : List α :=

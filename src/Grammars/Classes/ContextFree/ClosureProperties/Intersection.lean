@@ -6,6 +6,15 @@ import Grammars.Utilities.ListUtils
 import Grammars.Utilities.LanguageOperations
 
 
+/-! # Context-Free Non-Closure Under Intersection
+
+This file proves that context-free languages are not closed under intersection.
+
+## Main declarations
+
+- `nnyCF_of_CF_i_CF`
+-/
+
 section defs_over_fin3
 
 private def a_ : Fin 3 := 0
