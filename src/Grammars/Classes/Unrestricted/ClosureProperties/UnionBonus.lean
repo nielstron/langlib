@@ -7,16 +7,16 @@ variables {T : Type}
 
 private def lift_CF_rule₁ {N₁ : Type} (N₂ : Type) (r : (N₁ × List (symbol T N₁))) :
   (Option (N₁ ⊕ N₂)) × List (symbol T (Option (N₁ ⊕ N₂))) :=
-(some (sum.inl r.fst), lift_string_ (Option.some ∘ sum.inl) r.snd)
+(some (Sum.inl r.fst), lift_string_ (Option.some ∘ Sum.inl) r.snd)
 
 private def lift_CF_rule₂ (N₁ : Type) {N₂ : Type} (r : (N₂ × List (symbol T N₂))) :
   (Option (N₁ ⊕ N₂)) × List (symbol T (Option (N₁ ⊕ N₂))) :=
-(some (sum.inr r.fst), lift_string_ (Option.some ∘ sum.inr) r.snd)
+(some (Sum.inr r.fst), lift_string_ (Option.some ∘ Sum.inr) r.snd)
 
 private def union_CF_grammar (g₁ g₂ : CF_grammar T) : CF_grammar T :=
 CF_grammar.mk (Option (g₁.nt ⊕ g₂.nt)) none (
-  (none, [symbol.nonterminal (some (sum.inl (g₁.initial)))]) :: (
-  (none, [symbol.nonterminal (some (sum.inr (g₂.initial)))]) :: (
+  (none, [symbol.nonterminal (some (Sum.inl (g₁.initial)))]) :: (
+  (none, [symbol.nonterminal (some (Sum.inr (g₂.initial)))]) :: (
   (List.map (lift_CF_rule₁ g₂.nt) g₁.rules) ++
   (List.map (lift_CF_rule₂ g₁.nt) g₂.rules))))
 
@@ -30,7 +30,7 @@ by
   congr
   repeat
     rw [List.map_append]
-  finish
+  congr 1 <;> simp only [List.map_map] <;> (apply List.map_congr_left; intro r _; simp [lift_CF_rule₁, lift_CF_rule₂, lift_rule_, lift_string_, lift_symbol_])
 
 /-- The class of context-free languages is closed under union.
     This theorem is proved by translation from general grammars.
@@ -46,7 +46,7 @@ by
   use union_CF_grammar g₁ g₂
   rw [union_CF_grammar_same_language]
 
-  apply Set.eq_of_subSetOf_subset
+  apply Set.Subset.antisymm
   ·
     intros w hyp
     rw [←eq_L₁, ←eq_L₂]
@@ -54,10 +54,10 @@ by
   ·
     intros w hyp
     cases hyp with
-    | case_1 case_1 =>
+    | inl case_1 =>
         rw [←eq_L₁] at case_1
         exact in_union_of_in_L₁ case_1
-    | case_2 case_2 =>
+    | inr case_2 =>
         rw [←eq_L₂] at case_2
         exact in_union_of_in_L₂ case_2
 
