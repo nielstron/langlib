@@ -8,6 +8,7 @@ import Mathlib.Data.Finset.Lattice.Fold
 import Mathlib.Tactic.Linarith
 import Mathlib.Algebra.Group.Pointwise.Set.ListOfFn
 import Grammars.Classes.ContextFree.ClosureProperties.Substitution.Support
+import Grammars.Utilities.LanguageOperations
 
 /-!
 # Context-Free Language Closure Properties
