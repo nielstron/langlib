@@ -241,7 +241,7 @@ theorem unconsumed_input_one (x : List T) :
       · simp at h
         rcases h with h|h
         · obtain ⟨p,β,h⟩ := h
-          have : (v ++ a :: w).length = w.length := by rw [h.2.2.1]
+          have : (v ++ a :: w).length = w.length := by rw [h.1]
           rw [List.length_append,List.length_cons] at this
           linarith
         · assumption
@@ -336,7 +336,7 @@ theorem reaches₁_push {q : Q}{x : List T}{Z : S}{γ : List S}{c : pda.conf}
   rcases x with _ | ⟨a, y⟩
   · right
     simp only [Reaches₁, step] at h
-    obtain ⟨p, β, _, h⟩ := h
+    obtain ⟨p, β, _, h⟩ := Set.mem_setOf.mp h
     use p, β
   · simp only [Reaches₁, step] at h
     rw [Set.mem_union] at h
@@ -356,7 +356,7 @@ theorem split_stack {n : ℕ}{q p : Q}{x : List T}{α β : List S}
   induction' n with n ih generalizing q x α β
   · apply reachesIn_zero at h
     obtain ⟨rfl, rfl, h'⟩ := conf.mk.inj h
-    obtain ⟨rfl, rfl⟩ := List.append_eq_nil.mp h'
+    obtain ⟨rfl, rfl⟩ := List.append_eq_nil_iff.mp h'
     use q, 0, 0, [], []
     simp [ReachesIn.refl]
   · rcases α with _ | ⟨Z, α'⟩
@@ -425,5 +425,3 @@ theorem Reaches.append_stack {x y : List T}{α β: List S}{q p : Q}
     rw [←reaches₁_iff_reachesIn_one] at h₁
     have h₁ := h₁.append_stack γ
     exact Reaches.trans h₁ h₂
-
-end PDA

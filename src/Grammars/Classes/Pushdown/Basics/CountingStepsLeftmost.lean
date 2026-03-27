@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexander Loitzl, Martin Dvorak. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexander Loitzl, Martin Dvorak
+-/
 import Grammars.Classes.Pushdown.Basics.Leftmost
 
 universe uT uN
@@ -179,5 +184,3 @@ theorem derivesLeftmostIn_cons' {n : ℕ}{x : Symbol T g.NT} {v : List (Symbol T
     use w₁', w₂, m₁, m₂, hm₁, hm₂, hu'
     rw [hw₁', hw₂]
     exact h
-
-end ContextFreeGrammar
