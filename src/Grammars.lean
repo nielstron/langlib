@@ -17,7 +17,9 @@ import Grammars.Classes.ContextFree.ClosureProperties.Bijection
 import Grammars.Classes.ContextFree.ClosureProperties.Complement
 import Grammars.Classes.ContextFree.ClosureProperties.Concatenation
 import Grammars.Classes.ContextFree.ClosureProperties.ConcatenationBonus
+import Grammars.Classes.ContextFree.ClosureProperties.ConverseFailures
 import Grammars.Classes.ContextFree.ClosureProperties.Intersection
+import Grammars.Classes.ContextFree.ClosureProperties.IntersectionRegular
 import Grammars.Classes.ContextFree.ClosureProperties.Permutation
 import Grammars.Classes.ContextFree.ClosureProperties.Reverse
 import Grammars.Classes.ContextFree.ClosureProperties.Star
@@ -28,13 +30,16 @@ import Grammars.Classes.ContextFree.Decidability.Emptiness
 import Grammars.Classes.ContextFree.Decidability.Membership
 import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalForm
 import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
+import Grammars.Classes.Regular.Basics.NonRegular
 import Grammars.Classes.Regular.ClosureProperties.Complement
+import Grammars.Classes.Regular.ClosureProperties.ConverseFailures
 import Grammars.Classes.Regular.ClosureProperties.Intersection
 import Grammars.Classes.Regular.ClosureProperties.PrefixSuffix
 import Grammars.Classes.Regular.ClosureProperties.Reverse
 import Grammars.Classes.Regular.ClosureProperties.Union
 import Grammars.Classes.Regular.Decidability.Emptiness
 import Grammars.Classes.Regular.Decidability.Membership
+import Grammars.Classes.Regular.Decidability.Universality
 import Grammars.Classes.ContextSensitive.Basics.Definition
 import Grammars.Classes.ContextSensitive.Basics.Inclusion
 import Grammars.Classes.ContextSensitive.Basics.Toolbox
