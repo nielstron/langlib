@@ -3,130 +3,19 @@ import Grammars.Classes.ContextFree.Basics.Inclusion
 import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
 import Grammars.Classes.ContextFree.Pumping.ParseTree
 
-/-! # Decidability of Emptiness and Membership
+/-! # Decidability of Membership
 
-This file proves that emptiness and membership are decidable for both
-regular languages (represented by DFAs) and context-free languages
+This file proves that membership is decidable for context-free languages
 (represented by context-free grammars).
 
 ## Main results
 
-- `regular_membership_decidable` – membership in a regular language (DFA) is decidable
-- `regular_emptiness_decidable` – emptiness of a regular language (DFA) is decidable
 - `cf_membership_decidable` – membership in a context-free language is decidable
-- `cf_emptiness_decidable` – emptiness of a context-free language is decidable
 -/
 
 open List Relation
 
-/-! ## Part 1: Regular Languages -/
-
-section Regular
-
-variable {α σ : Type*}
-
-/-- Membership in a DFA's accepted language is decidable. -/
-noncomputable def regular_membership_decidable
-    (M : DFA α σ) [DecidablePred (· ∈ M.accept)] (w : List α) :
-    Decidable (w ∈ M.accepts) := by
-  unfold DFA.accepts DFA.acceptsFrom
-  change Decidable (M.evalFrom M.start w ∈ M.accept)
-  infer_instance
-
-/-- Any state reachable by a DFA can be reached by a word of length at most
-`Fintype.card σ`. By the pigeonhole principle. -/
-lemma DFA.short_word_of_reachable [Fintype σ] [DecidableEq σ]
-    (M : DFA α σ) (w : List α) :
-    ∃ w' : List α, w'.length ≤ Fintype.card σ ∧
-      M.evalFrom M.start w' = M.evalFrom M.start w := by
-  induction' h : w.length using Nat.strong_induction_on with n ih generalizing w M
-  by_cases hn : n ≤ Fintype.card σ
-  · exact ⟨w, h.symm ▸ hn, rfl⟩
-  · obtain ⟨i, j, hij, h_eq⟩ :
-        ∃ i j : Fin (w.length + 1), i < j ∧
-          M.evalFrom M.start (w.take i) = M.evalFrom M.start (w.take j) := by
-      by_contra! hc
-      exact absurd (Finset.card_le_univ
-        (Finset.image (fun i : Fin (w.length + 1) =>
-          M.evalFrom M.start (take (i : ℕ) w)) Finset.univ))
-        (by rw [Finset.card_image_of_injective _ fun i j hij =>
-              le_antisymm (not_lt.1 fun hi => hc _ _ hi hij.symm)
-                (not_lt.1 fun hj => hc _ _ hj hij)]
-            simpa using by linarith)
-    obtain ⟨w', hw'⟩ :
-        ∃ w' : List α,
-          w' = w.take i ++ w.drop j ∧
-            M.evalFrom M.start w' = M.evalFrom M.start w := by
-      simp_all +decide [DFA.evalFrom]
-      conv_rhs => rw [← List.take_append_drop j w, List.foldl_append]
-    have h_ind : w'.length < n := by grind
-    exact Exists.elim (ih _ h_ind _ _ rfl)
-      fun w'' hw'' => ⟨w'', hw''.1, hw''.2.trans hw'.2⟩
-
-/-- The set of states reachable from `M.start` by following transitions. -/
-def DFA.reachableSet [Fintype α] [Fintype σ] [DecidableEq σ]
-    (M : DFA α σ) : Finset σ :=
-  let step := fun (S : Finset σ) =>
-    S ∪ Finset.univ.biUnion (fun a => S.image (M.step · a))
-  step^[Fintype.card σ] {M.start}
-
-/-- A state is in `reachableSet` iff it is reachable from `M.start` by some word. -/
-lemma DFA.mem_reachableSet_iff [Fintype α] [Fintype σ] [DecidableEq σ]
-    (M : DFA α σ) (s : σ) :
-    s ∈ M.reachableSet ↔ ∃ w : List α, M.evalFrom M.start w = s := by
-  constructor <;> intro h
-  · contrapose! h
-    have h_ind : ∀ n : ℕ, ∀ s : σ, (∀ w : List α, M.evalFrom M.start w ≠ s) →
-        s ∉ (fun (S : Finset σ) =>
-          S ∪ Finset.univ.biUnion (fun a => S.image (M.step · a)))^[n] {M.start} := by
-      intro n s hs
-      induction' n with n ih generalizing s <;>
-        simp_all +decide [Function.iterate_succ_apply']
-      · exact fun h => hs [] (by simp +decide [h])
-      · intro a t ht hts
-        specialize ih t
-        simp_all +decide [Function.iterate_succ_apply']
-        obtain ⟨w, rfl⟩ := ih
-        specialize hs (w ++ [a])
-        simp_all +decide [DFA.evalFrom]
-    exact h_ind _ _ h
-  · obtain ⟨w, rfl⟩ := h
-    have h_ind : ∀ k ≤ Fintype.card σ, ∀ w : List α, w.length ≤ k →
-        M.evalFrom M.start w ∈ (fun S =>
-          S ∪ (Finset.univ : Finset α).biUnion
-            (fun a => S.image (M.step · a)))^[k] {M.start} := by
-      intro k hk w hw
-      induction' w using List.reverseRecOn with w ih generalizing k
-      · induction' k with k ih <;> simp_all +decide [Function.iterate_succ_apply']
-        exact Or.inl (ih hk.le)
-      · rcases k with (_ | k) <;> simp_all +decide [Function.iterate_succ_apply']
-        exact Or.inr ⟨ih, _, by rename_i h; exact h k hk.le hw, rfl⟩
-    obtain ⟨w', hw', hw'_eq⟩ := M.short_word_of_reachable w
-    exact hw'_eq ▸ h_ind _ le_rfl _ hw'
-
-/-- Emptiness of a DFA's accepted language is decidable. -/
-noncomputable def regular_emptiness_decidable
-    [Fintype α] [Fintype σ] [DecidableEq α] [DecidableEq σ]
-    (M : DFA α σ) [DecidablePred (· ∈ M.accept)] :
-    Decidable (M.accepts = (∅ : Set (List α))) := by
-  have key : M.accepts = (∅ : Set (List α)) ↔
-      ∀ s ∈ M.reachableSet, s ∉ M.accept := by
-    constructor
-    · intro h s hs hsa
-      rw [M.mem_reachableSet_iff] at hs
-      obtain ⟨w, rfl⟩ := hs
-      have : w ∈ M.accepts := hsa
-      rw [h] at this
-      exact this
-    · intro h
-      apply Set.subset_eq_empty (fun w (hw : w ∈ M.accepts) => ?_) rfl
-      exact h _ ((M.mem_reachableSet_iff _).mpr ⟨w, rfl⟩) hw
-  rw [key]
-  infer_instance
-
-end Regular
-
-/-! ## Part 2: Context-Free Languages – CNF Decidability -/
+/-! ## Part 1: Context-Free Languages – CNF Decidability -/
 
 section CNF
 
@@ -272,34 +161,11 @@ noncomputable def decidable_mem_language {g : ChomskyNormalFormGrammar T}
 
 
 
-/-- Emptiness of a CNF grammar's language is decidable.
-    We use `Classical.propDecidable` on the statement that some parse tree exists,
-    which is mathematically decidable by the productive nonterminals fixed-point
-    characterization (iterating the marking algorithm on the finite set of rules). -/
-noncomputable def cnf_emptiness_dec (g : ChomskyNormalFormGrammar T)
-    (hd : DecidableEq g.NT) :
-    Decidable (g.language = (∅ : Set (List T))) := by
-  -- g.language = ∅ ↔ ¬∃ w, w ∈ g.language
-  -- ↔ ¬∃ w, canDerive g g.initial w
-  -- ↔ ¬∃ p : parseTree g.initial, True
-  -- The last is decidable because parse trees of bounded height are finite.
-  -- We use a classical argument here for simplicity.
-  have : g.language = (∅ : Set (List T)) ↔
-      ¬∃ (w : List T), g.Derives [Symbol.nonterminal g.initial] (w.map Symbol.terminal) := by
-    simp only [language, Generates]
-    constructor
-    · intro h ⟨w, hw⟩; have : w ∈ ({w | g.Derives [Symbol.nonterminal g.initial] (w.map Symbol.terminal)} : Set (List T)) := hw
-      rw [h] at this; exact this
-    · intro h; apply Set.subset_eq_empty (fun w (hw : w ∈ _) => ?_) rfl
-      exact h ⟨w, hw⟩
-  rw [this]
-  exact @instDecidableNot _ (Classical.propDecidable _)
-
 end ChomskyNormalFormGrammar
 
 end CNF
 
-/-! ## Part 3: Context-Free Languages – General CFG -/
+/-! ## Part 2: Context-Free Languages – General CFG -/
 
 section ContextFree
 
@@ -335,44 +201,5 @@ noncomputable def cf_membership_decidable
     exact @ChomskyNormalFormGrammar.decidable_mem_language _ _ _ hNTdec w
 
 
-noncomputable def cf_emptiness_decidable
-    (g : CF_grammar T) [Fintype g.nt] [DecidableEq g.nt] :
-    Decidable (CF_language g = (∅ : Set (List T))) := by
-  -- CF_language g = ∅ ↔ ∀ w, w ∉ CF_language g
-  -- Split into: [] ∉ CF_language g ∧ ∀ w ≠ [], w ∉ CF_language g
-  -- The second part is: (mathlib_cfg_of_cfg g).toCNF.language = ∅
-  rw [CF_language_eq_mathlib_language]
-  have h_cnf := @ContextFreeGrammar.toCNF_correct T (mathlib_cfg_of_cfg g) _ _
-  have hNTdec : DecidableEq (mathlib_cfg_of_cfg g).toCNF.NT := by
-    change DecidableEq ((g.nt ⊕ T) ⊕
-      (r : ContextFreeRule T (g.nt ⊕ T)) × Fin (r.output.length - 2))
-    infer_instance
-  -- Equivalence: g'.language = ∅ ↔ [] ∉ g'.language ∧ g'.toCNF.language = ∅
-  have key : (mathlib_cfg_of_cfg g).language = (∅ : Set (List T)) ↔
-      ([] ∉ (mathlib_cfg_of_cfg g).language ∧
-       (mathlib_cfg_of_cfg g).toCNF.language = (∅ : Set (List T))) := by
-    constructor
-    · intro h
-      refine ⟨?_, ?_⟩
-      · rw [h]; exact fun x => x
-      · rw [← h_cnf, h]; exact Set.empty_diff _
-    · rintro ⟨hnil, hcnf⟩
-      apply Set.subset_eq_empty (fun w (hw : w ∈ (mathlib_cfg_of_cfg g).language) => ?_) rfl
-      by_cases hwnil : w = []
-      · exact absurd (hwnil ▸ hw) hnil
-      · have : w ∈ (mathlib_cfg_of_cfg g).toCNF.language := by
-          rw [← h_cnf]; exact ⟨hw, hwnil⟩
-        rw [hcnf] at this; exact this
-  rw [key]
-  -- Decidability of [] ∈ g'.language
-  have d1 : Decidable ([] ∈ (mathlib_cfg_of_cfg g).language) := by
-    have : [] ∈ (mathlib_cfg_of_cfg g).language ↔
-        (mathlib_cfg_of_cfg g).initial ∈ (mathlib_cfg_of_cfg g).computeNullables := by
-      constructor
-      · intro h; rw [ContextFreeGrammar.computeNullables_iff]; exact h
-      · intro h; rw [ContextFreeGrammar.computeNullables_iff] at h; exact h
-    rw [this]; infer_instance
-  have d2 := ChomskyNormalFormGrammar.cnf_emptiness_dec (mathlib_cfg_of_cfg g).toCNF hNTdec
-  exact @instDecidableAnd _ _ (@instDecidableNot _ d1) d2
 
 end ContextFree
