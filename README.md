@@ -133,9 +133,9 @@ files still depend on unfinished placeholders or an axiom-backed statement.
 
 ## Acknowledgements
 
-This repository is partially a Lean 4 port of 
+This repository started as a Lean 4 port of 
 [madvorak/grammars](https://github.com/madvorak/grammars).
-It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_cfg](https://github.com/AlexLoitzl/pumping_cfg/).
+It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_cfg](https://github.com/AlexLoitzl/pumping_cfg/) and the equivalence proof between CFGs and PDAs from [shetzl/autth](https://github.com/shetzl/autth/tree/PDA).
 
 Some of the context-free grammar work is also being upstreamed to Mathlib / CSlib.
 Open PRs by the same author can be found
