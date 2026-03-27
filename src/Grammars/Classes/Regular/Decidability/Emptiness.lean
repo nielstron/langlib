@@ -6,11 +6,11 @@ import Grammars.Classes.ContextFree.Pumping.ParseTree
 /-! # Decidability of Emptiness
 
 This file proves that emptiness is decidable for
-regular languages (represented by DFAs)
+regular languages.
 
 ## Main results
 
-- `regular_emptiness_decidable` – emptiness of a regular language (DFA) is decidable
+- `regular_emptiness_decidable` – emptiness of a regular language is decidable
 -/
 
 open List Relation
@@ -93,7 +93,7 @@ lemma DFA.mem_reachableSet_iff [Fintype α] [Fintype σ] [DecidableEq σ]
     exact hw'_eq ▸ h_ind _ le_rfl _ hw'
 
 /-- Emptiness of a DFA's accepted language is decidable. -/
-noncomputable def regular_emptiness_decidable
+private noncomputable def dfa_emptiness_decidable
     [Fintype α] [Fintype σ] [DecidableEq α] [DecidableEq σ]
     (M : DFA α σ) [DecidablePred (· ∈ M.accept)] :
     Decidable (M.accepts = (∅ : Set (List α))) := by
@@ -111,5 +111,19 @@ noncomputable def regular_emptiness_decidable
       exact h _ ((M.mem_reachableSet_iff _).mpr ⟨w, rfl⟩) hw
   rw [key]
   infer_instance
+
+/-- Emptiness of a regular language is decidable. -/
+noncomputable def regular_emptiness_decidable
+    [Fintype α] [DecidableEq α] (L : Language α) (hL : L.IsRegular) :
+    Decidable (L = (∅ : Set (List α))) := by
+  classical
+  let σ := Classical.choose hL
+  let hσ := Classical.choose_spec hL
+  let _ : Fintype σ := Classical.choose hσ
+  let hσ' := Classical.choose_spec hσ
+  let M : DFA α σ := Classical.choose hσ'
+  let hM : M.accepts = L := Classical.choose_spec hσ'
+  rw [← hM]
+  exact dfa_emptiness_decidable M
 
 end Regular
