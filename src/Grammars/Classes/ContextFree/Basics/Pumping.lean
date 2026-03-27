@@ -1,6 +1,8 @@
 import Grammars.Classes.ContextFree.Basics.Definition
+import Grammars.Classes.ContextFree.Basics.Inclusion
 import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Utilities.ListUtils
+import Grammars.Classes.ContextFree.PumpingCfg.Pumping
 
 open List
 
@@ -135,4 +137,10 @@ lemma CF_pumping {T : Type} {L : Language T} (cf : is_CF L) :
       (∀ i : ℕ, u ++ v ^ i ++ x ++ y ^ i ++ z ∈ L)
   ) :=
 by
-  sorry
+  obtain ⟨n, hn⟩ := Language.IsContextFree.pumping ((is_CF_iff_isContextFree).mp cf)
+  refine ⟨n, ?_⟩
+  intro w hw hwlen
+  obtain ⟨u, v, x, y, z, hsplit, hnonempty, hbound, hpump⟩ := hn w hw hwlen
+  refine ⟨u, v, x, y, z, hsplit, hnonempty, hbound, ?_⟩
+  intro i
+  simpa [n_times, nTimes] using hpump i
