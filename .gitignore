@@ -1,4 +1,5 @@
 .DS_Store
+secret.sh
 *.olean
 /_target
 /leanpkg.path
