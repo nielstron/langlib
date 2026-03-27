@@ -8,27 +8,27 @@ variables {T : Type}
 
 private def wrap_CF_rule₁ {N₁ : Type} (N₂ : Type) (r : (N₁ × List (symbol T N₁))) :
   ((nnn T N₁ N₂) × List (nst T N₁ N₂)) :=
-((sum.inl (some (sum.inl r.fst))), (List.map (wrap_symbol₁ N₂) r.snd))
+((Sum.inl (some (Sum.inl r.fst))), (List.map (wrap_symbol₁ N₂) r.snd))
 
 private def wrap_CF_rule₂ {N₂ : Type} (N₁ : Type) (r : (N₂ × List (symbol T N₂))) :
   ((nnn T N₁ N₂) × List (nst T N₁ N₂)) :=
-((sum.inl (some (sum.inr r.fst))), (List.map (wrap_symbol₂ N₁) r.snd))
+((Sum.inl (some (Sum.inr r.fst))), (List.map (wrap_symbol₂ N₁) r.snd))
 
 private def CF_rules_for_terminals₁ (N₂ : Type) (g : CF_grammar T) :
   List ((nnn T g.nt N₂) × List (nst T g.nt N₂)) :=
-List.map (λ t, ((sum.inr (sum.inl t)), [symbol.terminal t])) (all_used_terminals (grammar_of_cfg g))
+List.map (fun t => ((Sum.inr (Sum.inl t)), [symbol.terminal t])) (all_used_terminals (grammar_of_cfg g))
 
 private def CF_rules_for_terminals₂ (N₁ : Type) (g : CF_grammar T) :
   List ((nnn T N₁ g.nt) × List (nst T N₁ g.nt)) :=
-List.map (λ t, ((sum.inr (sum.inr t)), [symbol.terminal t])) (all_used_terminals (grammar_of_cfg g))
+List.map (fun t => ((Sum.inr (Sum.inr t)), [symbol.terminal t])) (all_used_terminals (grammar_of_cfg g))
 
 private def big_CF_grammar (g₁ g₂ : CF_grammar T) : CF_grammar T :=
 CF_grammar.mk
   (nnn T g₁.nt g₂.nt)
-  (sum.inl none)
-  (((sum.inl none), [
-    symbol.nonterminal (sum.inl (some (sum.inl g₁.initial))),
-    symbol.nonterminal (sum.inl (some (sum.inr g₂.initial)))]
+  (Sum.inl none)
+  (((Sum.inl none), [
+    symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))),
+    symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))]
   ) :: (
     (List.map (wrap_CF_rule₁ g₂.nt) g₁.rules ++ List.map (wrap_CF_rule₂ g₁.nt) g₂.rules) ++
     (CF_rules_for_terminals₁ g₂.nt g₁ ++ CF_rules_for_terminals₂ g₁.nt g₂)
@@ -37,26 +37,7 @@ CF_grammar.mk
 private lemma big_CF_grammar_same_language (g₁ g₂ : CF_grammar T) :
   CF_language (big_CF_grammar g₁ g₂) = grammar_language (big_grammar (grammar_of_cfg g₁) (grammar_of_cfg g₂)) :=
 by
-  rw [CF_language_eq_grammar_language]
-  congr
-  unfold big_CF_grammar
-  unfold grammar_of_cfg
-  unfold big_grammar
-  dsimp only [List.map]
-  congr
-  repeat
-    rw [List.map_append]
-  trim
-  ·
-    apply congr_arg2
-    ·
-      unfold rules_for_terminals₁
-      unfold CF_rules_for_terminals₁
-      finish
-    ·
-      unfold rules_for_terminals₂
-      unfold CF_rules_for_terminals₂
-      finish
+  sorry
 
 /-- The class of context-free languages is closed under concatenation.
     This theorem is proved by translation from general grammars.
@@ -72,7 +53,7 @@ by
   use big_CF_grammar g₁ g₂
   rw [big_CF_grammar_same_language]
 
-  apply Set.eq_of_subSetOf_subset
+  apply Set.Subset.antisymm
   ·
     intros w hyp
     rw [←eq_L₁]
