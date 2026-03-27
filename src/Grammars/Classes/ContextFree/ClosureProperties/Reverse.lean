@@ -13,8 +13,6 @@ This file proves that context-free languages are closed under word reversal.
 - `CF_of_reverse_CF_rev`
 -/
 
-open Grammars
-
 variable {T : Type}
 
 section auxiliary

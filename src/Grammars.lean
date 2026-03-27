@@ -15,7 +15,6 @@ import Grammars.Classes.ContextFree.ClosureProperties.Permutation
 import Grammars.Classes.ContextFree.ClosureProperties.Reverse
 import Grammars.Classes.ContextFree.ClosureProperties.Substitution
 import Grammars.Classes.ContextFree.ClosureProperties.Union
-import Grammars.Classes.Regular.Basics.Pumping
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.Intersection
 import Grammars.Classes.Regular.ClosureProperties.PrefixSuffix

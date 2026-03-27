@@ -12,8 +12,6 @@ This file proves closure of recursively enumerable languages under reversal.
 - `RE_of_reverse_RE`
 -/
 
-open Grammars
-
 variable {T : Type}
 
 section auxiliary

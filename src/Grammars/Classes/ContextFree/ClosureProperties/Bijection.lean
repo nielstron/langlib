@@ -12,8 +12,6 @@ This file proves that context-free languages are preserved under renaming termin
 - `CF_of_bijemap_CF_rev`
 -/
 
-open Grammars
-
 variable {T₁ T₂ N : Type}
 
 private def sT₂_of_sT₁ (π : T₁ ≃ T₂) : (symbol T₁ N) → (symbol T₂ N)
@@ -74,7 +72,7 @@ private lemma map_terminal (π : T₁ ≃ T₂) (w : List T₁) :
 
 /-- The class of context-free languages is closed under bijection between terminal alphabets. -/
 theorem CF_of_bijemap_CF (π : T₁ ≃ T₂) (L : Language T₁) :
-  is_CF L  →  is_CF (bijemapLang L π)  :=
+  is_CF L  →  is_CF (Language.bijemapLang L π)  :=
 by
   rintro ⟨g, hg⟩
 
@@ -86,7 +84,6 @@ by
   apply Set.eq_of_subset_of_subset
   ·
     intro w hw
-    unfold bijemapLang
     change List.map π.symm w ∈ L
     rw [←hg]
 
@@ -133,7 +130,6 @@ by
     convert deri_of_deri
   ·
     intro w hw
-    unfold bijemapLang at hw
     change List.map π.symm w ∈ L at hw
     rw [←hg] at hw
     unfold CF_language at hw
@@ -182,7 +178,7 @@ by
 
 /-- The converse direction of `CF_of_bijemap_CF`, proved directly by transporting a grammar back along the bijection. -/
 theorem CF_of_bijemap_CF_rev (π : T₁ ≃ T₂) (L : Language T₁) :
-  is_CF (bijemapLang L π) → is_CF L := by
+  is_CF (Language.bijemapLang L π) → is_CF L := by
   rintro ⟨g, hg⟩
 
   let g' : CF_grammar T₁ := CF_grammar.mk g.nt g.initial (List.map
@@ -280,7 +276,7 @@ theorem CF_of_bijemap_CF_rev (π : T₁ ≃ T₂) (L : Language T₁) :
 
 /-- A language is context-free iff its image under a bijection of terminal alphabets is context-free. -/
 @[simp] theorem CF_bijemap_iff_CF (π : T₁ ≃ T₂) (L : Language T₁) :
-  is_CF (bijemapLang L π) ↔ is_CF L := by
+  is_CF (Language.bijemapLang L π) ↔ is_CF L := by
   constructor
   · exact CF_of_bijemap_CF_rev π L
   · exact CF_of_bijemap_CF π L

@@ -14,7 +14,6 @@ This file adds regular-language closure results for the prefix and suffix operat
 -/
 
 open List Set Computability
-open Grammars
 
 namespace DFA
 
@@ -65,7 +64,7 @@ theorem IsRegular.prefixLang {L : Language α} (h : L.IsRegular) :
 /-- Regular languages are closed under the suffix operation. -/
 theorem IsRegular.suffixLang {L : Language α} (h : L.IsRegular) :
     (suffixLang L).IsRegular := by
-  rw [Grammars.suffixLang_eq_reverse_prefixLang_reverse]
+  rw [Language.suffixLang_eq_reverse_prefixLang_reverse]
   exact (h.reverse.prefixLang).reverse
 
 end Language
