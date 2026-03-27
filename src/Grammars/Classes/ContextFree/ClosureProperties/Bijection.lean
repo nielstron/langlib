@@ -176,103 +176,11 @@ by
     rw [lsT₂_of_lsT₁, List.map_map] at deri_of_deri
     simpa [map_terminal_symm] using deri_of_deri
 
-/-- The converse direction of `CF_of_bijemap_CF`, proved directly by transporting a grammar back along the bijection. -/
+/-- The converse direction of `CF_of_bijemap_CF`, obtained by applying the forward result to the inverse bijection. -/
 theorem CF_of_bijemap_CF_rev (π : T₁ ≃ T₂) (L : Language T₁) :
   is_CF (Language.bijemapLang L π) → is_CF L := by
-  rintro ⟨g, hg⟩
-
-  let g' : CF_grammar T₁ := CF_grammar.mk g.nt g.initial (List.map
-      (fun r : g.nt × (List (symbol T₂ g.nt)) => (r.fst, lsT₁_of_lsT₂ π r.snd))
-    g.rules)
-  use g'
-
-  apply Set.eq_of_subset_of_subset
-  · intro w hw
-    have hw' : List.map π w ∈ CF_language g := by
-      unfold CF_language at hw ⊢
-      rw [Set.mem_setOf_eq] at hw ⊢
-      unfold CF_generates at hw ⊢
-      unfold CF_generates_str at hw ⊢
-
-      have deri_of_deri :
-        ∀ v : List (symbol T₁ g'.nt),
-          CF_derives g' [symbol.nonterminal g'.initial] v →
-            CF_derives g [symbol.nonterminal g.initial] (lsT₂_of_lsT₁ π v) :=
-      by
-        intro v hv
-        induction hv with
-        | refl =>
-          apply CF_deri_self
-        | tail _ step ih =>
-          apply CF_deri_of_deri_tran
-          · exact ih
-          rcases step with ⟨r, x, y, r_in, bef, aft⟩
-          let r₂ := (r.fst, lsT₂_of_lsT₁ π r.snd)
-          let x₂ := lsT₂_of_lsT₁ π x
-          let y₂ := lsT₂_of_lsT₁ π y
-          use r₂
-          use x₂
-          use y₂
-          constructor
-          ·
-            change (r.fst, lsT₂_of_lsT₁ π r.snd) ∈ g.rules
-            rcases (List.mem_map.1 r_in) with ⟨r', r'_in, r'_eq⟩
-            rcases r' with ⟨a, b⟩
-            cases r'_eq
-            simpa [lsT₂_of_lsT₁_of_lsT₂] using r'_in
-          ·
-            constructor
-            · simp [bef, lsT₂_of_lsT₁, List.map_append, x₂, y₂, r₂, sT₂_of_sT₁]
-            · simp [aft, lsT₂_of_lsT₁, List.map_append, x₂, y₂, r₂, sT₂_of_sT₁]
-      specialize deri_of_deri (List.map symbol.terminal w) hw
-      unfold lsT₂_of_lsT₁ at deri_of_deri
-      rw [List.map_map] at deri_of_deri
-      simpa [map_terminal] using deri_of_deri
-    rw [hg] at hw'
-    change List.map π.symm (List.map π w) ∈ L at hw'
-    simpa [List.map_map] using hw'
-  · intro w hw
-    have hw' : List.map π w ∈ CF_language g := by
-      rw [hg]
-      change List.map π.symm (List.map π w) ∈ L
-      simpa [List.map_map] using hw
-    unfold CF_language at hw' ⊢
-    rw [Set.mem_setOf_eq] at hw' ⊢
-    unfold CF_generates at hw' ⊢
-    unfold CF_generates_str at hw' ⊢
-
-    have deri_of_deri :
-      ∀ v : List (symbol T₂ g.nt),
-        CF_derives g [symbol.nonterminal g.initial] v →
-          CF_derives g' [symbol.nonterminal g'.initial] (lsT₁_of_lsT₂ π v) :=
-    by
-      intro v hv
-      induction hv with
-      | refl =>
-        apply CF_deri_self
-      | tail _ step ih =>
-        apply CF_deri_of_deri_tran
-        · exact ih
-        rcases step with ⟨r, x, y, r_in, bef, aft⟩
-        let r₁ := (r.fst, lsT₁_of_lsT₂ π r.snd)
-        let x₁ := lsT₁_of_lsT₂ π x
-        let y₁ := lsT₁_of_lsT₂ π y
-        use r₁
-        use x₁
-        use y₁
-        constructor
-        ·
-          rw [List.mem_map]
-          refine ⟨r, r_in, ?_⟩
-          rfl
-        ·
-          constructor
-          · simp [bef, lsT₁_of_lsT₂, List.map_append, x₁, y₁, r₁, sT₁_of_sT₂]
-          · simp [aft, lsT₁_of_lsT₂, List.map_append, x₁, y₁, r₁, sT₁_of_sT₂]
-    rw [List.map_map] at hw'
-    specialize deri_of_deri (List.map (symbol.terminal ∘ π) w) hw'
-    rw [lsT₁_of_lsT₂, List.map_map] at deri_of_deri
-    simpa [map_terminal] using deri_of_deri
+  intro h
+  simpa using CF_of_bijemap_CF π.symm (Language.bijemapLang L π) h
 
 /-- A language is context-free iff its image under a bijection of terminal alphabets is context-free. -/
 @[simp] theorem CF_bijemap_iff_CF (π : T₁ ≃ T₂) (L : Language T₁) :
