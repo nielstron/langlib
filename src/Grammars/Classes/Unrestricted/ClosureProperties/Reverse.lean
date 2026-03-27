@@ -105,13 +105,13 @@ end auxiliary
 
 /-- The class of resursively-enumerable languages is closed under reversal. -/
 theorem RE_of_reverse_RE (L : Language T) :
-  is_RE L  →  is_RE (reverseLang L)  :=
+  is_RE L  →  is_RE (L.reverse)  :=
 by
   rintro ⟨g, hgL⟩
   rw [←hgL]
 
   refine ⟨reversal_grammar g, ?_⟩
-  unfold reverseLang
+  unfold Language.reverse
 
   ext w
   constructor

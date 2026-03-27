@@ -37,7 +37,7 @@ section language_operations
 #check            Language.prefixLang
 #check            Language.suffixLang
 #check            Language.prefixLang_prefixLang
-#check            Grammars.suffixLang_eq_reverseLang_prefixLang_reverseLang
+#check            Grammars.suffixLang_eq_reverse_prefixLang_reverse
 
 end language_operations
 

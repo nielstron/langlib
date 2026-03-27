@@ -7,7 +7,6 @@ This file defines basic operations on languages used throughout the closure-prop
 
 ## Main declarations
 
-- `reverseLang_reverseLang`
 - `bijemapLang`
 - `permuteLang`
 -/
@@ -195,42 +194,33 @@ namespace Grammars
 
 variable {T : Type _}
 
-def reverseLang (L : Language T) : Language T :=
-  fun w : List T => w.reverse ∈ L
-
-@[simp] theorem reverseLang_reverseLang (L : Language T) :
-  reverseLang (reverseLang L) = L := by
-  funext w
-  change (w.reverse.reverse ∈ L) = (w ∈ L)
-  simp
-
 def bijemapLang {T' : Type _} (L : Language T) (π : T ≃ T') : Language T' :=
   fun w : List T' => List.map π.symm w ∈ L
 
 def permuteLang (L : Language T) (π : Equiv.Perm T) : Language T :=
   bijemapLang L π
 
-theorem suffixLang_eq_reverseLang_prefixLang_reverseLang (L : Language T) :
-    Language.suffixLang L = reverseLang (Language.prefixLang (reverseLang L)) := by
+theorem suffixLang_eq_reverse_prefixLang_reverse (L : Language T) :
+    Language.suffixLang L = (Language.prefixLang L.reverse).reverse := by
   ext w
   constructor
   · rintro ⟨v, hv⟩
     change ∃ u, (w.reverse ++ u).reverse ∈ L
     exact ⟨v.reverse, by simpa [List.reverse_append] using hv⟩
-  · change w.reverse ∈ Language.prefixLang (reverseLang L) → w ∈ Language.suffixLang L
+  · change w.reverse ∈ Language.prefixLang L.reverse → w ∈ Language.suffixLang L
     rintro ⟨v, hv⟩
     change (w.reverse ++ v).reverse ∈ L at hv
     change ∃ u, u ++ w ∈ L
     exact ⟨v.reverse, by simpa [List.reverse_append] using hv⟩
 
-theorem prefixLang_eq_reverseLang_suffixLang_reverseLang (L : Language T) :
-    Language.prefixLang L = reverseLang (Language.suffixLang (reverseLang L)) := by
+theorem prefixLang_eq_reverse_suffixLang_reverse (L : Language T) :
+    Language.prefixLang L = (Language.suffixLang L.reverse).reverse := by
   ext w
   constructor
   · rintro ⟨v, hv⟩
     change ∃ u, (u ++ w.reverse).reverse ∈ L
     exact ⟨v.reverse, by simpa [List.reverse_append] using hv⟩
-  · change w.reverse ∈ Language.suffixLang (reverseLang L) → w ∈ Language.prefixLang L
+  · change w.reverse ∈ Language.suffixLang L.reverse → w ∈ Language.prefixLang L
     rintro ⟨v, hv⟩
     change (v ++ w.reverse).reverse ∈ L at hv
     change ∃ u, w ++ u ∈ L
