@@ -50,7 +50,6 @@ This repository contains a variety of results about various classes of languages
 #### Normal forms
 
 - [Chomsky normal form grammars](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
-- [Translation to Chomsky normal form](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalFormTranslation.lean)
 
 #### Closure results
 
