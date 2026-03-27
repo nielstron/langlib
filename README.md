@@ -41,6 +41,7 @@ This repository contains a variety of results about various classes of languages
 
 - [Definition](src/Grammars/Classes/ContextFree/Basics/Definition.lean)
 - [Pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean)
+- [Equivalence to PDAs](src/Grammars/Classes/ContextFree/Basics/PDAEquivalence.lean)
 
 #### Examples
 
