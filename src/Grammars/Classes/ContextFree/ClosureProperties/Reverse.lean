@@ -14,14 +14,6 @@ CF_grammar.mk g.nt g.initial (List.map (
     fun r : g.nt × List (symbol T g.nt) => (r.fst, List.reverse r.snd)
   ) g.rules)
 
-private lemma map_reverse_reverse {nt : Type} (rules : List (nt × List (symbol T nt))) :
-  List.map (fun r => (r.fst, r.snd.reverse.reverse)) rules = rules := by
-  induction rules with
-  | nil => rfl
-  | cons h t ih =>
-    cases h
-    simp [List.reverse_reverse, ih]
-
 private lemma map_reverse_reverse_comp {nt : Type} (rules : List (nt × List (symbol T nt))) :
   List.map ((fun r => (r.1, r.2.reverse)) ∘ fun r => (r.1, r.2.reverse)) rules = rules := by
   induction rules with
@@ -97,16 +89,21 @@ by
   ·
     intro w hwL
     change w.reverse ∈ CF_language g at hwL
+    rw [←dual_of_reversal_grammar g] at hwL
+    have finished_modulo_reverses := reversed_word_in_original_language hwL
+    simpa using finished_modulo_reverses
 
-    have pre_reversal : ∃ g₀, g = reversal_grammar g₀
-    {
-      use reversal_grammar g
-      rw [dual_of_reversal_grammar]
-    }
-    cases pre_reversal with
-    | intro g₀ pre_rev =>
-      rw [pre_rev] at hwL ⊢
-      have finished_modulo_reverses := reversed_word_in_original_language hwL
-      rw [dual_of_reversal_grammar]
-      rw [List.reverse_reverse] at finished_modulo_reverses
-      exact finished_modulo_reverses
+/-- The converse direction of `CF_of_reverse_CF`, using that reversal is an involution. -/
+theorem CF_of_reverse_CF_rev (L : Language T) :
+  is_CF (reverseLang L) → is_CF L := by
+  intro h
+  have h' := CF_of_reverse_CF (reverseLang L) h
+  rw [reverseLang_reverseLang] at h'
+  exact h'
+
+/-- A language is context-free iff its reversal is context-free. -/
+@[simp] theorem CF_reverse_iff_CF (L : Language T) :
+  is_CF (reverseLang L) ↔ is_CF L := by
+  constructor
+  · exact CF_of_reverse_CF_rev L
+  · exact CF_of_reverse_CF L
