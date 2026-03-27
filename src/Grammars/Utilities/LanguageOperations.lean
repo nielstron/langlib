@@ -196,6 +196,12 @@ def bijemapLang {T' : Type _} (L : Language T) (π : T ≃ T') : Language T' :=
 def permuteLang (L : Language T) (π : Equiv.Perm T) : Language T :=
   bijemapLang L π
 
+@[simp] theorem bijemapLang_symm_bijemapLang (L : Language T) (π : T ≃ T') :
+    bijemapLang (bijemapLang L π) π.symm = L := by
+  ext w
+  change List.map π.symm (List.map π w) ∈ L ↔ w ∈ L
+  simp [List.map_map]
+
 theorem suffixLang_eq_reverse_prefixLang_reverse (L : Language T) :
     suffixLang L = (prefixLang L.reverse).reverse := by
   ext w
