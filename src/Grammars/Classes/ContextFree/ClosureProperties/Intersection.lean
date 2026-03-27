@@ -721,7 +721,7 @@ private def permut : Equiv.Perm (Fin 3) := Equiv.mk
     fin_cases x <;> rfl)
 
 private lemma CF_lang_aux_bc : is_CF lang_aux_bc := by
-  have permuted : lang_aux_bc = Grammars.permuteLang lang_aux_ab permut := by
+  have permuted : lang_aux_bc = Language.permuteLang lang_aux_ab permut := by
     have psb : permut.symm b_ = a_ := by decide
     have psc : permut.symm c_ = b_ := by decide
     have pa : permut a_ = b_ := by decide
