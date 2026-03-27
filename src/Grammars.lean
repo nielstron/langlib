@@ -10,11 +10,14 @@ import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Classes.ContextFree.ClosureProperties.Bijection
 import Grammars.Classes.ContextFree.ClosureProperties.Complement
 import Grammars.Classes.ContextFree.ClosureProperties.Concatenation
+import Grammars.Classes.ContextFree.ClosureProperties.ConcatenationBonus
 import Grammars.Classes.ContextFree.ClosureProperties.Intersection
 import Grammars.Classes.ContextFree.ClosureProperties.Permutation
 import Grammars.Classes.ContextFree.ClosureProperties.Reverse
+import Grammars.Classes.ContextFree.ClosureProperties.Star
 import Grammars.Classes.ContextFree.ClosureProperties.Substitution
 import Grammars.Classes.ContextFree.ClosureProperties.Union
+import Grammars.Classes.ContextFree.ClosureProperties.UnionBonus
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.Intersection
 import Grammars.Classes.Regular.ClosureProperties.PrefixSuffix
