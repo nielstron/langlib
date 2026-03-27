@@ -24,6 +24,8 @@ import Grammars.Classes.ContextFree.ClosureProperties.Star
 import Grammars.Classes.ContextFree.ClosureProperties.Substitution
 import Grammars.Classes.ContextFree.ClosureProperties.Union
 import Grammars.Classes.ContextFree.ClosureProperties.UnionBonus
+import Grammars.Classes.ContextFree.Decidability.Emptiness
+import Grammars.Classes.ContextFree.Decidability.Membership
 import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalForm
 import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
 import Grammars.Classes.Regular.ClosureProperties.Complement
@@ -31,6 +33,8 @@ import Grammars.Classes.Regular.ClosureProperties.Intersection
 import Grammars.Classes.Regular.ClosureProperties.PrefixSuffix
 import Grammars.Classes.Regular.ClosureProperties.Reverse
 import Grammars.Classes.Regular.ClosureProperties.Union
+import Grammars.Classes.Regular.Decidability.Emptiness
+import Grammars.Classes.Regular.Decidability.Membership
 import Grammars.Classes.ContextSensitive.Basics.Definition
 import Grammars.Classes.ContextSensitive.Basics.Inclusion
 import Grammars.Classes.ContextSensitive.Basics.Toolbox
