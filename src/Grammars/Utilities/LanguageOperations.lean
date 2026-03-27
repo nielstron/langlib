@@ -99,6 +99,96 @@ theorem subst_univ_unit_eq_kstar {β : Type} (f : Unit → Language β) :
         simpa [List.replicate_succ, List.prod_cons, List.prod_nil, mul_one] using
           (Set.mem_image2_of_mem (List.forall_mem_cons.mp hL).1 ih'.2)
 
+/-- The prefix language of `L` consists of all words that can be extended on the right to a word
+in `L`. -/
+def prefixLang (L : Language α) : Language α :=
+  { w | ∃ v : List α, w ++ v ∈ L }
+
+@[simp] theorem mem_prefixLang {L : Language α} {w : List α} :
+    w ∈ prefixLang L ↔ ∃ v : List α, w ++ v ∈ L :=
+  Iff.rfl
+
+theorem subset_prefixLang (L : Language α) : L ≤ prefixLang L := by
+  intro w hw
+  exact ⟨[], by simpa⟩
+
+theorem nil_mem_prefixLang {L : Language α} (h : ∃ w, w ∈ L) :
+    [] ∈ prefixLang L := by
+  obtain ⟨w, hw⟩ := h
+  exact ⟨w, by simpa⟩
+
+theorem prefixLang_mono {L₁ L₂ : Language α} (h : L₁ ≤ L₂) :
+    prefixLang L₁ ≤ prefixLang L₂ := by
+  intro w hw
+  rcases hw with ⟨v, hv⟩
+  exact ⟨v, h hv⟩
+
+@[simp] theorem prefixLang_zero : prefixLang (0 : Language α) = 0 := by
+  ext w
+  constructor
+  · rintro ⟨v, hv⟩
+    simp at hv
+  · intro hw
+    simp at hw
+
+@[simp] theorem prefixLang_add (L₁ L₂ : Language α) :
+    prefixLang (L₁ + L₂) = prefixLang L₁ + prefixLang L₂ := by
+  ext w
+  constructor
+  · rintro ⟨v, hv | hv⟩
+    · exact Or.inl ⟨v, hv⟩
+    · exact Or.inr ⟨v, hv⟩
+  · rintro (⟨v, hv⟩ | ⟨v, hv⟩)
+    · exact ⟨v, Or.inl hv⟩
+    · exact ⟨v, Or.inr hv⟩
+
+theorem prefixLang_prefixLang (L : Language α) :
+    prefixLang (prefixLang L) = prefixLang L := by
+  ext w
+  constructor
+  · rintro ⟨v, u, hu⟩
+    exact ⟨v ++ u, by simpa [List.append_assoc] using hu⟩
+  · rintro ⟨v, hv⟩
+    exact ⟨[], v, by simpa using hv⟩
+
+/-- The suffix language of `L` consists of all words that can be extended on the left to a word in
+`L`. -/
+def suffixLang (L : Language α) : Language α :=
+  { w | ∃ v : List α, v ++ w ∈ L }
+
+@[simp] theorem mem_suffixLang {L : Language α} {w : List α} :
+    w ∈ suffixLang L ↔ ∃ v : List α, v ++ w ∈ L :=
+  Iff.rfl
+
+theorem subset_suffixLang (L : Language α) : L ≤ suffixLang L := by
+  intro w hw
+  exact ⟨[], by simpa⟩
+
+theorem suffixLang_mono {L₁ L₂ : Language α} (h : L₁ ≤ L₂) :
+    suffixLang L₁ ≤ suffixLang L₂ := by
+  intro w hw
+  rcases hw with ⟨v, hv⟩
+  exact ⟨v, h hv⟩
+
+@[simp] theorem suffixLang_zero : suffixLang (0 : Language α) = 0 := by
+  ext w
+  constructor
+  · rintro ⟨v, hv⟩
+    simp at hv
+  · intro hw
+    simp at hw
+
+@[simp] theorem suffixLang_add (L₁ L₂ : Language α) :
+    suffixLang (L₁ + L₂) = suffixLang L₁ + suffixLang L₂ := by
+  ext w
+  constructor
+  · rintro ⟨v, hv | hv⟩
+    · exact Or.inl ⟨v, hv⟩
+    · exact Or.inr ⟨v, hv⟩
+  · rintro (⟨v, hv⟩ | ⟨v, hv⟩)
+    · exact ⟨v, Or.inl hv⟩
+    · exact ⟨v, Or.inr hv⟩
+
 end Language
 
 namespace Grammars
@@ -119,5 +209,31 @@ def bijemapLang {T' : Type _} (L : Language T) (π : T ≃ T') : Language T' :=
 
 def permuteLang (L : Language T) (π : Equiv.Perm T) : Language T :=
   bijemapLang L π
+
+theorem suffixLang_eq_reverseLang_prefixLang_reverseLang (L : Language T) :
+    Language.suffixLang L = reverseLang (Language.prefixLang (reverseLang L)) := by
+  ext w
+  constructor
+  · rintro ⟨v, hv⟩
+    change ∃ u, (w.reverse ++ u).reverse ∈ L
+    exact ⟨v.reverse, by simpa [List.reverse_append] using hv⟩
+  · change w.reverse ∈ Language.prefixLang (reverseLang L) → w ∈ Language.suffixLang L
+    rintro ⟨v, hv⟩
+    change (w.reverse ++ v).reverse ∈ L at hv
+    change ∃ u, u ++ w ∈ L
+    exact ⟨v.reverse, by simpa [List.reverse_append] using hv⟩
+
+theorem prefixLang_eq_reverseLang_suffixLang_reverseLang (L : Language T) :
+    Language.prefixLang L = reverseLang (Language.suffixLang (reverseLang L)) := by
+  ext w
+  constructor
+  · rintro ⟨v, hv⟩
+    change ∃ u, (u ++ w.reverse).reverse ∈ L
+    exact ⟨v.reverse, by simpa [List.reverse_append] using hv⟩
+  · change w.reverse ∈ Language.suffixLang (reverseLang L) → w ∈ Language.prefixLang L
+    rintro ⟨v, hv⟩
+    change (v ++ w.reverse).reverse ∈ L at hv
+    change ∃ u, w ++ u ∈ L
+    exact ⟨v.reverse, by simpa [List.reverse_append] using hv⟩
 
 end Grammars
