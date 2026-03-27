@@ -12,6 +12,16 @@ import Grammars.Classes.ContextFree.PumpingCfg.TerminalRestriction
 import Grammars.Classes.ContextFree.PumpingCfg.LengthRestriction
 
 
+/-! # Translation to Chomsky Normal Form
+
+This file assembles the elimination passes into a correctness proof for the full CNF translation.
+
+## Main declarations
+
+- `toCFG_correct`
+- `toCNF_correct`
+-/
+
 universe uN uT
 
 variable {T : Type uT}

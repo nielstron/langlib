@@ -2,6 +2,16 @@ import Grammars.Classes.Unrestricted.Basics.Toolbox
 import Grammars.Utilities.ListUtils
 
 
+/-! # Unrestricted Lifting
+
+This file lifts unrestricted grammars across embeddings of nonterminal types.
+
+## Main declarations
+
+- `lift_deri_`
+- `sink_deri_`
+-/
+
 section functions_lift_sink
 
 variable {T N₀ N : Type}

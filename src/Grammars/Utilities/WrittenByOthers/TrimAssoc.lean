@@ -1,5 +1,14 @@
 import Mathlib.Tactic
 
+/-! # Trim Tactic Compatibility
+
+This file provides a lightweight compatibility tactic for normalizing associative expressions.
+
+## Main declarations
+
+- `trim`
+-/
+
 open Lean Elab Tactic
 
 /--

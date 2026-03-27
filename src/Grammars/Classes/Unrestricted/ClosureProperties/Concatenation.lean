@@ -1,6 +1,18 @@
 import Grammars.Classes.Unrestricted.Basics.Toolbox
 import Grammars.Utilities.ListUtils
 
+/-! # RE Closure Under Concatenation
+
+This file constructs an unrestricted grammar for the concatenation of two recursively enumerable languages.
+
+## Main declarations
+
+- `big_grammar`
+- `in_big_of_in_concatenated`
+- `in_concatenated_of_in_big`
+- `RE_of_RE_c_RE`
+-/
+
 -- removed duplicate List.nthLe (already defined in ListUtils)
 
 

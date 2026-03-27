@@ -1,5 +1,16 @@
 import Grammars.Classes.ContextSensitive.Basics.Definition
 
+/-! # Context-Sensitive Derivation Toolbox
+
+This file provides elementary lemmas for context-sensitive derivations.
+
+## Main declarations
+
+- `CS_deri_self`
+- `CS_deri_of_deri_deri`
+- `CS_tran_or_id_of_deri`
+-/
+
 open Relation
 
 variable {T : Type} {g : CS_grammar T}

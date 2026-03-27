@@ -12,6 +12,23 @@ import Grammars.Classes.Unrestricted.ClosureProperties.Star
 import Grammars.Utilities.WrittenByOthers.PrintSorries
 
 
+/-! # Closure Theorem Checks
+
+This file checks that the main closure and non-closure theorems elaborate.
+
+## Main declarations
+
+- `CF_of_CF_u_CF`
+- `CF_of_reverse_CF`
+- `CF_of_CF_c_CF`
+- `nnyCF_of_CF_i_CF`
+- `nnyCF_of_complement_CF`
+- `RE_of_RE_u_RE`
+- `RE_of_reverse_RE`
+- `RE_of_RE_c_RE`
+- `RE_of_star_RE`
+-/
+
 section context_free
 
 #check            CF_of_CF_u_CF

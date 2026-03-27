@@ -33,3 +33,12 @@ import Grammars.Utilities.ListUtils
 import Grammars.Utilities.WrittenByOthers.ListTakeJoin
 import Grammars.Utilities.WrittenByOthers.PrintSorries
 import Grammars.Utilities.WrittenByOthers.TrimAssoc
+/-! # Grammars Library
+
+This file is the import hub for the `Grammars` library.
+
+## Main declarations
+
+- Imports the context-free, context-sensitive, and unrestricted grammar developments.
+-/
+

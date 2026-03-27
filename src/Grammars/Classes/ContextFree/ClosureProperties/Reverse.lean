@@ -3,6 +3,16 @@ import Grammars.Utilities.LanguageOperations
 import Grammars.Utilities.ListUtils
 
 
+/-! # Context-Free Closure Under Reversal
+
+This file proves that context-free languages are closed under word reversal.
+
+## Main declarations
+
+- `CF_of_reverse_CF`
+- `CF_of_reverse_CF_rev`
+-/
+
 open Grammars
 
 variable {T : Type}

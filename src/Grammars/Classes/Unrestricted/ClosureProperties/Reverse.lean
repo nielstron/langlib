@@ -3,6 +3,15 @@ import Grammars.Utilities.LanguageOperations
 import Grammars.Utilities.ListUtils
 
 
+/-! # RE Closure Under Reversal
+
+This file proves closure of recursively enumerable languages under reversal.
+
+## Main declarations
+
+- `RE_of_reverse_RE`
+-/
+
 open Grammars
 
 variable {T : Type}

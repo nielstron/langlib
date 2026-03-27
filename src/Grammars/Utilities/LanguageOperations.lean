@@ -1,5 +1,16 @@
 import Mathlib.Computability.Language
 
+/-! # Language Operations
+
+This file defines basic operations on languages used throughout the closure-property proofs.
+
+## Main declarations
+
+- `reverseLang_reverseLang`
+- `bijemapLang`
+- `permuteLang`
+-/
+
 open scoped Classical
 
 namespace Grammars

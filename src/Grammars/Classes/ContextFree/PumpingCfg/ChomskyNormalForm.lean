@@ -6,6 +6,17 @@ Authors: Alexander Loitzl, Martin Dvorak
 
 import Mathlib.Computability.ContextFreeGrammar
 
+/-! # Chomsky Normal Form Grammars
+
+This file defines Chomsky-normal-form grammars and their derivation semantics.
+
+## Main declarations
+
+- `rewrites_iff`
+- `mem_language_iff`
+- `Derives.head_induction_on`
+-/
+
 /-- Rule that rewrites a single nonterminal to a single terminal or a pair of nonterminals. -/
 inductive ChomskyNormalFormRule.{uT,uN} (T : Type uT) (N : Type uN)
   /-- First kind of rule, rewriting a nonterminal `n` to a single terminal `t`. -/

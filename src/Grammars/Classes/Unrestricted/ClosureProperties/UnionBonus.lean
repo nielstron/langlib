@@ -3,6 +3,16 @@ import Grammars.Classes.Unrestricted.ClosureProperties.Union
 import Grammars.Utilities.WrittenByOthers.PrintSorries
 
 
+/-! # Auxiliary CFG-to-RE Union Construction
+
+This file records an alternate union proof for context-free languages via unrestricted grammars.
+
+## Main declarations
+
+- `union_CF_grammar_same_language`
+- `bonus_CF_of_CF_u_CF`
+-/
+
 variables {T : Type}
 
 private def lift_CF_rule₁ {N₁ : Type} (N₂ : Type) (r : (N₁ × List (symbol T N₁))) :

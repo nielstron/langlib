@@ -1,6 +1,17 @@
 import Grammars.Classes.Unrestricted.Basics.Definition
 
 
+/-! # Kuroda Normal Form Skeleton
+
+This file defines Kuroda grammars and states existence of a Kuroda presentation for every recursively enumerable language.
+
+## Main declarations
+
+- `grule_of_kuroda_rule`
+- `grammar_of_kuroda_grammar`
+- `kuroda_grammar_always_exists`
+-/
+
 /-- Transformation rule for a grammar in the Kuroda normal form. -/
 inductive kuroda_rule (T : Type) (N : Type) : Type where
   | two_two (A B C D : N)   : kuroda_rule T N

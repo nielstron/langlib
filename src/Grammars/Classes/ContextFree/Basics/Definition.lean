@@ -1,6 +1,19 @@
 import Grammars.Classes.ContextSensitive.Basics.Definition
 
 
+/-! # Context-Free Grammar Definitions
+
+This file defines context-free grammars, their derivation relation, and the induced language predicate.
+
+## Main declarations
+
+- `CF_grammar`
+- `CF_transforms`
+- `CF_derives`
+- `CF_language`
+- `is_CF`
+-/
+
 /-- Context-free grammar that generates words over the alphabet `T` (a type of terminals). -/
 structure CF_grammar (T : Type) where
 (nt : Type)                                -- type of nonterminals

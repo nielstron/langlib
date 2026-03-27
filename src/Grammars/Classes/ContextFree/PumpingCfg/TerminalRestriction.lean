@@ -9,6 +9,15 @@ import Grammars.Classes.ContextFree.PumpingCfg.Utils
 import Grammars.Classes.ContextFree.PumpingCfg.EpsilonElimination
 import Grammars.Classes.ContextFree.PumpingCfg.UnitElimination
 
+/-! # Terminal Restriction for CFGs
+
+This file replaces long mixed right-hand sides by rules that isolate terminals in preparation for Chomsky normal form.
+
+## Main declarations
+
+- `restrictTerminals_correct`
+-/
+
 universe uN
 variable {T : Type}
 

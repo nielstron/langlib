@@ -1,5 +1,16 @@
 import Grammars.Classes.ContextFree.Basics.Definition
 
+/-! # Context-Free Derivation Toolbox
+
+This file provides basic closure lemmas for the derivation relation of a context-free grammar.
+
+## Main declarations
+
+- `CF_deri_self`
+- `CF_deri_of_deri_deri`
+- `CF_deri_with_prefix_and_postfix`
+-/
+
 variable {T : Type} {g : CF_grammar T}
 
 

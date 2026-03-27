@@ -4,6 +4,18 @@ import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Utilities.ListUtils
 import Grammars.Classes.ContextFree.PumpingCfg.Pumping
 
+/-! # Elementary Pumping Lemmas
+
+This file proves the project's original pumping-lemma machinery for context-free languages.
+
+## Main declarations
+
+- `iterate_loop`
+- `pump_loop`
+- `extract_terminals`
+- `CF_pumping`
+-/
+
 open List
 
 variable {T : Type}

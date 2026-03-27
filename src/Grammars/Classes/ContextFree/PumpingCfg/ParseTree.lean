@@ -8,6 +8,18 @@ import Grammars.Classes.ContextFree.PumpingCfg.ChomskyNormalForm
 import Grammars.Classes.ContextFree.PumpingCfg.ChomskyCountingSteps
 import Grammars.Classes.ContextFree.PumpingCfg.toMathlib
 
+/-! # Parse Trees for Chomsky Grammars
+
+This file defines parse trees and proves the basic height and yield lemmas used in the pumping argument.
+
+## Main declarations
+
+- `yield_derives`
+- `yield_length_le_two_pow_height`
+- `subtree_height`
+- `Derives.yield`
+-/
+
 universe uN uT
 
 variable {T : Type uT}

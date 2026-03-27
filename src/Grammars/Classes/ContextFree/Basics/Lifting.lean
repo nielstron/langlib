@@ -2,6 +2,18 @@ import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Utilities.ListUtils
 
 
+/-! # Context-Free Lifting
+
+This file lifts context-free grammars across embeddings of nonterminal types and supplies reusable sum-type constructions.
+
+## Main declarations
+
+- `lift_deri`
+- `sink_deri`
+- `rule_of_rule₁`
+- `rule_of_rule₂`
+-/
+
 variable {T : Type}
 
 def lift_symbol {N₀ N : Type} (lift_N : N₀ → N) : symbol T N₀ → symbol T N

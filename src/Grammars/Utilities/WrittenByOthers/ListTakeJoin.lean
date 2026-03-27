@@ -3,6 +3,15 @@
 
 import Mathlib.Tactic
 
+/-! # List Take/Join Lemma
+
+This file packages a reusable list lemma imported from an external public-domain source.
+
+## Main declarations
+
+- `take_join_of_lt`
+-/
+
 open Lean Elab Tactic
 
 namespace List

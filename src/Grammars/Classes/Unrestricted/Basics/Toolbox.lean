@@ -1,5 +1,16 @@
 import Grammars.Classes.Unrestricted.Basics.Definition
 
+/-! # Unrestricted Derivation Toolbox
+
+This file provides basic lemmas for unrestricted derivations and terminal bookkeeping.
+
+## Main declarations
+
+- `grammar_deri_self`
+- `grammar_deri_with_prefix`
+- `all_used_terminals`
+-/
+
 open Relation
 
 variable {T : Type} {g : grammar T}

@@ -1,5 +1,18 @@
 import Mathlib.Tactic
 
+/-! # List Utilities
+
+This file collects list lemmas and auxiliary definitions used in grammar constructions and derivation arguments.
+
+## Main declarations
+
+- `count_in_flatten`
+- `mem_iff_nth_le`
+- `nth_take`
+- `nth_drop`
+- `nth_append`
+-/
+
 open Lean Elab Tactic
 
 macro "in_list_explicit" : tactic =>

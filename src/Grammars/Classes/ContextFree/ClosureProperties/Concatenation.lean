@@ -4,6 +4,17 @@ import Grammars.Utilities.WrittenByOthers.TrimAssoc
 import Grammars.Utilities.ListUtils
 
 
+/-! # Context-Free Closure Under Concatenation
+
+This file constructs a context-free grammar for the concatenation of two context-free languages.
+
+## Main declarations
+
+- `combined_rule_of_rule₁`
+- `combined_rule_of_rule₂`
+- `CF_of_CF_c_CF`
+-/
+
 variable {T : Type}
 
 private def combined_grammar (gₗ gᵣ : CF_grammar T) : CF_grammar T :=

@@ -1,6 +1,19 @@
 import Mathlib.Computability.Language
 import Mathlib.Logic.Relation
 
+/-! # Unrestricted Grammar Definitions
+
+This file defines unrestricted grammars, their derivations, and recursively enumerable languages.
+
+## Main declarations
+
+- `symbol`
+- `grammar`
+- `grammar_derives`
+- `grammar_language`
+- `is_RE`
+-/
+
 open Relation
 
 /-- The type of symbols is the disjoint union of terminals and nonterminals. -/

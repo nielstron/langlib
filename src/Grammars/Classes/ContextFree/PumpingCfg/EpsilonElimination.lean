@@ -8,6 +8,16 @@ import Mathlib.Computability.ContextFreeGrammar
 import Grammars.Classes.ContextFree.PumpingCfg.Utils
 import Grammars.Classes.ContextFree.PumpingCfg.CountingSteps
 
+/-! # Epsilon Elimination for CFGs
+
+This file computes nullable nonterminals and removes empty productions while preserving the nonempty part of the language.
+
+## Main declarations
+
+- `computeNullables_iff`
+- `eliminateEmpty_correct`
+-/
+
 namespace ContextFreeRule
 universe uT uN
 

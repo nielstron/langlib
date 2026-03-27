@@ -9,6 +9,18 @@ import Grammars.Classes.ContextFree.PumpingCfg.Utils
 import Grammars.Classes.ContextFree.PumpingCfg.ParseTree
 import Mathlib.Data.Set.Card
 
+/-! # Pumping Lemma via Chomsky Normal Form
+
+This file proves the pumping lemma for context-free languages using parse trees for Chomsky-normal-form grammars.
+
+## Main declarations
+
+- `pidgeonhole`
+- `subtree_repeat_root_height`
+- `pumping`
+- `Language.IsContextFree.pumping`
+-/
+
 /-!
 # Pumping Lemma for Context-Free Grammars
 

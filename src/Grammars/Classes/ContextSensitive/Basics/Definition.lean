@@ -1,6 +1,19 @@
 import Grammars.Classes.Unrestricted.Basics.Definition
 
 
+/-! # Context-Sensitive Grammar Definitions
+
+This file defines context-sensitive grammars, their derivations, and the induced language predicate.
+
+## Main declarations
+
+- `csrule`
+- `CS_grammar`
+- `CS_transforms`
+- `CS_language`
+- `is_CS`
+-/
+
 /-- Transformation rule for a context-sensitive grammar. -/
 structure csrule (T : Type) (N : Type) :=
 (context_left : List (symbol T N))

@@ -1,5 +1,14 @@
 import Grammars.Classes.ContextFree.ClosureProperties.Bijection
 
+/-! # Context-Free Closure Under Permutations
+
+This file specializes bijective terminal renaming to permutations of a fixed alphabet.
+
+## Main declarations
+
+- `CF_of_permute_CF`
+-/
+
 open Grammars
 
 
