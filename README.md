@@ -1,55 +1,122 @@
-# Grammars formally in Lean
+# Lean4 Formal Grammar Library
+[![CI](https://github.com/nielstron/grammars4/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/grammars4/actions/workflows/build.yml)
 
 ## Instructions
 
-In order to install Lean 4, follow the [manual](https://leanprover-community.github.io/get_started.html).
+To install Lean 4, follow the [Lean community manual](https://leanprover-community.github.io/get_started.html).
 
-In order to download this project, run `git clone https://github.com/nielstron/grammars4` in your Unix-like command line.
+To download this project, run:
 
-In order to check that the proofs are correct, run `lake build` from the root directory of this project.
+```sh
+git clone https://github.com/nielstron/grammars4
+```
+
+To check the library and tests, run:
+
+```sh
+lake build
+```
 
 ## Overview
 
-> This project is WIP translation of https://github.com/madvorak/grammars, not everything has been ported to Lean 4 yet. Check the status of the build for details: [![CI](https://github.com/nielstron/grammars4/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/grammars4/actions/workflows/build.yml)
+This repository contains a variety of results about various classes of languages in the Chomsky hierarchy.
 
-> The Context Free part of the proofs, in particular regarding closure under mapping, union and concatenation are being merged into Mathlib / CSlib. You find the corresponding PRs [here](https://github.com/leanprover-community/mathlib4/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen+author%3Anielstron+ContextFreeGrammar)
+### Regular languages
 
-Below you find what has been completed so far.
+#### Basics
+
+- [Non-regular language (`anbn`)](src/Grammars/Classes/Regular/Basics/NonRegular.lean)
+
+#### Closure results
+
+- [Union](src/Grammars/Classes/Regular/ClosureProperties/Union.lean)
+- [Intersection](src/Grammars/Classes/Regular/ClosureProperties/Intersection.lean)
+- [Complement](src/Grammars/Classes/Regular/ClosureProperties/Complement.lean)
+- [Reversal](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean)
+- [Prefix and suffix](src/Grammars/Classes/Regular/ClosureProperties/PrefixSuffix.lean)
 
 ### Context-free grammars
 
-[Definition](src/Grammars/Classes/ContextFree/Basics/Definition.lean)
+#### Basics
 
-[Example](test/Grammars/Test/DemoContextFree.lean)
+- [Definition](src/Grammars/Classes/ContextFree/Basics/Definition.lean)
+- [Pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean)
 
-[Closure under union](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean)
+#### Examples
 
-[Closure under reversal](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean)
+- [Demo grammar and language equality](test/Grammars/Test/DemoContextFree.lean)
 
-[Closure under concatenation](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean)
+#### Closure results
 
-[Pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean)
+- [Substitution](src/Grammars/Classes/ContextFree/ClosureProperties/Substitution.lean)
+- [Union](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean)
+- [Concatenation](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean)
+- [Kleene star](src/Grammars/Classes/ContextFree/ClosureProperties/Star.lean)
+- [Reversal](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean)
+- [Terminal bijections](src/Grammars/Classes/ContextFree/ClosureProperties/Bijection.lean)
+- [Terminal permutations](src/Grammars/Classes/ContextFree/ClosureProperties/Permutation.lean)
 
-[Non-closure under intersection](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean)
+#### Non-closure results
 
-[Non-closure under complement](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean)
+- [Intersection](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean)
+- [Complement](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean)
 
 ### Context-sensitive grammars
 
-[Example](test/Grammars/Test/DemoContextSensitive.lean)
+#### Basics
 
-### Unrestricted grammars
+- [Definition](src/Grammars/Classes/ContextSensitive/Basics/Definition.lean)
 
-(a.k.a. general grammars, a.k.a. type-0 grammars, a.k.a. recursively-enumerable grammars, a.k.a. phrase-structure grammars, a.k.a. grammars)
+#### Examples
 
-[Definition](src/Grammars/Classes/Unrestricted/Basics/Definition.lean)
+- [Demo grammar](test/Grammars/Test/DemoContextSensitive.lean)
 
-[Example](test/Grammars/Test/DemoUnrestricted.lean)
+#### Closure results
 
-[Closure under union](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean)
+- [Concatenation](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean)
 
-[Closure under reversal](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean)
+### Unrestricted grammars / recursively enumerable languages
 
-[Closure under concatenation](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean)
+#### Basics
 
-[Closure under Kleene star](src/Grammars/Classes/Unrestricted/ClosureProperties/Star.lean)
+- [Definition](src/Grammars/Classes/Unrestricted/Basics/Definition.lean)
+
+#### Examples
+
+- [Demo grammar](test/Grammars/Test/DemoUnrestricted.lean)
+
+#### Closure results
+
+- [Union](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean)
+- [Reversal](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean)
+- [Concatenation](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean)
+- [Kleene star](src/Grammars/Classes/Unrestricted/ClosureProperties/Star.lean)
+
+#### Normal forms
+
+- [Kuroda normal form](src/Grammars/Classes/Unrestricted/NormalForms/Kuroda.lean)
+
+## Checked statement summary
+
+[`test/Grammars/Test/Results.lean`](test/Grammars/Test/Results.lean) currently checks the presence of these major named statements:
+
+- Regular-language operations `prefixLang`, `suffixLang`, and their regularity theorems
+- Regular closure under reversal, union, intersection, and complement
+- A regular pumping theorem interface
+- Context-free closure under union, reversal, and concatenation
+- Context-free non-closure under intersection and complement
+- Unrestricted / recursively enumerable closure under union, reversal, concatenation, and star
+
+The unrestricted concatenation and star developments, the context-sensitive concatenation module,
+and the Kuroda normal form existence statement are present in the repository, but some of these
+files still depend on unfinished placeholders or an axiom-backed statement.
+
+## Acknowledgements
+
+This repository is partially a Lean 4 port of 
+[madvorak/grammars](https://github.com/madvorak/grammars).
+It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_cfg](https://github.com/AlexLoitzl/pumping_cfg/).
+
+Some of the context-free grammar work is also being upstreamed to Mathlib / CSlib.
+Open PRs by the same author can be found
+[here](https://github.com/leanprover-community/mathlib4/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen+author%3Anielstron+ContextFreeGrammar).
