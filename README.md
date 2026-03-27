@@ -60,6 +60,7 @@ This repository contains a variety of results about various classes of languages
 - [Reversal](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean)
 - [Terminal bijections](src/Grammars/Classes/ContextFree/ClosureProperties/Bijection.lean)
 - [Terminal permutations](src/Grammars/Classes/ContextFree/ClosureProperties/Permutation.lean)
+- [Intersection with Regular Languages](src/Grammars/Classes/ContextFree/ClosureProperties/IntersectionRegular.lean)
 
 #### Non-closure results
 
