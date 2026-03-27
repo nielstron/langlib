@@ -1,21 +1,23 @@
 import Mathlib
 
-/-! # Regular Closure Under Reversal
+/-! # Regular Closure Under Reversal (Iff)
 
-This file restates mathlib's closure of regular languages under reversal.
+This file restates mathlib's proof that a language is regular if and only if its
+reversal is regular.
 
 ## Main declarations
 
-- `Language.IsRegular.reverse`
+- `Language.isRegular_reverse_iff'` — local alias for the Mathlib iff statement.
 -/
 
 namespace Language
 
 variable {α : Type*}
 
-/-- Regular languages are closed under reversal. -/
-theorem IsRegular.reverse' {L : Language α} (h : L.IsRegular) :
-    L.reverse.IsRegular := by
-  exact h.reverse
+/-- A language is regular if and only if its reversal is regular. This is a local alias for
+    `Language.isRegular_reverse_iff` from Mathlib. -/
+theorem isRegular_reverse_iff' {L : Language α} :
+    L.reverse.IsRegular ↔ L.IsRegular :=
+  isRegular_reverse_iff
 
 end Language

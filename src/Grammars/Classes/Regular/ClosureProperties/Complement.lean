@@ -1,21 +1,25 @@
 import Mathlib
 
-/-! # Regular Closure Under Complement
+/-! # Regular Closure Under Complement (Iff)
 
-This file restates mathlib's closure of regular languages under complement.
+This file proves that a language is regular if and only if its complement is regular.
 
 ## Main declarations
 
-- `Language.IsRegular.compl'`
+- `Language.isRegular_compl_iff`
 -/
 
 namespace Language
 
 variable {α : Type*}
 
-/-- Regular languages are closed under complement. -/
-theorem IsRegular.compl' {L : Language α} (h : L.IsRegular) :
-    Lᶜ.IsRegular := by
-  exact h.compl
+/-- A language is regular if and only if its complement is regular. -/
+theorem isRegular_compl_iff {L : Language α} :
+    Lᶜ.IsRegular ↔ L.IsRegular := by
+  constructor
+  · intro h
+    rw [← compl_compl L]
+    exact h.compl
+  · exact IsRegular.compl
 
 end Language
