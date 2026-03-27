@@ -83,13 +83,13 @@ end auxiliary
 
 /-- The class of context-free languages is closed under reversal. -/
 theorem CF_of_reverse_CF (L : Language T) :
-  is_CF L  →  is_CF (reverseLang L)  :=
+  is_CF L  →  is_CF (L.reverse)  :=
 by
   rintro ⟨g, hgL⟩
   rw [←hgL]
 
   use reversal_grammar g
-  unfold reverseLang
+  unfold Language.reverse
 
   apply Set.eq_of_subset_of_subset
   ·
@@ -105,15 +105,14 @@ by
 
 /-- The converse direction of `CF_of_reverse_CF`, using that reversal is an involution. -/
 theorem CF_of_reverse_CF_rev (L : Language T) :
-  is_CF (reverseLang L) → is_CF L := by
+  is_CF (L.reverse) → is_CF L := by
   intro h
-  have h' := CF_of_reverse_CF (reverseLang L) h
-  rw [reverseLang_reverseLang] at h'
-  exact h'
+  have h' := CF_of_reverse_CF L.reverse h
+  simpa using h'
 
 /-- A language is context-free iff its reversal is context-free. -/
 @[simp] theorem CF_reverse_iff_CF (L : Language T) :
-  is_CF (reverseLang L) ↔ is_CF L := by
+  is_CF (L.reverse) ↔ is_CF L := by
   constructor
   · exact CF_of_reverse_CF_rev L
   · exact CF_of_reverse_CF L
