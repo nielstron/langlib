@@ -35,6 +35,12 @@ This repository contains a variety of results about various classes of languages
 - [Reversal](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean)
 - [Prefix and suffix](src/Grammars/Classes/Regular/ClosureProperties/PrefixSuffix.lean)
 
+#### Decidability results
+
+- [Membership](src/Grammars/Classes/Regular/Decidability/Membership.lean)
+- [Emptiness](src/Grammars/Classes/Regular/Decidability/Emptiness.lean)
+- [Universality](src/Grammars/Classes/Regular/Decidability/Universality.lean)
+
 ### Context-free grammars
 
 #### Basics
@@ -50,6 +56,11 @@ This repository contains a variety of results about various classes of languages
 #### Normal forms
 
 - [Chomsky normal form grammars](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
+
+#### Decidability results
+
+- [Membership](src/Grammars/Classes/ContextFree/Decidability/Membership.lean)
+- [Emptiness](src/Grammars/Classes/ContextFree/Decidability/Emptiness.lean)
 
 #### Closure results
 
@@ -108,8 +119,10 @@ This repository contains a variety of results about various classes of languages
 
 - Regular-language operations `prefixLang`, `suffixLang`, and their regularity theorems
 - Regular closure under reversal, union, intersection, and complement
+- Regular decidability of membership, emptiness, and universality
 - A regular pumping theorem interface
 - Context-free Chomsky normal form grammars and translation to CNF
+- Context-free decidability of membership and emptiness
 - Context-free closure under union, reversal, and concatenation
 - Context-free non-closure under intersection and complement
 - Unrestricted / recursively enumerable closure under union, reversal, concatenation, and star
@@ -127,3 +140,5 @@ It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_c
 Some of the context-free grammar work is also being upstreamed to Mathlib / CSlib.
 Open PRs by the same author can be found
 [here](https://github.com/leanprover-community/mathlib4/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen+author%3Anielstron+ContextFreeGrammar).
+
+> A large part of this repository was created with the help of [Aristotle](https://aristotle.harmonic.fun). It's an amazing tool for ambitious proofs. Special thanks to the developers to provide this tool to the community!
