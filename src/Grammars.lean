@@ -51,6 +51,7 @@ import Grammars.Classes.Regular.Decidability.Universality
 import Grammars.Classes.ContextSensitive.Basics.Definition
 import Grammars.Classes.ContextSensitive.Basics.Inclusion
 import Grammars.Classes.ContextSensitive.Basics.Toolbox
+import Grammars.Classes.ContextSensitive.ClosureProperties.Bijection
 import Grammars.Classes.ContextSensitive.ClosureProperties.Concatenation
 import Grammars.Classes.ContextSensitive.ClosureProperties.Reverse
 import Grammars.Classes.ContextSensitive.Decidability.Membership
