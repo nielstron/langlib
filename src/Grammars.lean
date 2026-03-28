@@ -3,10 +3,12 @@
 
 import Grammars.Classes.ContextFree.Basics.Definition
 import Grammars.Classes.ContextFree.Basics.Elementary
+import Grammars.Classes.ContextFree.Basics.FiniteNT
 import Grammars.Classes.ContextFree.Basics.Inclusion
 import Grammars.Classes.ContextFree.Basics.Lifting
 import Grammars.Classes.ContextFree.Basics.PDAEquivalence
 import Grammars.Classes.ContextFree.Basics.Pumping
+import Grammars.Classes.ContextFree.Basics.Splitting
 import Grammars.Classes.Pushdown.Basics.PDA
 import Grammars.Classes.Pushdown.Basics.Leftmost
 import Grammars.Classes.Pushdown.Basics.CountingStepsLeftmost
@@ -21,9 +23,12 @@ import Grammars.Classes.ContextFree.ClosureProperties.ConverseFailures
 import Grammars.Classes.ContextFree.ClosureProperties.Intersection
 import Grammars.Classes.ContextFree.ClosureProperties.IntersectionRegular
 import Grammars.Classes.ContextFree.ClosureProperties.Permutation
+import Grammars.Classes.ContextFree.ClosureProperties.Prefix
+import Grammars.Classes.ContextFree.ClosureProperties.PrefixBonus
 import Grammars.Classes.ContextFree.ClosureProperties.Reverse
 import Grammars.Classes.ContextFree.ClosureProperties.Star
 import Grammars.Classes.ContextFree.ClosureProperties.Substitution
+import Grammars.Classes.ContextFree.ClosureProperties.Suffix
 import Grammars.Classes.ContextFree.ClosureProperties.Union
 import Grammars.Classes.ContextFree.ClosureProperties.UnionBonus
 import Grammars.Classes.ContextFree.Decidability.Emptiness
@@ -45,6 +50,7 @@ import Grammars.Classes.ContextSensitive.Basics.Definition
 import Grammars.Classes.ContextSensitive.Basics.Inclusion
 import Grammars.Classes.ContextSensitive.Basics.Toolbox
 import Grammars.Classes.ContextSensitive.ClosureProperties.Concatenation
+import Grammars.Classes.ContextSensitive.Decidability.Membership
 import Grammars.Classes.Unrestricted.Basics.Definition
 import Grammars.Classes.Unrestricted.Basics.Lifting
 import Grammars.Classes.Unrestricted.Basics.Toolbox
