@@ -1,7 +1,7 @@
 import Grammars.Classes.Unrestricted.Basics.Toolbox
 import Grammars.Utilities.LanguageOperations
 
-/-! # RE Closure Under Terminal Mapping
+/-! # RE Closure Under Bijection
 
 This file proves closure of recursively enumerable languages under bijective
 renaming of terminals.
