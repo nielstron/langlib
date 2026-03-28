@@ -1,191 +1,82 @@
 import Grammars.Classes.ContextFree.Basics.Toolbox
+import Grammars.Classes.ContextFree.Basics.Inclusion
+import Grammars.Classes.Unrestricted.ClosureProperties.TerminalMap
 import Grammars.Utilities.LanguageOperations
 
 
 /-! # Context-Free Closure Under Bijections
 
-This file proves that context-free languages are preserved under renaming terminals along an equivalence.
+This file proves that context-free languages are preserved under renaming
+terminals along an equivalence.
+
+## Strategy
+
+Instead of re-proving the derivation argument from scratch, we reuse
+`grammar_language_terminal_map_grammar` (the unrestricted result) together
+with a commutation lemma showing that mapping a CF grammar's terminals and
+then embedding it as an unrestricted grammar gives the same result as
+embedding first and then applying the unrestricted terminal map.
 
 ## Main declarations
 
+- `terminal_map_CF_grammar` — map terminals in a CF grammar
+- `grammar_of_cfg_terminal_map_comm` — commutation with the CF→unrestricted embedding
 - `CF_of_bijemap_CF`
 - `CF_of_bijemap_CF_rev`
+- `CF_bijemap_iff_CF`
 -/
 
-variable {T₁ T₂ N : Type}
+variable {T₁ T₂ : Type}
 
-private def sT₂_of_sT₁ (π : T₁ ≃ T₂) : (symbol T₁ N) → (symbol T₂ N)
-| (symbol.terminal t) => symbol.terminal (π t)
-| (symbol.nonterminal n) => symbol.nonterminal n
+section terminal_map_defs
 
-private def sT₁_of_sT₂ (π : T₁ ≃ T₂) : (symbol T₂ N) → (symbol T₁ N)
-| (symbol.terminal t) => symbol.terminal (π.symm t)
-| (symbol.nonterminal n) => symbol.nonterminal n
+/-- Map terminals in a context-free grammar along a bijection. -/
+def terminal_map_CF_grammar (π : T₁ ≃ T₂) (g : CF_grammar T₁) : CF_grammar T₂ :=
+  CF_grammar.mk g.nt g.initial (List.map
+    (fun r : g.nt × (List (symbol T₁ g.nt)) => (r.fst, terminal_map_symbols π r.snd))
+    g.rules)
 
-private def lsT₂_of_lsT₁ (π : T₁ ≃ T₂) : List (symbol T₁ N) → List (symbol T₂ N) :=
-List.map (sT₂_of_sT₁ π)
+end terminal_map_defs
 
-private def lsT₁_of_lsT₂ (π : T₁ ≃ T₂) : List (symbol T₂ N) → List (symbol T₁ N) :=
-List.map (sT₁_of_sT₂ π)
+section commutation
 
-@[simp] private lemma sT₁_of_sT₂_of_sT₁ (π : T₁ ≃ T₂) :
-  ∀ s : symbol T₁ N, sT₁_of_sT₂ π (sT₂_of_sT₁ π s) = s := by
-  intro s
-  cases s <;> simp [sT₁_of_sT₂, sT₂_of_sT₁]
+/-- Mapping terminals in a CF grammar and then embedding as an unrestricted grammar
+gives the same grammar as embedding first and then applying the unrestricted terminal
+map. -/
+theorem grammar_of_cfg_terminal_map_comm (π : T₁ ≃ T₂) (g : CF_grammar T₁) :
+    grammar_of_cfg (terminal_map_CF_grammar π g) = terminal_map_grammar π (grammar_of_cfg g) := by
+  cases g with
+  | mk nt initial rules =>
+    simp only [terminal_map_CF_grammar, grammar_of_cfg, terminal_map_grammar]
+    congr 1
+    rw [List.map_map, List.map_map]
+    congr 1
 
-@[simp] private lemma sT₂_of_sT₁_of_sT₂ (π : T₁ ≃ T₂) :
-  ∀ s : symbol T₂ N, sT₂_of_sT₁ π (sT₁_of_sT₂ π s) = s := by
-  intro s
-  cases s <;> simp [sT₁_of_sT₂, sT₂_of_sT₁]
+end commutation
 
-private lemma lsT₁_of_lsT₂_of_lsT₁ (π : T₁ ≃ T₂) :
-  ∀ s : List (symbol T₁ N), lsT₁_of_lsT₂ π (lsT₂_of_lsT₁ π s) = s := by
-  intro s
-  induction s with
-  | nil => rfl
-  | cons h t ih =>
-    simpa [lsT₁_of_lsT₂, lsT₂_of_lsT₁, List.map_map] using ih
-
-private lemma lsT₂_of_lsT₁_of_lsT₂ (π : T₁ ≃ T₂) :
-  ∀ s : List (symbol T₂ N), lsT₂_of_lsT₁ π (lsT₁_of_lsT₂ π s) = s := by
-  intro s
-  induction s with
-  | nil => rfl
-  | cons h t ih =>
-    simpa [lsT₁_of_lsT₂, lsT₂_of_lsT₁, List.map_map] using ih
-
-private lemma map_terminal_symm (π : T₁ ≃ T₂) (w : List T₂) :
-  List.map (sT₂_of_sT₁ (N := N) π ∘ symbol.terminal (N := N) ∘ π.symm) w =
-    List.map (symbol.terminal (N := N)) w := by
-  induction w with
-  | nil => rfl
-  | cons h t ih =>
-    simp [Function.comp, sT₂_of_sT₁, ih]
-
-private lemma map_terminal (π : T₁ ≃ T₂) (w : List T₁) :
-  List.map (sT₁_of_sT₂ (N := N) π ∘ symbol.terminal (N := N) ∘ π) w =
-    List.map (symbol.terminal (N := N)) w := by
-  induction w with
-  | nil => rfl
-  | cons h t ih =>
-    simp [Function.comp, sT₁_of_sT₂, ih]
+section closure
 
 /-- The class of context-free languages is closed under bijection between terminal alphabets. -/
 theorem CF_of_bijemap_CF (π : T₁ ≃ T₂) (L : Language T₁) :
-  is_CF L  →  is_CF (Language.bijemapLang L π)  :=
-by
-  rintro ⟨g, hg⟩
+    is_CF L → is_CF (Language.bijemapLang L π) := by
+  rintro ⟨g, hgL⟩
+  refine ⟨terminal_map_CF_grammar π g, ?_⟩
+  rw [CF_language_eq_grammar_language, grammar_of_cfg_terminal_map_comm,
+      grammar_language_terminal_map_grammar, ← CF_language_eq_grammar_language, hgL]
 
-  let g' : CF_grammar T₂ := CF_grammar.mk g.nt g.initial (List.map
-      (fun r : g.nt × (List (symbol T₁ g.nt)) => (r.fst, lsT₂_of_lsT₁ π r.snd))
-    g.rules)
-  use g'
-
-  apply Set.eq_of_subset_of_subset
-  ·
-    intro w hw
-    change List.map π.symm w ∈ L
-    rw [←hg]
-
-    unfold CF_language at hw ⊢
-    rw [Set.mem_setOf_eq] at hw ⊢
-    unfold CF_generates at hw ⊢
-    unfold CF_generates_str at hw ⊢
-
-    have deri_of_deri :
-      ∀ v : List (symbol T₂ g'.nt),
-        CF_derives g' [symbol.nonterminal g'.initial] v →
-          CF_derives g [symbol.nonterminal g.initial] (lsT₁_of_lsT₂ π v) :=
-    by
-      intros v hv
-      induction hv with
-      | refl =>
-        apply CF_deri_self
-      | tail _ step ih =>
-        apply CF_deri_of_deri_tran
-        · exact ih
-        rcases step with ⟨r, x, y, r_in, bef, aft⟩
-        let r₁ := (r.fst, lsT₁_of_lsT₂ π r.snd)
-        let x₁ := lsT₁_of_lsT₂ π x
-        let y₁ := lsT₁_of_lsT₂ π y
-        use r₁
-        use x₁
-        use y₁
-        constructor
-        ·
-          change (r.fst, lsT₁_of_lsT₂ π r.snd) ∈ g.rules
-          rcases (List.mem_map.1 r_in) with ⟨r', r'_in, r'_eq⟩
-          rcases r' with ⟨a, b⟩
-          cases r'_eq
-          simpa [lsT₁_of_lsT₂_of_lsT₁] using r'_in
-        ·
-          constructor
-          ·
-            simp [bef, lsT₁_of_lsT₂, List.map_append, x₁, y₁, r₁, sT₁_of_sT₂]
-          ·
-            simp [aft, lsT₁_of_lsT₂, List.map_append, x₁, y₁, r₁, sT₁_of_sT₂]
-    specialize deri_of_deri (List.map symbol.terminal w) hw
-    unfold lsT₁_of_lsT₂ at deri_of_deri
-    rw [List.map_map] at *
-    convert deri_of_deri
-  ·
-    intro w hw
-    change List.map π.symm w ∈ L at hw
-    rw [←hg] at hw
-    unfold CF_language at hw
-    rw [Set.mem_setOf_eq] at hw
-    unfold CF_generates at hw
-    rw [List.map_map] at hw
-    unfold CF_generates_str at hw
-
-    unfold CF_language
-    change CF_generates_str g' (List.map symbol.terminal w)
-    unfold CF_generates_str
-
-    have deri_of_deri :
-      ∀ v : List (symbol T₁ g.nt),
-        CF_derives g [symbol.nonterminal g.initial] v →
-          CF_derives g' [symbol.nonterminal g'.initial] (lsT₂_of_lsT₁ π v) :=
-    by
-      intros v hv
-      induction hv with
-      | refl =>
-        apply CF_deri_self
-      | tail _ step ih =>
-        apply CF_deri_of_deri_tran
-        · exact ih
-        rcases step with ⟨r, x, y, r_in, bef, aft⟩
-        let r₂ := (r.fst, lsT₂_of_lsT₁ π r.snd)
-        let x₂ := lsT₂_of_lsT₁ π x
-        let y₂ := lsT₂_of_lsT₁ π y
-        use r₂
-        use x₂
-        use y₂
-        constructor
-        ·
-          rw [List.mem_map]
-          refine ⟨r, r_in, ?_⟩
-          rfl
-        ·
-          constructor
-          ·
-            simp [bef, lsT₂_of_lsT₁, List.map_append, x₂, y₂, r₂, sT₂_of_sT₁]
-          ·
-            simp [aft, lsT₂_of_lsT₁, List.map_append, x₂, y₂, r₂, sT₂_of_sT₁]
-    specialize deri_of_deri (List.map (symbol.terminal ∘ π.symm) w) hw
-    rw [lsT₂_of_lsT₁, List.map_map] at deri_of_deri
-    simpa [map_terminal_symm] using deri_of_deri
-
-/-- The converse direction of `CF_of_bijemap_CF`, obtained by applying the forward result to the inverse bijection. -/
+/-- The converse direction of `CF_of_bijemap_CF`, obtained by applying the forward result
+to the inverse bijection. -/
 theorem CF_of_bijemap_CF_rev (π : T₁ ≃ T₂) (L : Language T₁) :
-  is_CF (Language.bijemapLang L π) → is_CF L := by
+    is_CF (Language.bijemapLang L π) → is_CF L := by
   intro h
   simpa using CF_of_bijemap_CF π.symm (Language.bijemapLang L π) h
 
-/-- A language is context-free iff its image under a bijection of terminal alphabets is context-free. -/
+/-- A language is context-free iff its image under a bijection of terminal alphabets is
+context-free. -/
 @[simp] theorem CF_bijemap_iff_CF (π : T₁ ≃ T₂) (L : Language T₁) :
-  is_CF (Language.bijemapLang L π) ↔ is_CF L := by
+    is_CF (Language.bijemapLang L π) ↔ is_CF L := by
   constructor
   · exact CF_of_bijemap_CF_rev π L
   · exact CF_of_bijemap_CF π L
-  
+
+end closure

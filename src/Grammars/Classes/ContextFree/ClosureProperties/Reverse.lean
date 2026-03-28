@@ -1,4 +1,6 @@
 import Grammars.Classes.ContextFree.Basics.Toolbox
+import Grammars.Classes.ContextFree.Basics.Inclusion
+import Grammars.Classes.Unrestricted.ClosureProperties.Reverse
 import Grammars.Utilities.LanguageOperations
 import Grammars.Utilities.ListUtils
 
@@ -7,110 +9,85 @@ import Grammars.Utilities.ListUtils
 
 This file proves that context-free languages are closed under word reversal.
 
+## Strategy
+
+Instead of re-proving the derivation-reversal argument from scratch, we reuse
+`grammar_language_reversal_grammar` (the unrestricted result) together with a
+commutation lemma that shows reversing a CF grammar and then embedding it into
+an unrestricted grammar gives the same result as embedding first and then reversing.
+
 ## Main declarations
 
+- `reversal_CF_grammar`  — reverse the RHS of every CF rule
+- `grammar_of_cfg_reversal_comm` — commutation with the CF→unrestricted embedding
 - `CF_of_reverse_CF`
 - `CF_of_reverse_CF_rev`
+- `CF_reverse_iff_CF`
 -/
 
 variable {T : Type}
 
-section auxiliary
+section reversal_defs
 
-private def reversal_grammar (g : CF_grammar T) : CF_grammar T :=
-CF_grammar.mk g.nt g.initial (List.map (
-    fun r : g.nt × List (symbol T g.nt) => (r.fst, List.reverse r.snd)
-  ) g.rules)
+/-- Reverse the right-hand side of every rule in a context-free grammar. -/
+def reversal_CF_grammar (g : CF_grammar T) : CF_grammar T :=
+  CF_grammar.mk g.nt g.initial (List.map (
+      fun r : g.nt × List (symbol T g.nt) => (r.fst, List.reverse r.snd)
+    ) g.rules)
 
 private lemma map_reverse_reverse_comp {nt : Type} (rules : List (nt × List (symbol T nt))) :
-  List.map ((fun r => (r.1, r.2.reverse)) ∘ fun r => (r.1, r.2.reverse)) rules = rules := by
+    List.map ((fun r => (r.1, r.2.reverse)) ∘ fun r => (r.1, r.2.reverse)) rules = rules := by
   induction rules with
   | nil => rfl
   | cons h t ih =>
     cases h
     simp [Function.comp, List.reverse_reverse, ih]
 
-private lemma dual_of_reversal_grammar (g : CF_grammar T) :
-  reversal_grammar (reversal_grammar g) = g :=
-by
+lemma dual_of_reversal_CF_grammar (g : CF_grammar T) :
+    reversal_CF_grammar (reversal_CF_grammar g) = g := by
   cases g with
   | mk nt initial rules =>
-    simp [reversal_grammar, map_reverse_reverse_comp]
+    simp [reversal_CF_grammar, map_reverse_reverse_comp]
 
-private lemma derives_reversed (g : CF_grammar T) (v : List (symbol T g.nt)) :
-  CF_derives (reversal_grammar g) [symbol.nonterminal (reversal_grammar g).initial] v →
-    CF_derives g [symbol.nonterminal g.initial] v.reverse :=
-by
-  intro hv
-  induction hv with
-  | refl =>
-    rw [List.reverse_singleton]
-    apply CF_deri_self
-  | tail _ orig ih =>
-    apply CF_deri_of_deri_tran ih
-    rcases orig with ⟨r, x, y, rin, bef, aft⟩
-    change r ∈ (List.map
-      (fun r : g.nt × List (symbol T g.nt) => (r.fst, List.reverse r.snd)) g.rules) at rin
-    rcases (List.mem_map.1 rin) with ⟨r₀, rin₀, r_from_r₀⟩
-    refine ⟨r₀, y.reverse, x.reverse, rin₀, ?_, ?_⟩
-    ·
-      have fst_from_r : r₀.fst = r.fst := by
-        rw [←r_from_r₀]
-      have hrev := congr_arg List.reverse bef
-      simpa [fst_from_r, List.reverse_append, List.reverse_reverse] using hrev
-    ·
-      have snd_from_r : r₀.snd = r.snd.reverse := by
-        rw [←r_from_r₀]
-        rw [List.reverse_reverse]
-      have hrev := congr_arg List.reverse aft
-      simpa [snd_from_r, List.reverse_append, List.reverse_reverse] using hrev
+end reversal_defs
 
-private lemma reversed_word_in_original_language {g : CF_grammar T} {w : List T}
-    (hyp : w ∈ CF_language (reversal_grammar g)) :
-  w.reverse ∈ CF_language g :=
-by
-  unfold CF_language at *
-  rw [Set.mem_setOf_eq] at *
-  unfold CF_generates at *
-  unfold CF_generates_str at *
-  rw [List.map_reverse]
-  exact derives_reversed g (List.map symbol.terminal w) hyp
+section commutation
 
-end auxiliary
+/-- Reversing a CF grammar and then embedding it as an unrestricted grammar gives the
+same grammar as embedding first and then applying the unrestricted reversal. -/
+theorem grammar_of_cfg_reversal_comm (g : CF_grammar T) :
+    grammar_of_cfg (reversal_CF_grammar g) = reversal_grammar (grammar_of_cfg g) := by
+  cases g with
+  | mk nt initial rules =>
+    simp only [reversal_CF_grammar, grammar_of_cfg, reversal_grammar]
+    congr 1
+    rw [List.map_map, List.map_map]
+    congr 1
 
+end commutation
+
+section closure
 
 /-- The class of context-free languages is closed under reversal. -/
 theorem CF_of_reverse_CF (L : Language T) :
-  is_CF L  →  is_CF (L.reverse)  :=
-by
+    is_CF L → is_CF (L.reverse) := by
   rintro ⟨g, hgL⟩
-  rw [←hgL]
-
-  use reversal_grammar g
-  unfold Language.reverse
-
-  apply Set.eq_of_subset_of_subset
-  ·
-    intro w hwL
-    change w.reverse ∈ CF_language g
-    exact reversed_word_in_original_language hwL
-  ·
-    intro w hwL
-    change w.reverse ∈ CF_language g at hwL
-    rw [←dual_of_reversal_grammar g] at hwL
-    have finished_modulo_reverses := reversed_word_in_original_language hwL
-    simpa using finished_modulo_reverses
+  refine ⟨reversal_CF_grammar g, ?_⟩
+  rw [CF_language_eq_grammar_language, grammar_of_cfg_reversal_comm,
+      grammar_language_reversal_grammar, ← CF_language_eq_grammar_language, hgL]
 
 /-- The converse direction of `CF_of_reverse_CF`, using that reversal is an involution. -/
 theorem CF_of_reverse_CF_rev (L : Language T) :
-  is_CF (L.reverse) → is_CF L := by
+    is_CF (L.reverse) → is_CF L := by
   intro h
   have h' := CF_of_reverse_CF L.reverse h
   simpa using h'
 
 /-- A language is context-free iff its reversal is context-free. -/
 @[simp] theorem CF_reverse_iff_CF (L : Language T) :
-  is_CF (L.reverse) ↔ is_CF L := by
+    is_CF (L.reverse) ↔ is_CF L := by
   constructor
   · exact CF_of_reverse_CF_rev L
   · exact CF_of_reverse_CF L
+
+end closure
