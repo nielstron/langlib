@@ -228,4 +228,57 @@ theorem prefixLang_eq_reverse_suffixLang_reverse (L : Language T) :
     change ∃ u, w ++ u ∈ L
     exact ⟨v.reverse, by simpa [List.reverse_append] using hv⟩
 
+/-- The right quotient of `L` by `R`: the set of words `w` such that `w ++ v ∈ L` for some
+`v ∈ R`. This generalises `prefixLang` (which is `rightQuotient L Set.univ`). -/
+def rightQuotient (L : Language α) (R : Language α) : Language α :=
+  { w | ∃ v ∈ R, w ++ v ∈ L }
+
+@[simp] theorem mem_rightQuotient {L R : Language α} {w : List α} :
+    w ∈ rightQuotient L R ↔ ∃ v ∈ R, w ++ v ∈ L :=
+  Iff.rfl
+
+theorem prefixLang_eq_rightQuotient_univ (L : Language α) :
+    prefixLang L = rightQuotient L Set.univ := by
+  ext w; constructor
+  · rintro ⟨v, hv⟩; exact ⟨v, Set.mem_univ _, hv⟩
+  · rintro ⟨v, _, hv⟩; exact ⟨v, hv⟩
+
+theorem rightQuotient_mono_left {L₁ L₂ R : Language α} (h : L₁ ≤ L₂) :
+    rightQuotient L₁ R ≤ rightQuotient L₂ R := by
+  intro w ⟨v, hv, hwv⟩
+  exact ⟨v, hv, h hwv⟩
+
+theorem rightQuotient_mono_right {L R₁ R₂ : Language α} (h : R₁ ≤ R₂) :
+    rightQuotient L R₁ ≤ rightQuotient L R₂ := by
+  intro w ⟨v, hv, hwv⟩
+  exact ⟨v, h hv, hwv⟩
+
+@[simp] theorem rightQuotient_zero_left (R : Language α) :
+    rightQuotient 0 R = 0 := by
+  ext w; constructor
+  · rintro ⟨v, _, hv⟩; exact hv
+  · tauto
+
+@[simp] theorem rightQuotient_zero_right (L : Language α) :
+    rightQuotient L 0 = 0 := by
+  ext w; constructor
+  · rintro ⟨v, hv, _⟩; exact hv.elim
+  · tauto
+
+@[simp] theorem rightQuotient_add_left (L₁ L₂ R : Language α) :
+    rightQuotient (L₁ + L₂) R = rightQuotient L₁ R + rightQuotient L₂ R := by
+  ext w
+  constructor
+  · rintro ⟨v, hv, hwv | hwv⟩
+    · exact Or.inl ⟨v, hv, hwv⟩
+    · exact Or.inr ⟨v, hv, hwv⟩
+  · rintro (⟨v, hv, hwv⟩ | ⟨v, hv, hwv⟩)
+    · exact ⟨v, hv, Or.inl hwv⟩
+    · exact ⟨v, hv, Or.inr hwv⟩
+
+theorem subset_rightQuotient_univ (L : Language α) :
+    L ≤ rightQuotient L Set.univ := by
+  rw [← prefixLang_eq_rightQuotient_univ]
+  exact subset_prefixLang L
+
 end Language
