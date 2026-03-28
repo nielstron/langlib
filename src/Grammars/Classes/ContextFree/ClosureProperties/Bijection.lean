@@ -1,6 +1,6 @@
 import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Classes.ContextFree.Basics.Inclusion
-import Grammars.Classes.Unrestricted.ClosureProperties.TerminalMap
+import Grammars.Classes.Unrestricted.ClosureProperties.Bijection
 import Grammars.Utilities.LanguageOperations
 
 
