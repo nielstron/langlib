@@ -1,21 +1,6 @@
 # Lean4 Formal Grammar Library
 [![CI](https://github.com/nielstron/grammars4/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/grammars4/actions/workflows/build.yml)
 
-## Instructions
-
-To install Lean 4, follow the [Lean community manual](https://leanprover-community.github.io/get_started.html).
-
-To download this project, run:
-
-```sh
-git clone https://github.com/nielstron/grammars4
-```
-
-To check the library and tests, run:
-
-```sh
-lake build
-```
 
 ## Overview
 
@@ -120,24 +105,22 @@ This repository contains a variety of results about various classes of languages
 
 - [Kuroda normal form](src/Grammars/Classes/Unrestricted/NormalForms/Kuroda.lean)
 
-## Checked statement summary
 
-[`test/Grammars/Test/Results.lean`](test/Grammars/Test/Results.lean) currently checks the presence of these major named statements:
+## Installation Instructions
 
-- Regular-language operations `prefixLang`, `suffixLang`, and their regularity theorems
-- Regular closure under reversal, union, intersection, complement, prefix, and suffix
-- Regular decidability of membership, emptiness, and universality
-- A regular pumping theorem interface
-- Context-free Chomsky normal form grammars and translation to CNF
-- Context-free decidability of membership and emptiness
-- Context-free closure under union, reversal, concatenation, prefix, and suffix
-- Context-free non-closure under intersection and complement
-- Context-sensitive decidability of membership
-- Unrestricted / recursively enumerable closure under union, reversal, and concatenation
+To install Lean 4, follow the [Lean community manual](https://leanprover-community.github.io/get_started.html).
 
-The unrestricted concatenation development, the context-sensitive concatenation module,
-and the Kuroda normal form existence statement are present in the repository, but some of these
-files still depend on unfinished placeholders or an axiom-backed statement.
+To download this project, run:
+
+```sh
+git clone https://github.com/nielstron/grammars4
+```
+
+To check the library and tests, run:
+
+```sh
+lake build
+```
 
 ## Acknowledgements
 
