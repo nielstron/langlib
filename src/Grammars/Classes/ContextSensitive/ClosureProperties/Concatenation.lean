@@ -10,7 +10,7 @@ This file sketches a concatenation construction for context-sensitive languages 
 - `bonus_CS_of_CS_c_CS`
 -/
 
-variables {T : Type}
+variable {T : Type}
 
 
 private def wrap_CS_rule₁ {N₁ : Type} (N₂ : Type) (r : csrule T N₁) :
@@ -39,17 +39,37 @@ private def CS_rules_for_terminals₂ (N₁ : Type) (g : CS_grammar T) :
 List.map (fun t => csrule.mk [] (Sum.inr (Sum.inr t)) [] [symbol.terminal t])
   (all_used_terminals (grammar_of_csg g))
 
-private def big_CS_grammar (g₁ g₂ : CS_grammar T) : CS_grammar T :=
-CS_grammar.mk
-  (nnn T g₁.nt g₂.nt)
-  (Sum.inl none)
-  ((csrule.mk [] (Sum.inl none) [] [
-    symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))),
-    symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))]
-  ) :: (
-    (List.map (wrap_CS_rule₁ g₂.nt) g₁.rules ++ List.map (wrap_CS_rule₂ g₁.nt) g₂.rules) ++
-    (CS_rules_for_terminals₁ g₂.nt g₁ ++ CS_rules_for_terminals₂ g₁.nt g₂)
-  ))
+private def big_CS_grammar (g₁ g₂ : CS_grammar T) : CS_grammar T where
+  nt := nnn T g₁.nt g₂.nt
+  initial := Sum.inl none
+  rules :=
+    (csrule.mk [] (Sum.inl none) [] [
+      symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))),
+      symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))]
+    ) :: (
+      (List.map (wrap_CS_rule₁ g₂.nt) g₁.rules ++ List.map (wrap_CS_rule₂ g₁.nt) g₂.rules) ++
+      (CS_rules_for_terminals₁ g₂.nt g₁ ++ CS_rules_for_terminals₂ g₁.nt g₂)
+    )
+  output_nonempty := by
+    intro r hr
+    simp [List.mem_cons] at hr
+    rcases hr with rfl | hr
+    · nofun
+    · rcases hr with ⟨r', hr', rfl⟩ | ⟨r', hr', rfl⟩ | hr | hr
+      · -- wrap_CS_rule₁
+        simp [wrap_CS_rule₁, csrule.output_string]
+        exact g₁.output_nonempty r' hr'
+      · -- wrap_CS_rule₂
+        simp [wrap_CS_rule₂, csrule.output_string]
+        exact g₂.output_nonempty r' hr'
+      · -- CS_rules_for_terminals₁
+        simp [CS_rules_for_terminals₁, List.mem_map] at hr
+        obtain ⟨t, _, rfl⟩ := hr
+        simp
+      · -- CS_rules_for_terminals₂
+        simp [CS_rules_for_terminals₂, List.mem_map] at hr
+        obtain ⟨t, _, rfl⟩ := hr
+        simp
 
 /-
 PROVIDED SOLUTION

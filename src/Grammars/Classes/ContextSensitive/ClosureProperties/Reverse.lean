@@ -29,7 +29,15 @@ private lemma reversal_csrule_reversal_csrule {N : Type} :
   ext; apply dual_of_reversal_csrule
 
 private def reversal_CS_grammar (g : CS_grammar T) : CS_grammar T :=
-  CS_grammar.mk g.nt g.initial (List.map reversal_csrule g.rules)
+  CS_grammar.mk g.nt g.initial (List.map reversal_csrule g.rules) ( by
+  intros r rh
+  have x := g.output_nonempty
+  simp only [List.mem_map] at rh
+  rcases rh with ⟨a, ha_rules, ha_eq⟩
+  unfold reversal_csrule at ha_eq
+  simp only [ha_eq.symm, ne_eq, List.reverse_eq_nil_iff]
+  exact g.output_nonempty a ha_rules
+  )
 
 private lemma dual_of_reversal_CS_grammar (g : CS_grammar T) :
     reversal_CS_grammar (reversal_CS_grammar g) = g := by

@@ -5,6 +5,14 @@ import Grammars.Classes.Unrestricted.Basics.Definition
 
 This file defines context-sensitive grammars, their derivations, and the induced language predicate.
 
+A context-sensitive grammar has rules of the form `αAβ → αγβ` where:
+- `α` (`context_left`) and `β` (`context_right`) are the context (strings of symbols),
+- `A` (`input_nonterminal`) is a nonterminal, and
+- `γ` (`output_string`) is a non-empty string of symbols.
+
+The non-emptiness requirement on `γ` ensures that derivation steps never decrease the length
+of the sentential form, which is the defining property of context-sensitive grammars.
+
 ## Main declarations
 
 - `csrule`
@@ -14,21 +22,28 @@ This file defines context-sensitive grammars, their derivations, and the induced
 - `is_CS`
 -/
 
-/-- Transformation rule for a context-sensitive grammar. -/
-structure csrule (T : Type) (N : Type) :=
+/-- Transformation rule for a context-sensitive grammar.
+
+A rule `αAβ → αγβ` where `α` is `context_left`, `A` is `input_nonterminal`,
+`β` is `context_right`, and `γ` is `output_string`. -/
+structure csrule (T : Type) (N : Type) where
 (context_left : List (symbol T N))
 (input_nonterminal : N)
 (context_right : List (symbol T N))
-(output_string : List (symbol T N)) -- !! TODO require non-empty unless `S` → `[]` where `S` is on no right side !!
+(output_string : List (symbol T N))
 
-/-- Context-sensitive grammar that generates words over the alphabet `T` (a type of terminals). -/
-structure CS_grammar (T : Type) :=
+/-- Context-sensitive grammar that generates words over the alphabet `T` (a type of terminals).
+
+The `output_nonempty` field ensures that every rule has a non-empty output string, matching
+the standard definition of context-sensitive grammars. This guarantees that derivation steps
+never decrease the length of the sentential form. -/
+structure CS_grammar (T : Type) where
 (nt : Type)                   -- type of nonterminals
 (initial : nt)                -- initial symbol
 (rules : List (csrule T nt))  -- rewrite rules
+(output_nonempty : ∀ r ∈ rules, r.output_string ≠ [])
 
-
-variables {T : Type}
+variable {T : Type}
 
 /-- One step of context-sensitive transformation. -/
 def CS_transforms (g : CS_grammar T) (w₁ w₂ : List (symbol T g.nt))  : Prop :=
