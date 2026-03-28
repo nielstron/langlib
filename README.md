@@ -9,21 +9,6 @@ This repository contains a variety of results about various classes of languages
 
 - [Non-regular languages exist](src/Grammars/Classes/Regular/Basics/NonRegular.lean)
 
-#### Closure results
-
-- [Union](src/Grammars/Classes/Regular/ClosureProperties/Union.lean)
-- [Intersection](src/Grammars/Classes/Regular/ClosureProperties/Intersection.lean)
-- [Complement](src/Grammars/Classes/Regular/ClosureProperties/Complement.lean)
-- [Reversal](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean)
-- [Prefix](src/Grammars/Classes/Regular/ClosureProperties/Prefix.lean)
-- [Suffix](src/Grammars/Classes/Regular/ClosureProperties/Suffix.lean)
-
-#### Decidability results
-
-- [Membership](src/Grammars/Classes/Regular/Decidability/Membership.lean)
-- [Emptiness](src/Grammars/Classes/Regular/Decidability/Emptiness.lean)
-- [Universality](src/Grammars/Classes/Regular/Decidability/Universality.lean)
-
 ### Context-free grammars
 
 #### Basics
@@ -41,29 +26,6 @@ This repository contains a variety of results about various classes of languages
 
 - [Chomsky normal form grammars](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
 
-#### Decidability results
-
-- [Membership](src/Grammars/Classes/ContextFree/Decidability/Membership.lean)
-- [Emptiness](src/Grammars/Classes/ContextFree/Decidability/Emptiness.lean)
-
-#### Closure results
-
-- [Substitution](src/Grammars/Classes/ContextFree/ClosureProperties/Substitution.lean)
-- [Union](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean) ([explicit construction](src/Grammars/Classes/ContextFree/ClosureProperties/UnionBonus.lean))
-- [Concatenation](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean) ([explicit construction](src/Grammars/Classes/ContextFree/ClosureProperties/ConcatenationBonus.lean))
-- [Kleene star](src/Grammars/Classes/ContextFree/ClosureProperties/Star.lean)
-- [Reversal](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean)
-- [Prefix](src/Grammars/Classes/ContextFree/ClosureProperties/Prefix.lean) ([explicit construction](src/Grammars/Classes/ContextFree/ClosureProperties/PrefixBonus.lean))
-- [Suffix](src/Grammars/Classes/ContextFree/ClosureProperties/Suffix.lean)
-- [Terminal bijections](src/Grammars/Classes/ContextFree/ClosureProperties/Bijection.lean)
-- [Terminal permutations](src/Grammars/Classes/ContextFree/ClosureProperties/Permutation.lean)
-- [Intersection with Regular Languages](src/Grammars/Classes/ContextFree/ClosureProperties/IntersectionRegular.lean)
-
-#### Non-closure results
-
-- [Intersection](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean)
-- [Complement](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean)
-
 ### Context-sensitive grammars
 
 #### Basics
@@ -73,14 +35,6 @@ This repository contains a variety of results about various classes of languages
 #### Examples
 
 - [Demo grammar](test/Grammars/Test/DemoContextSensitive.lean)
-
-#### Decidability results
-
-- [Membership](src/Grammars/Classes/ContextSensitive/Decidability/Membership.lean)
-
-#### Closure results
-
-- [Concatenation](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean)
 
 ### Unrestricted grammars / recursively enumerable languages
 
@@ -92,15 +46,38 @@ This repository contains a variety of results about various classes of languages
 
 - [Demo grammar](test/Grammars/Test/DemoUnrestricted.lean)
 
-#### Closure results
-
-- [Union](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean) ([auxiliary CFG-to-RE construction](src/Grammars/Classes/Unrestricted/ClosureProperties/UnionBonus.lean))
-- [Reversal](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean)
-- [Concatenation](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean)
-
 #### Normal forms
 
 - [Kuroda normal form](src/Grammars/Classes/Unrestricted/NormalForms/Kuroda.lean)
+
+## Closure Summary
+
+`🔗` indicates that this repository contains a corresponding proof file.
+
+| Language | Union | Intersection | Complement | Concatenation | Kleene star | Reversal | Prefix | Suffix |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Regular | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Union.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Intersection.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Complement.lean) | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Prefix.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Suffix.lean) |
+| Context-free | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean) | ✗ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean) | ✗ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Star.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Prefix.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Suffix.lean) |
+| Context-sensitive | ✓ | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean) | ✓ | ✓ | ✓ | ✓ |
+| Recursively enumerable | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean) | ✓ | ✗ | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean) | ✓ | ✓ |
+
+Additional context-free closure results formalized here:
+
+- [Substitution](src/Grammars/Classes/ContextFree/ClosureProperties/Substitution.lean)
+- [Terminal bijections](src/Grammars/Classes/ContextFree/ClosureProperties/Bijection.lean)
+- [Terminal permutations](src/Grammars/Classes/ContextFree/ClosureProperties/Permutation.lean)
+- [Intersection with regular languages](src/Grammars/Classes/ContextFree/ClosureProperties/IntersectionRegular.lean)
+
+## Decidability Summary
+
+`🔗` indicates that this repository contains a corresponding proof file.
+
+| Language | Membership | Emptiness | Universality |
+| --- | --- | --- | --- |
+| Regular | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Universality.lean) |
+| Context-free | ✓ [🔗](src/Grammars/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ |
+| Context-sensitive | ✓ [🔗](src/Grammars/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ |
+| Recursively enumerable | ✗ | ✗ | ✗ |
 
 
 ## Installation Instructions
