@@ -107,7 +107,6 @@ This repository contains a variety of results about various classes of languages
 - [Union](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean)
 - [Reversal](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean)
 - [Concatenation](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean)
-- [Kleene star](src/Grammars/Classes/Unrestricted/ClosureProperties/Star.lean)
 
 #### Normal forms
 
