@@ -25,7 +25,7 @@ This repository contains a variety of results about various classes of languages
 
 #### Basics
 
-- [Non-regular language (`anbn`)](src/Grammars/Classes/Regular/Basics/NonRegular.lean)
+- [Non-regular languages exist](src/Grammars/Classes/Regular/Basics/NonRegular.lean)
 
 #### Closure results
 
@@ -33,7 +33,8 @@ This repository contains a variety of results about various classes of languages
 - [Intersection](src/Grammars/Classes/Regular/ClosureProperties/Intersection.lean)
 - [Complement](src/Grammars/Classes/Regular/ClosureProperties/Complement.lean)
 - [Reversal](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean)
-- [Prefix and suffix](src/Grammars/Classes/Regular/ClosureProperties/PrefixSuffix.lean)
+- [Prefix](src/Grammars/Classes/Regular/ClosureProperties/Prefix.lean)
+- [Suffix](src/Grammars/Classes/Regular/ClosureProperties/Suffix.lean)
 
 #### Decidability results
 
@@ -48,6 +49,7 @@ This repository contains a variety of results about various classes of languages
 - [Definition](src/Grammars/Classes/ContextFree/Basics/Definition.lean)
 - [Pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean)
 - [Equivalence to PDAs](src/Grammars/Classes/ContextFree/Basics/PDAEquivalence.lean)
+- [Finite used-nonterminal subtype](src/Grammars/Classes/ContextFree/Basics/FiniteNT.lean)
 
 #### Examples
 
@@ -65,10 +67,12 @@ This repository contains a variety of results about various classes of languages
 #### Closure results
 
 - [Substitution](src/Grammars/Classes/ContextFree/ClosureProperties/Substitution.lean)
-- [Union](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean)
-- [Concatenation](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean)
+- [Union](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean) ([explicit construction](src/Grammars/Classes/ContextFree/ClosureProperties/UnionBonus.lean))
+- [Concatenation](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean) ([explicit construction](src/Grammars/Classes/ContextFree/ClosureProperties/ConcatenationBonus.lean))
 - [Kleene star](src/Grammars/Classes/ContextFree/ClosureProperties/Star.lean)
 - [Reversal](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean)
+- [Prefix](src/Grammars/Classes/ContextFree/ClosureProperties/Prefix.lean) ([explicit construction](src/Grammars/Classes/ContextFree/ClosureProperties/PrefixBonus.lean))
+- [Suffix](src/Grammars/Classes/ContextFree/ClosureProperties/Suffix.lean)
 - [Terminal bijections](src/Grammars/Classes/ContextFree/ClosureProperties/Bijection.lean)
 - [Terminal permutations](src/Grammars/Classes/ContextFree/ClosureProperties/Permutation.lean)
 - [Intersection with Regular Languages](src/Grammars/Classes/ContextFree/ClosureProperties/IntersectionRegular.lean)
@@ -88,6 +92,10 @@ This repository contains a variety of results about various classes of languages
 
 - [Demo grammar](test/Grammars/Test/DemoContextSensitive.lean)
 
+#### Decidability results
+
+- [Membership](src/Grammars/Classes/ContextSensitive/Decidability/Membership.lean)
+
 #### Closure results
 
 - [Concatenation](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean)
@@ -104,7 +112,7 @@ This repository contains a variety of results about various classes of languages
 
 #### Closure results
 
-- [Union](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean)
+- [Union](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean) ([auxiliary CFG-to-RE construction](src/Grammars/Classes/Unrestricted/ClosureProperties/UnionBonus.lean))
 - [Reversal](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean)
 - [Concatenation](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean)
 
@@ -117,16 +125,17 @@ This repository contains a variety of results about various classes of languages
 [`test/Grammars/Test/Results.lean`](test/Grammars/Test/Results.lean) currently checks the presence of these major named statements:
 
 - Regular-language operations `prefixLang`, `suffixLang`, and their regularity theorems
-- Regular closure under reversal, union, intersection, and complement
+- Regular closure under reversal, union, intersection, complement, prefix, and suffix
 - Regular decidability of membership, emptiness, and universality
 - A regular pumping theorem interface
 - Context-free Chomsky normal form grammars and translation to CNF
 - Context-free decidability of membership and emptiness
-- Context-free closure under union, reversal, and concatenation
+- Context-free closure under union, reversal, concatenation, prefix, and suffix
 - Context-free non-closure under intersection and complement
-- Unrestricted / recursively enumerable closure under union, reversal, concatenation, and star
+- Context-sensitive decidability of membership
+- Unrestricted / recursively enumerable closure under union, reversal, and concatenation
 
-The unrestricted concatenation and star developments, the context-sensitive concatenation module,
+The unrestricted concatenation development, the context-sensitive concatenation module,
 and the Kuroda normal form existence statement are present in the repository, but some of these
 files still depend on unfinished placeholders or an axiom-backed statement.
 
