@@ -48,9 +48,7 @@ import Grammars.Classes.Unrestricted.Basics.Definition
 import Grammars.Classes.Unrestricted.Basics.Lifting
 import Grammars.Classes.Unrestricted.Basics.Toolbox
 import Grammars.Classes.Unrestricted.ClosureProperties.Concatenation
-import Grammars.Classes.Unrestricted.ClosureProperties.ConcatenationBonus
 import Grammars.Classes.Unrestricted.ClosureProperties.Reverse
-import Grammars.Classes.Unrestricted.ClosureProperties.Star
 import Grammars.Classes.Unrestricted.ClosureProperties.Union
 import Grammars.Classes.Unrestricted.ClosureProperties.UnionBonus
 import Grammars.Classes.Unrestricted.NormalForms.Kuroda
