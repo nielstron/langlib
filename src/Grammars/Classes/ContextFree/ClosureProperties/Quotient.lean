@@ -7,7 +7,7 @@ import Mathlib
 /-! # Context-Free Closure Under Right Quotient with Regular Languages
 
 This file proves that context-free languages are closed under right quotient with
-regular languages: if `L` is context-free and `R` is regular, then `rightQuotient L R`
+regular languages: if `L` is context-free and `R` is regular, then `L / R`
 is context-free.
 
 ## Strategy
@@ -30,7 +30,7 @@ Concretely, given a CFL `L` over `T` and a regular language `R` over `T`:
 4. **Erasure** `η : (T ⊕ T) → Language T` keeps `inl`-tagged letters and erases `inr`-tagged ones.
    Since each `η(x)` is CF, `(L.subst σ ⊓ blockLang R).subst η` is CF.
 
-5. **Correctness**: `(L.subst σ ⊓ blockLang R).subst η = rightQuotient L R`.
+5. **Correctness**: `(L.subst σ ⊓ blockLang R).subst η = L / R`.
 
 ## Main declarations
 
@@ -314,7 +314,7 @@ The key helper: for any list xs : List α and g : α → β,
 Prove by induction on xs.
 -/
 theorem subst_inter_block_subst_eq_rightQuotient (L : Language T) (R : Language T) :
-    ((L.subst tagSubst) ⊓ blockLang R).subst eraseInr = rightQuotient L R := by
+    ((L.subst tagSubst) ⊓ blockLang R).subst eraseInr = L / R := by
   ext w
   simp only [Language.subst, Set.mem_setOf_eq, Set.mem_inter_iff, mem_rightQuotient,
     blockLang]
@@ -345,7 +345,15 @@ theorem subst_inter_block_subst_eq_rightQuotient (L : Language T) (R : Language 
         · ext; simp [eraseInr];
           exact ⟨ fun ⟨ u, hu, v, hv, h ⟩ => by cases hu; cases hv; aesop, fun h => by cases h; exact ⟨ [ a ], by aesop ⟩ ⟩;
       rw [hw'_eq, h_prod_eraseInr];
-    grind
+    have hw_eq_p : w = p := by
+      rw [h_prod_eraseInr] at hw_in_prod
+      simpa using hw_in_prod
+    have hpq_in_L : p ++ q ∈ L := by
+      simpa [hpq_eq_u] using hu
+    have hw_in_quotient : w ∈ L / R := by
+      refine ⟨q, hq, ?_⟩
+      simpa [hw_eq_p] using hpq_in_L
+    exact hw_in_quotient
   · -- (←) in rightQuotient ⟹ in LHS
     rintro ⟨v, hv, hwv⟩
     -- By definition of $tagSubst$, we know that $[inl a_1, ..., inl a_m, inr b_1, ..., inr b_n]$ is in the product of the tagSubst of $w ++ v$.
@@ -371,7 +379,7 @@ theorem subst_inter_block_subst_eq_rightQuotient (L : Language T) (R : Language 
 (`is_CF` formulation). -/
 theorem is_CF_rightQuotient_regular {L : Language T} {R : Language T}
     (hL : is_CF L) (hR : R.IsRegular) :
-    is_CF (rightQuotient L R) := by
+    is_CF (L / R) := by
   rw [← subst_inter_block_subst_eq_rightQuotient L R]
   apply CF_of_subst_CF _ eraseInr _ is_CF_eraseInr
   apply CF_of_CF_inter_regular
@@ -383,7 +391,7 @@ theorem is_CF_rightQuotient_regular {L : Language T} {R : Language T}
 (Mathlib-style `Language.IsContextFree` formulation). -/
 theorem Language.IsContextFree.rightQuotient_regular {L : Language T}
     (hL : L.IsContextFree) {R : Language T} (hR : R.IsRegular) :
-    (Language.rightQuotient L R).IsContextFree := by
+    (L / R).IsContextFree := by
   rw [← is_CF_iff_isContextFree] at hL ⊢
   exact is_CF_rightQuotient_regular hL hR
 
