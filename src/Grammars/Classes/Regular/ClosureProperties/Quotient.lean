@@ -1,6 +1,5 @@
 import Mathlib
 import Grammars.Utilities.LanguageOperations
-import Grammars.Classes.Regular.ClosureProperties.Prefix
 
 /-! # Regular Closure Under Right Quotient
 
@@ -62,13 +61,6 @@ theorem quotientDFA_accepts (M : DFA α σ) (R : Language α) :
     have hmem' : M.evalFrom (M.evalFrom M.start w) v ∈ M.accept := by
       rwa [DFA.evalFrom_of_append] at hmem
     simpa [DFA.eval, evalFrom_quotientDFA] using hmem'
-
-/-- `reachableAccept` is the special case of `quotientAccept` with `R = Set.univ`. -/
-theorem reachableAccept_eq_quotientAccept_univ (M : DFA α σ) :
-    M.reachableAccept = M.quotientAccept Set.univ := by
-  ext s; constructor
-  · rintro ⟨x, hx⟩; exact ⟨x, Set.mem_univ _, hx⟩
-  · rintro ⟨x, _, hx⟩; exact ⟨x, hx⟩
 
 end DFA
 
