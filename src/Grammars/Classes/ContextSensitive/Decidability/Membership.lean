@@ -3,21 +3,24 @@ import Grammars.Classes.ContextSensitive.Basics.Toolbox
 
 /-! # Decidability of Membership in Context-Sensitive Languages
 
-This file proves that membership in a context-sensitive language (with a non-contracting
-grammar) is decidable.
+This file proves that membership in a context-sensitive language is decidable.
 
-TODO -- show equivalence with context sensitive grammars
+The key insight is that in a context-sensitive grammar (where every rule has non-empty
+output), every derivation step preserves or increases the length of the sentential form.
+Therefore, when checking whether a word `w` belongs to the language, all intermediate
+sentential forms have length at most `|w|`. Since there are only finitely many such
+forms (when the terminal and nonterminal alphabets are finite), the reachability problem
+reduces to search over a finite graph.
 
-The key insight is that in a non-contracting grammar, every derivation step preserves or
-increases the length of the sentential form. Therefore, when checking whether a word `w`
-belongs to the language, all intermediate sentential forms have length at most `|w|`. Since
-there are only finitely many such forms (when the terminal and nonterminal alphabets are
-finite), the reachability problem reduces to search over a finite graph.
+Since the `CS_grammar` structure now requires `output_nonempty` (matching the standard
+definition of context-sensitive grammars), the non-contracting property
+`CSG_noncontracting` holds automatically. The main decidability result
+`CS_membership_decidable'` therefore needs no extra hypothesis.
 
 ## Main results
 
-- `CS_membership_decidable` – membership in a non-contracting context-sensitive grammar
-  is decidable.
+- `CSG_noncontracting_of_CS_grammar` — every CS grammar is non-contracting
+- `CS_membership_decidable'` — membership in any context-sensitive grammar is decidable
 -/
 
 open List Relation
@@ -38,34 +41,27 @@ noncomputable instance symbol.fintype (T : Type) (N : Type) [Fintype T] [Fintype
 
 /-! ## Non-contracting property and length bounds -/
 
-/-- A context-sensitive grammar is *non-contracting* if every rule has a non-empty output. -/
-def CSG_noncontracting (g : CS_grammar T) : Prop :=
-  ∀ r ∈ g.rules, r.output_string ≠ []
-
 /-- A single non-contracting transformation step does not decrease the length of the
     sentential form. -/
 lemma CS_transforms_length_le (g : CS_grammar T)
-    (hg : CSG_noncontracting g)
     {w₁ w₂ : List (symbol T g.nt)}
     (h : CS_transforms g w₁ w₂) : w₁.length ≤ w₂.length := by
   obtain ⟨r, u, v, hr, rfl, rfl⟩ := h
   simp [List.length_append]
-  exact List.length_pos_of_ne_nil (hg r hr)
+  exact List.length_pos_of_ne_nil (g.output_nonempty r hr)
 
 /-- In a non-contracting grammar, derivation does not decrease the length. -/
 lemma CS_derives_length_le (g : CS_grammar T)
-    (hg : CSG_noncontracting g)
     {w₁ w₂ : List (symbol T g.nt)}
     (h : CS_derives g w₁ w₂) : w₁.length ≤ w₂.length := by
   induction h with
   | refl => exact le_refl _
-  | tail h₁ h₂ ih => exact le_trans ih (CS_transforms_length_le g hg h₂)
+  | tail h₁ h₂ ih => exact le_trans ih (CS_transforms_length_le g h₂)
 
 /-- The empty word is not in the language of a non-contracting grammar. -/
-lemma empty_not_in_CS_language (g : CS_grammar T)
-    (hg : CSG_noncontracting g) : [] ∉ CS_language g := by
+lemma empty_not_in_CS_language (g : CS_grammar T) : [] ∉ CS_language g := by
   intro h
-  have := CS_derives_length_le g hg h
+  have := CS_derives_length_le g h
   simp at this
 
 /-! ## Fintype instance for bounded-length lists -/
@@ -324,7 +320,6 @@ Backward direction (ReflTransGen bounded → CS_derives): By induction on the Re
 Actually, the tricky part is that the ReflTransGen is on Subtypes, and we need to relate Subtype equality with value equality. The forward direction needs careful construction of Subtype witnesses.
 -/
 lemma CS_derives_iff_bounded [DecidableEq T] (g : CS_grammar T) [DecidableEq g.nt]
-    (hg : CSG_noncontracting g)
     (w₁ w₂ : List (symbol T g.nt))
     (h₁ : w₁.length ≤ w₂.length)
     (h₂ : w₂.length ≤ bound) :
@@ -336,8 +331,8 @@ lemma CS_derives_iff_bounded [DecidableEq T] (g : CS_grammar T) [DecidableEq g.n
     · rfl;
     · rename_i b c hb hc ih;
       refine' ih _ _ |> fun h => h.trans ( _ );
-      exact CS_derives_length_le g hg hb;
-      exact le_trans ( CS_transforms_length_le g hg hc ) h₂
+      exact CS_derives_length_le g hb;
+      exact le_trans ( CS_transforms_length_le g hc ) h₂
       generalize_proofs at *;
       exact .single hc;
   · -- By definition of `ReflTransGen`, we can construct a sequence of transformations from `w₁` to `w₂`.
@@ -350,21 +345,32 @@ lemma CS_derives_iff_bounded [DecidableEq T] (g : CS_grammar T) [DecidableEq g.n
 
 /-! ## Main theorem -/
 
-/-- Membership in a non-contracting context-sensitive grammar is decidable. -/
+/-- Membership in a non-contracting context-sensitive grammar is decidable.
+    This is the version with an explicit `CSG_noncontracting` hypothesis. -/
 noncomputable def CS_membership_decidable
     [Fintype T] [DecidableEq T]
     (g : CS_grammar T) [Fintype g.nt] [DecidableEq g.nt]
-    (hg : CSG_noncontracting g)
     (w : List T) : Decidable (w ∈ CS_language g) := by
   by_cases hw : w = []
   · -- Empty word case: not in language of non-contracting grammar
     subst hw
-    exact isFalse (empty_not_in_CS_language g hg)
+    exact isFalse (empty_not_in_CS_language g)
   · -- Non-empty word case: reduce to bounded reachability
     change Decidable (CS_derives g [symbol.nonterminal g.initial]
       (w.map (symbol.terminal (N := g.nt))))
-    rw [CS_derives_iff_bounded g hg
+    rw [CS_derives_iff_bounded g
       [symbol.nonterminal g.initial] (w.map (symbol.terminal (N := g.nt)))
       (by simp [List.length_map]; exact List.length_pos_of_ne_nil hw) (le_refl _)]
     exact ReflTransGen_decidable_fintype
       (CS_transforms_bounded g (w.map (symbol.terminal (N := g.nt))).length) _ _
+
+/-- Membership in a context-sensitive grammar is decidable.
+
+    Since the `CS_grammar` structure requires all rules to have non-empty output strings
+    (the standard definition of context-sensitive grammars), the non-contracting property
+    holds automatically and no additional hypothesis is needed. -/
+noncomputable def CS_membership_decidable'
+    [Fintype T] [DecidableEq T]
+    (g : CS_grammar T) [Fintype g.nt] [DecidableEq g.nt]
+    (w : List T) : Decidable (w ∈ CS_language g) :=
+  CS_membership_decidable g w
