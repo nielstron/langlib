@@ -7,7 +7,8 @@ import Grammars.Classes.ContextFree.ClosureProperties.Complement
 import Grammars.Classes.Regular.Basics.Pumping
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.Intersection
-import Grammars.Classes.Regular.ClosureProperties.PrefixSuffix
+import Grammars.Classes.Regular.ClosureProperties.Prefix
+import Grammars.Classes.Regular.ClosureProperties.Suffix
 import Grammars.Classes.Regular.ClosureProperties.Reverse
 import Grammars.Classes.Regular.ClosureProperties.Union
 
