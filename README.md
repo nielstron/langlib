@@ -1,9 +1,6 @@
 # Lean4 Formal Grammar Library
 [![CI](https://github.com/nielstron/grammars4/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/grammars4/actions/workflows/build.yml)
 
-
-## Overview
-
 This repository contains a variety of results about various classes of languages in the Chomsky hierarchy.
 
 ### Regular languages
