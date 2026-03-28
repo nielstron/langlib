@@ -296,6 +296,17 @@ theorem rightQuotient_mono_right {L R₁ R₂ : Language α} (h : R₁ ≤ R₂)
   intro w ⟨v, hv, hwv⟩
   exact ⟨v, h hv, hwv⟩
 
+@[simp] theorem rightQuotient_add_right (L R₁ R₂ : Language α) :
+    L / (R₁ + R₂) = L / R₁ + L / R₂ := by
+  ext w
+  constructor
+  · rintro ⟨v, hv | hv, hwv⟩
+    · exact Or.inl ⟨v, hv, hwv⟩
+    · exact Or.inr ⟨v, hv, hwv⟩
+  · rintro (⟨v, hv, hwv⟩ | ⟨v, hv, hwv⟩)
+    · exact ⟨v, Or.inl hv, hwv⟩
+    · exact ⟨v, Or.inr hv, hwv⟩
+
 @[simp] theorem rightQuotient_zero_left (R : Language α) :
     0 / R = 0 := by
   ext w; constructor
@@ -323,5 +334,36 @@ theorem subset_rightQuotient_univ (L : Language α) :
     L ≤ rightQuotient L Set.univ := by
   rw [← prefixLang_eq_rightQuotient_univ]
   exact subset_prefixLang L
+
+theorem leftQuotient_mono {L₁ L₂ : Language α} (h : L₁ ≤ L₂) (x : List α) :
+    x \\ L₁ ≤ x \\ L₂ := by
+  intro w hw
+  exact h hw
+
+@[simp] theorem leftQuotient_zero (x : List α) :
+    x \\ (0 : Language α) = 0 := by
+  ext w
+  simp [mem_leftQuotient]
+
+@[simp] theorem nil_leftQuotient (L : Language α) :
+    ([] : List α) \\ L = L := by
+  simpa using Language.leftQuotient_nil L
+
+@[simp] theorem cons_leftQuotient (a : α) (x : List α) (L : Language α) :
+    (a :: x) \\ L = x \\ ([a] \\ L) := by
+  simpa using (Language.leftQuotient_append L [a] x)
+
+@[simp] theorem append_leftQuotient (x y : List α) (L : Language α) :
+    (x ++ y) \\ L = y \\ (x \\ L) := by
+  simpa using (Language.leftQuotient_append L x y)
+
+@[simp] theorem leftQuotient_add (x : List α) (L₁ L₂ : Language α) :
+    x \\ (L₁ + L₂) = x \\ L₁ + x \\ L₂ := by
+  ext w
+  constructor
+  · intro h
+    exact h
+  · intro h
+    exact h
 
 end Language
