@@ -54,11 +54,11 @@ This repository contains a variety of results about various classes of languages
 
 `🔗` indicates that this repository contains a corresponding proof file.
 
-| Language | Union | Intersection | Complement | Concatenation | Kleene star | Reversal | Prefix | Suffix |
+| Language | Union | Intersection | Complement | Concatenation | Kleene star | Reversal | Left quotient | Right quotient |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Regular | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Union.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Intersection.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Complement.lean) | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Prefix.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Suffix.lean) |
-| Context-free | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean) | ✗ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean) | ✗ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Star.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Prefix.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Suffix.lean) |
-| Context-sensitive | ✓ | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean) | ✓ | ✓[🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean) | ✗ | ✗ |
+| Regular | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Union.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Intersection.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Complement.lean) | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Quotient.lean) |
+| Context-free | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean) | REG [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/IntersectionRegular.lean) | ✗ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Star.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean) | REG | REG [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Quotient.lean) |
+| Context-sensitive | ✓ | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean) | ✓ | ✓ | ✗ | ✗ |
 | Recursively enumerable | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean) | ✓ | ✗ | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean) | ✓ | ✓ |
 
 Additional context-free closure results formalized here:
@@ -66,7 +66,8 @@ Additional context-free closure results formalized here:
 - [Substitution](src/Grammars/Classes/ContextFree/ClosureProperties/Substitution.lean)
 - [Terminal bijections](src/Grammars/Classes/ContextFree/ClosureProperties/Bijection.lean)
 - [Terminal permutations](src/Grammars/Classes/ContextFree/ClosureProperties/Permutation.lean)
-- [Intersection with regular languages](src/Grammars/Classes/ContextFree/ClosureProperties/IntersectionRegular.lean)
+- [Prefix](src/Grammars/Classes/ContextFree/ClosureProperties/Prefix.lean)
+- [Suffix](src/Grammars/Classes/ContextFree/ClosureProperties/Suffix.lean)
 
 ## Decidability Summary
 

@@ -25,6 +25,7 @@ import Grammars.Classes.ContextFree.ClosureProperties.IntersectionRegular
 import Grammars.Classes.ContextFree.ClosureProperties.Permutation
 import Grammars.Classes.ContextFree.ClosureProperties.Prefix
 import Grammars.Classes.ContextFree.ClosureProperties.PrefixBonus
+import Grammars.Classes.ContextFree.ClosureProperties.Quotient
 import Grammars.Classes.ContextFree.ClosureProperties.Reverse
 import Grammars.Classes.ContextFree.ClosureProperties.Star
 import Grammars.Classes.ContextFree.ClosureProperties.Substitution
@@ -40,6 +41,7 @@ import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.ConverseFailures
 import Grammars.Classes.Regular.ClosureProperties.Intersection
 import Grammars.Classes.Regular.ClosureProperties.Prefix
+import Grammars.Classes.Regular.ClosureProperties.Quotient
 import Grammars.Classes.Regular.ClosureProperties.Suffix
 import Grammars.Classes.Regular.ClosureProperties.Reverse
 import Grammars.Classes.Regular.ClosureProperties.Union
