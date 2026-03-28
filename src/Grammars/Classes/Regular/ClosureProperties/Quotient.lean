@@ -44,15 +44,24 @@ theorem mem_quotientDFA_accept (M : DFA α σ) (R : Language α) (s : σ) :
 
 /-- The quotient DFA accepts exactly the right quotient of the original language by `R`. -/
 theorem quotientDFA_accepts (M : DFA α σ) (R : Language α) :
-    (M.quotientDFA R).accepts = rightQuotient M.accepts R := by
+    (M.quotientDFA R).accepts = M.accepts / R := by
   ext w
-  simp only [DFA.mem_accepts, mem_rightQuotient, evalFrom_quotientDFA,
-    mem_quotientDFA_accept, DFA.eval]
   constructor
-  · rintro ⟨v, hv, heval⟩
-    exact ⟨v, hv, by rwa [DFA.evalFrom_of_append]⟩
+  · intro h
+    rcases h with ⟨v, hv, heval⟩
+    refine ⟨v, hv, ?_⟩
+    change M.eval (w ++ v) ∈ M.accept
+    change M.evalFrom M.start (w ++ v) ∈ M.accept
+    have heval' : M.evalFrom (M.evalFrom M.start w) v ∈ M.accept := by
+      simpa [DFA.eval, evalFrom_quotientDFA] using heval
+    rwa [← DFA.evalFrom_of_append] at heval'
   · rintro ⟨v, hv, hmem⟩
-    exact ⟨v, hv, by rwa [← DFA.evalFrom_of_append]⟩
+    refine ⟨v, hv, ?_⟩
+    change M.eval (w ++ v) ∈ M.accept at hmem
+    change M.evalFrom M.start (w ++ v) ∈ M.accept at hmem
+    have hmem' : M.evalFrom (M.evalFrom M.start w) v ∈ M.accept := by
+      rwa [DFA.evalFrom_of_append] at hmem
+    simpa [DFA.eval, evalFrom_quotientDFA] using hmem'
 
 /-- `reachableAccept` is the special case of `quotientAccept` with `R = Set.univ`. -/
 theorem reachableAccept_eq_quotientAccept_univ (M : DFA α σ) :
@@ -70,7 +79,7 @@ variable {α : Type*}
 /-- Regular languages are closed under right quotient with any language.
 This generalises `IsRegular.prefixLang`. -/
 theorem IsRegular.rightQuotient {L : Language α} (hL : L.IsRegular) (R : Language α) :
-    (rightQuotient L R).IsRegular := by
+    (L / R).IsRegular := by
   obtain ⟨σ, _, M, rfl⟩ := hL
   exact ⟨σ, inferInstance, M.quotientDFA R, M.quotientDFA_accepts R⟩
 

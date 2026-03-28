@@ -1,4 +1,5 @@
 import Mathlib.Computability.Language
+import Mathlib.Computability.MyhillNerode
 import Mathlib.Algebra.Group.Pointwise.Set.ListOfFn
 
 /-! # Language Operations
@@ -233,6 +234,11 @@ theorem prefixLang_eq_reverse_suffixLang_reverse (L : Language T) :
 def rightQuotient (L : Language α) (R : Language α) : Language α :=
   { w | ∃ v ∈ R, w ++ v ∈ L }
 
+instance : HDiv (Language α) (Language α) (Language α) where
+  hDiv := rightQuotient
+
+infixl:70 " \\\\ " => fun x L => Language.leftQuotient L x
+
 @[simp] theorem mem_rightQuotient {L R : Language α} {w : List α} :
     w ∈ rightQuotient L R ↔ ∃ v ∈ R, w ++ v ∈ L :=
   Iff.rfl
@@ -243,30 +249,67 @@ theorem prefixLang_eq_rightQuotient_univ (L : Language α) :
   · rintro ⟨v, hv⟩; exact ⟨v, Set.mem_univ _, hv⟩
   · rintro ⟨v, _, hv⟩; exact ⟨v, hv⟩
 
+theorem reverse_leftQuotient_eq_rightQuotient_reverse_singleton
+    (L : Language α) (x : List α) :
+    (x \\ L).reverse = L.reverse / {x.reverse} := by
+  ext w
+  constructor
+  · intro h
+    change x ++ w.reverse ∈ L at h
+    change ∃ v ∈ ({x.reverse} : Language α), w ++ v ∈ L.reverse
+    refine ⟨x.reverse, Set.mem_singleton _, ?_⟩
+    change (w ++ x.reverse).reverse ∈ L
+    simpa [List.reverse_append] using h
+  · rintro ⟨v, hv, hvw⟩
+    rw [Set.mem_singleton_iff] at hv
+    subst hv
+    change x ++ w.reverse ∈ L
+    change (w ++ x.reverse).reverse ∈ L at hvw
+    simpa [List.reverse_append] using hvw
+
+theorem leftQuotient_eq_reverse_rightQuotient_reverse_singleton
+    (L : Language α) (x : List α) :
+    x \\ L = (L.reverse / {x.reverse}).reverse := by
+  ext w
+  constructor
+  · intro h
+    change w.reverse ∈ L.reverse / ({x.reverse} : Language α)
+    refine ⟨x.reverse, Set.mem_singleton _, ?_⟩
+    change (w.reverse ++ x.reverse).reverse ∈ L
+    simpa [List.reverse_append] using h
+  · intro h
+    change ∃ v ∈ ({x.reverse} : Language α), w.reverse ++ v ∈ L.reverse at h
+    rcases h with ⟨v, hv, hvw⟩
+    rw [Set.mem_singleton_iff] at hv
+    subst hv
+    change x ++ w ∈ L
+    change (w.reverse ++ x.reverse).reverse ∈ L at hvw
+    simpa [List.reverse_append] using hvw
+
 theorem rightQuotient_mono_left {L₁ L₂ R : Language α} (h : L₁ ≤ L₂) :
-    rightQuotient L₁ R ≤ rightQuotient L₂ R := by
+    L₁ / R ≤ L₂ / R := by
   intro w ⟨v, hv, hwv⟩
   exact ⟨v, hv, h hwv⟩
 
 theorem rightQuotient_mono_right {L R₁ R₂ : Language α} (h : R₁ ≤ R₂) :
-    rightQuotient L R₁ ≤ rightQuotient L R₂ := by
+    L / R₁ ≤ L / R₂ := by
   intro w ⟨v, hv, hwv⟩
   exact ⟨v, h hv, hwv⟩
 
 @[simp] theorem rightQuotient_zero_left (R : Language α) :
-    rightQuotient 0 R = 0 := by
+    0 / R = 0 := by
   ext w; constructor
   · rintro ⟨v, _, hv⟩; exact hv
   · tauto
 
 @[simp] theorem rightQuotient_zero_right (L : Language α) :
-    rightQuotient L 0 = 0 := by
+    L / 0 = 0 := by
   ext w; constructor
   · rintro ⟨v, hv, _⟩; exact hv.elim
   · tauto
 
 @[simp] theorem rightQuotient_add_left (L₁ L₂ R : Language α) :
-    rightQuotient (L₁ + L₂) R = rightQuotient L₁ R + rightQuotient L₂ R := by
+    (L₁ + L₂) / R = L₁ / R + L₂ / R := by
   ext w
   constructor
   · rintro ⟨v, hv, hwv | hwv⟩
