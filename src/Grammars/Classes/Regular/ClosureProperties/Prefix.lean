@@ -1,16 +1,15 @@
 import Mathlib
 import Grammars.Utilities.LanguageOperations
 
-/-! # Regular Closure Under Prefix and Suffix
+/-! # Regular Closure Under Prefix
 
-This file adds regular-language closure results for the prefix and suffix operations.
+This file proves that regular languages are closed under the prefix operation.
 
 ## Main declarations
 
 - `DFA.reachableAccept`
 - `DFA.prefixDFA`
 - `Language.IsRegular.prefixLang`
-- `Language.IsRegular.suffixLang`
 -/
 
 open List Set Computability
@@ -60,11 +59,5 @@ theorem IsRegular.prefixLang {L : Language α} (h : L.IsRegular) :
     (prefixLang L).IsRegular := by
   obtain ⟨σ, _, M, rfl⟩ := h
   exact ⟨σ, inferInstance, M.prefixDFA, M.prefixDFA_accepts⟩
-
-/-- Regular languages are closed under the suffix operation. -/
-theorem IsRegular.suffixLang {L : Language α} (h : L.IsRegular) :
-    (suffixLang L).IsRegular := by
-  rw [suffixLang_eq_reverse_prefixLang_reverse]
-  exact (h.reverse.prefixLang).reverse
 
 end Language

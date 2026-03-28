@@ -34,7 +34,8 @@ import Grammars.Classes.Regular.Basics.NonRegular
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.ConverseFailures
 import Grammars.Classes.Regular.ClosureProperties.Intersection
-import Grammars.Classes.Regular.ClosureProperties.PrefixSuffix
+import Grammars.Classes.Regular.ClosureProperties.Prefix
+import Grammars.Classes.Regular.ClosureProperties.Suffix
 import Grammars.Classes.Regular.ClosureProperties.Reverse
 import Grammars.Classes.Regular.ClosureProperties.Union
 import Grammars.Classes.Regular.Decidability.Emptiness
