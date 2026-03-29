@@ -1,5 +1,5 @@
-import Grammars.Classes.Pushdown.Basics.PDA
-import Grammars.Classes.Pushdown.Basics.Leftmost
+import Grammars.Automata.Pushdown.Basics.PDA
+import Grammars.Automata.Pushdown.Basics.Leftmost
 import Mathlib.Computability.ContextFreeGrammar
 import Mathlib.Logic.Relation
 import Mathlib.Data.Set.Finite.Basic

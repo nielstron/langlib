@@ -1,6 +1,13 @@
---! Auto-generated import hub for the Grammars library.
---  Updates may be made manually if module layout changes.
+--! Auto-generated import hub for the grammars library.
+--  Run `scripts/generate_import_hub.py --hub grammars` to regenerate.
 
+import Grammars.Automata.Pushdown.Basics.CountingStepsLeftmost
+import Grammars.Automata.Pushdown.Basics.DPDA
+import Grammars.Automata.Pushdown.Basics.Leftmost
+import Grammars.Automata.Pushdown.Basics.PDA
+import Grammars.Automata.Pushdown.Equivalence.CFGToPDA
+import Grammars.Automata.Pushdown.Equivalence.PDAToCFG
+import Grammars.Classes.ContextFree.Basics.DCFL
 import Grammars.Classes.ContextFree.Basics.Definition
 import Grammars.Classes.ContextFree.Basics.Elementary
 import Grammars.Classes.ContextFree.Basics.FiniteNT
@@ -9,11 +16,6 @@ import Grammars.Classes.ContextFree.Basics.Lifting
 import Grammars.Classes.ContextFree.Basics.PDAEquivalence
 import Grammars.Classes.ContextFree.Basics.Pumping
 import Grammars.Classes.ContextFree.Basics.Splitting
-import Grammars.Classes.Pushdown.Basics.PDA
-import Grammars.Classes.Pushdown.Basics.Leftmost
-import Grammars.Classes.Pushdown.Basics.CountingStepsLeftmost
-import Grammars.Classes.Pushdown.Equivalence.CFGToPDA
-import Grammars.Classes.Pushdown.Equivalence.PDAToCFG
 import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Classes.ContextFree.ClosureProperties.Bijection
 import Grammars.Classes.ContextFree.ClosureProperties.Complement
@@ -28,6 +30,8 @@ import Grammars.Classes.ContextFree.ClosureProperties.PrefixBonus
 import Grammars.Classes.ContextFree.ClosureProperties.Quotient
 import Grammars.Classes.ContextFree.ClosureProperties.Reverse
 import Grammars.Classes.ContextFree.ClosureProperties.Star
+import Grammars.Classes.ContextFree.ClosureProperties.Substitution.Core
+import Grammars.Classes.ContextFree.ClosureProperties.Substitution.Support
 import Grammars.Classes.ContextFree.ClosureProperties.Substitution
 import Grammars.Classes.ContextFree.ClosureProperties.Suffix
 import Grammars.Classes.ContextFree.ClosureProperties.Union
@@ -36,30 +40,42 @@ import Grammars.Classes.ContextFree.Decidability.Emptiness
 import Grammars.Classes.ContextFree.Decidability.Membership
 import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalForm
 import Grammars.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
+import Grammars.Classes.ContextFree.Pumping.ChomskyCountingSteps
+import Grammars.Classes.ContextFree.Pumping.CountingSteps
+import Grammars.Classes.ContextFree.Pumping.EpsilonElimination
+import Grammars.Classes.ContextFree.Pumping.LengthRestriction
+import Grammars.Classes.ContextFree.Pumping.ParseTree
+import Grammars.Classes.ContextFree.Pumping.Pumping
+import Grammars.Classes.ContextFree.Pumping.TerminalRestriction
+import Grammars.Classes.ContextFree.Pumping.UnitElimination
+import Grammars.Classes.ContextFree.Pumping.Utils
+import Grammars.Classes.ContextFree.Pumping.toMathlib
+import Grammars.Classes.ContextSensitive.Basics.Definition
+import Grammars.Classes.ContextSensitive.Basics.Inclusion
+import Grammars.Classes.ContextSensitive.Basics.NonContracting
+import Grammars.Classes.ContextSensitive.Basics.Toolbox
+import Grammars.Classes.ContextSensitive.ClosureProperties.Bijection
+import Grammars.Classes.ContextSensitive.ClosureProperties.Concatenation
+import Grammars.Classes.ContextSensitive.ClosureProperties.Reverse
+import Grammars.Classes.ContextSensitive.Decidability.Membership
+import Grammars.Classes.LinearBounded.Basics.LBA
 import Grammars.Classes.Regular.Basics.NonRegular
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.ConverseFailures
 import Grammars.Classes.Regular.ClosureProperties.Intersection
 import Grammars.Classes.Regular.ClosureProperties.Prefix
 import Grammars.Classes.Regular.ClosureProperties.Quotient
-import Grammars.Classes.Regular.ClosureProperties.Suffix
 import Grammars.Classes.Regular.ClosureProperties.Reverse
+import Grammars.Classes.Regular.ClosureProperties.Suffix
 import Grammars.Classes.Regular.ClosureProperties.Union
 import Grammars.Classes.Regular.Decidability.Emptiness
 import Grammars.Classes.Regular.Decidability.Membership
 import Grammars.Classes.Regular.Decidability.Universality
-import Grammars.Classes.ContextSensitive.Basics.Definition
-import Grammars.Classes.ContextSensitive.Basics.Inclusion
-import Grammars.Classes.ContextSensitive.Basics.Toolbox
-import Grammars.Classes.ContextSensitive.ClosureProperties.Bijection
-import Grammars.Classes.ContextSensitive.ClosureProperties.Concatenation
-import Grammars.Classes.ContextSensitive.ClosureProperties.Reverse
-import Grammars.Classes.ContextSensitive.Decidability.Membership
 import Grammars.Classes.Unrestricted.Basics.Definition
 import Grammars.Classes.Unrestricted.Basics.Lifting
 import Grammars.Classes.Unrestricted.Basics.Toolbox
-import Grammars.Classes.Unrestricted.ClosureProperties.Concatenation
 import Grammars.Classes.Unrestricted.ClosureProperties.Bijection
+import Grammars.Classes.Unrestricted.ClosureProperties.Concatenation
 import Grammars.Classes.Unrestricted.ClosureProperties.Reverse
 import Grammars.Classes.Unrestricted.ClosureProperties.Union
 import Grammars.Classes.Unrestricted.ClosureProperties.UnionBonus
@@ -71,7 +87,7 @@ import Grammars.Utilities.WrittenByOthers.PrintSorries
 import Grammars.Utilities.WrittenByOthers.TrimAssoc
 /-! # Grammars Library
 
-This file is the import hub for the `Grammars` library.
+This file is the import hub for the grammars library.
 
 ## Main declarations
 

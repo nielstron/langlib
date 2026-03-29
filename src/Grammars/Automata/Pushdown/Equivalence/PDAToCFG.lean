@@ -1,6 +1,6 @@
-import Grammars.Classes.Pushdown.Basics.PDA
-import Grammars.Classes.Pushdown.Basics.Leftmost
-import Grammars.Classes.Pushdown.Basics.CountingStepsLeftmost
+import Grammars.Automata.Pushdown.Basics.PDA
+import Grammars.Automata.Pushdown.Basics.Leftmost
+import Grammars.Automata.Pushdown.Basics.CountingStepsLeftmost
 import Mathlib.Computability.ContextFreeGrammar
 import Mathlib.Data.Set.Finite.List
 namespace PDA_to_CFG
