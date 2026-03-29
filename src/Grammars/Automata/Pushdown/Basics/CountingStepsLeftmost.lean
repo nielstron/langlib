@@ -3,7 +3,7 @@ Copyright (c) 2024 Alexander Loitzl, Martin Dvorak. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl, Martin Dvorak
 -/
-import Grammars.Classes.Pushdown.Basics.Leftmost
+import Grammars.Automata.Pushdown.Basics.Leftmost
 
 universe uT uN
 variable {T : Type uT}

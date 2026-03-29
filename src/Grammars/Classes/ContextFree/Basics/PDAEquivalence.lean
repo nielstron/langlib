@@ -1,7 +1,7 @@
 import Grammars.Classes.ContextFree.Basics.Inclusion
 import Grammars.Classes.ContextFree.Basics.FiniteNT
-import Grammars.Classes.Pushdown.Equivalence.CFGToPDA
-import Grammars.Classes.Pushdown.Equivalence.PDAToCFG
+import Grammars.Automata.Pushdown.Equivalence.CFGToPDA
+import Grammars.Automata.Pushdown.Equivalence.PDAToCFG
 
 open PDA
 
