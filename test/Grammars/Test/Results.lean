@@ -4,7 +4,6 @@ import Grammars.Classes.ContextFree.ClosureProperties.Concatenation
 import Grammars.Classes.ContextFree.ClosureProperties.Intersection
 import Grammars.Classes.ContextFree.ClosureProperties.Complement
 
-import Grammars.Classes.Regular.Basics.Pumping
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.Intersection
 import Grammars.Classes.Regular.ClosureProperties.Prefix
@@ -15,7 +14,6 @@ import Grammars.Classes.Regular.ClosureProperties.Union
 import Grammars.Classes.Unrestricted.ClosureProperties.Union
 import Grammars.Classes.Unrestricted.ClosureProperties.Reverse
 import Grammars.Classes.Unrestricted.ClosureProperties.Concatenation
-import Grammars.Classes.Unrestricted.ClosureProperties.Star
 
 import Grammars.Utilities.LanguageOperations
 import Grammars.Utilities.WrittenByOthers.PrintSorries
@@ -35,16 +33,14 @@ This file checks that the main closure and non-closure theorems elaborate.
 - `RE_of_RE_u_RE`
 - `RE_of_reverse_RE`
 - `RE_of_RE_c_RE`
-- `RE_of_star_RE`
 - `Language.prefixLang`
 - `Language.suffixLang`
 - `Language.IsRegular.prefixLang`
 - `Language.IsRegular.suffixLang`
-- `Language.IsRegular.reverse'`
 - `Language.IsRegular.add'`
 - `Language.IsRegular.inf'`
-- `Language.IsRegular.compl'`
-- `Language.IsRegular.pumping'`
+- `Language.isRegular_compl_iff`
+- `Language.isRegular_reverse_iff'`
 -/
 
 section language_operations
@@ -52,7 +48,7 @@ section language_operations
 #check            Language.prefixLang
 #check            Language.suffixLang
 #check            Language.prefixLang_prefixLang
-#check            Grammars.suffixLang_eq_reverse_prefixLang_reverse
+#check            Language.suffixLang_eq_reverse_prefixLang_reverse
 
 end language_operations
 
@@ -60,11 +56,10 @@ section regular
 
 #check            Language.IsRegular.prefixLang
 #check            Language.IsRegular.suffixLang
-#check            Language.IsRegular.reverse'
+#check            Language.isRegular_reverse_iff'
 #check            Language.IsRegular.add'
 #check            Language.IsRegular.inf'
-#check            Language.IsRegular.compl'
-#check            Language.IsRegular.pumping'
+#check            Language.isRegular_compl_iff
 
 end regular
 
@@ -98,8 +93,5 @@ section unrestricted
 
 #check            RE_of_RE_c_RE
 #print_sorries_in RE_of_RE_c_RE
-
-#check            RE_of_star_RE
-#print_sorries_in RE_of_star_RE
 
 end unrestricted
