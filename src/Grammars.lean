@@ -1,6 +1,7 @@
 --! Auto-generated import hub for the grammars library.
 --  Run `scripts/generate_import_hub.py --hub grammars` to regenerate.
 
+import Grammars.Automata.LinearBounded.Basics.LBA
 import Grammars.Automata.Pushdown.Basics.CountingStepsLeftmost
 import Grammars.Automata.Pushdown.Basics.DPDA
 import Grammars.Automata.Pushdown.Basics.Leftmost
@@ -58,7 +59,6 @@ import Grammars.Classes.ContextSensitive.ClosureProperties.Bijection
 import Grammars.Classes.ContextSensitive.ClosureProperties.Concatenation
 import Grammars.Classes.ContextSensitive.ClosureProperties.Reverse
 import Grammars.Classes.ContextSensitive.Decidability.Membership
-import Grammars.Classes.LinearBounded.Basics.LBA
 import Grammars.Classes.Regular.Basics.NonRegular
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.ConverseFailures
