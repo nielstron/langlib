@@ -1,5 +1,6 @@
 name = "grammars"
 defaultTargets = ["Grammars"]
+testDriver = "GrammarsTest"
 
 [[require]]
 name = "mathlib"
