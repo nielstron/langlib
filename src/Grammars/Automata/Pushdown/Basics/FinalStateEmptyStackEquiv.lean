@@ -159,12 +159,156 @@ lemma reverse_simulation_step {Q S : Type} [Fintype Q] [Fintype S]
     · exact List.map_injective_iff.mpr (Option.some_injective _) <| by simpa using h₂
     · exact List.map_injective_iff.mpr (Option.some_injective _) <| by simpa using h₂
 
+/-- Invariant for configurations reachable from the initial config of the FS→ES PDA.
+    Every such configuration is either:
+    (1) the initial config `(inr 0, w, [none])`
+    (2) a simulation of M: `(inl q, w', γ.map some ++ [none])` with
+        `M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, w', γ⟩`
+    (3) the drain state `(inr 1, ...)` with a witness that some final state of M
+        was reached on empty input. -/
+def FSES_Inv {Q S : Type} [Fintype Q] [Fintype S]
+    (M : PDA Q T S) (w : List T) (c : PDA.conf (PDA_FS_to_ES_pda M)) : Prop :=
+  (c = ⟨Sum.inr 0, w, [none]⟩) ∨
+  (∃ q : Q, ∃ w' : List T, ∃ γ : List S,
+    c = ⟨Sum.inl q, w', γ.map some ++ [none]⟩ ∧
+    M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, w', γ⟩) ∨
+  (c.state = Sum.inr 1 ∧
+    (c.input = [] →
+      ∃ q ∈ M.final_states, ∃ γ' : List S,
+        M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, [], γ'⟩))
+
+/-- The invariant holds for the initial configuration. -/
+lemma FSES_Inv_init {Q S : Type} [Fintype Q] [Fintype S]
+    (M : PDA Q T S) (w : List T) :
+    FSES_Inv M w ⟨Sum.inr 0, w, [none]⟩ := by
+  left; rfl
+
+/-
+PROBLEM
+The invariant is preserved by a single step.
+
+PROVIDED SOLUTION
+Case split on h_inv (the invariant for c₁):
+
+**Case 1: c₁ = (Sum.inr 0, w, [none])** — initial state.
+The step function from (Sum.inr 0, w, [none]): the stack top is none.
+- If w = []: step = {r₂ | ∃ p β, (p,β) ∈ PDA_FS_to_ES_eps M (Sum.inr 0) none ∧ r₂ = (p, [], β)}
+  PDA_FS_to_ES_eps (Sum.inr 0) none = {(Sum.inl M.initial_state, [some M.start_symbol, none])}
+  So c₂ = (Sum.inl M.initial_state, [], [some M.start_symbol, none])
+  This is Case 2 of the invariant with q = M.initial_state, w' = [], γ = [M.start_symbol], and M.Reaches is refl.
+
+- If w = a::w': step includes ε-transition:
+  PDA_FS_to_ES_eps (Sum.inr 0) none = {(Sum.inl M.initial_state, [some M.start_symbol, none])}
+  Also PDA_FS_to_ES_trans (Sum.inr 0) a none = ∅ (matches | _, _, _ => ∅ since Sum.inr 0 is not Sum.inl)
+  So c₂ = (Sum.inl M.initial_state, a::w', [some M.start_symbol, none])
+  This is Case 2 with γ = [M.start_symbol] and M.Reaches is refl.
+
+**Case 2: c₁ = (Sum.inl q, w', γ.map some ++ [none])** with M.Reaches to (q, w', γ).
+Sub-case γ = Z :: γ': stack top is some Z.
+- Input transition (if w' = a::w''): PDA_FS_to_ES_trans (Sum.inl q) a (some Z) = image of M.transition_fun q a Z.
+  c₂ = (Sum.inl p, w'', β.map some ++ γ'.map some ++ [none]) for some (p, β) ∈ M.transition_fun q a Z.
+  This gives Case 2 with γ_new = β ++ γ' and M.Reaches extended by M's step.
+
+- ε-transition: PDA_FS_to_ES_eps (Sum.inl q) (some Z) = image of M.transition_fun' q Z ∪ (if q ∈ final_states then {(Sum.inr 1, [])} else ∅).
+  - If from the M simulation part: c₂ = (Sum.inl p, w', β.map some ++ γ'.map some ++ [none]). Case 2.
+  - If q ∈ final_states and c₂ = (Sum.inr 1, w', γ'.map some ++ [none]). Case 3:
+    state is Sum.inr 1, and if w' = [], then we have M reaching (q, [], Z::γ') with q ∈ final_states.
+
+Sub-case γ = []: stack is [none]. Stack top is none.
+- PDA_FS_to_ES_trans for (Sum.inl q, _, none) returns ∅ (| _, _, _ => ∅ since none ≠ some s).
+- PDA_FS_to_ES_eps (Sum.inl q) none = if q ∈ final_states then {(Sum.inr 1, [])} else ∅.
+  If q ∈ final_states: c₂ = (Sum.inr 1, w', []). Case 3 with q final, M reaches (q, w', []).
+  If q ∉ final_states: step is ∅, contradiction with h_step.
+
+**Case 3: c₁.state = Sum.inr 1**.
+From (Sum.inr 1, w_in, Z :: rest):
+- PDA_FS_to_ES_eps (Sum.inr 1) Z = {(Sum.inr 1, [])}
+  So c₂ = (Sum.inr 1, w_in, rest). Still Case 3. Input unchanged.
+  If c₂.input = [], same as c₁.input = [], so same witness.
+- PDA_FS_to_ES_trans (Sum.inr 1, _, _) = ∅.
+If c₁.stack = []: step is ∅, contradiction.
+-/
+set_option maxHeartbeats 800000 in
+lemma FSES_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
+    (M : PDA Q T S) (w : List T)
+    (c₁ c₂ : PDA.conf (PDA_FS_to_ES_pda M))
+    (h_inv : FSES_Inv M w c₁)
+    (h_step : PDA.Reaches₁ c₁ c₂) :
+    FSES_Inv M w c₂ := by
+  cases' h_inv with h_inv_cases h_inv_cases;
+  · cases' w with w <;> simp_all +decide [ Reaches₁ ];
+    · cases c₂ ; simp_all +decide [ step ];
+      unfold PDA_FS_to_ES_pda at h_step; simp_all +decide [ PDA_FS_to_ES_eps ] ;
+      exact Or.inr <| Or.inl ⟨ M.initial_state, [ ], [ M.start_symbol ], by aesop ⟩;
+    · cases' h_step with p hp;
+      · obtain ⟨ p, β, hp, rfl ⟩ := p; simp_all +decide [ PDA_FS_to_ES_pda ] ;
+        cases hp;
+      · obtain ⟨ p, β, hp, rfl ⟩ := hp; simp_all +decide [ PDA_FS_to_ES_pda ] ;
+        cases p <;> cases β <;> simp_all +decide [ PDA_FS_to_ES_eps ];
+        exact Or.inr <| Or.inl ⟨ M.initial_state, _, _, rfl, by tauto ⟩;
+  · rcases h_inv_cases with ( ⟨ q, w', γ, rfl, h ⟩ | ⟨ h₁, h₂ ⟩ ) <;> simp_all +decide [ FSES_Inv ];
+    · unfold Reaches₁ at h_step;
+      rcases γ with ( _ | ⟨ Z, γ ⟩ ) <;> simp_all +decide [ step ];
+      · rcases w' with ( _ | ⟨ a, w' ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_pda ];
+        · unfold PDA_FS_to_ES_eps at h_step; aesop;
+        · rcases h_step with ( ( ⟨ a', β, h, rfl ⟩ | ⟨ β, h, rfl ⟩ | ⟨ β, h, rfl ⟩ ) | ⟨ a', β, h, rfl ⟩ | ⟨ β, h, rfl ⟩ | ⟨ β, h, rfl ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_trans, PDA_FS_to_ES_eps ];
+      · rcases w' with ( _ | ⟨ a, w' ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_pda ];
+        · unfold PDA_FS_to_ES_eps at h_step; simp_all +decide [ Set.mem_union, Set.mem_image ] ;
+          rcases h_step with ( ⟨ a, b, h₁, rfl ⟩ | ⟨ h₁, rfl ⟩ ) <;> simp_all +decide [ Reaches ];
+          · use b ++ γ; simp_all +decide [ List.map_append ] ;
+            exact h.tail ( by exact ⟨ _, _, h₁, rfl ⟩ );
+          · exact ⟨ q, h₁, Z :: γ, h ⟩;
+        · rcases h_step with ( ( ⟨ q', β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ ) | ⟨ q', β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_trans, PDA_FS_to_ES_eps ];
+          · rcases h₁ with ⟨ b, hb₁, rfl ⟩ ; use b ++ γ; simp_all +decide [ Reaches ] ;
+            exact h.tail ( by exact Set.mem_union_left _ ⟨ q', b, hb₁, rfl ⟩ );
+          · rcases h₁ with ⟨ b, hb₁, rfl ⟩ ; use b ++ γ; simp_all +decide [ Reaches ] ;
+            exact h.trans ( Relation.ReflTransGen.single <| by exact Or.inr ⟨ q', b, hb₁, rfl ⟩ );
+    · rcases c₁ with ⟨ q₁, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ q₂, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ] ;
+      rcases γ₁ with ( _ | ⟨ Z, γ₁ ⟩ ) <;> simp_all +decide [ step ];
+      rcases w₁ with ( _ | ⟨ a, w₁ ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_pda ];
+      · rcases h_step with ( ⟨ a, β, h, rfl, rfl, rfl ⟩ | ⟨ β, h, rfl, rfl, rfl ⟩ | ⟨ β, h, rfl, rfl, rfl ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_eps ];
+      · rcases h_step with ( ( ⟨ q, β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ ) | ( ⟨ q, β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ ) ) <;> simp_all +decide [ PDA_FS_to_ES_trans, PDA_FS_to_ES_eps ]
+
+/-- The invariant is preserved by multi-step reachability. -/
+lemma FSES_Inv_reaches {Q S : Type} [Fintype Q] [Fintype S]
+    (M : PDA Q T S) (w : List T)
+    (c₁ c₂ : PDA.conf (PDA_FS_to_ES_pda M))
+    (h_inv : FSES_Inv M w c₁)
+    (h_reach : PDA.Reaches c₁ c₂) :
+    FSES_Inv M w c₂ := by
+  induction h_reach with
+  | refl => exact h_inv
+  | tail _ h_step ih => exact FSES_Inv_step M w _ _ ih h_step
+
+/-
+PROBLEM
+If the invariant holds at `(q, [], [])`, then `w ∈ M.acceptsByFinalState`.
+
+PROVIDED SOLUTION
+Case split on h_inv (the invariant for config (q, [], [])):
+
+Case 1: (q, [], []) = (Sum.inr 0, w, [none]). This requires [] = [none], which is impossible. Contradiction.
+
+Case 2: (q, [], []) = (Sum.inl q', w', γ.map some ++ [none]). This requires [] = γ.map some ++ [none]. But γ.map some ++ [none] always has at least one element (none), so [] ≠ γ.map some ++ [none]. Contradiction.
+
+Case 3: q = Sum.inr 1 and (input = [] → ∃ q' ∈ final_states, ...). Since input = [], we get ∃ q' ∈ M.final_states, ∃ γ', M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q', [], γ'⟩. This is exactly acceptsByFinalState.
+-/
+lemma FSES_Inv_terminal {Q S : Type} [Fintype Q] [Fintype S]
+    (M : PDA Q T S) (w : List T)
+    (q : Q ⊕ Fin 2)
+    (h_inv : FSES_Inv M w ⟨q, [], []⟩) :
+    w ∈ M.acceptsByFinalState := by
+  rcases h_inv with ( ⟨ ⟩ | ⟨ q, w', γ, h₁, h₂ ⟩ | ⟨ hq, h ⟩ ) <;> simp_all +decide [ FSES_Inv ];
+  exact ⟨ _, h.choose_spec.1, _, h.choose_spec.2.choose_spec ⟩
+
 /-- Backward direction of `PDA_FS_subset_ES`. -/
 lemma PDA_FS_to_ES_backward {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T)
     (h : w ∈ (PDA_FS_to_ES_pda M).acceptsByEmptyStack) :
     w ∈ M.acceptsByFinalState := by
-  sorry
+  obtain ⟨q, hreach⟩ := h
+  exact FSES_Inv_terminal M w q
+    (FSES_Inv_reaches M w _ _ (FSES_Inv_init M w) hreach)
 
 /-- Any PDA final-state language is also a PDA empty-stack language. -/
 theorem PDA_FS_subset_ES {Q S : Type} [Fintype Q] [Fintype S] (M : PDA Q T S) :

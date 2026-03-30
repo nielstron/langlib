@@ -17,9 +17,9 @@ This file proves that context-free languages are not closed under intersection.
 
 section defs_over_fin3
 
-private def a_ : Fin 3 := 0
-private def b_ : Fin 3 := 1
-private def c_ : Fin 3 := 2
+def a_ : Fin 3 := 0
+def b_ : Fin 3 := 1
+def c_ : Fin 3 := 2
 
 private def a : symbol (Fin 3) (Fin 1) := symbol.terminal a_
 private def b : symbol (Fin 3) (Fin 1) := symbol.terminal b_
@@ -33,13 +33,13 @@ private lemma neq_bc : b_ ≠ c_ := by decide
 private lemma neq_cb : c_ ≠ b_ := neq_bc.symm
 
 
-private def lang_eq_any : Language (Fin 3) :=
+def lang_eq_any : Language (Fin 3) :=
 fun w => ∃ n m : ℕ, w = List.replicate n a_ ++ List.replicate n b_ ++ List.replicate m c_
 
-private def lang_any_eq : Language (Fin 3) :=
+def lang_any_eq : Language (Fin 3) :=
 fun w => ∃ n m : ℕ, w = List.replicate n a_ ++ List.replicate m b_ ++ List.replicate m c_
 
-private def lang_eq_eq : Language (Fin 3) :=
+def lang_eq_eq : Language (Fin 3) :=
 fun w => ∃ n : ℕ, w = List.replicate n a_ ++ List.replicate n b_ ++ List.replicate n c_
 
 end defs_over_fin3
@@ -156,7 +156,7 @@ by
           rw [hac] at count_c
           exact (lt_irrefl _ count_c)
 
-private lemma notCF_lang_eq_eq : ¬ is_CF lang_eq_eq := by
+lemma notCF_lang_eq_eq : ¬ is_CF lang_eq_eq := by
   intro h
 
   have pum := CF_pumping h
@@ -682,7 +682,7 @@ private lemma CF_lang_aux_c : is_CF lang_aux_c := by
   unfold lang_aux_c
   apply language_of_cfg_symbol_star
 
-private lemma CF_lang_eq_any : is_CF lang_eq_any := by
+lemma CF_lang_eq_any : is_CF lang_eq_any := by
   have concatenated : lang_eq_any = lang_aux_ab * lang_aux_c := by
     ext1 w
     constructor
@@ -743,7 +743,7 @@ private lemma CF_lang_aux_bc : is_CF lang_aux_bc := by
   rw [permuted]
   exact (CF_of_permute_CF permut lang_aux_ab).mpr CF_lang_aux_ab
 
-private lemma CF_lang_any_eq : is_CF lang_any_eq := by
+lemma CF_lang_any_eq : is_CF lang_any_eq := by
   have concatenated : lang_any_eq = lang_aux_a * lang_aux_bc := by
     ext1 w
     constructor
@@ -764,7 +764,7 @@ end yes_CF
 
 section intersection_inclusions
 
-private lemma intersection_of_lang_eq_eq {w : List (Fin 3)} :
+lemma intersection_of_lang_eq_eq {w : List (Fin 3)} :
   w ∈ lang_eq_eq  →  w ∈ lang_eq_any ⊓ lang_any_eq  :=
 by
   intro h
@@ -902,7 +902,7 @@ by
   rw [n₂th] at n₂th₁
   exact n₂th₁ rfl
 
-private lemma lang_eq_eq_of_intersection {w : List (Fin 3)} :
+lemma lang_eq_eq_of_intersection {w : List (Fin 3)} :
   w ∈ lang_eq_any ⊓ lang_any_eq  →  w ∈ lang_eq_eq  :=
 by
   rintro ⟨⟨n₁, m₁, w_eq₁⟩, ⟨n₂, m₂, w_eq₂⟩⟩
