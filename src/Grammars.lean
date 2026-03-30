@@ -65,7 +65,6 @@ import Grammars.Classes.ContextSensitive.ClosureProperties.Reverse
 import Grammars.Classes.ContextSensitive.Decidability.Membership
 import Grammars.Classes.DetContextFree.Basics.DCFL
 import Grammars.Classes.DetContextFree.Basics.Inclusion
-import Grammars.Classes.DetContextFree.ClosureProperties.Complement
 import Grammars.Classes.Regular.Basics.NonRegular
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.ConverseFailures
