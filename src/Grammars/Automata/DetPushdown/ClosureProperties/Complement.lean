@@ -3,7 +3,6 @@ Copyright (c) 2025 Harmonic. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Grammars.Automata.DetPushdown.Basics.Inclusion
-import Grammars.Automata.DetPushdown.Basics.Decides
 
 open PDA
 
@@ -102,5 +101,6 @@ theorem complement_acceptsByFinalState (M : DPDA Q T S) (h : M.DecidesEveryInput
     refine ⟨q, ?_, γ, (complement_toPDA_reaches M M.initial_state q w [M.start_symbol] γ).mpr hreach⟩
     intro hq_final
     exact h_not_accept ⟨q, hq_final, γ, hreach⟩
+
 
 end DPDA
