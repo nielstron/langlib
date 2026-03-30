@@ -430,3 +430,53 @@ theorem Reaches.append_stack {x y : List T}{α β: List S}{q p : Q}
     rw [←reaches₁_iff_reachesIn_one] at h₁
     have h₁ := h₁.append_stack γ
     exact Reaches.trans h₁ h₂
+
+variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
+
+section SameTransitions
+
+/-- Two PDAs with the same transition functions have the same single-step relation. -/
+lemma PDA.reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
+    (ht : P₁.transition_fun = P₂.transition_fun)
+    (ht' : P₁.transition_fun' = P₂.transition_fun')
+    (q q' : Q) (w w' : List T) (γ γ' : List S) :
+    @PDA.Reaches₁ _ _ _ _ _ _ P₁ ⟨q, w, γ⟩ ⟨q', w', γ'⟩ ↔
+    @PDA.Reaches₁ _ _ _ _ _ _ P₂ ⟨q, w, γ⟩ ⟨q', w', γ'⟩ := by
+  unfold Reaches₁ step
+  cases w with
+  | nil =>
+    cases γ with
+    | nil => simp
+    | cons Z α =>
+      simp only [Set.mem_setOf_eq, conf.mk.injEq]
+      constructor <;> intro ⟨p, β, h1, h2⟩
+      · exact ⟨p, β, ht' ▸ h1, h2⟩
+      · exact ⟨p, β, ht'.symm ▸ h1, h2⟩
+  | cons a w =>
+    cases γ with
+    | nil => simp
+    | cons Z α =>
+      simp only [Set.mem_union, Set.mem_setOf_eq, conf.mk.injEq]
+      constructor <;> intro h
+      · rcases h with ⟨p, β, h1, h2⟩ | ⟨p, β, h1, h2⟩
+        · left; exact ⟨p, β, ht ▸ h1, h2⟩
+        · right; exact ⟨p, β, ht' ▸ h1, h2⟩
+      · rcases h with ⟨p, β, h1, h2⟩ | ⟨p, β, h1, h2⟩
+        · left; exact ⟨p, β, ht.symm ▸ h1, h2⟩
+        · right; exact ⟨p, β, ht'.symm ▸ h1, h2⟩
+
+/-- Two PDAs with the same transition functions have the same multi-step relation. -/
+lemma PDA.reaches_of_same_transitions (P₁ P₂ : PDA Q T S)
+    (ht : P₁.transition_fun = P₂.transition_fun)
+    (ht' : P₁.transition_fun' = P₂.transition_fun')
+    (c₁ c₂ : PDA.conf P₁)
+    (h : @PDA.Reaches _ _ _ _ _ _ P₁ c₁ c₂) :
+    @PDA.Reaches _ _ _ _ _ _ P₂
+      ⟨c₁.state, c₁.input, c₁.stack⟩ ⟨c₂.state, c₂.input, c₂.stack⟩ := by
+  induction h with
+  | refl => exact Relation.ReflTransGen.refl
+  | @tail c₂ c₃ _ h₂ ih =>
+    exact ih.tail ((PDA.reaches1_of_same_transitions P₁ P₂ ht ht'
+      c₂.state c₃.state c₂.input c₃.input c₂.stack c₃.stack).mp h₂)
+
+end SameTransitions
