@@ -26,7 +26,7 @@ The main library entry point is [src/Grammars.lean](src/Grammars.lean).
 - [Definition](src/Grammars/Classes/ContextSensitive/Basics/Definition.lean)
 - [Noncontracting grammars](src/Grammars/Classes/ContextSensitive/Basics/NonContracting.lean)
 
-### Unrestricted Grammars / Recursively Enumerable Languages
+### Unrestricted Grammars
 
 - [Definition](src/Grammars/Classes/Unrestricted/Basics/Definition.lean)
 - [Kuroda normal form](src/Grammars/Classes/Unrestricted/NormalForms/Kuroda.lean)
@@ -73,6 +73,7 @@ The repository also proves that the project's notion of context-free language is
 | Language | Union | Intersection | Complement | Concatenation | Kleene star | Reversal | Left quotient | Right quotient |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Regular | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Union.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Intersection.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Complement.lean) | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Quotient.lean) |
+| Deterministic context-free | ✗ | REG, i.g. ✗ | ✓ [🔗](src/Grammars/Automata/DetPushdown/ClosureProperties/Complement.lean) | ✗ | ✗ | ✗ | ✗ | REG |
 | Context-free | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean) | REG [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/IntersectionRegular.lean), i.g. ✗ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean)  | ✗ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Star.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean) | REG | REG [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Quotient.lean) |
 | Context-sensitive | ✓ | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/ContextSensitive/ClosureProperties/Reverse.lean) | ✗ | ✗ |
 | Recursively enumerable | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean) | ✓ | ✗ | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean) | ✓ | ✓ |
@@ -87,12 +88,13 @@ Additional context-free closure results formalized here:
 
 ### Decidability
 
-| Language | Membership | Emptiness | Universality |
-| --- | --- | --- | --- |
-| Regular | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Universality.lean) |
-| Context-free | ✓ [🔗](src/Grammars/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ |
-| Context-sensitive | ✓ [🔗](src/Grammars/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ |
-| Recursively enumerable | ✗ | ✗ | ✗ |
+| Language | Membership | Emptiness | Universality | Equivalence |
+| --- | --- | --- | --- | --- |
+| Regular | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Grammars/Classes/Regular/Decidability/Universality.lean) | ✓ |
+| Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
+| Context-free | ✓ [🔗](src/Grammars/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
+| Context-sensitive | ✓ [🔗](src/Grammars/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
+| Recursively enumerable | ✗ | ✗ | ✗ | ✗ |
 
 ## How To Use The Library
 
