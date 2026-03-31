@@ -363,14 +363,3 @@ noncomputable def CS_membership_decidable
       (by simp [List.length_map]; exact List.length_pos_of_ne_nil hw) (le_refl _)]
     exact ReflTransGen_decidable_fintype
       (CS_transforms_bounded g (w.map (symbol.terminal (N := g.nt))).length) _ _
-
-/-- Membership in a context-sensitive grammar is decidable.
-
-    Since the `CS_grammar` structure requires all rules to have non-empty output strings
-    (the standard definition of context-sensitive grammars), the non-contracting property
-    holds automatically and no additional hypothesis is needed. -/
-noncomputable def CS_membership_decidable'
-    [Fintype T] [DecidableEq T]
-    (g : CS_grammar T) [Fintype g.nt] [DecidableEq g.nt]
-    (w : List T) : Decidable (w ∈ CS_language g) :=
-  CS_membership_decidable g w
