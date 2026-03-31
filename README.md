@@ -1,54 +1,81 @@
-# Lean4 Formal Grammar Library
+# Lean 4 Formal Grammar Library
 [![CI](https://github.com/nielstron/grammars4/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/grammars4/actions/workflows/build.yml)
 
-This repository contains a variety of results about various classes of languages in the Chomsky hierarchy.
+This repository contains formalized results about grammars, languages, and automata across the Chomsky hierarchy.
 
-### Regular languages
+The main library entry point is [src/Grammars.lean](src/Grammars.lean).
+The test/demo entry point is [test/Grammars/Test.lean](test/Grammars/Test.lean).
 
-#### Basics
+### Automata
+
+- [Pushdown automata](src/Grammars/Automata/Pushdown/Basics/PDA.lean)
+- [Equivalence of acceptance by final state and empty stack for PDAs](src/Grammars/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)
+- [Leftmost derivations and PDA execution](src/Grammars/Automata/Pushdown/Basics/Leftmost.lean)
+- [Counting PDA steps along leftmost derivations](src/Grammars/Automata/Pushdown/Basics/CountingStepsLeftmost.lean)
+- [Conversion from CFGs to PDAs](src/Grammars/Automata/Pushdown/Equivalence/CFGToPDA.lean)
+- [Conversion from PDAs to CFGs](src/Grammars/Automata/Pushdown/Equivalence/PDAToCFG.lean)
+- [Deterministic pushdown automata](src/Grammars/Automata/DetPushdown/Basics/DPDA.lean)
+- [DPDAs are closed under complement](src/Grammars/Automata/DetPushdown/ClosureProperties/Complement.lean)
+- [Linear bounded automata](src/Grammars/Automata/LinearBounded/Basics/LBA.lean)
+
+### Regular Languages
 
 - [Non-regular languages exist](src/Grammars/Classes/Regular/Basics/NonRegular.lean)
+- [Converse-failure examples for regular closure properties](src/Grammars/Classes/Regular/ClosureProperties/ConverseFailures.lean)
 
-### Context-free grammars
+### Context-Free Grammars
 
-#### Basics
-
-- [Definition](src/Grammars/Classes/ContextFree/Basics/Definition.lean)
-- [Pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean)
-- [Equivalence to PDAs](src/Grammars/Classes/ContextFree/Basics/PDAEquivalence.lean)
+- [Definition of context-free grammars and languages](src/Grammars/Classes/ContextFree/Basics/Definition.lean)
+- [Basic closure and elementary results](src/Grammars/Classes/ContextFree/Basics/Elementary.lean)
 - [Finite used-nonterminal subtype](src/Grammars/Classes/ContextFree/Basics/FiniteNT.lean)
+- [Pumping lemma](src/Grammars/Classes/ContextFree/Basics/Pumping.lean)
+- [Ogden-style material](src/Grammars/Classes/ContextFree/Basics/Ogden.lean)
+- [Equivalence to PDAs](src/Grammars/Classes/ContextFree/Basics/PDAEquivalence.lean)
+- [Intersection counterexample / non-closure witness](src/Grammars/Classes/ContextFree/ClosureProperties/Intersection.lean)
+- [Complement counterexample / non-closure witness](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean)
+- [Further converse-failure examples](src/Grammars/Classes/ContextFree/ClosureProperties/ConverseFailures.lean)
+- [Chomsky normal form](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
+- [Translation into Chomsky normal form](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalFormTranslation.lean)
+- [Parse-tree and elimination lemmas used in the pumping development](src/Grammars/Classes/ContextFree/Pumping/ParseTree.lean)
+- [The full pumping-lemma support development](src/Grammars/Classes/ContextFree/Pumping/Pumping.lean)
 
-#### Examples
+### Deterministic Context-Free Languages
 
-- [Demo grammar and language equality](test/Grammars/Test/DemoContextFree.lean)
+- [Definition of DCFLs and inclusion into CFLs](src/Grammars/Classes/DetContextFree/Basics/DCFL.lean)
 
-#### Normal forms
+### Context-Sensitive Grammars
 
-- [Chomsky normal form grammars](src/Grammars/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
+- [Definition of context-sensitive grammars and languages](src/Grammars/Classes/ContextSensitive/Basics/Definition.lean)
+- [Noncontracting grammars](src/Grammars/Classes/ContextSensitive/Basics/NonContracting.lean)
 
-### Context-sensitive grammars
+### Unrestricted Grammars / Recursively Enumerable Languages
 
-#### Basics
-
-- [Definition](src/Grammars/Classes/ContextSensitive/Basics/Definition.lean)
-
-#### Examples
-
-- [Demo grammar](test/Grammars/Test/DemoContextSensitive.lean)
-
-### Unrestricted grammars / recursively enumerable languages
-
-#### Basics
-
-- [Definition](src/Grammars/Classes/Unrestricted/Basics/Definition.lean)
-
-#### Examples
-
-- [Demo grammar](test/Grammars/Test/DemoUnrestricted.lean)
-
-#### Normal forms
-
+- [Definition of unrestricted grammars and recursively enumerable languages](src/Grammars/Classes/Unrestricted/Basics/Definition.lean)
 - [Kuroda normal form](src/Grammars/Classes/Unrestricted/NormalForms/Kuroda.lean)
+
+### Examples And Checks
+
+- [Context-free demo grammar and derivation examples](test/Grammars/Test/DemoContextFree.lean)
+- [Context-sensitive demo grammars and derivation examples](test/Grammars/Test/DemoContextSensitive.lean)
+- [Unrestricted demo grammar for unary multiplication](test/Grammars/Test/DemoUnrestricted.lean)
+- [A small theorem-checking file for key closure results](test/Grammars/Test/Results.lean)
+
+## Hierarchy And Equivalences
+
+| Grammar side | Relation | Automaton side |
+| --- | --- | --- |
+| Regular languages | ≡ | DFA languages (Mathlib) |
+| ⊆ |  |  |
+| Deterministic context-free languages | ≡ [🔗](src/Grammars/Classes/DetContextFree/Basics/DCFL.lean) | DPDA final-state languages |
+| ⊆ [🔗](src/Grammars/Classes/DetContextFree/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Grammars/Automata/DetPushdown/Basics/Inclusion.lean) |
+| Context-free languages | ⇔ [🔗](src/Grammars/Classes/ContextFree/Basics/PDAEquivalence.lean) | PDA languages |
+| ⊆ [🔗](src/Grammars/Classes/ContextFree/Basics/Inclusion.lean) without `ε`-productions |  |  |
+| Context-sensitive languages |  | LBA languages |
+| ⊆ [🔗](src/Grammars/Classes/ContextSensitive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Grammars/Automata/LinearBounded/Basics/Inclusion.lean) |
+| Recursively enumerable languages |  | Turing-machine languages (Mathlib) |
+
+The repository also proves that the project's notion of context-free language is
+⇔ [🔗](src/Grammars/Classes/ContextFree/Basics/Inclusion.lean) Mathlib's `IsContextFree`.
 
 ## Closure Summary
 
@@ -58,7 +85,7 @@ This repository contains a variety of results about various classes of languages
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Regular | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Union.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Intersection.lean) | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Complement.lean) | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Reverse.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/Regular/ClosureProperties/Quotient.lean) |
 | Context-free | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Union.lean) | REG [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/IntersectionRegular.lean) | ✗ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Complement.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Concatenation.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Star.lean) | ✓ [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Reverse.lean) | REG | REG [🔗](src/Grammars/Classes/ContextFree/ClosureProperties/Quotient.lean) |
-| Context-sensitive | ✓ | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean) | ✓ | ✓ | ✗ | ✗ |
+| Context-sensitive | ✓ | ✓ | ✓ | ✓ [🔗](src/Grammars/Classes/ContextSensitive/ClosureProperties/Concatenation.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/ContextSensitive/ClosureProperties/Reverse.lean) | ✗ | ✗ |
 | Recursively enumerable | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Union.lean) | ✓ | ✗ | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Concatenation.lean) | ✓ | ✓ [🔗](src/Grammars/Classes/Unrestricted/ClosureProperties/Reverse.lean) | ✓ | ✓ |
 
 Additional context-free closure results formalized here:
@@ -80,6 +107,33 @@ Additional context-free closure results formalized here:
 | Context-sensitive | ✓ [🔗](src/Grammars/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ |
 | Recursively enumerable | ✗ | ✗ | ✗ |
 
+## How To Use The Library
+
+For most uses, import the hub:
+
+```lean
+import Grammars
+```
+
+If you only need one part of the development, import the corresponding module directly, for example:
+
+```lean
+import Grammars.Classes.ContextFree.Basics.Definition
+import Grammars.Classes.ContextFree.Basics.PDAEquivalence
+import Grammars.Classes.Regular.Decidability.Membership
+```
+
+The files in [test/Grammars/Test](test/Grammars/Test) provide small worked examples:
+
+- [test/Grammars/Test/DemoContextFree.lean](test/Grammars/Test/DemoContextFree.lean)
+- [test/Grammars/Test/DemoContextSensitive.lean](test/Grammars/Test/DemoContextSensitive.lean)
+- [test/Grammars/Test/DemoUnrestricted.lean](test/Grammars/Test/DemoUnrestricted.lean)
+
+To build the library and examples, run:
+
+```sh
+lake build
+```
 
 ## Installation Instructions
 
@@ -89,6 +143,7 @@ To download this project, run:
 
 ```sh
 git clone https://github.com/nielstron/grammars4
+cd grammars4
 ```
 
 To check the library and tests, run:
@@ -99,7 +154,7 @@ lake build
 
 ## Acknowledgements
 
-This repository started as a Lean 4 port of 
+This repository started as a Lean 4 port of
 [madvorak/grammars](https://github.com/madvorak/grammars).
 It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_cfg](https://github.com/AlexLoitzl/pumping_cfg/) and the equivalence proof between CFGs and PDAs from [shetzl/autth](https://github.com/shetzl/autth/tree/PDA).
 
