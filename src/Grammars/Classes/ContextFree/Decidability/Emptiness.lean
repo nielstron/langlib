@@ -29,8 +29,7 @@ open ChomskyNormalFormGrammar
     We use `Classical.propDecidable` on the statement that some parse tree exists,
     which is mathematically decidable by the productive nonterminals fixed-point
     characterization (iterating the marking algorithm on the finite set of rules). -/
-noncomputable def cnf_emptiness_dec (g : ChomskyNormalFormGrammar T)
-    (hd : DecidableEq g.NT) :
+noncomputable def cnf_emptiness_dec (g : ChomskyNormalFormGrammar T) :
     Decidable (g.language = (∅ : Set (List T))) := by
   -- g.language = ∅ ↔ ¬∃ w, w ∈ g.language
   -- ↔ ¬∃ w, canDerive g g.initial w
@@ -96,7 +95,7 @@ noncomputable def cf_emptiness_decidable
       · intro h; rw [ContextFreeGrammar.computeNullables_iff]; exact h
       · intro h; rw [ContextFreeGrammar.computeNullables_iff] at h; exact h
     rw [this]; infer_instance
-  have d2 := ChomskyNormalFormGrammar.cnf_emptiness_dec (mathlib_cfg_of_cfg g).toCNF hNTdec
+  have d2 := ChomskyNormalFormGrammar.cnf_emptiness_dec (mathlib_cfg_of_cfg g).toCNF
   exact @instDecidableAnd _ _ (@instDecidableNot _ d1) d2
 
 end ContextFree
