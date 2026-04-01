@@ -4,6 +4,8 @@
 import Grammars.Automata.DetPushdown.Basics.DPDA
 import Grammars.Automata.DetPushdown.Basics.Inclusion
 import Grammars.Automata.DetPushdown.ClosureProperties.Complement
+import Grammars.Automata.FiniteState.Basics.Definition
+import Grammars.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Grammars.Automata.LinearBounded.Basics.Inclusion
 import Grammars.Automata.LinearBounded.Basics.LBA
 import Grammars.Automata.Pushdown.Basics.CountingStepsLeftmost
@@ -12,6 +14,11 @@ import Grammars.Automata.Pushdown.Basics.Leftmost
 import Grammars.Automata.Pushdown.Basics.PDA
 import Grammars.Automata.Pushdown.Equivalence.CFGToPDA
 import Grammars.Automata.Pushdown.Equivalence.PDAToCFG
+import Grammars.Automata.Turing.Basics.Definition
+import Grammars.Automata.Turing.Equivalence.TMToGrammar.Construction
+import Grammars.Automata.Turing.Equivalence.TMToGrammar.Helpers
+import Grammars.Automata.Turing.Equivalence.TMToGrammar.Soundness
+import Grammars.Automata.Turing.Equivalence.TMToGrammar
 import Grammars.Classes.ContextFree.Basics.Definition
 import Grammars.Classes.ContextFree.Basics.Elementary
 import Grammars.Classes.ContextFree.Basics.FiniteNT
@@ -65,6 +72,8 @@ import Grammars.Classes.ContextSensitive.ClosureProperties.Reverse
 import Grammars.Classes.ContextSensitive.Decidability.Membership
 import Grammars.Classes.DetContextFree.Basics.DCFL
 import Grammars.Classes.DetContextFree.Basics.Inclusion
+import Grammars.Classes.Regular.Basics.Definition
+import Grammars.Classes.Regular.Basics.Inclusion
 import Grammars.Classes.Regular.Basics.NonRegular
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.ConverseFailures
