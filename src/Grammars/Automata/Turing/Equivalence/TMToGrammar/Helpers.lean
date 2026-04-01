@@ -1,7 +1,7 @@
 import Mathlib
 import Grammars.Classes.Unrestricted.Basics.Definition
 import Grammars.Classes.Unrestricted.Basics.Toolbox
-import Grammars.Classes.Unrestricted.Equivalence.TMToGrammar.Construction
+import Grammars.Automata.Turing.Equivalence.TMToGrammar.Construction
 
 /-! # Helper Lemmas for TM → Grammar Construction
 
