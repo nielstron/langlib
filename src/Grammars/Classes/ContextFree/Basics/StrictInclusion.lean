@@ -1,9 +1,11 @@
 import Mathlib
 import Grammars.Classes.ContextFree.Basics.Inclusion
+import Grammars.Classes.ContextFree.ClosureProperties.Bijection
 import Grammars.Classes.ContextFree.ClosureProperties.Intersection
 import Grammars.Classes.ContextSensitive.Basics.Inclusion
 import Grammars.Classes.Regular.Basics.NonRegular
 import Grammars.Classes.DetContextFree.Basics.Inclusion
+import Grammars.Classes.Unrestricted.ClosureProperties.Bijection
 
 /-! # Strict Inclusions in the Chomsky Hierarchy
 
@@ -13,115 +15,12 @@ the project.
 
 ## Main results
 
-- `anbn_is_CF` — The language `{aⁿbⁿ}` is context-free.
-- `exists_CF_not_regular` — There exists a CF language that is not regular.
 - `lang_eq_eq_is_RE` — The language `{aⁿbⁿcⁿ}` is recursively enumerable.
-- `CF_strictSubclass_RE` — The class CF is a strict subclass of RE.
+- `CF_strict_subclass_RE` — The class CF is a strict subclass of RE.
+- `CF_strictSubclass_RE` — Compatibility theorem phrased as inclusion plus witness.
 -/
 
 open Language List
-
--- ============================================================================
--- Section 1: anbn is context-free
--- ============================================================================
-
-/-- Context-free grammar for the language `{aⁿbⁿ | n ∈ ℕ}` over `Bool`. -/
-def cfg_anbn : CF_grammar Bool where
-  nt := Unit
-  initial := ()
-  rules := [
-    ((), [symbol.terminal false, symbol.nonterminal (), symbol.terminal true]),
-    ((), [])
-  ]
-
-private def sentential_form (w : List (symbol Bool Unit)) : Prop :=
-  (∃ n : ℕ, w = List.map symbol.terminal (List.replicate n false) ++
-    [symbol.nonterminal ()] ++
-    List.map symbol.terminal (List.replicate n true)) ∨
-  (∃ n : ℕ, w = List.map symbol.terminal (List.replicate n false ++ List.replicate n true))
-
-private lemma sentential_form_step (w w' : List (symbol Bool Unit))
-    (hw : sentential_form w) (ht : CF_transforms cfg_anbn w w') :
-    sentential_form w' := by
-      rcases hw with ⟨ n, rfl ⟩ | ⟨ n, rfl ⟩ <;> simp_all +decide [ CF_transforms, cfg_anbn ];
-      · rcases ht with ( ⟨ x, y, hxy, rfl ⟩ | ⟨ x, y, hxy, rfl ⟩ ) <;> simp_all +decide [ sentential_form ];
-        · rw [ List.append_eq_append_iff ] at hxy;
-          rcases hxy with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h, h' ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-          · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.replicate ];
-            · refine' Or.inl ⟨ n + 1, Or.inl ⟨ [ symbol.terminal false ], _, _ ⟩ ⟩ <;> simp +decide [ List.replicate ];
-              · exact Nat.recOn n ( by rfl ) fun n ih => by simp +decide [ List.replicate ] at * ; aesop;
-              · exact h.symm;
-            · replace h := congr_arg List.toFinset h.2; rw [ Finset.ext_iff ] at h; specialize h ( symbol.nonterminal () ) ; aesop;
-          · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-            · refine Or.inl ⟨ n + 1, ?_ ⟩ ; simp_all +decide [ List.replicate ];
-              exact Or.inl ⟨ [ symbol.terminal false ], by rw [ ← h ] ; exact Nat.recOn n ( by simp +decide ) fun n ihn => by simp +decide [ List.replicate ] at ihn ⊢; aesop ⟩;
-            · replace h := congr_arg List.toFinset h; rw [ Finset.ext_iff ] at h; specialize h ( symbol.nonterminal () ) ; aesop;
-        · rw [ List.append_eq_append_iff ] at hxy;
-          rcases hxy with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h, h' ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-          · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.replicate ];
-            · exact Or.inr ⟨ n, Or.inl ⟨ [ ], by aesop ⟩ ⟩;
-            · replace h := congr_arg List.toFinset h.2; rw [ Finset.ext_iff ] at h; specialize h ( symbol.nonterminal () ) ; aesop;
-          · rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-            · exact Or.inr ⟨ n, Or.inl ⟨ [ ], by aesop ⟩ ⟩;
-            · replace h := congr_arg List.toFinset h; rw [ Finset.ext_iff ] at h; specialize h a; aesop;
-      · rcases ht with ( ⟨ x, y, hxy, rfl ⟩ | ⟨ x, y, hxy, rfl ⟩ );
-        · replace hxy := congr_arg List.toFinset hxy ; rw [ Finset.ext_iff ] at hxy ; specialize hxy ( symbol.nonterminal () ) ; aesop;
-        · replace hxy := congr_arg List.toFinset hxy ; simp_all +decide [ Finset.ext_iff ];
-          have := hxy ( symbol.nonterminal () ) ; have := hxy ( symbol.terminal false ) ; have := hxy ( symbol.terminal true ) ; aesop;
-
-private lemma sentential_form_of_derives (w : List (symbol Bool Unit))
-    (hd : CF_derives cfg_anbn [symbol.nonterminal ()] w) :
-    sentential_form w := by
-  induction hd with
-  | refl => exact Or.inl ⟨0, by simp⟩
-  | tail _ ht ih => exact sentential_form_step _ _ ih ht
-
-private lemma CF_language_cfg_anbn_sub_anbn :
-    ∀ w, w ∈ CF_language cfg_anbn → w ∈ anbn := by
-  intro w hw
-  have hsf : sentential_form (List.map symbol.terminal w) :=
-    sentential_form_of_derives _ hw
-  rcases hsf with ⟨n, hn⟩ | ⟨n, hn⟩
-  · exfalso
-    have hmem : symbol.nonterminal () ∈ List.map symbol.terminal w := by
-      rw [hn]; simp
-    simp at hmem
-  · have hinj : Function.Injective (symbol.terminal (T := Bool) (N := Unit)) := by
-      intro a b h; cases h; rfl
-    exact ⟨n, hinj.list_map hn⟩
-
-private lemma anbn_sub_CF_language_cfg_anbn :
-    ∀ w, w ∈ anbn → w ∈ CF_language cfg_anbn := by
-      intro w hw
-      obtain ⟨n, rfl⟩ := hw;
-      have h_deriv : ∀ n : ℕ, CF_derives cfg_anbn [symbol.nonterminal ()] (List.replicate n (symbol.terminal false) ++ [symbol.nonterminal ()] ++ List.replicate n (symbol.terminal true)) := by
-        intro n
-        induction' n with n ih;
-        · constructor;
-        · have h_step : CF_derives cfg_anbn (List.replicate n (symbol.terminal false) ++ [symbol.nonterminal ()] ++ List.replicate n (symbol.terminal true)) (List.replicate n (symbol.terminal false) ++ [symbol.terminal false, symbol.nonterminal (), symbol.terminal true] ++ List.replicate n (symbol.terminal true)) := by
-            apply_rules [ CF_deri_of_tran, CF_deri_with_prefix_and_postfix ];
-            use ((), [symbol.terminal false, symbol.nonterminal (), symbol.terminal true]);
-            exact ⟨ replicate n ( symbol.terminal false ), replicate n ( symbol.terminal true ), by simp +decide [ cfg_anbn ], by simp +decide, by simp +decide ⟩;
-          convert ih.trans h_step using 1 ; simp +decide [ List.replicate_add ];
-          exact Nat.recOn n rfl fun n ih => by rw [ replicate_succ' ] ; aesop;
-      have h_final : CF_derives cfg_anbn (List.replicate n (symbol.terminal false) ++ [symbol.nonterminal ()] ++ List.replicate n (symbol.terminal true)) (List.replicate n (symbol.terminal false) ++ List.replicate n (symbol.terminal true)) := by
-        apply_rules [ CF_deri_of_tran, CF_deri_with_prefix_and_postfix ];
-        use ((), []);
-        exact ⟨ replicate n ( symbol.terminal false ), replicate n ( symbol.terminal true ), by simp +decide [ cfg_anbn ], by simp +decide, by simp +decide ⟩;
-      apply_rules [ CF_deri_of_deri_deri, h_deriv ];
-      any_goals tauto;
-      convert CF_deri_self using 1 ; aesop
-
-theorem CF_language_cfg_anbn : CF_language cfg_anbn = anbn := by
-  ext w; exact ⟨CF_language_cfg_anbn_sub_anbn w, anbn_sub_CF_language_cfg_anbn w⟩
-
-/-- The language `{aⁿbⁿ}` is context-free. -/
-theorem anbn_is_CF : is_CF anbn :=
-  ⟨cfg_anbn, CF_language_cfg_anbn⟩
-
-/-- There exists a context-free language that is not regular. -/
-theorem exists_CF_not_regular : ∃ L : Language Bool, is_CF L ∧ ¬ L.IsRegular :=
-  ⟨anbn, anbn_is_CF, anbn_not_isRegular⟩
 
 -- ============================================================================
 -- Section 2: lang_eq_eq ({aⁿbⁿcⁿ}) is recursively enumerable
@@ -560,27 +459,33 @@ theorem CF_strictSubclass_RE :
     (∃ (T : Type) (L : Language T), is_RE L ∧ ¬ is_CF L) :=
   ⟨fun _ _ => CF_subclass_RE, ⟨Fin 3, lang_eq_eq, lang_eq_eq_is_RE, notCF_lang_eq_eq⟩⟩
 
--- ============================================================================
--- Section 4: Additional inclusions and chain
--- ============================================================================
+/-- For any alphabet of cardinality `3`, context-free languages form a strict subclass
+    of recursively enumerable languages. -/
+theorem CF_strict_subclass_RE_of_card_eq_three {T : Type} [Fintype T]
+    (hT : Fintype.card T = 3) :
+    (CF : Set (Language T)) ⊂ (RE : Set (Language T)) := by
+  let π : T ≃ Fin 3 := Fintype.equivFinOfCardEq hT
+  refine ⟨?_, ?_⟩
+  · intro L hL
+    exact CF_subclass_RE hL
+  · intro hREsubsetCF
+    have hRE : is_RE (Language.bijemapLang lang_eq_eq π.symm) :=
+      RE_of_bijemap_RE π.symm lang_eq_eq lang_eq_eq_is_RE
+    have hCF : is_CF (Language.bijemapLang lang_eq_eq π.symm) :=
+      hREsubsetCF (a := Language.bijemapLang lang_eq_eq π.symm) hRE
+    exact notCF_lang_eq_eq ((CF_of_bijemap_CF_rev π.symm lang_eq_eq) hCF)
 
-/-- Every DCFL is RE (by transitivity: DCFL ⊆ CF ⊆ RE). -/
-theorem DCFL_subclass_RE {T : Type} [Fintype T] {L : Language T}
-    (h : is_DCFL L) : is_RE L :=
-  CF_subclass_RE (is_CF_of_is_DCFL h)
-
-/-- The Chomsky hierarchy inclusion chain: DCFL ⊆ CF ⊆ RE.
-    Moreover, the inclusion CF ⊆ RE is strict. -/
-theorem chomsky_hierarchy_chain :
-    -- (1) DCFL ⊆ CF
-    (∀ (T : Type) [Fintype T] (L : Language T), is_DCFL L → is_CF L) ∧
-    -- (2) CF ⊆ RE
-    (∀ (T : Type) (L : Language T), is_CF L → is_RE L) ∧
-    -- (3) CF ⊊ RE (strict)
-    (∃ (T : Type) (L : Language T), is_RE L ∧ ¬ is_CF L) ∧
-    -- (4) Regular ⊂ CF is non-trivial: ∃ CF language that is not regular
-    (∃ (L : Language Bool), is_CF L ∧ ¬ L.IsRegular) :=
-  ⟨fun _ _ _ => is_CF_of_is_DCFL,
-   fun _ _ => CF_subclass_RE,
-   ⟨Fin 3, lang_eq_eq, lang_eq_eq_is_RE, notCF_lang_eq_eq⟩,
-   exists_CF_not_regular⟩
+/-- A class-level formulation of `CF_strictSubclass_RE`:
+    for every alphabet, `CF ⊆ RE`, and for some alphabet the inclusion is strict. -/
+theorem CF_subclass_RE_and_exists_strict :
+    (∀ T : Type, (CF : Set (Language T)) ⊆ (RE : Set (Language T))) ∧
+    (∃ T : Type, (CF : Set (Language T)) ⊂ (RE : Set (Language T))) := by
+  rcases CF_strictSubclass_RE with ⟨hsub, ⟨T, L, hRE, hnotCF⟩⟩
+  refine ⟨?_, ⟨T, ?_⟩⟩
+  · intro T L hL
+    exact hsub T L hL
+  · refine ⟨?_, ?_⟩
+    · intro K hK
+      exact hsub T K hK
+    · intro hREsubsetCF
+      exact hnotCF (hREsubsetCF (a := L) hRE)

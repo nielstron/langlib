@@ -61,3 +61,7 @@ def grammar_language (g : grammar T) : Language T :=
 /-- Predicate "is recursively-enumerable"; defined by existence of a grammar for the given language. -/
 def is_RE (L : Language T) : Prop :=
   ∃ g : grammar T, grammar_language g = L
+
+/-- The class of recursively enumerable languages. -/
+def RE : Set (Language T) :=
+  setOf is_RE

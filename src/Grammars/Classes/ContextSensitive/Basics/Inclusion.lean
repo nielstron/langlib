@@ -15,7 +15,7 @@ variable {T : Type}
 
 
 def grammar_of_csg (g : CS_grammar T) : grammar T :=
-grammar.mk g.nt g.initial (List.map 
+grammar.mk g.nt g.initial (List.map
   (fun r : csrule T g.nt => grule.mk
     r.context_left r.input_nonterminal r.context_right
     (r.context_left ++ r.output_string ++ r.context_right)
@@ -97,13 +97,15 @@ by
             rw [←new_rule_def] at aft
             simpa [List.append_assoc] using aft
     exact indu (List.map symbol.terminal w)
-  
-  
 
-theorem CS_subclass_RE {L : Language T} :
-  is_CS L → is_RE L :=
-by
-  rintro ⟨g, eq_L⟩
-  use grammar_of_csg g
-  rw [←eq_L]
-  rw [CS_language_eq_grammar_language]
+
+
+theorem is_RE_of_CS {L : Language T} (h : is_CS L) :
+  is_RE L := by
+  rcases h with ⟨g, rfl⟩
+  exact ⟨grammar_of_csg g, (CS_language_eq_grammar_language g).symm⟩
+
+theorem CS_subclass_RE :
+  (CS : Set (Language T)) ⊆ RE := by
+  intro L
+  exact is_RE_of_CS
