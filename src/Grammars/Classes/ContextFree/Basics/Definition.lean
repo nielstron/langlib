@@ -48,3 +48,6 @@ setOf (CF_generates g)
 /-- Predicate "is context-free"; defined by existence of a context-free grammar for the given Language. -/
 def is_CF (L : Language T) : Prop :=
 ∃ g : CF_grammar T, CF_language g = L
+
+def CF : Set (Language T) :=
+  setOf is_CF

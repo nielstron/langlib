@@ -102,6 +102,9 @@ def RG_language (g : RG_grammar T) : Language T :=
 def is_RG (L : Language T) : Prop :=
   ∃ g : RG_grammar T, RG_language g = L
 
+def RG : Set (Language T) :=
+  setOf is_RG
+
 -- ============================================================================
 -- Basic derivation lemmas (mirroring the unrestricted grammar toolkit)
 -- ============================================================================
