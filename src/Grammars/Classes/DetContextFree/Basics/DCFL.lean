@@ -43,3 +43,7 @@ variable {T : Type} [Fintype T]
 def is_DCFL (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S) (M : DPDA Q T S),
     M.acceptsByFinalState = L
+
+/-- The class of languages that are DCFL -/
+def DCFL : Set (Language T) :=
+  setOf is_DCFL

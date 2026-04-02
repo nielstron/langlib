@@ -143,6 +143,10 @@ theorem is_CF_of_is_RG {L : Language T} (h : is_RG L) : is_CF L := by
   simp only [CF_language, RG_language]
   exact (RG_derives_iff_CF_derives g _ _).symm
 
+theorem RG_subclass_CF :
+  (RG : Set (Language T)) ⊆ (CF : Set (Language T)) := by
+  intro L hL
+  exact is_CF_of_is_RG hL
 
 -- ============================================================================
 -- Part 2: RG ⊆ DCFL (via DFA → DPDA)
@@ -264,5 +268,10 @@ theorem DPDA_of_DFA_accepts {σ : Type} [Fintype σ] (M : DFA T σ) :
 theorem is_DCFL_of_is_RG {L : Language T} (h : is_RG L) : is_DCFL L := by
   obtain ⟨σ, hfin, M, rfl⟩ := isRegular_of_is_RG h
   exact ⟨σ, Unit, hfin, inferInstance, DPDA_of_DFA M, DPDA_of_DFA_accepts M⟩
+
+theorem RG_subclass_DCFL {T : Type} [Fintype T] :
+  RG ⊆ (DCFL : Set (Language T)) := by
+  intro L
+  exact is_DCFL_of_is_RG
 
 end
