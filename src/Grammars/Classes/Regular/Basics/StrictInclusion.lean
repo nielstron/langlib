@@ -148,15 +148,6 @@ private lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
         refine ⟨[f x], Set.mem_singleton _, List.map f xs, ?_, rfl⟩
         exact (mem_prod_singletons_iff f xs (List.map f xs)).2 rfl
 
-private lemma subst_singletons_eq_map {α β : Type} (L : Language α) (f : α → β) :
-    L.subst (fun x => ({[f x]} : Language β)) = Language.map f L := by
-  ext u
-  constructor
-  · rintro ⟨w, hw, hu⟩
-    exact ⟨w, hw, (mem_prod_singletons_iff f w u).1 hu ▸ rfl⟩
-  · rintro ⟨w, hw, rfl⟩
-    exact ⟨w, hw, (mem_prod_singletons_iff f w _).2 rfl⟩
-
 private theorem map_anbn_is_CF (f : Bool → T) : is_CF (Language.map f anbn) := by
   have hsubst : is_CF (anbn.subst (fun x => ({[f x]} : Language T))) := by
     apply CF_of_subst_CF anbn
@@ -164,7 +155,7 @@ private theorem map_anbn_is_CF (f : Bool → T) : is_CF (Language.map f anbn) :=
     · intro x
       rw [is_CF_iff_isContextFree]
       exact isContextFree_singleton [f x]
-  simpa [subst_singletons_eq_map] using hsubst
+  simpa [Language.subst_singletons_eq_map] using hsubst
 
 /-- Right-regular languages form a strict subclass of context-free languages over any nontrivial alphabet. -/
 theorem RG_strict_subclass_CF [Nontrivial T] :
