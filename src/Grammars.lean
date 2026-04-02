@@ -28,6 +28,7 @@ import Grammars.Classes.ContextFree.Basics.Ogden
 import Grammars.Classes.ContextFree.Basics.PDAEquivalence
 import Grammars.Classes.ContextFree.Basics.Pumping
 import Grammars.Classes.ContextFree.Basics.Splitting
+import Grammars.Classes.ContextFree.Basics.StrictInclusion
 import Grammars.Classes.ContextFree.Basics.Toolbox
 import Grammars.Classes.ContextFree.ClosureProperties.Bijection
 import Grammars.Classes.ContextFree.ClosureProperties.Complement
@@ -75,6 +76,8 @@ import Grammars.Classes.DetContextFree.Basics.Inclusion
 import Grammars.Classes.Regular.Basics.Definition
 import Grammars.Classes.Regular.Basics.Inclusion
 import Grammars.Classes.Regular.Basics.NonRegular
+import Grammars.Classes.Regular.Basics.StrictInclusion
+import Grammars.Classes.Regular.ClosureProperties.Bijection
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.ConverseFailures
 import Grammars.Classes.Regular.ClosureProperties.Intersection
