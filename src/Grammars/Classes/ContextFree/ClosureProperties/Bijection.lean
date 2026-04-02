@@ -1,4 +1,5 @@
 import Grammars.Classes.ContextFree.Basics.Toolbox
+import Grammars.Classes.ContextFree.ClosureProperties.Substitution
 import Grammars.Classes.Unrestricted.ClosureProperties.Bijection
 import Grammars.Utilities.LanguageOperations
 
@@ -16,6 +17,7 @@ level; the CF file only needs to verify structure preservation.
 
 ## Main declarations
 
+- `CF_of_map_CF`
 - `bijection_CF_grammar`
 - `bijection_CF_grammar_language`
 - `CF_of_bijemap_CF`
@@ -25,50 +27,17 @@ level; the CF file only needs to verify structure preservation.
 
 variable {T₁ T₂ : Type}
 
-section embedding
-
-/-- Embed a context-free grammar into an unrestricted grammar. -/
-private def CF_grammar_to_grammar {T : Type} (g : CF_grammar T) : grammar T :=
-  grammar.mk g.nt g.initial (List.map (fun r : g.nt × (List (symbol T g.nt)) =>
-    grule.mk [] r.fst [] r.snd) g.rules)
-
-/-- The unrestricted grammar recognises the same language as the CF grammar. -/
-private lemma CF_language_eq_grammar_language {T : Type} (g : CF_grammar T) :
-    CF_language g = grammar_language (CF_grammar_to_grammar g) := by
-  ext w
-  change CF_derives g _ _ ↔ grammar_derives _ _ _
-  constructor
-  · have indu : ∀ v, CF_derives g [symbol.nonterminal g.initial] v →
-        grammar_derives (CF_grammar_to_grammar g)
-          [symbol.nonterminal (CF_grammar_to_grammar g).initial] v := by
-      intro v h
-      induction h with
-      | refl => exact grammar_deri_self
-      | tail _ step ih =>
-        apply grammar_deri_of_deri_tran ih
-        rcases step with ⟨r, u, v, rin, bef, aft⟩
-        refine ⟨grule.mk [] r.fst [] r.snd, ?_, u, v, ?_, ?_⟩
-        · exact List.mem_map.mpr ⟨r, rin, rfl⟩
-        · simpa using bef
-        · simpa using aft
-    exact indu _
-  · have indu : ∀ v, grammar_derives (CF_grammar_to_grammar g)
-        [symbol.nonterminal (CF_grammar_to_grammar g).initial] v →
-        CF_derives g [symbol.nonterminal g.initial] v := by
-      intro v h
-      induction h with
-      | refl => exact CF_deri_self
-      | tail _ step ih =>
-        apply CF_deri_of_deri_tran ih
-        rcases step with ⟨r, rin, u, v, bef, aft⟩
-        rcases List.mem_map.mp rin with ⟨r₀, r₀_in, r_eq⟩
-        subst r_eq
-        refine ⟨r₀, u, v, r₀_in, ?_, ?_⟩
-        · simpa using bef
-        · simpa using aft
-    exact indu _
-
-end embedding
+/-- Context-free languages are closed under alphabet maps. -/
+theorem CF_of_map_CF (f : T₁ → T₂) (L : Language T₁) :
+    is_CF L → is_CF (Language.map f L) := by
+  intro hL
+  have hsubst : is_CF (L.subst (fun x => ({[f x]} : Language T₂))) := by
+    apply CF_of_subst_CF L
+    · exact hL
+    · intro x
+      rw [is_CF_iff_isContextFree]
+      exact isContextFree_singleton [f x]
+  simpa [Language.subst_singletons_eq_map] using hsubst
 
 /-- Map a CF grammar along a terminal bijection. -/
 def bijection_CF_grammar (g : CF_grammar T₁) (π : T₁ ≃ T₂) : CF_grammar T₂ :=
@@ -79,9 +48,10 @@ def bijection_CF_grammar (g : CF_grammar T₁) (π : T₁ ≃ T₂) : CF_grammar
 
 /-- The CF bijection commutes with the embedding into unrestricted grammars. -/
 private theorem CF_grammar_to_grammar_bijection_comm (g : CF_grammar T₁) (π : T₁ ≃ T₂) :
-    CF_grammar_to_grammar (bijection_CF_grammar g π) =
-    bijection_grammar (CF_grammar_to_grammar g) π := by
-  unfold bijection_grammar bijection_CF_grammar CF_grammar_to_grammar; aesop;
+    grammar_of_cfg (bijection_CF_grammar g π) =
+    bijection_grammar (grammar_of_cfg g) π := by
+  unfold bijection_grammar bijection_CF_grammar grammar_of_cfg
+  aesop
 
 /-- The bijection CF grammar generates exactly the π-image of the original language. -/
 theorem bijection_CF_grammar_language (g : CF_grammar T₁) (π : T₁ ≃ T₂) :

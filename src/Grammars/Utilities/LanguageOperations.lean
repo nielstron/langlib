@@ -99,6 +99,41 @@ theorem subst_univ_unit_eq_kstar {β : Type} (f : Unit → Language β) :
         simpa [List.replicate_succ, List.prod_cons, List.prod_nil, mul_one] using
           (Set.mem_image2_of_mem (List.forall_mem_cons.mp hL).1 ih'.2)
 
+private lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
+    ∀ w : List α, ∀ u : List β,
+      u ∈ (w.map fun x => ({[f x]} : Language β)).prod ↔ u = List.map f w
+  | [], u => by
+      change u ∈ ({[]} : Language β) ↔ u = []
+      rfl
+  | x :: xs, u => by
+      constructor
+      · intro hu
+        rw [show (List.map (fun x => ({[f x]} : Language β)) (x :: xs)).prod =
+            ({[f x]} : Language β) * (List.map (fun x => ({[f x]} : Language β)) xs).prod by rfl] at hu
+        rw [Language.mul_def] at hu
+        rcases hu with ⟨u₁, hu₁, u₂, hu₂, rfl⟩
+        have hu₂' := (mem_prod_singletons_iff f xs u₂).1 hu₂
+        have hu₁' : u₁ = [f x] := by simpa using hu₁
+        simp [hu₁', hu₂']
+      · intro hu
+        subst hu
+        rw [show (List.map (fun x => ({[f x]} : Language β)) (x :: xs)).prod =
+            ({[f x]} : Language β) * (List.map (fun x => ({[f x]} : Language β)) xs).prod by rfl]
+        rw [Language.mul_def]
+        refine ⟨[f x], Set.mem_singleton _, List.map f xs, ?_, rfl⟩
+        exact (mem_prod_singletons_iff f xs (List.map f xs)).2 rfl
+
+/-- Substituting each symbol `x` with the singleton language `{[f x]}` is the same as
+mapping the whole language along `f`. -/
+theorem subst_singletons_eq_map {α β : Type} (L : Language α) (f : α → β) :
+    L.subst (fun x => ({[f x]} : Language β)) = Language.map f L := by
+  ext u
+  constructor
+  · rintro ⟨w, hw, hu⟩
+    exact ⟨w, hw, (mem_prod_singletons_iff f w u).1 hu ▸ rfl⟩
+  · rintro ⟨w, hw, rfl⟩
+    exact ⟨w, hw, (mem_prod_singletons_iff f w _).2 rfl⟩
+
 /-- The prefix language of `L` consists of all words that can be extended on the right to a word
 in `L`. -/
 def prefixLang (L : Language α) : Language α :=
