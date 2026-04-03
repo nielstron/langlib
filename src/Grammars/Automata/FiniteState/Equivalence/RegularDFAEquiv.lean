@@ -12,6 +12,20 @@ open Relation Classical
 noncomputable section
 
 variable {T : Type}
+/-! # Regular Language Inclusions
+
+This file relates right-regular grammars (Type-3) to:
+1. **Mathlib's `Language.IsRegular`** — proved equivalent via DFA ↔ RG conversions.
+
+## Main results
+
+- `is_RG_iff_isRegular` — The Mathlib regular languages are equivalent to the right-regular languages.
+
+## References
+
+* Hopcroft, Motwani, Ullman. *Introduction to Automata Theory, Languages, and Computation*,
+  3rd ed. Section 3.3.
+-/
 
 -- ============================================================================
 -- Part 1: RG → IsRegular (via NFA with finite states)
