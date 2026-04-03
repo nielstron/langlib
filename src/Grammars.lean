@@ -73,10 +73,12 @@ import Grammars.Classes.ContextSensitive.ClosureProperties.Reverse
 import Grammars.Classes.ContextSensitive.Decidability.Membership
 import Grammars.Classes.DetContextFree.Basics.DCFL
 import Grammars.Classes.DetContextFree.Basics.Inclusion
+import Grammars.Classes.DetContextFree.ClosureProperties.Bijection
 import Grammars.Classes.Regular.Basics.Definition
 import Grammars.Classes.Regular.Basics.Inclusion
 import Grammars.Classes.Regular.Basics.NonRegular
 import Grammars.Classes.Regular.Basics.StrictInclusion
+import Grammars.Classes.Regular.Basics.StrictInclusionCF
 import Grammars.Classes.Regular.ClosureProperties.Bijection
 import Grammars.Classes.Regular.ClosureProperties.Complement
 import Grammars.Classes.Regular.ClosureProperties.ConverseFailures

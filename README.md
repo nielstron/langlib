@@ -53,7 +53,7 @@ The main library entry point is [src/Grammars.lean](src/Grammars.lean).
 | Grammar side | Relation | Automaton side |
 | --- | --- | --- |
 | Regular languages | ≡ [🔗](src/Grammars/Classes/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
-| ⊆ [🔗](src/Grammars/Classes/Regular/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Grammars/Classes/Regular/Basics/Inclusion.lean) |
+| ⊊ [🔗](src/Grammars/Classes/Regular/Basics/StrictInclusion.lean) |  | ⊊ [🔗](src/Grammars/Classes/Regular/Basics/Inclusion.lean) |
 | Deterministic context-free languages | ≡ [🔗](src/Grammars/Classes/DetContextFree/Basics/DCFL.lean) | DPDA final-state languages |
 | ⊆ [🔗](src/Grammars/Classes/DetContextFree/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Grammars/Automata/DetPushdown/Basics/Inclusion.lean) |
 | Context-free languages | ⇔ [🔗](src/Grammars/Classes/ContextFree/Basics/PDAEquivalence.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Grammars/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
