@@ -8,7 +8,7 @@ import Grammars.Classes.DetContextFree.Basics.DCFL
 /-! # DCFLs are a strict subset of CFLs
 
 This file shows that DCFLs are a subset of the CFLs
-and that they are a strict subset
+and that they are a subset
 
 --/
 
