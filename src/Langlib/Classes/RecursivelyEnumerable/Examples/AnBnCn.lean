@@ -6,6 +6,7 @@ import Langlib.Classes.ContextSensitive.Basics.Inclusion
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
+import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.ContextFree.Definition
 
 /-! # `a^n b^n c^n` as an RE Language
@@ -16,12 +17,12 @@ the language is recursively enumerable.
 
 open Language List
 
-/-- Unrestricted grammar for `{aⁿbⁿcⁿ | n ∈ ℕ}` over `Fin 3`.
+/-- Unrestricted grammar for `{aⁿbⁿcⁿ | n ≥ 1}` over `Fin 3`.
 
 Nonterminals: `Fin 2` where `0 = S`, `1 = B`.
 
 Rules:
-1. S → ε
+1. S → a B c
 2. S → a S B c
 3. c B → B c  (bubble sort)
 4. a B → a b  (context-sensitive conversion)
@@ -31,7 +32,7 @@ Rules:
   nt := Fin 2
   initial := 0
   rules := [
-    ⟨[], 0, [], []⟩,
+    ⟨[], 0, [], [symbol.terminal 0, symbol.nonterminal 1, symbol.terminal 2]⟩,
     ⟨[], 0, [], [symbol.terminal 0, symbol.nonterminal 0,
                   symbol.nonterminal 1, symbol.terminal 2]⟩,
     ⟨[symbol.terminal 2], 1, [], [symbol.nonterminal 1, symbol.terminal 2]⟩,
@@ -45,11 +46,18 @@ private abbrev ga : symbol (Fin 3) grammar_anbncn.nt := symbol.terminal 0
 private abbrev gb : symbol (Fin 3) grammar_anbncn.nt := symbol.terminal 1
 private abbrev gc : symbol (Fin 3) grammar_anbncn.nt := symbol.terminal 2
 
+private def lang_eq_eq_pos : Language (Fin 3) :=
+  fun w => ∃ n : ℕ, w = List.replicate (n + 1) 0 ++
+    List.replicate (n + 1) 1 ++ List.replicate (n + 1) 2
+
+private def lang_epsilon : Language (Fin 3) :=
+  fun w => w = []
+
 -- Single-step lemmas
 
-private lemma anbncn_step_eps (u v : List (symbol (Fin 3) grammar_anbncn.nt)) :
-    grammar_transforms grammar_anbncn (u ++ [gS] ++ v) (u ++ v) := by
-  exact ⟨⟨[], grammar_anbncn.initial, [], []⟩, by simp [grammar_anbncn],
+private lemma anbncn_step_base (u v : List (symbol (Fin 3) grammar_anbncn.nt)) :
+    grammar_transforms grammar_anbncn (u ++ [gS] ++ v) (u ++ [ga, gB, gc] ++ v) := by
+  exact ⟨⟨[], grammar_anbncn.initial, [], [ga, gB, gc]⟩, by simp [grammar_anbncn],
          u, v, by simp, by simp⟩
 
 private lemma anbncn_step_expand (u v : List (symbol (Fin 3) grammar_anbncn.nt)) :
@@ -89,9 +97,9 @@ private lemma anbncn_phase1 (n : ℕ) :
 
 private lemma anbncn_after_expansion (n : ℕ) :
     grammar_derives grammar_anbncn [gS]
-      (List.replicate n ga ++ (List.replicate n [gB, gc]).flatten) := by
-        convert anbncn_phase1 n |> fun h => h.trans _ using 1;
-        convert Relation.ReflTransGen.single ( anbncn_step_eps _ _ ) using 1
+      (List.replicate n ga ++ ga :: gB :: gc :: (List.replicate n [gB, gc]).flatten) := by
+  have hbase := anbncn_step_base (List.replicate n ga) ((List.replicate n [gB, gc]).flatten)
+  exact grammar_deri_of_deri_tran (anbncn_phase1 n) (by simpa [List.append_assoc] using hbase)
 
 -- Phase 2: sorting
 
@@ -151,24 +159,28 @@ private lemma anbncn_convert_chain
 /-- Convert all B's in `a^n B^n c^n` to b's. -/
 private lemma anbncn_convert_Bs (n : ℕ) :
     grammar_derives grammar_anbncn
-      (List.replicate n ga ++ List.replicate n gB ++ List.replicate n gc)
-      (List.replicate n ga ++ List.replicate n gb ++ List.replicate n gc) := by
-  cases n with
-  | zero => simp; constructor
-  | succ m =>
-    have h := anbncn_convert_chain ga (Or.inl rfl) (m + 1)
-      (List.replicate m ga) (List.replicate (m + 1) gc)
-    convert h using 1 <;> simp [List.replicate_succ']
+      (List.replicate (n + 1) ga ++ List.replicate (n + 1) gB ++ List.replicate (n + 1) gc)
+      (List.replicate (n + 1) ga ++ List.replicate (n + 1) gb ++ List.replicate (n + 1) gc) := by
+  have h := anbncn_convert_chain ga (Or.inl rfl) (n + 1)
+    (List.replicate n ga) (List.replicate (n + 1) gc)
+  convert h using 1 <;> simp [List.replicate_succ']
 
 -- Backward direction
 
 private lemma anbncn_derivable (n : ℕ) :
-    List.replicate n (0 : Fin 3) ++ List.replicate n 1 ++ List.replicate n 2 ∈
+    List.replicate (n + 1) (0 : Fin 3) ++ List.replicate (n + 1) 1 ++ List.replicate (n + 1) 2 ∈
       grammar_language grammar_anbncn := by
   show grammar_generates grammar_anbncn _
   unfold grammar_generates
   apply grammar_deri_of_deri_deri (anbncn_after_expansion n)
-  have hsort := grammar_deri_with_prefix (List.replicate n ga) (anbncn_sort n)
+  have hsort : grammar_derives grammar_anbncn
+      (List.replicate n ga ++ ga :: gB :: gc :: (List.replicate n [gB, gc]).flatten)
+      (List.replicate (n + 1) ga ++ List.replicate (n + 1) gB ++ List.replicate (n + 1) gc) := by
+    have hsort0 := grammar_deri_with_prefix (List.replicate n ga ++ [ga]) (anbncn_sort (n + 1))
+    have key : ∀ {α : Type} (a : α) (n : ℕ) (rest : List α),
+        a :: (List.replicate n a ++ rest) = List.replicate n a ++ a :: rest := by
+      intros; induction ‹ℕ› with | zero => simp | succ n ih => simp [List.replicate_succ, ih]
+    convert hsort0 using 1 <;> simp [List.replicate_succ, List.append_assoc, key]
   apply grammar_deri_of_deri_deri hsort
   have hconv := anbncn_convert_Bs n
   convert hconv using 1 <;> simp [List.map_replicate]
@@ -190,8 +202,7 @@ private lemma count_a_eq_c_step
     w₂.count ga = w₂.count gc := by
       obtain ⟨ u, v, p, r, h, hw₁, hw₂ ⟩ := ht;
       unfold grammar_anbncn at v; simp_all +decide [ Fin.forall_fin_succ ] ;
-      rcases v with ( rfl | rfl | rfl | rfl | rfl ) <;> simp_all +decide;
-      linarith
+      rcases v with ( rfl | rfl | rfl | rfl | rfl ) <;> simp_all +decide <;> omega
 
 private lemma count_a_eq_Bb_of_derives
     (w : List (symbol (Fin 3) grammar_anbncn.nt))
@@ -208,6 +219,24 @@ private lemma count_a_eq_c_of_derives
       induction hd with
       | refl => rfl
       | tail _ h₂ ih => exact count_a_eq_c_step _ _ h₂ ih
+
+private lemma count_a_or_S_pos_step
+    (w₁ w₂ : List (symbol (Fin 3) grammar_anbncn.nt))
+    (ht : grammar_transforms grammar_anbncn w₁ w₂)
+    (hpos : 0 < w₁.count ga + w₁.count gS) :
+    0 < w₂.count ga + w₂.count gS := by
+      rcases ht with ⟨r, hr, u, v, hw₁, hw₂⟩
+      simp [grammar_anbncn] at hr
+      rcases hr with rfl | rfl | rfl | rfl | rfl <;>
+        simp_all +arith +decide [List.count]
+
+private lemma count_a_or_S_pos_of_derives
+    (w : List (symbol (Fin 3) grammar_anbncn.nt))
+    (hd : grammar_derives grammar_anbncn [gS] w) :
+    0 < w.count ga + w.count gS := by
+  induction hd with
+  | refl => simp
+  | tail _ h₂ ih => exact count_a_or_S_pos_step _ _ h₂ ih
 
 -- Forward direction: weight invariants
 
@@ -247,22 +276,66 @@ private lemma grammar_inv_initial : grammar_inv [gS] := by
       · simp at h
     subst this; simp
 
-private lemma grammar_inv_step_eps (u v : List (symbol (Fin 3) grammar_anbncn.nt))
+set_option maxHeartbeats 800000 in
+private lemma grammar_inv_step_base (u v : List (symbol (Fin 3) grammar_anbncn.nt))
     (hinv : grammar_inv (u ++ [gS] ++ v)) :
-    grammar_inv (u ++ v) := by
-      refine' ⟨ _, _, _, _ ⟩;
-      · have := hinv.1; simp_all +decide [ List.pairwise_append ] ;
-      · have := hinv.2.1; simp_all +decide [ List.pairwise_append ] ;
-      · cases hinv ; aesop;
-      · intro u' v' h;
-        cases' List.append_eq_append_iff.mp h with h h <;> simp_all +decide [ List.append_eq_append_iff ];
-        · rcases h with ⟨ as, ⟨ ⟨ as', rfl, h ⟩ | ⟨ bs, rfl, h ⟩, rfl ⟩ ⟩ <;> simp_all +decide [ List.append_eq_append_iff ];
-          · cases as' <;> cases as <;> simp_all +decide [ List.append_eq_append_iff ];
-            · have := hinv.2.2.2; aesop;
-            · cases hinv ; aesop;
-          · have := hinv.2.2.2;
-            specialize this ( u ++ [ gS ] ++ bs ) v' ; aesop;
-        · cases hinv ; aesop
+    grammar_inv (u ++ [ga, gB, gc] ++ v) := by
+      have hv_wb : ∀ x ∈ v, x ≠ ga ∧ x ≠ gS ∧ x ≠ gb := by
+        intros x hx
+        have h_not_ga : x ≠ ga := by
+          contrapose! hinv
+          simp_all +decide [grammar_inv]
+          intro h₁ h₂ h₃ h₄
+          use u ++ [gS]
+          simp_all +decide [List.pairwise_append]
+          exact absurd (h₁.2.1.1 _ hx) (by simp +decide [wa])
+        have h_not_gS : x ≠ gS := by
+          have := hinv.2.2.2
+          simp_all +decide [grammar_inv]
+          contrapose! this
+          use u ++ [gS] ++ List.takeWhile (fun y => y ≠ gS) v,
+            List.dropWhile (fun y => y ≠ gS) v |> List.tail!
+          simp_all +decide [List.takeWhile, List.dropWhile]
+          have h_take_drop : ∀ {l : List (symbol (Fin 3) grammar_anbncn.nt)}, gS ∈ l →
+              l = takeWhile (fun y => !decide (y = gS)) l ++
+                gS :: (dropWhile (fun y => !decide (y = gS)) l).tail! := by
+            intros l hl
+            induction' l with hd tl ih <;> simp_all +decide [List.takeWhile, List.dropWhile]
+            by_cases h : hd = gS <;> simp +decide [h] at hl ⊢
+            tauto
+          exact ⟨h_take_drop hx, gS, by simp +decide⟩
+        have h_not_gb : x ≠ gb := by
+          exact fun h => hinv.2.2.1 (by aesop) (by aesop)
+        exact ⟨h_not_ga, h_not_gS, h_not_gb⟩
+      unfold grammar_inv at *
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · unfold wa at *
+        simp +zetaDelta at *
+        grind
+      · simp +decide [List.pairwise_append, List.pairwise_map] at *
+        simp_all +decide [wb]
+        intro x hx
+        specialize hv_wb x hx
+        cases x with
+        | terminal t =>
+            fin_cases t <;> simp_all +decide
+        | nonterminal n =>
+            fin_cases n <;> simp_all +decide
+      · intro hgS
+        have hnogb := hinv.2.2.1 (by simp)
+        simpa [List.mem_append] using hnogb
+      · intro u' v' h
+        have : gS ∈ (u ++ [ga, gB, gc] ++ v) := by
+          rw [h]
+          simp
+        have hu_not : gS ∉ u := by
+          intro hx
+          have hprefix := hinv.2.2.2 u v rfl gS hx
+          simp [ga, gS] at hprefix
+        have hv_not : gS ∉ v := by
+          intro hx
+          exact (hv_wb gS hx).2.1 rfl
+        simp [List.mem_append, hu_not, hv_not] at this
 
 set_option maxHeartbeats 800000 in
 private lemma grammar_inv_step_expand (u v : List (symbol (Fin 3) grammar_anbncn.nt))
@@ -357,7 +430,7 @@ private lemma grammar_inv_step
   obtain ⟨r, hr, u, v, rfl, rfl⟩ := ht
   simp [grammar_anbncn] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl <;>
-    (try { show grammar_inv _; convert grammar_inv_step_eps u v (by convert hinv using 2 <;> simp)
+    (try { show grammar_inv _; convert grammar_inv_step_base u v (by convert hinv using 2 <;> simp)
            using 2 <;> simp; done }) <;>
     (try { show grammar_inv _; convert grammar_inv_step_expand u v (by convert hinv using 2 <;> simp)
            using 2 <;> simp; done }) <;>
@@ -405,7 +478,7 @@ private lemma sorted_fin3_decomp {w : List (Fin 3)} (hw : w.Pairwise (· ≤ ·)
       · simp_all +decide
 
 private lemma grammar_anbncn_sub_lang_eq_eq :
-    ∀ w, w ∈ grammar_language grammar_anbncn → w ∈ lang_eq_eq := by
+    ∀ w, w ∈ grammar_language grammar_anbncn → w ∈ lang_eq_eq_pos := by
       intro w hw
       change grammar_generates grammar_anbncn w at hw
       have hw_derives : grammar_derives grammar_anbncn [gS] (w.map symbol.terminal) := hw
@@ -414,15 +487,79 @@ private lemma grammar_anbncn_sub_lang_eq_eq :
       subst hw_form
       have h1 := count_a_eq_Bb_of_derives _ hw_derives
       have h2 := count_a_eq_c_of_derives _ hw_derives
-      exact ⟨a_, by
-        unfold ga gc at *; simp_all +decide [ List.count_replicate ] ;
-        rfl⟩
+      have hpos := count_a_or_S_pos_of_derives _ hw_derives
+      have hapos : 0 < a_ := by
+        unfold ga gS at hpos
+        simp_all +decide [List.count_replicate]
+      cases a_ with
+      | zero => cases Nat.lt_irrefl 0 hapos
+      | succ n =>
+          exact ⟨n, by
+            unfold ga gc at *
+            simp_all +decide [List.count_replicate]
+          ⟩
 
-/-- The grammar `grammar_anbncn` generates exactly `{aⁿbⁿcⁿ}`. -/
-theorem grammar_anbncn_language : grammar_language grammar_anbncn = lang_eq_eq := by
+/-- The grammar `grammar_anbncn` generates exactly `{aⁿbⁿcⁿ | n ≥ 1}`. -/
+theorem grammar_anbncn_language : grammar_language grammar_anbncn = lang_eq_eq_pos := by
   ext w
   exact ⟨grammar_anbncn_sub_lang_eq_eq w, fun ⟨n, hw⟩ => hw ▸ anbncn_derivable n⟩
 
+private def grammar_epsilon : grammar (Fin 3) where
+  nt := Unit
+  initial := ()
+  rules := [⟨[], (), [], []⟩]
+
+private lemma grammar_epsilon_language : grammar_language grammar_epsilon = lang_epsilon := by
+  ext w
+  constructor
+  · intro hw
+    change grammar_generates grammar_epsilon w at hw
+    have h := grammar_tran_or_id_of_deri hw
+    rcases h with h | ⟨v, hv, hd⟩
+    · cases w <;> simp at h
+    · rcases hv with ⟨r, hr, u, v', hw₁, hw₂⟩
+      simp [grammar_epsilon] at hr
+      rcases hr with rfl
+      cases u <;> cases v' <;> simp at hw₁ hw₂
+      subst v
+      have h' := grammar_tran_or_id_of_deri hd
+      rcases h' with h' | ⟨v'', hv'', _⟩
+      · simpa [lang_epsilon] using h'
+      · rcases hv'' with ⟨r, hr, u, v', hw₁, _⟩
+        simp [grammar_epsilon] at hr
+        rcases hr with rfl
+        simp at hw₁
+  · intro hw
+    change grammar_generates grammar_epsilon w
+    unfold lang_epsilon at hw
+    subst w
+    exact grammar_deri_of_tran (by
+      refine ⟨⟨[], grammar_epsilon.initial, [], []⟩, by simp [grammar_epsilon], [], [], ?_, ?_⟩ <;> simp)
+
+private lemma lang_eq_eq_pos_union_epsilon : lang_eq_eq_pos + lang_epsilon = lang_eq_eq := by
+  ext w
+  constructor
+  · intro hw
+    rw [Language.mem_add] at hw
+    rcases hw with hw | hw
+    · rcases hw with ⟨n, rfl⟩
+      exact ⟨n + 1, by simp [a_, b_, c_, List.replicate_add, List.append_assoc]⟩
+    · cases hw
+      exact ⟨0, by simp [a_, b_, c_]⟩
+  · intro hw
+    rw [Language.mem_add]
+    rcases hw with ⟨n, rfl⟩
+    cases n with
+    | zero =>
+        right
+        exact rfl
+    | succ n =>
+        left
+        exact ⟨n, rfl⟩
+
 /-- The language `{aⁿbⁿcⁿ}` is recursively enumerable. -/
-theorem lang_eq_eq_is_RE : is_RE lang_eq_eq :=
-  ⟨grammar_anbncn, grammar_anbncn_language⟩
+theorem lang_eq_eq_is_RE : is_RE lang_eq_eq := by
+  have hpos : is_RE lang_eq_eq_pos := ⟨grammar_anbncn, grammar_anbncn_language⟩
+  have heps : is_RE lang_epsilon := ⟨grammar_epsilon, grammar_epsilon_language⟩
+  rw [← lang_eq_eq_pos_union_epsilon]
+  exact RE_of_RE_u_RE _ _ ⟨hpos, heps⟩
