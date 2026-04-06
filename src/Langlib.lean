@@ -88,7 +88,6 @@ import Langlib.Classes.Regular.Basics.StrictInclusion
 import Langlib.Classes.Regular.Basics.StrictInclusionCF
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Closure.Complement
-import Langlib.Classes.Regular.Closure.ConverseFailures
 import Langlib.Classes.Regular.Closure.Intersection
 import Langlib.Classes.Regular.Closure.Prefix
 import Langlib.Classes.Regular.Closure.Quotient
@@ -99,6 +98,7 @@ import Langlib.Classes.Regular.Decidability.Emptiness
 import Langlib.Classes.Regular.Decidability.Membership
 import Langlib.Classes.Regular.Decidability.Universality
 import Langlib.Classes.Regular.Definition
+import Langlib.Classes.Regular.Examples.TopBot
 import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Definition
