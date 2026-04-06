@@ -1,7 +1,7 @@
 import Langlib.Classes.ContextFree.Basics.Inclusion
 import Langlib.Classes.ContextFree.Basics.FiniteNT
-import Langlib.Automata.Pushdown.Equivalence.CFGToPDA
-import Langlib.Automata.Pushdown.Equivalence.PDAToCFG
+import Langlib.Automata.Pushdown.Equivalence.ContextFree.CFGToPDA
+import Langlib.Automata.Pushdown.Equivalence.ContextFree.PDAToCFG
 
 open PDA
 

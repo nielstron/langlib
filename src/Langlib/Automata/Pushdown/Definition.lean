@@ -436,7 +436,7 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 section SameTransitions
 
 /-- Two PDAs with the same transition functions have the same single-step relation. -/
-lemma PDA.reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
+lemma reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
     (ht : P₁.transition_fun = P₂.transition_fun)
     (ht' : P₁.transition_fun' = P₂.transition_fun')
     (q q' : Q) (w w' : List T) (γ γ' : List S) :
@@ -466,7 +466,7 @@ lemma PDA.reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
         · right; exact ⟨p, β, ht'.symm ▸ h1, h2⟩
 
 /-- Two PDAs with the same transition functions have the same multi-step relation. -/
-lemma PDA.reaches_of_same_transitions (P₁ P₂ : PDA Q T S)
+lemma reaches_of_same_transitions (P₁ P₂ : PDA Q T S)
     (ht : P₁.transition_fun = P₂.transition_fun)
     (ht' : P₁.transition_fun' = P₂.transition_fun')
     (c₁ c₂ : PDA.conf P₁)
