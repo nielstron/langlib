@@ -70,8 +70,8 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | ⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean) |
 | Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
 | ⊆ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean) without `ε`-productions |  |  |
-| Context-sensitive languages (Non-erasing ⇔ Non-contracting) | ⇔ | LBA languages |
-| ⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean) |
+| Context-sensitive languages (Non-erasing ⇔ Non-contracting) | ⇔ | NLBA languages |
+| ⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Automata/NondeterministicLinearBounded/Basics/Inclusion.lean) |
 | Recursively enumerable languages | ⇔ | Turing-machine languages (Mathlib) |
 
 The repository also proves that the project's notion of context-free language is

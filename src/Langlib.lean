@@ -9,6 +9,7 @@ import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Automata.LinearBounded.Basics.Inclusion
 import Langlib.Automata.LinearBounded.Definition
 import Langlib.Automata.LinearBounded.Equivalence.LBAEquivCSG
+import Langlib.Automata.NondeterministicLinearBounded.Basics.Inclusion
 import Langlib.Automata.NondeterministicLinearBounded.Definition
 import Langlib.Automata.NondeterministicLinearBounded.Equivalence.NLBAToCSG
 import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
