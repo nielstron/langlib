@@ -1,0 +1,121 @@
+--! Auto-generated import hub for the langlib library.
+--  Run `scripts/generate_import_hub.py --hub langlib` to regenerate.
+
+import Langlib.Automata.DeterministicPushdown.Basics.Inclusion
+import Langlib.Automata.DeterministicPushdown.ClosureProperties.Complement
+import Langlib.Automata.DeterministicPushdown.Definition
+import Langlib.Automata.FiniteState.Definition
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Automata.LinearBounded.Basics.Inclusion
+import Langlib.Automata.LinearBounded.Definition
+import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
+import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStackEquiv
+import Langlib.Automata.Pushdown.Basics.Leftmost
+import Langlib.Automata.Pushdown.Definition
+import Langlib.Automata.Pushdown.Equivalence.CFGToPDA
+import Langlib.Automata.Pushdown.Equivalence.ContextFree
+import Langlib.Automata.Pushdown.Equivalence.PDAToCFG
+import Langlib.Automata.Turing.Definition
+import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
+import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
+import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
+import Langlib.Automata.Turing.Equivalence.TMToGrammar
+import Langlib.Classes.ContextFree.Basics.Elementary
+import Langlib.Classes.ContextFree.Basics.FiniteNT
+import Langlib.Classes.ContextFree.Basics.Inclusion
+import Langlib.Classes.ContextFree.Basics.Lifting
+import Langlib.Classes.ContextFree.Basics.Ogden
+import Langlib.Classes.ContextFree.Basics.Pumping
+import Langlib.Classes.ContextFree.Basics.Splitting
+import Langlib.Classes.ContextFree.Basics.StrictInclusion
+import Langlib.Classes.ContextFree.Closure.Bijection
+import Langlib.Classes.ContextFree.Closure.Complement
+import Langlib.Classes.ContextFree.Closure.Concatenation
+import Langlib.Classes.ContextFree.Closure.ConcatenationBonus
+import Langlib.Classes.ContextFree.Closure.ConverseFailures
+import Langlib.Classes.ContextFree.Closure.Intersection
+import Langlib.Classes.ContextFree.Closure.IntersectionRegular
+import Langlib.Classes.ContextFree.Closure.Permutation
+import Langlib.Classes.ContextFree.Closure.Prefix
+import Langlib.Classes.ContextFree.Closure.PrefixBonus
+import Langlib.Classes.ContextFree.Closure.Quotient
+import Langlib.Classes.ContextFree.Closure.Reverse
+import Langlib.Classes.ContextFree.Closure.Star
+import Langlib.Classes.ContextFree.Closure.Substitution.Core
+import Langlib.Classes.ContextFree.Closure.Substitution.Support
+import Langlib.Classes.ContextFree.Closure.Substitution
+import Langlib.Classes.ContextFree.Closure.Suffix
+import Langlib.Classes.ContextFree.Closure.Union
+import Langlib.Classes.ContextFree.Closure.UnionBonus
+import Langlib.Classes.ContextFree.Decidability.Emptiness
+import Langlib.Classes.ContextFree.Decidability.Membership
+import Langlib.Classes.ContextFree.Definition
+import Langlib.Classes.ContextFree.Examples.AnBn
+import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
+import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
+import Langlib.Classes.ContextFree.Pumping.ChomskyCountingSteps
+import Langlib.Classes.ContextFree.Pumping.CountingSteps
+import Langlib.Classes.ContextFree.Pumping.EpsilonElimination
+import Langlib.Classes.ContextFree.Pumping.LengthRestriction
+import Langlib.Classes.ContextFree.Pumping.ParseTree
+import Langlib.Classes.ContextFree.Pumping.Pumping
+import Langlib.Classes.ContextFree.Pumping.TerminalRestriction
+import Langlib.Classes.ContextFree.Pumping.UnitElimination
+import Langlib.Classes.ContextFree.Pumping.Utils
+import Langlib.Classes.ContextFree.Pumping.toMathlib
+import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Basics.NonContracting
+import Langlib.Classes.ContextSensitive.Closure.Bijection
+import Langlib.Classes.ContextSensitive.Closure.Concatenation
+import Langlib.Classes.ContextSensitive.Closure.Reverse
+import Langlib.Classes.ContextSensitive.Decidability.Membership
+import Langlib.Classes.ContextSensitive.Definition
+import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
+import Langlib.Classes.DeterministicContextFree.Closure.Bijection
+import Langlib.Classes.DeterministicContextFree.Definition
+import Langlib.Classes.DeterministicContextFree.Examples.AnBn
+import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
+import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
+import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
+import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
+import Langlib.Classes.RecursivelyEnumerable.Closure.Union
+import Langlib.Classes.RecursivelyEnumerable.Closure.UnionBonus
+import Langlib.Classes.RecursivelyEnumerable.Definition
+import Langlib.Classes.RecursivelyEnumerable.NormalForms.Kuroda
+import Langlib.Classes.Regular.Basics.Inclusion
+import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Classes.Regular.Basics.StrictInclusion
+import Langlib.Classes.Regular.Basics.StrictInclusionCF
+import Langlib.Classes.Regular.Closure.Bijection
+import Langlib.Classes.Regular.Closure.Complement
+import Langlib.Classes.Regular.Closure.ConverseFailures
+import Langlib.Classes.Regular.Closure.Intersection
+import Langlib.Classes.Regular.Closure.Prefix
+import Langlib.Classes.Regular.Closure.Quotient
+import Langlib.Classes.Regular.Closure.Reverse
+import Langlib.Classes.Regular.Closure.Suffix
+import Langlib.Classes.Regular.Closure.Union
+import Langlib.Classes.Regular.Decidability.Emptiness
+import Langlib.Classes.Regular.Decidability.Membership
+import Langlib.Classes.Regular.Decidability.Universality
+import Langlib.Classes.Regular.Definition
+import Langlib.Grammars.ContextFree.Definition
+import Langlib.Grammars.ContextFree.Toolbox
+import Langlib.Grammars.ContextSensitive.Definition
+import Langlib.Grammars.ContextSensitive.Toolbox
+import Langlib.Grammars.RightRegular.Definition
+import Langlib.Grammars.Unrestricted.Definition
+import Langlib.Grammars.Unrestricted.Toolbox
+import Langlib.Utilities.LanguageOperations
+import Langlib.Utilities.ListUtils
+import Langlib.Utilities.WrittenByOthers.ListTakeJoin
+import Langlib.Utilities.WrittenByOthers.PrintSorries
+import Langlib.Utilities.WrittenByOthers.TrimAssoc
+/-! # Langlib Library
+
+This file is the import hub for the langlib library.
+
+## Main declarations
+
+- Imports the language-class, grammar, automata, and utility developments.
+-/

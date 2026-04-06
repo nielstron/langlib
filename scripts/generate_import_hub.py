@@ -19,18 +19,18 @@ class HubConfig:
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 DEFAULT_HUBS: dict[str, HubConfig] = {
-    "grammars": HubConfig(
-        output=REPO_ROOT / "src" / "Grammars.lean",
-        scan_root=REPO_ROOT / "src" / "Grammars",
-        module_prefix="Grammars",
-        title="Grammars Library",
-        summary_bullet="Imports the context-free, context-sensitive, and unrestricted grammar developments.",
+    "langlib": HubConfig(
+        output=REPO_ROOT / "src" / "Langlib.lean",
+        scan_root=REPO_ROOT / "src" / "Langlib",
+        module_prefix="Langlib",
+        title="Langlib Library",
+        summary_bullet="Imports the language-class, grammar, automata, and utility developments.",
     ),
     "tests": HubConfig(
-        output=REPO_ROOT / "test" / "Grammars" / "Test.lean",
-        scan_root=REPO_ROOT / "test" / "Grammars" / "Test",
-        module_prefix="Grammars.Test",
-        title="Grammars Test Suite",
+        output=REPO_ROOT / "test" / "LanglibTest.lean",
+        scan_root=REPO_ROOT / "test" / "LanglibTest",
+        module_prefix="LanglibTest",
+        title="Langlib Test Suite",
         summary_bullet="Imports the demo and theorem-checking test files.",
     ),
 }
