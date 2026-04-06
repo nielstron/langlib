@@ -12,9 +12,9 @@ import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStackEquiv
 import Langlib.Automata.Pushdown.Basics.Leftmost
 import Langlib.Automata.Pushdown.Definition
-import Langlib.Automata.Pushdown.Equivalence.CFGToPDA
+import Langlib.Automata.Pushdown.Equivalence.ContextFree.CFGToPDA
+import Langlib.Automata.Pushdown.Equivalence.ContextFree.PDAToCFG
 import Langlib.Automata.Pushdown.Equivalence.ContextFree
-import Langlib.Automata.Pushdown.Equivalence.PDAToCFG
 import Langlib.Automata.Turing.Definition
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
@@ -80,6 +80,7 @@ import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.UnionBonus
 import Langlib.Classes.RecursivelyEnumerable.Definition
+import Langlib.Classes.RecursivelyEnumerable.Examples.AnBnCn
 import Langlib.Classes.RecursivelyEnumerable.NormalForms.Kuroda
 import Langlib.Classes.Regular.Basics.Inclusion
 import Langlib.Classes.Regular.Basics.NonRegular
