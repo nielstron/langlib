@@ -64,7 +64,6 @@ import Langlib.Classes.ContextFree.Pumping.UnitElimination
 import Langlib.Classes.ContextFree.Pumping.Utils
 import Langlib.Classes.ContextFree.Pumping.toMathlib
 import Langlib.Classes.ContextSensitive.Basics.Inclusion
-import Langlib.Classes.ContextSensitive.Basics.NonContracting
 import Langlib.Classes.ContextSensitive.Closure.Bijection
 import Langlib.Classes.ContextSensitive.Closure.Concatenation
 import Langlib.Classes.ContextSensitive.Closure.Reverse
@@ -103,6 +102,8 @@ import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
+import Langlib.Grammars.NonContracting.Definition
+import Langlib.Grammars.NonContracting.Equivalence.ContextSensitive
 import Langlib.Grammars.RightRegular.Definition
 import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
