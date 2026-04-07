@@ -77,6 +77,10 @@ import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
+import Langlib.Classes.Indexed.Basics.Inclusion
+import Langlib.Classes.Indexed.Basics.StrictInclusion
+import Langlib.Classes.Indexed.Closure.Union
+import Langlib.Classes.Indexed.Definition
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
@@ -107,6 +111,7 @@ import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
+import Langlib.Grammars.Indexed.Definition
 import Langlib.Grammars.NonContracting.Definition
 import Langlib.Grammars.NonContracting.Equivalence.ContextSensitive
 import Langlib.Grammars.RightRegular.Definition
