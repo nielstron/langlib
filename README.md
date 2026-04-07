@@ -74,18 +74,14 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | Regular languages | ≡ [🔗](src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
 | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/StrictInclusion.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/Inclusion.lean) |
 | Deterministic context-free languages | ≡ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
-| ⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean) |
+| ⊊ (⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean)) |
 | Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
-| ⊊ [🔗](src/Langlib/Classes/ContextFree/Basics/StrictInclusionIndexed.lean) |  |  |
+| ⊊ [🔗](src/Langlib/Classes/ContextFree/Basics/StrictInclusionIndexed.lean) |  | ⊊ |
 | Indexed languages |  | Nested Stack Automata |
-| ⊊ |  | ⊊  |
+| ⊊ |  | ⊊ |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting) | ⇔ | LBA languages |
-| ⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean) |
-| Recursively enumerable languages | ⇔ | Turing-machine languages (Mathlib) |
-
-The repository also proves that context-free languages are context-sensitive in the
-absence of `ε`-productions:
-⊆ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean).
+| ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
+| Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
 
 The repository also proves that the project's notion of context-free language is
 ⇔ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean) Mathlib's `IsContextFree`.
