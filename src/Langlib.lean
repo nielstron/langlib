@@ -1,6 +1,9 @@
 --! Auto-generated import hub for the langlib library.
 --  Run `scripts/generate_import_hub.py --hub langlib` to regenerate.
 
+import Langlib.Automata.DeterministicLinearBounded.Basics.Inclusion
+import Langlib.Automata.DeterministicLinearBounded.Basics.InclusionBonus
+import Langlib.Automata.DeterministicLinearBounded.Definition
 import Langlib.Automata.DeterministicPushdown.Basics.Inclusion
 import Langlib.Automata.DeterministicPushdown.ClosureProperties.Complement
 import Langlib.Automata.DeterministicPushdown.Definition
@@ -8,10 +11,7 @@ import Langlib.Automata.FiniteState.Definition
 import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Automata.LinearBounded.Basics.Inclusion
 import Langlib.Automata.LinearBounded.Definition
-import Langlib.Automata.LinearBounded.Equivalence.LBAEquivCSG
-import Langlib.Automata.NondeterministicLinearBounded.Basics.Inclusion
-import Langlib.Automata.NondeterministicLinearBounded.Definition
-import Langlib.Automata.NondeterministicLinearBounded.Equivalence.NLBAToCSG
+import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
 import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStackEquiv
 import Langlib.Automata.Pushdown.Basics.Leftmost

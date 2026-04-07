@@ -1,47 +1,47 @@
 import Mathlib
-import Langlib.Automata.LinearBounded.Definition
+import Langlib.Automata.DeterministicLinearBounded.Definition
 
 /-!
-# LBA Languages ⊆ Turing Machine Languages
+# DLBA Languages ⊆ Turing Machine Languages
 
-We show that every language recognized by a linearly bounded automaton (LBA) is also
-recognized by a Turing machine, connecting the LBA framework to Mathlib's Turing machine
+We show that every language recognized by a linearly bounded automaton (DLBA) is also
+recognized by a Turing machine, connecting the DLBA framework to Mathlib's Turing machine
 definitions.
 
 ## Strategy
 
 ### Part 1: `Turing.eval` characterization
 
-We show that `LBA.Accepts` is equivalent to Mathlib's `Turing.eval` halting in an
+We show that `DLBA.Accepts` is equivalent to Mathlib's `Turing.eval` halting in an
 accepting state. Since `Turing.eval` is the common foundation underlying all Mathlib TM
-models (`TM0`, `TM1`, `TM2`), this connects the LBA framework directly to Mathlib's
+models (`TM0`, `TM1`, `TM2`), this connects the DLBA framework directly to Mathlib's
 notion of Turing computation.
 
 ### Part 2: Concrete TM0 simulation
 
-We construct a `Turing.TM0.Machine` that simulates a given LBA. The construction has
+We construct a `Turing.TM0.Machine` that simulates a given DLBA. The construction has
 two phases:
 1. **Reading phase**: The TM0 reads the input from the tape symbol by symbol,
    accumulating the symbols in its state space.
-2. **Simulation phase**: Once the input is fully read, the TM0 simulates the LBA
+2. **Simulation phase**: Once the input is fully read, the TM0 simulates the DLBA
    step-by-step entirely within its state space (no further tape access needed).
 
-The TM0 halts if and only if the LBA accepts the input.
+The TM0 halts if and only if the DLBA accepts the input.
 
 ## Main Results
 
-* `LBA.iterateStep_reaches` — `iterateStep` implies `Turing.Reaches`
-* `LBA.reaches_iterateStep` — `Turing.Reaches` implies `iterateStep`
-* `LBA.accepts_iff_eval` — LBA acceptance ↔ `Turing.eval` halts with accepting state
-* `LBA.lba_language_subset_tm0_language` — Every word accepted by the LBA is accepted
+* `DLBA.iterateStep_reaches` — `iterateStep` implies `Turing.Reaches`
+* `DLBA.reaches_iterateStep` — `Turing.Reaches` implies `iterateStep`
+* `DLBA.accepts_iff_eval` — DLBA acceptance ↔ `Turing.eval` halts with accepting state
+* `DLBA.lba_language_subset_tm0_language` — Every word accepted by the DLBA is accepted
   by the simulating TM0 machine
 -/
 
-namespace LBA
+namespace DLBA
 
 open Turing
 
-/-! ## Part 1: Connecting LBA to `Turing.eval` -/
+/-! ## Part 1: Connecting DLBA to `Turing.eval` -/
 
 /-- If `iterateStep M cfg k = some cfg'`, then `Turing.Reaches (step M) cfg cfg'`. -/
 theorem iterateStep_reaches {Γ : Type*} {Λ : Type*} {n : ℕ}
@@ -65,8 +65,8 @@ theorem reaches_iterateStep {Γ : Type*} {Λ : Type*} {n : ℕ}
     use k + 1
     rw [iterateStep_succ, hk]; aesop
 
-/-- LBA acceptance is equivalent to `Turing.eval` halting in an accepting state.
-This connects the LBA directly to Mathlib's `Turing.eval` framework, which underlies
+/-- DLBA acceptance is equivalent to `Turing.eval` halting in an accepting state.
+This connects the DLBA directly to Mathlib's `Turing.eval` framework, which underlies
 all TM models (`TM0`, `TM1`, `TM2`). -/
 theorem accepts_iff_eval {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) :
@@ -87,7 +87,7 @@ theorem accepts_iff_eval {Γ : Type*} {Λ : Type*} {n : ℕ}
 
 /-! ## Part 2: Concrete TM0 Simulation -/
 
-/-- States of the TM0 machine simulating an LBA. -/
+/-- States of the TM0 machine simulating an DLBA. -/
 inductive SimState (Γ : Type*) (Λ : Type*) (n : ℕ) where
   | reading : List Γ → SimState Γ Λ n
   | simulating : Cfg Γ Λ n → SimState Γ Λ n
@@ -97,7 +97,7 @@ instance SimState.instInhabited {Γ : Type*} {Λ : Type*} {n : ℕ} :
     Inhabited (SimState Γ Λ n) :=
   ⟨.reading []⟩
 
-/-- The TM0 machine that simulates a given LBA. -/
+/-- The TM0 machine that simulates a given DLBA. -/
 noncomputable def toTM0 {Γ : Type*} {Λ : Type*} [DecidableEq Γ]
     (M : Machine Γ Λ) (n : ℕ) :
     @Turing.TM0.Machine (Option Γ) (SimState Γ Λ n) ⟨.reading []⟩ :=
@@ -120,11 +120,11 @@ noncomputable def toTM0 {Γ : Type*} {Λ : Type*} [DecidableEq Γ]
         else some (.loop, .write sym)
     | .loop => some (.loop, .write sym)
 
-/-- Encode an LBA input as a TM0 input (list over `Option Γ`). -/
+/-- Encode an DLBA input as a TM0 input (list over `Option Γ`). -/
 def encodeInput {Γ : Type*} {n : ℕ} (w : Fin (n + 1) → Γ) : List (Option Γ) :=
   (List.ofFn w).map some
 
-/-- The TM0 step function for the LBA simulation machine. -/
+/-- The TM0 step function for the DLBA simulation machine. -/
 noncomputable abbrev tm0Step {Γ : Type*} {Λ : Type*} [DecidableEq Γ]
     (M : Machine Γ Λ) (n : ℕ) :=
   @Turing.TM0.step (Option Γ) (SimState Γ Λ n) ⟨.reading []⟩ ⟨none⟩ (toTM0 M n)
@@ -309,7 +309,7 @@ theorem reading_phase_k_steps {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq �
 /-
 PROBLEM
 After reading all n+1 symbols from the encoded input, the TM0 reaches the
-simulation phase with the correct initial LBA configuration.
+simulation phase with the correct initial DLBA configuration.
 
 PROVIDED SOLUTION
 Step 1: By reading_phase_k_steps with k = n+1, we reach the config ⟨.reading (List.take (n+1) (List.ofFn w)), T_{n+1}⟩ where T_{n+1} = (move right)^[n+1] (Tape.mk₁ (encodeInput w)).
@@ -346,7 +346,7 @@ theorem reading_phase_complete {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq 
 
 /-! ### Simulation Phase Correctness -/
 
-/-- In the simulation phase, if the LBA takes a step, the TM0 also takes a step
+/-- In the simulation phase, if the DLBA takes a step, the TM0 also takes a step
 maintaining the simulation invariant. -/
 theorem simulation_preserves_step {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
     (M : Machine Γ Λ) (cfg cfg' : Cfg Γ Λ n)
@@ -358,7 +358,7 @@ theorem simulation_preserves_step {Γ : Type*} {Λ : Type*} {n : ℕ} [Decidable
   unfold toTM0
   unfold TM0.step; aesop
 
-/-- In the simulation phase, if the LBA halts in an accepting state, the TM0 halts. -/
+/-- In the simulation phase, if the DLBA halts in an accepting state, the TM0 halts. -/
 theorem simulation_halts_on_accept {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n)
     (T : @Turing.Tape (Option Γ) ⟨none⟩)
@@ -370,11 +370,11 @@ theorem simulation_halts_on_accept {Γ : Type*} {Λ : Type*} {n : ℕ} [Decidabl
 
 /-
 PROBLEM
-If the LBA reaches an accepting halt from `cfg`, then the TM0 halts from the
+If the DLBA reaches an accepting halt from `cfg`, then the TM0 halts from the
 simulating phase starting at `cfg`.
 
 PROVIDED SOLUTION
-By induction on the number of LBA steps k in the Accepts witness.
+By induction on the number of DLBA steps k in the Accepts witness.
 
 Accepts M cfg gives ∃ k, iterateStep M cfg (k+1) = none ∧ ∃ cfg', iterateStep M cfg k = some cfg' ∧ M.accept cfg'.state = true.
 
@@ -382,7 +382,7 @@ Induct on k.
 
 k = 0: cfg' = cfg (from iterateStep 0 = some cfg). step M cfg = none. M.accept cfg.state = true. By simulation_halts_on_accept, tm0Step M n ⟨.simulating cfg, T⟩ = none. Since the step function returns none, by Turing.mem_eval, cfg ∈ eval, so Dom holds.
 
-k+1: From iterateStep, step M cfg = some cfg₁ for some cfg₁ (extracting from the bind in iterateStep). By simulation_preserves_step, tm0Step M n ⟨.simulating cfg, T⟩ = some ⟨.simulating cfg₁, T'⟩. The remaining LBA computation from cfg₁ accepts (with witness k). By IH, (eval (tm0Step M n) ⟨.simulating cfg₁, T'⟩).Dom. Since tm0Step takes cfg to cfg₁ (one step), and eval from cfg₁ is defined, eval from cfg is also defined (by the fixpoint property of eval, or by eval_dom_of_reaches with a single step).
+k+1: From iterateStep, step M cfg = some cfg₁ for some cfg₁ (extracting from the bind in iterateStep). By simulation_preserves_step, tm0Step M n ⟨.simulating cfg, T⟩ = some ⟨.simulating cfg₁, T'⟩. The remaining DLBA computation from cfg₁ accepts (with witness k). By IH, (eval (tm0Step M n) ⟨.simulating cfg₁, T'⟩).Dom. Since tm0Step takes cfg to cfg₁ (one step), and eval from cfg₁ is defined, eval from cfg is also defined (by the fixpoint property of eval, or by eval_dom_of_reaches with a single step).
 -/
 theorem tm0_halts_of_lba_accepts {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n)
@@ -392,7 +392,7 @@ theorem tm0_halts_of_lba_accepts {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableE
       (⟨.simulating cfg, T⟩ : SimCfg Γ Λ n)).Dom := by
   -- Let's obtain the witness `k` from the `Accepts` definition.
   obtain ⟨k, hk⟩ := hacc;
-  -- By induction on $k$, we can show that the simulation preserves the steps of the LBA.
+  -- By induction on $k$, we can show that the simulation preserves the steps of the DLBA.
   have h_ind : ∀ k, ∀ cfg cfg', iterateStep M cfg k = some cfg' → ∀ T, ∃ T', Turing.Reaches (tm0Step M n) (⟨.simulating cfg, T⟩ : SimCfg Γ Λ n) (⟨.simulating cfg', T'⟩ : SimCfg Γ Λ n) := by
     intro k cfg cfg' hk T; induction' k with k ih generalizing cfg cfg' T <;> simp_all +decide [ iterateStep ] ;
     · exact ⟨ T, by constructor ⟩;
@@ -438,8 +438,8 @@ theorem eval_dom_of_reaches {σ : Type*} (f : σ → Option σ) (a b : σ)
 
 /-! ### Main Theorem -/
 
-/-- **Main theorem**: Every word accepted by the LBA is also accepted by the
-simulating TM0 machine. This establishes that LBA languages are a subset of
+/-- **Main theorem**: Every word accepted by the DLBA is also accepted by the
+simulating TM0 machine. This establishes that DLBA languages are a subset of
 TM0-recognizable languages. -/
 theorem lba_language_subset_tm0_language
     {Γ : Type*} {Λ : Type*} {n : ℕ}
@@ -449,9 +449,9 @@ theorem lba_language_subset_tm0_language
     (Turing.eval (tm0Step M n) (tm0Init M w)).Dom := by
   -- Step 1: The reading phase reaches the simulation phase
   obtain ⟨T, hreach⟩ := reading_phase_complete M w
-  -- Step 2: The simulation phase halts because the LBA accepts
+  -- Step 2: The simulation phase halts because the DLBA accepts
   have hsim := tm0_halts_of_lba_accepts M (initCfg M w) T hw
   -- Step 3: Combine: reachability + halting from reached state → halting from init
   exact eval_dom_of_reaches _ _ _ hreach hsim
 
-end LBA
+end DLBA

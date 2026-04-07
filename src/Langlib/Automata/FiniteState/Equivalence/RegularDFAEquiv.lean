@@ -5,7 +5,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import Mathlib
 import Langlib.Automata.FiniteState.Definition
 import Langlib.Classes.Regular.Definition
-import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 
 open Relation Classical
 

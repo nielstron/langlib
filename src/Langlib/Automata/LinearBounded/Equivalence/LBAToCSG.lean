@@ -1,5 +1,5 @@
 import Mathlib
-import Langlib.Automata.NondeterministicLinearBounded.Definition
+import Langlib.Automata.LinearBounded.Definition
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.Unrestricted.Definition
@@ -7,15 +7,15 @@ import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Grammars.NonContracting.Equivalence.ContextSensitive
 
 /-!
-# NLBA → Context-Sensitive Grammar (Myhill's Construction)
+# LBA → Context-Sensitive Grammar (Myhill's Construction)
 
 This file constructs a context-sensitive grammar from a nondeterministic linear
-bounded automaton (NLBA), establishing the direction NLBA → CSG.
+bounded automaton (LBA), establishing the direction LBA → CSG.
 
-Given an NLBA `M` with tape alphabet `Γ`, states `Λ`, and input embedding `embed : T ↪ Γ`,
-we construct a context-sensitive grammar whose language equals the NLBA's language.
+Given an LBA `M` with tape alphabet `Γ`, states `Λ`, and input embedding `embed : T ↪ Γ`,
+we construct a context-sensitive grammar whose language equals the LBA's language.
 
-The nonterminals encode the NLBA's computation at each tape cell, simulation rules
+The nonterminals encode the LBA's computation at each tape cell, simulation rules
 mirror transitions, and cleanup rules recover terminals upon acceptance.
 
 ## Simulation rules
@@ -87,7 +87,7 @@ abbrev cellPendingSym (lb rb : Bool) (q' : Λ) (a : Γ) (t : T) :
     symbol T (MyhillNT T Γ Λ) :=
   symbol.nonterminal (MyhillNT.cellPending lb rb q' a t)
 
-variable (M : NLBA.Machine Γ Λ) (embed : T ↪ Γ)
+variable (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
 
 /-- All grammar rules for the Myhill construction, organized by phase. -/
 def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
@@ -109,18 +109,18 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let a ← (Finset.univ.toList : List Γ)
       let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
-      let d ← [LBA.Dir.stay, LBA.Dir.left, LBA.Dir.right]
+      let d ← [DLBA.Dir.stay, DLBA.Dir.left, DLBA.Dir.right]
       if h : (q', a', d) ∈ M.transition q a then
         let t ← (Finset.univ.toList : List T)
         let lb ← [true, false]
         let rb ← [true, false]
-        if d = LBA.Dir.stay then
+        if d = DLBA.Dir.stay then
           pure ⟨[], MyhillNT.cell lb rb (some q) a t, [],
                 [cellSym lb rb (some q') a' t]⟩
-        else if d = LBA.Dir.right ∧ rb = true then
+        else if d = DLBA.Dir.right ∧ rb = true then
           pure ⟨[], MyhillNT.cell lb true (some q) a t, [],
                 [cellSym lb true (some q') a' t]⟩
-        else if d = LBA.Dir.left ∧ lb = true then
+        else if d = DLBA.Dir.left ∧ lb = true then
           pure ⟨[], MyhillNT.cell true rb (some q) a t, [],
                 [cellSym true rb (some q') a' t]⟩
         else []
@@ -130,7 +130,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let a ← (Finset.univ.toList : List Γ)
       let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
-      if h : (q', a', LBA.Dir.right) ∈ M.transition q a then
+      if h : (q', a', DLBA.Dir.right) ∈ M.transition q a then
         let t₁ ← (Finset.univ.toList : List T)
         let t₂ ← (Finset.univ.toList : List T)
         let hi ← (Finset.univ.toList : List (Option Λ))
@@ -158,7 +158,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let a ← (Finset.univ.toList : List Γ)
       let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
-      if h : (q', a', LBA.Dir.left) ∈ M.transition q a then
+      if h : (q', a', DLBA.Dir.left) ∈ M.transition q a then
         let t₁ ← (Finset.univ.toList : List T)
         let t₂ ← (Finset.univ.toList : List T)
         let hi ← (Finset.univ.toList : List (Option Λ))
@@ -224,7 +224,7 @@ theorem myhillAllRules_output_nonempty :
   unfold myhillAllRules
   aesop
 
-/-- The Myhill context-sensitive grammar recognizing the NLBA's language. -/
+/-- The Myhill context-sensitive grammar recognizing the LBA's language. -/
 def myhillGrammar : CS_grammar T where
   nt := MyhillNT T Γ Λ
   initial := MyhillNT.start
@@ -291,7 +291,7 @@ lemma right_propagation_rule_mem (a : Γ) (t₁ t₂ : T)
 /-! ### Simulation rule membership lemmas -/
 
 lemma sim_stay_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb rb : Bool)
-    (h : (q', a', LBA.Dir.stay) ∈ M.transition q a) :
+    (h : (q', a', DLBA.Dir.stay) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell lb rb (some q) a t, [],
       [cellSym lb rb (some q') a' t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
@@ -301,7 +301,7 @@ lemma sim_stay_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb rb : Bool)
   cases lb <;> cases rb <;> simp +decide [*]
 
 lemma sim_right_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb : Bool)
-    (h : (q', a', LBA.Dir.right) ∈ M.transition q a) :
+    (h : (q', a', DLBA.Dir.right) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell lb true (some q) a t, [],
       [cellSym lb true (some q') a' t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
@@ -310,7 +310,7 @@ lemma sim_right_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb : Bool)
   grind
 
 lemma sim_left_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (rb : Bool)
-    (h : (q', a', LBA.Dir.left) ∈ M.transition q a) :
+    (h : (q', a', DLBA.Dir.left) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell true rb (some q) a t, [],
       [cellSym true rb (some q') a' t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
@@ -319,7 +319,7 @@ lemma sim_left_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (rb : Bool)
 
 lemma sim_right_interior_step1_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
     (lb₁ : Bool) (rb₂ : Bool) (hi : Option Λ) (b : Γ)
-    (h : (q', a', LBA.Dir.right) ∈ M.transition q a) :
+    (h : (q', a', DLBA.Dir.right) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell lb₁ false (some q) a t₁,
       [cellSym false rb₂ hi b t₂],
       [cellPendingSym lb₁ false q' a' t₁]⟩ :
@@ -340,7 +340,7 @@ lemma sim_right_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
 
 lemma sim_left_interior_step1_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
     (lb₁ : Bool) (rb₂ : Bool) (hi : Option Λ) (b : Γ)
-    (h : (q', a', LBA.Dir.left) ∈ M.transition q a) :
+    (h : (q', a', DLBA.Dir.left) ∈ M.transition q a) :
     (⟨[cellSym lb₁ false hi b t₁],
       MyhillNT.cell false rb₂ (some q) a t₂, [],
       [cellPendingSym false rb₂ q' a' t₂]⟩ :
