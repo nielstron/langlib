@@ -1,5 +1,5 @@
 import Mathlib
-import Langlib.Classes.ContextFree.Basics.Inclusion
+import Langlib.Classes.ContextFree.Basics.InclusionCS
 import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Classes.ContextFree.Closure.Intersection
 import Langlib.Classes.ContextSensitive.Basics.Inclusion

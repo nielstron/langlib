@@ -1,4 +1,4 @@
-import Langlib.Classes.ContextFree.Basics.Inclusion
+import Langlib.Classes.ContextFree.Basics.InclusionCS
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Utilities.WrittenByOthers.PrintSorries
 
