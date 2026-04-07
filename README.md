@@ -77,7 +77,7 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | ⊊ (⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean)) |
 | Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
 | ⊊ [🔗](src/Langlib/Classes/ContextFree/Basics/StrictInclusionIndexed.lean) |  | ⊊ |
-| Indexed languages |  | Nested Stack Automata |
+| Indexed languages | ⇔ | Nested Stack Automata |
 | ⊊ |  | ⊊ |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting) | ⇔ | LBA languages |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
