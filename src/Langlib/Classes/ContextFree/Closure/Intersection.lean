@@ -11,9 +11,12 @@ import Langlib.Classes.ContextFree.Definition
 
 This file proves that context-free languages are not closed under intersection.
 
+It shows that the intersection of the two CF languages `{aⁿbⁿ | n ∈ ℕ}` and `{bⁿcⁿ | n ∈ ℕ}` is `{aⁿbⁿcⁿ | n ∈ ℕ}`, which is not context-free.
+
 ## Main declarations
 
-- `nnyCF_of_CF_i_CF`
+- `notCF_lang_eq_eq` — the language `{aⁿbⁿcⁿ | n ∈ ℕ}` is not context-free
+- `nnyCF_of_CF_i_CF` - if L₁ and L₂ are CF, then L₁ ∩ L₂ is not always CF
 -/
 
 section defs_over_fin3
