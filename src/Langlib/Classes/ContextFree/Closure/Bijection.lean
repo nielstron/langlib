@@ -4,6 +4,7 @@ import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Classes.ContextFree.Basics.InclusionCS
 
 /-! # Context-Free Closure Under Bijections
 
