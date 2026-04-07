@@ -108,6 +108,7 @@ import Langlib.Classes.Regular.Decidability.Universality
 import Langlib.Classes.Regular.Definition
 import Langlib.Classes.Regular.Examples.TopBot
 import Langlib.Grammars.ContextFree.Definition
+import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox

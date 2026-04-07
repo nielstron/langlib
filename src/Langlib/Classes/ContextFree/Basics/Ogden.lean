@@ -1,5 +1,5 @@
 import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.ContextFree.Basics.Inclusion
+import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Classes.ContextFree.Pumping.Pumping
 import Langlib.Classes.ContextFree.Pumping.Utils
