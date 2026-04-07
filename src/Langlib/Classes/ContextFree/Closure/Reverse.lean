@@ -4,7 +4,7 @@ import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
 import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.ContextFree.Basics.Inclusion
+import Langlib.Classes.ContextFree.Basics.InclusionCS
 
 /-! # Context-Free Closure Under Reversal
 
