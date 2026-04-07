@@ -108,6 +108,8 @@ import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
+import Langlib.Grammars.LeftRegular.Definition
+import Langlib.Grammars.LeftRegular.Equivalence.LGEquivRG
 import Langlib.Grammars.NonContracting.Definition
 import Langlib.Grammars.NonContracting.Equivalence.ContextSensitive
 import Langlib.Grammars.RightRegular.Definition
