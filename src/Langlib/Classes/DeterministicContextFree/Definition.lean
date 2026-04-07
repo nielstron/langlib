@@ -8,19 +8,19 @@ import Langlib.Automata.Pushdown.Equivalence.ContextFree
 import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Closure.Intersection
 
-/-! # Deterministic Context-Free Languages (DCFLs)
+/-! # Deterministic Context-Free Languages (DCFs)
 
-This file defines deterministic context-free languages (DCFLs) as a grammar class
+This file defines deterministic context-free languages (DCFs) as a grammar class
 and proves their basic inclusion into context-free languages.
 
 ## Definition
 
-A language `L` is a **deterministic context-free language (DCFL)** if there exists a
+A language `L` is a **deterministic context-free language (DCF)** if there exists a
 deterministic pushdown automaton (DPDA) that accepts `L` by final-state acceptance.
 
 ## Main results
 
-- `is_CF_of_is_DCFL` — Every DCFL is context-free.
+- `is_CF_of_is_DCF` — Every DCF is context-free.
 - `lang_aibjck_eq_union` — The language `{aⁱbʲcᵏ | i = j ∨ j = k}` equals the union of two CFLs.
 - `lang_aibjck_CFL` — The language `{aⁱbʲcᵏ | i = j ∨ j = k}` is context-free.
 
@@ -35,15 +35,14 @@ open PDA
 variable {T : Type} [Fintype T]
 
 -- ============================================================================
--- DCFL definition and basic properties
+-- DCF definition and basic properties
 -- ============================================================================
 
 /-- A language `L` over a finite alphabet `T` is a **deterministic context-free language
-    (DCFL)** if there exists a DPDA that recognizes `L` via final-state acceptance. -/
-def is_DCFL (L : Language T) : Prop :=
-  ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S) (M : DPDA Q T S),
-    M.acceptsByFinalState = L
+    (DCF)** if there exists a DPDA that recognizes `L` via final-state acceptance. -/
+def is_DCF (L : Language T) : Prop :=
+  is_DPDA L
 
-/-- The class of languages that are DCFL -/
-def DCFL : Set (Language T) :=
-  setOf is_DCFL
+/-- The class of languages that are DCF -/
+def DCF : Set (Language T) :=
+  DPDA.Class

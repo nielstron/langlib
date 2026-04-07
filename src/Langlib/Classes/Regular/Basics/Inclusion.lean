@@ -12,12 +12,12 @@ import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 
 This file relates right-regular grammars (Type-3) to:
 2. **Context-free languages** — every right-regular grammar is context-free.
-3. **Deterministic context-free languages** — every regular language is a DCFL.
+3. **Deterministic context-free languages** — every regular language is a DCF.
 
 ## Main results
 
 - `RG_subclass_CF` — The class of right-regular languages is a subclass of the context free languages
-- `RG_subclass_DCFL` - The class of right-regular languages is a subclass of DCFL
+- `RG_subclass_DCF` - The class of right-regular languages is a subclass of DCF
 
 ## References
 
@@ -144,7 +144,7 @@ theorem RG_subclass_CF :
   exact is_CF_of_is_RG hL
 
 -- ============================================================================
--- Part 2: RG ⊆ DCFL (via DFA → DPDA)
+-- Part 2: RG ⊆ DCF (via DFA → DPDA)
 -- ============================================================================
 
 variable [Fintype T]
@@ -259,14 +259,14 @@ theorem DPDA_of_DFA_accepts {σ : Type} [Fintype σ] (M : DFA T σ) :
       · rw [DFA.mem_accepts] at h
         exact ⟨M.eval w, h, [()], DPDA_of_DFA_reaches M M.start w⟩
 
-/-- Every right-regular language over a finite alphabet is a DCFL. -/
-theorem is_DCFL_of_is_RG {L : Language T} (h : is_RG L) : is_DCFL L := by
+/-- Every right-regular language over a finite alphabet is a DCF. -/
+theorem is_DCF_of_is_RG {L : Language T} (h : is_RG L) : is_DCF L := by
   obtain ⟨σ, hfin, M, rfl⟩ := isRegular_of_is_RG h
   exact ⟨σ, Unit, hfin, inferInstance, DPDA_of_DFA M, DPDA_of_DFA_accepts M⟩
 
-theorem RG_subclass_DCFL {T : Type} [Fintype T] :
-  RG ⊆ (DCFL : Set (Language T)) := by
+theorem RG_subclass_DCF {T : Type} [Fintype T] :
+  RG ⊆ (DCF : Set (Language T)) := by
   intro L
-  exact is_DCFL_of_is_RG
+  exact is_DCF_of_is_RG
 
 end

@@ -3,8 +3,8 @@ Copyright (c) 2025 Harmonic. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib
+import Langlib.Automata.FiniteState.Definition
 import Langlib.Classes.Regular.Definition
-import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 
 open Relation Classical
@@ -592,3 +592,10 @@ theorem is_RG_of_isRegular {L : Language T} (h : L.IsRegular) : is_RG L := by
 theorem is_RG_iff_isRegular {L : Language T} :
     is_RG L ↔ L.IsRegular :=
   ⟨isRegular_of_is_RG, is_RG_of_isRegular⟩
+
+theorem RG_eq_DFA {T: Type} [Fintype T] :
+  (RG : Set (Language T)) = DFA.Class := by
+    ext L
+    refine Eq.to_iff ?_
+    simp only [RG, Set.mem_setOf_eq, DFA.Class, eq_iff_iff]
+    exact is_RG_iff_isRegular

@@ -480,3 +480,17 @@ lemma reaches_of_same_transitions (P₁ P₂ : PDA Q T S)
       c₂.state c₃.state c₂.input c₃.input c₂.stack c₃.stack).mp h₂)
 
 end SameTransitions
+
+variable {T : Type} [Fintype T]
+
+/-- A language over a finite terminal alphabet is accepted by some PDA via empty-stack
+acceptance. -/
+def is_PDA (L : Language T) : Prop :=
+  ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByEmptyStack = L
+
+/-- The class of PDA-recognizable languages.
+
+This lives under `PDA.Class` because the top-level name `PDA` is already used by the
+automaton structure. -/
+def PDA.Class : Set (Language T) :=
+  setOf is_PDA

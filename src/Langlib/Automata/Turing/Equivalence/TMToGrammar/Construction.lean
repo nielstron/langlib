@@ -12,7 +12,7 @@ The correctness proofs and the main equivalence theorem are in `TMtoGrammarHelpe
 
 ## Main definitions
 
-- `is_TM_recognizable`: A language is TM-recognizable if there exists a finite-state
+- `is_TM`: A language is TM-recognizable if there exists a finite-state
   Turing machine (using Mathlib's `Turing.TM0` model) that halts on input `w` iff `w ∈ L`.
 - `TMtoGrammarNT`: Nonterminal symbols for the grammar simulating a TM.
 - `tmToGrammar`: The grammar that simulates a TM0 machine.

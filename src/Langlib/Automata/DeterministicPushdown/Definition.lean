@@ -100,3 +100,15 @@ def DecidesEveryInput (M : DPDA Q T S) : Prop :=
     (q₁ ∈ M.final_states ↔ q₂ ∈ M.final_states))
 
 end DPDA
+
+variable {T : Type} [Fintype T]
+
+/-- A language over a finite terminal alphabet is accepted by some DPDA via final-state
+acceptance. -/
+def is_DPDA (L : Language T) : Prop :=
+  ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S) (M : DPDA Q T S),
+    M.acceptsByFinalState = L
+
+/-- The class of DPDA-recognizable languages. -/
+def DPDA.Class : Set (Language T) :=
+  setOf is_DPDA

@@ -1,6 +1,6 @@
 import Langlib.Classes.DeterministicContextFree.Definition
 
-/-! # DCFL Closure Under Injective Terminal Maps -/
+/-! # DCF Closure Under Injective Terminal Maps -/
 
 open PDA
 
@@ -232,9 +232,9 @@ theorem map_acceptsByFinalState_of_injective [Nonempty T₁] {f : T₁ → T₂}
 end DPDA
 
 /-- Deterministic context-free languages are preserved under injective terminal maps. -/
-theorem DCFL_of_map_injective_DCFL [Nonempty T₁] [Fintype T₁] [Fintype T₂]
+theorem DCF_of_map_injective_DCF [Nonempty T₁] [Fintype T₁] [Fintype T₂]
     {f : T₁ → T₂} (hf : Function.Injective f) (L : Language T₁) :
-    is_DCFL L → is_DCFL (Language.map f L) := by
+    is_DCF L → is_DCF (Language.map f L) := by
   intro hL
   obtain ⟨Q, S, hQ, hS, M, hM⟩ := hL
   refine ⟨Q, S, hQ, hS, DPDA.mapInput M f (Function.invFun f), ?_⟩

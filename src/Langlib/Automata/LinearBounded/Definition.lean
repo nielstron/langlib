@@ -218,11 +218,34 @@ def initCfg {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) : Cfg Γ Λ n :=
   ⟨M.initial, ⟨w, ⟨0, Nat.zero_lt_succ n⟩⟩⟩
 
+/-- Load a non-empty list onto a bounded tape. -/
+noncomputable def loadList {Γ : Type*} (w : List Γ) (hw : w ≠ []) :
+    BoundedTape Γ (w.length - 1) :=
+  ⟨fun i => w.get ⟨i.val, by have := i.isLt; have := List.length_pos_of_ne_nil hw; omega⟩,
+   ⟨0, by have := List.length_pos_of_ne_nil hw; omega⟩⟩
+
+/-- Initial configuration for a non-empty list input. -/
+noncomputable def initCfgList {Γ : Type*} {Λ : Type*}
+    (M : Machine Γ Λ) (w : List Γ) (hw : w ≠ []) :
+    Cfg Γ Λ (w.length - 1) :=
+  ⟨M.initial, loadList w hw⟩
+
 /-- The **language** recognized by an LBA: the set of inputs (of each length) that
 the machine accepts. -/
 def Language {Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (n : ℕ) : Set (Fin (n + 1) → Γ) :=
   { w | Accepts M (initCfg M w) }
+
+/-- The language recognized by an LBA, defined on non-empty lists. -/
+noncomputable def LanguageOfMachine {Γ : Type*} {Λ : Type*}
+    (M : Machine Γ Λ) : _root_.Language Γ :=
+  fun w => ∃ (hw : w ≠ []), Accepts M (initCfgList M w hw)
+
+/-- Recognition via an embedding from the input alphabet into the tape alphabet. -/
+noncomputable def LanguageViaEmbed {T Γ : Type*} {Λ : Type*}
+    (M : Machine Γ Λ) (embed : T → Γ) : _root_.Language T :=
+  fun w => ∃ (hw : w.map embed ≠ []),
+    Accepts M (initCfgList M (w.map embed) hw)
 
 /-! ### Complement Machine -/
 
@@ -479,3 +502,17 @@ theorem card_boundedTape :
 end Cardinality
 
 end LBA
+
+variable {T : Type}
+
+/-- A language is `LBA`-recognizable if it is accepted by some finite deterministic
+linearly bounded automaton after embedding the input alphabet into the tape alphabet. -/
+def is_LBA (L : Language T) : Prop :=
+  ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
+    (_ : DecidableEq Γ) (_ : DecidableEq Λ)
+    (embed : T ↪ Γ)
+    (M : LBA.Machine Γ Λ),
+    LBA.LanguageViaEmbed M embed = L
+
+/-- The class of deterministic LBA languages. -/
+def LBA : Set (Language T) := setOf is_LBA

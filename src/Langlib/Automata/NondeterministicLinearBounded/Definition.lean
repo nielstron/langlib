@@ -68,3 +68,5 @@ def is_NLBA {T : Type} (L : Language T) : Prop :=
     (embed : T ↪ Γ)
     (M : NLBA.Machine Γ Λ),
     NLBA.LanguageViaEmbed M embed = L
+
+def NLBA : Set (Language T) := setOf is_NLBA

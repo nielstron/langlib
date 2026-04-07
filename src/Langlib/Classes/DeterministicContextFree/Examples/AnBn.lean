@@ -3,7 +3,7 @@ import Langlib.Automata.DeterministicPushdown.Definition
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.Regular.Basics.NonRegular
 
-/-! # `a^n b^n` as a DCFL
+/-! # `a^n b^n` as a DCF
 
 This file constructs a deterministic pushdown automaton for the language
 `{a^n b^n | n >= 0}` and proves that this language is deterministic context-free.
@@ -245,5 +245,5 @@ theorem dpda_anbn_accepts : dpda_anbn.acceptsByFinalState = anbn := by
   exact ⟨dpda_anbn_sound w, fun ⟨n, hw⟩ => hw ▸ dpda_anbn_complete n⟩
 
 /-- The language `{aⁿbⁿ}` is deterministic context-free. -/
-theorem anbn_is_DCFL : is_DCFL anbn :=
+theorem anbn_is_DCF : is_DCF anbn :=
   ⟨Fin 4, Bool, inferInstance, inferInstance, dpda_anbn, dpda_anbn_accepts⟩
