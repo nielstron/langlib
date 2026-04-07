@@ -26,12 +26,14 @@ import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 import Langlib.Automata.Turing.Equivalence.TMToGrammar
 import Langlib.Classes.ContextFree.Basics.Elementary
 import Langlib.Classes.ContextFree.Basics.FiniteNT
-import Langlib.Classes.ContextFree.Basics.Inclusion
+import Langlib.Classes.ContextFree.Basics.InclusionCS
+import Langlib.Classes.ContextFree.Basics.InclusionIndexed
 import Langlib.Classes.ContextFree.Basics.Lifting
 import Langlib.Classes.ContextFree.Basics.Ogden
 import Langlib.Classes.ContextFree.Basics.Pumping
 import Langlib.Classes.ContextFree.Basics.Splitting
-import Langlib.Classes.ContextFree.Basics.StrictInclusion
+import Langlib.Classes.ContextFree.Basics.StrictInclusionIndexed
+import Langlib.Classes.ContextFree.Basics.StrictInclusionRE
 import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Classes.ContextFree.Closure.Complement
 import Langlib.Classes.ContextFree.Closure.Concatenation
@@ -51,6 +53,7 @@ import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Closure.Suffix
 import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Closure.UnionBonus
+import Langlib.Classes.ContextFree.Closure.UnionBonus2
 import Langlib.Classes.ContextFree.Decidability.Emptiness
 import Langlib.Classes.ContextFree.Decidability.Membership
 import Langlib.Classes.ContextFree.Definition
@@ -77,6 +80,9 @@ import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
+import Langlib.Classes.Indexed.Closure.Union
+import Langlib.Classes.Indexed.Definition
+import Langlib.Classes.Indexed.Examples.AnBnCn
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
@@ -104,10 +110,12 @@ import Langlib.Classes.Regular.Decidability.Universality
 import Langlib.Classes.Regular.Definition
 import Langlib.Classes.Regular.Examples.TopBot
 import Langlib.Grammars.ContextFree.Definition
+import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
+import Langlib.Grammars.Indexed.Definition
 import Langlib.Grammars.LeftRegular.Definition
 import Langlib.Grammars.LeftRegular.Equivalence.LGEquivRG
 import Langlib.Grammars.NonContracting.Definition

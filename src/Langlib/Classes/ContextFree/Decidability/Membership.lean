@@ -1,5 +1,5 @@
 import Mathlib
-import Langlib.Classes.ContextFree.Basics.Inclusion
+import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
 import Langlib.Classes.ContextFree.Pumping.ParseTree
 
