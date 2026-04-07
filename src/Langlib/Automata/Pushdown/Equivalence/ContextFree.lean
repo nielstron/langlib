@@ -7,10 +7,6 @@ open PDA
 
 variable {T : Type} [Fintype T]
 
-/-- A language over a finite terminal alphabet is accepted by some PDA via empty-stack acceptance. -/
-def is_PDA (L : Language T) : Prop :=
-  ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByEmptyStack = L
-
 theorem is_PDA_of_mathlib_cfg (g : ContextFreeGrammar T) [Fintype g.NT] :
     is_PDA g.language := by
   classical

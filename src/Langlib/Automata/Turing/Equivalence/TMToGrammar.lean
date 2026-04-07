@@ -33,7 +33,7 @@ an unrestricted grammar. -/
 theorem tm_recognizable_implies_re
     {T : Type} [DecidableEq T] [Fintype T]
     (L : Language T) :
-    is_TM_recognizable T L → is_RE L := by
+    is_TM L → is_RE L := by
   intro ⟨Λ, hΛ, hFin, M, hM⟩
   haveI : DecidableEq Λ := Classical.decEq Λ
   refine ⟨tmToGrammar T Λ M, ?_⟩
@@ -42,3 +42,9 @@ theorem tm_recognizable_implies_re
   constructor
   · intro h; exact (hM w).mpr (tmToGrammar_halts_of_generates M w h)
   · intro h; exact tmToGrammar_generates_of_halts M w ((hM w).mp h)
+
+theorem TM_subset_RE {T: Type} [DecidableEq T] [Fintype T] : (TM : Set (Language T)) ⊆ RE
+  := by
+  intro L hL
+  have hL' := tm_recognizable_implies_re L
+  exact hL' hL
