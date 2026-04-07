@@ -26,6 +26,12 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 - [Ogdens Lemma](src/Langlib/Classes/ContextFree/Basics/Ogden.lean)
 - [Chomsky normal form](src/Langlib/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
 
+### Indexed Languages
+
+- [Definition](src/Langlib/Classes/Indexed/Definition.lean)
+- [Indexed grammars](src/Langlib/Grammars/Indexed/Definition.lean)
+- [`{aⁿbⁿcⁿ}` example](src/Langlib/Classes/Indexed/Examples/AnBnCn.lean)
+
 ### Deterministic Context-Free Languages
 
 - [Definition](src/Langlib/Classes/DeterministicContextFree/Definition.lean)
@@ -70,10 +76,16 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | Deterministic context-free languages | ≡ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
 | ⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean) |
 | Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
-| ⊆ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean) without `ε`-productions |  |  |
+| ⊊ [🔗](src/Langlib/Classes/ContextFree/Basics/StrictInclusionIndexed.lean) |  |  |
+| Indexed languages |  | Nested Stack Automata |
+| ⊊ |  | ⊊  |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting) | ⇔ | LBA languages |
 | ⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean) |
 | Recursively enumerable languages | ⇔ | Turing-machine languages (Mathlib) |
+
+The repository also proves that context-free languages are context-sensitive in the
+absence of `ε`-productions:
+⊆ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean).
 
 The repository also proves that the project's notion of context-free language is
 ⇔ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean) Mathlib's `IsContextFree`.
@@ -88,6 +100,7 @@ The repository also proves that the project's notion of context-free language is
 | Regular | ✓ [🔗](src/Langlib/Classes/Regular/Closure/Union.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Closure/Intersection.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Closure/Complement.lean) | ✓ | ✓ | ✓ [🔗](src/Langlib/Classes/Regular/Closure/Reverse.lean) | ✓ | ✓ [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) |
 | Deterministic context-free | ✗ | REG, i.g. ✗ | ✓ [🔗](src/Langlib/Automata/DeterministicPushdown/ClosureProperties/Complement.lean) | ✗ | ✗ | ✗ | ✗ | REG |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Closure/Union.lean) | REG [🔗](src/Langlib/Classes/ContextFree/Closure/IntersectionRegular.lean), i.g. ✗ [🔗](src/Langlib/Classes/ContextFree/Closure/Intersection.lean)  | ✗ [🔗](src/Langlib/Classes/ContextFree/Closure/Complement.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Closure/Concatenation.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Closure/Star.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Closure/Reverse.lean) | REG | REG [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) |
+| Indexed | ✓ [🔗](src/Langlib/Classes/Indexed/Closure/Union.lean) | REG, i.g. ✗ | ✗ | ✓ | ✓ | ✓ | REG | REG |
 | Context-sensitive | ✓ | ✓ | ✓ | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Closure/Concatenation.lean) | ✓ | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Closure/Reverse.lean) | ✗ | ✗ |
 | Recursively enumerable | ✓ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Union.lean) | ✓ | ✗ | ✓ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Concatenation.lean) | ✓ | ✓ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Reverse.lean) | ✓ | ✓ |
 
