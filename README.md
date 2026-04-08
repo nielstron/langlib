@@ -43,6 +43,12 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 - [Context-sensitive grammars](src/Langlib/Grammars/ContextSensitive/Definition.lean)
 - [Noncontracting grammars](src/Langlib/Classes/ContextSensitive/Basics/NonContracting.lean)
 
+### Recursive Languages
+
+- [Definition](src/Langlib/Classes/Recursive/Definition.lean)
+- [Membership decidability](src/Langlib/Classes/Recursive/Decidability/Membership.lean)
+- [Inclusion into TM / RE](src/Langlib/Classes/Recursive/Basics/Inclusion.lean)
+
 ### Recursively Enumerable Languages
 
 - [Definition](src/Langlib/Classes/RecursivelyEnumerable/Definition.lean)
@@ -81,6 +87,8 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | ⊊ |  | ⊊ |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting) | ⇔ | LBA languages |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
+| Recursive languages | ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) | Turing-machine languages (Mathlib), with halting deciders |
+| ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |  | ⊆ |
 | Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
 
 The repository also proves that the project's notion of context-free language is
@@ -98,6 +106,7 @@ The repository also proves that the project's notion of context-free language is
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Closure/Union.lean) | REG [🔗](src/Langlib/Classes/ContextFree/Closure/IntersectionRegular.lean), i.g. ✗ [🔗](src/Langlib/Classes/ContextFree/Closure/Intersection.lean)  | ✗ [🔗](src/Langlib/Classes/ContextFree/Closure/Complement.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Closure/Concatenation.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Closure/Star.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Closure/Reverse.lean) | REG | REG [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) |
 | Indexed | ✓ [🔗](src/Langlib/Classes/Indexed/Closure/Union.lean) | REG, i.g. ✗ | ✗ | ✓ | ✓ | ✓ | REG | REG |
 | Context-sensitive | ✓ | ✓ | ✓ | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Closure/Concatenation.lean) | ✓ | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Closure/Reverse.lean) | ✗ | ✗ |
+| Recursive | ? | ? | ? | ? | ? | ? | ? | ? |
 | Recursively enumerable | ✓ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Union.lean) | ✓ | ✗ | ✓ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Concatenation.lean) | ✓ | ✓ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Reverse.lean) | ✓ | ✓ |
 
 Additional context-free closure results formalized here:
@@ -116,6 +125,7 @@ Additional context-free closure results formalized here:
 | Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Emptiness.lean) | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
+| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✓ | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
 ## How To Use The Library
@@ -133,6 +143,7 @@ import Langlib.Classes.ContextFree.Definition
 import Langlib.Grammars.ContextFree.Definition
 import Langlib.Automata.Pushdown.Equivalence.ContextFree
 import Langlib.Classes.Regular.Decidability.Membership
+import Langlib.Classes.Recursive.Decidability.Membership
 ```
 
 The files in [test/LanglibTest](test/LanglibTest) provide small worked examples:
