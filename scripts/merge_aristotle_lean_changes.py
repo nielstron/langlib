@@ -8,17 +8,22 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import re
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 API_BASE = "https://aristotle.harmonic.fun/api/v2"
 REPO_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("project_id")
+    parser.add_argument("project")
     parser.add_argument(
         "--branch",
         help="Branch to create. Defaults to aristotle/<project_id-prefix>.",
@@ -29,6 +34,20 @@ def parse_args() -> argparse.Namespace:
         help="Commit message to create after applying the Lean changes.",
     )
     return parser.parse_args()
+
+
+def extract_project_id(project: str) -> str:
+    if PROJECT_ID_RE.fullmatch(project):
+        return project.lower()
+
+    parsed = urlparse(project)
+    path_parts = [part for part in parsed.path.split("/") if part]
+    if len(path_parts) >= 3 and path_parts[-2] == "requests":
+        candidate = path_parts[-1]
+        if PROJECT_ID_RE.fullmatch(candidate):
+            return candidate.lower()
+
+    raise ValueError(f"could not extract Aristotle project id from: {project}")
 
 
 def api_key() -> str:
@@ -155,7 +174,8 @@ def commit_changes(project_id: str, changed_files: list[Path], commit_message: s
 
 def main() -> int:
     args = parse_args()
-    branch = args.branch or f"aristotle/{args.project_id[:8]}"
+    project_id = extract_project_id(args.project)
+    branch = args.branch or f"aristotle/{project_id[:8]}"
 
     ensure_clean_worktree()
     ensure_branch_absent(branch)
@@ -167,8 +187,8 @@ def main() -> int:
         input_dir = tmpdir / "input"
         output_dir = tmpdir / "output"
 
-        download_project_artifact(args.project_id, "input", input_tar)
-        download_project_artifact(args.project_id, "result", output_tar)
+        download_project_artifact(project_id, "input", input_tar)
+        download_project_artifact(project_id, "result", output_tar)
 
         input_root = extract_tarball(input_tar, input_dir)
         output_root = extract_tarball(output_tar, output_dir)
@@ -181,7 +201,7 @@ def main() -> int:
             if apply_changed_file(relative_path, input_root, output_root)
         ]
 
-    commit_changes(args.project_id, changed_files, args.commit_message)
+    commit_changes(project_id, changed_files, args.commit_message)
 
     print(f"Created branch: {branch}")
     if changed_files:
