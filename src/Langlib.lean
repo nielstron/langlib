@@ -115,7 +115,9 @@ import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
+import Langlib.Grammars.Indexed.Basics.Higman
 import Langlib.Grammars.Indexed.Definition
+import Langlib.Grammars.Indexed.NormalForm.NormalForm
 import Langlib.Grammars.LeftRegular.Definition
 import Langlib.Grammars.LeftRegular.Equivalence.LGEquivRG
 import Langlib.Grammars.NonContracting.Definition
