@@ -116,7 +116,7 @@ Additional context-free closure results formalized here:
 | Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Emptiness.lean) | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
-| Recursively enumerable | ✗ | ✗ | ✗ | ✗ |
+| Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
 
 ## How To Use The Library
 
