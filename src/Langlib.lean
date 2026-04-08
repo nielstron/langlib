@@ -75,6 +75,7 @@ import Langlib.Classes.ContextSensitive.Basics.Inclusion
 import Langlib.Classes.ContextSensitive.Closure.Bijection
 import Langlib.Classes.ContextSensitive.Closure.Concatenation
 import Langlib.Classes.ContextSensitive.Closure.Reverse
+import Langlib.Classes.ContextSensitive.Closure.Union
 import Langlib.Classes.ContextSensitive.Decidability.Membership
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
@@ -87,6 +88,7 @@ import Langlib.Classes.Indexed.Closure.Union
 import Langlib.Classes.Indexed.Definition
 import Langlib.Classes.Indexed.Examples.AnBnCn
 import Langlib.Classes.Recursive.Basics.Inclusion
+import Langlib.Classes.Recursive.Closure.Complement
 import Langlib.Classes.Recursive.Decidability.Membership
 import Langlib.Classes.Recursive.Definition
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
@@ -115,6 +117,7 @@ import Langlib.Classes.Regular.Closure.Reverse
 import Langlib.Classes.Regular.Closure.Suffix
 import Langlib.Classes.Regular.Closure.Union
 import Langlib.Classes.Regular.Decidability.Emptiness
+import Langlib.Classes.Regular.Decidability.Equivalence
 import Langlib.Classes.Regular.Decidability.Membership
 import Langlib.Classes.Regular.Decidability.Universality
 import Langlib.Classes.Regular.Definition
@@ -138,6 +141,7 @@ import Langlib.Grammars.RightRegular.Definition
 import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
 import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
+import Langlib.Utilities.Homomorphism
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
 import Langlib.Utilities.WrittenByOthers.ListTakeJoin
