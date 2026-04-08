@@ -1,6 +1,7 @@
 import Mathlib
 import Langlib.Grammars.Indexed.Definition
 import Langlib.Grammars.ContextFree.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Classes.Indexed.Definition
 import Langlib.Classes.ContextFree.Definition
 
@@ -152,5 +153,6 @@ theorem indexed_of_cfg_language (g : CF_grammar T) :
 /-- Every context-free language is an indexed language. -/
 theorem CF_subclass_Indexed {L : Language T} :
     is_CF L → is_Indexed L := by
-  rintro ⟨g, rfl⟩
+  intro h
+  obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h
   exact ⟨indexed_of_cfg g, indexed_of_cfg_language g⟩

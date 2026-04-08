@@ -5,6 +5,7 @@ import Langlib.Classes.ContextFree.Closure.Permutation
 import Langlib.Utilities.ListUtils
 import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 
 /-! # Context-Free Non-Closure Under Intersection
@@ -453,7 +454,8 @@ private lemma CF_lang_aux_ab : is_CF lang_aux_ab := by
       (S_, [a, S, b]),
       (S_, ([] : List (symbol (Fin 3) (Fin 1))))
     ]
-  use g
+  apply is_CF_via_cfg_implies_is_CF
+  refine ⟨g, ?_⟩
   apply Set.eq_of_subset_of_subset
   · intro w ass
     change CF_derives g [S] (List.map symbol.terminal w) at ass
@@ -682,7 +684,8 @@ private def lang_aux_c : Language (Fin 3) :=
 fun w => ∃ n : ℕ, w = List.replicate n c_
 
 private lemma CF_lang_aux_c : is_CF lang_aux_c := by
-  use cfg_symbol_star c_
+  apply is_CF_via_cfg_implies_is_CF
+  refine ⟨cfg_symbol_star c_, ?_⟩
   unfold lang_aux_c
   apply language_of_cfg_symbol_star
 
@@ -707,7 +710,8 @@ private def lang_aux_a : Language (Fin 3) :=
 fun w => ∃ n : ℕ, w = List.replicate n a_
 
 private lemma CF_lang_aux_a : is_CF lang_aux_a := by
-  use cfg_symbol_star a_
+  apply is_CF_via_cfg_implies_is_CF
+  refine ⟨cfg_symbol_star a_, ?_⟩
   unfold lang_aux_a
   apply language_of_cfg_symbol_star
 

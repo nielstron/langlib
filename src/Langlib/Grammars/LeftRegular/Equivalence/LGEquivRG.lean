@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import Mathlib
 import Langlib.Grammars.LeftRegular.Definition
 import Langlib.Grammars.RightRegular.Definition
+import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
 import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 
 /-! # Equivalence of Left-Regular and Right-Regular Grammars
@@ -257,7 +258,8 @@ variable [Fintype T]
 theorem is_RG_of_is_LG {L : Language T} (h : is_LG L) : is_RG L := by
   obtain ⟨g, rfl⟩ := h
   rw [LG_language_eq_RG_language_reverse]
-  have hRG : is_RG (RG_language (RG_of_LG g)) := ⟨RG_of_LG g, rfl⟩
+  have hRG : is_RG (RG_language (RG_of_LG g)) :=
+    is_RG_via_rg_implies_is_RG ⟨RG_of_LG g, rfl⟩
   have hIR := isRegular_of_is_RG hRG
   have hIR_rev : (RG_language (RG_of_LG g)).reverse.IsRegular :=
     Language.isRegular_reverse_iff.mpr hIR
@@ -265,11 +267,11 @@ theorem is_RG_of_is_LG {L : Language T} (h : is_LG L) : is_RG L := by
 
 /-- Every right-regular language is left-regular. -/
 theorem is_LG_of_is_RG {L : Language T} (h : is_RG L) : is_LG L := by
-  obtain ⟨g, rfl⟩ := h
-  have hIR := isRegular_of_is_RG ⟨g, rfl⟩
+  obtain ⟨g, rfl⟩ := is_RG_implies_is_RG_via_rg h
+  have hIR := isRegular_of_is_RG (is_RG_via_rg_implies_is_RG ⟨g, rfl⟩)
   have hIR_rev : (RG_language g).reverse.IsRegular :=
     Language.isRegular_reverse_iff.mpr hIR
-  obtain ⟨g', hg'⟩ := is_RG_of_isRegular hIR_rev
+  obtain ⟨g', hg'⟩ := is_RG_implies_is_RG_via_rg (is_RG_of_isRegular hIR_rev)
   refine ⟨LG_of_RG g', ?_⟩
   rw [RG_language_eq_LG_language_reverse] at hg'
   have : (LG_language (LG_of_RG g')).reverse = (RG_language g).reverse := hg'

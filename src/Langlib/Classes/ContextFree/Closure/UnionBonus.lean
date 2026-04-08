@@ -1,6 +1,7 @@
 import Langlib.Classes.ContextFree.Basics.Lifting
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Basics.InclusionCS
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 /-! # Context-Free Union Bonus Construction
 
@@ -586,8 +587,10 @@ end lemmata_supset
 theorem bonus_CF_of_CF_u_CF {T : Type} (L₁ : Language T) (L₂ : Language T) :
   is_CF L₁  ∧  is_CF L₂   →   is_CF (L₁ + L₂)   :=
 by
-  rintro ⟨⟨g₁, eq_L₁⟩, ⟨g₂, eq_L₂⟩⟩
-
+  rintro ⟨h₁, h₂⟩
+  obtain ⟨g₁, eq_L₁⟩ := is_CF_implies_is_CF_via_cfg h₁
+  obtain ⟨g₂, eq_L₂⟩ := is_CF_implies_is_CF_via_cfg h₂
+  apply is_CF_via_cfg_implies_is_CF
   refine ⟨union_grammar g₁ g₂, ?_⟩
 
   apply Set.eq_of_subset_of_subset

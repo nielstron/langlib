@@ -7,6 +7,7 @@ import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Classes.ContextFree.Decidability.Membership
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Classes.ContextFree.Basics.FiniteNT
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 /-! # Decidability of Membership for DPDA Languages
 
@@ -42,8 +43,9 @@ noncomputable def dpda_membership_decidable
   -- Every DPDA language is context-free
   have hCF : is_CF L := is_CF_of_is_DCF hL
   -- Extract a CF grammar witnessing L
-  let g : CF_grammar T := Classical.choose hCF
-  have hg : CF_language g = L := Classical.choose_spec hCF
+  let hCF' : is_CF_via_cfg L := is_CF_implies_is_CF_via_cfg hCF
+  let g : CF_grammar T := Classical.choose hCF'
+  have hg : CF_language g = L := Classical.choose_spec hCF'
   -- Get a Mathlib CFG equivalent to g
   let mg := mathlib_cfg_of_cfg g
   have hmg : mg.language = L := by

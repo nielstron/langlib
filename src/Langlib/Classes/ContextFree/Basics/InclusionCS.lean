@@ -3,6 +3,8 @@ import Langlib.Classes.ContextSensitive.Basics.Inclusion
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.RecursivelyEnumerable.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Mathlib.Computability.ContextFreeGrammar
 
 /-! # Context-Free Inclusions
@@ -35,10 +37,6 @@ def csg_of_cfg (g : CF_grammar T) (hne : CF_no_epsilon' g) : CS_grammar T where
     rw [List.mem_map] at hr
     obtain ⟨r₀, hr₀, rfl⟩ := hr
     exact hne r₀ hr₀
-
-def grammar_of_cfg (g : CF_grammar T) : grammar T :=
-grammar.mk g.nt g.initial (List.map (fun r : g.nt × (List (symbol T g.nt)) =>
-  grule.mk [] r.fst [] r.snd) g.rules)
 
 lemma grammar_of_cfg_well_defined (g : CF_grammar T) (hne : CF_no_epsilon' g) :
   grammar_of_csg (csg_of_cfg g hne) = grammar_of_cfg g :=
@@ -107,73 +105,6 @@ by
         · simpa [List.append_assoc] using aft
     exact indu (List.map symbol.terminal w)
 
-lemma CF_language_eq_grammar_language (g : CF_grammar T) :
-  CF_language g = grammar_language (grammar_of_cfg g) :=
-by
-  unfold CF_language
-  unfold grammar_language
-  ext1 w
-  rw [Set.mem_setOf_eq]
-  unfold grammar_generates
-  constructor
-  ·
-    have indu :
-      ∀ v : List (symbol T g.nt),
-        CF_derives g [symbol.nonterminal g.initial] v →
-          grammar_derives (grammar_of_cfg g) [symbol.nonterminal (grammar_of_cfg g).initial] v :=
-    by
-      clear w
-      intros v hypo
-      induction hypo with
-      | refl =>
-        apply grammar_deri_self
-      | tail _ step ih =>
-        apply grammar_deri_of_deri_tran
-        · exact ih
-        unfold CF_transforms at step
-        unfold grammar_transforms
-        delta grammar_of_cfg
-        dsimp only
-        rcases step with ⟨r, u, w, rin, bef, aft⟩
-        use grule.mk [] r.fst [] r.snd
-        constructor
-        ·
-          rw [List.mem_map]
-          refine ⟨r, rin, ?_⟩
-          rfl
-        ·
-          use u
-          use w
-          constructor
-          · simpa [List.append_nil] using bef
-          · simpa [List.append_nil] using aft
-    exact indu (List.map symbol.terminal w)
-  ·
-    have indu :
-      ∀ v : List (symbol T g.nt),
-        grammar_derives (grammar_of_cfg g) [symbol.nonterminal (grammar_of_cfg g).initial] v →
-          CF_derives g [symbol.nonterminal g.initial] v :=
-    by
-      clear w
-      intros v hypo
-      induction hypo with
-      | refl =>
-        apply CF_deri_self
-      | tail _ step ih =>
-        apply CF_deri_of_deri_tran
-        · exact ih
-        unfold grammar_transforms at step
-        unfold CF_transforms
-        delta grammar_of_cfg at step
-        dsimp only at step
-        rcases step with ⟨r, rin, u, w, bef, aft⟩
-        rcases (List.mem_map.1 rin) with ⟨r', new_rule_in, new_rule_def⟩
-        rw [← new_rule_def] at bef aft
-        refine ⟨r', u, w, new_rule_in, ?_, ?_⟩
-        · simpa [List.append_nil] using bef
-        · simpa [List.append_nil] using aft
-    exact indu (List.map symbol.terminal w)
-
 /-- Context-free languages without ε-productions are context-sensitive.
 
 Note: the standard inclusion CF ⊆ CS requires that the context-free grammar has no
@@ -182,10 +113,10 @@ theorem CF_subclass_CS {L : Language T}
     (hne : ∃ g : CF_grammar T, CF_no_epsilon' g ∧ CF_language g = L) :
     is_CS L := by
   obtain ⟨g, hg, rfl⟩ := hne
-  exact ⟨csg_of_cfg g hg, (CF_language_eq_CS_language g hg).symm⟩
+  exact is_CS_via_csg_implies_is_CS ⟨csg_of_cfg g hg, (CF_language_eq_CS_language g hg).symm⟩
 
 theorem CF_subclass_RE {L : Language T} :
-  is_CF L → is_RE L :=
-by
-  rintro ⟨g, eq_L⟩
+  is_CF L → is_RE L := by
+  intro h
+  obtain ⟨g, eq_L⟩ := is_CF_implies_is_CF_via_cfg h
   exact ⟨grammar_of_cfg g, by rw [← eq_L, CF_language_eq_grammar_language]⟩

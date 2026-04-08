@@ -2,6 +2,7 @@ import Langlib.Classes.ContextFree.Closure.Intersection
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Basics.Elementary
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 /-! # Context-Free Closure Converses Fail
 This file proves that the closure properties of context-free languages under
 union, concatenation, and substitution are strict implications, not biconditionals.
@@ -53,7 +54,8 @@ theorem not_iff_CF_concat :
     ¬ (∀ (T : Type) (L₁ L₂ : Language T), is_CF (L₁ * L₂) ↔ (is_CF L₁ ∧ is_CF L₂)) := by
   intro h
   obtain ⟨T, L₁, L₂, _, _, hI⟩ := exists_nonCF_language
-  have hempty : is_CF (0 : Language T) := ⟨cfg_empty_lang, language_of_cfg_empty_lang⟩
+  have hempty : is_CF (0 : Language T) := by
+    exact is_CF_via_cfg_implies_is_CF ⟨cfg_empty_lang, language_of_cfg_empty_lang⟩
   have hprod : is_CF ((L₁ ⊓ L₂) * (0 : Language T)) := by
     have : (L₁ ⊓ L₂) * (0 : Language T) = 0 := mul_zero (L₁ ⊓ L₂)
     rw [this]; exact hempty
@@ -70,6 +72,7 @@ theorem not_iff_CF_subst :
   have hsubst_cf : is_CF ((0 : Language Unit).subst f) := by
     have : (0 : Language Unit).subst f = (0 : Language T) := by
       ext u; simp [Language.subst]; tauto
-    rw [this]; exact ⟨cfg_empty_lang, language_of_cfg_empty_lang⟩
+    rw [this]
+    exact is_CF_via_cfg_implies_is_CF ⟨cfg_empty_lang, language_of_cfg_empty_lang⟩
   have hcf := (h Unit T 0 f).mp hsubst_cf
   exact hI (hcf.2 ())

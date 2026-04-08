@@ -1,5 +1,6 @@
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
@@ -86,7 +87,9 @@ section closure
 /-- The class of context-sensitive languages is closed under reversal. -/
 theorem CS_of_reverse_CS (L : Language T) :
     is_CS L → is_CS (L.reverse) := by
-  rintro ⟨g, hgL⟩
+  intro h
+  obtain ⟨g, hgL⟩ := is_CS_implies_is_CS_via_csg h
+  apply is_CS_via_csg_implies_is_CS
   refine ⟨reversal_CS_grammar g, ?_⟩
   rw [CS_language_eq_grammar_language, grammar_of_csg_reversal_comm,
       grammar_language_reversal_grammar, ← CS_language_eq_grammar_language, hgL]
