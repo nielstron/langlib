@@ -78,6 +78,7 @@ import Langlib.Classes.ContextSensitive.Decidability.Membership
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
+import Langlib.Classes.DeterministicContextFree.Decidability.Emptiness
 import Langlib.Classes.DeterministicContextFree.Decidability.Membership
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
@@ -113,6 +114,7 @@ import Langlib.Classes.Regular.Examples.TopBot
 import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Grammars.ContextSensitive.Definition
 import Langlib.Grammars.ContextSensitive.Equivalence.UnrestrictedCharacterization
 import Langlib.Grammars.ContextSensitive.Toolbox
