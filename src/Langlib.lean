@@ -124,6 +124,7 @@ import Langlib.Grammars.LeftRegular.Equivalence.LGEquivRG
 import Langlib.Grammars.NonContracting.Definition
 import Langlib.Grammars.NonContracting.Equivalence.ContextSensitive
 import Langlib.Grammars.RightRegular.Definition
+import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
 import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Utilities.LanguageOperations
