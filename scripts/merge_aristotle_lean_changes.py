@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import json
 import os
 import shutil
 import subprocess
@@ -71,6 +72,15 @@ def download_project_artifact(project_id: str, kind: str, destination: Path) -> 
         shutil.copyfileobj(response, output)
 
 
+def project_metadata(project_id: str) -> dict[str, object]:
+    request = urllib.request.Request(
+        f"{API_BASE}/project/{project_id}",
+        headers={"X-API-Key": api_key()},
+    )
+    with urllib.request.urlopen(request) as response:
+        return json.load(response)
+
+
 def extract_tarball(archive: Path, destination: Path) -> Path:
     with tarfile.open(archive, "r:gz") as tar:
         tar.extractall(destination)
@@ -119,6 +129,11 @@ def create_branch(branch: str) -> None:
     run(["git", "switch", "-c", branch])
 
 
+def regenerate_import_hubs() -> None:
+    run(["python3", "scripts/generate_import_hub.py", "--hub", "langlib"])
+    run(["python3", "scripts/generate_import_hub.py", "--hub", "tests"])
+
+
 def read_text(path: Path) -> str:
     return path.read_text() if path.exists() else ""
 
@@ -164,17 +179,31 @@ def apply_changed_file(relative_path: Path, input_root: Path, output_root: Path)
     return conflicted
 
 
-def commit_changes(project_id: str, changed_files: list[Path], commit_message: str | None) -> None:
+def default_commit_message(project_id: str, prompt: str | None) -> str:
+    if prompt:
+        normalized = " ".join(prompt.split())
+        if normalized:
+            return normalized
+    return f"Import Lean changes from Aristotle project {project_id}"
+
+
+def commit_changes(
+    project_id: str, prompt: str | None, changed_files: list[Path], commit_message: str | None
+) -> None:
     if not changed_files:
         return
     if commit_message is None:
-        commit_message = f"Import Lean changes from Aristotle project {project_id}"
+        commit_message = default_commit_message(project_id, prompt)
     run(["git", "commit", "-m", commit_message])
 
 
 def main() -> int:
     args = parse_args()
     project_id = extract_project_id(args.project)
+    metadata = project_metadata(project_id)
+    prompt = metadata.get("input_prompt")
+    if prompt is not None and not isinstance(prompt, str):
+        raise TypeError(f"expected input_prompt to be a string, got {type(prompt).__name__}")
     branch = args.branch or f"aristotle/{project_id[:8]}"
 
     ensure_clean_worktree()
@@ -200,8 +229,10 @@ def main() -> int:
             for relative_path in changed_files
             if apply_changed_file(relative_path, input_root, output_root)
         ]
+        regenerate_import_hubs()
+        run(["git", "add", "--", "src/Langlib.lean", "test/LanglibTest.lean"])
 
-    commit_changes(project_id, changed_files, args.commit_message)
+    commit_changes(project_id, prompt, changed_files, args.commit_message)
 
     print(f"Created branch: {branch}")
     if changed_files:
