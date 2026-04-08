@@ -2,18 +2,12 @@ import Mathlib
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Utilities.LanguageOperations
+import Langlib.Utilities.Homomorphism
 
 /-! # Context-Free Closure Under String Homomorphism
 
 This file proves that context-free languages are closed under string homomorphism
 and epsilon-free string homomorphism.
-
-A **string homomorphism** `h : α → List β` extends to words by concatenation:
-`h(a₁a₂…aₙ) = h(a₁) ++ h(a₂) ++ … ++ h(aₙ)`.
-The image of a language `L` under `h` is `{h(w) | w ∈ L}`.
-
-This is a special case of substitution where each symbol `a` is mapped to the
-singleton language `{h(a)}`.
 
 ## Main declarations
 
@@ -21,15 +15,6 @@ singleton language `{h(a)}`.
 - `CF_closed_under_epsfree_homomorphism` : CFLs are closed under ε-free string homomorphism.
 -/
 
-variable {α β : Type}
-
-/-- The image of a language `L` under a string homomorphism `h`. -/
-def Language.homomorphicImage (L : Language α) (h : α → List β) : Language β :=
-  L.subst (fun a => ({h a} : Language β))
-
-/-- A string homomorphism is ε-free if no symbol maps to the empty string. -/
-def IsEpsFreeHomomorphism (h : α → List β) : Prop :=
-  ∀ a, h a ≠ []
 
 /-- Singleton word languages are context-free. -/
 lemma is_CF_singleton (w : List β) : is_CF ({w} : Language β) := by
