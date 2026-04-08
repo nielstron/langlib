@@ -91,7 +91,10 @@ import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.UnionBonus
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Emptiness
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Equivalence
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Membership
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Universality
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Classes.RecursivelyEnumerable.Examples.AnBnCn
 import Langlib.Classes.RecursivelyEnumerable.NormalForms.Kuroda
