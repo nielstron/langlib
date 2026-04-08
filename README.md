@@ -77,9 +77,9 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 
 | Grammar side | Relation | Automaton side |
 | --- | --- | --- |
-| Regular languages | ≡ [🔗](src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
+| Regular languages | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
 | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/StrictInclusion.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/Inclusion.lean) |
-| Deterministic context-free languages | ≡ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
+| Deterministic context-free languages | ≝ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean)) |
 | Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
 | ⊊ [🔗](src/Langlib/Classes/ContextFree/Basics/StrictInclusionIndexed.lean) |  | ⊊ |
@@ -87,7 +87,7 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | ⊊ |  | ⊊ |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting) | ⇔ | LBA languages |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
-| Recursive languages | ⇔ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
+| Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
 | ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |
 | Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
 
