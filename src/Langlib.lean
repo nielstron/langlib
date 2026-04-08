@@ -114,6 +114,7 @@ import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Definition
+import Langlib.Grammars.ContextSensitive.Equivalence.UnrestrictedCharacterization
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Grammars.Indexed.Basics.Higman
