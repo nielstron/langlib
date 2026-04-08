@@ -87,8 +87,8 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | ⊊ |  | ⊊ |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting) | ⇔ | LBA languages |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
-| Recursive languages | ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) | Turing-machine languages (Mathlib), with halting deciders |
-| ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |  | ⊆ |
+| Recursive languages | ⇔ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
+| ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |
 | Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
 
 The repository also proves that the project's notion of context-free language is
