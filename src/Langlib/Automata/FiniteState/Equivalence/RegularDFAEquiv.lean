@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import Mathlib
 import Langlib.Automata.FiniteState.Definition
 import Langlib.Classes.Regular.Definition
+import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
 
 open Relation Classical
 
@@ -359,7 +360,7 @@ theorem NFA_of_RG_accepts (g : RG_grammar T) :
 
 /-- Every right-regular grammar language is Mathlib-regular. -/
 theorem isRegular_of_is_RG {L : Language T} (h : is_RG L) : L.IsRegular := by
-  obtain ⟨g, rfl⟩ := h
+  obtain ⟨g, rfl⟩ := is_RG_implies_is_RG_via_rg h
   rw [← NFA_of_RG_accepts g, ← NFA.toDFA_correct]
   exact ⟨_, inferInstance, _, rfl⟩
 
@@ -584,7 +585,7 @@ theorem RG_of_DFA_language {σ : Type} [Fintype σ] (M : DFA T σ) :
     a right-regular grammar. -/
 theorem is_RG_of_isRegular {L : Language T} (h : L.IsRegular) : is_RG L := by
   obtain ⟨σ, hfin, M, rfl⟩ := h
-  exact ⟨RG_of_DFA M, RG_of_DFA_language M⟩
+  exact is_RG_via_rg_implies_is_RG ⟨RG_of_DFA M, RG_of_DFA_language M⟩
 
 /-- Right-regular grammars generate exactly the Mathlib-regular languages
     (over a finite alphabet). -/

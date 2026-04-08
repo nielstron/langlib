@@ -1,4 +1,5 @@
 import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
 
 /-! # Context-Sensitive Concatenation Construction
@@ -109,10 +110,13 @@ by
 theorem CS_of_CS_c_CS (L₁ : Language T) (L₂ : Language T) :
   is_CS L₁  ∧  is_CS L₂   →   is_CS (L₁ * L₂)   :=
 by
-  rintro ⟨⟨g₁, eq_L₁⟩, ⟨g₂, eq_L₂⟩⟩
+  rintro ⟨h₁, h₂⟩
+  obtain ⟨g₁, eq_L₁⟩ := is_CS_implies_is_CS_via_csg h₁
+  obtain ⟨g₂, eq_L₂⟩ := is_CS_implies_is_CS_via_csg h₂
   rw [CS_language_eq_grammar_language g₁] at eq_L₁
   rw [CS_language_eq_grammar_language g₂] at eq_L₂
 
+  apply is_CS_via_csg_implies_is_CS
   use big_CS_grammar g₁ g₂
   rw [big_CS_grammar_same_language]
 

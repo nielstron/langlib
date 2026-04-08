@@ -104,8 +104,8 @@ by
 
 theorem is_RE_of_CS {L : Language T} (h : is_CS L) :
   is_RE L := by
-  rcases h with ⟨g, rfl⟩
-  exact ⟨grammar_of_csg g, (CS_language_eq_grammar_language g).symm⟩
+  rcases h with ⟨g, _, hL⟩
+  exact ⟨g, hL⟩
 
 theorem CS_subclass_RE :
   (CS : Set (Language T)) ⊆ RE := by

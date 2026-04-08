@@ -3,6 +3,7 @@ import Langlib.Classes.ContextFree.Basics.Splitting
 import Langlib.Utilities.WrittenByOthers.TrimAssoc
 import Langlib.Utilities.ListUtils
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 
 /-! # Context-Free Concatenation Bonus Construction
@@ -1100,16 +1101,17 @@ concatenation. -/
 theorem bonus_CF_of_CF_c_CF (L₁ : Language T) (L₂ : Language T) :
   is_CF L₁  ∧  is_CF L₂   →   is_CF (L₁ * L₂)   :=
 by
-  rintro ⟨⟨g₁, eq_L₁⟩, ⟨g₂, eq_L₂⟩⟩
+  rintro ⟨h₁, h₂⟩
+  obtain ⟨g₁, eq_L₁⟩ := is_CF_implies_is_CF_via_cfg h₁
+  obtain ⟨g₂, eq_L₂⟩ := is_CF_implies_is_CF_via_cfg h₂
+  apply is_CF_via_cfg_implies_is_CF
   refine ⟨combined_grammar g₁ g₂, ?_⟩
   apply Set.eq_of_subset_of_subset
   ·
-    -- prove `L₁ * L₂ ⊇` here
     intro w hyp
     rw [← eq_L₁, ← eq_L₂]
     exact in_concatenated_of_in_combined hyp
   ·
-    -- prove `L₁ * L₂ ⊆` here
     intro w hyp
     rw [← eq_L₁] at hyp
     rw [← eq_L₂] at hyp

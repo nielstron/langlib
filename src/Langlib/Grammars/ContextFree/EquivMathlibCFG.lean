@@ -3,6 +3,7 @@ import Langlib.Classes.ContextSensitive.Basics.Inclusion
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.RecursivelyEnumerable.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Mathlib.Computability.ContextFreeGrammar
 
 /-! # Context-Free Definition Equivalence with Mathlib's ContextFreeGrammar
@@ -162,8 +163,9 @@ theorem is_CF_iff_isContextFree {L : Language T} :
   is_CF L ↔ L.IsContextFree := by
   constructor
   ·
-    rintro ⟨g, rfl⟩
+    intro h
+    obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h
     exact ⟨mathlib_cfg_of_cfg g, (CF_language_eq_mathlib_language g).symm⟩
   ·
     rintro ⟨g, rfl⟩
-    exact ⟨cfg_of_mathlib_cfg g, (mathlib_language_eq_CF_language g).symm⟩
+    exact is_CF_via_cfg_implies_is_CF ⟨cfg_of_mathlib_cfg g, (mathlib_language_eq_CF_language g).symm⟩

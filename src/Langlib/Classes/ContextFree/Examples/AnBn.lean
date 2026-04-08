@@ -1,5 +1,6 @@
 import Mathlib
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Classes.Regular.Basics.NonRegular
 
@@ -137,4 +138,4 @@ theorem CF_language_cfg_anbn : CF_language cfg_anbn = anbn := by
 
 /-- The language `{aⁿbⁿ}` is context-free. -/
 theorem anbn_is_CF : is_CF anbn :=
-  ⟨cfg_anbn, CF_language_cfg_anbn⟩
+  is_CF_via_cfg_implies_is_CF ⟨cfg_anbn, CF_language_cfg_anbn⟩

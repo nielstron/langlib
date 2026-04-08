@@ -5,6 +5,7 @@ import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Basics.InclusionCS
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 /-! # Context-Free Closure Under Reversal
 
@@ -72,7 +73,9 @@ section closure
 /-- The class of context-free languages is closed under reversal. -/
 theorem CF_of_reverse_CF (L : Language T) :
     is_CF L → is_CF (L.reverse) := by
-  rintro ⟨g, hgL⟩
+  intro h
+  obtain ⟨g, hgL⟩ := is_CF_implies_is_CF_via_cfg h
+  apply is_CF_via_cfg_implies_is_CF
   refine ⟨reversal_CF_grammar g, ?_⟩
   rw [CF_language_eq_grammar_language, grammar_of_cfg_reversal_comm,
       grammar_language_reversal_grammar, ← CF_language_eq_grammar_language, hgL]

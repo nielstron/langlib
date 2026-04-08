@@ -5,6 +5,7 @@ import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Basics.InclusionCS
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 /-! # Context-Free Closure Under Bijections
 
@@ -95,7 +96,10 @@ theorem CF_of_map_injective_CF_rev {f : T₁ → T₂} (hf : Function.Injective 
     by_cases h : ∃ x, f x = y
     · simpa [g, decodeSingletonMap, h, is_CF_iff_isContextFree] using
         (isContextFree_singleton [Classical.choose h])
-    · have hempty : is_CF (0 : Language T₁) := ⟨cfg_empty_lang, language_of_cfg_empty_lang⟩
+    · have hempty : is_CF (0 : Language T₁) := by
+        have hempty_via : is_CF_via_cfg (0 : Language T₁) :=
+          ⟨cfg_empty_lang, language_of_cfg_empty_lang⟩
+        exact is_CF_via_cfg_implies_is_CF hempty_via
       simpa [g, decodeSingletonMap, h] using hempty
   have hsubst : is_CF ((Language.map f L).subst g) := by
     exact CF_of_subst_CF (Language.map f L) g hmap hgCF
@@ -132,8 +136,9 @@ theorem bijection_CF_grammar_language (g : CF_grammar T₁) (π : T₁ ≃ T₂)
 /-- The class of context-free languages is closed under bijection between terminal alphabets. -/
 theorem CF_of_bijemap_CF (π : T₁ ≃ T₂) (L : Language T₁) :
     is_CF L → is_CF (Language.bijemapLang L π) := by
-  rintro ⟨g, hgL⟩
-  exact ⟨bijection_CF_grammar g π, by rw [bijection_CF_grammar_language, hgL]⟩
+  intro h
+  obtain ⟨g, hgL⟩ := is_CF_implies_is_CF_via_cfg h
+  exact is_CF_via_cfg_implies_is_CF ⟨bijection_CF_grammar g π, by rw [bijection_CF_grammar_language, hgL]⟩
 
 /-- The converse direction of `CF_of_bijemap_CF`, obtained by applying the forward result
     to the inverse bijection. -/

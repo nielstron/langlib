@@ -1,5 +1,6 @@
 import Langlib.Classes.ContextFree.Basics.InclusionCS
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Utilities.WrittenByOthers.PrintSorries
 
 
@@ -49,13 +50,14 @@ by
 private theorem bonus_CF_of_CF_u_CF (L₁ : Language T) (L₂ : Language T) :
   is_CF L₁  ∧  is_CF L₂   →   is_CF (L₁ + L₂)   :=
 by
-  rintro ⟨⟨g₁, eq_L₁⟩, ⟨g₂, eq_L₂⟩⟩
+  rintro ⟨h₁, h₂⟩
+  obtain ⟨g₁, eq_L₁⟩ := is_CF_implies_is_CF_via_cfg h₁
+  obtain ⟨g₂, eq_L₂⟩ := is_CF_implies_is_CF_via_cfg h₂
   rw [CF_language_eq_grammar_language g₁] at eq_L₁
   rw [CF_language_eq_grammar_language g₂] at eq_L₂
-
-  use union_CF_grammar g₁ g₂
+  apply is_CF_via_cfg_implies_is_CF
+  refine ⟨union_CF_grammar g₁ g₂, ?_⟩
   rw [union_CF_grammar_same_language]
-
   apply Set.Subset.antisymm
   ·
     intros w hyp

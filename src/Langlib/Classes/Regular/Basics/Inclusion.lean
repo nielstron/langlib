@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib
 import Langlib.Classes.Regular.Definition
+import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
@@ -30,21 +31,6 @@ open Relation Classical
 noncomputable section
 
 variable {T : Type}
-
--- ============================================================================
--- Conversion to unrestricted grammar
--- ============================================================================
-
-/-- Convert a right-regular grammar to an unrestricted grammar.
-
-Each RG rule is mapped to the corresponding unrestricted rule:
-- `A → a B`  becomes `[] A [] → [a, B]`
-- `A → a`    becomes `[] A [] → [a]`
-- `A → ε`    becomes `[] A [] → []` -/
-def grammar_of_RG (g : RG_grammar T) : grammar T where
-  nt := g.nt
-  initial := g.initial
-  rules := g.rules.map fun r => ⟨[], r.lhs, [], r.output⟩
 
 /-- An RG transformation step corresponds to a grammar transformation step. -/
 lemma grammar_transforms_of_RG_transforms {g : RG_grammar T}
@@ -83,7 +69,7 @@ lemma RG_derives_iff_grammar_derives (g : RG_grammar T)
 
 /-- Every right-regular language is recursively enumerable. -/
 theorem RG_subclass_RE {L : Language T} (h : is_RG L) : is_RE L := by
-  obtain ⟨g, rfl⟩ := h
+  obtain ⟨g, rfl⟩ := is_RG_implies_is_RG_via_rg h
   refine ⟨grammar_of_RG g, ?_⟩
   ext w
   simp only [grammar_language, RG_language]
@@ -132,7 +118,8 @@ lemma RG_derives_iff_CF_derives (g : RG_grammar T)
 
 /-- Every right-regular language is context-free. -/
 theorem is_CF_of_is_RG {L : Language T} (h : is_RG L) : is_CF L := by
-  obtain ⟨g, rfl⟩ := h
+  obtain ⟨g, rfl⟩ := is_RG_implies_is_RG_via_rg h
+  apply is_CF_via_cfg_implies_is_CF
   refine ⟨CF_grammar_of_RG g, ?_⟩
   ext w
   simp only [CF_language, RG_language]

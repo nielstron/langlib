@@ -5,6 +5,7 @@ import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
 import Mathlib
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 /-! # Context-Free Closure Under Prefix and Suffix
 
@@ -1222,9 +1223,11 @@ end Soundness
 
 /-- The class of context-free languages is closed under taking prefixes. -/
 theorem CF_of_prefix_CF (L : Language T) : is_CF L → is_CF (prefixLang L) := by
-  rintro ⟨g, rfl⟩
+  intro h
+  obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h
   rw [← productiveGrammar_language g]
-  use prefixGrammar (productiveGrammar g)
+  apply is_CF_via_cfg_implies_is_CF
+  refine ⟨prefixGrammar (productiveGrammar g), ?_⟩
   ext w
   constructor
   · intro hw

@@ -1,5 +1,6 @@
 import Langlib.Classes.ContextSensitive.Basics.Inclusion
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
+import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Utilities.LanguageOperations
 
 /-! # Context-Sensitive Closure Under Bijections
@@ -56,8 +57,9 @@ theorem bijection_CS_grammar_language (g : CS_grammar T₁) (π : T₁ ≃ T₂)
 /-- The class of context-sensitive languages is closed under bijection between terminal alphabets. -/
 theorem CS_of_bijemap_CS (π : T₁ ≃ T₂) (L : Language T₁) :
     is_CS L → is_CS (Language.bijemapLang L π) := by
-  rintro ⟨g, hgL⟩
-  exact ⟨bijection_CS_grammar g π, by rw [bijection_CS_grammar_language, hgL]⟩
+  intro h
+  obtain ⟨g, hgL⟩ := is_CS_implies_is_CS_via_csg h
+  exact is_CS_via_csg_implies_is_CS ⟨bijection_CS_grammar g π, by rw [bijection_CS_grammar_language, hgL]⟩
 
 /-- The converse direction. -/
 theorem CS_of_bijemap_CS_rev (π : T₁ ≃ T₂) (L : Language T₁) :

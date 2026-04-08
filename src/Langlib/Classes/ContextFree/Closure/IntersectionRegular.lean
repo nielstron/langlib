@@ -1,6 +1,7 @@
 import Langlib.Grammars.ContextFree.Toolbox
 import Mathlib
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 /-! # Intersection of Context-Free and Regular Languages
 
@@ -731,8 +732,9 @@ theorem CF_of_CF_inter_regular {L₁ L₂ : Language T}
     is_CF (L₁ ⊓ L₂) := by
   revert h₂;
   rintro ⟨ σ, _, M, rfl ⟩;
-  obtain ⟨ g, hg ⟩ := h₁;
-  use productGrammar g M;
-  rw [ ← hg, productGrammar_language ]
+  obtain ⟨g, hg⟩ := is_CF_implies_is_CF_via_cfg h₁
+  apply is_CF_via_cfg_implies_is_CF
+  refine ⟨productGrammar g M, ?_⟩
+  rw [← hg, productGrammar_language]
 
 end
