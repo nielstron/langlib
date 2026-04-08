@@ -85,6 +85,8 @@ import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.Indexed.Closure.Union
 import Langlib.Classes.Indexed.Definition
 import Langlib.Classes.Indexed.Examples.AnBnCn
+import Langlib.Classes.Recursive.Basics.Inclusion
+import Langlib.Classes.Recursive.Decidability.Membership
 import Langlib.Classes.Recursive.Definition
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
