@@ -127,7 +127,6 @@ Additional context-free closure results formalized here:
 - [Terminal permutations](src/Langlib/Classes/ContextFree/Closure/Permutation.lean)
 - [Prefix](src/Langlib/Classes/ContextFree/Closure/Prefix.lean)
 - [Suffix](src/Langlib/Classes/ContextFree/Closure/Suffix.lean)
-- [Right quotient with a regular language](src/Langlib/Classes/ContextFree/Closure/Quotient.lean)
 
 ### Decidability
 
