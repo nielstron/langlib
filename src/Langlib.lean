@@ -89,6 +89,7 @@ import Langlib.Classes.Indexed.Definition
 import Langlib.Classes.Indexed.Examples.AnBnCn
 import Langlib.Classes.Linear.Basics.Inclusion
 import Langlib.Classes.Linear.Definition
+import Langlib.Classes.Linear.Examples.AnBn
 import Langlib.Classes.Recursive.Basics.Inclusion
 import Langlib.Classes.Recursive.Closure.Complement
 import Langlib.Classes.Recursive.Decidability.Membership
@@ -107,8 +108,10 @@ import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Classes.RecursivelyEnumerable.Examples.AnBnCn
 import Langlib.Classes.RecursivelyEnumerable.NormalForms.Kuroda
 import Langlib.Classes.Regular.Basics.Inclusion
+import Langlib.Classes.Regular.Basics.InclusionLinear
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.Regular.Basics.StrictInclusion
+import Langlib.Classes.Regular.Basics.StrictInclusionLinear
 import Langlib.Classes.Regular.Basics.StrictInclusionCF
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Closure.Complement

@@ -88,7 +88,7 @@
 **Additional results**
 
 - Context Free Languages ⇔ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean) Mathlib's `IsContextFree`.
-- Regular ⊊ [🔗](src/Langlib/Classes/Linear/Basics/Inclusion.lean) Linear ⊊ (⊆ [🔗](src/Langlib/Classes/Linear/Basics/Inclusion.lean)) Context-free.
+- Regular ⊊ [🔗](src/Langlib/Classes/Regular/Basics/StrictInclusionLinear.lean) Linear ⊊ (⊆ [🔗](src/Langlib/Classes/Linear/Basics/Inclusion.lean)) Context-free.
 
 
 
