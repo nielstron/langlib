@@ -110,10 +110,12 @@ import Langlib.Classes.Regular.Basics.StrictInclusion
 import Langlib.Classes.Regular.Basics.StrictInclusionCF
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Closure.Complement
+import Langlib.Classes.Regular.Closure.Concatenation
 import Langlib.Classes.Regular.Closure.Intersection
 import Langlib.Classes.Regular.Closure.Prefix
 import Langlib.Classes.Regular.Closure.Quotient
 import Langlib.Classes.Regular.Closure.Reverse
+import Langlib.Classes.Regular.Closure.Star
 import Langlib.Classes.Regular.Closure.Suffix
 import Langlib.Classes.Regular.Closure.Union
 import Langlib.Classes.Regular.Decidability.Emptiness
