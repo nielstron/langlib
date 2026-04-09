@@ -90,9 +90,9 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | Indexed languages | ⇔ | Nested Stack Automata |
 | ⊊ |  | ⊊ |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ | LBA languages |
-| ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
+| ⊊ (⊆ RE [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
 | Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
-| ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |
+| ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean)) |
 | Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
 
 **Additional results**
