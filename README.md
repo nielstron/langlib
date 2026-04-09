@@ -165,18 +165,11 @@ lake build
 
 To install Lean 4, follow the [Lean community manual](https://leanprover-community.github.io/get_started.html).
 
-To download this project, run:
+To download and build this project, run:
 
 ```sh
 git clone https://github.com/nielstron/langlib
 cd langlib
-```
-
-If the repository is renamed later, use the new clone URL and directory name instead.
-
-To check the library and tests, run:
-
-```sh
 lake build
 ```
 
