@@ -1,17 +1,7 @@
-# Langlib
+# Langlib 
 [![CI](https://github.com/nielstron/langlib/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/langlib/actions/workflows/build.yml)
 
 `Langlib` is a Lean 4 library of formalized results about grammars, language classes, and automata across the Chomsky hierarchy.
-
-The main library entry point is [src/Langlib.lean](src/Langlib.lean).
-
-## Layout
-
-- `Langlib.Classes`: language classes and their properties
-- `Langlib.Grammars`: concrete grammar formalisms
-- `Langlib.Automata`: concrete automaton formalisms and equivalence results
-- `Langlib.Utilities`: shared helper material
-
 
 ### Regular Languages
 
@@ -130,7 +120,7 @@ Additional context-free closure results formalized here:
 
 ### Decidability
 
-> TODO: The positive results need some additional inspection to verify that they indeed prove decidability in the sense of computability by a TM
+> TODO: Some results are shown against Mathlibs `Decidable` which is too weak. The proof are yet to be rewritten for `ComputablePred`.
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
@@ -195,9 +185,5 @@ lake build
 This repository started as a Lean 4 port of
 [madvorak/grammars](https://github.com/madvorak/grammars).
 It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_cfg](https://github.com/AlexLoitzl/pumping_cfg/) and the equivalence proof between CFGs and PDAs from [shetzl/autth](https://github.com/shetzl/autth/tree/PDA).
-
-Some of the context-free grammar work is also being upstreamed to Mathlib / CSlib.
-Open PRs by the same author can be found
-[here](https://github.com/leanprover-community/mathlib4/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen+author%3Anielstron+ContextFreeGrammar).
 
 > A large part of this repository was created with the help of [Aristotle](https://aristotle.harmonic.fun). It's an amazing tool for ambitious proofs. Special thanks to the developers to provide this tool to the community!
