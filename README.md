@@ -125,6 +125,8 @@ Additional context-free closure results formalized here:
 
 ### Decidability
 
+> TODO: The positive results need some additional inspection to verify that they indeed prove decidability in the sense of computability by a TM
+
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
 | Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
