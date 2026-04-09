@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import filecmp
 import json
 import os
 import shutil
@@ -33,11 +32,6 @@ def parse_args() -> argparse.Namespace:
         "--commit-message",
         default=None,
         help="Commit message to create after applying the Lean changes.",
-    )
-    parser.add_argument(
-        "--overwrite-lean-with-output",
-        action="store_true",
-        help="Overwrite changed Lean files with the final state from the Aristotle output artifact.",
     )
     return parser.parse_args()
 
@@ -99,19 +93,6 @@ def lean_files(root: Path) -> set[Path]:
     return {path.relative_to(root) for path in root.rglob("*.lean")}
 
 
-def changed_lean_files(input_root: Path, output_root: Path) -> list[Path]:
-    changed: list[Path] = []
-    for relative_path in sorted(lean_files(input_root) | lean_files(output_root)):
-        input_path = input_root / relative_path
-        output_path = output_root / relative_path
-        if not input_path.exists() or not output_path.exists():
-            changed.append(relative_path)
-            continue
-        if not filecmp.cmp(input_path, output_path, shallow=False):
-            changed.append(relative_path)
-    return changed
-
-
 def ensure_clean_worktree() -> None:
     status = git_output("status", "--short")
     if status:
@@ -141,47 +122,6 @@ def regenerate_import_hubs() -> None:
 
 def read_text(path: Path) -> str:
     return path.read_text() if path.exists() else ""
-
-
-def merge_file(current_path: Path, base_path: Path, other_path: Path) -> tuple[str, bool]:
-    with tempfile.TemporaryDirectory(prefix="aristotle-merge-file-") as tmpdir_name:
-        tmpdir = Path(tmpdir_name)
-        current_tmp = tmpdir / "current.lean"
-        base_tmp = tmpdir / "base.lean"
-        other_tmp = tmpdir / "other.lean"
-        merged_tmp = tmpdir / "merged.lean"
-
-        current_tmp.write_text(read_text(current_path))
-        base_tmp.write_text(read_text(base_path))
-        other_tmp.write_text(read_text(other_path))
-
-        with merged_tmp.open("w") as merged_output:
-            result = subprocess.run(
-                ["git", "merge-file", "-p", str(current_tmp), str(base_tmp), str(other_tmp)],
-                cwd=REPO_ROOT,
-                check=False,
-                text=True,
-                stdout=merged_output,
-                stderr=subprocess.PIPE,
-            )
-        merged_text = merged_tmp.read_text()
-        return merged_text, result.returncode == 1
-
-
-def apply_changed_file(relative_path: Path, input_root: Path, output_root: Path) -> bool:
-    current_path = REPO_ROOT / relative_path
-    base_path = input_root / relative_path
-    other_path = output_root / relative_path
-    merged_text, conflicted = merge_file(current_path, base_path, other_path)
-
-    if other_path.exists() or merged_text:
-        current_path.parent.mkdir(parents=True, exist_ok=True)
-        current_path.write_text(merged_text)
-        run(["git", "add", "--", str(relative_path)])
-    elif current_path.exists():
-        run(["git", "rm", "-f", "--", str(relative_path)])
-
-    return conflicted
 
 
 def overwrite_with_output(relative_path: Path, output_root: Path) -> None:
@@ -230,25 +170,45 @@ def matching_historic_main_rev(
 
 
 def stale_outdated_files(
-    changed_files: list[Path],
+    candidate_files: list[Path],
     input_root: Path,
     *,
-    repo_root: Path = REPO_ROOT,
     main_ref: str = "main",
+    cwd: Path = REPO_ROOT,
 ) -> dict[Path, str]:
     stale: dict[Path, str] = {}
-    for relative_path in changed_files:
+    for relative_path in candidate_files:
         input_path = input_root / relative_path
         if not input_path.exists():
             continue
-        current_text = read_text(repo_root / relative_path)
         input_text = read_text(input_path)
-        if current_text == input_text:
+        latest_text = git_file_text(main_ref, relative_path, cwd=cwd)
+        if latest_text == input_text:
             continue
-        rev = matching_historic_main_rev(relative_path, input_text, main_ref=main_ref, cwd=repo_root)
+        rev = matching_historic_main_rev(relative_path, input_text, main_ref=main_ref, cwd=cwd)
         if rev is not None:
             stale[relative_path] = rev
     return stale
+
+
+def files_to_overwrite_from_aristotle(
+    input_root: Path,
+    output_root: Path,
+    *,
+    main_ref: str = "main",
+    cwd: Path = REPO_ROOT,
+) -> tuple[list[Path], dict[Path, str]]:
+    candidate_files: list[Path] = []
+    for relative_path in sorted(lean_files(input_root) | lean_files(output_root)):
+        input_text = read_text(input_root / relative_path) if (input_root / relative_path).exists() else None
+        output_text = read_text(output_root / relative_path) if (output_root / relative_path).exists() else None
+        latest_text = git_file_text(main_ref, relative_path, cwd=cwd)
+        if input_text == latest_text and output_text == latest_text:
+            continue
+        candidate_files.append(relative_path)
+    stale_files = stale_outdated_files(candidate_files, input_root, main_ref=main_ref, cwd=cwd)
+    files_to_apply = [path for path in candidate_files if path not in stale_files]
+    return files_to_apply, stale_files
 
 
 def default_commit_message(project_id: str, prompt: str | None) -> str:
@@ -301,21 +261,12 @@ def main() -> int:
 
         input_root = extract_tarball(input_tar, input_dir)
         output_root = extract_tarball(output_tar, output_dir)
-        changed_files = changed_lean_files(input_root, output_root)
-        stale_files = stale_outdated_files(changed_files, input_root)
-        changed_files = [path for path in changed_files if path not in stale_files]
+        changed_files, stale_files = files_to_overwrite_from_aristotle(input_root, output_root)
 
         create_branch(branch)
         conflicted_files: list[Path] = []
-        if args.overwrite_lean_with_output:
-            for relative_path in changed_files:
-                overwrite_with_output(relative_path, output_root)
-        else:
-            conflicted_files = [
-                relative_path
-                for relative_path in changed_files
-                if apply_changed_file(relative_path, input_root, output_root)
-            ]
+        for relative_path in changed_files:
+            overwrite_with_output(relative_path, output_root)
         regenerate_import_hubs()
         run(["git", "add", "--", "src/Langlib.lean", "test/LanglibTest.lean"])
 
