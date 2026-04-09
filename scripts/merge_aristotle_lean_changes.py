@@ -34,6 +34,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Commit message to create after applying the Lean changes.",
     )
+    parser.add_argument(
+        "--overwrite-lean-with-output",
+        action="store_true",
+        help="Overwrite changed Lean files with the final state from the Aristotle output artifact.",
+    )
     return parser.parse_args()
 
 
@@ -179,12 +184,87 @@ def apply_changed_file(relative_path: Path, input_root: Path, output_root: Path)
     return conflicted
 
 
+def overwrite_with_output(relative_path: Path, output_root: Path) -> None:
+    current_path = REPO_ROOT / relative_path
+    output_path = output_root / relative_path
+    if output_path.exists():
+        current_path.parent.mkdir(parents=True, exist_ok=True)
+        current_path.write_text(output_path.read_text())
+        run(["git", "add", "--", str(relative_path)])
+    elif current_path.exists():
+        run(["git", "rm", "-f", "--", str(relative_path)])
+
+
+def git_file_text(rev: str, relative_path: Path, *, cwd: Path = REPO_ROOT) -> str | None:
+    result = subprocess.run(
+        ["git", "show", f"{rev}:{relative_path.as_posix()}"],
+        cwd=cwd,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout
+
+
+def git_file_history_revs(relative_path: Path, ref: str, *, cwd: Path = REPO_ROOT) -> list[str]:
+    output = git_output("log", "--format=%H", ref, "--", str(relative_path), cwd=cwd)
+    return [line for line in output.splitlines() if line]
+
+
+def matching_historic_main_rev(
+    relative_path: Path,
+    input_text: str,
+    *,
+    main_ref: str = "main",
+    cwd: Path = REPO_ROOT,
+) -> str | None:
+    latest_text = git_file_text(main_ref, relative_path, cwd=cwd)
+    if latest_text == input_text:
+        return None
+    for rev in git_file_history_revs(relative_path, main_ref, cwd=cwd):
+        if git_file_text(rev, relative_path, cwd=cwd) == input_text:
+            return rev
+    return None
+
+
+def stale_outdated_files(
+    changed_files: list[Path],
+    input_root: Path,
+    *,
+    repo_root: Path = REPO_ROOT,
+    main_ref: str = "main",
+) -> dict[Path, str]:
+    stale: dict[Path, str] = {}
+    for relative_path in changed_files:
+        input_path = input_root / relative_path
+        if not input_path.exists():
+            continue
+        current_text = read_text(repo_root / relative_path)
+        input_text = read_text(input_path)
+        if current_text == input_text:
+            continue
+        rev = matching_historic_main_rev(relative_path, input_text, main_ref=main_ref, cwd=repo_root)
+        if rev is not None:
+            stale[relative_path] = rev
+    return stale
+
+
 def default_commit_message(project_id: str, prompt: str | None) -> str:
     if prompt:
         normalized = " ".join(prompt.split())
         if normalized:
             return normalized
     return f"Import Lean changes from Aristotle project {project_id}"
+
+
+def print_skipped_stale_files(stale_files: dict[Path, str]) -> None:
+    if not stale_files:
+        return
+    print("Skipped stale Aristotle changes:")
+    for relative_path, rev in stale_files.items():
+        print(f"{relative_path} (matches historic main state at {rev[:12]})")
 
 
 def commit_changes(
@@ -222,19 +302,27 @@ def main() -> int:
         input_root = extract_tarball(input_tar, input_dir)
         output_root = extract_tarball(output_tar, output_dir)
         changed_files = changed_lean_files(input_root, output_root)
+        stale_files = stale_outdated_files(changed_files, input_root)
+        changed_files = [path for path in changed_files if path not in stale_files]
 
         create_branch(branch)
-        conflicted_files = [
-            relative_path
-            for relative_path in changed_files
-            if apply_changed_file(relative_path, input_root, output_root)
-        ]
+        conflicted_files: list[Path] = []
+        if args.overwrite_lean_with_output:
+            for relative_path in changed_files:
+                overwrite_with_output(relative_path, output_root)
+        else:
+            conflicted_files = [
+                relative_path
+                for relative_path in changed_files
+                if apply_changed_file(relative_path, input_root, output_root)
+            ]
         regenerate_import_hubs()
         run(["git", "add", "--", "src/Langlib.lean", "test/LanglibTest.lean"])
 
     commit_changes(project_id, prompt, changed_files, args.commit_message)
 
     print(f"Created branch: {branch}")
+    print_skipped_stale_files(stale_files)
     if changed_files:
         print(f"Applied {len(changed_files)} Lean file(s).")
     else:
