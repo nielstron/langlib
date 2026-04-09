@@ -69,7 +69,7 @@ namespace Language
 variable {α : Type*}
 
 /-- Regular languages are closed under right quotient with any language.
-This generalises `IsRegular.prefixLang`. -/
+-/
 theorem IsRegular.rightQuotient {L : Language α} (hL : L.IsRegular) (R : Language α) :
     (L / R).IsRegular := by
   obtain ⟨σ, _, M, rfl⟩ := hL
