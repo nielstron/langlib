@@ -9,18 +9,17 @@ import merge_aristotle_lean_changes as merge_script
 
 
 class MergeAristotleLeanChangesTests(unittest.TestCase):
-    def test_parse_args_accepts_overwrite_flag(self) -> None:
+    def test_parse_args_accepts_project_only(self) -> None:
         old_argv = sys.argv
         try:
             sys.argv = [
                 "merge_aristotle_lean_changes.py",
-                "--overwrite-lean-with-output",
                 "cc20ef45-8127-4fe6-a66e-b2beab36d241",
             ]
             args = merge_script.parse_args()
         finally:
             sys.argv = old_argv
-        self.assertTrue(args.overwrite_lean_with_output)
+        self.assertEqual(args.project, "cc20ef45-8127-4fe6-a66e-b2beab36d241")
 
     def test_overwrite_with_output_replaces_repo_file(self) -> None:
         with TemporaryDirectory() as tmpdir_name:
@@ -80,12 +79,9 @@ class MergeAristotleLeanChangesTests(unittest.TestCase):
         with TemporaryDirectory() as tmpdir_name:
             tmpdir = Path(tmpdir_name)
             input_root = tmpdir / "input"
-            repo_root = tmpdir / "repo"
             relative_path = Path("src/Foo.lean")
             (input_root / relative_path).parent.mkdir(parents=True)
-            (repo_root / relative_path).parent.mkdir(parents=True)
             (input_root / relative_path).write_text("historic\n")
-            (repo_root / relative_path).write_text("current\n")
 
             old_matching_historic_main_rev = merge_script.matching_historic_main_rev
             try:
@@ -96,12 +92,75 @@ class MergeAristotleLeanChangesTests(unittest.TestCase):
                     merge_script.stale_outdated_files(
                         [relative_path],
                         input_root,
-                        repo_root=repo_root,
                     ),
                     {relative_path: "oldrev"},
                 )
             finally:
                 merge_script.matching_historic_main_rev = old_matching_historic_main_rev
+
+    def test_files_to_overwrite_from_aristotle_includes_unchanged_followup_file(self) -> None:
+        with TemporaryDirectory() as tmpdir_name:
+            tmpdir = Path(tmpdir_name)
+            input_root = tmpdir / "input"
+            output_root = tmpdir / "output"
+            relative_path = Path("src/PrimrecHelpers.lean")
+            (input_root / relative_path).parent.mkdir(parents=True)
+            (output_root / relative_path).parent.mkdir(parents=True)
+            (input_root / relative_path).write_text("followup state\n")
+            (output_root / relative_path).write_text("followup state\n")
+
+            old_git_file_text = merge_script.git_file_text
+            old_stale_outdated_files = merge_script.stale_outdated_files
+            try:
+                merge_script.git_file_text = (
+                    lambda rev, path, cwd=merge_script.REPO_ROOT: "main state\n" if rev == "main" else None
+                )
+                merge_script.stale_outdated_files = (
+                    lambda candidate_files, input_root, main_ref="main", cwd=merge_script.REPO_ROOT: {}
+                )
+                files_to_apply, stale_files = merge_script.files_to_overwrite_from_aristotle(
+                    input_root,
+                    output_root,
+                )
+            finally:
+                merge_script.git_file_text = old_git_file_text
+                merge_script.stale_outdated_files = old_stale_outdated_files
+
+            self.assertEqual(files_to_apply, [relative_path])
+            self.assertEqual(stale_files, {})
+
+    def test_files_to_overwrite_from_aristotle_skips_stale_file(self) -> None:
+        with TemporaryDirectory() as tmpdir_name:
+            tmpdir = Path(tmpdir_name)
+            input_root = tmpdir / "input"
+            output_root = tmpdir / "output"
+            relative_path = Path("src/Foo.lean")
+            (input_root / relative_path).parent.mkdir(parents=True)
+            (output_root / relative_path).parent.mkdir(parents=True)
+            (input_root / relative_path).write_text("historic state\n")
+            (output_root / relative_path).write_text("aristotle result\n")
+
+            old_git_file_text = merge_script.git_file_text
+            old_stale_outdated_files = merge_script.stale_outdated_files
+            try:
+                merge_script.git_file_text = (
+                    lambda rev, path, cwd=merge_script.REPO_ROOT: "latest main\n" if rev == "main" else None
+                )
+                merge_script.stale_outdated_files = (
+                    lambda candidate_files, input_root, main_ref="main", cwd=merge_script.REPO_ROOT: {
+                        relative_path: "oldrev"
+                    }
+                )
+                files_to_apply, stale_files = merge_script.files_to_overwrite_from_aristotle(
+                    input_root,
+                    output_root,
+                )
+            finally:
+                merge_script.git_file_text = old_git_file_text
+                merge_script.stale_outdated_files = old_stale_outdated_files
+
+            self.assertEqual(files_to_apply, [])
+            self.assertEqual(stale_files, {relative_path: "oldrev"})
 
 
 if __name__ == "__main__":
