@@ -104,12 +104,12 @@ The repository also proves that the project's notion of context-free language is
 | Union | Yes [🔗](src/Langlib/Classes/Regular/Closure/Union.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/Indexed/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Union.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Union.lean) |
 | Intersection | Yes [🔗](src/Langlib/Classes/Regular/Closure/Intersection.lean) | No | No [🔗](src/Langlib/Classes/ContextFree/Closure/Intersection.lean) | No | Yes | Yes | Yes |
 | Complement | Yes [🔗](src/Langlib/Classes/Regular/Closure/Complement.lean) | Yes [(🔗)](src/Langlib/Automata/DeterministicPushdown/ClosureProperties/Complement.lean) | No [🔗](src/Langlib/Classes/ContextFree/Closure/Complement.lean) | No | Yes | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Complement.lean) | No |
-| Concatenation | Yes | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Concatenation.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Concatenation.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Concatenation.lean) |
-| Kleene star | Yes | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Star.lean) | Yes | Yes | Yes | Yes |
-| (String) homomorphism | Yes | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | No | No | Yes |
-| `ε`-free (string) homomorphism | Yes | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | Yes | Yes | Yes |
+| Concatenation | Yes [🔗](src/Langlib/Classes/Regular/Closure/Concatenation.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Concatenation.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Concatenation.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Concatenation.lean) |
+| Kleene star | Yes [🔗](src/Langlib/Classes/Regular/Closure/Star.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Star.lean) | Yes | Yes | Yes | Yes |
+| (String) homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | No | No | Yes |
+| `ε`-free (string) homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | Yes | Yes | Yes |
 | Substitution | Yes | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Substitution.lean) | Yes | Yes | No | Yes |
-| Inverse homomorphism | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Inverse homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/InverseHomomorphism.lean) | Yes | Yes | Yes | Yes | Yes | Yes |
 | Reverse | Yes [🔗](src/Langlib/Classes/Regular/Closure/Reverse.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Reverse.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Reverse.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Reverse.lean) |
 | Intersection with a regular language | Yes | Yes | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/IntersectionRegular.lean) | Yes | Yes | Yes | Yes |
 | Right quotient | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | No | No | No | No | No | Yes |
