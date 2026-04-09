@@ -57,10 +57,8 @@ import Langlib.Classes.ContextFree.Closure.Suffix
 import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Closure.UnionBonus
 import Langlib.Classes.ContextFree.Closure.UnionBonus2
-import Langlib.Classes.ContextFree.Decidability.CYKComputable
 import Langlib.Classes.ContextFree.Decidability.Emptiness
 import Langlib.Classes.ContextFree.Decidability.Membership
-import Langlib.Classes.ContextFree.Decidability.PrimrecHelpers
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Examples.AnBn
 import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
@@ -84,8 +82,6 @@ import Langlib.Classes.ContextSensitive.Decidability.Membership
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
-import Langlib.Classes.DeterministicContextFree.Decidability.Emptiness
-import Langlib.Classes.DeterministicContextFree.Decidability.Membership
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.Indexed.Closure.Union
@@ -152,6 +148,7 @@ import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Utilities.Homomorphism
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
+import Langlib.Utilities.PrimrecHelpers
 import Langlib.Utilities.WrittenByOthers.ListTakeJoin
 import Langlib.Utilities.WrittenByOthers.PrintSorries
 import Langlib.Utilities.WrittenByOthers.TrimAssoc
