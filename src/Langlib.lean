@@ -7,6 +7,7 @@ import Langlib.Automata.DeterministicLinearBounded.Definition
 import Langlib.Automata.DeterministicPushdown.Basics.Inclusion
 import Langlib.Automata.DeterministicPushdown.ClosureProperties.Complement
 import Langlib.Automata.DeterministicPushdown.Definition
+import Langlib.Automata.FiniteState.Decidability.Membership
 import Langlib.Automata.FiniteState.Definition
 import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Automata.LinearBounded.Basics.Inclusion
@@ -56,8 +57,10 @@ import Langlib.Classes.ContextFree.Closure.Suffix
 import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Closure.UnionBonus
 import Langlib.Classes.ContextFree.Closure.UnionBonus2
+import Langlib.Classes.ContextFree.Decidability.CYKComputable
 import Langlib.Classes.ContextFree.Decidability.Emptiness
 import Langlib.Classes.ContextFree.Decidability.Membership
+import Langlib.Classes.ContextFree.Decidability.PrimrecHelpers
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Examples.AnBn
 import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
@@ -127,7 +130,6 @@ import Langlib.Classes.Regular.Decidability.Membership
 import Langlib.Classes.Regular.Decidability.Universality
 import Langlib.Classes.Regular.Definition
 import Langlib.Classes.Regular.Examples.TopBot
-import Langlib.DFAComputable
 import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
