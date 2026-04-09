@@ -120,6 +120,7 @@ import Langlib.Classes.Regular.Closure.Prefix
 import Langlib.Classes.Regular.Closure.Quotient
 import Langlib.Classes.Regular.Closure.Reverse
 import Langlib.Classes.Regular.Closure.Star
+import Langlib.Classes.Regular.Closure.Substitution
 import Langlib.Classes.Regular.Closure.Suffix
 import Langlib.Classes.Regular.Closure.Union
 import Langlib.Classes.Regular.Decidability.Emptiness
