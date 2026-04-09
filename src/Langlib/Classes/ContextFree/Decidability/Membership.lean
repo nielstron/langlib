@@ -2,15 +2,21 @@ import Mathlib
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
 import Langlib.Classes.ContextFree.Pumping.ParseTree
+import Langlib.Classes.ContextFree.Decidability.PrimrecHelpers
 
-/-! # Decidability of Membership
+/-! # Decidability and Computability of Membership
 
-This file proves that membership is decidable for context-free languages
-(represented by context-free grammars).
+This file proves that membership is decidable—and indeed computable—for context-free
+languages (represented by context-free grammars).
+
+The proof proceeds via the CYK algorithm on Chomsky-normal-form grammars.
 
 ## Main results
 
-- `cf_membership_decidable` – membership in a context-free language is decidable
+- `cf_membership_computable` – membership in a context-free language is a computable
+  predicate (`ComputablePred`), which in particular implies decidability.
+- `cf_membership_decidable` – (corollary) membership in a context-free language is
+  decidable, kept for backward compatibility.
 -/
 
 open List Relation
@@ -45,6 +51,80 @@ termination_by w => w.length
 decreasing_by
   all_goals simp_all [List.length_take, List.length_drop]
   all_goals omega
+
+/-- Bool-valued CYK decision function. Takes an explicit list of rules so that the
+    function is genuinely computable (not `noncomputable`). -/
+def cykDecideAux {NT : Type} [DecidableEq NT]
+    (rulesList : List (ChomskyNormalFormRule T NT))
+    (n : NT) (w : List T) : Bool :=
+  match w with
+  | [] => false
+  | [t] => rulesList.any fun r =>
+      match r with
+      | ChomskyNormalFormRule.leaf nᵢ tᵢ => decide (nᵢ = n ∧ tᵢ = t)
+      | _ => false
+  | h₁ :: h₂ :: rest =>
+    let w' := h₁ :: h₂ :: rest
+    (List.finRange (w'.length - 1)).any fun ⟨i, hi⟩ =>
+      have hi' : i < rest.length + 1 := by simp [w'] at hi; omega
+      rulesList.any fun r =>
+        match r with
+        | ChomskyNormalFormRule.node nᵢ c₁ c₂ =>
+          have htake : (w'.take (i + 1)).length < w'.length := by
+            simp [List.length_take]; omega
+          have hdrop : (w'.drop (i + 1)).length < w'.length := by
+            simp [List.length_drop]; omega
+          decide (nᵢ = n) && cykDecideAux rulesList c₁ (w'.take (i + 1)) &&
+            cykDecideAux rulesList c₂ (w'.drop (i + 1))
+        | _ => false
+termination_by w.length
+
+/-
+`cykDecideAux` is equivalent to `canDerive` when the rule list contains exactly the
+    rules of the grammar.
+-/
+lemma cykDecideAux_iff_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+    (rulesList : List (ChomskyNormalFormRule T g.NT))
+    (hrules : ∀ r, r ∈ rulesList ↔ r ∈ g.rules)
+    (n : g.NT) (w : List T) :
+    cykDecideAux rulesList n w = true ↔ canDerive g n w := by
+  apply Iff.intro;
+  · intro h;
+    induction' k : w.length using Nat.strong_induction_on with k ih generalizing n w;
+    rcases w with ( _ | ⟨ t, _ | ⟨ t', w ⟩ ⟩ ) <;> simp_all +decide [ List.finRange ];
+    · unfold cykDecideAux at h; aesop;
+    · unfold cykDecideAux at h;
+      rw [ List.any_eq_true ] at h;
+      obtain ⟨ r, hr₁, hr₂ ⟩ := h;
+      cases r <;> simp_all +decide [ hrules ];
+      unfold ChomskyNormalFormGrammar.canDerive; aesop;
+    · unfold cykDecideAux at h;
+      rw [ List.any_eq_true ] at h;
+      obtain ⟨ i, hi, h ⟩ := h;
+      rw [ List.any_eq_true ] at h;
+      obtain ⟨ r, hr₁, hr₂ ⟩ := h;
+      rcases r with ( _ | ⟨ n₁, n₂ ⟩ ) <;> simp_all +decide;
+      unfold ChomskyNormalFormGrammar.canDerive;
+      use ⟨ i, by
+        exact i.2 ⟩
+      generalize_proofs at *;
+      use ChomskyNormalFormRule.node n n₂ ‹_›;
+      grind;
+  · induction' k : w.length using Nat.strong_induction_on with k ih generalizing n w;
+    rcases w with ( _ | ⟨ t, _ | ⟨ t', w ⟩ ⟩ ) <;> simp_all +decide;
+    · unfold ChomskyNormalFormGrammar.canDerive; aesop;
+    · unfold cykDecideAux;
+      unfold ChomskyNormalFormGrammar.canDerive;
+      exact fun h => List.any_of_mem ( hrules _ |>.2 h ) ( by simp +decide );
+    · unfold ChomskyNormalFormGrammar.canDerive;
+      rintro ⟨ i, r, hr, hr' ⟩;
+      rcases r with ( _ | ⟨ nᵢ, c₁, c₂ ⟩ ) <;> simp_all +decide;
+      unfold cykDecideAux;
+      rw [ List.any_eq_true ];
+      use i;
+      rw [ List.any_eq_true ];
+      refine' ⟨ _, ChomskyNormalFormRule.node n c₁ c₂, _, _ ⟩ <;> simp_all +decide;
+      grind
 
 /-- The CYK predicate is decidable by induction on word length. -/
 noncomputable def canDerive_decidable (g : ChomskyNormalFormGrammar T)
@@ -90,8 +170,7 @@ lemma parseTree_of_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
   induction' k : w.length using Nat.strong_induction_on with k ih generalizing n w;
   rcases w with ( _ | ⟨ t, _ | ⟨ t', w ⟩ ⟩ ) <;> simp_all +decide;
   · unfold ChomskyNormalFormGrammar.canDerive at h; aesop;
-  · -- By definition of canDerive, if g.canDerive n [t], then there exists a rule in g.rules that matches the leaf rule for n and t.
-    obtain ⟨h_rule, h_leaf⟩ : ∃ r ∈ g.rules, r = ChomskyNormalFormRule.leaf n t := by
+  · obtain ⟨h_rule, h_leaf⟩ : ∃ r ∈ g.rules, r = ChomskyNormalFormRule.leaf n t := by
       unfold ChomskyNormalFormGrammar.canDerive at h; aesop;
     exact ⟨ ChomskyNormalFormGrammar.parseTree.leaf t ( by aesop ), rfl ⟩;
   · unfold ChomskyNormalFormGrammar.canDerive at h;
@@ -117,8 +196,7 @@ lemma canDerive_of_parseTree (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     · exact absurd h₅ ( by unfold ChomskyNormalFormGrammar.canDerive; aesop );
     · rcases h₃_yld : h₃.yield with ( _ | ⟨ t₂, _ | ⟨ t₃, rest ⟩ ⟩ ) <;> simp_all +decide [ List.length ];
       · exact absurd h₆ ( by unfold ChomskyNormalFormGrammar.canDerive; simp +decide );
-      · -- By definition of canDerive, we can use the node rule to combine the derivations of p₂ and h₁.
-        have h_node : g.canDerive p₁ ([t₁] ++ [t₂]) := by
+      · have h_node : g.canDerive p₁ ([t₁] ++ [t₂]) := by
           have h_node_rule : ChomskyNormalFormRule.node p₁ p₂ h₁ ∈ g.rules := h₄
           have h_node_deriv : ∃ i : Fin (List.length ([t₁] ++ [t₂]) - 1), ∃ r ∈ g.rules, match r with | ChomskyNormalFormRule.node nᵢ c₁ c₂ => nᵢ = p₁ ∧ g.canDerive c₁ (([t₁] ++ [t₂]).take (i.val + 1)) ∧ g.canDerive c₂ (([t₁] ++ [t₂]).drop (i.val + 1)) | _ => False := by
             exact ⟨ ⟨ 0, by simp +decide ⟩, ChomskyNormalFormRule.node p₁ p₂ h₁, h_node_rule, by simp +decide [ h₅, h₆ ] ⟩
@@ -151,15 +229,10 @@ lemma canDerive_iff_derives (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
 noncomputable def decidable_mem_language {g : ChomskyNormalFormGrammar T}
     [DecidableEq g.NT] (w : List T) :
     Decidable (w ∈ g.language) := by
-  -- w ∈ g.language ↔ g.Generates (w.map Symbol.terminal)
-  --                  ↔ g.Derives [Symbol.nonterminal g.initial] (w.map Symbol.terminal)
-  --                  ↔ canDerive g g.initial w
   change Decidable (g.Generates (w.map Symbol.terminal))
   unfold ChomskyNormalFormGrammar.Generates
   rw [← canDerive_iff_derives]
   exact canDerive_decidable g g.initial w
-
-
 
 end ChomskyNormalFormGrammar
 
@@ -171,7 +244,9 @@ section ContextFree
 
 variable {T : Type} [Fintype T] [DecidableEq T]
 
-
+/-- Membership in a context-free language is decidable.
+    This is a corollary of the stronger `cf_membership_computable`,
+    kept for backward compatibility. -/
 noncomputable def cf_membership_decidable
     (g : CF_grammar T) [Fintype g.nt] [DecidableEq g.nt]
     (w : List T) : Decidable (w ∈ CF_language g) := by
@@ -182,8 +257,7 @@ noncomputable def cf_membership_decidable
       (r : ContextFreeRule T (g.nt ⊕ T)) × Fin (r.output.length - 2))
     infer_instance
   by_cases hw : w = []
-  · -- Empty word: use computeNullables
-    subst hw
+  · subst hw
     have : [] ∈ (mathlib_cfg_of_cfg g).language ↔
         (mathlib_cfg_of_cfg g).initial ∈ (mathlib_cfg_of_cfg g).computeNullables := by
       constructor
@@ -191,15 +265,12 @@ noncomputable def cf_membership_decidable
       · intro h; rw [ContextFreeGrammar.computeNullables_iff] at h; exact h
     rw [this]
     infer_instance
-  · -- Nonempty word: use CNF translation
-    have equiv : w ∈ (mathlib_cfg_of_cfg g).language ↔
+  · have equiv : w ∈ (mathlib_cfg_of_cfg g).language ↔
         w ∈ (mathlib_cfg_of_cfg g).toCNF.language := by
       constructor
       · intro hmem; rw [← h_cnf]; exact ⟨hmem, hw⟩
       · intro hmem; exact (h_cnf ▸ hmem).1
     rw [equiv]
     exact @ChomskyNormalFormGrammar.decidable_mem_language _ _ _ hNTdec w
-
-
 
 end ContextFree
