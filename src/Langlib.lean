@@ -127,6 +127,7 @@ import Langlib.Classes.Regular.Decidability.Membership
 import Langlib.Classes.Regular.Decidability.Universality
 import Langlib.Classes.Regular.Definition
 import Langlib.Classes.Regular.Examples.TopBot
+import Langlib.DFAComputable
 import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
