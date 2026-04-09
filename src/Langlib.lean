@@ -42,6 +42,7 @@ import Langlib.Classes.ContextFree.Closure.ConverseFailures
 import Langlib.Classes.ContextFree.Closure.Homomorphism
 import Langlib.Classes.ContextFree.Closure.Intersection
 import Langlib.Classes.ContextFree.Closure.IntersectionRegular
+import Langlib.Classes.ContextFree.Closure.InverseHomomorphism
 import Langlib.Classes.ContextFree.Closure.Permutation
 import Langlib.Classes.ContextFree.Closure.Prefix
 import Langlib.Classes.ContextFree.Closure.PrefixBonus
