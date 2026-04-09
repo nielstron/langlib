@@ -18,6 +18,10 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 - [Definition](src/Langlib/Classes/Regular/Definition.lean)
 - [Right-regular grammars](src/Langlib/Grammars/RightRegular/Definition.lean)
 
+### Linear Languages
+
+- [Definition](src/Langlib/Classes/Linear/Definition.lean)
+
 ### Context-Free Languages
 
 - [Definition](src/Langlib/Classes/ContextFree/Definition.lean)
@@ -91,8 +95,10 @@ The main library entry point is [src/Langlib.lean](src/Langlib.lean).
 | ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |  | ⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean) |
 | Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
 
-The repository also proves that the project's notion of context-free language is
-⇔ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean) Mathlib's `IsContextFree`.
+**Additional results**
+
+- Context Free Languages ⇔ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean) Mathlib's `IsContextFree`.
+- Regular ⊊ [🔗](src/Langlib/Classes/Linear/Basics/Inclusion.lean) Linear ⊊ (⊆ [🔗](src/Langlib/Classes/Linear/Basics/Inclusion.lean)) Context-free.
 
 
 
