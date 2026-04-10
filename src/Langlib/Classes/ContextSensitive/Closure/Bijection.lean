@@ -1,4 +1,4 @@
-import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Utilities.LanguageOperations

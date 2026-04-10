@@ -7,7 +7,7 @@ import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.Regular.Basics.NonRegular
-import Langlib.Classes.Regular.Basics.Inclusion
+import Langlib.Classes.Regular.Inclusion.DeterministicContextFree
 import Langlib.Classes.Regular.Closure.Bijection
 
 /-! # RG ⊊ DCF

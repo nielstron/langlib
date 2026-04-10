@@ -1,4 +1,4 @@
-import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 
 /-! # Non-Contracting Grammar Definitions
 

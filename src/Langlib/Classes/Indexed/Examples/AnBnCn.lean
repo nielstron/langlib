@@ -3,7 +3,7 @@ import Langlib.Grammars.Indexed.Definition
 import Langlib.Classes.Indexed.Definition
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Closure.Intersection
-import Langlib.Classes.ContextFree.Basics.InclusionIndexed
+import Langlib.Classes.ContextFree.Inclusion.Indexed
 
 /-! # Strict Inclusion: CF ⊊ Indexed
 

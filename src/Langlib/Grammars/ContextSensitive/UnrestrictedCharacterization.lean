@@ -1,5 +1,5 @@
 import Mathlib
-import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 
 /-! # Context-Sensitive Grammars as Unrestricted Grammars
 

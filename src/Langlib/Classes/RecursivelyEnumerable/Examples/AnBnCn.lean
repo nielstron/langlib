@@ -2,9 +2,9 @@ import Mathlib
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Classes.ContextFree.Closure.Intersection
-import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.Regular.Basics.NonRegular
-import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
+import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.ContextFree.Definition

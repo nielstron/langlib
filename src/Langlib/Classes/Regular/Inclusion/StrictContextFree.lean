@@ -1,13 +1,14 @@
 import Mathlib
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Classes.ContextFree.Closure.Intersection
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Examples.AnBn
-import Langlib.Classes.ContextSensitive.Basics.Inclusion
-import Langlib.Classes.Regular.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
+import Langlib.Classes.Regular.Inclusion.ContextFree
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Basics.NonRegular
-import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
+import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 
 /-! # RG ⊊ CF
 

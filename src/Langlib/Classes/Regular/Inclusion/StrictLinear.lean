@@ -3,7 +3,7 @@ import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Utilities.Tactics
 import Langlib.Classes.Linear.Definition
 import Langlib.Classes.Linear.Examples.AnBn
-import Langlib.Classes.Regular.Basics.InclusionLinear
+import Langlib.Classes.Regular.Inclusion.Linear
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.Regular.Closure.Bijection
 

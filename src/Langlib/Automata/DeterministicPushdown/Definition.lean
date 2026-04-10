@@ -10,7 +10,7 @@ import Langlib.Automata.Pushdown.Definition
 This file introduces deterministic pushdown automata (DPDAs).
 
 The embedding of DPDAs into nondeterministic PDAs lives in
-`Langlib.Automata.DeterministicPushdown.Basics.Inclusion`.
+`Langlib.Automata.DeterministicPushdown.Inclusion.Pushdown`.
 Complement-closure results live in
 `Langlib.Automata.DeterministicPushdown.ClosureProperties.Complement`.
 -/
