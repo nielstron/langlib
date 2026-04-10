@@ -10,13 +10,8 @@ in grammar and language theory formalizations.
 ## Main declarations
 
 - `no_nonterminal` — close goals where a nonterminal appears in a terminal-only list
-- `grammar_cases` — case-split a CF/unrestricted grammar transformation by rule
-- `append_chase` — exhaustive analysis of list-append equations
 - `count_contra` — contradiction from character-counting arguments
-- `derive_step` — construct a single CF derivation step with context
-- `replicate_norm` — normalize `List.replicate` and `List.append` expressions
 - `deri_context` — strip matching prefix/postfix from a derivation goal
-- `language_ext` — prove language equality by extensionality
 -/
 
 open Lean Elab Tactic
@@ -181,23 +176,28 @@ and simplifies with `simp_all +decide` and `omega`.
 -/
 macro "append_chase" : tactic =>
   `(tactic| (
-    simp only [List.append_assoc] at * <;>
-    (try (rw [List.append_eq_append_iff] at *)) <;>
-    (try (rw [List.cons_eq_append_iff] at *)) <;>
-    (try (rw [List.append_eq_nil_iff] at *)) <;>
+    (try simp only [List.append_assoc] at *);
+    (try (rw [List.append_eq_append_iff] at *));
+    (try (rw [List.cons_eq_append_iff] at *));
+    (try (rw [List.append_eq_nil_iff] at *));
+    -- Case-split on the disjunction and try to close each branch
+    (try rcases ‹_ ∨ _› with ⟨_, _, _⟩ | ⟨_, _, _⟩) <;>
     simp_all +decide [List.replicate, List.length_append, List.length_replicate,
-      List.map_append, List.map_cons, List.map_nil] <;>
+      List.map_append, List.map_cons, List.map_nil,
+      List.append_eq_append_iff, List.append_eq_nil_iff] <;>
     (try omega)))
 
 /-! ### append_chase variant with extra simp lemmas -/
 macro "append_chase " "[" extras:Lean.Parser.Tactic.simpLemma,* "]" : tactic =>
   `(tactic| (
-    simp only [List.append_assoc] at * <;>
-    (try (rw [List.append_eq_append_iff] at *)) <;>
-    (try (rw [List.cons_eq_append_iff] at *)) <;>
-    (try (rw [List.append_eq_nil_iff] at *)) <;>
+    (try simp only [List.append_assoc] at *);
+    (try (rw [List.append_eq_append_iff] at *));
+    (try (rw [List.cons_eq_append_iff] at *));
+    (try (rw [List.append_eq_nil_iff] at *));
+    (try rcases ‹_ ∨ _› with ⟨_, _, _⟩ | ⟨_, _, _⟩) <;>
     simp_all +decide [List.replicate, List.length_append, List.length_replicate,
-      List.map_append, List.map_cons, List.map_nil, $extras,*] <;>
+      List.map_append, List.map_cons, List.map_nil,
+      List.append_eq_append_iff, List.append_eq_nil_iff, $extras,*] <;>
     (try omega)))
 
 
@@ -224,41 +224,6 @@ macro "count_contra" : tactic =>
     omega))
 
 
-/-! ## derive_step
-
-Construct a single CF derivation step, automatically wrapping with prefix/postfix
-context. Given a rule `r` from the grammar, builds the `CF_transforms` witness.
-
-Usage: `derive_step r`
--/
-macro "derive_step " r:term : tactic =>
-  `(tactic| (
-    first
-    | (apply CF_deri_of_tran;
-       exact ⟨$r, [], [], by simp +decide, by simp +decide, by simp +decide⟩)
-    | (apply CF_deri_of_tran;
-       refine ⟨$r, _, _, ?_, ?_, ?_⟩ <;> simp +decide)))
-
-
-/-! ## replicate_norm
-
-Normalize expressions involving `List.replicate`, `List.append`, `List.map`,
-and `List.length`. Handles `replicate_succ`, `replicate_add`, associativity,
-and identity laws.
--/
-macro "replicate_norm" : tactic =>
-  `(tactic| (
-    simp only [List.replicate_succ, List.replicate_succ',
-      List.replicate_add, List.replicate_zero,
-      List.append_nil, List.nil_append,
-      List.append_assoc, List.map_append,
-      List.map_cons, List.map_nil,
-      List.length_replicate, List.length_append,
-      List.length_map, List.length_cons, List.length_nil,
-      List.singleton_append,
-      Nat.add_zero, Nat.zero_add] <;>
-    (try ring_nf) <;> (try omega) <;> (try rfl)))
-
 
 /-! ## deri_context
 
@@ -273,38 +238,3 @@ macro "deri_context" : tactic =>
     | apply CF_deri_with_prefix_and_postfix
     | apply CF_deri_with_prefix
     | apply CF_deri_with_postfix))
-
-
-/-! ## language_ext
-
-Prove language (set) equality by extensionality.
-
-Opens the goal with `ext w; constructor`, introducing the membership hypothesis
-as `hw` in each direction, then tries `aesop` and `simp_all` to close the goals.
--/
-macro "language_ext" : tactic =>
-  `(tactic| (
-    ext w;
-    constructor <;> intro hw <;> (
-      first
-      | assumption
-      | aesop
-      | simp_all)))
-
-
-/-! ## pumping_setup
-
-Set up a pumping lemma argument for showing a language is not context-free.
-Given goal `¬ is_CF L`, introduces the pumping length and provides the
-decomposition variables `u, v, x, y, z` with their constraints.
-
-After `pumping_setup`, you need to:
-1. Provide a witness word
-2. Show it's in the language
-3. Show it's long enough
-4. Derive a contradiction from the pumping property
--/
-macro "pumping_setup" : tactic =>
-  `(tactic| (
-    intro _h_cf;
-    obtain ⟨_n_pump, _h_pump⟩ := CF_pumping _h_cf))
