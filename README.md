@@ -68,7 +68,7 @@
 | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/StrictInclusion.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/Inclusion.lean) |
 | Deterministic context-free languages | ≝ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean)) |
-| Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
+| Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack (⇒ [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean))) |
 | ⊊ [🔗](src/Langlib/Classes/ContextFree/Basics/StrictInclusionIndexed.lean) (⊆ CS [🔗](src/Langlib/Classes/ContextFree/Basics/InclusionCS.lean))|  | ⊊ |
 | Indexed languages | ⇔ | Nested Stack Automata |
 | ⊊ |  | ⊊ |
