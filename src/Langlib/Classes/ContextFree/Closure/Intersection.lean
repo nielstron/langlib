@@ -6,6 +6,7 @@ import Langlib.Utilities.ListUtils
 import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Langlib.Utilities.Tactics
 
 
 /-! # Context-Free Non-Closure Under Intersection
@@ -676,7 +677,7 @@ private lemma CF_lang_aux_ab : is_CF lang_aux_ab := by
         CF_derives g
           ([a] ++ [S] ++ [b])
           ([a] ++ List.map symbol.terminal (List.replicate n a_ ++ List.replicate n b_) ++ [b])
-      apply CF_deri_with_prefix_and_postfix
+      deri_context
       convert ih
       rw [List.map_append, List.map_replicate, List.map_replicate, a, b]
 

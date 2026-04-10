@@ -3,6 +3,7 @@ import Langlib.Classes.ContextFree.Definition
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Utilities.Tactics
 
 /-! # `a^n b^n` as a CFL
 
@@ -65,16 +66,8 @@ private lemma sentential_form_step (w w' : List (symbol Bool Unit))
           specialize h a
           aesop
   · rcases ht with (⟨x, y, hxy, rfl⟩ | ⟨x, y, hxy, rfl⟩)
-    · replace hxy := congr_arg List.toFinset hxy
-      rw [Finset.ext_iff] at hxy
-      specialize hxy (symbol.nonterminal ())
-      aesop
-    · replace hxy := congr_arg List.toFinset hxy
-      simp_all +decide [Finset.ext_iff]
-      have := hxy (symbol.nonterminal ())
-      have := hxy (symbol.terminal false)
-      have := hxy (symbol.terminal true)
-      aesop
+    · no_nonterminal
+    · no_nonterminal
 
 private lemma sentential_form_of_derives (w : List (symbol Bool Unit))
     (hd : CF_derives cfg_anbn [symbol.nonterminal ()] w) :
