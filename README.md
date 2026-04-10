@@ -72,7 +72,7 @@
 | ⊊ [🔗](src/Langlib/Classes/ContextFree/Basics/StrictInclusionIndexed.lean) (⊆ CS [🔗](src/Langlib/Classes/ContextFree/Basics/InclusionCS.lean))|  | ⊊ |
 | Indexed languages | ⇔ | Nested Stack Automata |
 | ⊊ |  | ⊊ |
-| Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ | LBA languages |
+| Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ | LBA languages (LBA ⇔? DLBA) |
 | ⊊ (⊆ RE [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
 | Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean)) |
