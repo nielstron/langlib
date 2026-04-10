@@ -1,5 +1,5 @@
 import Langlib.Grammars.ContextSensitive.Toolbox
-import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Utilities.LanguageOperations

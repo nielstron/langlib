@@ -1,9 +1,9 @@
 import Mathlib
-import Langlib.Classes.ContextFree.Basics.InclusionCS
+import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Classes.ContextFree.Closure.Intersection
-import Langlib.Classes.ContextSensitive.Basics.Inclusion
-import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
+import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Classes.RecursivelyEnumerable.Examples.AnBnCn
 import Langlib.Classes.Regular.Basics.NonRegular

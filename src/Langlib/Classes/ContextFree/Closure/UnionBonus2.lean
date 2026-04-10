@@ -1,4 +1,4 @@
-import Langlib.Classes.ContextFree.Basics.InclusionCS
+import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Utilities.WrittenByOthers.PrintSorries

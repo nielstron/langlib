@@ -1,6 +1,6 @@
 import Langlib.Classes.ContextFree.Basics.Lifting
 import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.ContextFree.Basics.InclusionCS
+import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 /-! # Context-Free Union Bonus Construction

@@ -1,5 +1,5 @@
 import Langlib.Grammars.ContextFree.Toolbox
-import Langlib.Classes.ContextSensitive.Basics.Inclusion
+import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.RecursivelyEnumerable.Definition

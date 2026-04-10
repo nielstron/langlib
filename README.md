@@ -65,23 +65,23 @@
 | Grammar side | Relation | Automaton side |
 | --- | --- | --- |
 | Regular languages (Left-regular ⇔[🔗](src/Langlib/Grammars/LeftRegular/Equivalence/LGEquivRG.lean) Right-regular) | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
-| ⊊ [🔗](src/Langlib/Classes/Regular/Basics/StrictInclusion.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/Inclusion.lean) |
+| ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/ContextFree.lean) |
 | Deterministic context-free languages | ≝ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
-| ⊊ (⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean)) |
+| ⊊ (⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Inclusion/ContextFree.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Inclusion/Pushdown.lean)) |
 | Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack (⇒ [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean))) |
-| ⊊ [🔗](src/Langlib/Classes/ContextFree/Basics/StrictInclusionIndexed.lean) (⊆ CS [🔗](src/Langlib/Classes/ContextFree/Basics/InclusionCS.lean))|  | ⊊ |
+| ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊆ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/ContextSensitive.lean))|  | ⊊ |
 | Indexed languages | ⇔ | Nested Stack Automata |
 | ⊊ |  | ⊊ |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ | LBA languages (LBA ⇔? DLBA) |
-| ⊊ (⊆ RE [🔗](src/Langlib/Classes/ContextSensitive/Basics/Inclusion.lean)) |  | ⊊ (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Basics/Inclusion.lean)) |
+| ⊊ (⊆ RE [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
 | Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
-| ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Basics/Inclusion.lean)) |
+| ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |
 | Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
 
 **Additional results**
 
-- Context Free Languages ⇔ [🔗](src/Langlib/Classes/ContextFree/Basics/Inclusion.lean) Mathlib's `IsContextFree`.
-- Regular ⊊ [🔗](src/Langlib/Classes/Regular/Basics/StrictInclusionLinear.lean) Linear ⊊ (⊆ [🔗](src/Langlib/Classes/Linear/Basics/Inclusion.lean)) Context-free.
+- Context Free Languages ⇔ [🔗](src/Langlib/Grammars/ContextFree/EquivMathlibCFG.lean) Mathlib's `IsContextFree`.
+- Regular ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) Linear ⊊ (⊆ [🔗](src/Langlib/Classes/Linear/Inclusion/ContextFree.lean)) Context-free.
 
 
 
