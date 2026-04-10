@@ -26,6 +26,7 @@ import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 import Langlib.Automata.Turing.Equivalence.TMToGrammar
 import Langlib.Classes.ContextFree.Basics.Elementary
+import Langlib.Classes.ContextFree.Basics.EncodedCFG
 import Langlib.Classes.ContextFree.Basics.FiniteNT
 import Langlib.Classes.ContextFree.Basics.InclusionCS
 import Langlib.Classes.ContextFree.Basics.InclusionIndexed
@@ -58,7 +59,6 @@ import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Closure.UnionBonus
 import Langlib.Classes.ContextFree.Closure.UnionBonus2
 import Langlib.Classes.ContextFree.Decidability.Emptiness
-import Langlib.Classes.ContextFree.Decidability.EncodedCFG
 import Langlib.Classes.ContextFree.Decidability.Membership
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Examples.AnBn
@@ -83,6 +83,8 @@ import Langlib.Classes.ContextSensitive.Decidability.Membership
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
+import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
+import Langlib.Classes.DeterministicContextFree.Closure.InverseHomomorphism
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.Indexed.Closure.Union
