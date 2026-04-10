@@ -84,7 +84,6 @@ import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.DeterministicContextFree.Basics.Inclusion
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
-import Langlib.Classes.DeterministicContextFree.Closure.InverseHomomorphism
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.Indexed.Closure.Union
