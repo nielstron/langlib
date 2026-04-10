@@ -1,5 +1,6 @@
 import Mathlib
 import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Utilities.Tactics
 import Langlib.Classes.Linear.Definition
 import Langlib.Classes.Linear.Examples.AnBn
 import Langlib.Classes.Regular.Basics.InclusionLinear
@@ -62,11 +63,11 @@ private lemma map_anbn_is_Linear (f : Bool → T) (_hf : Function.Injective f) :
                                                                                                                                                                                                                                                 · exact ⟨ n, Or.inr <| Or.inl ⟨ [ ], by aesop ⟩ ⟩;
                                                                                                                                                                                                                                                 · replace h₁ := congr_arg List.toFinset h₁; rw [ Finset.ext_iff ] at h₁; specialize h₁ b; aesop;
                                                                                                                                                                                                                                           · rcases h₂ with ( ⟨ u, v, h₁, rfl ⟩ | ⟨ u, v, h₁, rfl ⟩ ) <;> simp_all +decide [ List.replicate ];
-                                                                                                                                                                                                                                            · replace h₁ := congr_arg List.toFinset h₁ ; rw [ Finset.ext_iff ] at h₁ ; specialize h₁ ( symbol.nonterminal () ) ; aesop;
-                                                                                                                                                                                                                                            · replace h₁ := congr_arg List.toFinset h₁ ; rw [ Finset.ext_iff ] at h₁ ; specialize h₁ ( symbol.nonterminal () ) ; aesop;
+                                                                                                                                                                                                                                            · no_nonterminal
+                                                                                                                                                                                                                                            · no_nonterminal
           obtain ⟨ n, hn ⟩ := h_deriv _ hw;
           rcases hn with ( hn | hn );
-          · replace hn := congr_arg List.toFinset hn; rw [ Finset.ext_iff ] at hn; specialize hn ( symbol.nonterminal () ) ; aesop;
+          · no_nonterminal
           · use List.replicate n false ++ List.replicate n true;
             exact ⟨ ⟨ n, rfl ⟩, by simpa using List.map_injective_iff.mpr ( show Function.Injective ( fun x : T => symbol.terminal x ) from fun x y hxy => by simpa using hxy ) hn.symm ⟩;
         · rintro ⟨ v, ⟨ n, rfl ⟩, rfl ⟩;

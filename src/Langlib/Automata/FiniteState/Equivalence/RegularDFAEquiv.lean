@@ -6,6 +6,7 @@ import Mathlib
 import Langlib.Automata.FiniteState.Definition
 import Langlib.Classes.Regular.Definition
 import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
+import Langlib.Utilities.Tactics
 
 open Relation Classical
 
@@ -202,11 +203,11 @@ lemma RG_derives_form {g : RG_grammar T} {A : g.nt}
             · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
               · exact Or.inr ⟨ p, by aesop ⟩;
               · cases b <;> simp_all +decide [ List.map ];
-                replace hu := congr_arg List.toFinset hu; rw [ Finset.ext_iff ] at hu; specialize hu ( symbol.nonterminal ‹_› ) ; aesop;
+                no_nonterminal
         · cases h₂;
           rename_i r hr;
           rcases hr with ⟨ hr₁, u, v, hu, hv ⟩;
-          replace hu := congr_arg List.toFinset hu; rw [ Finset.ext_iff ] at hu; specialize hu ( symbol.nonterminal r.lhs ) ; aesop;
+          no_nonterminal
 
 /-
 An RG transform applied to a sentential form `map terminal p ++ [nt C]`
@@ -257,10 +258,9 @@ lemma RG_derives_snoc {g : RG_grammar T} {A B : g.nt}
               grind;
             · replace h₂ := congr_arg List.reverse h₂ ; simp_all +decide [ List.reverse_append ];
             · replace h₁ := congr_arg List.reverse h₁.2 ; simp_all +decide [ List.reverse_append ];
-              replace h₁ := congr_arg List.toFinset h₁ ; rw [ Finset.ext_iff ] at h₁ ; specialize h₁ ( symbol.nonterminal B ) ; aesop;
+              no_nonterminal
           · rcases hs with ⟨ r, hr, u, v, hu, hv ⟩;
-            replace hu := congr_arg List.toFinset hu; simp_all +decide [ Finset.ext_iff ] ;
-            specialize hu ( symbol.nonterminal r.lhs ) ; aesop
+            no_nonterminal
 
 /-
 Backward simulation: if the grammar derives `[nt A] →* map terminal w ++ [nt B]`,
@@ -312,12 +312,12 @@ lemma RG_generates_last_step {g : RG_grammar T} {A : g.nt} {w : List T}
             cases h ; tauto;
         rcases RG_derives_form hs'.left with ( ⟨ p, C, rfl ⟩ | ⟨ p, rfl ⟩ );
         · rcases RG_transforms_of_terminal_nt hs'.2 with ( ⟨ a, D, hD, h ⟩ | ⟨ a, hD, h ⟩ | h ) <;> simp_all +decide [ List.map ];
-          · replace h := congr_arg List.toFinset h ; rw [ Finset.ext_iff ] at h ; specialize h ( symbol.nonterminal D ) ; aesop;
+          · no_nonterminal
           · refine Or.inr ⟨ C, p, hs'.1, a, hD, ?_ ⟩;
             exact List.map_injective_iff.mpr ( show Function.Injective symbol.terminal from fun x y hxy => by cases hxy; rfl ) <| by simpa using h;
           · exact Or.inl ⟨ C, hs'.1, h.1 ⟩;
         · rcases hs'.2 with ⟨ r, hr, ⟨ u, v, hu, hv ⟩ ⟩ ; simp_all +decide [ List.map_eq_map_iff ];
-          replace hu := congr_arg List.toFinset hu; rw [ Finset.ext_iff ] at hu; specialize hu ( symbol.nonterminal r.lhs ) ; aesop;
+          no_nonterminal
 
 /-
 The finite NFA from a right-regular grammar accepts exactly the grammar's language.
@@ -571,8 +571,7 @@ theorem RG_of_DFA_language {σ : Type} [Fintype σ] (M : DFA T σ) :
       constructor;
       · intro hw
         obtain ⟨s, hs⟩ := RG_of_DFA_derives_inv M M.start (List.map symbol.terminal w) hw;
-        · replace hs := congr_arg List.toFinset hs ; simp_all +decide [ Finset.ext_iff ];
-          specialize hs ( symbol.nonterminal ( M.evalFrom M.start s ) ) ; aesop;
+        · no_nonterminal
         · obtain ⟨ p, hp₁, hp₂ ⟩ := ‹_›;
           rw [ List.map_inj_right ] at hp₁ ; aesop;
           aesop;

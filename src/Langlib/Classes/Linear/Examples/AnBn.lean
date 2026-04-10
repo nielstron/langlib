@@ -1,6 +1,7 @@
 import Mathlib
 import Langlib.Classes.Linear.Definition
 import Langlib.Classes.ContextFree.Examples.AnBn
+import Langlib.Utilities.Tactics
 
 /-! # `a^n b^n` as a Linear Language
 
@@ -139,10 +140,7 @@ lemma linear_grammar_anbn_language_sub_anbn :
   intro w hw
   have hsf := anbn_sentential_of_derives (List.map symbol.terminal w) hw
   rcases hsf with ⟨n, hn⟩ | ⟨n, hn⟩
-  · exfalso
-    have : symbol.nonterminal () ∈ List.map symbol.terminal w := by
-      rw [hn]; simp
-    simp at this
+  · no_nonterminal
   · have hinj : Function.Injective (symbol.terminal (T := Bool) (N := Unit)) := by
       intro a b h; cases h; rfl
     exact ⟨n, hinj.list_map hn⟩

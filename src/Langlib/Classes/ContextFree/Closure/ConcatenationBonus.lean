@@ -4,6 +4,7 @@ import Langlib.Utilities.WrittenByOthers.TrimAssoc
 import Langlib.Utilities.ListUtils
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Langlib.Utilities.Tactics
 
 
 /-! # Context-Free Concatenation Bonus Construction
@@ -1045,7 +1046,7 @@ by
           (combined_grammar g₁ g₂)
           ([symbol.nonterminal (some (Sum.inl g₁.initial))] ++ [symbol.nonterminal (some (Sum.inr g₂.initial))])
           (List.map symbol.terminal u ++ [symbol.nonterminal (some (Sum.inr g₂.initial))])
-      apply CF_deri_with_postfix
+      deri_context
 
       -- hu : CF_generates g₁ u, which is CF_derives g₁ [symbol.nonterminal g₁.initial] (List.map symbol.terminal u)
       let gg₁ := g₁g g₁ g₂
@@ -1070,7 +1071,7 @@ by
 
       exact lift_deri hu
     ·
-      apply CF_deri_with_prefix
+      deri_context
 
       -- hv : CF_generates g₂ v, which is CF_derives g₂ [symbol.nonterminal g₂.initial] (List.map symbol.terminal v)
       let gg₂ := g₂g g₁ g₂

@@ -155,6 +155,7 @@ import Langlib.Utilities.Homomorphism
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
 import Langlib.Utilities.PrimrecHelpers
+import Langlib.Utilities.Tactics
 import Langlib.Utilities.WrittenByOthers.ListTakeJoin
 import Langlib.Utilities.WrittenByOthers.PrintSorries
 import Langlib.Utilities.WrittenByOthers.TrimAssoc
