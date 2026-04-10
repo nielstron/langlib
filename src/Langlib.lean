@@ -58,6 +58,7 @@ import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Closure.UnionBonus
 import Langlib.Classes.ContextFree.Closure.UnionBonus2
 import Langlib.Classes.ContextFree.Decidability.Emptiness
+import Langlib.Classes.ContextFree.Decidability.EncodedCFG
 import Langlib.Classes.ContextFree.Decidability.Membership
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Examples.AnBn
