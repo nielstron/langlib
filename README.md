@@ -5,12 +5,15 @@
 
 ### Regular Languages
 
-- [Definition](src/Langlib/Classes/Regular/Definition.lean)
 - [Right-regular grammars](src/Langlib/Grammars/RightRegular/Definition.lean)
+- [Left-regular grammars](src/Langlib/Grammars/LeftRegular/Definition.lean)
+- [Top and Bottom are Regular](src/Langlib/Classes/Regular/Examples/TopBot.lean)
 
-### Linear Languages
+### Linear and DCF Languages
 
-- [Definition](src/Langlib/Classes/Linear/Definition.lean)
+- [Linear Languages](src/Langlib/Classes/Linear/Definition.lean)
+- [Deterministic Context-Free Languages](src/Langlib/Classes/DeterministicContextFree/Definition.lean)
+- [`{aⁿbⁿ}` is Linear](src/Langlib/Classes/ContextFree/Examples/AnBn.lean)
 
 ### Context-Free Languages
 
@@ -22,40 +25,30 @@
 
 ### Indexed Languages
 
-- [Definition](src/Langlib/Classes/Indexed/Definition.lean)
 - [Indexed grammars](src/Langlib/Grammars/Indexed/Definition.lean)
-- [`{aⁿbⁿcⁿ}` example](src/Langlib/Classes/Indexed/Examples/AnBnCn.lean)
-
-### Deterministic Context-Free Languages
-
-- [Definition](src/Langlib/Classes/DeterministicContextFree/Definition.lean)
-- [Deterministic pushdown automata](src/Langlib/Automata/DeterministicPushdown/Definition.lean)
+- [`{aⁿbⁿcⁿ}` is Indexed](src/Langlib/Classes/Indexed/Examples/AnBnCn.lean)
 
 ### Context-Sensitive Languages
 
-- [Definition](src/Langlib/Classes/ContextSensitive/Definition.lean)
 - [Context-sensitive grammars](src/Langlib/Grammars/ContextSensitive/Definition.lean)
-- [Noncontracting grammars](src/Langlib/Classes/ContextSensitive/Basics/NonContracting.lean)
+- [Noncontracting grammars](src/Langlib/Grammars/NonContracting/Definition.lean)
 
 ### Recursive Languages
 
-- [Definition](src/Langlib/Classes/Recursive/Definition.lean)
-- [Membership decidability](src/Langlib/Classes/Recursive/Decidability/Membership.lean)
-- [Inclusion into TM / RE](src/Langlib/Classes/Recursive/Basics/Inclusion.lean)
+- [Recursive Languages](src/Langlib/Classes/Recursive/Definition.lean)
 
 ### Recursively Enumerable Languages
 
-- [Definition](src/Langlib/Classes/RecursivelyEnumerable/Definition.lean)
 - [Unrestricted grammars](src/Langlib/Grammars/Unrestricted/Definition.lean)
 - [Kuroda normal form](src/Langlib/Classes/RecursivelyEnumerable/NormalForms/Kuroda.lean)
+- [`{aⁿbⁿcⁿ}` is RE](src/Langlib/Classes/RecursivelyEnumerable/Examples/AnBnCn.lean)
 
 ### Automata
 
 - [Pushdown automata](src/Langlib/Automata/Pushdown/Definition.lean)
 - [Deterministic pushdown automata](src/Langlib/Automata/DeterministicPushdown/Definition.lean)
-- [Deterministic linear bounded automata](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean)
 - [Linear bounded automata](src/Langlib/Automata/LinearBounded/Definition.lean)
-- Turing Machines inherited from Mathlib
+- [Deterministic linear bounded automata](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean)
 
 ### Examples
 
@@ -71,7 +64,7 @@
 
 | Grammar side | Relation | Automaton side |
 | --- | --- | --- |
-| Regular languages | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
+| Regular languages (Left-regular ⇔ Right-regular (⇒ [🔗](src/Langlib/Grammars/LeftRegular/Equivalence/LGEquivRG.lean))) | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
 | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/StrictInclusion.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Basics/Inclusion.lean) |
 | Deterministic context-free languages | ≝ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Basics/Inclusion.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Basics/Inclusion.lean)) |
