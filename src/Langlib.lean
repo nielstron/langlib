@@ -98,8 +98,8 @@ import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
+import Langlib.Classes.RecursivelyEnumerable.Closure.Star.Helpers
 import Langlib.Classes.RecursivelyEnumerable.Closure.Star
-import Langlib.Classes.RecursivelyEnumerable.Closure.StarHelpers
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.UnionBonus
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Emptiness

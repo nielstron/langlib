@@ -4,7 +4,7 @@ import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
 import Langlib.Utilities.ListUtils
-import Langlib.Classes.RecursivelyEnumerable.Closure.StarHelpers
+import Langlib.Classes.RecursivelyEnumerable.Closure.Star.Helpers
 
 /-! # RE Closure Under Kleene Star
 
