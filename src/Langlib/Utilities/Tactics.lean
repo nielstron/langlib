@@ -211,18 +211,17 @@ pumping lemma counterexamples where character counts become inconsistent.
 -/
 macro "count_contra" : tactic =>
   `(tactic| (
-    simp only [List.count_in_append, List.count_in_replicate_eq,
+    simp +decide [List.count_in_append, List.count_in_replicate_eq,
+      List.count_in_replicate_neq, List.count_in_zero_of_notin,
       List.count_in_nil, List.count_in_cons,
-      List.count_in_singleton_eq,
+      List.count_in_singleton_eq, List.count_in_singleton_neq,
+      List.count_in_pos_of_in,
       List.n_times, List.count_in_flatten,
       List.map_cons, List.map_nil, List.sum_cons, List.sum_nil,
       List.length_append, List.length_replicate, List.length_cons, List.length_nil,
-      ite_true, ite_false, Nat.add_zero, Nat.zero_add] at * <;>
-    (first
-      | omega
-      | (simp only [List.count_in_replicate_neq (by decide),
-           List.count_in_singleton_neq (by decide),
-           List.count_in_zero_of_notin (by assumption)] at *; omega))))
+      List.mem_append, not_or,
+      Nat.add_zero, Nat.zero_add] at * <;>
+    omega))
 
 
 /-! ## derive_step
