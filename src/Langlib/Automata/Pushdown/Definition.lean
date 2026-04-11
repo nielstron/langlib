@@ -483,14 +483,28 @@ end SameTransitions
 
 variable {T : Type} [Fintype T]
 
+def is_PDA_emptyStack (L : Language T) : Prop :=
+  ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByEmptyStack = L
+
 /-- A language over a finite terminal alphabet is accepted by some PDA via empty-stack
 acceptance. -/
-def is_PDA (L : Language T) : Prop :=
-  ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByEmptyStack = L
+alias is_PDA := is_PDA_emptyStack
+
+/-- A language over a finite terminal alphabet is accepted by some PDA via final-state
+acceptance. -/
+def is_PDA_finalState (L : Language T) : Prop :=
+  ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByFinalState = L
+
+/-- The class of languages recognized by PDAs via empty-stack acceptance. -/
+def PDA.EmptyStackClass : Set (Language T) :=
+  setOf is_PDA
 
 /-- The class of PDA-recognizable languages.
 
 This lives under `PDA.Class` because the top-level name `PDA` is already used by the
 automaton structure. -/
-def PDA.Class : Set (Language T) :=
-  setOf is_PDA
+alias PDA.Class := PDA.EmptyStackClass
+
+/-- The class of languages recognized by PDAs via final-state acceptance. -/
+def PDA.FinalStateClass : Set (Language T) :=
+  setOf is_PDA_finalState

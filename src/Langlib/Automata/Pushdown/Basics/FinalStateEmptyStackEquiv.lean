@@ -530,3 +530,28 @@ theorem PDA_ES_subset_FS {Q S : Type} [Fintype Q] [Fintype S] (M : PDA Q T S) :
   exact ⟨PDA_ES_to_FS_backward M w, PDA_ES_to_FS_forward M w⟩
 
 end PDA_ES_to_FS
+
+/-- A language is accepted by some PDA via empty-stack acceptance iff it is accepted by
+some PDA via final-state acceptance. -/
+@[simp]
+theorem is_PDA_finalState_iff_is_PDA_emptyStack {L : Language T} :
+    is_PDA_finalState L  ↔ is_PDA_emptyStack L := by
+  constructor
+  · rintro ⟨Q, S, _, _, M, hM⟩
+    rw [← hM]
+    exact PDA_FS_subset_ES M
+  · rintro ⟨Q, S, _, _, M, hM⟩
+    obtain ⟨Q', S', hQ', hS', M', hM'⟩ := PDA_ES_subset_FS M
+    exact ⟨Q', S', hQ', hS', M', hM'.trans hM⟩
+
+/-- The languages accepted by PDAs via final-state acceptance are exactly the languages
+accepted by PDAs via empty-stack acceptance. -/
+theorem PDA_FinalStateClass_eq_EmptyStackClass :
+    (PDA.FinalStateClass : Set (Language T)) = PDA.EmptyStackClass := by
+  ext L
+  refine Eq.to_iff ?_
+  simp [PDA.FinalStateClass, PDA.EmptyStackClass, Set.mem_setOf_eq, is_PDA_finalState_iff_is_PDA_emptyStack, is_PDA]
+
+theorem PDA_FinalStateClass_eq_Class :
+    (PDA.FinalStateClass : Set (Language T)) = PDA.Class := by
+  rw [PDA.Class, PDA_FinalStateClass_eq_EmptyStackClass]
