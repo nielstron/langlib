@@ -63,11 +63,11 @@ private lemma map_anbn_is_Linear (f : Bool → T) (_hf : Function.Injective f) :
                                                                                                                                                                                                                                                 · exact ⟨ n, Or.inr <| Or.inl ⟨ [ ], by aesop ⟩ ⟩;
                                                                                                                                                                                                                                                 · replace h₁ := congr_arg List.toFinset h₁; rw [ Finset.ext_iff ] at h₁; specialize h₁ b; aesop;
                                                                                                                                                                                                                                           · rcases h₂ with ( ⟨ u, v, h₁, rfl ⟩ | ⟨ u, v, h₁, rfl ⟩ ) <;> simp_all +decide [ List.replicate ];
-                                                                                                                                                                                                                                            · no_nonterminal
-                                                                                                                                                                                                                                            · no_nonterminal
+                                                                                                                                                                                                                                            · no_nonterminal (symbol.nonterminal ())
+                                                                                                                                                                                                                                            · no_nonterminal (symbol.nonterminal ())
           obtain ⟨ n, hn ⟩ := h_deriv _ hw;
           rcases hn with ( hn | hn );
-          · no_nonterminal
+          · no_nonterminal (symbol.nonterminal ())
           · use List.replicate n false ++ List.replicate n true;
             exact ⟨ ⟨ n, rfl ⟩, by simpa using List.map_injective_iff.mpr ( show Function.Injective ( fun x : T => symbol.terminal x ) from fun x y hxy => by simpa using hxy ) hn.symm ⟩;
         · rintro ⟨ v, ⟨ n, rfl ⟩, rfl ⟩;
