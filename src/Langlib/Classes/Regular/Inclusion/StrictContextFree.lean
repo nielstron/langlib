@@ -27,30 +27,6 @@ open Language List
 theorem exists_CF_not_regular : ∃ L : Language Bool, is_CF L ∧ ¬ L.IsRegular :=
   ⟨anbn, anbn_is_CF, anbn_not_isRegular⟩
 
-private lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
-    ∀ w : List α, ∀ u : List β,
-      u ∈ (w.map fun x => ({[f x]} : Language β)).prod ↔ u = List.map f w
-  | [], u => by
-      change u ∈ ({[]} : Language β) ↔ u = []
-      rfl
-  | x :: xs, u => by
-      constructor
-      · intro hu
-        rw [show (List.map (fun x => ({[f x]} : Language β)) (x :: xs)).prod =
-            ({[f x]} : Language β) * (List.map (fun x => ({[f x]} : Language β)) xs).prod by rfl] at hu
-        rw [Language.mul_def] at hu
-        rcases hu with ⟨u₁, hu₁, u₂, hu₂, rfl⟩
-        have hu₂' := (mem_prod_singletons_iff f xs u₂).1 hu₂
-        have hu₁' : u₁ = [f x] := by simpa using hu₁
-        simp [hu₁', hu₂']
-      · intro hu
-        subst hu
-        rw [show (List.map (fun x => ({[f x]} : Language β)) (x :: xs)).prod =
-            ({[f x]} : Language β) * (List.map (fun x => ({[f x]} : Language β)) xs).prod by rfl]
-        rw [Language.mul_def]
-        refine ⟨[f x], Set.mem_singleton _, List.map f xs, ?_, rfl⟩
-        exact (mem_prod_singletons_iff f xs (List.map f xs)).2 rfl
-
 private theorem map_anbn_is_CF (f : Bool → T) : is_CF (Language.map f anbn) := by
   have hsubst : is_CF (anbn.subst (fun x => ({[f x]} : Language T))) := by
     apply CF_of_subst_CF anbn
