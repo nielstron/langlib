@@ -126,8 +126,7 @@ def count_in (l : List α) (a : α) : ℕ :=
 List.sum (List.map (λ s => ite (s = a) 1 0) l)
 
 lemma count_in_nil (a : α) :
-  count_in [] a = 0 := by
-  rfl
+  count_in [] a = 0 := rfl
 
 lemma count_in_cons (a b : α) :
   count_in (b :: x) a  =  ite (b = a) 1 0  +  count_in x a  := by
@@ -144,77 +143,39 @@ lemma count_in_replicate_eq (a : α) (n : ℕ) :
   unfold count_in
   induction n with
   | zero => rfl
-  | succ step ih =>
-    simp
-    -- rw [List.replicate_succ, List.map_cons, List.sum_cons, ih]
-    -- rw [if_pos rfl]
-    -- apply Nat.one_add
-
+  | succ step ih => simp [ih]
 
 lemma count_in_replicate_neq {a b : α} (hyp : a ≠ b) (n : ℕ) :
   count_in (List.replicate n a) b  =  0  := by
   unfold count_in
   induction n with
   | zero => rfl
-  | succ step ih =>
-    rw [List.replicate_succ, List.map_cons, List.sum_cons, ih, add_zero]
-    rw [ite_eq_right_iff]
-    intro impos
-    exfalso
-    exact hyp impos
+  | succ _ ih => simp [hyp, ih]
 
 lemma count_in_singleton_eq (a : α) :
-  count_in [a] a  =  1  := by
-  exact List.count_in_replicate_eq a 1
+  count_in [a] a  =  1  := List.count_in_replicate_eq a 1
 
 lemma count_in_singleton_neq {a b : α} (hyp : a ≠ b) :
-  count_in [a] b  =  0  := by
-  exact List.count_in_replicate_neq hyp 1
+  count_in [a] b  =  0  := List.count_in_replicate_neq hyp 1
 
 lemma count_in_pos_of_in {a : α} (hyp : a ∈ x) :
   count_in x a > 0 := by
   induction x with
-  | nil =>
-    exfalso
-    rw [List.mem_nil_iff] at hyp
-    exact hyp
+  | nil => simp at hyp
   | cons d l ih =>
-    by_contra contr
-    rw [not_lt] at contr
-    rw [Nat.le_zero_eq] at contr
-    rw [List.mem_cons] at hyp
-    unfold count_in at contr
-    unfold List.map at contr
-    simp at contr
-    cases hyp with
-    | inl hh => exact contr.left hh.symm
-    | inr hh =>
-      specialize ih hh
-      have zero_in_tail : count_in l a = 0 := by
-        unfold count_in
-        exact contr.right
-      rw [zero_in_tail] at ih
-      exact Nat.lt_irrefl 0 ih
-
+    rw [count_in_cons]
+    rcases List.mem_cons.mp hyp with rfl | hm
+    · simp
+    · have := ih hm; omega
 
 lemma count_in_zero_of_notin {a : α} (hyp : a ∉ x) :
   count_in x a = 0 := by
   induction x with
   | nil => rfl
-  | cons d i ih =>
-    unfold count_in
-    rw [List.map_cons, List.sum_cons]
-    split_ifs with heq
-    · exfalso
-      have hmem : a ∈ d :: i := by
-        subst heq      -- replace d with a everywhere
-        simp           -- now goal is `a ∈ a :: i`, which is trivially true
-      exact hyp hmem
-    · have notin : a ∉ i := by
-        exact not_mem_of_not_mem_cons hyp
-      specialize ih notin
-      ring_nf
-      exact Eq.symm ((fun {a b} => Nat.succ_inj.mp) (congrArg Nat.succ (id (Eq.symm ih))))
+  | cons d l ih =>
+    rw [count_in_cons]
+    have hd : d ≠ a := fun h => hyp (h ▸ mem_cons_self)
+    simp [hd, ih (fun h => hyp (mem_cons_of_mem _ h))]
 
 lemma count_in_flatten (L : List (List α)) (a : α) :
   count_in L.flatten a = List.sum (List.map (λ w => count_in w a) L) := by
@@ -244,74 +205,56 @@ def nthLe : (l : List α) → (n : Nat) → n < l.length → α
 
 theorem get?_eq_nth {l : List α} {n : Nat} : l[n]? = l.nth n := by
   induction l generalizing n with
-  | nil =>
-      cases n <;> rfl
+  | nil => cases n <;> rfl
   | cons head tail ih =>
       cases n with
-      | zero =>
-          rfl
-      | succ n =>
-          simpa using (ih (n := n))
+      | zero => rfl
+      | succ n => simpa using (ih (n := n))
 
 theorem nthLe_nth {l : List α} {n : Nat} (h : n < l.length) : l.nth n = some (l.nthLe n h) := by
   induction l generalizing n with
-  | nil =>
-      cases (Nat.not_lt_zero _ h)
+  | nil => exact (Nat.not_lt_zero _ h).elim
   | cons head tail ih =>
       cases n with
-      | zero =>
-          rfl
+      | zero => rfl
       | succ n =>
-          have h' : n < tail.length := by
-            simpa using (Nat.lt_of_succ_lt_succ h)
-          simpa [List.nth, List.nthLe] using (ih (n := n) h')
+          have h' : n < tail.length := Nat.lt_of_succ_lt_succ h
+          simpa [List.nth, List.nthLe] using (ih h')
 
 lemma nthLe_mem {l : List α} {n : ℕ} (h : n < l.length) :
   l.nthLe n h ∈ l := by
   induction l generalizing n with
-  | nil =>
-      cases (Nat.not_lt_zero _ h)
+  | nil => exact (Nat.not_lt_zero _ h).elim
   | cons a l ih =>
       cases n with
-      | zero =>
-          simp [List.nthLe]
-      | succ n =>
-          have h' : n < l.length := Nat.lt_of_succ_lt_succ h
-          have ih' := ih h'
-          simpa [List.nthLe, h'] using (List.mem_cons_of_mem a ih')
+      | zero => simp [List.nthLe]
+      | succ n => exact List.mem_cons_of_mem a (ih (Nat.lt_of_succ_lt_succ h))
 
 theorem nth_mem {l : List α} {n : Nat} {a : α} (h : l.nth n = some a) : a ∈ l := by
   induction l generalizing n with
-  | nil =>
-      cases n <;> cases h
+  | nil => cases n <;> cases h
   | cons head tail ih =>
       cases n with
       | zero =>
-          have : head = a := by
-            simpa [List.nth] using h
-          simpa [this]
+          have : head = a := by simpa [List.nth] using h
+          subst this; exact List.mem_cons_self
       | succ n =>
-          have h' : tail.nth n = some a := by
-            simpa [List.nth] using h
-          exact List.mem_cons_of_mem _ (ih (n := n) h')
+          have h' : tail.nth n = some a := by simpa [List.nth] using h
+          exact List.mem_cons_of_mem _ (ih h')
 
 theorem nthLe_map {f : α → β} {l : List α} {n : Nat}
     (h : n < (List.map f l).length) :
     (List.map f l).nthLe n h =
       f (l.nthLe n (by simpa [List.length_map] using h)) := by
   induction l generalizing n with
-  | nil =>
-      cases (Nat.not_lt_zero _ h)
+  | nil => exact (Nat.not_lt_zero _ h).elim
   | cons head tail ih =>
       cases n with
-      | zero =>
-          rfl
+      | zero => rfl
       | succ n =>
           have h' : n < (List.map f tail).length := by
             simpa [List.length_map, Nat.succ_lt_succ_iff] using h
-          have h'' : n < tail.length := by
-            simpa [List.length_map, Nat.succ_lt_succ_iff] using h
-          simpa [List.nthLe, List.length_map] using (ih (n := n) h')
+          simpa [List.nthLe, List.length_map] using (ih h')
 
 theorem nthLe_append_right {l₁ l₂ : List α} {n : Nat}
     (h₁ : l₁.length ≤ n) (h₂ : n < (l₁ ++ l₂).length) :
@@ -322,36 +265,20 @@ theorem nthLe_append_right {l₁ l₂ : List α} {n : Nat}
             simpa [List.length_append] using h₂
           exact Nat.sub_lt_left_of_lt_add h₁ h') := by
   induction l₁ generalizing n with
-  | nil =>
-      have h' : n < l₂.length := by
-        simpa [List.length_append] using h₂
-      simp [List.nthLe]
+  | nil => simp [List.nthLe]
   | cons head tail ih =>
       cases n with
-      | zero =>
-          cases (Nat.not_succ_le_zero _ h₁)
+      | zero => cases (Nat.not_succ_le_zero _ h₁)
       | succ n =>
           have h₁' : tail.length ≤ n := by
             simpa [Nat.succ_le_succ_iff] using h₁
           have h₂' : n < (tail ++ l₂).length := by
             simpa [List.length_append] using (Nat.lt_of_succ_lt_succ h₂)
-          simpa [List.nthLe, Nat.succ_sub_succ_eq_sub] using (ih (n := n) h₁' h₂')
+          simpa [List.nthLe, Nat.succ_sub_succ_eq_sub] using (ih h₁' h₂')
 
 theorem nthLe_congr {l : List α} {n : Nat} {h₁ h₂ : n < l.length} :
     l.nthLe n h₁ = l.nthLe n h₂ := by
-  induction l generalizing n with
-  | nil =>
-      cases (Nat.not_lt_zero _ h₁)
-  | cons head tail ih =>
-      cases n with
-      | zero =>
-          rfl
-      | succ n =>
-          have h₁' : n < tail.length := by
-            simpa using (Nat.lt_of_succ_lt_succ h₁)
-          have h₂' : n < tail.length := by
-            simpa using (Nat.lt_of_succ_lt_succ h₂)
-          simpa [List.nthLe] using (ih (n := n) h₁' h₂')
+  congr 1
 
 theorem nthLe_of_eq {l₁ l₂ : List α} (h : l₁ = l₂) {n : Nat} (hn : n < l₁.length) :
     l₁.nthLe n hn = l₂.nthLe n (by simpa [h] using hn) := by
@@ -362,23 +289,20 @@ theorem nthLe_append {l₁ l₂ : List α} {n : Nat}
     (h₁ : n < l₁.length) (h₂ : n < (l₁ ++ l₂).length) :
     (l₁ ++ l₂).nthLe n h₂ = l₁.nthLe n h₁ := by
   induction l₁ generalizing n with
-  | nil =>
-      cases (Nat.not_lt_zero _ h₁)
+  | nil => cases (Nat.not_lt_zero _ h₁)
   | cons head tail ih =>
       cases n with
-      | zero =>
-          simp [List.nthLe]
+      | zero => simp [List.nthLe]
       | succ n =>
           have h₁' : n < tail.length := Nat.lt_of_succ_lt_succ h₁
           have h₂' : n < (tail ++ l₂).length := by
             simpa [List.length_append] using (Nat.lt_of_succ_lt_succ h₂)
-          simpa [List.nthLe] using (ih (n := n) h₁' h₂')
+          simpa [List.nthLe] using (ih h₁' h₂')
 
 theorem mem_iff_nth_le {l : List α} {a : α} :
     a ∈ l ↔ ∃ n, ∃ h : n < l.length, l.nthLe n h = a := by
   induction l with
-  | nil =>
-      simp
+  | nil => simp
   | cons head tail ih =>
       constructor
       · intro h
@@ -395,13 +319,11 @@ theorem mem_iff_nth_le {l : List α} {a : α} :
         rcases h with ⟨n, hn, hval⟩
         cases n with
         | zero =>
-            have : head = a := by
-              simpa [List.nthLe] using hval
-            simpa [this]
+            have : head = a := by simpa [List.nthLe] using hval
+            subst this; exact List.mem_cons_self
         | succ n =>
             right
-            have hn' : n < tail.length := by
-              simpa using (Nat.lt_of_succ_lt_succ hn)
+            have hn' : n < tail.length := Nat.lt_of_succ_lt_succ hn
             have hval' : tail.nthLe n hn' = a := by
               simpa [List.nthLe] using hval
             exact ih.mpr ⟨n, hn', hval'⟩
@@ -413,41 +335,33 @@ theorem nthLe_of_mem {l : List α} {a : α} (h : a ∈ l) :
 theorem nthLe_replicate (a : α) {n i : Nat} (h : i < (List.replicate n a).length) :
     (List.replicate n a).nthLe i h = a := by
   induction n generalizing i with
-  | zero =>
-      cases (Nat.not_lt_zero _ h)
+  | zero => cases (Nat.not_lt_zero _ h)
   | succ n ih =>
       cases i with
-      | zero =>
-          simp [List.replicate, List.nthLe]
+      | zero => simp [List.replicate, List.nthLe]
       | succ i =>
           have h' : i < (List.replicate n a).length := by
             simpa [List.length_replicate] using (Nat.lt_of_succ_lt_succ h)
-          simpa [List.nthLe] using (ih (i := i) h')
+          simpa [List.nthLe] using (ih h')
 
 theorem nth_eq_none_iff {l : List α} {n : Nat} : l.nth n = none ↔ l.length ≤ n := by
   induction l generalizing n with
-  | nil =>
-      cases n <;> simp [List.nth]
+  | nil => cases n <;> simp [List.nth]
   | cons head tail ih =>
       cases n with
-      | zero =>
-          simp [List.nth]
-      | succ n =>
-          simpa [List.nth, Nat.succ_le_succ_iff] using (ih (n := n))
+      | zero => simp [List.nth]
+      | succ n => simpa [List.nth, Nat.succ_le_succ_iff] using (ih (n := n))
 
 theorem nth_take {l : List α} {m n : Nat} (h : n < m) :
     (List.take m l).nth n = l.nth n := by
   induction l generalizing m n with
-  | nil =>
-      simp [List.nth]
+  | nil => simp [List.nth]
   | cons head tail ih =>
       cases m with
-      | zero =>
-          exact (Nat.not_lt_zero _ h).elim
+      | zero => exact (Nat.not_lt_zero _ h).elim
       | succ m =>
           cases n with
-          | zero =>
-              simp [List.nth]
+          | zero => simp [List.nth]
           | succ n =>
               have h' : n < m := Nat.lt_of_succ_lt_succ h
               simp [List.nth, ih h']
@@ -455,28 +369,23 @@ theorem nth_take {l : List α} {m n : Nat} (h : n < m) :
 theorem nth_drop {l : List α} {m n : Nat} :
     (List.drop m l).nth n = l.nth (m + n) := by
   induction m generalizing l with
-  | zero =>
-      simp [List.nth]
+  | zero => simp
   | succ m ih =>
       cases l with
-      | nil =>
-          simp [List.nth]
-      | cons head tail =>
-          simp [List.nth, ih, Nat.succ_add]
+      | nil => simp [List.nth]
+      | cons head tail => simp [List.nth, ih, Nat.succ_add]
 
 theorem nth_append_right {l₁ l₂ : List α} {n : Nat} (h : l₁.length ≤ n) :
     (l₁ ++ l₂).nth n = l₂.nth (n - l₁.length) := by
   induction l₁ generalizing n with
-  | nil =>
-      simp [List.nth]
+  | nil => simp
   | cons head tail ih =>
       cases n with
-      | zero =>
-          cases (Nat.not_succ_le_zero _ h)
+      | zero => cases (Nat.not_succ_le_zero _ h)
       | succ n =>
           have h' : tail.length ≤ n := by
             simpa [Nat.succ_le_succ_iff] using h
-          simpa [List.nth, Nat.succ_sub_succ_eq_sub] using (ih (n := n) h')
+          simpa [List.nth, Nat.succ_sub_succ_eq_sub] using (ih h')
 
 theorem nth_append {l₁ l₂ : List α} {n : Nat} (h : n < l₁.length) :
     (l₁ ++ l₂).nth n = l₁.nth n := by
@@ -486,12 +395,11 @@ theorem nth_append {l₁ l₂ : List α} {n : Nat} (h : n < l₁.length) :
       tauto
   | cons head tail ih =>
       cases n with
-      | zero =>
-          constructor
+      | zero => constructor
       | succ n =>
           have h' : n < tail.length := by
             simp at h
             exact h
-          simpa [List.nth, Nat.succ_sub_succ_eq_sub] using (ih (n := n) h')
+          simpa [List.nth, Nat.succ_sub_succ_eq_sub] using (ih h')
 
 end List
