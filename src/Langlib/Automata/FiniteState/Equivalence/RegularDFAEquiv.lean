@@ -207,7 +207,7 @@ lemma RG_derives_form {g : RG_grammar T} {A : g.nt}
         · cases h₂;
           rename_i r hr;
           rcases hr with ⟨ hr₁, u, v, hu, hv ⟩;
-          no_nonterminal (symbol.nonterminal r.lhs)
+          no_nonterminal
 
 /-
 An RG transform applied to a sentential form `map terminal p ++ [nt C]`

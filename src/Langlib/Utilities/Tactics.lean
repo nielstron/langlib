@@ -134,7 +134,7 @@ private def noNonterminalFinsetAt (hypName : Name) : TacticM Unit := do
   for sym in syms do
     try
       let symStx ← mvarId.withContext (PrettyPrinter.delab sym)
-      noNonterminalTryOne hypName symStx true
+      noNonterminalTryOne hypName symStx false
       return
     catch _ => continue
   throwError "no_nonterminal: could not find a suitable symbol witness for hypothesis `{hypName}`"
@@ -144,6 +144,9 @@ open Meta in
 private def noNonterminalFinsetWithAt (symStx : Syntax.Term) (hypName : Name) :
     TacticM Unit := do
   try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
+  -- Try simp +decide first, then clear + aesop as fallback
+  try noNonterminalTryOne hypName symStx false; return
+  catch _ => pure ()
   noNonterminalTryOne hypName symStx true
 
 open Meta in
@@ -182,10 +185,8 @@ open Meta Tactic in
 
     **Variants:**
     - `no_nonterminal` — automatically searches for the right hypothesis and symbol (slow)
-    - `no_nonterminal at hyp` — search symbols against a specific hypothesis (fast)
-    - `no_nonterminal (sym) at hyp` — fully explicit, no search at all (fastest)
-    - `no_nonterminal (sym)` — explicit symbol, searches hypotheses
-    - `no_nonterminal?` — like `no_nonterminal`, but suggests `no_nonterminal at hyp`
+    - `no_nonterminal (sym) at hyp` — specify the symbol and hypothesis to target (fast), (sym) and at hyp are optional
+    - `no_nonterminal?` — like `no_nonterminal`, but suggests `no_nonterminal (sym) at hyp`
 
     Falls back to `exfalso; simp` for membership-based contradictions. -/
 syntax "no_nonterminal" : tactic
@@ -200,7 +201,6 @@ elab_rules : tactic
       noNonterminalFinsetWithAt sym hyp.getId
       return
     catch _ => pure ()
-    noNonterminalFallbacks
 
 elab_rules : tactic
   | `(tactic| no_nonterminal at $hyp) => do
@@ -208,7 +208,6 @@ elab_rules : tactic
       noNonterminalFinsetAt hyp.getId
       return
     catch _ => pure ()
-    noNonterminalFallbacks
 
 elab_rules : tactic
   | `(tactic| no_nonterminal ($sym)) => do
@@ -216,7 +215,6 @@ elab_rules : tactic
       noNonterminalFinsetWith sym
       return
     catch _ => pure ()
-    noNonterminalFallbacks
 
 elab_rules : tactic
   | `(tactic| no_nonterminal) => do
