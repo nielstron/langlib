@@ -37,6 +37,22 @@ fun r : grule T N₀ => grule.mk
   (lift_string_ lift_N r.input_R)
   (lift_string_ lift_N r.output_string)
 
+/-- `sink_string_` preserves terminal-only lists. -/
+lemma sink_string_map_terminal_ (sink_N : N → Option N₀) (w : List T) :
+    sink_string_ sink_N (List.map symbol.terminal w) = List.map symbol.terminal w := by
+  unfold sink_string_
+  rw [List.filterMap_map]
+  show List.filterMap (fun x => Option.some (symbol.terminal x)) w = List.map symbol.terminal w
+  rw [show (fun x => Option.some (symbol.terminal (T := T) (N := N₀) x)) =
+      (Option.some ∘ symbol.terminal) from rfl]
+  rw [← List.filterMap_map]
+  exact List.filterMap_some
+
+/-- `lift_string_` preserves terminal-only lists. -/
+lemma lift_string_map_terminal_ (lift_N : N₀ → N) (w : List T) :
+    lift_string_ lift_N (List.map symbol.terminal w) = List.map symbol.terminal w := by
+  simp [lift_string_, List.map_map, Function.comp, lift_symbol_]
+
 end functions_lift_sink
 
 
