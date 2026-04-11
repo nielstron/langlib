@@ -193,6 +193,7 @@ syntax "no_nonterminal" : tactic
 syntax "no_nonterminal" "(" term ")" "at" ident : tactic
 syntax "no_nonterminal" "at" ident : tactic
 syntax "no_nonterminal" "(" term ")" : tactic
+syntax "no_nonterminal!" : tactic
 syntax "no_nonterminal?" : tactic
 
 elab_rules : tactic
@@ -224,6 +225,10 @@ elab_rules : tactic
     catch _ => pure ()
     noNonterminalFallbacks
 
+elab_rules : tactic
+  | `(tactic| no_nonterminal!) => do
+    noNonterminalFallbacks
+
 open Meta.Tactic in
 elab_rules : tactic
   | `(tactic| no_nonterminal?%$tk) => do
@@ -234,6 +239,7 @@ elab_rules : tactic
       return
     catch _ => pure ()
     noNonterminalFallbacks
+    TryThis.addSuggestion tk s!"no_nonterminal!"
 
 
 /-! ## grammar_cases
