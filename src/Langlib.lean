@@ -99,6 +99,7 @@ import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
+import Langlib.Classes.RecursivelyEnumerable.Closure.Homomorphism
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Classes.RecursivelyEnumerable.Closure.Star.Helpers
 import Langlib.Classes.RecursivelyEnumerable.Closure.Star
