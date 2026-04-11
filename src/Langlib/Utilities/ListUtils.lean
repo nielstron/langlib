@@ -194,6 +194,72 @@ end list_count_in
 
 end List
 
+section list_generalizable
+
+variable {α β : Type}
+
+/-- `filterMap f x = y` follows from `map f x = map some y`. -/
+lemma list_filter_map_eq_of_map_eq_map_some {f : α → Option β} :
+  ∀ {x : List α}, ∀ {y : List β},
+    List.map f x = List.map Option.some y →
+      List.filterMap f x = y
+| [], [] => fun _ => rfl
+| (_::_), [] => fun hyp => (List.cons_ne_nil _ _ hyp).elim
+| [], (_::_) => fun hyp => (List.cons_ne_nil _ _ hyp.symm).elim
+| (a₁::l₁), (_::l₂) => by
+    intro ass
+    simp at ass
+    rcases ass with ⟨ass_head, ass_tail⟩
+    simp [List.filterMap, ass_head, list_filter_map_eq_of_map_eq_map_some ass_tail]
+
+/-- If `List.Forall₂ R x y` holds, then `R` holds at each corresponding position. -/
+lemma list_forall₂_nth_le {R : α → β → Prop} :
+  ∀ {x : List α}, ∀ {y : List β}, List.Forall₂ R x y →
+    ∀ {i : ℕ}, ∀ i_lt_len_x : i < x.length, ∀ i_lt_len_y : i < y.length,
+      R (x.get ⟨i, i_lt_len_x⟩) (y.get ⟨i, i_lt_len_y⟩)
+| [], [] => fun _ i hx => (Nat.not_lt_zero _ hx).elim
+| [], (_::_) => fun hyp => by cases hyp
+| (_::_), [] => fun hyp => by cases hyp
+| (_::l₁), (_::l₂) => by
+    intro ass i i_lt_len_x i_lt_len_y
+    cases ass with
+    | cons h_head h_tail =>
+        cases i with
+        | zero => simpa using h_head
+        | succ i =>
+            have hx : i < l₁.length := Nat.lt_of_succ_lt_succ i_lt_len_x
+            have hy : i < l₂.length := Nat.lt_of_succ_lt_succ i_lt_len_y
+            exact list_forall₂_nth_le h_tail hx hy
+
+end list_generalizable
+
+section list_separator
+
+/-- If `a ++ [sep] ++ b = u ++ mid ++ v` and `sep ∉ mid`, then the separator falls
+either entirely within `a` or entirely within `b`. -/
+lemma split_at_separator {α : Type} {a b u mid v : List α} {sep : α}
+    (h_sep_not_in_mid : sep ∉ mid)
+    (h_eq : a ++ [sep] ++ b = u ++ mid ++ v) :
+  (∃ u' : List α, a = u ++ mid ++ u' ∧ v = u' ++ [sep] ++ b) ∨
+  (∃ v' : List α, u = a ++ [sep] ++ v' ∧ b = v' ++ mid ++ v) := by
+  by_cases hu : u.length ≤ a.length <;> simp_all +decide [List.append_eq_append_iff]
+  · rcases h_eq with (⟨as, rfl, h⟩ | ⟨bs, rfl, h⟩) <;> simp_all +decide [List.append_assoc]
+    · cases mid <;> aesop
+    · rcases h with (⟨as, rfl, rfl⟩ | ⟨bs_1, rfl, h⟩) <;> simp_all +decide
+      cases bs_1 <;> aesop
+  · rcases h_eq with (⟨as, rfl, h⟩ | ⟨bs, rfl, h⟩) <;> simp_all +decide [List.append_assoc]
+    cases as <;> aesop
+
+/-- If `elem` appears only at the head of `s`, and `s = u ++ [elem] ++ rest`, then `u = []`. -/
+lemma head_unique_elem {α : Type} {s : List α} {elem : α} {u rest : List α}
+    (_h_head : s = elem :: s.tail)
+    (h_not_in_tail : elem ∉ s.tail)
+    (h_eq : s = u ++ [elem] ++ rest) :
+  u = [] := by
+  grind
+
+end list_separator
+
 namespace List
 variable {α : Type}
 

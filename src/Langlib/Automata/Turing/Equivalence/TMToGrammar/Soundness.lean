@@ -1069,7 +1069,7 @@ theorem tm_step_some_of_corresponds
 
 /-
 PROVIDED SOLUTION
-Two remaining sorry cases:
+Two remaining cases:
 
 CASE 1 (TM halts, line ~753): Goal: GI M (u ++ r.output_string ++ v).
 Context: hL=[], hR=[], hO=r.output_string=[haltCell tc.headOrig], hN=r.input_N=headCell, h_Mqc: M tc.headState tc.headCur = none.
@@ -1092,7 +1092,7 @@ Show tc' = tc'' by Option.some.inj (hstep.symm.trans hstep'').
 Use stepTwoTrack_preserves_extractInput M tc tc' hstep to rewrite.
 Apply GI.simulating tc' tmCfg' hcorr'' (Relation.ReflTransGen.tail hreach h_tm_step).
 
-The sorry is in the "TM continues: simulation" case after obtaining tc' from sim_rule_gives_encodeTwoTrack and rewriting the goal to GI M (encodeTwoTrack tc').
+The difficulty is in the "TM continues: simulation" case after obtaining tc' from sim_rule_gives_encodeTwoTrack and rewriting the goal to GI M (encodeTwoTrack tc').
 
 To prove GI M (encodeTwoTrack tc'), use GI.simulating with appropriate arguments:
 1. Use tm_step_some_of_corresponds M tc tmCfg hcorr q' action h_Mqc to get ⟨tmCfg', h_tm_step⟩

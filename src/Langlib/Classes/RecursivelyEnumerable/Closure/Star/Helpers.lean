@@ -68,22 +68,6 @@ lemma H_not_in_wrapped_input {N : Type} {r₀ : grule T N} :
   simp +decide [ H ];
   constructor <;> intro x hx <;> intro H <;> cases x <;> cases H
 
-/-
-If `a ++ [sep] ++ b = u ++ mid ++ v` and `sep ∉ mid`, then either the match is in `a`
-    or the match is in `b`.
--/
-lemma split_at_separator {α : Type} {a b u mid v : List α} {sep : α}
-    (h_sep_not_in_mid : sep ∉ mid)
-    (h_eq : a ++ [sep] ++ b = u ++ mid ++ v) :
-  (∃ u' : List α, a = u ++ mid ++ u' ∧ v = u' ++ [sep] ++ b) ∨
-  (∃ v' : List α, u = a ++ [sep] ++ v' ∧ b = v' ++ mid ++ v) := by
-  by_cases hu : u.length ≤ a.length <;> simp_all +decide [ List.append_eq_append_iff ];
-  · rcases h_eq with ( ⟨ as, rfl, h ⟩ | ⟨ bs, rfl, h ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-    · cases mid <;> aesop;
-    · rcases h with ( ⟨ as, rfl, rfl ⟩ | ⟨ bs_1, rfl, h ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-      cases bs_1 <;> aesop;
-  · rcases h_eq with ( ⟨ as, rfl, h ⟩ | ⟨ bs, rfl, h ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-    cases as <;> aesop
 
 /-
 Key decomposition: if a wrapped rule pattern matches in the flattened block structure,
@@ -173,16 +157,6 @@ lemma valid_update_block
     exact grammar_deri_of_deri_tran ( hvalid _ <| by aesop ) h_transform;
   aesop
 
-/-
-If an element appears only at the head of a list, and the list equals u ++ [elem] ++ rest,
-    then u = [].
--/
-lemma head_unique_elem {α : Type} {s : List α} {elem : α} {u rest : List α}
-    (h_head : s = elem :: s.tail)
-    (h_not_in_tail : elem ∉ s.tail)
-    (h_eq : s = u ++ [elem] ++ rest) :
-  u = [] := by
-  grind
 
 /-
 R only appears at position 0 in [R, H] ++ blocks.

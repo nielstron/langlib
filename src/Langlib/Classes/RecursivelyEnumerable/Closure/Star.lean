@@ -342,7 +342,6 @@ private lemma R_not_in_map_wrap {N : Type} {l : List (symbol T N)} :
 
 /-
 The hard direction cases are very complex (see RE_star.lean Lean 3 proof, ~2000 lines).
-We state them as sorry'd lemmas and prove them individually.
 
 Case 1: β = [Z] ++ (map (\cdot ++ [H]) (map (map wrap_sym) x)).flatten
 -/
