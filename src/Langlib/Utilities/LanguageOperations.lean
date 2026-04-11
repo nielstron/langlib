@@ -99,7 +99,7 @@ theorem subst_univ_unit_eq_kstar {β : Type} (f : Unit → Language β) :
         simpa [List.replicate_succ, List.prod_cons, List.prod_nil, mul_one] using
           (Set.mem_image2_of_mem (List.forall_mem_cons.mp hL).1 ih'.2)
 
-private lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
+lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
     ∀ w : List α, ∀ u : List β,
       u ∈ (w.map fun x => ({[f x]} : Language β)).prod ↔ u = List.map f w
   | [], u => by
