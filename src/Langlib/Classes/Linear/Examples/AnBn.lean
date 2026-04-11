@@ -115,7 +115,7 @@ private lemma anbn_sentential_step (w w' : List (symbol Bool Unit))
           · rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [ List.replicate ];
             · refine Or.inl ⟨ n + 1, ?_ ⟩ ; simp_all +decide [ List.replicate ];
               exact Or.inl ⟨ [ symbol.terminal false ], by rw [ ← h₁ ] ; exact Nat.recOn n ( by simp +decide ) fun n ihn => by simp +decide [ List.replicate ] at * ; aesop ⟩;
-            · replace h₁ := congr_arg List.toFinset h₁ ; rw [ Finset.ext_iff ] at h₁ ; specialize h₁ a ; aesop;
+            · no_nonterminal (a) at h₁
         · rw [ List.append_eq_append_iff ] at hw₁;
           rcases hw₁ with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h₁, h₂ ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
           · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.replicate ];
@@ -123,8 +123,8 @@ private lemma anbn_sentential_step (w w' : List (symbol Bool Unit))
             · replace h := congr_arg List.toFinset h.2; rw [ Finset.ext_iff ] at h; specialize h ( symbol.nonterminal () ) ; aesop;
           · rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [ List.append_assoc ];
             · exact Or.inr ⟨ n, Or.inl ⟨ [ ], by aesop ⟩ ⟩;
-            · replace h₁ := congr_arg List.toFinset h₁ ; rw [ Finset.ext_iff ] at h₁ ; specialize h₁ a ; aesop;
-      · replace hw₁ := congr_arg List.toFinset hw₁ ; rw [ Finset.ext_iff ] at hw₁ ; specialize hw₁ ( symbol.nonterminal r.input_N ) ; aesop;
+            · no_nonterminal (a) at h₁
+      · no_nonterminal (symbol.nonterminal r.input_N) at hw₁
 
 /-- Derivation preserves `anbn_sentential` form. -/
 private lemma anbn_sentential_of_derives (w : List (symbol Bool Unit))

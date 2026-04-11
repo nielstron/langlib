@@ -188,14 +188,14 @@ lemma RG_derives_form {g : RG_grammar T} {A : g.nt}
               exact Or.inl ⟨ p ++ [ ‹_› ], ‹_›, by simp +decide [ RG_rule.output ] ⟩;
             · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.map ];
               · exact Or.inl ⟨ p ++ [ ‹_› ], ‹_›, by aesop ⟩;
-              · replace hu := congr_arg List.toFinset hu; rw [ Finset.ext_iff ] at hu; specialize hu b; aesop;
+              · no_nonterminal (b) at hu
           · rw [ List.append_eq_append_iff ] at hu;
             rcases hu with ( ⟨ as, rfl, hu ⟩ | ⟨ bs, hu, hv ⟩ ) <;> simp_all +decide [ List.append_assoc ];
             · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [ List.append_assoc ];
               exact Or.inr ⟨ p ++ [ ‹_› ], by simp +decide [ RG_rule.output ] ⟩;
             · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.map ];
               · exact Or.inr ⟨ p ++ [ ‹_› ], by aesop ⟩;
-              · replace hu := congr_arg List.toFinset hu; rw [ Finset.ext_iff ] at hu; specialize hu b; aesop;
+              · no_nonterminal (b) at hu
           · rw [ List.append_eq_append_iff ] at hu;
             rcases hu with ( ⟨ as, rfl, hu ⟩ | ⟨ bs, hu, hv ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
             · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
@@ -227,7 +227,7 @@ lemma RG_transforms_of_terminal_nt {g : RG_grammar T} {p : List T} {C : g.nt}
         rcases r with ( _ | _ | _ ) <;> aesop;
       · rcases huv with ⟨ bs, h₁, h₂ ⟩ ; rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [ List.map ] ;
         · rcases r with ( _ | _ | _ ) <;> aesop;
-        · replace h₁ := congr_arg List.toFinset h₁ ; rw [ Finset.ext_iff ] at h₁ ; specialize h₁ a ; aesop;
+        · no_nonterminal (a) at h₁
 
 /-
 In an RG grammar, if `[nt A] →* map terminal w ++ [nt B]` with w nonempty,
@@ -540,9 +540,9 @@ lemma RG_of_DFA_derives_inv {σ : Type} [Fintype σ] (M : DFA T σ)
               exact Or.inr ⟨ p, rfl, by simpa [ hu.1 ] using RG_of_DFA_epsilon_mem_iff M _ |>.1 hr ⟩;
             · cases bs <;> simp_all +decide [ List.map ];
               · exact Or.inr ⟨ p, hu.symm, by simpa [ RG_of_DFA_epsilon_mem_iff ] using hr ⟩;
-              · replace hu := congr_arg List.toFinset hu; rw [ Finset.ext_iff ] at hu; specialize hu ( symbol.nonterminal ‹_› ) ; aesop;
+              · no_nonterminal (symbol.nonterminal ‹_›) at hu
         · obtain ⟨ r, hr, u, v, huv, rfl ⟩ := ih;
-          replace huv := congr_arg List.toFinset huv; rw [ Finset.ext_iff ] at huv; specialize huv ( symbol.nonterminal r.lhs ) ; aesop;
+          no_nonterminal (symbol.nonterminal r.lhs) at huv
 
 /-
 PROBLEM
