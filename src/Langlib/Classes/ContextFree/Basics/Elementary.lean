@@ -76,32 +76,20 @@ by
     | inl h =>
       exfalso
       cases w with
-      | nil =>
-        cases h
-      | cons head tail =>
-        cases h
+      | nil => cases h
+      | cons head tail => cases h
     | inr h =>
       rcases h with ⟨v, step_init, step_none⟩
       have v_is_empty_word : v = List.nil := by
         rcases step_init with ⟨r, pre, pos, rin, bef, aft⟩
         have rule : r = ((0 : Fin 1), []) := by
-          rw [←List.mem_singleton]
-          exact rin
+          rw [←List.mem_singleton]; exact rin
         have empty_surrounding : pre = [] ∧ pos = [] := by
           rw [rule] at bef
           have bef_lengths := congr_arg List.length bef
           simp [List.length_append] at bef_lengths
-          have pre_zero : pre.length = 0 := by
-            linarith
-          have pos_zero : pos.length = 0 := by
-            linarith
-          have pre_nil : pre = [] := by
-            simpa [List.length_eq_zero_iff] using pre_zero
-          have pos_nil : pos = [] := by
-            simpa [List.length_eq_zero_iff] using pos_zero
-          exact ⟨pre_nil, pos_nil⟩
-        rw [empty_surrounding.1, empty_surrounding.2] at aft
-        rw [rule] at aft
+          constructor <;> (rw [← List.length_eq_zero_iff]; omega)
+        rw [empty_surrounding.1, empty_surrounding.2, rule] at aft
         exact aft
       rw [v_is_empty_word] at step_none
       cases
@@ -116,22 +104,14 @@ by
           apply List.length_pos_of_ne_nil
           simpa using contra
         have impossible_lengths := congr_arg List.length h
-        rw [List.length] at impossible_lengths
-        rw [List.length_map] at impossible_lengths
-        rw [←impossible_lengths] at w_not_nil
-        exact Nat.lt_irrefl 0 w_not_nil
+        rw [List.length, List.length_map] at impossible_lengths
+        omega
       | inr h =>
         exfalso
         rcases h with ⟨v1, ⟨r1, pre1, pos1, r1_in, impossible, _⟩, _⟩
-        have impossible_len := congr_arg List.length impossible
-        rw [List.length_append_append] at impossible_len
-        rw [List.length_singleton] at impossible_len
-        rw [List.length] at impossible_len
-        have hzero : (0 : Nat) = pre1.length + 1 + pos1.length := by
-          simpa using impossible_len
-        have hsucc : (0 : Nat) = Nat.succ (pre1.length + pos1.length) := by
-          simpa [Nat.succ_eq_add_one, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using hzero
-        exact (Nat.succ_ne_zero _ hsucc.symm)
+        have := congr_arg List.length impossible
+        rw [List.length_append_append, List.length_singleton, List.length] at this
+        omega
   ·
     intro hyp
     rw [Set.mem_singleton_iff] at hyp
@@ -155,12 +135,6 @@ by
   constructor
   ·
     intro hw
-    /-
-      We prove this inclusion as follows:
-      (1) `w ∈ CF_language (cfg_symbol_star a)` →
-      (2) `w` contains only `a`s →
-      (3) `∃ (n : ℕ), w = List.replicate n a)` □
-    -/
     have implication2 : (∀ t : T, t ≠ a → t ∉ w) → (∃ (n : ℕ), w = List.replicate n a) := by
       intro h
       have hmem : ∀ b ∈ w, b = a := by
@@ -189,14 +163,8 @@ by
           rcases step with ⟨r, u, v, r_in, h_bef, h_aft⟩
           have ih' : symbol.terminal t ∉ u ++ [symbol.nonterminal r.1] ++ v := by
             simpa [h_bef] using ih
-          have hu : symbol.terminal t ∉ u := by
-            intro hmem
-            apply ih'
-            simp [List.mem_append, hmem]
-          have hv : symbol.terminal t ∉ v := by
-            intro hmem
-            apply ih'
-            simp [List.mem_append, hmem]
+          have hu : symbol.terminal t ∉ u := by intro hmem; apply ih'; simp [List.mem_append, hmem]
+          have hv : symbol.terminal t ∉ v := by intro hmem; apply ih'; simp [List.mem_append, hmem]
           have hr2 : symbol.terminal t ∉ r.2 := by
             have r_in' :
                 r = ((0 : Fin 1), [symbol.terminal a, symbol.nonterminal (0 : Fin 1)]) ∨
@@ -204,24 +172,10 @@ by
               simpa [cfg_symbol_star] using r_in
             cases r_in' with
             | inl h =>
-              rw [h]
-              intro hmem
-              have hmem' :
-                  (@symbol.terminal T (cfg_symbol_star a).nt t) =
-                    (@symbol.terminal T (cfg_symbol_star a).nt a) ∨
-                  (@symbol.terminal T (cfg_symbol_star a).nt t) =
-                    symbol.nonterminal (0 : Fin 1) := by
-                simpa [List.mem_cons] using hmem
-              cases hmem' with
-              | inl hmem'' =>
-                apply nq
-                cases hmem''
-                rfl
-              | inr hmem'' =>
-                cases hmem''
-            | inr h =>
-              rw [h]
-              simp
+              rw [h]; intro hmem
+              simp [List.mem_cons] at hmem
+              exact nq hmem
+            | inr h => rw [h]; simp
           intro hmem
           rw [h_aft] at hmem
           simp [List.mem_append, hu, hr2, hv] at hmem
@@ -249,54 +203,10 @@ by
         refine ⟨((0 : Fin 1), [symbol.terminal a, symbol.nonterminal (0 : Fin 1)]),
           List.replicate n (symbol.terminal a), [], ?_, ?_, ?_⟩
         · apply List.mem_cons_self
-        ·
-          rw [List.append_nil]
-        ·
-          rw [List.append_nil]
-          change
-            (@symbol.terminal T (cfg_symbol_star a).nt a) ::
-                (List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a) ++
-                  [symbol.nonterminal (0 : Fin 1)]) =
-              List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a) ++
-                ([@symbol.terminal T (cfg_symbol_star a).nt a] ++ [symbol.nonterminal (0 : Fin 1)])
-          rw [←List.cons_append]
-          simp [List.append_assoc]
-          have count_succ_left :
-              @symbol.terminal T (cfg_symbol_star a).nt a ::
-                List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a) =
-                  List.replicate (n + 1) (@symbol.terminal T (cfg_symbol_star a).nt a) := by
-            simp [List.replicate_succ, Nat.succ_eq_add_one, Nat.add_comm, Nat.add_left_comm,
-              Nat.add_assoc]
-          have count_succ_right :
-              List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a) ++
-                [@symbol.terminal T (cfg_symbol_star a).nt a] =
-                  List.replicate (n + 1) (@symbol.terminal T (cfg_symbol_star a).nt a) := by
-            change
-              List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a) ++
-                List.replicate 1 (@symbol.terminal T (cfg_symbol_star a).nt a) =
-                  List.replicate (n + 1) (@symbol.terminal T (cfg_symbol_star a).nt a)
-            simpa using (List.replicate_append_replicate (n := n) (m := 1) (a := symbol.terminal a))
-          calc
-            @symbol.terminal T (cfg_symbol_star a).nt a ::
-                (List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a) ++
-                  [symbol.nonterminal (0 : Fin 1)]) =
-                (@symbol.terminal T (cfg_symbol_star a).nt a ::
-                  List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a)) ++
-                  [symbol.nonterminal (0 : Fin 1)] := by
-                    simp [List.cons_append]
-            _ =
-                List.replicate (n + 1) (@symbol.terminal T (cfg_symbol_star a).nt a) ++
-                  [symbol.nonterminal (0 : Fin 1)] := by
-                    simpa [count_succ_left]
-            _ =
-                (List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a) ++
-                  [@symbol.terminal T (cfg_symbol_star a).nt a]) ++
-                  [symbol.nonterminal (0 : Fin 1)] := by
-                    simpa [count_succ_right]
-            _ =
-                List.replicate n (@symbol.terminal T (cfg_symbol_star a).nt a) ++
-                  [@symbol.terminal T (cfg_symbol_star a).nt a, symbol.nonterminal (0 : Fin 1)] := by
-                    simp [List.append_assoc]
+        · rw [List.append_nil]
+        · rw [List.append_nil]
+          simp only [List.replicate_succ_eq_append_singleton, List.append_assoc]
+          rfl
     apply CF_deri_of_deri_tran comes_to
     refine ⟨((0 : Fin 1), []), List.replicate n (symbol.terminal a), [], ?_, ?_, ?_⟩
     ·
