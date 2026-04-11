@@ -143,14 +143,14 @@ lemma count_in_replicate_eq (a : α) (n : ℕ) :
   unfold count_in
   induction n with
   | zero => rfl
-  | succ step ih => simp [ih]
+  | succ step ih => simp
 
 lemma count_in_replicate_neq {a b : α} (hyp : a ≠ b) (n : ℕ) :
   count_in (List.replicate n a) b  =  0  := by
   unfold count_in
   induction n with
   | zero => rfl
-  | succ _ ih => simp [hyp, ih]
+  | succ _ ih => simp [hyp]
 
 lemma count_in_singleton_eq (a : α) :
   count_in [a] a  =  1  := List.count_in_replicate_eq a 1
@@ -183,6 +183,12 @@ lemma count_in_flatten (L : List (List α)) (a : α) :
   | nil => rfl
   | cons _ _ L_ih =>
     simp [List.flatten, count_in_append, L_ih]
+
+omit [DecidableEq α] in
+lemma not_mem_replicate_of_ne {a b : α} (hab : a ≠ b) (n : ℕ) :
+    a ∉ List.replicate n b := by
+  rw [List.mem_replicate]
+  exact fun h => hab h.right
 
 end list_count_in
 
@@ -265,7 +271,7 @@ theorem nthLe_append_right {l₁ l₂ : List α} {n : Nat}
             simpa [List.length_append] using h₂
           exact Nat.sub_lt_left_of_lt_add h₁ h') := by
   induction l₁ generalizing n with
-  | nil => simp [List.nthLe]
+  | nil => simp
   | cons head tail ih =>
       cases n with
       | zero => cases (Nat.not_succ_le_zero _ h₁)

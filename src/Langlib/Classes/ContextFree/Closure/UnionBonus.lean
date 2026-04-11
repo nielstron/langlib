@@ -317,13 +317,7 @@ by
     rw [beginning, ending]
     exact deri₁_more (List.map symbol.terminal w) assum
 
-  unfold CF_language
-  rw [Set.mem_setOf_eq]
-  unfold CF_generates
-  unfold CF_generates_str
-  unfold CF_derives
-  apply CF_deri_of_deri_deri deri_start
-  exact deri_rest
+  exact CF_deri_of_deri_deri deri_start deri_rest
 
 private lemma in_union_of_in_second (w : List T) :
   w ∈ CF_language g₂  →  w ∈ CF_language (union_grammar g₁ g₂)  :=
@@ -363,13 +357,7 @@ by
     rw [beginning, ending]
     exact deri₂_more (List.map symbol.terminal w) assum
 
-  unfold CF_language
-  rw [Set.mem_setOf_eq]
-  unfold CF_generates
-  unfold CF_generates_str
-  unfold CF_derives
-  apply CF_deri_of_deri_deri deri_start
-  exact deri_rest
+  exact CF_deri_of_deri_deri deri_start deri_rest
 
 end lemmata_subset
 
@@ -392,11 +380,7 @@ private lemma in_language_left_case_of_union {w : List T}
       (List.map symbol.terminal w)) :
   w ∈ CF_language g₁ :=
 by
-  unfold CF_language
-  rw [Set.mem_setOf_eq]
-  unfold CF_generates
-  unfold CF_generates_str
-
+  change CF_derives g₁ [symbol.nonterminal g₁.initial] (List.map symbol.terminal w)
   let gg₁ := @g₁g T g₁ g₂
 
   have bar :
@@ -430,11 +414,7 @@ private lemma in_language_right_case_of_union {w : List T}
       (List.map symbol.terminal w)) :
   w ∈ CF_language g₂ :=
 by
-  unfold CF_language
-  rw [Set.mem_setOf_eq]
-  unfold CF_generates
-  unfold CF_generates_str
-
+  change CF_derives g₂ [symbol.nonterminal g₂.initial] (List.map symbol.terminal w)
   let gg₂ := @g₂g T g₁ g₂
 
   have bar :
@@ -466,35 +446,10 @@ private lemma both_empty
     (u v: List (symbol T (union_grammar g₁ g₂).nt))
     (a : (symbol T (union_grammar g₁ g₂).nt))
     (bef: [symbol.nonterminal (union_grammar g₁ g₂).initial] = u ++ [a] ++ v) :
-  u = []  ∧  v = [] :=
-by
+  u = []  ∧  v = [] := by
   have len := congr_arg List.length bef
-  rw [List.length_singleton, List.length_append, List.length_append, List.length_singleton] at len
-  refine And.intro ?_ ?_
-  ·
-    by_contra h
-    rw [←List.length_eq_zero_iff] at h
-    exact Nat.not_succ_le_self 1 (by
-      calc
-        1 = (u.length + 1) + v.length := len
-        _ = u.length + (1 + v.length) := add_assoc (List.length u) 1 (List.length v)
-        _ ≥ 1 + (1 + v.length) := add_le_add (Nat.one_le_iff_ne_zero.mpr h) (le_of_eq rfl)
-        _ = (1 + 1) + v.length := (add_assoc 1 1 (List.length v)).symm
-        _ ≥ 1 + 1 + 0 := le_self_add
-        _ = 2 := rfl
-    )
-  ·
-    by_contra h
-    rw [←List.length_eq_zero_iff] at h
-    exact Nat.not_succ_le_self 1 (by
-      calc
-        1 = (u.length + 1) + v.length := len
-        _ ≥ (u.length + 1) + 1 := add_le_add (le_of_eq rfl) (Nat.one_le_iff_ne_zero.mpr h)
-        _ = u.length + (1 + 1) := add_assoc (List.length u) 1 1
-        _ ≥ 0 + (1 + 1) := le_add_self
-        _ = (0 + 1) + 1 := (add_assoc 0 1 1).symm
-        _ = 2 := rfl
-    )
+  simp [List.length_append] at len
+  constructor <;> (rw [← List.length_eq_zero_iff]; omega)
 
 private lemma in_language_impossible_case_of_union
     (w : List T)
@@ -542,13 +497,7 @@ by
           cases impossible
       | cons head tail =>
           have zeroth := congr_arg List.head? impossible
-          have zeroth' :
-              Option.some (symbol.nonterminal (union_grammar g₁ g₂).initial) =
-                Option.some (symbol.terminal head) := by
-            simpa using zeroth
-          have : symbol.nonterminal (union_grammar g₁ g₂).initial = symbol.terminal head :=
-            Option.some.inj zeroth'
-          cases this
+          simp at zeroth
   | inr h =>
       rcases h with ⟨S₁, deri_head, deri_tail⟩
       rcases deri_head with ⟨rule, u, v, ruleok, h_bef, h_aft⟩
