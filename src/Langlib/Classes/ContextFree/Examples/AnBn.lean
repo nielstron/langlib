@@ -66,8 +66,8 @@ private lemma sentential_form_step (w w' : List (symbol Bool Unit))
           specialize h a
           aesop
   · rcases ht with (⟨x, y, hxy, rfl⟩ | ⟨x, y, hxy, rfl⟩)
-    · no_nonterminal
-    · no_nonterminal
+    · no_nonterminal (symbol.nonterminal ())
+    · no_nonterminal (symbol.nonterminal ())
 
 private lemma sentential_form_of_derives (w : List (symbol Bool Unit))
     (hd : CF_derives cfg_anbn [symbol.nonterminal ()] w) :

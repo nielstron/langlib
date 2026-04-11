@@ -140,7 +140,7 @@ lemma linear_grammar_anbn_language_sub_anbn :
   intro w hw
   have hsf := anbn_sentential_of_derives (List.map symbol.terminal w) hw
   rcases hsf with ⟨n, hn⟩ | ⟨n, hn⟩
-  · no_nonterminal
+  · no_nonterminal (symbol.nonterminal ())
   · have hinj : Function.Injective (symbol.terminal (T := Bool) (N := Unit)) := by
       intro a b h; cases h; rfl
     exact ⟨n, hinj.list_map hn⟩

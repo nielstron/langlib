@@ -1,6 +1,7 @@
 import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Utilities.ListUtils
+import Lean.Meta.Tactic.TryThis
 
 /-! # Custom Tactics for Langlib
 
@@ -52,10 +53,37 @@ private partial def collectSymbols (e : Expr) : Array Expr := Id.run do
   syms
 
 open Meta in
+/-- Try the toFinset trick with a specific symbol witness on all equality hypotheses. -/
+private def noNonterminalFinsetWith (symStx : Syntax.Term) : TacticM Unit := do
+  try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
+  let mvarId ← Tactic.getMainGoal
+  let eqHypNames ← mvarId.withContext do
+    let lctx ← getLCtx
+    let mut eqNames : Array Name := #[]
+    for ldecl in lctx do
+      if ldecl.isImplementationDetail then continue
+      let ty ← instantiateMVars ldecl.type
+      if ty.isAppOf ``Eq then
+        eqNames := eqNames.push ldecl.userName
+    return eqNames
+  for hypName in eqHypNames do
+    try
+      Tactic.evalTactic (← `(tactic| (
+        have _h_fs := congr_arg List.toFinset $(mkIdent hypName);
+        rw [Finset.ext_iff] at _h_fs;
+        have _h_spec := _h_fs $symStx;
+        simp +decide at _h_spec;
+        done)))
+      return
+    catch _ => continue
+  throwError "no_nonterminal: symbol witness did not produce a contradiction"
+
+open Meta in
 /-- Find list equalities in the local context and try the toFinset trick.
     Iterates over all hypotheses, tries `congr_arg List.toFinset` on each,
-    then specializes on every `symbol` constructor found in context. -/
-private def noNonterminalFinset : TacticM Unit := do
+    then specializes on every `symbol` constructor found in context.
+    Returns the syntax of the successful symbol witness. -/
+private def noNonterminalFinsetSearch : TacticM Syntax.Term := do
   -- First call exfalso (may already be proving False)
   try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
   -- Collect hypothesis names (only equalities) and symbols from context
@@ -91,26 +119,13 @@ private def noNonterminalFinset : TacticM Unit := do
           have _h_spec := _h_fs $symStx;
           simp +decide at _h_spec;
           done)))
-        return
+        return symStx
       catch _ => continue
   throwError "no_nonterminal: could not find a suitable list equality and symbol witness"
 
 open Meta in
-/-- Close goals where a `symbol.nonterminal` appears in a terminal-only list.
-
-    This is a metaprogram that:
-    1. Scans the local context for hypotheses that could be list equalities
-    2. Tries `congr_arg List.toFinset` + `Finset.ext_iff` on each
-    3. Collects all `symbol.nonterminal _` / `symbol.terminal _` from context
-    4. Tries specializing on each, then `simp +decide` to derive contradiction
-
-    Falls back to `exfalso; simp` for membership-based contradictions. -/
-elab "no_nonterminal" : tactic => do
-  -- Strategy 1: Try the metaprogram-based Finset approach
-  try
-    noNonterminalFinset
-    return
-  catch _ => pure ()
+/-- Fallback strategies for `no_nonterminal` (membership simp and aesop). -/
+private def noNonterminalFallbacks : TacticM Unit := do
   -- Strategy 2: Try exfalso + simp for membership contradictions
   try
     Elab.Tactic.evalTactic (← `(tactic| (
@@ -126,6 +141,46 @@ elab "no_nonterminal" : tactic => do
     return
   catch _ =>
     throwError "no_nonterminal: all strategies failed"
+
+open Meta Tactic in
+/-- Close goals where a `symbol.nonterminal` appears in a terminal-only list.
+
+    **Variants:**
+    - `no_nonterminal` — automatically searches for the right symbol witness (slow)
+    - `no_nonterminal (symbol.nonterminal X)` — use the given symbol directly (fast)
+    - `no_nonterminal?` — like `no_nonterminal`, but suggests the explicit call
+
+    Falls back to `exfalso; simp` for membership-based contradictions. -/
+syntax "no_nonterminal" : tactic
+syntax "no_nonterminal" "(" term ")" : tactic
+syntax "no_nonterminal?" : tactic
+
+elab_rules : tactic
+  | `(tactic| no_nonterminal ($sym)) => do
+    try
+      noNonterminalFinsetWith sym
+      return
+    catch _ => pure ()
+    noNonterminalFallbacks
+
+elab_rules : tactic
+  | `(tactic| no_nonterminal) => do
+    try
+      let _ ← noNonterminalFinsetSearch
+      return
+    catch _ => pure ()
+    noNonterminalFallbacks
+
+open Meta.Tactic in
+elab_rules : tactic
+  | `(tactic| no_nonterminal?%$tk) => do
+    try
+      let symStx ← noNonterminalFinsetSearch
+      let symFmt ← PrettyPrinter.ppTerm symStx
+      TryThis.addSuggestion tk s!"no_nonterminal ({symFmt})"
+      return
+    catch _ => pure ()
+    noNonterminalFallbacks
 
 
 /-! ## grammar_cases
