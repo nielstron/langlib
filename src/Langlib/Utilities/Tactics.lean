@@ -63,20 +63,37 @@ private def noNonterminalFinsetWith (symStx : Syntax.Term) : TacticM Unit := do
     for ldecl in lctx do
       if ldecl.isImplementationDetail then continue
       let ty ← instantiateMVars ldecl.type
+      -- Only consider equalities between Lists
       if ty.isAppOf ``Eq then
-        eqNames := eqNames.push ldecl.userName
+        let args := ty.getAppArgs
+        if args.size ≥ 1 && args[0]!.isAppOf ``List then
+          eqNames := eqNames.push ldecl.userName
     return eqNames
   for hypName in eqHypNames do
     try
       Tactic.evalTactic (← `(tactic| (
-        have _h_fs := congr_arg List.toFinset $(mkIdent hypName);
-        rw [Finset.ext_iff] at _h_fs;
-        have _h_spec := _h_fs $symStx;
-        simp +decide at _h_spec;
+        have _h_nn := congr_arg List.toFinset $(mkIdent hypName);
+        rw [Finset.ext_iff] at _h_nn;
+        specialize _h_nn $symStx;
+        first
+          | (set_option maxHeartbeats 5000 in simp +decide at _h_nn)
+          | (set_option maxHeartbeats 10000 in aesop);
         done)))
       return
     catch _ => continue
   throwError "no_nonterminal: symbol witness did not produce a contradiction"
+
+open Meta in
+/-- Try the toFinset trick with a specific symbol witness on a specific hypothesis. -/
+private def noNonterminalFinsetWithAt (symStx : Syntax.Term) (hypName : Name) : TacticM Unit := do
+  try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
+  let hyp := mkIdent hypName
+  Tactic.evalTactic (← `(tactic| (
+    have _h_nn := congr_arg List.toFinset $hyp;
+    clear $hyp;
+    rw [Finset.ext_iff] at _h_nn;
+    specialize _h_nn $symStx;
+    aesop)))
 
 open Meta in
 /-- Find list equalities in the local context and try the toFinset trick.
@@ -114,10 +131,10 @@ private def noNonterminalFinsetSearch : TacticM Syntax.Term := do
       try
         let symStx ← mvarId.withContext (PrettyPrinter.delab sym)
         Tactic.evalTactic (← `(tactic| (
-          have _h_fs := congr_arg List.toFinset $(mkIdent hypName);
-          rw [Finset.ext_iff] at _h_fs;
-          have _h_spec := _h_fs $symStx;
-          simp +decide at _h_spec;
+          have _h_nn := congr_arg List.toFinset $(mkIdent hypName);
+          rw [Finset.ext_iff] at _h_nn;
+          have _h_nn := _h_nn $symStx;
+          simp +decide at _h_nn;
           done)))
         return symStx
       catch _ => continue
@@ -152,6 +169,7 @@ open Meta Tactic in
 
     Falls back to `exfalso; simp` for membership-based contradictions. -/
 syntax "no_nonterminal" : tactic
+syntax "no_nonterminal" "(" term ")" "at" ident : tactic
 syntax "no_nonterminal" "(" term ")" : tactic
 syntax "no_nonterminal?" : tactic
 
@@ -159,6 +177,14 @@ elab_rules : tactic
   | `(tactic| no_nonterminal ($sym)) => do
     try
       noNonterminalFinsetWith sym
+      return
+    catch _ => pure ()
+    noNonterminalFallbacks
+
+elab_rules : tactic
+  | `(tactic| no_nonterminal ($sym) at $hyp) => do
+    try
+      noNonterminalFinsetWithAt sym hyp.getId
       return
     catch _ => pure ()
     noNonterminalFallbacks

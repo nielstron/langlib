@@ -47,10 +47,7 @@ private lemma sentential_form_step (w w' : List (symbol Bool Unit))
         · refine Or.inl ⟨n + 1, ?_⟩
           simp_all +decide [List.replicate]
           exact Or.inl ⟨[symbol.terminal false], by rw [← h]; exact Nat.recOn n (by simp +decide) fun n ihn => by simp +decide [List.replicate] at ihn ⊢; aesop⟩
-        · replace h := congr_arg List.toFinset h
-          rw [Finset.ext_iff] at h
-          specialize h (symbol.nonterminal ())
-          aesop
+        · no_nonterminal (symbol.nonterminal ()) at h
     · rw [List.append_eq_append_iff] at hxy
       rcases hxy with (⟨as, rfl, h⟩ | ⟨bs, h, h'⟩) <;> simp_all +decide [List.append_eq_append_iff]
       · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide [List.replicate]
@@ -61,10 +58,7 @@ private lemma sentential_form_step (w w' : List (symbol Bool Unit))
           aesop
       · rcases bs with _ | ⟨a, bs⟩ <;> simp_all +decide [List.append_assoc]
         · exact Or.inr ⟨n, Or.inl ⟨[], by aesop⟩⟩
-        · replace h := congr_arg List.toFinset h
-          rw [Finset.ext_iff] at h
-          specialize h a
-          aesop
+        · no_nonterminal (a) at h
   · rcases ht with (⟨x, y, hxy, rfl⟩ | ⟨x, y, hxy, rfl⟩)
     · no_nonterminal (symbol.nonterminal ())
     · no_nonterminal (symbol.nonterminal ())

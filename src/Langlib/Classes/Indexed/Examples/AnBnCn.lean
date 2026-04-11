@@ -485,7 +485,7 @@ private lemma goodForm_step_case3 {n ja jb jc : ℕ} {doneA doneB doneC : Bool}
             rw [ List.append_assoc ];
             cases r ; aesop;
           · replace heq := congr_arg ( fun x => x.map ( fun y => y ≠ IndexedGrammar.ISym.indexed ANBNCN_NT.A ( ANBNCN_Flag.bottom :: σ ) ) ) heq ; simp_all +decide [ List.map_append, List.map_replicate ];
-            replace heq := congr_arg List.toFinset heq ; rw [ Finset.ext_iff ] at heq ; specialize heq False ; aesop;
+            no_nonterminal (False) at heq
       · by_cases hB : r.lhs = .B;
         · by_cases hC : doneB = true;
           · have h_no_B : ∀ x ∈ replicate ja ia ++ (if doneA then [] else [iA (stk (n - ja))]) ++ replicate jb ib ++ (if doneB then [] else [iB (stk (n - jb))]) ++ replicate jc ic ++ (if doneC then [] else [iC (stk (n - jc))]), ∀ σ, x ≠ IndexedGrammar.ISym.indexed ANBNCN_NT.B σ := by
