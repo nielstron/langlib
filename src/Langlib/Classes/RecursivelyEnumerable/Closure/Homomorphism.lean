@@ -466,13 +466,3 @@ theorem RE_closed_under_epsfree_homomorphism (L : Language α) (h : α → List 
   · rintro ⟨w', hw', hu⟩
     rw [(mem_prod_singletons_iff_flatMap w' h w).mp hu]
     exact in_hom_of_in_original hw'
-
-/-- The class of recursively enumerable languages is closed under string homomorphism.
-
-**Note:** This theorem is correct but the current proof has a sorry.
-The two-phase grammar construction `hom_grammar` is not correct for erasing
-homomorphisms — a more sophisticated construction is needed. The ε-free case
-is fully proved above. -/
-theorem RE_closed_under_homomorphism (L : Language α) (h : α → List β)
-    (hL : is_RE L) : is_RE (L.homomorphicImage h) := by
-  sorry
