@@ -26,7 +26,7 @@ example (n : ℕ) (h : List.map (symbol.terminal (N := Unit)) (List.replicate n 
 -- With explicit symbol witness (fast path)
 example (w : List Bool) (h : List.map symbol.terminal w =
     [symbol.nonterminal ()] ++ List.map symbol.terminal w) : False := by
-  no_nonterminal (symbol.nonterminal ())
+  no_nonterminal (symbol.nonterminal ()) at h
 
 
 /-! ## Test: deri_context -/

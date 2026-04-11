@@ -53,92 +53,110 @@ private partial def collectSymbols (e : Expr) : Array Expr := Id.run do
   syms
 
 open Meta in
-/-- Try the toFinset trick with a specific symbol witness on all equality hypotheses. -/
-private def noNonterminalFinsetWith (symStx : Syntax.Term) : TacticM Unit := do
-  try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
+/-- Collect all `symbol.nonterminal _` and `symbol.terminal _` from the local context and goal,
+    with nonterminals prioritized first, deduplicated. -/
+private def collectContextSymbols : TacticM (List Expr) := do
   let mvarId ← Tactic.getMainGoal
-  let eqHypNames ← mvarId.withContext do
+  mvarId.withContext do
+    let lctx ← getLCtx
+    let mut allSyms : Array Expr := #[]
+    for ldecl in lctx do
+      if ldecl.isImplementationDetail then continue
+      allSyms := allSyms ++ collectSymbols (← instantiateMVars ldecl.type)
+    allSyms := allSyms ++ collectSymbols (← mvarId.getType)
+    let ntSyms := allSyms.filter fun e =>
+      e.isApp && e.getAppFn.isConst && e.getAppFn.constName! == ``symbol.nonterminal
+    let tSyms := allSyms.filter fun e =>
+      e.isApp && e.getAppFn.isConst && e.getAppFn.constName! == ``symbol.terminal
+    return (ntSyms ++ tSyms).toList.pwFilter (fun a b => !Lean.Expr.equal a b)
+
+open Meta in
+/-- Collect names of local hypotheses whose type is a `List` equality. -/
+private def collectListEqHyps : TacticM (Array Name) := do
+  let mvarId ← Tactic.getMainGoal
+  mvarId.withContext do
     let lctx ← getLCtx
     let mut eqNames : Array Name := #[]
     for ldecl in lctx do
       if ldecl.isImplementationDetail then continue
       let ty ← instantiateMVars ldecl.type
-      -- Only consider equalities between Lists
       if ty.isAppOf ``Eq then
         let args := ty.getAppArgs
         if args.size ≥ 1 && args[0]!.isAppOf ``List then
           eqNames := eqNames.push ldecl.userName
     return eqNames
-  for hypName in eqHypNames do
-    try
-      Tactic.evalTactic (← `(tactic| (
-        have _h_nn := congr_arg List.toFinset $(mkIdent hypName);
-        rw [Finset.ext_iff] at _h_nn;
-        specialize _h_nn $symStx;
-        first
-          | (set_option maxHeartbeats 5000 in simp +decide at _h_nn)
-          | (set_option maxHeartbeats 10000 in aesop);
-        done)))
-      return
-    catch _ => continue
-  throwError "no_nonterminal: symbol witness did not produce a contradiction"
 
 open Meta in
-/-- Try the toFinset trick with a specific symbol witness on a specific hypothesis. -/
-private def noNonterminalFinsetWithAt (symStx : Syntax.Term) (hypName : Name) : TacticM Unit := do
-  try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
-  let hyp := mkIdent hypName
-  Tactic.evalTactic (← `(tactic| (
-    have _h_nn := congr_arg List.toFinset $hyp;
-    clear $hyp;
-    rw [Finset.ext_iff] at _h_nn;
-    specialize _h_nn $symStx;
-    aesop)))
+/-- Core: try `congr_arg List.toFinset` + `ext_iff` + `specialize` on one (hyp, sym) pair.
+    When `clearHyp` is true, clears the original hypothesis (matching `replace` pattern)
+    and uses `aesop`; otherwise uses `simp +decide`. -/
+private def noNonterminalTryOne (hypName : Name) (symStx : Syntax.Term)
+    (clearHyp : Bool) : TacticM Unit := do
+  if clearHyp then
+    let hyp := mkIdent hypName
+    Tactic.evalTactic (← `(tactic| (
+      have _h_nn := congr_arg List.toFinset $hyp;
+      clear $hyp;
+      rw [Finset.ext_iff] at _h_nn;
+      specialize _h_nn $symStx;
+      aesop)))
+  else
+    Tactic.evalTactic (← `(tactic| (
+      have _h_nn := congr_arg List.toFinset $(mkIdent hypName);
+      rw [Finset.ext_iff] at _h_nn;
+      have _h_nn := _h_nn $symStx;
+      simp +decide at _h_nn;
+      done)))
 
 open Meta in
-/-- Find list equalities in the local context and try the toFinset trick.
-    Iterates over all hypotheses, tries `congr_arg List.toFinset` on each,
-    then specializes on every `symbol` constructor found in context.
-    Returns the syntax of the successful symbol witness. -/
-private def noNonterminalFinsetSearch : TacticM Syntax.Term := do
-  -- First call exfalso (may already be proving False)
+/-- Search over hypotheses and symbols, return the successful (symStx, hypName).
+    Used by `no_nonterminal` and `no_nonterminal?`. -/
+private def noNonterminalFinsetSearch : TacticM (Syntax.Term × Name) := do
   try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
-  -- Collect hypothesis names (only equalities) and symbols from context
   let mvarId ← Tactic.getMainGoal
-  let (eqHypNames, syms) ← mvarId.withContext do
-    let lctx ← getLCtx
-    let mut allSyms : Array Expr := #[]
-    let mut eqNames : Array Name := #[]
-    for ldecl in lctx do
-      if ldecl.isImplementationDetail then continue
-      let ty ← instantiateMVars ldecl.type
-      allSyms := allSyms ++ collectSymbols ty
-      -- Only include hypotheses whose type is an equality
-      if ty.isAppOf ``Eq then
-        eqNames := eqNames.push ldecl.userName
-    allSyms := allSyms ++ collectSymbols (← mvarId.getType)
-    -- Prioritize nonterminal symbols first (most likely to produce contradiction)
-    let ntSyms := allSyms.filter fun e =>
-      e.isApp && e.getAppFn.isConst && e.getAppFn.constName! == ``symbol.nonterminal
-    let tSyms := allSyms.filter fun e =>
-      e.isApp && e.getAppFn.isConst && e.getAppFn.constName! == ``symbol.terminal
-    let ordered := ntSyms ++ tSyms
-    let syms := ordered.toList.pwFilter (fun a b => !Lean.Expr.equal a b)
-    return (eqNames, syms)
-  -- Try each equality hypothesis with each symbol (nonterminals first)
+  let eqHypNames ← collectListEqHyps
+  let syms ← collectContextSymbols
   for hypName in eqHypNames do
     for sym in syms do
       try
         let symStx ← mvarId.withContext (PrettyPrinter.delab sym)
-        Tactic.evalTactic (← `(tactic| (
-          have _h_nn := congr_arg List.toFinset $(mkIdent hypName);
-          rw [Finset.ext_iff] at _h_nn;
-          have _h_nn := _h_nn $symStx;
-          simp +decide at _h_nn;
-          done)))
-        return symStx
+        noNonterminalTryOne hypName symStx false
+        return (symStx, hypName)
       catch _ => continue
   throwError "no_nonterminal: could not find a suitable list equality and symbol witness"
+
+open Meta in
+/-- Search symbols against a single hypothesis. Used by `no_nonterminal at hyp`. -/
+private def noNonterminalFinsetAt (hypName : Name) : TacticM Unit := do
+  try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
+  let mvarId ← Tactic.getMainGoal
+  let syms ← collectContextSymbols
+  for sym in syms do
+    try
+      let symStx ← mvarId.withContext (PrettyPrinter.delab sym)
+      noNonterminalTryOne hypName symStx true
+      return
+    catch _ => continue
+  throwError "no_nonterminal: could not find a suitable symbol witness for hypothesis `{hypName}`"
+
+open Meta in
+/-- Fully explicit: specific symbol and hypothesis. Used by `no_nonterminal (sym) at hyp`. -/
+private def noNonterminalFinsetWithAt (symStx : Syntax.Term) (hypName : Name) :
+    TacticM Unit := do
+  try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
+  noNonterminalTryOne hypName symStx true
+
+open Meta in
+/-- Explicit symbol, search hypotheses. Used by `no_nonterminal (sym)`. -/
+private def noNonterminalFinsetWith (symStx : Syntax.Term) : TacticM Unit := do
+  try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
+  let eqHypNames ← collectListEqHyps
+  for hypName in eqHypNames do
+    try
+      noNonterminalTryOne hypName symStx false
+      return
+    catch _ => continue
+  throwError "no_nonterminal: symbol witness did not produce a contradiction"
 
 open Meta in
 /-- Fallback strategies for `no_nonterminal` (membership simp and aesop). -/
@@ -163,28 +181,39 @@ open Meta Tactic in
 /-- Close goals where a `symbol.nonterminal` appears in a terminal-only list.
 
     **Variants:**
-    - `no_nonterminal` — automatically searches for the right symbol witness (slow)
-    - `no_nonterminal (symbol.nonterminal X)` — use the given symbol directly (fast)
-    - `no_nonterminal?` — like `no_nonterminal`, but suggests the explicit call
+    - `no_nonterminal` — automatically searches for the right hypothesis and symbol (slow)
+    - `no_nonterminal at hyp` — search symbols against a specific hypothesis (fast)
+    - `no_nonterminal (sym) at hyp` — fully explicit, no search at all (fastest)
+    - `no_nonterminal (sym)` — explicit symbol, searches hypotheses
+    - `no_nonterminal?` — like `no_nonterminal`, but suggests `no_nonterminal at hyp`
 
     Falls back to `exfalso; simp` for membership-based contradictions. -/
 syntax "no_nonterminal" : tactic
 syntax "no_nonterminal" "(" term ")" "at" ident : tactic
+syntax "no_nonterminal" "at" ident : tactic
 syntax "no_nonterminal" "(" term ")" : tactic
 syntax "no_nonterminal?" : tactic
-
-elab_rules : tactic
-  | `(tactic| no_nonterminal ($sym)) => do
-    try
-      noNonterminalFinsetWith sym
-      return
-    catch _ => pure ()
-    noNonterminalFallbacks
 
 elab_rules : tactic
   | `(tactic| no_nonterminal ($sym) at $hyp) => do
     try
       noNonterminalFinsetWithAt sym hyp.getId
+      return
+    catch _ => pure ()
+    noNonterminalFallbacks
+
+elab_rules : tactic
+  | `(tactic| no_nonterminal at $hyp) => do
+    try
+      noNonterminalFinsetAt hyp.getId
+      return
+    catch _ => pure ()
+    noNonterminalFallbacks
+
+elab_rules : tactic
+  | `(tactic| no_nonterminal ($sym)) => do
+    try
+      noNonterminalFinsetWith sym
       return
     catch _ => pure ()
     noNonterminalFallbacks
@@ -201,9 +230,9 @@ open Meta.Tactic in
 elab_rules : tactic
   | `(tactic| no_nonterminal?%$tk) => do
     try
-      let symStx ← noNonterminalFinsetSearch
+      let (symStx, hypName) ← noNonterminalFinsetSearch
       let symFmt ← PrettyPrinter.ppTerm symStx
-      TryThis.addSuggestion tk s!"no_nonterminal ({symFmt})"
+      TryThis.addSuggestion tk s!"no_nonterminal ({symFmt}) at {hypName}"
       return
     catch _ => pure ()
     noNonterminalFallbacks
