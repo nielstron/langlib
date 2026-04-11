@@ -87,7 +87,7 @@ lifted_grammar.mk g₁ (combined_grammar g₁ g₂) (some ∘ Sum.inl) (by
                   have hxy : x = y := by
                     cases ass'
                     rfl
-                  simpa [hxy]
+                  simp [hxy]
               | inr y =>
                   tauto
       | inr x =>
@@ -102,7 +102,7 @@ lifted_grammar.mk g₁ (combined_grammar g₁ g₂) (some ∘ Sum.inl) (by
       exfalso
       rcases r_ntype with ⟨n₀, r_ntype⟩
       have : (some (Sum.inl n₀) : Option (g₁.nt ⊕ g₂.nt)) = none := by
-        simpa [r_eq] using r_ntype
+        simp [r_eq] at r_ntype
       cases this
   | inr r_in =>
       change r ∈ (List.map rule_of_rule₁ g₁.rules ++ List.map rule_of_rule₂ g₂.rules) at r_in
@@ -182,7 +182,7 @@ lifted_grammar.mk g₂ (combined_grammar g₁ g₂) (some ∘ Sum.inr) (by
                   have hxy : x = y := by
                     cases ass'
                     rfl
-                  simpa [hxy]
+                  simp [hxy]
 ) (by
   intro r
   rintro ⟨r_in, r_ntype⟩
@@ -192,7 +192,7 @@ lifted_grammar.mk g₂ (combined_grammar g₁ g₂) (some ∘ Sum.inr) (by
       exfalso
       rcases r_ntype with ⟨n₀, r_ntype⟩
       have : (some (Sum.inr n₀) : Option (g₁.nt ⊕ g₂.nt)) = none := by
-        simpa [r_eq] using r_ntype
+        simp [r_eq] at r_ntype
       cases this
   | inr r_in =>
       change r ∈ (List.map rule_of_rule₁ g₁.rules ++ List.map rule_of_rule₂ g₂.rules) at r_in
@@ -258,10 +258,9 @@ by
             (List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u ++
               lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) v) =
             List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u := by
-        simpa using
-          (List.take_left
+        simp [List.take_left
             (l₁ := List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u)
-            (l₂ := lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) v))
+            (l₂ := lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) v)]
       rw [List.length_map] at takenl
       exact takenl.symm
     have nth_equ := congr_fun (congr_arg List.nth ass) n
@@ -311,7 +310,7 @@ by
                 symbol.terminal (w.nthLe n n_lt_wl') := by
             simpa [List.length_map] using
               (List.nthLe_map (f := @symbol.terminal T g₁.nt) (l := w) (n := n) (h := trig))
-          simpa [rhs, ha]
+          simp [rhs, ha]
       | nonterminal a =>
           exfalso
           have : symbol.nonterminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt))
@@ -323,9 +322,9 @@ by
       calc
         u.nth n = some (u.nthLe n h) := List.nthLe_nth (h := h)
         _ = some ((List.map (@symbol.terminal T g₁.nt) w).nthLe n trig) := by
-          simpa [nthLe_eq]
+          simp [nthLe_eq]
         _ = (List.map (@symbol.terminal T g₁.nt) w).nth n := (List.nthLe_nth (h := trig)).symm
-    simpa [nth_eq]
+    simp [nth_eq]
   ·
     have h' : u.length ≤ n := by
       exact Nat.le_of_not_lt h
@@ -337,7 +336,7 @@ by
       rw [List.nth_eq_none_iff]
       rw [List.length_take]
       exact min_le_of_left_le h'
-    simpa [h_u, h_rhs]
+    simp [h_u, h_rhs]
 
 private lemma v_eq_drop_map_w
     {g₁ g₂ : CF_grammar T}
@@ -392,7 +391,7 @@ by
       rw [List.nthLe_append_right hlen₀] at nth_equ
       have h_sub :
           u.length + n - (List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u).length = n := by
-        simp [List.length_map, Nat.add_sub_cancel_left]
+        simp [List.length_map]
       simpa [h_sub] using nth_equ
     have nth_equ_simplified' :
         (List.map (sTN_of_sTN₂ (g₁ := g₁) (g₂ := g₂)) v).nthLe n hlen =
@@ -450,14 +449,14 @@ by
               simpa [sTN_of_sTN₂, h_v, ha] using nth_equ_simplified''
             _ = (List.drop u.length (List.map (@symbol.terminal T g₂.nt) w)).nth n := by
               rw [List.nth_drop]
-              simpa [nth_map_eq]
+              simp [nth_map_eq]
         have nthLe_map_eq :
             (List.map (@symbol.terminal T g₂.nt) w).nthLe (u.length + n) hlen₂' =
               symbol.terminal (w.nthLe (u.length + n) hunltw) := by
           simpa [List.length_map] using
             (List.nthLe_map (f := @symbol.terminal T g₂.nt) (l := w)
               (n := u.length + n) (h := hlen₂'))
-        simpa [nthLe_map_eq, ha]
+        simp [nthLe_map_eq, ha]
     | nonterminal a =>
         exfalso
         have : symbol.nonterminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt))
@@ -479,7 +478,7 @@ by
       rw [←total_len]
       simpa [Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using
         (add_le_add_left h' u.length)
-    simpa [h_v, h_rhs]
+    simp [h_v, h_rhs]
 
 private def sTN₁_of_sTN {g₁ g₂ : CF_grammar T} : symbol T (Option (g₁.nt ⊕ g₂.nt)) → Option (symbol T g₁.nt)
 | (symbol.terminal te) => some (symbol.terminal te)
@@ -518,7 +517,7 @@ by
         (fun x => some x) := by
     funext x
     simpa using (self_of_sTN₁ (g₁ := g₁) (g₂ := g₂) x)
-  simpa [hfun] using (List.filterMap_some (l := stri))
+  simp [hfun, List.filterMap_some (l := stri)]
 
 variable {g₁ g₂ : CF_grammar T}
 def combined_rule_of_rule₁ (r : g₁.nt × (List (symbol T g₁.nt))) :
@@ -1060,15 +1059,7 @@ by
         rfl
       rw [ini_equ]
 
-      have baz :
-          List.map symbol.terminal u =
-            List.map (lift_symbol gg₁.lift_nt) (List.map symbol.terminal u) := by
-        rw [List.map_map]
-        apply congr_fun
-        apply congr_arg
-        rfl
-      rw [baz]
-
+      rw [← lift_string_map_terminal gg₁]
       exact lift_deri hu
     ·
       deri_context
@@ -1085,15 +1076,7 @@ by
         rfl
       rw [ini_equ]
 
-      have baz :
-          List.map symbol.terminal v =
-            List.map (lift_symbol gg₂.lift_nt) (List.map symbol.terminal v) := by
-        rw [List.map_map]
-        apply congr_fun
-        apply congr_arg
-        rfl
-      rw [baz]
-
+      rw [← lift_string_map_terminal gg₂]
       exact lift_deri hv
 
 

@@ -225,9 +225,7 @@ by
                       simp [List.mem_append]
                     have glruf' : good_letter (symbol.nonterminal r.fst) :=
                       ih.right (symbol.nonterminal r.fst) ruu
-                    have glruf : False := by
-                      simpa [good_letter, h] using glruf'
-                    exact glruf.elim
+                    simp [good_letter, h] at glruf'
                   ·
                     rcases (Option.ne_none_iff_exists'.mp h) with ⟨x, ex⟩
                     refine ⟨x, ?_⟩
@@ -257,6 +255,20 @@ by
         | inr in_y =>
             apply ihr
             exact Or.inr in_y
+
+/-- `lift_string` preserves terminal-only lists. -/
+lemma lift_string_map_terminal (lg : lifted_grammar T) (w : List T) :
+    lift_string lg.lift_nt (List.map symbol.terminal w) = List.map symbol.terminal w := by
+  simp [lift_string, List.map_map, Function.comp, lift_symbol]
+
+/-- `sink_string` preserves terminal-only lists. -/
+lemma sink_string_map_terminal (lg : lifted_grammar T) (w : List T) :
+    sink_string lg.sink_nt (List.map symbol.terminal w) = List.map symbol.terminal w := by
+  unfold sink_string
+  rw [List.filterMap_map]
+  have : (sink_symbol lg.sink_nt) ∘ (@symbol.terminal T lg.g.nt) = Option.some ∘ symbol.terminal := by
+    ext x; rfl
+  rw [this]; simp
 
 syntax (name := fiveStepTac) "five_steps" : tactic
 
