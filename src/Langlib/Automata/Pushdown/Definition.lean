@@ -490,21 +490,26 @@ def is_PDA_emptyStack (L : Language T) : Prop :=
 acceptance. -/
 alias is_PDA := is_PDA_emptyStack
 
+@[simp]
+theorem is_PDA_emptyStack_iff_is_PDA {L : Language T} :
+    is_PDA_emptyStack L  ↔ is_PDA L := by
+  rw [is_PDA]
+
 /-- A language over a finite terminal alphabet is accepted by some PDA via final-state
 acceptance. -/
 def is_PDA_finalState (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByFinalState = L
 
 /-- The class of languages recognized by PDAs via empty-stack acceptance. -/
-def PDA.EmptyStackClass : Set (Language T) :=
+def EmptyStackClass : Set (Language T) :=
   setOf is_PDA
 
 /-- The class of PDA-recognizable languages.
 
 This lives under `PDA.Class` because the top-level name `PDA` is already used by the
 automaton structure. -/
-alias PDA.Class := PDA.EmptyStackClass
+alias Class := PDA.EmptyStackClass
 
 /-- The class of languages recognized by PDAs via final-state acceptance. -/
-def PDA.FinalStateClass : Set (Language T) :=
+def FinalStateClass : Set (Language T) :=
   setOf is_PDA_finalState
