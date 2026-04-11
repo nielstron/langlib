@@ -535,7 +535,7 @@ private lemma CF_lang_aux_ab : is_CF lang_aux_ab := by
               intro n t
               induction n with
               | zero => rfl
-              | succ n ih => simp [List.filterMap, List.replicate, ih]
+              | succ n ih => simp [List.replicate, ih]
 
             have filterMap_map_terminal : ∀ (l : List (Fin 3)),
                 List.filterMap (fun z : symbol (Fin 3) (Fin 1) => match z with | symbol.terminal t => some t | symbol.nonterminal _ => none)
@@ -543,7 +543,7 @@ private lemma CF_lang_aux_ab : is_CF lang_aux_ab := by
               intro l
               induction l with
               | nil => rfl
-              | cons h t ih => simp [List.filterMap, List.map, ih]
+              | cons h t ih => simp [List.map, ih]
 
             rw [filterMap_map_terminal w, filterMap_replicate_terminal n a_, filterMap_replicate_terminal n b_] at foo
             exact foo
@@ -701,6 +701,42 @@ by
   | intro n hyp =>
       constructor <;> exact ⟨n, n, hyp⟩
 
+/-- Given `rep n₁ a ++ rep n₁ b ++ rep m₁ c = rep n₂ a ++ rep m₂ b ++ rep m₂ c`,
+    if `k > 0` and `k ≤ n₁` (or `k ≤ n₂`), the element at position `k-1` in one side
+    is `a` but in the other it falls past the `a`-block into `b`/`c`, contradiction. -/
+private lemma replicate_abc_nthLe_contradiction
+    {k₁ k₂ : ℕ} {a_ : Fin 3}
+    (k₁pos : k₁ > 0) (hlt : k₁ > k₂)
+    (l₁ l₂ : List (Fin 3))
+    (equ : List.replicate k₁ a_ ++ l₁ = List.replicate k₂ a_ ++ l₂)
+    (h_l₂ : ∀ x ∈ l₂, x ≠ a_) :
+    False := by
+  have idx_in_k₁ : k₁ - 1 < (List.replicate k₁ a_).length := by
+    rw [List.length_replicate]; exact Nat.sub_lt k₁pos (Nat.succ_pos 0)
+  have idx_past_k₂ : (List.replicate k₂ a_).length ≤ k₁ - 1 := by
+    rw [List.length_replicate]; exact Nat.le_pred_of_lt hlt
+  have idx_in_rhs : k₁ - 1 < (List.replicate k₂ a_ ++ l₂).length := by
+    rw [← equ, List.length_append]; linarith [idx_in_k₁]
+  have lhs_val : (List.replicate k₁ a_ ++ l₁).nthLe (k₁ - 1)
+      (by rw [List.length_append]; linarith [idx_in_k₁]) = a_ := by
+    rw [List.nthLe_append idx_in_k₁]
+    exact List.nthLe_replicate a_ idx_in_k₁
+  have rhs_val := List.nthLe_of_eq equ
+    (n := k₁ - 1) (hn := by rw [List.length_append]; linarith [idx_in_k₁])
+  rw [lhs_val] at rhs_val
+  rw [List.nthLe_append_right idx_past_k₂ idx_in_rhs] at rhs_val
+  exact h_l₂ _ (List.nthLe_mem _) rhs_val.symm
+
+/-- In `rep n₁ a ++ rep n₁ b ++ rep m₁ c = rep n₂ a ++ rep m₂ b ++ rep m₂ c`, the
+    nthLe-based argument gives `a` on one side and a non-`a` element on the other. -/
+private lemma not_mem_bc_of_ne (a_ b_ c_ : Fin 3) (a_neq_b : a_ ≠ b_) (a_neq_c : a_ ≠ c_)
+    {m₁ m₂ : ℕ} : ∀ x ∈ List.replicate m₁ b_ ++ List.replicate m₂ c_, x ≠ a_ := by
+  intro x hx hxa
+  rw [List.mem_append] at hx
+  cases hx with
+  | inl h => exact a_neq_b (hxa ▸ (List.mem_replicate.mp h).right)
+  | inr h => exact a_neq_c (hxa ▸ (List.mem_replicate.mp h).right)
+
 private lemma doubled_le_singled
     (n₁ m₁ n₂ m₂ : ℕ) (n₁pos : n₁ > 0)
     (a_ b_ c_ : Fin 3) (a_neq_b : a_ ≠ b_) (a_neq_c : a_ ≠ c_)
@@ -708,63 +744,12 @@ private lemma doubled_le_singled
       List.replicate n₁ a_ ++ List.replicate n₁ b_ ++ List.replicate m₁ c_ =
       List.replicate n₂ a_ ++ List.replicate m₂ b_ ++ List.replicate m₂ c_
     ) :
-  n₁ ≤ n₂ :=
-by
+  n₁ ≤ n₂ := by
   by_contra contr
   push_neg at contr
-
-  have n₁_le_len₁ :
-      (n₁ - 1) <
-        (List.replicate n₁ a_ ++ (List.replicate n₁ b_ ++ List.replicate m₁ c_)).length := by
-    rw [← List.append_assoc]
-    rw [List.length_append, List.length_append, List.length_replicate, add_assoc]
-    apply Nat.lt_add_right
-    exact Nat.sub_lt n₁pos (Nat.succ_pos 0)
-  have n₁_le_len₂ :
-      (n₁ - 1) <
-        (List.replicate n₂ a_ ++ (List.replicate m₂ b_ ++ List.replicate m₂ c_)).length := by
-    rw [← List.append_assoc]
-    have equ_len := congr_arg List.length equ
-    rw [← equ_len]
-    rw [List.append_assoc]
-    exact n₁_le_len₁
-  have n₁th :
-      (List.replicate n₁ a_ ++ (List.replicate n₁ b_ ++ List.replicate m₁ c_)).nthLe (n₁ - 1) n₁_le_len₁ =
-        (List.replicate n₂ a_ ++ (List.replicate m₂ b_ ++ List.replicate m₂ c_)).nthLe (n₁ - 1) n₁_le_len₂ := by
-    rw [List.append_assoc] at equ
-    rw [List.append_assoc] at equ
-    exact List.nthLe_of_eq equ n₁_le_len₁
-  have n₁th₁ :
-      (List.replicate n₁ a_ ++ (List.replicate n₁ b_ ++ List.replicate m₁ c_)).nthLe (n₁ - 1) n₁_le_len₁ =
-        a_ := by
-    have foo : (n₁ - 1) < (List.replicate n₁ a_).length := by
-      rw [List.length_replicate]
-      exact Nat.sub_lt n₁pos (Nat.succ_pos 0)
-    have h_lt : (n₁ - 1) < (List.replicate n₁ a_ ++ (List.replicate n₁ b_ ++ List.replicate m₁ c_)).length := n₁_le_len₁
-    rw [List.nthLe_append foo]
-    exact List.nthLe_replicate a_ foo
-  have n₁th₂ :
-      (List.replicate n₂ a_ ++ (List.replicate m₂ b_ ++ List.replicate m₂ c_)).nthLe (n₁ - 1) n₁_le_len₂ ≠
-        a_ := by
-    have foo : (List.replicate n₂ a_).length ≤ (n₁ - 1) := by
-      rw [List.length_replicate]
-      exact Nat.le_pred_of_lt contr
-    rw [List.nthLe_append_right foo n₁_le_len₂]
-    by_contra h
-    have a_in_bc : a_ ∈ (List.replicate m₂ b_ ++ List.replicate m₂ c_) := by
-      rw [← h]
-      apply List.nthLe_mem
-    rw [List.mem_append] at a_in_bc
-    cases a_in_bc with
-    | inl a_in_bc =>
-        rw [List.mem_replicate] at a_in_bc
-        exact a_neq_b a_in_bc.right
-    | inr a_in_bc =>
-        rw [List.mem_replicate] at a_in_bc
-        exact a_neq_c a_in_bc.right
-  rw [n₁th₁] at n₁th
-  rw [← n₁th] at n₁th₂
-  exact n₁th₂ rfl
+  rw [List.append_assoc, List.append_assoc] at equ
+  exact replicate_abc_nthLe_contradiction n₁pos contr _ _ equ
+    (not_mem_bc_of_ne a_ b_ c_ a_neq_b a_neq_c)
 
 private lemma doubled_ge_singled
     (n₁ m₁ n₂ m₂ : ℕ) (n₂pos : n₂ > 0)
@@ -773,200 +758,72 @@ private lemma doubled_ge_singled
       List.replicate n₁ a_ ++ List.replicate n₁ b_ ++ List.replicate m₁ c_ =
       List.replicate n₂ a_ ++ List.replicate m₂ b_ ++ List.replicate m₂ c_
     ) :
-  n₁ ≥ n₂ :=
-by
+  n₁ ≥ n₂ := by
   by_contra contr
   push_neg at contr
+  rw [List.append_assoc, List.append_assoc] at equ
+  exact replicate_abc_nthLe_contradiction n₂pos contr _ _ equ.symm
+    (not_mem_bc_of_ne a_ b_ c_ a_neq_b a_neq_c)
 
-  have n₂_le_len₂ :
-      (n₂ - 1) <
-        (List.replicate n₂ a_ ++ (List.replicate m₂ b_ ++ List.replicate m₂ c_)).length := by
-    rw [← List.append_assoc]
-    rw [List.length_append, List.length_append, List.length_replicate, add_assoc]
-    apply Nat.lt_add_right
-    exact Nat.sub_lt n₂pos (Nat.succ_pos 0)
-  have n₂_le_len₁ :
-      (n₂ - 1) <
-        (List.replicate n₁ a_ ++ (List.replicate n₁ b_ ++ List.replicate m₁ c_)).length := by
-    rw [← List.append_assoc]
-    have equ_len := congr_arg List.length equ
-    rw [equ_len]
-    rw [List.append_assoc]
-    exact n₂_le_len₂
-  have n₂th :
-      (List.replicate n₁ a_ ++ (List.replicate n₁ b_ ++ List.replicate m₁ c_)).nthLe (n₂ - 1) n₂_le_len₁ =
-        (List.replicate n₂ a_ ++ (List.replicate m₂ b_ ++ List.replicate m₂ c_)).nthLe (n₂ - 1) n₂_le_len₂ := by
-    rw [List.append_assoc] at equ
-    rw [List.append_assoc] at equ
-    exact List.nthLe_of_eq equ n₂_le_len₁
-  have n₂th₂ :
-      (List.replicate n₂ a_ ++ (List.replicate m₂ b_ ++ List.replicate m₂ c_)).nthLe (n₂ - 1) n₂_le_len₂ =
-        a_ := by
-    have foo : (n₂ - 1) < (List.replicate n₂ a_).length := by
-      rw [List.length_replicate]
-      exact Nat.sub_lt n₂pos (Nat.succ_pos 0)
-    have h_lt : (n₂ - 1) < (List.replicate n₂ a_ ++ (List.replicate m₂ b_ ++ List.replicate m₂ c_)).length := n₂_le_len₂
-    rw [List.nthLe_append foo]
-    exact List.nthLe_replicate a_ foo
-  have n₂th₁ :
-      (List.replicate n₁ a_ ++ (List.replicate n₁ b_ ++ List.replicate m₁ c_)).nthLe (n₂ - 1) n₂_le_len₁ ≠
-        a_ := by
-    have foo : (List.replicate n₁ a_).length ≤ (n₂ - 1) := by
-      rw [List.length_replicate]
-      exact Nat.le_pred_of_lt contr
-    rw [List.nthLe_append_right foo n₂_le_len₁]
-    by_contra h
-    have a_in_bc : a_ ∈ (List.replicate n₁ b_ ++ List.replicate m₁ c_) := by
-      rw [← h]
-      apply List.nthLe_mem
-    rw [List.mem_append] at a_in_bc
-    cases a_in_bc with
-    | inl a_in_bc =>
-        rw [List.mem_replicate] at a_in_bc
-        exact a_neq_b a_in_bc.right
-    | inr a_in_bc =>
-        rw [List.mem_replicate] at a_in_bc
-        exact a_neq_c a_in_bc.right
-  rw [n₂th₂] at n₂th
-  rw [n₂th] at n₂th₁
-  exact n₂th₁ rfl
+
 
 lemma lang_eq_eq_of_intersection {w : List (Fin 3)} :
   w ∈ lang_eq_any ⊓ lang_any_eq  →  w ∈ lang_eq_eq  :=
 by
   rintro ⟨⟨n₁, m₁, w_eq₁⟩, ⟨n₂, m₂, w_eq₂⟩⟩
   have equ := Eq.trans w_eq₁.symm w_eq₂
-
   by_cases hn₁ : n₁ = 0
-  ·
-    have hn₂ : n₂ = 0 := by
+  · have hn₂ : n₂ = 0 := by
       by_contra h
-      have pos := Nat.pos_of_ne_zero h
-      clear h
+      have a_yes : a_ ∈ List.replicate n₂ a_ := List.mem_replicate.mpr ⟨h, rfl⟩
       have a_in_equ := congr_arg (fun lis => a_ ∈ lis) equ
-      clear equ
       rw [hn₁] at a_in_equ
-      have a_yes : a_ ∈ List.replicate n₂ a_ := by
-        rw [List.mem_replicate]
-        exact And.intro (ne_of_lt pos).symm rfl
       simp [a_yes, List.mem_replicate, List.mem_append, neq_ab, neq_ac] at a_in_equ
     have hm₂ : m₂ = 0 := by
       by_contra h
-      have pos := Nat.pos_of_ne_zero h
-      clear h
+      have b_yes : b_ ∈ List.replicate m₂ b_ := List.mem_replicate.mpr ⟨h, rfl⟩
       have b_in_equ := congr_arg (fun lis => b_ ∈ lis) equ
-      clear equ
-      rw [hn₁] at b_in_equ
-      have b_yes : b_ ∈ List.replicate m₂ b_ := by
-        rw [List.mem_replicate]
-        exact And.intro (ne_of_lt pos).symm rfl
-      simp [b_yes, List.mem_replicate, List.mem_append, neq_ba, neq_bc] at b_in_equ
-    refine ⟨0, ?_⟩
-    rw [hn₂] at w_eq₂
-    rw [hm₂] at w_eq₂
-    exact w_eq₂
-  have n₁pos : n₁ > 0 := Nat.pos_iff_ne_zero.mpr hn₁
-
+      rw [hn₁, hn₂] at b_in_equ
+      simp [b_yes, List.mem_replicate, List.mem_append, neq_bc] at b_in_equ
+    exact ⟨0, by rw [hn₂, hm₂] at w_eq₂; exact w_eq₂⟩
+  have n₁pos : n₁ > 0 := Nat.pos_of_ne_zero hn₁
   have n₂pos : n₂ > 0 := by
-    by_contra h
-    have n₂zero : n₂ = 0 := by
-      push_neg at h
-      exact Nat.eq_zero_of_le_zero h
-    clear h
-    rw [n₂zero] at equ
-    simp only [List.replicate_zero, List.nil_append] at equ
+    by_contra h; push_neg at h
+    rw [Nat.eq_zero_of_le_zero h, List.replicate_zero, List.nil_append] at equ
     have a_in_equ := congr_arg (fun lis => a_ ∈ lis) equ
-    clear equ
-    simp only [List.mem_append, eq_iff_iff, List.mem_replicate, or_assoc] at a_in_equ
-    have rs_false : (m₂ ≠ 0 ∧ a_ = b_ ∨ m₂ ≠ 0 ∧ a_ = c_) = False := by
-      apply eq_false_intro
-      push_neg
-      refine And.intro ?_ ?_
-      · intro trash
-        exact neq_ab
-      · intro trash
-        exact neq_ac
-    rw [← rs_false]
-    rw [← a_in_equ]
-    left
-    exact And.intro hn₁ trivial
+    simp [List.mem_append, List.mem_replicate, hn₁, neq_ab, neq_ac] at a_in_equ
   have m₂pos : m₂ > 0 := by
-    by_contra h
-    have m₂zero : m₂ = 0 := by
-      push_neg at h
-      exact Nat.eq_zero_of_le_zero h
-    clear h
-    rw [m₂zero] at equ
-    simp only [List.replicate_zero, List.append_nil] at equ
+    by_contra h; push_neg at h
+    rw [Nat.eq_zero_of_le_zero h, List.replicate_zero, List.append_nil] at equ
     have b_in_equ := congr_arg (fun lis => b_ ∈ lis) equ
-    clear equ
-    simp only [List.mem_append, eq_iff_iff, List.mem_replicate] at b_in_equ
-    have := neq_ba
-    tauto
+    simp [List.mem_append, List.mem_replicate, hn₁, neq_ba] at b_in_equ
   have m₁pos : m₁ > 0 := by
-    by_contra h
-    have m₁zero : m₁ = 0 := by
-      push_neg at h
-      exact Nat.eq_zero_of_le_zero h
-    clear h
-    rw [m₁zero] at equ
-    simp only [List.replicate_zero, List.append_nil] at equ
-    have c_yes : c_ ∈ List.replicate m₂ c_ := by
-      rw [List.mem_replicate]
-      exact And.intro (ne_of_gt m₂pos) rfl
-    have c_not_in_a : c_ ∉ List.replicate n₁ a_ := by
-      rw [List.mem_replicate]
-      intro h
-      exact neq_ca h.right
-    have c_not_in_b : c_ ∉ List.replicate n₁ b_ := by
-      rw [List.mem_replicate]
-      intro h
-      exact neq_cb h.right
-    have c_not_in_ab : c_ ∉ List.replicate n₁ a_ ++ List.replicate n₁ b_ := by
-      rw [List.mem_append]
-      push_neg
-      exact And.intro c_not_in_a c_not_in_b
-    rw [equ] at c_not_in_ab
-    simp only [List.mem_append, c_yes, or_true, not_true_eq_false] at c_not_in_ab
+    by_contra h; push_neg at h
+    rw [Nat.eq_zero_of_le_zero h, List.replicate_zero, List.append_nil] at equ
+    have c_in_equ := congr_arg (fun lis => c_ ∈ lis) equ
+    simp [List.mem_append, List.mem_replicate, neq_ca, neq_cb, (show m₂ ≠ 0 by omega)] at c_in_equ
 
-  have n_ge : n₁ ≥ n₂ :=
-    doubled_ge_singled n₁ m₁ n₂ m₂ n₂pos a_ b_ c_ neq_ab neq_ac equ
-  have n_le : n₁ ≤ n₂ :=
-    doubled_le_singled n₁ m₁ n₂ m₂ n₁pos a_ b_ c_ neq_ab neq_ac equ
-  have m_ge : m₁ ≥ m₂ := by
-    have rev := congr_arg List.reverse equ
-    clear equ
-    repeat rw [List.reverse_append] at rev
-    simp only [List.reverse_replicate] at rev
-    rw [← List.append_assoc] at rev
-    rw [← List.append_assoc] at rev
-    exact doubled_le_singled m₂ n₂ m₁ n₁ m₂pos c_ b_ a_ neq_cb neq_ca rev.symm
-  have m_le : m₁ ≤ m₂ := by
-    have rev := congr_arg List.reverse equ
-    clear equ
-    repeat rw [List.reverse_append] at rev
-    simp only [List.reverse_replicate] at rev
-    rw [← List.append_assoc] at rev
-    rw [← List.append_assoc] at rev
-    exact doubled_ge_singled m₂ n₂ m₁ n₁ m₁pos c_ b_ a_ neq_cb neq_ca rev.symm
-  have eqn : n₁ = n₂ :=
-    le_antisymm n_le n_ge
-  have eqm : m₁ = m₂ :=
-    le_antisymm m_le m_ge
-
-  have sum_lengs : n₁ + n₁ + m₁ = n₂ + m₂ + m₂ := by
+  have n_ge := doubled_ge_singled n₁ m₁ n₂ m₂ n₂pos a_ b_ c_ neq_ab neq_ac equ
+  have n_le := doubled_le_singled n₁ m₁ n₂ m₂ n₁pos a_ b_ c_ neq_ab neq_ac equ
+  have eqn : n₁ = n₂ := le_antisymm n_le n_ge
+  -- For the m₁/m₂ comparison, reverse both sides
+  have rev : List.replicate m₂ c_ ++ List.replicate m₂ b_ ++ List.replicate n₂ a_ =
+             List.replicate m₁ c_ ++ List.replicate n₁ b_ ++ List.replicate n₁ a_ := by
+    have := congr_arg List.reverse equ
+    repeat rw [List.reverse_append] at this
+    simp only [List.reverse_replicate, ← List.append_assoc] at this
+    exact this.symm
+  have m_ge : m₁ ≥ m₂ :=
+    doubled_le_singled m₂ n₂ m₁ n₁ m₂pos c_ b_ a_ neq_cb neq_ca rev
+  have m_le : m₁ ≤ m₂ :=
+    doubled_ge_singled m₂ n₂ m₁ n₁ m₁pos c_ b_ a_ neq_cb neq_ca rev
+  have eqm : m₁ = m₂ := le_antisymm m_le m_ge
+  have eq₂ : n₂ = m₂ := by
     have lengs := congr_arg List.length equ
     simp only [List.length_append, List.length_replicate] at lengs
-    exact lengs
-  have eq₂ : n₂ = m₂ := by
-    rw [eqn] at sum_lengs
-    rw [eqm] at sum_lengs
-    rw [add_left_inj] at sum_lengs
-    rw [add_right_inj] at sum_lengs
-    exact sum_lengs
+    omega
   rw [eq₂] at w_eq₂
-  refine ⟨m₂, ?_⟩
-  exact w_eq₂
+  exact ⟨m₂, w_eq₂⟩
 
 end intersection_inclusions
 

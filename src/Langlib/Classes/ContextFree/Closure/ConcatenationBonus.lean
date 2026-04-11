@@ -904,17 +904,9 @@ by
     ] := by
     rcases first_step with ⟨first_rule, p, q, first_rule_in, bef, aft⟩
     have len_bef := congr_arg List.length bef
-    rw [List.length_singleton, List.length_append, List.length_append, List.length_singleton] at len_bef
-    have p_nil : p = [] := by
-      have p0 : p.length = 0 := by
-        linarith
-      rw [List.length_eq_zero_iff] at p0
-      exact p0
-    have q_nil : q = [] := by
-      have q0 : q.length = 0 := by
-        linarith
-      rw [List.length_eq_zero_iff] at q0
-      exact q0
+    simp [List.length_append] at len_bef
+    have p_nil : p = [] := by rw [← List.length_eq_zero_iff]; omega
+    have q_nil : q = [] := by rw [← List.length_eq_zero_iff]; omega
     have initial : first_rule.fst = none := by
       apply symbol.nonterminal.inj
       rw [p_nil, q_nil] at bef
