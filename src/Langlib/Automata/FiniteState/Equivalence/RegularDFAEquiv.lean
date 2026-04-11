@@ -203,11 +203,11 @@ lemma RG_derives_form {g : RG_grammar T} {A : g.nt}
             · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
               · exact Or.inr ⟨ p, by aesop ⟩;
               · cases b <;> simp_all +decide [ List.map ];
-                no_nonterminal
+                no_nonterminal at hu
         · cases h₂;
           rename_i r hr;
           rcases hr with ⟨ hr₁, u, v, hu, hv ⟩;
-          no_nonterminal
+          no_nonterminal (symbol.nonterminal r.lhs) at hu
 
 /-
 An RG transform applied to a sentential form `map terminal p ++ [nt C]`
