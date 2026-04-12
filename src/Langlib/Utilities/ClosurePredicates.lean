@@ -33,6 +33,7 @@ expressed as a property of an alphabet-indexed predicate
 - `ClosedUnderRightQuotientWithRegular`
 - `ClosedUnderHomomorphism`
 - `ClosedUnderEpsFreeHomomorphism`
+- `ClosedUnderInverseHomomorphism`
 -/
 
 variable {α : Type*}
@@ -81,3 +82,11 @@ def ClosedUnderHomomorphism (isP : ∀ {α : Type}, Language α → Prop) : Prop
 def ClosedUnderEpsFreeHomomorphism (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
   ∀ {α β : Type} (L : Language α) (h : α → List β),
     IsEpsFreeHomomorphism h → isP L → isP (L.homomorphicImage h)
+
+/-- An alphabet-indexed language class is closed under inverse string homomorphism.
+
+The inverse homomorphic image of `L : Language β` under `h : α → List β` is
+`{ w : List α | w.flatMap h ∈ L }`. -/
+def ClosedUnderInverseHomomorphism (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
+  ∀ {α β : Type} (L : Language β) (h : α → List β),
+    isP L → isP { w : List α | w.flatMap h ∈ L }

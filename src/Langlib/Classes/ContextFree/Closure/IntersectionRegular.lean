@@ -2,6 +2,7 @@ import Langlib.Grammars.ContextFree.Toolbox
 import Mathlib
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Intersection of Context-Free and Regular Languages
 
@@ -736,5 +737,10 @@ theorem CF_of_CF_inter_regular {L₁ L₂ : Language T}
   apply is_CF_via_cfg_implies_is_CF
   refine ⟨productGrammar g M, ?_⟩
   rw [← hg, productGrammar_language]
+
+/-- The class of context-free languages is closed under intersection with regular languages. -/
+theorem CF_closedUnderIntersectionWithRegular :
+    ClosedUnderIntersectionWithRegular (CF : Set (Language T)) :=
+  fun L hL R hR => CF_of_CF_inter_regular hL hR
 
 end

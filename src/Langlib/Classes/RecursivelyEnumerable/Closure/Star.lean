@@ -3,6 +3,7 @@ import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
+import Langlib.Utilities.ClosurePredicates
 import Langlib.Utilities.ListUtils
 import Langlib.Classes.RecursivelyEnumerable.Closure.Star.Helpers
 
@@ -1228,3 +1229,7 @@ theorem RE_of_star_RE (L : Language T) :
   · intro hw
     rw [← hg] at hw
     exact in_star_grammar_of_in_star hw
+
+/-- The class of recursively enumerable languages is closed under Kleene star. -/
+theorem RE_closedUnderKleeneStar : ClosedUnderKleeneStar (RE : Set (Language T)) :=
+  fun L hL => RE_of_star_RE L hL

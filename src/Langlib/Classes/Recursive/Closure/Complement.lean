@@ -1,5 +1,6 @@
 import Mathlib
 import Langlib.Classes.Recursive.Definition
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Recursive Closure Under Complement
 
@@ -41,3 +42,6 @@ theorem Recursive_complement_iff {L : Language T} :
     have := is_Recursive_complement h
     rwa [compl_compl] at this
   · exact is_Recursive_complement
+/-- The class of recursive languages is closed under complement. -/
+theorem Recursive_closedUnderComplement : ClosedUnderComplement (Recursive : Set (Language T)) :=
+  fun L hL => is_Recursive_complement hL

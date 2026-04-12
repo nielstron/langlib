@@ -1,6 +1,7 @@
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Utilities.ListUtils
+import Langlib.Utilities.ClosurePredicates
 
 
 /-! # RE Closure Under Union
@@ -211,3 +212,7 @@ by
     cases ass with
     | inl case₁ => rw [←eq_L₁] at case₁; exact in_union_of_in_L₁ case₁
     | inr case₂ => rw [←eq_L₂] at case₂; exact in_union_of_in_L₂ case₂
+
+/-- The class of recursively enumerable languages is closed under union. -/
+theorem RE_closedUnderUnion : ClosedUnderUnion (RE : Set (Language T)) :=
+  fun L₁ L₂ h₁ h₂ => RE_of_RE_u_RE L₁ L₂ ⟨h₁, h₂⟩

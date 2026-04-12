@@ -2,6 +2,7 @@ import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
+import Langlib.Utilities.ClosurePredicates
 
 
 /-! # RE Closure Under Reversal
@@ -151,3 +152,7 @@ theorem RE_of_reverse_RE_rev (L : Language T) :
   constructor
   · exact RE_of_reverse_RE_rev L
   · exact RE_of_reverse_RE L
+
+/-- The class of recursively enumerable languages is closed under reversal. -/
+theorem RE_closedUnderReverse : ClosedUnderReverse (RE : Set (Language T)) :=
+  fun L hL => RE_of_reverse_RE L hL

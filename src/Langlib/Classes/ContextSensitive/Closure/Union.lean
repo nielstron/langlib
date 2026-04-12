@@ -1,5 +1,6 @@
 import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Context-Sensitive Closure Under Union
 
@@ -45,3 +46,7 @@ theorem CS_of_CS_u_CS (L₁ : Language T) (L₂ : Language T) :
     cases hw with
     | inl h₁ => exact in_union_of_in_L₁ (hL₁ ▸ h₁)
     | inr h₂ => exact in_union_of_in_L₂ (hL₂ ▸ h₂)
+
+/-- The class of context-sensitive languages is closed under union. -/
+theorem CS_closedUnderUnion : ClosedUnderUnion (CS : Set (Language T)) :=
+  fun L₁ L₂ h₁ h₂ => CS_of_CS_u_CS L₁ L₂ ⟨h₁, h₂⟩

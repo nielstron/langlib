@@ -1,5 +1,6 @@
 import Mathlib
 import Langlib.Utilities.LanguageOperations
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Right Quotient
 
@@ -82,3 +83,9 @@ theorem IsRegular.prefixLang' {L : Language α} (hL : L.IsRegular) :
   exact hL.rightQuotient Set.univ
 
 end Language
+
+/-- The class of regular languages is closed under right quotient with any language
+(in particular with regular languages). -/
+theorem Regular_closedUnderRightQuotientWithRegular :
+    ClosedUnderRightQuotientWithRegular {L : Language α | L.IsRegular} :=
+  fun L hL R _ => hL.rightQuotient R

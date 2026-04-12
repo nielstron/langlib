@@ -96,14 +96,20 @@ Abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.
 | Complement | Yes [🔗](src/Langlib/Classes/Regular/Closure/Complement.lean) | Yes [(🔗)](src/Langlib/Automata/DeterministicPushdown/ClosureProperties/Complement.lean) | No [🔗](src/Langlib/Classes/ContextFree/Closure/Complement.lean) | No | Yes | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Complement.lean) | No |
 | Concatenation | Yes [🔗](src/Langlib/Classes/Regular/Closure/Concatenation.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Concatenation.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Concatenation.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Concatenation.lean) |
 | Kleene star | Yes [🔗](src/Langlib/Classes/Regular/Closure/Star.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Star.lean) | Yes | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Star.lean) | Yes |
-| (String) homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | No | No | Yes |
+| (String) homomorphism | Yes (letter-to-letter [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean)) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | No | No | Yes |
 | `ε`-free (string) homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | Yes | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Homomorphism.lean) |
-| Substitution | Yes [🔗](src/Langlib/Classes/Regular/Closure/Union.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Substitution.lean) | Yes | Yes | No | Yes |
-| Inverse homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/InverseHomomorphism.lean) | Yes | Yes [🔗](src/Langlib/Classes/Regular/Closure/InverseHomomorphism.lean) | Yes | Yes | Yes | Yes |
+| Substitution | Yes [🔗](src/Langlib/Classes/Regular/Closure/Substitution.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Substitution.lean) | Yes | Yes | No | Yes |
+| Inverse homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/InverseHomomorphism.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/InverseHomomorphism.lean) | Yes | Yes | Yes | Yes |
 | Reverse | Yes [🔗](src/Langlib/Classes/Regular/Closure/Reverse.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Reverse.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Reverse.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Reverse.lean) |
 | Intersection with a regular language | Yes [🔗](src/Langlib/Classes/Regular/Closure/Intersection.lean) | Yes [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/IntersectionRegular.lean)| Yes [🔗](src/Langlib/Classes/ContextFree/Closure/IntersectionRegular.lean) | Yes | Yes | Yes | Yes |
 | Right quotient | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | No | No | No | No | No | Yes |
 | Right quotient with a regular language | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) | Yes | Yes | Yes | Yes |
+
+**Notes on the table above:**
+
+- Regular (String) homomorphism: only letter-to-letter maps (`Language.IsRegular.map`) are proved; general string homomorphism is open.
+- RE (String) homomorphism: only ε-free homomorphism is proved in the current RE closure file.
+- CFL Inverse homomorphism: proved under the assumption `[Fintype α]` on the source alphabet; the abstract `ClosedUnderInverseHomomorphism` predicate cannot be directly instantiated without this constraint.
 
 Additional context-free closure results formalized here:
 
