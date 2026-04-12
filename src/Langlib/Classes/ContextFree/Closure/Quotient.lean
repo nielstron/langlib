@@ -407,7 +407,7 @@ theorem is_CF_prefixLang' {L : Language T} (hL : is_CF L) :
 
 /-- The class of context-free languages is closed under right quotient with regular languages. -/
 theorem CF_closedUnderRightQuotientWithRegular :
-    ClosedUnderRightQuotientWithRegular (CF : Set (Language T)) :=
+    ClosedUnderRightQuotientWithRegular (α := T) is_CF :=
   fun L hL R hR => is_CF_rightQuotient_regular hL hR
 
 end

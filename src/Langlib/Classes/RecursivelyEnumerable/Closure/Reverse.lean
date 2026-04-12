@@ -154,5 +154,5 @@ theorem RE_of_reverse_RE_rev (L : Language T) :
   · exact RE_of_reverse_RE L
 
 /-- The class of recursively enumerable languages is closed under reversal. -/
-theorem RE_closedUnderReverse : ClosedUnderReverse (RE : Set (Language T)) :=
+theorem RE_closedUnderReverse : ClosedUnderReverse (α := T) is_RE :=
   fun L hL => RE_of_reverse_RE L hL

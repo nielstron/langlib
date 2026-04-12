@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Concatenation
@@ -260,5 +261,6 @@ theorem IsRegular.mul' {L₁ L₂ : Language α}
 end Language
 
 /-- The class of regular languages is closed under concatenation. -/
-theorem Regular_closedUnderConcatenation : ClosedUnderConcatenation {L : Language α | L.IsRegular} :=
-  fun L₁ L₂ h₁ h₂ => h₁.mul' h₂
+theorem RG_closedUnderConcatenation [Fintype α] : ClosedUnderConcatenation (α := α) is_RG := by
+  intro L₁ L₂ h₁ h₂
+  exact is_RG_of_isRegular (isRegular_of_is_RG h₁ |>.mul' (isRegular_of_is_RG h₂))

@@ -1231,5 +1231,5 @@ theorem RE_of_star_RE (L : Language T) :
     exact in_star_grammar_of_in_star hw
 
 /-- The class of recursively enumerable languages is closed under Kleene star. -/
-theorem RE_closedUnderKleeneStar : ClosedUnderKleeneStar (RE : Set (Language T)) :=
+theorem RE_closedUnderKleeneStar : ClosedUnderKleeneStar (α := T) is_RE :=
   fun L hL => RE_of_star_RE L hL

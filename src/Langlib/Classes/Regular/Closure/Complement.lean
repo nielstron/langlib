@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Complement (Iff)
@@ -26,5 +27,6 @@ theorem isRegular_compl_iff {L : Language α} :
 end Language
 
 /-- The class of regular languages is closed under complement. -/
-theorem Regular_closedUnderComplement : ClosedUnderComplement {L : Language α | L.IsRegular} :=
-  fun L hL => hL.compl
+theorem RG_closedUnderComplement [Fintype α] : ClosedUnderComplement (α := α) is_RG := by
+  intro L hL
+  exact is_RG_of_isRegular (isRegular_of_is_RG hL |>.compl)

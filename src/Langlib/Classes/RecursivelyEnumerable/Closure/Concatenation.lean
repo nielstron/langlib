@@ -1234,5 +1234,5 @@ by
     rw [ ← hg₁, ← hg₂ ]
 
 /-- The class of recursively enumerable languages is closed under concatenation. -/
-theorem RE_closedUnderConcatenation : ClosedUnderConcatenation (RE : Set (Language T)) :=
+theorem RE_closedUnderConcatenation : ClosedUnderConcatenation (α := T) is_RE :=
   fun L₁ L₂ h₁ h₂ => RE_of_RE_c_RE L₁ L₂ ⟨h₁, h₂⟩
