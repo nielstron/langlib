@@ -270,6 +270,26 @@ lemma sink_string_map_terminal (lg : lifted_grammar T) (w : List T) :
     ext x; rfl
   rw [this]; simp
 
+/-- If `lift_string f u` is all terminals, then `u` was already all terminals.
+    Applies to any `lift_string` (or `List.map` of a `lift_symbol`). -/
+lemma lift_string_terminal_inv {N₀ N : Type} (f : N₀ → N)
+    (u : List (symbol T N₀)) (ts : List T)
+    (h : lift_string f u = List.map symbol.terminal ts) :
+    u = List.map symbol.terminal ts := by
+  induction u generalizing ts with
+  | nil => cases ts <;> simp_all [lift_string]
+  | cons head tail ih =>
+    cases ts with
+    | nil => simp [lift_string] at h
+    | cons t ts' =>
+      simp only [lift_string, List.map_cons, List.cons.injEq] at h
+      cases head with
+      | terminal t' =>
+        simp [lift_symbol] at h
+        simp [h.1, ih ts' h.2]
+      | nonterminal n =>
+        simp [lift_symbol] at h
+
 syntax (name := fiveStepTac) "five_steps" : tactic
 
 macro "five_steps" : tactic =>
@@ -311,3 +331,45 @@ def rule_of_rule₁ (r : g₁.nt × (List (symbol T g₁.nt))) :
 def rule_of_rule₂ (r : g₂.nt × (List (symbol T g₂.nt))) :
   ((Option (g₁.nt ⊕ g₂.nt)) × (List (symbol T (Option (g₁.nt ⊕ g₂.nt))))) :=
 (some (Sum.inr (Prod.fst r)), lsTN_of_lsTN₂ (Prod.snd r))
+
+/-- `lsTN_of_lsTN₁` agrees with `lift_string (some ∘ Sum.inl)` pointwise. -/
+lemma lsTN_of_lsTN₁_eq_lift_string (u : List (symbol T g₁.nt)) :
+    lsTN_of_lsTN₁ (g₂ := g₂) u = lift_string (some ∘ Sum.inl) u := by
+  simp only [lsTN_of_lsTN₁, lift_string]
+  congr 1; ext x; cases x <;> rfl
+
+/-- `lsTN_of_lsTN₂` agrees with `lift_string (some ∘ Sum.inr)` pointwise. -/
+lemma lsTN_of_lsTN₂_eq_lift_string (u : List (symbol T g₂.nt)) :
+    lsTN_of_lsTN₂ (g₁ := g₁) u = lift_string (some ∘ Sum.inr) u := by
+  simp only [lsTN_of_lsTN₂, lift_string]
+  congr 1; ext x; cases x <;> rfl
+
+/-- If `lsTN_of_lsTN₁ u = List.map symbol.terminal ts`, then `u` was all terminals. -/
+lemma lsTN_of_lsTN₁_terminal_inv (u : List (symbol T g₁.nt)) (ts : List T)
+    (h : lsTN_of_lsTN₁ (g₂ := g₂) u = List.map symbol.terminal ts) :
+    u = List.map symbol.terminal ts := by
+  rw [lsTN_of_lsTN₁_eq_lift_string] at h
+  exact lift_string_terminal_inv _ u ts h
+
+/-- If `lsTN_of_lsTN₂ v = List.map symbol.terminal ts`, then `v` was all terminals. -/
+lemma lsTN_of_lsTN₂_terminal_inv (v : List (symbol T g₂.nt)) (ts : List T)
+    (h : lsTN_of_lsTN₂ (g₁ := g₁) v = List.map symbol.terminal ts) :
+    v = List.map symbol.terminal ts := by
+  rw [lsTN_of_lsTN₂_eq_lift_string] at h
+  exact lift_string_terminal_inv _ v ts h
+
+/-- `lsTN_of_lsTN₁` preserves terminal-only lists. -/
+lemma lsTN_of_lsTN₁_map_terminal (w : List T) :
+    @lsTN_of_lsTN₁ T g₁ g₂ (List.map symbol.terminal w) =
+      List.map symbol.terminal w := by
+  induction w with
+  | nil => rfl
+  | cons _ _ ih => simp_all [lsTN_of_lsTN₁, sTN_of_sTN₁]
+
+/-- `lsTN_of_lsTN₂` preserves terminal-only lists. -/
+lemma lsTN_of_lsTN₂_map_terminal (w : List T) :
+    @lsTN_of_lsTN₂ T g₁ g₂ (List.map symbol.terminal w) =
+      List.map symbol.terminal w := by
+  induction w with
+  | nil => rfl
+  | cons _ _ ih => simp_all [lsTN_of_lsTN₂, sTN_of_sTN₂]

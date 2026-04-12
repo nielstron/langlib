@@ -202,11 +202,7 @@ by
       [symbol.nonterminal (some (Sum.inl g₁.initial))] =
       lsTN_of_lsTN₁ (g₁ := g₁) (g₂ := g₂) [symbol.nonterminal g₁.initial] := by
       simp [lsTN_of_lsTN₁, sTN_of_sTN₁]
-    have ending :
-      List.map symbol.terminal w =
-      lsTN_of_lsTN₁ (g₁ := g₁) (g₂ := g₂) (List.map symbol.terminal w) := by
-      simp [lsTN_of_lsTN₁, sTN_of_sTN₁, List.map_map]
-    rw [beginning, ending]
+    rw [beginning, (lsTN_of_lsTN₁_map_terminal w).symm]
     exact deri₁_more (List.map symbol.terminal w) assum
   exact CF_deri_of_deri_deri deri_start deri_rest
 
@@ -236,11 +232,7 @@ by
       [symbol.nonterminal (some (Sum.inr g₂.initial))] =
       lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) [symbol.nonterminal g₂.initial] := by
       simp [lsTN_of_lsTN₂, sTN_of_sTN₂]
-    have ending :
-      List.map symbol.terminal w =
-      lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) (List.map symbol.terminal w) := by
-      simp [lsTN_of_lsTN₂, sTN_of_sTN₂, List.map_map]
-    rw [beginning, ending]
+    rw [beginning, (lsTN_of_lsTN₂_map_terminal w).symm]
     exact deri₂_more (List.map symbol.terminal w) assum
   exact CF_deri_of_deri_deri deri_start deri_rest
 

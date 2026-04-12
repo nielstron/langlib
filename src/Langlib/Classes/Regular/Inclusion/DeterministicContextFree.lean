@@ -63,9 +63,9 @@ lemma DPDA_of_DFA_reaches_unique {σ : Type} [Fintype σ] (M : DFA T σ)
         obtain ⟨c, hc₁, hc₂⟩ := h
         cases hc₁
         · unfold DPDA_of_DFA at *
-          simp_all +decide [PDA.Reaches₁]
+          simp_all +decide
           unfold DPDA.toPDA at *
-          simp_all +decide [PDA.Reaches₁]
+          simp_all +decide
           exact ih _ _ hc₂
         · simp_all +decide [DPDA_of_DFA]
           tauto

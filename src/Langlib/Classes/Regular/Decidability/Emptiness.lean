@@ -73,7 +73,7 @@ lemma DFA.mem_reachableSet_iff [Fintype α] [Fintype σ] [DecidableEq σ]
       · exact fun h => hs [] (by simp +decide [h])
       · intro a t ht hts
         specialize ih t
-        simp_all +decide [Function.iterate_succ_apply']
+        simp_all +decide
         obtain ⟨w, rfl⟩ := ih
         specialize hs (w ++ [a])
         simp_all +decide [DFA.evalFrom]
