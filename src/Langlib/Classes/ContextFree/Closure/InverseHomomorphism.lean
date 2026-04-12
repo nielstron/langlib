@@ -7,6 +7,7 @@ import Langlib.Classes.ContextFree.Closure.Star
 import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.Homomorphism
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Context-Free Closure Under Inverse String Homomorphism
 
@@ -494,5 +495,12 @@ theorem CF_closed_under_inverse_homomorphism [Fintype α]
   apply CF_of_CF_inter_regular
   · exact is_CF_fInv L hL
   · exact isRegular_dLang h
+
+/-- The class of context-free languages is closed under inverse string homomorphism. -/
+theorem CF_closedUnderInverseHomomorphism [Fintype α] :
+    ClosedUnderInverseHomomorphism is_CF := by
+  intro α β L h hL
+  simpa [Language.inverseHomomorphicImage] using
+    CF_closed_under_inverse_homomorphism (α := α) (β := β) L h hL
 
 end

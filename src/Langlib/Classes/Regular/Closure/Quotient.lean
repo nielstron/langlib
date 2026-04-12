@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ClosurePredicates
 
@@ -85,11 +86,13 @@ theorem IsRegular.prefixLang' {L : Language α} (hL : L.IsRegular) :
 end Language
 
 /-- The class of regular languages is closed under right quotient with any language. -/
-theorem Regular_closedUnderRightQuotient :
-    ClosedUnderRightQuotient {L : Language α | L.IsRegular} :=
-  fun L₁ L₂ hL₁ _ => hL₁.rightQuotient L₂
+theorem RG_closedUnderRightQuotient [Fintype α] :
+    ClosedUnderRightQuotient (α := α) is_RG := by
+  intro L₁ L₂ hL₁ _
+  exact is_RG_of_isRegular ((isRegular_of_is_RG hL₁).rightQuotient L₂)
 
 /-- The class of regular languages is closed under right quotient with regular languages. -/
-theorem Regular_closedUnderRightQuotientWithRegular :
-    ClosedUnderRightQuotientWithRegular {L : Language α | L.IsRegular} :=
-  fun L hL R _ => hL.rightQuotient R
+theorem RG_closedUnderRightQuotientWithRegular [Fintype α] :
+    ClosedUnderRightQuotientWithRegular (α := α) is_RG := by
+  intro L hL R _
+  exact is_RG_of_isRegular ((isRegular_of_is_RG hL).rightQuotient R)
