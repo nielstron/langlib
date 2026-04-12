@@ -830,12 +830,12 @@ end intersection_inclusions
 
 
 /-- The class of context-free languages isn't closed under intersection. -/
-theorem nnyCF_of_CF_i_CF : ¬ (∀ T : Type, ∀ L₁ : Language T, ∀ L₂ : Language T,
+theorem nnyCF_of_CF_i_CF : ¬ (∀ L₁ L₂ : Language (Fin 3),
     is_CF L₁  ∧  is_CF L₂   →   is_CF (L₁ ⊓ L₂)
 ) :=
 by
   by_contra contra
-  specialize contra (Fin 3) lang_eq_any lang_any_eq ⟨CF_lang_eq_any, CF_lang_any_eq⟩
+  specialize contra lang_eq_any lang_any_eq ⟨CF_lang_eq_any, CF_lang_any_eq⟩
   apply notCF_lang_eq_eq
   convert contra
   ext w
@@ -846,6 +846,6 @@ by
 /-- Context-free languages over `Fin 3` are not closed under intersection. -/
 theorem CF_notClosedUnderIntersection :
     ¬ ClosedUnderIntersection (α := Fin 3) is_CF := by
-  intro h
-  apply notCF_lang_eq_eq
-  exact h lang_eq_any lang_any_eq CF_lang_eq_any CF_lang_any_eq
+  rw [ClosedUnderIntersection]
+  have contra := nnyCF_of_CF_i_CF
+  grind
