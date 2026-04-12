@@ -87,6 +87,7 @@
 
 ### Closure
 
+Abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.) are defined in [🔗](src/Langlib/Utilities/ClosurePredicates.lean).
 
 | Operation | Regular | DCFL | CFL | IND | CSL | Recursive | RE |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -113,13 +114,13 @@ Additional context-free closure results formalized here:
 
 ### Decidability
 
-> TODO: Some results are shown against Mathlibs `Decidable` which is too weak. The proof are yet to be rewritten for `ComputablePred`.
+Results marked ✓ᶜ use `ComputablePred` (the strongest form). Results marked ✓ use only Mathlib's `Decidable` instance (weaker — does not establish computability).
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
-| Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
+| Regular | ✓ᶜ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
 | Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
-| Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
+| Context-free | ✓ᶜ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ᶜ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
 | Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
