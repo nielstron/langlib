@@ -107,10 +107,6 @@ Abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.
 
 **Notes on the table above:**
 
-- Regular (String) homomorphism: only letter-to-letter maps (`Language.IsRegular.map`) are proved; general string homomorphism is open.
-- RE (String) homomorphism: only ε-free homomorphism is proved in the current RE closure file.
-- CFL Inverse homomorphism: proved under the assumption `[Fintype α]` on the source alphabet; the abstract `ClosedUnderInverseHomomorphism` predicate cannot be directly instantiated without this constraint.
-
 Additional context-free closure results formalized here:
 
 - [Terminal bijections](src/Langlib/Classes/ContextFree/Closure/Bijection.lean)
