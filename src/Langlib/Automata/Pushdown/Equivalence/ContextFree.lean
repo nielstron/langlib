@@ -43,3 +43,8 @@ theorem is_PDA_of_isContextFree {L : Language T} (hL : L.IsContextFree) : is_PDA
 theorem is_PDA_iff_isContextFree {L : Language T} :
     is_PDA L ↔ L.IsContextFree :=
   ⟨isContextFree_of_is_PDA, is_PDA_of_isContextFree⟩
+
+/-- The class of context-free languages equals the class of PDA-recognizable languages. -/
+theorem CF_eq_PDA_Class : (CF : Set (Language T)) = PDA.Class := by
+  ext L
+  exact is_CF_iff_isContextFree.trans is_PDA_iff_isContextFree.symm
