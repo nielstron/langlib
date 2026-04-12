@@ -82,5 +82,5 @@ end Language
 /-- The class of regular languages is closed under inverse string homomorphism. -/
 theorem RG_closedUnderInverseHomomorphism :
     ClosedUnderInverseHomomorphism is_RG := by
-  intro α β L h hL
+  intro α β _ L h hL
   exact is_RG_of_isRegular ((isRegular_of_is_RG hL).inverseStringHomomorphism h)
