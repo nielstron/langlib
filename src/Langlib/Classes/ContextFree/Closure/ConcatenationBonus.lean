@@ -670,131 +670,44 @@ private lemma derives_g2_of_derives_combined {g₁ g₂ : CF_grammar T}
   ·
     exact lsTN_of_lsTN₂_of_good (g₁ := g₁) (g₂ := g₂) v' hgood'
 
--- Helper lemma: if lsTN_of_lsTN₁ maps to terminals, then original is terminals
-private lemma lsTN_of_lsTN₁_terminals {g₁ g₂ : CF_grammar T}
-    (u : List (symbol T g₁.nt))
-    (ts : List T)
-    (h : lsTN_of_lsTN₁ (g₂ := g₂) u = List.map symbol.terminal ts) :
-    ∃ ts', u = List.map symbol.terminal ts' := by
-  use ts
-  unfold lsTN_of_lsTN₁ at h
-  -- Prove by induction on u and ts simultaneously
-  induction u generalizing ts with
-  | nil =>
-    cases ts with
-    | nil => rfl
-    | cons _ _ => simp at h
-  | cons head tail ih =>
-    cases ts with
-    | nil => simp at h
-    | cons t ts' =>
-      simp at h
-      cases head with
-      | terminal t' =>
-        unfold sTN_of_sTN₁ at h
-        simp at h
-        obtain ⟨ht, htail⟩ := h
-        subst ht
-        have := ih ts' htail
-        simp [this]
-      | nonterminal n =>
-        unfold sTN_of_sTN₁ at h
-        simp at h
+/-- Given a terminal-only `u`, `liT_of_lsTN₃` recovers the terminal list. -/
+private lemma liT_of_lsTN₃_map_terminal {g : CF_grammar T} (ts : List T) :
+    @liT_of_lsTN₃ T g (List.map symbol.terminal ts) = ts := by
+  unfold liT_of_lsTN₃; rw [List.filterMap_map]
+  have : (oT_of_sTN₃ ∘ @symbol.terminal T g.nt) = fun x => some x := by ext x; rfl
+  rw [this, List.filterMap_some]
 
--- Helper to show u is all terminals from the concat equation
+/-- If `lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v` is all terminals, then `u` is all terminals
+    and equals `List.map symbol.terminal (liT_of_lsTN₃ u)`. -/
 private lemma u_all_terminals_of_concat {g₁ g₂ : CF_grammar T}
     (u : List (symbol T g₁.nt))
     (v : List (symbol T g₂.nt))
     (w : List T)
     (hw : lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v = List.map symbol.terminal w) :
     u = List.map symbol.terminal (liT_of_lsTN₃ u) := by
-  -- Split w into w1 and w2 such that lsTN_of_lsTN₁ u = List.map symbol.terminal w1
-  obtain ⟨w1, hw1⟩ : ∃ w1, lsTN_of_lsTN₁ u = List.map symbol.terminal w1 := by
+  -- Extract that lsTN_of_lsTN₁ u consists of terminals
+  obtain ⟨w1, hw1⟩ : ∃ w1, lsTN_of_lsTN₁ (g₂:=g₂) u = List.map symbol.terminal w1 := by
     use List.take (lsTN_of_lsTN₁ (g₁:=g₁) (g₂:=g₂) u).length w
-    have eq1 : lsTN_of_lsTN₁ u = List.take (lsTN_of_lsTN₁  (g₁:=g₁) (g₂:=g₂) u).length (lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v) := by
-      rw [List.take_left]
-    rw [hw] at eq1
-    simp only [List.map_take]
-    exact eq1
-  obtain ⟨ts, hts⟩ := lsTN_of_lsTN₁_terminals u w1 hw1
-  -- Now show that liT_of_lsTN₃ u = ts
-  rw [hts]
-  congr 1
-  unfold liT_of_lsTN₃
-  unfold oT_of_sTN₃
-  clear hw
-  clear hw1
-  clear hts
-  induction ts generalizing u with
-  | nil => simp
-  | cons head tail tail_ih =>
-    specialize tail_ih (List.map symbol.terminal tail)
-    simp only [List.map_cons, Option.some.injEq, List.filterMap_cons_some,
-      List.cons.injEq, true_and]
-    apply tail_ih
+    have eq1 : lsTN_of_lsTN₁ u = List.take (lsTN_of_lsTN₁ (g₁:=g₁) (g₂:=g₂) u).length
+        (lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v) := by rw [List.take_left]
+    rw [hw] at eq1; simp only [List.map_take]; exact eq1
+  rw [lsTN_of_lsTN₁_terminal_inv u _ hw1, liT_of_lsTN₃_map_terminal (g := g₁)]
 
--- Helper lemma: if lsTN_of_lsTN₂ maps to terminals, then original is terminals
-private lemma lsTN_of_lsTN₂_terminals {g₁ g₂ : CF_grammar T}
-    (v : List (symbol T g₂.nt))
-    (ts : List T)
-    (h : lsTN_of_lsTN₂ (g₁ := g₁) v = List.map symbol.terminal ts) :
-    ∃ ts', v = List.map symbol.terminal ts' := by
-  use ts
-  unfold lsTN_of_lsTN₂ at h
-  -- Prove by induction on u and ts simultaneously
-  induction v generalizing ts with
-  | nil =>
-    cases ts with
-    | nil => rfl
-    | cons _ _ => simp at h
-  | cons head tail ih =>
-    cases ts with
-    | nil => simp at h
-    | cons t ts' =>
-      simp at h
-      cases head with
-      | terminal t' =>
-        unfold sTN_of_sTN₂ at h
-        simp at h
-        obtain ⟨ht, htail⟩ := h
-        subst ht
-        have := ih ts' htail
-        simp [this]
-      | nonterminal n =>
-        unfold sTN_of_sTN₂ at h
-        simp at h
-
--- Helper to show v is all terminals from the concat equation
+/-- If `lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v` is all terminals, then `v` is all terminals
+    and equals `List.map symbol.terminal (liT_of_lsTN₃ v)`. -/
 private lemma v_all_terminals_of_concat {g₁ g₂ : CF_grammar T}
     (u : List (symbol T g₁.nt))
     (v : List (symbol T g₂.nt))
     (w : List T)
     (hw : lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v = List.map symbol.terminal w) :
     v = List.map symbol.terminal (liT_of_lsTN₃ v) := by
-  -- Split w into w1 and w2 such that lsTN_of_lsTN₁ u = List.map symbol.terminal w1
-  obtain ⟨w1, hw1⟩ : ∃ w1, lsTN_of_lsTN₂ v = List.map symbol.terminal w1 := by
+  -- Extract that lsTN_of_lsTN₂ v consists of terminals
+  obtain ⟨w1, hw1⟩ : ∃ w1, lsTN_of_lsTN₂ (g₁:=g₁) v = List.map symbol.terminal w1 := by
     use List.drop (lsTN_of_lsTN₁ (g₁:=g₁) (g₂:=g₂) u).length w
-    have eq1 : lsTN_of_lsTN₂ v = List.drop (lsTN_of_lsTN₁  (g₁:=g₁) (g₂:=g₂) u).length (lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v) := by
-      rw [List.drop_left]
-    rw [hw] at eq1
-    simp only [List.map_drop]
-    exact eq1
-  obtain ⟨ts, hts⟩ := lsTN_of_lsTN₂_terminals v w1 hw1
-  -- Now show that liT_of_lsTN₃ u = ts
-  rw [hts]
-  congr 1
-  unfold liT_of_lsTN₃
-  unfold oT_of_sTN₃
-  clear hw
-  clear hw1
-  clear hts
-  induction ts generalizing u with
-  | nil => simp
-  | cons head tail tail_ih =>
-    specialize tail_ih (List.map symbol.terminal tail)
-    simp only [List.map_cons, Option.some.injEq, List.filterMap_cons_some,
-      List.cons.injEq, true_and]
-    apply tail_ih
+    have eq1 : lsTN_of_lsTN₂ v = List.drop (lsTN_of_lsTN₁ (g₁:=g₁) (g₂:=g₂) u).length
+        (lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v) := by rw [List.drop_left]
+    rw [hw] at eq1; simp only [List.map_drop]; exact eq1
+  rw [lsTN_of_lsTN₂_terminal_inv v _ hw1, liT_of_lsTN₃_map_terminal (g := g₂)]
 
 -- Helper lemmas to show that derivations lead to words in the language
 private lemma in_language_of_derives {g : CF_grammar T}
@@ -814,41 +727,24 @@ private lemma concat_eq_w_of_split {g₁ g₂ : CF_grammar T}
     (w : List T)
     (hw : lsTN_of_lsTN₁ u ++ lsTN_of_lsTN₂ v = List.map symbol.terminal w) :
     liT_of_lsTN₃ u ++ liT_of_lsTN₃ v = w := by
-  -- Apply liT_of_lsTN₃ (filtering terminals) to both sides of hw
   have hw' := congr_arg (@liT_of_lsTN₃ T (combined_grammar g₁ g₂)) hw
   unfold liT_of_lsTN₃ at hw'
   rw [List.filterMap_append] at hw'
-  -- Simplify: List.filterMap oT_of_sTN₃ (List.map symbol.terminal w) = w
+  -- Simplify RHS: List.filterMap oT_of_sTN₃ (List.map symbol.terminal w) = w
   have terminals_filter :
-    List.filterMap (@oT_of_sTN₃ T (combined_grammar g₁ g₂)) (List.map symbol.terminal w) = w := by
+      List.filterMap (@oT_of_sTN₃ T (combined_grammar g₁ g₂)) (List.map symbol.terminal w) = w := by
     rw [List.filterMap_map]
-    -- Now need: List.filterMap (oT_of_sTN₃ ∘ symbol.terminal) w = w
-    have comp_is_some :
-      (@oT_of_sTN₃ T (combined_grammar g₁ g₂)) ∘ (@symbol.terminal T (combined_grammar g₁ g₂).nt) =
-      fun (x : T) => some x := by
-      ext x
-      unfold oT_of_sTN₃
-      rfl
-    rw [comp_is_some, List.filterMap_some]
+    have : (oT_of_sTN₃ ∘ @symbol.terminal T (combined_grammar g₁ g₂).nt) = fun x => some x := by ext x; rfl
+    rw [this, List.filterMap_some]
   rw [terminals_filter] at hw'
-  -- Now need: List.filterMap oT_of_sTN₃ (lsTN_of_lsTN₁ u) = liT_of_lsTN₃ u
-  --       and: List.filterMap oT_of_sTN₃ (lsTN_of_lsTN₂ v) = liT_of_lsTN₃ v
-  have lift1_commutes :
-    List.filterMap (@oT_of_sTN₃ T (combined_grammar g₁ g₂)) (lsTN_of_lsTN₁ u) = liT_of_lsTN₃ u := by
-    unfold lsTN_of_lsTN₁ liT_of_lsTN₃
-    rw [List.filterMap_map]
-    congr 1
-    ext x
-    cases x <;> rfl
-  have lift2_commutes :
-    List.filterMap (@oT_of_sTN₃ T (combined_grammar g₁ g₂)) (lsTN_of_lsTN₂ v) = liT_of_lsTN₃ v := by
-    unfold lsTN_of_lsTN₂ liT_of_lsTN₃
-    rw [List.filterMap_map]
-    congr 1
-    ext x
-    cases x <;> rfl
-  rw [lift1_commutes, lift2_commutes] at hw'
-  exact hw'
+  -- Simplify LHS: filterMap oT_of_sTN₃ (lsTN_of_lsTN₁/₂) = liT_of_lsTN₃
+  have lc₁ : List.filterMap (@oT_of_sTN₃ T (combined_grammar g₁ g₂)) (lsTN_of_lsTN₁ u) =
+      liT_of_lsTN₃ u := by unfold lsTN_of_lsTN₁ liT_of_lsTN₃; rw [List.filterMap_map]
+                           congr 1; ext x; cases x <;> rfl
+  have lc₂ : List.filterMap (@oT_of_sTN₃ T (combined_grammar g₁ g₂)) (lsTN_of_lsTN₂ v) =
+      liT_of_lsTN₃ v := by unfold lsTN_of_lsTN₂ liT_of_lsTN₃; rw [List.filterMap_map]
+                           congr 1; ext x; cases x <;> rfl
+  rw [lc₁, lc₂] at hw'; exact hw'
 
 private lemma in_concatenated_of_in_combined
     {g₁ g₂ : CF_grammar T}
