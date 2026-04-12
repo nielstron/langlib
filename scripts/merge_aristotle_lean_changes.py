@@ -90,7 +90,9 @@ def extract_tarball(archive: Path, destination: Path) -> Path:
 
 
 def lean_files(root: Path) -> set[Path]:
-    return {path.relative_to(root) for path in root.rglob("*.lean")}
+    # only lean files
+    # filter out anything in .lake
+    return {path.relative_to(root) for path in root.rglob("*.lean") if not ".lake" in path.parts}
 
 
 def ensure_clean_worktree() -> None:
