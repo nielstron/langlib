@@ -81,12 +81,12 @@ def ClosedUnderRightQuotientWithRegular (P : Language α → Prop) : Prop :=
 Here `isP` is a predicate on languages that is uniform across alphabets.
 Note: `Language.homomorphicImage` works in universe `Type`, so `isP` ranges over `Type`. -/
 def ClosedUnderHomomorphism (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
-  ∀ {α β : Type} (L : Language α) (h : α → List β),
+  ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (h : α → List β),
     isP L → isP (L.homomorphicImage h)
 
 /-- An alphabet-indexed language class is closed under ε-free string homomorphism. -/
 def ClosedUnderEpsFreeHomomorphism (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
-  ∀ {α β : Type} (L : Language α) (h : α → List β),
+  ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (h : α → List β),
     IsEpsFreeHomomorphism h → isP L → isP (L.homomorphicImage h)
 
 /-- An alphabet-indexed language class is closed under inverse string homomorphism.
@@ -94,7 +94,7 @@ def ClosedUnderEpsFreeHomomorphism (isP : ∀ {α : Type}, Language α → Prop)
 The inverse homomorphic image of `L : Language β` under `h : α → List β` is
 `{ w : List α | w.flatMap h ∈ L }`. -/
 def ClosedUnderInverseHomomorphism (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
-  ∀ {α β : Type} (L : Language β) (h : α → List β),
+  ∀ {α β : Type} [Fintype α] (L : Language β) (h : α → List β),
     isP L → isP { w : List α | w.flatMap h ∈ L }
 
 /-- An alphabet-indexed language class is closed under substitution.

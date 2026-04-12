@@ -158,6 +158,13 @@ theorem IsRegular.homomorphicImage {α' : Type} [Fintype α'] {L : Language α'}
   unfold Language.homomorphicImage
   exact hL.subst' (fun a => isRegular_singleton_word (h a))
 
+/-- The class of regular languages is closed under homomorphism. -/
+theorem RG_closedUnderHomomorphism :
+   ClosedUnderHomomorphism is_RG := by
+  intro α γ _ _ L h hL
+  exact is_RG_of_isRegular (IsRegular.homomorphicImage (isRegular_of_is_RG hL) h)
+
+
 end StringHomomorphism
 
 end Language
