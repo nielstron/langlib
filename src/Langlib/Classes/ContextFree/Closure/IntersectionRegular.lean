@@ -740,7 +740,7 @@ theorem CF_of_CF_inter_regular {L₁ L₂ : Language T}
 
 /-- The class of context-free languages is closed under intersection with regular languages. -/
 theorem CF_closedUnderIntersectionWithRegular :
-    ClosedUnderIntersectionWithRegular (CF : Set (Language T)) :=
+    ClosedUnderIntersectionWithRegular (α := T) is_CF :=
   fun L hL R hR => CF_of_CF_inter_regular hL hR
 
 end

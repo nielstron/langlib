@@ -134,5 +134,5 @@ by
     exact in_big_of_in_concatenated hyp
 
 /-- The class of context-sensitive languages is closed under concatenation. -/
-theorem CS_closedUnderConcatenation : ClosedUnderConcatenation (CS : Set (Language T)) :=
+theorem CS_closedUnderConcatenation : ClosedUnderConcatenation (α := T) is_CS :=
   fun L₁ L₂ h₁ h₂ => CS_of_CS_c_CS L₁ L₂ ⟨h₁, h₂⟩

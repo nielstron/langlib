@@ -10,12 +10,12 @@ import Langlib.Utilities.LanguageOperations
 
 This file defines predicates capturing common closure properties of language classes.
 
-A language class `P : Set (Language α)` is *closed* under an operation if applying the
+A language class `P : Language α → Prop` is *closed* under an operation if applying the
 operation to languages in `P` yields another language in `P`.
 
 For same-alphabet operations (union, intersection, complement, concatenation, Kleene star,
 reversal, intersection/quotient with regular), closedness is expressed as a property of
-`P : Set (Language α)`.
+`P : Language α → Prop`.
 
 For cross-alphabet operations (string homomorphism, ε-free homomorphism), closedness is
 expressed as a property of an alphabet-indexed predicate
@@ -30,45 +30,51 @@ expressed as a property of an alphabet-indexed predicate
 - `ClosedUnderKleeneStar`
 - `ClosedUnderReverse`
 - `ClosedUnderIntersectionWithRegular`
+- `ClosedUnderRightQuotient`
 - `ClosedUnderRightQuotientWithRegular`
 - `ClosedUnderHomomorphism`
 - `ClosedUnderEpsFreeHomomorphism`
 - `ClosedUnderInverseHomomorphism`
+- `ClosedUnderSubstitution`
 -/
 
 variable {α : Type*}
 
 /-- A language class is closed under union. -/
-def ClosedUnderUnion (P : Set (Language α)) : Prop :=
-  ∀ L₁ L₂ : Language α, L₁ ∈ P → L₂ ∈ P → L₁ + L₂ ∈ P
+def ClosedUnderUnion (P : Language α → Prop) : Prop :=
+  ∀ L₁ L₂ : Language α, P L₁ → P L₂ → P (L₁ + L₂)
 
 /-- A language class is closed under intersection. -/
-def ClosedUnderIntersection (P : Set (Language α)) : Prop :=
-  ∀ L₁ L₂ : Language α, L₁ ∈ P → L₂ ∈ P → L₁ ⊓ L₂ ∈ P
+def ClosedUnderIntersection (P : Language α → Prop) : Prop :=
+  ∀ L₁ L₂ : Language α, P L₁ → P L₂ → P (L₁ ⊓ L₂)
 
 /-- A language class is closed under complement. -/
-def ClosedUnderComplement (P : Set (Language α)) : Prop :=
-  ∀ L : Language α, L ∈ P → Lᶜ ∈ P
+def ClosedUnderComplement (P : Language α → Prop) : Prop :=
+  ∀ L : Language α, P L → P Lᶜ
 
 /-- A language class is closed under concatenation. -/
-def ClosedUnderConcatenation (P : Set (Language α)) : Prop :=
-  ∀ L₁ L₂ : Language α, L₁ ∈ P → L₂ ∈ P → L₁ * L₂ ∈ P
+def ClosedUnderConcatenation (P : Language α → Prop) : Prop :=
+  ∀ L₁ L₂ : Language α, P L₁ → P L₂ → P (L₁ * L₂)
 
 /-- A language class is closed under Kleene star. -/
-def ClosedUnderKleeneStar (P : Set (Language α)) : Prop :=
-  ∀ L : Language α, L ∈ P → KStar.kstar L ∈ P
+def ClosedUnderKleeneStar (P : Language α → Prop) : Prop :=
+  ∀ L : Language α, P L → P (KStar.kstar L)
 
 /-- A language class is closed under language reversal. -/
-def ClosedUnderReverse (P : Set (Language α)) : Prop :=
-  ∀ L : Language α, L ∈ P → L.reverse ∈ P
+def ClosedUnderReverse (P : Language α → Prop) : Prop :=
+  ∀ L : Language α, P L → P L.reverse
 
 /-- A language class is closed under intersection with regular languages. -/
-def ClosedUnderIntersectionWithRegular (P : Set (Language α)) : Prop :=
-  ∀ L : Language α, L ∈ P → ∀ R : Language α, R.IsRegular → L ⊓ R ∈ P
+def ClosedUnderIntersectionWithRegular (P : Language α → Prop) : Prop :=
+  ∀ L : Language α, P L → ∀ R : Language α, R.IsRegular → P (L ⊓ R)
+
+/-- A language class is closed under right quotient (with any language from the same class). -/
+def ClosedUnderRightQuotient (P : Language α → Prop) : Prop :=
+  ∀ L₁ L₂ : Language α, P L₁ → P L₂ → P (Language.rightQuotient L₁ L₂)
 
 /-- A language class is closed under right quotient with regular languages. -/
-def ClosedUnderRightQuotientWithRegular (P : Set (Language α)) : Prop :=
-  ∀ L : Language α, L ∈ P → ∀ R : Language α, R.IsRegular → Language.rightQuotient L R ∈ P
+def ClosedUnderRightQuotientWithRegular (P : Language α → Prop) : Prop :=
+  ∀ L : Language α, P L → ∀ R : Language α, R.IsRegular → P (Language.rightQuotient L R)
 
 /-- An alphabet-indexed language class is closed under string homomorphism.
 
@@ -90,3 +96,11 @@ The inverse homomorphic image of `L : Language β` under `h : α → List β` is
 def ClosedUnderInverseHomomorphism (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
   ∀ {α β : Type} (L : Language β) (h : α → List β),
     isP L → isP { w : List α | w.flatMap h ∈ L }
+
+/-- An alphabet-indexed language class is closed under substitution.
+
+The source alphabet is assumed finite so the predicate matches the regular-language
+substitution theorem formalized in this library. -/
+def ClosedUnderSubstitution (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
+  ∀ {α β : Type} [Fintype α] (L : Language α) (f : α → Language β),
+    isP L → (∀ a, isP (f a)) → isP (L.subst f)

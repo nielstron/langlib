@@ -112,5 +112,5 @@ theorem CS_of_reverse_CS_rev (L : Language T) :
 end closure
 
 /-- The class of context-sensitive languages is closed under reversal. -/
-theorem CS_closedUnderReverse : ClosedUnderReverse (CS : Set (Language T)) :=
+theorem CS_closedUnderReverse : ClosedUnderReverse (α := T) is_CS :=
   fun L hL => CS_of_reverse_CS L hL

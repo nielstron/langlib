@@ -440,5 +440,5 @@ theorem Indexed_of_Indexed_u_Indexed (L₁ : Language T) (L₂ : Language T) :
     · exact union_generates_left g₁ g₂ w h
     · exact union_generates_right g₁ g₂ w h
 /-- The class of indexed languages is closed under union. -/
-theorem Indexed_closedUnderUnion : ClosedUnderUnion (Indexed : Set (Language T)) :=
+theorem Indexed_closedUnderUnion : ClosedUnderUnion (α := T) is_Indexed :=
   fun L₁ L₂ h₁ h₂ => Indexed_of_Indexed_u_Indexed L₁ L₂ ⟨h₁, h₂⟩

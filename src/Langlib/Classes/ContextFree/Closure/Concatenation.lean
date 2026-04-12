@@ -29,5 +29,5 @@ theorem CF_of_CF_c_CF (L₁ : Language T) (L₂ : Language T) :
   simpa [f] using (Language.subst_pair_eq_mul (f := f) ▸ hsubst)
 
 /-- The class of context-free languages is closed under concatenation. -/
-theorem CF_closedUnderConcatenation : ClosedUnderConcatenation (CF : Set (Language T)) :=
+theorem CF_closedUnderConcatenation : ClosedUnderConcatenation (α := T) is_CF :=
   fun L₁ L₂ h₁ h₂ => CF_of_CF_c_CF L₁ L₂ ⟨h₁, h₂⟩

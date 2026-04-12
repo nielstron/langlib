@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Utilities.Homomorphism
 import Langlib.Utilities.ClosurePredicates
 
@@ -79,6 +80,7 @@ theorem IsRegular.inverseStringHomomorphism {L : Language α}
 end Language
 
 /-- The class of regular languages is closed under inverse string homomorphism. -/
-theorem Regular_closedUnderInverseHomomorphism :
-    ClosedUnderInverseHomomorphism (fun {α : Type} (L : Language α) => L.IsRegular) :=
-  fun L h hL => hL.inverseStringHomomorphism h
+theorem RG_closedUnderInverseHomomorphism :
+    ClosedUnderInverseHomomorphism is_RG := by
+  intro α β L h hL
+  exact is_RG_of_isRegular ((isRegular_of_is_RG hL).inverseStringHomomorphism h)

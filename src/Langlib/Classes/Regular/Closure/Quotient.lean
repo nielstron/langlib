@@ -84,8 +84,12 @@ theorem IsRegular.prefixLang' {L : Language α} (hL : L.IsRegular) :
 
 end Language
 
-/-- The class of regular languages is closed under right quotient with any language
-(in particular with regular languages). -/
+/-- The class of regular languages is closed under right quotient with any language. -/
+theorem Regular_closedUnderRightQuotient :
+    ClosedUnderRightQuotient {L : Language α | L.IsRegular} :=
+  fun L₁ L₂ hL₁ _ => hL₁.rightQuotient L₂
+
+/-- The class of regular languages is closed under right quotient with regular languages. -/
 theorem Regular_closedUnderRightQuotientWithRegular :
     ClosedUnderRightQuotientWithRegular {L : Language α | L.IsRegular} :=
   fun L hL R _ => hL.rightQuotient R

@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.Regular.Examples.TopBot
 import Langlib.Utilities.ClosurePredicates
@@ -36,5 +37,6 @@ theorem not_iff_regular_union :
 end Language
 
 /-- The class of regular languages is closed under union. -/
-theorem Regular_closedUnderUnion : ClosedUnderUnion {L : Language α | L.IsRegular} :=
-  fun L₁ L₂ h₁ h₂ => h₁.add h₂
+theorem RG_closedUnderUnion [Fintype α] : ClosedUnderUnion (α := α) is_RG := by
+  intro L₁ L₂ h₁ h₂
+  exact is_RG_of_isRegular (isRegular_of_is_RG h₁ |>.add (isRegular_of_is_RG h₂))

@@ -98,5 +98,5 @@ theorem CF_of_reverse_CF_rev (L : Language T) :
 end closure
 
 /-- The class of context-free languages is closed under reversal. -/
-theorem CF_closedUnderReverse : ClosedUnderReverse (CF : Set (Language T)) :=
+theorem CF_closedUnderReverse : ClosedUnderReverse (α := T) is_CF :=
   fun L hL => CF_of_reverse_CF L hL

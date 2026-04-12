@@ -48,5 +48,5 @@ theorem CS_of_CS_u_CS (L₁ : Language T) (L₂ : Language T) :
     | inr h₂ => exact in_union_of_in_L₂ (hL₂ ▸ h₂)
 
 /-- The class of context-sensitive languages is closed under union. -/
-theorem CS_closedUnderUnion : ClosedUnderUnion (CS : Set (Language T)) :=
+theorem CS_closedUnderUnion : ClosedUnderUnion (α := T) is_CS :=
   fun L₁ L₂ h₁ h₂ => CS_of_CS_u_CS L₁ L₂ ⟨h₁, h₂⟩

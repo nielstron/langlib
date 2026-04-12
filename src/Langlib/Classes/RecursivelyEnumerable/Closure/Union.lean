@@ -214,5 +214,5 @@ by
     | inr case₂ => rw [←eq_L₂] at case₂; exact in_union_of_in_L₂ case₂
 
 /-- The class of recursively enumerable languages is closed under union. -/
-theorem RE_closedUnderUnion : ClosedUnderUnion (RE : Set (Language T)) :=
+theorem RE_closedUnderUnion : ClosedUnderUnion (α := T) is_RE :=
   fun L₁ L₂ h₁ h₂ => RE_of_RE_u_RE L₁ L₂ ⟨h₁, h₂⟩

@@ -29,5 +29,5 @@ theorem CF_of_CF_u_CF (L₁ : Language T) (L₂ : Language T) :
   simpa [f] using (Language.subst_singletons_eq_add (f := f) ▸ hsubst)
 
 /-- The class of context-free languages is closed under union. -/
-theorem CF_closedUnderUnion : ClosedUnderUnion (CF : Set (Language T)) :=
+theorem CF_closedUnderUnion : ClosedUnderUnion (α := T) is_CF :=
   fun L₁ L₂ h₁ h₂ => CF_of_CF_u_CF L₁ L₂ ⟨h₁, h₂⟩

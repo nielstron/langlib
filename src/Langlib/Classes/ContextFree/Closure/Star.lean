@@ -21,5 +21,5 @@ theorem CF_of_star_CF (L : Language T) :
   exact Language.IsContextFree.kstar ((is_CF_iff_isContextFree).mp h)
 
 /-- The class of context-free languages is closed under Kleene star. -/
-theorem CF_closedUnderKleeneStar : ClosedUnderKleeneStar (CF : Set (Language T)) :=
+theorem CF_closedUnderKleeneStar : ClosedUnderKleeneStar (α := T) is_CF :=
   CF_of_star_CF
