@@ -17,3 +17,10 @@ theorem is_PDA_acceptsByFinalState (M : DPDA Q T S) : is_PDA M.acceptsByFinalSta
   PDA_FS_subset_ES M.toPDA
 
 end DPDA
+
+/-- The class of DPDA-recognizable languages is contained in the class of PDA-recognizable
+    languages. -/
+theorem DPDA_subclass_PDA {T : Type} [Fintype T] : (DPDA.Class : Set (Language T)) ⊆ PDA.Class := by
+  intro L hL
+  obtain ⟨Q, S, _, _, M, rfl⟩ := hL
+  exact M.is_PDA_acceptsByFinalState

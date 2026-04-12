@@ -19,3 +19,8 @@ and that they are a subset
 theorem is_CF_of_is_DCF {T : Type} [Fintype T] {L : Language T} (h : is_DCF L) : is_CF L := by
   obtain ⟨Q, S, _, _, M, rfl⟩ := h
   exact is_CF_of_is_PDA M.is_PDA_acceptsByFinalState
+
+/-- The class of deterministic context-free languages is contained in the class of
+    context-free languages. -/
+theorem DCF_subclass_CF {T : Type} [Fintype T] : (DCF : Set (Language T)) ⊆ CF :=
+  fun _ h => is_CF_of_is_DCF h
