@@ -7,6 +7,7 @@ import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Utilities.Tactics
+import Langlib.Utilities.ClosurePredicates
 
 
 /-! # Context-Free Non-Closure Under Intersection
@@ -841,3 +842,10 @@ by
   constructor
   · apply intersection_of_lang_eq_eq
   · apply lang_eq_eq_of_intersection
+
+/-- Context-free languages over `Fin 3` are not closed under intersection. -/
+theorem CF_notClosedUnderIntersection :
+    ¬ ClosedUnderIntersection (α := Fin 3) is_CF := by
+  intro h
+  apply notCF_lang_eq_eq
+  exact h lang_eq_any lang_any_eq CF_lang_eq_any CF_lang_any_eq

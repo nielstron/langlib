@@ -469,5 +469,5 @@ theorem RE_closed_under_epsfree_homomorphism (L : Language α) (h : α → List 
     exact in_hom_of_in_original hw'
 
 /-- The class of recursively enumerable languages is closed under ε-free string homomorphism. -/
-theorem RE_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism (@is_RE) :=
+theorem RE_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_RE :=
   fun L h heps hL => RE_closed_under_epsfree_homomorphism L h hL heps

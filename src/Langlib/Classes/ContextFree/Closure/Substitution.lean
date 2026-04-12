@@ -1,6 +1,7 @@
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Classes.ContextFree.Closure.Substitution.Core
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Context-Free Closure Under Substitution
 
@@ -22,3 +23,9 @@ theorem CF_of_subst_CF (L : Language α) (f : α → Language β) :
   exact Language.IsContextFree.subst L f
     ((is_CF_iff_isContextFree).mp hL)
     (fun a => (is_CF_iff_isContextFree).mp (hf a))
+
+/-- The class of context-free languages is closed under substitution. -/
+theorem CF_closedUnderSubstitution [Fintype α] :
+    ClosedUnderSubstitution is_CF := by
+  intro α β _ L f hL hf
+  exact CF_of_subst_CF L f hL hf

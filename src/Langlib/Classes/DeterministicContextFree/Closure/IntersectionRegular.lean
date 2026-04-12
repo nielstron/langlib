@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib
 import Langlib.Classes.DeterministicContextFree.Definition
+import Langlib.Utilities.ClosurePredicates
 
 /-! # DCF Closure Under Intersection with a Regular Language
 
@@ -224,5 +225,12 @@ theorem DCF_inter_regular {T : Type} [Fintype T]
   obtain ⟨Q, S, hQ, hS, M, rfl⟩ := h₁
   obtain ⟨σ, hσ, D, rfl⟩ := h₂
   exact ⟨Q × σ, S, inferInstance, hS, M.productDFA D, M.productDFA_correct D⟩
+
+/-- The class of deterministic context-free languages is closed under intersection
+    with regular languages. -/
+theorem DCF_closedUnderIntersectionWithRegular {T : Type} [Fintype T] :
+    ClosedUnderIntersectionWithRegular (α := T) is_DCF := by
+  intro L hL R hR
+  exact DCF_inter_regular L R hL hR
 
 end

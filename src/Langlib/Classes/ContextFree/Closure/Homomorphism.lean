@@ -44,9 +44,9 @@ theorem CF_closed_under_epsfree_homomorphism (L : Language α) (h : α → List 
   exact CF_closed_under_homomorphism L h hL
 
 /-- The class of context-free languages is closed under string homomorphism. -/
-theorem CF_closedUnderHomomorphism : ClosedUnderHomomorphism (@is_CF) :=
+theorem CF_closedUnderHomomorphism : ClosedUnderHomomorphism is_CF :=
   fun L h hL => CF_closed_under_homomorphism L h hL
 
 /-- The class of context-free languages is closed under ε-free string homomorphism. -/
-theorem CF_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism (@is_CF) :=
+theorem CF_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_CF :=
   fun L h heps hL => CF_closed_under_epsfree_homomorphism L h hL heps

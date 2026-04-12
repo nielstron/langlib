@@ -1,5 +1,7 @@
 import Mathlib
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Utilities.LanguageOperations
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Substitution
 
@@ -369,3 +371,10 @@ theorem IsRegular.subst' {L : Language α} {f : α → Language β}
     by rw [NFA.toDFA_correct, εNFA.toNFA_correct]⟩
 
 end Language
+
+/-- The class of regular languages is closed under substitution. -/
+theorem RG_closedUnderSubstitution [Fintype α] :
+    ClosedUnderSubstitution is_RG := by
+  intro α β _ L f hL hf
+  exact is_RG_of_isRegular
+    ((isRegular_of_is_RG hL).subst' (fun a => isRegular_of_is_RG (hf a)))
