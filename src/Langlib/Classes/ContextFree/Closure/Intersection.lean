@@ -2,6 +2,7 @@ import Langlib.Classes.ContextFree.Basics.Pumping
 import Langlib.Classes.ContextFree.Basics.Elementary
 import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Classes.ContextFree.Closure.Permutation
+import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Utilities.ListUtils
 import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Definition
@@ -849,3 +850,39 @@ theorem CF_notClosedUnderIntersection :
   rw [ClosedUnderIntersection]
   have contra := nnyCF_of_CF_i_CF
   grind
+
+private lemma Language.map_inf_injective {α β : Type} {f : α → β} (hf : Function.Injective f)
+    (L₁ L₂ : Language α) :
+    Language.map f (L₁ ⊓ L₂) = Language.map f L₁ ⊓ Language.map f L₂ := by
+  ext w
+  constructor
+  · rintro ⟨v, ⟨hv1, hv2⟩, rfl⟩
+    exact ⟨⟨v, hv1, rfl⟩, ⟨v, hv2, rfl⟩⟩
+  · rintro ⟨⟨v1, hv1, hmap1⟩, ⟨v2, hv2, hmap2⟩⟩
+    have heq : v1 = v2 := by
+      apply List.map_injective_iff.mpr hf
+      rw [hmap1, hmap2]
+    subst heq
+    exact ⟨v1, ⟨hv1, hv2⟩, hmap1⟩
+
+/-- Context-free languages are not closed under intersection for any type with at least
+    3 elements. That is, as long as `α` has at least 3 distinct elements, not all
+    intersections of context-free languages over `α` are context-free. -/
+theorem CF_notClosedUnderIntersection_of_three {α : Type}
+    (a b c : α) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
+    ¬ ClosedUnderIntersection (α := α) is_CF := by
+  intro hclosed
+  -- Build an injection Fin 3 → α
+  have hf : Function.Injective (fun i : Fin 3 => (![a, b, c] : Fin 3 → α) i) := by
+    intro i j h
+    fin_cases i <;> fin_cases j <;> simp_all [Matrix.cons_val_zero, Matrix.cons_val_one]
+  set f : Fin 3 → α := fun i => ![a, b, c] i
+  -- Transfer the Fin 3 non-closure result
+  apply nnyCF_of_CF_i_CF
+  intro L₁ L₂ ⟨hL₁, hL₂⟩
+  have hfL₁ : is_CF (Language.map f L₁) := CF_of_map_CF f L₁ hL₁
+  have hfL₂ : is_CF (Language.map f L₂) := CF_of_map_CF f L₂ hL₂
+  have hinter : is_CF (Language.map f L₁ ⊓ Language.map f L₂) :=
+    hclosed _ _ hfL₁ hfL₂
+  rw [← Language.map_inf_injective hf] at hinter
+  exact CF_of_map_injective_CF_rev hf _ hinter
