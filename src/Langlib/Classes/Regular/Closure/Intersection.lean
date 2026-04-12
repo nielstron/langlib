@@ -1,6 +1,7 @@
 import Mathlib
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.Regular.Examples.TopBot
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Intersection
 
@@ -32,3 +33,7 @@ theorem not_iff_regular_intersection :
   exact anbn_not_isRegular ((h anbn ⊥).mp hinf).1
 
 end Language
+
+/-- The class of regular languages is closed under intersection. -/
+theorem Regular_closedUnderIntersection : ClosedUnderIntersection {L : Language α | L.IsRegular} :=
+  fun L₁ L₂ h₁ h₂ => h₁.inf h₂

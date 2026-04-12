@@ -1,5 +1,6 @@
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Context-Free Closure Under Concatenation
 
@@ -26,3 +27,7 @@ theorem CF_of_CF_c_CF (L₁ : Language T) (L₂ : Language T) :
       | false => simpa [f]
       | true => simpa [f]
   simpa [f] using (Language.subst_pair_eq_mul (f := f) ▸ hsubst)
+
+/-- The class of context-free languages is closed under concatenation. -/
+theorem CF_closedUnderConcatenation : ClosedUnderConcatenation (CF : Set (Language T)) :=
+  fun L₁ L₂ h₁ h₂ => CF_of_CF_c_CF L₁ L₂ ⟨h₁, h₂⟩

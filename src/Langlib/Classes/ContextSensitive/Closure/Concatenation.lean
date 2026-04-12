@@ -1,6 +1,7 @@
 import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Context-Sensitive Concatenation Construction
 
@@ -131,3 +132,7 @@ by
     rw [←eq_L₁] at hyp
     rw [←eq_L₂] at hyp
     exact in_big_of_in_concatenated hyp
+
+/-- The class of context-sensitive languages is closed under concatenation. -/
+theorem CS_closedUnderConcatenation : ClosedUnderConcatenation (CS : Set (Language T)) :=
+  fun L₁ L₂ h₁ h₂ => CS_of_CS_c_CS L₁ L₂ ⟨h₁, h₂⟩

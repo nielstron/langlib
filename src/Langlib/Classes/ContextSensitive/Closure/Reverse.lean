@@ -4,6 +4,7 @@ import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Context-Sensitive Closure Under Reversal
 
@@ -109,3 +110,7 @@ theorem CS_of_reverse_CS_rev (L : Language T) :
   · exact CS_of_reverse_CS L
 
 end closure
+
+/-- The class of context-sensitive languages is closed under reversal. -/
+theorem CS_closedUnderReverse : ClosedUnderReverse (CS : Set (Language T)) :=
+  fun L hL => CS_of_reverse_CS L hL

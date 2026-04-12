@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Kleene Star
 
@@ -368,3 +369,7 @@ theorem IsRegular.kstar' {L : Language α}
   rw [NFA.toDFA_correct, εNFA.toNFA_correct]
 
 end Language
+
+/-- The class of regular languages is closed under Kleene star. -/
+theorem Regular_closedUnderKleeneStar : ClosedUnderKleeneStar {L : Language α | L.IsRegular} :=
+  fun L hL => hL.kstar'

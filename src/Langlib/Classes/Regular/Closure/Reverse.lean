@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Reversal (Iff)
 
@@ -21,3 +22,7 @@ theorem isRegular_reverse_iff' {L : Language α} :
   isRegular_reverse_iff
 
 end Language
+
+/-- The class of regular languages is closed under reversal. -/
+theorem Regular_closedUnderReverse : ClosedUnderReverse {L : Language α | L.IsRegular} :=
+  fun L hL => hL.reverse

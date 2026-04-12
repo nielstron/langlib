@@ -1,6 +1,7 @@
 import Mathlib
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.Regular.Examples.TopBot
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Union
 
@@ -33,3 +34,7 @@ theorem not_iff_regular_union :
   exact anbn_not_isRegular ((h anbn anbnᶜ).mp hunion).1
 
 end Language
+
+/-- The class of regular languages is closed under union. -/
+theorem Regular_closedUnderUnion : ClosedUnderUnion {L : Language α | L.IsRegular} :=
+  fun L₁ L₂ h₁ h₂ => h₁.add h₂

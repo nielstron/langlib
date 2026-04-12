@@ -4,6 +4,7 @@ import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Utilities.LanguageOperations
 import Mathlib
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Context-Free Closure Under Right Quotient with Regular Languages
 
@@ -403,5 +404,10 @@ theorem is_CF_prefixLang' {L : Language T} (hL : is_CF L) :
   exact is_CF_rightQuotient_regular hL
     ⟨Unit, inferInstance, ⟨fun _ _ => (), (), Set.univ⟩,
      by ext; simp [DFA.accepts, DFA.acceptsFrom, DFA.evalFrom]⟩
+
+/-- The class of context-free languages is closed under right quotient with regular languages. -/
+theorem CF_closedUnderRightQuotientWithRegular :
+    ClosedUnderRightQuotientWithRegular (CF : Set (Language T)) :=
+  fun L hL R hR => is_CF_rightQuotient_regular hL hR
 
 end

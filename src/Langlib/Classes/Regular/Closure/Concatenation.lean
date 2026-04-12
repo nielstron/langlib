@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Utilities.ClosurePredicates
 
 /-! # Regular Closure Under Concatenation
 
@@ -257,3 +258,7 @@ theorem IsRegular.mul' {L₁ L₂ : Language α}
   rw [NFA.toDFA_correct, εNFA.toNFA_correct]
 
 end Language
+
+/-- The class of regular languages is closed under concatenation. -/
+theorem Regular_closedUnderConcatenation : ClosedUnderConcatenation {L : Language α | L.IsRegular} :=
+  fun L₁ L₂ h₁ h₂ => h₁.mul' h₂

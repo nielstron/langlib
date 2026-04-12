@@ -2,6 +2,7 @@ import Mathlib
 import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Utilities.ListUtils
+import Langlib.Utilities.ClosurePredicates
 
 /-! # RE Closure Under Concatenation
 
@@ -1231,3 +1232,7 @@ by
     exact hg₂.symm;
   · convert in_big_of_in_concatenated using 1;
     rw [ ← hg₁, ← hg₂ ]
+
+/-- The class of recursively enumerable languages is closed under concatenation. -/
+theorem RE_closedUnderConcatenation : ClosedUnderConcatenation (RE : Set (Language T)) :=
+  fun L₁ L₂ h₁ h₂ => RE_of_RE_c_RE L₁ L₂ ⟨h₁, h₂⟩
