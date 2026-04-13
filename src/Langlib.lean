@@ -32,6 +32,7 @@ import Langlib.Automata.Turing.DSL.SearchProc
 import Langlib.Automata.Turing.DSL.TM0Restrict
 import Langlib.Automata.Turing.DSL
 import Langlib.Automata.Turing.Definition
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.GrammarSearch
 import Langlib.Automata.Turing.Equivalence.GrammarToTM

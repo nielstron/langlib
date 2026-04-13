@@ -2,6 +2,7 @@ import Mathlib
 import Langlib.Automata.Turing.DSL.SearchProc
 import Langlib.Automata.Turing.DSL.Compile
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
 
 /-! # Grammar Membership as a Search Procedure
 
@@ -93,7 +94,7 @@ theorem grammar_language_is_TM_internal {T : Type} [DecidableEq T] [Fintype T]
   haveI : Primcodable g.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g.nt)) (Fintype.truncEquivFin g.nt).out
   have key := is_TM_of_searchable (α := List (ℕ × ℕ)) (grammarTest g)
-    (by sorry) -- Computable₂ (grammarTest g)
+    (grammarTest_computable₂ g)
     (grammar_language g)
     (by
       ext w
