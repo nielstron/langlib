@@ -2,6 +2,7 @@ import Mathlib
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Automata.Turing.Definition
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.GrammarSearch
+import Langlib.Grammars.Unrestricted.FiniteNonterminals
 
 /-! # Unrestricted Grammars → Turing Machines
 
@@ -55,7 +56,8 @@ finitely many nonterminals. -/
 theorem re_implies_tm_internal {T : Type} [DecidableEq T] [Fintype T]
     (L : Language T) (hL : is_RE L) : is_TM_internal_weak L := by
   obtain ⟨g, hg⟩ := hL
-  haveI : DecidableEq g.nt := Classical.decEq _
-  haveI : Fintype g.nt := by sorry
-  rw [← hg]
-  exact grammar_language_is_TM_internal g
+  obtain ⟨g', hfin, hlang⟩ := grammar_equivalent_finiteNT g
+  haveI : Fintype g'.nt := Fintype.ofFinite _
+  haveI : DecidableEq g'.nt := Classical.decEq _
+  rw [← hg, hlang]
+  exact grammar_language_is_TM_internal g'
