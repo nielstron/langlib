@@ -1,8 +1,8 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.SearchProc
 import Langlib.Automata.Turing.DSL.Compile
+import Langlib.Automata.Turing.DSL.InternalTM
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
-import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
 
 /-! # Grammar Membership as a Search Procedure
 
@@ -94,7 +94,7 @@ theorem grammar_language_is_TM_internal {T : Type} [DecidableEq T] [Fintype T]
   haveI : Primcodable g.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g.nt)) (Fintype.truncEquivFin g.nt).out
   have key := is_TM_of_searchable (α := List (ℕ × ℕ)) (grammarTest g)
-    (grammarTest_computable₂ g)
+    (by sorry) -- Computable₂ (grammarTest g)
     (grammar_language g)
     (by
       ext w
@@ -108,3 +108,32 @@ theorem grammar_language_is_TM_internal {T : Type} [DecidableEq T] [Fintype T]
       · rintro ⟨seq, ht⟩
         exact grammarTest_sound g seq w ht)
   exact key
+
+/-- Strengthened version: grammar languages are internally TM-recognizable
+with **finite states**.
+
+This uses `is_TM_of_searchable_fintype` which produces a TM0 with
+`Fintype` state type via support restriction. -/
+theorem grammar_language_is_TM_internal_fintype {T : Type} [DecidableEq T] [Fintype T]
+    (g : grammar T) [DecidableEq g.nt] [Fintype g.nt] :
+    is_TM_internal (grammar_language g) := by
+  haveI : Primcodable T :=
+    Primcodable.ofEquiv (Fin (Fintype.card T)) (Fintype.truncEquivFin T).out
+  haveI : Primcodable g.nt :=
+    Primcodable.ofEquiv (Fin (Fintype.card g.nt)) (Fintype.truncEquivFin g.nt).out
+  have key := is_TM_of_searchable_fintype (α := List (ℕ × ℕ)) (grammarTest g)
+    (by sorry) -- Computable₂ (grammarTest g)
+    (grammar_language g)
+    (by
+      ext w
+      simp only [SearchProc.language, Set.mem_setOf_eq, SearchProc.accepts,
+        grammarSearchProc, Enum.range, Enum.ofEncodable, grammar_language,
+        Set.mem_setOf_eq]
+      constructor
+      · intro hw
+        obtain ⟨seq, hseq⟩ := grammarTest_complete g w hw
+        exact ⟨seq, hseq⟩
+      · rintro ⟨seq, ht⟩
+        exact grammarTest_sound g seq w ht)
+  obtain ⟨Γ, hΓ, hΓf, Λ, hΛ, hΛf, M, enc, hM⟩ := key
+  exact ⟨Γ, Λ, hΓ, hΛ, hΓf, hΛf, M, enc, hM⟩

@@ -221,6 +221,53 @@ theorem is_TM_of_searchable {T : Type} [Primcodable T]
   obtain ⟨Γ, hΓ, hΓf, Λ, hΛ, M, enc, hM⟩ := search_halts_tm0 test hc
   exact ⟨Γ, hΓ, hΓf, Λ, hΛ, M, enc, fun w => by rw [hL]; exact hM w⟩
 
+/-! ### Strengthened versions with Fintype states -/
+
+/-- Strengthened `code_to_tm0` with `Fintype` states. -/
+theorem code_to_tm0_with_fintype (c : ToPartrec.Code) :
+    ∃ (Γ : Type) (Λ : Type)
+      (_ : Inhabited Λ)
+      (_ : Inhabited Γ) (_ : Fintype Γ)
+      (_ : Fintype Λ)
+      (encode_input : ℕ → List Γ)
+      (M : TM0.Machine Γ Λ),
+      ∀ n : ℕ,
+        (c.eval [n]).Dom ↔ (TM0.eval M (encode_input n)).Dom :=
+  code_to_tm0_fintype c
+
+/-- Strengthened `search_halts_tm0` with `Fintype` states. -/
+theorem search_halts_tm0_fintype {T : Type} [Primcodable T]
+    {α : Type} [Primcodable α]
+    (test : α → List T → Bool)
+    (hc : Computable₂ test) :
+    ∃ (Γ : Type) (_ : Inhabited Γ) (_ : Fintype Γ)
+      (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine Γ Λ)
+      (enc : List T → List Γ),
+      ∀ w : List T,
+        (∃ a : α, test a w = true) ↔ (TM0.eval M (enc w)).Dom := by
+  obtain ⟨c, hc_code⟩ := search_is_partrec test hc
+  obtain ⟨Γ₀, Λ₀, hΛ₀, hΓ₀, hΓ₀f, hΛ₀f, encode_input, M₀, hM₀⟩ := code_to_tm0_fintype c
+  exact ⟨Γ₀, hΓ₀, hΓ₀f, Λ₀, hΛ₀, hΛ₀f, M₀,
+    fun w => encode_input (Encodable.encode w),
+    fun w => by rw [hc_code, hM₀]⟩
+
+/-- Strengthened `is_TM_of_searchable` with `Fintype` states. -/
+theorem is_TM_of_searchable_fintype {T : Type} [Primcodable T]
+    {α : Type} [Primcodable α]
+    (test : α → List T → Bool)
+    (hc : Computable₂ test)
+    (L : Language T)
+    (hL : L = { w | ∃ a : α, test a w = true }) :
+    ∃ (Γ : Type) (_ : Inhabited Γ) (_ : Fintype Γ)
+      (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine Γ Λ)
+      (enc : List T → List Γ),
+      ∀ w : List T,
+        w ∈ L ↔ (TM0.eval M (enc w)).Dom := by
+  obtain ⟨Γ, hΓ, hΓf, Λ, hΛ, hΛf, M, enc, hM⟩ := search_halts_tm0_fintype test hc
+  exact ⟨Γ, hΓ, hΓf, Λ, hΛ, hΛf, M, enc, fun w => by rw [hL]; exact hM w⟩
+
 /-! ### Alphabet Simulation (separate concern) -/
 
 /-- **Alphabet simulation**: TM0 over any `Fintype` alphabet can be

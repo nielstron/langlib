@@ -10,8 +10,36 @@ evaluated by a TM0 machine.
 ## Main results
 
 - `partrec_init_trCfg` — TrCfg for PartrecToTM2.init (the key lemma)
-- `code_to_tm0_halts` — full chain: Code halts iff TM0 halts
-- `code_to_tm0_eval` — full chain with TM0.eval and re-rooting
+- `code_to_tm0_halts` — full chain: Code halts iff TM0 halts (PROVED)
+- `code_to_tm0` — existential form (PROVED, no Fintype on states)
+- `code_to_tm0_fintype` — with Fintype states (sorry'd, see hurdles below)
+
+## Hurdles for Fintype states
+
+The main obstacle to proving `code_to_tm0_fintype` is a **Lean `Inhabited`
+instance mismatch**:
+
+1. `PartrecToTM2.tr_supports c k` produces `TM2.Supports` with a
+   *code-dependent* `Inhabited` instance: `⟨trNormal c k⟩`. The canonical
+   `Inhabited PartrecToTM2.Λ'` uses `⟨ret halt⟩` instead.
+
+2. `TM1to0.instInhabitedΛ'` defines `default = (some (M default), default)`,
+   so the `Inhabited` instance for `ChainΛ_TM0` depends on the upstream
+   `Inhabited ChainΛ_TM1`, which in turn depends on `Inhabited PartrecToTM2.Λ'`.
+
+3. These instances are **not definitionally equal**, causing Lean to reject
+   `exact` when the support proof uses one instance but the goal expects another.
+
+**This is NOT a mathematical obstacle** — the support sets are the same regardless
+of the `Inhabited` choice. But it requires either:
+- Refactoring `PartrecToTM2.tr_supports` to use the canonical instance
+  (requires `ret halt ∈ codeSupp c halt`, which is not true for all codes)
+- Or carefully threading `@`-explicit instances through the entire chain
+  (very tedious but mechanically straightforward)
+
+Additionally, `init_q0_mem_chainSuppTM0` (initial state ∈ support) needs:
+- `trNormal c halt ∈ codeSupp c halt` (true but needs induction on Code)
+- `some (ChainTM1 q) ∈ TM1.stmts` for `q ∈ chainSuppTM1` (follows from stmts₁_self)
 -/
 
 open Turing PartrecToTM2 TM2to1
@@ -28,15 +56,6 @@ theorem partrec_init_stk_eq (c : ToPartrec.Code) (v : List ℕ) :
 
 /-! ### TrCfg for PartrecToTM2.init -/
 
-/-
-`TrCfg` relates `PartrecToTM2.init c v` to a TM1 config whose tape
-is `(TM1.init (trInit K'.main (trList v))).Tape = Tape.mk₁ (trInit ...)`.
-
-This is the key lemma enabling the full Code → TM0 chain. It adapts
-`trCfg_init` to the custom initial config of PartrecToTM2.
-The proof reuses the same `ListBlank L` construction since the stacks
-are identical.
--/
 theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
     @TrCfg K' (fun _ => Γ') Λ' (Option Γ')
       (PartrecToTM2.init c v)
@@ -86,6 +105,12 @@ abbrev ChainTM1 := TM2to1.tr PartrecToTM2.tr
 abbrev ChainTM0 := TM1to0.tr ChainTM1
 abbrev ChainΛ_TM0 := TM1to0.Λ' ChainTM1
 
+instance : Fintype PartrecToTM2.K' :=
+  Fintype.ofList [.main, .rev, .aux, .stack] (by intro x; cases x <;> simp)
+
+instance : Fintype PartrecToTM2.Γ' :=
+  Fintype.ofList [.consₗ, .cons, .bit0, .bit1] (by intro x; cases x <;> simp)
+
 /-- TM2 halts iff Code evaluates. -/
 theorem code_eval_iff_tm2 (c : ToPartrec.Code) (v : List ℕ) :
     (c.eval v).Dom ↔
@@ -94,12 +119,7 @@ theorem code_eval_iff_tm2 (c : ToPartrec.Code) (v : List ℕ) :
 
 /-! ### Full Chain: Code → TM0 -/
 
-/-- **Full chain: Code → TM0 (eval form).**
-
-For any `ToPartrec.Code c` and input `v`, there exists a re-rooted TM0
-whose `TM0.eval` halts on `trInit K'.main (trList v)` iff `(c.eval v).Dom`.
-
-The TM0 operates over `ChainΓ` (≈ `Bool × (K' → Option Γ')`). -/
+/-- **Full chain: Code → TM0 (eval form).** -/
 theorem code_to_tm0_halts (c : ToPartrec.Code) (v : List ℕ) :
     let cfg₁ : TM1.Cfg ChainΓ ChainΛ_TM1 (Option Γ') :=
       ⟨Option.map Λ'.normal (PartrecToTM2.init c v).l,
@@ -113,18 +133,42 @@ theorem code_to_tm0_halts (c : ToPartrec.Code) (v : List ℕ) :
     (@TM0.eval ChainΓ (ParrecToTM0.Rooted ChainΛ_TM0 q₀) ⟨⟨q₀⟩⟩ _
       (ParrecToTM0.tm0Reroot ChainTM0 q₀) input).Dom := by
   intro cfg₁ cfg₀ q₀ input
-  -- Step 1: Code ↔ TM2
   rw [code_eval_iff_tm2 c v]
-  -- Step 2: TM2 ↔ TM1 (via TrCfg bisimulation)
   rw [← ParrecToTM0.tm2to1_dom_general PartrecToTM2.tr _ _ (partrec_init_trCfg c v)]
-  -- Step 3: TM1 ↔ TM0 (via trCfg bisimulation)
   rw [← ParrecToTM0.tm1to0_dom_general ChainTM1 cfg₁]
-  -- Step 4: TM0 with specific config ↔ TM0.eval via re-rooting
-  -- cfg₀ = ⟨q₀, Tape.mk₁ input⟩ (since the tape comes from TM1.init)
-  -- cfg₀ = TM1to0.trCfg ChainTM1 cfg₁ (a let-binding)
-  -- We need to unfold cfg₀ in the goal
   show (eval (TM0.step ChainTM0) cfg₀).Dom ↔ _
   have hcfg : cfg₀ = ⟨q₀, Tape.mk₁ input⟩ := by
     simp [cfg₀, cfg₁, TM1to0.trCfg, TM1.init, q₀, input]
   rw [hcfg]
   exact ParrecToTM0.tm0Reroot_eval_dom ChainTM0 q₀ input
+
+/-! ### Support Chain (for Fintype states) -/
+
+/-- The TM2 support set for a given code `c`. -/
+def chainSuppTM2 (c : ToPartrec.Code) : Finset PartrecToTM2.Λ' :=
+  PartrecToTM2.codeSupp c PartrecToTM2.Cont'.halt
+
+/-- The TM1 support set. -/
+noncomputable def chainSuppTM1 (c : ToPartrec.Code) : Finset ChainΛ_TM1 :=
+  TM2to1.trSupp PartrecToTM2.tr (chainSuppTM2 c)
+
+/-- The TM0 support set. -/
+noncomputable def chainSuppTM0 (c : ToPartrec.Code) : Finset ChainΛ_TM0 :=
+  TM1to0.trStmts ChainTM1 (chainSuppTM1 c)
+
+/-! ### Full Chain with Fintype States -/
+
+/-- **Full chain: Code → TM0 with Fintype states.**
+
+This is the strengthened version of `code_to_tm0` that provides `Fintype Λ`.
+See the module docstring for the hurdles preventing full proof. -/
+theorem code_to_tm0_fintype (c : ToPartrec.Code) :
+    ∃ (Γ : Type) (ΛTy : Type)
+      (_ : Inhabited ΛTy)
+      (_ : Inhabited Γ) (_ : Fintype Γ)
+      (_ : Fintype ΛTy)
+      (encode_input : ℕ → List Γ)
+      (M : TM0.Machine Γ ΛTy),
+      ∀ n : ℕ,
+        (c.eval [n]).Dom ↔ (TM0.eval M (encode_input n)).Dom := by
+  sorry

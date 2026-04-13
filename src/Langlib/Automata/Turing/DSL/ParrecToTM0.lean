@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Automata.Turing.DSL.TM0Restrict
 
 /-! # TM0 Re-rooting and Chain Infrastructure
 
@@ -90,5 +91,69 @@ theorem tm1to0_fintype_states
     (hS : TM1.Supports M S) :
     TM0.Supports (TM1to0.tr M) ↑(TM1to0.trStmts M S) :=
   TM1to0.tr_supports M hS
+
+/-! ### Re-rooting Support -/
+
+/-- Embedding function for `Rooted`: wraps a value into a `Rooted`. -/
+def rootedEmbFn {Λ : Type*} {q₀ : Λ} : Λ ↪ Rooted Λ q₀ :=
+  ⟨fun q => ⟨q⟩, fun _ _ h => by cases h; rfl⟩
+
+/-- If `TM0.Supports M S` and `q₀ ∈ S`, then `tm0Reroot M q₀` is supported
+by the image of `S` under the `Rooted` embedding. -/
+theorem tm0Reroot_supports {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
+    (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S) (q₀ : Λ)
+    (hq₀ : q₀ ∈ S) :
+    @TM0.Supports Γ (Rooted Λ q₀) ⟨⟨q₀⟩⟩ (tm0Reroot M q₀)
+      (↑(S.map (rootedEmbFn (q₀ := q₀))) : Set (Rooted Λ q₀)) := by
+  refine ⟨?_, ?_⟩
+  · -- default = ⟨q₀⟩ ∈ S.map rootedEmbFn
+    show ⟨q₀⟩ ∈ S.map rootedEmbFn
+    rw [Finset.mem_map]
+    exact ⟨q₀, hq₀, rfl⟩
+  · -- transitions preserve support
+    intro q a q' s hstep hq
+    show q' ∈ S.map rootedEmbFn
+    have hq_mem : q ∈ S.map rootedEmbFn := hq
+    rw [Finset.mem_map] at hq_mem ⊢
+    obtain ⟨q_val, hq_val, rfl⟩ := hq_mem
+    rcases q' with ⟨q'_val⟩
+    simp only [tm0Reroot, Option.mem_def, Option.map_eq_some_iff] at hstep
+    obtain ⟨⟨q'', s'⟩, hM, heq⟩ := hstep
+    simp only [Prod.mk.injEq, Rooted.mk.injEq] at heq
+    obtain ⟨rfl, rfl⟩ := heq
+    simp only [rootedEmbFn]
+    exact ⟨q'', hS.2 hM hq_val, rfl⟩
+
+/-- Restrict + reroot a TM0: combine re-rooting and restriction into one step.
+Given `TM0.Supports M S` with `q₀ ∈ S`, produce a TM0 with `Fintype` states
+that halts on `l` iff the original does when started from `q₀`. -/
+noncomputable def tm0RestrictReroot {Γ : Type*} {Λ : Type*}
+    [Inhabited Λ] [Inhabited Γ]
+    (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S)
+    (q₀ : Λ) (hq₀ : q₀ ∈ S) :
+    let S' := S.map (rootedEmbFn (q₀ := q₀))
+    let hS' := tm0Reroot_supports M S hS q₀ hq₀
+    @TM0.Machine Γ { q : Rooted Λ q₀ // q ∈ S' } ⟨⟨⟨q₀⟩, by
+      show ⟨q₀⟩ ∈ S.map rootedEmbFn
+      rw [Finset.mem_map]; exact ⟨q₀, hq₀, rfl⟩⟩⟩ :=
+  Turing.TM0.restrict (tm0Reroot M q₀) (S.map rootedEmbFn)
+    (tm0Reroot_supports M S hS q₀ hq₀)
+
+noncomputable def tm0RestrictReroot_fintype {Λ : Type*}
+    (S : Finset Λ) (q₀ : Λ) :
+    Fintype { q : Rooted Λ q₀ // q ∈ S.map (rootedEmbFn (q₀ := q₀)) } :=
+  Finset.Subtype.fintype _
+
+/-- The restrict+reroot machine halts iff the original does when started from `q₀`. -/
+theorem tm0RestrictReroot_eval_dom {Γ : Type*} {Λ : Type*}
+    [Inhabited Λ] [Inhabited Γ]
+    (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S)
+    (q₀ : Λ) (hq₀ : q₀ ∈ S) (l : List Γ) :
+    (eval (TM0.step M) ⟨q₀, Tape.mk₁ l⟩).Dom ↔
+    (@TM0.eval Γ { q : Rooted Λ q₀ // q ∈ S.map (rootedEmbFn (q₀ := q₀)) }
+      ⟨⟨⟨q₀⟩, by show ⟨q₀⟩ ∈ S.map rootedEmbFn; rw [Finset.mem_map]; exact ⟨q₀, hq₀, rfl⟩⟩⟩
+      inferInstance (tm0RestrictReroot M S hS q₀ hq₀) l).Dom := by
+  rw [tm0Reroot_eval_dom M q₀ l]
+  exact Turing.TM0.restrict_eval_dom_iff (tm0Reroot M q₀) _ (tm0Reroot_supports M S hS q₀ hq₀) l
 
 end ParrecToTM0

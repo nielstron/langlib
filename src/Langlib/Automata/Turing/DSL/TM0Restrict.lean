@@ -15,7 +15,7 @@ open Turing
 
 namespace Turing.TM0
 
-variable {Γ : Type} {Λ : Type} [Inhabited Λ] [Inhabited Γ]
+variable {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
 
 /-- Restrict a TM0 machine to states in a finite support set `S`.
 Since the machine is supported by `S`, all transitions stay within `S`,
