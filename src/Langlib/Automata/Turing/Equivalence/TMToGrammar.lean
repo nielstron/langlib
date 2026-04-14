@@ -1,6 +1,7 @@
 import Mathlib
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
+import Langlib.Grammars.Unrestricted.Projection
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 
@@ -9,21 +10,17 @@ import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 This file proves that the grammar `tmToGrammar` constructed from a TM0 machine is
 **sound**: it only generates words on which the TM halts.
 
-## Proof strategy
+## Proof strategy for the generalized `is_TM`
 
-We define a "terminal content" function `terminalContent` that extracts, from each symbol
-in a sentential form, the original input character it represents. This function is
-invariant under all simulation and cleanup grammar rules (but increases during generation).
+The generalized `is_TM` allows auxiliary tape symbols `Γ` beyond the input alphabet `T`.
+The TM operates over tape alphabet `Option (T ⊕ Γ)` with input encoded as
+`w.map (fun x => some (Sum.inl x))`.
 
-We then define a forward invariant `GI` with five constructors:
-- `initial`: the start symbol
-- `generating`: generation phase
-- `simulating`: simulation phase (tracks TM configuration correspondence)
-- `cleanup`: post-halt cleanup (tracks `terminalContent = w` and TM halts on `w`)
-- `done`: terminal-only form
-
-The key insight is that `cleanup` uses `terminalContent` instead of tracking a derivation
-to a terminal form. This avoids the non-confluence issue in the cleanup phase.
+To reduce to the existing `tmToGrammar` construction (which works with `Option T'` for
+any `T'`), we:
+1. Set `T' := T ⊕ Γ` and use the existing `tmToGrammar T' Λ M` to get a grammar over `T'`.
+2. Apply `projectGrammar` to convert from a grammar over `T ⊕ Γ` to a grammar over `T`.
+3. Use `projectGrammar_language` to establish the language correspondence.
 -/
 
 open Turing TMtoGrammarNT Relation
@@ -34,14 +31,31 @@ theorem tm_recognizable_implies_re
     {T : Type} [DecidableEq T] [Fintype T]
     (L : Language T) :
     is_TM L → is_RE L := by
-  intro ⟨Λ, hΛ, hFin, M, hM⟩
+  intro ⟨Γ, hΓf, Λ, hΛ, hFin, M, hM⟩
+  haveI := hΓf
+  haveI : DecidableEq Γ := Classical.decEq Γ
+  haveI : DecidableEq (T ⊕ Γ) := inferInstance
+  haveI : Fintype (T ⊕ Γ) := inferInstance
   haveI : DecidableEq Λ := Classical.decEq Λ
-  refine ⟨tmToGrammar T Λ M, ?_⟩
+  -- Use existing tmToGrammar with T' = T ⊕ Γ
+  let g := tmToGrammar (T ⊕ Γ) Λ M
+  -- Project the grammar from T ⊕ Γ back to T
+  let g' := GrammarProjection.projectGrammar g
+  refine ⟨g', ?_⟩
   ext w
-  change grammar_generates (tmToGrammar T Λ M) w ↔ w ∈ L
+  rw [GrammarProjection.projectGrammar_language]
+  simp only [grammar_language, Set.mem_setOf_eq, grammar_generates, g]
   constructor
-  · intro h; exact (hM w).mpr (tmToGrammar_halts_of_generates M w h)
-  · intro h; exact tmToGrammar_generates_of_halts M w ((hM w).mp h)
+  · intro h
+    have := (tmToGrammar_halts_of_generates M (w.map Sum.inl) h)
+    rw [show (w.map Sum.inl).map some = w.map (fun x => some (Sum.inl x)) from by
+      simp [List.map_map]] at this
+    exact (hM w).mpr this
+  · intro h
+    apply tmToGrammar_generates_of_halts
+    rw [show (w.map Sum.inl).map some = w.map (fun x => some (Sum.inl x)) from by
+      simp [List.map_map]]
+    exact (hM w).mp h
 
 theorem TM_subset_RE {T: Type} [DecidableEq T] [Fintype T] : (TM : Set (Language T)) ⊆ RE
   := by

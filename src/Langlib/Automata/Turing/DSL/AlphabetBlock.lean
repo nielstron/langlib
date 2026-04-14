@@ -23,7 +23,14 @@ of `k` symbols to simulate single-step transitions of the original machine.
 
 This theorem, combined with the search compilation in `Compile.lean`,
 gives the full `is_TM` result: any searchable language is TM-recognizable
-over `Option T`.
+over `Option (T ⊕ Γ)`.
+
+## Note on the generalized `is_TM`
+
+With the generalized `is_TM` definition (allowing auxiliary tape symbols `Γ`),
+the block encoding is less critical: many results can be obtained by directly
+choosing `Γ` to include the internal alphabet symbols. However, the block
+encoding remains useful for converting between different internal alphabets.
 -/
 
 open Turing

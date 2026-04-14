@@ -173,6 +173,7 @@ import Langlib.Grammars.RightRegular.Definition
 import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
 import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.FiniteNonterminals
+import Langlib.Grammars.Unrestricted.Projection
 import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Utilities.ClosurePredicates
 import Langlib.Utilities.Homomorphism

@@ -19,9 +19,9 @@ is TM-recognizable (internally): `RE ⊆ TM_internal`.
 
 ## Note on `is_TM`
 
-The full `is_TM` result (with `Option T` tape alphabet and `Fintype` states)
+The full `is_TM` result (with `Option (T ⊕ Γ)` tape alphabet and `Fintype` states)
 requires one additional step:
-- **Alphabet simulation**: converting from internal alphabet to `Option T`
+- **Alphabet simulation**: converting from internal alphabet to `Option (T ⊕ Γ)`
 
 This is a standard result in TM theory. See `tm0_alphabet_simulation` in
 `DSL/Compile.lean`.
@@ -42,11 +42,15 @@ def is_TM_internal_weak {T : Type} (L : Language T) : Prop :=
     (enc : List T → List Γ),
     ∀ w : List T, w ∈ L ↔ (TM0.eval M (enc w)).Dom
 
-/-- `is_TM L → is_TM_internal_weak L` (trivial embedding). -/
+/-- `is_TM L → is_TM_internal_weak L` (trivial embedding).
+
+With the generalized `is_TM` (using `Option (T ⊕ Γ)` tape alphabet), we take
+the tape alphabet and encoding directly. -/
 theorem is_TM_to_internal_weak {T : Type} [Fintype T] (L : Language T) :
     is_TM L → is_TM_internal_weak L := by
-  intro ⟨Λ, hΛ, _, M, hM⟩
-  exact ⟨Option T, inferInstance, inferInstance, Λ, hΛ, M, fun w => w.map some, hM⟩
+  intro ⟨Γ, _, Λ, hΛ, _, M, hM⟩
+  exact ⟨Option (T ⊕ Γ), inferInstance, inferInstance, Λ, hΛ, M,
+    fun w => w.map (fun x => some (Sum.inl x)), hM⟩
 
 /-- `is_TM_internal L → is_TM_internal_weak L` (forget `Fintype Λ`). -/
 theorem is_TM_internal_to_weak {T : Type} (L : Language T) :

@@ -52,11 +52,14 @@ theorem neverHaltTM_diverges (Γ : Type) [Inhabited Γ] (l : List Γ) :
 /-- Any language over the empty type is TM-recognizable. -/
 theorem is_TM_of_empty (L : Language Empty) : is_TM L := by
   by_cases h : ([] : List Empty) ∈ L
-  · -- L = {[]}: use the always-halt TM
-    exact ⟨Unit, ⟨()⟩, inferInstance, alwaysHaltTM (Option Empty), fun w => by
+  · -- L = {[]}: use the always-halt TM with Γ = Empty
+    exact ⟨Empty, inferInstance, Unit, ⟨()⟩, inferInstance,
+      alwaysHaltTM (Option (Empty ⊕ Empty)), fun w => by
       rw [show w = [] from List.eq_nil_of_empty w]
       exact ⟨fun _ => alwaysHaltTM_halts _ _, fun _ => h⟩⟩
-  · -- L = ∅: use the never-halt TM
-    exact ⟨Unit, ⟨()⟩, inferInstance, neverHaltTM (Option Empty), fun w => by
+  · -- L = ∅: use the never-halt TM with Γ = Empty
+    exact ⟨Empty, inferInstance, Unit, ⟨()⟩, inferInstance,
+      neverHaltTM (Option (Empty ⊕ Empty)), fun w => by
       rw [show w = [] from List.eq_nil_of_empty w]
-      exact ⟨fun hmem => absurd hmem h, fun hdom => absurd hdom (neverHaltTM_diverges _ _)⟩⟩
+      exact ⟨fun hmem => absurd hmem h,
+        fun hdom => absurd hdom (neverHaltTM_diverges _ _)⟩⟩

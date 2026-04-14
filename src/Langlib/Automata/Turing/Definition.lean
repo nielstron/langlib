@@ -16,15 +16,26 @@ open Turing
 
 /-! ### Definition of TM-Recognizability -/
 
-/-- A language `L` over alphabet `T` is **TM-recognizable** if there exists a
-finite-state Turing machine (in Mathlib's `Turing.TM0` model) that halts on input `w`
-if and only if `w ∈ L`.
+/-- A language `L` over alphabet `T` is **TM-recognizable** if there exists
+a fintype `Γ` of additional tape symbols and a finite-state Turing machine
+(in Mathlib's `Turing.TM0` model) over tape alphabet `Option (T ⊕ Γ)` that
+halts on input `w` if and only if `w ∈ L`.
 
-We use `Option T` as the tape alphabet (`none` = blank), and encode the input word
-`w : List T` as `w.map some` on the tape. -/
+The tape alphabet is `Option (T ⊕ Γ)` where:
+- `none` represents the blank symbol
+- `some (Sum.inl t)` represents the input symbol `t : T`
+- `some (Sum.inr γ)` represents an auxiliary work symbol `γ : Γ`
+
+The input word `w : List T` is encoded on the tape as
+`w.map (fun x => some (Sum.inl x))`.
+
+This generalizes the standard definition by allowing finitely many
+auxiliary tape symbols beyond the input alphabet, matching the role of
+nonterminals in unrestricted grammars. -/
 def is_TM {T : Type} (L : Language T) : Prop :=
-  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
-    (M : Turing.TM0.Machine (Option T) Λ),
-    ∀ w : List T, w ∈ L ↔ (Turing.TM0.eval M (w.map Option.some)).Dom
+  ∃ (Γ : Type) (_ : Fintype Γ)
+    (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : Turing.TM0.Machine (Option (T ⊕ Γ)) Λ),
+    ∀ w : List T, w ∈ L ↔ (Turing.TM0.eval M (w.map (fun x => some (Sum.inl x)))).Dom
 
 def TM : Set (Language T) := setOf is_TM
