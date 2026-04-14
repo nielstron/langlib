@@ -50,7 +50,7 @@ theorem is_TM_internal_to_TM {T : Type} [DecidableEq T] [Fintype T] [Primcodable
     Primcodable.ofEquiv (Fin (Fintype.card Γ)) (Fintype.truncEquivFin Γ).out
   have henc : Computable enc := by sorry
   obtain ⟨Λ', hΛ', hΛ'f, M', hM'⟩ :=
-    @tm0_alphabet_simulation T _ _ _ Γ hΓ hΓf (Classical.decEq _) _ Λ hΛ M enc henc
+    @tm0_alphabet_simulation T _ _ _ Γ hΓ hΓf (Classical.decEq _) _ Λ hΛ hΛf M enc henc
   exact ⟨Λ', hΛ', hΛ'f, M', fun w => by rw [hM, hM']⟩
 
 /-- The search pattern yields internal TM-recognizability directly from

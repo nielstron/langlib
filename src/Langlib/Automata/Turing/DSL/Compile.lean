@@ -283,7 +283,7 @@ theorem tm0_alphabet_simulation {T : Type} [DecidableEq T] [Fintype T]
     [Primcodable T]
     {Γ : Type} [Inhabited Γ] [Fintype Γ] [DecidableEq Γ]
     [Primcodable Γ]
-    {Λ : Type} [Inhabited Λ] [Fintype Λ] [DecidableEq Λ]
+    {Λ : Type} [Inhabited Λ] [Fintype Λ]
     (M : TM0.Machine Γ Λ)
     (encode_word : List T → List Γ)
     (henc : Computable encode_word) :
