@@ -5,6 +5,7 @@ import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.EmptyTM
 import Langlib.Automata.Turing.DSL.ParrecToTM0
 import Langlib.Automata.Turing.DSL.ParrecChain
+import Langlib.Automata.Turing.DSL.AlphabetBlock
 
 /-! # Compilation of Search Procedures to TM0
 
@@ -282,7 +283,7 @@ theorem tm0_alphabet_simulation {T : Type} [DecidableEq T] [Fintype T]
     [Primcodable T]
     {Γ : Type} [Inhabited Γ] [Fintype Γ] [DecidableEq Γ]
     [Primcodable Γ]
-    {Λ : Type} [Inhabited Λ]
+    {Λ : Type} [Inhabited Λ] [Fintype Λ] [DecidableEq Λ]
     (M : TM0.Machine Γ Λ)
     (encode_word : List T → List Γ)
     (henc : Computable encode_word) :
@@ -290,5 +291,5 @@ theorem tm0_alphabet_simulation {T : Type} [DecidableEq T] [Fintype T]
       (M' : TM0.Machine (Option T) Λ'),
       ∀ w : List T,
         (TM0.eval M (encode_word w)).Dom ↔
-        (TM0.eval M' (w.map Option.some)).Dom := by
-  sorry
+        (TM0.eval M' (w.map Option.some)).Dom :=
+  tm0_block_sim M encode_word henc
