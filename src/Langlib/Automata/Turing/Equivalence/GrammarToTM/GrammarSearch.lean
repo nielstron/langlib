@@ -96,7 +96,6 @@ theorem grammar_language_is_TM_internal {T : Type} [DecidableEq T] [Fintype T]
     Primcodable.ofEquiv (Fin (Fintype.card g.nt)) (Fintype.truncEquivFin g.nt).out
   have key := is_TM_of_searchable (α := List (ℕ × ℕ)) (grammarTest g)
     (grammarTest_computable₂ g)
-    -- (by sorry) -- Computable₂ (grammarTest g)
     (grammar_language g)
     (by
       ext w
