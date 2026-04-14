@@ -62,6 +62,10 @@ def git_output(*args: str, cwd: Path = REPO_ROOT) -> str:
     return run(["git", *args], cwd=cwd).stdout.strip()
 
 
+def current_baseline_ref(*, cwd: Path = REPO_ROOT) -> str:
+    return git_output("rev-parse", "HEAD", cwd=cwd)
+
+
 def download_project_artifact(project_id: str, kind: str, destination: Path) -> None:
     request = urllib.request.Request(
         f"{API_BASE}/project/{project_id}/{kind}",
@@ -226,7 +230,7 @@ def print_skipped_stale_files(stale_files: dict[Path, str]) -> None:
         return
     print("Skipped stale Aristotle changes:")
     for relative_path, rev in stale_files.items():
-        print(f"{relative_path} (matches historic main state at {rev[:12]})")
+        print(f"{relative_path} (matches historic baseline state at {rev[:12]})")
 
 
 def commit_changes(
@@ -250,6 +254,7 @@ def main() -> int:
 
     ensure_clean_worktree()
     ensure_branch_absent(branch)
+    baseline_ref = current_baseline_ref()
 
     with tempfile.TemporaryDirectory(prefix="aristotle-import-") as tmpdir_name:
         tmpdir = Path(tmpdir_name)
@@ -263,7 +268,11 @@ def main() -> int:
 
         input_root = extract_tarball(input_tar, input_dir)
         output_root = extract_tarball(output_tar, output_dir)
-        changed_files, stale_files = files_to_overwrite_from_aristotle(input_root, output_root)
+        changed_files, stale_files = files_to_overwrite_from_aristotle(
+            input_root,
+            output_root,
+            main_ref=baseline_ref,
+        )
 
         create_branch(branch)
         conflicted_files: list[Path] = []

@@ -9,6 +9,14 @@ import merge_aristotle_lean_changes as merge_script
 
 
 class MergeAristotleLeanChangesTests(unittest.TestCase):
+    def test_current_baseline_ref_returns_head_commit(self) -> None:
+        old_git_output = merge_script.git_output
+        try:
+            merge_script.git_output = lambda *args, cwd=merge_script.REPO_ROOT: "deadbeef"
+            self.assertEqual(merge_script.current_baseline_ref(), "deadbeef")
+        finally:
+            merge_script.git_output = old_git_output
+
     def test_parse_args_accepts_project_only(self) -> None:
         old_argv = sys.argv
         try:
@@ -68,12 +76,46 @@ class MergeAristotleLeanChangesTests(unittest.TestCase):
                 "oldrev": "historic\n",
             }.get(rev)
             self.assertEqual(
-                merge_script.matching_historic_main_rev(relative_path, "historic\n"),
+                merge_script.matching_historic_main_rev(
+                    relative_path,
+                    "historic\n",
+                    main_ref="feature-base",
+                ),
                 "oldrev",
             )
         finally:
             merge_script.git_file_text = old_git_file_text
             merge_script.git_file_history_revs = old_git_file_history_revs
+
+    def test_matching_historic_main_rev_uses_provided_baseline_ref(self) -> None:
+        relative_path = Path("src/Foo.lean")
+        old_git_file_text = merge_script.git_file_text
+        old_git_file_history_revs = merge_script.git_file_history_revs
+        calls: list[tuple[str, Path]] = []
+        try:
+            merge_script.git_file_history_revs = lambda path, ref, cwd=merge_script.REPO_ROOT: ["oldrev"]
+
+            def fake_git_file_text(rev, path, cwd=merge_script.REPO_ROOT):
+                calls.append((rev, path))
+                return {
+                    "feature-base": "current\n",
+                    "oldrev": "historic\n",
+                }.get(rev)
+
+            merge_script.git_file_text = fake_git_file_text
+            self.assertEqual(
+                merge_script.matching_historic_main_rev(
+                    relative_path,
+                    "historic\n",
+                    main_ref="feature-base",
+                ),
+                "oldrev",
+            )
+        finally:
+            merge_script.git_file_text = old_git_file_text
+            merge_script.git_file_history_revs = old_git_file_history_revs
+
+        self.assertEqual(calls[0], ("feature-base", relative_path))
 
     def test_stale_outdated_files_skips_when_input_matches_old_main(self) -> None:
         with TemporaryDirectory() as tmpdir_name:
