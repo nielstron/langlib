@@ -12,7 +12,7 @@ evaluated by a TM0 machine.
 - `partrec_init_trCfg` — TrCfg for PartrecToTM2.init (the key lemma)
 - `code_to_tm0_halts` — full chain: Code halts iff TM0 halts (PROVED)
 - `code_to_tm0` — existential form (PROVED, no Fintype on states)
-- `code_to_tm0_fintype` — with Fintype states (sorry'd, see hurdles below)
+- `code_to_tm0_fintype` — with Fintype states (PROVED)
 
 ## Hurdles for Fintype states
 
@@ -158,10 +158,34 @@ noncomputable def chainSuppTM0 (c : ToPartrec.Code) : Finset ChainΛ_TM0 :=
 
 /-! ### Full Chain with Fintype States -/
 
+/-- The initial TM1 config for the chain. -/
+abbrev chainTM1Cfg (c : ToPartrec.Code) (v : List ℕ) :
+    TM1.Cfg ChainΓ ChainΛ_TM1 (Option PartrecToTM2.Γ') :=
+  ⟨Option.map TM2to1.Λ'.normal (PartrecToTM2.init c v).l,
+   (PartrecToTM2.init c v).var,
+   (TM1.init (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList v)) :
+     TM1.Cfg ChainΓ ChainΛ_TM1 (Option PartrecToTM2.Γ')).Tape⟩
+
+/-
+The TM0 config `TM1to0.trCfg` applied to the chain's initial config
+    equals `⟨q₀, Tape.mk₁ input⟩` where `q₀` is the non-canonical default.
+-/
+lemma chainTM0_trCfg_eq_nc (c : ToPartrec.Code) (n : ℕ) :
+    letI : Inhabited PartrecToTM2.Λ' :=
+      ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
+    TM1to0.trCfg (TM2to1.tr PartrecToTM2.tr) (chainTM1Cfg c [n]) =
+      ⟨@default (TM1to0.Λ' (TM2to1.tr PartrecToTM2.tr)) _,
+       Tape.mk₁ (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]))⟩ := by
+  congr
+
 /-- **Full chain: Code → TM0 with Fintype states.**
 
 This is the strengthened version of `code_to_tm0` that provides `Fintype Λ`.
-See the module docstring for the hurdles preventing full proof. -/
+The key insight is to override the `Inhabited PartrecToTM2.Λ'` instance
+to `⟨trNormal c halt⟩` (matching `tr_supports`), then thread the non-canonical
+instance through the entire chain. The resulting TM0 machine is definitionally
+the same as `ChainTM0` (since `TM1to0.tr` ignores `Inhabited`), but the support
+proof uses the non-canonical default. -/
 theorem code_to_tm0_fintype (c : ToPartrec.Code) :
     ∃ (Γ : Type) (ΛTy : Type)
       (_ : Inhabited ΛTy)
@@ -171,4 +195,44 @@ theorem code_to_tm0_fintype (c : ToPartrec.Code) :
       (M : TM0.Machine Γ ΛTy),
       ∀ n : ℕ,
         (c.eval [n]).Dom ↔ (TM0.eval M (encode_input n)).Dom := by
-  sorry
+  -- Override Inhabited instance to match tr_supports
+  letI inhΛ' : Inhabited PartrecToTM2.Λ' :=
+    ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
+  -- Build the support chain: TM2 → TM1 → TM0
+  -- All using the non-canonical Inhabited instance
+  have hTM2 := PartrecToTM2.tr_supports c PartrecToTM2.Cont'.halt
+  have hTM1 := TM2to1.tr_supports PartrecToTM2.tr hTM2
+  -- Note: TM2to1.tr doesn't use Inhabited, so TM2to1.tr tr = ChainTM1 definitionally
+  -- But TM1to0.tr does carry the Inhabited parameter
+  let M₀ : TM0.Machine ChainΓ ChainΛ_TM0 := TM1to0.tr (TM2to1.tr PartrecToTM2.tr)
+  have hTM0 : TM0.Supports M₀
+      ↑(TM1to0.trStmts (TM2to1.tr PartrecToTM2.tr)
+        (TM2to1.trSupp PartrecToTM2.tr (PartrecToTM2.codeSupp c .halt))) :=
+    TM1to0.tr_supports (TM2to1.tr PartrecToTM2.tr) hTM1
+  -- Define support set and initial state
+  let S := TM1to0.trStmts (TM2to1.tr PartrecToTM2.tr)
+    (TM2to1.trSupp PartrecToTM2.tr (PartrecToTM2.codeSupp c .halt))
+  let q₀ : TM1to0.Λ' (TM2to1.tr PartrecToTM2.tr) := default
+  have hq₀ : q₀ ∈ S := hTM0.1
+  -- Provide the existential witnesses
+  refine ⟨ChainΓ,
+    { q : ParrecToTM0.Rooted ChainΛ_TM0 q₀ // q ∈ S.map ParrecToTM0.rootedEmbFn },
+    ⟨⟨⟨q₀⟩, by rw [Finset.mem_map]; exact ⟨q₀, hq₀, rfl⟩⟩⟩,
+    inferInstance, inferInstance,
+    ParrecToTM0.tm0RestrictReroot_fintype S q₀,
+    fun n => TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]),
+    ParrecToTM0.tm0RestrictReroot M₀ S hTM0 q₀ hq₀,
+    fun n => ?_⟩
+  -- Now prove: (c.eval [n]).Dom ↔ (TM0.eval M_res (input n)).Dom
+  -- Step 1: Code ↔ TM2
+  rw [code_eval_iff_tm2 c [n]]
+  -- Step 2: TM2 ↔ TM1
+  rw [← ParrecToTM0.tm2to1_dom_general PartrecToTM2.tr _ _ (partrec_init_trCfg c [n])]
+  -- Step 3: TM1 ↔ TM0.step
+  rw [← ParrecToTM0.tm1to0_dom_general (TM2to1.tr PartrecToTM2.tr) (chainTM1Cfg c [n])]
+  -- Now goal involves eval (TM0.step M₀) (TM1to0.trCfg ... (chainTM1Cfg c [n]))
+  -- Step 4: Show trCfg = ⟨q₀, Tape.mk₁ input⟩
+  rw [chainTM0_trCfg_eq_nc c n]
+  -- Step 5: Apply tm0RestrictReroot_eval_dom
+  exact ParrecToTM0.tm0RestrictReroot_eval_dom M₀ S hTM0 q₀ hq₀
+    (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]))
