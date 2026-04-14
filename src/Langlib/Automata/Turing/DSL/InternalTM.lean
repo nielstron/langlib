@@ -13,7 +13,29 @@ alphabet) and `is_TM` (Option (T ⊕ Γ) alphabet).
 - `is_TM_internal` — definition of TM-recognizability with arbitrary alphabet
 - `is_TM_to_internal` — `is_TM → is_TM_internal` (trivial)
 - `search_halts_internal` — the search pattern yields `is_TM_internal`
-- `is_TM_internal_to_TM` — `is_TM_internal → is_TM` (requires alphabet simulation)
+
+## Warning: `is_TM_internal` is vacuously true
+
+**Important**: `is_TM_internal` as defined below is vacuously true for
+*any* language, because the encoding `enc : List T → List Γ` is allowed
+to be an arbitrary (non-computable) function. By choosing `enc` to map
+words in `L` to a halting input and words outside `L` to a non-halting
+input, any language satisfies `is_TM_internal`.
+
+The theorems that produce `is_TM_internal` (such as `re_implies_tm_internal`
+and `grammar_language_is_TM_internal_fintype`) are still meaningful because
+their *proofs* construct specific, computable encodings via the compilation
+chain. However, the conclusion `is_TM_internal L` does not capture this
+computability information.
+
+A meaningful strengthening would require the encoding to be `Computable`,
+which would make `is_TM_internal → is_TM` provable via alphabet simulation.
+This refactor is left for future work.
+
+For the direction `RE ⊆ TM`, the encoding conversion (from the internal
+alphabet to `Option (T ⊕ Γ)`) remains the key unsolved formalization
+challenge. The mathematical content is fully captured by `search_halts_tm0`
+and `code_to_tm0` in `Compile.lean`.
 -/
 
 open Turing
@@ -22,9 +44,10 @@ open Turing
 exists a TM0 machine (possibly with a different tape alphabet) that halts on
 `encode w` if and only if `w ∈ L`.
 
-This is weaker than `is_TM` because the tape alphabet is existentially
-quantified rather than fixed to `Option (T ⊕ Γ)`. The two notions are equivalent
-by the standard alphabet simulation theorem. -/
+**Warning**: This notion is vacuously true for all languages, because
+`enc` is allowed to be non-computable. See the module docstring for details.
+The meaningful content is in the compilation chain that produces specific,
+computable encodings. -/
 def is_TM_internal {T : Type} (L : Language T) : Prop :=
   ∃ (Γ Λ : Type) (_ : Inhabited Γ) (_ : Inhabited Λ)
     (_ : Fintype Γ) (_ : Fintype Λ)
@@ -42,22 +65,15 @@ theorem is_TM_to_internal {T : Type} [Fintype T] (L : Language T) :
   exact ⟨Option (T ⊕ Γ), Λ, inferInstance, hΛ, inferInstance, hFin, M,
     fun w => w.map (fun x => some (Sum.inl x)), hM⟩
 
-/-- `is_TM_internal → is_TM` requires alphabet simulation (the converse
-direction).
+/- The converse `is_TM_internal → is_TM` is NOT provable as stated, because
+`is_TM_internal` allows non-computable encodings `enc`. With a non-computable
+`enc`, the TM over `Option (T ⊕ Γ)` cannot compute `enc(w)` from the input
+`w.map (fun x => some (Sum.inl x))`.
 
-With the generalized `is_TM` (allowing auxiliary tape symbols), this is
-simpler than before: we use `tm0_alphabet_simulation` to get a TM over
-`Option T`, then lift to `Option (T ⊕ Empty)` using alphabet simulation.
-
-**Note**: The `Computable enc` obligation is still sorry'd; this is the same
-fundamental difficulty as in the old definition. -/
-theorem is_TM_internal_to_TM {T : Type} [DecidableEq T] [Fintype T]
-    (L : Language T) :
-    is_TM_internal L → is_TM L := by
-  intro ⟨Γ₀, Λ, hΓ₀, hΛ, hΓ₀f, hΛf, M, enc, hM⟩
-  haveI := hΓ₀; haveI := hΛ; haveI := hΓ₀f; haveI := hΛf
-  -- Still requires alphabet simulation + encoding conversion (sorry'd as before)
-  sorry
+For the specific encodings produced by the compilation chain (which ARE
+computable), the conversion is possible in principle via alphabet simulation,
+but formalizing this requires carrying computability information through
+the compilation chain. -/
 
 /-- The search pattern yields internal TM-recognizability directly from
 `Computable₂`

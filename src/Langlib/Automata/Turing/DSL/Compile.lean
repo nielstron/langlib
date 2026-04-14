@@ -29,10 +29,11 @@ The compilation produces a TM0 over the chain's internal alphabet (`ChainΓ`),
 not over `Option T`. Converting to `Option T` requires **alphabet simulation**
 (encoding `ChainΓ` symbols as blocks of `Option T` symbols), which is a
 standard but substantial result in TM theory. The theorem
-`is_TM_internal_to_TM` in `InternalTM.lean` provides this conversion.
+See `InternalTM.lean` for the relationship between `is_TM_internal` and `is_TM`.
 
 The key mathematical content — that computable search is TM-recognizable —
-is fully proved here. The alphabet simulation is a separate, orthogonal concern.
+is fully proved here. The alphabet/encoding conversion to obtain the full
+`is_TM` result is a separate, orthogonal concern.
 -/
 
 open Turing
@@ -205,7 +206,7 @@ is TM-recognizable (with an internal `Fintype` tape alphabet).
 
 This is the `is_TM_internal`-style result (without `Fintype` on states).
 For the full `is_TM` result (with `Option T` tape alphabet), see
-`is_TM_internal_to_TM` in `InternalTM.lean`. -/
+See `InternalTM.lean` for the relationship to `is_TM`. -/
 theorem is_TM_of_searchable {T : Type} [Primcodable T]
     {α : Type} [Primcodable α]
     (test : α → List T → Bool)

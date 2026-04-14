@@ -28,9 +28,11 @@ over `Option (T ⊕ Γ)`.
 ## Note on the generalized `is_TM`
 
 With the generalized `is_TM` definition (allowing auxiliary tape symbols `Γ`),
-the block encoding is less critical: many results can be obtained by directly
-choosing `Γ` to include the internal alphabet symbols. However, the block
-encoding remains useful for converting between different internal alphabets.
+the block encoding is less critical for many results (e.g.,
+`is_Recursive_implies_is_TM` can be proved directly via `TM0AlphabetSim`).
+However, for the `RE ⊆ TM` direction, the encoding conversion from the
+compilation chain's internal format to `w.map (fun x => some (Sum.inl x))`
+remains necessary. The block encoding provides one approach to this conversion.
 -/
 
 open Turing
