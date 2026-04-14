@@ -28,8 +28,7 @@ The compilation produces a TM0 over the chain's internal alphabet (`ChainΓ`),
 not over `Option T`. Converting to `Option T` requires **alphabet simulation**
 (encoding `ChainΓ` symbols as blocks of `Option T` symbols), which is a
 standard but substantial result in TM theory. The theorem
-`is_TM_internal_to_TM` in `InternalTM.lean` provides this conversion
-(currently sorry'd).
+`is_TM_internal_to_TM` in `InternalTM.lean` provides this conversion.
 
 The key mathematical content — that computable search is TM-recognizable —
 is fully proved here. The alphabet simulation is a separate, orthogonal concern.
@@ -170,7 +169,7 @@ theorem code_to_tm0 (c : ToPartrec.Code) :
 
 /-! ### Core Compilation Theorem (PROVED) -/
 
-/-- **The core compilation theorem** (PROVED, 0 sorry).
+/-- **The core compilation theorem**.
 
 The enumerate-and-test search pattern is implementable by a TM0 machine
 over the Partrec chain's internal `Fintype` alphabet `ChainΓ`. The TM0
@@ -197,9 +196,9 @@ theorem search_halts_tm0 {T : Type} [Primcodable T]
     fun w => encode_input (Encodable.encode w),
     fun w => by rw [hc_code, hM₀]⟩
 
-/-! ### Main Compilation Theorem (PROVED) -/
+/-! ### Main Compilation Theorem -/
 
-/-- **Main Compilation Theorem** (PROVED, 0 sorry): If we can search over
+/-- **Main Compilation Theorem**: If we can search over
 a `Primcodable` domain with a `Computable₂` test, the resulting language
 is TM-recognizable (with an internal `Fintype` tape alphabet).
 

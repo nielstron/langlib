@@ -12,7 +12,6 @@ alphabet) and `is_TM` (Option T alphabet).
 - `is_TM_internal` — definition of TM-recognizability with arbitrary alphabet
 - `is_TM_to_internal` — `is_TM → is_TM_internal` (trivial)
 - `search_halts_internal` — the search pattern yields `is_TM_internal`
-  (sorry-free given `Computable₂`)
 - `is_TM_internal_to_TM` — `is_TM_internal → is_TM` (requires alphabet simulation)
 -/
 
@@ -55,7 +54,7 @@ theorem is_TM_internal_to_TM {T : Type} [DecidableEq T] [Fintype T] [Primcodable
   exact ⟨Λ', hΛ', hΛ'f, M', fun w => by rw [hM, hM']⟩
 
 /-- The search pattern yields internal TM-recognizability directly from
-`Computable₂`, **without** any sorry.
+`Computable₂`
 
 This is a wrapper around `search_halts_tm0` from `Compile.lean`. -/
 theorem search_halts_internal {T : Type}
