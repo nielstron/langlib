@@ -178,6 +178,18 @@ lemma chainTM0_trCfg_eq_nc (c : ToPartrec.Code) (n : ℕ) :
        Tape.mk₁ (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]))⟩ := by
   congr
 
+/-- Generalized version of `chainTM0_trCfg_eq_nc` for arbitrary `v : List ℕ`.
+Works because the TM0 state depends only on the Code `c` (via the non-canonical
+`Inhabited` instance), not on the input list. The `var` component of `init c v`
+is always `none : Option Γ'`. -/
+lemma chainTM0_trCfg_eq_general (c : ToPartrec.Code) (v : List ℕ) :
+    letI : Inhabited PartrecToTM2.Λ' :=
+      ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
+    TM1to0.trCfg (TM2to1.tr PartrecToTM2.tr) (chainTM1Cfg c v) =
+      ⟨@default (TM1to0.Λ' (TM2to1.tr PartrecToTM2.tr)) _,
+       Tape.mk₁ (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList v))⟩ := by
+  congr
+
 /-- **Full chain: Code → TM0 with Fintype states.**
 
 This is the strengthened version of `code_to_tm0` that provides `Fintype Λ`.
@@ -187,14 +199,12 @@ instance through the entire chain. The resulting TM0 machine is definitionally
 the same as `ChainTM0` (since `TM1to0.tr` ignores `Inhabited`), but the support
 proof uses the non-canonical default. -/
 theorem code_to_tm0_fintype (c : ToPartrec.Code) :
-    ∃ (Γ : Type) (ΛTy : Type)
-      (_ : Inhabited ΛTy)
-      (_ : Inhabited Γ) (_ : Fintype Γ)
-      (_ : Fintype ΛTy)
-      (encode_input : ℕ → List Γ)
-      (M : TM0.Machine Γ ΛTy),
+    ∃ (ΛTy : Type) (_ : Inhabited ΛTy) (_ : Fintype ΛTy)
+      (M : TM0.Machine ChainΓ ΛTy),
       ∀ n : ℕ,
-        (c.eval [n]).Dom ↔ (TM0.eval M (encode_input n)).Dom := by
+        (c.eval [n]).Dom ↔
+        (TM0.eval M
+          (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]))).Dom := by
   -- Override Inhabited instance to match tr_supports
   letI inhΛ' : Inhabited PartrecToTM2.Λ' :=
     ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
@@ -215,12 +225,9 @@ theorem code_to_tm0_fintype (c : ToPartrec.Code) :
   let q₀ : TM1to0.Λ' (TM2to1.tr PartrecToTM2.tr) := default
   have hq₀ : q₀ ∈ S := hTM0.1
   -- Provide the existential witnesses
-  refine ⟨ChainΓ,
-    { q : ParrecToTM0.Rooted ChainΛ_TM0 q₀ // q ∈ S.map ParrecToTM0.rootedEmbFn },
+  refine ⟨{ q : ParrecToTM0.Rooted ChainΛ_TM0 q₀ // q ∈ S.map ParrecToTM0.rootedEmbFn },
     ⟨⟨⟨q₀⟩, by rw [Finset.mem_map]; exact ⟨q₀, hq₀, rfl⟩⟩⟩,
-    inferInstance, inferInstance,
     ParrecToTM0.tm0RestrictReroot_fintype S q₀,
-    fun n => TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]),
     ParrecToTM0.tm0RestrictReroot M₀ S hTM0 q₀ hq₀,
     fun n => ?_⟩
   -- Now prove: (c.eval [n]).Dom ↔ (TM0.eval M_res (input n)).Dom
@@ -236,3 +243,41 @@ theorem code_to_tm0_fintype (c : ToPartrec.Code) :
   -- Step 5: Apply tm0RestrictReroot_eval_dom
   exact ParrecToTM0.tm0RestrictReroot_eval_dom M₀ S hTM0 q₀ hq₀
     (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]))
+
+/-- **Generalized chain: Code → TM0 with Fintype states and multi-element input.**
+
+Same as `code_to_tm0_fintype` but works for arbitrary `v : List ℕ` instead of
+just `[n]`. The machine and state space are identical — only the input encoding
+`trInit K'.main (trList v)` varies with the input list. -/
+theorem code_to_tm0_fintype_general (c : ToPartrec.Code) :
+    ∃ (ΛTy : Type) (_ : Inhabited ΛTy) (_ : Fintype ΛTy)
+      (M : TM0.Machine ChainΓ ΛTy),
+      ∀ v : List ℕ,
+        (c.eval v).Dom ↔
+        (TM0.eval M
+          (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList v))).Dom := by
+  letI inhΛ' : Inhabited PartrecToTM2.Λ' :=
+    ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
+  have hTM2 := PartrecToTM2.tr_supports c PartrecToTM2.Cont'.halt
+  have hTM1 := TM2to1.tr_supports PartrecToTM2.tr hTM2
+  let M₀ : TM0.Machine ChainΓ ChainΛ_TM0 := TM1to0.tr (TM2to1.tr PartrecToTM2.tr)
+  have hTM0 : TM0.Supports M₀
+      ↑(TM1to0.trStmts (TM2to1.tr PartrecToTM2.tr)
+        (TM2to1.trSupp PartrecToTM2.tr (PartrecToTM2.codeSupp c .halt))) :=
+    TM1to0.tr_supports (TM2to1.tr PartrecToTM2.tr) hTM1
+  let S := TM1to0.trStmts (TM2to1.tr PartrecToTM2.tr)
+    (TM2to1.trSupp PartrecToTM2.tr (PartrecToTM2.codeSupp c .halt))
+  let q₀ : TM1to0.Λ' (TM2to1.tr PartrecToTM2.tr) := default
+  have hq₀ : q₀ ∈ S := hTM0.1
+  refine ⟨{ q : ParrecToTM0.Rooted ChainΛ_TM0 q₀ // q ∈ S.map ParrecToTM0.rootedEmbFn },
+    ⟨⟨⟨q₀⟩, by rw [Finset.mem_map]; exact ⟨q₀, hq₀, rfl⟩⟩⟩,
+    ParrecToTM0.tm0RestrictReroot_fintype S q₀,
+    ParrecToTM0.tm0RestrictReroot M₀ S hTM0 q₀ hq₀,
+    fun v => ?_⟩
+  rw [code_eval_iff_tm2 c v]
+  rw [← ParrecToTM0.tm2to1_dom_general PartrecToTM2.tr _ _ (partrec_init_trCfg c v)]
+  rw [← ParrecToTM0.tm1to0_dom_general (TM2to1.tr PartrecToTM2.tr) (chainTM1Cfg c v)]
+  rw [chainTM0_trCfg_eq_general c v]
+  exact ParrecToTM0.tm0RestrictReroot_eval_dom M₀ S hTM0 q₀ hq₀
+    (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList v))
+

@@ -231,8 +231,10 @@ theorem code_to_tm0_with_fintype (c : ToPartrec.Code) :
       (encode_input : ℕ → List Γ)
       (M : TM0.Machine Γ Λ),
       ∀ n : ℕ,
-        (c.eval [n]).Dom ↔ (TM0.eval M (encode_input n)).Dom :=
-  code_to_tm0_fintype c
+        (c.eval [n]).Dom ↔ (TM0.eval M (encode_input n)).Dom := by
+  obtain ⟨Λ₀, hΛ₀i, hΛ₀f, M₀, hM₀⟩ := code_to_tm0_fintype c
+  exact ⟨ChainΓ, Λ₀, hΛ₀i, inferInstance, inferInstance, hΛ₀f,
+    fun n => TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]), M₀, hM₀⟩
 
 /-- Strengthened `search_halts_tm0` with `Fintype` states. -/
 theorem search_halts_tm0_fintype {T : Type} [Primcodable T]
@@ -246,9 +248,9 @@ theorem search_halts_tm0_fintype {T : Type} [Primcodable T]
       ∀ w : List T,
         (∃ a : α, test a w = true) ↔ (TM0.eval M (enc w)).Dom := by
   obtain ⟨c, hc_code⟩ := search_is_partrec test hc
-  obtain ⟨Γ₀, Λ₀, hΛ₀, hΓ₀, hΓ₀f, hΛ₀f, encode_input, M₀, hM₀⟩ := code_to_tm0_fintype c
-  exact ⟨Γ₀, hΓ₀, hΓ₀f, Λ₀, hΛ₀, hΛ₀f, M₀,
-    fun w => encode_input (Encodable.encode w),
+  obtain ⟨Λ₀, hΛ₀i, hΛ₀f, M₀, hM₀⟩ := code_to_tm0_fintype c
+  exact ⟨ChainΓ, inferInstance, inferInstance, Λ₀, hΛ₀i, hΛ₀f, M₀,
+    fun w => TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [Encodable.encode w]),
     fun w => by rw [hc_code, hM₀]⟩
 
 /-- Strengthened `is_TM_of_searchable` with `Fintype` states. -/

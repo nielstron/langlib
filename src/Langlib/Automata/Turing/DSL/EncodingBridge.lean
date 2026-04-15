@@ -22,30 +22,32 @@ This file bridges that gap.
    Lifts a TM0 from `Γ₀` to `Option (T ⊕ Γ₀)` while preserving halting,
    using a blank-preserving embedding.
 
-## Remaining sorry
+3. **Generalized Chain** (`code_to_tm0_fintype_general` in `ParrecChain.lean`):
+   The chain works with arbitrary `v : List ℕ` input, not just `[n]`.
+   The tape format `trInit K'.main (trList v)` decomposes per-element:
+   `trList v = v.bind (fun n => trNat n ++ [cons])`.
 
-`code_implies_isTM` requires constructing a TM0 over `Option (T ⊕ Γ)` that,
-given identity-encoded `w`, simulates the chain's TM0 on
-`encode_input (Encodable.encode w)`. This involves:
+## Remaining sorry: `identity_encoding_bridge`
 
-1. **Reading identity-encoded input**: The TM reads `w = [t₁, ..., tₙ]`
-   from the tape where each `tᵢ` is represented as `some (Sum.inl tᵢ)`.
+The one remaining gap is converting identity-encoded input to the chain's
+tape format. This requires a TM0 that:
 
-2. **Computing `Encodable.encode w`**: Since `T` is `Fintype`, each
-   `Encodable.encode tᵢ` is bounded by `Fintype.card T - 1`. The encoding
-   is computed by iterated `Nat.pair`: `encode (t :: ts) = (Nat.pair (encode t)
-   (encode ts)).succ`. This requires binary multiplication and comparison
-   on the tape (for `Nat.pair a b = if a ≤ b then b² + a else a² + a - b`).
+1. Reads `w = [t₁, ..., tₙ]` from the tape (identity encoding)
+2. Computes `Encodable.encode w` via iterated `Nat.pair`
+3. Formats the result as `trInit K'.main (trList [Encodable.encode w])`
+4. Simulates the chain TM via alphabet embedding
 
-3. **Formatting as chain tape**: Convert the binary representation to the
-   chain's `trInit K'.main (trList [·])` format.
+Step 2 requires binary arithmetic on the tape. This is a standard but
+substantial TM construction (~300-500 lines).
 
-4. **Simulating the chain TM**: Run the chain's TM0 using the alphabet
-   embedding (already proved via `embedTM0_eval_dom`).
-
-Step 2 is the core difficulty: it requires implementing binary arithmetic
-(multiplication, comparison, addition, subtraction) on a TM tape. This is
-a standard but substantial construction (~500 lines).
+**Note on the multi-element approach**: One might hope to avoid `Nat.pair`
+by passing `w.map Encodable.encode` (per-element encodings) to the chain
+instead of `[Encodable.encode w]` (single number). However, the Code model
+(`ToPartrec.Code.eval`) cannot distinguish `[]` from `[0]` as inputs
+(both have `headI = 0`, `tail = []`), so Code composition for variable-length
+list encoding is not possible within the Code formalism. The generalized
+chain (`code_to_tm0_fintype_general`) is proved but cannot be leveraged
+here without a Code that folds list encoding.
 -/
 
 open Turing
@@ -115,15 +117,18 @@ we construct a TM0 over `Option (T ⊕ Γ)` with identity encoding that
 recognizes `L`.
 
 **Proof strategy**: Use `code_to_tm0_fintype c` to get a chain TM0 `M₀`
-over `Γ₀`, then construct a TM over `Option (T ⊕ Γ₀)` that:
-1. Preprocesses identity-encoded `w` into `encode_input (Encodable.encode w)`
-   embedded via `blankPreservingEmb` (requires tape-based `Nat.pair` arithmetic)
-2. Simulates `M₀` via `embedTM0` (already proved)
+over `Γ₀` with `(c.eval [n]).Dom ↔ (TM0.eval M₀ (encode_input n)).Dom`.
+The chain encoding is `encode_input n = trInit K'.main (trList [n])`.
+Then construct a TM over `Option (T ⊕ Γ₀)` that:
 
-The equivalence chain is:
-  `w ∈ L ↔ c.eval [encode w] ↔ TM0.eval M₀ (encode_input (encode w))
-         ↔ TM0.eval M_emb (encode_input (encode w)).map emb
-         ↔ TM0.eval M (w.map identity_encode)` -/
+1. Reads identity-encoded `w` and computes `Encodable.encode w` via
+   iterated `Nat.pair` on the tape (binary arithmetic)
+2. Formats the result into `(encode_input (Encodable.encode w)).map emb`
+3. Simulates `M₀` via `embedTM0` (alphabet embedding, already proved)
+
+Step 1 is the core difficulty: it requires implementing binary
+multiplication, comparison, addition, and subtraction for `Nat.pair`
+on a TM0 tape. This is standard but substantial (~300-500 lines). -/
 theorem code_implies_isTM {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
     (L : Language T)
     (c : Turing.ToPartrec.Code)
