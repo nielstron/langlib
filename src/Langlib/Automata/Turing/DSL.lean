@@ -6,7 +6,6 @@ import Langlib.Automata.Turing.DSL.EmptyTM
 import Langlib.Automata.Turing.DSL.ParrecToTM0
 import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.Compile
-import Langlib.Automata.Turing.DSL.InternalTM
 
 /-! # Composable TM Generators / Transformers — DSL Overview
 
@@ -27,10 +26,6 @@ Partrec chain's internal `Fintype` alphabet.
 
 **`search_halts_tm0_fintype`** is the strengthened version that also provides
 `Fintype` on states. It depends on `code_to_tm0_fintype`
-
-### Layer 6: Internal TM-recognizability
-**File**: `DSL/InternalTM.lean`
-
 
 ### TM0 Support Infrastructure
 **File**: `DSL/ParrecToTM0.lean`

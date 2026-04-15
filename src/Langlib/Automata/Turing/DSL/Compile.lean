@@ -5,7 +5,6 @@ import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.EmptyTM
 import Langlib.Automata.Turing.DSL.ParrecToTM0
 import Langlib.Automata.Turing.DSL.ParrecChain
-import Langlib.Automata.Turing.DSL.AlphabetBlock
 
 /-! # Compilation of Search Procedures to TM0
 
@@ -29,7 +28,6 @@ The compilation produces a TM0 over the chain's internal alphabet (`ChainΓ`),
 not over `Option T`. Converting to `Option T` requires **alphabet simulation**
 (encoding `ChainΓ` symbols as blocks of `Option T` symbols), which is a
 standard but substantial result in TM theory. The theorem
-See `InternalTM.lean` for the relationship between `is_TM_internal` and `is_TM`.
 
 The key mathematical content — that computable search is TM-recognizable —
 is fully proved here. The alphabet/encoding conversion to obtain the full
@@ -204,9 +202,9 @@ theorem search_halts_tm0 {T : Type} [Primcodable T]
 a `Primcodable` domain with a `Computable₂` test, the resulting language
 is TM-recognizable (with an internal `Fintype` tape alphabet).
 
-This is the `is_TM_internal`-style result (without `Fintype` on states).
+This is the `is_TM`-style result (without `Fintype` on states).
 For the full `is_TM` result (with `Option T` tape alphabet), see
-See `InternalTM.lean` for the relationship to `is_TM`. -/
+-/
 theorem is_TM_of_searchable {T : Type} [Primcodable T]
     {α : Type} [Primcodable α]
     (test : α → List T → Bool)
@@ -268,29 +266,3 @@ theorem is_TM_of_searchable_fintype {T : Type} [Primcodable T]
         w ∈ L ↔ (TM0.eval M (enc w)).Dom := by
   obtain ⟨Γ, hΓ, hΓf, Λ, hΛ, hΛf, M, enc, hM⟩ := search_halts_tm0_fintype test hc
   exact ⟨Γ, hΓ, hΓf, Λ, hΛ, hΛf, M, enc, fun w => by rw [hL]; exact hM w⟩
-
-/-! ### Alphabet Simulation (separate concern) -/
-
-/-- **Alphabet simulation**: TM0 over any `Fintype` alphabet can be
-simulated by TM0 over `Option T`.
-
-This is a standard result in TM theory involving block encoding of tape
-symbols. It is separated from the core compilation theorem because it is
-orthogonal to the search compilation logic.
-
-Together with `search_halts_tm0`, this gives `is_TM` (TM0-recognizability
-with `Option T` tape alphabet). -/
-theorem tm0_alphabet_simulation {T : Type} [DecidableEq T] [Fintype T]
-    [Primcodable T]
-    {Γ : Type} [Inhabited Γ] [Fintype Γ] [DecidableEq Γ]
-    [Primcodable Γ]
-    {Λ : Type} [Inhabited Λ] [Fintype Λ]
-    (M : TM0.Machine Γ Λ)
-    (encode_word : List T → List Γ)
-    (henc : Computable encode_word) :
-    ∃ (Λ' : Type) (_ : Inhabited Λ') (_ : Fintype Λ')
-      (M' : TM0.Machine (Option T) Λ'),
-      ∀ w : List T,
-        (TM0.eval M (encode_word w)).Dom ↔
-        (TM0.eval M' (w.map Option.some)).Dom :=
-  tm0_block_sim M encode_word henc

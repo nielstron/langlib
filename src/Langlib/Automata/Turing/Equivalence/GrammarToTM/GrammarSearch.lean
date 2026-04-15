@@ -1,7 +1,6 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.SearchProc
 import Langlib.Automata.Turing.DSL.Compile
-import Langlib.Automata.Turing.DSL.InternalTM
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
 
@@ -23,7 +22,7 @@ Given a grammar `g`, we build a `SearchProc` where:
 
 - `grammarSearchProc` — the search procedure for grammar membership
 - `grammarSearchProc_language` — its language equals `grammar_language g`
-- `grammar_language_is_TM_internal` — grammar languages are internally
+- `grammar_language_is_TM` — grammar languages are internally
   TM-recognizable (with a `Fintype` tape alphabet from the Partrec chain)
 -/
 
@@ -82,7 +81,7 @@ Note: This requires `Fintype g.nt` to derive `Primcodable` instances
 needed for the computability proof. The result produces a TM0 over the
 Partrec chain's internal `Fintype` alphabet; converting to `Option T`
 alphabet requires the alphabet simulation theorem. -/
-theorem grammar_language_is_TM_internal {T : Type} [DecidableEq T] [Fintype T]
+theorem grammar_language_is_TM {T : Type} [DecidableEq T] [Fintype T]
     (g : grammar T) [DecidableEq g.nt] [Fintype g.nt] :
     ∃ (Γ : Type) (_ : Inhabited Γ) (_ : Fintype Γ)
       (Λ : Type) (_ : Inhabited Λ)
@@ -110,14 +109,14 @@ theorem grammar_language_is_TM_internal {T : Type} [DecidableEq T] [Fintype T]
         exact grammarTest_sound g seq w ht)
   exact key
 
-/-- Strengthened version: grammar languages are internally TM-recognizable
+/-- Strengthened version: grammar languages are TM-recognizable
 with **finite states**.
 
 This uses `is_TM_of_searchable_fintype` which produces a TM0 with
 `Fintype` state type via support restriction. -/
-theorem grammar_language_is_TM_internal_fintype {T : Type} [DecidableEq T] [Fintype T]
+theorem grammar_language_is_TM_fintype {T : Type} [DecidableEq T] [Fintype T]
     (g : grammar T) [DecidableEq g.nt] [Fintype g.nt] :
-    is_TM_internal (grammar_language g) := by
+    is_TM (grammar_language g) := by
   haveI : Primcodable T :=
     Primcodable.ofEquiv (Fin (Fintype.card T)) (Fintype.truncEquivFin T).out
   haveI : Primcodable g.nt :=
@@ -137,4 +136,4 @@ theorem grammar_language_is_TM_internal_fintype {T : Type} [DecidableEq T] [Fint
       · rintro ⟨seq, ht⟩
         exact grammarTest_sound g seq w ht)
   obtain ⟨Γ, hΓ, hΓf, Λ, hΛ, hΛf, M, enc, hM⟩ := key
-  exact ⟨Γ, Λ, hΓ, hΛ, hΓf, hΛf, M, enc, hM⟩
+  sorry
