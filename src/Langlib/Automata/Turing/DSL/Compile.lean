@@ -17,9 +17,9 @@ by a TM0 machine.
 
 - `search_is_partrec` — the µ-search is Partrec
 - `code_to_tm0` — Code → TM0 evaluation
-- `search_halts_tm0` — **PROVED**: the search is TM0-recognizable (with an
+- `search_halts_tm0` — the search is TM0-recognizable (with an
   internal `Fintype` tape alphabet)
-- `is_TM_of_searchable` — **PROVED**: searchable languages are internally
+- `is_TM_of_searchable` — searchable languages are internally
   TM-recognizable
 
 ## Architecture note
