@@ -107,31 +107,50 @@ theorem embedTM0_eval_dom {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀]
     (blankPreservingEmb_default (T := T))
     l
 
+/-! ### Building Block 3: Chain-to-Identity Encoding Bridge -/
+
+/-- **Chain-to-identity encoding bridge**: Given the chain's TM0 `M₀` over
+`ChainΓ`, there exists a TM0 over `Option (T ⊕ Γ)` with identity encoding
+that simulates it.
+
+The chain encoding `trInit K'.main (trList [n])` decomposes as:
+- `trList [n] = trNat n ++ [Γ'.cons]` (binary digits + cons marker)
+- `trInit K'.main` reverses and wraps with stack markers
+- `trNat n` is little-endian binary using `Γ'.bit0`/`Γ'.bit1`
+
+The construction requires a TM that reads identity-encoded `w`, computes
+`Encodable.encode w` via iterated `Nat.pair` (binary arithmetic on the
+tape), formats the result into the chain's tape layout, and simulates
+`M₀` via `embedTM0`. Computing `Nat.pair` requires binary multiplication,
+comparison, addition, and subtraction — standard but substantial. -/
+theorem chain_encoding_bridge {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
+    {Λ₀ : Type} [Inhabited Λ₀] [Fintype Λ₀]
+    (M₀ : TM0.Machine ChainΓ Λ₀) :
+    ∃ (Γ : Type) (_ : Fintype Γ)
+      (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine (Option (T ⊕ Γ)) Λ),
+      ∀ w : List T,
+        (TM0.eval M₀
+          (TM2to1.trInit PartrecToTM2.K'.main
+            (PartrecToTM2.trList [Encodable.encode w]))).Dom ↔
+        (TM0.eval M (w.map (fun x => some (Sum.inl x)))).Dom := by
+  sorry
+
 /-! ### Main Theorem -/
 
 /-- **Code implies is_TM**: Any language over a `Fintype` alphabet that is
 semidecidable via a `ToPartrec.Code` satisfies `is_TM`.
 
-Given a Code `c` such that `w ∈ L ↔ (c.eval [Encodable.encode w]).Dom`,
-we construct a TM0 over `Option (T ⊕ Γ)` with identity encoding that
-recognizes `L`.
-
-**Proof strategy**: Use `code_to_tm0_fintype c` to get a chain TM0 `M₀`
-over `Γ₀` with `(c.eval [n]).Dom ↔ (TM0.eval M₀ (encode_input n)).Dom`.
-The chain encoding is `encode_input n = trInit K'.main (trList [n])`.
-Then construct a TM over `Option (T ⊕ Γ₀)` that:
-
-1. Reads identity-encoded `w` and computes `Encodable.encode w` via
-   iterated `Nat.pair` on the tape (binary arithmetic)
-2. Formats the result into `(encode_input (Encodable.encode w)).map emb`
-3. Simulates `M₀` via `embedTM0` (alphabet embedding, already proved)
-
-Step 1 is the core difficulty: it requires implementing binary
-multiplication, comparison, addition, and subtraction for `Nat.pair`
-on a TM0 tape. This is standard but substantial (~300-500 lines). -/
+**Proof**: `code_to_tm0_fintype` gives a chain TM0 `M₀` over `ChainΓ` with
+the concrete encoding `trInit K'.main (trList [n])`. Then
+`chain_encoding_bridge` converts to identity encoding. -/
 theorem code_implies_isTM {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
     (L : Language T)
     (c : Turing.ToPartrec.Code)
     (hL : ∀ w : List T, w ∈ L ↔ (c.eval [Encodable.encode w]).Dom) :
     is_TM L := by
-  sorry
+  obtain ⟨Λ₀, hΛ₀i, hΛ₀f, M₀, hM₀⟩ := code_to_tm0_fintype c
+  obtain ⟨Γ, hΓf, Λ, hΛi, hΛf, M, hM⟩ :=
+    chain_encoding_bridge (T := T) M₀
+  exact ⟨Γ, hΓf, Λ, hΛi, hΛf, M, fun w => by
+    rw [hL, hM₀ (Encodable.encode w), hM w]⟩
