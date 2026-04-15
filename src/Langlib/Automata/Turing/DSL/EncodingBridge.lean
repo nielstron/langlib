@@ -3,7 +3,7 @@ import Langlib.Automata.Turing.Definition
 import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.Compile
 
-/-! # Encoding Bridge: from arbitrary-encoding TMs to `is_TM`
+/-! # Encoding Bridge: from Code-semidecidable languages to `is_TM`
 
 The compilation chain (Partrec → Code → TM2 → TM1 → TM0) produces a TM0
 machine whose input is encoded via `Encodable.encode` and the chain's tape
@@ -12,58 +12,56 @@ input to be given in "identity encoding": `w.map (fun x => some (Sum.inl x))`.
 
 This file bridges that gap.
 
-## Main results
+## Proved building blocks
 
-- `code_implies_isTM` — any `ToPartrec.Code`-semidecidable language over a
-  `Fintype` alphabet satisfies `is_TM`.
+1. **Encoding Identity** (`list_encode_eq`):
+   `Encodable.encode (w : List T) = Encodable.encode (w.map Encodable.encode : List ℕ)`.
+   This means encoding the whole list at once equals encoding element-by-element.
 
-## Strategy
+2. **Alphabet Embedding** (`embedTM0` / `embedTM0_eval_dom`):
+   Lifts a TM0 from `Γ₀` to `Option (T ⊕ Γ₀)` while preserving halting,
+   using a blank-preserving embedding.
 
-Given Code `c` with `w ∈ L ↔ (c.eval [Encodable.encode w]).Dom`, and a
-TM0 machine `M₀` from `code_to_tm0_fintype` with
-`(c.eval [n]).Dom ↔ (TM0.eval M₀ (encode_input n)).Dom`, we need:
+## Remaining sorry
 
-  `w ∈ L ↔ (TM0.eval M' (w.map (fun x => some (Sum.inl x)))).Dom`
+`code_implies_isTM` requires constructing a TM0 over `Option (T ⊕ Γ)` that,
+given identity-encoded `w`, simulates the chain's TM0 on
+`encode_input (Encodable.encode w)`. This involves:
 
-for some `M' : TM0.Machine (Option (T ⊕ Γ)) Λ`.
+1. **Reading identity-encoded input**: The TM reads `w = [t₁, ..., tₙ]`
+   from the tape where each `tᵢ` is represented as `some (Sum.inl tᵢ)`.
 
-The combined TM `M'` operates in three phases:
+2. **Computing `Encodable.encode w`**: Since `T` is `Fintype`, each
+   `Encodable.encode tᵢ` is bounded by `Fintype.card T - 1`. The encoding
+   is computed by iterated `Nat.pair`: `encode (t :: ts) = (Nat.pair (encode t)
+   (encode ts)).succ`. This requires binary multiplication and comparison
+   on the tape (for `Nat.pair a b = if a ≤ b then b² + a else a² + a - b`).
 
-**Phase 1 (Encode)**: Read `w` symbol-by-symbol from the identity-encoded
-tape. Since `T` is `Fintype`, each symbol `t` has a fixed `Encodable.encode t`.
-Iteratively compute `Encodable.encode w` on the tape in unary using
-`Nat.pair`, storing intermediate results in a work area (using `Γ` symbols).
+3. **Formatting as chain tape**: Convert the binary representation to the
+   chain's `trInit K'.main (trList [·])` format.
 
-**Phase 2 (Format)**: Convert the unary number `Encodable.encode w` into
-the chain's tape format `encode_input (Encodable.encode w)`, i.e., apply
-`PartrecToTM2.trList` and `TM2to1.trInit` formatting.
+4. **Simulating the chain TM**: Run the chain's TM0 using the alphabet
+   embedding (already proved via `embedTM0_eval_dom`).
 
-**Phase 3 (Simulate)**: Simulate the chain's TM0 machine `M₀` on the
-formatted tape via alphabet embedding (using `blankPreservingEmb`/`embedTM0`
-below).
-
-Since `T` is `Fintype`, all operations in Phases 1–2 use finitely many
-states, and the overall TM satisfies `is_TM`.
-
-## Remaining work
-
-The proof of `code_implies_isTM` is marked `sorry`. Completing it requires
-explicitly constructing the Phase 1–2 TM0 programs (particularly the
-arithmetic for `Nat.pair` and the binary-format conversion for `trList`/
-`trInit`) and proving their correctness. This is a substantial but standard
-TM construction exercise.
+Step 2 is the core difficulty: it requires implementing binary arithmetic
+(multiplication, comparison, addition, subtraction) on a TM tape. This is
+a standard but substantial construction (~500 lines).
 -/
 
 open Turing
 
-/-! ### Helper: Alphabet embedding with blank preservation
+/-! ### Building Block 1: Encoding Identity -/
 
-We embed `Γ₀` into `Option (T ⊕ Γ₀)` via:
-- `default : Γ₀` ↦ `none` (blank → blank)
-- `γ ≠ default` ↦ `some (Sum.inr γ)`
+/-- The encoding of a list `w : List T` equals the encoding of the list
+of element-wise encodings `w.map Encodable.encode : List ℕ`.
 
-This ensures the blank symbol is preserved, which is required by the
-alphabet simulation framework (`AlphabetSim.lean`). -/
+This holds because `Encodable.encode (n : ℕ) = n` (the encoding of a
+natural number is itself). -/
+theorem list_encode_eq {T : Type} [Encodable T] (w : List T) :
+    Encodable.encode w = Encodable.encode (w.map Encodable.encode : List ℕ) := by
+  induction w <;> simp_all +decide
+
+/-! ### Building Block 2: Alphabet Embedding -/
 
 noncomputable def blankPreservingEmb {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀]
     (γ : Γ₀) : Option (T ⊕ Γ₀) :=
@@ -90,7 +88,7 @@ the blank symbol. -/
 noncomputable def embedTM0 {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀]
     {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ₀ Λ) :
-    @TM0.Machine (Option (T ⊕ Γ₀)) Λ ⟨default⟩ :=
+    TM0.Machine (Option (T ⊕ Γ₀)) Λ :=
   TM0AlphabetSim.liftMachine M
     (blankPreservingEmb (T := T))
     (blankPreservingInv (T := T))
@@ -100,29 +98,32 @@ theorem embedTM0_eval_dom {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀]
     {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ₀ Λ) (l : List Γ₀) :
     (TM0.eval M l).Dom ↔
-    (@TM0.eval (Option (T ⊕ Γ₀)) Λ ⟨default⟩ _
-      (embedTM0 M)
+    (TM0.eval (embedTM0 (T := T) M)
       (l.map (blankPreservingEmb (T := T)))).Dom :=
   TM0AlphabetSim.lift_eval_dom M _ _
     (blankPreservingInv_emb (T := T))
     (blankPreservingEmb_default (T := T))
     l
 
-/-! ### The main encoding bridge -/
+/-! ### Main Theorem -/
 
-/-- **Encoding Bridge**: Any language over a `Fintype` alphabet that is
+/-- **Code implies is_TM**: Any language over a `Fintype` alphabet that is
 semidecidable via a `ToPartrec.Code` satisfies `is_TM`.
 
 Given a Code `c` such that `w ∈ L ↔ (c.eval [Encodable.encode w]).Dom`,
 we construct a TM0 over `Option (T ⊕ Γ)` with identity encoding that
 recognizes `L`.
 
-The proof constructs a combined TM in three phases:
-1. **Encode**: Compute `Encodable.encode w` from the identity-encoded input.
-2. **Format**: Convert the encoded number to the chain's tape format.
-3. **Simulate**: Run the chain's TM0 via alphabet simulation.
+**Proof strategy**: Use `code_to_tm0_fintype c` to get a chain TM0 `M₀`
+over `Γ₀`, then construct a TM over `Option (T ⊕ Γ₀)` that:
+1. Preprocesses identity-encoded `w` into `encode_input (Encodable.encode w)`
+   embedded via `blankPreservingEmb` (requires tape-based `Nat.pair` arithmetic)
+2. Simulates `M₀` via `embedTM0` (already proved)
 
-See the module documentation for details. -/
+The equivalence chain is:
+  `w ∈ L ↔ c.eval [encode w] ↔ TM0.eval M₀ (encode_input (encode w))
+         ↔ TM0.eval M_emb (encode_input (encode w)).map emb
+         ↔ TM0.eval M (w.map identity_encode)` -/
 theorem code_implies_isTM {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
     (L : Language T)
     (c : Turing.ToPartrec.Code)
