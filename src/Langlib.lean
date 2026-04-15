@@ -28,6 +28,7 @@ import Langlib.Automata.Turing.DSL.Enumeration
 import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.ParrecToTM0
 import Langlib.Automata.Turing.DSL.SearchProc
+import Langlib.Automata.Turing.DSL.TM0Compose
 import Langlib.Automata.Turing.DSL.TM0Restrict
 import Langlib.Automata.Turing.DSL
 import Langlib.Automata.Turing.Definition
