@@ -3,6 +3,7 @@ import Langlib.Automata.Turing.DSL.SearchProc
 import Langlib.Automata.Turing.DSL.Compile
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
+import Langlib.Automata.Turing.DSL.EncodingBridge
 
 /-! # Grammar Membership as a Search Procedure
 
@@ -121,19 +122,13 @@ theorem grammar_language_is_TM_fintype {T : Type} [DecidableEq T] [Fintype T]
     Primcodable.ofEquiv (Fin (Fintype.card T)) (Fintype.truncEquivFin T).out
   haveI : Primcodable g.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g.nt)) (Fintype.truncEquivFin g.nt).out
-  have key := is_TM_of_searchable_fintype (α := List (ℕ × ℕ)) (grammarTest g)
-    (grammarTest_computable₂ g)
-    (grammar_language g)
-    (by
-      ext w
-      simp only [SearchProc.language, Set.mem_setOf_eq, SearchProc.accepts,
-        grammarSearchProc, Enum.range, Enum.ofEncodable, grammar_language,
-        Set.mem_setOf_eq]
-      constructor
-      · intro hw
-        obtain ⟨seq, hseq⟩ := grammarTest_complete g w hw
-        exact ⟨seq, hseq⟩
-      · rintro ⟨seq, ht⟩
-        exact grammarTest_sound g seq w ht)
-  obtain ⟨Γ, hΓ, hΓf, Λ, hΛ, hΛf, M, enc, hM⟩ := key
-  sorry
+  have hcomp := grammarTest_computable₂ g
+  obtain ⟨c, hc⟩ := search_is_partrec (grammarTest g) hcomp
+  exact code_implies_isTM (grammar_language g) c (fun w => by
+    constructor
+    · intro hw
+      rw [← hc]
+      exact ⟨_, grammarTest_complete g w hw |>.choose_spec⟩
+    · intro hdom
+      rw [← hc] at hdom
+      exact grammarTest_sound g hdom.choose w hdom.choose_spec)

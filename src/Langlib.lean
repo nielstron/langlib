@@ -20,10 +20,10 @@ import Langlib.Automata.Pushdown.Definition
 import Langlib.Automata.Pushdown.Equivalence.ContextFree.CFGToPDA
 import Langlib.Automata.Pushdown.Equivalence.ContextFree.PDAToCFG
 import Langlib.Automata.Pushdown.Equivalence.ContextFree
-import Langlib.Automata.Turing.DSL.AlphabetBlock
 import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.Compile
 import Langlib.Automata.Turing.DSL.EmptyTM
+import Langlib.Automata.Turing.DSL.EncodingBridge
 import Langlib.Automata.Turing.DSL.Enumeration
 import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.ParrecToTM0
