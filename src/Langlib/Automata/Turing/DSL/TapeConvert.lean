@@ -334,39 +334,3 @@ cells on the tape's work area. -/
 theorem converter_fn_realizes {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] :
     TM0Realizes (Option (T ⊕ ChainΓ)) (converter_fn T) := by
   sorry
-
-/-! ### Binary Successor (supporting infrastructure) -/
-
-/-- States for binary successor TM. -/
-inductive BinSuccState
-  | carry     -- propagating carry, about to read next bit
-  | moveRight -- just wrote bit0, need to move right to continue carry
-  | done      -- finished incrementing, halt
-  deriving DecidableEq, Fintype, Inhabited
-
-/-- Binary successor TM0 over `Option (T ⊕ ChainΓ)`.
-Head starts at LSB. Increments the number by 1 and halts. -/
-noncomputable def binSuccTM (T : Type) [DecidableEq T] :
-    TM0.Machine (Option (T ⊕ ChainΓ)) BinSuccState := fun q a =>
-  match q with
-  | .carry =>
-    if a = some (Sum.inr chainBit0) then
-      some (.done, .write (some (Sum.inr chainBit1)))
-    else if a = some (Sum.inr chainBit1) then
-      some (.moveRight, .write (some (Sum.inr chainBit0)))
-    else if a = none then
-      some (.done, .write (some (Sum.inr chainBit1)))
-    else
-      none
-  | .moveRight =>
-    some (.carry, .move .right)
-  | .done =>
-    none
-
-/-- The successor TM halts on any binary input. -/
-theorem binSuccTM_halts (T : Type) [DecidableEq T]
-    (l : List (Option (T ⊕ ChainΓ))) :
-    (TM0Seq.evalCfg (binSuccTM T) l).Dom := by
-  sorry
-
-/-! ### Main Converter -/
