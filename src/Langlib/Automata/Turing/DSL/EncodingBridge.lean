@@ -2,6 +2,8 @@ import Mathlib
 import Langlib.Automata.Turing.Definition
 import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.Compile
+import Langlib.Automata.Turing.DSL.TM0Compose
+import Langlib.Automata.Turing.DSL.TapeConvert
 
 /-! # Encoding Bridge: from Code-semidecidable languages to `is_TM`
 
@@ -20,34 +22,56 @@ This file bridges that gap.
 
 2. **Alphabet Embedding** (`embedTM0` / `embedTM0_eval_dom`):
    Lifts a TM0 from `Γ₀` to `Option (T ⊕ Γ₀)` while preserving halting,
-   using a blank-preserving embedding.
+   using a blank-preserving embedding (defined in `TapeConvert.lean`).
 
 3. **Generalized Chain** (`code_to_tm0_fintype_general` in `ParrecChain.lean`):
    The chain works with arbitrary `v : List ℕ` input, not just `[n]`.
    The tape format `trInit K'.main (trList v)` decomposes per-element:
    `trList v = v.bind (fun n => trNat n ++ [cons])`.
 
-## Remaining sorry: `identity_encoding_bridge`
+4. **Sequential Composition** (`TM0Seq.compose` in `TM0Compose.lean`):
+   Two TM0 machines can be sequentially composed. If M₁ halts producing
+   tape T, the composed machine halts iff M₂ halts starting from T.
 
-The one remaining gap is converting identity-encoded input to the chain's
-tape format. This requires a TM0 that:
+5. **Halting Converter Composition** (`tm0Realizes_compose_eval` in
+   `TapeConvert.lean`): If a TM0 realizes a total function `f`, we can
+   compose it with any machine `M₂` so the result halts on `l` iff
+   `M₂` halts on `f l`.
 
-1. Reads `w = [t₁, ..., tₙ]` from the tape (identity encoding)
-2. Computes `Encodable.encode w` via iterated `Nat.pair`
-3. Formats the result as `trInit K'.main (trList [Encodable.encode w])`
-4. Simulates the chain TM via alphabet embedding
+## Architecture of `chain_encoding_bridge`
 
-Step 2 requires binary arithmetic on the tape. This is a standard but
-substantial TM construction (~300-500 lines).
+The bridge is proved by composing two machines:
 
-**Note on the multi-element approach**: One might hope to avoid `Nat.pair`
-by passing `w.map Encodable.encode` (per-element encodings) to the chain
-instead of `[Encodable.encode w]` (single number). However, the Code model
-(`ToPartrec.Code.eval`) cannot distinguish `[]` from `[0]` as inputs
-(both have `headI = 0`, `tail = []`), so Code composition for variable-length
-list encoding is not possible within the Code formalism. The generalized
-chain (`code_to_tm0_fintype_general`) is proved but cannot be leveraged
-here without a Code that folds list encoding.
+- **Converter TM** (`converter_tm_exists`): A TM0 over `Option (T ⊕ ChainΓ)`
+  that reads identity-encoded `w` and writes the chain tape format
+  `(trInit K'.main (trList [Encodable.encode w])).map blankPreservingEmb`.
+  This machine always halts. Derived from `converter_fn_realizes` in
+  `TapeConvert.lean`.
+
+- **Embedded chain TM** (`embedTM0 M₀`): The chain machine `M₀` lifted from
+  `ChainΓ` to `Option (T ⊕ ChainΓ)` via blank-preserving embedding.
+
+Sequential composition (`TM0Seq.compose`) chains these: first the converter
+produces the chain-format tape, then `embedTM0 M₀` runs on it.
+
+## Converter TM construction
+
+The converter reads identity-encoded `w = [t₁, ..., tₙ]` and computes
+`Encodable.encode w` via iterated `Nat.pair`:
+
+- `Encodable.encode [] = 0`
+- `Encodable.encode (t :: ts) = Nat.pair (Encodable.encode t) (Encodable.encode ts) + 1`
+
+This requires binary arithmetic on the tape:
+1. **Binary successor** (increment): propagate carry through little-endian bits
+2. **Binary addition**: add two binary numbers via repeated increment/decrement
+3. **Binary multiplication**: compute via repeated addition
+4. **Binary comparison**: needed for `Nat.pair a b = if a < b then b*b+a else a*a+a+b`
+5. **Nat.pair**: combine the above operations
+6. **List fold**: iterate `Nat.pair` over the element encodings
+
+Since `T` is `Fintype`, each `Encodable.encode t` is a fixed constant that
+can be hardcoded in the TM's finite state.
 -/
 
 open Turing
@@ -64,26 +88,6 @@ theorem list_encode_eq {T : Type} [Encodable T] (w : List T) :
   induction w <;> simp_all +decide
 
 /-! ### Building Block 2: Alphabet Embedding -/
-
-noncomputable def blankPreservingEmb {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀]
-    (γ : Γ₀) : Option (T ⊕ Γ₀) :=
-  if γ = default then none else some (Sum.inr γ)
-
-noncomputable def blankPreservingInv {T Γ₀ : Type} [Inhabited Γ₀]
-    (a : Option (T ⊕ Γ₀)) : Γ₀ :=
-  match a with
-  | some (Sum.inr γ) => γ
-  | _ => default
-
-theorem blankPreservingEmb_default {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀] :
-    blankPreservingEmb (T := T) (default : Γ₀) = (default : Option (T ⊕ Γ₀)) := by
-  unfold blankPreservingEmb
-  simp [show (default : Option (T ⊕ Γ₀)) = none from rfl]
-
-theorem blankPreservingInv_emb {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀]
-    (γ : Γ₀) : blankPreservingInv (T := T) (blankPreservingEmb γ) = γ := by
-  unfold blankPreservingEmb blankPreservingInv
-  split <;> simp_all
 
 /-- Embed a TM0 machine from `Γ₀` into `Option (T ⊕ Γ₀)`, preserving
 the blank symbol. -/
@@ -107,22 +111,46 @@ theorem embedTM0_eval_dom {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀]
     (blankPreservingEmb_default (T := T))
     l
 
-/-! ### Building Block 3: Chain-to-Identity Encoding Bridge -/
+/-! ### Building Block 3: Converter TM -/
+
+/-- **Converter TM existence**: There exists a TM0 over `Option (T ⊕ ChainΓ)`
+that reads identity-encoded input `w` and produces the chain tape format
+on the tape.
+
+Derived from `converter_fn_realizes` and `converter_fn_on_identity`
+(both in `TapeConvert.lean`). -/
+theorem converter_tm_exists {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] :
+    ∃ (Λ_conv : Type) (_ : Inhabited Λ_conv) (_ : Fintype Λ_conv)
+      (M_conv : TM0.Machine (Option (T ⊕ ChainΓ)) Λ_conv),
+      ∀ w : List T,
+        (TM0Seq.evalCfg M_conv (w.map (fun x => some (Sum.inl x)))).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M_conv (w.map (fun x => some (Sum.inl x)))).Dom),
+          ((TM0Seq.evalCfg M_conv (w.map (fun x => some (Sum.inl x)))).get h).Tape =
+            Tape.mk₁ ((TM2to1.trInit PartrecToTM2.K'.main
+              (PartrecToTM2.trList [Encodable.encode w])).map
+                (blankPreservingEmb (T := T))) := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := converter_fn_realizes (T := T)
+  exact ⟨Λ, hΛi, hΛf, M, fun w => by
+    have h := hM (w.map (fun x => some (Sum.inl x)))
+    exact ⟨h.1, fun hd => by rw [h.2 hd, converter_fn_on_identity]⟩⟩
+
+/-! ### Building Block 4: Chain-to-Identity Encoding Bridge -/
+
+set_option maxHeartbeats 800000
 
 /-- **Chain-to-identity encoding bridge**: Given the chain's TM0 `M₀` over
 `ChainΓ`, there exists a TM0 over `Option (T ⊕ Γ)` with identity encoding
 that simulates it.
 
-The chain encoding `trInit K'.main (trList [n])` decomposes as:
-- `trList [n] = trNat n ++ [Γ'.cons]` (binary digits + cons marker)
-- `trInit K'.main` reverses and wraps with stack markers
-- `trNat n` is little-endian binary using `Γ'.bit0`/`Γ'.bit1`
+**Proof**: We compose two machines via `TM0Seq.compose`:
+1. The converter TM (`converter_tm_exists`) transforms identity-encoded
+   input into the chain's tape format.
+2. The embedded chain TM (`embedTM0 M₀`) simulates `M₀` on the
+   chain-format tape.
 
-The construction requires a TM that reads identity-encoded `w`, computes
-`Encodable.encode w` via iterated `Nat.pair` (binary arithmetic on the
-tape), formats the result into the chain's tape layout, and simulates
-`M₀` via `embedTM0`. Computing `Nat.pair` requires binary multiplication,
-comparison, addition, and subtraction — standard but substantial. -/
+By `TM0Seq.compose_dom_iff'`, the composition halts on identity input iff
+`embedTM0 M₀` halts on the converter's output. By `embedTM0_eval_dom`,
+this is equivalent to `M₀` halting on the original chain input. -/
 theorem chain_encoding_bridge {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
     {Λ₀ : Type} [Inhabited Λ₀] [Fintype Λ₀]
     (M₀ : TM0.Machine ChainΓ Λ₀) :
@@ -134,7 +162,13 @@ theorem chain_encoding_bridge {T : Type} [DecidableEq T] [Fintype T] [Primcodabl
           (TM2to1.trInit PartrecToTM2.K'.main
             (PartrecToTM2.trList [Encodable.encode w]))).Dom ↔
         (TM0.eval M (w.map (fun x => some (Sum.inl x)))).Dom := by
-  sorry
+  obtain ⟨Λ_conv, hΛci, hΛcf, M_conv, hconv⟩ := converter_tm_exists (T := T)
+  refine ⟨ChainΓ, inferInstance, Λ_conv ⊕ Λ₀, ⟨Sum.inl default⟩, inferInstance,
+    TM0Seq.compose M_conv (embedTM0 (T := T) M₀), fun w => ?_⟩
+  have h1 := (hconv w).1
+  have h2 := (hconv w).2 h1
+  rw [TM0Seq.compose_dom_iff' M_conv (embedTM0 (T := T) M₀) _ _ h1 h2]
+  exact embedTM0_eval_dom M₀ _
 
 /-! ### Main Theorem -/
 
@@ -153,4 +187,4 @@ theorem code_implies_isTM {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
   obtain ⟨Γ, hΓf, Λ, hΛi, hΛf, M, hM⟩ :=
     chain_encoding_bridge (T := T) M₀
   exact ⟨Γ, hΓf, Λ, hΛi, hΛf, M, fun w => by
-    rw [hL, hM₀ (Encodable.encode w), hM w]⟩
+    rw [hL, hM₀ (Encodable.encode w)]; exact hM w⟩
