@@ -1,6 +1,8 @@
 import Mathlib
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
+import Langlib.Grammars.Unrestricted.Projection
+import Langlib.Grammars.Unrestricted.Pullback
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 
@@ -9,21 +11,19 @@ import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 This file proves that the grammar `tmToGrammar` constructed from a TM0 machine is
 **sound**: it only generates words on which the TM halts.
 
-## Proof strategy
+## Proof strategy for the generalized `is_TM`
 
-We define a "terminal content" function `terminalContent` that extracts, from each symbol
-in a sentential form, the original input character it represents. This function is
-invariant under all simulation and cleanup grammar rules (but increases during generation).
+The generalized `is_TM` existentially quantifies the tape alphabet `Γ` and
+an encoding function `encode : T → Γ`. The TM operates over tape alphabet
+`Option Γ` with input encoded as `w.map (fun t => some (encode t))`.
 
-We then define a forward invariant `GI` with five constructors:
-- `initial`: the start symbol
-- `generating`: generation phase
-- `simulating`: simulation phase (tracks TM configuration correspondence)
-- `cleanup`: post-halt cleanup (tracks `terminalContent = w` and TM halts on `w`)
-- `done`: terminal-only form
-
-The key insight is that `cleanup` uses `terminalContent` instead of tracking a derivation
-to a terminal form. This avoids the non-confluence issue in the cleanup phase.
+To reduce to the existing `tmToGrammar` construction (which works with
+`Option Γ` for any `Γ`), we:
+1. Apply `tmToGrammar Γ Λ M` to get a grammar over `Γ`.
+2. Apply `pullbackGrammar` to convert from grammar over `Γ` to grammar over `T`
+   via the encoding function.
+3. Use `pullbackGrammar_language` and `tmToGrammar_correct` to establish
+   the language correspondence.
 -/
 
 open Turing TMtoGrammarNT Relation
@@ -34,14 +34,29 @@ theorem tm_recognizable_implies_re
     {T : Type} [DecidableEq T] [Fintype T]
     (L : Language T) :
     is_TM L → is_RE L := by
-  intro ⟨Λ, hΛ, hFin, M, hM⟩
+  intro ⟨Γ, hΓf, Λ, hΛ, hFin, M, encode, hM⟩
+  haveI := hΓf
+  haveI : DecidableEq Γ := Classical.decEq Γ
   haveI : DecidableEq Λ := Classical.decEq Λ
-  refine ⟨tmToGrammar T Λ M, ?_⟩
+  -- Use existing tmToGrammar with the tape alphabet Γ
+  let g := tmToGrammar Γ Λ M
+  -- Pull back the grammar from Γ to T via encode
+  let g' := GrammarPullback.pullbackGrammar g encode
+  refine ⟨g', ?_⟩
   ext w
-  change grammar_generates (tmToGrammar T Λ M) w ↔ w ∈ L
+  rw [GrammarPullback.pullbackGrammar_language]
+  simp only [grammar_language, Set.mem_setOf_eq, grammar_generates, g]
   constructor
-  · intro h; exact (hM w).mpr (tmToGrammar_halts_of_generates M w h)
-  · intro h; exact tmToGrammar_generates_of_halts M w ((hM w).mp h)
+  · intro h
+    have := tmToGrammar_halts_of_generates M (w.map encode) h
+    rw [show (w.map encode).map some = w.map (fun t => some (encode t)) from by
+      simp [List.map_map]] at this
+    exact (hM w).mpr this
+  · intro h
+    apply tmToGrammar_generates_of_halts
+    rw [show (w.map encode).map some = w.map (fun t => some (encode t)) from by
+      simp [List.map_map]]
+    exact (hM w).mp h
 
 theorem TM_subset_RE {T: Type} [DecidableEq T] [Fintype T] : (TM : Set (Language T)) ⊆ RE
   := by

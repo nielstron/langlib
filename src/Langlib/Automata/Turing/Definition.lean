@@ -16,15 +16,26 @@ open Turing
 
 /-! ### Definition of TM-Recognizability -/
 
-/-- A language `L` over alphabet `T` is **TM-recognizable** if there exists a
-finite-state Turing machine (in Mathlib's `Turing.TM0` model) that halts on input `w`
-if and only if `w ∈ L`.
+/-- A language `L` over alphabet `T` is **TM-recognizable** if there exists
+a fintype `Γ` of tape symbols and a finite-state Turing machine
+(in Mathlib's `Turing.TM0` model) over tape alphabet `Option Γ` that
+halts on input `w` if and only if `w ∈ L`.
 
-We use `Option T` as the tape alphabet (`none` = blank), and encode the input word
-`w : List T` as `w.map some` on the tape. -/
+The tape alphabet is `Option Γ` where:
+- `none` represents the blank symbol
+- `some γ` represents a tape symbol `γ : Γ`
+
+The input word `w : List T` is encoded on the tape via an encoding
+function `encode : T → Γ`, producing `w.map (fun x => some (encode x))`.
+
+This generalizes the standard definition by allowing the tape alphabet
+and encoding function to be chosen freely, matching the role of
+nonterminals in unrestricted grammars. -/
 def is_TM {T : Type} (L : Language T) : Prop :=
-  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
-    (M : Turing.TM0.Machine (Option T) Λ),
-    ∀ w : List T, w ∈ L ↔ (Turing.TM0.eval M (w.map Option.some)).Dom
+  ∃ (Γ : Type) (_ : Fintype Γ)
+    (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : Turing.TM0.Machine (Option Γ) Λ)
+    (encode : T → Γ),
+    ∀ w : List T, w ∈ L ↔ (Turing.TM0.eval M (w.map (fun t => some (encode t)))).Dom
 
 def TM : Set (Language T) := setOf is_TM

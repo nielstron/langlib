@@ -1,5 +1,6 @@
 import Mathlib
 import Langlib.Automata.Turing.Equivalence.TMToGrammar
+import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Classes.Recursive.Definition
 import Langlib.Classes.RecursivelyEnumerable.Definition
 
@@ -136,56 +137,130 @@ lemma recognizer_diverges_of_reject
     (recognizer_reaches_of_decider_reaches M accept _ _ hreach)
     (by exact Relation.ReflTransGen.single hrecognizer_step)
 
+/-! ### Recognizer Eval Dom Correspondence -/
+
+/-
+If the decider halts in an accepting state, the recognizer's `Turing.eval` is Dom.
+-/
+lemma recognizer_eval_dom_of_accept
+    (w : List T)
+    (hdom : (Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).Dom)
+    (hacc : accept ((Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).get hdom).q
+      = true) :
+    (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
+      (decider_to_recognizer M accept))
+      (@TM0.init _ _ ⟨Sum.inl default⟩ _ (w.map Option.some))).Dom := by
+  have := Part.get_mem hdom;
+  have := Turing.mem_eval.mp this;
+  have := recognizer_reaches_of_decider_reaches M accept (TM0.init (List.map some w)) ((eval (TM0.step M) (TM0.init (List.map some w))).get hdom) this.1;
+  have := recognizer_halts_of_accept M accept ((eval (TM0.step M) (TM0.init (List.map some w))).get hdom) (by tauto) (by tauto);
+  rw [ Part.dom_iff_mem ];
+  use liftCfg ((eval (TM0.step M) (TM0.init (List.map some w))).get hdom);
+  convert Turing.mem_eval.mpr _;
+  unfold liftCfg; aesop;
+
+/-
+If the decider halts in a rejecting state, the recognizer's `Turing.eval` is not Dom.
+-/
+lemma recognizer_eval_not_dom_of_reject
+    (w : List T)
+    (hdom : (Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).Dom)
+    (hrej : accept ((Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).get hdom).q
+      = false) :
+    ¬ (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
+      (decider_to_recognizer M accept))
+      (@TM0.init _ _ ⟨Sum.inl default⟩ _ (w.map Option.some))).Dom := by
+  convert recognizer_diverges_of_reject M accept _ _ _ _ _;
+  exact ( eval ( TM0.step M ) ( TM0.init ( List.map some w ) ) ).get hdom;
+  · convert hdom;
+    grind +suggestions;
+  · grind +suggestions;
+  · exact hrej
+
 end RecognizerConstruction
 
-/-- Every recursive language is TM-recognisable. -/
+/-! ### Alphabet Lifting: Option T → Option (T ⊕ Empty) -/
+
+section AlphabetLift
+
+/-- Embed `Option T` into `Option (T ⊕ Empty)` by mapping `some t ↦ some (Sum.inl t)`
+and `none ↦ none`. -/
+def optionSumEmptyEmb (T : Type) : Option T → Option (T ⊕ Empty) :=
+  Option.map Sum.inl
+
+/-- Inverse of `optionSumEmptyEmb`: map `some (Sum.inl t) ↦ some t`, `none ↦ none`.
+The `Sum.inr` case is vacuous since `Empty` is uninhabited. -/
+def optionSumEmptyInv (T : Type) : Option (T ⊕ Empty) → Option T :=
+  fun x => match x with
+  | none => none
+  | some (Sum.inl t) => some t
+  | some (Sum.inr e) => e.elim
+
+lemma optionSumEmptyInv_emb (a : Option T) :
+    optionSumEmptyInv T (optionSumEmptyEmb T a) = a := by
+  cases a <;> simp [optionSumEmptyEmb, optionSumEmptyInv]
+
+lemma optionSumEmptyEmb_default :
+    optionSumEmptyEmb T (default : Option T) = (default : Option (T ⊕ Empty)) := by
+  rfl
+
+lemma map_option_some_map_emb (w : List T) :
+    (w.map Option.some).map (optionSumEmptyEmb T) =
+    w.map (fun x => some (Sum.inl x)) := by
+  simp [optionSumEmptyEmb, List.map_map]
+
+end AlphabetLift
+
+/-! ### Connecting TM0.eval.Dom and Turing.eval.Dom -/
+
+/-- `TM0.eval` Dom is equivalent to `Turing.eval` Dom on configs. -/
+lemma tm0_eval_dom_iff_eval_dom {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
+    (M : TM0.Machine Γ Λ) (l : List Γ) :
+    (TM0.eval M l).Dom ↔ (Turing.eval (TM0.step M) (TM0.init l)).Dom := by
+  simp [TM0.eval, Part.map]
+
+/-! ### Main Theorem -/
+
+/-
+The recognizer TM over `Option T` recognizes exactly `L`: it halts iff `w ∈ L`.
+-/
+lemma recognizer_tm0_eval_iff {Λ : Type} [Inhabited Λ]
+    (L : Language T)
+    (M : TM0.Machine (Option T) Λ) (accept : Λ → Bool)
+    (halts : ∀ w : List T,
+      (Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).Dom)
+    (hmem : ∀ w : List T,
+      ∀ h : (Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).Dom,
+        w ∈ L ↔ accept ((Turing.eval (TM0.step M)
+          (TM0.init (w.map Option.some))).get h).q = true)
+    (w : List T) :
+    w ∈ L ↔
+    (@TM0.eval _ (Λ ⊕ Unit) ⟨Sum.inl default⟩ _
+      (decider_to_recognizer M accept) (w.map Option.some)).Dom := by
+  -- By definition of `decider_to_recognizer`, if the original TM halts and accepts, then the recognizer also halts and accepts.
+  apply Iff.intro;
+  · intro hwL
+    have haccept : accept ((eval (TM0.step M) (TM0.init (w.map Option.some))).get (halts w)).q = true := by
+      exact hmem w ( halts w ) |>.1 hwL
+    exact (recognizer_eval_dom_of_accept M accept w (halts w)) haccept;
+  · contrapose!;
+    intro hw;
+    convert recognizer_eval_not_dom_of_reject M accept w ( halts w ) _;
+    simpa [ hw ] using hmem w ( halts w )
+
+/-- Every recursive language is TM-recognisable.
+
+**Proof**: The decider `M` is converted to a recognizer `M_rec` over
+`Option T` (via `decider_to_recognizer`). With `Γ = T` and `encode = id`,
+the recognizer directly satisfies the generalized `is_TM` definition. -/
 theorem is_Recursive_implies_is_TM
-    {L : Language T} (hL : is_Recursive L) : is_TM L := by
-  obtain ⟨Λ, hΛ₁, hΛ₂, M, hM⟩ := hL
-  refine' ⟨Λ ⊕ Unit, _, _, _, _⟩
-  · exact ⟨Sum.inl hΛ₁.default⟩
-  · infer_instance
-  · exact decider_to_recognizer M hM.choose
-  · intro w
-    by_cases hw : w ∈ L <;> simp +decide [hw]
-    · obtain ⟨b, hb⟩ :
-          ∃ b, Reaches (TM0.step M) (TM0.init (w.map Option.some)) b ∧
-            TM0.step M b = none ∧ hM.choose b.q = true := by
-        have := hM.choose_spec.1 w
-        obtain ⟨b, hb⟩ : ∃ b, b ∈ eval (TM0.step M) (TM0.init (w.map Option.some)) := by
-          exact ⟨_, Part.get_mem this⟩
-        grind +suggestions
-      have h_recognizer_reaches :
-          @Reaches _ (@TM0.step _ _ ⟨Sum.inl hΛ₁.default⟩ _ (decider_to_recognizer M hM.choose))
-            (liftCfg (TM0.init (w.map Option.some))) (liftCfg b) := by
-        apply recognizer_reaches_of_decider_reaches
-        exact hb.left
-      have h_recognizer_halts :
-          @TM0.step _ _ ⟨Sum.inl hΛ₁.default⟩ _ (decider_to_recognizer M hM.choose)
-            (liftCfg b) = none := by
-        exact recognizer_halts_of_accept M hM.choose b hb.2.1 hb.2.2
-      have h_recognizer_halts :
-          @Turing.eval _ (@TM0.step _ _ ⟨Sum.inl hΛ₁.default⟩ _
-            (decider_to_recognizer M hM.choose))
-            (liftCfg (TM0.init (w.map Option.some))) ≠ Part.none := by
-        rw [Ne.eq_def, Part.eq_none_iff]
-        simp +decide [mem_eval, h_recognizer_reaches, h_recognizer_halts]
-        exact ⟨_, h_recognizer_reaches, h_recognizer_halts⟩
-      convert h_recognizer_halts using 1
-      simp +decide [Part.eq_none_iff, Part.mem_eq]
-      rfl
-    · apply recognizer_diverges_of_reject
-      rotate_right
-      exact (Turing.eval (TM0.step M) (TM0.init (List.map some w))).get (hM.choose_spec.1 w)
-      · have := hM.choose_spec.1 w
-        have := mem_eval.mp (Part.get_mem this)
-        exact this.1
-      · have := (Turing.eval (TM0.step M) (TM0.init (List.map some w))).get_mem
-          (hM.choose_spec.1 w)
-        rw [mem_eval] at this
-        exact this.2
-      · exact Classical.not_not.1 fun h =>
-          hw <| hM.choose_spec.2 w (hM.choose_spec.1 w) |>.2 <| by simpa using h
+    [Fintype T] {L : Language T} (hL : is_Recursive L) : is_TM L := by
+  obtain ⟨Λ, hΛ, hΛf, M, accept, halts, hmem⟩ := hL
+  letI : Inhabited (Λ ⊕ Unit) := ⟨Sum.inl default⟩
+  exact ⟨T, inferInstance, Λ ⊕ Unit, inferInstance, inferInstance,
+    decider_to_recognizer M accept, id, fun w => by
+    show w ∈ L ↔ (TM0.eval (decider_to_recognizer M accept) (w.map some)).Dom
+    exact recognizer_tm0_eval_iff L M accept halts hmem w⟩
 
 /-- Every recursive language is recursively enumerable. -/
 theorem is_Recursive_implies_is_RE [DecidableEq T] [Fintype T]
