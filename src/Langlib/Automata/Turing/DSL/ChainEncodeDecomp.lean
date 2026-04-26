@@ -288,6 +288,21 @@ theorem binSucc_rwdSuf_loop (revS : List ChainΓ) (hrevS : ∀ g ∈ revS, g ≠
     · unfold TM0.step; unfold binSuccMachine; aesop;
 
 /-
+rwdSuf loop (extended): rewind through non-default suffix cells when there is
+extra content on the left tape beyond the suffix.
+-/
+theorem binSucc_rwdSuf_loop_ext (revS extra : List ChainΓ) (hrevS : ∀ g ∈ revS, g ≠ default)
+    (acc : List ChainΓ) :
+    Reaches (TM0.step binSuccMachine)
+      ⟨.rwdSuf, ⟨(revS ++ extra).headI, ListBlank.mk (revS ++ extra).tail, ListBlank.mk acc⟩⟩
+      ⟨.rwdSuf, ⟨extra.headI, ListBlank.mk extra.tail, ListBlank.mk (revS.reverse ++ acc)⟩⟩ := by
+  induction' revS with a revS ih generalizing acc;
+  · constructor;
+  · convert Relation.ReflTransGen.head _ ( ih ( fun g hg => hrevS g ( List.mem_cons_of_mem _ hg ) ) ( a :: acc ) ) using 1;
+    · simp +decide [ List.reverse_cons ];
+    · unfold TM0.step; unfold binSuccMachine; aesop;
+
+/-
 Shift loop: shift suffix cells right by one position.
     After the shift, the saved value and suffix have been pushed right by one,
     and the cursor is at the last shifted position ready for rewind.
@@ -434,6 +449,115 @@ theorem binSucc_carry_default_nil (revLeft : List ChainΓ)
   · simp +decide [ γ'ToChainΓ ];
     exact hrevLeft
 
+private theorem γ'bit1_ne_default : γ'ToChainΓ Γ'.bit1 ≠ (default : ChainΓ) := by
+  simp +decide [γ'ToChainΓ]
+
+/-
+Phase 1: carry at default → shiftW s (steps 1-4 of the extension).
+-/
+private theorem binSucc_ext_phase1 (s : ChainΓ) (rest revLeft : List ChainΓ)
+    (hs : s ≠ default) :
+    Reaches (TM0.step binSuccMachine)
+      ⟨.carry, ⟨default, ListBlank.mk revLeft, ListBlank.mk (s :: rest)⟩⟩
+      ⟨.shiftW s, ⟨rest.headI,
+                  ListBlank.mk (default :: γ'ToChainΓ Γ'.bit1 :: revLeft),
+                  ListBlank.mk rest.tail⟩⟩ := by
+  constructor;
+  rotate_right;
+  exact ⟨ BinSuccSt.shiftMv s, ⟨ default, ListBlank.mk ( γ'ToChainΓ Γ'.bit1 :: revLeft ), ListBlank.mk rest ⟩ ⟩;
+  · constructor;
+    rotate_right;
+    exact ⟨ BinSuccSt.extRd, ⟨ s, ListBlank.mk ( γ'ToChainΓ Γ'.bit1 :: revLeft ), ListBlank.mk rest ⟩ ⟩;
+    · constructor;
+      apply_rules [ Relation.ReflTransGen.single ];
+      unfold binSuccMachine; aesop;
+    · unfold TM0.step;
+      unfold binSuccMachine; aesop;
+  · cases rest <;> aesop
+
+/-
+Sub-phase A: shiftDn → rwdSuf (1 step, move left).
+-/
+private theorem binSucc_ext_shiftDn_step (head : ChainΓ) (leftList : List ChainΓ) :
+    Reaches (TM0.step binSuccMachine)
+      ⟨.shiftDn, ⟨head, ListBlank.mk leftList, ListBlank.mk []⟩⟩
+      ⟨.rwdSuf, ⟨leftList.headI, ListBlank.mk leftList.tail, ListBlank.mk [head]⟩⟩ := by
+  -- By definition of ` TM0.step`, we can see that the transition from `shiftDn` to `rwdSuf` is indeed a single step.
+  apply Relation.ReflTransGen.single;
+  cases leftList <;> aesop
+
+/-
+Sub-phase C: rwdSuf at default → rwdBlk (1 step, move left).
+-/
+private theorem binSucc_ext_rwdSuf_to_rwdBlk (leftList : List ChainΓ) (rightList : List ChainΓ) :
+    Reaches (TM0.step binSuccMachine)
+      ⟨.rwdSuf, ⟨default, ListBlank.mk leftList, ListBlank.mk rightList⟩⟩
+      ⟨.rwdBlk, ⟨leftList.headI, ListBlank.mk leftList.tail, ListBlank.mk (default :: rightList)⟩⟩ := by
+  convert Relation.ReflTransGen.single _;
+  cases leftList <;> aesop
+
+/-
+Elements of (s :: rest).dropLast are all non-default when s and rest elements are.
+-/
+private theorem dropLast_cons_ne_default (s : ChainΓ) (rest : List ChainΓ)
+    (hs : s ≠ default) (hrest : ∀ g ∈ rest, g ≠ default) :
+    ∀ g ∈ (s :: rest).dropLast, g ≠ default := by
+  intro g hg; have := List.mem_of_mem_dropLast hg; aesop;
+
+/-- Phase 2: after shift loop + shiftDn → rwdSuf configuration. -/
+private theorem binSucc_ext_phase2_rwdSuf (s : ChainΓ) (rest revLeft : List ChainΓ)
+    (hs : s ≠ default)
+    (hrest : ∀ g ∈ rest, g ≠ default)
+    (hrevLeft : ∀ g ∈ revLeft, g ≠ default) :
+    Reaches (TM0.step binSuccMachine)
+      ⟨.shiftDn, ⟨(s :: rest).getLast (by simp),
+                  ListBlank.mk ((s :: rest).dropLast.reverse ++ default :: γ'ToChainΓ Γ'.bit1 :: revLeft),
+                  ListBlank.mk []⟩⟩
+      ⟨.rwdBlk, ⟨(γ'ToChainΓ Γ'.bit1 :: revLeft).headI,
+                 ListBlank.mk (γ'ToChainΓ Γ'.bit1 :: revLeft).tail,
+                 ListBlank.mk (default :: s :: rest)⟩⟩ := by
+  -- Sub-phase A: shiftDn → rwdSuf
+  have hA := binSucc_ext_shiftDn_step ((s :: rest).getLast (by simp))
+    ((s :: rest).dropLast.reverse ++ default :: γ'ToChainΓ Γ'.bit1 :: revLeft)
+  -- Sub-phase B: rwdSuf loop through suffix cells
+  have h_nd_rev : ∀ g ∈ (s :: rest).dropLast.reverse, g ≠ default := by
+    intro g hg
+    exact dropLast_cons_ne_default s rest hs hrest g (List.mem_reverse.mp hg)
+  have hB := binSucc_rwdSuf_loop_ext
+    (s :: rest).dropLast.reverse
+    (default :: γ'ToChainΓ Γ'.bit1 :: revLeft)
+    h_nd_rev
+    [((s :: rest).getLast (by simp))]
+  -- Sub-phase C: rwdSuf at default → rwdBlk
+  have hC := binSucc_ext_rwdSuf_to_rwdBlk
+    (γ'ToChainΓ Γ'.bit1 :: revLeft)
+    (s :: rest)
+  refine hA.trans (hB.trans ?_)
+  convert hC using 2
+  simp [List.reverse_reverse, List.dropLast_append_getLast]
+
+/-
+Phase 3: rwdBlk through bit1 :: revLeft → done.
+-/
+private theorem binSucc_ext_phase3_done (s : ChainΓ) (rest revLeft : List ChainΓ)
+    (hrevLeft : ∀ g ∈ revLeft, g ≠ default) :
+    Reaches (TM0.step binSuccMachine)
+      ⟨.rwdBlk, ⟨(γ'ToChainΓ Γ'.bit1 :: revLeft).headI,
+                 ListBlank.mk (γ'ToChainΓ Γ'.bit1 :: revLeft).tail,
+                 ListBlank.mk (default :: s :: rest)⟩⟩
+      ⟨.done, Tape.mk₁ (revLeft.reverse ++ γ'ToChainΓ Γ'.bit1 :: default :: s :: rest)⟩ := by
+  have h_tape_eq : Tape.mk₁ (revLeft.reverse ++ γ'ToChainΓ Γ'.bit1 :: default :: s :: rest) = ⟨(revLeft.reverse ++ γ'ToChainΓ Γ'.bit1 :: default :: s :: rest).headI, ListBlank.mk [], ListBlank.mk (revLeft.reverse ++ γ'ToChainΓ Γ'.bit1 :: default :: s :: rest).tail⟩ := by
+    exact?;
+  have := binSucc_rwdBlk_loop (γ'ToChainΓ Γ'.bit1 :: revLeft) (by
+  simp +decide [ γ'ToChainΓ, hrevLeft ];
+  assumption) (default :: s :: rest);
+  refine' this.trans _;
+  simp +decide [ TM0.step ];
+  refine' .single _;
+  use BinSuccSt.done, TM0.Stmt.move Dir.right;
+  cases h : revLeft.reverse ++ γ'ToChainΓ Γ'.bit1 :: default :: s :: rest <;> simp_all +decide [ Tape.move ];
+  exact ⟨ rfl, listBlank_mk_append_default [] ⟩
+
 /-- Extension case, non-empty suffix. -/
 theorem binSucc_carry_default_cons (s : ChainΓ) (rest revLeft : List ChainΓ)
     (hs : s ≠ default)
@@ -442,7 +566,15 @@ theorem binSucc_carry_default_cons (s : ChainΓ) (rest revLeft : List ChainΓ)
     Reaches (TM0.step binSuccMachine)
       ⟨.carry, ⟨default, ListBlank.mk revLeft, ListBlank.mk (s :: rest)⟩⟩
       ⟨.done, Tape.mk₁ (revLeft.reverse ++ γ'ToChainΓ Γ'.bit1 :: default :: s :: rest)⟩ := by
-  sorry
+  -- Phase 1: carry → shiftW s (individual transitions)
+  have h1 := binSucc_ext_phase1 s rest revLeft hs
+  -- Phase 2a: shift loop
+  have h2a := binSucc_shift_loop rest hrest s (default :: γ'ToChainΓ Γ'.bit1 :: revLeft)
+  -- Phase 2b: shiftDn → rwdBlk (via rwdSuf)
+  have h2b := binSucc_ext_phase2_rwdSuf s rest revLeft hs hrest hrevLeft
+  -- Phase 3: rwdBlk → done
+  have h3 := binSucc_ext_phase3_done s rest revLeft hrevLeft
+  exact h1.trans (h2a.trans (h2b.trans h3))
 
 /-- Case: carry at default (empty block), extension. -/
 theorem binSucc_carry_default (suffix revLeft : List ChainΓ)
@@ -458,7 +590,9 @@ theorem binSucc_carry_default (suffix revLeft : List ChainΓ)
     have hrest : ∀ g ∈ rest, g ≠ default := fun g hg => hsuffix g (List.mem_cons_of_mem s hg)
     exact binSucc_carry_default_cons s rest revLeft hs hrest hrevLeft
 
-/-- Auxiliary: the carry phase starting with left context `revLeft`. -/
+/-
+Auxiliary: the carry phase starting with left context `revLeft`.
+-/
 theorem binSucc_carry_aux (block suffix revLeft : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default)
     (hsuffix : ∀ g ∈ suffix, g ≠ default)
@@ -469,16 +603,44 @@ theorem binSucc_carry_aux (block suffix revLeft : List ChainΓ)
                ListBlank.mk revLeft,
                ListBlank.mk (block ++ default :: suffix).tail⟩⟩
       ⟨.done, Tape.mk₁ (revLeft.reverse ++ binSucc block ++ default :: suffix)⟩ := by
-  sorry
+  induction' block with c rest ih generalizing suffix revLeft;
+  · convert binSucc_carry_default suffix revLeft hsuffix hrevLeft using 1;
+    unfold binSucc; aesop;
+  · by_cases hc : c = γ'ToChainΓ Γ'.bit0 <;> by_cases hc1 : c = γ'ToChainΓ Γ'.bit1 <;> simp +decide [ hc, hc1, binSucc ] at hfblock ⊢;
+    · simp_all +decide [ γ'ToChainΓ ];
+    · convert binSucc_carry_bit0 rest suffix revLeft hrevLeft using 1;
+      simp +decide [ List.append_assoc ];
+    · convert binSucc_carry_bit1 rest suffix revLeft _ _ _ _ _ using 1 <;> simp +decide [ * ];
+      · exact fun g hg => hblock g <| List.mem_cons_of_mem _ hg;
+      · assumption;
+      · assumption;
+      · assumption;
+      · convert ih suffix ( γ'ToChainΓ Γ'.bit0 :: revLeft ) _ _ _ _ using 1 <;> simp +decide [ * ];
+        · exact fun g hg => hblock g ( List.mem_cons_of_mem _ hg );
+        · assumption;
+        · assumption;
+        · assumption;
+    · convert binSucc_carry_other c rest suffix revLeft hc hc1 hfblock.1 hrevLeft using 1;
+      simp +decide [ List.append_assoc ]
 
-/-- **Binary successor is block-realizable (singleton function #1).**
+/-
+**Binary successor is block-realizable (singleton function #1).**
 
     Uses `binSuccMachine` which implements a carry-chain:
     - `carry` phase: scan right through block, flipping bit1→bit0 (carry) or bit0→bit1 (absorb).
     - Extension: if carry reaches blank, write bit1 and shift suffix right by 1.
-    - Rewind: move left back to position 0. -/
+    - Rewind: move left back to position 0.
+-/
 theorem tm0_binSucc_block : TM0RealizesBlock ChainΓ binSucc := by
-  sorry
+  use BinSuccSt, by infer_instance, by infer_instance, binSuccMachine;
+  intro block suffix hblock hsuffix hfblock
+  have h_reaches : Reaches (TM0.step binSuccMachine) (TM0.init (block ++ default :: suffix)) ⟨.done, Tape.mk₁ (binSucc block ++ default :: suffix)⟩ := by
+    convert binSucc_carry_aux block suffix [] hblock hsuffix hfblock (by simp) using 1;
+  obtain ⟨c, hc⟩ : ∃ c : TM0.Cfg ChainΓ BinSuccSt, c ∈ Turing.eval (TM0.step binSuccMachine) (TM0.init (block ++ default :: suffix)) ∧ c.Tape = Tape.mk₁ (binSucc block ++ default :: suffix) := by
+    exact ⟨ _, Turing.mem_eval.mpr ⟨ h_reaches, by tauto ⟩, rfl ⟩;
+  unfold TM0Seq.evalCfg;
+  simp_all +decide [ Part.mem_eq ];
+  grind
 
 /-! ### Singleton Function 2: Addition via Repeated Increment -/
 
