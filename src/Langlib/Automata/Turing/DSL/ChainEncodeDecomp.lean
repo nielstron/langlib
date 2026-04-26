@@ -677,12 +677,91 @@ theorem chainEncode_fold (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] 
     obtain ⟨hdom, htape⟩ := hM w
     exact ⟨hdom, fun h => by rw [htape h, chainEncode_fold_eq]⟩⟩
 
+/-! ### Lifting block-realizability to heterogeneous tape -/
+
+/-- **Lift block-realizability to heterogeneous tape.**
+
+    If `f : List Γ₀ → List Γ₀` is block-realizable on `Γ₀`, then there
+    exists a TM0 on `Option (T ⊕ Γ₀)` that applies `f` to a `Sum.inr`
+    block. The machine is obtained by lifting the block-realizable TM0
+    via blank-preserving embedding (`blankPreservingEmb`).
+
+    The key observation: with `suffix = []`, `TM0RealizesBlock` gives
+    a machine that maps `Tape.mk₁ block` to `Tape.mk₁ (f block)` for
+    non-default blocks. Lifting via `blankPreservingEmb` (which maps
+    `default ↦ none`, non-default `g ↦ some (Sum.inr g)`) transfers
+    this to the heterogeneous tape. -/
+theorem tm0Het_liftBlockToHet
+    {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
+    (T : Type) [DecidableEq T]
+    (f : List Γ₀ → List Γ₀)
+    (hf : TM0RealizesBlock Γ₀ f) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine (Option (T ⊕ Γ₀)) Λ),
+      ∀ (block : List Γ₀),
+        (∀ g ∈ block, g ≠ default) →
+        (∀ g ∈ f block, g ≠ default) →
+        (TM0Seq.evalCfg M (block.map (some ∘ @Sum.inr T Γ₀))).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M
+          (block.map (some ∘ @Sum.inr T Γ₀))).Dom),
+          ((TM0Seq.evalCfg M
+            (block.map (some ∘ @Sum.inr T Γ₀))).get h).Tape =
+            Tape.mk₁ ((f block).map (some ∘ @Sum.inr T Γ₀)) := by
+  sorry
+
+/-! ### Format block operation -/
+
+/-- The chain format operation: reverse a block and prepend `chainConsBottom`. -/
+noncomputable def chainFormatBlock (block : List ChainΓ) : List ChainΓ :=
+  chainConsBottom :: block.reverse
+
+/-- `chainFormatBlock` output is non-default. -/
+theorem chainFormatBlock_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ chainFormatBlock block, g ≠ default := by
+  intro g hg
+  simp [chainFormatBlock] at hg
+  rcases hg with rfl | hg
+  · simp +decide [chainConsBottom]
+  · exact hblock g (by simp_all [List.mem_reverse])
+
+/-- List reverse is block-realizable. A TM0 can reverse a contiguous
+    block of non-default cells while preserving the suffix. -/
+theorem tm0_reverse_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
+    TM0RealizesBlock Γ List.reverse := by
+  sorry
+
+/-- Prepending a fixed non-default element is block-realizable. -/
+theorem tm0_cons_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (c : Γ) (hc : c ≠ default) :
+    TM0RealizesBlock Γ (c :: ·) := by
+  sorry
+
+/-- Reverse preserves non-defaultness. -/
+theorem reverse_ne_default {Γ : Type} [Inhabited Γ]
+    (block : List Γ) (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ block.reverse, g ≠ default := by
+  simp_all
+
+/-- `chainConsBottom` is non-default. -/
+theorem chainConsBottom_ne_default : chainConsBottom ≠ (default : ChainΓ) := by
+  simp +decide [chainConsBottom]
+
+/-- `chainFormatBlock` is block-realizable, by composing reverse and
+    prepend via `tm0RealizesBlock_comp`. -/
+theorem tm0_chainFormatBlock_block :
+    TM0RealizesBlock ChainΓ chainFormatBlock := by
+  have : chainFormatBlock = (chainConsBottom :: ·) ∘ List.reverse := by
+    ext block; simp [chainFormatBlock]
+  rw [this]
+  exact tm0RealizesBlock_comp tm0_reverse_block
+    (tm0_cons_block chainConsBottom chainConsBottom_ne_default)
+    reverse_ne_default
+
 /-- Phase 2: Format the binary accumulator into chain tape format.
 
-    A TM0 machine on `Option (T ⊕ ChainΓ)` that takes a block of
-    `Sum.inr` ChainΓ cells (the binary representation), reverses it,
-    and prepends `chainConsBottom`. This produces the `trInit` format. -/
-theorem chainEncode_format (T : Type) :
+    Derived from `tm0Het_liftBlockToHet` with `f = chainFormatBlock`. -/
+theorem chainEncode_format (T : Type) [DecidableEq T] :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
       ∀ (block : List ChainΓ),
@@ -694,26 +773,34 @@ theorem chainEncode_format (T : Type) :
             (block.map (some ∘ @Sum.inr T ChainΓ))).get h).Tape =
             Tape.mk₁ ((chainConsBottom :: block.reverse).map
               (some ∘ @Sum.inr T ChainΓ)) := by
-  sorry
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0Het_liftBlockToHet T
+    chainFormatBlock tm0_chainFormatBlock_block
+  exact ⟨Λ, hΛi, hΛf, M, fun block hblock => by
+    exact hM block hblock (chainFormatBlock_ne_default block hblock)⟩
 
 /-! ### Summary
 
 The decomposition provides the following path to `chainEncode_realizes`:
 
 1. `chainEncode_fold` — Phase 1: process input into binary accumulator
+   - Derived from `tm0Het_fold_blockRealizable` (general het fold)
+   - + `tm0_binPairConstSucc_block` (each fold step is block-realizable)
+   - + `chainEncode_fold_eq` (algebraic correctness of the fold)
 2. `chainEncode_format` — Phase 2: reverse + prepend cons marker
-3. `chainEncode_eq_format` — relates the two phases to `chainEncode`
+   - Derived from `tm0Het_liftBlockToHet` (lift block-op to het tape)
+   - + `tm0_chainFormatBlock_block` (reverse+prepend is block-realizable)
+3. `chainEncode_eq_format` (in TapeConvert) — equational glue
 4. Compose Phase 1 and Phase 2 via `TM0Seq.compose`
 
-Phase 1 (`chainEncode_fold`) internally uses:
-- `encodable_encode_list_fold` — the list encoding is a right fold
-- `tm0_binPairConstSucc_block` — each fold step is block-realizable
-- `tm0RealizesBlock_comp` / `tm0RealizesBlock_iterate` — block composition
+### Remaining sorries
 
-Phase 2 (`chainEncode_format`) is a simple TM0 that reverses a block
-and prepends a constant cell.
+**Homogeneous block operations (ChainΓ):**
+- `tm0_binSucc_block` — binary increment is block-realizable
+  - needs `binSucc_carry_aux`, `binSucc_carry_default_cons`
+- `tm0_binPairConstSucc_block` — Nat.pair+succ is block-realizable
+- `tm0_chainFormatBlock_block` — reverse+prepend is block-realizable
 
-The atomic "singleton functions" are `binSucc` (binary increment) and
-its iterations (addition, multiplication, squaring). All complex operations
-are derived from `binSucc` via `tm0RealizesBlock_iterate`.
+**Heterogeneous infrastructure (Option (T ⊕ Γ₀)):**
+- `tm0Het_fold_blockRealizable` — fold over input with block dispatch
+- `tm0Het_liftBlockToHet` — lift block-realizable op to het tape
 -/
