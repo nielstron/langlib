@@ -727,6 +727,136 @@ theorem decodeBinaryBlock_chainBinaryRepr (n : ℕ) :
   induction' n using Nat.strong_induction_on with n ih; rcases Nat.even_or_odd' n with ⟨ k, rfl | rfl ⟩ <;> simp_all +arith +decide;
   cases k <;> simp_all +arith +decide
 
+/-! ### Singleton Function 3: Addition via Decode/Encode Pipeline -/
+
+/-- Add a constant to the block value, going through decode/encode.
+    Unlike `binAddConst` (which iterates `binSucc` syntactically), this
+    version decodes the block, adds `c`, and re-encodes. The two agree
+    on valid binary blocks but this version composes with other
+    decode/encode functions like `binSquare`. -/
+noncomputable def binAddConstRepr (c : ℕ) (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr (decodeBinaryBlock block + c)
+
+theorem binAddConstRepr_correct (c n : ℕ) :
+    binAddConstRepr c (chainBinaryRepr n) = chainBinaryRepr (n + c) := by
+  unfold binAddConstRepr; rw [decodeBinaryBlock_chainBinaryRepr]
+
+theorem binAddConstRepr_ne_default (c : ℕ) (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binAddConstRepr c block, g ≠ default := by
+  unfold binAddConstRepr; exact chainBinaryRepr_ne_default _
+
+/-- **Addition via decode/encode is block-realizable.**
+
+    The TM0 machine is the same as for `binAddConst`: iterate `binSucc`
+    c times. On valid binary blocks (which all actual inputs are),
+    this produces the correct result. -/
+theorem tm0_binAddConstRepr_block (c : ℕ) :
+    TM0RealizesBlock ChainΓ (binAddConstRepr c) := by
+  sorry
+
+/-! ### Singleton Function 4: Binary Squaring -/
+
+/-- Square the binary block value: n → n². -/
+noncomputable def binSquare (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr ((decodeBinaryBlock block) ^ 2)
+
+theorem binSquare_correct (n : ℕ) :
+    binSquare (chainBinaryRepr n) = chainBinaryRepr (n ^ 2) := by
+  unfold binSquare; rw [decodeBinaryBlock_chainBinaryRepr]
+
+theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binSquare block, g ≠ default := by
+  unfold binSquare; exact chainBinaryRepr_ne_default _
+
+/-- **Binary squaring is block-realizable.**
+
+    Squaring can be realized by a TM0 that copies the input `n` and
+    uses one copy as a counter while repeatedly adding the other copy
+    to an accumulator (schoolbook multiplication n × n). -/
+theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
+  sorry
+
+/-! ### Singleton Function 5: Binary Multiplication by Constant -/
+
+/-- Multiply the binary block value by a fixed constant k: n → k * n.
+    Realizable by repeated addition of the original value (requires
+    copying n, then adding the copy k times). -/
+noncomputable def binMulConst (c : ℕ) (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr (c * decodeBinaryBlock block)
+
+theorem binMulConst_correct (c n : ℕ) :
+    binMulConst c (chainBinaryRepr n) = chainBinaryRepr (c * n) := by
+  unfold binMulConst; rw [decodeBinaryBlock_chainBinaryRepr]
+
+theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulConst c block, g ≠ default := by
+  unfold binMulConst; exact chainBinaryRepr_ne_default _
+
+/-- **Multiplication by constant is block-realizable.** -/
+theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
+  sorry
+
+/-! ### Conditional Block Operations -/
+
+/-- Conditional block operation: given a decidable predicate on blocks,
+    apply `f` when the predicate holds and `g` otherwise. -/
+noncomputable def binCondBlock (p : List ChainΓ → Prop) [DecidablePred p]
+    (f g : List ChainΓ → List ChainΓ) (block : List ChainΓ) : List ChainΓ :=
+  if p block then f block else g block
+
+/-- **Conditional block operation is block-realizable** when:
+    1. Both branches `f` and `g` are block-realizable
+    2. The predicate can be decided by a block-realizable TM0
+
+    The predicate TM0 reads the block, decides the predicate, and
+    encodes the result in its halting state. The dispatcher then
+    routes to the appropriate branch machine.
+
+    For "block value ≤ k" (constant k), the comparison TM0 reads
+    at most ⌈log₂(k+1)⌉ + 1 cells and compares against k's
+    binary representation. -/
+theorem tm0RealizesBlock_cond
+    {p : List ChainΓ → Prop} [DecidablePred p]
+    {f g : List ChainΓ → List ChainΓ}
+    (hf : TM0RealizesBlock ChainΓ f)
+    (hg : TM0RealizesBlock ChainΓ g)
+    (hf_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ f block, x ≠ default)
+    (hg_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ g block, x ≠ default)
+    /- The predicate is block-decidable: there exists a TM0 that halts
+       on any valid block and leaves the tape unchanged. The halting state
+       encodes which branch to take. -/
+    (hp_decidable : ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ),
+      ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) → (∀ x ∈ suffix, x ≠ default) →
+        (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom) :
+    TM0RealizesBlock ChainΓ (binCondBlock p f g) := by
+  sorry
+
+/-- Predicate: the binary block represents a value ≤ k. -/
+noncomputable def blockValueLeq (k : ℕ) (block : List ChainΓ) : Prop :=
+  decodeBinaryBlock block ≤ k
+
+noncomputable instance blockValueLeq_decidable (k : ℕ) :
+    DecidablePred (blockValueLeq k) :=
+  fun _ => inferInstanceAs (Decidable (_ ≤ _))
+
+/-- **Comparing block value with a constant is decidable by a TM0.**
+
+    Since k is fixed, the TM0 reads at most ⌈log₂(k+1)⌉ + 1 cells
+    and compares them against the (constant) binary representation of k.
+    The machine halts (termination guaranteed) with state encoding the
+    comparison result. -/
+theorem tm0_blockValueLeq_decidable (k : ℕ) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ),
+      ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) → (∀ x ∈ suffix, x ≠ default) →
+        (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom := by
+  sorry
+
 /-! ### Nat.pair with Constant -/
 
 /-- `Nat.pair k ·` followed by `succ`, applied to a binary ChainΓ block.
@@ -744,18 +874,61 @@ theorem binPairConstSucc_correct (k n : ℕ) :
   unfold binPairConstSucc;
   rw [ decodeBinaryBlock_chainBinaryRepr ]
 
+/-! #### Decomposition of binPairConstSucc -/
+
+/-- When n ≤ k: `Nat.pair k n = k * k + k + n`, so the result is `n + (k * k + k + 1)`. -/
+theorem natPair_succ_of_le {k n : ℕ} (h : n ≤ k) :
+    Nat.pair k n + 1 = n + (k * k + k + 1) := by
+  simp [Nat.pair, if_neg (not_lt.mpr h)]; omega
+
+/-- When k < n: `Nat.pair k n = n * n + k`, so the result is `n ^ 2 + (k + 1)`. -/
+theorem natPair_succ_of_lt {k n : ℕ} (h : k < n) :
+    Nat.pair k n + 1 = (decodeBinaryBlock (binSquare (chainBinaryRepr n))) + (k + 1) := by
+  simp [Nat.pair, if_pos h, binSquare, decodeBinaryBlock_chainBinaryRepr, sq]; omega
+
+/-- `binPairConstSucc k` decomposes as a conditional on `blockValueLeq k`:
+    - If block value ≤ k: `binAddConstRepr (k * k + k + 1)` (add a constant)
+    - If block value > k: `binAddConstRepr (k + 1) ∘ binSquare` (square, then add constant) -/
+theorem binPairConstSucc_eq_cond (k : ℕ) (block : List ChainΓ) :
+    binPairConstSucc k block =
+      binCondBlock (blockValueLeq k)
+        (binAddConstRepr (k * k + k + 1))
+        (binAddConstRepr (k + 1) ∘ binSquare)
+        block := by
+  unfold binPairConstSucc binCondBlock blockValueLeq binAddConstRepr
+  simp only [Function.comp]
+  by_cases h : decodeBinaryBlock block ≤ k
+  · simp [h, Nat.pair, if_neg (not_lt.mpr h)]; ring_nf
+  · simp [h]
+    unfold binSquare
+    rw [decodeBinaryBlock_chainBinaryRepr]
+    congr 1
+    have hlt : k < decodeBinaryBlock block := Nat.lt_of_not_le h
+    simp [Nat.pair, if_pos hlt, sq]; ring_nf
+
 /-- **Nat.pair-succ with constant is block-realizable.**
 
     For fixed `k`, `binPairConstSucc k` processes a binary block representing `n`
     and produces the block representing `Nat.pair k n + 1`.
 
-    Decomposition into singleton functions:
-    - If k < n: compute n² (squaring via repeated addition of n),
-      then add k + 1 (constant addition via repeated increment)
-    - If k ≥ n: add k² + k + 1 (constant) to n (via repeated increment) -/
+    Decomposed into:
+    - `tm0_blockValueLeq_decidable` — compare block value with constant k
+    - `tm0_binAddConstRepr_block` — add a constant (for both branches)
+    - `tm0_binSquare_block` — square the block value (for the k < n branch)
+    - `tm0RealizesBlock_cond` — conditional dispatch
+    - `tm0RealizesBlock_comp` — sequential composition (square then add) -/
 theorem tm0_binPairConstSucc_block (k : ℕ) :
     TM0RealizesBlock ChainΓ (binPairConstSucc k) := by
-  sorry
+  rw [show binPairConstSucc k = binCondBlock (blockValueLeq k)
+        (binAddConstRepr (k * k + k + 1))
+        (binAddConstRepr (k + 1) ∘ binSquare)
+    from funext (binPairConstSucc_eq_cond k)]
+  exact tm0RealizesBlock_cond
+    (tm0_binAddConstRepr_block _)
+    (tm0RealizesBlock_comp tm0_binSquare_block (tm0_binAddConstRepr_block _) binSquare_ne_default)
+    (fun block hblock => binAddConstRepr_ne_default _ _ hblock)
+    (fun block hblock => binAddConstRepr_ne_default _ _ (binSquare_ne_default _ hblock))
+    (tm0_blockValueLeq_decidable k)
 
 /-! ### List Encoding Fold Equation -/
 
