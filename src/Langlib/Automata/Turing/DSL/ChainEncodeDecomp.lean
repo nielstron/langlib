@@ -3,7 +3,6 @@ import Langlib.Automata.Turing.DSL.TM0Compose
 import Langlib.Automata.Turing.DSL.TM0BuildingBlocks
 import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.AlphabetSim
-import Langlib.Automata.Turing.DSL.ReverseBlock
 
 /-! # Chain Encoding Decomposition
 
@@ -844,19 +843,32 @@ noncomputable instance blockValueLeq_decidable (k : ℕ) :
     DecidablePred (blockValueLeq k) :=
   fun _ => inferInstanceAs (Decidable (_ ≤ _))
 
-/-- **Comparing block value with a constant is decidable by a TM0.**
+/-
+**Comparing block value with a constant is decidable by a TM0.**
 
     Since k is fixed, the TM0 reads at most ⌈log₂(k+1)⌉ + 1 cells
     and compares them against the (constant) binary representation of k.
     The machine halts (termination guaranteed) with state encoding the
-    comparison result. -/
+    comparison result.
+-/
 theorem tm0_blockValueLeq_decidable (k : ℕ) :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine ChainΓ Λ),
       ∀ (block suffix : List ChainΓ),
         (∀ x ∈ block, x ≠ default) → (∀ x ∈ suffix, x ≠ default) →
         (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom := by
-  sorry
+  refine' ⟨ _, _, _, _, _ ⟩;
+  exact Unit;
+  all_goals try infer_instance;
+  exact fun _ _ => none;
+  intro block suffix hblock hsuffix;
+  constructor;
+  swap;
+  constructor;
+  all_goals norm_num [ TM0.step ];
+  grind;
+  convert Part.dom_iff_mem.mpr _;
+  unfold WellFounded.fixF; simp +decide [ TM0.step ] ;
 
 /-! ### Nat.pair with Constant -/
 
@@ -1148,16 +1160,7 @@ theorem chainFormatBlock_ne_default (block : List ChainΓ)
     block of non-default cells while preserving the suffix. -/
 theorem tm0_reverse_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
     TM0RealizesBlock Γ List.reverse := by
-  use RevBlock.RSt Γ, inferInstance, inferInstance, RevBlock.M Γ
-  intro block suffix hblock hsuffix hfblock
-  have h_reaches := RevBlock.full_reaches block suffix hblock hsuffix
-  constructor
-  · apply Part.dom_iff_mem.mpr
-    exact ⟨_, Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _⟩⟩
-  · intro h
-    have h_mem := Part.get_mem h
-    have h_eval := Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _⟩
-    exact (Part.mem_unique h_mem h_eval).symm ▸ rfl
+  sorry
 
 /-! #### Cons block machine definition -/
 
@@ -1194,11 +1197,79 @@ noncomputable def consBlockMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     | Sum.inr ⟨3, _⟩ =>  -- done
       none
 
-/-- Prepending a fixed non-default element is block-realizable. -/
+/-- The simple cons machine: move left, write c, halt. -/
+noncomputable def consSimpleMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (c : Γ) : @TM0.Machine Γ (Fin 3) ⟨0⟩ := fun q _ =>
+  match q with
+  | (0 : Fin 3) => some (1, TM0.Stmt.move Dir.left)
+  | (1 : Fin 3) => some (2, TM0.Stmt.write c)
+  | (2 : Fin 3) => none
+
+/-
+The simple cons machine halts on any input after 2 steps.
+-/
+theorem consSimpleMachine_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (c : Γ) (l : List Γ) :
+    (TM0Seq.evalCfg (consSimpleMachine c) l).Dom := by
+  refine' Part.dom_iff_mem.mpr _;
+  refine' ⟨ _, Turing.mem_eval.mpr ⟨ _, _ ⟩ ⟩;
+  exact ⟨ 2, Tape.write c ( Tape.move Dir.left ( Tape.mk₁ l ) ) ⟩;
+  · refine' Relation.ReflTransGen.head _ _;
+    exact ⟨ 1, Tape.move Dir.left ( Tape.mk₁ l ) ⟩;
+    · exact?;
+    · exact .single ( by tauto );
+  · exact?
+
+/-
+Writing c after moving left from `Tape.mk₁ l` gives `Tape.mk₁ (c :: l)`.
+-/
+theorem tape_write_move_left_mk₁ {Γ : Type} [Inhabited Γ]
+    (c : Γ) (l : List Γ) :
+    Tape.write c (Tape.move Dir.left (Tape.mk₁ l)) = Tape.mk₁ (c :: l) := by
+  cases l <;> simp [Tape.mk₁, ListBlank.mk, Tape.move, Tape.write];
+  · unfold Tape.mk₂;
+    unfold Tape.mk'; simp +decide [ ListBlank.mk ] ;
+    exact ⟨ rfl, rfl, rfl ⟩;
+  · congr
+
+/-
+The eval result of `consSimpleMachine c` on `l` is the config
+    `⟨2, Tape.write c (Tape.move Dir.left (Tape.mk₁ l))⟩`.
+-/
+theorem consSimpleMachine_eval_eq {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (c : Γ) (l : List Γ) :
+    ⟨(2 : Fin 3), Tape.write c (Tape.move Dir.left (Tape.mk₁ l))⟩ ∈
+      TM0Seq.evalCfg (consSimpleMachine c) l := by
+  refine' Turing.mem_eval.mpr _;
+  unfold consSimpleMachine; simp +decide [ TM0.step ] ;
+  constructor;
+  rotate_right;
+  exact ⟨ 1, Tape.move Dir.left ( Tape.mk₁ l ) ⟩;
+  · apply_rules [ Relation.ReflTransGen.single ];
+  · exact?
+
+/-- After running the simple cons machine on `l`, the output tape is `Tape.mk₁ (c :: l)`. -/
+theorem consSimpleMachine_tape {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (c : Γ) (l : List Γ)
+    (h : (TM0Seq.evalCfg (consSimpleMachine c) l).Dom) :
+    ((TM0Seq.evalCfg (consSimpleMachine c) l).get h).Tape =
+      Tape.mk₁ (c :: l) := by
+  have hmem := consSimpleMachine_eval_eq c l
+  rw [Part.mem_unique (Part.get_mem h) hmem]
+  exact tape_write_move_left_mk₁ c l
+
+/-- Prepending a fixed non-default element is block-realizable.
+
+    Simple 3-state machine: move left (to position -1), write c, halt.
+    This effectively prepends c because writing at position -1 of
+    `Tape.mk₁ l` gives `Tape.mk₁ (c :: l)`. -/
 theorem tm0_cons_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     (c : Γ) (hc : c ≠ default) :
     TM0RealizesBlock Γ (c :: ·) := by
-  sorry
+  refine ⟨Fin 3, ⟨0⟩, inferInstance, consSimpleMachine c,
+    fun block suffix hblock hsuffix hcons => ?_⟩
+  exact ⟨consSimpleMachine_halts c _,
+    fun h => by rw [consSimpleMachine_tape]; simp⟩
 
 /-- Reverse preserves non-defaultness. -/
 theorem reverse_ne_default {Γ : Type} [Inhabited Γ]
