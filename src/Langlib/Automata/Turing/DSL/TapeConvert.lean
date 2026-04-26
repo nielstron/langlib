@@ -518,10 +518,42 @@ The TM0 on `Option (T ⊕ ChainΓ)` works as follows:
 - Each step uses `binPairConstSucc (Encodable.encode t)` which is
   block-realizable (preserving unprocessed Sum.inl elements)
 - After processing all elements, format the accumulator as
-  `trInit K'.main (trList [result])` -/
+  `trInit K'.main (trList [result])`
+ -/
+theorem chainEncode_eq_format (T : Type) [Primcodable T] (w : List T) :
+    chainEncode T w =
+      chainConsBottom :: (chainBinaryRepr (Encodable.encode w)).reverse :=
+  trInit_trList_singleton_eq (Encodable.encode w)
+
 theorem chainEncode_realizes {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] :
     TM0RealizesFn T ChainΓ (chainEncode T) := by
-  sorry
+  obtain ⟨Λ₁, hΛ₁i, hΛ₁f, M₁, hM₁⟩ := chainEncode_fold T
+  obtain ⟨Λ₂, hΛ₂i, hΛ₂f, M₂, hM₂⟩ := chainEncode_format T
+  letI : Inhabited (Λ₁ ⊕ Λ₂) := ⟨Sum.inl default⟩
+  refine ⟨Λ₁ ⊕ Λ₂, inferInstance, inferInstance, TM0Seq.compose M₁ M₂, fun w => ?_⟩
+  -- Phase 1: M₁ halts on w.map(inl) producing the binary accumulator
+  have h1_dom := (hM₁ w).1
+  have h1_tape := (hM₁ w).2 h1_dom
+  -- Phase 2: M₂ halts on the accumulator producing the formatted output
+  set l' := (chainBinaryRepr (Encodable.encode w)).map (some ∘ @Sum.inr T ChainΓ) with hl'
+  have h2_spec := hM₂ (chainBinaryRepr (Encodable.encode w)) (chainBinaryRepr_ne_default _)
+  have h2_dom := h2_spec.1
+  have h2_tape := h2_spec.2 h2_dom
+  -- evalFromCfg M₂ ⟨default, M₁_output_tape⟩ halts (rewrite via h1_tape)
+  have h_from : (TM0Seq.evalFromCfg M₂
+      ⟨default, ((TM0Seq.evalCfg M₁ (w.map (some ∘ Sum.inl))).get h1_dom).Tape⟩).Dom := by
+    rw [h1_tape]; exact h2_dom
+  -- Composed machine halts (compose_dom_of_parts gives TM0.eval Dom)
+  have h_eval_dom := TM0Seq.compose_dom_of_parts M₁ M₂ _ h1_dom h_from
+  have h_comp_dom : (TM0Seq.evalCfg (TM0Seq.compose M₁ M₂)
+      (w.map (some ∘ Sum.inl))).Dom :=
+    (TM0Seq.evalCfg_dom_iff _ _).mpr h_eval_dom
+  exact ⟨h_comp_dom, fun h => by
+    -- Output tape tracking: composed tape = M₂'s tape on l'
+    have h_tape := TM0Seq.compose_evalCfg_tape M₁ M₂ _ l' h1_dom h1_tape h2_dom h
+    rw [h_tape, h2_tape]
+    -- Remains: (chainConsBottom :: repr.reverse).map(inr) = (chainEncode T w).map(inr)
+    congr 1; exact congr_arg _ (chainEncode_eq_format T w).symm⟩
 
 /-- **The chain converter function is realizable on identity-encoded inputs.**
 

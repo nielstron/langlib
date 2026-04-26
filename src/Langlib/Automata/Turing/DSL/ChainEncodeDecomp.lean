@@ -602,15 +602,66 @@ theorem encodable_encode_list_fold {T : Type} [Encodable T] (w : List T) :
     List.foldr (fun t acc => Nat.pair (Encodable.encode t) acc + 1) 0 w := by
   induction w <;> aesop
 
+/-! ### Bridging lemmas for chainEncode_realizes -/
+
+/-- Phase 1: Fold computation on heterogeneous tape.
+
+    A TM0 machine on `Option (T ⊕ ChainΓ)` that processes input elements
+    `Sum.inl t₁, ..., Sum.inl tₙ` right-to-left, building a binary
+    accumulator via iterated `binPairConstSucc`.
+
+    The machine reads each `Sum.inl t` element, erases it, determines
+    `Encodable.encode t` (finite lookup since T is Fintype), and applies
+    `binPairConstSucc (Encodable.encode t)` to the `Sum.inr` accumulator
+    region. After all input is consumed, only the accumulator remains.
+
+    Output tape: `chainBinaryRepr (Encodable.encode w)` as `Sum.inr` cells. -/
+theorem chainEncode_fold (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
+      ∀ w : List T,
+        (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom),
+          ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
+            Tape.mk₁ ((chainBinaryRepr (Encodable.encode w)).map
+              (some ∘ @Sum.inr T ChainΓ)) := by
+  sorry
+
+/-- Phase 2: Format the binary accumulator into chain tape format.
+
+    A TM0 machine on `Option (T ⊕ ChainΓ)` that takes a block of
+    `Sum.inr` ChainΓ cells (the binary representation), reverses it,
+    and prepends `chainConsBottom`. This produces the `trInit` format. -/
+theorem chainEncode_format (T : Type) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
+      ∀ (block : List ChainΓ),
+        (∀ g ∈ block, g ≠ (default : ChainΓ)) →
+        (TM0Seq.evalCfg M (block.map (some ∘ @Sum.inr T ChainΓ))).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M
+          (block.map (some ∘ @Sum.inr T ChainΓ))).Dom),
+          ((TM0Seq.evalCfg M
+            (block.map (some ∘ @Sum.inr T ChainΓ))).get h).Tape =
+            Tape.mk₁ ((chainConsBottom :: block.reverse).map
+              (some ∘ @Sum.inr T ChainΓ)) := by
+  sorry
+
 /-! ### Summary
 
 The decomposition provides the following path to `chainEncode_realizes`:
 
-1. `encodable_encode_list_fold` — the list encoding is a right fold
-2. `binPairConstSucc` — each fold step is a block operation
-3. `tm0_binPairConstSucc_block` — each fold step is block-realizable
-4. Block-realizability preserves the rest of the tape, enabling iteration
-5. `trInit_trList_singleton_eq` — the final formatting step
+1. `chainEncode_fold` — Phase 1: process input into binary accumulator
+2. `chainEncode_format` — Phase 2: reverse + prepend cons marker
+3. `chainEncode_eq_format` — relates the two phases to `chainEncode`
+4. Compose Phase 1 and Phase 2 via `TM0Seq.compose`
+
+Phase 1 (`chainEncode_fold`) internally uses:
+- `encodable_encode_list_fold` — the list encoding is a right fold
+- `tm0_binPairConstSucc_block` — each fold step is block-realizable
+- `tm0RealizesBlock_comp` / `tm0RealizesBlock_iterate` — block composition
+
+Phase 2 (`chainEncode_format`) is a simple TM0 that reverses a block
+and prepends a constant cell.
 
 The atomic "singleton functions" are `binSucc` (binary increment) and
 its iterations (addition, multiplication, squaring). All complex operations
