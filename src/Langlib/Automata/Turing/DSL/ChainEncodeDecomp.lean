@@ -3,6 +3,7 @@ import Langlib.Automata.Turing.DSL.TM0Compose
 import Langlib.Automata.Turing.DSL.TM0BuildingBlocks
 import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.AlphabetSim
+import Langlib.Automata.Turing.DSL.ReverseBlock
 
 /-! # Chain Encoding Decomposition
 
@@ -1147,7 +1148,16 @@ theorem chainFormatBlock_ne_default (block : List ChainΓ)
     block of non-default cells while preserving the suffix. -/
 theorem tm0_reverse_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
     TM0RealizesBlock Γ List.reverse := by
-  sorry
+  use RevBlock.RSt Γ, inferInstance, inferInstance, RevBlock.M Γ
+  intro block suffix hblock hsuffix hfblock
+  have h_reaches := RevBlock.full_reaches block suffix hblock hsuffix
+  constructor
+  · apply Part.dom_iff_mem.mpr
+    exact ⟨_, Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _⟩⟩
+  · intro h
+    have h_mem := Part.get_mem h
+    have h_eval := Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _⟩
+    exact (Part.mem_unique h_mem h_eval).symm ▸ rfl
 
 /-! #### Cons block machine definition -/
 
