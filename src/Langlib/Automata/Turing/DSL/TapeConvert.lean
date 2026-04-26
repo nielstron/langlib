@@ -471,55 +471,7 @@ theorem tm0RealizesFn_pointwise {T S : Type}
 
 /-! ### Component realizability for chain_converter_fn -/
 
-/-- Chain encoding is TM0-realizable: given a list of T values encoded
-as `Sum.inl` on the tape, compute `chainEncode T` and write the result
-as `Sum.inr` values.
-
-Since T is Fintype, each `Encodable.encode t` is a fixed constant.
-The encoding `Encodable.encode (w : List T)` uses iterated `Nat.pair`,
-which can be computed by binary arithmetic on the tape.
-
-## Proof strategy (not yet formalized)
-
-The TM0 machine on `Option (T ⊕ ChainΓ)` would process the input list
-right-to-left, maintaining an accumulator in binary using `Sum.inr`
-(ChainΓ) symbols on the tape. For each input element `t`, it computes
-`Nat.pair(Encodable.encode t, acc) + 1` and updates the accumulator.
-
-Since `Encodable.encode t < |T|` for all `t : T`, the `Nat.pair(a, acc)`
-computation has fixed first argument `a`. For `a ≤ acc` (the common case),
-this reduces to `acc² + a`, requiring binary squaring (via shift-and-add
-multiplication), binary addition of small constant (via carry propagation),
-and binary increment (for the `+1`).
-
-After processing all elements, the binary accumulator is formatted as
-`trInit K'.main (trList [result])` and written as `Sum.inr` symbols.
-
-An alternative approach uses `ToPartrec.Code.fix` to build a Code for
-the list-pairing fold, compiled via the chain to a TM0 on ChainΓ,
-composed with a flat-map converter for identity → multi-element chain
-format. This avoids explicit binary arithmetic in the TM0 construction
-but requires chain output tracking (showing the chain TM0 produces
-specific tape contents when the Code halts with a specific value).
-
-**Chain encoding is TM0-realizable (heterogeneous).**
-
-The proof uses the decomposition from `ChainEncodeDecomp`:
-1. The list encoding is a right fold: `encodable_encode_list_fold`
-2. Each fold step (Nat.pair + succ) is block-realizable: `tm0_binPairConstSucc_block`
-3. Block operations compose serially: `tm0RealizesBlock_iterate`
-4. The final formatting is `trInit_trList_singleton_eq`
-5. Binary succ is the "singleton function" from which all operations derive
-
-The TM0 on `Option (T ⊕ ChainΓ)` works as follows:
-- Read input elements `Sum.inl t₁, ..., Sum.inl tₙ` right-to-left
-- For each element t, compute `Nat.pair(encode t, acc) + 1` on the
-  binary accumulator stored as `Sum.inr` ChainΓ cells
-- Each step uses `binPairConstSucc (Encodable.encode t)` which is
-  block-realizable (preserving unprocessed Sum.inl elements)
-- After processing all elements, format the accumulator as
-  `trInit K'.main (trList [result])`
- -/
+/-- The chain encoding equals formatting applied to the binary representation. -/
 theorem chainEncode_eq_format (T : Type) [Primcodable T] (w : List T) :
     chainEncode T w =
       chainConsBottom :: (chainBinaryRepr (Encodable.encode w)).reverse :=

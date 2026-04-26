@@ -602,20 +602,64 @@ theorem encodable_encode_list_fold {T : Type} [Encodable T] (w : List T) :
     List.foldr (fun t acc => Nat.pair (Encodable.encode t) acc + 1) 0 w := by
   induction w <;> aesop
 
-/-! ### Bridging lemmas for chainEncode_realizes -/
+/-! ### General heterogeneous fold realizability -/
+
+/-- **Heterogeneous fold realizability.**
+
+    Given a family of block-realizable functions `f t : List Γ → List Γ`
+    indexed by `t : T` (Fintype), there exists a TM0 on `Option (T ⊕ Γ)`
+    that processes input `w.map(Sum.inl)` right-to-left, applying `f tᵢ`
+    to the `Sum.inr` accumulator for each element, producing
+    `(List.foldr f [] w).map(Sum.inr)`.
+
+    The machine reads the rightmost `Sum.inl t` element, erases it,
+    dispatches to the block machine for `f t` (finite lookup since T is
+    Fintype), applies it to the `Sum.inr` accumulator, and repeats. -/
+theorem tm0Het_fold_blockRealizable
+    {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
+    (T : Type) [DecidableEq T] [Fintype T]
+    (f : T → List Γ₀ → List Γ₀)
+    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) →
+      ∀ g ∈ f t block, g ≠ default) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine (Option (T ⊕ Γ₀)) Λ),
+      ∀ w : List T,
+        (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom),
+          ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
+            Tape.mk₁ ((List.foldr f [] w).map
+              (some ∘ @Sum.inr T Γ₀)) := by
+  sorry
+
+/-! ### Deriving chainEncode_fold from the general fold -/
+
+/-- `chainBinaryRepr 0` is the empty list. -/
+theorem chainBinaryRepr_zero : chainBinaryRepr 0 = [] := by
+  simp +decide [chainBinaryRepr, trNat]
+
+/-- The binary fold over a list matches `chainBinaryRepr (Encodable.encode w)`. -/
+theorem chainEncode_fold_eq {T : Type} [Encodable T] (w : List T) :
+    List.foldr (fun t acc => binPairConstSucc (Encodable.encode t) acc)
+      [] w =
+    chainBinaryRepr (Encodable.encode w) := by
+  induction w with
+  | nil => simp [chainBinaryRepr_zero]
+  | cons t rest ih =>
+    simp only [List.foldr_cons]
+    rw [ih, binPairConstSucc_correct]
+    simp [encodable_encode_list_fold]
+
+/-- Non-defaultness of `binPairConstSucc` output (always a `chainBinaryRepr`). -/
+theorem binPairConstSucc_ne_default (k : ℕ) (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binPairConstSucc k block, g ≠ default :=
+  fun g hg => chainBinaryRepr_ne_default _ g hg
 
 /-- Phase 1: Fold computation on heterogeneous tape.
 
-    A TM0 machine on `Option (T ⊕ ChainΓ)` that processes input elements
-    `Sum.inl t₁, ..., Sum.inl tₙ` right-to-left, building a binary
-    accumulator via iterated `binPairConstSucc`.
-
-    The machine reads each `Sum.inl t` element, erases it, determines
-    `Encodable.encode t` (finite lookup since T is Fintype), and applies
-    `binPairConstSucc (Encodable.encode t)` to the `Sum.inr` accumulator
-    region. After all input is consumed, only the accumulator remains.
-
-    Output tape: `chainBinaryRepr (Encodable.encode w)` as `Sum.inr` cells. -/
+    Derived from `tm0Het_fold_blockRealizable` with
+    `f t = binPairConstSucc (Encodable.encode t)`. -/
 theorem chainEncode_fold (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
@@ -625,7 +669,13 @@ theorem chainEncode_fold (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] 
           ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
             Tape.mk₁ ((chainBinaryRepr (Encodable.encode w)).map
               (some ∘ @Sum.inr T ChainΓ)) := by
-  sorry
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0Het_fold_blockRealizable T
+    (fun t => binPairConstSucc (Encodable.encode t))
+    (fun t => tm0_binPairConstSucc_block (Encodable.encode t))
+    (fun t _ _ => binPairConstSucc_ne_default (Encodable.encode t) _ (by assumption))
+  exact ⟨Λ, hΛi, hΛf, M, fun w => by
+    obtain ⟨hdom, htape⟩ := hM w
+    exact ⟨hdom, fun h => by rw [htape h, chainEncode_fold_eq]⟩⟩
 
 /-- Phase 2: Format the binary accumulator into chain tape format.
 
