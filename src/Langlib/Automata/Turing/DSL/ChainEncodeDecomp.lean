@@ -2,6 +2,7 @@ import Mathlib
 import Langlib.Automata.Turing.DSL.TM0Compose
 import Langlib.Automata.Turing.DSL.TM0BuildingBlocks
 import Langlib.Automata.Turing.DSL.ParrecChain
+import Langlib.Automata.Turing.DSL.AlphabetSim
 
 /-! # Chain Encoding Decomposition
 
@@ -841,7 +842,8 @@ theorem chainEncode_fold (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] 
 
 /-! ### Lifting block-realizability to heterogeneous tape -/
 
-/-- **Lift block-realizability to heterogeneous tape.**
+/-
+**Lift block-realizability to heterogeneous tape.**
 
     If `f : List Γ₀ → List Γ₀` is block-realizable on `Γ₀`, then there
     exists a TM0 on `Option (T ⊕ Γ₀)` that applies `f` to a `Sum.inr`
@@ -852,7 +854,61 @@ theorem chainEncode_fold (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] 
     a machine that maps `Tape.mk₁ block` to `Tape.mk₁ (f block)` for
     non-default blocks. Lifting via `blankPreservingEmb` (which maps
     `default ↦ none`, non-default `g ↦ some (Sum.inr g)`) transfers
-    this to the heterogeneous tape. -/
+    this to the heterogeneous tape.
+-/
+
+/-! #### Helper lemmas for lifting -/
+
+/-- Generic: appending default to a ListBlank is identity. -/
+theorem listBlank_mk_append_default_gen {Γ : Type} [Inhabited Γ] (l : List Γ) :
+    (ListBlank.mk (l ++ [default]) : ListBlank Γ) = ListBlank.mk l := by
+  apply Quot.sound; exact Or.inr ⟨1, by simp⟩
+
+/-- Generic: Tape.mk₁ with trailing default is identity. -/
+theorem tape_mk₁_append_default_gen {Γ : Type} [Inhabited Γ] (l : List Γ) :
+    Tape.mk₁ (l ++ [default]) = (Tape.mk₁ l : Tape Γ) := by
+  cases l with
+  | nil => simp [Tape.mk₁, Tape.mk₂, Tape.mk']
+  | cons a l => simp [Tape.mk₁, Tape.mk₂, Tape.mk']; exact listBlank_mk_append_default_gen l
+
+/-- TM0Seq.evalCfg with trailing default input is the same. -/
+theorem evalCfg_append_default {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
+    (M : TM0.Machine Γ Λ) (l : List Γ) :
+    TM0Seq.evalCfg M (l ++ [default]) = TM0Seq.evalCfg M l := by
+  unfold TM0Seq.evalCfg; congr 1; unfold TM0.init; congr 1
+  exact tape_mk₁_append_default_gen l
+
+/-- Embedding from Γ₀ to Option (T ⊕ Γ₀): default ↦ none, g ↦ some (inr g). -/
+noncomputable def hetEmb {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀]
+    (T : Type) (g : Γ₀) : Option (T ⊕ Γ₀) :=
+  if g = default then none else some (Sum.inr g)
+
+/-- Inverse of hetEmb: none ↦ default, some (inr g) ↦ g, some (inl _) ↦ default. -/
+def hetInv {Γ₀ : Type} [Inhabited Γ₀] (T : Type) : Option (T ⊕ Γ₀) → Γ₀
+  | none => default
+  | some (Sum.inr g) => g
+  | some (Sum.inl _) => default
+
+theorem hetInv_hetEmb {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀]
+    (T : Type) (g : Γ₀) : hetInv T (hetEmb T g) = g := by
+  simp [hetEmb, hetInv]; split_ifs <;> simp_all
+
+theorem hetEmb_default {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀]
+    (T : Type) : hetEmb T (default : Γ₀) = (none : Option (T ⊕ Γ₀)) := by
+  simp [hetEmb]
+
+theorem hetEmb_ne_default {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀]
+    (T : Type) (g : Γ₀) (hg : g ≠ default) :
+    hetEmb T g = some (Sum.inr g) := by
+  simp [hetEmb, hg]
+
+theorem map_hetEmb_block {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀]
+    (T : Type) (block : List Γ₀) (hblock : ∀ g ∈ block, g ≠ default) :
+    block.map (hetEmb T) = block.map (some ∘ @Sum.inr T Γ₀) := by
+  simp only [List.map_inj_left]
+  intro g hg
+  exact hetEmb_ne_default T g (hblock g hg)
+
 theorem tm0Het_liftBlockToHet
     {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
     (T : Type) [DecidableEq T]
@@ -869,7 +925,34 @@ theorem tm0Het_liftBlockToHet
           ((TM0Seq.evalCfg M
             (block.map (some ∘ @Sum.inr T Γ₀))).get h).Tape =
             Tape.mk₁ ((f block).map (some ∘ @Sum.inr T Γ₀)) := by
-  sorry
+  obtain ⟨ Λ, _, _, M, hM ⟩ := hf;
+  refine' ⟨ Λ, _, _, TM0AlphabetSim.liftMachine M ( hetEmb T ) ( hetInv T ), _ ⟩;
+  · infer_instance;
+  · intro block hblock hfblock
+    obtain ⟨h_dom, h_tape⟩ := hM block [] hblock (by simp) hfblock;
+    have h_lift : ∃ b₂, TM0AlphabetSim.liftRel (hetEmb T) (hetInv T) (hetInv_hetEmb T) (hetEmb_default T) ((TM0Seq.evalCfg M (block ++ [default])).get h_dom) b₂ ∧ b₂ ∈ TM0Seq.evalCfg (TM0AlphabetSim.liftMachine M (hetEmb T) (hetInv T)) (List.map (some ∘ Sum.inr) block) := by
+      convert Turing.tr_eval _ _ _;
+      exact TM0.step M;
+      exact?;
+      exact TM0.init ( block ++ [ default ] );
+      · simp +decide [ TM0AlphabetSim.liftRel, TM0.init ];
+        rw [ tape_mk₁_append_default_gen ];
+        unfold TM0AlphabetSim.embPM; simp +decide [ Tape.map_mk₁ ] ;
+        rw [ map_hetEmb_block ];
+        assumption;
+      · exact?;
+    obtain ⟨ b₂, hb₂₁, hb₂₂ ⟩ := h_lift;
+    have h_tape_b₂ : b₂.Tape = Tape.mk₁ ((f block ++ [default]).map (TM0AlphabetSim.embPM (hetEmb T) (hetEmb_default T))) := by
+      obtain ⟨ h₁, h₂ ⟩ := hb₂₁;
+      rw [ h₂, h_tape h_dom ];
+      exact?;
+    have h_tape_b₂_simplified : b₂.Tape = Tape.mk₁ ((f block).map (some ∘ Sum.inr) ++ [none]) := by
+      convert h_tape_b₂ using 2;
+      simp +decide [ TM0AlphabetSim.embPM, hetEmb ];
+      exact hfblock;
+    have h_tape_b₂_final : b₂.Tape = Tape.mk₁ ((f block).map (some ∘ Sum.inr)) := by
+      convert tape_mk₁_append_default_gen ( List.map ( some ∘ Sum.inr ) ( f block ) ) using 1;
+    cases hb₂₂ ; aesop
 
 /-! ### Format block operation -/
 
@@ -892,6 +975,41 @@ theorem chainFormatBlock_ne_default (block : List ChainΓ)
 theorem tm0_reverse_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
     TM0RealizesBlock Γ List.reverse := by
   sorry
+
+/-! #### Cons block machine definition -/
+
+/-- State type for the cons machine. `Sum.inl (Sum.inl g)` = write-carry g,
+    `Sum.inl (Sum.inr g)` = move-right carrying g, `Sum.inr 0` = rewind,
+    `Sum.inr 1` = rewind-check, `Sum.inr 2` = rewind-done, `Sum.inr 3` = done. -/
+abbrev ConsBlockSt (Γ : Type) := (Γ ⊕ Γ) ⊕ Fin 4
+
+/-- The cons block machine: shifts content right by 1, inserts `c` at position 0.
+    After the shift phase, uses two-consecutive-defaults detection to rewind. -/
+noncomputable def consBlockMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (c : Γ) : @TM0.Machine Γ (ConsBlockSt Γ) ⟨Sum.inl (Sum.inl c)⟩ :=
+  fun q a =>
+    match q with
+    | Sum.inl (Sum.inl g) =>  -- write-carry g
+      if g = default ∧ a = default then
+        some (Sum.inr 0, TM0.Stmt.move Dir.left)   -- both default: start rewind
+      else
+        some (Sum.inl (Sum.inr a), TM0.Stmt.write g)  -- write g, carry displaced a
+    | Sum.inl (Sum.inr g) =>  -- move-right carrying g
+      some (Sum.inl (Sum.inl g), TM0.Stmt.move Dir.right)
+    | Sum.inr ⟨0, _⟩ =>  -- rewind
+      if a = default then
+        some (Sum.inr 1, TM0.Stmt.move Dir.left)   -- hit default, check if boundary
+      else
+        some (Sum.inr 0, TM0.Stmt.move Dir.left)   -- non-default, continue left
+    | Sum.inr ⟨1, _⟩ =>  -- rewind-check
+      if a = default then
+        some (Sum.inr 2, TM0.Stmt.move Dir.right)  -- two consecutive defaults = left boundary
+      else
+        some (Sum.inr 0, TM0.Stmt.move Dir.left)   -- false alarm, continue left
+    | Sum.inr ⟨2, _⟩ =>  -- rewind-done
+      some (Sum.inr 3, TM0.Stmt.move Dir.right)    -- move to position 0
+    | Sum.inr ⟨3, _⟩ =>  -- done
+      none
 
 /-- Prepending a fixed non-default element is block-realizable. -/
 theorem tm0_cons_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
