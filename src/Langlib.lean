@@ -30,6 +30,7 @@ import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.ParrecToTM0
 import Langlib.Automata.Turing.DSL.ReverseBlock
 import Langlib.Automata.Turing.DSL.SearchProc
+import Langlib.Automata.Turing.DSL.SquareBlock
 import Langlib.Automata.Turing.DSL.TM0BuildingBlocks
 import Langlib.Automata.Turing.DSL.TM0Compose
 import Langlib.Automata.Turing.DSL.TM0Restrict

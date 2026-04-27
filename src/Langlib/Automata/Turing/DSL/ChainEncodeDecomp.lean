@@ -770,13 +770,107 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
     ∀ g ∈ binSquare block, g ≠ default := by
   unfold binSquare; exact chainBinaryRepr_ne_default _
 
-/-- **Binary squaring is block-realizable.**
+/-! #### Squaring via copier + multiplier decomposition -/
 
-    Squaring can be realized by a TM0 that copies the input `n` and
-    uses one copy as a counter while repeatedly adding the other copy
-    to an accumulator (schoolbook multiplication n × n). -/
-theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
+/-- Separator cell for pair encoding in the copier/multiplier decomposition.
+    Uses `consₗ`, distinct from `bit0`/`bit1` used in `chainBinaryRepr`. -/
+noncomputable def pairSep : ChainΓ := γ'ToChainΓ Γ'.consₗ
+
+theorem pairSep_ne_default : pairSep ≠ (default : ChainΓ) := by
+  simp +decide
+
+theorem chainBinaryRepr_ne_pairSep (n : ℕ) :
+    ∀ g ∈ chainBinaryRepr n, g ≠ pairSep := by
+  simp [chainBinaryRepr]
+  intro a ha h; rcases a with ( _ | _ | a ) <;> simp_all +decide
+  unfold trNat at ha; unfold trNum at ha
+  have h_trPosNum : ∀ n : PosNum, Γ'.consₗ ∉ trPosNum n := by
+    intro n; induction n using PosNum.recOn <;> simp_all +decide [ trPosNum ]
+  grind +suggestions
+
+/-- Encode a pair `(a, b)` as a single non-default block. -/
+noncomputable def binPairBlock (a b : ℕ) : List ChainΓ :=
+  chainBinaryRepr a ++ [pairSep] ++ chainBinaryRepr b
+
+/-- Copier: duplicates the block value as a paired encoding `(n, n)`. -/
+noncomputable def binDup (block : List ChainΓ) : List ChainΓ :=
+  let n := decodeBinaryBlock block
+  binPairBlock n n
+
+theorem binDup_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binDup block, g ≠ default := by
+  intro g hg; simp [binDup, binPairBlock] at hg
+  rcases hg with h | rfl | h
+  · exact chainBinaryRepr_ne_default _ g h
+  · exact pairSep_ne_default
+  · exact chainBinaryRepr_ne_default _ g h
+
+private noncomputable abbrev pairPred : ChainΓ → Bool := fun x => decide (x ≠ pairSep)
+
+/-- Decode the first component of a paired block. -/
+noncomputable def decodePairFirst (block : List ChainΓ) : ℕ :=
+  decodeBinaryBlock (block.takeWhile pairPred)
+
+/-- Decode the second component of a paired block. -/
+noncomputable def decodePairSecond (block : List ChainΓ) : ℕ :=
+  decodeBinaryBlock ((block.dropWhile pairPred).drop 1)
+
+private theorem takeWhile_pred_chainBinaryRepr (n : ℕ) :
+    (chainBinaryRepr n).takeWhile pairPred = chainBinaryRepr n := by
+  rw [List.takeWhile_eq_self_iff]
+  intro x hx; simp [pairPred]; exact chainBinaryRepr_ne_pairSep n x hx
+
+private theorem dropWhile_pred_chainBinaryRepr (n : ℕ) :
+    (chainBinaryRepr n).dropWhile pairPred = [] := by
+  rw [List.dropWhile_eq_nil_iff]
+  intro x hx; simp [pairPred]; exact chainBinaryRepr_ne_pairSep n x hx
+
+theorem decodePairFirst_binPairBlock (a b : ℕ) :
+    decodePairFirst (binPairBlock a b) = a := by
+  unfold decodePairFirst
+  simp only [binPairBlock, List.append_assoc, List.singleton_append]
+  rw [List.takeWhile_append]
+  simp [takeWhile_pred_chainBinaryRepr, pairPred, decodeBinaryBlock_chainBinaryRepr]
+
+theorem decodePairSecond_binPairBlock (a b : ℕ) :
+    decodePairSecond (binPairBlock a b) = b := by
+  unfold decodePairSecond
+  simp only [binPairBlock, List.append_assoc, List.singleton_append]
+  rw [List.dropWhile_append]
+  simp [dropWhile_pred_chainBinaryRepr, pairPred, decodeBinaryBlock_chainBinaryRepr]
+
+/-- Multiplier: takes a paired block `(a, b)` and produces `chainBinaryRepr (a * b)`. -/
+noncomputable def binMulPaired (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr (decodePairFirst block * decodePairSecond block)
+
+theorem binMulPaired_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulPaired block, g ≠ default := by
+  unfold binMulPaired; exact chainBinaryRepr_ne_default _
+
+/-- `binSquare = binMulPaired ∘ binDup` (key composition identity). -/
+theorem binSquare_eq_comp : binSquare = binMulPaired ∘ binDup := by
+  ext block
+  simp only [Function.comp, binSquare, binMulPaired, binDup, sq]
+  rw [decodePairFirst_binPairBlock, decodePairSecond_binPairBlock]
+
+/-- **The copier is TM0-block-realizable.**
+    A TM0 can duplicate a block using marker-based cell-by-cell copying
+    with the Bool component of ChainΓ as markers. -/
+theorem tm0_binDup_block : TM0RealizesBlock ChainΓ binDup := by
   sorry
+
+/-- **The multiplier is TM0-block-realizable.**
+    A TM0 can multiply two paired-block numbers using schoolbook
+    repeated addition with the first operand as a counter. -/
+theorem tm0_binMulPaired_block : TM0RealizesBlock ChainΓ binMulPaired := by
+  sorry
+
+/-- **Binary squaring is block-realizable**, via copier + multiplier composition.
+    The copier duplicates the input as a paired encoding `(n, n)`, and
+    the multiplier computes `n * n = n²`. -/
+theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
+  rw [binSquare_eq_comp]
+  exact tm0RealizesBlock_comp tm0_binDup_block tm0_binMulPaired_block binDup_ne_default
 
 /-! ### Singleton Function 5: Binary Multiplication by Constant -/
 
@@ -1274,7 +1368,7 @@ theorem consSimpleMachine_tape {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     This effectively prepends c because writing at position -1 of
     `Tape.mk₁ l` gives `Tape.mk₁ (c :: l)`. -/
 theorem tm0_cons_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
-    (c : Γ) :
+    (c : Γ) (hc : c ≠ default) :
     TM0RealizesBlock Γ (c :: ·) := by
   refine ⟨Fin 3, ⟨0⟩, inferInstance, consSimpleMachine c,
     fun block suffix hblock hsuffix hcons => ?_⟩
@@ -1287,6 +1381,10 @@ theorem reverse_ne_default {Γ : Type} [Inhabited Γ]
     ∀ g ∈ block.reverse, g ≠ default := by
   simp_all
 
+/-- `chainConsBottom` is non-default. -/
+theorem chainConsBottom_ne_default : chainConsBottom ≠ (default : ChainΓ) := by
+  simp +decide [chainConsBottom]
+
 /-- `chainFormatBlock` is block-realizable, by composing reverse and
     prepend via `tm0RealizesBlock_comp`. -/
 theorem tm0_chainFormatBlock_block :
@@ -1295,7 +1393,7 @@ theorem tm0_chainFormatBlock_block :
     ext block; simp [chainFormatBlock]
   rw [this]
   exact tm0RealizesBlock_comp tm0_reverse_block
-    (tm0_cons_block chainConsBottom)
+    (tm0_cons_block chainConsBottom chainConsBottom_ne_default)
     reverse_ne_default
 
 /-- Phase 2: Format the binary accumulator into chain tape format.
