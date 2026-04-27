@@ -1274,7 +1274,7 @@ theorem consSimpleMachine_tape {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     This effectively prepends c because writing at position -1 of
     `Tape.mk₁ l` gives `Tape.mk₁ (c :: l)`. -/
 theorem tm0_cons_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
-    (c : Γ) (hc : c ≠ default) :
+    (c : Γ) :
     TM0RealizesBlock Γ (c :: ·) := by
   refine ⟨Fin 3, ⟨0⟩, inferInstance, consSimpleMachine c,
     fun block suffix hblock hsuffix hcons => ?_⟩
@@ -1287,10 +1287,6 @@ theorem reverse_ne_default {Γ : Type} [Inhabited Γ]
     ∀ g ∈ block.reverse, g ≠ default := by
   simp_all
 
-/-- `chainConsBottom` is non-default. -/
-theorem chainConsBottom_ne_default : chainConsBottom ≠ (default : ChainΓ) := by
-  simp +decide [chainConsBottom]
-
 /-- `chainFormatBlock` is block-realizable, by composing reverse and
     prepend via `tm0RealizesBlock_comp`. -/
 theorem tm0_chainFormatBlock_block :
@@ -1299,7 +1295,7 @@ theorem tm0_chainFormatBlock_block :
     ext block; simp [chainFormatBlock]
   rw [this]
   exact tm0RealizesBlock_comp tm0_reverse_block
-    (tm0_cons_block chainConsBottom chainConsBottom_ne_default)
+    (tm0_cons_block chainConsBottom)
     reverse_ne_default
 
 /-- Phase 2: Format the binary accumulator into chain tape format.
