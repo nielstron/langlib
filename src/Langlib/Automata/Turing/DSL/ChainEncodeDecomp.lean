@@ -1680,6 +1680,22 @@ theorem tm0_blockValueLeq_decidable (k : ℕ) :
   convert Part.dom_iff_mem.mpr _;
   unfold WellFounded.fixF; simp +decide [ TM0.step ] ;
 
+theorem tm0_blockValueLeq_decidable_2 (k : ℕ) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ) (q_true q_false : Λ),
+      q_true ≠ q_false ∧
+      ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) → (∀ x ∈ suffix, x ≠ default) →
+        (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom),
+          ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).Tape =
+            Tape.mk₁ (block ++ default :: suffix) ∧
+          (blockValueLeq k block →
+            ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).q = q_true) ∧
+          (¬blockValueLeq k block →
+            ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).q = q_false) := by
+  sorry
+
 /-! ### Nat.pair with Constant -/
 
 /-- `Nat.pair k ·` followed by `succ`, applied to a binary ChainΓ block.
@@ -1751,7 +1767,7 @@ theorem tm0_binPairConstSucc_block (k : ℕ) :
     (tm0RealizesBlock_comp tm0_binSquare_block (tm0_binAddConstRepr_block _) binSquare_ne_default)
     (fun block hblock => binAddConstRepr_ne_default _ _ hblock)
     (fun block hblock => binAddConstRepr_ne_default _ _ (binSquare_ne_default _ hblock))
-    (tm0_blockValueLeq_decidable k)
+    (tm0_blockValueLeq_decidable_2 k)
 
 /-! ### List Encoding Fold Equation -/
 
