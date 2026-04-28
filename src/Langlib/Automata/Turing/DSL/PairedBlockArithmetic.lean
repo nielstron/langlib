@@ -228,11 +228,14 @@ theorem extractPairedLeft_eq_rev_drop_rev :
         exact h_app _ _ hc
       · unfold extractPairedLeft splitAtConsBottom; aesop
 
-/-- **Extracting the left sub-block is block-realizable.**
-    Decomposed as `reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`. -/
+/-
+**Extracting the left sub-block is block-realizable.**
+    Decomposed as `reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`.
+-/
 theorem tm0_extractPairedLeft_block :
     TM0RealizesBlock ChainΓ extractPairedLeft := by
-  sorry
+  rw [extractPairedLeft_eq_rev_drop_rev];
+  grind +suggestions
 
 /-- **Multiplication by constant is block-realizable.**
 
