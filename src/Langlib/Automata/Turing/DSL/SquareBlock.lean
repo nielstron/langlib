@@ -1,39 +1,37 @@
-import Langlib.Automata.Turing.DSL.ChainEncodeDecomp
+import Langlib.Automata.Turing.DSL.PairedBlockArithmetic
 
 /-! # Binary Squaring — Standalone Reference
 
-This file re-exports the copier + multiplier decomposition of binary
-squaring from `ChainEncodeDecomp.lean`. The decomposition is:
+This file re-exports the squaring decomposition from `PairedBlockArithmetic.lean`.
 
-1. **Copier** (`binDup`): duplicates the binary block as a paired
-   encoding `(n, n)` separated by `pairSep`.
+## Architecture
 
-2. **Multiplier** (`binMulPaired`): takes a paired encoding `(a, b)`
-   and produces `chainBinaryRepr (a * b)`.
+Squaring reuses the paired addition mechanism (addition of neighboring numbers):
 
-3. **Composition**: `binSquare = binMulPaired ∘ binDup`
-   (`binSquare_eq_comp`), so block-realizability of `binSquare` follows
-   from `tm0RealizesBlock_comp` once both components are proved
-   block-realizable.
+1. **Paired addition** (`binAddPaired`): given `[left][sep][right]`, produces
+   `[left + right][sep][right]`. This is the central primitive.
 
-### Proved results (in ChainEncodeDecomp)
+2. **Squaring** (`binSquare`): conceptually duplicates the input as `[0][sep][n]`
+   and iterates paired addition `n` times. Defined as
+   `chainBinaryRepr ((decodeBinaryBlock block) ^ 2)`.
 
-- `pairSep_ne_default` — separator is non-default
-- `chainBinaryRepr_ne_pairSep` — binary cells ≠ separator
-- `binDup_ne_default` — copier output is non-default
-- `binMulPaired_ne_default` — multiplier output is non-default
-- `decodePairFirst_binPairBlock` — pair decoding first component
-- `decodePairSecond_binPairBlock` — pair decoding second component
-- `binSquare_eq_comp` — composition identity
-- `tm0_binSquare_block` — squaring is block-realizable (via composition)
+3. **Multiplication by constant** (`binMulConst c`): same mechanism — write
+   constant to tape, then iterate paired addition.
+
+Both operations share the same underlying `binAddPaired` primitive.
+
+### Proved results (in PairedBlockArithmetic)
+
+- `binSquare_correct` — squaring is correct
+- `binSquare_ne_default` — output is non-default
+- `binMulConst_eq_decomp` — decomposition through paired addition
+- `tm0_binMulConst_block` — multiplication by constant is block-realizable
 
 ### Remaining sorries
 
-- `tm0_binDup_block` — copier block-realizability
-  (requires constructing a TM0 copier machine with marker-based
-  cell-by-cell duplication)
+- `tm0_binSquare_block` — squaring block-realizability
+  (requires a TM0 machine for the decrement-and-add loop)
 
-- `tm0_binMulPaired_block` — multiplier block-realizability
-  (requires constructing a TM0 multiplier using schoolbook repeated
-  addition with binary decrement as loop control)
+- `tm0_binAddPaired_block` — paired addition block-realizability
+  (central primitive, used by both squaring and multiplication)
 -/
