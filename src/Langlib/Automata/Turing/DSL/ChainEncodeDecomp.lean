@@ -1306,9 +1306,72 @@ theorem tm0_binAddPaired_block :
     TM0RealizesBlock ChainΓ binAddPaired := by
   sorry
 
-/-- **Multiplication by constant is block-realizable.** -/
-theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
+/-- States for the dropFromLastSep machine. -/
+private inductive DFLSState : Type
+  | scanToEnd | scanLeftForSep | afterEraseSep | rewindToStart
+  | eraseRight | eraseAdvance | done
+  deriving DecidableEq, Fintype, Inhabited
+
+/-- The dropFromLastSep TM0 machine. -/
+private noncomputable def dflsMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (sep : Γ) : @TM0.Machine Γ DFLSState ⟨DFLSState.scanToEnd⟩ :=
+  fun q a =>
+    match q with
+    | .scanToEnd =>
+      if a = default then some (.scanLeftForSep, TM0.Stmt.move Dir.left)
+      else some (.scanToEnd, TM0.Stmt.move Dir.right)
+    | .scanLeftForSep =>
+      if a = sep then some (.afterEraseSep, TM0.Stmt.write default)
+      else if a = default then some (.done, TM0.Stmt.move Dir.right)
+      else some (.scanLeftForSep, TM0.Stmt.move Dir.left)
+    | .afterEraseSep => some (.rewindToStart, TM0.Stmt.move Dir.left)
+    | .rewindToStart =>
+      if a = default then some (.eraseRight, TM0.Stmt.move Dir.right)
+      else some (.rewindToStart, TM0.Stmt.move Dir.left)
+    | .eraseRight =>
+      if a = default then some (.done, TM0.Stmt.move Dir.right)
+      else some (.eraseAdvance, TM0.Stmt.write default)
+    | .eraseAdvance => some (.eraseRight, TM0.Stmt.move Dir.right)
+    | .done => none
+
+/-- **dropFromLastSep is block-realizable** when `sep ≠ default`. -/
+theorem tm0_dropFromLastSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (sep : Γ) (hsep : sep ≠ default) :
+    TM0RealizesBlock Γ (dropFromLastSep sep) := by
   sorry
+
+/-- **Extracting the left sub-block is block-realizable.**
+    Decomposed as `reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`. -/
+theorem tm0_extractPairedLeft_block :
+    TM0RealizesBlock ChainΓ extractPairedLeft := by
+  -- Decompose: extractPairedLeft = reverse ∘ dropFromLastSep chainConsBottom ∘ reverse
+  -- (see extractPairedLeft_eq_rev_drop_rev below for the algebraic identity)
+  -- Once tm0_dropFromLastSep_block is proved, this follows by composition.
+  sorry
+
+/-- **Multiplication by constant is block-realizable.**
+
+    Proved by decomposing `binMulConst c` as:
+    1. Prepend separator (`chainConsBottom :: ·`) — block-realizable
+       by `tm0_cons_block`.
+    2. Iterate paired addition `c` times — block-realizable by
+       `tm0RealizesBlock_iterate` and `tm0_binAddPaired_block`.
+    3. Extract left sub-block — block-realizable by
+       `tm0_extractPairedLeft_block`.
+    Composed via `tm0RealizesBlock_comp`. -/
+theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
+  rw [binMulConst_eq_decomp]
+  apply tm0RealizesBlock_comp
+  · apply tm0RealizesBlock_comp
+    · exact tm0_cons_block' chainConsBottom chainConsBottom_ne_default'
+    · exact tm0RealizesBlock_iterate tm0_binAddPaired_block binAddPaired_ne_default' c
+    · intro block hblock
+      exact List.forall_mem_cons.mpr ⟨chainConsBottom_ne_default', hblock⟩
+  · exact tm0_extractPairedLeft_block
+  · intro block hblock
+    exact iterate_preserves_nd binAddPaired_ne_default' c
+      (chainConsBottom :: block)
+      (List.forall_mem_cons.mpr ⟨chainConsBottom_ne_default', hblock⟩)
 
 /-! ### Conditional Block Operations -/
 
