@@ -1144,8 +1144,6 @@ theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
 
 /-! ### Singleton Function 5: Binary Multiplication by Constant -/
 
-/-! ### Singleton Function 5: Binary Multiplication by Constant -/
-
 /-- Multiply the binary block value by a fixed constant k: n → k * n.
     Realizable by repeated addition of the original value (requires
     copying n, then adding the copy k times). -/
@@ -1216,6 +1214,10 @@ theorem tm0_cons_block' {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     fun block suffix hblock hsuffix hcons => ?_⟩
   exact ⟨consSimpleMachine'_halts c _,
     fun h => by rw [consSimpleMachine'_tape]; simp⟩
+
+/-- `chainConsBottom` is non-default. -/
+theorem chainConsBottom_ne_default' : chainConsBottom ≠ (default : ChainΓ) := by
+  simp +decide [chainConsBottom]
 
 /-! #### Decomposition of binMulConst via Paired Block Addition
 
