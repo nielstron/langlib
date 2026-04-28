@@ -24,6 +24,7 @@ import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
 import Langlib.Automata.Turing.DSL.BinarySuccessor
 import Langlib.Automata.Turing.DSL.BlockRealizability
+import Langlib.Automata.Turing.DSL.BlockValueLeqMachine
 import Langlib.Automata.Turing.DSL.ChainAlphabet
 import Langlib.Automata.Turing.DSL.ChainEncodeDecomp
 import Langlib.Automata.Turing.DSL.Compile

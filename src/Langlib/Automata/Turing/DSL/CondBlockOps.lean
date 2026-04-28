@@ -2,6 +2,7 @@ import Mathlib
 import Langlib.Automata.Turing.DSL.ChainAlphabet
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
+import Langlib.Automata.Turing.DSL.BlockValueLeqMachine
 
 /-! # Conditional Block Operations
 
@@ -500,4 +501,6 @@ theorem tm0_blockValueLeq_decidable_2 (k : ℕ) :
             ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).q = q_true) ∧
           (¬blockValueLeq k block →
             ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).q = q_false) := by
-  sorry
+  refine ⟨BVLState k, bvlInhabited k, inferInstance, bvlMachine k,
+    Sum.inr (Sum.inr true), Sum.inr (Sum.inr false), by simp, fun block suffix hblock hsuffix => ?_⟩
+  exact bvlMachine_correct k block suffix hblock hsuffix
