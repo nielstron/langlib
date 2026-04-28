@@ -747,14 +747,377 @@ theorem binAddConstRepr_ne_default (c : ℕ) (block : List ChainΓ)
     ∀ g ∈ binAddConstRepr c block, g ≠ default := by
   unfold binAddConstRepr; exact chainBinaryRepr_ne_default _
 
+/-- Normalize a block to its canonical binary representation.
+    This is the composition `chainBinaryRepr ∘ decodeBinaryBlock`. -/
+noncomputable def normalizeBlock (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr (decodeBinaryBlock block)
+
+theorem normalizeBlock_correct (n : ℕ) :
+    normalizeBlock (chainBinaryRepr n) = chainBinaryRepr n := by
+  unfold normalizeBlock; rw [decodeBinaryBlock_chainBinaryRepr]
+
+theorem normalizeBlock_ne_default (block : List ChainΓ) :
+    ∀ g ∈ normalizeBlock block, g ≠ default := by
+  unfold normalizeBlock; exact chainBinaryRepr_ne_default _
+
+/-- Key decomposition: `binAddConstRepr c = binAddConst c ∘ normalizeBlock`. -/
+theorem binAddConstRepr_eq_comp (c : ℕ) :
+    binAddConstRepr c = binAddConst c ∘ normalizeBlock := by
+  ext block
+  simp [binAddConstRepr, normalizeBlock, Function.comp]
+  rw [binAddConst_correct]
+
+/-! #### Normalization decomposition -/
+
+/-- Replace cells from the first non-standard cell onwards with bit0.
+    Preserves block length and `decodeBinaryBlock`. -/
+noncomputable def replaceNonStandard : List ChainΓ → List ChainΓ
+  | [] => []
+  | c :: rest =>
+    if c = γ'ToChainΓ Γ'.bit0 then c :: replaceNonStandard rest
+    else if c = γ'ToChainΓ Γ'.bit1 then c :: replaceNonStandard rest
+    else List.replicate (rest.length + 1) (γ'ToChainΓ Γ'.bit0)
+
+theorem replaceNonStandard_decodeBinaryBlock (block : List ChainΓ) :
+    decodeBinaryBlock (replaceNonStandard block) = decodeBinaryBlock block := by
+  revert block;
+  -- We'll use induction on the block to prove that the decodeBinaryBlock function is invariant under replacing non-standard elements with bit0.
+  have h_ind : ∀ (c : ChainΓ) (block : List ChainΓ), decodeBinaryBlock (c :: block) = if c = γ'ToChainΓ Γ'.bit0 then 2 * decodeBinaryBlock block else if c = γ'ToChainΓ Γ'.bit1 then 2 * decodeBinaryBlock block + 1 else 0 := by
+    -- By definition of `decodeBinaryBlock`, we can split into cases based on the value of `c`.
+    intros c block
+    rw [decodeBinaryBlock];
+  intro block
+  induction' block with c block ih;
+  · rfl;
+  · by_cases hc : c = γ'ToChainΓ Γ'.bit0 ∨ c = γ'ToChainΓ Γ'.bit1;
+    · cases hc <;> simp +decide [ *, replaceNonStandard ];
+    · rw [ show replaceNonStandard ( c :: block ) = List.replicate ( block.length + 1 ) ( γ'ToChainΓ Γ'.bit0 ) from ?_ ];
+      · induction block.length <;> simp_all +decide [ List.replicate ];
+      · exact if_neg ( by tauto ) |> fun h => h.trans ( if_neg ( by tauto ) )
+
+theorem replaceNonStandard_ne_default (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ replaceNonStandard block, g ≠ default := by
+  induction' block with c rest ih;
+  · exact?;
+  · by_cases hc : c = γ'ToChainΓ Γ'.bit0 ∨ c = γ'ToChainΓ Γ'.bit1 <;> simp_all +decide [ replaceNonStandard ];
+    grind
+
+theorem replaceNonStandard_allBits (block : List ChainΓ) :
+    ∀ g ∈ replaceNonStandard block,
+      g = γ'ToChainΓ Γ'.bit0 ∨ g = γ'ToChainΓ Γ'.bit1 := by
+  induction' block with c block ih;
+  · tauto;
+  · by_cases hc : c = γ'ToChainΓ Γ'.bit0 ∨ c = γ'ToChainΓ Γ'.bit1 <;> simp_all +decide [ replaceNonStandard ];
+    grind +qlia
+
+/-- Strip trailing bit0 cells from a pure bit0/bit1 block. -/
+noncomputable def stripTrailingBit0 : List ChainΓ → List ChainΓ
+  | [] => []
+  | c :: rest =>
+    if c = γ'ToChainΓ Γ'.bit0 then
+      let r := stripTrailingBit0 rest
+      if r = [] then [] else c :: r
+    else c :: stripTrailingBit0 rest
+
+theorem stripTrailingBit0_decodeBinaryBlock (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g = γ'ToChainΓ Γ'.bit0 ∨ g = γ'ToChainΓ Γ'.bit1) :
+    decodeBinaryBlock (stripTrailingBit0 block) = decodeBinaryBlock block := by
+  induction' block with c rest ih;
+  · rfl;
+  · by_cases hc : c = γ'ToChainΓ Γ'.bit0;
+    · by_cases h : stripTrailingBit0 rest = [] <;> simp_all +decide;
+      · rw [ show stripTrailingBit0 ( γ'ToChainΓ Γ'.bit0 :: rest ) = stripTrailingBit0 rest from ?_ ];
+        · simp_all +decide [ decodeBinaryBlock ];
+          linarith;
+        · exact if_pos rfl |> fun h => h.trans ( by aesop );
+      · convert congr_arg ( fun x => 2 * x ) ih using 1;
+        rw [ show stripTrailingBit0 ( γ'ToChainΓ Γ'.bit0 :: rest ) = γ'ToChainΓ Γ'.bit0 :: stripTrailingBit0 rest from ?_ ];
+        · exact if_pos rfl;
+        · exact if_pos rfl |> fun h => h.trans ( if_neg <| by aesop );
+    · rw [ show stripTrailingBit0 ( c :: rest ) = c :: stripTrailingBit0 rest from ?_ ];
+      · cases hblock c ( by simp +decide ) <;> simp_all +decide [ decodeBinaryBlock ];
+      · exact if_neg hc
+
+private theorem num_cast_ne_zero (n : ℕ) (hn : n ≠ 0) : (n : Num) ≠ 0 := by
+  intro h; apply hn
+  have := congr_arg (· : Num → ℕ) h
+  simp at this; exact this
+
+private theorem chainBinaryRepr_double (n : ℕ) (hn : n ≠ 0) :
+    chainBinaryRepr (2 * n) = γ'ToChainΓ Γ'.bit0 :: chainBinaryRepr n := by
+  simp only [chainBinaryRepr, trNat]
+  have h_eq : (↑(2 * n) : Num) = ((↑n : Num)).bit0 := by
+    have : 2 * n = Nat.bit false n := by simp [Nat.bit]
+    rw [this]; show Num.ofNat' _ = _; rw [Num.ofNat'_bit]; simp
+  rw [h_eq]
+  cases hc : (↑n : Num) with
+  | zero => exact absurd hc (num_cast_ne_zero n hn)
+  | pos p => simp [Num.bit0, trNum, trPosNum]
+
+private theorem chainBinaryRepr_double_succ (n : ℕ) :
+    chainBinaryRepr (2 * n + 1) = γ'ToChainΓ Γ'.bit1 :: chainBinaryRepr n := by
+  simp only [chainBinaryRepr, trNat]
+  have h_eq : (↑(2 * n + 1) : Num) = ((↑n : Num)).bit1 := by
+    have : 2 * n + 1 = Nat.bit true n := by simp [Nat.bit]
+    rw [this]; show Num.ofNat' _ = _; rw [Num.ofNat'_bit]; simp
+  rw [h_eq]
+  cases hc : (↑n : Num) with
+  | zero => simp [Num.bit1, trNum, trPosNum]
+  | pos p => simp [Num.bit1, trNum, trPosNum]
+
+private theorem chainBinaryRepr_eq_nil_iff (n : ℕ) :
+    chainBinaryRepr n = [] ↔ n = 0 := by
+  constructor
+  · intro h; simp [chainBinaryRepr, trNat] at h
+    by_contra hn; push_neg at hn
+    cases hc : (↑n : Num) with
+    | zero => have := congr_arg (· : Num → ℕ) hc; simp at this; exact hn this
+    | pos p => rw [hc] at h; simp [trNum] at h; cases p <;> simp [trPosNum] at h
+  · intro h; subst h; simp +decide [chainBinaryRepr, trNat]
+
+theorem stripTrailingBit0_eq_chainBinaryRepr (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g = γ'ToChainΓ Γ'.bit0 ∨ g = γ'ToChainΓ Γ'.bit1) :
+    stripTrailingBit0 block = chainBinaryRepr (decodeBinaryBlock block) := by
+  induction' block with c rest ih;
+  · rfl;
+  · cases hblock c ( by simp +decide ) <;> simp_all +decide [ stripTrailingBit0 ];
+    · rw [ show decodeBinaryBlock ( γ'ToChainΓ Γ'.bit0 :: rest ) = 2 * decodeBinaryBlock rest from ?_ ];
+      · cases h : decodeBinaryBlock rest <;> simp_all +decide [ chainBinaryRepr_double ];
+        exact fun h => by have := chainBinaryRepr_eq_nil_iff ( Nat.succ ‹_› ) ; aesop;
+      · exact if_pos rfl;
+    · exact?
+
+theorem normalizeBlock_eq_comp :
+    normalizeBlock = stripTrailingBit0 ∘ replaceNonStandard := by
+  funext block
+  unfold normalizeBlock Function.comp
+  rw [← replaceNonStandard_decodeBinaryBlock block,
+      stripTrailingBit0_eq_chainBinaryRepr (replaceNonStandard block)
+        (replaceNonStandard_allBits block)]
+
+/-! #### replaceNonStandard machine construction -/
+
+/-- States for the replaceNonStandard machine.
+    0 = scan (initial): move right through bit0/bit1, replace non-standard
+    1 = replAfterW: just wrote bit0, advance right
+    2 = replace: write bit0 to all remaining cells
+    3 = rewind: move left to position 0
+    4 = done: halt -/
+noncomputable def replNSMachine : @TM0.Machine ChainΓ (Fin 5) ⟨0⟩ := fun q a =>
+  match q with
+  | (0 : Fin 5) => -- scan
+    if a = γ'ToChainΓ Γ'.bit0 then some (0, .move Dir.right)
+    else if a = γ'ToChainΓ Γ'.bit1 then some (0, .move Dir.right)
+    else if a = default then some (3, .move Dir.left)  -- end of block
+    else some (1, .write (γ'ToChainΓ Γ'.bit0))  -- non-standard, replace
+  | (1 : Fin 5) => -- replAfterW: advance after writing bit0
+    some (2, .move Dir.right)
+  | (2 : Fin 5) => -- replace
+    if a = default then some (3, .move Dir.left)  -- end of block
+    else some (1, .write (γ'ToChainΓ Γ'.bit0))  -- replace with bit0
+  | (3 : Fin 5) => -- rewind
+    if a = default then some (4, .move Dir.right)  -- reached left boundary
+    else some (3, .move Dir.left)
+  | (4 : Fin 5) => -- done
+    none
+
+/-
+Rewind loop for replNS: from state 3, moves left through non-default cells.
+-/
+theorem replNS_rwdLoop (revL : List ChainΓ) (hrevL : ∀ g ∈ revL, g ≠ default)
+    (acc : List ChainΓ) :
+    Reaches (TM0.step replNSMachine)
+      ⟨3, ⟨revL.headI, ListBlank.mk revL.tail, ListBlank.mk acc⟩⟩
+      ⟨3, ⟨default, ListBlank.mk [], ListBlank.mk (revL.reverse ++ acc)⟩⟩ := by
+  unfold TM0.step;
+  induction' revL with a revL ih generalizing acc;
+  · constructor;
+  · convert Relation.ReflTransGen.head _ ( ih ( fun g hg => hrevL g ( List.mem_cons_of_mem _ hg ) ) ( a :: acc ) ) using 1;
+    · grind;
+    · unfold replNSMachine; aesop;
+
+/-
+Replace loop for replNS: from state 2, replaces all non-default cells with bit0,
+    then transitions to state 3 at the last replaced cell.
+    Since List.replicate is all the same element, its reverse equals itself.
+-/
+theorem replNS_replLoop (cells : List ChainΓ) (hcells : ∀ g ∈ cells, g ≠ default)
+    (revL : List ChainΓ) (suffix : List ChainΓ) :
+    Reaches (TM0.step replNSMachine)
+      ⟨2, ⟨(cells ++ default :: suffix).headI,
+           ListBlank.mk revL,
+           ListBlank.mk (cells ++ default :: suffix).tail⟩⟩
+      ⟨3, ⟨(List.replicate cells.length (γ'ToChainΓ Γ'.bit0) ++ revL).headI,
+           ListBlank.mk (List.replicate cells.length (γ'ToChainΓ Γ'.bit0) ++ revL).tail,
+           ListBlank.mk (default :: suffix)⟩⟩ := by
+  induction' cells with c rest hcells ih generalizing revL suffix;
+  · constructor;
+    constructor;
+    constructor;
+  · rename_i h;
+    have h_step : Reaches (TM0.step replNSMachine) ⟨2, ⟨c, ListBlank.mk revL, ListBlank.mk (rest ++ default :: suffix)⟩⟩ ⟨1, ⟨γ'ToChainΓ Γ'.bit0, ListBlank.mk revL, ListBlank.mk (rest ++ default :: suffix)⟩⟩ := by
+      apply_rules [ Relation.ReflTransGen.single ];
+      simp +decide [ TM0.step, replNSMachine ];
+      exact ⟨ TM0.Stmt.write ( γ'ToChainΓ Γ'.bit0 ), by aesop ⟩;
+    have h_step2 : Reaches (TM0.step replNSMachine) ⟨1, ⟨γ'ToChainΓ Γ'.bit0, ListBlank.mk revL, ListBlank.mk (rest ++ default :: suffix)⟩⟩ ⟨2, ⟨(rest ++ default :: suffix).headI, ListBlank.mk (γ'ToChainΓ Γ'.bit0 :: revL), ListBlank.mk (rest ++ default :: suffix).tail⟩⟩ := by
+      apply_rules [ Relation.ReflTransGen.single ];
+    convert h_step.trans ( h_step2.trans ( h ( fun g hg => hcells g ( List.mem_cons_of_mem _ hg ) ) _ _ ) ) using 1;
+    simp +decide [ List.replicate_add ]
+
+/-
+Generalized scan phase: from state 0 with arbitrary left context revL,
+    processes the block and reaches state 4 at position 0 of the final tape.
+-/
+theorem replNS_scan_gen (block suffix : List ChainΓ) (revL : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (hrevL : ∀ g ∈ revL, g ≠ default) :
+    Reaches (TM0.step replNSMachine)
+      ⟨0, ⟨(block ++ default :: suffix).headI,
+           ListBlank.mk revL,
+           ListBlank.mk (block ++ default :: suffix).tail⟩⟩
+      ⟨4, Tape.mk₁ (revL.reverse ++ replaceNonStandard block ++ default :: suffix)⟩ := by
+  induction' block with c rest ih generalizing suffix revL;
+  · have h_scan : Reaches (TM0.step replNSMachine)
+      ⟨0, ⟨default, ListBlank.mk revL, ListBlank.mk suffix⟩⟩
+      ⟨3, ⟨default, ListBlank.mk [], ListBlank.mk (revL.reverse ++ default :: suffix)⟩⟩ := by
+        convert Relation.ReflTransGen.trans _ ( replNS_rwdLoop revL hrevL ( default :: suffix ) ) using 1;
+        apply_rules [ Relation.ReflTransGen.single ];
+    convert h_scan.tail _ using 1;
+    simp +decide [ TM0.step ];
+    use TM0.Stmt.move Dir.right;
+    simp +decide [ Tape.move, Tape.mk₁ ];
+    simp +decide [ Tape.mk₂ ];
+    simp +decide [ Tape.mk' ];
+    exact ⟨ rfl, by cases revL.reverse <;> aesop, listBlank_mk_append_default [ ], by cases revL.reverse <;> aesop ⟩;
+  · by_cases hc : c = γ'ToChainΓ Γ'.bit0 ∨ c = γ'ToChainΓ Γ'.bit1;
+    · -- Apply the induction hypothesis to the rest of the block.
+      have h_ind : Reaches (TM0.step replNSMachine) ⟨0, ⟨(rest ++ default :: suffix).headI, ListBlank.mk (c :: revL), ListBlank.mk (rest ++ default :: suffix).tail⟩⟩ ⟨4, Tape.mk₁ ((c :: revL).reverse ++ replaceNonStandard rest ++ default :: suffix)⟩ := by
+        grind +locals;
+      cases hc <;> simp_all +decide [ replaceNonStandard ];
+      · convert Relation.ReflTransGen.head _ h_ind using 1;
+        cases rest <;> aesop;
+      · refine' Relation.ReflTransGen.head _ h_ind;
+        exact?;
+    · have h_step : Reaches (TM0.step replNSMachine) ⟨0, ⟨c, ListBlank.mk revL, ListBlank.mk (rest ++ default :: suffix)⟩⟩ ⟨2, ⟨(rest ++ default :: suffix).headI, ListBlank.mk (γ'ToChainΓ Γ'.bit0 :: revL), ListBlank.mk (rest ++ default :: suffix).tail⟩⟩ := by
+        constructor;
+        rotate_right;
+        exact ⟨ 1, ⟨ γ'ToChainΓ Γ'.bit0, ListBlank.mk revL, ListBlank.mk ( rest ++ default :: suffix ) ⟩ ⟩;
+        · apply_rules [ Relation.ReflTransGen.single ];
+          unfold replNSMachine; simp +decide [ hc ] ;
+          rw [ TM0.step ];
+          grind +suggestions;
+        · unfold replNSMachine; aesop;
+      have h_step : Reaches (TM0.step replNSMachine) ⟨2, ⟨(rest ++ default :: suffix).headI, ListBlank.mk (γ'ToChainΓ Γ'.bit0 :: revL), ListBlank.mk (rest ++ default :: suffix).tail⟩⟩ ⟨3, ⟨(List.replicate rest.length (γ'ToChainΓ Γ'.bit0) ++ γ'ToChainΓ Γ'.bit0 :: revL).headI, ListBlank.mk (List.replicate rest.length (γ'ToChainΓ Γ'.bit0) ++ γ'ToChainΓ Γ'.bit0 :: revL).tail, ListBlank.mk (default :: suffix)⟩⟩ := by
+        convert replNS_replLoop rest ( fun g hg => hblock g ( List.mem_cons_of_mem _ hg ) ) ( γ'ToChainΓ Γ'.bit0 :: revL ) suffix using 1;
+      have h_step : Reaches (TM0.step replNSMachine) ⟨3, ⟨(List.replicate rest.length (γ'ToChainΓ Γ'.bit0) ++ γ'ToChainΓ Γ'.bit0 :: revL).headI, ListBlank.mk (List.replicate rest.length (γ'ToChainΓ Γ'.bit0) ++ γ'ToChainΓ Γ'.bit0 :: revL).tail, ListBlank.mk (default :: suffix)⟩⟩ ⟨3, ⟨default, ListBlank.mk [], ListBlank.mk (revL.reverse ++ replaceNonStandard (c :: rest) ++ default :: suffix)⟩⟩ := by
+        convert replNS_rwdLoop _ _ _ using 1;
+        · unfold replaceNonStandard; aesop;
+        · simp +zetaDelta at *;
+          rintro g ( ⟨ _, rfl ⟩ | rfl | hg ) <;> simp_all +decide [ γ'ToChainΓ ];
+      have h_step : Reaches (TM0.step replNSMachine) ⟨3, ⟨default, ListBlank.mk [], ListBlank.mk (revL.reverse ++ replaceNonStandard (c :: rest) ++ default :: suffix)⟩⟩ ⟨4, Tape.mk₁ (revL.reverse ++ replaceNonStandard (c :: rest) ++ default :: suffix)⟩ := by
+        apply Relation.ReflTransGen.single;
+        simp +decide [ TM0.step ];
+        use TM0.Stmt.move Dir.right;
+        simp +decide [ Tape.move, Tape.mk₁ ];
+        simp +decide [ Tape.mk₂ ];
+        simp +decide [ Tape.mk' ];
+        exact ⟨ rfl, listBlank_mk_append_default [ ] ⟩;
+      rename_i h₁ h₂ h₃;
+      exact h₁.trans ( h₂.trans ( h₃.trans h_step ) )
+
+/-- The replNS machine correctly processes any block and reaches the done state. -/
+theorem replNS_reaches (block suffix : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    Reaches (TM0.step replNSMachine)
+      (TM0.init (block ++ default :: suffix))
+      ⟨4, Tape.mk₁ (replaceNonStandard block ++ default :: suffix)⟩ := by
+  exact replNS_scan_gen block suffix [] hblock (by simp)
+
+/-- **replaceNonStandard is block-realizable.** -/
+theorem tm0_replaceNonStandard : TM0RealizesBlock ChainΓ replaceNonStandard := by
+  refine ⟨Fin 5, ⟨0⟩, inferInstance, replNSMachine, fun block suffix hblock hsuffix hfblock => ?_⟩
+  have h_reaches := replNS_reaches block suffix hblock
+  constructor
+  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨h_reaches, by simp [TM0.step, replNSMachine]⟩⟩
+  · intro h
+    have h_mem := Turing.mem_eval.mpr ⟨h_reaches, by simp [TM0.step, replNSMachine]⟩
+    exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
+
+/-- Drop leading bit0 cells from a block. This is the "reversed" version of stripTrailingBit0. -/
+noncomputable def dropLeadingBit0 : List ChainΓ → List ChainΓ
+  | [] => []
+  | c :: rest =>
+    if c = γ'ToChainΓ Γ'.bit0 then dropLeadingBit0 rest
+    else c :: rest
+
+theorem stripTrailingBit0_eq_rev_drop_rev :
+    stripTrailingBit0 = List.reverse ∘ dropLeadingBit0 ∘ List.reverse := by
+  funext l; induction l; simp [stripTrailingBit0, dropLeadingBit0];
+  rename_i x l ih; by_cases hx : x = γ'ToChainΓ Γ'.bit0 <;> by_cases hl : l = [] <;> simp_all +decide [ stripTrailingBit0, dropLeadingBit0 ] ;
+  · -- By definition of `dropLeadingBit0`, we can split into cases based on whether the first element is `γ'ToChainΓ Γ'.bit0`.
+    have h_dropLeadingBit0 : ∀ (l : List ChainΓ), dropLeadingBit0 (l ++ [γ'ToChainΓ Γ'.bit0]) = if dropLeadingBit0 l = [] then [] else dropLeadingBit0 l ++ [γ'ToChainΓ Γ'.bit0] := by
+      intro l; induction l <;> simp +decide [ *, dropLeadingBit0 ] ;
+      grind;
+    aesop;
+  · -- By definition of `dropLeadingBit0`, we can split into cases based on whether the first element is `bit0` or not.
+    have h_dropLeadingBit0 : ∀ (l : List ChainΓ) (x : ChainΓ), x ≠ γ'ToChainΓ Γ'.bit0 → dropLeadingBit0 (l ++ [x]) = dropLeadingBit0 l ++ [x] := by
+      intros l x hx; induction l <;> simp_all +decide [ dropLeadingBit0 ] ;
+      split_ifs <;> simp +decide [ *, List.append_assoc ];
+    grind +qlia
+
+theorem dropLeadingBit0_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ dropLeadingBit0 block, g ≠ default := by
+  induction' block with c block ih;
+  · grind +locals;
+  · by_cases hc : c = γ'ToChainΓ Γ'.bit0 <;> simp_all +decide [ dropLeadingBit0 ]
+
+theorem reverse_dropLeadingBit0_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ (dropLeadingBit0 (block.reverse)).reverse, g ≠ default := by
+  convert dropLeadingBit0_ne_default ( block.reverse ) fun g hg => ?_ using 1;
+  · grind;
+  · exact hblock g ( List.mem_reverse.mp hg )
+
+theorem tm0_dropLeadingBit0 : TM0RealizesBlock ChainΓ dropLeadingBit0 := by
+  sorry
+
+/-- **stripTrailingBit0 is block-realizable.**
+    Decomposed as: reverse, drop leading bit0, reverse.
+    Proof deferred until after tm0_reverse_block is available. -/
+theorem tm0_stripTrailingBit0 : TM0RealizesBlock ChainΓ stripTrailingBit0 := by
+  sorry
+
+theorem stripTrailingBit0_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ stripTrailingBit0 block, g ≠ default := by
+  have h_stripTrailingBit0 : ∀ g ∈ stripTrailingBit0 block, g ∈ block := by
+    have h_stripTrailingBit0 : ∀ block : List ChainΓ, ∀ g ∈ stripTrailingBit0 block, g ∈ block := by
+      intro block
+      induction' block with c rest ih;
+      · decide +kernel;
+      · grind +locals;
+    exact h_stripTrailingBit0 block;
+  exact fun g hg => hblock g ( h_stripTrailingBit0 g hg )
+
+/-- **Normalization is block-realizable.**
+    Decomposed as `stripTrailingBit0 ∘ replaceNonStandard`. -/
+theorem tm0_normalizeBlock : TM0RealizesBlock ChainΓ normalizeBlock := by
+  rw [normalizeBlock_eq_comp]
+  exact tm0RealizesBlock_comp tm0_replaceNonStandard tm0_stripTrailingBit0
+    (fun block hblock => replaceNonStandard_ne_default block hblock)
+
 /-- **Addition via decode/encode is block-realizable.**
 
-    The TM0 machine is the same as for `binAddConst`: iterate `binSucc`
-    c times. On valid binary blocks (which all actual inputs are),
-    this produces the correct result. -/
+    Decomposed as `binAddConst c ∘ normalizeBlock`.
+    Both components are block-realizable, and normalizeBlock
+    preserves non-defaultness. -/
 theorem tm0_binAddConstRepr_block (c : ℕ) :
     TM0RealizesBlock ChainΓ (binAddConstRepr c) := by
-  sorry
+  rw [binAddConstRepr_eq_comp]
+  exact tm0RealizesBlock_comp tm0_normalizeBlock (tm0_binAddConst_block c)
+    (fun _ _ => normalizeBlock_ne_default _)
 
 /-! ### Singleton Function 4: Binary Squaring -/
 
@@ -770,107 +1133,13 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
     ∀ g ∈ binSquare block, g ≠ default := by
   unfold binSquare; exact chainBinaryRepr_ne_default _
 
-/-! #### Squaring via copier + multiplier decomposition -/
+/-- **Binary squaring is block-realizable.**
 
-/-- Separator cell for pair encoding in the copier/multiplier decomposition.
-    Uses `consₗ`, distinct from `bit0`/`bit1` used in `chainBinaryRepr`. -/
-noncomputable def pairSep : ChainΓ := γ'ToChainΓ Γ'.consₗ
-
-theorem pairSep_ne_default : pairSep ≠ (default : ChainΓ) := by
-  simp +decide
-
-theorem chainBinaryRepr_ne_pairSep (n : ℕ) :
-    ∀ g ∈ chainBinaryRepr n, g ≠ pairSep := by
-  simp [chainBinaryRepr]
-  intro a ha h; rcases a with ( _ | _ | a ) <;> simp_all +decide
-  unfold trNat at ha; unfold trNum at ha
-  have h_trPosNum : ∀ n : PosNum, Γ'.consₗ ∉ trPosNum n := by
-    intro n; induction n using PosNum.recOn <;> simp_all +decide [ trPosNum ]
-  grind +suggestions
-
-/-- Encode a pair `(a, b)` as a single non-default block. -/
-noncomputable def binPairBlock (a b : ℕ) : List ChainΓ :=
-  chainBinaryRepr a ++ [pairSep] ++ chainBinaryRepr b
-
-/-- Copier: duplicates the block value as a paired encoding `(n, n)`. -/
-noncomputable def binDup (block : List ChainΓ) : List ChainΓ :=
-  let n := decodeBinaryBlock block
-  binPairBlock n n
-
-theorem binDup_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, g ≠ default) :
-    ∀ g ∈ binDup block, g ≠ default := by
-  intro g hg; simp [binDup, binPairBlock] at hg
-  rcases hg with h | rfl | h
-  · exact chainBinaryRepr_ne_default _ g h
-  · exact pairSep_ne_default
-  · exact chainBinaryRepr_ne_default _ g h
-
-private noncomputable abbrev pairPred : ChainΓ → Bool := fun x => decide (x ≠ pairSep)
-
-/-- Decode the first component of a paired block. -/
-noncomputable def decodePairFirst (block : List ChainΓ) : ℕ :=
-  decodeBinaryBlock (block.takeWhile pairPred)
-
-/-- Decode the second component of a paired block. -/
-noncomputable def decodePairSecond (block : List ChainΓ) : ℕ :=
-  decodeBinaryBlock ((block.dropWhile pairPred).drop 1)
-
-private theorem takeWhile_pred_chainBinaryRepr (n : ℕ) :
-    (chainBinaryRepr n).takeWhile pairPred = chainBinaryRepr n := by
-  rw [List.takeWhile_eq_self_iff]
-  intro x hx; simp [pairPred]; exact chainBinaryRepr_ne_pairSep n x hx
-
-private theorem dropWhile_pred_chainBinaryRepr (n : ℕ) :
-    (chainBinaryRepr n).dropWhile pairPred = [] := by
-  rw [List.dropWhile_eq_nil_iff]
-  intro x hx; simp [pairPred]; exact chainBinaryRepr_ne_pairSep n x hx
-
-theorem decodePairFirst_binPairBlock (a b : ℕ) :
-    decodePairFirst (binPairBlock a b) = a := by
-  unfold decodePairFirst
-  simp only [binPairBlock, List.append_assoc, List.singleton_append]
-  rw [List.takeWhile_append]
-  simp [takeWhile_pred_chainBinaryRepr, pairPred, decodeBinaryBlock_chainBinaryRepr]
-
-theorem decodePairSecond_binPairBlock (a b : ℕ) :
-    decodePairSecond (binPairBlock a b) = b := by
-  unfold decodePairSecond
-  simp only [binPairBlock, List.append_assoc, List.singleton_append]
-  rw [List.dropWhile_append]
-  simp [dropWhile_pred_chainBinaryRepr, pairPred, decodeBinaryBlock_chainBinaryRepr]
-
-/-- Multiplier: takes a paired block `(a, b)` and produces `chainBinaryRepr (a * b)`. -/
-noncomputable def binMulPaired (block : List ChainΓ) : List ChainΓ :=
-  chainBinaryRepr (decodePairFirst block * decodePairSecond block)
-
-theorem binMulPaired_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, g ≠ default) :
-    ∀ g ∈ binMulPaired block, g ≠ default := by
-  unfold binMulPaired; exact chainBinaryRepr_ne_default _
-
-/-- `binSquare = binMulPaired ∘ binDup` (key composition identity). -/
-theorem binSquare_eq_comp : binSquare = binMulPaired ∘ binDup := by
-  ext block
-  simp only [Function.comp, binSquare, binMulPaired, binDup, sq]
-  rw [decodePairFirst_binPairBlock, decodePairSecond_binPairBlock]
-
-/-- **The copier is TM0-block-realizable.**
-    A TM0 can duplicate a block using marker-based cell-by-cell copying
-    with the Bool component of ChainΓ as markers. -/
-theorem tm0_binDup_block : TM0RealizesBlock ChainΓ binDup := by
-  sorry
-
-/-- **The multiplier is TM0-block-realizable.**
-    A TM0 can multiply two paired-block numbers using schoolbook
-    repeated addition with the first operand as a counter. -/
-theorem tm0_binMulPaired_block : TM0RealizesBlock ChainΓ binMulPaired := by
-  sorry
-
-/-- **Binary squaring is block-realizable**, via copier + multiplier composition.
-    The copier duplicates the input as a paired encoding `(n, n)`, and
-    the multiplier computes `n * n = n²`. -/
+    Squaring can be realized by a TM0 that copies the input `n` and
+    uses one copy as a counter while repeatedly adding the other copy
+    to an accumulator (schoolbook multiplication n × n). -/
 theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
-  rw [binSquare_eq_comp]
-  exact tm0RealizesBlock_comp tm0_binDup_block tm0_binMulPaired_block binDup_ne_default
+  sorry
 
 /-! ### Singleton Function 5: Binary Multiplication by Constant -/
 
