@@ -1159,6 +1159,153 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
     ∀ g ∈ binMulConst c block, g ≠ default := by
   unfold binMulConst; exact chainBinaryRepr_ne_default _
 
+/-! #### Decomposition of binMulConst via Paired Block Addition
+
+We decompose multiplication by a constant `c` into:
+1. **Initialization**: prepend `chainConsBottom` as a separator, creating
+   a "paired block" `[accumulator][sep][original]` with accumulator = 0.
+2. **Iterated addition** (`binAddPaired`): at each step, decode both
+   sub-blocks, add the right value to the left, re-encode the left,
+   and preserve the right. After `c` iterations the accumulator holds
+   `c * decodeBinaryBlock(block)`.
+3. **Extraction**: take everything before the first `chainConsBottom`.
+
+The key observation is that `chainBinaryRepr` never produces
+`chainConsBottom` cells (binary cells have `Bool` component `false`,
+while `chainConsBottom` has `true`), so the split is always correct.
+-/
+
+/-- Split a block at the first `chainConsBottom` cell.
+    Returns (prefix before sep, suffix after sep). -/
+noncomputable def splitAtConsBottom : List ChainΓ → List ChainΓ × List ChainΓ
+  | [] => ([], [])
+  | c :: rest =>
+    if c = chainConsBottom then ([], rest)
+    else let (l, r) := splitAtConsBottom rest; (c :: l, r)
+
+/-
+`chainBinaryRepr n` never contains `chainConsBottom`.
+    Binary cells have `Bool` component `false`, while `chainConsBottom`
+    has `Bool` component `true`.
+-/
+theorem chainBinaryRepr_no_consBottom (n : ℕ) :
+    ∀ c ∈ chainBinaryRepr n, c ≠ chainConsBottom := by
+  unfold chainBinaryRepr chainConsBottom;
+  unfold γ'ToChainΓ; simp +decide ;
+  grind
+
+/-
+Splitting a list with no `chainConsBottom` returns the full list and `[]`.
+-/
+theorem splitAtConsBottom_no_sep (l : List ChainΓ)
+    (h : ∀ c ∈ l, c ≠ chainConsBottom) :
+    splitAtConsBottom l = (l, []) := by
+  -- We proceed by induction on the list `l`.
+  induction' l with c l ih;
+  · rfl;
+  · unfold splitAtConsBottom; aesop;
+
+/-
+Splitting `chainBinaryRepr n ++ [chainConsBottom] ++ rest` yields
+    `(chainBinaryRepr n, rest)`.
+-/
+theorem splitAtConsBottom_binary_sep (n : ℕ) (rest : List ChainΓ) :
+    splitAtConsBottom (chainBinaryRepr n ++ [chainConsBottom] ++ rest) =
+      (chainBinaryRepr n, rest) := by
+  -- By induction on the length of `chainBinaryRepr n`.
+  have h_ind : ∀ (l : List ChainΓ), (∀ c ∈ l, c ≠ chainConsBottom) → splitAtConsBottom (l ++ [chainConsBottom] ++ rest) = (l, rest) := by
+    intro l hl;
+    induction' l with c l ih;
+    · aesop;
+    · unfold splitAtConsBottom; aesop;
+  exact h_ind _ fun c hc => chainBinaryRepr_no_consBottom n c hc
+
+/-- **Paired block addition** (addition between arbitrary numbers).
+    Split the block at the first `chainConsBottom`, decode both halves,
+    add them, re-encode the left, and preserve the right. -/
+noncomputable def binAddPaired (block : List ChainΓ) : List ChainΓ :=
+  let (left, right) := splitAtConsBottom block
+  chainBinaryRepr (decodeBinaryBlock left + decodeBinaryBlock right)
+    ++ [chainConsBottom] ++ right
+
+/-- Extract the left sub-block (prefix before first `chainConsBottom`). -/
+noncomputable def extractPairedLeft (block : List ChainΓ) : List ChainΓ :=
+  (splitAtConsBottom block).1
+
+/-
+`binAddPaired` preserves non-defaultness.
+-/
+theorem binAddPaired_ne_default' (block : List ChainΓ)
+    (h : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binAddPaired block, g ≠ default := by
+  unfold binAddPaired;
+  simp +zetaDelta at *;
+  rintro g ( hg | rfl | hg );
+  · exact chainBinaryRepr_ne_default _ _ hg;
+  · exact fun h => by have := congr_arg Prod.fst h; simp +decide at this;
+  · -- By definition of `splitAtConsBottom`, the second part of the split contains elements from the original block.
+    have h_split : ∀ {block : List ChainΓ}, ∀ g ∈ (splitAtConsBottom block).2, g ∈ block := by
+      intros block g hg; induction' block with c block ih generalizing g <;> simp_all +decide [ splitAtConsBottom ] ;
+      grind;
+    exact h g ( h_split g hg )
+
+/-
+`extractPairedLeft` preserves non-defaultness.
+-/
+theorem extractPairedLeft_ne_default (block : List ChainΓ)
+    (h : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ extractPairedLeft block, g ≠ default := by
+  induction' block with c rest ih;
+  · decide +kernel;
+  · grind +locals
+
+/-
+Helper: iteration of a non-defaultness-preserving function
+    preserves non-defaultness.
+-/
+theorem iterate_preserves_nd {Γ₀ : Type} [Inhabited Γ₀]
+    {f : List Γ₀ → List Γ₀}
+    (hf : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (n : ℕ) (block : List Γ₀) (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ f^[n] block, g ≠ default := by
+  induction' n with n ih generalizing block <;> simp_all +decide [ Function.iterate_succ_apply' ];
+  exact hf _ ( ih _ hblock )
+
+/-
+After `c` iterations of `binAddPaired` on `[chainConsBottom] ++ block`,
+    the result is `chainBinaryRepr (c * decodeBinaryBlock block) ++
+    [chainConsBottom] ++ block`.
+-/
+theorem binAddPaired_iterate_sep (c : ℕ) (block : List ChainΓ) :
+    binAddPaired^[c] (chainConsBottom :: block) =
+      chainBinaryRepr (c * decodeBinaryBlock block)
+        ++ [chainConsBottom] ++ block := by
+  induction' c with c ih generalizing block;
+  · unfold chainBinaryRepr; aesop;
+  · rw [ Function.iterate_succ_apply', ih ];
+    rw [ binAddPaired, splitAtConsBottom_binary_sep ];
+    simp +decide [ add_mul, decodeBinaryBlock_chainBinaryRepr ]
+
+/-
+Functional decomposition: `binMulConst c` equals
+    `extractPairedLeft ∘ binAddPaired^[c] ∘ (chainConsBottom :: ·)`.
+-/
+theorem binMulConst_eq_decomp (c : ℕ) :
+    binMulConst c =
+      extractPairedLeft ∘ (binAddPaired^[c]) ∘ (chainConsBottom :: ·) := by
+  ext x;
+  rw [ Function.comp_apply, Function.comp_apply, binAddPaired_iterate_sep ];
+  rw [ extractPairedLeft, splitAtConsBottom_binary_sep ];
+  rfl
+
+/-- **Paired addition is block-realizable** (addition between arbitrary
+    numbers). The TM0 machine repeatedly decrements the right sub-block
+    and increments the left sub-block until the right value reaches zero,
+    then restores the right sub-block. -/
+theorem tm0_binAddPaired_block :
+    TM0RealizesBlock ChainΓ binAddPaired := by
+  sorry
+
 /-- **Multiplication by constant is block-realizable.** -/
 theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
   sorry
@@ -2182,15 +2329,4 @@ The decomposition provides the following path to `chainEncode_realizes`:
 3. `chainEncode_eq_format` (in TapeConvert) — equational glue
 4. Compose Phase 1 and Phase 2 via `TM0Seq.compose`
 
-### Remaining sorries
-
-**Homogeneous block operations (ChainΓ):**
-- `tm0_binSucc_block` — binary increment is block-realizable
-  - needs `binSucc_carry_aux`, `binSucc_carry_default_cons`
-- `tm0_binPairConstSucc_block` — Nat.pair+succ is block-realizable
-- `tm0_chainFormatBlock_block` — reverse+prepend is block-realizable
-
-**Heterogeneous infrastructure (Option (T ⊕ Γ₀)):**
-- `tm0Het_fold_blockRealizable` — fold over input with block dispatch
-- `tm0Het_liftBlockToHet` — lift block-realizable op to het tape
 -/
