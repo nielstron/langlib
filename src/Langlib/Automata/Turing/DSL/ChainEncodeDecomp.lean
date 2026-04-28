@@ -1086,7 +1086,7 @@ theorem tm0_dropLeadingBit0 : TM0RealizesBlock ChainΓ dropLeadingBit0 := by
 
 /-- **stripTrailingBit0 is block-realizable.**
     Decomposed as: reverse, drop leading bit0, reverse.
-    Proof deferred until after tm0_reverse_block is available. -/
+-/
 theorem tm0_stripTrailingBit0 : TM0RealizesBlock ChainΓ stripTrailingBit0 := by
   sorry
 
