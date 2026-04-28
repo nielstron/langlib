@@ -4,6 +4,7 @@ import Langlib.Automata.Turing.DSL.TM0BuildingBlocks
 import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.ReverseBlock
+import Langlib.Automata.Turing.DSL.DropWhileNeSep
 
 /-! # Chain Encoding Decomposition
 
@@ -2146,6 +2147,26 @@ theorem chainEncode_format (T : Type) [DecidableEq T] :
     chainFormatBlock tm0_chainFormatBlock_block
   exact ⟨Λ, hΛi, hΛf, M, fun block hblock => by
     exact hM block hblock (chainFormatBlock_ne_default block hblock)⟩
+
+/-! ### Algebraic identity for extractPairedLeft decomposition -/
+/-- `extractPairedLeft = reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`.
+    This algebraic identity enables proving block-realizability via composition
+    once `tm0_dropFromLastSep_block` is established. -/
+theorem extractPairedLeft_eq_rev_drop_rev :
+    extractPairedLeft = List.reverse ∘ dropFromLastSep chainConsBottom ∘ @List.reverse ChainΓ := by
+  funext block
+  induction' block with c rest ih
+  · rfl
+  · by_cases hc : c = chainConsBottom <;> simp_all +decide [Function.comp]
+    · have h_extract : extractPairedLeft (chainConsBottom :: rest) = [] := by
+        unfold extractPairedLeft splitAtConsBottom; aesop
+      induction' rest.reverse with c rest ih <;> simp_all +decide [dropFromLastSep]
+    · rw [show extractPairedLeft (c :: rest) = c :: extractPairedLeft rest from ?_]
+      · rw [show dropFromLastSep chainConsBottom (rest.reverse ++ [c]) = dropFromLastSep chainConsBottom rest.reverse ++ [c] from ?_]; aesop
+        have h_app : ∀ (l : List ChainΓ) (c : ChainΓ), c ≠ chainConsBottom → dropFromLastSep chainConsBottom (l ++ [c]) = dropFromLastSep chainConsBottom l ++ [c] := by
+          intros l c hc; induction' l with d l ih generalizing c <;> simp_all +decide [dropFromLastSep]; grind
+        exact h_app _ _ hc
+      · unfold extractPairedLeft splitAtConsBottom; aesop
 
 /-! ### Summary
 
