@@ -1144,6 +1144,8 @@ theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
 
 /-! ### Singleton Function 5: Binary Multiplication by Constant -/
 
+/-! ### Singleton Function 5: Binary Multiplication by Constant -/
+
 /-- Multiply the binary block value by a fixed constant k: n → k * n.
     Realizable by repeated addition of the original value (requires
     copying n, then adding the copy k times). -/
@@ -1158,6 +1160,62 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ binMulConst c block, g ≠ default := by
   unfold binMulConst; exact chainBinaryRepr_ne_default _
+
+/-! #### Prerequisites: Cons Machine and Non-defaultness -/
+
+/-- The simple cons machine: move left, write c, halt. -/
+noncomputable def consSimpleMachine' {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (c : Γ) : @TM0.Machine Γ (Fin 3) ⟨0⟩ := fun q _ =>
+  match q with
+  | (0 : Fin 3) => some (1, TM0.Stmt.move Dir.left)
+  | (1 : Fin 3) => some (2, TM0.Stmt.write c)
+  | (2 : Fin 3) => none
+
+theorem consSimpleMachine'_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (c : Γ) (l : List Γ) :
+    (TM0Seq.evalCfg (consSimpleMachine' c) l).Dom := by
+  refine' Part.dom_iff_mem.mpr _;
+  -- Construct the reachability proof for the specific sequence of steps.
+  have h_reach : Reaches (TM0.step (consSimpleMachine' c)) (TM0.init l) ⟨2, Tape.write c (Tape.move Dir.left (Tape.mk₁ l))⟩ := by
+    refine' Relation.ReflTransGen.head _ _;
+    exact ⟨ 1, Tape.move Dir.left ( Tape.mk₁ l ) ⟩;
+    · exact?;
+    · exact .single ( by tauto );
+  refine' ⟨ _, Turing.mem_eval.mpr ⟨ _, _ ⟩ ⟩;
+  exact ⟨ 2, Tape.write c ( Tape.move Dir.left ( Tape.mk₁ l ) ) ⟩;
+  · exact h_reach;
+  · unfold consSimpleMachine'; aesop;
+
+theorem consSimpleMachine'_tape {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (c : Γ) (l : List Γ)
+    (h : (TM0Seq.evalCfg (consSimpleMachine' c) l).Dom) :
+    ((TM0Seq.evalCfg (consSimpleMachine' c) l).get h).Tape =
+      Tape.mk₁ (c :: l) := by
+  obtain ⟨q, hq⟩ : ∃ q, (TM0Seq.evalCfg (consSimpleMachine' c) l).get h = ⟨q, Tape.write c (Tape.move Dir.left (Tape.mk₁ l))⟩ := by
+    obtain ⟨q, hq⟩ : ∃ q, (TM0Seq.evalCfg (consSimpleMachine' c) l).get h = ⟨q, Tape.write c (Tape.move Dir.left (Tape.mk₁ l))⟩ := by
+      have h_eval : ⟨2, Tape.write c (Tape.move Dir.left (Tape.mk₁ l))⟩ ∈ TM0Seq.evalCfg (consSimpleMachine' c) l := by
+        unfold consSimpleMachine' at *;
+        unfold TM0Seq.evalCfg;
+        unfold eval;
+        rw [ PFun.mem_fix_iff ];
+        unfold TM0.step; simp +decide [ TM0.init ] ;
+        rw [ PFun.mem_fix_iff ];
+        exact Or.inr ⟨ _, Part.mem_some_iff.mpr rfl, by rw [ PFun.mem_fix_iff ] ; tauto ⟩
+      exact?;
+    use q;
+  cases l <;> simp_all +decide [ Tape.mk₁, Tape.move ];
+  · congr;
+    ext i; simp [Tape.mk₂, ListBlank.cons, ListBlank.mk];
+    rcases i with ( _ | _ | i ) <;> rfl;
+  · rfl
+
+theorem tm0_cons_block' {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (c : Γ) (hc : c ≠ default) :
+    TM0RealizesBlock Γ (c :: ·) := by
+  refine ⟨Fin 3, ⟨0⟩, inferInstance, consSimpleMachine' c,
+    fun block suffix hblock hsuffix hcons => ?_⟩
+  exact ⟨consSimpleMachine'_halts c _,
+    fun h => by rw [consSimpleMachine'_tape]; simp⟩
 
 /-! #### Decomposition of binMulConst via Paired Block Addition
 
