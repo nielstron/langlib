@@ -142,29 +142,6 @@ construction time). For squaring, we define `binSquare` directly via
 the decode/encode pipeline and prove its block-realizability by
 decomposing through paired addition. -/
 
-/-! ### Binary Squaring -/
-
-/-- Square the binary block value: n → n².
-    Equivalent to duplicating the block as `[0][sep][n]` and
-    iterating paired addition `n` times. -/
-noncomputable def binSquare (block : List ChainΓ) : List ChainΓ :=
-  chainBinaryRepr ((decodeBinaryBlock block) ^ 2)
-
-theorem binSquare_correct (n : ℕ) :
-    binSquare (chainBinaryRepr n) = chainBinaryRepr (n ^ 2) := by
-  unfold binSquare; rw [decodeBinaryBlock_chainBinaryRepr]
-
-theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, g ≠ default) :
-    ∀ g ∈ binSquare block, g ≠ default := by
-  unfold binSquare; exact chainBinaryRepr_ne_default _
-
-/-- **Binary squaring is block-realizable.**
-
-    Squaring reuses the paired addition mechanism: conceptually, duplicate
-    the input as `[0][sep][n]` and iterate `binAddPaired` n times. The
-    actual TM0 uses a decrement-and-add loop on the paired encoding. -/
-theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
-  sorry
 
 /-! ### Multiplication by Constant -/
 
@@ -257,3 +234,27 @@ theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst 
     exact iterate_preserves_nd binAddPaired_ne_default c
       (chainConsBottom :: block)
       (List.forall_mem_cons.mpr ⟨chainConsBottom_ne_default, hblock⟩)
+
+/-! ### Binary Squaring -/
+
+/-- Square the binary block value: n → n².
+    Equivalent to duplicating the block as `[0][sep][n]` and
+    iterating paired addition `n` times. -/
+noncomputable def binSquare (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr ((decodeBinaryBlock block) ^ 2)
+
+theorem binSquare_correct (n : ℕ) :
+    binSquare (chainBinaryRepr n) = chainBinaryRepr (n ^ 2) := by
+  unfold binSquare; rw [decodeBinaryBlock_chainBinaryRepr]
+
+theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binSquare block, g ≠ default := by
+  unfold binSquare; exact chainBinaryRepr_ne_default _
+
+/-- **Binary squaring is block-realizable.**
+
+    Squaring reuses the paired addition mechanism: conceptually, duplicate
+    the input as `[0][sep][n]` and iterate `binAddPaired` n times. The
+    actual TM0 uses a decrement-and-add loop on the paired encoding. -/
+theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
+  sorry
