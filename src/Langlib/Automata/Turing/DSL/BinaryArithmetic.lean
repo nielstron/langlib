@@ -338,13 +338,82 @@ theorem reverse_dropLeadingBit0_ne_default (block : List ChainΓ)
   · grind;
   · exact hblock g ( List.mem_reverse.mp hg )
 
-theorem tm0_dropLeadingBit0 : TM0RealizesBlock ChainΓ dropLeadingBit0 := by
-  sorry
+/-- Machine for dropLeadingBit0: scan right, overwriting bit0 with default.
+    State 0: if head = bit0, write default → state 1; else halt.
+    State 1: move right → state 0. -/
+noncomputable def dropLBMachine : @TM0.Machine ChainΓ (Fin 2) ⟨0⟩ := fun q a =>
+  match q with
+  | (0 : Fin 2) =>
+    if a = γ'ToChainΓ Γ'.bit0 then some (1, .write default)
+    else none
+  | (1 : Fin 2) =>
+    some (0, .move Dir.right)
 
-/-- **stripTrailingBit0 is block-realizable.**
-    Decomposed as: reverse, drop leading bit0, reverse. -/
+theorem dropLB_step_halt {t : Tape ChainΓ} (h : t.head ≠ γ'ToChainΓ Γ'.bit0) :
+    TM0.step dropLBMachine ⟨0, t⟩ = none := by
+  simp [TM0.step, dropLBMachine, h]
+
+theorem dropLeadingBit0_head_ne_bit0 (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    (dropLeadingBit0 block ++ default :: suffix).headI ≠ γ'ToChainΓ Γ'.bit0 := by
+  induction block with
+  | nil => simp [dropLeadingBit0]; decide
+  | cons c rest ih =>
+    by_cases hc : c = γ'ToChainΓ Γ'.bit0
+    · simp [dropLeadingBit0, hc]
+      exact ih (fun g hg => hblock g (List.mem_cons_of_mem _ hg))
+    · simp [dropLeadingBit0, hc, hc]
+
+theorem tape_write_default_move_right_mk1 (rest suffix : List ChainΓ) :
+    Tape.move Dir.right (Tape.write default (Tape.mk₁ (γ'ToChainΓ Γ'.bit0 :: rest ++ default :: suffix))) =
+    Tape.mk₁ (rest ++ default :: suffix) := by
+  convert Quot.sound ?_;
+  all_goals norm_num [ Tape.mk₁, Tape.mk₂, Tape.mk', Tape.write, Tape.move ];
+  exact?;
+  constructor;
+  constructor;
+  swap;
+  exacts [ 1, rfl ]
+
+theorem dropLB_reaches (block suffix : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    Reaches (TM0.step dropLBMachine)
+      (TM0.init (block ++ default :: suffix))
+      ⟨0, Tape.mk₁ (dropLeadingBit0 block ++ default :: suffix)⟩ := by
+  -- We'll use induction on the block to prove this.
+  induction' block with c rest ih;
+  · constructor;
+  · unfold dropLeadingBit0;
+    split_ifs <;> simp_all +decide [ List.append_assoc ];
+    · have h_step2 : TM0.step dropLBMachine ⟨1, Tape.write default (Tape.mk₁ (γ'ToChainΓ Γ'.bit0 :: (rest ++ default :: suffix)))⟩ = some ⟨0, Tape.mk₁ (rest ++ default :: suffix)⟩ := by
+        convert tape_write_default_move_right_mk1 rest suffix using 1;
+        simp +decide [ TM0.step, dropLBMachine ]
+      generalize_proofs at *; (
+      exact .trans ( .single <| by aesop ) ( .trans ( .single <| by aesop ) ih ));
+    · constructor
+
+theorem tm0_dropLeadingBit0 : TM0RealizesBlock ChainΓ dropLeadingBit0 := by
+  refine' ⟨ _, _, _, _, _ ⟩;
+  exact Fin 2;
+  all_goals try infer_instance;
+  exact?;
+  intro block suffix hblock hsuffix hfblock
+  refine' ⟨ _, _ ⟩;
+  · exact Part.dom_iff_mem.mpr ⟨ _, Turing.mem_eval.mpr ⟨ dropLB_reaches block suffix hblock, dropLB_step_halt ( dropLeadingBit0_head_ne_bit0 block hblock ) ⟩ ⟩;
+  · have h_reaches := dropLB_reaches block suffix hblock;
+    intro h
+    have h_mem := Turing.mem_eval.mpr ⟨h_reaches, by
+      apply dropLB_step_halt;
+      convert dropLeadingBit0_head_ne_bit0 block hblock using 1⟩
+    generalize_proofs at *;
+    exact ( Part.mem_unique ( Part.get_mem h ) h_mem ).symm ▸ rfl
+
+/-
+**stripTrailingBit0 is block-realizable.**
+    Decomposed as: reverse, drop leading bit0, reverse.
+-/
 theorem tm0_stripTrailingBit0 : TM0RealizesBlock ChainΓ stripTrailingBit0 := by
-  sorry
+  grind +suggestions
 
 theorem stripTrailingBit0_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
