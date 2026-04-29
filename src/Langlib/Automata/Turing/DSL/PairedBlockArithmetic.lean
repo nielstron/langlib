@@ -3,6 +3,7 @@ import Langlib.Automata.Turing.DSL.ChainAlphabet
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
 import Langlib.Automata.Turing.DSL.DropWhileNeSep
+import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
 
 /-! # Paired Block Arithmetic — The Central Primitive
 
@@ -185,8 +186,8 @@ theorem tm0_binAddPaired_block :
 /-- **dropFromLastSep is block-realizable** when `sep ≠ default`. -/
 theorem tm0_dropFromLastSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     (sep : Γ) (hsep : sep ≠ default) :
-    TM0RealizesBlock Γ (dropFromLastSep sep) := by
-  sorry
+    TM0RealizesBlock Γ (dropFromLastSep sep) :=
+  tm0_dropFromLastSep_block_v2 sep hsep
 
 /-- `extractPairedLeft = reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`. -/
 theorem extractPairedLeft_eq_rev_drop_rev :
