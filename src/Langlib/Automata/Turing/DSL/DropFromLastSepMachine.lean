@@ -1,6 +1,7 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.DropWhileNeSep
+import Langlib.Automata.Turing.DSL.TakeWhileBlock
 
 /-! # TM0 Machine for dropFromLastSep
 
@@ -43,30 +44,13 @@ theorem takeWhile_ne_sep_ne_default {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
 
 /-! ### TM0 machine for takeWhile (· ≠ sep) -/
 
-/-- Machine for `takeWhile (· ≠ sep)`: scan, erase from sep, rewind. -/
-noncomputable def twMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
-    (sep : Γ) : @TM0.Machine Γ (Fin 5) ⟨0⟩ := fun q a =>
-  match q with
-  | (0 : Fin 5) => -- scan
-    if a = sep then some (1, TM0.Stmt.write default)
-    else if a = default then some (3, TM0.Stmt.move Dir.left)
-    else some (0, TM0.Stmt.move Dir.right)
-  | (1 : Fin 5) => some (2, TM0.Stmt.move Dir.right) -- post-erase move
-  | (2 : Fin 5) => -- erase remaining
-    if a = default then some (3, TM0.Stmt.move Dir.left)
-    else some (1, TM0.Stmt.write default)
-  | (3 : Fin 5) => -- rewind
-    if a = default then some (4, TM0.Stmt.move Dir.right)
-    else some (3, TM0.Stmt.move Dir.left)
-  | (4 : Fin 5) => none -- done
-
-/-- `takeWhile (· ≠ sep)` is block-realizable. -/
+/-- `takeWhile (· ≠ sep)` is block-realizable.
+    Proved via the decomposition `reverse ∘ dropFromLastSep sep ∘ reverse`
+    and the general `tm0_dropFromLastSep_direct` theorem. -/
 theorem tm0_takeWhileNeSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     (sep : Γ) (hsep : sep ≠ default) :
-    TM0RealizesBlock Γ (List.takeWhile (fun x => !decide (x = sep))) := by
-  refine ⟨Fin 5, ⟨0⟩, inferInstance, twMachine sep, ?_⟩
-  intro block suffix hblock hsuffix htw
-  sorry
+    TM0RealizesBlock Γ (List.takeWhile (fun x => !decide (x = sep))) :=
+  tm0_takeWhileNeSep' sep hsep
 
 /-! ### Main result -/
 

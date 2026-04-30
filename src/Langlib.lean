@@ -43,6 +43,7 @@ import Langlib.Automata.Turing.DSL.SearchProc
 import Langlib.Automata.Turing.DSL.TM0BuildingBlocks
 import Langlib.Automata.Turing.DSL.TM0Compose
 import Langlib.Automata.Turing.DSL.TM0Restrict
+import Langlib.Automata.Turing.DSL.TakeWhileBlock
 import Langlib.Automata.Turing.DSL.TapeConvert
 import Langlib.Automata.Turing.DSL
 import Langlib.Automata.Turing.Definition
