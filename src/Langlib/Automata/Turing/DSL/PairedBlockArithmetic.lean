@@ -180,35 +180,26 @@ theorem binMulConst_eq_decomp (c : ℕ) :
 
 /-- **Paired addition is block-realizable.**
 
-    ## Proof approach (not yet formalized)
+    Strategy: convert [left][sep][right] → [left+right].
 
     Binary addition of two variable-length sub-blocks requires a TM0 that
     processes corresponding bits with carry propagation. The recommended
     approach is:
 
-    1. **Copy right sub-block** to create a third area:
-       `[left][sep₁][right]` → `[left][sep₁][right][sep₂][counter]`
-       where `counter` is a copy of `right` and `sep₂` is a second separator.
+    2. **Iterate increment-decrement**: while `left > 0`, apply
+       `binSucc` to right (increment) and binary decrement to left.
+       After `decodeBinaryBlock left` iterations:
+       `[0][sep][right+left]`
 
-    2. **Iterate increment-decrement**: while `counter > 0`, apply
-       `binSucc` to left (increment) and binary decrement to counter.
-       After `decodeBinaryBlock right` iterations:
-       `[left+right][sep₁][right][sep₂][0]`
-
-    3. **Cleanup**: remove the third area:
-       `[left+right][sep₁][right]`
+    3. **Cleanup**: remove the first area:
+       `[left+right]`
 
     Each sub-operation (copy, increment, decrement, test-zero, cleanup)
-    is a focused TM0 construction. The increment operation is already
-    proven (`tm0_binSucc_block`). The key missing pieces are:
-    - A block-copy machine (shuttle each cell to the copy area)
-    - A binary decrement machine (similar to `binSucc` in reverse)
-    - A while-loop combinator at the block-realizability level
-    - A cleanup machine (remove trailing separator + empty block)
+    is a focused TM0 construction. The increment and decrement operation is already
+    proven (`tm0_binSucc_block` and `tm0_binPred_block`). The key missing pieces are:
+    - A while-loop combinator at the block-realizability level (based on something like tm0WhileLoop)
 
-    An alternative approach is to build a general `mapWithCarry` framework
-    (finite-state transduction) and express binary addition through
-    bit-interleaving + carry-based map + de-interleaving.
+    TODO probably need to change the definition of the paired funciton/the realizes block used here to allow removing that sep (or replace the sep with a sep not used to separate blocks as per the block def)
 -/
 theorem tm0_binAddPaired_block :
     TM0RealizesBlock ChainΓ binAddPaired := by
