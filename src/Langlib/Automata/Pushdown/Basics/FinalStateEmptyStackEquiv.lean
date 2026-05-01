@@ -184,49 +184,7 @@ lemma FSES_Inv_init {Q S : Type} [Fintype Q] [Fintype S]
   left; rfl
 
 /-
-PROBLEM
 The invariant is preserved by a single step.
-
-PROVIDED SOLUTION
-Case split on h_inv (the invariant for c₁):
-
-**Case 1: c₁ = (Sum.inr 0, w, [none])** — initial state.
-The step function from (Sum.inr 0, w, [none]): the stack top is none.
-- If w = []: step = {r₂ | ∃ p β, (p,β) ∈ PDA_FS_to_ES_eps M (Sum.inr 0) none ∧ r₂ = (p, [], β)}
-  PDA_FS_to_ES_eps (Sum.inr 0) none = {(Sum.inl M.initial_state, [some M.start_symbol, none])}
-  So c₂ = (Sum.inl M.initial_state, [], [some M.start_symbol, none])
-  This is Case 2 of the invariant with q = M.initial_state, w' = [], γ = [M.start_symbol], and M.Reaches is refl.
-
-- If w = a::w': step includes ε-transition:
-  PDA_FS_to_ES_eps (Sum.inr 0) none = {(Sum.inl M.initial_state, [some M.start_symbol, none])}
-  Also PDA_FS_to_ES_trans (Sum.inr 0) a none = ∅ (matches | _, _, _ => ∅ since Sum.inr 0 is not Sum.inl)
-  So c₂ = (Sum.inl M.initial_state, a::w', [some M.start_symbol, none])
-  This is Case 2 with γ = [M.start_symbol] and M.Reaches is refl.
-
-**Case 2: c₁ = (Sum.inl q, w', γ.map some ++ [none])** with M.Reaches to (q, w', γ).
-Sub-case γ = Z :: γ': stack top is some Z.
-- Input transition (if w' = a::w''): PDA_FS_to_ES_trans (Sum.inl q) a (some Z) = image of M.transition_fun q a Z.
-  c₂ = (Sum.inl p, w'', β.map some ++ γ'.map some ++ [none]) for some (p, β) ∈ M.transition_fun q a Z.
-  This gives Case 2 with γ_new = β ++ γ' and M.Reaches extended by M's step.
-
-- ε-transition: PDA_FS_to_ES_eps (Sum.inl q) (some Z) = image of M.transition_fun' q Z ∪ (if q ∈ final_states then {(Sum.inr 1, [])} else ∅).
-  - If from the M simulation part: c₂ = (Sum.inl p, w', β.map some ++ γ'.map some ++ [none]). Case 2.
-  - If q ∈ final_states and c₂ = (Sum.inr 1, w', γ'.map some ++ [none]). Case 3:
-    state is Sum.inr 1, and if w' = [], then we have M reaching (q, [], Z::γ') with q ∈ final_states.
-
-Sub-case γ = []: stack is [none]. Stack top is none.
-- PDA_FS_to_ES_trans for (Sum.inl q, _, none) returns ∅ (| _, _, _ => ∅ since none ≠ some s).
-- PDA_FS_to_ES_eps (Sum.inl q) none = if q ∈ final_states then {(Sum.inr 1, [])} else ∅.
-  If q ∈ final_states: c₂ = (Sum.inr 1, w', []). Case 3 with q final, M reaches (q, w', []).
-  If q ∉ final_states: step is ∅, contradiction with h_step.
-
-**Case 3: c₁.state = Sum.inr 1**.
-From (Sum.inr 1, w_in, Z :: rest):
-- PDA_FS_to_ES_eps (Sum.inr 1) Z = {(Sum.inr 1, [])}
-  So c₂ = (Sum.inr 1, w_in, rest). Still Case 3. Input unchanged.
-  If c₂.input = [], same as c₁.input = [], so same witness.
-- PDA_FS_to_ES_trans (Sum.inr 1, _, _) = ∅.
-If c₁.stack = []: step is ∅, contradiction.
 -/
 set_option maxHeartbeats 800000 in
 lemma FSES_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
@@ -281,17 +239,7 @@ lemma FSES_Inv_reaches {Q S : Type} [Fintype Q] [Fintype S]
   | tail _ h_step ih => exact FSES_Inv_step M w _ _ ih h_step
 
 /-
-PROBLEM
 If the invariant holds at `(q, [], [])`, then `w ∈ M.acceptsByFinalState`.
-
-PROVIDED SOLUTION
-Case split on h_inv (the invariant for config (q, [], [])):
-
-Case 1: (q, [], []) = (Sum.inr 0, w, [none]). This requires [] = [none], which is impossible. Contradiction.
-
-Case 2: (q, [], []) = (Sum.inl q', w', γ.map some ++ [none]). This requires [] = γ.map some ++ [none]. But γ.map some ++ [none] always has at least one element (none), so [] ≠ γ.map some ++ [none]. Contradiction.
-
-Case 3: q = Sum.inr 1 and (input = [] → ∃ q' ∈ final_states, ...). Since input = [], we get ∃ q' ∈ M.final_states, ∃ γ', M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q', [], γ'⟩. This is exactly acceptsByFinalState.
 -/
 lemma FSES_Inv_terminal {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T)

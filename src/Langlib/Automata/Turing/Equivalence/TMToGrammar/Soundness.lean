@@ -73,12 +73,8 @@ theorem terminalContent_terminal_map (w : List T) :
     simp [ih]
 
 /-
-PROBLEM
 `terminalContent` is preserved by every grammar rule whose `input_N` is
 not `start` or `genMore`.
-
-PROVIDED SOLUTION
-Unfold tmToGrammar into generationRules ++ simulationRules ++ cleanupRules. The rule r is in one of these lists. Since r.input_N ≠ start and r.input_N ≠ genMore, it's not from generation rules (those have input_N = start or genMore). For simulation and cleanup rules, enumerate each case and verify that filterMap symbolOriginal of input = filterMap symbolOriginal of output. This holds because orig is preserved in all these rules. Use simp/aesop with symbolOriginal unfolded.
 -/
 theorem terminalContent_rule_preserved
     (r : grule T (TMtoGrammarNT T Λ))
@@ -109,18 +105,8 @@ theorem terminalContent_rule_preserved
     simp +decide [ allOptT ] at * ; aesop ( simp_config := { decide := true } ) ;
 
 /-
-PROBLEM
 If a sentential form has no `start` or `genMore` nonterminals,
 any grammar transform preserves `terminalContent`.
-
-PROVIDED SOLUTION
-From htrans, extract rule r with r ∈ g.rules. Since sf doesn't contain start or genMore, and r.input_N must appear in sf (as symbol.nonterminal r.input_N is part of the matched pattern), r.input_N ≠ start and r.input_N ≠ genMore.
-
-The transform gives sf = u ++ r.input_L ++ [nonterminal r.input_N] ++ r.input_R ++ v and sf' = u ++ r.output_string ++ v.
-
-By terminalContent_append: terminalContent sf = terminalContent u ++ terminalContent (r.input_L ++ [nonterminal r.input_N] ++ r.input_R) ++ terminalContent v, and similarly for sf'.
-
-By terminalContent_rule_preserved (with hns and hng derived from the membership conditions): the middle parts are equal. So terminalContent sf' = terminalContent sf.
 -/
 theorem terminalContent_preserved
     (sf sf' : List (symbol T (TMtoGrammarNT T Λ)))
@@ -210,18 +196,7 @@ inductive GI (M : Turing.TM0.Machine (Option T) Λ) :
 /-! ### Terminal halts -/
 
 /-
-PROBLEM
 If a terminal-only form satisfies `GI`, then TM halts on that input.
-
-PROVIDED SOLUTION
-GI M (w.map terminal) can only come from `done` or `cleanup`.
-- `initial`: [nonterminal start] ≠ w.map terminal (first element mismatch).
-- `generating`: starts with nonterminal leftBound, can't be all terminals.
-- `simulating`: encodeTwoTrack has nonterminal leftBound as first element.
-- `cleanup`: requires ∃ s ∈ sf, isNonterminal s. But w.map terminal has no nonterminals. Contradiction.
-- `done`: gives GI M (w'.map terminal) with hhalt. Since w'.map terminal = w.map terminal, by injectivity of terminal, w' = w. So hhalt gives the result.
-
-For the contradictions in `initial`, `generating`, `simulating`, and `cleanup`, use the fact that nonterminals can't equal terminals. For `done`, use List.map_injective and symbol.terminal injective.
 -/
 theorem GI_terminal_halts (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
     (h : GI M (w.map symbol.terminal)) :
@@ -254,17 +229,7 @@ theorem GI_terminal_halts (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
 /-! ### Preservation lemmas -/
 
 /-
-PROBLEM
 Invariant preserved from initial state.
-
-PROVIDED SOLUTION
-grammar_transforms from [nonterminal start] means some rule r with input_N = start was applied (since start is the only nonterminal in [start]). The only rule with input_N = start in tmToGrammar is:
-⟨[], start, [], [nonterminal leftBound, nonterminal genMore, nonterminal rightBound]⟩
-from generationRules.
-
-Since input_L = [] and input_R = [], and the sentential form is [nonterminal start], we have u = [], v = []. So sf' = [nonterminal leftBound, nonterminal genMore, nonterminal rightBound], which equals the generating form with ts = []. Use GI.generating [].
-
-Extract r from htrans, show r.input_N = start (since u ++ input_L ++ [nonterminal input_N] ++ input_R ++ v = [nonterminal start], all lists must be empty or match), then enumerate tmToGrammar rules with input_N = start by unfolding tmToGrammar/generationRules/simulationRules/cleanupRules and using aesop, then compute sf'.
 -/
 theorem GI_preserved_initial (M : Turing.TM0.Machine (Option T) Λ)
     (sf' : List (symbol T (TMtoGrammarNT T Λ)))
@@ -281,15 +246,7 @@ theorem GI_preserved_initial (M : Turing.TM0.Machine (Option T) Λ)
   · unfold cleanupRules at hr; aesop;
 
 /-
-PROBLEM
 No rule with input_N = leftBound has empty input_L and input_R starting with genMore.
-
-PROVIDED SOLUTION
-Unfold tmToGrammar into generationRules ++ simulationRules ++ cleanupRules. Check all rules with input_N = leftBound. These are only in cleanupRules:
-1. ⟨[], leftBound, [.nonterminal rightBound], []⟩ - input_L = [], input_R = [rightBound]
-2. ⟨[], leftBound, [.nonterminal (haltCell orig)], [.nonterminal (haltCell orig)]⟩ for each orig - input_L = [], input_R = [haltCell orig]
-
-No generationRules or simulationRules have input_N = leftBound. Unfold and use aesop.
 -/
 theorem no_leftBound_rule_genMore_context (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
@@ -302,13 +259,7 @@ theorem no_leftBound_rule_genMore_context (M : Turing.TM0.Machine (Option T) Λ)
   unfold generationRules simulationRules cleanupRules at hr; aesop;
 
 /-
-PROBLEM
 No rule with input_N = rightBound has input_L that is a cell or genMore.
-
-PROVIDED SOLUTION
-Unfold tmToGrammar into generationRules ++ simulationRules ++ cleanupRules. Check all rules with input_N = rightBound. These are only in cleanupRules:
-⟨[.nonterminal (haltCell orig)], rightBound, [], [.nonterminal (haltCell orig)]⟩ for each orig
-So input_L = [haltCell orig]. No generation or simulation rules have input_N = rightBound. Unfold and use aesop.
 -/
 theorem no_rightBound_rule_cell_context (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
@@ -319,17 +270,7 @@ theorem no_rightBound_rule_cell_context (M : Turing.TM0.Machine (Option T) Λ)
   unfold generationRules simulationRules cleanupRules at hr; aesop;
 
 /-
-PROBLEM
 All rules with input_N = genMore.
-
-PROVIDED SOLUTION
-Unfold tmToGrammar into generationRules ++ simulationRules ++ cleanupRules. Check all rules with input_N = genMore. These are only in generationRules:
-1. ⟨[], genMore, [], [genMore, cell(some t, some t)]⟩ for each t - case 1
-2. ⟨[], genMore, [], [headCell(default, some t, some t)]⟩ for each t - case 2
-3. ⟨[], genMore, [rightBound], [headCell(default, none, none), rightBound]⟩ - case 3
-
-The start rule ⟨[], start, [], [LB, genMore, RB]⟩ has input_N = start, not genMore.
-No simulation or cleanup rules have input_N = genMore. Unfold and use aesop.
 -/
 theorem genMore_rules_classification (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
@@ -348,11 +289,7 @@ theorem genMore_rules_classification (M : Turing.TM0.Machine (Option T) Λ)
   unfold generationRules simulationRules cleanupRules at hr; aesop;
 
 /-
-PROBLEM
 No nonterminal from {start, headCell, haltCell} appears in the generating form.
-
-PROVIDED SOLUTION
-The list is [nonterminal leftBound, nonterminal genMore] ++ (ts.map fun t => nonterminal (cell (some t) (some t))) ++ [nonterminal rightBound]. By List.mem_append and List.mem_cons, s is either in the first two elements, in the mapped list, or the last element. In the first two, s = nonterminal leftBound or s = nonterminal genMore. In the mapped list, s = nonterminal (cell (some t) (some t)) for some t ∈ ts. In the last, s = nonterminal rightBound.
 -/
 theorem gen_form_no_start_head_halt (ts : List T)
     (s : symbol T (TMtoGrammarNT T Λ))
@@ -366,26 +303,7 @@ theorem gen_form_no_start_head_halt (ts : List T)
   grind
 
 /-
-PROBLEM
 Invariant preserved from generating state.
-
-PROVIDED SOLUTION
-Key approach: First destructure the rule with `obtain ⟨⟨iL, iN, iR, out⟩, hr, u, v, heq, hout⟩ := htrans`. This makes iN a free variable.
-
-Show iN ∈ {leftBound, genMore, cell, rightBound} by membership in the sentential form.
-
-For each case:
-- iN = leftBound: Show the rule must have iL=[], iR=[RB] or [haltCell] (via no_leftBound_rule_genMore_context). Then the second element of LHS (genMore) must match something from iR, but iR starts with RB or haltCell, neither of which is genMore. Get contradiction by showing symbol.nonterminal leftBound ∈ the sentential form after LB position, and it doesn't appear in [genMore, cells, RB]. Use `List.mem` analysis.
-
-- iN = genMore: Use genMore_rules_classification, get three cases. For each, determine u and v from the list equation, and construct the appropriate GI form. Use GI.generating or GI.simulating with initCorresponds.
-
-- iN = cell: impossible by no_cell_rule.
-
-- iN = rightBound: Show rule must have iL=[haltCell orig]. Then haltCell(orig) ∈ sentential form. But [LB,gM,cells,RB] has no haltCell. Contradiction.
-
-IMPORTANT HINT: To show an element is NOT in a list like [gM, cell₁, ..., cellₙ, RB], use the fact that `symbol.nonterminal leftBound ∉ (List.map (fun t => symbol.nonterminal (cell (some t) (some t))) ts ++ [symbol.nonterminal rightBound])` which can be proved by `simp [List.mem_map]`. Similarly for genMore, haltCell etc.
-
-For the genMore subcases, after extracting iL=[], iR=[], the equation heq becomes [LB, gM] ++ cells ++ [RB] = u ++ [gM] ++ v. Case split on u: if u = [] then simp gives contradiction (LB ≠ gM). If u = [LB] then v = cells ++ [RB] and sf' is constructed. If u = [LB, a, ...] then a = gM but gM shouldn't appear in cells ++ [RB] (since cells are all `cell` and the last is RB).
 -/
 theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
     (ts : List T)
@@ -444,11 +362,7 @@ theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
     grind +suggestions
 
 /-
-PROBLEM
 Every symbol in `encodeTwoTrack tc` is a nonterminal of type leftBound, cell, headCell, or rightBound.
-
-PROVIDED SOLUTION
-Unfold encodeTwoTrack. The form is [nonterminal leftBound] ++ (leftCells.map ...) ++ [nonterminal (headCell ...)] ++ (rightCells.map ...) ++ [nonterminal rightBound]. So s is either leftBound, a cell from the left/right cells maps, headCell, or rightBound. Use simp on List.mem_append, List.mem_cons, List.mem_singleton, List.mem_map to decompose membership.
 -/
 theorem encodeTwoTrack_mem_classification (tc : @TwoTrackConfig T Λ)
     (s : symbol T (TMtoGrammarNT T Λ))
@@ -461,11 +375,7 @@ theorem encodeTwoTrack_mem_classification (tc : @TwoTrackConfig T Λ)
   unfold encodeTwoTrack; aesop;
 
 /-
-PROBLEM
 In `encodeTwoTrack tc`, leftBound is the first symbol and is not followed by rightBound.
-
-PROVIDED SOLUTION
-Unfold encodeTwoTrack. The form is [leftBound] ++ leftCells.map(cell) ++ [headCell q o c] ++ rightCells.map(cell) ++ [rightBound]. The second element (index 1) is either cell (if leftCells nonempty) or headCell (if leftCells empty). In either case it's not rightBound. So [leftBound, rightBound] ++ v can't equal encodeTwoTrack tc. Unfold encodeTwoTrack, intro the hypothesis, case-split on tc.leftCells, and derive contradiction from the second element.
 -/
 theorem encodeTwoTrack_second_not_rightBound (tc : @TwoTrackConfig T Λ) :
     ¬ ∃ v, encodeTwoTrack tc =
@@ -474,25 +384,7 @@ theorem encodeTwoTrack_second_not_rightBound (tc : @TwoTrackConfig T Λ) :
   cases tc.leftCells <;> simp +decide
 
 /-
-PROBLEM
 No leftBound rule can fire on encodeTwoTrack tc (the required contexts don't match).
-
-PROVIDED SOLUTION
-After obtaining hL and hR from no_leftBound_rule_genMore_context, and simplifying, we have two cases:
-
-Case r.input_R = [rightBound]: heq says encodeTwoTrack tc = u ++ [leftBound, rightBound] ++ v. Since leftBound only appears once in encodeTwoTrack tc (at position 0), u must be []. So encodeTwoTrack tc = [leftBound, rightBound] ++ v. But encodeTwoTrack_second_not_rightBound says this is impossible.
-
-To show u = []: by encodeTwoTrack_mem_classification, every element of encodeTwoTrack tc is leftBound, cell, headCell, or rightBound. leftBound only appears at position 0 in encodeTwoTrack. If u were nonempty, say u = s :: u', then s ∈ encodeTwoTrack tc and the first element of encodeTwoTrack tc is leftBound, so s would need to be leftBound. But then leftBound would appear twice, which can't happen. So u = [].
-
-Actually simpler: Since encodeTwoTrack tc starts with leftBound (it's [leftBound] ++ ...), and u ++ [leftBound, rightBound] ++ v = encodeTwoTrack tc, we have u ++ [leftBound, rightBound] = List.take (u.length + 2) (encodeTwoTrack tc). If u is nonempty, the first element of u must be leftBound (the first element of encodeTwoTrack). But u ++ [leftBound, rightBound] would then contain two leftBound's. Since leftBound appears only once in encodeTwoTrack tc, and all of u ++ [leftBound, rightBound] ++ v is a rearrangement... hmm, this reasoning is getting complex.
-
-Simplest approach: rcases u with [] or cons. If u = [], then encodeTwoTrack tc = [leftBound, rightBound] ++ v, which contradicts encodeTwoTrack_second_not_rightBound. If u = s :: u', then the first element of encodeTwoTrack tc is s, but also leftBound (from the definition). So s = leftBound... but s is at position 0 and [leftBound] at position |u'| + 1 in the right side. Wait, we have: encodeTwoTrack tc = (s :: u') ++ [leftBound, rightBound] ++ v. The first element is s. But encodeTwoTrack tc starts with leftBound. So s = leftBound. Then leftBound appears at position 0 and position |u'| + 1 in encodeTwoTrack tc. We need to show leftBound appears only at position 0. From encodeTwoTrack_mem_classification, the only occurrence of leftBound is the first. This follows because the leftCells.map gives cells, headCell gives headCell, rightCells.map gives cells, and the last is rightBound. So the elements after position 0 are all cell, headCell, or rightBound, none of which equal leftBound. So |u'| + 1 = 0, contradiction.
-
-So the key fact needed: ∀ s ∈ encodeTwoTrack tc, s = leftBound → (position = 0). Or equivalently: leftBound ∉ List.tail (encodeTwoTrack tc). This should follow from the structure of encodeTwoTrack: tail is cells ++ headCell ++ cells ++ rightBound, and none of these are leftBound.
-
-Use: encodeTwoTrack starts with leftBound. If u nonempty, leftBound appears at two positions. Show leftBound only appears once (at position 0) using the encoding structure.
-
-Case r.input_R = [haltCell orig]: the haltCell approach works via encodeTwoTrack_mem_classification. This case is already proved in the file.
 -/
 theorem no_leftBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ)
@@ -522,11 +414,7 @@ theorem no_leftBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
     simp +decide at this
 
 /-
-PROBLEM
 No rightBound rule can fire on encodeTwoTrack tc.
-
-PROVIDED SOLUTION
-By no_rightBound_rule_cell_context, if r.input_N = rightBound then r.input_L = [nonterminal (haltCell orig)] for some orig. From heq, rightBound appears in encodeTwoTrack tc. In encodeTwoTrack tc, rightBound is the last symbol and is preceded by either a cell or headCell (never haltCell since haltCell doesn't appear in encodeTwoTrack). So r.input_L = [haltCell orig] can't match. Derive contradiction by analyzing the list equation heq: since u ++ [haltCell orig] ++ [rightBound] ++ v matches the end of encodeTwoTrack, the element before rightBound must be haltCell, but in encodeTwoTrack it's cell or headCell.
 -/
 theorem no_rightBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ)
@@ -542,14 +430,10 @@ theorem no_rightBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
   have := encodeTwoTrack_mem_classification tc ( symbol.nonterminal ( haltCell orig ) ) ; simp_all +decide ;
 
 /-
-PROBLEM
 All headCell rules in tmToGrammar are either simulation rules or cleanup rules.
 Specifically, if r.input_N = headCell q orig cur, then either:
 (a) M q cur = some (q', action) and the rule is a simulation rule, or
 (b) M q cur = none and the rule converts headCell to haltCell.
-
-PROVIDED SOLUTION
-Unfold tmToGrammar into generationRules ++ simulationRules ++ cleanupRules. Generation rules have input_N = start or genMore, not headCell. Simulation rules have input_N = headCell q' γ where M q' γ = some (q'', action). Cleanup rules with headCell as input_N have M q' γ = none and output_string = [haltCell orig]. So if r.input_N = headCell q orig cur, it must be from simulation (giving M q cur = some ...) or cleanup (giving M q cur = none with the specified output). Unfold each rule list and use aesop/simp/grind.
 -/
 theorem headCell_rule_classification (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
@@ -565,21 +449,6 @@ theorem headCell_rule_classification (M : Turing.TM0.Machine (Option T) Λ)
   · unfold simulationRules at hr; aesop;
   · unfold cleanupRules at hr; aesop;
 
-/-
-PROVIDED SOLUTION
-Unfold tmToGrammar to get r ∈ generationRules ++ simulationRules ++ cleanupRules.
-
-1. r ∉ generationRules: generation rules have input_N ∈ {start, genMore}. Since hN says r.input_N = headCell q orig cur, contradiction. (Unfold generationRules and check all rules.)
-
-2. r ∉ cleanupRules (with some action): cleanup rules with input_N = headCell are the halt rules which require M q cur = none. But hMqa gives M q cur = some. So contradiction. (Unfold cleanupRules and case split.)
-
-3. r ∈ simulationRules: Unfold simulationRules. It's (allΛ).flatMap fun q₁ => (allOptT).flatMap fun γ₁ => match M q₁ γ₁ with .... Since r.input_N = headCell q orig cur and M q cur = some (q', action), r must come from the branch with q₁ = q, γ₁ = cur, and M q cur = some (q', action). Then case split on action:
-  - write γ': rules are (allOptT).map fun o => ⟨[], headCell q o cur, [], [headCell q' o γ']⟩. Since input_N = headCell q orig cur, we need o = orig. Give left disjunct.
-  - move right: two groups. First: rules with input_R = [cell o' c']. Second: rules with input_R = [rightBound]. Give second or third disjunct.
-  - move left: two groups. First: rules with input_L = [cell o'' c'']. Second: rules with input_L = [leftBound]. Give fourth or fifth disjunct.
-
-Use simp [tmToGrammar] at hr to split, then unfold each rule set, use List.mem_flatMap and List.mem_map to extract the parameters.
--/
 set_option maxHeartbeats 800000 in
 /-- Detailed classification of simulation rules matching headCell q orig cur
 when M q cur = some (q', action). -/
@@ -630,26 +499,7 @@ theorem sim_rule_detailed_classification (M : Turing.TM0.Machine (Option T) Λ)
   · unfold cleanupRules at hr; aesop;
 
 /-
-PROBLEM
 In encodeTwoTrack tc, no cell/leftBound/rightBound/haltCell symbol equals a headCell symbol.
-
-PROVIDED SOLUTION
-The list consists of:
-- symbol.nonterminal leftBound
-- symbols of the form symbol.nonterminal (cell p.1 p.2) from leftCells
-- symbols of the form symbol.nonterminal (cell p.1 p.2) from rightCells
-- symbol.nonterminal rightBound
-
-None of these is symbol.nonterminal (headCell q orig cur) because:
-- leftBound ≠ headCell _ _ _ (different constructors of TMtoGrammarNT)
-- cell _ _ ≠ headCell _ _ _ (different constructors)
-- rightBound ≠ headCell _ _ _ (different constructors)
-
-So for any s in this list, s ≠ symbol.nonterminal (headCell q orig cur) for any q, orig, cur.
-
-Proof: intro q orig cur. Case split on hs (membership). Each case gives a contradiction by constructor discrimination (different TMtoGrammarNT constructors).
-
-Use simp and aesop after unfolding memberships.
 -/
 theorem encodeTwoTrack_no_headCell_outside_head (tc : @TwoTrackConfig T Λ)
     (s : symbol T (TMtoGrammarNT T Λ))
@@ -661,31 +511,8 @@ theorem encodeTwoTrack_no_headCell_outside_head (tc : @TwoTrackConfig T Λ)
   grind
 
 /-
-PROBLEM
 The headCell symbol appears exactly once in encodeTwoTrack tc,
 so the split u ++ [headCell] ++ v is unique.
-
-PROVIDED SOLUTION
-Unfold encodeTwoTrack in heq to get:
-[LB] ++ LC.map cell ++ [headCell(q, o, c)] ++ RC.map cell ++ [RB] = u ++ [headCell(q, o, c)] ++ v
-
-where LC = tc.leftCells, RC = tc.rightCells, q = tc.headState, o = tc.headOrig, c = tc.headCur.
-
-Induction on u, comparing with [LB] ++ LC.map cell ++ [headCell(q, o, c)] ++ RC.map cell ++ [RB]:
-
-Actually, use List.append_inj or reason about the unique position.
-
-The headCell symbol does NOT appear in [LB] ++ LC.map cell (by encodeTwoTrack_no_headCell_outside_head) and does NOT appear in RC.map cell ++ [RB] (same reason).
-
-So the list [LB] ++ LC.map cell ++ [headCell] ++ RC.map cell ++ [RB] contains headCell exactly once, at position 1 + LC.length.
-
-From the equation u ++ [headCell] ++ v = this list, headCell must be at position u.length. So u.length = 1 + LC.length, meaning u = [LB] ++ LC.map cell and v = RC.map cell ++ [RB].
-
-More formally: use the fact that headCell ∉ u implies the first occurrence of headCell in u ++ [headCell] ++ v is at position u.length. And the first occurrence in [LB] ++ LC.map cell ++ [headCell] ++ RC.map cell ++ [RB] is at position 1 + LC.length. So u.length = 1 + LC.length. Then List.append_cancel on the prefix and suffix.
-
-Or: prove by induction on tc.leftCells. At each step, the heads of both sides must match. Since the head of u cannot be headCell (it would need to match LB first, then cells), we can peel off elements.
-
-Or: simpler approach - use List.append_right_cancel or List.append_left_cancel after establishing the lengths match.
 -/
 theorem encodeTwoTrack_unique_split (tc : @TwoTrackConfig T Λ)
     (u v : List (symbol T (TMtoGrammarNT T Λ)))
@@ -698,17 +525,6 @@ theorem encodeTwoTrack_unique_split (tc : @TwoTrackConfig T Λ)
   rcases heq with ( ⟨ rfl, heq ⟩ | ⟨ as', rfl, heq ⟩ ) <;> simp_all +decide [ List.append_assoc ];
   grind +suggestions
 
-/-
-PROVIDED SOLUTION
-From heq (simplified to u ++ [headCell] ++ v = encodeTwoTrack tc since input_L=[], input_R=[]):
-Apply encodeTwoTrack_unique_split to get u = [LB] ++ LC.map cell and v = RC.map cell ++ [RB].
-
-Unfold stepTwoTrack with hMqa (write case): h_step gives tc' = ⟨tc.leftCells, q', tc.headOrig, γ', tc.rightCells⟩.
-
-Goal: u ++ [headCell(q', orig, γ')] ++ v = encodeTwoTrack tc'.
-Substitute u and v: [LB] ++ LC.map cell ++ [headCell(q', orig, γ')] ++ RC.map cell ++ [RB] = encodeTwoTrack tc'.
-Unfold encodeTwoTrack tc': same expression. QED.
--/
 set_option maxHeartbeats 800000 in
 theorem sim_rule_write_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
@@ -724,24 +540,6 @@ theorem sim_rule_write_case (M : Turing.TM0.Machine (Option T) Λ)
   unfold stepTwoTrack at h_step;
   unfold encodeTwoTrack; aesop;
 
-/-
-PROVIDED SOLUTION
-From heq: encodeTwoTrack tc = u ++ [headCell, cell(o', c')] ++ v = u ++ [headCell] ++ ([cell(o', c')] ++ v).
-
-Apply encodeTwoTrack_unique_split (with v' = [cell(o', c')] ++ v) to get:
-u = [LB] ++ LC.map cell
-[cell(o', c')] ++ v = RC.map cell ++ [RB]
-
-From the second equation, RC must start with (o', c'). So RC = (o', c') :: rest for some rest, and v = rest.map cell ++ [RB].
-
-Unfold stepTwoTrack with hMqa (move right) and RC = (o', c') :: rest:
-tc' = ⟨LC ++ [(orig, cur)], q', o', c', rest⟩.
-
-Goal: u ++ [cell(orig, cur), headCell(q', o', c')] ++ v = encodeTwoTrack tc'.
-Substitute: [LB] ++ LC.map cell ++ [cell(orig, cur), headCell(q', o', c')] ++ rest.map cell ++ [RB].
-= [LB] ++ (LC ++ [(orig, cur)]).map cell ++ [headCell(q', o', c')] ++ rest.map cell ++ [RB]
-= encodeTwoTrack tc'. QED.
--/
 set_option maxHeartbeats 800000 in
 theorem sim_rule_move_right_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
@@ -760,23 +558,6 @@ theorem sim_rule_move_right_case (M : Turing.TM0.Machine (Option T) Λ)
   cases h : tc.rightCells <;> simp_all +decide [ encodeTwoTrack ];
   grind
 
-/-
-PROVIDED SOLUTION
-From heq: encodeTwoTrack tc = u ++ [headCell, rightBound] ++ v = u ++ [headCell] ++ ([rightBound] ++ v).
-
-Apply encodeTwoTrack_unique_split (with v' = [rightBound] ++ v) to get:
-u = [LB] ++ LC.map cell
-[rightBound] ++ v = RC.map cell ++ [RB]
-
-From the second equation, rightBound = first element of RC.map cell ++ [RB]. But cell ≠ rightBound (different constructors), so RC must be empty and [rightBound] ++ v = [rightBound], giving v = [].
-
-stepTwoTrack with move right and empty RC: tc' = ⟨LC ++ [(orig, cur)], q', none, none, []⟩.
-
-Goal: u ++ [cell(orig, cur), headCell(q', none, none), rightBound] ++ [] = encodeTwoTrack tc'.
-= [LB] ++ LC.map cell ++ [cell(orig, cur), headCell(q', none, none)] ++ [RB]
-= [LB] ++ (LC ++ [(orig, cur)]).map cell ++ [headCell(q', none, none)] ++ [].map cell ++ [RB]
-= encodeTwoTrack tc'. QED.
--/
 set_option maxHeartbeats 800000 in
 theorem sim_rule_move_right_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
@@ -791,25 +572,6 @@ theorem sim_rule_move_right_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
     unfold stepTwoTrack at h_step; aesop;
   · grind
 
-/-
-PROVIDED SOLUTION
-From heq: encodeTwoTrack tc = u ++ [cell(o'', c''), headCell] ++ v = (u ++ [cell(o'', c'')]) ++ [headCell] ++ v.
-
-Apply encodeTwoTrack_unique_split (with u' = u ++ [cell(o'', c'')]) to get:
-u ++ [cell(o'', c'')] = [LB] ++ LC.map cell
-v = RC.map cell ++ [RB]
-
-From the first equation: LC must be nonempty with last element = (o'', c''). So LC = init ++ [(o'', c'')]. Then u = [LB] ++ init.map cell.
-
-Also LC.reverse = (o'', c'') :: init.reverse.
-
-stepTwoTrack with move left and nonempty LC.reverse: tc' = ⟨init.reverse.reverse, q', o'', c'', (orig, cur) :: RC⟩ = ⟨init, q', o'', c'', (orig, cur) :: RC⟩.
-
-Goal: u ++ [headCell(q', o'', c''), cell(orig, cur)] ++ v = encodeTwoTrack tc'.
-= [LB] ++ init.map cell ++ [headCell(q', o'', c''), cell(orig, cur)] ++ RC.map cell ++ [RB]
-= [LB] ++ init.map cell ++ [headCell(q', o'', c'')] ++ ((orig,cur)::RC).map cell ++ [RB]
-= encodeTwoTrack tc'. QED.
--/
 set_option maxHeartbeats 800000 in
 theorem sim_rule_move_left_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
@@ -827,24 +589,6 @@ theorem sim_rule_move_left_case (M : Turing.TM0.Machine (Option T) Λ)
   · rw [ ← h_step ] ; simp +decide [ h ] ;
     replace this := congr_arg List.reverse this.1; simp_all +decide [ List.reverse_append ] ;
 
-/-
-PROVIDED SOLUTION
-From heq: encodeTwoTrack tc = u ++ [leftBound, headCell] ++ v = (u ++ [leftBound]) ++ [headCell] ++ v.
-
-Apply encodeTwoTrack_unique_split (with u' = u ++ [leftBound]) to get:
-u ++ [leftBound] = [LB] ++ LC.map cell
-v = RC.map cell ++ [RB]
-
-From the first equation: [LB] ++ LC.map cell ends with leftBound. But LC.map cell consists of cell symbols (not leftBound). So LC must be empty and [LB] = u ++ [leftBound], giving u = [].
-
-With LC = []: LC.reverse = [].
-
-stepTwoTrack with move left and empty LC.reverse: tc' = ⟨[], q', none, none, (orig, cur) :: RC⟩.
-
-Goal: [] ++ [leftBound, headCell(q', none, none), cell(orig, cur)] ++ v = encodeTwoTrack tc'.
-= [LB] ++ [].map cell ++ [headCell(q', none, none)] ++ ((orig,cur)::RC).map cell ++ [RB]
-= encodeTwoTrack tc'. QED.
--/
 set_option maxHeartbeats 800000 in
 theorem sim_rule_move_left_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
@@ -893,12 +637,8 @@ theorem sim_rule_gives_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
   · simp only [hL, hR, hout]; exact sim_rule_move_left_boundary_case M tc tc' q' hMqa h_step u v (by simpa [hL, hR] using heq)
 
 /-
-PROBLEM
 When the TM halts (M q γ = none), a transform on encodeTwoTrack tc
 produces a form satisfying the cleanup invariant.
-
-PROVIDED SOLUTION
-We know r.input_N = headCell tc.headState tc.headOrig tc.headCur, M tc.headState tc.headCur = none, and r is in tmToGrammar rules. By headCell_rule_classification, since M q cur = none, we're in case (b): r.input_L = [], r.input_R = [], and r.output_string = [symbol.nonterminal (haltCell tc.headOrig)]. This directly gives the conclusion.
 -/
 theorem halt_rule_gives_cleanup (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ)
@@ -914,11 +654,7 @@ theorem halt_rule_gives_cleanup (M : Turing.TM0.Machine (Option T) Λ)
   aesop
 
 /-
-PROBLEM
 The TM0.eval halts when TM reaches a halting config.
-
-PROVIDED SOLUTION
-TM0.eval M l = Part.map (·.Tape.right₀) (Turing.eval (TM0.step M) (TM0.init l)). So (TM0.eval M l).Dom iff (Turing.eval (TM0.step M) (TM0.init l)).Dom. By definition, Turing.eval f x is defined iff there exists n such that (f^[n] x).isNone. Since hreach gives ReflTransGen path from init to tmCfg, and hhalt gives TM0.step M tmCfg = none, the TM halts. Use Turing.eval properties - specifically Turing.Reaches.eval or similar. The key Mathlib lemma is probably something like Part.Dom.map or that Turing.eval is defined when the iteration reaches a fixed point.
 -/
 theorem tm_eval_dom_of_reaches_halt
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -934,26 +670,7 @@ theorem tm_eval_dom_of_reaches_halt
   grind +suggestions
 
 /-
-PROBLEM
 The terminalContent of encodeTwoTrack tc equals extractInput (twoTrackOriginals tc).
-
-PROVIDED SOLUTION
-Unfold encodeTwoTrack, terminalContent, twoTrackOriginals, extractInput. terminalContent filters using symbolOriginal. For encodeTwoTrack:
-- leftBound: symbolOriginal = none (filtered out)
-- cell (some t) cur: symbolOriginal = some t (kept as t)
-- cell none cur: symbolOriginal = none (filtered out)
-- headCell q (some t) cur: symbolOriginal = some t (kept as t)
-- headCell q none cur: symbolOriginal = none (filtered out)
-- rightBound: symbolOriginal = none (filtered out)
-
-twoTrackOriginals tc = leftCells.map fst ++ [headOrig] ++ rightCells.map fst
-extractInput = filterMap id (keeps only some values)
-
-So both sides filter and keep only the 'orig' values that are Some.
-
-Prove by induction on leftCells and rightCells. Use simp with terminalContent, symbolOriginal, extractInput, twoTrackOriginals, and filterMap.
-
-Alternative: unfold encodeTwoTrack, terminalContent, twoTrackOriginals, extractInput, then show equality by structural computation with simp/aesop and induction on the cell lists.
 -/
 theorem terminalContent_encodeTwoTrack (tc : @TwoTrackConfig T Λ) :
     terminalContent (encodeTwoTrack tc) = extractInput (twoTrackOriginals tc) := by
@@ -972,31 +689,19 @@ theorem terminalContent_encodeTwoTrack (tc : @TwoTrackConfig T Λ) :
     · convert congr_arg ( fun x => ‹T› :: x ) ( ih t_notion l_notionCells l_notionCell ) using 1)
 
 /-
-PROBLEM
 Symbols from encodeTwoTrack tc are never start, genMore, or haltCell.
-
-PROVIDED SOLUTION
-By encodeTwoTrack_mem_classification, s is leftBound, cell, headCell, or rightBound. None of these are start. So s ≠ start.
 -/
 theorem encodeTwoTrack_no_start (tc : @TwoTrackConfig T Λ) (s : symbol T (TMtoGrammarNT T Λ))
     (hs : s ∈ encodeTwoTrack tc) : s ≠ symbol.nonterminal start := by
   contrapose! hs;
   unfold encodeTwoTrack; aesop;
 
-/-
-PROVIDED SOLUTION
-By encodeTwoTrack_mem_classification, s is leftBound, cell, headCell, or rightBound. None of these are genMore. So s ≠ genMore.
--/
 theorem encodeTwoTrack_no_genMore (tc : @TwoTrackConfig T Λ) (s : symbol T (TMtoGrammarNT T Λ))
     (hs : s ∈ encodeTwoTrack tc) : s ≠ symbol.nonterminal genMore := by
   rcases s with ( _ | _ | _ | _ | _ | _ | _ | _ | _ ) <;> (unfold encodeTwoTrack at hs; simp_all +decide [ List.mem_cons ] ;)
 
 /-
-PROBLEM
 TM0.step M tmCfg from TMCorresponds.
-
-PROVIDED SOLUTION
-TM0.step M tmCfg = Option.map ... (M tmCfg.q tmCfg.Tape.head). By hcorr.state_eq: tc.headState = tmCfg.q. By hcorr.head_eq: tc.headCur = tmCfg.Tape.head. So M tmCfg.q tmCfg.Tape.head = M tc.headState tc.headCur = none (by h_Mqc). Hence Option.map ... none = none. So TM0.step M tmCfg = none. Need to destructure tmCfg first: rcases tmCfg with ⟨q, tape⟩, then unfold TM0.step and rewrite.
 -/
 theorem tm_step_of_corresponds
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -1009,16 +714,8 @@ theorem tm_step_of_corresponds
   unfold TM0.step; aesop;
 
 /-
-PROBLEM
 In encodeTwoTrack tc, the only headCell is at a specific position. If we remove it,
 no headCell remains.
-
-PROVIDED SOLUTION
-Since s ∈ u or s ∈ v, and encodeTwoTrack tc = u ++ [headCell ...] ++ v, s must be in encodeTwoTrack tc. By encodeTwoTrack_mem_classification, s is leftBound, cell, headCell (specific), or rightBound. If s = headCell q orig cur, then s = headCell tc.headState tc.headOrig tc.headCur (from classification). But then this headCell appears both in u (or v) and at the middle position. In encodeTwoTrack tc, headCell appears exactly once (at the specific position). Since u ++ [headCell] ++ v = encodeTwoTrack tc, and the headCell in the middle is the only occurrence, s can't be headCell.
-
-More precisely: encodeTwoTrack tc = [leftBound] ++ left_cells.map(cell) ++ [headCell] ++ right_cells.map(cell) ++ [rightBound]. No element in leftCells.map(cell) or rightCells.map(cell) equals headCell (since cell ≠ headCell). leftBound and rightBound also ≠ headCell. So headCell appears exactly at one position. From heq, u ++ [headCell] ++ v = encodeTwoTrack tc. If s ∈ u ++ v and s = headCell q orig cur, then s appears at a position in encodeTwoTrack tc that is not the middle headCell position. But no such position has headCell. Contradiction.
-
-Approach: Show s ∈ encodeTwoTrack tc from heq and hs. Then use encodeTwoTrack_mem_classification. For each case except headCell, directly prove s ≠ headCell q orig cur. For the headCell case (s = headCell tc.headState tc.headOrig tc.headCur), show that this element only appears at the specific position in encodeTwoTrack, which contradicts s ∈ u ∨ s ∈ v.
 -/
 theorem encodeTwoTrack_no_headCell_in_parts (tc : @TwoTrackConfig T Λ)
     (u v : List (symbol T (TMtoGrammarNT T Λ)))
@@ -1051,11 +748,7 @@ theorem encodeTwoTrack_no_headCell_in_parts (tc : @TwoTrackConfig T Λ)
           grind
 
 /-
-PROBLEM
 TM0.step when M gives some action.
-
-PROVIDED SOLUTION
-By hcorr.state_eq: tc.headState = tmCfg.q. By hcorr.head_eq: tc.headCur = tmCfg.Tape.head. So M tmCfg.q tmCfg.Tape.head = M tc.headState tc.headCur = some (q', action). TM0.step M tmCfg = Option.map ... (M tmCfg.q tmCfg.Tape.head) = Option.map ... (some (q', action)) = some (...). Destructure tmCfg with rcases tmCfg with ⟨q, tape⟩, unfold TM0.step, rewrite using hcorr, and conclude.
 -/
 theorem tm_step_some_of_corresponds
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -1067,40 +760,6 @@ theorem tm_step_some_of_corresponds
   unfold TM0.step;
   have := hcorr.state_eq; have := hcorr.head_eq; aesop;
 
-/-
-PROVIDED SOLUTION
-Two remaining cases:
-
-CASE 1 (TM halts, line ~753): Goal: GI M (u ++ r.output_string ++ v).
-Context: hL=[], hR=[], hO=r.output_string=[haltCell tc.headOrig], hN=r.input_N=headCell, h_Mqc: M tc.headState tc.headCur = none.
-From heq with hL,hR,hN: encodeTwoTrack tc = u ++ [headCell ...] ++ v.
-
-Subst hO. Apply GI.cleanup (u ++ [haltCell tc.headOrig] ++ v) (extractInput (twoTrackOriginals tc)):
-1. hhalt: tm_eval_dom_of_reaches_halt M _ tmCfg hreach (tm_step_of_corresponds M tc tmCfg hcorr h_Mqc)
-2. hcontent: terminalContent is preserved. Use terminalContent_preserved (need the grammar_transforms witness) and terminalContent_encodeTwoTrack. Or compute directly: since the rule replaces headCell with haltCell, and both have the same symbolOriginal (both give tc.headOrig), terminalContent is preserved.
-3. hhas_nt: haltCell is nonterminal
-4. hno_start: use encodeTwoTrack_no_start for s ∈ u ++ v, and haltCell ≠ start
-5. hno_genMore: similar
-6. hno_headCell: use encodeTwoTrack_no_headCell_in_parts for s ∈ u ∨ s ∈ v, and haltCell ≠ headCell
-
-CASE 2 (TM continues, line ~757): Goal: GI M (encodeTwoTrack tc').
-Context: hstep : stepTwoTrack M tc = some tc', h_Mqc : M tc.headState tc.headCur = some (q', action).
-
-Use tm_step_some_of_corresponds to get ⟨tmCfg', h_tm_step⟩.
-Use corresponds_step_some M tc tmCfg tmCfg' hcorr h_tm_step to get ⟨tc'', hstep'', hcorr''⟩.
-Show tc' = tc'' by Option.some.inj (hstep.symm.trans hstep'').
-Use stepTwoTrack_preserves_extractInput M tc tc' hstep to rewrite.
-Apply GI.simulating tc' tmCfg' hcorr'' (Relation.ReflTransGen.tail hreach h_tm_step).
-
-The difficulty is in the "TM continues: simulation" case after obtaining tc' from sim_rule_gives_encodeTwoTrack and rewriting the goal to GI M (encodeTwoTrack tc').
-
-To prove GI M (encodeTwoTrack tc'), use GI.simulating with appropriate arguments:
-1. Use tm_step_some_of_corresponds M tc tmCfg hcorr q' action h_Mqc to get ⟨tmCfg', h_tm_step⟩
-2. Use corresponds_step_some M tc tmCfg tmCfg' hcorr h_tm_step to get ⟨tc'', hstep'', hcorr''⟩
-3. Show tc' = tc'' by Option.some.inj (hstep.symm.trans hstep'')
-4. Use stepTwoTrack_preserves_extractInput M tc tc' hstep to rewrite extractInput
-5. Apply GI.simulating tc' tmCfg' hcorr'' with the reach extended by Relation.ReflTransGen.tail hreach h_tm_step
--/
 set_option maxHeartbeats 1600000 in
 /-- Invariant preserved from simulating state. -/
 theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
@@ -1184,21 +843,7 @@ theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
     exact absurd (no_rightBound_on_encodeTwoTrack M tc r hr hN u v heq) id
 
 /-
-PROBLEM
 Invariant preserved from cleanup state.
-
-PROVIDED SOLUTION
-We need to show that after one grammar transform from a cleanup state, we remain in GI.
-
-Given: sf has no start, genMore, or headCell nonterminals, has at least one nonterminal, terminalContent sf = w, and TM halts on w. We take sf → sf'.
-
-First, terminalContent sf' = w (by terminalContent_preserved, since sf has no start or genMore).
-
-Now check if sf' has any nonterminals:
-- If yes: use GI.cleanup with terminalContent sf' = w and hhalt. Need to show sf' has no start, genMore, or headCell. Since sf has none of these, and the applicable rules (haltCell, leftBound, rightBound rules from cleanup, and cell propagation rules) don't introduce start, genMore, or headCell. This needs checking all rules that can fire (input_N is haltCell, leftBound, or rightBound - since no start, genMore, headCell, or cell input_N).
-- If no: sf' is all terminals. Since terminalContent sf' = w, and sf' is all terminals, sf' = w.map terminal. Use GI.done with hhalt.
-
-For showing sf' has no start/genMore/headCell: unfold the rules and check outputs. No cleanup rule produces start, genMore, or headCell in its output. The simulation rules could produce headCell but those have input_N = headCell which is excluded from the cleanup form. So only cleanup rules fire, and they don't produce start/genMore/headCell.
 -/
 theorem GI_preserved_cleanup (M : Turing.TM0.Machine (Option T) Λ)
     (sf sf' : List (symbol T (TMtoGrammarNT T Λ)))

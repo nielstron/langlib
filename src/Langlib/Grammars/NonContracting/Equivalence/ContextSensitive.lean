@@ -189,11 +189,7 @@ noncomputable def csg_of_noncontracting (g : grammar T) (hg : grammar_noncontrac
 /-! ### Helper lemmas for language equivalence -/
 
 /-
-PROBLEM
 CS derivation with additional context (prefix and suffix).
-
-PROVIDED SOLUTION
-By induction on the CS_derives derivation h. Base case (refl): trivial. Step case (tail): if CS_derives g w₁ w₃ and CS_transforms g w₃ w₂, by IH CS_derives g (p ++ w₁ ++ s) (p ++ w₃ ++ s). For the single transform CS_transforms g w₃ w₂, we have r, u, v with w₃ = u ++ CL ++ [nt A] ++ CR ++ v and w₂ = u ++ CL ++ OS ++ CR ++ v. Then p ++ w₃ ++ s = (p ++ u) ++ CL ++ [nt A] ++ CR ++ (v ++ s), and p ++ w₂ ++ s = (p ++ u) ++ CL ++ OS ++ CR ++ (v ++ s). So CS_transforms g (p ++ w₃ ++ s) (p ++ w₂ ++ s) with u' = p ++ u, v' = v ++ s. Then CS_deri_of_deri_tran gives the result.
 -/
 private lemma CS_deri_with_context {g : CS_grammar T}
     {w₁ w₂ : List (symbol T g.nt)}
@@ -207,25 +203,7 @@ private lemma CS_deri_with_context {g : CS_grammar T}
     exact h₃.tail ⟨ r, p ++ u, v ++ s, hr, by simp +decide [ ← List.append_assoc ], by simp +decide [ ← List.append_assoc ] ⟩
 
 /-
-PROBLEM
 Un-lifting a single terminal in the CS grammar.
-
-PROVIDED SOLUTION
-We need to show CS_transforms (csg_of_noncontracting g hg) (u ++ [nt (inr (inl t))] ++ v) (u ++ [terminal t] ++ v).
-
-Construct the witness: use the CS rule { context_left := [], input_nonterminal := .inr (.inl t), context_right := [], output_string := [.terminal t] }, with u and v as the prefix and suffix.
-
-This rule is in (csg_of_noncontracting g hg).rules because:
-- t ∈ nc_grammarTerminals g (by ht)
-- So the rule is in nc_unliftRules g (by definition, it's in the map)
-- nc_unliftRules g is a prefix of nc_allRules g
-- nc_allRules g = (csg_of_noncontracting g hg).rules
-
-The matching:
-- u ++ [] ++ [nt (inr (inl t))] ++ [] ++ v = u ++ [nt (inr (inl t))] ++ v ✓
-- u ++ [] ++ [terminal t] ++ [] ++ v = u ++ [terminal t] ++ v ✓
-
-Use exists with the rule, u, and v.
 -/
 private lemma nc_unlift_one (g : grammar T) (hg : grammar_noncontracting g) (t : T)
     (ht : t ∈ nc_grammarTerminals g)
@@ -238,30 +216,7 @@ private lemma nc_unlift_one (g : grammar T) (hg : grammar_noncontracting g) (t :
   exact List.mem_append_left _ ( List.mem_map.mpr ⟨ t, ht, rfl ⟩ )
 
 /-
-PROBLEM
 Un-lifting all terminals in a list.
-
-PROVIDED SOLUTION
-By induction on w.
-
-Base case (w = []): Both sides are [], so CS_deri_self.
-
-Step case (w = t :: w'):
-The source is [nt (inr (inl t))] ++ (w'.map (fun t => nt (inr (inl t)))).
-The target is [terminal t] ++ (w'.map terminal).
-
-Step 1: Apply nc_unlift_one with u = [] and v = w'.map (fun t => nt (inr (inl t))) to get:
-CS_transforms g' ([nt (inr (inl t))] ++ v) ([terminal t] ++ v)
-where v = w'.map (fun t => nt (inr (inl t)))
-
-Step 2: By IH (with hw restricted to w'), CS_derives g' (w'.map (fun t => nt (inr (inl t)))) (w'.map terminal).
-
-Step 3: Use CS_deri_with_context (or grammar_deri_with_prefix) with prefix [terminal t] to get:
-CS_derives g' ([terminal t] ++ w'.map (fun t => nt (inr (inl t)))) ([terminal t] ++ w'.map terminal)
-
-Step 4: Combine steps 1 and 3 by transitivity.
-
-Use hw t (List.mem_cons_self t w') for the base terminal t, and (fun t' ht' => hw t' (List.mem_cons_of_mem t ht')) for the IH.
 -/
 private lemma nc_unlift_all (g : grammar T) (hg : grammar_noncontracting g) (w : List T)
     (hw : ∀ t ∈ w, t ∈ nc_grammarTerminals g) :
@@ -286,11 +241,7 @@ private lemma nc_unlift_all (g : grammar T) (hg : grammar_noncontracting g) (w :
     exact .single h_transform |> Relation.ReflTransGen.trans <| h_ind
 
 /-
-PROBLEM
 A terminal appearing in a rule's output is in nc_grammarTerminals.
-
-PROVIDED SOLUTION
-By definition, nc_grammarTerminals g = g.rules.flatMap (fun r => nc_collectTerminals (r.input_L ++ r.input_R ++ r.output_string)). Since r ∈ g.rules, the contribution of r is included. We need t ∈ nc_collectTerminals (r.input_L ++ r.input_R ++ r.output_string). Since terminal t ∈ r.output_string, and r.output_string is a suffix of r.input_L ++ r.input_R ++ r.output_string, terminal t appears in the combined list. Then nc_collectTerminals extracts t from terminal t. So t ∈ nc_collectTerminals (r.input_L ++ r.input_R ++ r.output_string), and by flatMap membership, t ∈ nc_grammarTerminals g.
 -/
 private lemma terminal_in_output_mem_grammarTerminals (g : grammar T)
     (r : grule T g.nt) (hr : r ∈ g.rules) (t : T)
@@ -306,17 +257,7 @@ private lemma terminal_in_output_mem_grammarTerminals (g : grammar T)
   aesop
 
 /-
-PROBLEM
 A simulation rule for rule index ri is in the CS grammar's rules.
-
-PROVIDED SOLUTION
-The rules of csg_of_noncontracting g hg are nc_allRules g = nc_unliftRules g ++ ((List.range g.rules.length).zip g.rules).flatMap (fun ⟨i, r⟩ => nc_simRules i r).
-
-cr ∈ nc_simRules ri r, and (ri, r) ∈ (List.range g.rules.length).zip g.rules (since ri < g.rules.length and g.rules[ri] = r).
-
-So cr is in the flatMap part, hence in nc_allRules g, hence in (csg_of_noncontracting g hg).rules.
-
-Use List.mem_append_right, List.mem_flatMap, and the fact that (ri, r) ∈ (List.range g.rules.length).zip g.rules.
 -/
 private lemma nc_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length)
@@ -435,15 +376,7 @@ private lemma nc_sim_one_transform (g : grammar T) (hg : grammar_noncontracting 
   convert hctx using 1 <;> simp [List.append_assoc]
 
 /-
-PROBLEM
 Multi-step grammar derivation lifts to CS derivation.
-
-PROVIDED SOLUTION
-By induction on the grammar_derives derivation h.
-
-Base case (refl): CS_deri_self.
-
-Step case (tail): grammar_derives g w₁ w₃ and grammar_transforms g w₃ w₂. By IH, CS_derives g' (w₁.map nc_liftSym) (w₃.map nc_liftSym). By nc_sim_one_transform, CS_derives g' (w₃.map nc_liftSym) (w₂.map nc_liftSym). By CS_deri_of_deri_deri (transitivity), CS_derives g' (w₁.map nc_liftSym) (w₂.map nc_liftSym).
 -/
 private lemma nc_sim_derives (g : grammar T) (hg : grammar_noncontracting g)
     {w₁ w₂ : List (symbol T g.nt)} (h : grammar_derives g w₁ w₂) :
@@ -454,23 +387,7 @@ private lemma nc_sim_derives (g : grammar T) (hg : grammar_noncontracting g)
   · exact CS_deri_of_deri_deri ‹_› ( nc_sim_one_transform g hg ‹_› )
 
 /-
-PROBLEM
 Any terminal in a word derived by the grammar appears in nc_grammarTerminals.
-
-PROVIDED SOLUTION
-We need to show that any terminal t appearing in a word w derived by the grammar is in nc_grammarTerminals g.
-
-By definition, grammar_language g w means grammar_derives g [nt g.initial] (map terminal w). We need to show t ∈ nc_grammarTerminals g.
-
-Proceed by induction on the derivation. The initial sentential form [nt g.initial] has no terminals. Each grammar_transforms step introduces terminals only from rule outputs. By terminal_in_output_mem_grammarTerminals, any terminal in a rule output is in nc_grammarTerminals.
-
-More precisely: induct on the derivation grammar_derives g [nt g.initial] (map terminal w). Show that every terminal symbol in the sentential form at each step is in nc_grammarTerminals. For the initial form, vacuously true (no terminals). For each step using rule r at position u, v: the new form is u ++ r.output_string ++ v. Terminals in u and v are inherited from the previous form (by IH, they're in nc_grammarTerminals). Terminals in r.output_string are in nc_grammarTerminals by terminal_in_output_mem_grammarTerminals. Since the final form map terminal w has all its symbols as terminals, every t ∈ w gives symbol.terminal t in the final form, hence t ∈ nc_grammarTerminals.
-
-Actually, a simpler approach: since map terminal w is derived, there must be some step that introduces each terminal t. That step uses a rule r with terminal t ∈ r.output_string, so t ∈ nc_grammarTerminals by terminal_in_output_mem_grammarTerminals.
-
-First prove a helper: for any grammar_derives g w₁ w₂, if all terminals in w₁ are in nc_grammarTerminals g, then all terminals in w₂ are also in nc_grammarTerminals g. This is by induction on the derivation. The base case is trivial. The step case: grammar_transforms g mid w₂ gives mid = u ++ L ++ [nt A] ++ R ++ v and w₂ = u ++ out ++ v. A terminal in w₂ is either in u (inherited from mid), in out (by terminal_in_output_mem_grammarTerminals), or in v (inherited from mid). Terminals in u and v are also in mid, so by IH they're in nc_grammarTerminals.
-
-Then apply this helper with w₁ = [nt g.initial] (which has no terminals, so the base condition is vacuously true) and w₂ = map terminal w.
 -/
 private lemma nc_derived_terminal_in_grammarTerminals (g : grammar T)
     (hg : grammar_noncontracting g)
@@ -486,24 +403,7 @@ private lemma nc_derived_terminal_in_grammarTerminals (g : grammar T)
   specialize @h_ind [ symbol.nonterminal g.initial ] ( List.map symbol.terminal w ) hw ; aesop
 
 /-
-PROBLEM
 Forward direction: grammar_language g ⊆ CS_language (csg_of_noncontracting g hg).
-
-PROVIDED SOLUTION
-Given hw : w ∈ grammar_language g, which means grammar_derives g [nt g.initial] (map terminal w).
-
-Step 1: By nc_sim_derives, CS_derives g' (map nc_liftSym [nt g.initial]) (map nc_liftSym (map terminal w)).
-  Note: map nc_liftSym [nt g.initial] = [nt (inl g.initial)] = [nt g'.initial]
-  And: map nc_liftSym (map terminal w) = map (fun t => nt (inr (inl t))) w
-
-Step 2: By nc_unlift_all (with hw' showing all terminals in w are in nc_grammarTerminals, which follows from nc_derived_terminal_in_grammarTerminals),
-  CS_derives g' (map (fun t => nt (inr (inl t))) w) (map terminal w).
-
-Step 3: By CS_deri_of_deri_deri (transitivity), CS_derives g' [nt g'.initial] (map terminal w).
-  This is exactly w ∈ CS_language g'.
-
-Key: show map nc_liftSym [nt g.initial] = [nt (Sum.inl g.initial)] by unfolding nc_liftSym and nc_symToNT.
-And map nc_liftSym (map terminal w) = map (fun t => nt (Sum.inr (Sum.inl t))) w by unfolding nc_liftSym and nc_symToNT on terminal.
 -/
 private lemma nc_forward (g : grammar T) (hg : grammar_noncontracting g)
     (w : List T) (hw : w ∈ grammar_language g) :
@@ -579,30 +479,10 @@ private lemma nc_proj_terminal (g : grammar T) (w : List T) :
   simp [nc_proj, nc_proj_sym, List.map_map]
 
 /-
-PROBLEM
 From a clean form, only un-lifting and direct simulation rules can produce another
     clean form. Phase 1 rules always introduce aux nonterminals, and phase 2/phase 2_rest
     rules require aux nonterminals as input.
     This lemma shows: if both forms are clean, the projection gives a grammar derivation.
-
-PROVIDED SOLUTION
-From a clean form s₁ (no aux nonterminals inr(inr _)), only certain CS rules of csg_of_noncontracting can produce another clean form s₂:
-
-1. **Un-lifting rules**: These replace nonterminal(inr(inl t)) with terminal t. Under nc_proj, both map to terminal t, so nc_proj g s₁ = nc_proj g s₂. Use grammar_deri_self.
-
-2. **Direct simulation rules** (n ≤ 1 case): These replace nonterminal(inl A) with out.map nc_liftSym. The output only contains nc_liftSym symbols, which are nonterminal(inl _) or nonterminal(inr(inl _)), so s₂ is clean. Under nc_proj, this changes [nonterminal A] to out (since nc_proj_sym ∘ nc_liftSym = id by nc_proj_liftSym). This corresponds to a grammar_transforms step with the original rule.
-
-3. **Phase 1 rules**: These always produce nc_aux(ri,k) = nonterminal(inr(inr(ri,k))) in the output, which is an aux nonterminal. So s₂ would NOT be clean. Contradiction with h₂.
-
-4. **Phase 2_0 rules**: The context_left contains (range(n-1)).map(nc_aux ri), which are aux nonterminals. For this rule to apply to s₁, these aux nonterminals must appear in s₁. But s₁ is clean (no aux). Contradiction with h₁.
-
-5. **Phase 2_rest rules**: The input_nonterminal is inr(inr(ri,j)), an aux nonterminal. For this rule to apply to s₁, this nonterminal must appear in s₁. But s₁ is clean. Contradiction with h₁.
-
-So only cases 1 and 2 are possible. In case 1, the projections are equal (grammar_deri_self). In case 2, the projection gives a grammar_transforms step.
-
-Key approach: Unfold CS_transforms to get the rule r ∈ (csg_of_noncontracting g hg).rules. The rules are nc_allRules g = nc_unliftRules g ++ simulation_rules. Analyze which rules can apply to a clean form and produce a clean form. Use nc_is_clean hypotheses to derive contradictions for phase 1/2 rules.
-
-For case 2 (direct simulation), construct the grammar_transforms witness: use the original grammar rule r' with input_L = [], input_N = A, input_R = [], output_string = out. The projected form gives u' = nc_proj g u, v' = nc_proj g v. The grammar_transforms step is: nc_proj g s₁ = u' ++ [nonterminal A] ++ v' → u' ++ out ++ v' = nc_proj g s₂.
 -/
 private lemma nc_clean_step_grammar_derives (g : grammar T) (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_NT g))}
@@ -636,20 +516,12 @@ private inductive CS_derives_n (g : CS_grammar T) : ℕ → List (symbol T g.nt)
   | zero : ∀ s, CS_derives_n g 0 s s
   | step : ∀ {n s₁ s₂ s₃}, CS_transforms g s₁ s₂ → CS_derives_n g n s₂ s₃ → CS_derives_n g (n+1) s₁ s₃
 
-/-
-PROVIDED SOLUTION
-By induction on the CS_derives_n proof. Case zero: CS_deri_self. Case step: use CS_deri_of_tran_deri to combine the single step with the inductive hypothesis.
--/
 private lemma CS_derives_n_to_derives {g : CS_grammar T} {n : ℕ} {s₁ s₂ : List (symbol T g.nt)}
     (h : CS_derives_n g n s₁ s₂) : CS_derives g s₁ s₂ := by
   induction h;
   · exact CS_deri_self;
   · exact?
 
-/-
-PROVIDED SOLUTION
-By induction on h (ReflTransGen). Case refl: use ⟨0, CS_derives_n.zero s₁⟩. Case tail: obtain ⟨n, hn⟩ from IH, then use ⟨n+1, CS_derives_n.step (the step) hn⟩. Wait, ReflTransGen.tail gives h₁₂ : ReflTransGen R s₁ s₂ and h₂₃ : R s₂ s₃. The IH is for h₁₂. So we get ⟨n, hn⟩ from IH. Then CS_derives_n n s₁ s₂ and CS_transforms s₂ s₃. We need CS_derives_n for s₁ to s₃. But CS_derives_n.step prepends a step, not appends. So we need to show CS_derives_n (n+1) s₁ s₃ from CS_derives_n n s₁ s₂ and CS_transforms s₂ s₃. Define a helper by induction on CS_derives_n that appends a step.
--/
 private lemma CS_derives_to_derives_n {g : CS_grammar T} {s₁ s₂ : List (symbol T g.nt)}
     (h : CS_derives g s₁ s₂) : ∃ n, CS_derives_n g n s₁ s₂ := by
   have h_ind : ∀ {s₁ s₂ : List (symbol T g.nt)}, CS_derives g s₁ s₂ → ∃ n, CS_derives_n g n s₁ s₂ := by
@@ -667,11 +539,7 @@ private lemma CS_derives_to_derives_n {g : CS_grammar T} {s₁ s₂ : List (symb
   exact h_ind h
 
 /-
-PROBLEM
 Tail decomposition: CS_derives_n can be split from the end.
-
-PROVIDED SOLUTION
-By induction on h : CS_derives_n g (n+1) s₁ s₂. The only constructor that can produce n+1 is CS_derives_n.step. So h = step h_step h_rest where h_step : CS_transforms g s₁ s_mid, h_rest : CS_derives_n g n s_mid s₂. Now induct on h_rest: if n = 0, h_rest is zero, so s_mid = s₂, and s_last = s₁ with CS_derives_n 0 s₁ s₁ and CS_transforms s₁ s₂. If n = k+1, h_rest = step h_step' h_rest'. By IH on h_rest (which has n steps, one less), get s_last' with CS_derives_n k s_mid s_last' and CS_transforms s_last' s₂. Then s_last = s_last' with CS_derives_n (k+1) s₁ s_last' (using step h_step (CS_derives_n k part)) and CS_transforms s_last' s₂.
 -/
 private lemma CS_derives_n_tail {g : CS_grammar T} {n : ℕ} {s₁ s₂ : List (symbol T g.nt)}
     (h : CS_derives_n g (n+1) s₁ s₂) :
@@ -685,11 +553,7 @@ private lemma CS_derives_n_tail {g : CS_grammar T} {n : ℕ} {s₁ s₂ : List (
     obtain ⟨ s_last, hs_last₁, hs_last₂ ⟩ := ih ‹_›; exact ⟨ s_last, by exact?, hs_last₂ ⟩ ;
 
 /-
-PROBLEM
 Split CS_derives_n at any point.
-
-PROVIDED SOLUTION
-By induction on m. Base case m = 0: s₂ = s₁, use ⟨s₁, CS_derives_n.zero s₁, h⟩. Inductive case m+1: h : CS_derives_n g ((m+1)+n) s₁ s₃. This is CS_derives_n.step h_step h_rest where h_step : CS_transforms s₁ s_mid, h_rest : CS_derives_n g (m+n) s_mid s₃. By IH on h_rest: ∃ s₂, CS_derives_n g m s_mid s₂ ∧ CS_derives_n g n s₂ s₃. Prepend h_step: CS_derives_n g (m+1) s₁ s₂ and CS_derives_n g n s₂ s₃.
 -/
 private lemma CS_derives_n_split {g : CS_grammar T} {m n : ℕ} {s₁ s₃ : List (symbol T g.nt)}
     (h : CS_derives_n g (m + n) s₁ s₃) :

@@ -126,42 +126,7 @@ private theorem blockLangDFA_eval_none (w : List (T ⊕ T)) :
     cases a <;> exact ih
 
 /-
-PROBLEM
 Correctness: the block-language DFA accepts exactly `blockLang D.accepts`.
-
-PROVIDED SOLUTION
-The proof has two directions.
-
-(←) Given u, v with w = u.map inl ++ v.map inr and v ∈ D.accepts:
-The DFA processes u.map inl first (staying in phase 1 with D.start) via blockLangDFA_eval_inl.
-Then processes v.map inr. If v = [], the DFA stays at some (false, D.start) and D.start ∈ D.accept (since v=[] ∈ D.accepts means D.eval [] = D.start ∈ D.accept). If v ≠ [], use blockLangDFA_eval_inr_from_phase1 to get some (true, D.evalFrom D.start v), and D.evalFrom D.start v = D.eval v ∈ D.accept.
-
-(→) Given that the DFA accepts w, we need to find u, v with w = u.map inl ++ v.map inr and v ∈ D.accepts.
-The key insight: consider the DFA's phase transitions. The DFA starts in phase 1. While reading inl elements, it stays in phase 1. On the first inr element, it moves to phase 2. After that, any inl causes death (none), and only inr keeps it alive. So if the DFA accepts, w must have the form: some inl elements, then some inr elements.
-
-More precisely, decompose w into its maximal inl-prefix and remaining suffix. The suffix must all be inr (otherwise the DFA dies). We can extract u (the inl-tagged letters) and v (the inr-tagged letters), giving w = u.map inl ++ v.map inr. The final DFA state tells us D.eval v ∈ D.accept, so v ∈ D.accepts.
-
-For the forward direction, proceed by induction on w. Track the DFA state through the computation. Use a helper that characterizes what words are accepted from each state:
-- From some (false, q): accepted words are u.map inl ++ v.map inr where D.evalFrom q v ∈ D.accept (or v = [] and q ∈ D.accept)
-- From some (true, q): accepted words are v.map inr where D.evalFrom q v ∈ D.accept
-- From none: no words accepted
-
-Prove this characterization by induction on the word, then apply it to the start state.
-
-The forward direction is already proved. For the backward direction:
-Given u, v with w = u.map inl ++ v.map inr and v ∈ D.accepts (i.e., D.evalFrom D.start v ∈ D.accept).
-
-The goal is to show (blockLangDFA D).eval (u.map inl ++ v.map inr) ∈ (blockLangDFA D).accept.
-
-Unfold DFA.eval as DFA.evalFrom (blockLangDFA D).start (u.map inl ++ v.map inr).
-Use DFA.evalFrom_of_append to split: evalFrom start (u.map inl ++ v.map inr) = evalFrom (evalFrom start (u.map inl)) (v.map inr).
-By blockLangDFA_eval_inl, evalFrom (some (false, D.start)) (u.map inl) = some (false, D.start).
-So the state after u.map inl is some (false, D.start).
-Then for v.map inr from phase 1:
-- If v = [], then evalFrom (some (false, D.start)) [] = some (false, D.start), and we need D.start ∈ D.accept. Since v = [], D.evalFrom D.start [] = D.start, and hv says D.start ∈ D.accept. The accept set includes some (false, D.start) since D.start ∈ D.accept.
-- If v ≠ [], use blockLangDFA_eval_inr_from_phase1 to get some (true, D.evalFrom D.start v), and hv gives D.evalFrom D.start v ∈ D.accept, which means some (true, D.evalFrom D.start v) ∈ accept.
-
-Key: use `show` or `change` to keep the goal in terms of blockLangDFA D rather than expanding the structure. Or just use `unfold blockLangDFA` strategically after rewriting.
 -/
 theorem blockLangDFA_accepts :
     (blockLangDFA D).accepts = blockLang D.accepts := by
@@ -240,80 +205,12 @@ theorem is_CF_eraseInr (x : T ⊕ T) : is_CF (eraseInr x) := by
   | inr a => exact (is_CF_iff_isContextFree).mpr (isContextFree_singleton [])
 
 /-
-PROBLEM
 ═══════════════════════════════════════════════════════════════════
 § 5  Key set equality
 ═══════════════════════════════════════════════════════════════════
 
 The composition of tag-substitution, block-language intersection, and erasure
     equals the right quotient.
-
-PROVIDED SOLUTION
-Prove the set equality ((L.subst tagSubst) ⊓ blockLang R).subst eraseInr = rightQuotient L R.
-
-(→) Suppose w ∈ LHS. Then ∃ w' with:
-  - w' ∈ L.subst tagSubst: ∃ u ∈ L, w' ∈ (u.map tagSubst).prod
-  - w' ∈ blockLang R: ∃ p q, w' = p.map Sum.inl ++ q.map Sum.inr ∧ q ∈ R
-  - w ∈ (w'.map eraseInr).prod
-
-From w' ∈ (u.map tagSubst).prod and the structure of tagSubst (each tagSubst a = {[inl a], [inr a]}),
-w' has the same length as u, and each w'[i] is either Sum.inl u[i] or Sum.inr u[i].
-Combined with w' = p.map inl ++ q.map inr, we get that p ++ q = u (the underlying letters).
-So u = p ++ q, with p ++ q ∈ L and q ∈ R.
-
-Applying eraseInr: eraseInr(inl a) = {[a]}, eraseInr(inr _) = {[]}.
-So (w'.map eraseInr).prod for w' = p.map inl ++ q.map inr:
-  = ((p.map inl).map eraseInr ++ (q.map inr).map eraseInr).prod
-  = (p.map (fun a => {[a]}) ++ q.map (fun _ => {[]})).prod
-The inl part contributes p, the inr part contributes [].
-So w = p. And p ++ q ∈ L, q ∈ R, so p ∈ rightQuotient L R.
-
-(←) Suppose w ∈ rightQuotient L R. Then ∃ v ∈ R, w ++ v ∈ L.
-Construct w' = w.map Sum.inl ++ v.map Sum.inr.
-- w' ∈ L.subst tagSubst: take u = w ++ v ∈ L. Then w' ∈ (u.map tagSubst).prod by choosing inl for positions in w and inr for positions in v.
-- w' ∈ blockLang R: by definition with p = w, q = v.
-- w ∈ (w'.map eraseInr).prod: the inl part gives w, the inr part gives [].
-
-The key technical challenge is working with List.prod for products of singleton languages.
-Use the fact that for singletons, (ws.map (fun a => {[a]})).prod = {ws} and (ws.map (fun _ => {[]})).prod = {[]}.
-
-A crucial helper: if each f(i) is a singleton language {[g(i)]}, then (xs.map f).prod = {xs.map g'}. Similarly for the erasing case.
-
-The forward direction is already proved. For the backward direction:
-
-Given v ∈ R and w ++ v ∈ L, construct w' = w.map Sum.inl ++ v.map Sum.inr.
-
-Need to show ∃ w', (∃ u ∈ L, w' ∈ (u.map tagSubst).prod) ∧ (∃ p q, w' = p.map inl ++ q.map inr ∧ q ∈ R) ∧ w ∈ (w'.map eraseInr).prod.
-
-1. w' ∈ blockLang R: take p = w, q = v. w' = w.map inl ++ v.map inr and v ∈ R. ✓
-
-2. w' ∈ L.subst tagSubst: take u = w ++ v ∈ L. Need w' ∈ (u.map tagSubst).prod.
-   u.map tagSubst = (w ++ v).map tagSubst = w.map tagSubst ++ v.map tagSubst.
-   The product ((w ++ v).map tagSubst).prod = (w.map tagSubst).prod * (v.map tagSubst).prod (by List.prod_append or similar).
-
-   For w.map tagSubst: tagSubst(aᵢ) = {[inl aᵢ], [inr aᵢ]}. We choose [inl aᵢ] for each.
-   So w.map Sum.inl ∈ (w.map tagSubst).prod.
-
-   For v.map tagSubst: we choose [inr bⱼ] for each.
-   So v.map Sum.inr ∈ (v.map tagSubst).prod.
-
-   Then w.map inl ++ v.map inr ∈ ((w ++ v).map tagSubst).prod. ✓
-
-3. w ∈ (w'.map eraseInr).prod:
-   w' = w.map inl ++ v.map inr.
-   w'.map eraseInr = (w.map inl).map eraseInr ++ (v.map inr).map eraseInr
-                   = w.map (fun a => {[a]}) ++ v.map (fun _ => {[]}).
-   The product of the first part is {w}. The product of the second part is {[]}.
-   So (w'.map eraseInr).prod = {w} * {[]} = {w ++ []} = {w}.
-   Hence w ∈ (w'.map eraseInr).prod. ✓
-
-Use `refine ⟨w.map Sum.inl ++ v.map Sum.inr, ⟨⟨w ++ v, hwv, ?_⟩, ⟨w, v, rfl, hv⟩⟩, ?_⟩` to structure the proof.
-
-For showing membership in prod, use `mem_list_prod_iff_forall2` or direct induction. You may need a helper lemma about products of singleton lists.
-
-The key helper: for any list xs : List α and g : α → β,
-  xs.map (fun a => {[g a]} : Language β).prod contains exactly {xs.map g}.
-Prove by induction on xs.
 -/
 theorem subst_inter_block_subst_eq_rightQuotient (L : Language T) (R : Language T) :
     ((L.subst tagSubst) ⊓ blockLang R).subst eraseInr = L / R := by

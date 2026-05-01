@@ -63,130 +63,7 @@ The grammar derives the encoding of the initial configuration from [start]:
 -/
 
 /-
-PROBLEM
 The grammar can derive the encoding of the initial configuration from [start].
-
-PROVIDED SOLUTION
-We prove by cases on w and then induction on the tail.
-
-Case w = []:
-  Target: grammar_derives g [nonterminal start] [leftBound, headCell(default, none, none), rightBound]
-
-  Step 1: Apply S → leftBound genMore rightBound.
-    rule: ⟨[], start, [], [leftBound, genMore, rightBound]⟩ ∈ generationRules (first element)
-    u = [], v = []
-    Result: [leftBound, genMore, rightBound]
-
-  Step 2: Apply genMore → headCell(default, none, none).
-    rule: ⟨[], genMore, [], [headCell(default, none, none)]⟩ ∈ generationRules (last element)
-    u = [leftBound], v = [rightBound]
-    Result: [leftBound, headCell(default, none, none), rightBound] ✓
-
-Case w = t :: ts:
-  Target: grammar_derives g [nonterminal start] (encodeTwoTrack ⟨[], default, some t, some t, ts.map(...)⟩)
-  = [leftBound, headCell(default, some t, some t)] ++ ts.map(fun t' => cell(some t', some t')) ++ [rightBound]
-
-  Step 1: Apply S → leftBound genMore rightBound.
-    Result: [leftBound, genMore, rightBound]
-
-  Step 2: For each element of ts.reverse, apply genMore → genMore cell(some tᵢ, some tᵢ).
-
-  We prove by induction on ts.reverse (or equivalently on ts using List.reverseRecOn) that:
-  from [leftBound, genMore, rightBound]
-  we can derive [leftBound, genMore] ++ ts.map(fun t' => cell(some t', some t')) ++ [rightBound]
-
-  Actually, it's easier to prove: for any list cells : List (Option T × Option T),
-  grammar_derives g
-    ([leftBound, genMore] ++ (cells.map fun ⟨o,c⟩ => cell(o,c)) ++ [rightBound])
-    ([leftBound, genMore] ++ ((t', (some t', some t')) :: cells).map(...) ++ [rightBound])
-  by applying genMore → genMore cell(some t', some t') with context u = [leftBound] and v = cells.map(...) ++ [rightBound].
-
-  Actually more precisely:
-
-  Sub-goal: for any suffix s : List T,
-    grammar_derives g
-      ([leftBound, genMore] ++ s.map(fun t' => cell(some t', some t')) ++ [rightBound])
-      ([leftBound, genMore] ++ (s ++ [t']).map(fun t' => cell(some t', some t')) ++ [rightBound])
-
-  Hmm this is getting complicated. Let me try a cleaner approach.
-
-  Prove an auxiliary lemma by induction on a list `cells : List T`:
-  grammar_derives g
-    ([leftBound, genMore] ++ cells.map(fun t => nonterminal (cell (some t) (some t))) ++ [rightBound])
-    is reachable from [leftBound, genMore, rightBound].
-
-  Base: cells = [], trivial (grammar_deri_self).
-
-  Step: cells = cells' ++ [t']. By IH we can reach the form with cells'. Then apply
-    genMore → genMore cell(some t', some t')
-    with u = [leftBound] and v = cells'.map(...) ++ [rightBound]
-    to get: [leftBound, genMore, cell(some t', some t')] ++ cells'.map(...) ++ [rightBound]
-    = [leftBound, genMore] ++ (t' :: cells').map(...) ++ [rightBound]
-
-  Hmm but we want cells' ++ [t'] not t' :: cells'. The order matters.
-
-  Let me reconsider. For input [t, t₂, t₃]:
-  - Start: [LB, gM, RB]
-  - Add t₃: [LB, gM, cell(t₃), RB]     (genMore → genMore cell(t₃))
-  - Add t₂: [LB, gM, cell(t₂), cell(t₃), RB]   (genMore → genMore cell(t₂))
-  - Replace genMore with head(t): [LB, head(t), cell(t₂), cell(t₃), RB]
-
-  So the cells are added in REVERSE order: t₃ first, then t₂.
-  The final list of cells to the right of the head is [t₂, t₃] = ts.
-
-  So the auxiliary lemma should be: by induction on ts.reverse:
-
-  grammar_derives g [LB, gM, RB] ([LB, gM] ++ ts.map(...) ++ [RB])
-
-  Then apply genMore → headCell(default, some t, some t) to finish.
-
-  By induction on ts using List.reverseRecOn:
-  - Base: ts = [], [LB, gM, RB] already equals [LB, gM] ++ [].map(...) ++ [RB] ✓
-  - Step: ts = init ++ [last].
-    By IH: grammar_derives g [LB, gM, RB] ([LB, gM] ++ init.map(...) ++ [RB])
-    Now apply genMore → genMore cell(some last, some last):
-      u = [LB], v = init.map(...) ++ [RB]
-      Before: [LB, gM] ++ init.map(...) ++ [RB]
-      After: [LB, gM, cell(last)] ++ init.map(...) ++ [RB]
-
-    But we want: [LB, gM] ++ (init ++ [last]).map(...) ++ [RB]
-             = [LB, gM] ++ init.map(...) ++ [cell(last)] ++ [RB]
-
-    But we got: [LB, gM, cell(last)] ++ init.map(...) ++ [RB]
-
-    These are different! The cell(last) is right after genMore, not at the end of init.map.
-
-  Hmm, so actually adding cells goes: genMore → genMore cell(t).
-  This puts cell(t) immediately after genMore, before any existing cells.
-  So repeated applications give cells in the ORDER they were added:
-
-  [LB, gM, RB] → [LB, gM, cell(t₃), RB] → [LB, gM, cell(t₂), cell(t₃), RB]
-
-  So the cells list is [t₂, t₃] when we added t₃ first then t₂.
-
-  For the target ts = [t₂, t₃], we need to add in reverse order: add t₃ first, then t₂.
-
-  So actually, by induction on ts (normal, not reverse):
-  - Base: ts = [], already done.
-  - Step: ts = t' :: ts'.
-    By IH: grammar_derives g [LB, gM, RB] ([LB, gM] ++ ts'.map(...) ++ [RB])
-    Apply genMore → genMore cell(some t', some t'):
-      u = [LB], v = ts'.map(...) ++ [RB]
-      Result: [LB, gM, cell(t')] ++ ts'.map(...) ++ [RB]
-            = [LB, gM] ++ [cell(t')] ++ ts'.map(...) ++ [RB]
-            = [LB, gM] ++ (t' :: ts').map(...) ++ [RB]  ✓
-
-This works with normal induction on ts.
-
-So the full proof:
-1. Apply S → LB genMore RB: [start] →* [LB, gM, RB]
-2. By induction on ts, apply genMore → genMore cell(t') for each t' in ts:
-   [LB, gM, RB] →* [LB, gM] ++ ts.map(...) ++ [RB]
-3. Apply genMore → headCell(default, some t, some t) (or none,none for empty input):
-   [LB, gM] ++ ts.map(...) ++ [RB] → [LB, headCell(default, t, t)] ++ ts.map(...) ++ [RB]
-   = encodeTwoTrack(initTwoTrack(t :: ts))
-
-Use grammar_deri_of_deri_tran to chain.
 -/
 theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : List T) :
     grammar_derives (tmToGrammar T Λ M)
@@ -239,102 +116,9 @@ def extractInput (originals : List (Option T)) : List T :=
   originals.filterMap id
 
 /-
-PROBLEM
 From a halted encoding, the grammar can derive the original input terminals.
 
 Convert a bare list of haltCells to terminals (no boundary markers).
-
-PROVIDED SOLUTION
-We prove by induction on `originals` that the grammar derives the terminal list from the halted encoding.
-
-The halted encoding is: [leftBound] ++ originals.map haltCell ++ [rightBound]
-The target is: originals.filterMap id |>.map terminal
-
-Strategy: First convert all haltCells to terminals (or ε), then remove the boundary markers.
-
-Step 1: Convert haltCells from left to right.
-We prove an auxiliary fact: for any prefix (already converted to terminals) and suffix (remaining haltCells), the grammar derives the conversion.
-
-More precisely, by induction on originals:
-- Base case []: encodeHalted [] = [leftBound, rightBound].
-  Apply leftBound → ε (rule in cleanupRules, u=[], v=[rightBound]).
-  Then apply rightBound → ε (rule in cleanupRules, u=[], v=[]).
-  Result: [] = [].map terminal (extractInput []) ✓
-
-- Inductive case (some t) :: rest:
-  encodeHalted ((some t) :: rest) = [leftBound, haltCell(some t)] ++ rest.map haltCell ++ [rightBound]
-  Apply haltCell(some t) → terminal t (u=[leftBound], v=rest.map haltCell ++ [rightBound]).
-  Result: [leftBound, terminal t] ++ rest.map haltCell ++ [rightBound]
-
-  Now we need to derive from [leftBound, terminal t] ++ rest.map haltCell ++ [rightBound]
-  to [terminal t] ++ extractInput(rest).map terminal.
-
-  Using the IH on rest: from [leftBound] ++ rest.map haltCell ++ [rightBound] we can derive
-  extractInput(rest).map terminal.
-
-  But we have an extra [terminal t] prefix and the leftBound is displaced!
-
-  Actually, let me reconsider. We can use grammar_deri_with_prefix to add a prefix.
-  But the issue is that leftBound is inside the form, not as a prefix.
-
-  Alternative approach: First convert ALL haltCells, then remove boundaries.
-
-  Prove: [leftBound] ++ originals.map haltCell ++ [rightBound]
-  derives to: [leftBound] ++ extractInput(originals).map terminal ++ [rightBound]
-  (by converting haltCells one at a time from left to right)
-
-  Then: [leftBound] ++ extractInput(originals).map terminal ++ [rightBound]
-  derives to: extractInput(originals).map terminal
-  (by removing leftBound then rightBound)
-
-  For converting haltCells, by induction on originals:
-  - []: no haltCells, done.
-  - (some t) :: rest: Apply haltCell(some t) → terminal t with context u = [leftBound], v = rest.map haltCell ++ [rightBound]. This gives [leftBound, terminal t] ++ rest.map haltCell ++ [rightBound]. Then use grammar_deri_with_prefix with prefix [leftBound, terminal t] and the IH for rest (but the IH gives derivation from [leftBound] ++ ..., not from rest alone).
-
-  Hmm, let me try a different decomposition. Prove a helper:
-  For any prefix p of terminals, [leftBound] ++ p ++ originals.map haltCell ++ [rightBound]
-  derives to [leftBound] ++ p ++ extractInput(originals).map terminal ++ [rightBound]
-
-  By induction on originals, using grammar_deri_with_prefix and grammar_deri_with_postfix.
-
-Actually, the simplest approach: just do induction and at each step use the grammar transform rule with the appropriate context u and v.
-
-For the convert step with (some t)::rest:
-u = [leftBound] ++ (already converted terminals)
-rule: haltCell(some t) → terminal(t)  (input_L = [], input_N = haltCell(some t), input_R = [], output = [terminal t])
-v = rest.map haltCell ++ [rightBound]
-
-For the convert step with none::rest:
-u = [leftBound] ++ (already converted terminals)
-rule: haltCell(none) → ε  (input_L = [], input_N = haltCell(none), input_R = [], output = [])
-v = rest.map haltCell ++ [rightBound]
-
-After all conversions: [leftBound] ++ extractInput(originals).map terminal ++ [rightBound]
-
-Then remove leftBound: rule leftBound → ε, u=[], v=extractInput(originals).map terminal ++ [rightBound]
-Then remove rightBound: rule rightBound → ε, u=extractInput(originals).map terminal, v=[]
-
-Use gen_rule_mem / cleanup_rule_mem to show rules are in the grammar.
-
-By induction on originals.
-
-Base case []: both sides are [], use grammar_deri_self (ReflTransGen.refl).
-
-Inductive case (none :: rest):
-- LHS: [nonterminal (haltCell none)] ++ rest.map(...)
-- Apply haltCell(none) → ε rule: ⟨[], haltCell none, [], []⟩. This is in tmToGrammar.rules via cleanupRules.
-  u = [], v = rest.map(...). Result: rest.map(...).
-- Then by IH, rest.map(...) →* (rest.filterMap id).map terminal.
-- And (none :: rest).filterMap id = rest.filterMap id.
-- So chain: LHS → rest.map(haltCell) →* RHS. Use grammar_deri_of_tran_deri.
-
-Inductive case (some t :: rest):
-- LHS: [nonterminal (haltCell (some t))] ++ rest.map(...)
-- Apply haltCell(some t) → terminal t rule: ⟨[], haltCell (some t), [], [terminal t]⟩. In cleanupRules.
-  u = [], v = rest.map(...). Result: [terminal t] ++ rest.map(...).
-- Then use grammar_deri_with_prefix with prefix [terminal t] and IH on rest.
-- And (some t :: rest).filterMap id = t :: rest.filterMap id, so the target is [terminal t] ++ (rest.filterMap id).map terminal.
-- So chain: LHS → [terminal t] ++ rest.map(haltCell) →* [terminal t] ++ (rest.filterMap id).map terminal = RHS.
 -/
 theorem haltCells_to_terminals (M : Turing.TM0.Machine (Option T) Λ)
     (originals : List (Option T)) :
@@ -359,55 +143,8 @@ theorem haltCells_to_terminals (M : Turing.TM0.Machine (Option T) Λ)
       · convert grammar_deri_with_prefix _ ih using 1
 
 /-
-PROBLEM
 Remove LB from [LB] ++ haltCells ++ [RB], producing haltCells ++ [RB] (non-empty case)
     or [] (empty case).
-
-PROVIDED SOLUTION
-By cases on originals.
-
-Case []:
-- encodeHalted [] = [nonterminal leftBound, nonterminal rightBound]
-- Target: [].map (...) = []
-- Apply rule LB · RB → ε: ⟨[], leftBound, [nonterminal rightBound], []⟩
-  This is in cleanupRules. u = [], v = [].
-  w₁ = [] ++ [] ++ [nonterminal leftBound] ++ [nonterminal rightBound] ++ [] = [LB, RB]
-  w₂ = [] ++ [] ++ [] = []
-- Use grammar_deri_of_tran (ReflTransGen.single).
-
-Case (o :: rest):
-- encodeHalted (o :: rest) = [LB] ++ [haltCell(o)] ++ rest.map(haltCell) ++ [RB]
-- Target: (o :: rest).map(haltCell) = [haltCell(o)] ++ rest.map(haltCell)
-
-Step 1: Remove LB using rule LB · haltCell(o) → haltCell(o):
-  Rule: ⟨[], leftBound, [nonterminal (haltCell o)], [nonterminal (haltCell o)]⟩
-  In cleanupRules via (allOptT T).map. Use mem_allOptT to show o ∈ allOptT T.
-  u = [], v = rest.map(haltCell) ++ [RB]
-  w₁ = [LB, haltCell(o)] ++ rest.map(haltCell) ++ [RB]
-  w₂ = [haltCell(o)] ++ rest.map(haltCell) ++ [RB]
-
-Step 2: Remove RB using rule haltCell(last) · RB → haltCell(last):
-  We need the LAST haltCell. For the list (o :: rest), the last element is (o :: rest).getLast.
-  The form is [haltCell(o)] ++ rest.map(haltCell) ++ [RB].
-  Use List.getLast to find the last element. The last haltCell is adjacent to RB.
-
-  Rule: ⟨[nonterminal (haltCell last_orig)], rightBound, [], [nonterminal (haltCell last_orig)]⟩
-  In cleanupRules. Use mem_allOptT.
-
-  u = init((o :: rest).map(haltCell)), v = []
-  This removes RB and keeps the haltCell.
-  Result: (o :: rest).map(haltCell)
-
-Chain steps 1 and 2 using grammar_deri_of_tran_deri or grammar_deri_of_deri_deri.
-
-For Step 2, to get the last element: use List.map_getLast or show that
-  (o :: rest).map(haltCell) ++ [RB] decomposes as
-  List.dropLast((o :: rest).map(haltCell)) ++ [haltCell(List.getLast (o :: rest) ...)] ++ [RB]
-
-Actually, simpler: use the fact that for a non-empty list l,
-  l ++ [RB] = l.dropLast ++ [l.getLast ..., RB]
-Then the rule matches with u = l.dropLast, input_L = [haltCell(last)], input_N = rightBound.
-And the result is l.dropLast ++ [haltCell(last)] = l.
 -/
 theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
     (originals : List (Option T)) :
@@ -502,60 +239,7 @@ noncomputable def stepTwoTrack
             (cfg.headOrig, cfg.headCur) :: cfg.rightCells⟩
 
 /-
-PROBLEM
 The original input (modulo blank extension) is preserved by `stepTwoTrack`.
-
-PROVIDED SOLUTION
-Unfold stepTwoTrack and case split on M cfg.headState cfg.headCur.
-
-Case none: contradiction with hstep.
-
-Case some (q', write γ'): cfg' has same leftCells, headOrig, rightCells. So twoTrackOriginals cfg' = twoTrackOriginals cfg, hence extractInput equal.
-
-Case some (q', move right), rightCells = []:
-cfg' = ⟨leftCells ++ [(headOrig, headCur)], q', none, none, []⟩
-twoTrackOriginals cfg' = (leftCells ++ [(headOrig, headCur)]).map fst ++ [none] ++ []
-= leftCells.map fst ++ [headOrig] ++ [none]
-extractInput of this = extractInput (leftCells.map fst ++ [headOrig] ++ [none])
-= extractInput (leftCells.map fst ++ [headOrig]) ++ extractInput [none]
-= extractInput (leftCells.map fst ++ [headOrig])  (since extractInput [none] = [])
-= extractInput (twoTrackOriginals cfg) ✓ (since rightCells = [], twoTrackOriginals cfg = leftCells.map fst ++ [headOrig])
-
-Case some (q', move right), rightCells = (ro, rc) :: rest:
-cfg' = ⟨leftCells ++ [(headOrig, headCur)], q', ro, rc, rest⟩
-twoTrackOriginals cfg' = (leftCells ++ [(headOrig, headCur)]).map fst ++ [ro] ++ rest.map fst
-= leftCells.map fst ++ [headOrig] ++ [ro] ++ rest.map fst
-= leftCells.map fst ++ [headOrig] ++ (ro :: rest.map fst)
-twoTrackOriginals cfg = leftCells.map fst ++ [headOrig] ++ ((ro,rc) :: rest).map fst
-= leftCells.map fst ++ [headOrig] ++ (ro :: rest.map fst) ✓ (same)
-
-Case some (q', move left), leftCells.reverse = []:
-This means leftCells = [].
-cfg' = ⟨[], q', none, none, (headOrig, headCur) :: rightCells⟩
-twoTrackOriginals cfg' = [].map fst ++ [none] ++ ((headOrig, headCur) :: rightCells).map fst
-= [none] ++ [headOrig] ++ rightCells.map fst
-extractInput = extractInput [none] ++ extractInput ([headOrig] ++ rightCells.map fst)
-= extractInput ([headOrig] ++ rightCells.map fst)
-twoTrackOriginals cfg = [].map fst ++ [headOrig] ++ rightCells.map fst
-= [headOrig] ++ rightCells.map fst ✓ (same extractInput)
-
-Case some (q', move left), leftCells.reverse = (lo, lc) :: rest_rev:
-leftCells = (rest_rev ++ [(lo, lc)]).reverse = ... actually leftCells.reverse = (lo, lc) :: rest_rev, so leftCells = rest_rev.reverse ++ [(lo, lc)]... wait no.
-If leftCells.reverse = (lo, lc) :: rest_rev, then leftCells = rest_rev.reverse ++ [(lo, lc)].
-Hmm, actually List.reverse reverses the order. If l.reverse = h :: t, then l = t.reverse ++ [h].
-
-cfg' = ⟨rest_rev.reverse, q', lo, lc, (headOrig, headCur) :: rightCells⟩
-twoTrackOriginals cfg' = rest_rev.reverse.map fst ++ [lo] ++ ((headOrig, headCur) :: rightCells).map fst
-= rest_rev.reverse.map fst ++ [lo] ++ [headOrig] ++ rightCells.map fst
-
-twoTrackOriginals cfg = leftCells.map fst ++ [headOrig] ++ rightCells.map fst
-leftCells = rest_rev.reverse ++ [(lo, lc)]  (since leftCells.reverse = (lo,lc) :: rest_rev means leftCells = rest_rev.reverse ++ [(lo,lc)])
-leftCells.map fst = rest_rev.reverse.map fst ++ [lo]
-So twoTrackOriginals cfg = rest_rev.reverse.map fst ++ [lo] ++ [headOrig] ++ rightCells.map fst ✓ (same)
-
-So in all cases, extractInput is preserved (sometimes twoTrackOriginals itself is preserved, sometimes only extractInput is).
-
-Key lemma needed: extractInput (l ++ [none]) = extractInput l, which follows from List.filterMap_append and the fact that filterMap id [none] = [].
 -/
 theorem stepTwoTrack_preserves_extractInput
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -573,41 +257,19 @@ theorem stepTwoTrack_preserves_extractInput
   · unfold twoTrackOriginals; aesop;
 
 /-
-PROBLEM
 Any element of `Option T` is in `allOptT`.
-
-PROVIDED SOLUTION
-allOptT T = none :: Finset.univ.val.toList.map some. Cases on x: if none, it's List.mem_cons_self. If some t, use List.mem_cons_of_mem and List.mem_map.mpr with Finset.mem_toList.mpr (Finset.mem_univ t).
 -/
 theorem mem_allOptT (x : Option T) : x ∈ allOptT T := by
   unfold allOptT; cases x <;> simp +decide [ * ] ;
 
 /-
-PROBLEM
 Any element of `Λ` is in `allΛ`.
-
-PROVIDED SOLUTION
-allΛ Λ = Finset.univ.val.toList. Use Finset.mem_toList.mpr (Finset.mem_univ q).
 -/
 theorem mem_allΛ (q : Λ) : q ∈ allΛ Λ := by
   convert Finset.mem_toList.mpr ( Finset.mem_univ q ) using 1
 
 /-
-PROBLEM
 Simulation: write case.
-
-PROVIDED SOLUTION
-Use the rule ⟨[], headCell q orig γ, [], [.nonterminal (headCell q' orig γ')]⟩ which is in simulationRules.
-
-Proof:
-refine ⟨⟨[], headCell q orig γ, [], [.nonterminal (headCell q' orig γ')]⟩, ?_, prefix_, suffix_, ?_, ?_⟩
-- Rule membership: apply sim_rule_mem. The rule is in simulationRules because:
-  simulationRules unfolds to (allΛ).flatMap (fun q => (allOptT).flatMap (fun γ => match M q γ ...)).
-  For our q and γ, M q γ = some (q', write γ'), so we get (allOptT).map (fun orig => ⟨[], headCell q orig γ, [], [headCell q' orig γ']⟩).
-  Our specific rule is the one with our `orig`. So we need: q ∈ allΛ, γ ∈ allOptT, orig ∈ allOptT. Use mem_allΛ and mem_allOptT.
-  Concretely: List.mem_flatMap.mpr ⟨q, mem_allΛ q, List.mem_flatMap.mpr ⟨γ, mem_allOptT γ, by simp [hM]; exact List.mem_map.mpr ⟨orig, mem_allOptT orig, rfl⟩⟩⟩
-- w₁ equation: simp
-- w₂ equation: simp
 -/
 theorem sim_write
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -629,17 +291,7 @@ theorem sim_write
   · grind
 
 /-
-PROBLEM
 Simulation: move right with neighbor.
-
-PROVIDED SOLUTION
-Use the rule ⟨[], headCell q orig γ, [.nonterminal (cell orig' γ')], [.nonterminal (cell orig γ), .nonterminal (headCell q' orig' γ')]⟩.
-
-This rule is in simulationRules: in the move right case, we have (allOptT).flatMap fun orig => (allOptT).flatMap fun orig' => (allOptT).map fun γ' => ⟨...⟩. Our rule has the right q, γ (with M q γ = some (q', move right)), and the right orig, orig', γ'.
-
-For membership: List.mem_flatMap with q ∈ allΛ, γ ∈ allOptT, then in the match branch for move right, List.mem_append_left, then List.mem_flatMap three times with orig, orig', γ' ∈ allOptT.
-
-Then u = prefix_, v = suffix_, and the equations follow by simp.
 -/
 theorem sim_move_right
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -660,17 +312,7 @@ theorem sim_move_right
   · grind
 
 /-
-PROBLEM
 Simulation: move right at right boundary.
-
-PROVIDED SOLUTION
-Use the rule ⟨[], headCell q orig γ, [.nonterminal rightBound], [.nonterminal (cell orig γ), .nonterminal (headCell q' none none), .nonterminal rightBound]⟩.
-
-This rule is in simulationRules: in the move right case, it's in the second part (the boundary extension rules). The rule has (allOptT).map fun orig => ⟨[], headCell q orig γ, [rightBound], [cell orig γ, headCell q' none none, rightBound]⟩. Our rule matches with our orig.
-
-For membership: q ∈ allΛ, γ ∈ allOptT, then List.mem_append_right to get to the boundary rules, then List.mem_map with orig ∈ allOptT.
-
-u = prefix_, v = suffix_.
 -/
 theorem sim_move_right_boundary
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -693,18 +335,7 @@ theorem sim_move_right_boundary
   · grind
 
 /-
-PROBLEM
 Simulation: move left with neighbor.
-
-PROVIDED SOLUTION
-Use the rule ⟨[.nonterminal (cell orig'' γ'')], headCell q orig γ, [], [.nonterminal (headCell q' orig'' γ''), .nonterminal (cell orig γ)]⟩.
-
-This rule is in simulationRules in the move left case, first part (flatMap).
-
-refine ⟨⟨[.nonterminal (cell orig'' γ'')], headCell q orig γ, [], [.nonterminal (headCell q' orig'' γ''), .nonterminal (cell orig γ)]⟩, ?_, prefix_, suffix_, ?_, ?_⟩
-- Rule membership: apply sim_rule_mem. Unfold simulationRules. Use List.mem_flatMap with q ∈ allΛ, γ ∈ allOptT. In the match branch (move left), use List.mem_append_left for the first group. Then List.mem_flatMap three times with orig, orig'', γ'' ∈ allOptT.
-- w₁ equation: by simp
-- w₂ equation: by simp
 -/
 theorem sim_move_left
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -724,17 +355,7 @@ theorem sim_move_left
   exacts [ prefix_, ⟨ suffix_, rfl, rfl ⟩ ]
 
 /-
-PROBLEM
 Simulation: move left at left boundary.
-
-PROVIDED SOLUTION
-Use the rule ⟨[.nonterminal leftBound], headCell q orig γ, [], [.nonterminal leftBound, .nonterminal (headCell q' none none), .nonterminal (cell orig γ)]⟩.
-
-This rule is in simulationRules in the move left case, second part (the boundary extension rules): (allOptT).map fun orig => ⟨[leftBound], headCell q orig γ, [], [leftBound, headCell q' none none, cell orig γ]⟩.
-
-refine ⟨⟨[.nonterminal leftBound], headCell q orig γ, [], [.nonterminal leftBound, .nonterminal (headCell q' none none), .nonterminal (cell orig γ)]⟩, ?_, prefix_, suffix_, ?_, ?_⟩
-- Rule membership: sim_rule_mem. In simulationRules, use flatMap for q ∈ allΛ, γ ∈ allOptT. In match branch (move left), use List.mem_append_right. Then List.mem_map with orig ∈ allOptT.
-- Equations: simp
 -/
 theorem sim_move_left_boundary
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -756,52 +377,7 @@ theorem sim_move_left_boundary
   · grind +revert
 
 /-
-PROBLEM
 One step of `stepTwoTrack` can be simulated by the grammar.
-
-PROVIDED SOLUTION
-Unfold stepTwoTrack in hstep. Case split on hM : M cfg.headState cfg.headCur.
-
-Case none: contradiction (stepTwoTrack returns none).
-
-Case some (q', write γ'):
-cfg' = ⟨cfg.leftCells, q', cfg.headOrig, γ', cfg.rightCells⟩.
-Apply grammar_deri_of_tran (sim_write M cfg.headState q' cfg.headOrig cfg.headCur γ' hM
-  ([.nonterminal leftBound] ++ cfg.leftCells.map(cell))
-  (cfg.rightCells.map(cell) ++ [.nonterminal rightBound])).
-Need to show source/target match encodeTwoTrack cfg / encodeTwoTrack cfg'. Unfold encodeTwoTrack and simp.
-
-Case some (q', move right):
-  Subcase cfg.rightCells = []:
-    cfg' = ⟨cfg.leftCells ++ [(cfg.headOrig, cfg.headCur)], q', none, none, []⟩
-    Apply grammar_deri_of_tran (sim_move_right_boundary M cfg.headState q' cfg.headOrig cfg.headCur hM
-      ([leftBound] ++ leftCells.map(cell))
-      []).
-    Check encodeTwoTrack equations match.
-
-  Subcase cfg.rightCells = (ro, rc) :: rest:
-    cfg' = ⟨cfg.leftCells ++ [(cfg.headOrig, cfg.headCur)], q', ro, rc, rest⟩
-    Apply grammar_deri_of_tran (sim_move_right M cfg.headState q' cfg.headOrig cfg.headCur ro rc hM
-      ([leftBound] ++ leftCells.map(cell))
-      (rest.map(cell) ++ [rightBound])).
-
-Case some (q', move left):
-  Subcase cfg.leftCells.reverse = []:
-    leftCells = [], cfg' = ⟨[], q', none, none, (headOrig, headCur) :: rightCells⟩
-    Apply grammar_deri_of_tran (sim_move_left_boundary M cfg.headState q' cfg.headOrig cfg.headCur hM
-      []
-      (rightCells.map(cell) ++ [rightBound])).
-
-  Subcase cfg.leftCells.reverse = (lo, lc) :: rest_rev:
-    cfg' = ⟨rest_rev.reverse, q', lo, lc, (headOrig, headCur) :: rightCells⟩
-    Apply grammar_deri_of_tran (sim_move_left M cfg.headState q' cfg.headOrig cfg.headCur lo lc hM
-      ([leftBound] ++ rest_rev.reverse.map(cell))
-      (rightCells.map(cell) ++ [rightBound])).
-    Need: encodeTwoTrack cfg = ... ++ [cell(lo, lc), headCell(q, headO, headC)] ++ ...
-    Since leftCells.reverse = (lo, lc) :: rest_rev, leftCells = rest_rev.reverse ++ [(lo, lc)].
-    So leftCells.map(cell) = rest_rev.reverse.map(cell) ++ [cell(lo, lc)].
-
-Each case is a single ReflTransGen.single application using the appropriate sim_* lemma. The equations just need simp/list normalization.
 -/
 theorem simulation_one_step
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -845,24 +421,7 @@ theorem simulation_one_step
     · grind
 
 /-
-PROBLEM
 Multiple steps of `stepTwoTrack` can be simulated by the grammar.
-
-PROVIDED SOLUTION
-By induction on n.
-
-Base case (n = 0): hsteps says some cfg = some cfg', so cfg = cfg'. Use grammar_deri_self.
-
-Inductive step (n + 1):
-Nat.iterate f (n+1) (some cfg) = Nat.iterate f n (f (some cfg)) = Nat.iterate f n (some cfg >>= stepTwoTrack M).
-
-If stepTwoTrack M cfg = none, then some cfg >>= stepTwoTrack M = none, so Nat.iterate on none gives none (since none >>= f = none for all f and all iterations). Then none = some cfg' is a contradiction.
-
-If stepTwoTrack M cfg = some cfg_mid, then:
-Nat.iterate f n (some cfg_mid) = some cfg'.
-By IH: grammar_derives (encodeTwoTrack cfg_mid) (encodeTwoTrack cfg').
-By simulation_one_step: grammar_derives (encodeTwoTrack cfg) (encodeTwoTrack cfg_mid).
-Chain: grammar_deri_of_deri_deri.
 -/
 theorem simulation_multi_step
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -883,11 +442,7 @@ theorem simulation_multi_step
 When the TM halts, convert the two-track encoding to the halted encoding. -/
 
 /-
-PROBLEM
 Step 1 of halt-to-halted: convert headCell to haltCell when TM halts.
-
-PROVIDED SOLUTION
-We need to show a grammar_transforms step. The cleanup rule `⟨[], headCell q orig γ, [], [.nonterminal (haltCell orig)]⟩` is in cleanupRules when M q γ = none (which is our hypothesis h_halts where γ = cur). Use this rule with u = prefix_ and v = suffix_. The rule is in the grammar via cleanup_rule_mem. Unfold grammar_transforms: the rule exists in g.rules, and w₁ = prefix_ ++ [] ++ [nonterminal (headCell q orig cur)] ++ [] ++ suffix_ and w₂ = prefix_ ++ [nonterminal (haltCell orig)] ++ suffix_.
 -/
 theorem halt_headCell_to_haltCell
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -909,21 +464,7 @@ theorem halt_headCell_to_haltCell
     · exact List.mem_cons_of_mem _ ( List.mem_map.mpr ⟨ _, Finset.mem_toList.mpr ( Finset.mem_univ _ ), rfl ⟩ )
 
 /-
-PROBLEM
 Step 2: propagate halt to right cells.
-
-PROVIDED SOLUTION
-By induction on cells.
-Base case: cells = [], the source and target are the same, use grammar_deri_self.
-Inductive case: cells = (o', c') :: rest.
-  Source: prefix_ ++ [haltCell orig] ++ [(cell o' c')] ++ rest.map(...) ++ suffix_
-  Apply the cleanup rule: haltCell orig · cell(o', c') → haltCell(orig) · haltCell(o')
-  This rule is: ⟨[], haltCell orig, [.nonterminal (cell o' c')], [.nonterminal (haltCell orig), .nonterminal (haltCell o')]⟩
-  with u = prefix_ and v = rest.map(...) ++ suffix_.
-  Result: prefix_ ++ [haltCell orig, haltCell o'] ++ rest.map(...) ++ suffix_
-  Then apply IH with orig := o' and prefix_ := prefix_ ++ [haltCell orig] to convert rest.
-  The IH gives: (prefix_ ++ [haltCell orig]) ++ [haltCell o'] ++ rest.map(cell) ++ suffix_ derives (prefix_ ++ [haltCell orig]) ++ [haltCell o'] ++ rest.map(haltCell) ++ suffix_.
-  Chain with grammar_deri_of_tran_deri.
 -/
 theorem propagate_halt_right
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -953,23 +494,7 @@ theorem propagate_halt_right
     exact Relation.ReflTransGen.trans ( Relation.ReflTransGen.single h_replace ) ih;)
 
 /-
-PROBLEM
 Single left-propagation step: convert one cell immediately left of a haltCell.
-
-PROVIDED SOLUTION
-The cleanup rule is: ⟨[.nonterminal (cell o c)], haltCell anchor_orig, [], [.nonterminal (haltCell o), .nonterminal (haltCell anchor_orig)]⟩.
-
-Use this rule with u = prefix_ and v = suffix_.
-
-In grammar_transforms:
-w₁ = u ++ input_L ++ [nonterminal input_N] ++ input_R ++ v
-= prefix_ ++ [nonterminal (cell o c)] ++ [nonterminal (haltCell anchor_orig)] ++ [] ++ suffix_
-= prefix_ ++ [nonterminal (cell o c), nonterminal (haltCell anchor_orig)] ++ suffix_ ✓
-
-w₂ = u ++ output_string ++ v
-= prefix_ ++ [nonterminal (haltCell o), nonterminal (haltCell anchor_orig)] ++ suffix_ ✓
-
-The rule is in tmToGrammar.rules because it's in cleanupRules. Show membership by unfolding cleanupRules and using the fact that anchor_orig, o, c are all in allOptT (by cases on Option T; none is in the list, and some t is mapped from Finset.univ).
 -/
 theorem propagate_halt_left_one_step
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -989,32 +514,10 @@ theorem propagate_halt_left_one_step
   exact ⟨ h_allOptT anchor_orig, h_allOptT o, h_allOptT c ⟩
 
 /-
-PROBLEM
 Step 3: propagate halt to left cells, using a haltCell anchor on the right.
 
 The cleanup rule `cell(o'', c'') · haltCell(orig) → haltCell(o'') · haltCell(orig)` converts
 cells from right to left, using the rightmost haltCell as an anchor.
-
-PROVIDED SOLUTION
-By reverse induction on cells using List.reverseRecOn.
-
-Base case (cells = []): source = target, use ReflTransGen.refl.
-
-Step case (cells = init ++ [⟨o_last, c_last⟩]):
-Source = prefix_ ++ (init ++ [⟨o_last, c_last⟩]).map(cell) ++ [haltCell anchor_orig] ++ suffix_
-= prefix_ ++ init.map(cell) ++ [cell(o_last, c_last), haltCell(anchor_orig)] ++ suffix_
-
-Step 1: Apply propagate_halt_left_one_step to convert the last cell:
-u = prefix_ ++ init.map(cell), converts cell(o_last, c_last) · haltCell(anchor_orig) → haltCell(o_last) · haltCell(anchor_orig).
-Result: prefix_ ++ init.map(cell) ++ [haltCell(o_last), haltCell(anchor_orig)] ++ suffix_
-
-Step 2: Apply IH on init with anchor_orig := o_last and suffix_ := [haltCell(anchor_orig)] ++ suffix_:
-Result: prefix_ ++ init.map(haltCell) ++ [haltCell(o_last), haltCell(anchor_orig)] ++ suffix_
-
-The target is: prefix_ ++ (init ++ [⟨o_last, c_last⟩]).map(haltCell) ++ [haltCell(anchor_orig)] ++ suffix_
-= prefix_ ++ init.map(haltCell) ++ [haltCell(o_last)] ++ [haltCell(anchor_orig)] ++ suffix_ ✓
-
-Use grammar_deri_of_tran_deri to chain step 1 and step 2. Need List.map_append and simp for list associativity.
 -/
 theorem propagate_halt_left
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -1039,34 +542,9 @@ theorem propagate_halt_left
     exact Relation.ReflTransGen.trans ( Relation.ReflTransGen.single h_transforms ) ( h _ _ _ ) |> fun h => by simpa [ List.append_assoc ] using h;
 
 /-
-PROBLEM
 From a halting two-track config, the grammar derives the halted encoding.
 
 Composition of halt_headCell_to_haltCell, propagate_halt_right, and propagate_halt_left.
-
-PROVIDED SOLUTION
-Unfold encodeTwoTrack and encodeHalted/twoTrackOriginals.
-
-Source (encodeTwoTrack cfg):
-[leftBound] ++ cfg.leftCells.map(cell) ++ [headCell(q, headOrig, headCur)] ++ cfg.rightCells.map(cell) ++ [rightBound]
-
-Target (encodeHalted (twoTrackOriginals cfg)):
-[leftBound] ++ (cfg.leftCells.map(Prod.fst) ++ [cfg.headOrig] ++ cfg.rightCells.map(Prod.fst)).map(haltCell) ++ [rightBound]
-= [leftBound] ++ cfg.leftCells.map(fun ⟨o,_⟩ => haltCell o) ++ [haltCell(headOrig)] ++ cfg.rightCells.map(fun ⟨o,_⟩ => haltCell o) ++ [rightBound]
-
-Step 1: Apply halt_headCell_to_haltCell with prefix_ = [leftBound] ++ cfg.leftCells.map(cell), suffix_ = cfg.rightCells.map(cell) ++ [rightBound].
-This converts headCell to haltCell:
-→ [leftBound] ++ leftCells.map(cell) ++ [haltCell(headOrig)] ++ rightCells.map(cell) ++ [rightBound]
-
-Step 2: Apply propagate_halt_right with orig = headOrig, prefix_ = [leftBound] ++ leftCells.map(cell), suffix_ = [rightBound], cells = rightCells.
-→* [leftBound] ++ leftCells.map(cell) ++ [haltCell(headOrig)] ++ rightCells.map(haltCell) ++ [rightBound]
-
-Step 3: Apply propagate_halt_left with anchor_orig = headOrig, prefix_ = [leftBound], suffix_ = rightCells.map(haltCell) ++ [rightBound], cells = leftCells.
-→* [leftBound] ++ leftCells.map(haltCell) ++ [haltCell(headOrig)] ++ rightCells.map(haltCell) ++ [rightBound]
-
-Chain all three with grammar_deri_of_tran_deri and grammar_deri_of_deri_deri.
-
-Note: need to carefully handle List.append associativity using simp [List.append_assoc] etc.
 -/
 theorem halt_to_halted
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -1098,38 +576,8 @@ theorem halt_to_halted
 /-! ### Composing all phases -/
 
 /-
-PROBLEM
 The original input stored in the initial two-track config for word `w` is exactly `w.map some`.
 That is, `extractInput (twoTrackOriginals (initTwoTrack w)) = w`.
-
-PROVIDED SOLUTION
-By cases on w:
-
-Case w = []:
-  initTwoTrack [] = ⟨[], default, none, none, []⟩
-  twoTrackOriginals this = [].map Prod.fst ++ [none] ++ [].map Prod.fst = [none]
-  extractInput [none] = [none].filterMap id = [] = w ✓
-
-Case w = t :: ts:
-  initTwoTrack (t :: ts) = ⟨[], default, some t, some t, ts.map (fun t' => (some t', some t'))⟩
-  twoTrackOriginals = [].map Prod.fst ++ [some t] ++ (ts.map (fun t' => (some t', some t'))).map Prod.fst
-
-  Now (ts.map (fun t' => (some t', some t'))).map Prod.fst = ts.map (fun t' => some t') = ts.map some
-
-  So twoTrackOriginals = [some t] ++ ts.map some = (t :: ts).map some
-
-  extractInput ((t :: ts).map some) = ((t :: ts).map some).filterMap id
-  = (some t :: ts.map some).filterMap id
-  = t :: (ts.map some).filterMap id
-
-  And (ts.map some).filterMap id = ts (by induction on ts: filterMap id (some x :: rest) = x :: filterMap id rest)
-
-  So extractInput = t :: ts = w ✓
-
-Just unfold definitions and simp. The key steps are:
-1. Unfold initTwoTrack, twoTrackOriginals, extractInput
-2. Simplify List.map, List.filterMap
-3. Show List.filterMap id (List.map some xs) = xs by induction
 -/
 theorem extractInput_initTwoTrack (w : List T) :
     extractInput (twoTrackOriginals (initTwoTrack w : @TwoTrackConfig T Λ)) = w := by
@@ -1150,45 +598,7 @@ structure TMCorresponds
     (tc.rightCells.map Prod.snd).getI i = tmCfg.Tape.right.nth i
 
 /-
-PROBLEM
 The initial TwoTrackConfig corresponds to the initial TM0 config.
-
-PROVIDED SOLUTION
-Unfold initTwoTrack and TM0.init.
-
-For w = []:
-- initTwoTrack [] = ⟨[], default, none, none, []⟩
-- TM0.init [] = ⟨default, Tape.mk₁ []⟩ = ⟨default, Tape.mk' (ListBlank.mk []) (ListBlank.mk [])⟩
-- state_eq: default = default ✓
-- head_eq: none = (Tape.mk' (ListBlank.mk []) (ListBlank.mk [])).head = (ListBlank.mk []).head = default = none ✓
-- left_match: [].reverse.map Prod.snd = [], so getI i = default = none. And (ListBlank.mk []).nth i = [].getI i = default = none ✓
-- right_match: similarly ✓
-
-For w = t :: ts:
-- initTwoTrack (t :: ts) = ⟨[], default, some t, some t, ts.map (fun t' => (some t', some t'))⟩
-- TM0.init (t :: ts).map some = ⟨default, Tape.mk₁ (some t :: ts.map some)⟩
-- Tape.mk₁ l = Tape.mk' (ListBlank.mk []) (ListBlank.mk l)
-- So tape.head = (ListBlank.mk (some t :: ts.map some)).head = some t
-- tape.left = ListBlank.mk []
-- tape.right = (ListBlank.mk (some t :: ts.map some)).tail
-- state_eq: default = default ✓
-- head_eq: some t = some t ✓
-- left_match: [].reverse.map Prod.snd = [], getI i = none = (ListBlank.mk []).nth i ✓
-- right_match: rightCells = ts.map (fun t' => (some t', some t')), so rightCells.map Prod.snd = ts.map some.
-  getI i = (ts.map some).getI i = tape.right.nth i
-  We need: tape.right.nth i = (ts.map some).getI i
-  tape.right = (ListBlank.mk (some t :: ts.map some)).tail
-  = ListBlank.mk (ts.map some) (by ListBlank.tail applied to mk gives mk of the tail)
-  Wait, I need to verify: ListBlank.mk (a :: l).tail = ListBlank.mk l ? Or is it different?
-
-  Actually, Tape.mk' L R has right = R.tail where R = ListBlank.mk l.
-  ListBlank.tail (ListBlank.mk (some t :: ts.map some)) should give ListBlank.mk (ts.map some).
-
-  Then right.nth i = (ListBlank.mk (ts.map some)).nth i = (ts.map some).getI i ✓
-
-Use Turing.ListBlank.nth_mk to convert ListBlank.nth to List.getI.
-Use Turing.Tape.mk'_head for the head.
-For Tape structure: Tape.mk' L R has head = R.head, left = L, right = R.tail.
 -/
 theorem initCorresponds (w : List T) :
     TMCorresponds
@@ -1201,24 +611,7 @@ theorem initCorresponds (w : List T) :
   · unfold initTwoTrack TM0.init; aesop;
 
 /-
-PROBLEM
 If tc corresponds to tmCfg and the TM halts, then stepTwoTrack also returns none.
-
-PROVIDED SOLUTION
-TM0.step M tmCfg = none means M tmCfg.q tmCfg.Tape.head = none.
-From hcorr.state_eq: tc.headState = tmCfg.q
-From hcorr.head_eq: tc.headCur = tmCfg.Tape.head
-So M tc.headState tc.headCur = none.
-Unfold stepTwoTrack: match M tc.headState tc.headCur = none, so returns none. ✓
-
-TM0.step is:
-  match M tmCfg.q tmCfg.Tape.head with
-  | none => none
-  | some _ => some _
-So TM0.step M tmCfg = none ↔ M tmCfg.q tmCfg.Tape.head = none.
-Use simp [Turing.TM0.step] on hhalt to get M tmCfg.q tmCfg.Tape.head = none.
-Then rewrite using hcorr.state_eq and hcorr.head_eq.
-Unfold stepTwoTrack and simp.
 -/
 theorem corresponds_step_none
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -1235,64 +628,8 @@ theorem corresponds_step_none
   unfold TM0.step; aesop;
 
 /-
-PROBLEM
 If tc corresponds to tmCfg and the TM steps to tmCfg', then stepTwoTrack
 produces a tc' that corresponds to tmCfg'.
-
-PROVIDED SOLUTION
-TM0.step M tmCfg = some tmCfg' means M tmCfg.q tmCfg.Tape.head = some (q', action) for some q' and action, and tmCfg' is the result of applying the action.
-
-From hcorr, tc.headState = tmCfg.q and tc.headCur = tmCfg.Tape.head.
-So M tc.headState tc.headCur = some (q', action).
-
-Case split on action:
-
-Case write γ':
-tmCfg' = { q := q', Tape := Tape.write γ' tmCfg.Tape }
-stepTwoTrack M tc = some ⟨tc.leftCells, q', tc.headOrig, γ', tc.rightCells⟩ =: tc'
-
-Correspondence tc' tmCfg':
-- state_eq: q' = q' ✓
-- head_eq: γ' = (Tape.write γ' tmCfg.Tape).head = γ' ✓ (Tape.write sets the head)
-- left_match: tc'.leftCells = tc.leftCells, same as before. And (Tape.write γ' T).left = T.left. So same ✓
-- right_match: tc'.rightCells = tc.rightCells. And (Tape.write γ' T).right = T.right. So same ✓
-
-Case move Dir.right:
-tmCfg' = { q := q', Tape := Tape.move Dir.right tmCfg.Tape }
-Tape.move Dir.right T = { head := T.right.head, left := ListBlank.cons T.head T.left, right := T.right.tail }
-
-Subcase tc.rightCells non-empty = (ro, rc) :: rest:
-stepTwoTrack gives tc' = ⟨tc.leftCells ++ [(tc.headOrig, tc.headCur)], q', ro, rc, rest⟩
-
-Correspondence:
-- state_eq: q' = q' ✓
-- head_eq: rc = T.right.head (from hcorr.right_match at i=0: tc.rightCells.map(Prod.snd).getI 0 = T.right.nth 0 = T.right.head, and tc.rightCells.map(Prod.snd).getI 0 = rc) ✓
-- right_match: rest.map(Prod.snd).getI i = T.right.tail.nth i
-  = T.right.nth (i+1) (by ListBlank.tail/nth relationship)
-  = tc.rightCells.map(Prod.snd).getI (i+1) (from hcorr.right_match at i+1)
-  = (rc :: rest.map(Prod.snd)).getI (i+1)  hmm this is (rest.map Prod.snd).getI i ✓ (by List.getI_cons_succ)
-- left_match: (tc.leftCells ++ [(tc.headOrig, tc.headCur)]).reverse.map(Prod.snd).getI i
-  = ((tc.headOrig, tc.headCur) :: tc.leftCells.reverse).map(Prod.snd).getI i
-  = (tc.headCur :: tc.leftCells.reverse.map(Prod.snd)).getI i
-  For i = 0: tc.headCur = T.head (from hcorr.head_eq). And (ListBlank.cons T.head T.left).nth 0 = T.head ✓
-  For i > 0: tc.leftCells.reverse.map(Prod.snd).getI (i-1) = T.left.nth (i-1) (from hcorr.left_match)
-  And (ListBlank.cons T.head T.left).nth i = T.left.nth (i-1) ✓
-
-Subcase tc.rightCells empty:
-stepTwoTrack gives tc' = ⟨tc.leftCells ++ [(tc.headOrig, tc.headCur)], q', none, none, []⟩
-T.right.head = T.right.nth 0 = tc.rightCells.map(Prod.snd).getI 0 = default = none (since rightCells = [])
-So tmCfg'.Tape.head = none ✓
-
-Case move Dir.left: Similar logic with left/right reversed.
-
-The key Mathlib lemmas needed:
-- ListBlank.cons_nth_zero, ListBlank.cons_nth_succ (or ListBlank.nth_cons)
-- ListBlank.tail_nth (ListBlank.tail l).nth i = l.nth (i+1)
-- Tape.write_head, Tape.write_left, Tape.write_right
-- List.getI_cons_zero, List.getI_cons_succ
-- List.reverse_append
-
-This is complex but each case follows the same pattern. Let the subagent handle the details.
 -/
 theorem corresponds_step_some
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -1332,33 +669,9 @@ theorem corresponds_step_some
 /-! ### Main Correctness Theorems -/
 
 /-
-PROBLEM
 If tc corresponds to tmCfg, and the TM reaches a halting config from tmCfg,
 then the grammar can derive from tc's encoding to some halting tc_final's encoding,
 with the original track preserved.
-
-PROVIDED SOLUTION
-By induction on hreaches : Reaches (TM0.step M) tmCfg tmCfg_halt, which is ReflTransGen (fun a b => b ∈ TM0.step M a) tmCfg tmCfg_halt.
-
-Note: Reaches f a b = ReflTransGen (fun x y => y ∈ f x) a b. And for Option-valued f, y ∈ f x means f x = some y.
-
-Base case (tmCfg = tmCfg_halt):
-The TM is already at the halting config. Use tc_final = tc.
-- grammar_derives: grammar_deri_self
-- M tc.headState tc.headCur = none: From hhalt, TM0.step M tmCfg_halt = none, which means M tmCfg_halt.q tmCfg_halt.Tape.head = none. Since hcorr.state_eq: tc.headState = tmCfg.q = tmCfg_halt.q, and hcorr.head_eq: tc.headCur = tmCfg.Tape.head = tmCfg_halt.Tape.head. Use corresponds_step_none or unfold directly.
-Actually, TM0.step M tmCfg = none means M tmCfg.q tmCfg.Tape.head = none. Rewrite using hcorr.
-- extractInput preserved: rfl
-
-Inductive step: there exists tmCfg_mid with tmCfg → tmCfg_mid and Reaches tmCfg_mid tmCfg_halt.
-  Specifically, ReflTransGen gives us: tmCfg_mid ∈ TM0.step M tmCfg (i.e., TM0.step M tmCfg = some tmCfg_mid) and Reaches (TM0.step M) tmCfg_mid tmCfg_halt.
-
-  1. Use corresponds_step_some M tc tmCfg tmCfg_mid hcorr (the step hypothesis) to get tc_mid with stepTwoTrack M tc = some tc_mid ∧ TMCorresponds tc_mid tmCfg_mid.
-  2. By IH on (Reaches tmCfg_mid tmCfg_halt, hhalt, TMCorresponds tc_mid tmCfg_mid): get tc_final with grammar_derives from encodeTwoTrack tc_mid to encodeTwoTrack tc_final, M tc_final.headState tc_final.headCur = none, extractInput preserved.
-  3. Use simulation_one_step to get grammar_derives from encodeTwoTrack tc to encodeTwoTrack tc_mid.
-  4. Chain: grammar_deri_of_deri_deri.
-  5. extractInput: chain stepTwoTrack_preserves_extractInput and IH.
-
-Use Relation.ReflTransGen.head_induction_on or cases_head for the induction.
 -/
 theorem sim_reaches_halts
     (M : Turing.TM0.Machine (Option T) Λ)
@@ -1387,33 +700,7 @@ theorem sim_reaches_halts
   simp +decide [ TM0.step, htc_final.2.1.state_eq, htc_final.2.1.head_eq ]
 
 /-
-PROBLEM
 If the TM halts on input `w`, then the grammar derives `w`.
-
-PROVIDED SOLUTION
-Given: (TM0.eval M (w.map some)).Dom
-Goal: grammar_generates (tmToGrammar T Λ M) w = grammar_derives g [.nonterminal start] (w.map .terminal)
-
-Step 1: From hypothesis, extract halting config.
-TM0.eval M l = Part.map (·.Tape.right₀) (Turing.eval (TM0.step M) (TM0.init l))
-(TM0.eval M l).Dom = (Turing.eval (TM0.step M) (TM0.init l)).Dom (Part.map preserves Dom: just exact h)
-Using Part.dom_iff_mem: ∃ cfg, cfg ∈ Turing.eval (TM0.step M) (TM0.init (w.map some))
-Using Turing.mem_eval: ∃ cfg, Reaches (TM0.step M) (TM0.init (w.map some)) cfg ∧ TM0.step M cfg = none
-
-Step 2: Apply sim_reaches_halts with tc = initTwoTrack w, tmCfg = TM0.init (w.map some), hcorr = initCorresponds w.
-Get tc_final with:
-- grammar_derives (encodeTwoTrack (initTwoTrack w)) (encodeTwoTrack tc_final)
-- M tc_final.headState tc_final.headCur = none
-- extractInput (twoTrackOriginals tc_final) = extractInput (twoTrackOriginals (initTwoTrack w)) = w (by extractInput_initTwoTrack)
-
-Step 3: Chain:
-[start] →* encodeTwoTrack(initTwoTrack w)   (generation_derives)
-→* encodeTwoTrack(tc_final)                  (from sim_reaches_halts)
-→* encodeHalted(twoTrackOriginals tc_final)  (halt_to_halted, using M tc_final.headState tc_final.headCur = none)
-→* (extractInput(twoTrackOriginals tc_final)).map terminal  (cleanup_derives)
-= w.map terminal                              (using extractInput preservation and extractInput_initTwoTrack)
-
-Use grammar_deri_of_deri_deri to chain. Use rw/simp at the end to show the final result equals w.map terminal.
 -/
 theorem tmToGrammar_generates_of_halts
     (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
