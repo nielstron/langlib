@@ -42,10 +42,8 @@ theorem tm0WhileLoop_reaches_of_M {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
   | refl => exact Relation.ReflTransGen.refl
   | tail _ h₁₂ ih =>
     refine ih.tail ?_
-    simp only [TM0.step] at h₁₂ ⊢
+    simp only [TM0.step, tm0WhileLoop] at h₁₂ ⊢
+    revert h₁₂
     cases hM : M _ _ with
-    | none => simp [hM] at h₁₂
-    | some p =>
-      simp [tm0WhileLoop, hM]
-      simp [hM] at h₁₂
-      exact h₁₂
+    | none => simp
+    | some p => simp

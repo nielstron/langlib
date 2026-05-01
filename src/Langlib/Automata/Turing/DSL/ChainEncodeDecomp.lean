@@ -111,7 +111,27 @@ theorem encodable_encode_list_fold {T : Type} [Encodable T] (w : List T) :
     Given a family of block-realizable functions `f t : List Γ → List Γ`
     indexed by `t : T` (Fintype), there exists a TM0 on `Option (T ⊕ Γ)`
     that processes input `w.map(Sum.inl)` right-to-left, applying `f tᵢ`
-    to the `Sum.inr` accumulator for each element. -/
+    to the `Sum.inr` accumulator for each element.
+
+    ## Proof approach (not yet formalized)
+
+    The machine operates as a loop:
+    1. **Scan** right to find the rightmost `some (Sum.inl t)` cell.
+    2. **Read** the value `t : T` and **erase** it (write `none`).
+    3. **Dispatch** based on `t`: for each `t ∈ T`, use the lifted
+       machine from `tm0Het_liftBlockToHet T (f t) (hf_block t)` to
+       apply `f t` to the `Sum.inr` accumulator.
+    4. **Loop** back to step 1.
+    5. **Halt** when no `Sum.inl` cells remain.
+
+    Since `T` is a `Fintype`, the dispatch uses finitely many sub-machines,
+    and the combined machine has finitely many states. The key building
+    blocks are:
+    - `tm0Het_liftBlockToHet` (already proven) for each `t ∈ T`
+    - A scan machine for finding `Sum.inl` cells
+    - A dispatch mechanism (finite case split on `t`)
+    - A loop combinator (similar to `tm0WhileLoop` from PairedAddHelpers)
+-/
 theorem tm0Het_fold_blockRealizable
     {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
     (T : Type) [DecidableEq T] [Fintype T]

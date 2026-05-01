@@ -178,7 +178,38 @@ theorem binMulConst_eq_decomp (c : ℕ) :
 
 /-! ### Block-realizability of paired operations -/
 
-/-- **Paired addition is block-realizable.** -/
+/-- **Paired addition is block-realizable.**
+
+    ## Proof approach (not yet formalized)
+
+    Binary addition of two variable-length sub-blocks requires a TM0 that
+    processes corresponding bits with carry propagation. The recommended
+    approach is:
+
+    1. **Copy right sub-block** to create a third area:
+       `[left][sep₁][right]` → `[left][sep₁][right][sep₂][counter]`
+       where `counter` is a copy of `right` and `sep₂` is a second separator.
+
+    2. **Iterate increment-decrement**: while `counter > 0`, apply
+       `binSucc` to left (increment) and binary decrement to counter.
+       After `decodeBinaryBlock right` iterations:
+       `[left+right][sep₁][right][sep₂][0]`
+
+    3. **Cleanup**: remove the third area:
+       `[left+right][sep₁][right]`
+
+    Each sub-operation (copy, increment, decrement, test-zero, cleanup)
+    is a focused TM0 construction. The increment operation is already
+    proven (`tm0_binSucc_block`). The key missing pieces are:
+    - A block-copy machine (shuttle each cell to the copy area)
+    - A binary decrement machine (similar to `binSucc` in reverse)
+    - A while-loop combinator at the block-realizability level
+    - A cleanup machine (remove trailing separator + empty block)
+
+    An alternative approach is to build a general `mapWithCarry` framework
+    (finite-state transduction) and express binary addition through
+    bit-interleaving + carry-based map + de-interleaving.
+-/
 theorem tm0_binAddPaired_block :
     TM0RealizesBlock ChainΓ binAddPaired := by
   sorry
@@ -256,6 +287,25 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
 
     Squaring reuses the paired addition mechanism: conceptually, duplicate
     the input as `[0][sep][n]` and iterate `binAddPaired` n times. The
-    actual TM0 uses a decrement-and-add loop on the paired encoding. -/
+    actual TM0 uses a decrement-and-add loop on the paired encoding.
+
+    ## Proof approach (not yet formalized)
+
+    Once `tm0_binAddPaired_block` is proven, squaring decomposes as:
+
+    1. Duplicate input: `block` → `[chainConsBottom] ++ block` (= `[0][sep][n]`)
+       This is `tm0_cons_block chainConsBottom chainConsBottom_ne_default`.
+
+    2. Iterate paired addition `n` times: for this, we need a while-loop
+       that runs `binAddPaired` while decrementing a copy of `n`.
+       This requires the same copy + decrement + while-loop infrastructure
+       as `tm0_binAddPaired_block`.
+
+    3. Extract left: `tm0_extractPairedLeft_block`.
+
+    Alternative: express `n² = Nat.pair 0 n` and prove `Nat.pair 0` is
+    block-realizable independently, but this is equally hard since
+    `Nat.pair 0 n = n²` involves squaring.
+-/
 theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
   sorry

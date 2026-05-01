@@ -22,6 +22,7 @@ import Langlib.Automata.Pushdown.Equivalence.ContextFree.PDAToCFG
 import Langlib.Automata.Pushdown.Equivalence.ContextFree
 import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
+import Langlib.Automata.Turing.DSL.BinaryPredecessor
 import Langlib.Automata.Turing.DSL.BinarySuccessor
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.BlockValueLeqMachine
