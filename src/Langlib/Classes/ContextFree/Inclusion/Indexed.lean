@@ -150,6 +150,14 @@ theorem indexed_of_cfg_language (g : CF_grammar T) :
     have hd := cf_deri_to_indexed_deri g h
     convert hd using 1 <;> simp [cf_to_isym, List.map_map, Function.comp_def, indexed_of_cfg]
 
+
+/-- Every context-free language is an indexed language. -/
+theorem is_Indexed_of_is_CF {L : Language T} :
+    is_CF L → is_Indexed L := by
+  intro h
+  obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h
+  exact ⟨indexed_of_cfg g, indexed_of_cfg_language g⟩
+
 /-- Every context-free language is an indexed language. -/
 theorem CF_subclass_Indexed :
     (CF : Set (Language T)) ⊆ (Indexed : Set (Language T)) := by

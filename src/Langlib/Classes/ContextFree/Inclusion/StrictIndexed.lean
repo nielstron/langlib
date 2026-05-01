@@ -22,6 +22,11 @@ consumes exactly as many flags as were pushed.
 - `CF_strict_subclass_Indexed` — `CF ⊂ Indexed`
 -/
 
+/-- CF ⊊ Indexed: context-free languages form a strict subclass of indexed languages. -/
+theorem CF_subclass_Indexed_and_exists_strict :
+    (∀ (T : Type) (L : Language T), is_CF L → is_Indexed L) ∧
+    (∃ (T : Type) (L : Language T), is_Indexed L ∧ ¬ is_CF L) :=
+  ⟨fun _ _ => is_Indexed_of_is_CF, ⟨Fin 3, lang_eq_eq, is_Indexed_lang_eq_eq, notCF_lang_eq_eq⟩⟩
 
 /-- For any finite alphabet with at least `3` symbols, context-free languages form a strict
 subclass of indexed languages. -/
