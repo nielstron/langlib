@@ -329,31 +329,9 @@ private lemma nc_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)
   exact List.mem_append_right _ ( List.mem_flatMap.mpr ⟨ _, h_zip, hcr ⟩ )
 
 /-
-PROBLEM
 The core simulation: transforming the lifted pattern to lifted output.
     For n = 1 (input_L = [], input_R = []), this is a direct CS step.
     For n ≥ 2, this requires the Phase 1 + Phase 2 rule chain.
-
-PROVIDED SOLUTION
-Let pattern = r.input_L ++ [nonterminal r.input_N] ++ r.input_R, n = pattern.length, out = r.output_string.
-
-Case 1: n ≤ 1 (so r.input_L = [] and r.input_R = []):
-  The first rule in nc_simRules ri r is:
-    { context_left := [], input_nonterminal := .inl r.input_N, context_right := [], output_string := out.map nc_liftSym }
-
-  This is a single CS_transforms step:
-  - Use this rule with u = [] and v = []
-  - w₁ = [] ++ [] ++ [nt (inl r.input_N)] ++ [] ++ [] = [nt (inl r.input_N)]
-  - w₂ = [] ++ [] ++ out.map nc_liftSym ++ [] ++ [] = out.map nc_liftSym
-
-  And map nc_liftSym [nonterminal r.input_N] = [nonterminal (inl r.input_N)] = [nt (inl r.input_N)].
-  So it works. Apply CS_deri_of_tran.
-
-  The rule membership: it's in nc_simRules ri r (the first element of the list), hence in (csg_of_noncontracting g hg).rules by nc_simRule_mem.
-
-Case 2: n ≥ 2: sorry.
-
-To handle both cases: split on whether r.input_L.length + 1 + r.input_R.length ≤ 1. For the n ≤ 1 case, r.input_L = [] and r.input_R = [] (since both are lists and their total length is 0). Use List.length_eq_zero to derive input_L = [] and input_R = []. Then simplify and construct the single CS step.
 -/
 private lemma nc_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length) (hr : g.rules[ri] = r) :

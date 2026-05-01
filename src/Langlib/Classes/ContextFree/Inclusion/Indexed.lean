@@ -16,7 +16,7 @@ every nonterminal carries the trivial empty stack throughout derivations.
 ## Main declarations
 
 - `indexed_of_cfg` — convert a CF grammar to an equivalent indexed grammar
-- `CF_subclass_Indexed` — `is_CF L → is_Indexed L`
+- `CF_subclass_Indexed` — `CF ⊆ Indexed`
 -/
 
 open List
@@ -151,8 +151,8 @@ theorem indexed_of_cfg_language (g : CF_grammar T) :
     convert hd using 1 <;> simp [cf_to_isym, List.map_map, Function.comp_def, indexed_of_cfg]
 
 /-- Every context-free language is an indexed language. -/
-theorem CF_subclass_Indexed {L : Language T} :
-    is_CF L → is_Indexed L := by
-  intro h
+theorem CF_subclass_Indexed :
+    (CF : Set (Language T)) ⊆ (Indexed : Set (Language T)) := by
+  intro L h
   obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h
   exact ⟨indexed_of_cfg g, indexed_of_cfg_language g⟩

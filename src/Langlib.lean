@@ -86,6 +86,7 @@ import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
+import Langlib.Classes.Indexed.Closure.Injection
 import Langlib.Classes.Indexed.Closure.Union
 import Langlib.Classes.Indexed.Definition
 import Langlib.Classes.Indexed.Examples.AnBnCn
