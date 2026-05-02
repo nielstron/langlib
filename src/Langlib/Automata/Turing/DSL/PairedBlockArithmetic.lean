@@ -439,7 +439,35 @@ theorem binMulPairedInit_ne_default (block : List ChainΓ)
 theorem binMulPairedStep_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) (_hcond : binMulPairedCond block) :
     ∀ g ∈ binMulPairedStep block, g ≠ default := by
-  sorry
+  rcases hsplit : splitAtConsBottom block with ⟨acc, rest⟩
+  rcases hrest : splitAtConsBottom rest with ⟨addend, fuel⟩
+  have hacc : ∀ g ∈ acc, g ≠ default := by
+    intro g hg
+    exact hblock g (splitAtConsBottom_fst_subset block g (by simpa [hsplit] using hg))
+  have hrest_block : ∀ g ∈ rest, g ≠ default := by
+    intro g hg
+    exact hblock g (splitAtConsBottom_snd_subset block g (by simpa [hsplit] using hg))
+  have haddend : ∀ g ∈ addend, g ≠ default := by
+    intro g hg
+    exact hrest_block g (splitAtConsBottom_fst_subset rest g (by simpa [hrest] using hg))
+  have hfuel : ∀ g ∈ fuel, g ≠ default := by
+    intro g hg
+    exact hrest_block g (splitAtConsBottom_snd_subset rest g (by simpa [hrest] using hg))
+  have haddInput : ∀ g ∈ acc ++ chainConsBottom :: addend, g ≠ default := by
+    intro g hg
+    rcases List.mem_append.mp hg with hg | hg
+    · exact hacc g hg
+    · cases hg with
+      | head => exact chainConsBottom_ne_default
+      | tail _ hg => exact haddend g hg
+  unfold binMulPairedStep
+  simp [hsplit, hrest]
+  rintro g (hg | rfl | hg | rfl | hg)
+  · exact binAddPaired_ne_default _ haddInput g hg
+  · exact chainConsBottom_ne_default
+  · exact haddend g hg
+  · exact chainConsBottom_ne_default
+  · exact binPred_ne_default _ hfuel g hg
 
 /-- The loop over an already-initialized multiplication state. -/
 noncomputable def binMulPairedLoop (block : List ChainΓ) : List ChainΓ :=
@@ -449,7 +477,14 @@ noncomputable def binMulPairedLoop (block : List ChainΓ) : List ChainΓ :=
 theorem binMulPairedLoop_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ binMulPairedLoop block, g ≠ default := by
-  sorry
+  unfold binMulPairedLoop
+  induction' decodeBinaryBlock (binMulPairedFuel block) with n ih generalizing block
+  · exact hblock
+  · by_cases hcond : binMulPairedCond block
+    · simp [blockIterateWhile, hcond]
+      exact ih _ (binMulPairedStep_ne_default _ hblock hcond)
+    · simp [blockIterateWhile, hcond]
+      exact hblock
 
 @[simp]
 theorem decodeBinaryBlock_binMulPairedInit_fuel (block : List ChainΓ) :
