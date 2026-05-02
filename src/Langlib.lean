@@ -35,6 +35,7 @@ import Langlib.Automata.Turing.DSL.DropWhileNeSep
 import Langlib.Automata.Turing.DSL.EmptyTM
 import Langlib.Automata.Turing.DSL.EncodingBridge
 import Langlib.Automata.Turing.DSL.Enumeration
+import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.PairedAddHelpers
 import Langlib.Automata.Turing.DSL.PairedBlockArithmetic
 import Langlib.Automata.Turing.DSL.ParrecChain

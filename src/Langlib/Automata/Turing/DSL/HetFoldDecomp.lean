@@ -1,0 +1,591 @@
+import Mathlib
+import Langlib.Automata.Turing.DSL.BlockRealizability
+import Langlib.Automata.Turing.DSL.PairedAddHelpers
+
+/-! # Heterogeneous Fold via Reverse + While Loop
+
+This file decomposes `tm0Het_fold_blockRealizable` into two
+`TM0RealizesBlock` operations:
+
+1. **Reverse**: `TM0RealizesBlock _ List.reverse` (from `tm0_reverse_block`)
+2. **While loop**: `TM0RealizesBlock _ (hetFoldWhile f)`, where the body
+   pops the leftmost `Sum.inl` tag and applies `f` to the accumulator.
+
+## Architecture
+
+The while-loop body is expressed as a `TM0RealizesBlockCond`, which extends
+`TM0RealizesBlock` with conditional halting: the body machine halts at a
+designated continuation state `q_cont` when the loop should continue (an
+`inl` tag was processed), and at a different state when no `inl` tag
+remains (loop terminates).
+
+The general combinator `tm0RealizesBlock_while` builds a `TM0RealizesBlock`
+from a `TM0RealizesBlockCond` body using `tm0WhileLoop`.
+
+### Tape Layout
+
+Throughout the while loop, the tape holds a single contiguous non-default
+block of the form:
+
+```
+  [some(inl tⱼ), ..., some(inl t₁), some(inr g₁), ..., some(inr gₖ)]
+```
+
+where `tⱼ, ..., t₁` are the remaining unprocessed tags and
+`g₁, ..., gₖ` is the current accumulator. All elements are `some _`,
+hence non-default (`none`), so this is a valid block for
+`TM0RealizesBlock (Option (T ⊕ Γ₀))`.
+
+### Fold Identity
+
+The fold identity `List.foldr f [] w = List.foldl (fun a t => f t a) [] w.reverse`
+connects the right-to-left fold to the left-to-right while loop on the
+reversed input.
+-/
+
+open Turing
+
+/-! ## Conditional Block Realizability -/
+
+/-- A TM0 block step with conditional continuation.
+
+When `cond block` holds: transforms block to `step block`, halts at `q_cont`.
+When `¬cond block`: leaves block unchanged, halts at state ≠ `q_cont`.
+
+This models a single iteration of a while loop body. The halting state
+signals whether the loop should continue or terminate. -/
+def TM0RealizesBlockCond {Γ : Type} [Inhabited Γ]
+    (step : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond] : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ) (q_cont : Λ),
+    ∀ (block suffix : List Γ),
+      (∀ g ∈ block, g ≠ default) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (cond block → ∀ g ∈ step block, g ≠ default) →
+      (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom),
+        let cfg := (TM0Seq.evalCfg M (block ++ default :: suffix)).get h
+        if cond block then
+          cfg.q = q_cont ∧
+          cfg.Tape = Tape.mk₁ (step block ++ default :: suffix)
+        else
+          cfg.q ≠ q_cont ∧
+          cfg.Tape = Tape.mk₁ (block ++ default :: suffix)
+
+/-! ## Fuel-Bounded While-Loop Iteration -/
+
+/-- Iterate a step function while a condition holds, bounded by fuel.
+    Returns the block after at most `n` applications of `step`. -/
+def blockIterateWhile {Γ : Type} (step : List Γ → List Γ) (cond : List Γ → Prop)
+    [DecidablePred cond] : ℕ → List Γ → List Γ
+  | 0, block => block
+  | n + 1, block => if cond block then blockIterateWhile step cond n (step block) else block
+
+theorem blockIterateWhile_succ_true {Γ : Type} (step : List Γ → List Γ) (cond : List Γ → Prop)
+    [DecidablePred cond] (n : ℕ) (block : List Γ) (hcond : cond block) :
+    blockIterateWhile step cond (n + 1) block =
+      blockIterateWhile step cond n (step block) := by
+  simp [blockIterateWhile, hcond]
+
+theorem blockIterateWhile_succ_false {Γ : Type} (step : List Γ → List Γ) (cond : List Γ → Prop)
+    [DecidablePred cond] (n : ℕ) (block : List Γ) (hcond : ¬cond block) :
+    blockIterateWhile step cond (n + 1) block = block := by
+  simp [blockIterateWhile, hcond]
+
+/-! ## While-Loop Helper Lemmas -/
+
+/-
+When body M halts at state q ≠ q_cont, the while loop `tm0WhileLoop M q_cont`
+    also halts with the body's output tape.
+
+    Proof: M's trajectory from init(l) to cfg is replayed by W (via
+    `tm0WhileLoop_reaches_of_M`). At cfg, M halts and cfg.q ≠ q_cont,
+    so W also halts (via `tm0WhileLoop_halt`).
+-/
+theorem whileLoop_eval_not_cont
+    {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] [DecidableEq Λ]
+    (M : TM0.Machine Γ Λ) (q_cont : Λ) (l : List Γ)
+    (h_body_dom : (TM0Seq.evalCfg M l).Dom)
+    (h_body_q : ((TM0Seq.evalCfg M l).get h_body_dom).q ≠ q_cont) :
+    (TM0Seq.evalCfg (tm0WhileLoop M q_cont) l).Dom ∧
+    ∀ (h : (TM0Seq.evalCfg (tm0WhileLoop M q_cont) l).Dom),
+      ((TM0Seq.evalCfg (tm0WhileLoop M q_cont) l).get h).Tape =
+      ((TM0Seq.evalCfg M l).get h_body_dom).Tape := by
+  obtain ⟨c, hc⟩ : ∃ c : TM0.Cfg Γ Λ, Reaches (TM0.step M) (TM0.init l) c ∧ TM0.step M c = none ∧ c.Tape = ((TM0Seq.evalCfg M l).get h_body_dom).Tape ∧ c.q = ((TM0Seq.evalCfg M l).get h_body_dom).q := by
+    have := Turing.mem_eval.mp ( ( TM0Seq.evalCfg M l ).get_mem h_body_dom );
+    exact ⟨ _, this.1, this.2, rfl, rfl ⟩;
+  obtain ⟨h_reaches, h_halt, h_tape, h_q⟩ := hc;
+  have h_reaches_while : Reaches (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l) c := by
+    exact tm0WhileLoop_reaches_of_M M q_cont (TM0.init l) c h_reaches
+  have h_halt_while : TM0.step (tm0WhileLoop M q_cont) c = none := by
+    unfold TM0.step at *;
+    unfold tm0WhileLoop at *;
+    grind;
+  have h_eval_while : c ∈ TM0Seq.evalCfg (tm0WhileLoop M q_cont) l := by
+    apply Turing.mem_eval.mpr;
+    exact ⟨ h_reaches_while, h_halt_while ⟩;
+  grind +suggestions
+
+/-
+At a configuration where M halts at q_cont, the while loop W's step
+    from `⟨q_cont, T⟩` equals W's step from `⟨default, T⟩`.
+
+    Both evaluate to `(M default T.head).map ...` because:
+    - W q_cont T.head = M default T.head (restart branch of tm0WhileLoop)
+    - W default T.head = M default T.head (either M steps, or M halts and
+      the `if default = q_cont` branch also gives M default T.head or none)
+-/
+theorem whileLoop_step_restart_eq
+    {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] [DecidableEq Λ]
+    (M : TM0.Machine Γ Λ) (q_cont : Λ) (T : Tape Γ)
+    (h_halt : M q_cont T.head = none) :
+    TM0.step (tm0WhileLoop M q_cont) ⟨q_cont, T⟩ =
+    TM0.step (tm0WhileLoop M q_cont) ⟨default, T⟩ := by
+  unfold tm0WhileLoop;
+  unfold TM0.step; aesop;
+
+/-
+When body M halts at q_cont with tape `Tape.mk₁ l'`, and the while loop
+    W = `tm0WhileLoop M q_cont` is Dom on l', then W is also Dom on l
+    and produces the same output tape as W on l'.
+
+    Proof: W replays M's trajectory reaching `⟨q_cont, Tape.mk₁ l'⟩`.
+    At this point, M halts but W restarts: `W q_cont head = M default head`.
+    - If `M default head = some (q', s)`: both W from `⟨q_cont, tape⟩` and
+      W from `⟨default, tape⟩` step to the same `⟨q', tape'⟩`, so by
+      `reaches_eval` their evals are equal.
+    - If `M default head = none`: both W from `⟨q_cont, tape⟩` and
+      W from `⟨default, tape⟩` halt immediately with the same tape.
+-/
+theorem whileLoop_eval_cont
+    {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] [DecidableEq Λ]
+    (M : TM0.Machine Γ Λ) (q_cont : Λ) (l l' : List Γ)
+    (h_body_dom : (TM0Seq.evalCfg M l).Dom)
+    (h_body_q : ((TM0Seq.evalCfg M l).get h_body_dom).q = q_cont)
+    (h_body_tape : ((TM0Seq.evalCfg M l).get h_body_dom).Tape = Tape.mk₁ l')
+    (h_W_dom' : (TM0Seq.evalCfg (tm0WhileLoop M q_cont) l').Dom) :
+    (TM0Seq.evalCfg (tm0WhileLoop M q_cont) l).Dom ∧
+    ∀ (h : (TM0Seq.evalCfg (tm0WhileLoop M q_cont) l).Dom),
+      ((TM0Seq.evalCfg (tm0WhileLoop M q_cont) l).get h).Tape =
+      ((TM0Seq.evalCfg (tm0WhileLoop M q_cont) l').get h_W_dom').Tape := by
+  obtain ⟨c, hc⟩ : ∃ c : TM0.Cfg Γ Λ, Reaches (TM0.step M) (TM0.init l) c ∧ TM0.step M c = none ∧ c.q = q_cont ∧ c.Tape = Tape.mk₁ l' := by
+    have := Part.get_mem h_body_dom;
+    exact ⟨ _, mem_eval.mp this |>.1, mem_eval.mp this |>.2, h_body_q, h_body_tape ⟩;
+  have h_reach : Reaches (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l) c := by
+    exact tm0WhileLoop_reaches_of_M _ _ _ _ hc.1;
+  have h_reach' : TM0.step (tm0WhileLoop M q_cont) c = TM0.step (tm0WhileLoop M q_cont) (TM0.init l') := by
+    convert whileLoop_step_restart_eq M q_cont ( Tape.mk₁ l' ) _;
+    · exact hc.2.2.1;
+    · exact hc.2.2.2;
+    · unfold TM0.step at hc; aesop;
+  cases h : TM0.step ( tm0WhileLoop M q_cont ) c <;> simp_all +decide [ TM0Seq.evalCfg ];
+  · rw [ eq_comm ] at h_reach';
+    have h_eval_eq : ∀ (c₁ c₂ : TM0.Cfg Γ Λ), Reaches (TM0.step (tm0WhileLoop M q_cont)) c₁ c₂ → TM0.step (tm0WhileLoop M q_cont) c₂ = none → (eval (TM0.step (tm0WhileLoop M q_cont)) c₁).Dom ∧ ∀ (h : (eval (TM0.step (tm0WhileLoop M q_cont)) c₁).Dom), ((eval (TM0.step (tm0WhileLoop M q_cont)) c₁).get h) = c₂ := by
+      intros c₁ c₂ h_reach h_step_none
+      apply And.intro;
+      · apply Part.dom_iff_mem.mpr;
+        use c₂;
+        grind +suggestions;
+      · intro h_dom
+        have h_eval_eq : c₂ ∈ eval (TM0.step (tm0WhileLoop M q_cont)) c₁ := by
+          grind +suggestions;
+        exact Part.get_eq_of_mem h_eval_eq h_dom
+    have := h_eval_eq _ _ h_reach ( by aesop );
+    have := h_eval_eq _ _ ( Relation.ReflTransGen.refl ) h_reach'; aesop;
+  · have h_reach'' : Reaches (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l) ‹_› := by
+      exact h_reach.tail ( by aesop )
+    have h_reach''' : Reaches (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l') ‹_› := by
+      exact Relation.ReflTransGen.single ( by aesop )
+    have h_eval_eq : eval (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l) = eval (TM0.step (tm0WhileLoop M q_cont)) ‹_› := by
+      apply_rules [ Turing.reaches_eval ]
+    have h_eval_eq' : eval (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l') = eval (TM0.step (tm0WhileLoop M q_cont)) ‹_› := by
+      apply Turing.reaches_eval; assumption;
+    simp_all +decide [ TM0Seq.evalCfg ];
+    exact h_eval_eq'.symm ▸ h_W_dom'
+
+/-! ## While-Loop Block Realizability Combinator -/
+
+/-- **While-loop block realizability combinator.**
+
+Given a conditionally block-realizable body (`TM0RealizesBlockCond`),
+a `result` function that equals the iterated application of `step`
+with sufficient fuel, the result function is block-realizable.
+
+The TM0 machine is built using `tm0WhileLoop M_body q_cont`, which
+reruns `M_body` whenever it halts at `q_cont`, and halts when
+`M_body` halts at any other state. -/
+theorem tm0RealizesBlock_while {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (step result : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
+    (hbody : TM0RealizesBlockCond step cond)
+    (hstep_nd : ∀ block, (∀ g ∈ block, g ≠ default) → cond block →
+      ∀ g ∈ step block, g ≠ default)
+    (hresult_eq : ∀ block, (∀ g ∈ block, g ≠ default) →
+      ∃ n, result block = blockIterateWhile step cond n block ∧
+        ¬cond (blockIterateWhile step cond n block))
+    (hresult_nd : ∀ block, (∀ g ∈ block, g ≠ default) →
+      ∀ g ∈ result block, g ≠ default) :
+    TM0RealizesBlock Γ result := by
+  obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
+  haveI : DecidableEq Λ := Classical.decEq Λ
+  refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
+  intro block suffix hblock hsuffix hresult
+  obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock
+  -- Key inductive claim: the while loop computes blockIterateWhile
+  suffices key : ∀ (m : ℕ) (blk : List Γ),
+    (∀ g ∈ blk, g ≠ default) →
+    ¬cond (blockIterateWhile step cond m blk) →
+    (TM0Seq.evalCfg (tm0WhileLoop M q_cont) (blk ++ default :: suffix)).Dom ∧
+    ∀ (hd : (TM0Seq.evalCfg (tm0WhileLoop M q_cont) (blk ++ default :: suffix)).Dom),
+      ((TM0Seq.evalCfg (tm0WhileLoop M q_cont) (blk ++ default :: suffix)).get hd).Tape =
+      Tape.mk₁ (blockIterateWhile step cond m blk ++ default :: suffix) by
+    obtain ⟨h_dom, h_tape⟩ := key n block hblock hn_not_cond
+    exact ⟨h_dom, fun hd => by rw [hn_eq, h_tape hd]⟩
+  intro m
+  induction m with
+  | zero =>
+    intro blk hblk hn_not
+    simp only [blockIterateWhile] at hn_not ⊢
+    obtain ⟨h_body_dom, h_body_spec⟩ := hM blk suffix hblk hsuffix
+      (fun hc => hstep_nd blk hblk hc)
+    have h_body_spec' := h_body_spec h_body_dom
+    simp only [hn_not, ↓reduceIte] at h_body_spec'
+    obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+    obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _ h_body_dom h_q_ne
+    exact ⟨h_dom, fun hd => by rw [h_tape hd, h_tape_eq]⟩
+  | succ m ih =>
+    intro blk hblk hn_not
+    by_cases hcond : cond blk
+    · -- cond blk: body halts at q_cont, while loop continues on step blk
+      rw [blockIterateWhile_succ_true _ _ _ _ hcond] at hn_not ⊢
+      have h_step_nd := hstep_nd blk hblk hcond
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM blk suffix hblk hsuffix
+        (fun _ => h_step_nd)
+      have h_body_spec' := h_body_spec h_body_dom
+      simp only [hcond, ↓reduceIte] at h_body_spec'
+      obtain ⟨h_q_cont, h_tape_step⟩ := h_body_spec'
+      obtain ⟨h_W_step_dom, h_W_step_tape⟩ := ih (step blk) h_step_nd hn_not
+      obtain ⟨h_W_dom, h_W_tape⟩ := whileLoop_eval_cont M q_cont _ _
+        h_body_dom h_q_cont h_tape_step h_W_step_dom
+      exact ⟨h_W_dom, fun hd => by rw [h_W_tape hd, h_W_step_tape h_W_step_dom]⟩
+    · -- ¬cond blk: blockIterateWhile (m+1) = blk
+      rw [blockIterateWhile_succ_false _ _ _ _ hcond] at hn_not ⊢
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM blk suffix hblk hsuffix
+        (fun hc => absurd hc hcond)
+      have h_body_spec' := h_body_spec h_body_dom
+      simp only [hcond, ↓reduceIte] at h_body_spec'
+      obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+      obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _ h_body_dom h_q_ne
+      exact ⟨h_dom, fun hd => by rw [h_tape hd, h_tape_eq]⟩
+
+/-! ## Heterogeneous Fold Definitions -/
+
+section HetFold
+
+variable {T : Type} [DecidableEq T] [Fintype T]
+variable {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
+
+/-- Check if a het block element is an `inl` tag. -/
+def isHetInl (x : Option (T ⊕ Γ₀)) : Bool :=
+  match x with | some (Sum.inl _) => true | _ => false
+
+/-- Condition: block starts with an `inl` tag (signals the while loop
+    should continue). -/
+def hasHetInlHead : List (Option (T ⊕ Γ₀)) → Prop
+  | (some (Sum.inl _)) :: _ => True
+  | _ => False
+
+instance : DecidablePred (@hasHetInlHead T Γ₀) := fun block =>
+  match block with
+  | (some (Sum.inl _)) :: _ => isTrue trivial
+  | [] => isFalse (by simp [hasHetInlHead])
+  | none :: _ => isFalse (by simp [hasHetInlHead])
+  | (some (Sum.inr _)) :: _ => isFalse (by simp [hasHetInlHead])
+
+/-- Mixed het block representation: `inl` tags followed by `inr` accumulator. -/
+def hetMix (ts : List T) (acc : List Γ₀) : List (Option (T ⊕ Γ₀)) :=
+  ts.map (some ∘ Sum.inl) ++ acc.map (some ∘ Sum.inr)
+
+/-- One step of the het fold while loop.
+    Pops the leftmost `inl t` tag and applies `f t` to the `inr` accumulator.
+
+    On a block `hetMix (t :: ts) acc`, produces `hetMix ts (f t acc)`. -/
+noncomputable def hetFoldStep
+    (f : T → List Γ₀ → List Γ₀) :
+    List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))
+  | (some (Sum.inl t)) :: rest =>
+    let inlTail := rest.takeWhile (isHetInl (T := T) (Γ₀ := Γ₀))
+    let inrPart := rest.dropWhile (isHetInl (T := T) (Γ₀ := Γ₀))
+    let acc := inrPart.filterMap
+      (fun x => match x with | some (Sum.inr g) => some g | _ => none)
+    inlTail ++ (f t acc).map (some ∘ Sum.inr)
+  | block => block
+
+/-- The full while-loop result function, defined as iterated application
+    of `hetFoldStep` with fuel equal to the number of leading `inl` tags.
+
+    This directly models what the `tm0WhileLoop` machine computes:
+    iterate `hetFoldStep` while `hasHetInlHead`, stopping when no more
+    `inl` tags remain at the head. -/
+noncomputable def hetFoldWhile
+    (f : T → List Γ₀ → List Γ₀)
+    (block : List (Option (T ⊕ Γ₀))) : List (Option (T ⊕ Γ₀)) :=
+  blockIterateWhile (hetFoldStep f) hasHetInlHead
+    (block.takeWhile (isHetInl (T := T) (Γ₀ := Γ₀))).length block
+
+/-! ## Mathematical Correctness -/
+
+/-- `hetMix` with a non-empty tag list starts with `inl`. -/
+theorem hasHetInlHead_hetMix_cons (t : T) (ts : List T) (acc : List Γ₀) :
+    hasHetInlHead (hetMix (t :: ts) acc) := by
+  simp [hetMix, hasHetInlHead]
+
+/-- `hetMix` with empty tag list does NOT start with `inl`. -/
+theorem not_hasHetInlHead_hetMix_nil (acc : List Γ₀) :
+    ¬hasHetInlHead (hetMix ([] : List T) acc) := by
+  simp only [hetMix, List.map, List.nil_append]
+  cases acc with
+  | nil => simp [hasHetInlHead]
+  | cons a rest => simp [hasHetInlHead]
+
+/-- One step is correct on `hetMix`: pops the head tag and applies `f`. -/
+theorem hetFoldStep_hetMix
+    (f : T → List Γ₀ → List Γ₀) (t : T) (ts : List T) (acc : List Γ₀) :
+    hetFoldStep f (hetMix (t :: ts) acc) = hetMix ts (f t acc) := by
+  unfold hetFoldStep
+  unfold hetMix; simp +decide [isHetInl]
+  rw [List.takeWhile_eq_nil_iff.mpr]
+  · rw [show List.dropWhile isHetInl (List.map (some ∘ Sum.inr) acc) =
+        List.map (some ∘ Sum.inr) acc from ?_]
+    · rw [List.filterMap_map]
+      rw [List.filterMap_congr]
+      rotate_right
+      exacts [fun x => some x, by simp +decide, fun x hx => rfl]
+    · induction acc <;> simp +decide [*, isHetInl]
+  · unfold isHetInl; aesop
+
+/-
+The `takeWhile isHetInl` length of `hetMix ts acc` is `ts.length`.
+-/
+theorem takeWhile_isHetInl_hetMix (ts : List T) (acc : List Γ₀) :
+    (hetMix (T := T) (Γ₀ := Γ₀) ts acc).takeWhile
+      (isHetInl (T := T) (Γ₀ := Γ₀)) = ts.map (some ∘ Sum.inl) := by
+  induction' ts with t ts ih;
+  · unfold hetMix;
+    induction acc <;> aesop;
+  · convert congr_arg ( fun l => some ( Sum.inl t ) :: l ) ih using 1
+
+/-- `hetFoldWhile` is correct on `hetMix`: computes `foldl`. -/
+theorem hetFoldWhile_hetMix
+    (f : T → List Γ₀ → List Γ₀) (ts : List T) (acc : List Γ₀) :
+    hetFoldWhile f (hetMix ts acc) =
+      (List.foldl (fun a t => f t a) acc ts).map (some ∘ Sum.inr) := by
+  unfold hetFoldWhile
+  rw [takeWhile_isHetInl_hetMix, List.length_map]
+  induction ts generalizing acc with
+  | nil =>
+    simp only [List.length, blockIterateWhile, List.foldl_nil]
+    rfl
+  | cons t ts ih =>
+    rw [List.length_cons, blockIterateWhile_succ_true _ _ _ _
+        (hasHetInlHead_hetMix_cons t ts acc)]
+    rw [hetFoldStep_hetMix]
+    exact ih (f t acc)
+
+/-- The fold identity: `foldl` on the reversed list equals `foldr`. -/
+theorem foldl_flip_reverse_eq_foldr
+    {α β : Type} (f : α → β → β) (z : β) (w : List α) :
+    List.foldl (fun a t => f t a) z w.reverse = List.foldr f z w := by
+  rw [List.foldl_reverse]
+
+/-- **Decomposition identity**: `hetFoldWhile ∘ reverse` on a pure `inl`
+    block equals the `foldr` result. -/
+theorem hetFold_decomp
+    (f : T → List Γ₀ → List Γ₀) (w : List T) :
+    hetFoldWhile f ((w.map (some ∘ Sum.inl)).reverse) =
+      (List.foldr f [] w).map (some ∘ @Sum.inr T Γ₀) := by
+  rw [← List.map_reverse]
+  have : hetMix (T := T) (Γ₀ := Γ₀) w.reverse [] =
+      List.map (some ∘ Sum.inl) w.reverse := by simp [hetMix]
+  rw [← this, hetFoldWhile_hetMix, foldl_flip_reverse_eq_foldr]
+
+/-
+`hetFoldWhile` equals iterated `hetFoldStep` with sufficient fuel.
+    This is immediate from the definition: `hetFoldWhile` IS defined as
+    `blockIterateWhile`.
+-/
+theorem hetFoldWhile_eq_iterateWhile
+    (f : T → List Γ₀ → List Γ₀)
+    (_hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
+    (block : List (Option (T ⊕ Γ₀)))
+    (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀))) :
+    ∃ n, hetFoldWhile f block =
+      blockIterateWhile (hetFoldStep f) hasHetInlHead n block ∧
+      ¬hasHetInlHead (blockIterateWhile (hetFoldStep f) hasHetInlHead n block) := by
+  -- By definition of `hetFoldWhile`, we know that it is equal to `blockIterateWhile` with the appropriate parameters.
+  use (block.takeWhile isHetInl).length;
+  induction' n : ( block.takeWhile isHetInl ).length with n ih generalizing block <;> simp_all +decide;
+  · rcases block <;> simp_all +decide;
+    · exact ⟨ rfl, by rintro ⟨ ⟩ ⟩;
+    · cases ‹Option ( T ⊕ Γ₀ ) › <;> simp_all +decide [ isHetInl ];
+      · tauto;
+      · cases ‹T ⊕ Γ₀› <;> tauto;
+  · -- Since the length of the takeWhile is n+1, the block must start with an inl element.
+    obtain ⟨t, ts, h_block⟩ : ∃ t ts, block = some (Sum.inl t) :: ts := by
+      rcases block with ( _ | ⟨ x, block ⟩ ) <;> simp_all +decide;
+      rcases x with ( _ | _ | x ) <;> simp_all +decide [ isHetInl ];
+    specialize ih (hetFoldStep f block) (by
+    intro g hg; contrapose! hg; simp_all +decide [ hetFoldStep ] ;
+    intro h; have := List.mem_takeWhile_imp h; simp_all +decide [ isHetInl ] ;) (by
+    simp_all +decide [ List.takeWhile_cons ];
+    rw [ show hetFoldStep f ( some ( Sum.inl t ) :: ts ) = List.takeWhile isHetInl ts ++ ( f t ( List.filterMap ( fun x => match x with | some ( Sum.inr g ) => some g | _ => none ) ( List.dropWhile isHetInl ts ) ) |> List.map ( some ∘ Sum.inr ) ) from ?_ ];
+    · rw [ List.takeWhile_append ];
+      rw [ List.takeWhile_takeWhile ] ; aesop;
+    · grind +locals);
+    unfold hetFoldWhile at *; simp_all +decide [ List.takeWhile ] ;
+    convert ih.2 using 1
+
+/-! ## Non-Defaultness -/
+
+omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
+/-- All elements of `hetMix` are non-default (`some _`). -/
+theorem hetMix_ne_default (ts : List T) (acc : List Γ₀)
+    (_hacc : ∀ g ∈ acc, g ≠ (default : Γ₀)) :
+    ∀ g ∈ hetMix (T := T) ts acc, g ≠ (default : Option (T ⊕ Γ₀)) := by
+  unfold hetMix; aesop
+
+omit [DecidableEq T] [Fintype T] [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀] in
+/-- Elements of `w.map (some ∘ Sum.inl)` are non-default. -/
+theorem map_inl_ne_default (w : List T) :
+    ∀ g ∈ w.map (some ∘ @Sum.inl T Γ₀), g ≠ (default : Option (T ⊕ Γ₀)) := by
+  intro g hg
+  simp only [List.mem_map, Function.comp] at hg
+  obtain ⟨_, _, rfl⟩ := hg
+  exact Option.some_ne_none _
+
+omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
+/-- `hetFoldStep` preserves non-defaultness when the condition holds. -/
+theorem hetFoldStep_ne_default
+    (f : T → List Γ₀ → List Γ₀)
+    (_hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
+    (block : List (Option (T ⊕ Γ₀)))
+    (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀)))
+    (hcond : hasHetInlHead block) :
+    ∀ g ∈ hetFoldStep f block, g ≠ (default : Option (T ⊕ Γ₀)) := by
+  cases block with
+  | nil => cases hcond
+  | cons h t =>
+    rcases h with (_ | ⟨_ | t'⟩) <;> simp_all +decide [hasHetInlHead]
+    unfold hetFoldStep; simp +decide [*]
+    rintro g (hg | ⟨a, ha, rfl⟩)
+    · have := List.mem_takeWhile_imp hg
+      cases g <;> simp_all +decide [isHetInl]
+    · exact fun h => by cases h
+
+omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
+/-
+`hetFoldWhile` output is non-default on well-formed (hetMix) blocks.
+    For general non-default blocks, this also holds since the while loop
+    either preserves the block (when ¬hasHetInlHead) or produces a
+    pure `inr` block (when processing succeeds).
+-/
+theorem hetFoldWhile_ne_default
+    (f : T → List Γ₀ → List Γ₀)
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
+    (block : List (Option (T ⊕ Γ₀)))
+    (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀))) :
+    ∀ g ∈ hetFoldWhile f block, g ≠ (default : Option (T ⊕ Γ₀)) := by
+  intro g hg;
+  have h_block_ne_default : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ n, (∀ g ∈ blockIterateWhile (hetFoldStep f) hasHetInlHead n block, g ≠ default) := by
+    intros block hblock n
+    induction' n with n ih generalizing block;
+    · exact hblock;
+    · by_cases h : hasHetInlHead block <;> simp +decide [ *, blockIterateWhile ];
+      · exact ih _ ( hetFoldStep_ne_default f hf_nd block hblock h );
+      · exact hblock;
+  exact h_block_ne_default block hblock _ _ hg
+
+/-! ## Block Realizability -/
+
+/-- **Het fold step is conditionally block-realizable.**
+
+The body machine:
+1. Reads the head of the block.
+2. If `some(inl t)`: records `t` in the finite state, scans right past
+   remaining `inl` tags, applies the lifted `f t` machine to the `inr`
+   accumulator, returns to start. Halts at `q_cont`.
+3. If not `some(inl _)`: halts immediately at a state ≠ `q_cont`. -/
+theorem tm0RealizesBlockCond_hetFoldStep
+    (f : T → List Γ₀ → List Γ₀)
+    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
+    TM0RealizesBlockCond (hetFoldStep f) (@hasHetInlHead T Γ₀) := by
+  sorry
+
+/-- **Het fold while loop is block-realizable.**
+
+Derived from:
+- `tm0RealizesBlockCond_hetFoldStep` (body is conditionally realizable)
+- `tm0RealizesBlock_while` (general while-loop combinator)
+- `hetFoldWhile_eq_iterateWhile` (definition equals iteration) -/
+theorem tm0RealizesBlock_hetFoldWhile
+    (f : T → List Γ₀ → List Γ₀)
+    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
+    TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldWhile f) :=
+  tm0RealizesBlock_while
+    (hetFoldStep f) (hetFoldWhile f) hasHetInlHead
+    (tm0RealizesBlockCond_hetFoldStep f hf_block hf_nd)
+    (fun block hblock hcond => hetFoldStep_ne_default f hf_nd block hblock hcond)
+    (fun block hblock => hetFoldWhile_eq_iterateWhile f hf_nd block hblock)
+    (fun block hblock => hetFoldWhile_ne_default f hf_nd block hblock)
+
+/-- **The het fold is block-realizable as `reverse` then `while loop`.**
+
+This is `TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldWhile f ∘ List.reverse)`,
+composed via `tm0RealizesBlock_comp`. -/
+theorem tm0RealizesBlock_hetFold
+    (f : T → List Γ₀ → List Γ₀)
+    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
+    TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldWhile f ∘ List.reverse) :=
+  tm0RealizesBlock_comp tm0_reverse_block
+    (tm0RealizesBlock_hetFoldWhile f hf_block hf_nd)
+    reverse_ne_default
+
+/-! ## Deriving the Original Fold Spec -/
+
+/-- **Derive `tm0Het_fold_blockRealizable` from the block-realizable
+    decomposition.**
+
+    Uses `evalCfg_append_default` and `tape_mk₁_append_default` to
+    strip the trailing default separator, and `hetFold_decomp` to
+    connect `hetFoldWhile ∘ reverse` to `List.foldr`. -/
+theorem tm0Het_fold_blockRealizable'
+    (T : Type) [DecidableEq T] [Fintype T]
+    {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
+    (f : T → List Γ₀ → List Γ₀)
+    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) →
+      ∀ g ∈ f t block, g ≠ default) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine (Option (T ⊕ Γ₀)) Λ),
+      ∀ w : List T,
+        (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom),
+          ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
+            Tape.mk₁ ((List.foldr f [] w).map
+              (some ∘ @Sum.inr T Γ₀)) := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0RealizesBlock_hetFold f hf_block hf_nd
+  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
+  intro w
+  have hnd_block := map_inl_ne_default (T := T) (Γ₀ := Γ₀) w
+  have hnd_result : ∀ g ∈ (hetFoldWhile f ∘ List.reverse) (List.map (some ∘ Sum.inl) w),
+      g ≠ (default : Option (T ⊕ Γ₀)) :=
+    hetFoldWhile_ne_default f hf_nd _ (fun g hg => reverse_ne_default _ hnd_block g hg)
+  specialize hM (w.map (some ∘ Sum.inl)) [] hnd_block (by simp) hnd_result
+  convert hM using 1
+  · rw [evalCfg_append_default]
+  · rw [evalCfg_append_default, tape_mk₁_append_default]
+    rw [Function.comp_apply, hetFold_decomp]
+
+end HetFold
