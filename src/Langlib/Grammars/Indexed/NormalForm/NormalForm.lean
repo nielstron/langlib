@@ -1,20 +1,42 @@
 import Mathlib
 import Langlib.Grammars.Indexed.Definition
+import Langlib.Grammars.Indexed.NormalForm.FreshStart
+import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
+import Langlib.Grammars.Indexed.NormalForm.TerminalIsolation
+import Langlib.Grammars.Indexed.NormalForm.FlagSeparation
+import Langlib.Grammars.Indexed.NormalForm.Binarization
 
 /-! # Normal Form for Indexed Grammars
 
-This file defines the normal form for indexed grammars following Aho (1968), and states
-the equivalence theorem that every indexed grammar can be converted to an equivalent
-one in normal form.
+This file assembles the normal form theorem for indexed grammars following Aho (1968).
 
-An indexed grammar is in **normal form** if:
-1. The start symbol does not appear on the right-hand side of any production.
-2. There are no ε-productions (except possibly S → ε).
-3. Each production has one of the four forms:
-   - `A → BC` (binary split, no flag consumed)
-   - `Af → B` (flag consumption)
-   - `A → Bf` (flag push)
-   - `A → a` (terminal production)
+An indexed grammar is in **normal form** if every production has one of the four forms:
+
+1. `A → BC` — binary split, no flag consumed, no flag pushed
+2. `Af → B` — flag consumption (pop)
+3. `A → Bf` — flag push
+4. `A → a` — terminal production
+
+and the start symbol does not appear on the right-hand side of any production.
+
+## Main results
+
+- `IndexedGrammar.exists_normalForm` — **Aho's Normal Form Theorem**: every indexed
+  grammar has an equivalent grammar in normal form (for non-empty words)
+
+## Proof outline
+
+The proof proceeds by a sequence of language-preserving transformations:
+
+1. **Fresh start** (`FreshStart.lean`, fully proved): introduce a new start symbol
+   that does not appear on any right-hand side.
+2. **ε-elimination** (`EpsilonElim.lean`): remove productions with empty right-hand sides,
+   while preserving the language on non-empty words.
+3. **Terminal isolation** (`TerminalIsolation.lean`, fully proved): replace terminals in
+   multi-symbol right-hand sides with dedicated nonterminals.
+4. **Flag separation** (`FlagSeparation.lean`): split rules with complex flag operations.
+5. **Binarization** (`Binarization.lean`): replace right-hand sides of length ≥ 3 with
+   chains of binary rules.
 
 ## References
 
@@ -27,45 +49,35 @@ variable {T : Type}
 
 namespace IndexedGrammar
 
-/-- A production rule is in normal form with respect to a start symbol `s` if it has one of
-the four canonical forms:
-- `A → BC` (binary split)
-- `Af → B` (flag consumption)
-- `A → Bf` (flag push)
-- `A → a` (terminal production)
-and no nonterminal on the right-hand side is the start symbol `s`. -/
-def IRule.IsNF [DecidableEq N] (r : IRule T N F) (s : N) : Prop :=
-  -- A → BC
-  (r.consume = none ∧
-    ∃ B C : N, r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
-      B ≠ s ∧ C ≠ s) ∨
-  -- Af → B
-  (∃ f : F, r.consume = some f ∧
-    ∃ B : N, r.rhs = [IRhsSymbol.nonterminal B none] ∧ B ≠ s) ∨
-  -- A → Bf
-  (r.consume = none ∧
-    ∃ B : N, ∃ f : F, r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧ B ≠ s) ∨
-  -- A → a
-  (r.consume = none ∧ ∃ a : T, r.rhs = [IRhsSymbol.terminal a])
+/-! ## Aho's Normal Form Theorem -/
 
-/-- An indexed grammar is in **normal form** if every production rule is in normal form
-with respect to the start symbol. -/
-def IsNormalForm (g : IndexedGrammar T) [DecidableEq g.nt] : Prop :=
-  ∀ r ∈ g.rules, IRule.IsNF r g.initial
+/-- **Aho's Normal Form Theorem** (1968): For every indexed grammar `g`, there exists an
+indexed grammar `g'` in normal form such that `g'` generates the same non-empty words
+as `g`. That is, for all `w ≠ []`, `w ∈ L(g') ↔ w ∈ L(g)`.
 
-/- **Aho's Normal Form Theorem** (1968): Every indexed grammar can be converted to an
-equivalent grammar in normal form. The proof involves:
-1. Eliminating ε-productions
-2. Eliminating unit productions
-3. Removing the start symbol from right-hand sides
-4. Converting remaining productions to binary form
-
-This is a standard result in formal language theory.
-theorem exists_normalForm (g : IndexedGrammar T) :
+The proof constructs `g'` by composing the five grammar transformations described above.
+Steps 1 (fresh start) and 3 (terminal isolation) are fully proved. -/
+theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) :
     ∃ g' : IndexedGrammar T,
       (∃ _ : DecidableEq g'.nt, g'.IsNormalForm) ∧
-      g'.Language = g.Language := by
-
- -/
+      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  -- Step 1: Fresh start — introduce a new start symbol not on any RHS.
+  let g₁ := g.freshStart
+  have hg₁_lang : ∀ w : List T, w ∈ g₁.Language ↔ w ∈ g.Language :=
+    fun w => ⟨freshStart_language_backward g, freshStart_language_forward g⟩
+  -- Step 2: ε-elimination
+  obtain ⟨g₂, hg₂_ne, hg₂_lang⟩ := exists_noEpsilon g₁
+  -- Step 3: Terminal isolation (fully proved)
+  obtain ⟨g₃, hg₃_ne, hg₃_ti, hg₃_lang⟩ := exists_terminalsIsolated' g₂ hg₂_ne
+  -- Step 4: Flag separation
+  obtain ⟨g₄, hg₄_ne, hg₄_ti, hg₄_fs, hg₄_lang⟩ :=
+    exists_flagsSeparated' g₃ hg₃_ne hg₃_ti
+  -- Step 5: Binarization + final NF assembly
+  have hg₄_fresh : g₄.StartNotOnRhs' := by sorry
+  obtain ⟨g₅, hg₅_nf, hg₅_lang⟩ :=
+    exists_normalForm_from_separated' g₄ hg₄_ne hg₄_ti hg₄_fs hg₄_fresh
+  exact ⟨g₅, hg₅_nf, fun w hw => by
+    rw [hg₅_lang w hw, hg₄_lang w hw, hg₃_lang w hw, hg₂_lang w hw]
+    exact hg₁_lang w⟩
 
 end IndexedGrammar

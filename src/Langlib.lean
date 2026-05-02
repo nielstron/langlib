@@ -55,6 +55,7 @@ import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Closure.UnionBonus
 import Langlib.Classes.ContextFree.Closure.UnionBonus2
 import Langlib.Classes.ContextFree.Decidability.Emptiness
+import Langlib.Classes.ContextFree.Decidability.Helper
 import Langlib.Classes.ContextFree.Decidability.Membership
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Examples.AnBn
@@ -108,6 +109,7 @@ import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.UnionBonus
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Emptiness
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Equivalence
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Helper
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Membership
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Universality
 import Langlib.Classes.RecursivelyEnumerable.Definition
@@ -150,7 +152,12 @@ import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Grammars.Indexed.Basics.Higman
 import Langlib.Grammars.Indexed.Definition
+import Langlib.Grammars.Indexed.NormalForm.Binarization
+import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
+import Langlib.Grammars.Indexed.NormalForm.FlagSeparation
+import Langlib.Grammars.Indexed.NormalForm.FreshStart
 import Langlib.Grammars.Indexed.NormalForm.NormalForm
+import Langlib.Grammars.Indexed.NormalForm.TerminalIsolation
 import Langlib.Grammars.LeftRegular.Definition
 import Langlib.Grammars.LeftRegular.Equivalence.LGEquivRG
 import Langlib.Grammars.NonContracting.Definition
@@ -161,6 +168,7 @@ import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.FiniteNonterminals
 import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Utilities.ClosurePredicates
+import Langlib.Utilities.ComputabilityPredicates
 import Langlib.Utilities.Homomorphism
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils

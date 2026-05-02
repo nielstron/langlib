@@ -144,4 +144,52 @@ theorem deri_with_suffix {g : IndexedGrammar T} (s : List (ISym g))
     refine ⟨r, u, v ++ s, σ, hr, ?_, by simp_all [List.append_assoc]⟩
     revert hlhs; cases r.consume <;> intro hlhs <;> simp_all [List.append_assoc]
 
+/-- A grammar has no ε-productions. -/
+def NoEpsilon' (g : IndexedGrammar T) : Prop :=
+  ∀ r ∈ g.rules, r.rhs ≠ []
+
+/-- A grammar has terminals isolated: each rule's RHS either is a single terminal,
+or consists entirely of nonterminals (with optional flag annotations). -/
+def TerminalsIsolated (g : IndexedGrammar T) : Prop :=
+  ∀ r ∈ g.rules, (∃ a : T, r.rhs = [IRhsSymbol.terminal a]) ∨
+    (∀ s ∈ r.rhs, ∃ n f, s = IRhsSymbol.nonterminal n f)
+
+/-- The start symbol does not appear on the right-hand side of any rule. -/
+def StartNotOnRhs' (g : IndexedGrammar T) : Prop :=
+  ∀ r ∈ g.rules, ∀ s ∈ r.rhs,
+    match s with
+    | .nonterminal n _ => n ≠ g.initial
+    | .terminal _ => True
+
+/-- A rule has separated flag operations. -/
+def IRule.FlagsSeparated (r : IRule T N F) : Prop :=
+  -- If it consumes a flag, RHS has exactly one nonterminal with no push
+  (r.consume.isSome →
+    ∃ B : N, r.rhs = [IRhsSymbol.nonterminal B none]) ∧
+  -- If it doesn't consume, at most one nonterminal pushes a flag, or it's a terminal rule
+  (r.consume.isNone →
+    (∀ s ∈ r.rhs, ∃ n, s = IRhsSymbol.nonterminal n none) ∨
+    (∃ B f, r.rhs = [IRhsSymbol.nonterminal B (some f)]) ∨
+    (∃ a : T, r.rhs = [IRhsSymbol.terminal a]))
+
+/-- All rules in the grammar have separated flag operations. -/
+def FlagsSeparated (g : IndexedGrammar T) : Prop :=
+  ∀ r ∈ g.rules, IRule.FlagsSeparated r
+
+/-- A production rule is in normal form with respect to a start symbol `s`. -/
+def IRule.IsNF [DecidableEq N] (r : IRule T N F) (s : N) : Prop :=
+  (r.consume = none ∧
+    ∃ B C : N, r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+      B ≠ s ∧ C ≠ s) ∨
+  (∃ f : F, r.consume = some f ∧
+    ∃ B : N, r.rhs = [IRhsSymbol.nonterminal B none] ∧ B ≠ s) ∨
+  (r.consume = none ∧
+    ∃ B : N, ∃ f : F, r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧ B ≠ s) ∨
+  (r.consume = none ∧ ∃ a : T, r.rhs = [IRhsSymbol.terminal a])
+
+/-- An indexed grammar is in **normal form** if every production rule is in normal form
+with respect to the start symbol. -/
+def IsNormalForm (g : IndexedGrammar T) [DecidableEq g.nt] : Prop :=
+  ∀ r ∈ g.rules, IRule.IsNF r g.initial
+
 end IndexedGrammar
