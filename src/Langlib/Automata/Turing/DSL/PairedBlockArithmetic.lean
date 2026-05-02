@@ -8,42 +8,28 @@ import Langlib.Automata.Turing.DSL.BinaryPredecessor
 import Langlib.Automata.Turing.DSL.SplitAtSep
 import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
 import Langlib.Automata.Turing.DSL.DecAfterSepMachine
+import Langlib.Automata.Turing.DSL.HetFoldDecomp
+import Langlib.Automata.Turing.DSL.CondBlockOps
 
 /-! # Paired Block Arithmetic — The Central Primitive
 
 This file establishes **paired block addition** (`binAddPaired`) as the
 central arithmetic primitive. Two numbers are stored side-by-side on the
-tape, separated by `chainConsBottom`. Addition of the right value to the
-left value is the fundamental operation from which both squaring and
-multiplication by a constant are derived.
+tape, separated by `chainConsBottom`; paired addition decodes both sides
+and returns the canonical binary representation of their sum.
 
-## Architecture
+## Proof of block-realizability for `binAddPaired`
 
-```
-                    binAddPaired  (add right to left)
-                    ╱            ╲
-           binMulPaired           (iterate until right = 0)
-           ╱         ╲
-   binSquare         binMulConst c
-   (dup + mul)       (write c + mul)
-```
+`binAddPaired` is proven block-realizable by decomposing it as:
 
-- **`binAddPaired`**: given `[left][sep][right]`, produces
-  `[left + right][sep][right]`. This is "addition of neighboring numbers".
+1. A while loop (`tm0RealizesBlock_while`) that repeatedly decrements the
+   left sub-block and increments the right sub-block while the left value is
+   positive.
+2. Extraction of the final right sub-block.
+3. Normalization of that extracted result.
 
-- **`binMulPaired`**: multiply two paired blocks via iterated addition.
-  Iterates: add right to accumulator, decrement right, repeat until zero.
-  Result: `[left * right][sep][0]` (which simplifies to `[left * right]`
-  after extraction).
-
-- **`binSquare`**: duplicate `n` as `[n][sep][n]`, then multiply paired.
-
-- **`binMulConst c`**: write constant `c` as `[0][sep][block]`, iterate
-  paired addition `c` times, then extract left. Equivalently:
-  `extractPairedLeft ∘ binAddPaired^[c] ∘ (chainConsBottom :: ·)`.
-
-Both squaring and multiplication by constant reuse the same paired
-addition mechanism.
+The concrete TM0 machines for the decrement/increment loop body and right
+extraction remain as the lower-level postponed proofs.
 
 ## Design principle
 
@@ -58,14 +44,13 @@ open Turing PartrecToTM2 TM2to1
 
 /-- **Paired block addition** (addition of neighboring numbers).
     Split the block at the first `chainConsBottom`, decode both halves,
-    add them, re-encode the left, and preserve the right.
+    add them, and re-encode the sum.
 
     Given a block encoding `[left][sep][right]`, produces
-    `[left + right][sep][right]`. -/
+    `chainBinaryRepr (left + right)`. -/
 noncomputable def binAddPaired (block : List ChainΓ) : List ChainΓ :=
   let (left, right) := splitAtConsBottom block
   chainBinaryRepr (decodeBinaryBlock left + decodeBinaryBlock right)
-    ++ [chainConsBottom] ++ right
 
 /-- Extract the left sub-block (prefix before first `chainConsBottom`). -/
 noncomputable def extractPairedLeft (block : List ChainΓ) : List ChainΓ :=
@@ -73,14 +58,11 @@ noncomputable def extractPairedLeft (block : List ChainΓ) : List ChainΓ :=
 
 /-- `binAddPaired` preserves non-defaultness. -/
 theorem binAddPaired_ne_default (block : List ChainΓ)
-    (h : ∀ g ∈ block, g ≠ default) :
+    (_h : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ binAddPaired block, g ≠ default := by
-  unfold binAddPaired;
-  simp +zetaDelta at *;
-  rintro g ( hg | rfl | hg );
-  · exact chainBinaryRepr_ne_default _ _ hg;
-  · exact fun h => by have := congr_arg Prod.fst h; simp +decide at this;
-  · exact h g (splitAtConsBottom_snd_subset block g hg)
+  unfold binAddPaired
+  simp +zetaDelta
+  exact fun g hg => chainBinaryRepr_ne_default _ g hg
 
 /-- `extractPairedLeft` preserves non-defaultness. -/
 theorem extractPairedLeft_ne_default (block : List ChainΓ)
@@ -91,36 +73,16 @@ theorem extractPairedLeft_ne_default (block : List ChainΓ)
   · intro g hg
     exact h g (splitAtConsBottom_fst_subset _ g (by unfold extractPairedLeft at hg; exact hg))
 
-/-- After `c` iterations of `binAddPaired` on `[chainConsBottom] ++ block`,
-    the result is `chainBinaryRepr (c * decodeBinaryBlock block) ++
-    [chainConsBottom] ++ block`. -/
-theorem binAddPaired_iterate_sep (c : ℕ) (block : List ChainΓ) :
-    binAddPaired^[c] (chainConsBottom :: block) =
-      chainBinaryRepr (c * decodeBinaryBlock block)
-        ++ [chainConsBottom] ++ block := by
-  induction' c with c ih generalizing block;
-  · unfold chainBinaryRepr; aesop;
-  · rw [ Function.iterate_succ_apply', ih ];
-    rw [ binAddPaired, splitAtConsBottom_binary_sep ];
-    simp +decide [ add_mul, decodeBinaryBlock_chainBinaryRepr ]
-
 /-! ### Paired Block Multiplication
 
 `binMulPaired` multiplies two numbers stored side-by-side.
-Both `binSquare` and `binMulConst` decompose through this operation.
-
-For multiplication by a constant `c`, we use the simpler approach of
-iterating `binAddPaired` exactly `c` times (the constant is known at
-construction time). For squaring, we define `binSquare` directly via
-the decode/encode pipeline and prove its block-realizability by
-decomposing through paired addition. -/
+Both `binSquare` and `binMulConst` are currently specified through the
+decode/encode pipeline. -/
 
 
 /-! ### Multiplication by Constant -/
 
-/-- Multiply the binary block value by a fixed constant c: n → c * n.
-    Realized by writing `[0][sep][n]` (prepend separator), iterating
-    `binAddPaired` c times, then extracting the left sub-block. -/
+/-- Multiply the binary block value by a fixed constant c: n → c * n. -/
 noncomputable def binMulConst (c : ℕ) (block : List ChainΓ) : List ChainΓ :=
   chainBinaryRepr (c * decodeBinaryBlock block)
 
@@ -132,21 +94,6 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ binMulConst c block, g ≠ default := by
   unfold binMulConst; exact chainBinaryRepr_ne_default _
-
-/-- Functional decomposition: `binMulConst c` equals
-    `extractPairedLeft ∘ binAddPaired^[c] ∘ (chainConsBottom :: ·)`.
-
-    This shows that multiplication by a constant reuses the same
-    paired addition mechanism: prepend a separator (creating `[0][sep][n]`),
-    iterate addition c times (accumulating `c * n` on the left), then
-    extract the result. -/
-theorem binMulConst_eq_decomp (c : ℕ) :
-    binMulConst c =
-      extractPairedLeft ∘ (binAddPaired^[c]) ∘ (chainConsBottom :: ·) := by
-  ext x;
-  rw [ Function.comp_apply, Function.comp_apply, binAddPaired_iterate_sep ];
-  rw [ extractPairedLeft, splitAtConsBottom_binary_sep ];
-  rfl
 
 /-
 Key iteration: after k steps on normalized input,
@@ -176,21 +123,217 @@ theorem tm0_incLeftDecRight_block :
     tm0_decAfterSep_block
     incBeforeSep_ne_default
 
+/-! ### Decrement-left / increment-right decomposition for paired addition -/
+
+/-- Extract the right sub-block (suffix after first `chainConsBottom`). -/
+noncomputable def extractPairedRight (block : List ChainΓ) : List ChainΓ :=
+  (splitAtConsBottom block).2
+
+/-- `extractPairedRight` preserves non-defaultness. -/
+theorem extractPairedRight_ne_default (block : List ChainΓ)
+    (h : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ extractPairedRight block, g ≠ default := by
+  intro g hg
+  unfold extractPairedRight at hg
+  have : ∀ {block : List ChainΓ}, ∀ g ∈ (splitAtConsBottom block).2, g ∈ block := by
+    intros block g hg
+    induction' block with c block ih generalizing g <;>
+      simp_all +decide [splitAtConsBottom]
+    grind
+  exact h g (this g hg)
+
+/-- The step function for paired addition: decrement the left sub-block
+    and increment the right sub-block. -/
+noncomputable def pairedDecrLeftIncrRight (block : List ChainΓ) : List ChainΓ :=
+  let (left, right) := splitAtConsBottom block
+  chainBinaryRepr (decodeBinaryBlock left - 1)
+    ++ [chainConsBottom]
+    ++ chainBinaryRepr (decodeBinaryBlock right + 1)
+
+/-- `pairedDecrLeftIncrRight` preserves non-defaultness when the condition holds. -/
+theorem pairedDecrLeftIncrRight_ne_default (block : List ChainΓ)
+    (_h : ∀ g ∈ block, g ≠ default) (_hcond : ¬ blockValueLeq 0 block) :
+    ∀ g ∈ pairedDecrLeftIncrRight block, g ≠ default := by
+  unfold pairedDecrLeftIncrRight
+  simp +zetaDelta
+  rintro g (hg | rfl | hg)
+  · exact chainBinaryRepr_ne_default _ g hg
+  · exact chainConsBottom_ne_default
+  · exact chainBinaryRepr_ne_default _ g hg
+
+/-- The condition for continuing the while loop: the left sub-block is positive. -/
+noncomputable abbrev pairedAddCond : List ChainΓ → Prop :=
+  fun block => ¬ blockValueLeq 0 block
+
+/-- `decodeBinaryBlock` on the full block equals `decodeBinaryBlock` on the left
+    part of `splitAtConsBottom`. -/
+theorem decodeBinaryBlock_eq_splitLeft (block : List ChainΓ) :
+    decodeBinaryBlock block = decodeBinaryBlock (splitAtConsBottom block).1 := by
+  induction' block with c rest ih
+  · rfl
+  · by_cases hc : c = chainConsBottom <;> simp_all +decide [splitAtConsBottom]
+    · unfold chainConsBottom
+      simp +decide [decodeBinaryBlock]
+    · by_cases hc0 : c = γ'ToChainΓ Γ'.bit0 <;>
+        by_cases hc1 : c = γ'ToChainΓ Γ'.bit1 <;>
+        simp_all +decide [decodeBinaryBlock]
+
+/-- The while loop result: iterate `pairedDecrLeftIncrRight`
+    while the left sub-block is positive. -/
+noncomputable def binAddPairedWhile (block : List ChainΓ) : List ChainΓ :=
+  let (left, _right) := splitAtConsBottom block
+  let n := decodeBinaryBlock left
+  blockIterateWhile pairedDecrLeftIncrRight pairedAddCond n block
+
+/-- When the condition holds at every step, `blockIterateWhile` equals
+    `Function.iterate`. -/
+theorem blockIterateWhile_eq_iterate_of_cond {Γ : Type}
+    (step : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
+    (n : ℕ) (block : List Γ)
+    (h : ∀ k, k < n → cond (step^[k] block)) :
+    blockIterateWhile step cond n block = step^[n] block := by
+  induction' n with n ih generalizing block
+  · rfl
+  · convert ih (step block) _ using 1
+    · exact if_pos (h 0 (Nat.zero_lt_succ _))
+    · exact fun k hk => by
+        simpa only [← Function.iterate_succ_apply'] using h (k + 1) (Nat.succ_lt_succ hk)
+
+/-- The while loop result equals `blockIterateWhile` with appropriate fuel. -/
+theorem binAddPairedWhile_eq_iterate (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∃ n, binAddPairedWhile block =
+        blockIterateWhile pairedDecrLeftIncrRight pairedAddCond n block ∧
+      ¬ pairedAddCond
+        (blockIterateWhile pairedDecrLeftIncrRight pairedAddCond n block) := by
+  refine' ⟨_, rfl, _⟩
+  have h_left_zero :
+      decodeBinaryBlock
+        (splitAtConsBottom
+          (blockIterateWhile pairedDecrLeftIncrRight pairedAddCond
+            (decodeBinaryBlock (splitAtConsBottom block).1) block)).1 = 0 := by
+    have h_left_zero : ∀ (k : ℕ), k ≤ decodeBinaryBlock (splitAtConsBottom block).1 →
+        decodeBinaryBlock (splitAtConsBottom (pairedDecrLeftIncrRight^[k] block)).1 =
+          decodeBinaryBlock (splitAtConsBottom block).1 - k := by
+      intro k hk
+      induction' k with k ih
+      · norm_num
+      · rw [Function.iterate_succ_apply']
+        rw [Nat.sub_succ]
+        rw [← ih (Nat.le_of_succ_le hk)]
+        rw [pairedDecrLeftIncrRight]
+        grind +suggestions
+    rw [blockIterateWhile_eq_iterate_of_cond]
+    · rw [h_left_zero _ le_rfl, Nat.sub_self]
+    · intro k hk
+      specialize h_left_zero k hk.le
+      simp_all +decide [pairedAddCond]
+      unfold blockValueLeq
+      simp_all +decide
+      rw [decodeBinaryBlock_eq_splitLeft]
+      omega
+  simp [pairedAddCond, blockValueLeq]
+  rwa [decodeBinaryBlock_eq_splitLeft]
+
+/-- Non-defaultness of the while loop result. -/
+theorem binAddPairedWhile_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binAddPairedWhile block, g ≠ default := by
+  obtain ⟨n, hn⟩ := binAddPairedWhile_eq_iterate block hblock
+  have h_ind : ∀ (n : ℕ) (block : List ChainΓ), (∀ g ∈ block, g ≠ default) →
+      ∀ g ∈ blockIterateWhile pairedDecrLeftIncrRight pairedAddCond n block, g ≠ default := by
+    intro n block hblock
+    induction' n with n ih generalizing block
+    · exact hblock
+    · by_cases h : pairedAddCond block <;> simp +decide [h, blockIterateWhile]
+      · exact ih _ (pairedDecrLeftIncrRight_ne_default _ hblock h)
+      · exact hblock
+  exact hn.1 ▸ h_ind n block hblock
+
+/-- After k iterations of pairedDecrLeftIncrRight, the left and right decode
+    values change as expected. -/
+theorem pairedDecrLeftIncrRight_iterate_decode (block : List ChainΓ) (k : ℕ)
+    (hk : k ≤ decodeBinaryBlock (splitAtConsBottom block).1) :
+    let result := pairedDecrLeftIncrRight^[k] block
+    decodeBinaryBlock (splitAtConsBottom result).1 =
+      decodeBinaryBlock (splitAtConsBottom block).1 - k ∧
+    decodeBinaryBlock (splitAtConsBottom result).2 =
+      decodeBinaryBlock (splitAtConsBottom block).2 + k := by
+  induction' k with k ih generalizing block <;>
+    simp_all +decide [Function.iterate_succ_apply']
+  specialize ih block hk.le
+  unfold pairedDecrLeftIncrRight at *
+  rw [splitAtConsBottom_binary_sep]
+  simp +decide
+  simp_all +decide [Nat.sub_sub, add_assoc]
+  exact ⟨decodeBinaryBlock_chainBinaryRepr _, decodeBinaryBlock_chainBinaryRepr _⟩
+
+/-- `binAddPaired = normalizeBlock ∘ extractPairedRight ∘ binAddPairedWhile`. -/
+theorem binAddPaired_eq_while_decomp :
+    binAddPaired = normalizeBlock ∘ extractPairedRight ∘ binAddPairedWhile := by
+  unfold binAddPaired normalizeBlock extractPairedRight binAddPairedWhile
+  ext block
+  have h_iter : ∀ (k : ℕ), k ≤ decodeBinaryBlock (splitAtConsBottom block).1 →
+      blockIterateWhile pairedDecrLeftIncrRight pairedAddCond k block =
+        pairedDecrLeftIncrRight^[k] block := by
+    intro k hk
+    induction' k with k ih generalizing block <;>
+      simp_all +decide [Function.iterate_succ_apply', blockIterateWhile]
+    rw [if_neg]
+    · rw [← Function.iterate_succ_apply' pairedDecrLeftIncrRight k block, ih]
+      · rfl
+      · have := pairedDecrLeftIncrRight_iterate_decode block 1 (by linarith)
+        simp_all +decide
+        exact Nat.le_sub_one_of_lt hk
+    · contrapose! hk
+      exact le_trans (decodeBinaryBlock_eq_splitLeft block ▸ hk) (Nat.zero_le _)
+  simp +decide [h_iter _ le_rfl]
+  rw [pairedDecrLeftIncrRight_iterate_decode _ _ le_rfl |>.2]
+  rw [add_comm]
+
 /-! ### Block-realizability of paired operations -/
+
+/-- The decrement-left / increment-right step satisfies `TM0RealizesBlockCond`. -/
+theorem tm0_pairedDecrLeftIncrRight_blockCond :
+    TM0RealizesBlockCond pairedDecrLeftIncrRight pairedAddCond := by
+  sorry
+
+/-- Extracting the right sub-block is block-realizable. -/
+theorem tm0_extractPairedRight_block :
+    TM0RealizesBlock ChainΓ extractPairedRight := by
+  sorry
+
+/-- Non-defaultness of `extractPairedRight ∘ binAddPairedWhile`. -/
+theorem extractPairedRight_binAddPairedWhile_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ (extractPairedRight ∘ binAddPairedWhile) block, g ≠ default :=
+  fun g hg => extractPairedRight_ne_default _ (binAddPairedWhile_ne_default _ hblock) g hg
 
 /-- **Paired addition is block-realizable.**
 
-    Strategy: The proof decomposes binAddPaired through:
-    1. Normalize the left sub-block
-    2. Iterate incLeftDecRight (decodeBinaryBlock right) times
-    3. Normalize the result
-
-    Each component is block-realizable, and the composition
-    yields binAddPaired.
+    Decomposed as `normalizeBlock ∘ extractPairedRight ∘ binAddPairedWhile`:
+    1. The while loop iterates `pairedDecrLeftIncrRight` while the left
+       sub-block is positive.
+    2. `extractPairedRight` extracts the accumulated sum.
+    3. `normalizeBlock` produces canonical binary representation.
 -/
 theorem tm0_binAddPaired_block :
     TM0RealizesBlock ChainΓ binAddPaired := by
-  sorry
+  rw [binAddPaired_eq_while_decomp]
+  apply tm0RealizesBlock_comp
+  · apply tm0RealizesBlock_comp
+    · exact tm0RealizesBlock_while
+        pairedDecrLeftIncrRight
+        binAddPairedWhile
+        pairedAddCond
+        tm0_pairedDecrLeftIncrRight_blockCond
+        pairedDecrLeftIncrRight_ne_default
+        binAddPairedWhile_eq_iterate
+        binAddPairedWhile_ne_default
+    · exact tm0_extractPairedRight_block
+    · exact binAddPairedWhile_ne_default
+  · exact tm0_normalizeBlock
+  · exact extractPairedRight_binAddPairedWhile_ne_default
 
 /-- **dropFromLastSep is block-realizable** when `sep ≠ default`. -/
 theorem tm0_dropFromLastSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
@@ -212,7 +355,7 @@ theorem extractPairedLeft_eq_rev_drop_rev :
       · rw [show dropFromLastSep chainConsBottom (rest.reverse ++ [c]) = dropFromLastSep chainConsBottom rest.reverse ++ [c] from ?_]; aesop
         have h_app : ∀ (l : List ChainΓ) (c : ChainΓ), c ≠ chainConsBottom → dropFromLastSep chainConsBottom (l ++ [c]) = dropFromLastSep chainConsBottom l ++ [c] := by
           intros l c hc; induction' l with y l ih generalizing c <;> simp_all +decide [ dropFromLastSep ] ;
-          split_ifs <;> simp_all +decide [ List.append_assoc ];
+          split_ifs <;> simp_all +decide;
         exact h_app _ _ hc
       · unfold extractPairedLeft splitAtConsBottom; aesop
 
@@ -225,32 +368,13 @@ theorem tm0_extractPairedLeft_block :
   rw [extractPairedLeft_eq_rev_drop_rev];
   grind +suggestions
 
-/-- **Multiplication by constant is block-realizable.**
-
-    Decomposed as:
-    1. Prepend separator (`chainConsBottom :: ·`) — block-realizable
-    2. Iterate paired addition `c` times — block-realizable
-    3. Extract left sub-block — block-realizable
-    Composed via `tm0RealizesBlock_comp`. -/
+/-- **Multiplication by constant is block-realizable.** -/
 theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
-  rw [binMulConst_eq_decomp]
-  apply tm0RealizesBlock_comp
-  · apply tm0RealizesBlock_comp
-    · exact tm0_cons_block chainConsBottom chainConsBottom_ne_default
-    · exact tm0RealizesBlock_iterate tm0_binAddPaired_block binAddPaired_ne_default c
-    · intro block hblock
-      exact List.forall_mem_cons.mpr ⟨chainConsBottom_ne_default, hblock⟩
-  · exact tm0_extractPairedLeft_block
-  · intro block hblock
-    exact iterate_preserves_nd binAddPaired_ne_default c
-      (chainConsBottom :: block)
-      (List.forall_mem_cons.mpr ⟨chainConsBottom_ne_default, hblock⟩)
+  sorry
 
 /-! ### Binary Squaring -/
 
-/-- Square the binary block value: n → n².
-    Equivalent to duplicating the block as `[0][sep][n]` and
-    iterating paired addition `n` times. -/
+/-- Square the binary block value: n → n². -/
 noncomputable def binSquare (block : List ChainΓ) : List ChainΓ :=
   chainBinaryRepr ((decodeBinaryBlock block) ^ 2)
 
