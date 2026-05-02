@@ -33,6 +33,7 @@ theorem splitAtConsBottom_no_sep (l : List ChainΓ)
 
 /-- Splitting `chainBinaryRepr n ++ [chainConsBottom] ++ rest` yields
     `(chainBinaryRepr n, rest)`. -/
+@[simp]
 theorem splitAtConsBottom_binary_sep (n : ℕ) (rest : List ChainΓ) :
     splitAtConsBottom (chainBinaryRepr n ++ [chainConsBottom] ++ rest) =
       (chainBinaryRepr n, rest) := by
@@ -45,6 +46,7 @@ theorem splitAtConsBottom_binary_sep (n : ℕ) (rest : List ChainΓ) :
   exact h_ind _ fun c hc => chainBinaryRepr_no_consBottom n c hc
 
 /-- Splitting `l ++ [sep] ++ r` when l has no chainConsBottom. -/
+@[simp]
 theorem splitAtConsBottom_general (l r : List ChainΓ)
     (hl : ∀ c ∈ l, c ≠ chainConsBottom) :
     splitAtConsBottom (l ++ [chainConsBottom] ++ r) = (l, r) := by

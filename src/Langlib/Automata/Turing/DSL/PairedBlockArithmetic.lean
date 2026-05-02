@@ -40,6 +40,12 @@ proofs compose via `tm0RealizesBlock_comp`.
 
 open Turing PartrecToTM2 TM2to1
 
+@[simp]
+theorem splitAtConsBottom_chainBinaryRepr_cons' (c : ℕ) (block : List ChainΓ) :
+    splitAtConsBottom (chainBinaryRepr c ++ chainConsBottom :: block) =
+      (chainBinaryRepr c, block) := by
+  simpa using splitAtConsBottom_binary_sep c block
+
 /-! ### Paired Block Addition — The Central Primitive -/
 
 /-- **Paired block addition** (addition of neighboring numbers).
@@ -513,15 +519,7 @@ theorem binMulPairedFuel_normalized_state (acc addend fuel : ℕ) :
       (chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
         [chainConsBottom] ++ chainBinaryRepr fuel) =
     chainBinaryRepr fuel := by
-  unfold binMulPairedFuel
-  rw [show chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
-        [chainConsBottom] ++ chainBinaryRepr fuel =
-      chainBinaryRepr acc ++ [chainConsBottom] ++
-        (chainBinaryRepr addend ++ [chainConsBottom] ++ chainBinaryRepr fuel) by
-    simp [List.append_assoc]]
-  rw [splitAtConsBottom_binary_sep]
-  simp only
-  rw [splitAtConsBottom_binary_sep]
+  simp [binMulPairedFuel, List.append_assoc]
 
 theorem binMulPairedStep_normalized_state (acc addend fuel : ℕ) :
     binMulPairedStep
@@ -529,19 +527,9 @@ theorem binMulPairedStep_normalized_state (acc addend fuel : ℕ) :
         [chainConsBottom] ++ chainBinaryRepr fuel) =
     chainBinaryRepr (acc + addend) ++ [chainConsBottom] ++ chainBinaryRepr addend ++
       [chainConsBottom] ++ chainBinaryRepr (fuel - 1) := by
-  unfold binMulPairedStep binAddPaired binPred
-  rw [show chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
-        [chainConsBottom] ++ chainBinaryRepr fuel =
-      chainBinaryRepr acc ++ [chainConsBottom] ++
-        (chainBinaryRepr addend ++ [chainConsBottom] ++ chainBinaryRepr fuel) by
-    simp [List.append_assoc]]
-  rw [splitAtConsBottom_binary_sep]
-  simp only
-  rw [splitAtConsBottom_binary_sep]
-  simp only
-  rw [splitAtConsBottom_binary_sep]
-  simp [decodeBinaryBlock_chainBinaryRepr, List.append_assoc]
+  simp [binMulPairedStep, binAddPaired, binPred, List.append_assoc]
 
+@[simp]
 theorem binMulPairedLoop_normalized_state (acc addend fuel : ℕ) :
     blockIterateWhile binMulPairedStep binMulPairedCond fuel
       (chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
@@ -558,41 +546,23 @@ theorem binMulPairedLoop_normalized_state (acc addend fuel : ℕ) :
       rw [binMulPairedFuel_normalized_state]
       simp [decodeBinaryBlock_chainBinaryRepr]
 
+@[simp]
+theorem binMulPairedLoop_normalized_state_cons (acc addend fuel : ℕ) :
+    blockIterateWhile binMulPairedStep binMulPairedCond fuel
+      (chainBinaryRepr acc ++ chainConsBottom ::
+        (chainBinaryRepr addend ++ chainConsBottom :: chainBinaryRepr fuel)) =
+    chainBinaryRepr (acc + fuel * addend) ++ [chainConsBottom] ++
+      chainBinaryRepr addend ++ [chainConsBottom] ++ chainBinaryRepr 0 := by
+  simpa [List.append_assoc] using
+    binMulPairedLoop_normalized_state acc addend fuel
+
 theorem binMulPaired_eq_repeated_add :
     binMulPaired = binMulPairedResult ∘ binMulPairedWhile := by
   funext block
   rcases hsplit : splitAtConsBottom block with ⟨left, right⟩
-  unfold binMulPaired binMulPairedWhile binMulPairedInit normalizePairedBlocks
-    pairNormalizedBlocks binMulPairedResult Function.comp
-  simp only [hsplit]
-  rw [show
-      blockIterateWhile binMulPairedStep binMulPairedCond (decodeBinaryBlock right)
-        (chainBinaryRepr 0 ++ [chainConsBottom] ++
-          (chainBinaryRepr (decodeBinaryBlock left) ++ [chainConsBottom] ++
-            chainBinaryRepr (decodeBinaryBlock right))) =
-      chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left) ++
-        [chainConsBottom] ++ chainBinaryRepr (decodeBinaryBlock left) ++
-        [chainConsBottom] ++ chainBinaryRepr 0 by
-    simpa [List.append_assoc] using
-      binMulPairedLoop_normalized_state 0 (decodeBinaryBlock left) (decodeBinaryBlock right)]
-  rw [show
-      splitAtConsBottom
-        (chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left) ++
-              [chainConsBottom] ++ chainBinaryRepr (decodeBinaryBlock left) ++
-            [chainConsBottom] ++ chainBinaryRepr 0) =
-        (chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left),
-          chainBinaryRepr (decodeBinaryBlock left) ++ [chainConsBottom] ++ chainBinaryRepr 0) by
-    rw [show
-        chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left) ++
-              [chainConsBottom] ++ chainBinaryRepr (decodeBinaryBlock left) ++
-            [chainConsBottom] ++ chainBinaryRepr 0 =
-        chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left) ++
-          [chainConsBottom] ++
-          (chainBinaryRepr (decodeBinaryBlock left) ++ [chainConsBottom] ++
-            chainBinaryRepr 0) by
-      simp [List.append_assoc]]
-    rw [splitAtConsBottom_binary_sep]]
-  simp [Nat.mul_comm]
+  simp [binMulPaired, binMulPairedWhile, binMulPairedInit, normalizePairedBlocks,
+    pairNormalizedBlocks, binMulPairedResult, Function.comp, hsplit,
+    Nat.mul_comm, List.append_assoc]
 
 /-- The multiplication loop body is realized by rebuilding the paired-add
     input, running `tm0_binAddPaired_block`, restoring the retained addend, and
@@ -697,7 +667,7 @@ theorem tm0_binMulPairedInit_block :
 theorem splitAtConsBottom_chainBinaryRepr_cons (c : ℕ) (block : List ChainΓ) :
     splitAtConsBottom (chainBinaryRepr c ++ chainConsBottom :: block) =
       (chainBinaryRepr c, block) := by
-  simpa using splitAtConsBottom_binary_sep c block
+  simp
 
 @[simp]
 theorem splitAtConsBottom_chainBinaryRepr_sep (c : ℕ) (block : List ChainΓ) :
