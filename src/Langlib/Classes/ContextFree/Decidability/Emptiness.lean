@@ -2,8 +2,8 @@ import Mathlib
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
 import Langlib.Classes.ContextFree.Pumping.ParseTree
+import Langlib.Classes.ContextFree.Decidability.Helper
 import Langlib.Classes.ContextFree.Decidability.Membership
-import Langlib.Classes.ContextFree.Basics.EncodedCFG
 import Langlib.Utilities.PrimrecHelpers
 
 /-! # Encoded Context-Free Grammars and Uniform Computability of Emptiness
@@ -899,5 +899,11 @@ theorem encoded_cf_emptiness_computable :
   rw [ComputablePred.computable_iff]
   exact ⟨checkCFGEmpty, checkCFGEmpty_computable,
     funext (fun G => propext (checkCFGEmpty_iff G).symm)⟩
+
+/-- Context-free emptiness is uniformly computable for encoded CFGs. -/
+theorem contextFree_computableEmptiness :
+    ComputableEmptiness (contextFreeLanguageOf : EncodedCFG T → Language T) := by
+  unfold ComputableEmptiness contextFreeLanguageOf
+  exact encoded_cf_emptiness_computable
 
 end ContextFree
