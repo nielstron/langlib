@@ -124,6 +124,7 @@ noncomputable def decodeBinaryBlock : List ChainΓ → ℕ
       0
 
 /-- `decodeBinaryBlock` is a left inverse of `chainBinaryRepr`. -/
+@[simp]
 theorem decodeBinaryBlock_chainBinaryRepr (n : ℕ) :
     decodeBinaryBlock (chainBinaryRepr n) = n := by
   have h_decode_even : ∀ n, decodeBinaryBlock (chainBinaryRepr (2 * n)) = 2 * decodeBinaryBlock (chainBinaryRepr n) := by
@@ -145,4 +146,3 @@ theorem decodeBinaryBlock_chainBinaryRepr (n : ℕ) :
     cases ‹PosNum› <;> rfl;
   induction' n using Nat.strong_induction_on with n ih; rcases Nat.even_or_odd' n with ⟨ k, rfl | rfl ⟩ <;> simp_all +arith +decide;
   cases k <;> simp_all +arith +decide
-

@@ -73,13 +73,6 @@ theorem extractPairedLeft_ne_default (block : List ChainΓ)
   · intro g hg
     exact h g (splitAtConsBottom_fst_subset _ g (by unfold extractPairedLeft at hg; exact hg))
 
-/-! ### Paired Block Multiplication
-
-`binMulPaired` multiplies two numbers stored side-by-side.
-Both `binSquare` and `binMulConst` are currently specified through the
-decode/encode pipeline. -/
-
-
 /-! ### Multiplication by Constant -/
 
 /-- Multiply the binary block value by a fixed constant c: n → c * n. -/
@@ -335,6 +328,134 @@ theorem tm0_binAddPaired_block :
   · exact tm0_normalizeBlock
   · exact extractPairedRight_binAddPairedWhile_ne_default
 
+/-! ### Paired Block Multiplication
+
+`binMulPaired` is the shared multiplication primitive. Its intended machine
+uses paired addition as the inner operation: copy the addend into a paired-add
+input, add it into an accumulator, decrement the counter, and loop. -/
+
+/-- Multiply two binary blocks stored as `[left][sep][right]`. -/
+noncomputable def binMulPaired (block : List ChainΓ) : List ChainΓ :=
+  let (left, right) := splitAtConsBottom block
+  chainBinaryRepr (decodeBinaryBlock left * decodeBinaryBlock right)
+
+theorem binMulPaired_ne_default (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulPaired block, g ≠ default := by
+  unfold binMulPaired
+  simp +zetaDelta
+  exact fun g hg => chainBinaryRepr_ne_default _ g hg
+
+/-- Prepare a paired multiplication input with a fixed left operand. -/
+noncomputable def pairWithConstLeft (c : ℕ) (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr c ++ [chainConsBottom] ++ block
+
+theorem pairWithConstLeft_ne_default (c : ℕ) (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ pairWithConstLeft c block, g ≠ default := by
+  unfold pairWithConstLeft
+  intro g hg
+  rcases List.mem_append.mp hg with hg | hg
+  · rcases List.mem_append.mp hg with hg | hg
+    · exact chainBinaryRepr_ne_default _ g hg
+    · rw [List.mem_singleton.mp hg]
+      exact chainConsBottom_ne_default
+  · exact hblock g hg
+
+/-- Prepare a paired multiplication input with both operands equal to the
+    normalized input block. This is the functional copy point for squaring. -/
+noncomputable def duplicateNormalizedPaired (block : List ChainΓ) : List ChainΓ :=
+  let n := decodeBinaryBlock block
+  chainBinaryRepr n ++ [chainConsBottom] ++ chainBinaryRepr n
+
+theorem duplicateNormalizedPaired_ne_default (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ duplicateNormalizedPaired block, g ≠ default := by
+  unfold duplicateNormalizedPaired
+  intro g hg
+  rcases List.mem_append.mp hg with hg | hg
+  · rcases List.mem_append.mp hg with hg | hg
+    · exact chainBinaryRepr_ne_default _ g hg
+    · rw [List.mem_singleton.mp hg]
+      exact chainConsBottom_ne_default
+  · exact chainBinaryRepr_ne_default _ g hg
+
+theorem tm0_id_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
+    TM0RealizesBlock Γ id := by
+  have h : id = List.reverse ∘ @List.reverse Γ := by
+    funext block
+    simp
+  rw [h]
+  exact tm0RealizesBlock_comp tm0_reverse_block tm0_reverse_block reverse_ne_default
+
+theorem prependList_ne_default {Γ : Type} [Inhabited Γ] (pref block : List Γ)
+    (hpref : ∀ g ∈ pref, g ≠ default)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ pref ++ block, g ≠ default := by
+  intro g hg
+  rcases List.mem_append.mp hg with hg | hg
+  · exact hpref g hg
+  · exact hblock g hg
+
+theorem tm0_prependList_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (pref : List Γ) (hpref : ∀ g ∈ pref, g ≠ default) :
+    TM0RealizesBlock Γ (fun block => pref ++ block) := by
+  induction' pref with c rest ih
+  · simpa using (tm0_id_block (Γ := Γ))
+  · have hc : c ≠ default := hpref c List.mem_cons_self
+    have hrest : ∀ g ∈ rest, g ≠ default := fun g hg => hpref g (List.mem_cons_of_mem _ hg)
+    have hcomp := tm0RealizesBlock_comp (ih hrest) (tm0_cons_block c hc)
+      (fun block hblock => prependList_ne_default rest block hrest hblock)
+    simpa [Function.comp, List.cons_append] using hcomp
+
+theorem tm0_pairWithConstLeft_block (c : ℕ) :
+    TM0RealizesBlock ChainΓ (pairWithConstLeft c) := by
+  unfold pairWithConstLeft
+  exact tm0_prependList_block (chainBinaryRepr c ++ [chainConsBottom])
+    (by
+      intro g hg
+      rcases List.mem_append.mp hg with hg | hg
+      · exact chainBinaryRepr_ne_default _ g hg
+      · rw [List.mem_singleton.mp hg]
+        exact chainConsBottom_ne_default)
+
+@[simp]
+theorem splitAtConsBottom_chainBinaryRepr_cons (c : ℕ) (block : List ChainΓ) :
+    splitAtConsBottom (chainBinaryRepr c ++ chainConsBottom :: block) =
+      (chainBinaryRepr c, block) := by
+  simpa using splitAtConsBottom_binary_sep c block
+
+@[simp]
+theorem splitAtConsBottom_chainBinaryRepr_sep (c : ℕ) (block : List ChainΓ) :
+    splitAtConsBottom (chainBinaryRepr c ++ [chainConsBottom] ++ block) =
+      (chainBinaryRepr c, block) :=
+  splitAtConsBottom_binary_sep c block
+
+theorem binMulConst_eq_paired (c : ℕ) :
+    binMulConst c = binMulPaired ∘ pairWithConstLeft c := by
+  funext block
+  simp only [Function.comp, binMulConst, binMulPaired, pairWithConstLeft]
+  simp [decodeBinaryBlock_chainBinaryRepr]
+
+/-- General paired multiplication is block-realizable.
+
+The intended implementation loops over one operand, repeatedly rebuilding a
+paired-addition input by copying the other operand, applying `binAddPaired`,
+and decrementing the counter. The concrete copy/loop machine is isolated here
+so clients can reduce to multiplication rather than each carrying their own
+arithmetic loop. -/
+theorem tm0_binMulPaired_block :
+    TM0RealizesBlock ChainΓ binMulPaired := by
+  sorry
+
+/-- Normalized self-duplication is block-realizable.
+
+This is the variable-copy primitive needed for squaring: it writes two copies
+of the normalized input separated by `chainConsBottom`. -/
+theorem tm0_duplicateNormalizedPaired_block :
+    TM0RealizesBlock ChainΓ duplicateNormalizedPaired := by
+  sorry
+
 /-- **dropFromLastSep is block-realizable** when `sep ≠ default`. -/
 theorem tm0_dropFromLastSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     (sep : Γ) (hsep : sep ≠ default) :
@@ -370,7 +491,11 @@ theorem tm0_extractPairedLeft_block :
 
 /-- **Multiplication by constant is block-realizable.** -/
 theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
-  sorry
+  rw [binMulConst_eq_paired]
+  exact tm0RealizesBlock_comp
+    (tm0_pairWithConstLeft_block c)
+    tm0_binMulPaired_block
+    (pairWithConstLeft_ne_default c)
 
 /-! ### Binary Squaring -/
 
@@ -386,5 +511,16 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
     ∀ g ∈ binSquare block, g ≠ default := by
   unfold binSquare; exact chainBinaryRepr_ne_default _
 
+theorem binSquare_eq_paired :
+    binSquare = binMulPaired ∘ duplicateNormalizedPaired := by
+  funext block
+  simp only [Function.comp, binSquare, binMulPaired, duplicateNormalizedPaired]
+  rw [splitAtConsBottom_chainBinaryRepr_sep]
+  simp [pow_two, decodeBinaryBlock_chainBinaryRepr]
+
 theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
-  sorry
+  rw [binSquare_eq_paired]
+  exact tm0RealizesBlock_comp
+    tm0_duplicateNormalizedPaired_block
+    tm0_binMulPaired_block
+    duplicateNormalizedPaired_ne_default
