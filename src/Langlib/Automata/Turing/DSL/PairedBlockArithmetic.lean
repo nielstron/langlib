@@ -141,6 +141,16 @@ theorem extractPairedRight_ne_default (block : List ChainΓ)
     grind
   exact h g (this g hg)
 
+theorem extractPairedRight_eq_dropUntilFirstSep :
+    extractPairedRight = dropUntilFirstSep chainConsBottom := by
+  funext block
+  induction' block with c rest ih
+  · rfl
+  · by_cases h : c = chainConsBottom
+    · simp [extractPairedRight, splitAtConsBottom, dropUntilFirstSep, h]
+    · unfold extractPairedRight at ih
+      simp [extractPairedRight, splitAtConsBottom, dropUntilFirstSep, h, ih]
+
 /-- The step function for paired addition: decrement the left sub-block
     and increment the right sub-block. -/
 noncomputable def pairedDecrLeftIncrRight (block : List ChainΓ) : List ChainΓ :=
