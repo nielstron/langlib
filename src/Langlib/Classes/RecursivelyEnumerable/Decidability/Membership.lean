@@ -1,4 +1,4 @@
-import Mathlib
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Helper
 
 /-! # Undecidability of Membership for RE Languages
 
@@ -39,3 +39,21 @@ membership (i.e., always halt with a yes/no answer) for every RE language. -/
 theorem RE_membership_undecidable :
     ∃ (p : Code → Prop), REPred p ∧ ¬ComputablePred p :=
   ⟨_, RE_membership_undecidable'.1, RE_membership_undecidable'.2⟩
+
+/-- Membership for RE codes is not uniformly computable. -/
+theorem recursivelyEnumerable_computableMembership_undecidable :
+    ¬ComputableMembership partrecCodeDomainLanguageOf := by
+  intro h
+  apply RE_membership_undecidable'.2
+  have h_nil : ComputablePred
+      (fun c : Code => ([] : List Unit) ∈ partrecCodeDomainLanguageOf c) := by
+    unfold ComputableMembership at h
+    rcases h with ⟨dec, hcomp⟩
+    letI : DecidablePred
+        (fun c : Code => ([] : List Unit) ∈ partrecCodeDomainLanguageOf c) :=
+      fun c => dec (c, ([] : List Unit))
+    exact ⟨inferInstance,
+      hcomp.comp (Computable.pair Computable.id (Computable.const ([] : List Unit)))⟩
+  exact h_nil.of_eq fun c => by
+    change (c.eval 0).Dom ↔ (c.eval 0).Dom
+    rfl

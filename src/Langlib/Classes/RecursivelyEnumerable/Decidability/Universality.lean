@@ -1,4 +1,4 @@
-import Mathlib
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Helper
 
 /-! # Undecidability of Universality for RE Languages
 
@@ -43,3 +43,11 @@ theorem RE_universality_undecidable :
   -- The constant zero function IS total
   -- Rice gives: pure 0 ∈ C  ⟹  (fun _ => Part.none) ∈ C, contradiction.
   exact none_not_total (rice h1 Nat.Partrec.zero Nat.Partrec.none (fun _ => trivial))
+
+/-- Universality for RE codes is not uniformly computable. -/
+theorem recursivelyEnumerable_computableUniversality_undecidable :
+    ¬ComputableUniversality partrecCodeDomainLanguageOf := by
+  intro h
+  apply RE_universality_undecidable
+  unfold ComputableUniversality at h
+  exact h.of_eq fun c => partrecCodeDomainLanguage_universal_iff c

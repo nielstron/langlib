@@ -1,4 +1,4 @@
-import Mathlib
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Helper
 
 /-! # Undecidability of Equivalence for RE Languages
 
@@ -57,3 +57,11 @@ theorem RE_equivalence_undecidable :
   -- Fix the second component to Code.zero
   exact ⟨fun c => D (c, Code.zero),
          hD.comp (Computable.pair Computable.id (Computable.const Code.zero))⟩
+
+/-- Equivalence for RE codes is not uniformly computable. -/
+theorem recursivelyEnumerable_computableEquivalence_undecidable :
+    ¬ComputableEquivalence partrecCodeGraphLanguageOf := by
+  intro h
+  apply RE_equivalence_undecidable
+  unfold ComputableEquivalence at h
+  exact h.of_eq fun p => partrecCodeGraphLanguage_eq_iff p

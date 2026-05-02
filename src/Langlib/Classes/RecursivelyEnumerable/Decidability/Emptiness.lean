@@ -1,4 +1,4 @@
-import Mathlib
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Helper
 
 /-! # Undecidability of Emptiness for RE Languages
 
@@ -51,3 +51,11 @@ theorem RE_emptiness_undecidable :
   -- set would force every other partrec function into the set.
   -- In particular, `fun _ => Part.none ∈ C` would imply `pure 0 ∈ C`, contradiction.
   exact pure_zero_not_empty (rice h1 Nat.Partrec.none Nat.Partrec.zero none_empty)
+
+/-- Emptiness for RE codes is not uniformly computable. -/
+theorem recursivelyEnumerable_computableEmptiness_undecidable :
+    ¬ComputableEmptiness partrecCodeDomainLanguageOf := by
+  intro h
+  apply RE_emptiness_undecidable
+  unfold ComputableEmptiness at h
+  exact h.of_eq fun c => partrecCodeDomainLanguage_empty_iff c
