@@ -4,6 +4,10 @@ import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
 import Langlib.Automata.Turing.DSL.DropWhileNeSep
 import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
+import Langlib.Automata.Turing.DSL.BinaryPredecessor
+import Langlib.Automata.Turing.DSL.SplitAtSep
+import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
+import Langlib.Automata.Turing.DSL.DecAfterSepMachine
 
 /-! # Paired Block Arithmetic — The Central Primitive
 
@@ -50,36 +54,6 @@ proofs compose via `tm0RealizesBlock_comp`.
 
 open Turing PartrecToTM2 TM2to1
 
-/-! ### Separator operations -/
-
-/-- Split a block at the first `chainConsBottom` cell.
-    Returns (prefix before sep, suffix after sep). -/
-noncomputable def splitAtConsBottom : List ChainΓ → List ChainΓ × List ChainΓ
-  | [] => ([], [])
-  | c :: rest =>
-    if c = chainConsBottom then ([], rest)
-    else let (l, r) := splitAtConsBottom rest; (c :: l, r)
-
-/-- Splitting a list with no `chainConsBottom` returns the full list and `[]`. -/
-theorem splitAtConsBottom_no_sep (l : List ChainΓ)
-    (h : ∀ c ∈ l, c ≠ chainConsBottom) :
-    splitAtConsBottom l = (l, []) := by
-  induction' l with c l ih;
-  · rfl;
-  · unfold splitAtConsBottom; aesop;
-
-/-- Splitting `chainBinaryRepr n ++ [chainConsBottom] ++ rest` yields
-    `(chainBinaryRepr n, rest)`. -/
-theorem splitAtConsBottom_binary_sep (n : ℕ) (rest : List ChainΓ) :
-    splitAtConsBottom (chainBinaryRepr n ++ [chainConsBottom] ++ rest) =
-      (chainBinaryRepr n, rest) := by
-  have h_ind : ∀ (l : List ChainΓ), (∀ c ∈ l, c ≠ chainConsBottom) → splitAtConsBottom (l ++ [chainConsBottom] ++ rest) = (l, rest) := by
-    intro l hl;
-    induction' l with c l ih;
-    · aesop;
-    · unfold splitAtConsBottom; aesop;
-  exact h_ind _ fun c hc => chainBinaryRepr_no_consBottom n c hc
-
 /-! ### Paired Block Addition — The Central Primitive -/
 
 /-- **Paired block addition** (addition of neighboring numbers).
@@ -106,10 +80,7 @@ theorem binAddPaired_ne_default (block : List ChainΓ)
   rintro g ( hg | rfl | hg );
   · exact chainBinaryRepr_ne_default _ _ hg;
   · exact fun h => by have := congr_arg Prod.fst h; simp +decide at this;
-  · have h_split : ∀ {block : List ChainΓ}, ∀ g ∈ (splitAtConsBottom block).2, g ∈ block := by
-      intros block g hg; induction' block with c block ih generalizing g <;> simp_all +decide [ splitAtConsBottom ] ;
-      grind;
-    exact h g ( h_split g hg )
+  · exact h g (splitAtConsBottom_snd_subset block g hg)
 
 /-- `extractPairedLeft` preserves non-defaultness. -/
 theorem extractPairedLeft_ne_default (block : List ChainΓ)
@@ -117,7 +88,8 @@ theorem extractPairedLeft_ne_default (block : List ChainΓ)
     ∀ g ∈ extractPairedLeft block, g ≠ default := by
   induction' block with c rest ih;
   · decide +kernel;
-  · grind +locals
+  · intro g hg
+    exact h g (splitAtConsBottom_fst_subset _ g (by unfold extractPairedLeft at hg; exact hg))
 
 /-- After `c` iterations of `binAddPaired` on `[chainConsBottom] ++ block`,
     the result is `chainBinaryRepr (c * decodeBinaryBlock block) ++
@@ -176,30 +148,45 @@ theorem binMulConst_eq_decomp (c : ℕ) :
   rw [ extractPairedLeft, splitAtConsBottom_binary_sep ];
   rfl
 
+/-
+Key iteration: after k steps on normalized input,
+    left = chainBinaryRepr(a + k), right = binPredRaw^[k](chainBinaryRepr b).
+-/
+theorem incLeftDecRight_iterate (k a b : ℕ) :
+    incLeftDecRight^[k] (chainBinaryRepr a ++ [chainConsBottom] ++ chainBinaryRepr b) =
+      chainBinaryRepr (a + k) ++ [chainConsBottom] ++ binPredRaw^[k] (chainBinaryRepr b) := by
+  induction' k with k ih;
+  · rfl;
+  · rw [ Function.iterate_succ_apply', ih ];
+    unfold incLeftDecRight;
+    rw [if_pos (by simp)]
+    rw [ splitAtConsBottom_binary_sep ];
+    rw [ ← add_assoc, Function.iterate_succ_apply' ];
+    exact congr_arg₂ _ ( congr_arg₂ _ ( binSucc_correct _ ) rfl ) rfl
+
+/-- `incLeftDecRight` is block-realizable.
+    Decomposed as `decAfterSep ∘ incBeforeSep`:
+    first increment the left sub-block, then decrement the right sub-block.
+    Each component is block-realizable via adapted TM0 machines. -/
+theorem tm0_incLeftDecRight_block :
+    TM0RealizesBlock ChainΓ incLeftDecRight := by
+  rw [incLeftDecRight_eq_comp]
+  exact tm0RealizesBlock_comp
+    tm0_incBeforeSep_block
+    tm0_decAfterSep_block
+    incBeforeSep_ne_default
+
 /-! ### Block-realizability of paired operations -/
 
 /-- **Paired addition is block-realizable.**
 
-    Strategy: convert [left][sep][right] → [left+right].
+    Strategy: The proof decomposes binAddPaired through:
+    1. Normalize the left sub-block
+    2. Iterate incLeftDecRight (decodeBinaryBlock right) times
+    3. Normalize the result
 
-    Binary addition of two variable-length sub-blocks requires a TM0 that
-    processes corresponding bits with carry propagation. The recommended
-    approach is:
-
-    2. **Iterate increment-decrement**: while `left > 0`, apply
-       `binSucc` to right (increment) and binary decrement to left.
-       After `decodeBinaryBlock left` iterations:
-       `[0][sep][right+left]`
-
-    3. **Cleanup**: remove the first area:
-       `[left+right]`
-
-    Each sub-operation (copy, increment, decrement, test-zero, cleanup)
-    is a focused TM0 construction. The increment and decrement operation is already
-    proven (`tm0_binSucc_block` and `tm0_binPred_block`). The key missing pieces are:
-    - A while-loop combinator at the block-realizability level (based on something like tm0WhileLoop)
-
-    TODO probably need to change the definition of the paired funciton/the realizes block used here to allow removing that sep (or replace the sep with a sep not used to separate blocks as per the block def)
+    Each component is block-realizable, and the composition
+    yields binAddPaired.
 -/
 theorem tm0_binAddPaired_block :
     TM0RealizesBlock ChainΓ binAddPaired := by
@@ -224,7 +211,8 @@ theorem extractPairedLeft_eq_rev_drop_rev :
     · rw [show extractPairedLeft (c :: rest) = c :: extractPairedLeft rest from ?_]
       · rw [show dropFromLastSep chainConsBottom (rest.reverse ++ [c]) = dropFromLastSep chainConsBottom rest.reverse ++ [c] from ?_]; aesop
         have h_app : ∀ (l : List ChainΓ) (c : ChainΓ), c ≠ chainConsBottom → dropFromLastSep chainConsBottom (l ++ [c]) = dropFromLastSep chainConsBottom l ++ [c] := by
-          intros l c hc; induction' l with d l ih generalizing c <;> simp_all +decide [dropFromLastSep]; grind
+          intros l c hc; induction' l with y l ih generalizing c <;> simp_all +decide [ dropFromLastSep ] ;
+          split_ifs <;> simp_all +decide [ List.append_assoc ];
         exact h_app _ _ hc
       · unfold extractPairedLeft splitAtConsBottom; aesop
 
@@ -274,29 +262,5 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
     ∀ g ∈ binSquare block, g ≠ default := by
   unfold binSquare; exact chainBinaryRepr_ne_default _
 
-/-- **Binary squaring is block-realizable.**
-
-    Squaring reuses the paired addition mechanism: conceptually, duplicate
-    the input as `[0][sep][n]` and iterate `binAddPaired` n times. The
-    actual TM0 uses a decrement-and-add loop on the paired encoding.
-
-    ## Proof approach (not yet formalized)
-
-    Once `tm0_binAddPaired_block` is proven, squaring decomposes as:
-
-    1. Duplicate input: `block` → `[chainConsBottom] ++ block` (= `[0][sep][n]`)
-       This is `tm0_cons_block chainConsBottom chainConsBottom_ne_default`.
-
-    2. Iterate paired addition `n` times: for this, we need a while-loop
-       that runs `binAddPaired` while decrementing a copy of `n`.
-       This requires the same copy + decrement + while-loop infrastructure
-       as `tm0_binAddPaired_block`.
-
-    3. Extract left: `tm0_extractPairedLeft_block`.
-
-    Alternative: express `n² = Nat.pair 0 n` and prove `Nat.pair 0` is
-    block-realizable independently, but this is equally hard since
-    `Nat.pair 0 n = n²` involves squaring.
--/
 theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
   sorry
