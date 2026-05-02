@@ -94,25 +94,9 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
     ∀ g ∈ binMulConst c block, g ≠ default := by
   unfold binMulConst; exact chainBinaryRepr_ne_default _
 
-/-
-Key iteration: after k steps on normalized input,
-    left = chainBinaryRepr(a + k), right = binPredRaw^[k](chainBinaryRepr b).
--/
-theorem incLeftDecRight_iterate (k a b : ℕ) :
-    incLeftDecRight^[k] (chainBinaryRepr a ++ [chainConsBottom] ++ chainBinaryRepr b) =
-      chainBinaryRepr (a + k) ++ [chainConsBottom] ++ binPredRaw^[k] (chainBinaryRepr b) := by
-  induction' k with k ih;
-  · rfl;
-  · rw [ Function.iterate_succ_apply', ih ];
-    unfold incLeftDecRight;
-    rw [if_pos (by simp)]
-    rw [ splitAtConsBottom_binary_sep ];
-    rw [ ← add_assoc, Function.iterate_succ_apply' ];
-    exact congr_arg₂ _ ( congr_arg₂ _ ( binSucc_correct _ ) rfl ) rfl
-
 /-- `incLeftDecRight` is block-realizable.
     Decomposed as `decAfterSep ∘ incBeforeSep`:
-    first increment the left sub-block, then decrement the right sub-block.
+    first decrement the left sub-block, then increment the right sub-block.
     Each component is block-realizable via adapted TM0 machines. -/
 theorem tm0_incLeftDecRight_block :
     TM0RealizesBlock ChainΓ incLeftDecRight := by

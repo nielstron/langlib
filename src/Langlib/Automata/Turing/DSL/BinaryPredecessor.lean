@@ -211,6 +211,19 @@ theorem binPredRaw_borrow_aux (block suffix revLeft : List ChainΓ)
           grind;
         · assumption
 
+theorem binPredRaw_preserves_prefix_reaches (pfx block suffix : List ChainΓ)
+    (hpfx : ∀ g ∈ pfx, g ≠ default)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (hsuffix : ∀ g ∈ suffix, g ≠ default) :
+    Reaches (TM0.step binPredRawMachine)
+      ⟨.borrow, ⟨(block ++ default :: suffix).headI,
+                 ListBlank.mk pfx.reverse,
+                 ListBlank.mk (block ++ default :: suffix).tail⟩⟩
+      ⟨.done, Tape.mk₁ (pfx ++ binPredRaw block ++ default :: suffix)⟩ := by
+  convert binPredRaw_borrow_aux block suffix pfx.reverse hblock hsuffix
+    (fun g hg => hpfx g (List.mem_reverse.mp hg)) using 1
+  rw [List.reverse_reverse]
+
 /-! ### Main Block-Realizability Result -/
 
 /-- `binPredRaw` is block-realizable. -/

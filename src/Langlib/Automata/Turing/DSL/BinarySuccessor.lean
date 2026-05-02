@@ -456,6 +456,20 @@ theorem binSucc_carry_aux (block suffix revLeft : List ChainΓ)
     · convert binSucc_carry_other c rest suffix revLeft hc hc1 hfblock.1 hrevLeft using 1;
       simp +decide [ List.append_assoc ]
 
+theorem binSucc_preserves_prefix_reaches (pfx block suffix : List ChainΓ)
+    (hpfx : ∀ g ∈ pfx, g ≠ default)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (hsuffix : ∀ g ∈ suffix, g ≠ default)
+    (hfblock : ∀ g ∈ binSucc block, g ≠ default) :
+    Reaches (TM0.step binSuccMachine)
+      ⟨.carry, ⟨(block ++ default :: suffix).headI,
+               ListBlank.mk pfx.reverse,
+               ListBlank.mk (block ++ default :: suffix).tail⟩⟩
+      ⟨.done, Tape.mk₁ (pfx ++ binSucc block ++ default :: suffix)⟩ := by
+  convert binSucc_carry_aux block suffix pfx.reverse hblock hsuffix hfblock
+    (fun g hg => hpfx g (List.mem_reverse.mp hg)) using 1
+  rw [List.reverse_reverse]
+
 /-! ### Main result -/
 
 /-- **Binary successor is block-realizable.**

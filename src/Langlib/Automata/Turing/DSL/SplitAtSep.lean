@@ -97,51 +97,58 @@ theorem splitAtConsBottom_snd_subset (block : List ChainΓ) :
 theorem binSucc_no_consBottom (l : List ChainΓ) (hl : ∀ c ∈ l, c ≠ chainConsBottom) :
     ∀ c ∈ binSucc l, c ≠ chainConsBottom := by
   induction' l with c l ih
-  · simp [binSucc, chainConsBottom]; simp +decide [γ'ToChainΓ]
+  · simp [binSucc, chainConsBottom]; simp +decide
   · by_cases hc : c = γ'ToChainΓ Γ'.bit0 <;> by_cases hc' : c = γ'ToChainΓ Γ'.bit1
       <;> simp_all +decide [binSucc]
 
-/-! ### incBeforeSep and decAfterSep -/
+theorem binPred_no_consBottom (l : List ChainΓ) :
+    ∀ c ∈ binPred l, c ≠ chainConsBottom := by
+  unfold binPred
+  exact chainBinaryRepr_no_consBottom _
 
-/-- Increment the sub-block before the first `chainConsBottom` separator.
-    Identity when no separator is present. -/
+@[simp]
+theorem splitAtConsBottom_binPred_sep (left right : List ChainΓ) :
+    splitAtConsBottom (binPred left ++ chainConsBottom :: right) =
+      (binPred left, right) := by
+  simpa using splitAtConsBottom_general (binPred left) right (binPred_no_consBottom left)
+
+/-! ### Paired-side arithmetic around `chainConsBottom` -/
+
+/-- Decrement the sub-block before the first `chainConsBottom` separator,
+    normalizing it with `binPred`. Identity when no separator is present. -/
 noncomputable def incBeforeSep (block : List ChainΓ) : List ChainΓ :=
   if chainConsBottom ∈ block then
     let (left, right) := splitAtConsBottom block
-    binSucc left ++ [chainConsBottom] ++ right
+    binPred left ++ [chainConsBottom] ++ right
   else block
 
-/-- Decrement the sub-block after the first `chainConsBottom` separator.
-    Identity when no separator is present. -/
+/-- Increment the sub-block after the first `chainConsBottom` separator using
+    the existing binary successor. Identity when no separator is present. -/
 noncomputable def decAfterSep (block : List ChainΓ) : List ChainΓ :=
   if chainConsBottom ∈ block then
     let (left, right) := splitAtConsBottom block
-    left ++ [chainConsBottom] ++ binPredRaw right
+    left ++ [chainConsBottom] ++ binSucc right
   else block
 
-/-- One step: increment left sub-block, raw-decrement right sub-block.
-    Identity when no separator is present. -/
+/-- One paired-addition transfer step: decrement left and increment right. -/
 noncomputable def incLeftDecRight (block : List ChainΓ) : List ChainΓ :=
   if chainConsBottom ∈ block then
     let (left, right) := splitAtConsBottom block
-    binSucc left ++ [chainConsBottom] ++ binPredRaw right
+    binPred left ++ [chainConsBottom] ++ binSucc right
   else block
 
 /-- `incLeftDecRight = decAfterSep ∘ incBeforeSep` -/
 theorem incLeftDecRight_eq_comp :
     incLeftDecRight = decAfterSep ∘ incBeforeSep := by
-  ext block
+  funext block
   simp only [Function.comp, incLeftDecRight, incBeforeSep, decAfterSep]
   by_cases h : chainConsBottom ∈ block
-  · rw [if_pos h, if_pos h]
-    set left := (splitAtConsBottom block).1
-    set right := (splitAtConsBottom block).2
-    have h_no_sep : ∀ c ∈ binSucc left, c ≠ chainConsBottom :=
-      binSucc_no_consBottom left (splitAtConsBottom_fst_no_sep block)
-    have h_mem : chainConsBottom ∈ binSucc left ++ [chainConsBottom] ++ right := by simp
-    rw [if_pos h_mem]
-    rw [splitAtConsBottom_general (binSucc left) right h_no_sep]
-  · simp [if_neg h]
+  · rw [if_pos h]
+    rcases hsplit : splitAtConsBottom block with ⟨left, right⟩
+    have hmem : chainConsBottom ∈ binPred left ++ [chainConsBottom] ++ right := by simp
+    rw [if_pos h, if_pos hmem]
+    simp
+  · simp [h]
 
 theorem incBeforeSep_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
@@ -151,7 +158,7 @@ theorem incBeforeSep_ne_default (block : List ChainΓ)
   split_ifs at hg with h
   · rcases List.mem_append.mp hg with hg | hg
     · rcases List.mem_append.mp hg with hg | hg
-      · exact binSucc_ne_default _ (fun g hg => hblock g (splitAtConsBottom_fst_subset block g hg)) g hg
+      · exact binPred_ne_default _ (fun g hg => hblock g (splitAtConsBottom_fst_subset block g hg)) g hg
       · simp only [List.mem_singleton] at hg; subst hg; exact chainConsBottom_ne_default
     · exact hblock g (splitAtConsBottom_snd_subset block g hg)
   · exact hblock g hg
@@ -166,18 +173,18 @@ theorem decAfterSep_ne_default (block : List ChainΓ)
     · rcases List.mem_append.mp hg with hg | hg
       · exact hblock g (splitAtConsBottom_fst_subset block g hg)
       · simp only [List.mem_singleton] at hg; subst hg; exact chainConsBottom_ne_default
-    · exact binPredRaw_ne_default _ (fun g hg => hblock g (splitAtConsBottom_snd_subset block g hg)) g hg
+    · exact binSucc_ne_default _ (fun g hg => hblock g (splitAtConsBottom_snd_subset block g hg)) g hg
   · exact hblock g hg
 
 theorem incLeftDecRight_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ incLeftDecRight block, g ≠ default := by
-  simp only [incLeftDecRight]
-  split_ifs with h
-  · intro g hg
-    rcases List.mem_append.mp hg with hg | hg
+  intro g hg
+  simp only [incLeftDecRight] at hg
+  split_ifs at hg with h
+  · rcases List.mem_append.mp hg with hg | hg
     · rcases List.mem_append.mp hg with hg | hg
-      · exact binSucc_ne_default _ (fun g hg => hblock g (splitAtConsBottom_fst_subset block g hg)) g hg
+      · exact binPred_ne_default _ (fun g hg => hblock g (splitAtConsBottom_fst_subset block g hg)) g hg
       · simp only [List.mem_singleton] at hg; subst hg; exact chainConsBottom_ne_default
-    · exact binPredRaw_ne_default _ (fun g hg => hblock g (splitAtConsBottom_snd_subset block g hg)) g hg
-  · exact hblock
+    · exact binSucc_ne_default _ (fun g hg => hblock g (splitAtConsBottom_snd_subset block g hg)) g hg
+  · exact hblock g hg
