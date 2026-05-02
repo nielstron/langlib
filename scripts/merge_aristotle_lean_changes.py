@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 API_BASE = "https://aristotle.harmonic.fun/api/v2"
 REPO_ROOT = Path(__file__).resolve().parent.parent
+ARISTOTLE_CO_AUTHOR = "Co-authored-by: Aristotle (Harmonic) <aristotle-harmonic@harmonic.fun>"
 PROJECT_ID_RE = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
@@ -236,7 +237,7 @@ def commit_changes(
         return
     if commit_message is None:
         commit_message = default_commit_message(project_id, prompt)
-    run(["git", "commit", "-m", commit_message])
+    run(["git", "commit", "-m", commit_message, "-m", ARISTOTLE_CO_AUTHOR])
 
 
 def main() -> int:
