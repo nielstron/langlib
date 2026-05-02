@@ -504,62 +504,253 @@ theorem hetFoldWhile_ne_default
       · exact hblock;
   exact h_block_ne_default block hblock _ _ hg
 
+/-! ## Invariant-Restricted Block Realizability -/
+
+/-- A conditional block step with an invariant restricting which blocks
+    the machine must handle.
+
+    This weakens `TM0RealizesBlockCond` by only requiring the machine to
+    work on blocks satisfying `blockInv`, with empty suffix.
+    This is necessary for the het fold step because the lifted inner
+    machine `M_t` (from `TM0RealizesBlock Γ₀ (f t)`) can only correctly
+    handle well-formed het blocks: through the alphabet inverse `hetInv`,
+    `Sum.inl` elements map to `default`, making them indistinguishable
+    from blanks. A machine proved via `TM0RealizesBlock Γ₀` may write to
+    cells outside the block during execution and restore them at the end;
+    through the lift, such writes corrupt `Sum.inl` elements that happen
+    to appear in the "blank" region from the lifted machine's perspective.
+    Restricting to well-formed blocks (where `inl` and `inr` elements are
+    properly separated) with empty suffix avoids this issue. -/
+def TM0RealizesBlockCondInv {Γ : Type} [Inhabited Γ]
+    (step : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
+    (blockInv : List Γ → Prop) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ) (q_cont : Λ),
+    ∀ (block : List Γ),
+      blockInv block →
+      (∀ g ∈ block, g ≠ default) →
+      (cond block → ∀ g ∈ step block, g ≠ default) →
+      (TM0Seq.evalCfg M (block ++ [default])).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (block ++ [default])).Dom),
+        let cfg := (TM0Seq.evalCfg M (block ++ [default])).get h
+        if cond block then
+          cfg.q = q_cont ∧
+          cfg.Tape = Tape.mk₁ (step block ++ [default])
+        else
+          cfg.q ≠ q_cont ∧
+          cfg.Tape = Tape.mk₁ (block ++ [default])
+
+/-- Well-formedness predicate for het blocks: the block is of the form
+    `hetMix ts acc` for some tag list `ts` and accumulator `acc` with
+    all accumulator elements non-default. -/
+def isWellFormedHetBlock (block : List (Option (T ⊕ Γ₀))) : Prop :=
+  ∃ (ts : List T) (acc : List Γ₀), block = hetMix ts acc ∧
+    ∀ g ∈ acc, g ≠ (default : Γ₀)
+
+/-! ## While-Loop with Invariant -/
+
+/-- **While-loop combinator with block invariant (empty suffix).**
+
+    Like `tm0RealizesBlock_while` but:
+    - The body only needs to work on blocks satisfying `blockInv`
+    - Only empty suffix is required
+    - The invariant must be preserved by `step` -/
+theorem tm0RealizesBlock_while_inv {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (step result : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
+    (blockInv : List Γ → Prop)
+    (hbody : TM0RealizesBlockCondInv step cond blockInv)
+    (hinv_step : ∀ block, blockInv block → (∀ g ∈ block, g ≠ default) →
+      cond block → blockInv (step block))
+    (hstep_nd : ∀ block, (∀ g ∈ block, g ≠ default) → cond block →
+      ∀ g ∈ step block, g ≠ default)
+    (hresult_eq : ∀ block, (∀ g ∈ block, g ≠ default) → blockInv block →
+      ∃ n, result block = blockIterateWhile step cond n block ∧
+        ¬cond (blockIterateWhile step cond n block))
+    (hresult_nd : ∀ block, (∀ g ∈ block, g ≠ default) → blockInv block →
+      ∀ g ∈ result block, g ≠ default) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine Γ Λ),
+      ∀ (block : List Γ),
+        blockInv block →
+        (∀ g ∈ block, g ≠ default) →
+        (∀ g ∈ result block, g ≠ default) →
+        (TM0Seq.evalCfg M (block ++ [default])).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (block ++ [default])).Dom),
+          ((TM0Seq.evalCfg M (block ++ [default])).get h).Tape =
+            Tape.mk₁ (result block ++ [default]) := by
+  obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
+  haveI : DecidableEq Λ := Classical.decEq Λ
+  refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
+  intro block hblockInv hblock hresult
+  obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock hblockInv
+  suffices key : ∀ (m : ℕ) (blk : List Γ),
+    blockInv blk →
+    (∀ g ∈ blk, g ≠ default) →
+    ¬cond (blockIterateWhile step cond m blk) →
+    (TM0Seq.evalCfg (tm0WhileLoop M q_cont) (blk ++ [default])).Dom ∧
+    ∀ (hd : (TM0Seq.evalCfg (tm0WhileLoop M q_cont) (blk ++ [default])).Dom),
+      ((TM0Seq.evalCfg (tm0WhileLoop M q_cont) (blk ++ [default])).get hd).Tape =
+      Tape.mk₁ (blockIterateWhile step cond m blk ++ [default]) by
+    obtain ⟨h_dom, h_tape⟩ := key n block hblockInv hblock hn_not_cond
+    exact ⟨h_dom, fun hd => by rw [hn_eq, h_tape hd]⟩
+  intro m
+  induction m with
+  | zero =>
+    intro blk hblkInv hblk hn_not
+    simp only [blockIterateWhile] at hn_not ⊢
+    obtain ⟨h_body_dom, h_body_spec⟩ := hM blk hblkInv hblk
+      (fun hc => hstep_nd blk hblk hc)
+    have h_body_spec' := h_body_spec h_body_dom
+    simp only [hn_not, ↓reduceIte] at h_body_spec'
+    obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+    have hsuffix : (∀ g ∈ ([] : List Γ), g ≠ default) := by simp
+    obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _ h_body_dom h_q_ne
+    exact ⟨h_dom, fun hd => by rw [h_tape hd, h_tape_eq]⟩
+  | succ m ih =>
+    intro blk hblkInv hblk hn_not
+    by_cases hcond : cond blk
+    · rw [blockIterateWhile_succ_true _ _ _ _ hcond] at hn_not ⊢
+      have h_step_nd := hstep_nd blk hblk hcond
+      have h_step_inv := hinv_step blk hblkInv hblk hcond
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM blk hblkInv hblk
+        (fun _ => h_step_nd)
+      have h_body_spec' := h_body_spec h_body_dom
+      simp only [hcond, ↓reduceIte] at h_body_spec'
+      obtain ⟨h_q_cont, h_tape_step⟩ := h_body_spec'
+      obtain ⟨h_W_step_dom, h_W_step_tape⟩ := ih (step blk) h_step_inv h_step_nd hn_not
+      obtain ⟨h_W_dom, h_W_tape⟩ := whileLoop_eval_cont M q_cont _ _
+        h_body_dom h_q_cont h_tape_step h_W_step_dom
+      exact ⟨h_W_dom, fun hd => by rw [h_W_tape hd, h_W_step_tape h_W_step_dom]⟩
+    · rw [blockIterateWhile_succ_false _ _ _ _ hcond] at hn_not ⊢
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM blk hblkInv hblk
+        (fun hc => absurd hc hcond)
+      have h_body_spec' := h_body_spec h_body_dom
+      simp only [hcond, ↓reduceIte] at h_body_spec'
+      obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+      obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _ h_body_dom h_q_ne
+      exact ⟨h_dom, fun hd => by rw [h_tape hd, h_tape_eq]⟩
+
 /-! ## Block Realizability -/
 
-/-- **Het fold step is conditionally block-realizable.**
+/-- **Het fold step is conditionally block-realizable (with invariant).**
 
-The body machine:
-1. Reads the head of the block.
-2. If `some(inl t)`: records `t` in the finite state, scans right past
-   remaining `inl` tags, applies the lifted `f t` machine to the `inr`
-   accumulator, returns to start. Halts at `q_cont`.
-3. If not `some(inl _)`: halts immediately at a state ≠ `q_cont`. -/
+    Weakened from the original `TM0RealizesBlockCond` to
+    `TM0RealizesBlockCondInv` with the `isWellFormedHetBlock` invariant.
+
+    The original statement required the constructed machine to work on ALL
+    non-default blocks with ALL non-default suffixes. This is too strong
+    because the inner machine `M_t` (from `hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t)`)
+    is lifted to the `Option (T ⊕ Γ₀)` alphabet via `hetInv`, which maps
+    `Sum.inl` elements to `default`. This means:
+    - `Sum.inl` elements in the block appear as blank cells to `M_t`
+    - If `M_t` writes to cells outside its block during execution
+      (allowed by `TM0RealizesBlock`), it may corrupt `Sum.inl` elements
+    - The suffix through `hetInv` may contain spurious `default` values
+
+    By restricting to well-formed blocks (`hetMix ts acc`) with empty
+    suffix, we ensure:
+    - The `inr` accumulator forms a valid contiguous `Γ₀` block
+    - The `inl` tail appears as blanks to the left (consistent with `M_t`)
+    - No suffix interference
+
+    The body machine:
+    1. Reads the head of the block.
+    2. If `some(inl t)`: records `t` in the finite state, scans right past
+       remaining `inl` tags, applies the lifted `f t` machine to the `inr`
+       accumulator, shifts back to close the gap. Halts at `q_cont`.
+    3. If not `some(inl _)`: halts immediately at a state ≠ `q_cont`. -/
 theorem tm0RealizesBlockCond_hetFoldStep
     (f : T → List Γ₀ → List Γ₀)
     (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
-    TM0RealizesBlockCond (hetFoldStep f) (@hasHetInlHead T Γ₀) := by
+    TM0RealizesBlockCondInv (hetFoldStep f) (@hasHetInlHead T Γ₀)
+      (isWellFormedHetBlock (T := T) (Γ₀ := Γ₀)) := by
   sorry
 
-/-- **Het fold while loop is block-realizable.**
+/-- `isWellFormedHetBlock` is preserved by `hetFoldStep` when the
+    condition holds. -/
+theorem isWellFormedHetBlock_step
+    (f : T → List Γ₀ → List Γ₀)
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
+    (block : List (Option (T ⊕ Γ₀)))
+    (hInv : isWellFormedHetBlock block)
+    (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀)))
+    (hcond : hasHetInlHead block) :
+    isWellFormedHetBlock (hetFoldStep f block) := by
+  obtain ⟨ts, acc, rfl, hacc⟩ := hInv
+  cases ts with
+  | nil => exact absurd hcond (not_hasHetInlHead_hetMix_nil acc)
+  | cons t ts =>
+    rw [hetFoldStep_hetMix]
+    exact ⟨ts, f t acc, rfl, hf_nd t acc hacc⟩
 
-Derived from:
-- `tm0RealizesBlockCond_hetFoldStep` (body is conditionally realizable)
-- `tm0RealizesBlock_while` (general while-loop combinator)
-- `hetFoldWhile_eq_iterateWhile` (definition equals iteration) -/
-theorem tm0RealizesBlock_hetFoldWhile
+/-- `hetFoldWhile_eq_iterateWhile` restricted to well-formed blocks. -/
+theorem hetFoldWhile_eq_iterateWhile_wf
+    (f : T → List Γ₀ → List Γ₀)
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
+    (block : List (Option (T ⊕ Γ₀)))
+    (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀)))
+    (hInv : isWellFormedHetBlock block) :
+    ∃ n, hetFoldWhile f block =
+      blockIterateWhile (hetFoldStep f) hasHetInlHead n block ∧
+      ¬hasHetInlHead (blockIterateWhile (hetFoldStep f) hasHetInlHead n block) :=
+  hetFoldWhile_eq_iterateWhile f hf_nd block hblock
+
+/-- **Het fold while loop machine exists for well-formed blocks.**
+
+    Derived from:
+    - `tm0RealizesBlockCond_hetFoldStep` (body is conditionally realizable
+      with invariant)
+    - `tm0RealizesBlock_while_inv` (while-loop combinator with invariant)
+    - `hetFoldWhile_eq_iterateWhile_wf` (iteration equals definition) -/
+theorem tm0RealizesBlock_hetFoldWhile_inv
     (f : T → List Γ₀ → List Γ₀)
     (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
-    TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldWhile f) :=
-  tm0RealizesBlock_while
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine (Option (T ⊕ Γ₀)) Λ),
+      ∀ (block : List (Option (T ⊕ Γ₀))),
+        isWellFormedHetBlock block →
+        (∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀))) →
+        (∀ g ∈ hetFoldWhile f block, g ≠ (default : Option (T ⊕ Γ₀))) →
+        (TM0Seq.evalCfg M (block ++ [default])).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (block ++ [default])).Dom),
+          ((TM0Seq.evalCfg M (block ++ [default])).get h).Tape =
+            Tape.mk₁ (hetFoldWhile f block ++ [default]) :=
+  tm0RealizesBlock_while_inv
     (hetFoldStep f) (hetFoldWhile f) hasHetInlHead
+    isWellFormedHetBlock
     (tm0RealizesBlockCond_hetFoldStep f hf_block hf_nd)
+    (fun block hInv hnd hcond => isWellFormedHetBlock_step f hf_nd block hInv hnd hcond)
     (fun block hblock hcond => hetFoldStep_ne_default f hf_nd block hblock hcond)
-    (fun block hblock => hetFoldWhile_eq_iterateWhile f hf_nd block hblock)
-    (fun block hblock => hetFoldWhile_ne_default f hf_nd block hblock)
+    (fun block hblock hInv => hetFoldWhile_eq_iterateWhile_wf f hf_nd block hblock hInv)
+    (fun block hblock _hInv => hetFoldWhile_ne_default f hf_nd block hblock)
 
-/-- **The het fold is block-realizable as `reverse` then `while loop`.**
+/-- `w.map (some ∘ Sum.inl)` forms a well-formed het block. -/
+theorem isWellFormedHetBlock_map_inl (w : List T) :
+    isWellFormedHetBlock (T := T) (Γ₀ := Γ₀) (w.map (some ∘ Sum.inl)) := by
+  exact ⟨w, [], by simp [hetMix], by simp⟩
 
-This is `TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldWhile f ∘ List.reverse)`,
-composed via `tm0RealizesBlock_comp`. -/
-theorem tm0RealizesBlock_hetFold
-    (f : T → List Γ₀ → List Γ₀)
-    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
-    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
-    TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldWhile f ∘ List.reverse) :=
-  tm0RealizesBlock_comp tm0_reverse_block
-    (tm0RealizesBlock_hetFoldWhile f hf_block hf_nd)
-    reverse_ne_default
+/-- Reversed well-formed het block is still well-formed. -/
+theorem isWellFormedHetBlock_reverse_map_inl (w : List T) :
+    isWellFormedHetBlock (T := T) (Γ₀ := Γ₀) ((w.map (some ∘ Sum.inl)).reverse) := by
+  rw [← List.map_reverse]
+  exact ⟨w.reverse, [], by simp [hetMix], by simp⟩
 
 /-! ## Deriving the Original Fold Spec -/
 
-/-- **Derive `tm0Het_fold_blockRealizable` from the block-realizable
+/-
+**Derive `tm0Het_fold_blockRealizable` from the invariant-restricted
     decomposition.**
 
-    Uses `evalCfg_append_default` and `tape_mk₁_append_default` to
-    strip the trailing default separator, and `hetFold_decomp` to
-    connect `hetFoldWhile ∘ reverse` to `List.foldr`. -/
+    The proof composes:
+    1. `tm0_reverse_block` for reversing the input
+    2. `tm0RealizesBlock_hetFoldWhile_inv` for the while loop
+
+    Since the final theorem only needs the machine to work on specific inputs
+    `w.map (some ∘ Sum.inl)` (which are well-formed het blocks with all-`inl`
+    elements), the invariant-restricted version suffices.
+-/
 theorem tm0Het_fold_blockRealizable'
     (T : Type) [DecidableEq T] [Fintype T]
     {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
@@ -575,17 +766,63 @@ theorem tm0Het_fold_blockRealizable'
           ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
             Tape.mk₁ ((List.foldr f [] w).map
               (some ∘ @Sum.inr T Γ₀)) := by
-  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0RealizesBlock_hetFold f hf_block hf_nd
-  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
-  intro w
-  have hnd_block := map_inl_ne_default (T := T) (Γ₀ := Γ₀) w
-  have hnd_result : ∀ g ∈ (hetFoldWhile f ∘ List.reverse) (List.map (some ∘ Sum.inl) w),
-      g ≠ (default : Option (T ⊕ Γ₀)) :=
-    hetFoldWhile_ne_default f hf_nd _ (fun g hg => reverse_ne_default _ hnd_block g hg)
-  specialize hM (w.map (some ∘ Sum.inl)) [] hnd_block (by simp) hnd_result
-  convert hM using 1
-  · rw [evalCfg_append_default]
-  · rw [evalCfg_append_default, tape_mk₁_append_default]
-    rw [Function.comp_apply, hetFold_decomp]
+  obtain ⟨ Λ, _, _, M, hM ⟩ := tm0RealizesBlock_hetFoldWhile_inv f hf_block hf_nd;
+  -- Let's obtain the machine M_rev from the theorem tm0_reverse_block.
+  obtain ⟨Λ_rev, _, _, M_rev, hM_rev⟩ := tm0_reverse_block (Γ := Option (T ⊕ Γ₀));
+  refine' ⟨ _, _, _, TM0Seq.compose M_rev M, _ ⟩;
+  · infer_instance;
+  · intro w;
+    refine' ⟨ _, _ ⟩;
+    · have h_dom_rev : (TM0Seq.evalCfg M_rev (List.map (some ∘ Sum.inl) w ++ [default])).Dom := by
+        convert hM_rev ( List.map ( some ∘ Sum.inl ) w ) [ ] _ _ _ |> And.left using 1 <;> simp +decide [ List.map ];
+      have h_dom_while : (TM0Seq.evalCfg M ((List.map (some ∘ Sum.inl) w).reverse ++ [default])).Dom := by
+        apply (hM ((List.map (some ∘ Sum.inl) w).reverse) (isWellFormedHetBlock_reverse_map_inl w) (by
+        simp +decide [ List.mem_reverse, List.mem_map ]) (by
+        apply hetFoldWhile_ne_default;
+        · exact hf_nd;
+        · simp +decide [ List.mem_reverse, List.mem_map ])).left;
+      convert TM0Seq.compose_dom_of_parts M_rev M ( List.map ( some ∘ Sum.inl ) w ) _ _ using 1;
+      convert h_dom_rev using 1;
+      grind +suggestions;
+      convert h_dom_while using 1;
+      congr;
+      convert hM_rev ( List.map ( some ∘ Sum.inl ) w ) [ ] _ _ _ |> And.right |> fun h => h _ using 1;
+      any_goals assumption;
+      · grind +suggestions;
+      · simp +decide [ Function.comp ];
+      · simp +decide;
+      · simp +decide [ Function.comp ];
+    · intro h;
+      convert TM0Seq.compose_evalCfg_tape M_rev M _ _ _ _ _ _ using 1;
+      rotate_left;
+      exact ( List.map ( some ∘ Sum.inl ) w ).reverse;
+      all_goals generalize_proofs at *;
+      · convert hM_rev ( List.map ( some ∘ Sum.inl ) w ) [ ] _ _ _ |>.1 using 1;
+        · grind +suggestions;
+        · simp +decide [ Function.comp ];
+        · simp +decide;
+        · simp +decide [ List.mem_reverse, List.mem_map ];
+      · convert hM_rev ( List.map ( some ∘ Sum.inl ) w ) [ ] _ _ _ |> And.right using 1;
+        · grind +suggestions;
+        · grind;
+        · simp +decide;
+        · simp +decide [ List.mem_reverse, List.mem_map ];
+      · specialize hM ( List.map ( some ∘ Sum.inl ) w |> List.reverse ) ?_ ?_ ?_;
+        · grind +suggestions;
+        · simp +decide [ List.mem_reverse, List.mem_map ];
+        · apply hetFoldWhile_ne_default;
+          · exact hf_nd;
+          · simp +decide [ List.mem_reverse ];
+        · grind +suggestions;
+      · specialize hM ( List.map ( some ∘ Sum.inl ) w |> List.reverse ) ; simp_all +decide [ isWellFormedHetBlock_reverse_map_inl ];
+        convert hM _ |>.2 _ |> Eq.symm using 1;
+        all_goals generalize_proofs at *;
+        · rw [ ← tape_mk₁_append_default ];
+          rw [ hetFold_decomp ];
+        · grind +suggestions;
+        · apply hetFoldWhile_ne_default;
+          · exact hf_nd;
+          · simp +decide [ List.mem_reverse, List.mem_map ];
+        · grind +suggestions
 
 end HetFold
