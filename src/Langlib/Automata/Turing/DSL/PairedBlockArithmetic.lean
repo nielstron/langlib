@@ -259,7 +259,6 @@ theorem pairedDecrLeftIncrRight_iterate_decode (block : List ChainΓ) (k : ℕ)
   rw [splitAtConsBottom_binary_sep]
   simp +decide
   simp_all +decide [Nat.sub_sub, add_assoc]
-  exact ⟨decodeBinaryBlock_chainBinaryRepr _, decodeBinaryBlock_chainBinaryRepr _⟩
 
 /-- `binAddPaired = normalizeBlock ∘ extractPairedRight ∘ binAddPairedWhile`. -/
 theorem binAddPaired_eq_while_decomp :
@@ -332,7 +331,7 @@ theorem tm0_binAddPaired_block :
 
 `binMulPaired` is the shared multiplication primitive. Its intended machine
 uses paired addition as the inner operation: copy the addend into a paired-add
-input, add it into an accumulator, decrement the counter, and loop. -/
+input, add it into an accumulator, decrement the copied multiplier, and loop. -/
 
 /-- Multiply two binary blocks stored as `[left][sep][right]`. -/
 noncomputable def binMulPaired (block : List ChainΓ) : List ChainΓ :=
@@ -345,6 +344,276 @@ theorem binMulPaired_ne_default (block : List ChainΓ)
   unfold binMulPaired
   simp +zetaDelta
   exact fun g hg => chainBinaryRepr_ne_default _ g hg
+
+/-- Pair two blocks after normalizing both through binary decode/encode. -/
+noncomputable def pairNormalizedBlocks (left right : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr (decodeBinaryBlock left) ++ [chainConsBottom] ++
+    chainBinaryRepr (decodeBinaryBlock right)
+
+/-- Normalize both sides of a paired block, preserving the separator. -/
+noncomputable def normalizePairedBlocks (block : List ChainΓ) : List ChainΓ :=
+  let (left, right) := splitAtConsBottom block
+  pairNormalizedBlocks left right
+
+theorem pairNormalizedBlocks_ne_default (left right : List ChainΓ)
+    (_hleft : ∀ g ∈ left, g ≠ default) (_hright : ∀ g ∈ right, g ≠ default) :
+    ∀ g ∈ pairNormalizedBlocks left right, g ≠ default := by
+  unfold pairNormalizedBlocks
+  intro g hg
+  rcases List.mem_append.mp hg with hg | hg
+  · rcases List.mem_append.mp hg with hg | hg
+    · exact chainBinaryRepr_ne_default _ g hg
+    · rw [List.mem_singleton.mp hg]
+      exact chainConsBottom_ne_default
+  · exact chainBinaryRepr_ne_default _ g hg
+
+theorem normalizePairedBlocks_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ normalizePairedBlocks block, g ≠ default := by
+  unfold normalizePairedBlocks
+  exact pairNormalizedBlocks_ne_default _ _
+    (fun g hg => hblock g (splitAtConsBottom_fst_subset block g hg))
+    (fun g hg => hblock g (splitAtConsBottom_snd_subset block g hg))
+
+theorem tm0_normalizePairedBlocks_block :
+    TM0RealizesBlock ChainΓ normalizePairedBlocks := by
+  sorry
+
+/-! #### Multiplication as repeated paired addition
+
+The loop state is `[acc][sep][addend][sep][multiplier-copy]`.
+The final field is not a new counter: it is a normalized copy of the right
+operand, consumed by predecessor during the loop. -/
+
+/-- Initialize multiplication with accumulator `0`, copied left operand as
+    addend, and copied right operand as the loop fuel. -/
+noncomputable def binMulPairedInit (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr 0 ++ [chainConsBottom] ++ normalizePairedBlocks block
+
+/-- The copied multiplier field of a multiplication loop state. -/
+noncomputable def binMulPairedFuel (block : List ChainΓ) : List ChainΓ :=
+  (splitAtConsBottom (splitAtConsBottom block).2).2
+
+/-- Continue while the copied multiplier is positive. -/
+noncomputable abbrev binMulPairedCond : List ChainΓ → Prop :=
+  fun block => ¬ blockValueLeq 0 (binMulPairedFuel block)
+
+/-- One multiplication iteration:
+    add `addend` into `acc` using `binAddPaired`, keep `addend`, and decrement
+    the copied multiplier. -/
+noncomputable def binMulPairedStep (block : List ChainΓ) : List ChainΓ :=
+  let (acc, rest) := splitAtConsBottom block
+  let (addend, fuel) := splitAtConsBottom rest
+  binAddPaired (acc ++ [chainConsBottom] ++ addend)
+    ++ [chainConsBottom]
+    ++ addend
+    ++ [chainConsBottom]
+    ++ binPred fuel
+
+/-- Run the repeated-addition loop, fueled by the copied multiplier. -/
+noncomputable def binMulPairedWhile (block : List ChainΓ) : List ChainΓ :=
+  let (_, right) := splitAtConsBottom block
+  blockIterateWhile binMulPairedStep binMulPairedCond
+    (decodeBinaryBlock right) (binMulPairedInit block)
+
+/-- Extract the accumulator from a multiplication loop state. -/
+noncomputable def binMulPairedResult (block : List ChainΓ) : List ChainΓ :=
+  (splitAtConsBottom block).1
+
+theorem binMulPairedInit_ne_default (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulPairedInit block, g ≠ default := by
+  unfold binMulPairedInit
+  simp +zetaDelta
+  rintro g (hg | rfl | hg)
+  · exact chainBinaryRepr_ne_default _ g hg
+  · exact chainConsBottom_ne_default
+  · exact normalizePairedBlocks_ne_default _ _hblock g hg
+
+theorem binMulPairedStep_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) (_hcond : binMulPairedCond block) :
+    ∀ g ∈ binMulPairedStep block, g ≠ default := by
+  sorry
+
+/-- The loop over an already-initialized multiplication state. -/
+noncomputable def binMulPairedLoop (block : List ChainΓ) : List ChainΓ :=
+  blockIterateWhile binMulPairedStep binMulPairedCond
+    (decodeBinaryBlock (binMulPairedFuel block)) block
+
+theorem binMulPairedLoop_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulPairedLoop block, g ≠ default := by
+  sorry
+
+@[simp]
+theorem decodeBinaryBlock_binMulPairedInit_fuel (block : List ChainΓ) :
+    decodeBinaryBlock (binMulPairedFuel (binMulPairedInit block)) =
+      decodeBinaryBlock (splitAtConsBottom block).2 := by
+  unfold binMulPairedFuel binMulPairedInit normalizePairedBlocks pairNormalizedBlocks
+  rw [splitAtConsBottom_binary_sep]
+  rw [splitAtConsBottom_binary_sep]
+  rw [decodeBinaryBlock_chainBinaryRepr]
+
+theorem binMulPairedWhile_eq_loop :
+    binMulPairedWhile = binMulPairedLoop ∘ binMulPairedInit := by
+  funext block
+  unfold binMulPairedWhile binMulPairedLoop
+  simp
+
+theorem binMulPairedWhile_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulPairedWhile block, g ≠ default := by
+  rw [binMulPairedWhile_eq_loop]
+  exact binMulPairedLoop_ne_default _ (binMulPairedInit_ne_default _ hblock)
+
+theorem binMulPairedResult_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulPairedResult block, g ≠ default := by
+  intro g hg
+  exact hblock g (splitAtConsBottom_fst_subset _ g (by
+    unfold binMulPairedResult at hg
+    exact hg))
+
+/-- **dropFromLastSep is block-realizable** when `sep ≠ default`. -/
+theorem tm0_dropFromLastSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (sep : Γ) (hsep : sep ≠ default) :
+    TM0RealizesBlock Γ (dropFromLastSep sep) :=
+  tm0_dropFromLastSep_block_v2 sep hsep
+
+/-- `extractPairedLeft = reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`. -/
+theorem extractPairedLeft_eq_rev_drop_rev :
+    extractPairedLeft = List.reverse ∘ dropFromLastSep chainConsBottom ∘ @List.reverse ChainΓ := by
+  funext block
+  induction' block with c rest ih
+  · rfl
+  · by_cases hc : c = chainConsBottom <;> simp_all +decide [Function.comp]
+    · have h_extract : extractPairedLeft (chainConsBottom :: rest) = [] := by
+        unfold extractPairedLeft splitAtConsBottom; aesop
+      induction' rest.reverse with c rest ih <;> simp_all +decide [dropFromLastSep]
+    · rw [show extractPairedLeft (c :: rest) = c :: extractPairedLeft rest from ?_]
+      · rw [show dropFromLastSep chainConsBottom (rest.reverse ++ [c]) = dropFromLastSep chainConsBottom rest.reverse ++ [c] from ?_]; aesop
+        have h_app : ∀ (l : List ChainΓ) (c : ChainΓ), c ≠ chainConsBottom → dropFromLastSep chainConsBottom (l ++ [c]) = dropFromLastSep chainConsBottom l ++ [c] := by
+          intros l c hc; induction' l with y l ih generalizing c <;> simp_all +decide [ dropFromLastSep ] ;
+          split_ifs <;> simp_all +decide;
+        exact h_app _ _ hc
+      · unfold extractPairedLeft splitAtConsBottom; aesop
+
+/-
+**Extracting the left sub-block is block-realizable.**
+    Decomposed as `reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`.
+-/
+theorem tm0_extractPairedLeft_block :
+    TM0RealizesBlock ChainΓ extractPairedLeft := by
+  rw [extractPairedLeft_eq_rev_drop_rev];
+  grind +suggestions
+
+@[simp]
+theorem binMulPairedFuel_normalized_state (acc addend fuel : ℕ) :
+    binMulPairedFuel
+      (chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
+        [chainConsBottom] ++ chainBinaryRepr fuel) =
+    chainBinaryRepr fuel := by
+  unfold binMulPairedFuel
+  rw [show chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
+        [chainConsBottom] ++ chainBinaryRepr fuel =
+      chainBinaryRepr acc ++ [chainConsBottom] ++
+        (chainBinaryRepr addend ++ [chainConsBottom] ++ chainBinaryRepr fuel) by
+    simp [List.append_assoc]]
+  rw [splitAtConsBottom_binary_sep]
+  simp only
+  rw [splitAtConsBottom_binary_sep]
+
+theorem binMulPairedStep_normalized_state (acc addend fuel : ℕ) :
+    binMulPairedStep
+      (chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
+        [chainConsBottom] ++ chainBinaryRepr fuel) =
+    chainBinaryRepr (acc + addend) ++ [chainConsBottom] ++ chainBinaryRepr addend ++
+      [chainConsBottom] ++ chainBinaryRepr (fuel - 1) := by
+  unfold binMulPairedStep binAddPaired binPred
+  rw [show chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
+        [chainConsBottom] ++ chainBinaryRepr fuel =
+      chainBinaryRepr acc ++ [chainConsBottom] ++
+        (chainBinaryRepr addend ++ [chainConsBottom] ++ chainBinaryRepr fuel) by
+    simp [List.append_assoc]]
+  rw [splitAtConsBottom_binary_sep]
+  simp only
+  rw [splitAtConsBottom_binary_sep]
+  simp only
+  rw [splitAtConsBottom_binary_sep]
+  simp [decodeBinaryBlock_chainBinaryRepr, List.append_assoc]
+
+theorem binMulPairedLoop_normalized_state (acc addend fuel : ℕ) :
+    blockIterateWhile binMulPairedStep binMulPairedCond fuel
+      (chainBinaryRepr acc ++ [chainConsBottom] ++ chainBinaryRepr addend ++
+        [chainConsBottom] ++ chainBinaryRepr fuel) =
+    chainBinaryRepr (acc + fuel * addend) ++ [chainConsBottom] ++
+      chainBinaryRepr addend ++ [chainConsBottom] ++ chainBinaryRepr 0 := by
+  induction' fuel with fuel ih generalizing acc
+  · simp [blockIterateWhile]
+  · rw [blockIterateWhile_succ_true]
+    · rw [binMulPairedStep_normalized_state]
+      simpa [Nat.succ_mul, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using
+        ih (acc + addend)
+    · unfold binMulPairedCond blockValueLeq
+      rw [binMulPairedFuel_normalized_state]
+      simp [decodeBinaryBlock_chainBinaryRepr]
+
+theorem binMulPaired_eq_repeated_add :
+    binMulPaired = binMulPairedResult ∘ binMulPairedWhile := by
+  funext block
+  rcases hsplit : splitAtConsBottom block with ⟨left, right⟩
+  unfold binMulPaired binMulPairedWhile binMulPairedInit normalizePairedBlocks
+    pairNormalizedBlocks binMulPairedResult Function.comp
+  simp only [hsplit]
+  rw [show
+      blockIterateWhile binMulPairedStep binMulPairedCond (decodeBinaryBlock right)
+        (chainBinaryRepr 0 ++ [chainConsBottom] ++
+          (chainBinaryRepr (decodeBinaryBlock left) ++ [chainConsBottom] ++
+            chainBinaryRepr (decodeBinaryBlock right))) =
+      chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left) ++
+        [chainConsBottom] ++ chainBinaryRepr (decodeBinaryBlock left) ++
+        [chainConsBottom] ++ chainBinaryRepr 0 by
+    simpa [List.append_assoc] using
+      binMulPairedLoop_normalized_state 0 (decodeBinaryBlock left) (decodeBinaryBlock right)]
+  rw [show
+      splitAtConsBottom
+        (chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left) ++
+              [chainConsBottom] ++ chainBinaryRepr (decodeBinaryBlock left) ++
+            [chainConsBottom] ++ chainBinaryRepr 0) =
+        (chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left),
+          chainBinaryRepr (decodeBinaryBlock left) ++ [chainConsBottom] ++ chainBinaryRepr 0) by
+    rw [show
+        chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left) ++
+              [chainConsBottom] ++ chainBinaryRepr (decodeBinaryBlock left) ++
+            [chainConsBottom] ++ chainBinaryRepr 0 =
+        chainBinaryRepr (0 + decodeBinaryBlock right * decodeBinaryBlock left) ++
+          [chainConsBottom] ++
+          (chainBinaryRepr (decodeBinaryBlock left) ++ [chainConsBottom] ++
+            chainBinaryRepr 0) by
+      simp [List.append_assoc]]
+    rw [splitAtConsBottom_binary_sep]]
+  simp [Nat.mul_comm]
+
+/-- The multiplication loop body is realized by rebuilding the paired-add
+    input, running `tm0_binAddPaired_block`, restoring the retained addend, and
+    decrementing the copied multiplier. -/
+theorem tm0_binMulPairedStep_blockCond :
+    TM0RealizesBlockCond binMulPairedStep binMulPairedCond := by
+  have _hadd := tm0_binAddPaired_block
+  sorry
+
+theorem binMulPairedWhile_eq_iterate (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∃ n, binMulPairedLoop block =
+        blockIterateWhile binMulPairedStep binMulPairedCond n block ∧
+      ¬ binMulPairedCond
+        (blockIterateWhile binMulPairedStep binMulPairedCond n block) := by
+  refine ⟨decodeBinaryBlock (binMulPairedFuel block), rfl, ?_⟩
+  sorry
+
+theorem tm0_binMulPairedResult_block :
+    TM0RealizesBlock ChainΓ binMulPairedResult := by
+  simpa [binMulPairedResult, extractPairedLeft] using tm0_extractPairedLeft_block
 
 /-- Prepare a paired multiplication input with a fixed left operand. -/
 noncomputable def pairWithConstLeft (c : ℕ) (block : List ChainΓ) : List ChainΓ :=
@@ -365,20 +634,12 @@ theorem pairWithConstLeft_ne_default (c : ℕ) (block : List ChainΓ)
 /-- Prepare a paired multiplication input with both operands equal to the
     normalized input block. This is the functional copy point for squaring. -/
 noncomputable def duplicateNormalizedPaired (block : List ChainΓ) : List ChainΓ :=
-  let n := decodeBinaryBlock block
-  chainBinaryRepr n ++ [chainConsBottom] ++ chainBinaryRepr n
+  pairNormalizedBlocks block block
 
 theorem duplicateNormalizedPaired_ne_default (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ duplicateNormalizedPaired block, g ≠ default := by
-  unfold duplicateNormalizedPaired
-  intro g hg
-  rcases List.mem_append.mp hg with hg | hg
-  · rcases List.mem_append.mp hg with hg | hg
-    · exact chainBinaryRepr_ne_default _ g hg
-    · rw [List.mem_singleton.mp hg]
-      exact chainConsBottom_ne_default
-  · exact chainBinaryRepr_ne_default _ g hg
+  exact pairNormalizedBlocks_ne_default block block _hblock _hblock
 
 theorem tm0_id_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
     TM0RealizesBlock Γ id := by
@@ -419,6 +680,19 @@ theorem tm0_pairWithConstLeft_block (c : ℕ) :
       · rw [List.mem_singleton.mp hg]
         exact chainConsBottom_ne_default)
 
+theorem tm0_binMulPairedInit_block :
+    TM0RealizesBlock ChainΓ binMulPairedInit := by
+  unfold binMulPairedInit
+  exact tm0RealizesBlock_comp
+    tm0_normalizePairedBlocks_block
+    (tm0_prependList_block (chainBinaryRepr 0 ++ [chainConsBottom]) (by
+      intro g hg
+      rcases List.mem_append.mp hg with hg | hg
+      · exact chainBinaryRepr_ne_default _ g hg
+      · rw [List.mem_singleton.mp hg]
+        exact chainConsBottom_ne_default))
+    normalizePairedBlocks_ne_default
+
 @[simp]
 theorem splitAtConsBottom_chainBinaryRepr_cons (c : ℕ) (block : List ChainΓ) :
     splitAtConsBottom (chainBinaryRepr c ++ chainConsBottom :: block) =
@@ -439,14 +713,29 @@ theorem binMulConst_eq_paired (c : ℕ) :
 
 /-- General paired multiplication is block-realizable.
 
-The intended implementation loops over one operand, repeatedly rebuilding a
-paired-addition input by copying the other operand, applying `binAddPaired`,
-and decrementing the counter. The concrete copy/loop machine is isolated here
-so clients can reduce to multiplication rather than each carrying their own
-arithmetic loop. -/
+The implementation loops over a copied multiplier, repeatedly rebuilding a
+paired-addition input from the accumulator and addend, applying `binAddPaired`,
+and decrementing the multiplier copy. The concrete copy/loop machine is
+isolated here so clients can reduce to multiplication rather than each carrying
+their own arithmetic loop. -/
 theorem tm0_binMulPaired_block :
     TM0RealizesBlock ChainΓ binMulPaired := by
-  sorry
+  rw [binMulPaired_eq_repeated_add, binMulPairedWhile_eq_loop]
+  apply tm0RealizesBlock_comp
+  · apply tm0RealizesBlock_comp
+    · exact tm0_binMulPairedInit_block
+    · exact tm0RealizesBlock_while
+        binMulPairedStep
+        binMulPairedLoop
+        binMulPairedCond
+        tm0_binMulPairedStep_blockCond
+        binMulPairedStep_ne_default
+        binMulPairedWhile_eq_iterate
+        binMulPairedLoop_ne_default
+    · exact binMulPairedInit_ne_default
+  · exact tm0_binMulPairedResult_block
+  · exact fun block hblock =>
+      binMulPairedLoop_ne_default _ (binMulPairedInit_ne_default _ hblock)
 
 /-- Normalized self-duplication is block-realizable.
 
@@ -455,39 +744,6 @@ of the normalized input separated by `chainConsBottom`. -/
 theorem tm0_duplicateNormalizedPaired_block :
     TM0RealizesBlock ChainΓ duplicateNormalizedPaired := by
   sorry
-
-/-- **dropFromLastSep is block-realizable** when `sep ≠ default`. -/
-theorem tm0_dropFromLastSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
-    (sep : Γ) (hsep : sep ≠ default) :
-    TM0RealizesBlock Γ (dropFromLastSep sep) :=
-  tm0_dropFromLastSep_block_v2 sep hsep
-
-/-- `extractPairedLeft = reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`. -/
-theorem extractPairedLeft_eq_rev_drop_rev :
-    extractPairedLeft = List.reverse ∘ dropFromLastSep chainConsBottom ∘ @List.reverse ChainΓ := by
-  funext block
-  induction' block with c rest ih
-  · rfl
-  · by_cases hc : c = chainConsBottom <;> simp_all +decide [Function.comp]
-    · have h_extract : extractPairedLeft (chainConsBottom :: rest) = [] := by
-        unfold extractPairedLeft splitAtConsBottom; aesop
-      induction' rest.reverse with c rest ih <;> simp_all +decide [dropFromLastSep]
-    · rw [show extractPairedLeft (c :: rest) = c :: extractPairedLeft rest from ?_]
-      · rw [show dropFromLastSep chainConsBottom (rest.reverse ++ [c]) = dropFromLastSep chainConsBottom rest.reverse ++ [c] from ?_]; aesop
-        have h_app : ∀ (l : List ChainΓ) (c : ChainΓ), c ≠ chainConsBottom → dropFromLastSep chainConsBottom (l ++ [c]) = dropFromLastSep chainConsBottom l ++ [c] := by
-          intros l c hc; induction' l with y l ih generalizing c <;> simp_all +decide [ dropFromLastSep ] ;
-          split_ifs <;> simp_all +decide;
-        exact h_app _ _ hc
-      · unfold extractPairedLeft splitAtConsBottom; aesop
-
-/-
-**Extracting the left sub-block is block-realizable.**
-    Decomposed as `reverse ∘ dropFromLastSep chainConsBottom ∘ reverse`.
--/
-theorem tm0_extractPairedLeft_block :
-    TM0RealizesBlock ChainΓ extractPairedLeft := by
-  rw [extractPairedLeft_eq_rev_drop_rev];
-  grind +suggestions
 
 /-- **Multiplication by constant is block-realizable.** -/
 theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
@@ -514,7 +770,7 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
 theorem binSquare_eq_paired :
     binSquare = binMulPaired ∘ duplicateNormalizedPaired := by
   funext block
-  simp only [Function.comp, binSquare, binMulPaired, duplicateNormalizedPaired]
+  simp only [Function.comp, binSquare, binMulPaired, duplicateNormalizedPaired, pairNormalizedBlocks]
   rw [splitAtConsBottom_chainBinaryRepr_sep]
   simp [pow_two, decodeBinaryBlock_chainBinaryRepr]
 
