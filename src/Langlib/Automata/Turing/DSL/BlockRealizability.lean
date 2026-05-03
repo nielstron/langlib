@@ -189,6 +189,15 @@ theorem iterate_preserves_nd {Γ₀ : Type} [Inhabited Γ₀]
   induction' n with n ih generalizing block <;> simp_all +decide [ Function.iterate_succ_apply' ];
   exact hf _ ( ih _ hblock )
 
+/-- Iteration preserves the "not equal to separator" invariant. -/
+theorem iterate_preserves_nsep {Γ₀ : Type} [Inhabited Γ₀]
+    {f : List Γ₀ → List Γ₀} {sep : Γ₀}
+    (hf : ∀ block, (∀ g ∈ block, g ≠ sep) → ∀ g ∈ f block, g ≠ sep)
+    (n : ℕ) (block : List Γ₀) (hblock : ∀ g ∈ block, g ≠ sep) :
+    ∀ g ∈ f^[n] block, g ≠ sep := by
+  induction' n with n ih generalizing block <;> simp_all +decide [ Function.iterate_succ_apply' ];
+  exact hf _ ( ih _ hblock )
+
 /-! ### Utility Lemmas -/
 
 /-- Generic: appending default to a ListBlank is identity. -/
@@ -287,11 +296,84 @@ theorem consSimpleMachine_tape {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
   rw [Part.mem_unique (Part.get_mem h) hmem]
   exact tape_write_move_left_mk₁ c l
 
-/-- Prepending a fixed non-default element is block-realizable. -/
-theorem tm0_cons_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
-    (c : Γ) (hc : c ≠ default) :
-    TM0RealizesBlock Γ (c :: ·) := by
+/-- Prepending a fixed element is block-realizable before any separator.
+
+The cons machine (`consSimpleMachine`) moves left, writes `c`, and halts.
+It never inspects any cell to detect a block boundary, so it works with
+any separator. -/
+theorem tm0_cons_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} (c : Γ) :
+    TM0RealizesBlockSep Γ sep (c :: ·) := by
   refine ⟨Fin 3, ⟨0⟩, inferInstance, consSimpleMachine c,
-    fun block suffix hblock hsuffix hcons => ?_⟩
+    fun block suffix _hblock_nd _hblock_nsep _hsuffix _hfblock_nd _hfblock_nsep => ?_⟩
   exact ⟨consSimpleMachine_halts c _,
     fun h => by rw [consSimpleMachine_tape]; simp⟩
+
+/-- Prepending a fixed non-default element is block-realizable. -/
+theorem tm0_cons_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (c : Γ) (_hc : c ≠ default) :
+    TM0RealizesBlock Γ (c :: ·) :=
+  tm0RealizesBlock_of_sep_default (tm0_cons_blockSep c)
+
+/-! ### Identity is block-realizable -/
+
+/-- The identity function is realizable before any separator.
+
+A trivial TM0 machine that halts immediately on any input tape. -/
+theorem tm0_id_blockSep {Γ : Type} [Inhabited Γ]
+    {sep : Γ} :
+    TM0RealizesBlockSep Γ sep id := by
+  refine ⟨Fin 2, inferInstance, inferInstance, fun _ _ => none, ?_⟩
+  intro block suffix _hblock_nd _hblock_nsep _hsuffix _hfblock_nd _hfblock_nsep
+  unfold TM0Seq.evalCfg
+  simp +decide [TM0Seq.evalCfg]
+  unfold eval
+  simp +decide [TM0.step]
+  unfold PFun.fix
+  simp +decide [TM0.init]
+  grind +suggestions
+
+/-- The identity function is block-realizable. -/
+theorem tm0_id_block {Γ : Type} [Inhabited Γ] :
+    TM0RealizesBlock Γ id :=
+  tm0RealizesBlock_of_sep_default tm0_id_blockSep
+
+/-! ### Prepend list is block-realizable -/
+
+/-- Appending a non-default prefix preserves non-defaultness. -/
+theorem prependList_ne_default' {Γ : Type} [Inhabited Γ] (pref block : List Γ)
+    (hpref : ∀ g ∈ pref, g ≠ default)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ pref ++ block, g ≠ default := by
+  intro g hg
+  rcases List.mem_append.mp hg with hg | hg
+  · exact hpref g hg
+  · exact hblock g hg
+
+/-- Reverse preserves the "not equal to separator" invariant. -/
+theorem reverse_ne_sep {Γ : Type}
+    {sep : Γ} (block : List Γ) (hblock : ∀ g ∈ block, g ≠ sep) :
+    ∀ g ∈ block.reverse, g ≠ sep := by
+  simp_all
+
+/-- Prepending a fixed non-default, non-sep list is realizable before a separator. -/
+theorem tm0_prependList_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} (pref : List Γ)
+    (hpref_nd : ∀ g ∈ pref, g ≠ default)
+    (hpref_nsep : ∀ g ∈ pref, g ≠ sep) :
+    TM0RealizesBlockSep Γ sep (fun block => pref ++ block) := by
+  induction pref with
+  | nil => simpa using (tm0_id_blockSep (Γ := Γ) (sep := sep))
+  | cons c rest ih =>
+    have hc_nd : c ≠ default := hpref_nd c List.mem_cons_self
+    have hc_nsep : c ≠ sep := hpref_nsep c List.mem_cons_self
+    have hrest_nd : ∀ g ∈ rest, g ≠ default := fun g hg => hpref_nd g (List.mem_cons_of_mem _ hg)
+    have hrest_nsep : ∀ g ∈ rest, g ≠ sep := fun g hg => hpref_nsep g (List.mem_cons_of_mem _ hg)
+    have hcomp := tm0RealizesBlockSep_comp (ih hrest_nd hrest_nsep) (tm0_cons_blockSep c)
+      (fun block hblock => prependList_ne_default' rest block hrest_nd hblock)
+      (fun block hblock g hg => by
+        simp [List.mem_append] at hg
+        rcases hg with hg | hg
+        · exact hrest_nsep g hg
+        · exact hblock g hg)
+    simpa [Function.comp, List.cons_append] using hcomp

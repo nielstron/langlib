@@ -640,34 +640,40 @@ theorem duplicateNormalizedPaired_ne_default (block : List ChainΓ)
     ∀ g ∈ duplicateNormalizedPaired block, g ≠ default := by
   exact pairNormalizedBlocks_ne_default block block _hblock _hblock
 
-theorem tm0_id_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
-    TM0RealizesBlock Γ id := by
-  have h : id = List.reverse ∘ @List.reverse Γ := by
-    funext block
-    simp
-  rw [h]
-  exact tm0RealizesBlock_comp tm0_reverse_block tm0_reverse_block reverse_ne_default
-
+/-- Appending a non-default prefix preserves non-defaultness. -/
 theorem prependList_ne_default {Γ : Type} [Inhabited Γ] (pref block : List Γ)
     (hpref : ∀ g ∈ pref, g ≠ default)
     (hblock : ∀ g ∈ block, g ≠ default) :
-    ∀ g ∈ pref ++ block, g ≠ default := by
-  intro g hg
-  rcases List.mem_append.mp hg with hg | hg
-  · exact hpref g hg
-  · exact hblock g hg
+    ∀ g ∈ pref ++ block, g ≠ default :=
+  prependList_ne_default' pref block hpref hblock
 
+/-- Prepending a list is block-realizable (derived from the sep version). -/
 theorem tm0_prependList_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     (pref : List Γ) (hpref : ∀ g ∈ pref, g ≠ default) :
-    TM0RealizesBlock Γ (fun block => pref ++ block) := by
-  induction' pref with c rest ih
-  · simpa using (tm0_id_block (Γ := Γ))
-  · have hc : c ≠ default := hpref c List.mem_cons_self
-    have hrest : ∀ g ∈ rest, g ≠ default := fun g hg => hpref g (List.mem_cons_of_mem _ hg)
-    have hcomp := tm0RealizesBlock_comp (ih hrest) (tm0_cons_block c hc)
-      (fun block hblock => prependList_ne_default rest block hrest hblock)
-    simpa [Function.comp, List.cons_append] using hcomp
+    TM0RealizesBlock Γ (fun block => pref ++ block) :=
+  tm0RealizesBlock_of_sep_default (tm0_prependList_blockSep pref hpref hpref)
 
+/-- Pairing with a constant left operand is realizable before any separator. -/
+theorem tm0_pairWithConstLeft_blockSep (c : ℕ) {sep : ChainΓ}
+    (hsep_ne_consBottom : sep ≠ chainConsBottom)
+    (hsep_ne_bits : ∀ g ∈ chainBinaryRepr c, g ≠ sep) :
+    TM0RealizesBlockSep ChainΓ sep (pairWithConstLeft c) := by
+  unfold pairWithConstLeft
+  exact tm0_prependList_blockSep (chainBinaryRepr c ++ [chainConsBottom])
+    (by
+      intro g hg
+      rcases List.mem_append.mp hg with hg | hg
+      · exact chainBinaryRepr_ne_default _ g hg
+      · rw [List.mem_singleton.mp hg]
+        exact chainConsBottom_ne_default)
+    (by
+      intro g hg
+      rcases List.mem_append.mp hg with hg | hg
+      · exact hsep_ne_bits g hg
+      · rw [List.mem_singleton.mp hg]
+        exact hsep_ne_consBottom.symm)
+
+/-- Pairing with a constant left operand is block-realizable. -/
 theorem tm0_pairWithConstLeft_block (c : ℕ) :
     TM0RealizesBlock ChainΓ (pairWithConstLeft c) := by
   unfold pairWithConstLeft
