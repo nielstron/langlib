@@ -10,6 +10,7 @@ import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
 import Langlib.Automata.Turing.DSL.DecAfterSepMachine
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.CondBlockOps
+import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 
 /-! # Paired Block Arithmetic — The Central Primitive
 
@@ -293,7 +294,8 @@ theorem tm0_pairedDecrLeftIncrRight_blockCond :
 /-- Extracting the right sub-block is block-realizable. -/
 theorem tm0_extractPairedRight_block :
     TM0RealizesBlock ChainΓ extractPairedRight := by
-  sorry
+  rw [extractPairedRight_eq_dropUntilFirstSep]
+  exact tm0_dropUntilFirstSep_block chainConsBottom chainConsBottom_ne_default
 
 /-- Non-defaultness of `extractPairedRight ∘ binAddPairedWhile`. -/
 theorem extractPairedRight_binAddPairedWhile_ne_default (block : List ChainΓ)
