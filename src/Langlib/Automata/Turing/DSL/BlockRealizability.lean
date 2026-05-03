@@ -5,14 +5,15 @@ import Langlib.Automata.Turing.DSL.ReverseBlock
 
 /-! # Block Realizability Framework
 
-This file defines `TM0RealizesBlock`, the core abstraction for composing
-TM0 machines that operate on contiguous blocks of non-default cells.
+This file defines block-realizability abstractions for composing TM0 machines
+that operate on contiguous blocks.
 
 ## Main definitions
 
-- `TM0RealizesBlock Γ f`: a TM0 machine processes the first contiguous
-  block of non-default cells according to `f`, preserving everything
-  after the first blank.
+- `TM0RealizesBlockSep Γ sep f`: a TM0 machine processes the cells before
+  the first designated separator `sep`, preserving the separator and tail.
+- `TM0RealizesBlock Γ f`: the old blank-delimited specialization where
+  `sep = default`.
 
 ## Main results
 
@@ -24,7 +25,29 @@ TM0 machines that operate on contiguous blocks of non-default cells.
 
 open Turing
 
-/-! ### Block Realizability Definition -/
+/-! ### Block Realizability Definitions -/
+
+/-- A TM0 that operates on a block ending at a designated separator.
+
+Given a tape `block ++ [sep] ++ suffix`, the TM0 transforms it to
+`f block ++ [sep] ++ suffix`. The assumptions state that the input block is
+really the part before the first separator, that the active finite tape has no
+interior blanks, and that `f block` is again a valid block for the same
+separator. -/
+def TM0RealizesBlockSep (Γ : Type) [Inhabited Γ] (sep : Γ)
+    (f : List Γ → List Γ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (block suffix : List Γ),
+      (∀ g ∈ block, g ≠ default) →
+      (∀ g ∈ block, g ≠ sep) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (∀ g ∈ f block, g ≠ default) →
+      (∀ g ∈ f block, g ≠ sep) →
+      (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom),
+        ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).Tape =
+          Tape.mk₁ (f block ++ sep :: suffix)
 
 /-- A TM0 that operates on a contiguous block of non-default cells,
     preserving everything after the first blank.
@@ -44,7 +67,52 @@ def TM0RealizesBlock (Γ : Type) [Inhabited Γ] (f : List Γ → List Γ) : Prop
         ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).Tape =
           Tape.mk₁ (f block ++ default :: suffix)
 
+theorem tm0RealizesBlockSep_default_of_block {Γ : Type} [Inhabited Γ]
+    {f : List Γ → List Γ} (hf : TM0RealizesBlock Γ f) :
+    TM0RealizesBlockSep Γ default f := by
+  obtain ⟨Λ, hΛ, hΛfin, M, hM⟩ := hf
+  exact ⟨Λ, hΛ, hΛfin, M, fun block suffix hblock _hblock_sep hsuffix hfblock _hfblock_sep =>
+    hM block suffix hblock hsuffix hfblock⟩
+
+theorem tm0RealizesBlock_of_sep_default {Γ : Type} [Inhabited Γ]
+    {f : List Γ → List Γ} (hf : TM0RealizesBlockSep Γ default f) :
+    TM0RealizesBlock Γ f := by
+  obtain ⟨Λ, hΛ, hΛfin, M, hM⟩ := hf
+  exact ⟨Λ, hΛ, hΛfin, M, fun block suffix hblock hsuffix hfblock =>
+    hM block suffix hblock hblock hsuffix hfblock hfblock⟩
+
 /-! ### Composition -/
+
+/-- Composition for separator-delimited block-realizable functions. -/
+theorem tm0RealizesBlockSep_comp {Γ : Type} [Inhabited Γ]
+    {sep : Γ} {f g : List Γ → List Γ}
+    (hf : TM0RealizesBlockSep Γ sep f) (hg : TM0RealizesBlockSep Γ sep g)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep) → ∀ g ∈ f block, g ≠ sep) :
+    TM0RealizesBlockSep Γ sep (g ∘ f) := by
+  apply Classical.byContradiction
+  intro h_contra
+  obtain ⟨Λ_f, h_f_inhabited, h_f_fintype, M_f, hM_f⟩ := hf
+  obtain ⟨Λ_g, h_g_inhabited, h_g_fintype, M_g, hM_g⟩ := hg
+  refine' h_contra ⟨_, _, _, TM0Seq.compose M_f M_g, _⟩
+  · infer_instance
+  · intro block suffix hblock_nd hblock_nsep hsuffix hgf_nd hgf_nsep
+    obtain ⟨hM_f_dom, hM_f_tape⟩ :=
+      hM_f block suffix hblock_nd hblock_nsep hsuffix
+        (hf_nd block hblock_nd) (hf_nsep block hblock_nsep)
+    obtain ⟨hM_g_dom, hM_g_tape⟩ :=
+      hM_g (f block) suffix (hf_nd block hblock_nd) (hf_nsep block hblock_nsep)
+        hsuffix hgf_nd hgf_nsep
+    refine' ⟨_, _⟩
+    · apply TM0Seq.compose_dom_of_parts
+      any_goals assumption
+      convert hM_g_dom using 1
+      exact hM_f_tape hM_f_dom ▸ rfl
+    · intro h
+      convert TM0Seq.compose_evalCfg_tape M_f M_g
+        (block ++ sep :: suffix) (f block ++ sep :: suffix)
+        hM_f_dom (hM_f_tape hM_f_dom) hM_g_dom h using 1
+      exact hM_g_tape hM_g_dom ▸ rfl
 
 /-- Composition of block-realizable functions.
     Requires `f` to preserve non-defaultness so that `M_g` can process
@@ -73,6 +141,25 @@ theorem tm0RealizesBlock_comp {Γ : Type} [Inhabited Γ]
       exact hM_g_tape hM_g_dom ▸ rfl
 
 /-! ### Iteration -/
+
+/-- Iterated separator-delimited block operations preserve realizability. -/
+theorem tm0RealizesBlockSep_iterate {Γ : Type} [Inhabited Γ]
+    {sep : Γ} {f : List Γ → List Γ} (hf : TM0RealizesBlockSep Γ sep f)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep) → ∀ g ∈ f block, g ≠ sep)
+    (n : ℕ) :
+    TM0RealizesBlockSep Γ sep (Nat.iterate f n) := by
+  induction' n with n ih
+  · refine' ⟨Fin 2, inferInstance, inferInstance, fun _ _ => none, ?_⟩
+    intro block suffix hblock_nd hblock_nsep hsuffix hfblock_nd hfblock_nsep
+    unfold TM0Seq.evalCfg
+    simp +decide [TM0Seq.evalCfg]
+    unfold eval
+    simp +decide [TM0.step]
+    unfold PFun.fix
+    simp +decide [TM0.init]
+    grind +suggestions
+  · convert tm0RealizesBlockSep_comp hf ih hf_nd hf_nsep using 1
 
 /-- Iterated block operations preserve block-realizability. -/
 theorem tm0RealizesBlock_iterate {Γ : Type} [Inhabited Γ]

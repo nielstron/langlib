@@ -224,7 +224,113 @@ theorem binPredRaw_preserves_prefix_reaches (pfx block suffix : List ChainΓ)
     (fun g hg => hpfx g (List.mem_reverse.mp hg)) using 1
   rw [List.reverse_reverse]
 
+theorem binPredRaw_borrow_bit1_until (rest tail revLeft : List ChainΓ)
+    (hrevLeft : ∀ g ∈ revLeft, g ≠ default) :
+    Reaches (TM0.step binPredRawMachine)
+      ⟨.borrow, ⟨γ'ToChainΓ Γ'.bit1, ListBlank.mk revLeft, ListBlank.mk (rest ++ tail)⟩⟩
+      ⟨.done, Tape.mk₁ (revLeft.reverse ++ γ'ToChainΓ Γ'.bit0 :: rest ++ tail)⟩ := by
+  have h_step1 : Reaches (TM0.step binPredRawMachine)
+      ⟨.borrow, ⟨γ'ToChainΓ Γ'.bit1, ListBlank.mk revLeft, ListBlank.mk (rest ++ tail)⟩⟩
+      ⟨.absorbed, ⟨γ'ToChainΓ Γ'.bit0, ListBlank.mk revLeft, ListBlank.mk (rest ++ tail)⟩⟩ := by
+    exact Relation.ReflTransGen.single (by unfold binPredRawMachine; aesop)
+  have h_step2 : Reaches (TM0.step binPredRawMachine)
+      ⟨.absorbed, ⟨γ'ToChainΓ Γ'.bit0, ListBlank.mk revLeft, ListBlank.mk (rest ++ tail)⟩⟩
+      ⟨.rewind, ⟨revLeft.headI, ListBlank.mk revLeft.tail,
+        ListBlank.mk (γ'ToChainΓ Γ'.bit0 :: rest ++ tail)⟩⟩ := by
+    constructor
+    constructor
+    cases revLeft <;> aesop
+  exact h_step1.trans (h_step2.trans (by
+    simpa [Tape.mk₁] using
+      binPredRaw_rewind_loop revLeft hrevLeft (γ'ToChainΓ Γ'.bit0 :: rest ++ tail)))
+
+theorem binPredRaw_borrow_bit0_step_until (rest tail revLeft : List ChainΓ) :
+    Reaches (TM0.step binPredRawMachine)
+      ⟨.borrow, ⟨γ'ToChainΓ Γ'.bit0, ListBlank.mk revLeft, ListBlank.mk (rest ++ tail)⟩⟩
+      ⟨.borrow, ⟨(rest ++ tail).headI,
+                 ListBlank.mk (γ'ToChainΓ Γ'.bit1 :: revLeft),
+                 ListBlank.mk (rest ++ tail).tail⟩⟩ := by
+  convert Relation.ReflTransGen.head _ _ using 1
+  exact ⟨BinPredSt.borrowMv,
+    ⟨γ'ToChainΓ Γ'.bit1, ListBlank.mk revLeft, ListBlank.mk (rest ++ tail)⟩⟩
+  · simp +decide [TM0.step, binPredRawMachine]
+  · convert Relation.ReflTransGen.single _
+    cases rest <;> cases tail <;> aesop
+
+theorem binPredRaw_borrow_until_nonbit (block tail revLeft : List ChainΓ)
+    (terminator : ChainΓ)
+    (hterminator_bit1 : terminator ≠ γ'ToChainΓ Γ'.bit1)
+    (hterminator_bit0 : terminator ≠ γ'ToChainΓ Γ'.bit0)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (hrevLeft : ∀ g ∈ revLeft, g ≠ default) :
+    Reaches (TM0.step binPredRawMachine)
+      ⟨.borrow, ⟨(block ++ terminator :: tail).headI,
+                 ListBlank.mk revLeft,
+                 ListBlank.mk (block ++ terminator :: tail).tail⟩⟩
+      ⟨.done, Tape.mk₁ (revLeft.reverse ++ binPredRaw block ++ terminator :: tail)⟩ := by
+  induction' block with c rest ih generalizing revLeft
+  · simp +decide [TM0.step]
+    have h_absorb : Reaches (TM0.step binPredRawMachine)
+        ⟨BinPredSt.borrow, ⟨terminator, ListBlank.mk revLeft, ListBlank.mk tail⟩⟩
+        ⟨BinPredSt.absorbed, ⟨terminator, ListBlank.mk revLeft, ListBlank.mk tail⟩⟩ := by
+      exact Relation.ReflTransGen.single (by
+        simp +decide [TM0.step, binPredRawMachine, hterminator_bit1, hterminator_bit0])
+    have h_rewind : Reaches (TM0.step binPredRawMachine)
+        ⟨BinPredSt.absorbed, ⟨terminator, ListBlank.mk revLeft, ListBlank.mk tail⟩⟩
+        ⟨BinPredSt.rewind, ⟨revLeft.headI, ListBlank.mk revLeft.tail,
+          ListBlank.mk (terminator :: tail)⟩⟩ := by
+      constructor
+      constructor
+      cases revLeft <;> aesop
+    exact h_absorb.trans (h_rewind.trans (by
+      simpa [Tape.mk₁] using binPredRaw_rewind_loop revLeft hrevLeft (terminator :: tail)))
+  · by_cases hc1 : c = γ'ToChainΓ Γ'.bit1
+    · rw [hc1]
+      convert binPredRaw_borrow_bit1_until rest (terminator :: tail) revLeft hrevLeft using 1
+    · by_cases hc0 : c = γ'ToChainΓ Γ'.bit0
+      · convert (binPredRaw_borrow_bit0_step_until rest (terminator :: tail) revLeft).trans
+            (ih (γ'ToChainΓ Γ'.bit1 :: revLeft) ?_ ?_) using 1 <;>
+          simp_all +decide [binPredRaw]
+      · have h_absorb : Reaches (TM0.step binPredRawMachine)
+            ⟨BinPredSt.borrow, ⟨c, ListBlank.mk revLeft,
+              ListBlank.mk (rest ++ terminator :: tail)⟩⟩
+            ⟨BinPredSt.absorbed, ⟨c, ListBlank.mk revLeft,
+              ListBlank.mk (rest ++ terminator :: tail)⟩⟩ := by
+          constructor
+          constructor
+          simp +decide [TM0.step, binPredRawMachine, hc1, hc0]
+        have h_rewind : Reaches (TM0.step binPredRawMachine)
+            ⟨BinPredSt.absorbed, ⟨c, ListBlank.mk revLeft,
+              ListBlank.mk (rest ++ terminator :: tail)⟩⟩
+            ⟨BinPredSt.rewind, ⟨revLeft.headI, ListBlank.mk revLeft.tail,
+              ListBlank.mk (c :: rest ++ terminator :: tail)⟩⟩ := by
+          constructor
+          constructor
+          cases revLeft <;> aesop
+        convert h_absorb.trans (h_rewind.trans
+            (binPredRaw_rewind_loop revLeft hrevLeft (c :: rest ++ terminator :: tail))) using 1
+        · simp +decide [binPredRaw, hc1, hc0]
+
 /-! ### Main Block-Realizability Result -/
+
+/-- `binPredRaw` is realizable before any non-bit separator. -/
+theorem tm0_binPredRaw_blockSep (sep : ChainΓ)
+    (hsep_bit1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (hsep_bit0 : sep ≠ γ'ToChainΓ Γ'.bit0) :
+    TM0RealizesBlockSep ChainΓ sep binPredRaw := by
+  use BinPredSt, inferInstance, inferInstance, binPredRawMachine
+  intro block suffix hblock _hblock_sep hsuffix hfblock _hfblock_sep
+  have h_reaches : Reaches (TM0.step binPredRawMachine)
+      (TM0.init (block ++ sep :: suffix))
+      ⟨.done, Tape.mk₁ (binPredRaw block ++ sep :: suffix)⟩ := by
+    simpa [TM0.init] using
+      binPredRaw_borrow_until_nonbit block suffix [] sep hsep_bit1 hsep_bit0
+        hblock (by simp)
+  constructor
+  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨h_reaches, by simp [TM0.step, binPredRawMachine]⟩⟩
+  · intro h
+    have h_mem := Turing.mem_eval.mpr ⟨h_reaches, by simp [TM0.step, binPredRawMachine]⟩
+    exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
 
 /-- `binPredRaw` is block-realizable. -/
 theorem tm0_binPredRaw_block : TM0RealizesBlock ChainΓ binPredRaw := by

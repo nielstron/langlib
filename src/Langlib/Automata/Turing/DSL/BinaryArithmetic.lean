@@ -75,6 +75,17 @@ theorem normalizeBlock_ne_default (block : List ChainΓ) :
     ∀ g ∈ normalizeBlock block, g ≠ default := by
   unfold normalizeBlock; exact chainBinaryRepr_ne_default _
 
+theorem normalizeBlock_append_nonbit (left tail : List ChainΓ) (terminator : ChainΓ)
+    (hterminator_bit0 : terminator ≠ γ'ToChainΓ Γ'.bit0)
+    (hterminator_bit1 : terminator ≠ γ'ToChainΓ Γ'.bit1) :
+    normalizeBlock (left ++ terminator :: tail) = normalizeBlock left := by
+  unfold normalizeBlock
+  rw [decodeBinaryBlock_append_nonbit left tail terminator hterminator_bit0 hterminator_bit1]
+
+theorem normalizeBlock_append_consBottom (left tail : List ChainΓ) :
+    normalizeBlock (left ++ chainConsBottom :: tail) = normalizeBlock left := by
+  exact normalizeBlock_append_nonbit left tail chainConsBottom (by decide) (by decide)
+
 /-- Key decomposition: `binAddConstRepr c = binAddConst c ∘ normalizeBlock`. -/
 theorem binAddConstRepr_eq_comp (c : ℕ) :
     binAddConstRepr c = binAddConst c ∘ normalizeBlock := by

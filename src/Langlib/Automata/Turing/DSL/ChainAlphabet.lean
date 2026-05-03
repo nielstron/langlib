@@ -123,6 +123,18 @@ noncomputable def decodeBinaryBlock : List ChainΓ → ℕ
     else
       0
 
+theorem decodeBinaryBlock_append_nonbit (left tail : List ChainΓ) (terminator : ChainΓ)
+    (hterminator_bit0 : terminator ≠ γ'ToChainΓ Γ'.bit0)
+    (hterminator_bit1 : terminator ≠ γ'ToChainΓ Γ'.bit1) :
+    decodeBinaryBlock (left ++ terminator :: tail) = decodeBinaryBlock left := by
+  induction' left with c rest ih
+  · simp [decodeBinaryBlock, hterminator_bit0, hterminator_bit1]
+  · by_cases hc0 : c = γ'ToChainΓ Γ'.bit0
+    · simp [decodeBinaryBlock, hc0, ih]
+    · by_cases hc1 : c = γ'ToChainΓ Γ'.bit1
+      · simp [decodeBinaryBlock, hc0, hc1, ih]
+      · simp [decodeBinaryBlock, hc0, hc1]
+
 /-- `decodeBinaryBlock` is a left inverse of `chainBinaryRepr`. -/
 @[simp]
 theorem decodeBinaryBlock_chainBinaryRepr (n : ℕ) :
