@@ -122,7 +122,7 @@ Results marked ✓ use `ComputablePred` (the strongest form). Results marked ✓
 | --- | --- | --- | --- | --- |
 | Regular | ✓ ([🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean)) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
 | Deterministic context-free | ✓ᴰ | ✓ᴰ | ✓ᴰ | ✓ᴰ |
-| Context-free | ✓ ([🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean)) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
+| Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ᴰ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
 | Recursive | ✓ᴰ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
