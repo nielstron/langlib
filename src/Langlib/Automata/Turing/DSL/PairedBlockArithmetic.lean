@@ -749,7 +749,7 @@ theorem tm0_binMulPaired_block :
 theorem duplicateNormalizedPaired_eq_copyWithSep_comp :
     duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock := by
   funext block
-  simp only [Function.comp, copyBinaryWithSep, normalizeBlock,
+  simp only [Function.comp, copyBinaryWithSep, copyWithSep, normalizeBlock,
     duplicateNormalizedPaired, pairNormalizedBlocks]
 
 /-- Normalized self-duplication is block-realizable.

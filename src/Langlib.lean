@@ -30,8 +30,10 @@ import Langlib.Automata.Turing.DSL.ChainAlphabet
 import Langlib.Automata.Turing.DSL.ChainEncodeDecomp
 import Langlib.Automata.Turing.DSL.Compile
 import Langlib.Automata.Turing.DSL.CondBlockOps
+import Langlib.Automata.Turing.DSL.CopyBinaryBlock
 import Langlib.Automata.Turing.DSL.DecAfterSepMachine
 import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
+import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 import Langlib.Automata.Turing.DSL.DropWhileNeSep
 import Langlib.Automata.Turing.DSL.EmptyTM
 import Langlib.Automata.Turing.DSL.EncodingBridge
