@@ -2,16 +2,15 @@ import Mathlib
 import Langlib.Automata.Turing.DSL.ChainAlphabet
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
-import Langlib.Automata.Turing.DSL.BinaryArithmeticSep
 import Langlib.Automata.Turing.DSL.DropWhileNeSep
 import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
-import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 import Langlib.Automata.Turing.DSL.BinaryPredecessor
 import Langlib.Automata.Turing.DSL.SplitAtSep
-import Langlib.Automata.Turing.DSL.DecBeforeSepMachine
-import Langlib.Automata.Turing.DSL.IncAfterSepDecomp
+import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
+import Langlib.Automata.Turing.DSL.DecAfterSepMachine
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.CondBlockOps
+import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 import Langlib.Automata.Turing.DSL.CopyBinaryBlock
 
 /-! # Paired Block Arithmetic — The Central Primitive
@@ -97,27 +96,17 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
     ∀ g ∈ binMulConst c block, g ≠ default := by
   unfold binMulConst; exact chainBinaryRepr_ne_default _
 
-/-- Remaining right-increment obligation: realize the decomposed
-    `binSucc`-on-the-right step.
-
-    This is the part that should use
-    `incAfterSep_eq_comp_of_right_no_sep`, i.e. reverse whole block, reverse
-    before `chainConsBottom`, run the separator-parameterized `binSucc`, then
-    reverse back. -/
-theorem tm0_incAfterSepDecomp_block :
-    TM0RealizesBlock ChainΓ incAfterSep := by
-  sorry
-
-/-- `decLeftIncRight` is block-realizable.
-    The predecessor side is `tm0_decBeforeSep_block`; the remaining work is
-    the right-side successor obligation above. -/
-theorem tm0_decLeftIncRight_block :
-    TM0RealizesBlock ChainΓ decLeftIncRight := by
-  rw [decLeftIncRight_eq_comp]
+/-- `incLeftDecRight` is block-realizable.
+    Decomposed as `decAfterSep ∘ incBeforeSep`:
+    first decrement the left sub-block, then increment the right sub-block.
+    Each component is block-realizable via adapted TM0 machines. -/
+theorem tm0_incLeftDecRight_block :
+    TM0RealizesBlock ChainΓ incLeftDecRight := by
+  rw [incLeftDecRight_eq_comp]
   exact tm0RealizesBlock_comp
-    tm0_decBeforeSep_block
-    tm0_incAfterSepDecomp_block
-    decBeforeSep_ne_default
+    tm0_incBeforeSep_block
+    tm0_decAfterSep_block
+    incBeforeSep_ne_default
 
 /-! ### Decrement-left / increment-right decomposition for paired addition -/
 
@@ -205,42 +194,41 @@ theorem blockIterateWhile_eq_iterate_of_cond {Γ : Type}
     · exact fun k hk => by
         simpa only [← Function.iterate_succ_apply'] using h (k + 1) (Nat.succ_lt_succ hk)
 
-/-
-After k iterations of pairedDecrLeftIncrRight, the left and right decode
-    values change as expected.
--/
-theorem pairedDecrLeftIncrRight_iterate_decode (block : List ChainΓ) (k : ℕ)
-    (hk : k ≤ decodeBinaryBlock (splitAtConsBottom block).1) :
-    let result := pairedDecrLeftIncrRight^[k] block
-    decodeBinaryBlock (splitAtConsBottom result).1 =
-      decodeBinaryBlock (splitAtConsBottom block).1 - k ∧
-    decodeBinaryBlock (splitAtConsBottom result).2 =
-      decodeBinaryBlock (splitAtConsBottom block).2 + k := by
-  induction' k with k ih generalizing block;
-  · norm_num +zetaDelta at *;
-  · convert ih ( pairedDecrLeftIncrRight block ) _ using 1;
-    · simp +decide [ pairedDecrLeftIncrRight ];
-      grind +splitIndPred;
-    · simp +decide [ pairedDecrLeftIncrRight ];
-      exact Nat.le_sub_one_of_lt hk
-
-/-
-The while loop result equals `blockIterateWhile` with appropriate fuel.
--/
+/-- The while loop result equals `blockIterateWhile` with appropriate fuel. -/
 theorem binAddPairedWhile_eq_iterate (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
     ∃ n, binAddPairedWhile block =
         blockIterateWhile pairedDecrLeftIncrRight pairedAddCond n block ∧
       ¬ pairedAddCond
         (blockIterateWhile pairedDecrLeftIncrRight pairedAddCond n block) := by
-  unfold binAddPairedWhile pairedAddCond blockValueLeq;
-  refine' ⟨ _, rfl, _ ⟩;
-  rw [ blockIterateWhile_eq_iterate_of_cond ];
-  · have := pairedDecrLeftIncrRight_iterate_decode block ( decodeBinaryBlock ( splitAtConsBottom block ).1 ) le_rfl;
-    rw [ decodeBinaryBlock_eq_splitLeft ] ; aesop;
-  · intro k hk;
-    have := pairedDecrLeftIncrRight_iterate_decode block k ( by linarith );
-    rw [ decodeBinaryBlock_eq_splitLeft ] ; omega
+  refine' ⟨_, rfl, _⟩
+  have h_left_zero :
+      decodeBinaryBlock
+        (splitAtConsBottom
+          (blockIterateWhile pairedDecrLeftIncrRight pairedAddCond
+            (decodeBinaryBlock (splitAtConsBottom block).1) block)).1 = 0 := by
+    have h_left_zero : ∀ (k : ℕ), k ≤ decodeBinaryBlock (splitAtConsBottom block).1 →
+        decodeBinaryBlock (splitAtConsBottom (pairedDecrLeftIncrRight^[k] block)).1 =
+          decodeBinaryBlock (splitAtConsBottom block).1 - k := by
+      intro k hk
+      induction' k with k ih
+      · norm_num
+      · rw [Function.iterate_succ_apply']
+        rw [Nat.sub_succ]
+        rw [← ih (Nat.le_of_succ_le hk)]
+        rw [pairedDecrLeftIncrRight]
+        grind +suggestions
+    rw [blockIterateWhile_eq_iterate_of_cond]
+    · rw [h_left_zero _ le_rfl, Nat.sub_self]
+    · intro k hk
+      specialize h_left_zero k hk.le
+      simp_all +decide [pairedAddCond]
+      unfold blockValueLeq
+      simp_all +decide
+      rw [decodeBinaryBlock_eq_splitLeft]
+      omega
+  simp [pairedAddCond, blockValueLeq]
+  rwa [decodeBinaryBlock_eq_splitLeft]
 
 /-- Non-defaultness of the while loop result. -/
 theorem binAddPairedWhile_ne_default (block : List ChainΓ)
@@ -257,7 +245,22 @@ theorem binAddPairedWhile_ne_default (block : List ChainΓ)
       · exact hblock
   exact hn.1 ▸ h_ind n block hblock
 
-
+/-- After k iterations of pairedDecrLeftIncrRight, the left and right decode
+    values change as expected. -/
+theorem pairedDecrLeftIncrRight_iterate_decode (block : List ChainΓ) (k : ℕ)
+    (hk : k ≤ decodeBinaryBlock (splitAtConsBottom block).1) :
+    let result := pairedDecrLeftIncrRight^[k] block
+    decodeBinaryBlock (splitAtConsBottom result).1 =
+      decodeBinaryBlock (splitAtConsBottom block).1 - k ∧
+    decodeBinaryBlock (splitAtConsBottom result).2 =
+      decodeBinaryBlock (splitAtConsBottom block).2 + k := by
+  induction' k with k ih generalizing block <;>
+    simp_all +decide [Function.iterate_succ_apply']
+  specialize ih block hk.le
+  unfold pairedDecrLeftIncrRight at *
+  rw [splitAtConsBottom_binary_sep]
+  simp +decide
+  simp_all +decide [Nat.sub_sub, add_assoc]
 
 /-- `binAddPaired = normalizeBlock ∘ extractPairedRight ∘ binAddPairedWhile`. -/
 theorem binAddPaired_eq_while_decomp :
@@ -283,38 +286,6 @@ theorem binAddPaired_eq_while_decomp :
   rw [add_comm]
 
 /-! ### Block-realizability of paired operations -/
-
-theorem normalizeBlock_no_consBottom (block : List ChainΓ) :
-    ∀ g ∈ normalizeBlock block, g ≠ chainConsBottom := by
-  unfold normalizeBlock
-  exact chainBinaryRepr_no_consBottom _
-
-theorem binPredRaw_no_consBottom (block : List ChainΓ)
-    (hblock : ∀ g ∈ block, g ≠ chainConsBottom) :
-    ∀ g ∈ binPredRaw block, g ≠ chainConsBottom := by
-  induction block with
-  | nil => simp [binPredRaw]
-  | cons c rest ih =>
-      unfold binPredRaw
-      split_ifs <;> simp_all +decide [γ'ToChainΓ, chainConsBottom]
-
-/-- Normalized predecessor is realizable before the paired-block separator. -/
-theorem tm0_binPred_consBottom_blockSep :
-    TM0RealizesBlockSep ChainΓ chainConsBottom binPred := by
-  rw [binPred_eq_comp]
-  exact tm0RealizesBlockSep_comp
-    (tm0RealizesBlockSep_comp
-      (tm0_normalizeBlockSep (by decide) (by decide))
-      (tm0_binPredRaw_blockSep chainConsBottom (by decide) (by decide))
-      (fun _ _ => normalizeBlock_ne_default _)
-      (fun _ _ => normalizeBlock_no_consBottom _))
-    (tm0_normalizeBlockSep (by decide) (by decide))
-    (fun block hblock => binPredRaw_ne_default _ (normalizeBlock_ne_default _))
-    (fun block _hblock => binPredRaw_no_consBottom _ (normalizeBlock_no_consBottom _))
-
-theorem tm0_binSucc_consBottom_blockSep :
-    TM0RealizesBlockSep ChainΓ chainConsBottom binSucc :=
-  tm0_binSucc_blockSep (sep := chainConsBottom) (by decide) (by decide)
 
 /-- The decrement-left / increment-right step satisfies `TM0RealizesBlockCond`. -/
 theorem tm0_pairedDecrLeftIncrRight_blockCond :
@@ -672,12 +643,6 @@ theorem duplicateNormalizedPaired_ne_default (block : List ChainΓ)
     ∀ g ∈ duplicateNormalizedPaired block, g ≠ default := by
   exact pairNormalizedBlocks_ne_default block block _hblock _hblock
 
-theorem duplicateNormalizedPaired_eq_copyBinaryWithSep_comp :
-    duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock := by
-  funext block
-  simp [duplicateNormalizedPaired, pairNormalizedBlocks, copyBinaryWithSep,
-    copyWithSep, normalizeBlock, Function.comp]
-
 /-- Appending a non-default prefix preserves non-defaultness. -/
 theorem prependList_ne_default {Γ : Type} [Inhabited Γ] (pref block : List Γ)
     (hpref : ∀ g ∈ pref, g ≠ default)
@@ -780,17 +745,23 @@ theorem tm0_binMulPaired_block :
   · exact fun block hblock =>
       binMulPairedLoop_ne_default _ (binMulPairedInit_ne_default _ hblock)
 
-/-- Normalized self-duplication is block-realizable.
+/-- `duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock`. -/
+theorem duplicateNormalizedPaired_eq_copyWithSep_comp :
+    duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock := by
+  funext block
+  simp only [Function.comp, copyBinaryWithSep, copyWithSep, normalizeBlock,
+    duplicateNormalizedPaired, pairNormalizedBlocks]
 
+/-- Normalized self-duplication is block-realizable.
 This is the variable-copy primitive needed for squaring: it writes two copies
 of the normalized input separated by `chainConsBottom`. -/
 theorem tm0_duplicateNormalizedPaired_block :
     TM0RealizesBlock ChainΓ duplicateNormalizedPaired := by
-  rw [duplicateNormalizedPaired_eq_copyBinaryWithSep_comp]
+  rw [duplicateNormalizedPaired_eq_copyWithSep_comp]
   exact tm0RealizesBlock_comp
     tm0_normalizeBlock
     tm0_copyBinaryWithSep_block
-    (fun block _hblock => normalizeBlock_ne_default block)
+    (fun _ _ => normalizeBlock_ne_default _)
 
 /-- **Multiplication by constant is block-realizable.** -/
 theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by

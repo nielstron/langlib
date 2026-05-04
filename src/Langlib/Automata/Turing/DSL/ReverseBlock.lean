@@ -1,12 +1,7 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.TM0Compose
 
-/-! # TM0 Reverse Block Machine
-
-The machine is parameterized by a separator `sep` that marks the right end of
-the block. It works on any separator as long as block elements are distinct
-from both `default` (the tape blank) and `sep`.
--/
+/-! # TM0 Reverse Block Machine -/
 
 open Turing
 
@@ -30,34 +25,24 @@ instance [Inhabited Γ] : Inhabited (RSt Γ) := ⟨Sum.inr .grab⟩
 
 /-! ### Machine definition -/
 
-/-- Reverse-block machine parameterized by separator `sep`.
-
-* **grab / shifting / returning** use `sep` to detect the right block boundary
-  and as the temporary "erased" marker when a cell is grabbed.
-* **rewind** uses `default` to find the left edge of the tape. -/
-noncomputable def MSep (Γ : Type) [Inhabited Γ] [DecidableEq Γ] (sep : Γ) :
+noncomputable def M (Γ : Type) [Inhabited Γ] [DecidableEq Γ] :
     @TM0.Machine Γ (RSt Γ) ⟨Sum.inr .grab⟩ :=
   fun q a => match q with
     | Sum.inr .grab =>
-      if a = sep then some (Sum.inr .rewind, TM0.Stmt.move Dir.left)
-      else some (Sum.inl (a, .carryRight), TM0.Stmt.write sep)
+      if a = default then some (Sum.inr .rewind, TM0.Stmt.move Dir.left)
+      else some (Sum.inl (a, .carryRight), TM0.Stmt.write default)
     | Sum.inl (g, .carryRight) => some (Sum.inl (g, .shifting), TM0.Stmt.move Dir.right)
     | Sum.inl (g, .shifting) =>
-      if a = sep then some (Sum.inl (g, .returning), TM0.Stmt.move Dir.left)
+      if a = default then some (Sum.inl (g, .returning), TM0.Stmt.move Dir.left)
       else some (Sum.inl (a, .carryRight), TM0.Stmt.write g)
     | Sum.inl (g, .returning) =>
-      if a = sep then some (Sum.inr .advance, TM0.Stmt.write g)
+      if a = default then some (Sum.inr .advance, TM0.Stmt.write g)
       else some (Sum.inl (g, .returning), TM0.Stmt.move Dir.left)
     | Sum.inr .advance => some (Sum.inr .grab, TM0.Stmt.move Dir.right)
     | Sum.inr .rewind =>
       if a = default then some (Sum.inr .rewindDone, TM0.Stmt.move Dir.right)
       else some (Sum.inr .rewind, TM0.Stmt.move Dir.left)
     | Sum.inr .rewindDone => none
-
-/-- The original machine with `default` as separator. -/
-noncomputable def M (Γ : Type) [Inhabited Γ] [DecidableEq Γ] :
-    @TM0.Machine Γ (RSt Γ) ⟨Sum.inr .grab⟩ :=
-  MSep Γ default
 
 /-! ### Tape.mk₂ helpers -/
 
@@ -95,209 +80,176 @@ theorem mk₂_nil_eq_mk₁ (R : List Γ) : Tape.mk₂ [] R = Tape.mk₁ R := by
 
 /-! ### Return loop -/
 
-variable (sep : Γ)
-
-/-- Return loop: from returning(carry), move left through non-sep head elements.
-    Each step pops from the left and pushes the old head onto the right. -/
+/-
+Return loop: from returning(carry), move left through non-default head elements.
+    Each step pops from the left and pushes the old head onto the right.
+-/
 theorem return_loop (carry h : Γ) (elems L_orig R : List Γ)
-    (hh : h ≠ sep) (helems : ∀ y ∈ elems, y ≠ sep) :
-    Reaches (TM0.step (MSep Γ sep))
-      ⟨Sum.inl (carry, .returning), Tape.mk₂ (elems ++ sep :: L_orig) (h :: R)⟩
-      ⟨Sum.inl (carry, .returning), Tape.mk₂ L_orig (sep :: elems.reverse ++ h :: R)⟩ := by
+    (hh : h ≠ default) (helems : ∀ y ∈ elems, y ≠ default) :
+    Reaches (TM0.step (M Γ))
+      ⟨Sum.inl (carry, .returning), Tape.mk₂ (elems ++ default :: L_orig) (h :: R)⟩
+      ⟨Sum.inl (carry, .returning), Tape.mk₂ L_orig (default :: elems.reverse ++ h :: R)⟩ := by
+  revert elems L_orig R h hh helems;
+  intro h elems L_orig R hh helems
   induction' elems with e elems ih generalizing L_orig R h;
-  · refine' Relation.ReflTransGen.single _;
-    unfold MSep; simp +decide [ hh ] ;
-    unfold TM0.step;
-    simp +decide [ hh, Tape.mk₂ ];
+  · constructor;
+    constructor;
+    unfold TM0.step M; simp +decide [ hh ] ;
+    rw [ if_neg ];
+    · exact ⟨ TM0.Stmt.move Dir.left, rfl, by exact? ⟩;
+    · exact?;
   · refine' Relation.ReflTransGen.head _ _;
-    exact ⟨ Sum.inl ( carry, CarryPhase.returning ), Tape.mk₂ ( elems ++ sep :: L_orig ) ( e :: h :: R ) ⟩;
-    · unfold TM0.step MSep; simp +decide [ hh, helems ] ;
+    exact ⟨ Sum.inl ( carry, CarryPhase.returning ), Tape.mk₂ ( elems ++ default :: L_orig ) ( e :: h :: R ) ⟩;
+    · simp +decide [ TM0.step, M ];
       rw [ if_neg ];
-      · exact ⟨ _, rfl, mk₂_move_left _ _ _ ⟩;
+      · exact ⟨ TM0.Stmt.move Dir.left, rfl, by exact? ⟩;
       · exact?;
     · convert ih e L_orig ( h :: R ) ( helems e ( by simp +decide ) ) ( fun y hy => helems y ( by simp +decide [ hy ] ) ) using 1;
       simp +decide [ List.reverse_cons ]
 
 /-! ### Shift-to-grab -/
 
-/-- Base case: rest = [], shifted = []. -/
-private theorem shift_to_grab_nil_nil (carry : Γ) (L_orig suffix : List Γ) :
-    Reaches (TM0.step (MSep Γ sep))
-      ⟨Sum.inl (carry, .shifting),
-       Tape.mk₂ (sep :: L_orig) (sep :: suffix)⟩
-      ⟨Sum.inr .grab,
-       Tape.mk₂ (carry :: L_orig) (sep :: suffix)⟩ := by
-  have h1 : TM0.step (MSep Γ sep) ⟨Sum.inl (carry, CarryPhase.shifting), Tape.mk₂ (sep :: L_orig) (sep :: suffix)⟩ = some ⟨Sum.inl (carry, CarryPhase.returning), Tape.mk₂ L_orig (sep :: sep :: suffix)⟩ := by
-    unfold MSep; simp +decide [ TM0.step ] ;
-    exact ⟨ _, if_pos ( mk₂_head _ _ _ ), mk₂_move_left _ _ _ ⟩;
-  have h2 : TM0.step (MSep Γ sep) ⟨Sum.inl (carry, CarryPhase.returning), Tape.mk₂ L_orig (sep :: sep :: suffix)⟩ = some ⟨Sum.inr NoCarryPhase.advance, Tape.mk₂ L_orig (carry :: sep :: suffix)⟩ := by
-    unfold TM0.step;
-    unfold MSep; simp +decide [ Tape.mk₂ ] ;
-  have h3 : TM0.step (MSep Γ sep) ⟨Sum.inr NoCarryPhase.advance, Tape.mk₂ L_orig (carry :: sep :: suffix)⟩ = some ⟨Sum.inr NoCarryPhase.grab, Tape.mk₂ (carry :: L_orig) (sep :: suffix)⟩ := by
-    unfold TM0.step MSep; simp +decide [ Tape.mk₂ ] ;
-  exact Relation.ReflTransGen.head h1 ( Relation.ReflTransGen.head h2 ( Relation.ReflTransGen.head h3 ( Relation.ReflTransGen.refl ) ) )
-
-/-- Base case: rest = [], shifted = x :: xs. -/
-private theorem shift_to_grab_nil_cons (carry x : Γ) (xs L_orig suffix : List Γ)
-    (hx : x ≠ sep) (hxs : ∀ y ∈ xs, y ≠ sep) :
-    Reaches (TM0.step (MSep Γ sep))
-      ⟨Sum.inl (carry, .shifting),
-       Tape.mk₂ (x :: xs ++ sep :: L_orig) (sep :: suffix)⟩
-      ⟨Sum.inr .grab,
-       Tape.mk₂ (carry :: L_orig) (xs.reverse ++ x :: sep :: suffix)⟩ := by
-  have h_shift : Reaches (TM0.step (MSep Γ sep)) ⟨Sum.inl (carry, .shifting), Tape.mk₂ (x :: xs ++ sep :: L_orig) (sep :: suffix)⟩ ⟨Sum.inl (carry, .returning), Tape.mk₂ L_orig (sep :: xs.reverse ++ x :: sep :: suffix)⟩ := by
-    have h_step : TM0.step (MSep Γ sep) ⟨Sum.inl (carry, .shifting), Tape.mk₂ (x :: xs ++ sep :: L_orig) (sep :: suffix)⟩ = some ⟨Sum.inl (carry, .returning), Tape.mk₂ (xs ++ sep :: L_orig) (x :: sep :: suffix)⟩ := by
-      unfold MSep;
-      simp +decide [ TM0.step, Tape.mk₂ ];
-    have := return_loop sep carry x xs L_orig (sep :: suffix) hx hxs;
-    exact Relation.ReflTransGen.head h_step this;
-  have h_return : TM0.step (MSep Γ sep) ⟨Sum.inl (carry, .returning), Tape.mk₂ L_orig (sep :: xs.reverse ++ x :: sep :: suffix)⟩ = some ⟨Sum.inr .advance, Tape.mk₂ L_orig (carry :: xs.reverse ++ x :: sep :: suffix)⟩ := by
-    unfold MSep;
-    simp +decide [ TM0.step, Tape.mk₂ ];
-  have h_advance : TM0.step (MSep Γ sep) ⟨Sum.inr .advance, Tape.mk₂ L_orig (carry :: xs.reverse ++ x :: sep :: suffix)⟩ = some ⟨Sum.inr .grab, Tape.mk₂ (carry :: L_orig) (xs.reverse ++ x :: sep :: suffix)⟩ := by
-    unfold TM0.step MSep; aesop;
-  exact h_shift.trans ( Relation.ReflTransGen.single h_return ) |> Relation.ReflTransGen.trans <| Relation.ReflTransGen.single h_advance
-
 /-
 From shifting(carry) to grab: complete shift + return + deposit + advance.
-    Note: `hsuf` is not needed because the machine never accesses the suffix.
+    `shifted` tracks elements already pushed onto the left during previous shift steps.
 -/
 theorem shift_to_grab (carry : Γ) (rest shifted L_orig suffix : List Γ)
-    (hcarry : carry ≠ sep) (hrest : ∀ y ∈ rest, y ≠ sep)
-    (hshifted : ∀ y ∈ shifted, y ≠ sep) :
-    Reaches (TM0.step (MSep Γ sep))
+    (hcarry : carry ≠ default) (hrest : ∀ y ∈ rest, y ≠ default)
+    (hshifted : ∀ y ∈ shifted, y ≠ default) (hsuf : ∀ y ∈ suffix, y ≠ default) :
+    Reaches (TM0.step (M Γ))
       ⟨Sum.inl (carry, .shifting),
-       Tape.mk₂ (shifted ++ sep :: L_orig) (rest ++ sep :: suffix)⟩
+       Tape.mk₂ (shifted ++ default :: L_orig) (rest ++ default :: suffix)⟩
       ⟨Sum.inr .grab,
        Tape.mk₂ ((carry :: rest).getLast (by simp) :: L_orig)
-         (shifted.reverse ++ (carry :: rest).dropLast ++ sep :: suffix)⟩ := by
-  induction' rest with r rest ih generalizing carry shifted; simp_all +decide [ List.getLast, List.dropLast ] ;
-  · cases shifted <;> simp_all +decide [ List.getLast, List.dropLast ];
-    · exact?;
-    · exact shift_to_grab_nil_cons _ _ _ _ _ _ hshifted.1 hshifted.2;
-  · have h1 : Reaches (TM0.step (MSep Γ sep)) ⟨Sum.inl (carry, .shifting), Tape.mk₂ (shifted ++ sep :: L_orig) (r :: rest ++ sep :: suffix)⟩ ⟨Sum.inl (r, .carryRight), Tape.mk₂ (shifted ++ sep :: L_orig) (carry :: rest ++ sep :: suffix)⟩ := by
-      constructor;
-      constructor;
-      unfold MSep; simp +decide [ hcarry, hrest, hshifted ] ;
-      unfold TM0.step;
-      simp +decide [ hcarry, hrest, hshifted, Tape.mk₂ ]
-    generalize_proofs at *; (
-    have h2 : Reaches (TM0.step (MSep Γ sep)) ⟨Sum.inl (r, .carryRight), Tape.mk₂ (shifted ++ sep :: L_orig) (carry :: rest ++ sep :: suffix)⟩ ⟨Sum.inl (r, .shifting), Tape.mk₂ (carry :: shifted ++ sep :: L_orig) (rest ++ sep :: suffix)⟩ := by
-      apply Relation.ReflTransGen.single; simp [TM0.step, MSep];
-      convert mk₂_move_right _ _ _ using 1
-    generalize_proofs at *; (
-    convert h1.trans ( h2.trans ( ih r ( carry :: shifted ) ( by aesop ) ( by aesop ) ( by aesop ) ) ) using 1;
-    simp +decide [ List.getLast, List.dropLast ]))
+         (shifted.reverse ++ (carry :: rest).dropLast ++ default :: suffix)⟩ := by
+  induction' rest with r rest ih generalizing carry shifted L_orig suffix;
+  · cases shifted <;> simp_all +decide [ List.getLast ];
+    · convert Relation.ReflTransGen.trans _ _ using 1;
+      exact ⟨ Sum.inl ( carry, .returning ), Tape.mk₂ L_orig ( default :: default :: suffix ) ⟩;
+      · convert Relation.ReflTransGen.single _ using 1;
+        simp +decide [ TM0.step ];
+        use TM0.Stmt.move Dir.left;
+        exact ⟨ by unfold M; aesop, by unfold Tape.move; aesop ⟩;
+      · convert Relation.ReflTransGen.trans _ _ using 1;
+        exact ⟨ Sum.inr NoCarryPhase.advance, Tape.mk₂ L_orig ( carry :: default :: suffix ) ⟩;
+        · convert Relation.ReflTransGen.single _ using 1;
+          simp +decide [ TM0.step, M ];
+          exact ⟨ TM0.Stmt.write carry, by rw [ if_pos ( by exact? ) ], by exact? ⟩;
+        · apply_rules [ Relation.ReflTransGen.single ];
+    · rename_i x xs;
+      -- Apply the return loop to the current state.
+      have h_return : Reaches (TM0.step (M Γ)) ⟨Sum.inl (carry, .returning), Tape.mk₂ (xs ++ default :: L_orig) (x :: default :: suffix)⟩ ⟨Sum.inl (carry, .returning), Tape.mk₂ L_orig (default :: xs.reverse ++ x :: default :: suffix)⟩ := by
+        convert return_loop carry x xs L_orig ( default :: suffix ) hshifted.1 hshifted.2 using 1;
+      refine' Relation.ReflTransGen.trans _ ( Relation.ReflTransGen.trans h_return _ );
+      · apply_rules [ Relation.ReflTransGen.single ];
+        unfold TM0.step; simp +decide [ *, List.append_assoc ] ;
+        exact ⟨ TM0.Stmt.move Dir.left, by unfold M; aesop, by unfold Tape.move; aesop ⟩;
+      · refine' Relation.ReflTransGen.trans _ _;
+        exact ⟨ Sum.inr NoCarryPhase.advance, Tape.mk₂ L_orig ( carry :: xs.reverse ++ x :: default :: suffix ) ⟩;
+        · refine' Relation.ReflTransGen.single _;
+          unfold TM0.step; simp +decide [ M ] ;
+          exact ⟨ _, if_pos ( by exact? ), by exact? ⟩;
+        · apply_rules [ Relation.ReflTransGen.single ];
+  · -- Apply the step_shifting_nondefault lemma to move to the next state.
+    have h_step : TM0.step (M Γ) ⟨Sum.inl (carry, .shifting), Tape.mk₂ (shifted ++ default :: L_orig) (r :: rest ++ default :: suffix)⟩ =
+      some ⟨Sum.inl (r, .carryRight), Tape.mk₂ (shifted ++ default :: L_orig) (carry :: rest ++ default :: suffix)⟩ := by
+        unfold TM0.step M; aesop;
+    have := ih r ( carry :: shifted ) L_orig suffix ( hrest r ( by simp +decide ) ) ( fun y hy => hrest y ( by simp +decide [ hy ] ) ) ( by aesop ) ( by aesop );
+    convert Relation.ReflTransGen.trans _ this using 1;
+    · simp +decide [ List.getLast, List.dropLast ];
+    · exact .single ( by aesop ) |> Relation.ReflTransGen.trans <| .single ( by aesop )
 
 /-! ### One iteration -/
 
 theorem one_iteration (x : Γ) (rest L_orig suffix : List Γ)
-    (hx : x ≠ sep) (hrest : ∀ y ∈ rest, y ≠ sep) :
-    Reaches (TM0.step (MSep Γ sep))
-      ⟨Sum.inr .grab, Tape.mk₂ L_orig ((x :: rest) ++ sep :: suffix)⟩
+    (hx : x ≠ default) (hrest : ∀ y ∈ rest, y ≠ default) (hsuf : ∀ y ∈ suffix, y ≠ default) :
+    Reaches (TM0.step (M Γ))
+      ⟨Sum.inr .grab, Tape.mk₂ L_orig ((x :: rest) ++ default :: suffix)⟩
       ⟨Sum.inr .grab,
        Tape.mk₂ ((x :: rest).getLast (by simp) :: L_orig)
-         ((x :: rest).dropLast ++ sep :: suffix)⟩ := by
-  have h_shift : Reaches (TM0.step (MSep Γ sep)) ⟨Sum.inl (x, .shifting), Tape.mk₂ (sep :: L_orig) (rest ++ sep :: suffix)⟩ ⟨Sum.inr .grab, Tape.mk₂ ((x :: rest).getLast (by simp) :: L_orig) ((x :: rest).dropLast ++ sep :: suffix)⟩ := by
-    convert shift_to_grab sep x rest [] L_orig suffix hx hrest ( by simp ) using 1;
-  have h_carryRight : Reaches (TM0.step (MSep Γ sep)) ⟨Sum.inr .grab, Tape.mk₂ L_orig (x :: rest ++ sep :: suffix)⟩ ⟨Sum.inl (x, .carryRight), Tape.mk₂ L_orig (sep :: rest ++ sep :: suffix)⟩ := by
-    refine' Relation.ReflTransGen.single _;
-    unfold MSep; simp +decide [ hx, hrest ] ;
-    unfold TM0.step; simp +decide [ hx, hrest ] ;
-    rw [ if_neg ];
-    · exact ⟨ TM0.Stmt.write sep, rfl, by rw [ Tape.mk₂ ] ; rfl ⟩;
-    · unfold Tape.mk₂; simp +decide [ hx ] ;
-  have h_shifting : Reaches (TM0.step (MSep Γ sep)) ⟨Sum.inl (x, .carryRight), Tape.mk₂ L_orig (sep :: rest ++ sep :: suffix)⟩ ⟨Sum.inl (x, .shifting), Tape.mk₂ (sep :: L_orig) (rest ++ sep :: suffix)⟩ := by
-    apply_rules [ Relation.ReflTransGen.single ];
-  exact h_carryRight.trans h_shifting |> Relation.ReflTransGen.trans <| h_shift
+         ((x :: rest).dropLast ++ default :: suffix)⟩ := by
+  by_contra h_contra;
+  obtain ⟨c₁, hc₁⟩ : ∃ c₁, TM0.step (M Γ) ⟨Sum.inr .grab, Tape.mk₂ L_orig (x :: rest ++ default :: suffix)⟩ = some c₁ ∧ TM0.step (M Γ) c₁ = some ⟨Sum.inl (x, .shifting), Tape.mk₂ (default :: L_orig) (rest ++ default :: suffix)⟩ := by
+    unfold M;
+    simp +decide [ hx, hrest, hsuf, TM0.step, Tape.mk₂ ];
+  apply h_contra;
+  convert Relation.ReflTransGen.trans _ ( shift_to_grab x rest [] L_orig suffix hx hrest ( by simp ) hsuf ) using 1;
+  exact .single ( by aesop ) |> Relation.ReflTransGen.trans <| .single ( by aesop )
 
 /-! ### Iteration loop -/
 
 theorem iteration_loop (block suffix : List Γ)
-    (hblock : ∀ y ∈ block, y ≠ sep) :
-    Reaches (TM0.step (MSep Γ sep))
-      ⟨Sum.inr .grab, Tape.mk₂ [] (block ++ sep :: suffix)⟩
-      ⟨Sum.inr .grab, Tape.mk₂ block (sep :: suffix)⟩ := by
-  have h_ind : ∀ (block L suffix : List Γ), (∀ y ∈ block, y ≠ sep) → Reaches (TM0.step (MSep Γ sep)) ⟨Sum.inr .grab, Tape.mk₂ L (block ++ sep :: suffix)⟩ ⟨Sum.inr .grab, Tape.mk₂ (block ++ L) (sep :: suffix)⟩ := by
-    intro block L suffix hblock; induction' block using List.reverseRecOn with init last ih generalizing L; simp_all +decide [ List.reverseRecOn ] ;
+    (hblock : ∀ y ∈ block, y ≠ default) (hsuf : ∀ y ∈ suffix, y ≠ default) :
+    Reaches (TM0.step (M Γ))
+      ⟨Sum.inr .grab, Tape.mk₂ [] (block ++ default :: suffix)⟩
+      ⟨Sum.inr .grab, Tape.mk₂ block (default :: suffix)⟩ := by
+  have h_ind : ∀ (block : List Γ) (L : List Γ) (suffix : List Γ), (∀ y ∈ block, y ≠ default) → (∀ y ∈ suffix, y ≠ default) → Reaches (TM0.step (M Γ)) ⟨Sum.inr NoCarryPhase.grab, Tape.mk₂ L (block ++ default :: suffix)⟩ ⟨Sum.inr NoCarryPhase.grab, Tape.mk₂ (block ++ L) (default :: suffix)⟩ := by
+    intros block L suffix hblock hsuf
+    induction' block using List.reverseRecOn with x block ih generalizing L;
     · constructor;
-    · by_cases hinit : init = [] <;> simp_all +decide [ List.append_assoc ];
-      · convert one_iteration sep last [] L suffix hblock ( by simp +decide ) using 1;
-      · obtain ⟨x, rest, hx⟩ : ∃ x rest, init = x :: rest := List.exists_cons_of_ne_nil hinit;
-        have := one_iteration sep x ( rest ++ [ last ] ) L suffix ; simp_all +decide [ List.append_assoc ] ;
+    · cases x <;> simp_all +decide [ List.append_assoc ];
+      · convert one_iteration block [] L suffix hblock ( by simp +decide ) hsuf using 1;
+      · have := one_iteration ‹_› ( ‹_› ++ [block] ) L suffix; simp_all +decide [ List.append_assoc ] ;
         simp_all +decide [ List.dropLast ];
-        exact this ( by aesop ) |> fun h => h.trans ( ih _ );
-  simpa using h_ind block [] suffix hblock
+        exact this.trans ( by simpa [ List.append_assoc ] using ih ( block :: L ) );
+  simpa using h_ind block [] suffix hblock hsuf
 
 /-! ### Rewind loop -/
 
-/-- Rewind uses `default` (not `sep`) to find the left tape edge. -/
 theorem rewind_loop (s : Γ) (rest R_rest : List Γ)
     (hs : s ≠ default) (hrest : ∀ y ∈ rest, y ≠ default) :
-    Reaches (TM0.step (MSep Γ sep))
+    Reaches (TM0.step (M Γ))
       ⟨Sum.inr .rewind, Tape.mk₂ rest (s :: R_rest)⟩
       ⟨Sum.inr .rewind, Tape.mk₂ [] (default :: rest.reverse ++ s :: R_rest)⟩ := by
+  contrapose! hs;
+  contrapose! hs with h;
   induction' rest with x rest ih generalizing s R_rest <;> simp_all +decide [ Tape.mk₂ ];
   · constructor;
     constructor;
-    unfold TM0.step; simp +decide [ hs, MSep ] ;
-  · have h_step : TM0.step (MSep Γ sep) ⟨Sum.inr .rewind, Tape.mk₂ (x :: rest) (s :: R_rest)⟩ = some ⟨Sum.inr .rewind, Tape.mk₂ rest (x :: s :: R_rest)⟩ := by
-      unfold TM0.step; unfold MSep; aesop;
+    unfold TM0.step M; simp +decide [ h ] ;
+  · have h_step : TM0.step (M Γ) ⟨Sum.inr .rewind, Tape.mk' (ListBlank.mk (x :: rest)) (ListBlank.mk (s :: R_rest))⟩ = some ⟨Sum.inr .rewind, Tape.mk' (ListBlank.mk rest) (ListBlank.mk (x :: s :: R_rest))⟩ := by
+      unfold TM0.step;
+      unfold M; simp +decide [ h, hrest ] ;
     exact Relation.ReflTransGen.head h_step ( by simpa using ih x ( s :: R_rest ) hrest.1 )
 
 /-! ### Rewind phase -/
 
 theorem rewind_phase (block suffix : List Γ)
-    (hblock_nd : ∀ y ∈ block, y ≠ default)
-    (hblock_nsep : ∀ y ∈ block, y ≠ sep) :
-    Reaches (TM0.step (MSep Γ sep))
-      ⟨Sum.inr .grab, Tape.mk₂ block (sep :: suffix)⟩
-      ⟨Sum.inr .rewindDone, Tape.mk₂ [] (block.reverse ++ sep :: suffix)⟩ := by
+    (hblock : ∀ y ∈ block, y ≠ default) :
+    Reaches (TM0.step (M Γ))
+      ⟨Sum.inr .grab, Tape.mk₂ block (default :: suffix)⟩
+      ⟨Sum.inr .rewindDone, Tape.mk₂ [] (block.reverse ++ default :: suffix)⟩ := by
   constructor;
   rotate_right;
-  exact ⟨ Sum.inr NoCarryPhase.rewind, Tape.mk₂ [] ( default :: block.reverse ++ sep :: suffix ) ⟩;
-  · cases block <;> simp_all +decide [ Tape.mk₂ ];
+  exact ⟨ Sum.inr NoCarryPhase.rewind, Tape.mk₂ [] ( default :: block.reverse ++ default :: suffix ) ⟩;
+  · cases block <;> simp_all +decide [ ListBlank.mk ];
     · refine' .single _;
-      unfold TM0.step; simp +decide [ MSep ] ;
+      unfold TM0.step;
+      unfold M; simp +decide [ Tape.mk₂ ] ;
     · rename_i k hk;
-      have := @RevBlock.rewind_loop Γ _ _ sep;
-      convert Relation.ReflTransGen.trans _ ( this k hk ( sep :: suffix ) hblock_nd.1 hblock_nd.2 ) using 1;
+      convert Relation.ReflTransGen.trans _ ( rewind_loop k hk ( default :: suffix ) hblock.1 hblock.2 ) using 1;
       apply_rules [ Relation.ReflTransGen.single ];
-      unfold MSep; simp +decide [ hblock_nsep ] ;
+      unfold M; simp +decide [ hblock ] ;
       unfold TM0.step; simp +decide [ Tape.mk₂ ] ;
-  · unfold TM0.step; unfold MSep; simp +decide [ Tape.mk₂ ] ;
-    simp [Tape.mk', listBlank_mk_headI_tail];
+  · simp +decide [ Tape.mk₂ ];
+    unfold M; simp +decide [ Tape.mk' ] ;
+    unfold TM0.step; simp +decide [ Tape.move ] ;
     ext i; simp [ListBlank.mk];
     cases i <;> simp +decide [ ListBlank.nth ]
 
 /-! ### Full computation -/
 
 theorem full_reaches (block suffix : List Γ)
-    (hblock_nd : ∀ y ∈ block, y ≠ default)
-    (hblock_nsep : ∀ y ∈ block, y ≠ sep) :
-    Reaches (TM0.step (MSep Γ sep))
-      (TM0.init (block ++ sep :: suffix))
-      ⟨Sum.inr .rewindDone, Tape.mk₁ (block.reverse ++ sep :: suffix)⟩ := by
-  unfold TM0.init
-  rw [← mk₂_nil_eq_mk₁, ← mk₂_nil_eq_mk₁]
-  exact (iteration_loop sep block suffix hblock_nsep).trans
-    (rewind_phase sep block suffix hblock_nd hblock_nsep)
-
-theorem step_rewindDone (T : Tape Γ) :
-    TM0.step (MSep Γ sep) ⟨Sum.inr .rewindDone, T⟩ = none := by
-  simp [TM0.step, MSep]
-
-/-! ### Backward compatibility wrappers -/
-
-theorem full_reaches_default (block suffix : List Γ)
-    (hblock : ∀ y ∈ block, y ≠ default) (_hsuf : ∀ y ∈ suffix, y ≠ default) :
+    (hblock : ∀ y ∈ block, y ≠ default) (hsuf : ∀ y ∈ suffix, y ≠ default) :
     Reaches (TM0.step (M Γ))
       (TM0.init (block ++ default :: suffix))
-      ⟨Sum.inr .rewindDone, Tape.mk₁ (block.reverse ++ default :: suffix)⟩ :=
-  full_reaches default block suffix hblock hblock
+      ⟨Sum.inr .rewindDone, Tape.mk₁ (block.reverse ++ default :: suffix)⟩ := by
+  unfold TM0.init
+  rw [← mk₂_nil_eq_mk₁, ← mk₂_nil_eq_mk₁]
+  exact (iteration_loop block suffix hblock hsuf).trans (rewind_phase block suffix hblock)
 
-theorem step_rewindDone_default (T : Tape Γ) :
-    TM0.step (M Γ) ⟨Sum.inr .rewindDone, T⟩ = none :=
-  step_rewindDone default T
+theorem step_rewindDone (T : Tape Γ) :
+    TM0.step (M Γ) ⟨Sum.inr .rewindDone, T⟩ = none := by
+  simp [TM0.step, M]
 
 end RevBlock
