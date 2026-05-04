@@ -56,10 +56,11 @@ the copy destination, writes it, shifts the suffix to maintain the
 block-suffix separator, then rewinds to the marker and restores the
 original character.
 
-Preconditions: `sep1`, `sep2`, and `default` are all distinct. -/
+Preconditions: the inserted separator `sep2` is not `default`, and the
+boundary separator `sep1` differs from `sep2`. The boundary may be `default`;
+that case is the blank-delimited block specialization below. -/
 theorem tm0_copyWithSep_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep1 sep2 : Γ}
-    (hsep1 : sep1 ≠ default)
     (hsep2 : sep2 ≠ default)
     (h12 : sep1 ≠ sep2) :
     TM0RealizesBlockSep Γ sep1 (copyWithSep sep2) := by
@@ -72,7 +73,8 @@ blank, inserting `sep2` between the original and the copy. -/
 theorem tm0_copyWithSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep2 : Γ} (hsep2 : sep2 ≠ default) :
     TM0RealizesBlock Γ (copyWithSep sep2) := by
-  sorry
+  exact tm0RealizesBlock_of_sep_default
+    (tm0_copyWithSep_blockSep hsep2 hsep2.symm)
 
 /-! ### Specialization to `ChainΓ` with `chainConsBottom` -/
 
