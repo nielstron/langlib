@@ -7,6 +7,7 @@ import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
 import Langlib.Automata.Turing.DSL.BinaryPredecessor
 import Langlib.Automata.Turing.DSL.SplitAtSep
 import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
+import Langlib.Automata.Turing.DSL.DecAfterSepMachine
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.CondBlockOps
 import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
@@ -111,6 +112,12 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
 def hasConsBottom (block : List ChainΓ) : Prop :=
   chainConsBottom ∈ block
 
+/-- The paired separator invariant needed by separator-framed machines:
+    there is a first `chainConsBottom`, and the right sub-block after it has
+    no second `chainConsBottom`. -/
+def pairedSepInv (block : List ChainΓ) : Prop :=
+  hasConsBottom block ∧ ∀ g ∈ (splitAtConsBottom block).2, g ≠ chainConsBottom
+
 /-! ### Decrement-left / increment-right decomposition for paired addition -/
 
 /-- Extract the right sub-block (suffix after first `chainConsBottom`). -/
@@ -152,6 +159,24 @@ theorem pairedDecrLeftIncrRight_hasConsBottom (block : List ChainΓ) :
     hasConsBottom (pairedDecrLeftIncrRight block) := by
   unfold hasConsBottom pairedDecrLeftIncrRight
   simp
+
+theorem pairedDecrLeftIncrRight_pairedSepInv (block : List ChainΓ) :
+    pairedSepInv (pairedDecrLeftIncrRight block) := by
+  constructor
+  · exact pairedDecrLeftIncrRight_hasConsBottom block
+  · unfold pairedDecrLeftIncrRight
+    simp
+    exact chainBinaryRepr_no_consBottom _
+
+/-- On the two sides of `chainConsBottom`, the paired step is exactly
+    normalized predecessor on the left and normalized successor on the right. -/
+theorem pairedDecrLeftIncrRight_eq_binPred_binSuccNormalize (block : List ChainΓ) :
+    pairedDecrLeftIncrRight block =
+      binPred (splitAtConsBottom block).1 ++ [chainConsBottom] ++
+        (binSucc ∘ normalizeBlock) (splitAtConsBottom block).2 := by
+  unfold pairedDecrLeftIncrRight binPred normalizeBlock Function.comp
+  rcases hsplit : splitAtConsBottom block with ⟨left, right⟩
+  simp [binSucc_correct]
 
 /-- `pairedDecrLeftIncrRight` preserves non-defaultness when the condition holds. -/
 theorem pairedDecrLeftIncrRight_ne_default (block : List ChainΓ)
