@@ -2,7 +2,7 @@ import Mathlib
 import Langlib.Automata.Turing.DSL.SplitAtSep
 import Langlib.Automata.Turing.DSL.BinaryPredecessor
 
-/-! # Decrement-Before-Separator Machine
+/-! # Decrement before separator, by predecessor
 
 `decBeforeSep` decrements the block before the first `chainConsBottom`
 separator. The raw predecessor machine already has the right operational
