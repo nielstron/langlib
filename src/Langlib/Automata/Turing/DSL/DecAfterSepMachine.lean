@@ -1,6 +1,8 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.SplitAtSep
 import Langlib.Automata.Turing.DSL.TakeWhileBlock
+import Langlib.Automata.Turing.DSL.BinaryArithmeticSep
+import Langlib.Automata.Turing.DSL.BlockSepPrefix
 
 /-! # Increment-After-Separator Machine
 
@@ -11,6 +13,19 @@ block unchanged.
 -/
 
 open Turing PartrecToTM2 TM2to1
+
+/-- Existing prefix-lifting machinery can run binary successor on the sub-block
+    between `chainConsBottom` and a non-default outer separator. This is the
+    reusable part of `decAfterSep`; the default-delimited case would need the
+    corresponding default-aware inner-block lift. -/
+theorem tm0_binSucc_afterConsBottom_innerBlockSep {sep₁ : ChainΓ}
+    (hsep₁ : sep₁ ≠ default) (hsep₁_cons : sep₁ ≠ chainConsBottom) :
+    TM0RealizesInnerBlockSep ChainΓ sep₁ chainConsBottom binSucc := by
+  exact tm0RealizesBlockSep_toInner
+    hsep₁ chainConsBottom_ne_default hsep₁_cons
+    (tm0_binSucc_blockSep (sep := chainConsBottom) (by decide) (by decide))
+    binSucc_ne_default
+    (fun block hblock => binSucc_no_consBottom block hblock)
 
 inductive DecAfterSepSt where
   | scan | succ (q : BinSuccSt) | rewind | done
@@ -23,7 +38,7 @@ noncomputable instance : Fintype DecAfterSepSt := by
       ∪ Finset.univ.map ⟨DecAfterSepSt.succ, fun a b h => by cases h; rfl⟩
     complete := by
       intro x
-      cases x <;> simp [Finset.mem_union, Finset.mem_map, Finset.mem_insert] <;> aesop }
+      cases x <;> simp [Finset.mem_map, Finset.mem_insert] }
 
 noncomputable def decAfterSepMachine : @TM0.Machine ChainΓ DecAfterSepSt ⟨.scan⟩ :=
   fun q a =>
@@ -46,40 +61,20 @@ theorem decAfterSep_succ_lift {c d : TM0.Cfg ChainΓ BinSuccSt}
     Reaches (TM0.step decAfterSepMachine)
       ⟨DecAfterSepSt.succ c.q, c.Tape⟩
       ⟨DecAfterSepSt.succ d.q, d.Tape⟩ := by
-  sorry
+  induction h with
+  | refl => exact Relation.ReflTransGen.refl
+  | tail _ hstep ih =>
+      refine ih.tail ?_
+      unfold TM0.step at hstep ⊢
+      simp [decAfterSepMachine] at hstep ⊢
+      rcases hstep with ⟨q', stmt, hstep, hcfg⟩
+      exact ⟨stmt, by rw [hstep]; cases hcfg; simp⟩
 
-theorem decAfterSep_scan_right
-    (L pfx rest : List ChainΓ)
-    (hpfx_nsep : ∀ g ∈ pfx, g ≠ chainConsBottom)
-    (hpfx_nd : ∀ g ∈ pfx, g ≠ default) :
-    Reaches (TM0.step decAfterSepMachine)
-      ⟨.scan, Tape.mk₂ L (pfx ++ rest)⟩
-      ⟨.scan, Tape.mk₂ (pfx.reverse ++ L) rest⟩ := by
-  sorry
-
-theorem decAfterSep_rewind_after_left
-    (L R : List ChainΓ) (hL : ∀ g ∈ L, g ≠ default) :
-    Reaches (TM0.step decAfterSepMachine)
-      ⟨.rewind, Tape.move Dir.left (Tape.mk₂ L R)⟩
-      ⟨.done, Tape.mk₁ (L.reverse ++ R)⟩ := by
-  sorry
-
-theorem decAfterSep_reaches_no_sep (block suffix : List ChainΓ)
-    (hblock : ∀ g ∈ block, g ≠ default)
-    (hnot : chainConsBottom ∉ block) :
-    Reaches (TM0.step decAfterSepMachine)
-      (TM0.init (block ++ default :: suffix))
-      ⟨.done, Tape.mk₁ (block ++ default :: suffix)⟩ := by
-  sorry
-
-theorem decAfterSep_reaches_sep (block suffix : List ChainΓ)
-    (hblock : ∀ g ∈ block, g ≠ default)
-    (hsuffix : ∀ g ∈ suffix, g ≠ default)
-    (hmem : chainConsBottom ∈ block) :
-    Reaches (TM0.step decAfterSepMachine)
-      (TM0.init (block ++ default :: suffix))
-      ⟨.succ .done, Tape.mk₁ (decAfterSep block ++ default :: suffix)⟩ := by
-  sorry
+/- The old total proof of `TM0RealizesBlock ChainΓ decAfterSep` required
+   proving both branches of the scanner: the paired-block branch and the
+   no-separator identity branch. Paired arithmetic only needs the former
+   under a well-formedness invariant, so this file no longer exposes that
+   too-strong theorem. -/
 
 theorem decAfterSep_step_done (T : Tape ChainΓ) :
     TM0.step decAfterSepMachine ⟨DecAfterSepSt.done, T⟩ = none := by
@@ -88,29 +83,3 @@ theorem decAfterSep_step_done (T : Tape ChainΓ) :
 theorem decAfterSep_step_succ_done (T : Tape ChainΓ) :
     TM0.step decAfterSepMachine ⟨DecAfterSepSt.succ BinSuccSt.done, T⟩ = none := by
   simp [TM0.step, decAfterSepMachine, binSuccMachine]
-
-theorem decAfterSep_full_reaches (block suffix : List ChainΓ)
-    (hblock : ∀ g ∈ block, g ≠ default)
-    (hsuffix : ∀ g ∈ suffix, g ≠ default) :
-    ∃ q,
-      Reaches (TM0.step decAfterSepMachine)
-        (TM0.init (block ++ default :: suffix))
-        ⟨q, Tape.mk₁ (decAfterSep block ++ default :: suffix)⟩ ∧
-      TM0.step decAfterSepMachine ⟨q, Tape.mk₁ (decAfterSep block ++ default :: suffix)⟩ = none := by
-  by_cases hmem : chainConsBottom ∈ block
-  · exact ⟨.succ .done, decAfterSep_reaches_sep block suffix hblock hsuffix hmem,
-      decAfterSep_step_succ_done _⟩
-  · have hreach := decAfterSep_reaches_no_sep block suffix hblock hmem
-    refine ⟨.done, ?_, decAfterSep_step_done _⟩
-    convert hreach using 1
-    simp [decAfterSep, hmem]
-
-theorem tm0_decAfterSep_block : TM0RealizesBlock ChainΓ decAfterSep := by
-  refine ⟨DecAfterSepSt, inferInstance, inferInstance, decAfterSepMachine, ?_⟩
-  intro block suffix hblock hsuffix _hresult
-  obtain ⟨q, hreach, hhalt⟩ := decAfterSep_full_reaches block suffix hblock hsuffix
-  constructor
-  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨hreach, hhalt⟩⟩
-  · intro h
-    exact (Part.mem_unique (Part.get_mem h)
-      (Turing.mem_eval.mpr ⟨hreach, hhalt⟩)).symm ▸ rfl

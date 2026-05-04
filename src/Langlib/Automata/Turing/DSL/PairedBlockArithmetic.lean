@@ -7,7 +7,6 @@ import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
 import Langlib.Automata.Turing.DSL.BinaryPredecessor
 import Langlib.Automata.Turing.DSL.SplitAtSep
 import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
-import Langlib.Automata.Turing.DSL.DecAfterSepMachine
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.CondBlockOps
 import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
@@ -96,17 +95,21 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
     ∀ g ∈ binMulConst c block, g ≠ default := by
   unfold binMulConst; exact chainBinaryRepr_ne_default _
 
-/-- `incLeftDecRight` is block-realizable.
-    Decomposed as `decAfterSep ∘ incBeforeSep`:
-    first decrement the left sub-block, then increment the right sub-block.
-    Each component is block-realizable via adapted TM0 machines. -/
-theorem tm0_incLeftDecRight_block :
-    TM0RealizesBlock ChainΓ incLeftDecRight := by
-  rw [incLeftDecRight_eq_comp]
-  exact tm0RealizesBlock_comp
-    tm0_incBeforeSep_block
-    tm0_decAfterSep_block
-    incBeforeSep_ne_default
+/- The tempting global theorem
+
+     `TM0RealizesBlock ChainΓ incLeftDecRight`
+
+   is stronger than the paired arithmetic use case needs: it would have to
+   implement the identity branch for blocks with no `chainConsBottom`. The
+   actual paired-block step should instead use the separator-aware predecessor
+   theorem `tm0_incBeforeSep_present_blockSep` under a well-formedness
+   invariant saying that the paired separator is present. -/
+
+/-- Paired-block well-formedness fragment needed by the left/right transfer:
+    the default-delimited block contains the internal `chainConsBottom`
+    separator. -/
+def hasConsBottom (block : List ChainΓ) : Prop :=
+  chainConsBottom ∈ block
 
 /-! ### Decrement-left / increment-right decomposition for paired addition -/
 
@@ -144,6 +147,11 @@ noncomputable def pairedDecrLeftIncrRight (block : List ChainΓ) : List ChainΓ 
   chainBinaryRepr (decodeBinaryBlock left - 1)
     ++ [chainConsBottom]
     ++ chainBinaryRepr (decodeBinaryBlock right + 1)
+
+theorem pairedDecrLeftIncrRight_hasConsBottom (block : List ChainΓ) :
+    hasConsBottom (pairedDecrLeftIncrRight block) := by
+  unfold hasConsBottom pairedDecrLeftIncrRight
+  simp
 
 /-- `pairedDecrLeftIncrRight` preserves non-defaultness when the condition holds. -/
 theorem pairedDecrLeftIncrRight_ne_default (block : List ChainΓ)
