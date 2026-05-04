@@ -2,8 +2,10 @@ import Mathlib
 import Langlib.Automata.Turing.DSL.ChainAlphabet
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
+import Langlib.Automata.Turing.DSL.BinaryArithmeticSep
 import Langlib.Automata.Turing.DSL.DropWhileNeSep
 import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
+import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 import Langlib.Automata.Turing.DSL.BinaryPredecessor
 import Langlib.Automata.Turing.DSL.SplitAtSep
 import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
@@ -94,17 +96,17 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
     ∀ g ∈ binMulConst c block, g ≠ default := by
   unfold binMulConst; exact chainBinaryRepr_ne_default _
 
-/-- `incLeftDecRight` is block-realizable.
-    Decomposed as `decAfterSep ∘ incBeforeSep`:
+/-- `decLeftIncRight` is block-realizable.
+    Decomposed as `incAfterSep ∘ decBeforeSep`:
     first decrement the left sub-block, then increment the right sub-block.
     Each component is block-realizable via adapted TM0 machines. -/
-theorem tm0_incLeftDecRight_block :
-    TM0RealizesBlock ChainΓ incLeftDecRight := by
-  rw [incLeftDecRight_eq_comp]
+theorem tm0_decLeftIncRight_block :
+    TM0RealizesBlock ChainΓ decLeftIncRight := by
+  rw [decLeftIncRight_eq_comp]
   exact tm0RealizesBlock_comp
-    tm0_incBeforeSep_block
-    tm0_decAfterSep_block
-    incBeforeSep_ne_default
+    tm0_decBeforeSep_block
+    tm0_incAfterSep_block
+    decBeforeSep_ne_default
 
 /-! ### Decrement-left / increment-right decomposition for paired addition -/
 
@@ -285,6 +287,38 @@ theorem binAddPaired_eq_while_decomp :
 
 /-! ### Block-realizability of paired operations -/
 
+theorem normalizeBlock_no_consBottom (block : List ChainΓ) :
+    ∀ g ∈ normalizeBlock block, g ≠ chainConsBottom := by
+  unfold normalizeBlock
+  exact chainBinaryRepr_no_consBottom _
+
+theorem binPredRaw_no_consBottom (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ chainConsBottom) :
+    ∀ g ∈ binPredRaw block, g ≠ chainConsBottom := by
+  induction block with
+  | nil => simp [binPredRaw]
+  | cons c rest ih =>
+      unfold binPredRaw
+      split_ifs <;> simp_all +decide [γ'ToChainΓ, chainConsBottom]
+
+/-- Normalized predecessor is realizable before the paired-block separator. -/
+theorem tm0_binPred_consBottom_blockSep :
+    TM0RealizesBlockSep ChainΓ chainConsBottom binPred := by
+  rw [binPred_eq_comp]
+  exact tm0RealizesBlockSep_comp
+    (tm0RealizesBlockSep_comp
+      (tm0_normalizeBlockSep (by decide) (by decide))
+      (tm0_binPredRaw_blockSep chainConsBottom (by decide) (by decide))
+      (fun _ _ => normalizeBlock_ne_default _)
+      (fun _ _ => normalizeBlock_no_consBottom _))
+    (tm0_normalizeBlockSep (by decide) (by decide))
+    (fun block hblock => binPredRaw_ne_default _ (normalizeBlock_ne_default _))
+    (fun block _hblock => binPredRaw_no_consBottom _ (normalizeBlock_no_consBottom _))
+
+theorem tm0_binSucc_consBottom_blockSep :
+    TM0RealizesBlockSep ChainΓ chainConsBottom binSucc :=
+  tm0_binSucc_blockSep (sep := chainConsBottom) (by decide) (by decide)
+
 /-- The decrement-left / increment-right step satisfies `TM0RealizesBlockCond`. -/
 theorem tm0_pairedDecrLeftIncrRight_blockCond :
     TM0RealizesBlockCond pairedDecrLeftIncrRight pairedAddCond := by
@@ -293,7 +327,8 @@ theorem tm0_pairedDecrLeftIncrRight_blockCond :
 /-- Extracting the right sub-block is block-realizable. -/
 theorem tm0_extractPairedRight_block :
     TM0RealizesBlock ChainΓ extractPairedRight := by
-  sorry
+  rw [extractPairedRight_eq_dropUntilFirstSep]
+  exact tm0_dropUntilFirstSep_block chainConsBottom chainConsBottom_ne_default
 
 /-- Non-defaultness of `extractPairedRight ∘ binAddPairedWhile`. -/
 theorem extractPairedRight_binAddPairedWhile_ne_default (block : List ChainΓ)

@@ -4,12 +4,12 @@ import Langlib.Automata.Turing.DSL.BinaryPredecessor
 
 /-! # Decrement-Before-Separator Machine
 
-`incBeforeSep` decrements the block before the first `chainConsBottom`
+`decBeforeSep` decrements the block before the first `chainConsBottom`
 separator. The raw predecessor machine already has the right operational
 shape: it borrows through binary cells and stops on the first non-bit, so
 it can stop at `chainConsBottom` without a bespoke borrow implementation.
 
-The remaining distinction is semantic: `incBeforeSep` uses normalized
+The remaining distinction is semantic: `decBeforeSep` uses normalized
 `binPred`, while the machine phase below realizes the reusable raw
 predecessor component before the separator.
 -/
@@ -29,5 +29,5 @@ theorem binPredRaw_before_consBottom_reaches
     binPredRaw_borrow_until_nonbit left (right ++ default :: suffix) []
       chainConsBottom (by decide) (by decide) hleft (by simp)
 
-theorem tm0_incBeforeSep_block : TM0RealizesBlock ChainΓ incBeforeSep := by
+theorem tm0_decBeforeSep_block : TM0RealizesBlock ChainΓ decBeforeSep := by
   sorry

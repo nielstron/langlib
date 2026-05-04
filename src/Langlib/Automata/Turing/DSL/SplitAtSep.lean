@@ -116,32 +116,38 @@ theorem splitAtConsBottom_binPred_sep (left right : List ChainΓ) :
 
 /-- Decrement the sub-block before the first `chainConsBottom` separator,
     normalizing it with `binPred`. Identity when no separator is present. -/
-noncomputable def incBeforeSep (block : List ChainΓ) : List ChainΓ :=
+noncomputable def decBeforeSep (block : List ChainΓ) : List ChainΓ :=
   if chainConsBottom ∈ block then
     let (left, right) := splitAtConsBottom block
     binPred left ++ [chainConsBottom] ++ right
   else block
 
-/-- Increment the sub-block after the first `chainConsBottom` separator using
-    the existing binary successor. Identity when no separator is present. -/
-noncomputable def decAfterSep (block : List ChainΓ) : List ChainΓ :=
+/-- Apply `f` to the suffix after the first `chainConsBottom`, preserving the
+    prefix and separator. Identity when no separator is present. -/
+noncomputable def mapAfterConsBottom
+    (f : List ChainΓ → List ChainΓ) (block : List ChainΓ) : List ChainΓ :=
   if chainConsBottom ∈ block then
     let (left, right) := splitAtConsBottom block
-    left ++ [chainConsBottom] ++ binSucc right
+    left ++ [chainConsBottom] ++ f right
   else block
 
+/-- Increment the sub-block after the first `chainConsBottom` separator using
+    the existing binary successor. Identity when no separator is present. -/
+noncomputable def incAfterSep (block : List ChainΓ) : List ChainΓ :=
+  mapAfterConsBottom binSucc block
+
 /-- One paired-addition transfer step: decrement left and increment right. -/
-noncomputable def incLeftDecRight (block : List ChainΓ) : List ChainΓ :=
+noncomputable def decLeftIncRight (block : List ChainΓ) : List ChainΓ :=
   if chainConsBottom ∈ block then
     let (left, right) := splitAtConsBottom block
     binPred left ++ [chainConsBottom] ++ binSucc right
   else block
 
-/-- `incLeftDecRight = decAfterSep ∘ incBeforeSep` -/
-theorem incLeftDecRight_eq_comp :
-    incLeftDecRight = decAfterSep ∘ incBeforeSep := by
+/-- `decLeftIncRight = incAfterSep ∘ decBeforeSep` -/
+theorem decLeftIncRight_eq_comp :
+    decLeftIncRight = incAfterSep ∘ decBeforeSep := by
   funext block
-  simp only [Function.comp, incLeftDecRight, incBeforeSep, decAfterSep]
+  simp only [Function.comp, decLeftIncRight, decBeforeSep, incAfterSep, mapAfterConsBottom]
   by_cases h : chainConsBottom ∈ block
   · rw [if_pos h]
     rcases hsplit : splitAtConsBottom block with ⟨left, right⟩
@@ -150,11 +156,11 @@ theorem incLeftDecRight_eq_comp :
     simp
   · simp [h]
 
-theorem incBeforeSep_ne_default (block : List ChainΓ)
+theorem decBeforeSep_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
-    ∀ g ∈ incBeforeSep block, g ≠ default := by
+    ∀ g ∈ decBeforeSep block, g ≠ default := by
   intro g hg
-  simp only [incBeforeSep] at hg
+  simp only [decBeforeSep] at hg
   split_ifs at hg with h
   · rcases List.mem_append.mp hg with hg | hg
     · rcases List.mem_append.mp hg with hg | hg
@@ -163,11 +169,11 @@ theorem incBeforeSep_ne_default (block : List ChainΓ)
     · exact hblock g (splitAtConsBottom_snd_subset block g hg)
   · exact hblock g hg
 
-theorem decAfterSep_ne_default (block : List ChainΓ)
+theorem incAfterSep_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
-    ∀ g ∈ decAfterSep block, g ≠ default := by
+    ∀ g ∈ incAfterSep block, g ≠ default := by
   intro g hg
-  simp only [decAfterSep] at hg
+  simp only [incAfterSep, mapAfterConsBottom] at hg
   split_ifs at hg with h
   · rcases List.mem_append.mp hg with hg | hg
     · rcases List.mem_append.mp hg with hg | hg
@@ -176,11 +182,11 @@ theorem decAfterSep_ne_default (block : List ChainΓ)
     · exact binSucc_ne_default _ (fun g hg => hblock g (splitAtConsBottom_snd_subset block g hg)) g hg
   · exact hblock g hg
 
-theorem incLeftDecRight_ne_default (block : List ChainΓ)
+theorem decLeftIncRight_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
-    ∀ g ∈ incLeftDecRight block, g ≠ default := by
+    ∀ g ∈ decLeftIncRight block, g ≠ default := by
   intro g hg
-  simp only [incLeftDecRight] at hg
+  simp only [decLeftIncRight] at hg
   split_ifs at hg with h
   · rcases List.mem_append.mp hg with hg | hg
     · rcases List.mem_append.mp hg with hg | hg
