@@ -11,7 +11,7 @@ import Langlib.Automata.Turing.DSL.DecAfterSepMachine
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.CondBlockOps
 import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
-import Langlib.Automata.Turing.DSL.CopyBinaryBlock
+import Langlib.Automata.Turing.DSL.CopyBlockProof
 
 /-! # Paired Block Arithmetic — The Central Primitive
 

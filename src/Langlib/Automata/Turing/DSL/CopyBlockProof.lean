@@ -699,3 +699,36 @@ theorem full_reaches (sep2 : Γ) (hsep2 : sep2 ≠ default)
     exact h0.trans (hloop.trans h23)
 
 end CopyBlock
+
+/-! ### Realizability Theorems -/
+
+/-- The general copy-with-sep operation is block-sep-realizable for the
+default boundary separator.
+
+The machine `CopyBlock.M sep2` copies everything before the first `default`,
+inserting `sep2` between the original and the copy. -/
+theorem tm0_copyWithSep_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep2 : Γ} (hsep2 : sep2 ≠ default) :
+    TM0RealizesBlockSep Γ default (copyWithSep sep2) := by
+  refine ⟨CopyBlock.CSt Γ, inferInstance, inferInstance, CopyBlock.M sep2, ?_⟩
+  intro block suffix hblock _hblock_sep hsuffix _hfblock _hfblock_sep
+  have h_reaches := CopyBlock.full_reaches sep2 hsep2 block suffix hblock hsuffix
+  have h_mem : ⟨Sum.inr (Sum.inr CopyBlock.NPhase.done),
+       Tape.mk₁ (copyWithSep sep2 block ++ default :: suffix)⟩ ∈
+      Turing.eval (TM0.step (CopyBlock.M sep2))
+        (TM0.init (block ++ default :: suffix)) :=
+    Turing.mem_eval.mpr ⟨h_reaches, CopyBlock.step_done sep2 _⟩
+  exact ⟨Part.dom_iff_mem.mpr ⟨_, h_mem⟩, fun h =>
+    (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl⟩
+
+/-- The general copy-with-sep operation is block-realizable.
+
+This is the blank-delimited specialization of `tm0_copyWithSep_blockSep`. -/
+theorem tm0_copyWithSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep2 : Γ} (hsep2 : sep2 ≠ default) :
+    TM0RealizesBlock Γ (copyWithSep sep2) :=
+  tm0RealizesBlock_of_sep_default (tm0_copyWithSep_blockSep hsep2)
+
+theorem tm0_copyBinaryWithSep_block :
+    TM0RealizesBlock ChainΓ copyBinaryWithSep := by
+  exact tm0_copyWithSep_block chainConsBottom_ne_default

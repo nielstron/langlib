@@ -272,31 +272,6 @@ noncomputable def M (sep2 : Γ) : @TM0.Machine Γ (CSt Γ) ⟨Sum.inr (Sum.inr .
 
 end CopyBlock
 
-/-! ### Realizability Theorems -/
-
-/-- The general copy-with-sep operation is block-sep-realizable.
-
-Given a tape `block ++ [sep1] ++ suffix`, the TM transforms it to
-`(block ++ [sep2] ++ block) ++ [sep1] ++ suffix`.
-
-Preconditions: `sep1`, `sep2`, and `default` are all distinct. -/
-theorem tm0_copyWithSep_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
-    {sep1 sep2 : Γ}
-    (hsep1 : sep1 ≠ default)
-    (hsep2 : sep2 ≠ default)
-    (h12 : sep1 ≠ sep2) :
-    TM0RealizesBlockSep Γ sep1 (copyWithSep sep2) := by
-  sorry
-
-/-- The general copy-with-sep operation is block-realizable.
-
-The TM0 machine `CopyBlock.M sep2` copies everything before the first
-`default`, inserting `sep2` between the original and the copy. -/
-theorem tm0_copyWithSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
-    {sep2 : Γ} (hsep2 : sep2 ≠ default) :
-    TM0RealizesBlock Γ (copyWithSep sep2) := by
-  exact ⟨CopyBlock.CSt Γ, inferInstance, inferInstance, CopyBlock.M sep2, fun block suffix hblock hsuffix hfblock => by sorry⟩
-
 /-! ### Specialization to `ChainΓ` with `chainConsBottom` -/
 
 /-- Copy a block and insert `chainConsBottom` between the original and the copy. -/
@@ -315,8 +290,3 @@ theorem copyBinaryWithSep_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ copyBinaryWithSep block, g ≠ default :=
   copyWithSep_ne_default chainConsBottom_ne_default block hblock
-
-/-- The copy-with-sep operation specialized to `ChainΓ` is block-realizable. -/
-theorem tm0_copyBinaryWithSep_block :
-    TM0RealizesBlock ChainΓ copyBinaryWithSep := by
-  exact tm0_copyWithSep_block chainConsBottom_ne_default

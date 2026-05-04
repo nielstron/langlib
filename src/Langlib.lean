@@ -35,7 +35,6 @@ import Langlib.Automata.Turing.DSL.CondBlockOps
 import Langlib.Automata.Turing.DSL.CopyBinaryBlock
 import Langlib.Automata.Turing.DSL.CopyBlockProof
 import Langlib.Automata.Turing.DSL.DecAfterSepMachine
-import Langlib.Automata.Turing.DSL.DecBeforeSepMachine
 import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
 import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 import Langlib.Automata.Turing.DSL.DropWhileNeSep
