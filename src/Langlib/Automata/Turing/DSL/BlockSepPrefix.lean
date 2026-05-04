@@ -66,6 +66,27 @@ def TM0RealizesInnerBlockSep (Γ : Type) [Inhabited Γ] (sep₁ sep₂ : Γ)
         ((TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).get h).Tape =
           Tape.mk₁ (pfx ++ sep₂ :: f inner ++ sep₁ :: suffix)
 
+/-- A default-delimited version of `TM0RealizesInnerBlockSep`.
+
+This is the shape needed by invariant while-loop bodies: the whole active
+block is default-delimited, and an internal separator `sep₂` splits the
+preserved prefix from the inner block transformed by `f`. -/
+def TM0RealizesInnerBlockDefaultSep (Γ : Type) [Inhabited Γ] (sep₂ : Γ)
+    (f : List Γ → List Γ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (pfx inner : List Γ),
+      (∀ g ∈ pfx, g ≠ default) →
+      (∀ g ∈ pfx, g ≠ sep₂) →
+      (∀ g ∈ inner, g ≠ default) →
+      (∀ g ∈ inner, g ≠ sep₂) →
+      (∀ g ∈ f inner, g ≠ default) →
+      (∀ g ∈ f inner, g ≠ sep₂) →
+      (TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ [default])).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ [default])).Dom),
+        ((TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ [default])).get h).Tape =
+          Tape.mk₁ (pfx ++ sep₂ :: f inner ++ [default])
+
 /-! ### List Reversal Helpers -/
 
 /-- Reversing `l₁ ++ a :: l₂` gives `l₂.reverse ++ a :: l₁.reverse`. -/
@@ -232,3 +253,136 @@ theorem tm0RealizesBlockSep_toInner
   use fun _ _ => some ( PUnit.unit, TM0.Stmt.move Dir.left );
   unfold TM0Seq.evalCfg; simp +decide [ Turing.eval ] ;
   grind +suggestions
+
+/-- Default-delimited version of `tm0RealizesBlockSep_toInner`.
+
+The construction is the same three-machine composition:
+reverse before the outer default, run `reverse ∘ f ∘ reverse` before the
+internal separator, then reverse before the outer default again. The middle
+phase is applied to a list without the trailing default; `evalCfg_append_default`
+identifies that with the actual intermediate tape. -/
+theorem tm0RealizesBlockSep_toInnerDefault
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep₂ : Γ} {f : List Γ → List Γ}
+    (hsep₂ : sep₂ ≠ default)
+    (hf : TM0RealizesBlockSep Γ sep₂ f)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
+    TM0RealizesInnerBlockDefaultSep Γ sep₂ f := by
+  have hrev := @tm0_reverse_blockSep Γ _ _ _ (sep := default)
+  have hrfr := tm0RealizesBlockSep_revFRev hf hf_nd hf_nsep
+  obtain ⟨Λ_rev, h_rev_inh, h_rev_fin, M_rev, hM_rev⟩ := hrev
+  obtain ⟨Λ_rfr, h_rfr_inh, h_rfr_fin, M_rfr, hM_rfr⟩ := hrfr
+  let h12_inh : Inhabited (Λ_rev ⊕ Λ_rfr) :=
+    ⟨Sum.inl (@default _ h_rev_inh)⟩
+  let h123_inh : Inhabited ((Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev) :=
+    ⟨Sum.inl (@default _ h12_inh)⟩
+  let M12 := @TM0Seq.compose Γ Λ_rev h_rev_inh Λ_rfr h_rfr_inh M_rev M_rfr
+  let M123 := @TM0Seq.compose Γ (Λ_rev ⊕ Λ_rfr) h12_inh Λ_rev h_rev_inh M12 M_rev
+  refine ⟨(Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev, h123_inh,
+    @instFintypeSum _ _ (@instFintypeSum _ _ h_rev_fin h_rfr_fin) h_rev_fin,
+    M123, ?_⟩
+  intro pfx inner hpfx_nd hpfx_nsep₂ hinn_nd hinn_nsep₂ hfinn_nd hfinn_nsep₂
+  set outer := pfx ++ sep₂ :: inner with h_outer_def
+  have h_outer_rev : outer.reverse = inner.reverse ++ sep₂ :: pfx.reverse :=
+    reverse_append_cons pfx sep₂ inner
+  set mid := (f inner).reverse ++ sep₂ :: pfx.reverse with h_mid_def
+  have h_mid_rev : mid.reverse = pfx ++ sep₂ :: f inner := by
+    simp only [mid, reverse_append_cons, List.reverse_reverse]
+
+  have houter_nd : ∀ g ∈ outer, g ≠ default :=
+    forall_mem_append_cons.mpr ⟨hpfx_nd, hsep₂, hinn_nd⟩
+  have hstep1 := hM_rev outer [] houter_nd houter_nd (by simp)
+    (reverse_ne_default outer houter_nd) (reverse_ne_default outer houter_nd)
+  have h_rfr_eq : (List.reverse ∘ f ∘ List.reverse) inner.reverse =
+      (f inner).reverse := by
+    simp [Function.comp, List.reverse_reverse]
+  have hrfr_nd : ∀ g ∈ (List.reverse ∘ f ∘ List.reverse) inner.reverse,
+      g ≠ default := by
+    rw [h_rfr_eq]
+    exact reverse_ne_default (f inner) hfinn_nd
+  have hrfr_nsep₂ : ∀ g ∈ (List.reverse ∘ f ∘ List.reverse) inner.reverse,
+      g ≠ sep₂ := by
+    rw [h_rfr_eq]
+    exact reverse_ne_sep (f inner) hfinn_nsep₂
+  have hpfx_rev_nd : ∀ g ∈ pfx.reverse, g ≠ default :=
+    reverse_ne_default pfx hpfx_nd
+  have hstep2 := hM_rfr inner.reverse pfx.reverse
+    (reverse_ne_default inner hinn_nd)
+    (reverse_ne_sep inner hinn_nsep₂)
+    hpfx_rev_nd hrfr_nd hrfr_nsep₂
+  have hmid_nd : ∀ g ∈ mid, g ≠ default :=
+    forall_mem_append_cons.mpr
+      ⟨reverse_ne_default (f inner) hfinn_nd, hsep₂,
+       reverse_ne_default pfx hpfx_nd⟩
+  have hstep3 := hM_rev mid [] hmid_nd hmid_nd (by simp)
+    (reverse_ne_default mid hmid_nd) (reverse_ne_default mid hmid_nd)
+
+  have hstep1_tape :
+      ((TM0Seq.evalCfg M_rev (outer ++ [default])).get hstep1.1).Tape =
+        Tape.mk₁ (inner.reverse ++ sep₂ :: pfx.reverse ++ [default]) := by
+    rw [hstep1.2 hstep1.1]
+    simp [h_outer_rev]
+  have hstep2_dom_trailing :
+      (TM0Seq.evalCfg M_rfr
+        (inner.reverse ++ sep₂ :: pfx.reverse ++ [default])).Dom := by
+    rw [evalCfg_append_default]
+    exact hstep2.1
+  have hstep2_tape_trailing :
+      ((TM0Seq.evalCfg M_rfr
+        (inner.reverse ++ sep₂ :: pfx.reverse ++ [default])).get hstep2_dom_trailing).Tape =
+        Tape.mk₁ ((f inner).reverse ++ sep₂ :: pfx.reverse ++ [default]) := by
+    have hcfg_eq :
+        (TM0Seq.evalCfg M_rfr
+          (inner.reverse ++ sep₂ :: pfx.reverse ++ [default])).get hstep2_dom_trailing =
+          (TM0Seq.evalCfg M_rfr
+            (inner.reverse ++ sep₂ :: pfx.reverse)).get hstep2.1 := by
+      apply Part.get_eq_get_of_eq
+      exact evalCfg_append_default M_rfr (inner.reverse ++ sep₂ :: pfx.reverse)
+    rw [hcfg_eq, hstep2.2 hstep2.1]
+    rw [h_rfr_eq]
+    exact (tape_mk₁_append_default ((f inner).reverse ++ sep₂ :: pfx.reverse)).symm
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (outer ++ [default])).Dom := by
+    apply @TM0Seq.compose_dom_of_parts Γ _ Λ_rev h_rev_inh Λ_rfr h_rfr_inh
+      M_rev M_rfr (outer ++ [default]) hstep1.1
+    convert hstep2_dom_trailing using 1
+    rw [hstep1_tape]
+    rfl
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (outer ++ [default])).get hM12_dom).Tape =
+        Tape.mk₁ (mid ++ [default]) := by
+    convert @TM0Seq.compose_evalCfg_tape Γ _ Λ_rev h_rev_inh Λ_rfr h_rfr_inh
+      M_rev M_rfr
+      (outer ++ [default])
+      (inner.reverse ++ sep₂ :: pfx.reverse ++ [default])
+      hstep1.1 hstep1_tape hstep2_dom_trailing hM12_dom using 1
+    rw [hstep2_tape_trailing]
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (outer ++ [default])).Dom := by
+    apply @TM0Seq.compose_dom_of_parts Γ _ (Λ_rev ⊕ Λ_rfr) h12_inh Λ_rev h_rev_inh
+      M12 M_rev (outer ++ [default]) hM12_dom
+    convert hstep3.1 using 1
+    rw [hM12_tape]
+    rfl
+  refine ⟨?_, ?_⟩
+  · convert hM123_dom using 1
+  · intro h
+    have h_tape := @TM0Seq.compose_evalCfg_tape Γ _ (Λ_rev ⊕ Λ_rfr) h12_inh
+      Λ_rev h_rev_inh M12 M_rev
+      (outer ++ [default]) (mid ++ [default])
+      hM12_dom hM12_tape hstep3.1 hM123_dom
+    have h_final : ((TM0Seq.evalCfg M123 (outer ++ [default])).get hM123_dom).Tape =
+        Tape.mk₁ (pfx ++ sep₂ :: f inner ++ [default]) := by
+      rw [h_tape, hstep3.2 hstep3.1]
+      simp [h_mid_rev]
+    have h_dom_eq :
+        (TM0Seq.evalCfg M123 (pfx ++ sep₂ :: inner ++ [default])).Dom =
+          (TM0Seq.evalCfg M123 (outer ++ [default])).Dom := by
+      simp [outer, List.append_assoc]
+    have h_get_eq :
+        (TM0Seq.evalCfg M123 (pfx ++ sep₂ :: inner ++ [default])).get h =
+          (TM0Seq.evalCfg M123 (outer ++ [default])).get hM123_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [outer, List.append_assoc]
+    rw [h_get_eq, h_final]
