@@ -204,42 +204,42 @@ theorem blockIterateWhile_eq_iterate_of_cond {Γ : Type}
     · exact fun k hk => by
         simpa only [← Function.iterate_succ_apply'] using h (k + 1) (Nat.succ_lt_succ hk)
 
-set_option maxHeartbeats 0 in
-/-- The while loop result equals `blockIterateWhile` with appropriate fuel. -/
+/-
+After k iterations of pairedDecrLeftIncrRight, the left and right decode
+    values change as expected.
+-/
+theorem pairedDecrLeftIncrRight_iterate_decode (block : List ChainΓ) (k : ℕ)
+    (hk : k ≤ decodeBinaryBlock (splitAtConsBottom block).1) :
+    let result := pairedDecrLeftIncrRight^[k] block
+    decodeBinaryBlock (splitAtConsBottom result).1 =
+      decodeBinaryBlock (splitAtConsBottom block).1 - k ∧
+    decodeBinaryBlock (splitAtConsBottom result).2 =
+      decodeBinaryBlock (splitAtConsBottom block).2 + k := by
+  induction' k with k ih generalizing block;
+  · norm_num +zetaDelta at *;
+  · convert ih ( pairedDecrLeftIncrRight block ) _ using 1;
+    · simp +decide [ pairedDecrLeftIncrRight ];
+      grind +splitIndPred;
+    · simp +decide [ pairedDecrLeftIncrRight ];
+      exact Nat.le_sub_one_of_lt hk
+
+/-
+The while loop result equals `blockIterateWhile` with appropriate fuel.
+-/
 theorem binAddPairedWhile_eq_iterate (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
     ∃ n, binAddPairedWhile block =
         blockIterateWhile pairedDecrLeftIncrRight pairedAddCond n block ∧
       ¬ pairedAddCond
         (blockIterateWhile pairedDecrLeftIncrRight pairedAddCond n block) := by
-  refine' ⟨_, rfl, _⟩
-  have h_left_zero :
-      decodeBinaryBlock
-        (splitAtConsBottom
-          (blockIterateWhile pairedDecrLeftIncrRight pairedAddCond
-            (decodeBinaryBlock (splitAtConsBottom block).1) block)).1 = 0 := by
-    have h_left_zero : ∀ (k : ℕ), k ≤ decodeBinaryBlock (splitAtConsBottom block).1 →
-        decodeBinaryBlock (splitAtConsBottom (pairedDecrLeftIncrRight^[k] block)).1 =
-          decodeBinaryBlock (splitAtConsBottom block).1 - k := by
-      intro k hk
-      induction' k with k ih
-      · norm_num
-      · rw [Function.iterate_succ_apply']
-        rw [Nat.sub_succ]
-        rw [← ih (Nat.le_of_succ_le hk)]
-        rw [pairedDecrLeftIncrRight]
-        grind +suggestions
-    rw [blockIterateWhile_eq_iterate_of_cond]
-    · rw [h_left_zero _ le_rfl, Nat.sub_self]
-    · intro k hk
-      specialize h_left_zero k hk.le
-      simp_all +decide [pairedAddCond]
-      unfold blockValueLeq
-      simp_all +decide
-      rw [decodeBinaryBlock_eq_splitLeft]
-      omega
-  simp [pairedAddCond, blockValueLeq]
-  rwa [decodeBinaryBlock_eq_splitLeft]
+  unfold binAddPairedWhile pairedAddCond blockValueLeq;
+  refine' ⟨ _, rfl, _ ⟩;
+  rw [ blockIterateWhile_eq_iterate_of_cond ];
+  · have := pairedDecrLeftIncrRight_iterate_decode block ( decodeBinaryBlock ( splitAtConsBottom block ).1 ) le_rfl;
+    rw [ decodeBinaryBlock_eq_splitLeft ] ; aesop;
+  · intro k hk;
+    have := pairedDecrLeftIncrRight_iterate_decode block k ( by linarith );
+    rw [ decodeBinaryBlock_eq_splitLeft ] ; omega
 
 /-- Non-defaultness of the while loop result. -/
 theorem binAddPairedWhile_ne_default (block : List ChainΓ)
@@ -256,22 +256,7 @@ theorem binAddPairedWhile_ne_default (block : List ChainΓ)
       · exact hblock
   exact hn.1 ▸ h_ind n block hblock
 
-/-- After k iterations of pairedDecrLeftIncrRight, the left and right decode
-    values change as expected. -/
-theorem pairedDecrLeftIncrRight_iterate_decode (block : List ChainΓ) (k : ℕ)
-    (hk : k ≤ decodeBinaryBlock (splitAtConsBottom block).1) :
-    let result := pairedDecrLeftIncrRight^[k] block
-    decodeBinaryBlock (splitAtConsBottom result).1 =
-      decodeBinaryBlock (splitAtConsBottom block).1 - k ∧
-    decodeBinaryBlock (splitAtConsBottom result).2 =
-      decodeBinaryBlock (splitAtConsBottom block).2 + k := by
-  induction' k with k ih generalizing block <;>
-    simp_all +decide [Function.iterate_succ_apply']
-  specialize ih block hk.le
-  unfold pairedDecrLeftIncrRight at *
-  rw [splitAtConsBottom_binary_sep]
-  simp +decide
-  simp_all +decide [Nat.sub_sub, add_assoc]
+
 
 /-- `binAddPaired = normalizeBlock ∘ extractPairedRight ∘ binAddPairedWhile`. -/
 theorem binAddPaired_eq_while_decomp :
