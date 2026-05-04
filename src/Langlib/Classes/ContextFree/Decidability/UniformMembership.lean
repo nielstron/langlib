@@ -718,14 +718,3 @@ theorem checkMembershipEncoded_correct [Fintype T] (G : EncodedCFG T) (w : List 
       exact ⟨ Nat.mod_lt _ G.ntCount_pos, Nat.zero_le _, le_rfl, by simpa using hw ⟩;
     have := satFixpoint_complete G w ⟨ G.initialIdx % G.ntCount, hnt ⟩ 0 w.length ( by linarith ) ( by linarith ) hder;
     exact decide_eq_true ( satFixpoint_converges _ _ _ ( G.ntCount_pos ) _ this )
-
-/-! ## Computability -/
-
-/- The proof of this theorem is in PrimrecSatStep.lean (as checkMembershipEncoded_computable').
-   It cannot be imported here due to circular dependencies, so we leave it as a forward
-   declaration. The main theorem contextFree_computableMembership uses
-   checkMembershipEncoded_computable' directly.
-theorem checkMembershipEncoded_computable [Fintype T] [Primcodable T] :
-    Computable (checkMembershipEncoded : EncodedCFG T × List T → Bool) := by
-  sorry
--/
