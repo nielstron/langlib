@@ -56,3 +56,10 @@ theorem re_implies_tm {T : Type} [DecidableEq T] [Fintype T]
       rw [← hc] at hdom
       obtain ⟨a, ha⟩ := hdom
       exact grammarTest_sound g' a w ha)
+
+
+/-- Every recursively enumerable language over a finite alphabet is TM-recognizable. -/
+theorem RE_subset_TM {T : Type} [DecidableEq T] [Fintype T] :
+    (RE : Set (Language T)) ⊆ TM := by
+  intro L hL
+  exact re_implies_tm L hL
