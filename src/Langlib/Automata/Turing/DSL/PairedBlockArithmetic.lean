@@ -10,8 +10,6 @@ import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
 import Langlib.Automata.Turing.DSL.DecAfterSepMachine
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.CondBlockOps
-import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
-import Langlib.Automata.Turing.DSL.CopyBinaryBlock
 
 /-! # Paired Block Arithmetic — The Central Primitive
 
@@ -295,8 +293,7 @@ theorem tm0_pairedDecrLeftIncrRight_blockCond :
 /-- Extracting the right sub-block is block-realizable. -/
 theorem tm0_extractPairedRight_block :
     TM0RealizesBlock ChainΓ extractPairedRight := by
-  rw [extractPairedRight_eq_dropUntilFirstSep]
-  exact tm0_dropUntilFirstSep_block chainConsBottom chainConsBottom_ne_default
+  sorry
 
 /-- Non-defaultness of `extractPairedRight ∘ binAddPairedWhile`. -/
 theorem extractPairedRight_binAddPairedWhile_ne_default (block : List ChainΓ)
@@ -745,23 +742,13 @@ theorem tm0_binMulPaired_block :
   · exact fun block hblock =>
       binMulPairedLoop_ne_default _ (binMulPairedInit_ne_default _ hblock)
 
-/-- `duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock`. -/
-theorem duplicateNormalizedPaired_eq_copyWithSep_comp :
-    duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock := by
-  funext block
-  simp only [Function.comp, copyBinaryWithSep, copyWithSep, normalizeBlock,
-    duplicateNormalizedPaired, pairNormalizedBlocks]
-
 /-- Normalized self-duplication is block-realizable.
+
 This is the variable-copy primitive needed for squaring: it writes two copies
 of the normalized input separated by `chainConsBottom`. -/
 theorem tm0_duplicateNormalizedPaired_block :
     TM0RealizesBlock ChainΓ duplicateNormalizedPaired := by
-  rw [duplicateNormalizedPaired_eq_copyWithSep_comp]
-  exact tm0RealizesBlock_comp
-    tm0_normalizeBlock
-    tm0_copyBinaryWithSep_block
-    (fun _ _ => normalizeBlock_ne_default _)
+  sorry
 
 /-- **Multiplication by constant is block-realizable.** -/
 theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by

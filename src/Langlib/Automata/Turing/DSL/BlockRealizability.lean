@@ -227,20 +227,28 @@ theorem reverse_ne_default {Γ : Type} [Inhabited Γ]
 
 /-! ### Reverse is block-realizable -/
 
+/-- List reverse is block-realizable before any separator.
+    The underlying machine `RevBlock.MSep` uses `sep` for right-boundary
+    detection and `default` for left-boundary detection. -/
+theorem tm0_reverse_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} :
+    TM0RealizesBlockSep Γ sep List.reverse := by
+  use RevBlock.RSt Γ, inferInstance, inferInstance, RevBlock.MSep Γ sep
+  intro block suffix hblock_nd hblock_nsep hsuffix hfblock_nd _hfblock_nsep
+  have h_reaches := RevBlock.full_reaches sep block suffix hblock_nd hblock_nsep
+  constructor
+  · apply Part.dom_iff_mem.mpr
+    exact ⟨_, Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _ _⟩⟩
+  · intro h
+    have h_mem := Part.get_mem h
+    have h_eval := Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _ _⟩
+    exact (Part.mem_unique h_mem h_eval).symm ▸ rfl
+
 /-- List reverse is block-realizable. A TM0 can reverse a contiguous
     block of non-default cells while preserving the suffix. -/
 theorem tm0_reverse_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
-    TM0RealizesBlock Γ List.reverse := by
-  use RevBlock.RSt Γ, inferInstance, inferInstance, RevBlock.M Γ
-  intro block suffix hblock hsuffix hfblock
-  have h_reaches := RevBlock.full_reaches block suffix hblock hsuffix
-  constructor
-  · apply Part.dom_iff_mem.mpr
-    exact ⟨_, Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _⟩⟩
-  · intro h
-    have h_mem := Part.get_mem h
-    have h_eval := Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _⟩
-    exact (Part.mem_unique h_mem h_eval).symm ▸ rfl
+    TM0RealizesBlock Γ List.reverse :=
+  tm0RealizesBlock_of_sep_default tm0_reverse_blockSep
 
 /-! ### Cons (prepend) is block-realizable -/
 
