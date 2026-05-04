@@ -3,6 +3,7 @@ import Langlib.Automata.Turing.DSL.ChainAlphabet
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
 import Langlib.Automata.Turing.DSL.BinarySuccessor
+import Langlib.Automata.Turing.DSL.BinaryArithmeticSep
 
 /-! # Binary Predecessor — TM0 Machine for Decrementing Binary Blocks -/
 
@@ -378,3 +379,47 @@ theorem tm0_binPred_block : TM0RealizesBlock ChainΓ binPred := by
       (fun _ _ => normalizeBlock_ne_default _))
     tm0_normalizeBlock
     (fun block hblock => binPredRaw_ne_default _ (normalizeBlock_ne_default _))
+
+theorem normalizeBlock_ne_sep {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) :
+    ∀ g ∈ normalizeBlock block, g ≠ sep := by
+  intro g hg hgeq
+  have hbits : ∀ g ∈ chainBinaryRepr (decodeBinaryBlock block), g = γ'ToChainΓ Γ'.bit0 ∨ g = γ'ToChainΓ Γ'.bit1 := by
+    unfold chainBinaryRepr;
+    unfold trNat;
+    simp +decide [ trNum ];
+    cases' h : ( decodeBinaryBlock block : Num ) with n <;> simp_all +decide [ trPosNum ];
+    induction n <;> simp_all +decide [ trPosNum ];
+    · rename_i k hk;
+      have h_ind : ∀ n : PosNum, ∀ a ∈ trPosNum n, a = Γ'.bit0 ∨ a = Γ'.bit1 := by
+        intro n; induction n <;> simp_all +decide [ trPosNum ] ;
+      exact fun a ha => by cases h_ind k a ha <;> simp +decide [ * ] ;
+    · rename_i k hk;
+      have h_ind : ∀ k : PosNum, ∀ a ∈ trPosNum k, a = Γ'.bit0 ∨ a = Γ'.bit1 := by
+        intro k; induction k <;> simp_all +decide [ trPosNum ] ;
+      exact fun a ha => by cases h_ind k a ha <;> simp +decide [ * ] ;
+  cases hbits g hg <;> aesop
+
+theorem binPredRaw_ne_sep {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ sep) :
+    ∀ g ∈ binPredRaw block, g ≠ sep := by
+  induction' block with c rest ih;
+  · exact fun g hg => by cases hg;
+  · grind +locals
+
+/-- `binPred` is block-sep-realizable before any non-bit separator. -/
+theorem tm0_binPred_blockSep {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) :
+    TM0RealizesBlockSep ChainΓ sep binPred := by
+  rw [binPred_eq_comp]
+  exact tm0RealizesBlockSep_comp
+    (tm0RealizesBlockSep_comp
+      (tm0_normalizeBlockSep hsep0 hsep1)
+      (tm0_binPredRaw_blockSep sep hsep1 hsep0)
+      (fun _ _ => normalizeBlock_ne_default _)
+      (fun _ _ => normalizeBlock_ne_sep hsep0 hsep1 _))
+    (tm0_normalizeBlockSep hsep0 hsep1)
+    (fun block hblock => binPredRaw_ne_default _ (normalizeBlock_ne_default _))
+    (fun block hblock => binPredRaw_ne_sep hsep0 hsep1 _ (normalizeBlock_ne_sep hsep0 hsep1 _))

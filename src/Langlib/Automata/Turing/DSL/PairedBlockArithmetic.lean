@@ -8,8 +8,8 @@ import Langlib.Automata.Turing.DSL.DropFromLastSepMachine
 import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 import Langlib.Automata.Turing.DSL.BinaryPredecessor
 import Langlib.Automata.Turing.DSL.SplitAtSep
-import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
-import Langlib.Automata.Turing.DSL.DecAfterSepMachine
+import Langlib.Automata.Turing.DSL.DecBeforeSepMachine
+import Langlib.Automata.Turing.DSL.IncAfterSepDecomp
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.CondBlockOps
 
@@ -96,16 +96,26 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
     ∀ g ∈ binMulConst c block, g ≠ default := by
   unfold binMulConst; exact chainBinaryRepr_ne_default _
 
+/-- Remaining right-increment obligation: realize the decomposed
+    `binSucc`-on-the-right step.
+
+    This is the part that should use
+    `incAfterSep_eq_comp_of_right_no_sep`, i.e. reverse whole block, reverse
+    before `chainConsBottom`, run the separator-parameterized `binSucc`, then
+    reverse back. -/
+theorem tm0_incAfterSepDecomp_block :
+    TM0RealizesBlock ChainΓ incAfterSep := by
+  sorry
+
 /-- `decLeftIncRight` is block-realizable.
-    Decomposed as `incAfterSep ∘ decBeforeSep`:
-    first decrement the left sub-block, then increment the right sub-block.
-    Each component is block-realizable via adapted TM0 machines. -/
+    The predecessor side is `tm0_decBeforeSep_block`; the remaining work is
+    the right-side successor obligation above. -/
 theorem tm0_decLeftIncRight_block :
     TM0RealizesBlock ChainΓ decLeftIncRight := by
   rw [decLeftIncRight_eq_comp]
   exact tm0RealizesBlock_comp
     tm0_decBeforeSep_block
-    tm0_incAfterSep_block
+    tm0_incAfterSepDecomp_block
     decBeforeSep_ne_default
 
 /-! ### Decrement-left / increment-right decomposition for paired addition -/
@@ -194,6 +204,7 @@ theorem blockIterateWhile_eq_iterate_of_cond {Γ : Type}
     · exact fun k hk => by
         simpa only [← Function.iterate_succ_apply'] using h (k + 1) (Nat.succ_lt_succ hk)
 
+set_option maxHeartbeats 0 in
 /-- The while loop result equals `blockIterateWhile` with appropriate fuel. -/
 theorem binAddPairedWhile_eq_iterate (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
