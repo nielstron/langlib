@@ -2,6 +2,8 @@ import Mathlib
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
 import Langlib.Classes.ContextFree.Pumping.ParseTree
+import Langlib.Classes.ContextFree.Decidability.Helper
+import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep
 import Langlib.Utilities.PrimrecHelpers
 
 /-! # Decidability and Computability of Membership
@@ -988,5 +990,18 @@ theorem cf_membership_computable
       · exact?;
   convert hf.1 using 1;
   constructor <;> intro h <;> rw [ ComputablePred ] at * <;> aesop
+
+/-
+Context-free membership is uniformly computable for encoded CFGs.
+-/
+theorem contextFree_computableMembership [Primcodable T] :
+    ComputableMembership (contextFreeLanguageOf : EncodedCFG T → Language T) := by
+  constructor;
+  convert checkMembershipEncoded_computable' using 1;
+  all_goals try infer_instance;
+  ext ⟨G, w⟩; simp [checkMembershipEncoded_correct];
+  rw [ eq_comm ];
+  grind +suggestions;
+  exact Classical.decPred _
 
 end CFComputablePred

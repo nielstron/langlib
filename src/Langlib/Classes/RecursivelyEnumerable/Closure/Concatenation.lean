@@ -164,16 +164,6 @@ by
       intro t tin
       exact rule_for_each_terminal t (List.mem_cons_of_mem _ tin)
 
-/-
-PROVIDED SOLUTION
-From ass, extract w₁ and w₂ with w = w₁ ++ w₂, w₁ ∈ grammar_language g₁, w₂ ∈ grammar_language g₂. The proof proceeds by:
-1. Apply first_transformation to derive from initial to [wrap(g₁.initial), wrap(g₂.initial)].
-2. Lift the derivation of g₁ generating w₁ using wrap_symbol₁, and the derivation of g₂ generating w₂ using wrap_symbol₂. The lifted rules are in big_grammar by construction.
-3. Apply substitute_terminals to convert the wrapped terminal symbols to actual terminals.
-4. Combine these three phases of derivation using grammar_deri_of_deri_deri.
-
-Key steps: first_transformation gives the initial step. Then grammar_deri_with_postfix and grammar_deri_with_prefix allow combining the two independent derivations. Finally substitute_terminals handles the terminal conversion phase.
--/
 lemma in_big_of_in_concatenated
     {g₁ g₂ : grammar T}
     {w : List T}
@@ -314,10 +304,6 @@ by
   unfold corresponding_strings at ass
   exact List.Forall₂.length_eq ass
 
-/-
-PROVIDED SOLUTION
-This follows directly from list_forall₂_nth_le applied to corresponding_strings (which is just List.Forall₂ corresponding_symbols).
--/
 private lemma corresponding_strings_nth_le {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)} {i : ℕ}
     (i_lt_len_x : i < x.length) (i_lt_len_y : i < y.length)
     (ass : corresponding_strings x y) :
@@ -421,10 +407,6 @@ by
   rw [unwrap_wrap₂_symbol]
   apply List.filterMap_some
 
-/-
-PROVIDED SOLUTION
-Case split on s₁ and s, then use the definition of corresponding_symbols and unwrap_symbol₁/wrap_symbol₁. For each case where corresponding_symbols holds, show that unwrap_symbol₁ gives back the original symbol.
--/
 private lemma unwrap_eq_some_of_corresponding_symbols₁ {N₁ N₂ : Type} {s₁ : symbol T N₁} {s : nst T N₁ N₂}
     (ass : corresponding_symbols (wrap_symbol₁ N₂ s₁) s) :
   unwrap_symbol₁ s = some s₁ :=
@@ -441,10 +423,6 @@ by
       exact?;
     · cases ‹T ⊕ T› <;> tauto
 
-/-
-PROVIDED SOLUTION
-Case split on s₂ and s, then use the definition of corresponding_symbols and unwrap_symbol₂/wrap_symbol₂. Analogous to the ₁ version.
--/
 private lemma unwrap_eq_some_of_corresponding_symbols₂ {N₁ N₂ : Type} {s₂ : symbol T N₂} {s : nst T N₁ N₂}
     (ass : corresponding_symbols (wrap_symbol₂ N₁ s₂) s) :
   unwrap_symbol₂ s = some s₂ :=
@@ -462,10 +440,6 @@ by
         rfl;
     · cases n₁ <;> tauto
 
-/-
-PROVIDED SOLUTION
-Induction on the Forall₂ relation (corresponding_strings). Base case is trivial. For the cons case, use unwrap_eq_some_of_corresponding_symbols₁ for the head and the inductive hypothesis for the tail.
--/
 private lemma map_unwrap_eq_map_some_of_corresponding_strings₁ {N₁ N₂ : Type} :
   ∀ {v : List (symbol T N₁)}, ∀ {w : List (nst T N₁ N₂)},
     corresponding_strings (List.map (wrap_symbol₁ N₂) v) w →
@@ -477,10 +451,6 @@ private lemma map_unwrap_eq_map_some_of_corresponding_strings₁ {N₁ N₂ : Ty
   · cases ass;
     exact ⟨ by exact? , ih ‹_› ⟩
 
-/-
-PROVIDED SOLUTION
-Induction on the Forall₂ relation (corresponding_strings). Analogous to the ₁ version, using unwrap_eq_some_of_corresponding_symbols₂.
--/
 private lemma map_unwrap_eq_map_some_of_corresponding_strings₂ {N₁ N₂ : Type} :
   ∀ {v : List (symbol T N₂)}, ∀ {w : List (nst T N₁ N₂)},
     corresponding_strings (List.map (wrap_symbol₂ N₁) v) w →
@@ -510,20 +480,12 @@ by
   apply list_filter_map_eq_of_map_eq_map_some
   exact map_unwrap_eq_map_some_of_corresponding_strings₂ ass
 
-/-
-PROVIDED SOLUTION
-From ass, get z with corresponding_strings (map (wrap_symbol₁ N₂) z) w. Then filter_map_unwrap_of_corresponding_strings₁ gives filterMap unwrap_symbol₁ w = z. Substituting z back and using corresponding_string_after_wrap_unwrap_self₁'s hypothesis, we get the result. More precisely: since corresponding_strings (map (wrap_symbol₁ N₂) z) w, by filter_map_unwrap_of_corresponding_strings₁ we get filterMap unwrap_symbol₁ w = z. So map (wrap_symbol₁ N₂) (filterMap unwrap_symbol₁ w) = map (wrap_symbol₁ N₂) z, and corresponding_strings (map (wrap_symbol₁ N₂) z) w gives us the result.
--/
 private lemma corresponding_string_after_wrap_unwrap_self₁ {N₁ N₂ : Type} {w : List (nst T N₁ N₂)}
     (ass : ∃ z : List (symbol T N₁), corresponding_strings (List.map (wrap_symbol₁ N₂) z) w) :
   corresponding_strings (List.map (wrap_symbol₁ N₂) (List.filterMap unwrap_symbol₁ w)) w :=
 by
   obtain ⟨ z, hz ⟩ := ass; rw [ filter_map_unwrap_of_corresponding_strings₁ hz ] ; exact hz;
 
-/-
-PROVIDED SOLUTION
-Analogous to ₁ version: from ass get z, use filter_map_unwrap_of_corresponding_strings₂ to get filterMap unwrap_symbol₂ w = z, then substitute back.
--/
 private lemma corresponding_string_after_wrap_unwrap_self₂ {N₁ N₂ : Type} {w : List (nst T N₁ N₂)}
     (ass : ∃ z : List (symbol T N₂), corresponding_strings (List.map (wrap_symbol₂ N₁) z) w) :
   corresponding_strings (List.map (wrap_symbol₂ N₁) (List.filterMap unwrap_symbol₂ w)) w :=
@@ -539,26 +501,14 @@ section helpers_for_induction_steps
 
 variable {N₁ N₂ : Type}
 
-/-
-PROVIDED SOLUTION
-Cases on s, both give rfl.
--/
 private lemma unwrap₁_of_wrap₂_eq_none (s : symbol T N₂) :
     @unwrap_symbol₁ T N₁ N₂ (wrap_symbol₂ N₁ s) = none := by
       cases s <;> rfl
 
-/-
-PROVIDED SOLUTION
-Cases on s, both give rfl.
--/
 private lemma unwrap₂_of_wrap₁_eq_none (s : symbol T N₁) :
     @unwrap_symbol₂ T N₁ N₂ (wrap_symbol₁ N₂ s) = none := by
       cases s <;> rfl
 
-/-
-PROVIDED SOLUTION
-Induction on w, using unwrap₁_of_wrap₂_eq_none at each step.
--/
 private lemma filterMap_unwrap₁_map_wrap₂ (w : List (symbol T N₂)) :
     List.filterMap (@unwrap_symbol₁ T N₁ N₂) (List.map (wrap_symbol₂ N₁) w) = [] := by
       have h_filterMap_none : ∀ s ∈ List.map (wrap_symbol₂ N₁) w, @unwrap_symbol₁ T N₁ N₂ s = none := by
@@ -568,10 +518,6 @@ private lemma filterMap_unwrap₁_map_wrap₂ (w : List (symbol T N₂)) :
         exact?);
       rw [ List.filterMap_eq_nil_iff ] ; aesop
 
-/-
-PROVIDED SOLUTION
-Induction on w, using unwrap₂_of_wrap₁_eq_none at each step.
--/
 private lemma filterMap_unwrap₂_map_wrap₁ (w : List (symbol T N₁)) :
     List.filterMap (@unwrap_symbol₂ T N₁ N₂) (List.map (wrap_symbol₁ N₂) w) = [] := by
       -- By the induction hypothesis, the filterMap of the map of wrap_symbol₁ N₂ over w is empty.
@@ -579,11 +525,7 @@ private lemma filterMap_unwrap₂_map_wrap₁ (w : List (symbol T N₁)) :
       exact?
 
 /-
-PROBLEM
 Splitting Forall₂ at an append boundary
-
-PROVIDED SOLUTION
-Use m₁ = take l₁.length m and m₂ = drop l₁.length m. Then m = m₁ ++ m₂ by List.take_append_drop. Use List.forall₂_take and List.forall₂_drop, plus List.take_append (taking l₁.length from l₁ ++ l₂ gives l₁) and List.drop_append (dropping l₁.length from l₁ ++ l₂ gives l₂).
 -/
 private lemma forall₂_append_split {α β : Type} {R : α → β → Prop} {l₁ l₂ : List α} {m : List β}
     (h : List.Forall₂ R (l₁ ++ l₂) m) :
@@ -595,11 +537,7 @@ private lemma forall₂_append_split {α β : Type} {R : α → β → Prop} {l�
       grind
 
 /-
-PROBLEM
 The wrap_symbol₁ nonterminal Sum.inl (some (Sum.inl n₁)) cannot correspond to any wrap_symbol₂ output
-
-PROVIDED SOLUTION
-Cases on s₂. For terminal t: wrap_symbol₂ = nonterminal (Sum.inr (Sum.inr t)), corresponding_symbols with nonterminal (Sum.inl (some (Sum.inl n₁))) is False by definition. For nonterminal n: wrap_symbol₂ = nonterminal (Sum.inl (some (Sum.inr n))), corresponding_symbols with nonterminal (Sum.inl (some (Sum.inl n₁))) is False by definition.
 -/
 private lemma no_wrap₂_corr_sum_inl_inl {n₁ : N₁} {s₂ : symbol T N₂} :
     ¬ corresponding_symbols (wrap_symbol₂ N₁ s₂)
@@ -607,11 +545,7 @@ private lemma no_wrap₂_corr_sum_inl_inl {n₁ : N₁} {s₂ : symbol T N₂} :
         cases s₂ <;> aesop
 
 /-
-PROBLEM
 Symmetric: wrap_symbol₂ nonterminal Sum.inl (some (Sum.inr n₂)) cannot correspond to any wrap_symbol₁ output
-
-PROVIDED SOLUTION
-Cases on s₁. For terminal t: wrap_symbol₁ = nonterminal (Sum.inr (Sum.inl t)), corresponding_symbols with nonterminal (Sum.inl (some (Sum.inr n₂))) is False. For nonterminal n: wrap_symbol₁ = nonterminal (Sum.inl (some (Sum.inl n))), corresponding_symbols with nonterminal (Sum.inl (some (Sum.inr n₂))) is False.
 -/
 private lemma no_wrap₁_corr_sum_inl_inr {n₂ : N₂} {s₁ : symbol T N₁} :
     ¬ corresponding_symbols (wrap_symbol₁ N₂ s₁)
@@ -619,11 +553,7 @@ private lemma no_wrap₁_corr_sum_inl_inr {n₂ : N₂} {s₁ : symbol T N₁} :
         cases s₁ <;> aesop
 
 /-
-PROBLEM
 If corresponding_strings (map wrap₁ x ++ map wrap₂ y) a, then filterMap unwrap₁ (take x.length a) = x
-
-PROVIDED SOLUTION
-Use corresponding_strings_take x.length h. This gives corresponding_strings (take x.length (map wrap₁ x ++ map wrap₂ y)) (take x.length a). Since |map wrap₁ x| = x.length, take x.length (map wrap₁ x ++ map wrap₂ y) = map wrap₁ x (by List.take_left). So we get corresponding_strings (map wrap₁ x) (take x.length a). Then apply filter_map_unwrap_of_corresponding_strings₁.
 -/
 private lemma x_from_take_filterMap
     {x : List (symbol T N₁)} {y : List (symbol T N₂)}
@@ -635,11 +565,7 @@ private lemma x_from_take_filterMap
       simp +decide [ List.take_append ]
 
 /-
-PROBLEM
 Symmetric: filterMap unwrap₂ (drop x.length a) = y
-
-PROVIDED SOLUTION
-Use corresponding_strings_drop x.length h. This gives corresponding_strings (drop x.length (map wrap₁ x ++ map wrap₂ y)) (drop x.length a). Since |map wrap₁ x| = x.length, drop x.length (map wrap₁ x ++ map wrap₂ y) = map wrap₂ y (by List.drop_left). So we get corresponding_strings (map wrap₂ y) (drop x.length a). Then apply filter_map_unwrap_of_corresponding_strings₂.
 -/
 private lemma y_from_drop_filterMap
     {x : List (symbol T N₁)} {y : List (symbol T N₂)}
@@ -651,21 +577,7 @@ private lemma y_from_drop_filterMap
       simp +decide [ List.drop_append ]
 
 /-
-PROBLEM
 The rule pattern from g₁ (wrapped) fits entirely within the first x.length elements
-
-PROVIDED SOLUTION
-By contradiction. Assume u.length + r₁.input_L.length + 1 + r₁.input_R.length > x.length. Then position p = u.length + r₁.input_L.length (the nonterminal position) satisfies p ≥ x.length (since p + 1 ≤ u.length + r₁.input_L.length + 1 + r₁.input_R.length > x.length, so p ≥ x.length).
-
-At position p in a (from bef), a[p] = symbol.nonterminal (Sum.inl (some (Sum.inl r₁.input_N))).
-
-From ih_concat, at position p, the corresponding element in (map wrap₁ x ++ map wrap₂ y) is at position p. Since p ≥ x.length = |map wrap₁ x|, this element is in map wrap₂ y, specifically (map wrap₂ y)[p - x.length] = wrap_symbol₂ N₁ (y[p - x.length]).
-
-So corresponding_symbols (wrap_symbol₂ N₁ (y[p - x.length])) (nt (Sum.inl (some (Sum.inl r₁.input_N)))) holds.
-
-But this contradicts no_wrap₂_corr_sum_inl_inl.
-
-Use corresponding_strings_nth_le or List.Forall₂ indexed access to get the element at position p.
 -/
 private lemma rule_in_first_half
     {x : List (symbol T N₁)} {y : List (symbol T N₂)}
@@ -689,21 +601,7 @@ private lemma rule_in_first_half
       · exact no_wrap₂_corr_sum_inl_inl this
 
 /-
-PROBLEM
 Symmetric: rule from g₂ fits in the last y.length elements (i.e., starts at or after x.length)
-
-PROVIDED SOLUTION
-By contradiction. Assume x.length > u.length. Then position p = u.length + r₂.input_L.length (the nonterminal position) satisfies p ≤ u.length + r₂.input_L.length.
-
-Actually, even just the nonterminal at position u.length + r₂.input_L.length: from bef, a[u.length + r₂.input_L.length] = symbol.nonterminal (Sum.inl (some (Sum.inr r₂.input_N))).
-
-If this position < x.length, then in the reference list (map wrap₁ x ++ map wrap₂ y), the element at this position is (map wrap₁ x)[u.length + r₂.input_L.length] = wrap_symbol₁ N₂ (x[...]).
-
-So corresponding_symbols (wrap_symbol₁ N₂ (...)) (nt (Sum.inl (some (Sum.inr r₂.input_N)))) holds.
-
-But this contradicts no_wrap₁_corr_sum_inl_inr.
-
-Actually the argument needs more care: we need u.length + r₂.input_L.length < x.length. Since x.length > u.length and r₂.input_L.length ≥ 0, we need x.length > u.length but u.length + r₂.input_L.length could be ≥ x.length. Let me fix: if u.length < x.length, then at position u.length in a, a[u.length] is the first element of r₂.input_L (if nonempty) or the nonterminal (if input_L is empty). If r₂.input_L is empty, the nonterminal is at position u.length < x.length, and we use no_wrap₁_corr_sum_inl_inr as above. If r₂.input_L is nonempty, at position u.length we have (map wrap₂ r₂.input_L)[0] = wrap_symbol₂ N₁ (r₂.input_L[0]), which is a wrap₂ output. The reference at position u.length < x.length is (map wrap₁ x)[u.length] = wrap_symbol₁ N₂ (x[u.length]). So corresponding_symbols (wrap_symbol₁ N₂ (...)) (wrap_symbol₂ N₁ (...)), which contradicts corresponding_symbols_never₂ (noting the order: corresponding_symbols (wrap₁ ...) (wrap₂ ...)). Wait, corresponding_symbols_never₂ says ¬ corresponding_symbols (wrap₂ ...) (wrap₁ ...). The order matters. Let me check: ih_concat says Forall₂ corresponding_symbols ref a, so corresponding_symbols (ref[i]) (a[i]). At position i = u.length, ref[i] = wrap₁ x[u.length], a[i] = wrap₂ r₂.input_L[0]. So corresponding_symbols (wrap₁ ...) (wrap₂ ...), which is ¬ by corresponding_symbols_never₁. Use that.
 -/
 private lemma rule_in_second_half
     {x : List (symbol T N₁)} {y : List (symbol T N₂)}
@@ -728,12 +626,8 @@ private lemma rule_in_second_half
       exact le_of_not_gt h_p_le_x
 
 /-
-PROBLEM
 Pure list fact: take of a concatenation u ++ L ++ [n] ++ R ++ v when the take length
 exceeds u ++ L ++ [n] ++ R
-
-PROVIDED SOLUTION
-Since |u| + |L| + 1 + |R| ≤ m, taking m elements from u ++ L ++ [n] ++ R ++ v first takes all of u (|u| elements), then all of L (|L| elements), then [n] (1 element), then all of R (|R| elements), and then m - |u| - |L| - 1 - |R| elements from v. Use List.take_append_of_le_length repeatedly, or simp with List.take_append, List.length_append.
 -/
 private lemma take_of_append_five {α : Type} {u L : List α} {n : α} {R v : List α} {m : ℕ}
     (h_le : u.length + L.length + 1 + R.length ≤ m) :
@@ -742,10 +636,6 @@ private lemma take_of_append_five {α : Type} {u L : List α} {n : α} {R v : Li
         rw [ List.take_append, List.take_append, List.take_append, List.take_append ] ; simp +arith +decide [ * ] ; ring;
         rw [ List.take_of_length_le, List.take_of_length_le, List.take_of_length_le ] <;> norm_num <;> omega;
 
-/-
-PROVIDED SOLUTION
-Since |u| + |L| + 1 + |R| ≤ m ≤ |u| + |L| + 1 + |R| + |v|, dropping m elements from u ++ L ++ [n] ++ R ++ v first drops all of u, L, [n], R, then drops m - |u| - |L| - 1 - |R| elements from v. Use List.drop_append_of_le_length or omega/simp.
--/
 private lemma drop_of_append_five {α : Type} {u L : List α} {n : α} {R v : List α} {m : ℕ}
     (h_le : u.length + L.length + 1 + R.length ≤ m)
     (h_le2 : m ≤ u.length + L.length + 1 + R.length + v.length) :
@@ -758,24 +648,6 @@ end helpers_for_induction_steps
 
 section very_complicated
 
-/-
-PROVIDED SOLUTION
-1. obtain ⟨r₁, hr₁_mem, rfl⟩ from List.mem_map.mp rin. simp only [wrap_grule₁] at bef aft.
-2. have h_le := rule_in_first_half ih_concat bef.
-3. set v₁ := take (x.length - (u.length + r₁.input_L.length + 1 + r₁.input_R.length)) v, v₂ := drop ... v.
-4. Show take x.length a = u ++ map wrap₁ r₁.input_L ++ [nt (Sum.inl (some (Sum.inl r₁.input_N)))] ++ map wrap₁ r₁.input_R ++ v₁ using take_of_append_five on bef.
-5. Show drop x.length a = v₂ using drop_of_append_five on bef.
-6. Get h_corr_take from corresponding_strings_take and h_corr_drop from corresponding_strings_drop of ih_concat (using simp [List.take_left/drop_left]).
-7. Get h_x_eq using filter_map_unwrap_of_corresponding_strings₁ on the take correspondence.
-8. Simplify h_x_eq using filterMap_append, unwrap_wrap₁_string to get x = filterMap u ++ r₁.input_L ++ [nt r₁.input_N] ++ r₁.input_R ++ filterMap v₁.
-9. Witness x' = filterMap unwrap₁ u ++ r₁.output_string ++ filterMap unwrap₁ v₁.
-10. grammar_transforms via ⟨r₁, hr₁_mem, filterMap u, filterMap v₁, h_x_decomp, rfl⟩.
-11. Correspondence: rw [aft, v=v₁++v₂], simp [List.map_append, List.append_assoc], then apply corresponding_strings_append 3 times for 4 parts:
-   (a) map wrap₁ (filterMap unwrap₁ u) ~ u: use corresponding_string_after_wrap_unwrap_self₁ with witness from corresponding_strings_take u.length on the take-correspondence (need List.map_take to convert)
-   (b) map wrap₁ r₁.output_string ~ map wrap₁ r₁.output_string: corresponding_strings_self
-   (c) map wrap₁ (filterMap unwrap₁ v₁) ~ v₁: corresponding_string_after_wrap_unwrap_self₁ with witness from corresponding_strings_drop plen on take-correspondence (need List.map_drop to convert)
-   (d) map wrap₂ y ~ v₂: from corresponding_strings_drop of ih_concat
--/
 set_option maxHeartbeats 800000 in
 private lemma induction_step_for_lifted_rule_from_g₁
     {g₁ g₂ : grammar T}
@@ -866,27 +738,6 @@ by
   rw [h_x_eq] at ih_x;
   exact grammar_deri_of_deri_tran ih_x ( by exact ⟨ r₁, hr₁_mem, List.filterMap unwrap_symbol₁ u, List.filterMap unwrap_symbol₁ v₁, rfl, rfl ⟩ )
 
-/-
-PROVIDED SOLUTION
-Mirror of `induction_step_for_lifted_rule_from_g₁` (proved just above), with g₁↔g₂ swapped. Use `by_contra h_contra'`.
-
-1. `obtain ⟨r₂, hr₂_mem, rfl⟩ := List.mem_map.mp rin` to get the original g₂ rule.
-2. `rule_in_second_half ih_concat bef` gives `h_le : x.length ≤ u.length`.
-3. Set `u₁ := List.take x.length u`, `u₂ := List.drop x.length u`.
-4. Show `h_take : List.take x.length a = u₁` by rewriting bef and using that x.length ≤ u.length (so take x.length (u ++ ...) = take x.length u = u₁). Use `List.take_append_of_le_length` or just simp.
-5. Show `h_drop : List.drop x.length a = u₂ ++ (List.map (wrap_symbol₂ g₁.nt) r₂.input_L) ++ [symbol.nonterminal (Sum.inl (some (Sum.inr r₂.input_N)))] ++ (List.map (wrap_symbol₂ g₁.nt) r₂.input_R) ++ v` by similar reasoning (drop x.length (u ++ ...) = drop x.length u ++ ... since x.length ≤ u.length).
-6. Get `h_take_corr` from `corresponding_strings_take x.length ih_concat` and simplify with `List.take_left`.
-7. Get `h_drop_corr` from `corresponding_strings_drop x.length ih_concat` and simplify with `List.drop_left`.
-8. Get `h_y_eq` using `y_from_drop_filterMap ih_concat` giving `y = filterMap unwrap₂ (drop x.length a)`. Then rewrite h_drop into h_y_eq: `y = filterMap unwrap₂ u₂ ++ r₂.input_L ++ [nt r₂.input_N] ++ r₂.input_R ++ filterMap unwrap₂ v` (using filterMap_append, unwrap_wrap₂_string, and the identity `unwrap_symbol₂ ∘ wrap_symbol₂ g₁.nt = Option.some`).
-9. Witness `y' = filterMap unwrap₂ u₂ ++ r₂.output_string ++ filterMap unwrap₂ v`.
-10. Show grammar_transforms via `⟨r₂, hr₂_mem, filterMap unwrap₂ u₂, filterMap unwrap₂ v, h_y_eq, rfl⟩`.
-11. Show new correspondence for b using corresponding_strings_append:
-   (a) map wrap₁ x ~ u₁: from h_take_corr
-   (b) map wrap₂ (filterMap unwrap₂ u₂) ~ u₂: corresponding_string_after_wrap_unwrap_self₂
-   (c) map wrap₂ r₂.output_string ~ (wrap_grule₂ g₁.nt r₂).output_string: corresponding_strings_self
-   (d) map wrap₂ (filterMap unwrap₂ v) ~ v: corresponding_string_after_wrap_unwrap_self₂
-   Then b = u₁ ++ u₂ ++ wrap₂ r₂.output_string ++ v by rewriting aft and u = u₁ ++ u₂.
--/
 set_option maxHeartbeats 800000 in
 private lemma induction_step_for_lifted_rule_from_g₂
     {g₁ g₂ : grammar T}
@@ -964,33 +815,17 @@ by
       exact corresponding_strings_self;
     exact corresponding_strings_append h_take ( corresponding_strings_append h_drop ( corresponding_strings_append h_drop'' h_drop' ) )
 
-/-
-PROVIDED SOLUTION
-Cases on s: terminal t gives nt (Sum.inr (Sum.inl t)) ≠ nt (Sum.inl none), nonterminal n gives nt (Sum.inl (some (Sum.inl n))) ≠ nt (Sum.inl none). Both are straightforward by definition.
--/
 private lemma no_none_in_wrapped₁ {N₁ N₂ : Type} (s : symbol T N₁) :
     wrap_symbol₁ N₂ s ≠ symbol.nonterminal (Sum.inl none) := by
   cases s <;> simp +decide [ * ];
   · exact fun h => by cases h;
   · grind +locals
 
-/-
-PROVIDED SOLUTION
-Cases on s: terminal t gives nt (Sum.inr (Sum.inr t)) ≠ nt (Sum.inl none), nonterminal n gives nt (Sum.inl (some (Sum.inr n))) ≠ nt (Sum.inl none). Both are straightforward.
--/
 private lemma no_none_in_wrapped₂ {N₁ N₂ : Type} (s : symbol T N₂) :
     wrap_symbol₂ N₁ s ≠ symbol.nonterminal (Sum.inl none) := by
   cases s <;> simp_all +decide [ wrap_symbol₂ ];
   grind +ring
 
-/-
-PROVIDED SOLUTION
-The rule replaces nt (Sum.inr (Sum.inl t)) with terminal t in the string, at position u.length. corresponding_symbols maps (Sum.inr (Sum.inl t)) to terminal t' when t = t', so replacing one with the other preserves the correspondence.
-
-Use corresponding_strings = List.Forall₂ corresponding_symbols. From ih_concat and bef, we have Forall₂ relation on a. For b, the only change is at position u.length where nt (Sum.inr (Sum.inl t)) becomes terminal t. By definition of corresponding_symbols, corresponding_symbols (nt (Sum.inr (Sum.inl t))) (terminal t) holds (since t = t), so the correspondence is preserved.
-
-Concretely: split a at position u.length using corresponding_strings_take and corresponding_strings_drop. In bef, the element at position u.length is nt (Sum.inr (Sum.inl t)). In the reference string (map wrap₁ x ++ map wrap₂ y), the element at that position has corresponding_symbols with nt (Sum.inr (Sum.inl t)), and by definition of corresponding_symbols, it also has corresponding_symbols with terminal t. Then reassemble using corresponding_strings_append.
--/
 private lemma induction_step_for_terminal_rule₁
     {g₁ g₂ : grammar T}
     {a b u v : List (nst T g₁.nt g₂.nt)}
@@ -1019,10 +854,6 @@ private lemma induction_step_for_terminal_rule₁
     unfold corresponding_symbols at * ; aesop;
   convert corresponding_strings_append hl₂.2.1 h_replace using 1 ; aesop
 
-/-
-PROVIDED SOLUTION
-Exactly symmetric to induction_step_for_terminal_rule₁ (proved just above). The rule replaces nt (Sum.inr (Sum.inr t)) with terminal t. By definition of corresponding_symbols, corresponding_symbols (nt (Sum.inr (Sum.inr t))) (terminal t) holds when t = t. Same approach: split the correspondence at position u.length, show the head element correspondence is preserved (Sum.inr (Sum.inr t) ↔ terminal t), reassemble with corresponding_strings_append.
--/
 private lemma induction_step_for_terminal_rule₂
     {g₁ g₂ : grammar T}
     {a b u v : List (nst T g₁.nt g₂.nt)}
@@ -1046,24 +877,6 @@ private lemma induction_step_for_terminal_rule₂
     unfold corresponding_symbols at * ; aesop;
   · grind +splitIndPred
 
-/-
-PROVIDED SOLUTION
-Induction on the derivation `ass` using `induction ass`.
-
-Base case (refl): x = [nt g₁.initial], y = [nt g₂.initial], grammar_deri_self for both, and corresponding_strings holds by corresponding_strings_self since map wrap₁ [nt g₁.initial] ++ map wrap₂ [nt g₂.initial] equals the starting string.
-
-Inductive case (tail): We have v →* w₁ (by ih) and w₁ →₁ w (step). By ih, get x, y with the invariant for w₁. Extract the rule r from the step: ⟨r, r_in, u, v', bef, aft⟩.
-
-Case split on r_in. The rules of big_grammar are:
-- Initial rule (head): r.input_N = Sum.inl none, r.input_L = [], r.input_R = []. This is impossible because bef says w₁ contains [nt (Sum.inl none)], but from the invariant all symbols in w₁ are wrapped (corresponding to wrap₁ or wrap₂ outputs), and neither produces Sum.inl none (by no_none_in_wrapped₁/₂). Show this by: the reference string (map wrap₁ x ++ map wrap₂ y) has length = w₁.length (from corresponding_strings_length). At position u.length, w₁[u.length] = nt (Sum.inl none). The reference at that position is either wrap₁ (x[...]) or wrap₂ (y[...]). Use corresponding_strings_nth_le to get corresponding_symbols (ref[u.length]) (nt (Sum.inl none)). But ref[u.length] is some wrap₁ or wrap₂ output, and none of them can have corresponding_symbols with nt (Sum.inl none). More directly: from List.Forall₂, every element of w₁ corresponds to an element of the reference string. Show that nt (Sum.inl none) cannot correspond to any wrap₁ or wrap₂ symbol.
-
-- Rules from g₁ (in map wrap_grule₁): use induction_step_for_lifted_rule_from_g₁ to get new x', keep y.
-- Rules from g₂ (in map wrap_grule₂): use induction_step_for_lifted_rule_from_g₂ to get new y', keep x.
-- Terminal rules from g₁ (in rules_for_terminals₁): use induction_step_for_terminal_rule₁, keep same x, y.
-- Terminal rules from g₂ (in rules_for_terminals₂): use induction_step_for_terminal_rule₂, keep same x, y.
-
-For the membership case analysis: `List.mem_cons` gives initial rule ∨ rest. Then `List.mem_append` splits rest into (g₁_rules ++ g₂_rules) and (terminal_rules₁ ++ terminal_rules₂), etc.
--/
 set_option maxHeartbeats 800000 in
 private lemma big_induction
     {g₁ g₂ : grammar T}
@@ -1109,31 +922,6 @@ by
                   · exact False.elim <| hr₁.2.1 a ha rfl rfl rfl rfl;
   exact Exists.elim ( h_ind ass ) fun x hx => Exists.elim hx fun y hy => Exists.elim hy fun z hz => ⟨ x, z, hz.1, hz.2.1, hz.2.2 ⟩
 
-/-
-PROVIDED SOLUTION
-1. Unfold grammar_language at ass to get: grammar_derives (big_grammar g₁ g₂) [nt (big_grammar g₁ g₂).initial] (map terminal w), where (big_grammar g₁ g₂).initial = Sum.inl none.
-
-2. The first step of any derivation from [nt (Sum.inl none)] must use the initial rule, giving [nt (Sum.inl (some (Sum.inl g₁.initial))), nt (Sum.inl (some (Sum.inr g₂.initial)))]. Use first_transformation or show this directly.
-
-3. Apply big_induction to the remaining derivation to get x, y with grammar_derives g₁ ... x, grammar_derives g₂ ... y, and corresponding_strings (map wrap₁ x ++ map wrap₂ y) (map terminal w).
-
-4. Since the final string is all terminals (map terminal w), and corresponding_strings relates each wrapped symbol to the terminal, unwrap to get that x = map terminal w₁ and y = map terminal w₂ for some w₁, w₂ with w = w₁ ++ w₂.
-
-5. Use x_from_take_filterMap and y_from_drop_filterMap, plus the fact that filterMap unwrap₁ (map terminal w) = w (since unwrap_symbol₁ (terminal t) = some (terminal t)) to extract w₁ and w₂.
-
-6. Conclude w₁ ∈ grammar_language g₁ and w₂ ∈ grammar_language g₂, so w ∈ L(g₁) * L(g₂).
-
-Actually, a cleaner approach:
-- From ass, we get grammar_derives (big_grammar g₁ g₂) [nt initial] (map terminal w).
-- The initial step gives grammar_transforms to [nt (Sum.inl (some (Sum.inl g₁.initial))), nt (Sum.inl (some (Sum.inr g₂.initial)))].
-- We need to extract this. Use the fact that grammar_derives has either refl or tail cases. In the refl case, [nt initial] = map terminal w is impossible. In the tail case, the first step must use the initial rule (the only rule with input_N = Sum.inl none).
-- Then apply big_induction to get x, y with the invariant.
-- Since the final word is map terminal w, corresponding_strings (map wrap₁ x ++ map wrap₂ y) (map terminal w).
-- For each position, corresponding_symbols (wrap_X s) (terminal t) implies t equals the terminal embedded in s, which means s was terminal t itself.
-- So x = map terminal w₁, y = map terminal w₂ for appropriate w₁, w₂ with w = w₁ ++ w₂.
-
-Actually simplest: extract the derivation from the initial state, show it goes through the two-symbol state, then apply big_induction. The result gives x, y plus correspondence with map terminal w. Use the correspondence to split w into w₁ ++ w₂ and conclude.
--/
 set_option maxHeartbeats 800000 in
 lemma in_concatenated_of_in_big
     {g₁ g₂ : grammar T}
@@ -1211,13 +999,7 @@ end very_complicated
 end hard_direction
 
 /-
-PROBLEM
 The class of recursively-enumerable languages is closed under concatenation.
-
-PROVIDED SOLUTION
-From the hypotheses, extract g₁ with grammar_language g₁ = L₁ and g₂ with grammar_language g₂ = L₂. Witness big_grammar g₁ g₂. Show grammar_language (big_grammar g₁ g₂) = L₁ * L₂ using Set.Subset.antisymm with the two directions:
-- Forward: use in_concatenated_of_in_big (rewriting L₁ and L₂)
-- Backward: use in_big_of_in_concatenated (rewriting L₁ and L₂)
 -/
 theorem RE_of_RE_c_RE (L₁ : Language T) (L₂ : Language T) :
   is_RE L₁  ∧  is_RE L₂   →   is_RE (L₁ * L₂)   :=

@@ -195,15 +195,7 @@ lemma node_derives_right {n c₁ c₂ : g.NT} {t₁ : parseTree c₁}
 /-! ## Helper lemmas for extending Ogden results through nodes -/
 
 /-
-PROBLEM
 Extend a Left Ogden result from the left child through a node.
-
-PROVIDED SOLUTION
-Take u' = u, v' = v, x' = x, y' = y, z' = z ++ t₂.yield.
-- yield: (node t₁ t₂ hnc).yield = t₁.yield ++ t₂.yield = (u ++ v ++ x ++ y ++ z) ++ t₂.yield = u ++ v ++ x ++ y ++ (z ++ t₂.yield). Done by List.append_assoc.
-- marked count: same offsets since u' = u, v' = v, etc. Direct from hmark.
-- bound: same offsets. Direct from hbound.
-- pump: For each i, hpump i gives g.Derives [c₁] ((u ++ v^+^i ++ x ++ y^+^i ++ z).map terminal). Apply node_derives_left hnc to get g.Derives [n] ((u ++ v^+^i ++ x ++ y^+^i ++ z).map terminal ++ t₂.yield.map terminal). Then rewrite: (u ++ v^+^i ++ x ++ y^+^i ++ z).map terminal ++ t₂.yield.map terminal = (u ++ v^+^i ++ x ++ y^+^i ++ (z ++ t₂.yield)).map terminal.
 -/
 lemma ogden_extend_left_via_left {n c₁ c₂ : g.NT}
     {t₁ : parseTree c₁} {t₂ : parseTree c₂}
@@ -234,15 +226,7 @@ lemma ogden_extend_left_via_left {n c₁ c₂ : g.NT}
     convert rfl using 1)
 
 /-
-PROBLEM
 Extend a Left Ogden result from the right child through a node.
-
-PROVIDED SOLUTION
-Take u' = t₁.yield ++ u, v' = v, x' = x, y' = y, z' = z.
-- yield: (node t₁ t₂ hnc).yield = t₁.yield ++ t₂.yield = t₁.yield ++ (u ++ v ++ x ++ y ++ z) = (t₁.yield ++ u) ++ v ++ x ++ y ++ z.
-- marked count: offset + u'.length = offset + t₁.yield.length + u.length. Same as hmark.
-- bound: same.
-- pump: For each i, hpump i gives g.Derives [c₂] ((u ++ v^+^i ++ x ++ y^+^i ++ z).map terminal). Apply node_derives_right hnc to get g.Derives [n] (t₁.yield.map terminal ++ (u ++ v^+^i ++ x ++ y^+^i ++ z).map terminal). Then rewrite: = ((t₁.yield ++ u) ++ v^+^i ++ x ++ y^+^i ++ z).map terminal.
 -/
 lemma ogden_extend_left_via_right {n c₁ c₂ : g.NT}
     {t₁ : parseTree c₁} {t₂ : parseTree c₂}
@@ -272,14 +256,7 @@ lemma ogden_extend_left_via_right {n c₁ c₂ : g.NT}
     convert node_derives_right hnc ( hpump i ) using 1
 
 /-
-PROBLEM
 Extend a Right Ogden result from the left child through a node.
-
-PROVIDED SOLUTION
-Take n'' = n', p'' = p', u₂ = u₁, z₂ = z₁ ++ t₂.yield.
-- yield: (node t₁ t₂ hnc).yield = t₁.yield ++ t₂.yield = (u₁ ++ p'.yield ++ z₁) ++ t₂.yield = u₁ ++ p'.yield ++ (z₁ ++ t₂.yield).
-- mc: p''.mc P (offset + u₂.length) = p'.mc P (offset + u₁.length) > 0. Direct.
-- derives: Apply node_derives_left hnc to hderiv: g.Derives [n] ((u₁.map terminal ++ [nonterminal n'] ++ z₁.map terminal) ++ t₂.yield.map terminal). Rewrite = u₁.map terminal ++ [nonterminal n'] ++ (z₁ ++ t₂.yield).map terminal.
 -/
 lemma ogden_extend_right_via_left {n c₁ c₂ : g.NT}
     {t₁ : parseTree c₁} {t₂ : parseTree c₂}
@@ -304,14 +281,7 @@ lemma ogden_extend_right_via_left {n c₁ c₂ : g.NT}
     congr! 1
 
 /-
-PROBLEM
 Extend a Right Ogden result from the right child through a node.
-
-PROVIDED SOLUTION
-Take n'' = n', p'' = p', u₂ = t₁.yield ++ u₁, z₂ = z₁.
-- yield: (node t₁ t₂ hnc).yield = t₁.yield ++ t₂.yield = t₁.yield ++ (u₁ ++ p'.yield ++ z₁) = (t₁.yield ++ u₁) ++ p'.yield ++ z₁.
-- mc: p''.mc P (offset + u₂.length) = p'.mc P (offset + t₁.yield.length + u₁.length) > 0.
-- derives: Apply node_derives_right hnc to hderiv: g.Derives [n] (t₁.yield.map terminal ++ (u₁.map terminal ++ [nonterminal n'] ++ z₁.map terminal)). Rewrite = (t₁.yield ++ u₁).map terminal ++ [nonterminal n'] ++ z₁.map terminal.
 -/
 lemma ogden_extend_right_via_right {n c₁ c₂ : g.NT}
     {t₁ : parseTree c₁} {t₂ : parseTree c₂}
@@ -337,44 +307,8 @@ lemma ogden_extend_right_via_right {n c₁ c₂ : g.NT}
     congr! 1
 
 /-
-PROBLEM
 Construct an Ogden Left result from a collision with n in the left child,
     when both children have marked positions (branching node).
-
-PROVIDED SOLUTION
-Take u = [], v = u₁, x = p'.yield, y = z₁ ++ t₂.yield, z = [].
-
-Yield: (node t₁ t₂ hnc).yield = t₁.yield ++ t₂.yield = (u₁ ++ p'.yield ++ z₁) ++ t₂.yield = [] ++ u₁ ++ p'.yield ++ (z₁ ++ t₂.yield) ++ [].
-
-Marked count: We need 0 < countMarkedIn P (offset + 0) u₁.length + countMarkedIn P (offset + u₁.length + p'.yield.length) (z₁ ++ t₂.yield).length.
-The second term counts marked positions in z₁ ++ t₂.yield at the correct offset.
-Note: offset + u₁.length + p'.yield.length = offset + (u₁ ++ p'.yield).length, and (z₁ ++ t₂.yield) starts at offset + u₁.length + p'.yield.length.
-By countMarkedIn_add, countMarkedIn on z₁ ++ t₂.yield = countMarkedIn on z₁ + countMarkedIn on t₂.yield.
-Since t₂.mc P (offset + t₁.yield.length) > 0 (by hmc₂), and t₁.yield = u₁ ++ p'.yield ++ z₁, we have t₁.yield.length = u₁.length + p'.yield.length + z₁.length. So the t₂ marked count starts at offset + u₁.length + p'.yield.length + z₁.length. This is exactly countMarkedIn P (offset + u₁.length + p'.yield.length + z₁.length) t₂.yield.length > 0. So the total on y is ≥ countMarkedIn on t₂.yield > 0.
-
-Bound: countMarkedIn P offset (u₁.length + p'.yield.length + (z₁ ++ t₂.yield).length) = countMarkedIn P offset (t₁.yield.length + t₂.yield.length) = mc(node t₁ t₂ hnc) ≤ 2^generators.card.
-
-Pump: From hderiv₁, g.Derives [c₁] (u₁.map terminal ++ [nonterminal n] ++ z₁.map terminal).
-By node_derives_left hnc: g.Derives [n] (u₁.map terminal ++ [nonterminal n] ++ z₁.map terminal ++ t₂.yield.map terminal).
-Rewrite: = u₁.map terminal ++ [nonterminal n] ++ (z₁ ++ t₂.yield).map terminal.
-
-So g.Derives [nonterminal n] (u₁.map terminal ++ [nonterminal n] ++ (z₁ ++ t₂.yield).map terminal).
-
-By pumping_string, for each i: g.Derives [n] (u₁^+^i.map terminal ++ [nonterminal n] ++ (z₁ ++ t₂.yield)^+^i.map terminal).
-
-Then compose with p'.yield_derives (g.Derives [n] (p'.yield.map terminal)):
-g.Derives [n] (u₁^+^i.map terminal ++ p'.yield.map terminal ++ (z₁ ++ t₂.yield)^+^i.map terminal).
-
-Rewrite: = ([] ++ u₁^+^i ++ p'.yield ++ (z₁ ++ t₂.yield)^+^i ++ []).map terminal.
-
-Use the Derives.append_left and Derives.append_right to compose.
-
-Actually, more precisely: pumping_string gives Derives on lists of Symbol (mixed terminal/nonterminal). From pumping_string we get:
-g.Derives [nonterminal n] (u₁.map terminal ^+^ i ++ [nonterminal n] ++ (z₁ ++ t₂.yield).map terminal ^+^ i)
-
-Then use Derives.trans with (Derives.append_left p'.yield_derives (u₁.map terminal ^+^ i)).append_right ((z₁ ++ t₂.yield).map terminal ^+^ i).
-
-And use nTimes_map to rewrite u₁.map terminal ^+^ i = (u₁ ^+^ i).map terminal, etc.
 -/
 lemma ogden_pump_from_left {n c₁ c₂ : g.NT}
     {t₁ : parseTree c₁} {t₂ : parseTree c₂}
@@ -414,27 +348,8 @@ lemma ogden_pump_from_left {n c₁ c₂ : g.NT}
     grind +suggestions
 
 /-
-PROBLEM
 Construct an Ogden Left result from a collision with n in the right child,
     when both children have marked positions (branching node).
-
-PROVIDED SOLUTION
-Take u = [], v = t₁.yield ++ u₁, x = p'.yield, y = z₁, z = [].
-
-Yield: (node t₁ t₂ hnc).yield = t₁.yield ++ t₂.yield = t₁.yield ++ (u₁ ++ p'.yield ++ z₁) = [] ++ (t₁.yield ++ u₁) ++ p'.yield ++ z₁ ++ [].
-
-Marked count: We need 0 < countMarkedIn P offset (t₁.yield ++ u₁).length + countMarkedIn P (offset + (t₁.yield ++ u₁).length + p'.yield.length) z₁.length.
-The first term counts marked positions in t₁.yield ++ u₁. Since hmc₁ > 0, t₁.mc P offset > 0 means countMarkedIn P offset t₁.yield.length > 0. Since (t₁.yield ++ u₁).length ≥ t₁.yield.length, by countMarkedIn_mono_len, countMarkedIn P offset (t₁.yield ++ u₁).length ≥ countMarkedIn P offset t₁.yield.length > 0.
-
-Bound: countMarkedIn P offset ((t₁.yield ++ u₁).length + p'.yield.length + z₁.length) = countMarkedIn P offset (t₁.yield.length + t₂.yield.length) = mc(node t₁ t₂ hnc) ≤ 2^generators.card.
-
-Pump: From hderiv₂, g.Derives [c₂] (u₁.map terminal ++ [nonterminal n] ++ z₁.map terminal).
-By node_derives_right hnc: g.Derives [n] (t₁.yield.map terminal ++ (u₁.map terminal ++ [nonterminal n] ++ z₁.map terminal)).
-Rewrite: = (t₁.yield ++ u₁).map terminal ++ [nonterminal n] ++ z₁.map terminal.
-
-By pumping_string, for each i: g.Derives [n] ((t₁.yield ++ u₁).map terminal ^+^ i ++ [nonterminal n] ++ z₁.map terminal ^+^ i).
-Then compose with p'.yield_derives using append_left/right.
-Use nTimes_map to convert.
 -/
 lemma ogden_pump_from_right {n c₁ c₂ : g.NT}
     {t₁ : parseTree c₁} {t₂ : parseTree c₂}
@@ -589,52 +504,7 @@ lemma ogdens_marked_path_decomp {n : g.NT} (p : parseTree n)
 /-! ## Navigation to bounded-markedHeight subtree -/
 
 /-
-PROBLEM
 Navigate along the marked path to find a subtree with `markedHeight = k`.
-
-PROVIDED SOLUTION
-By induction on the parse tree `p`.
-
-Base case (leaf): markedHeight of a leaf is 0, so k = 0 and the tree itself works (with u₀ = z₀ = []).
-
-Inductive case (node t₁ t₂ hnc): We have p = node t₁ t₂ hnc.
-Since hmc > 0, at least one child has mc > 0.
-
-Look at markedHeight of the node. It's defined by cases:
-- If both children have mc > 0, markedHeight = max(mh₁, mh₂) + 1
-- If only left has mc > 0, markedHeight = mh₁
-- If only right has mc > 0, markedHeight = mh₂
-
-Case 1: Both children have mc > 0. Then markedHeight(p) = max(mh₁, mh₂) + 1.
-  If k = 0: Take the tree p itself with u₀ = z₀ = []. But we need mh = k = 0, which would need max(mh₁,mh₂)+1 = 0, impossible.
-  Actually wait, if k ≤ markedHeight(p), and k = 0, we need to find a subtree with mh = 0. We can recurse deeper.
-
-  Actually, let me think more carefully. If k ≤ max(mh₁, mh₂) + 1:
-  - If k = max(mh₁, mh₂) + 1 = markedHeight(p), take the whole tree p itself.
-  - If k ≤ max(mh₁, mh₂), WLOG mh₁ ≥ mh₂ (so max = mh₁). Then k ≤ mh₁.
-    Since mc₁ > 0, apply IH to t₁. Get some subtree q of t₁ with markedHeight = k.
-    Then yield(p) = yield(t₁) ++ yield(t₂), and yield(t₁) = u₀ ++ yield(q) ++ z₀.
-    So yield(p) = u₀ ++ yield(q) ++ (z₀ ++ yield(t₂)), and the derivation extends via node_derives_left.
-
-Case 2: Only left child has mc > 0. Then markedHeight(p) = mh₁.
-  Apply IH to t₁. Get subtree. Extend with right child yield.
-
-Case 3: Only right child has mc > 0. Then markedHeight(p) = mh₂.
-  Apply IH to t₂. Get subtree. Extend with left child yield.
-
-For the derivation part, use `node_derives_left` or `node_derives_right` composed with the IH derivation.
-
-Actually, let me simplify the approach. The key insight is:
-
-If k = markedHeight(p), take q = p, u₀ = z₀ = []. This trivially works.
-
-If k < markedHeight(p), then p must be a node (since leaf has markedHeight 0, and if k < 0 that's impossible).
-For a node:
-- Follow the "marked path" to the child with higher markedHeight (or the one with mc > 0).
-- Recurse into that child.
-- Extend u₀ and z₀ appropriately.
-
-This gives a straightforward structural induction.
 -/
 lemma ogdens_restrict_mh {n : g.NT} (p : parseTree n)
     (P : ℕ → Prop) [DecidablePred P] (offset : ℕ) (k : ℕ)
@@ -688,21 +558,7 @@ lemma ogdens_restrict_mh {n : g.NT} (p : parseTree n)
 /-! ## Ogden's lemma for CNF grammars -/
 
 /-
-PROBLEM
 Ogden's lemma for CNF grammars. The pumping constant is `2 ^ g.generators.card`.
-
-PROVIDED SOLUTION
-1. Since hwg : w ∈ g.language, get a parse tree p with p.yield = w using Derives.yield (from hwg which gives g.Derives [nonterminal g.initial] (w.map terminal)).
-2. Since countMarkedIn P 0 w.length ≥ 2^generators.card, we have p.mc P 0 ≥ 2^generators.card (since mc = countMarkedIn by definition, and p.yield = w).
-3. From mc_implies_markedHeight, we get generators.card ≤ p.markedHeight P 0.
-4. Use ogdens_restrict_mh with k = generators.card to find a subtree q with markedHeight = generators.card and mc > 0 and mc ≤ 2^generators.card (from mc_le_pow_markedHeight).
-5. Apply ogdens_marked_path_decomp to q with s = ∅. Since generators.card ≤ q.markedHeight + 0 = generators.card, the precondition holds.
-6. Since s = ∅, the Right case is impossible (no n' ∈ ∅).
-7. So we get the Left case: decomposition of q.yield into u' v x y z' with the required properties.
-8. Since p.yield = u₀ ++ q.yield ++ z₀, we have w = u₀ ++ (u' ++ v ++ x ++ y ++ z') ++ z₀ = (u₀ ++ u') ++ v ++ x ++ y ++ (z' ++ z₀).
-9. Set u = u₀ ++ u', z = z' ++ z₀. The marked position properties transfer (adjusting offsets).
-10. For the pumping: the derivation from q's root gives pumped words, and the outer derivation (from g.initial to u₀ ++ [q's root] ++ z₀) wraps them.
-11. The pumped word is in g.language since we derive from g.initial.
 -/
 lemma ogdens_cnf {w : List T} (hwg : w ∈ g.language) (P : ℕ → Prop) [DecidablePred P]
     (hw : countMarkedIn P 0 w.length ≥ 2 ^ g.generators.card) :

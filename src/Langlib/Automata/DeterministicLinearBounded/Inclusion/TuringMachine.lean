@@ -141,11 +141,7 @@ noncomputable def tm0Init {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
 /-! ### Tape Helper Lemmas -/
 
 /-
-PROBLEM
 The `k`-th element of a tape obtained by moving right `k` times.
-
-PROVIDED SOLUTION
-By induction on k. Base case k=0: trivial (simp). Inductive case: rw Function.iterate_succ_apply', then use move_right_nth and IH, then push_cast and ring.
 -/
 theorem tape_iter_move_right_nth {Γ : Type*} [Inhabited Γ]
     (T : Turing.Tape Γ) (k : ℕ) (i : ℤ) :
@@ -154,15 +150,7 @@ theorem tape_iter_move_right_nth {Γ : Type*} [Inhabited Γ]
   ring
 
 /-
-PROBLEM
 After moving right `k` times from `Tape.mk₁ l`, the head is `l.getI k`.
-
-PROVIDED SOLUTION
-Use tape_iter_move_right_nth with i=0 (via Tape.nth_zero) and then show (Tape.mk₁ l).nth ↑k = l.getI k.
-
-For the second part: (Tape.mk₁ l).nth ↑k. Tape.mk₁ l = Tape.mk₂ [] l = Tape.mk' (ListBlank.mk []) (ListBlank.mk l). By Tape.mk'_nth_nat, (Tape.mk' L R).nth ↑n = R.nth n. So (Tape.mk₁ l).nth ↑k = (ListBlank.mk l).nth k = l.getI k by ListBlank.nth_mk.
-
-Combining: head = nth 0 (by nth_zero) = (after shift by k) = (Tape.mk₁ l).nth k = l.getI k.
 -/
 theorem tape_mk1_move_right_head {Γ : Type*} [Inhabited Γ]
     (l : List Γ) (k : ℕ) :
@@ -176,44 +164,28 @@ theorem tape_mk1_move_right_head {Γ : Type*} [Inhabited Γ]
   cases l <;> cases k <;> simp +decide [ List.getI ]
 
 /-
-PROBLEM
 The head of `Tape.mk₁ l` is `l.headI`.
-
-PROVIDED SOLUTION
-Unfold Tape.mk₁, Tape.mk₂, Tape.mk'. The head is (ListBlank.mk l).head = l.headI by ListBlank.head_mk.
 -/
 theorem tape_mk1_head {Γ : Type*} [Inhabited Γ] (l : List Γ) :
     (Turing.Tape.mk₁ l).head = l.headI := by
   cases l <;> aesop
 
 /-
-PROBLEM
 For `k < l.length`, `l.getI k = l.get ⟨k, ...⟩`.
-
-PROVIDED SOLUTION
-This is List.getI_eq_get or similar. Use simp with List.getI_eq_getElem? or unfold getI.
 -/
 theorem list_getI_eq_get {α : Type*} [Inhabited α] (l : List α) (k : ℕ) (hk : k < l.length) :
     l.getI k = l.get ⟨k, hk⟩ := by
   simp +decide [ hk, List.getI ]
 
 /-
-PROBLEM
 `encodeInput w` has length `n + 1`.
-
-PROVIDED SOLUTION
-encodeInput w = (List.ofFn w).map some. The length is (List.ofFn w).map some).length = (List.ofFn w).length = n+1. Use List.length_map and List.length_ofFn.
 -/
 theorem encodeInput_length {Γ : Type*} {n : ℕ} (w : Fin (n + 1) → Γ) :
     (encodeInput w).length = n + 1 := by
   unfold encodeInput; simp +decide ;
 
 /-
-PROBLEM
 The `k`-th element of `encodeInput w` (for `k < n + 1`) is `some (w ⟨k, ...⟩)`.
-
-PROVIDED SOLUTION
-encodeInput w = (List.ofFn w).map some. For k < n+1, the k-th element is some ((List.ofFn w)[k]) = some (w ⟨k, hk⟩) by List.getElem_map and List.getElem_ofFn. Use getI_eq_getElem (since k < length).
 -/
 theorem encodeInput_getI {Γ : Type*} {n : ℕ} (w : Fin (n + 1) → Γ)
     (k : ℕ) (hk : k < n + 1) :
@@ -224,11 +196,7 @@ theorem encodeInput_getI {Γ : Type*} {n : ℕ} (w : Fin (n + 1) → Γ)
   exact hk.trans_le ( by simp +decide [ encodeInput_length ] )
 
 /-
-PROBLEM
 The element past the end of `encodeInput w` is `none` (the default).
-
-PROVIDED SOLUTION
-encodeInput w has length n+1 (by encodeInput_length). So getI (n+1) is past the end, returning default = none.
 -/
 theorem encodeInput_getI_end {Γ : Type*} {n : ℕ} (w : Fin (n + 1) → Γ) :
     (encodeInput w).getI (n + 1) = none := by
@@ -263,28 +231,8 @@ theorem reading_to_simulating {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq �
   unfold toTM0; aesop
 
 /-
-PROBLEM
 The reading phase, after `k` steps (where `k ≤ n + 1`), has accumulated the
 first `k` elements of `List.ofFn w` and the tape head is at position `k`.
-
-PROVIDED SOLUTION
-By induction on k.
-
-Base case k=0: List.take 0 = [], and the iterate^[0] is identity, and tm0Init gives exactly this config. So Reaches is reflexive.
-
-Inductive case k → k+1 (with k+1 ≤ n+1, so k ≤ n, so k < n+1):
-By IH, we have Reaches from tm0Init to ⟨.reading (List.take k (List.ofFn w)), T_k⟩ where T_k = (move right)^[k] (Tape.mk₁ (encodeInput w)).
-
-The head of T_k is (encodeInput w).getI k (by tape_mk1_move_right_head).
-Since k < n+1, this equals some (w ⟨k, ...⟩) (by encodeInput_getI).
-
-By reading_single_step, tm0Step takes ⟨.reading (List.take k ...), T_k⟩ to ⟨.reading (List.take k ... ++ [w k]), move right T_k⟩.
-
-Now List.take k (List.ofFn w) ++ [w ⟨k, ...⟩] = List.take (k+1) (List.ofFn w) (by List.take_succ_app_ofFn or similar: take k l ++ [l[k]] = take (k+1) l when k < l.length).
-
-And move right T_k = (move right)^[k+1] (Tape.mk₁ (encodeInput w)).
-
-So one more step from the IH config reaches the (k+1) config. Extend Reaches with .tail.
 -/
 theorem reading_phase_k_steps {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) (k : ℕ) (hk : k ≤ n + 1) :
@@ -307,24 +255,8 @@ theorem reading_phase_k_steps {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq �
     exact .tail ( ih ( Nat.le_of_succ_le hk ) ) h_step
 
 /-
-PROBLEM
 After reading all n+1 symbols from the encoded input, the TM0 reaches the
 simulation phase with the correct initial DLBA configuration.
-
-PROVIDED SOLUTION
-Step 1: By reading_phase_k_steps with k = n+1, we reach the config ⟨.reading (List.take (n+1) (List.ofFn w)), T_{n+1}⟩ where T_{n+1} = (move right)^[n+1] (Tape.mk₁ (encodeInput w)).
-
-Note: List.take (n+1) (List.ofFn w) = List.ofFn w (because (List.ofFn w).length = n+1, so taking n+1 elements gives the whole list).
-
-Step 2: The head of T_{n+1} is (encodeInput w).getI (n+1) = none (by tape_mk1_move_right_head and encodeInput_getI_end).
-
-Step 3: Apply reading_to_simulating with acc = List.ofFn w, hacc = List.length_ofFn, T = T_{n+1}, hhead = none.
-
-This gives ∃ T', tm0Step takes ⟨.reading (List.ofFn w), T_{n+1}⟩ to ⟨.simulating (initCfg M w'), T'⟩ where w' = fun i => (List.ofFn w).get (Fin.cast ...).
-
-Step 4: Show w' = w: fun i => (List.ofFn w).get (Fin.cast ... i) = w i. This follows from List.get_ofFn (or getElem_ofFn): (List.ofFn w).get ⟨i, ...⟩ = w ⟨i, ...⟩.
-
-Combine steps 1 and 3 using .tail to get Reaches from tm0Init to the simulating state.
 -/
 theorem reading_phase_complete {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) :
@@ -369,20 +301,8 @@ theorem simulation_halts_on_accept {Γ : Type*} {Λ : Type*} {n : ℕ} [Decidabl
   grind
 
 /-
-PROBLEM
 If the DLBA reaches an accepting halt from `cfg`, then the TM0 halts from the
 simulating phase starting at `cfg`.
-
-PROVIDED SOLUTION
-By induction on the number of DLBA steps k in the Accepts witness.
-
-Accepts M cfg gives ∃ k, iterateStep M cfg (k+1) = none ∧ ∃ cfg', iterateStep M cfg k = some cfg' ∧ M.accept cfg'.state = true.
-
-Induct on k.
-
-k = 0: cfg' = cfg (from iterateStep 0 = some cfg). step M cfg = none. M.accept cfg.state = true. By simulation_halts_on_accept, tm0Step M n ⟨.simulating cfg, T⟩ = none. Since the step function returns none, by Turing.mem_eval, cfg ∈ eval, so Dom holds.
-
-k+1: From iterateStep, step M cfg = some cfg₁ for some cfg₁ (extracting from the bind in iterateStep). By simulation_preserves_step, tm0Step M n ⟨.simulating cfg, T⟩ = some ⟨.simulating cfg₁, T'⟩. The remaining DLBA computation from cfg₁ accepts (with witness k). By IH, (eval (tm0Step M n) ⟨.simulating cfg₁, T'⟩).Dom. Since tm0Step takes cfg to cfg₁ (one step), and eval from cfg₁ is defined, eval from cfg is also defined (by the fixpoint property of eval, or by eval_dom_of_reaches with a single step).
 -/
 theorem tm0_halts_of_lba_accepts {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n)
@@ -417,19 +337,7 @@ theorem tm0_halts_of_lba_accepts {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableE
   )
 
 /-
-PROBLEM
 If `Turing.Reaches f a b` and `(Turing.eval f b).Dom`, then `(Turing.eval f a).Dom`.
-
-PROVIDED SOLUTION
-By induction on the ReflTransGen relation hr.
-
-Base case (a = b): trivial, hb directly gives the result.
-
-Inductive case: We have some c with Reaches f a c, f c = some b (via one step), and (eval f b).Dom. By IH, we need to show (eval f c).Dom given (eval f b).Dom and f c = some b.
-
-For the one-step case: if f c = some b and (eval f b).Dom, then (eval f c).Dom. This follows from the definition of Turing.eval as PFun.fix: eval f c = PFun.fix (fun s => Part.some ((f s).elim (Sum.inl s) Sum.inr)) c. When f c = some b, this becomes Sum.inr b, so it continues to eval f b.
-
-Use Turing.eval_eq_step or similar: if f a = some b then eval f a = eval f b. Actually try: Turing.eval itself has a step lemma. Try rewriting with the definition and showing the fixpoint unfolds.
 -/
 theorem eval_dom_of_reaches {σ : Type*} (f : σ → Option σ) (a b : σ)
     (hr : Turing.Reaches f a b) (hb : (Turing.eval f b).Dom) :

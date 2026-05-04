@@ -93,7 +93,10 @@ import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Closure.UnionBonus
 import Langlib.Classes.ContextFree.Closure.UnionBonus2
 import Langlib.Classes.ContextFree.Decidability.Emptiness
+import Langlib.Classes.ContextFree.Decidability.Helper
 import Langlib.Classes.ContextFree.Decidability.Membership
+import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep
+import Langlib.Classes.ContextFree.Decidability.UniformMembership
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Examples.AnBn
 import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
@@ -124,6 +127,7 @@ import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
+import Langlib.Classes.Indexed.Closure.Injection
 import Langlib.Classes.Indexed.Closure.Union
 import Langlib.Classes.Indexed.Definition
 import Langlib.Classes.Indexed.Examples.AnBnCn
@@ -145,6 +149,7 @@ import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.UnionBonus
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Emptiness
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Equivalence
+import Langlib.Classes.RecursivelyEnumerable.Decidability.Helper
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Membership
 import Langlib.Classes.RecursivelyEnumerable.Decidability.Universality
 import Langlib.Classes.RecursivelyEnumerable.Definition
@@ -200,6 +205,7 @@ import Langlib.Grammars.Unrestricted.Projection
 import Langlib.Grammars.Unrestricted.Pullback
 import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Utilities.ClosurePredicates
+import Langlib.Utilities.ComputabilityPredicates
 import Langlib.Utilities.Homomorphism
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.ListUtils

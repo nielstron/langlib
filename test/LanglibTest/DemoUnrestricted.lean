@@ -276,11 +276,7 @@ private lemma steps_R_BR (m n : ℕ) :
       simp [R, R_BR, List.append_nil, List.append_assoc]
 
 /-
-PROBLEM
 `[X] ++ C^k` derives to `C^k ++ [X]` using XC_CX.
-
-PROVIDED SOLUTION
-Induct on k. Base: trivial. Step: the word is [X] ++ [C] ++ C^k. Apply XC_CX with u=[], v=C^k to get [C,X] ++ C^k = [C] ++ [X] ++ C^k. Then use grammar_deri_with_prefix [C] on the IH to get [C] ++ C^k ++ [X] = C^(k+1) ++ [X].
 -/
 private lemma aux_XC_skip (k : ℕ) :
     grammar_derives gr_mul ([X] ++ List.replicate k C) (List.replicate k C ++ [X]) := by
@@ -299,15 +295,7 @@ private lemma aux_XC_skip (k : ℕ) :
     simpa [ List.replicate ] using Relation.ReflTransGen.trans ( Relation.ReflTransGen.single h_step ) h_ind
 
 /-
-PROBLEM
 `C^z ++ [B]` derives to `[B] ++ C^z` by repeatedly applying CB_BC.
-
-PROVIDED SOLUTION
-Induct on z. Base (z=0): trivial, grammar_deri_self. Step (z+1): We have C^(z+1) ++ [B]. Using List.replicate_succ_eq_singleton_append, rewrite this as C^z ++ [C] ++ [B] = C^z ++ [C, B]. Wait, actually List.replicate (z+1) C = [C] ++ C^z. So the word is [C] ++ C^z ++ [B].
-
-By IH: C^z ++ [B] derives to [B] ++ C^z. Using grammar_deri_with_prefix [C], we get [C] ++ C^z ++ [B] derives to [C] ++ [B] ++ C^z = [C, B] ++ C^z. Then apply CB_BC (which is grule.mk [C] B_ [] [B, C]) with u=[] and v=C^z to transform [C, B] ++ C^z to [B, C] ++ C^z = [B] ++ [C] ++ C^z = [B] ++ C^(z+1).
-
-For CB_BC: grammar_transforms requires ∃ r ∈ g.rules, ∃ u v, w1 = u ++ r.input_L ++ [nonterminal r.input_N] ++ r.input_R ++ v ∧ w2 = u ++ r.output_string ++ v. For CB_BC (input_L=[C], input_N=B_, input_R=[], output=[B,C]): w1 = u ++ [C] ++ [nonterminal B_] ++ [] ++ v = u ++ [C, B] ++ v.
 -/
 private lemma aux_CB_bubble (z : ℕ) :
     grammar_derives gr_mul (List.replicate z C ++ [B]) ([B] ++ List.replicate z C) := by
@@ -329,28 +317,7 @@ private lemma aux_CB_bubble (z : ℕ) :
     convert h_step.trans h_step2 using 1
 
 /-
-PROBLEM
 `[B,C]^n` derives to `B^n ++ C^n` by bubble-sorting.
-
-PROVIDED SOLUTION
-Induct on n. Base: trivial. Step: [B,C]^(n+1) = [B,C] ++ [B,C]^n. By IH, [B,C]^n derives to B^n ++ C^n. So [B,C] ++ [B,C]^n derives to [B,C] ++ B^n ++ C^n via grammar_deri_with_prefix [B,C].
-
-Now we need to show [B,C] ++ B^n ++ C^n derives to B^(n+1) ++ C^(n+1).
-Rewrite as [B] ++ [C] ++ B^n ++ C^n = [B] ++ (C^1 ++ B^n) ++ C^n.
-Use aux_CB_bubble with appropriate prefix/postfix:
-- C^1 ++ B^n: induct (or use aux_CB_bubble) to show [C] ++ B^n derives to...
-
-Wait, aux_CB_bubble shows C^z ++ [B] → [B] ++ C^z. We need to bubble one B past n C's. Actually we need to bubble n B's past one C.
-
-Different approach: We need [C] ++ B^n → B^n ++ [C]. This follows from n applications of CB_BC (which transforms CB → BC). Show: [C] ++ B^n → B^1 ++ [C] ++ B^(n-1) → ... → B^n ++ [C].
-
-Actually let me define this more carefully. We can show by induction on n that C ++ B^n derives to B^n ++ C:
-- Base n=0: trivial
-- Step: [C,B] ++ B^n. Apply CB_BC with u=[], v=B^n to get [B,C] ++ B^n = [B] ++ [C] ++ B^n. By IH, [C] ++ B^n → B^n ++ [C]. Use prefix [B]: [B] ++ [C] ++ B^n → [B] ++ B^n ++ [C] = B^(n+1) ++ [C].
-
-Then for the main step: [B, C] ++ B^n ++ C^n = [B] ++ ([C] ++ B^n) ++ C^n. Using the above, [C] ++ B^n → B^n ++ [C]. So [B] ++ C ++ B^n ++ C^n → [B] ++ B^n ++ [C] ++ C^n = B^(n+1) ++ C^(n+1).
-
-Use grammar_deri_with_prefix [B] and grammar_deri_with_postfix C^n.
 -/
 private lemma aux_BC_sort (n : ℕ) :
     grammar_derives gr_mul ([B, C] ^ n) (List.replicate n B ++ List.replicate n C) := by
@@ -377,13 +344,7 @@ private lemma aux_BC_sort (n : ℕ) :
     exact Nat.recOn n ( by trivial ) fun n ih => by simp_all +decide [ List.replicate ] ;
 
 /-
-PROBLEM
 `[X] ++ B^n` derives to `[B,C]^n ++ [X]` using XB_BCX.
-
-PROVIDED SOLUTION
-Induct on n. Base: trivial. Step: [X] ++ B^(n+1) = [X] ++ [B] ++ B^n. Apply XB_BCX (input_L=[X], input_N=B_, input_R=[], output=[B,C,X]) with u=[] and v=B^n to get [B,C,X] ++ B^n. Then use grammar_deri_with_prefix [B,C] on the IH to get [B,C] ++ [B,C]^n ++ [X] = [B,C]^(n+1) ++ [X].
-
-Note: [B,C] ^ n means List.n_times [B, C] n = (List.replicate n [B, C]).flatten. And [B,C] ^ (n+1) = [B,C] ++ [B,C]^n. Check: List.n_times uses (List.replicate n l).flatten, so List.n_times [B,C] (n+1) = (List.replicate (n+1) [B,C]).flatten = ([B,C] :: List.replicate n [B,C]).flatten = [B,C] ++ (List.replicate n [B,C]).flatten = [B,C] ++ [B,C]^n.
 -/
 private lemma aux_XB_expand (n : ℕ) :
     grammar_derives gr_mul ([X] ++ List.replicate n B) ([B, C] ^ n ++ [X]) := by
@@ -401,29 +362,7 @@ private lemma aux_XB_expand (n : ℕ) :
     convert h_trans_XB_BCX.trans h_trans_prefix using 1
 
 /-
-PROBLEM
 The core of steps_quadratic: `X^m ++ B^n` derives to `B^n ++ C^(m*n) ++ X^m`.
-
-PROVIDED SOLUTION
-Induct on m. Base m=0: trivial (zero_mul, deri_self). Step m+1: X^(m+1) ++ B^n = [X] ++ X^m ++ B^n.
-
-By IH: X^m ++ B^n derives to B^n ++ C^(m*n) ++ X^m. Use grammar_deri_with_prefix [X]:
-[X] ++ X^m ++ B^n derives to [X] ++ B^n ++ C^(m*n) ++ X^m.
-
-Now apply aux_XB_expand with prefix [] and postfix C^(m*n) ++ X^m:
-[X] ++ B^n ++ C^(m*n) ++ X^m derives to [B,C]^n ++ [X] ++ C^(m*n) ++ X^m.
-(Use grammar_deri_with_postfix for the C^(m*n) ++ X^m part.)
-
-Then apply aux_BC_sort with postfix [X] ++ C^(m*n) ++ X^m:
-[B,C]^n ++ [X] ++ C^(m*n) ++ X^m derives to B^n ++ C^n ++ [X] ++ C^(m*n) ++ X^m.
-(Use grammar_deri_with_postfix.)
-
-Then apply aux_XC_skip (m*n) with prefix B^n ++ C^n and postfix X^m:
-B^n ++ C^n ++ [X] ++ C^(m*n) ++ X^m derives to B^n ++ C^n ++ C^(m*n) ++ [X] ++ X^m.
-(Use grammar_deri_with_prefix and grammar_deri_with_postfix.)
-
-Finally: B^n ++ C^n ++ C^(m*n) ++ [X] ++ X^m = B^n ++ C^((m+1)*n) ++ X^(m+1).
-(Use (m+1)*n = n + m*n and List.replicate_add, and X^(m+1) = [X] ++ X^m = List.replicate (m+1) X.)
 -/
 private lemma aux_quadratic_core (m n : ℕ) :
     grammar_derives gr_mul
@@ -459,10 +398,6 @@ private lemma aux_quadratic_core (m n : ℕ) :
       · grind;
     grind +suggestions
 
-/-
-PROVIDED SOLUTION
-Use grammar_deri_with_prefix (for List.replicate m a ++ [M]) and grammar_deri_with_postfix (for [E]) to reduce to aux_quadratic_core m n. The key is just reassociating the list appends to match the shape.
--/
 private lemma steps_quadratic (m n : ℕ) :
     grammar_derives gr_mul
       (List.replicate m a ++ [M] ++ List.replicate m X ++ List.replicate n B ++ [E])
@@ -479,10 +414,6 @@ private lemma steps_quadratic (m n : ℕ) :
   -- Apply the lemma `grammar_deri_with_postfix` with `po = [E]` and `ass = h_prefix`.
   apply grammar_deri_with_postfix; assumption
 
-/-
-PROVIDED SOLUTION
-Same pattern as steps_KC_cK and steps_MB_bM. First use grammar_deri_with_prefix (for the prefix List.replicate m a ++ [M] ++ List.replicate n B ++ List.replicate (m*n) C) to reduce to showing List.replicate m X ++ [E] derives to [E]. Induct on k ≤ m: at step k, the word is List.replicate (m-k) X ++ [E], and we apply XE_E to consume one X, getting List.replicate (m-k-1) X ++ [E]. At k=m we get [E].
--/
 private lemma steps_XE_E (m n : ℕ) :
     grammar_derives gr_mul
       (List.replicate m a ++ [M] ++ List.replicate n B ++ List.replicate (m * n) C ++
@@ -504,10 +435,6 @@ private lemma steps_XE_E (m n : ℕ) :
   convert grammar_deri_with_prefix _ h_derive using 1;
   simp +decide [ List.append_assoc ]
 
-/-
-PROVIDED SOLUTION
-Use grammar_deri_with_postfix twice (for C^(m*n) and [E]) and grammar_deri_with_prefix (for a^m) to reduce to showing [M] ++ List.replicate n B derives to List.replicate n b ++ [M]. Then induct on n: each step applies MB_bM to turn the leftmost B into b and shift M right. At step k, the word is List.replicate k b ++ [M] ++ List.replicate (n-k) B. Use sub_suc_suc and List.replicate_succ_eq_append_singleton/List.replicate_succ_eq_singleton_append for index arithmetic.
--/
 private lemma steps_MB_bM (m n : ℕ) :
     grammar_derives gr_mul
       (List.replicate m a ++ [M] ++ List.replicate n B ++ List.replicate (m * n) C ++ [E])
@@ -532,10 +459,6 @@ private lemma steps_MB_bM (m n : ℕ) :
     · exact grammar_deri_of_deri_deri ( ih hk.le ) ( h_step1 k hk );
   simpa using h_ind n le_rfl
 
-/-
-PROVIDED SOLUTION
-Same pattern as steps_MB_bM. Use grammar_deri_with_postfix (for [E]) and grammar_deri_with_prefix (for a^m ++ b^n) to reduce to showing [K] ++ List.replicate (m*n) C derives to List.replicate (m*n) c ++ [K]. Induct: at step k, word is List.replicate k c ++ [K] ++ List.replicate (m*n - k) C. Apply KC_cK to get List.replicate (k+1) c ++ [K] ++ List.replicate (m*n - k - 1) C.
--/
 private lemma steps_KC_cK (m n : ℕ) :
     grammar_derives gr_mul
       (List.replicate m a ++ List.replicate n b ++ [K] ++ List.replicate (m * n) C ++ [E])
@@ -603,23 +526,6 @@ example : grammar_generates gr_mul
     · rfl
     · rfl
 
-/-
-PROVIDED SOLUTION
-Follow these steps:
-1. Apply S_LR with u=[], v=[] to get [L, R]
-2. Apply grammar_deri_of_deri_deri (steps_L_aLX m) to get a^m ++ [L] ++ X^m ++ [R]
-3. Apply grammar_deri_of_deri_deri (steps_R_BR m n) to get a^m ++ [L] ++ X^m ++ B^n ++ [R]
-4. Apply L_M with u=a^m, v=X^m ++ B^n ++ [R] to get a^m ++ [M] ++ X^m ++ B^n ++ [R]
-5. Apply R_E with u=a^m ++ [M] ++ X^m ++ B^n, v=[] to get a^m ++ [M] ++ X^m ++ B^n ++ [E]
-6. Apply grammar_deri_of_deri_deri (steps_quadratic m n) to get a^m ++ [M] ++ B^n ++ C^(m*n) ++ X^m ++ [E]
-7. Apply grammar_deri_of_deri_deri (steps_XE_E m n) to get a^m ++ [M] ++ B^n ++ C^(m*n) ++ [E]
-8. Apply grammar_deri_of_deri_deri (steps_MB_bM m n) to get a^m ++ b^n ++ [M] ++ C^(m*n) ++ [E]
-9. Apply M_K with u=a^m ++ b^n, v=C^(m*n) ++ [E] to get a^m ++ b^n ++ [K] ++ C^(m*n) ++ [E]
-10. Apply grammar_deri_of_deri_deri (steps_KC_cK m n) to get a^m ++ b^n ++ c^(m*n) ++ [K] ++ [E]
-11. Apply KE_nil with u=a^m ++ b^n ++ c^(m*n), v=[] to finish.
-
-For steps 4, 5, 9, 11: use grammar_deri_of_tran_deri or grammar_deri_of_tran with refine ⟨rule, ?_, pref, post, ?_, ?_⟩ and simp [gr_mul] for membership, rfl for the equations. Some steps may need simp for list reassociation.
--/
 private theorem multiplication_complete (m n : ℕ) :
     grammar_generates gr_mul
       (List.replicate m a_ ++ List.replicate n b_ ++ List.replicate (m * n) c_) := by

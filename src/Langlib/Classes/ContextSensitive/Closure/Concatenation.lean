@@ -73,27 +73,6 @@ private def big_CS_grammar (g₁ g₂ : CS_grammar T) : CS_grammar T where
         obtain ⟨t, _, rfl⟩ := hr
         simp
 
-/-
-PROVIDED SOLUTION
-Rewrite using CS_language_eq_grammar_language to get grammar_language (grammar_of_csg (big_CS_grammar g₁ g₂)) = grammar_language (big_grammar (grammar_of_csg g₁) (grammar_of_csg g₂)).
-
-Then show that grammar_of_csg (big_CS_grammar g₁ g₂) = big_grammar (grammar_of_csg g₁) (grammar_of_csg g₂).
-
-This is a definitional equality: both grammars have:
-- Same nt type: nnn T g₁.nt g₂.nt
-- Same initial: Sum.inl none
-- Same rules (need to show the rule lists are equal)
-
-For the rules, unfold everything (grammar_of_csg, big_CS_grammar, big_grammar, wrap_CS_rule₁, wrap_CS_rule₂, CS_rules_for_terminals₁, CS_rules_for_terminals₂, wrap_grule₁, wrap_grule₂, rules_for_terminals₁, rules_for_terminals₂) and use:
-- List.map_map to compose functions
-- List.map_append for map over concatenation
-- ext/funext to show the composed functions are equal elementwise
-- For each csrule r, grammar_of_csg maps it to grule with output_string = r.context_left ++ r.output_string ++ r.context_right. Then wrap_grule₁ maps this grule by mapping wrap_symbol₁ over everything, giving output = map wrap₁ (r.context_left ++ r.output_string ++ r.context_right) = map wrap₁ r.context_left ++ map wrap₁ r.output_string ++ map wrap₁ r.context_right. On the other side, wrap_CS_rule₁ maps the csrule first by wrapping, then grammar_of_csg maps the result giving output = map wrap₁ r.context_left ++ map wrap₁ r.output_string ++ map wrap₁ r.context_right. So they're equal.
-
-For terminal rules: CS_rules_for_terminals₁ uses all_used_terminals (grammar_of_csg g₁), and rules_for_terminals₁ also uses all_used_terminals. The CS terminal rules have context_left = [], context_right = [], output_string = [terminal t]. After grammar_of_csg, they become grule.mk [] (Sum.inr (Sum.inl t)) [] ([] ++ [terminal t] ++ []) = grule.mk [] ... [] [terminal t]. This matches rules_for_terminals₁.
-
-So unfold everything and use `congr`, `ext`, `simp [List.map_append, List.map_map]`, and `rfl`.
--/
 private lemma big_CS_grammar_same_language (g₁ g₂ : CS_grammar T) :
   CS_language (big_CS_grammar g₁ g₂) = grammar_language (big_grammar (grammar_of_csg g₁) (grammar_of_csg g₂)) :=
 by

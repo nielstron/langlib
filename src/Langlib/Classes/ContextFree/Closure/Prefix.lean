@@ -41,38 +41,11 @@ namespace PDA
 variable {Q S : Type} [Fintype Q] [Fintype S] {M : PDA Q T S}
 
 /-
-PROBLEM
 **Input splitting** (counted version).
 If `M` processes `w ++ v` starting from `⟨q, w ++ v, α⟩` and reaches `⟨p, [], δ⟩`
 in `n` steps, then there is an intermediate configuration `⟨q', [], γ⟩`
 such that `M` reaches it from `⟨q, w, α⟩` and then reaches `⟨p, [], δ⟩`
 from `⟨q', v, γ⟩`.
-
-PROVIDED SOLUTION
-Induction on n.
-
-Case n = 0: reachesIn_zero gives ⟨q, w ++ v, α⟩ = ⟨p, [], δ⟩, so w ++ v = [] (hence w = [] and v = []), α = δ, and q = p. Use q' = q, γ = α, n₁ = 0, n₂ = 0.
-
-Case n + 1: Case split on w.
-  Subcase w = []: Use q' = q, γ = α, n₁ = 0, n₂ = n+1. First part is ReachesIn.refl, second part is h itself (since [] ++ v = v).
-
-  Subcase w = a :: w': Use reachesIn_iff_split_first to get ∃ c, ReachesIn 1 ⟨q, a :: (w' ++ v), α⟩ c ∧ ReachesIn n c ⟨p, [], δ⟩.
-  Note that a :: (w' ++ v) = List.cons a (w' ++ v).
-
-  The first step (ReachesIn 1) means c ∈ step ⟨q, a :: (w' ++ v), α⟩.
-  Case α = []: step from empty stack is ∅, contradiction.
-  Case α = Z :: β: The step gives two sub-cases:
-    (a) Read transition: c = ⟨q₁, w' ++ v, γ₁ ++ β⟩ for some q₁ γ₁ with (q₁, γ₁) ∈ M.transition_fun q a Z.
-        Apply ih to get splitting: ∃ q' γ n₁ n₂, ReachesIn n₁ ⟨q₁, w', γ₁ ++ β⟩ ⟨q', [], γ⟩ ∧ ReachesIn n₂ ⟨q', v, γ⟩ ⟨p, [], δ⟩.
-        Now construct: ReachesIn (n₁+1) ⟨q, a :: w', Z :: β⟩ ⟨q', [], γ⟩ using reachesIn_of_one_n with the read step ⟨q, a :: w', Z :: β⟩ → ⟨q₁, w', γ₁ ++ β⟩.
-        This read step is valid because (q₁, γ₁) ∈ M.transition_fun q a Z (same membership).
-        Use reaches₁_iff_reachesIn_one to convert.
-    (b) ε-transition: c = ⟨q₁, a :: (w' ++ v), γ₁ ++ β⟩ for some q₁ γ₁ with (q₁, γ₁) ∈ M.transition_fun' q Z.
-        Note: a :: (w' ++ v) = (a :: w') ++ v, so c = ⟨q₁, (a :: w') ++ v, γ₁ ++ β⟩.
-        Apply ih to get splitting: ∃ q' γ n₁ n₂, ReachesIn n₁ ⟨q₁, a :: w', γ₁ ++ β⟩ ⟨q', [], γ⟩ ∧ ReachesIn n₂ ⟨q', v, γ⟩ ⟨p, [], δ⟩.
-        Now construct: ReachesIn (n₁+1) ⟨q, a :: w', Z :: β⟩ ⟨q', [], γ⟩ using reachesIn_of_one_n with the epsilon step ⟨q, a :: w', Z :: β⟩ → ⟨q₁, a :: w', γ₁ ++ β⟩.
-        This ε-step is valid because (q₁, γ₁) ∈ M.transition_fun' q Z (same membership).
-        Use reaches₁_iff_reachesIn_one to convert.
 -/
 theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : List S}
     (h : M.ReachesIn n ⟨q, w ++ v, α⟩ ⟨p, [], δ⟩) :
@@ -183,11 +156,7 @@ section Forward
 variable {M : PDA Q T S}
 
 /-
-PROBLEM
 An `M`-step in normal mode lifts to a `prefixPDA M`-step in `Sum.inl` states.
-
-PROVIDED SOLUTION
-Unfold Reaches₁ and step for both the original PDA M and the prefixPDA M. For every case of the step function (read from a::w with Z::α, epsilon from a::w with Z::α, epsilon from [] with Z::α), the prefixPDA M mirrors the transition via image under Prod.map Sum.inl id. So for each case, show that the new config with Sum.inl states is in the step set of prefixPDA M. Need careful case analysis on c₁.input and c₁.stack.
 -/
 private theorem inl_step_of_M_step (c₁ c₂ : M.conf) (h : M.Reaches₁ c₁ c₂) :
     (prefixPDA M).Reaches₁
@@ -198,14 +167,8 @@ private theorem inl_step_of_M_step (c₁ c₂ : M.conf) (h : M.Reaches₁ c₁ c
   rcases α with ( _ | ⟨ a, α ⟩ ) <;> rcases q' with ( _ | ⟨ Z, α' ⟩ ) <;> simp_all +decide [ prefixPDA ]
 
 /-
-PROBLEM
 If `M` reaches `c₂` from `c₁`, then `prefixPDA M` reaches the corresponding
 `Sum.inl` configuration.
-
-PROVIDED SOLUTION
-By induction on the Reaches relation (which is ReflTransGen of Reaches₁).
-Base case: Reaches.refl, so c₁ = c₂, and the prefixPDA trivially reaches from the same config.
-Step case: Reaches c₁ c' ∧ Reaches₁ c' c₂. By IH, prefixPDA reaches inl-c' from inl-c₁. By inl_step_of_M_step, prefixPDA reaches inl-c₂ from inl-c'. Compose using Relation.ReflTransGen.tail.
 -/
 private theorem inl_reaches_of_M_reaches (c₁ c₂ : M.conf) (h : M.Reaches c₁ c₂) :
     (prefixPDA M).Reaches
@@ -216,14 +179,7 @@ private theorem inl_reaches_of_M_reaches (c₁ c₂ : M.conf) (h : M.Reaches c�
   · exact Relation.ReflTransGen.tail ‹_› ( by exact? )
 
 /-
-PROBLEM
 Switching from normal mode to verification mode (ε-step, stack unchanged).
-
-PROVIDED SOLUTION
-Unfold Reaches₁ and step for prefixPDA M. From config ⟨Sum.inl q, w, Z :: β⟩, the step function gives:
-- If w = []: step matches ⟨Sum.inl q, [], Z :: β⟩, transition_fun' for Sum.inl q includes {(Sum.inr q, [Z])}. So the result ⟨Sum.inr q, [], [Z] ++ β⟩ = ⟨Sum.inr q, [], Z :: β⟩ is in the step set.
-- If w = a :: w': step matches ⟨Sum.inl q, a :: w', Z :: β⟩, and the union includes ε-transitions. The transition_fun' for Sum.inl q includes {(Sum.inr q, [Z])}. So ⟨Sum.inr q, a :: w', [Z] ++ β⟩ = ⟨Sum.inr q, a :: w', Z :: β⟩ is in the step set.
-In both cases, (Sum.inr q, [Z]) ∈ transition_fun' (Sum.inl q) Z because it's in the union (the singleton part). The result configuration has stack [Z] ++ β = Z :: β, so the stack is unchanged.
 -/
 private theorem switch_step {q : Q} {w : List T} {Z : S} {β : List S} :
     (prefixPDA M).Reaches₁ ⟨Sum.inl q, w, Z :: β⟩ ⟨Sum.inr q, w, Z :: β⟩ := by
@@ -234,36 +190,8 @@ private theorem switch_step {q : Q} {w : List T} {Z : S} {β : List S} :
     unfold prefixPDA; aesop;
 
 /-
-PROBLEM
 If `M` reaches `⟨p, [], []⟩` from `⟨q, v, γ⟩`, then in verification mode
 the prefix PDA reaches `⟨Sum.inr p, [], []⟩` from `⟨Sum.inr q, [], γ⟩`.
-
-PROVIDED SOLUTION
-By induction on the Reaches relation (ReflTransGen).
-Base case: h is refl, so q = p and γ = [] and v = []. The prefixPDA trivially reaches from ⟨Sum.inr q, [], []⟩ to itself.
-Step case: M.Reaches ⟨q, v, γ⟩ c' ∧ M.Reaches₁ c' ⟨p, [], []⟩.
-By IH, (prefixPDA M).Reaches ⟨Sum.inr q, [], γ⟩ ⟨Sum.inr c'.state, [], c'.stack⟩.
-Wait, this doesn't quite work because the IH gives us the result for (q, v, γ) to c', but we need the prefixPDA result for (Sum.inr q, [], γ) to something.
-
-Actually, let me use ReachesIn and induction on number of steps instead.
-
-Use reaches_iff_reachesIn to get n steps. Then induction on n.
-Base case: 0 steps means ⟨q, v, γ⟩ = ⟨p, [], []⟩, so q = p, v = [], γ = []. Trivially (prefixPDA M).Reaches ⟨Sum.inr q, [], []⟩ ⟨Sum.inr q, [], []⟩.
-
-Inductive case (n+1 steps): Use reachesIn_iff_split_first to get first step: ∃ c, M.Reaches₁ ⟨q, v, γ⟩ c ∧ M.ReachesIn n c ⟨p, [], []⟩.
-The first M-step from ⟨q, v, γ⟩ is either a read (consuming first char of v) or ε-transition.
-
-For the prefixPDA in verification mode (Sum.inr), ALL of M's transitions become ε-transitions:
-- If M reads 'a' from v: transition_fun q a Z is used. In prefixPDA, transition_fun' (Sum.inr q) Z includes (M.transition_fun q a Z).image (Prod.map Sum.inr id) (via the ⋃ a part). So this becomes an ε-step in prefixPDA.
-- If M does ε-transition: transition_fun' q Z is used. In prefixPDA, transition_fun' (Sum.inr q) Z includes (M.transition_fun' q Z).image (Prod.map Sum.inr id). Same ε-step.
-
-So each M-step lifts to a prefixPDA ε-step from ⟨Sum.inr q, [], γ⟩ to ⟨Sum.inr c.state, [], c.stack⟩.
-
-Key: the prefixPDA ε-step doesn't consume input (input stays []), and it produces Sum.inr states.
-
-After this first step, apply IH to the remaining n steps from c to ⟨p, [], []⟩, getting (prefixPDA M).Reaches ⟨Sum.inr c.state, [], c.stack⟩ ⟨Sum.inr p, [], []⟩.
-
-Compose the two Reaches to get the result.
 -/
 private theorem verify_reaches_of_M_reaches
     {q p : Q} {v : List T} {γ : List S}
@@ -287,29 +215,8 @@ private theorem verify_reaches_of_M_reaches
   obtain ⟨ n, hn ⟩ := reaches_iff_reachesIn.mp h; specialize h_ind n ⟨ q, v, γ ⟩ ⟨ p, [], [] ⟩ hn; aesop;
 
 /-
-PROBLEM
 **Forward direction**: every prefix of a word in `M.acceptsByEmptyStack`
 is accepted by the prefix PDA.
-
-PROVIDED SOLUTION
-We need to show: if w ∈ prefixLang (M.acceptsByEmptyStack), then w ∈ (prefixPDA M).acceptsByEmptyStack.
-
-Unfold definitions: w ∈ prefixLang means ∃ v, w ++ v ∈ M.acceptsByEmptyStack, which means ∃ v q, M.Reaches ⟨M.initial_state, w ++ v, [M.start_symbol]⟩ ⟨q, [], []⟩.
-
-By input_splitting: ∃ q' γ, M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q', [], γ⟩ ∧ M.Reaches ⟨q', v, γ⟩ ⟨q, [], []⟩.
-
-For (prefixPDA M).acceptsByEmptyStack, we need: ∃ s, (prefixPDA M).Reaches ⟨Sum.inl M.initial_state, w, [M.start_symbol]⟩ ⟨s, [], []⟩.
-
-Case γ = []:
-  By inl_reaches_of_M_reaches: (prefixPDA M).Reaches ⟨Sum.inl M.initial_state, w, [M.start_symbol]⟩ ⟨Sum.inl q', [], []⟩.
-  Use s = Sum.inl q'.
-
-Case γ = Z :: β (γ ≠ []):
-  Step 1: By inl_reaches_of_M_reaches: (prefixPDA M).Reaches ⟨Sum.inl M.initial_state, w, [M.start_symbol]⟩ ⟨Sum.inl q', [], Z :: β⟩.
-  Step 2: By switch_step: (prefixPDA M).Reaches₁ ⟨Sum.inl q', [], Z :: β⟩ ⟨Sum.inr q', [], Z :: β⟩.
-  Step 3: By verify_reaches_of_M_reaches applied to M.Reaches ⟨q', v, Z :: β⟩ ⟨q, [], []⟩:
-    (prefixPDA M).Reaches ⟨Sum.inr q', [], Z :: β⟩ ⟨Sum.inr q, [], []⟩.
-  Compose steps 1, 2, 3. Use s = Sum.inr q.
 -/
 theorem prefixPDA_supset (M : PDA Q T S) :
     Language.prefixLang M.acceptsByEmptyStack ≤ (prefixPDA M).acceptsByEmptyStack := by
@@ -344,14 +251,7 @@ section Backward
 variable {M : PDA Q T S}
 
 /-
-PROBLEM
 A single step from a `Sum.inr` state in the prefix PDA preserves the input.
-
-PROVIDED SOLUTION
-Unfold Reaches₁ as c ∈ step ⟨Sum.inr q, w, γ⟩. Case split on w and γ:
-- γ = []: step from empty stack is ∅, contradiction.
-- γ = Z :: β, w = []: step only has ε-transitions (transition_fun'). ε-transitions produce ⟨p, [], β' ++ β⟩, so c.input = [].  Since transition_fun for Sum.inr is ∅, only transition_fun' contributes. The result has input [] = w. ✓
-- γ = Z :: β, w = a :: w': step has read and ε parts. For Sum.inr, transition_fun is ∅, so the read part is empty. Only ε-transitions remain, producing ⟨p, a :: w', β' ++ β⟩. So c.input = a :: w' = w. ✓
 -/
 private theorem inr_step_preserves_input {q : Q} {w : List T}
     {γ : List S} {c : (prefixPDA M).conf}
@@ -365,13 +265,7 @@ private theorem inr_step_preserves_input {q : Q} {w : List T}
     grind +revert
 
 /-
-PROBLEM
 A single step from a `Sum.inr` state stays in `Sum.inr`.
-
-PROVIDED SOLUTION
-Same case analysis as inr_step_preserves_input. From ⟨Sum.inr q, w, γ⟩:
-- γ = []: step is ∅, contradiction.
-- γ = Z :: β: In the step function, for Sum.inr states, transition_fun is ∅ (no read transitions). Only transition_fun' applies. All transitions in transition_fun' for Sum.inr q produce states of the form (Sum.inr p, β') (since they come from images under Prod.map Sum.inr id). So c.state = Sum.inr p for some p.
 -/
 private theorem inr_step_stays_inr {q : Q} {w : List T}
     {γ : List S} {c : (prefixPDA M).conf}
@@ -386,14 +280,7 @@ private theorem inr_step_stays_inr {q : Q} {w : List T}
     cases w <;> simp_all +decide [ prefixPDA ]
 
 /-
-PROBLEM
 In verification (`Sum.inr`) mode the input never changes.
-
-PROVIDED SOLUTION
-By induction on n.
-Base case (n=0): ReachesIn 0 means configs equal by reachesIn_zero, so c.input = w.
-Inductive case (n+1): Use reachesIn_iff_split_last to get ∃ c', ReachesIn n ⟨Sum.inr q, w, γ⟩ c' ∧ ReachesIn 1 c' c.
-By IH, c'.input = w. Also by inr_step_stays_inr applied repeatedly, c'.state = Sum.inr q' for some q'. Then the last step is Reaches₁ from ⟨Sum.inr q', w, c'.stack⟩ to c. By inr_step_preserves_input, c.input = w.
 -/
 private theorem inr_input_invariant {n : ℕ} {q : Q} {w : List T}
     {γ : List S} {c : (prefixPDA M).conf}
@@ -427,19 +314,9 @@ private theorem inr_input_invariant {n : ℕ} {q : Q} {w : List T}
     have := inr_step_preserves_input hc₅; aesop;
 
 /-
-PROBLEM
 A single step from a `Sum.inl` configuration in the prefix PDA is either
 (a) a lift of an `M`-step staying in `Sum.inl`, or
 (b) a switch to `Sum.inr` preserving state, input, and stack.
-
-PROVIDED SOLUTION
-Unfold Reaches₁ as c ∈ step ⟨Sum.inl q, w, α⟩. Case split on w and α:
-- α = []: step is ∅, contradiction.
-- α = Z :: β, w = []: step only has ε-transitions. For Sum.inl q, transition_fun' gives (M.transition_fun' q Z).image (Prod.map Sum.inl id) ∪ {(Sum.inr q, [Z])}.
-  Each element is either (Sum.inl p, β') from M's ε-transition (giving case (a) with M.Reaches₁), or (Sum.inr q, [Z]) giving c = ⟨Sum.inr q, [], [Z] ++ β⟩ = ⟨Sum.inr q, [], Z :: β⟩ = ⟨Sum.inr q, w, α⟩ (case (b)).
-- α = Z :: β, w = a :: w': step has read and ε.
-  Read transitions: (M.transition_fun q a Z).image (Prod.map Sum.inl id). Gives (Sum.inl p, β') pairs, producing ⟨Sum.inl p, w', β' ++ β⟩. This is case (a) with a read M-step.
-  ε-transitions: (M.transition_fun' q Z).image (Prod.map Sum.inl id) ∪ {(Sum.inr q, [Z])}. The first part gives (Sum.inl p, β') producing ⟨Sum.inl p, a :: w', β' ++ β⟩ (case (a) with an ε M-step). The singleton {(Sum.inr q, [Z])} gives ⟨Sum.inr q, a :: w', Z :: β⟩ = ⟨Sum.inr q, w, α⟩ (case (b)).
 -/
 private theorem inl_step_cases {c : (prefixPDA M).conf}
     {q : Q} {w : List T} {α : List S}
@@ -458,21 +335,9 @@ private theorem inl_step_cases {c : (prefixPDA M).conf}
     · unfold prefixPDA at *; aesop;
 
 /-
-PROBLEM
 A single step in verification mode from empty input decomposes into an M-transition.
 
 An ε-transition membership gives an M-step.
-
-PROVIDED SOLUTION
-Unfold Reaches₁ and step for ⟨Sum.inr q, [], Z :: β⟩. This matches the case ⟨q', [], Z :: α⟩ in the step function, giving:
-c ∈ { r₂ | ∃ p β', (p, β') ∈ (prefixPDA M).transition_fun' (Sum.inr q) Z ∧ r₂ = ⟨p, [], β' ++ β⟩ }
-So ∃ p β', (p, β') ∈ (prefixPDA M).transition_fun' (Sum.inr q) Z ∧ c = ⟨p, [], β' ++ β⟩.
-Since transition_fun' (Sum.inr q) Z = (M.transition_fun' q Z).image (Prod.map Sum.inr id) ∪ ⋃ a, (M.transition_fun q a Z).image (Prod.map Sum.inr id), we have p = Sum.inr q₁ and δ = β' for some q₁, and either (q₁, δ) ∈ M.transition_fun' q Z or ∃ a, (q₁, δ) ∈ M.transition_fun q a Z.
-
-Unfold Reaches₁ as membership in step. From ⟨q, w, Z :: β⟩, the step function includes ε-transitions:
-- If w = []: step = { r₂ | ∃ p β', (p,β') ∈ transition_fun' q Z ∧ r₂ = ⟨p, [], β' ++ β⟩ }. Since (q₁, δ) ∈ transition_fun' q Z, ⟨q₁, [], δ ++ β⟩ is in this set.
-- If w = a :: w': step = read_set ∪ eps_set. eps_set = { r₂ | ∃ p β', (p,β') ∈ transition_fun' q Z ∧ r₂ = ⟨p, a :: w', β' ++ β⟩ }. Since (q₁, δ) ∈ transition_fun' q Z, ⟨q₁, a :: w', δ ++ β⟩ is in eps_set.
-In both cases, ⟨q₁, w, δ ++ β⟩ ∈ step ⟨q, w, Z :: β⟩.
 -/
 private theorem M_eps_step {q q₁ : Q} {w : List T} {Z : S} {β δ : List S}
     (h : (q₁, δ) ∈ M.transition_fun' q Z) :
@@ -480,13 +345,7 @@ private theorem M_eps_step {q q₁ : Q} {w : List T} {Z : S} {β δ : List S}
   cases w <;> simp_all +decide [ Reaches₁, PDA.step ]
 
 /-
-PROBLEM
 A read-transition membership gives an M-step.
-
-PROVIDED SOLUTION
-Unfold Reaches₁ as membership in step. From ⟨q, a :: w, Z :: β⟩, the step function includes:
-read_set = { r₂ | ∃ p β', (p,β') ∈ transition_fun q a Z ∧ r₂ = ⟨p, w, β' ++ β⟩ }.
-Since (q₁, δ) ∈ transition_fun q a Z, ⟨q₁, w, δ ++ β⟩ is in read_set ⊆ step.
 -/
 private theorem M_read_step {q q₁ : Q} {a : T} {w : List T} {Z : S} {β δ : List S}
     (h : (q₁, δ) ∈ M.transition_fun q a Z) :
@@ -504,30 +363,8 @@ private theorem verify_step_decompose {q : Q} {Z : S} {β : List S}
   rcases h₂ with ⟨ δ, hδ, rfl ⟩ ; rcases h₁ with ( _ | _ ) <;> simp_all +decide [ prefixPDA ] ;
 
 /-
-PROBLEM
 A verification-mode computation reaching empty stack corresponds to
 an `M`-computation on some word `v`.
-
-PROVIDED SOLUTION
-Induction on n.
-Base case (n=0): reachesIn_zero gives q = p and γ = []. Use v = [].
-
-Inductive case (n+1): Use reachesIn_iff_split_first to get ∃ c, ReachesIn 1 ⟨Sum.inr q, [], γ⟩ c ∧ ReachesIn n c ⟨Sum.inr p, [], []⟩.
-
-γ must be nonempty (otherwise step from empty stack is ∅, contradicting the first step). Write γ = Z :: β.
-
-Convert the first step to Reaches₁ and apply verify_step_decompose:
-∃ q₁ δ, c = ⟨Sum.inr q₁, [], δ ++ β⟩ ∧ ((q₁, δ) ∈ M.transition_fun' q Z ∨ ∃ a, (q₁, δ) ∈ M.transition_fun q a Z).
-
-Apply IH (with n steps) to get ∃ v₁, M.Reaches ⟨q₁, v₁, δ ++ β⟩ ⟨p, [], []⟩.
-
-Case (q₁, δ) ∈ M.transition_fun' q Z:
-  By M_eps_step: M.Reaches₁ ⟨q, v₁, Z :: β⟩ ⟨q₁, v₁, δ ++ β⟩.
-  Compose with IH: M.Reaches ⟨q, v₁, Z :: β⟩ ⟨p, [], []⟩. Use v = v₁.
-
-Case ∃ a, (q₁, δ) ∈ M.transition_fun q a Z:
-  By M_read_step: M.Reaches₁ ⟨q, a :: v₁, Z :: β⟩ ⟨q₁, v₁, δ ++ β⟩.
-  Compose with IH: M.Reaches ⟨q, a :: v₁, Z :: β⟩ ⟨p, [], []⟩. Use v = a :: v₁.
 -/
 private theorem M_reaches_of_verify_reachesIn {n : ℕ}
     {q p : Q} {γ : List S}
@@ -563,11 +400,7 @@ private theorem M_reaches_of_verify_reachesIn {n : ℕ}
   exact h_contra <| h_ind n q p γ h
 
 /-
-PROBLEM
 Once in `Sum.inr` mode, the state stays `Sum.inr` after any number of steps.
-
-PROVIDED SOLUTION
-Induction on n. Base: n=0, c = ⟨Sum.inr q, w, γ⟩, so c.state = Sum.inr q. Inductive: split last step. By IH, intermediate config has state Sum.inr q'. Then by inr_step_stays_inr on the last step, c.state = Sum.inr p.
 -/
 private theorem inr_stays_inr {n : ℕ} {q : Q} {w : List T} {γ : List S}
     {c : (prefixPDA M).conf}
@@ -582,31 +415,8 @@ private theorem inr_stays_inr {n : ℕ} {q : Q} {w : List T} {γ : List S}
     exact this ( show Reaches₁ ⟨ Sum.inr p, r₂.input, r₂.stack ⟩ c from by simpa only [ ← hp ] using hr₂' )
 
 /-
-PROBLEM
 Key decomposition: any computation of `prefixPDA M` starting in `Sum.inl`
 corresponds to an `M`-computation on some extension `w ++ v` of the input.
-
-PROVIDED SOLUTION
-Induction on n.
-
-n=0: reachesIn_zero gives s = Sum.inl q, w = [], α = []. Use v = [], q' = q.
-
-n+1: reachesIn_iff_split_first gives ∃ c, ReachesIn 1 ⟨Sum.inl q, w, α⟩ c ∧ ReachesIn n c ⟨s, [], []⟩.
-Convert first step to Reaches₁ via reaches₁_iff_reachesIn_one.
-
-By inl_step_cases:
-
-Case (a): c = ⟨Sum.inl q₁, w₁, α₁⟩, M.Reaches₁ ⟨q, w, α⟩ ⟨q₁, w₁, α₁⟩.
-  IH on n steps: ∃ v₁ q', M.Reaches ⟨q₁, w₁ ++ v₁, α₁⟩ ⟨q', [], []⟩.
-  Lift M-step with unconsumed_input_one v₁: M.Reaches₁ ⟨q, w ++ v₁, α⟩ ⟨q₁, w₁ ++ v₁, α₁⟩.
-  Compose: use v = v₁.
-
-Case (b): c = ⟨Sum.inr q, w, α⟩.
-  ReachesIn n ⟨Sum.inr q, w, α⟩ ⟨s, [], []⟩.
-  By inr_input_invariant: w = [] (since final input is []).
-  By inr_stays_inr: s = Sum.inr p for some p.
-  By M_reaches_of_verify_reachesIn: ∃ v, M.Reaches ⟨q, v, α⟩ ⟨p, [], []⟩.
-  Since w = []: use this v and q' = p.
 -/
 private theorem inl_computation_to_M {n : ℕ} {q : Q} {w : List T} {α : List S}
     {s : Q ⊕ Q}
@@ -653,12 +463,8 @@ private theorem inl_computation_to_M {n : ℕ} {q : Q} {w : List T} {α : List S
       aesop
 
 /-
-PROBLEM
 **Backward direction**: every word accepted by the prefix PDA is a prefix
 of some word in `M.acceptsByEmptyStack`.
-
-PROVIDED SOLUTION
-Intro w and hw. Unfold acceptsByEmptyStack: obtain ⟨s, hs⟩ from hw where (prefixPDA M).Reaches ⟨Sum.inl M.initial_state, w, [M.start_symbol]⟩ ⟨s, [], []⟩. Convert to ReachesIn: obtain ⟨n, hn⟩. Apply inl_computation_to_M to get ∃ v q', M.Reaches ⟨M.initial_state, w ++ v, [M.start_symbol]⟩ ⟨q', [], []⟩. This gives w ++ v ∈ M.acceptsByEmptyStack (using ⟨q', hv⟩), so w ∈ prefixLang (by ⟨v, ...⟩).
 -/
 theorem prefixPDA_subset (M : PDA Q T S) :
     (prefixPDA M).acceptsByEmptyStack ≤ Language.prefixLang M.acceptsByEmptyStack := by

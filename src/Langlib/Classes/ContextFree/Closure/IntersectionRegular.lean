@@ -44,20 +44,12 @@ lemma CF_derivesIn_of_derives {w₁ w₂ : List (symbol T g.nt)}
     obtain ⟨n, hn⟩ := ih
     exact ⟨n + 1, .tail hn htran⟩
 
-/-
-PROVIDED SOLUTION
-By induction on h. Base case (refl): reflexivity. Tail case: use ih and then apply the transform step using CF_deri_of_deri_tran.
--/
 lemma CF_derives_of_derivesIn {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     (h : CF_derivesIn g n w₁ w₂) : CF_derives g w₁ w₂ := by
   induction' h with n w₁ w₂ h ih;
   · constructor;
   · exact?
 
-/-
-PROVIDED SOLUTION
-By induction on h₂. Base case: h₁ with n+0=n. Tail case: apply tail to ih and the transform step, adjusting the step count.
--/
 lemma CF_derivesIn_trans {n m : ℕ} {w₁ w₂ w₃ : List (symbol T g.nt)}
     (h₁ : CF_derivesIn g n w₁ w₂) (h₂ : CF_derivesIn g m w₂ w₃) :
     CF_derivesIn g (n + m) w₁ w₃ := by
@@ -66,11 +58,7 @@ lemma CF_derivesIn_trans {n m : ℕ} {w₁ w₂ w₃ : List (symbol T g.nt)}
   · rename_i k w₁ w₂ w₃ h₁ h₂ ih; exact ih h₁ |> fun h => h.tail ( by tauto ) ;
 
 /-
-PROBLEM
 Head extraction: an (n+1)-step derivation starts with one step.
-
-PROVIDED SOLUTION
-By induction on n. For n=0, the derivation must be tail of a 0-step (refl) derivation followed by a transform. For n+1, use the inductive hypothesis to extract the first step from the (n+1)-step prefix, then reattach the last step.
 -/
 lemma CF_derivesIn_head {n : ℕ} {w₁ w₃ : List (symbol T g.nt)}
     (h : CF_derivesIn g (n + 1) w₁ w₃) :
@@ -86,11 +74,7 @@ lemma CF_derivesIn_head {n : ℕ} {w₁ w₃ : List (symbol T g.nt)}
     exact ⟨ w₂, hw₂₁, by exact CF_derivesIn.tail hw₂₂ ‹_› ⟩
 
 /-
-PROBLEM
 Adding a prefix preserves step count.
-
-PROVIDED SOLUTION
-By induction on h. Base (refl): use refl. Tail: use ih, then apply the transform with the prefix prepended to u and v (same as CF_deri_with_prefix pattern).
 -/
 lemma CF_derivesIn_append_left {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     (h : CF_derivesIn g n w₁ w₂) (pfx : List (symbol T g.nt)) :
@@ -101,11 +85,7 @@ lemma CF_derivesIn_append_left {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     exact CF_derivesIn.tail hw₁' ⟨ r, pfx ++ u, v, hr, by simp +decide [ List.append_assoc ], by simp +decide [ List.append_assoc ] ⟩
 
 /-
-PROBLEM
 Adding a postfix preserves step count.
-
-PROVIDED SOLUTION
-By induction on h. Base (refl): use refl. Tail: use ih, then apply the transform with the suffix appended (same as CF_deri_with_postfix pattern).
 -/
 lemma CF_derivesIn_append_right {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     (h : CF_derivesIn g n w₁ w₂) (sfx : List (symbol T g.nt)) :
@@ -117,21 +97,8 @@ lemma CF_derivesIn_append_right {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     exact CF_derivesIn.tail ( ih ‹_› sfx ) ( by unfold CF_transforms; aesop )
 
 /-
-PROBLEM
 Key splitting lemma: a derivation from `p ++ q` can be split into
     independent derivations from `p` and `q` with step counts adding up.
-
-PROVIDED SOLUTION
-By induction on n.
-Base case (n=0): h gives p ++ q = w, so w = p ++ q. Use n₁=0, n₂=0, x=p, y=q with refl derivations.
-Step case (n=k+1): By h, we have CF_derivesIn g k (p++q) w' and CF_transforms g w' w for some w'.
-By the induction hypothesis, w' = x' ++ y' with p ⇒^n₁' x' and q ⇒^n₂' y' and k = n₁' + n₂'.
-The transform w' → w applies a rule at some position in w' = x' ++ y'. The rule replaces a nonterminal at some position. This position is either in x' (left part) or y' (right part).
-- If the rule position is in x' (the nonterminal being replaced is in x'), then the transform produces x'' from x' and y remains y'. So w = x'' ++ y', with p ⇒^(n₁'+1) x'' and q ⇒^n₂' y'.
-- If the rule position is in y', similarly w = x' ++ y'', with p ⇒^n₁' x' and q ⇒^(n₂'+1) y''.
-To determine which side, check if the position of the replaced nonterminal (given by u in the transform) has length < x'.length. Use List.append_eq_append_iff or similar to split the append.
-
-This is exactly the same pattern as the existing head_tail_split proof in Splitting.lean and DerivesIn.append_split in CountingSteps.lean. Follow the same case analysis on whether the rule application falls in the left or right part of the concatenation.
 -/
 lemma CF_derivesIn_append_split {n : ℕ} {p q w : List (symbol T g.nt)}
     (h : CF_derivesIn g n (p ++ q) w) :
@@ -226,11 +193,7 @@ lemma threadSymbols_nonterminal (M : DFA T σ) {N : Type} (B : N)
           (symbol.nonterminal (some (p, B, qmid)) :: out, q) := rfl
 
 /-
-PROBLEM
 threadSymbols is non-empty.
-
-PROVIDED SOLUTION
-By induction on syms. Base case: the list is [([], p)], which has length 1 > 0. Terminal case: map preserves length, and the recursive call is nonempty. Nonterminal case: Finset.univ is nonempty (since σ has Fintype), so flatMap over a nonempty list with nonempty results gives nonempty list.
 -/
 lemma threadSymbols_nonempty (M : DFA T σ) {N : Type}
     (syms : List (symbol T N)) (p : σ) :
@@ -240,16 +203,12 @@ lemma threadSymbols_nonempty (M : DFA T σ) {N : Type}
   exact Finset.sum_pos ( fun _ _ => ih _ ) ⟨ p, Finset.mem_univ _ ⟩
 
 /-
-PROBLEM
 ============================================================================
 Forward Direction
 ============================================================================
 
 Project a body rule back: if a triple-nonterminal rule is in the product grammar,
     there's a corresponding original rule.
-
-PROVIDED SOLUTION
-Unfold productGrammar and look at h. The rules of productGrammar g M are a concatenation of start rules and body rules. Since the LHS is `some (p, A, q)` (not `none`), it can't come from a start rule (those have `none` as LHS). So it must be in the body rules: g.rules.flatMap fun rule => Finset.univ.toList.flatMap fun p => (threadSymbols M rule.2 p).map .... Unpack the membership to find the original rule and the threadSymbols entry.
 -/
 lemma productGrammar_body_rule_mem {M : DFA T σ}
     {p : σ} {A : g.nt} {q : σ}
@@ -260,11 +219,7 @@ lemma productGrammar_body_rule_mem {M : DFA T σ}
   unfold productGrammar at h; aesop;
 
 /-
-PROBLEM
 A terminal-only derivation has 0 steps.
-
-PROVIDED SOLUTION
-If n > 0, then CF_derivesIn_head gives a first step CF_transforms g' [terminal a] w₂. But CF_transforms requires finding a nonterminal in the sentential form to rewrite, and [terminal a] has no nonterminals. So this is impossible. Hence n = 0, and by CF_derivesIn.refl, w = [terminal a].
 -/
 lemma CF_derivesIn_terminal_zero {g' : CF_grammar T} {n : ℕ} {a : T}
     {w : List (symbol T g'.nt)}
@@ -280,14 +235,7 @@ lemma CF_derivesIn_terminal_zero {g' : CF_grammar T} {n : ℕ} {a : T}
   rcases u with ( _ | ⟨ u₁, u₂ ⟩ ) <;> rcases v with ( _ | ⟨ v₁, v₂ ⟩ ) <;> simp +decide at hu ⊢
 
 /-
-PROBLEM
 If a concatenation of symbols equals a map of terminals, both parts are terminal maps.
-
-PROVIDED SOLUTION
-By induction on u.
-Base case u = []: w₁ = [], w₂ = w, trivial.
-Step case u = symbol.terminal a :: u' (u can't start with nonterminal because w.map terminal has only terminals): w must be a :: w', and u' ++ v = w'.map terminal. By IH, get w₁', w₂' with u' = w₁'.map terminal, v = w₂'.map terminal, w' = w₁' ++ w₂'. Then w₁ = a :: w₁', w₂ = w₂'.
-Actually, need to show u starts with a terminal. Since u ++ v = w.map terminal and w.map terminal starts with terminal, the first element of u (if non-empty) must be terminal.
 -/
 lemma append_eq_map_terminal {N : Type}
     {u v : List (symbol T N)} {w : List T}
@@ -299,41 +247,9 @@ lemma append_eq_map_terminal {N : Type}
     rename_i ih; obtain ⟨ w₁, hw₁, w₂, hw₂, hw₃ ⟩ := ih h.2; use a :: w₁; aesop;
 
 /-
-PROBLEM
 Helper: process annotated symbols from threadSymbols, projecting out
     the original grammar derivation and DFA evaluation.
     By induction on `syms`.
-
-PROVIDED SOLUTION
-By induction on `syms`, generalizing out, p, q, w, n.
-
-Case syms = []:
-  hthread gives out = [] and q = p. hder gives n = 0 and w = []. Both conclusions hold trivially (CF_deri_self for g and DFA.evalFrom M p [] = p = q).
-
-Case syms = symbol.terminal a :: rest:
-  hthread: from threadSymbols_terminal, (out, q) ∈ (threadSymbols M rest (M.step p a)).map (...). So out = symbol.terminal a :: out_rest and (out_rest, q) ∈ threadSymbols M rest (M.step p a).
-  hder: CF_derivesIn ... n (symbol.terminal a :: out_rest) (w.map symbol.terminal).
-  View as [symbol.terminal a] ++ out_rest. Use CF_derivesIn_append_split to get:
-    ∃ x y n₁ n₂, w.map terminal = x ++ y, [terminal a] ⇒^n₁ x, out_rest ⇒^n₂ y, n = n₁ + n₂.
-  By CF_derivesIn_terminal_zero on [terminal a] ⇒^n₁ x: n₁ = 0 and x = [terminal a].
-  So y = w'.map terminal for some w' with w = a :: w', and n₂ = n.
-  Apply induction hypothesis on rest, out_rest, M.step p a, q, w', n₂:
-    Get CF_derives g rest (w'.map terminal) and DFA.evalFrom M (M.step p a) w' = q.
-  Then CF_derives g (terminal a :: rest) (a :: w').map terminal (by prepending the terminal using CF_deri_with_prefix).
-  And DFA.evalFrom M p (a :: w') = DFA.evalFrom M (M.step p a) w' = q.
-
-Case syms = symbol.nonterminal B :: rest:
-  hthread: from threadSymbols_nonterminal, ∃ qmid, out = nonterminal (some (p, B, qmid)) :: out_rest and (out_rest, q) ∈ threadSymbols M rest qmid.
-  hder: CF_derivesIn ... n (nonterminal (some (p, B, qmid)) :: out_rest) (w.map terminal).
-  View as [nonterminal (some (p, B, qmid))] ++ out_rest. Use CF_derivesIn_append_split:
-    ∃ x y n₁ n₂, w.map terminal = x ++ y, [nonterminal (some (p, B, qmid))] ⇒^n₁ x, out_rest ⇒^n₂ y, n = n₁ + n₂.
-  By append_eq_map_terminal: x = w₁.map terminal and y = w₂.map terminal with w = w₁ ++ w₂.
-  Use ih (the strong induction hypothesis from forward_key) with k = n₁ < N_bound (since n₁ ≤ n < N_bound):
-    Get CF_derives g [nonterminal B] (w₁.map terminal) and DFA.evalFrom M p w₁ = qmid.
-  Apply list induction hypothesis on rest, out_rest, qmid, q, w₂, n₂ (n₂ ≤ n < N_bound):
-    Get CF_derives g rest (w₂.map terminal) and DFA.evalFrom M qmid w₂ = q.
-  Combine: CF_derives g (nonterminal B :: rest) (w.map terminal) by CF_deri_with_prefix/postfix.
-  And DFA.evalFrom M p w = DFA.evalFrom M p (w₁ ++ w₂) = DFA.evalFrom M (DFA.evalFrom M p w₁) w₂ = DFA.evalFrom M qmid w₂ = q (using DFA.evalFrom_of_append).
 -/
 lemma forward_thread {M : DFA T σ} (N_bound : ℕ)
     (syms : List (symbol T g.nt))
@@ -398,28 +314,10 @@ lemma forward_thread {M : DFA T σ} (N_bound : ℕ)
       exact ⟨ h_final, h_final' ⟩
 
 /-
-PROBLEM
 Key forward lemma:
     If `(p, A, q)` derives a terminal string `w` in the product grammar in `n` steps,
     then `A` derives `w` in `g` and `M.evalFrom p w = q`.
     Proved by strong induction on `n`, using `forward_thread` for the recursive structure.
-
-PROVIDED SOLUTION
-By strong induction on n using Nat.strongRecOn.
-
-n = 0: CF_derivesIn ... 0 [nonterminal (some (p, A, q))] (w.map terminal). By CF_derivesIn.refl, [nonterminal (some (p, A, q))] = w.map terminal. But the LHS has a nonterminal, so this is impossible (w.map terminal only has terminals).
-
-n = k+1: Use CF_derivesIn_head to get: ∃ w₂, CF_transforms (productGrammar g M) [nonterminal (some (p, A, q))] w₂ ∧ CF_derivesIn ... k w₂ (w.map terminal).
-
-The transform on [nonterminal X] means: ∃ (r, u, v), r ∈ (productGrammar g M).rules, [nonterminal X] = u ++ [nonterminal r.1] ++ v, w₂ = u ++ r.2 ++ v.
-Since [nonterminal X] has length 1, u = [] and v = [], so r.1 = some (p, A, q) and w₂ = r.2.
-
-By productGrammar_body_rule_mem: ∃ rhs ∈ g.rules, (w₂, q) ∈ threadSymbols M rhs p.
-
-Apply forward_thread with N_bound = k+1, syms = rhs, out = w₂, and the strong induction hypothesis as ih.
-This gives: CF_derives g rhs (w.map terminal) and DFA.evalFrom M p w = q.
-
-For the grammar part: since (A, rhs) ∈ g.rules, [nonterminal A] ⇒₁ rhs ⇒* w.map terminal, so CF_derives g [nonterminal A] (w.map terminal).
 -/
 lemma forward_key {M : DFA T σ} (n : ℕ) (p : σ) (A : g.nt) (q : σ) (w : List T)
     (hder : CF_derivesIn (productGrammar g M) n
@@ -445,15 +343,11 @@ lemma forward_key {M : DFA T σ} (n : ℕ) (p : σ) (A : g.nt) (q : σ) (w : Lis
                                                                       exact ⟨ ⟨ A, rhs ⟩, [ ], [ ], hrhs.1, by simp +decide, by simp +decide ⟩ ) ) ( this ( fun k hk p' A' q' w' hw' => ih k ( Nat.le_of_lt_succ hk ) p' A' q' w' hw' ) |>.1 ), this ( fun k hk p' A' q' w' hw' => ih k ( Nat.le_of_lt_succ hk ) p' A' q' w' hw' ) |>.2 ⟩
 
 /-
-PROBLEM
 ============================================================================
 Backward Direction
 ============================================================================
 
 backward_thread base case: empty symbol list.
-
-PROVIDED SOLUTION
-If n > 0, by CF_derivesIn_head there's a first step CF_transforms g [] w₂. But CF_transforms requires ∃ r ∈ g.rules, ∃ u v, [] = u ++ [nonterminal r.1] ++ v, which is impossible since [] is empty. So n = 0, and by CF_derivesIn.refl, [] = w.map terminal, so w = [].
 -/
 lemma backward_thread_nil {M : DFA T σ} (w : List T) (p : σ) (n : ℕ)
     (hder : CF_derivesIn g n [] (w.map symbol.terminal)) :
@@ -466,47 +360,7 @@ lemma backward_thread_nil {M : DFA T σ} (w : List T) (p : σ) (n : ℕ)
     cases u <;> cases v <;> cases hu
 
 /-
-PROBLEM
 backward_thread: process a sentential form symbol by symbol.
-
-PROVIDED SOLUTION
-By induction on `syms`, generalizing w, p, n.
-
-Case syms = []:
-  By backward_thread_nil, w = [] and n = 0.
-  Use out = [], q = p. ([], p) ∈ threadSymbols M [] p = [([], p)] trivially.
-  DFA.evalFrom M p [] = p. CF_derives (productGrammar g M) [] [] by refl.
-
-Case syms = terminal a :: rest:
-  View syms as [terminal a] ++ rest. Use CF_derivesIn_append_split:
-    ∃ x y n₁ n₂, w.map terminal = x ++ y, [terminal a] ⇒^n₁ x, rest ⇒^n₂ y, n = n₁ + n₂.
-  By CF_derivesIn_terminal_zero: n₁ = 0, x = [terminal a].
-  So w.map terminal = [terminal a] ++ y. By append_eq_map_terminal on the right or by simple analysis, w starts with a: w = a :: w₂ and y = w₂.map terminal. Actually [terminal a] ++ y = w.map terminal, so [terminal a] ++ y = (a :: w₂).map terminal for some w₂, giving w = a :: w₂ and y = w₂.map terminal.
-  n₂ = n (since n₁ = 0).
-  By list IH on rest, w₂, M.step p a, n₂ (n₂ ≤ n < N_bound):
-    ∃ out_rest q_rest ∈ threadSymbols M rest (M.step p a), q_rest = DFA.evalFrom M (M.step p a) w₂, CF_derives ... out_rest (w₂.map terminal).
-  Use out = terminal a :: out_rest, q = q_rest.
-  (terminal a :: out_rest, q_rest) ∈ threadSymbols M (terminal a :: rest) p: by definition of threadSymbols_terminal, this is the map of (out_rest, q_rest) which is in threadSymbols M rest (M.step p a).
-  DFA.evalFrom M p (a :: w₂) = DFA.evalFrom M (M.step p a) w₂ = q_rest.
-  CF_derives (productGrammar g M) (terminal a :: out_rest) ((a :: w₂).map terminal): prepend terminal a to the derivation of out_rest using CF_deri_with_prefix with prefix [terminal a].
-
-Case syms = nonterminal B :: rest:
-  View as [nonterminal B] ++ rest. Use CF_derivesIn_append_split:
-    ∃ x y n₁ n₂, w.map terminal = x ++ y, [nonterminal B] ⇒^n₁ x, rest ⇒^n₂ y, n = n₁ + n₂.
-  By append_eq_map_terminal: x = w₁.map terminal, y = w₂.map terminal, w = w₁ ++ w₂.
-  Let qmid := DFA.evalFrom M p w₁.
-  Use ih (strong IH from backward_key) with k = n₁, since n₁ ≤ n < N_bound:
-    ih n₁ (by omega) B w₁ p qmid (...) rfl
-    gives CF_derives (productGrammar g M) [nonterminal (some (p, B, qmid))] (w₁.map terminal).
-  By list IH on rest, w₂, qmid, n₂ (n₂ ≤ n < N_bound):
-    ∃ out_rest q_rest ∈ threadSymbols M rest qmid, q_rest = DFA.evalFrom M qmid w₂, CF_derives ... out_rest ....
-  Use out = nonterminal (some (p, B, qmid)) :: out_rest, q = q_rest.
-  Membership in threadSymbols: by threadSymbols_nonterminal, since qmid ∈ Finset.univ and (out_rest, q_rest) ∈ threadSymbols M rest qmid.
-  DFA.evalFrom M p (w₁ ++ w₂) = DFA.evalFrom M qmid w₂ = q_rest (by DFA.evalFrom_of_append).
-  CF_derives: combine [nonterminal (some (p, B, qmid))] ⇒* w₁.map terminal and out_rest ⇒* w₂.map terminal.
-  Use CF_deri_with_postfix on the first to get [nonterminal (some (p, B, qmid))] ++ out_rest ⇒* w₁.map terminal ++ out_rest.
-  Then CF_deri_with_prefix on the second to get w₁.map terminal ++ out_rest ⇒* w₁.map terminal ++ w₂.map terminal.
-  Compose with CF_deri_of_deri_deri.
 -/
 set_option maxHeartbeats 800000 in
 lemma backward_thread {M : DFA T σ} (N_bound : ℕ)
@@ -594,36 +448,9 @@ lemma backward_thread {M : DFA T σ} (N_bound : ℕ)
       grind +suggestions))))
 
 /-
-PROBLEM
 Key backward lemma:
     If `A` derives `w` in `g` and `M.evalFrom p w = q`,
     then `(p, A, q)` derives `w` in the product grammar.
-
-PROVIDED SOLUTION
-By strong induction on n using Nat.strong_induction_on.
-
-n = 0: CF_derivesIn g 0 [nonterminal A] (w.map terminal). By refl, [nonterminal A] = w.map terminal, which is impossible (nonterminal ≠ terminal).
-
-n = k + 1: Use CF_derivesIn_head to get:
-∃ w₂, CF_transforms g [nonterminal A] w₂ ∧ CF_derivesIn g k w₂ (w.map terminal).
-
-The transform on [nonterminal A] means: ∃ (r, u, v) with r ∈ g.rules, [nonterminal A] = u ++ [nonterminal r.1] ++ v, w₂ = u ++ r.2 ++ v.
-Since |[nonterminal A]| = 1, we must have u = [], v = [], r.1 = A, w₂ = r.2.
-So there's a rule (A, rhs) ∈ g.rules and rhs ⇒^k w.map terminal.
-
-Apply backward_thread with N_bound = k+1, syms = rhs, w, p, k, hn = Nat.lt_succ_self k:
-Need ih : ∀ j < k+1, ∀ B w' p' q', CF_derivesIn g j [nonterminal B] (w'.map terminal) → evalFrom p' w' = q' → CF_derives (productGrammar g M) [nonterminal (some (p', B, q'))] (w'.map terminal).
-This is exactly the strong induction hypothesis (since j < k+1 means j ≤ k < n = k+1).
-
-Get ∃ out q_out, (out, q_out) ∈ threadSymbols M rhs p ∧ q_out = DFA.evalFrom M p w ∧ CF_derives (productGrammar g M) out (w.map terminal).
-
-Since heval : DFA.evalFrom M p w = q, we have q_out = q.
-
-Now construct the product grammar derivation:
-1. (some (p, A, q), out) is in (productGrammar g M).rules (as a body rule, since (A, rhs) ∈ g.rules and (out, q) ∈ threadSymbols M rhs p).
-2. [nonterminal (some (p, A, q))] ⇒₁ out in the product grammar.
-3. out ⇒* w.map terminal.
-Compose with CF_deri_of_tran_deri.
 -/
 lemma backward_key {M : DFA T σ} (n : ℕ) (A : g.nt) (w : List T) (p q : σ)
     (hder : CF_derivesIn g n [symbol.nonterminal A] (w.map symbol.terminal))
@@ -651,37 +478,12 @@ lemma backward_key {M : DFA T σ} (n : ℕ) (A : g.nt) (w : List T) (p q : σ)
     exact CF_deri_of_tran_deri ( by exact ⟨ ( some ( p, A, q ), out ), [ ], [ ], h_rule, by aesop ⟩ ) hder
 
 /-
-PROBLEM
 ============================================================================
 Main Theorem
 ============================================================================
 
 The product grammar generates exactly the intersection of the CFG language
     and the DFA language.
-
-PROVIDED SOLUTION
-We prove set equality by showing both inclusions.
-
-(⊆) Let w ∈ CF_language (productGrammar g M).
-Then CF_derives (productGrammar g M) [nonterminal none] (w.map terminal).
-The first step must use a start rule (since none is the initial nonterminal).
-A start rule maps none to [nonterminal (some (M.start, g.initial, f))] for some f ∈ M.accept.
-So CF_derives (productGrammar g M) [nonterminal (some (M.start, g.initial, f))] (w.map terminal).
-Convert to CF_derivesIn (using CF_derivesIn_of_derives) to get some n.
-By forward_key: CF_derives g [nonterminal g.initial] (w.map terminal) and DFA.evalFrom M M.start w = f.
-Since f ∈ M.accept and M.eval w = DFA.evalFrom M M.start w = f, w ∈ M.accepts.
-Also w ∈ CF_language g.
-
-(⊇) Let w ∈ CF_language g ∧ w ∈ M.accepts.
-CF_derives g [nonterminal g.initial] (w.map terminal).
-Convert to CF_derivesIn to get some n.
-DFA.evalFrom M M.start w ∈ M.accept. Let f = DFA.evalFrom M M.start w = M.eval w.
-By backward_key with n, g.initial, w, M.start, f:
-CF_derives (productGrammar g M) [nonterminal (some (M.start, g.initial, f))] (w.map terminal).
-Now apply the start rule: none → [nonterminal (some (M.start, g.initial, f))] which is in (productGrammar g M).rules (since f ∈ M.accept).
-CF_transforms (productGrammar g M) [nonterminal none] [nonterminal (some (M.start, g.initial, f))].
-Compose: CF_derives (productGrammar g M) [nonterminal none] (w.map terminal).
-So w ∈ CF_language (productGrammar g M).
 -/
 theorem productGrammar_language (g : CF_grammar T) (M : DFA T σ) :
     CF_language (productGrammar g M) = CF_language g ⊓ DFA.accepts M := by
@@ -718,15 +520,7 @@ theorem productGrammar_language (g : CF_grammar T) (M : DFA T σ) :
   exact h_start
 
 /-
-PROBLEM
 The class of context-free languages is closed under intersection with regular languages.
-
-PROVIDED SOLUTION
-From h₁ : is_CF L₁, get ⟨g, hg⟩ with CF_language g = L₁.
-From h₂ : L₂.IsRegular, get ⟨σ, _, M, hM⟩ with M.accepts = L₂.
-Use the product grammar: is_CF (L₁ ⊓ L₂) by exhibiting productGrammar g M.
-CF_language (productGrammar g M) = CF_language g ⊓ M.accepts (by productGrammar_language).
-= L₁ ⊓ L₂ (by hg and hM).
 -/
 theorem CF_of_CF_inter_regular {L₁ L₂ : Language T}
     (h₁ : is_CF L₁) (h₂ : L₂.IsRegular) :
