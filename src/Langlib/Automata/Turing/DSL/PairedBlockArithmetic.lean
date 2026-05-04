@@ -12,6 +12,7 @@ import Langlib.Automata.Turing.DSL.DecBeforeSepMachine
 import Langlib.Automata.Turing.DSL.IncAfterSepDecomp
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.CondBlockOps
+import Langlib.Automata.Turing.DSL.CopyBinaryBlock
 
 /-! # Paired Block Arithmetic — The Central Primitive
 
@@ -671,6 +672,12 @@ theorem duplicateNormalizedPaired_ne_default (block : List ChainΓ)
     ∀ g ∈ duplicateNormalizedPaired block, g ≠ default := by
   exact pairNormalizedBlocks_ne_default block block _hblock _hblock
 
+theorem duplicateNormalizedPaired_eq_copyBinaryWithSep_comp :
+    duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock := by
+  funext block
+  simp [duplicateNormalizedPaired, pairNormalizedBlocks, copyBinaryWithSep,
+    copyWithSep, normalizeBlock, Function.comp]
+
 /-- Appending a non-default prefix preserves non-defaultness. -/
 theorem prependList_ne_default {Γ : Type} [Inhabited Γ] (pref block : List Γ)
     (hpref : ∀ g ∈ pref, g ≠ default)
@@ -779,7 +786,11 @@ This is the variable-copy primitive needed for squaring: it writes two copies
 of the normalized input separated by `chainConsBottom`. -/
 theorem tm0_duplicateNormalizedPaired_block :
     TM0RealizesBlock ChainΓ duplicateNormalizedPaired := by
-  sorry
+  rw [duplicateNormalizedPaired_eq_copyBinaryWithSep_comp]
+  exact tm0RealizesBlock_comp
+    tm0_normalizeBlock
+    tm0_copyBinaryWithSep_block
+    (fun block _hblock => normalizeBlock_ne_default block)
 
 /-- **Multiplication by constant is block-realizable.** -/
 theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
