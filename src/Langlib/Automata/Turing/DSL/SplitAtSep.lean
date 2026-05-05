@@ -93,6 +93,24 @@ theorem splitAtConsBottom_snd_subset (block : List ChainΓ) :
     · exact List.mem_cons_of_mem _ hg
     · exact List.mem_cons_of_mem _ (ih hg)
 
+/-- Reconstruct a block from the result of splitting at an existing
+`chainConsBottom`. -/
+theorem splitAtConsBottom_reconstruct_of_mem (block : List ChainΓ)
+    (h : chainConsBottom ∈ block) :
+    block = (splitAtConsBottom block).1 ++ chainConsBottom :: (splitAtConsBottom block).2 := by
+  induction block with
+  | nil => simp at h
+  | cons c rest ih =>
+      by_cases hc : c = chainConsBottom
+      · simp [splitAtConsBottom, hc]
+      · have hrest : chainConsBottom ∈ rest := by
+          simp at h
+          rcases h with h' | h'
+          · exact absurd h'.symm hc
+          · exact h'
+        simp only [splitAtConsBottom, hc, if_false]
+        exact congrArg (List.cons c) (ih hrest)
+
 /-- `binSucc` preserves the no-chainConsBottom property. -/
 theorem binSucc_no_consBottom (l : List ChainΓ) (hl : ∀ c ∈ l, c ≠ chainConsBottom) :
     ∀ c ∈ binSucc l, c ≠ chainConsBottom := by

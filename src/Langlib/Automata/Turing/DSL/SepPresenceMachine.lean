@@ -137,22 +137,6 @@ theorem sepPresence_rewind_loop (found : Bool) (revBlock acc : List ChainΓ)
       · convert ih (a :: acc) hrest using 1
         simp [List.reverse_cons, List.append_assoc]
 
-theorem splitAtConsBottom_reconstruct_of_mem (block : List ChainΓ)
-    (h : chainConsBottom ∈ block) :
-    block = (splitAtConsBottom block).1 ++ chainConsBottom :: (splitAtConsBottom block).2 := by
-  induction block with
-  | nil => simp at h
-  | cons c rest ih =>
-      by_cases hc : c = chainConsBottom
-      · simp [splitAtConsBottom, hc]
-      · have hrest : chainConsBottom ∈ rest := by
-          simp at h
-          rcases h with h' | h'
-          · exact absurd h'.symm hc
-          · exact h'
-        simp only [splitAtConsBottom, hc, if_false]
-        exact congrArg (List.cons c) (ih hrest)
-
 theorem sepPresenceMachine_correct (block suffix : List ChainΓ)
     (hblock : ∀ x ∈ block, x ≠ (default : ChainΓ))
     (_hsuffix : ∀ x ∈ suffix, x ≠ (default : ChainΓ)) :
