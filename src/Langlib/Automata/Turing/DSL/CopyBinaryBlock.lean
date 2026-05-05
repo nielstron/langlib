@@ -105,6 +105,7 @@ inductive C1Phase where
   | scanR2  -- scan right for 2nd default
   | ret1    -- return: past suffix
   | ret2    -- return: past copy
+  | ret2b   -- return: past remaining source to marker
   | ret3    -- return: past remaining source to marker
   | emShW   -- empty: shift write
   | emShM   -- empty: shift move
@@ -112,17 +113,19 @@ inductive C1Phase where
 
 instance : Fintype C1Phase where
   elems := {.p0shW, .p0shM, .markMv, .scanR, .scanR2,
-            .ret1, .ret2, .ret3, .emShW, .emShM}
+            .ret1, .ret2, .ret2b, .ret3, .emShW, .emShM}
   complete x := by cases x <;> simp
 
 /-- Phases that carry two alphabet values (source char + cascade carry). -/
 inductive C2Phase where
+  | shW0  -- first shift-cascade write after inserting source char
+  | shM0  -- first shift-cascade move after inserting source char
   | shW   -- shift-cascade write
   | shM   -- shift-cascade move
   deriving DecidableEq, Repr
 
 instance : Fintype C2Phase where
-  elems := {.shW, .shM}
+  elems := {.shW0, .shM0, .shW, .shM}
   complete x := by cases x <;> simp
 
 /-- Full state type for the copy machine. -/
@@ -196,10 +199,18 @@ noncomputable def M (sep2 : Γ) : @TM0.Machine Γ (CSt Γ) ⟨Sum.inr (Sum.inr .
   | .inr (.inl (s, .scanR2)) =>
       if a = default then
         -- 2nd default (copy-suffix boundary) → write s, start shift cascade
-        some (.inl (s, default, .shM), TM0.Stmt.write s)
+        some (.inl (s, default, .shM0), TM0.Stmt.write s)
       else
         some (.inr (.inl (s, .scanR2)), TM0.Stmt.move Dir.right)
   -- Shift cascade (carries source char s and cascade value c)
+  | .inl (s, c, .shW0) =>
+      if c = default ∧ a = default then
+        -- empty suffix: start return at the padding default to the right of the copy
+        some (.inr (.inl (s, .ret1)), TM0.Stmt.write default)
+      else
+        some (.inl (s, a, .shM), TM0.Stmt.write c)
+  | .inl (s, c, .shM0) =>
+      some (.inl (s, c, .shW0), TM0.Stmt.move Dir.right)
   | .inl (s, c, .shW) =>
       if c = default ∧ a = default then
         -- cascade done → start three-phase return
@@ -217,9 +228,14 @@ noncomputable def M (sep2 : Γ) : @TM0.Machine Γ (CSt Γ) ⟨Sum.inr (Sum.inr .
         some (.inr (.inl (s, .ret1)), TM0.Stmt.move Dir.left)
   | .inr (.inl (s, .ret2)) =>
       if a = default then
-        some (.inr (.inl (s, .ret3)), TM0.Stmt.write default)
+        some (.inr (.inl (s, .ret2b)), TM0.Stmt.move Dir.left)
       else
         some (.inr (.inl (s, .ret2)), TM0.Stmt.move Dir.left)
+  | .inr (.inl (s, .ret2b)) =>
+      if a = default then
+        some (.inr (.inr .adv), TM0.Stmt.write s)
+      else
+        some (.inr (.inl (s, .ret2b)), TM0.Stmt.move Dir.left)
   | .inr (.inl (s, .ret3)) =>
       if a = default then
         -- found marker → restore source char and advance
