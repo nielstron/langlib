@@ -217,7 +217,7 @@ noncomputable def M (sep2 : Γ) : @TM0.Machine Γ (CSt Γ) ⟨Sum.inr (Sum.inr .
         some (.inr (.inl (s, .ret1)), TM0.Stmt.move Dir.left)
   | .inr (.inl (s, .ret2)) =>
       if a = default then
-        some (.inr (.inl (s, .ret3)), TM0.Stmt.move Dir.left)
+        some (.inr (.inl (s, .ret3)), TM0.Stmt.write default)
       else
         some (.inr (.inl (s, .ret2)), TM0.Stmt.move Dir.left)
   | .inr (.inl (s, .ret3)) =>

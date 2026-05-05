@@ -495,9 +495,99 @@ theorem grab_to_shW (sep2 : Γ) (x : Γ) (rest copied L : List Γ)
     (Relation.ReflTransGen.head h_mark
       (h_scanR.trans
         (Relation.ReflTransGen.head h_cross
-          (h_scanR2.trans
+      (h_scanR2.trans
             (Relation.ReflTransGen.head h_write
               (Relation.ReflTransGen.single h_move))))))
+
+theorem ret3_scan_restore (sep2 : Γ) (x cur : Γ) (leftRest L R : List Γ)
+    (hcur : cur ≠ default)
+    (hleftRest : ∀ g ∈ leftRest, g ≠ default) :
+    Reaches (TM0.step (M sep2))
+      ⟨.inr (.inl (x, .ret3)), Tape.mk₂ (leftRest ++ default :: L) (cur :: R)⟩
+      ⟨.inr (.inr .grab), Tape.mk₂ (x :: L) (leftRest.reverse ++ cur :: R)⟩ := by
+  induction' leftRest with a leftRest ih generalizing cur R
+  · have h_move : TM0.step (M sep2)
+        ⟨.inr (.inl (x, .ret3)), Tape.mk₂ (default :: L) (cur :: R)⟩ =
+        some ⟨.inr (.inl (x, .ret3)), Tape.mk₂ L (default :: cur :: R)⟩ := by
+      unfold TM0.step M
+      simp +decide [hcur, Tape.mk₂]
+    have h_write : TM0.step (M sep2)
+        ⟨.inr (.inl (x, .ret3)), Tape.mk₂ L (default :: cur :: R)⟩ =
+        some ⟨.inr (.inr .adv), Tape.mk₂ L (x :: cur :: R)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_adv : TM0.step (M sep2)
+        ⟨.inr (.inr .adv), Tape.mk₂ L (x :: cur :: R)⟩ =
+        some ⟨.inr (.inr .grab), Tape.mk₂ (x :: L) (cur :: R)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_move_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret3)), Tape.mk₂ (default :: L) (cur :: R)⟩
+        ⟨.inr (.inl (x, .ret3)), Tape.mk₂ L (default :: cur :: R)⟩ :=
+      Relation.ReflTransGen.single h_move
+    have h_write_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret3)), Tape.mk₂ L (default :: cur :: R)⟩
+        ⟨.inr (.inr .adv), Tape.mk₂ L (x :: cur :: R)⟩ :=
+      Relation.ReflTransGen.single h_write
+    have h_adv_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inr .adv), Tape.mk₂ L (x :: cur :: R)⟩
+        ⟨.inr (.inr .grab), Tape.mk₂ (x :: L) (cur :: R)⟩ :=
+      Relation.ReflTransGen.single h_adv
+    simpa using
+      h_move_reaches.trans (h_write_reaches.trans h_adv_reaches)
+  · have ha : a ≠ default := hleftRest a (by simp)
+    have htail : ∀ g ∈ leftRest, g ≠ default := by
+      intro g hg
+      exact hleftRest g (by simp [hg])
+    have h_move : TM0.step (M sep2)
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ (a :: leftRest ++ default :: L) (cur :: R)⟩ =
+        some ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ (leftRest ++ default :: L) (a :: cur :: R)⟩ := by
+      unfold TM0.step M
+      simp +decide [hcur, Tape.mk₂]
+    have hrec := ih a (cur :: R) ha htail
+    have h_move_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ (a :: leftRest ++ default :: L) (cur :: R)⟩
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ (leftRest ++ default :: L) (a :: cur :: R)⟩ :=
+      Relation.ReflTransGen.single h_move
+    convert h_move_reaches.trans hrec using 1
+    simp [List.append_assoc]
+
+theorem generic_scan_left_to_default (sep2 : Γ) (q : CSt Γ) (h : Γ)
+    (elems L R : List Γ)
+    (hh : h ≠ default)
+    (helems : ∀ g ∈ elems, g ≠ default)
+    (h_loop : ∀ a : Γ, a ≠ default →
+      M sep2 q a = some (q, TM0.Stmt.move Dir.left)) :
+    Reaches (TM0.step (M sep2))
+      ⟨q, Tape.mk₂ (elems ++ default :: L) (h :: R)⟩
+      ⟨q, Tape.mk₂ L (default :: elems.reverse ++ h :: R)⟩ := by
+  induction' elems with a elems ih generalizing h R
+  · have h_step : TM0.step (M sep2)
+        ⟨q, Tape.mk₂ (default :: L) (h :: R)⟩ =
+        some ⟨q, Tape.mk₂ L (default :: h :: R)⟩ := by
+      unfold TM0.step
+      simp +decide [h_loop h hh, Tape.mk₂]
+    exact Relation.ReflTransGen.single h_step
+  · have ha : a ≠ default := helems a (by simp)
+    have htail : ∀ g ∈ elems, g ≠ default := by
+      intro g hg
+      exact helems g (by simp [hg])
+    have h_step : TM0.step (M sep2)
+        ⟨q, Tape.mk₂ (a :: elems ++ default :: L) (h :: R)⟩ =
+        some ⟨q, Tape.mk₂ (elems ++ default :: L) (a :: h :: R)⟩ := by
+      unfold TM0.step
+      simp +decide [h_loop h hh, Tape.mk₂]
+    have hrec := ih a (h :: R) ha htail
+    have h_step_reaches : Reaches (TM0.step (M sep2))
+        ⟨q, Tape.mk₂ (a :: elems ++ default :: L) (h :: R)⟩
+        ⟨q, Tape.mk₂ (elems ++ default :: L) (a :: h :: R)⟩ :=
+      Relation.ReflTransGen.single h_step
+    convert h_step_reaches.trans hrec using 1
+    simp [List.append_assoc]
 
 /-- Phase 1c: three-phase return from ret1 back to grab (after restore + advance). -/
 theorem ret_to_grab (sep2 : Γ) (x : Γ) (rest copied L : List Γ)
@@ -512,7 +602,190 @@ theorem ret_to_grab (sep2 : Γ) (x : Γ) (rest copied L : List Γ)
                  (x :: default :: suffix)⟩
       ⟨.inr (.inr .grab),
        Tape.mk₂ (x :: L) (rest ++ default :: copied ++ [x] ++ default :: suffix)⟩ := by
-  sorry
+  have hcopied_rev : ∀ g ∈ copied.reverse, g ≠ default := by
+    intro g hg
+    exact hcopied g (List.mem_reverse.mp hg)
+  have h_ret1_scan : Reaches (TM0.step (M sep2))
+      ⟨.inr (.inl (x, .ret1)),
+       Tape.mk₂ (copied.reverse ++ default :: rest.reverse ++ default :: L)
+         (x :: default :: suffix)⟩
+      ⟨.inr (.inl (x, .ret1)),
+       Tape.mk₂ (rest.reverse ++ default :: L)
+         (default :: copied ++ x :: default :: suffix)⟩ := by
+    simpa [List.append_assoc] using
+      generic_scan_left_to_default sep2 (.inr (.inl (x, .ret1))) x copied.reverse
+        (rest.reverse ++ default :: L) (default :: suffix) hx hcopied_rev (by
+          intro a ha
+          unfold M
+          simp +decide [ha])
+  have hrest_rev : ∀ g ∈ rest.reverse, g ≠ default := by
+    intro g hg
+    exact hrest g (List.mem_reverse.mp hg)
+  by_cases hrest_cases : rest.reverse = []
+  · have hrest_nil : rest = [] := by
+      simpa using congrArg List.reverse hrest_cases
+    subst rest
+    have h_ret1_cross : TM0.step (M sep2)
+        ⟨.inr (.inl (x, .ret1)),
+         Tape.mk₂ (default :: L) (default :: copied ++ x :: default :: suffix)⟩ =
+        some ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ L (default :: default :: copied ++ x :: default :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_ret2 : TM0.step (M sep2)
+        ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ L (default :: default :: copied ++ x :: default :: suffix)⟩ =
+        some ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ L (default :: default :: copied ++ x :: default :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_write : TM0.step (M sep2)
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ L (default :: default :: copied ++ x :: default :: suffix)⟩ =
+        some ⟨.inr (.inr .adv),
+         Tape.mk₂ L (x :: default :: copied ++ x :: default :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_adv : TM0.step (M sep2)
+        ⟨.inr (.inr .adv),
+         Tape.mk₂ L (x :: default :: copied ++ x :: default :: suffix)⟩ =
+        some ⟨.inr (.inr .grab),
+         Tape.mk₂ (x :: L) (default :: copied ++ x :: default :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_ret1_cross_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret1)),
+         Tape.mk₂ (default :: L) (default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ L (default :: default :: copied ++ x :: default :: suffix)⟩ :=
+      Relation.ReflTransGen.single h_ret1_cross
+    have h_ret2_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ L (default :: default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ L (default :: default :: copied ++ x :: default :: suffix)⟩ :=
+      Relation.ReflTransGen.single h_ret2
+    have h_write_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ L (default :: default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inr .adv),
+         Tape.mk₂ L (x :: default :: copied ++ x :: default :: suffix)⟩ :=
+      Relation.ReflTransGen.single h_write
+    have h_adv_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inr .adv),
+         Tape.mk₂ L (x :: default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inr .grab),
+         Tape.mk₂ (x :: L) (default :: copied ++ x :: default :: suffix)⟩ :=
+      Relation.ReflTransGen.single h_adv
+    convert h_ret1_scan.trans
+      (h_ret1_cross_reaches.trans
+      (h_ret2_reaches.trans
+        (h_write_reaches.trans h_adv_reaches))) using 1 <;>
+      simp [List.append_assoc]
+  · obtain ⟨cur, leftRest, hrev⟩ : ∃ cur leftRest, rest.reverse = cur :: leftRest :=
+      List.exists_cons_of_ne_nil hrest_cases
+    have hrest_eq : rest = leftRest.reverse ++ [cur] := by
+      calc
+        rest = (rest.reverse).reverse := by simp
+        _ = (cur :: leftRest).reverse := by rw [hrev]
+        _ = leftRest.reverse ++ [cur] := by simp
+    have hcur : cur ≠ default := by
+      exact hrest cur (by
+        rw [hrest_eq]
+        simp)
+    have hleftRest : ∀ g ∈ leftRest, g ≠ default := by
+      intro g hg
+      exact hrest g (by
+        rw [hrest_eq]
+        simp [hg])
+    have h_ret2_scan : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ (leftRest ++ default :: L)
+           (cur :: default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ L
+           (default :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ := by
+      simpa [List.append_assoc] using
+        generic_scan_left_to_default sep2 (.inr (.inl (x, .ret2))) cur leftRest
+          L (default :: copied ++ x :: default :: suffix) hcur hleftRest (by
+            intro a ha
+            unfold M
+            simp +decide [ha])
+    have h_ret2 : TM0.step (M sep2)
+        ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ L
+           (default :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ =
+        some ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ L
+           (default :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_write : TM0.step (M sep2)
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ L
+           (default :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ =
+        some ⟨.inr (.inr .adv),
+         Tape.mk₂ L
+           (x :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_adv : TM0.step (M sep2)
+        ⟨.inr (.inr .adv),
+         Tape.mk₂ L
+           (x :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ =
+        some ⟨.inr (.inr .grab),
+         Tape.mk₂ (x :: L)
+           (leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_ret1_to_ret2 : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret1)),
+         Tape.mk₂ (rest.reverse ++ default :: L)
+           (default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ (leftRest ++ default :: L)
+           (cur :: default :: copied ++ x :: default :: suffix)⟩ := by
+      have h_step : TM0.step (M sep2)
+          ⟨.inr (.inl (x, .ret1)),
+           Tape.mk₂ (rest.reverse ++ default :: L)
+             (default :: copied ++ x :: default :: suffix)⟩ =
+          some ⟨.inr (.inl (x, .ret2)),
+           Tape.mk₂ (leftRest ++ default :: L)
+             (cur :: default :: copied ++ x :: default :: suffix)⟩ := by
+        rw [hrev]
+        unfold TM0.step M
+        simp +decide [Tape.mk₂]
+      exact Relation.ReflTransGen.single h_step
+    have h_ret2_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret2)),
+         Tape.mk₂ L
+           (default :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ L
+           (default :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ :=
+      Relation.ReflTransGen.single h_ret2
+    have h_write_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inl (x, .ret3)),
+         Tape.mk₂ L
+           (default :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inr .adv),
+         Tape.mk₂ L
+           (x :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ :=
+      Relation.ReflTransGen.single h_write
+    have h_adv_reaches : Reaches (TM0.step (M sep2))
+        ⟨.inr (.inr .adv),
+         Tape.mk₂ L
+           (x :: leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩
+        ⟨.inr (.inr .grab),
+         Tape.mk₂ (x :: L)
+           (leftRest.reverse ++ cur :: default :: copied ++ x :: default :: suffix)⟩ :=
+      Relation.ReflTransGen.single h_adv
+    convert h_ret1_scan.trans
+      (h_ret1_to_ret2.trans
+        (h_ret2_scan.trans
+          (h_ret2_reaches.trans
+            (h_write_reaches.trans h_adv_reaches)))) using 1 <;>
+      simp [hrest_eq, List.append_assoc]
 
 /-- One complete iteration of the copy loop. -/
 theorem one_iter_reaches (sep2 : Γ) (x : Γ) (rest copied L : List Γ)
