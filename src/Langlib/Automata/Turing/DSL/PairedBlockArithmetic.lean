@@ -2195,13 +2195,6 @@ theorem tm0_binMulPairedLoop_blockInvSuffix
     (fun block hblock hInv => binMulPairedWhile_eq_iterate block hblock)
     (fun block hblock _hInv => binMulPairedLoop_ne_default block hblock)
 
-/-- Local machine-construction obligation for one suffix-preserving paired
-multiplication loop step, restricted to the established state invariant. -/
-theorem tm0_binMulPairedStep_blockCondInvSuffix :
-    TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
-      binMulPairedStateInv := by
-  sorry
-
 /-- Downstream multiplication only needs the loop body on invariant states,
 with the default-delimited suffix preserved.
 

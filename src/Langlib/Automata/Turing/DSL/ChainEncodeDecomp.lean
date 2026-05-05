@@ -5,6 +5,7 @@ import Langlib.Automata.Turing.DSL.BinarySuccessor
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
 import Langlib.Automata.Turing.DSL.CondBlockOps
 import Langlib.Automata.Turing.DSL.PairedBlockArithmetic
+import Langlib.Automata.Turing.DSL.PairedInvariantEstablisher
 import Langlib.Automata.Turing.DSL.AlphabetSim
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 

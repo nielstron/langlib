@@ -454,3 +454,10 @@ theorem tm0_binAddPaired_blockInv :
         extractPairedRight_binAddPairedWhile_ne_default
   exact tm0RealizesBlockInv_congr hf (fun block hInv =>
     (binAddPaired_eq_while_decomp block hInv).symm)
+
+/-- Local machine-construction obligation for one suffix-preserving paired
+multiplication loop step, restricted to the established state invariant. -/
+theorem tm0_binMulPairedStep_blockCondInvSuffix :
+    TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
+      binMulPairedStateInv := by
+  sorry
