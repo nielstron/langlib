@@ -67,7 +67,7 @@ theorem sepPresence_done_halt (found : Bool) (T : Tape ChainΓ) :
     TM0.step sepPresenceMachine ⟨SepPresenceSt.done found, T⟩ = none := by
   simp [TM0.step, sepPresenceMachine]
 
-@[simp] theorem listBlank_mk_singleton_default_chainΓ :
+theorem listBlank_mk_singleton_default_chainΓ :
     ListBlank.mk ([default] : List ChainΓ) = ListBlank.mk [] := by
   apply Quot.sound
   exact Or.inr ⟨1, by simp⟩
@@ -215,8 +215,8 @@ theorem sepPresenceMachine_correct (block suffix : List ChainΓ)
             Tape.move]
         refine h_rewind.trans ?_
         apply Relation.ReflTransGen.single
-        simp [TM0.step, sepPresenceMachine, Tape.move, Tape.mk₁, Tape.mk',
-          List.append_assoc, tape_mk₂_nil_eq_headI_tail_chainΓ]
+        simp [TM0.step, sepPresenceMachine, Tape.move, Tape.mk₁, List.append_assoc,
+          listBlank_mk_singleton_default_chainΓ, tape_mk₂_nil_eq_headI_tail_chainΓ]
       simpa [TM0.init, hblock_eq, List.append_assoc] using h_chain'
     have hhalt : TM0.step sepPresenceMachine
         ⟨SepPresenceSt.done true, Tape.mk₁ (block ++ default :: suffix)⟩ = none :=
@@ -258,7 +258,8 @@ theorem sepPresenceMachine_correct (block suffix : List ChainΓ)
               Tape.mk' (ListBlank.mk []) (ListBlank.mk (block ++ default :: suffix))⟩
             ⟨SepPresenceSt.scan,
               Tape.mk' (ListBlank.mk block.reverse) (ListBlank.mk (default :: suffix))⟩ := by
-          convert h_scan using 1 <;> simp
+          convert h_scan using 1
+          simp
         refine h_scan'.trans ?_
         refine Relation.ReflTransGen.trans
           (b := ⟨SepPresenceSt.rewind false,
@@ -268,8 +269,8 @@ theorem sepPresenceMachine_correct (block suffix : List ChainΓ)
           simp [Tape.mk', TM0.step, sepPresenceMachine, Tape.move]
         refine h_rewind.trans ?_
         apply Relation.ReflTransGen.single
-        simp [TM0.step, sepPresenceMachine, Tape.move, Tape.mk₁, Tape.mk',
-          List.append_assoc, tape_mk₂_nil_eq_headI_tail_chainΓ]
+        simp [TM0.step, sepPresenceMachine, Tape.move, Tape.mk₁,
+          listBlank_mk_singleton_default_chainΓ, tape_mk₂_nil_eq_headI_tail_chainΓ]
       simpa [TM0.init, List.append_assoc] using h_chain'
     have hhalt : TM0.step sepPresenceMachine
         ⟨SepPresenceSt.done false, Tape.mk₁ (block ++ default :: suffix)⟩ = none :=
