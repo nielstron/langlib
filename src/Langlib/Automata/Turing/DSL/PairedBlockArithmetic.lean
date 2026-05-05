@@ -222,6 +222,38 @@ def TM0RealizesBlockInv {Γ : Type} [Inhabited Γ]
         ((TM0Seq.evalCfg M (block ++ [default])).get h).Tape =
           Tape.mk₁ (f block ++ [default])
 
+def TM0RealizesBlockInvSuffix {Γ : Type} [Inhabited Γ]
+    (f : List Γ → List Γ) (blockInv : List Γ → Prop) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (block suffix : List Γ),
+      blockInv block →
+      (∀ g ∈ block, g ≠ default) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (∀ g ∈ f block, g ≠ default) →
+      (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom),
+        ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).Tape =
+          Tape.mk₁ (f block ++ default :: suffix)
+
+def TM0RealizesBlockCondInvSuffix {Γ : Type} [Inhabited Γ]
+    (step : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
+    (blockInv : List Γ → Prop) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ) (q_cont : Λ),
+    ∀ (block suffix : List Γ),
+      blockInv block →
+      (∀ g ∈ block, g ≠ default) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (cond block → ∀ g ∈ step block, g ≠ default) →
+      (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom),
+        let cfg := (TM0Seq.evalCfg M (block ++ default :: suffix)).get h
+        if cond block then
+          cfg.q = q_cont ∧ cfg.Tape = Tape.mk₁ (step block ++ default :: suffix)
+        else
+          cfg.q ≠ q_cont ∧ cfg.Tape = Tape.mk₁ (block ++ default :: suffix)
+
 theorem tm0RealizesBlockInv_comp {Γ : Type} [Inhabited Γ]
     {f g : List Γ → List Γ} {blockInv : List Γ → Prop}
     (hf : TM0RealizesBlockInv f blockInv)
@@ -278,6 +310,120 @@ theorem tm0RealizesBlockInv_congr {Γ : Type} [Inhabited Γ]
   refine ⟨hdom, ?_⟩
   intro h
   rw [htape h, hfg block hInv]
+
+theorem tm0RealizesBlockInvSuffix_while
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (step result : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
+    (blockInv : List Γ → Prop)
+    (hbody : TM0RealizesBlockCondInvSuffix step cond blockInv)
+    (hinv_step : ∀ block, blockInv block → (∀ g ∈ block, g ≠ default) →
+      cond block → blockInv (step block))
+    (hstep_nd : ∀ block, (∀ g ∈ block, g ≠ default) → cond block →
+      ∀ g ∈ step block, g ≠ default)
+    (hresult_eq : ∀ block, (∀ g ∈ block, g ≠ default) → blockInv block →
+      ∃ n, result block = blockIterateWhile step cond n block ∧
+        ¬cond (blockIterateWhile step cond n block))
+    (_hresult_nd : ∀ block, (∀ g ∈ block, g ≠ default) → blockInv block →
+      ∀ g ∈ result block, g ≠ default) :
+    TM0RealizesBlockInvSuffix result blockInv := by
+  obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
+  haveI : DecidableEq Λ := Classical.decEq Λ
+  refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
+  intro block suffix hblockInv hblock hsuffix hresult
+  obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock hblockInv
+  suffices key : ∀ (m : ℕ) (blk : List Γ),
+    blockInv blk →
+    (∀ g ∈ blk, g ≠ default) →
+    ¬cond (blockIterateWhile step cond m blk) →
+    (TM0Seq.evalCfg (tm0WhileLoop M q_cont) (blk ++ default :: suffix)).Dom ∧
+    ∀ (hd : (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+        (blk ++ default :: suffix)).Dom),
+      ((TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+        (blk ++ default :: suffix)).get hd).Tape =
+      Tape.mk₁ (blockIterateWhile step cond m blk ++ default :: suffix) by
+    obtain ⟨h_dom, h_tape⟩ := key n block hblockInv hblock hn_not_cond
+    exact ⟨h_dom, fun hd => by rw [hn_eq, h_tape hd]⟩
+  intro m
+  induction m with
+  | zero =>
+    intro blk hblkInv hblk hn_not
+    simp only [blockIterateWhile] at hn_not ⊢
+    obtain ⟨h_body_dom, h_body_spec⟩ := hM blk suffix hblkInv hblk hsuffix
+      (fun hc => hstep_nd blk hblk hc)
+    have h_body_spec' := h_body_spec h_body_dom
+    simp only [hn_not, ↓reduceIte] at h_body_spec'
+    obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+    obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _
+      h_body_dom h_q_ne
+    exact ⟨h_dom, fun hd => by rw [h_tape hd, h_tape_eq]⟩
+  | succ m ih =>
+    intro blk hblkInv hblk hn_not
+    by_cases hcond : cond blk
+    · rw [blockIterateWhile_succ_true _ _ _ _ hcond] at hn_not ⊢
+      have h_step_nd := hstep_nd blk hblk hcond
+      have h_step_inv := hinv_step blk hblkInv hblk hcond
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM blk suffix hblkInv hblk hsuffix
+        (fun _ => h_step_nd)
+      have h_body_spec' := h_body_spec h_body_dom
+      simp only [hcond, ↓reduceIte] at h_body_spec'
+      obtain ⟨h_q_cont, h_tape_step⟩ := h_body_spec'
+      obtain ⟨h_W_step_dom, h_W_step_tape⟩ :=
+        ih (step blk) h_step_inv h_step_nd hn_not
+      obtain ⟨h_W_dom, h_W_tape⟩ := whileLoop_eval_cont M q_cont _ _
+        h_body_dom h_q_cont h_tape_step h_W_step_dom
+      exact ⟨h_W_dom, fun hd => by rw [h_W_tape hd, h_W_step_tape h_W_step_dom]⟩
+    · rw [blockIterateWhile_succ_false _ _ _ _ hcond] at hn_not ⊢
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM blk suffix hblkInv hblk hsuffix
+        (fun hc => absurd hc hcond)
+      have h_body_spec' := h_body_spec h_body_dom
+      simp only [hcond, ↓reduceIte] at h_body_spec'
+      obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+      obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _
+        h_body_dom h_q_ne
+      exact ⟨h_dom, fun hd => by rw [h_tape hd, h_tape_eq]⟩
+
+theorem tm0RealizesBlock_comp_invSuffix {Γ : Type} [Inhabited Γ]
+    {f g : List Γ → List Γ} {blockInv : List Γ → Prop}
+    (hf : TM0RealizesBlock Γ f)
+    (hg : TM0RealizesBlockInvSuffix g blockInv)
+    (hf_inv : ∀ block, (∀ x ∈ block, x ≠ default) → blockInv (f block))
+    (hf_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ f block, x ≠ default) :
+    TM0RealizesBlock Γ (g ∘ f) := by
+  obtain ⟨Λ_f, hΛfi, hΛff, M_f, hM_f⟩ := hf
+  obtain ⟨Λ_g, hΛgi, hΛgf, M_g, hM_g⟩ := hg
+  let hsum : Inhabited (Λ_f ⊕ Λ_g) := ⟨Sum.inl (@default _ hΛfi)⟩
+  refine ⟨Λ_f ⊕ Λ_g, hsum, inferInstance,
+    @TM0Seq.compose Γ Λ_f hΛfi Λ_g hΛgi M_f M_g, ?_⟩
+  intro block suffix hblock hsuffix hgf
+  have hfblock_nd := hf_nd block hblock
+  obtain ⟨hf_dom, hf_tape⟩ := hM_f block suffix hblock hsuffix hfblock_nd
+  obtain ⟨hg_dom, hg_tape⟩ := hM_g (f block) suffix
+    (hf_inv block hblock) hfblock_nd hsuffix hgf
+  have hg_from_cfg :
+      (TM0Seq.evalFromCfg M_g
+        ⟨default, ((TM0Seq.evalCfg M_f (block ++ default :: suffix)).get
+          hf_dom).Tape⟩).Dom := by
+    rw [hf_tape hf_dom]
+    show (TM0Seq.evalFromCfg M_g (TM0.init (f block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hg_dom
+  have hcomp_dom :
+      (TM0Seq.evalCfg
+        (@TM0Seq.compose Γ Λ_f hΛfi Λ_g hΛgi M_f M_g)
+        (block ++ default :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff
+      (@TM0Seq.compose Γ Λ_f hΛfi Λ_g hΛgi M_f M_g)
+      (block ++ default :: suffix)).mpr
+        (@TM0Seq.compose_dom_of_parts Γ _ Λ_f hΛfi Λ_g hΛgi
+          M_f M_g (block ++ default :: suffix) hf_dom hg_from_cfg)
+  refine ⟨hcomp_dom, ?_⟩
+  intro h
+  have hcomp_tape :=
+    @TM0Seq.compose_evalCfg_tape Γ _ Λ_f hΛfi Λ_g hΛgi M_f M_g
+      (block ++ default :: suffix) (f block ++ default :: suffix)
+      hf_dom (hf_tape hf_dom) hg_dom h
+  rw [hcomp_tape]
+  exact hg_tape hg_dom
 
 noncomputable def pairedDecrLeftOnly (block : List ChainΓ) : List ChainΓ :=
   let (left, right) := splitAtConsBottom block
@@ -639,6 +785,16 @@ theorem normalizePairedBlocks_ne_default (block : List ChainΓ)
     (fun g hg => hblock g (splitAtConsBottom_fst_subset block g hg))
     (fun g hg => hblock g (splitAtConsBottom_snd_subset block g hg))
 
+theorem tm0_normalizeBlock_afterConsBottom_innerDefault :
+    TM0RealizesInnerBlockDefaultSep ChainΓ chainConsBottom normalizeBlock := by
+  refine tm0RealizesBlockSep_toInnerDefault
+    chainConsBottom_ne_default
+    (tm0_normalizeBlockSep (sep := chainConsBottom) (by decide) (by decide))
+    (fun block _hblock => normalizeBlock_ne_default block)
+    ?_
+  intro block _hblock
+  exact normalizeBlock_no_consBottom block
+
 theorem tm0_normalizePairedBlocks_block :
     TM0RealizesBlock ChainΓ normalizePairedBlocks := by
   sorry
@@ -661,6 +817,15 @@ noncomputable def binMulPairedFuel (block : List ChainΓ) : List ChainΓ :=
 /-- Continue while the copied multiplier is positive. -/
 noncomputable abbrev binMulPairedCond : List ChainΓ → Prop :=
   fun block => ¬ blockValueLeq 0 (binMulPairedFuel block)
+
+/-- Multiplication loop states have three separator-delimited fields:
+    accumulator, addend, and fuel.  The fuel field contains no further
+    `chainConsBottom`, so the second separator is the last paired separator
+    relevant to the loop body. -/
+def binMulPairedStateInv (block : List ChainΓ) : Prop :=
+  let rest := (splitAtConsBottom block).2
+  hasConsBottom block ∧ hasConsBottom rest ∧
+    ∀ g ∈ (splitAtConsBottom rest).2, g ≠ chainConsBottom
 
 /-- One multiplication iteration:
     add `addend` into `acc` using `binAddPaired`, keep `addend`, and decrement
@@ -693,6 +858,953 @@ theorem binMulPairedInit_ne_default (block : List ChainΓ)
   · exact chainBinaryRepr_ne_default _ g hg
   · exact chainConsBottom_ne_default
   · exact normalizePairedBlocks_ne_default _ _hblock g hg
+
+theorem binMulPairedInit_stateInv (block : List ChainΓ) :
+    binMulPairedStateInv (binMulPairedInit block) := by
+  unfold binMulPairedStateInv binMulPairedInit normalizePairedBlocks
+    pairNormalizedBlocks hasConsBottom
+  rw [splitAtConsBottom_binary_sep]
+  constructor
+  · simp
+  constructor
+  · simp
+  · rw [splitAtConsBottom_binary_sep]
+    exact chainBinaryRepr_no_consBottom _
+
+theorem binMulPairedStep_addInput_pairedSepInv (block : List ChainΓ) :
+    let acc := (splitAtConsBottom block).1
+    let addend := (splitAtConsBottom (splitAtConsBottom block).2).1
+    pairedSepInv (acc ++ [chainConsBottom] ++ addend) := by
+  dsimp
+  constructor
+  · unfold hasConsBottom
+    simp
+  · rw [splitAtConsBottom_general]
+    · exact splitAtConsBottom_fst_no_sep (splitAtConsBottom block).2
+    · exact splitAtConsBottom_fst_no_sep block
+
+/-- A machine that runs a paired-block operation before the next
+    `chainConsBottom`.
+
+This is intentionally not `TM0RealizesBlockSep`: the operated segment itself
+contains one internal `chainConsBottom`, so the usual no-separator block
+premise would be false.  The intended tape shape is
+`left ++ sep :: right ++ sep :: suffix`; only `left ++ sep :: right` is
+rewritten. -/
+def TM0RealizesPairedBeforeConsBottom
+    (f : List ChainΓ → List ChainΓ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine ChainΓ Λ),
+    ∀ (left right suffix : List ChainΓ),
+      (∀ g ∈ left, g ≠ default) →
+      (∀ g ∈ left, g ≠ chainConsBottom) →
+      (∀ g ∈ right, g ≠ default) →
+      (∀ g ∈ right, g ≠ chainConsBottom) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (∀ g ∈ f (left ++ [chainConsBottom] ++ right), g ≠ default) →
+      (∀ g ∈ f (left ++ [chainConsBottom] ++ right), g ≠ chainConsBottom) →
+      (TM0Seq.evalCfg M
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom),
+        ((TM0Seq.evalCfg M
+          (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get h).Tape =
+          Tape.mk₁ (f (left ++ [chainConsBottom] ++ right) ++
+            chainConsBottom :: suffix)
+
+/-- A machine that rewrites a paired block before the next `chainConsBottom`.
+
+Unlike `TM0RealizesPairedBeforeConsBottom`, this allows the output of `f` to
+still contain the internal paired separator.  This is the shape for paired-add
+loop bodies; the final paired-add operation removes the internal separator. -/
+def TM0RealizesPairedBlockBeforeConsBottom
+    (f : List ChainΓ → List ChainΓ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine ChainΓ Λ),
+    ∀ (left right suffix : List ChainΓ),
+      (∀ g ∈ left, g ≠ default) →
+      (∀ g ∈ left, g ≠ chainConsBottom) →
+      (∀ g ∈ right, g ≠ default) →
+      (∀ g ∈ right, g ≠ chainConsBottom) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (∀ g ∈ f (left ++ [chainConsBottom] ++ right), g ≠ default) →
+      (TM0Seq.evalCfg M
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom),
+        ((TM0Seq.evalCfg M
+          (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get h).Tape =
+          Tape.mk₁ (f (left ++ [chainConsBottom] ++ right) ++
+            chainConsBottom :: suffix)
+
+def TM0RealizesPairedBlockBeforeConsBottomCond
+    (step : List ChainΓ → List ChainΓ) (cond : List ChainΓ → Prop)
+    [DecidablePred cond] : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine ChainΓ Λ) (q_cont : Λ),
+    ∀ (left right suffix : List ChainΓ),
+      (∀ g ∈ left, g ≠ default) →
+      (∀ g ∈ left, g ≠ chainConsBottom) →
+      (∀ g ∈ right, g ≠ default) →
+      (∀ g ∈ right, g ≠ chainConsBottom) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (cond (left ++ [chainConsBottom] ++ right) →
+        ∀ g ∈ step (left ++ [chainConsBottom] ++ right), g ≠ default) →
+      (TM0Seq.evalCfg M
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom),
+        let cfg := (TM0Seq.evalCfg M
+          (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get h
+        if cond (left ++ [chainConsBottom] ++ right) then
+          cfg.q = q_cont ∧
+          cfg.Tape = Tape.mk₁
+            (step (left ++ [chainConsBottom] ++ right) ++
+              chainConsBottom :: suffix)
+        else
+          cfg.q ≠ q_cont ∧
+          cfg.Tape = Tape.mk₁
+            (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)
+
+theorem condCompose_fixed_at_halt_true_of_step_local
+    {Λ_p Λ_f Λ_g : Type}
+    [Inhabited Λ_p] [Inhabited Λ_f] [Inhabited Λ_g]
+    [DecidableEq Λ_p]
+    (M_p : TM0.Machine ChainΓ Λ_p)
+    (M_f : TM0.Machine ChainΓ Λ_f)
+    (M_g : TM0.Machine ChainΓ Λ_g)
+    (q_t q_f : Λ_p)
+    (q_done : Λ_f) (T T' : Tape ChainΓ)
+    (h_halt : TM0.step M_p ⟨q_t, T⟩ = none)
+    (h_step : ∃ c₂, TM0.step M_f ⟨default, T⟩ = some c₂)
+    (h_f_dom : (TM0Seq.evalFromCfg M_f ⟨default, T⟩).Dom)
+    (h_f_spec : ∀ h, (TM0Seq.evalFromCfg M_f ⟨default, T⟩).get h =
+      ⟨q_done, T'⟩) :
+    let step_c := @TM0.step ChainΓ (Λ_p ⊕ Λ_f ⊕ Λ_g) ⟨Sum.inl default⟩ _
+      (tm0CondCompose M_p M_f M_g q_t q_f)
+    ∀ (h_c_dom : (Turing.eval step_c ⟨Sum.inl q_t, T⟩).Dom),
+      (Turing.eval step_c ⟨Sum.inl q_t, T⟩).get h_c_dom =
+        ⟨Sum.inr (Sum.inl q_done), T'⟩ := by
+  intro step_c h_c_dom
+  obtain ⟨c₂, h_step_f⟩ := h_step
+  have h_step_c : step_c ⟨Sum.inl q_t, T⟩ =
+      some ⟨Sum.inr (Sum.inl c₂.q), c₂.Tape⟩ := by
+    show @TM0.step ChainΓ (Λ_p ⊕ Λ_f ⊕ Λ_g) _ _
+      (tm0CondCompose M_p M_f M_g q_t q_f) _ = _
+    rw [condCompose_halt_true M_p M_f M_g q_t q_f T h_halt]
+    simp [h_step_f]
+  have h_eval_eq := Turing.reaches_eval (Relation.ReflTransGen.single h_step_c)
+  have h_eval_f_eq := Turing.reaches_eval (Relation.ReflTransGen.single h_step_f)
+  have hb_f_mem_c2 :
+      ⟨q_done, T'⟩ ∈ Turing.eval (TM0.step M_f) c₂ := by
+    rw [← h_eval_f_eq]
+    exact h_f_spec h_f_dom ▸ Part.get_mem h_f_dom
+  obtain ⟨b₂, hb₂_rel, hb₂_mem⟩ := Turing.tr_eval
+    (condCompose_f_respects M_p M_f M_g q_t q_f)
+    (a₁ := c₂) (a₂ := ⟨Sum.inr (Sum.inl c₂.q), c₂.Tape⟩)
+    ⟨rfl, rfl⟩ hb_f_mem_c2
+  have hb₂_mem' : b₂ ∈ Turing.eval step_c ⟨Sum.inl q_t, T⟩ := by
+    rw [h_eval_eq]
+    exact hb₂_mem
+  have hb₂_eq : b₂ = ⟨Sum.inr (Sum.inl q_done), T'⟩ := by
+    rcases hb₂_rel with ⟨hq, hT⟩
+    cases b₂
+    simp at hq hT
+    simp [hq, hT]
+  exact (Part.get_eq_of_mem hb₂_mem' h_c_dom).trans hb₂_eq
+
+theorem condCompose_fixed_at_halt_false_of_step_local
+    {Λ_p Λ_f Λ_g : Type}
+    [Inhabited Λ_p] [Inhabited Λ_f] [Inhabited Λ_g]
+    [DecidableEq Λ_p]
+    (M_p : TM0.Machine ChainΓ Λ_p)
+    (M_f : TM0.Machine ChainΓ Λ_f)
+    (M_g : TM0.Machine ChainΓ Λ_g)
+    (q_t q_f : Λ_p)
+    (hne : q_t ≠ q_f)
+    (q_done : Λ_g) (T T' : Tape ChainΓ)
+    (h_halt : TM0.step M_p ⟨q_f, T⟩ = none)
+    (h_step : ∃ c₂, TM0.step M_g ⟨default, T⟩ = some c₂)
+    (h_g_dom : (TM0Seq.evalFromCfg M_g ⟨default, T⟩).Dom)
+    (h_g_spec : ∀ h, (TM0Seq.evalFromCfg M_g ⟨default, T⟩).get h =
+      ⟨q_done, T'⟩) :
+    let step_c := @TM0.step ChainΓ (Λ_p ⊕ Λ_f ⊕ Λ_g) ⟨Sum.inl default⟩ _
+      (tm0CondCompose M_p M_f M_g q_t q_f)
+    ∀ (h_c_dom : (Turing.eval step_c ⟨Sum.inl q_f, T⟩).Dom),
+      (Turing.eval step_c ⟨Sum.inl q_f, T⟩).get h_c_dom =
+        ⟨Sum.inr (Sum.inr q_done), T'⟩ := by
+  intro step_c h_c_dom
+  obtain ⟨c₂, h_step_g⟩ := h_step
+  have h_step_c : step_c ⟨Sum.inl q_f, T⟩ =
+      some ⟨Sum.inr (Sum.inr c₂.q), c₂.Tape⟩ := by
+    show @TM0.step ChainΓ (Λ_p ⊕ Λ_f ⊕ Λ_g) _ _
+      (tm0CondCompose M_p M_f M_g q_t q_f) _ = _
+    rw [condCompose_halt_false M_p M_f M_g q_t q_f hne T h_halt]
+    simp [h_step_g]
+  have h_eval_eq := Turing.reaches_eval (Relation.ReflTransGen.single h_step_c)
+  have h_eval_g_eq := Turing.reaches_eval (Relation.ReflTransGen.single h_step_g)
+  have hb_g_mem_c2 :
+      ⟨q_done, T'⟩ ∈ Turing.eval (TM0.step M_g) c₂ := by
+    rw [← h_eval_g_eq]
+    exact h_g_spec h_g_dom ▸ Part.get_mem h_g_dom
+  obtain ⟨b₂, hb₂_rel, hb₂_mem⟩ := Turing.tr_eval
+    (condCompose_g_respects M_p M_f M_g q_t q_f)
+    (a₁ := c₂) (a₂ := ⟨Sum.inr (Sum.inr c₂.q), c₂.Tape⟩)
+    ⟨rfl, rfl⟩ hb_g_mem_c2
+  have hb₂_mem' : b₂ ∈ Turing.eval step_c ⟨Sum.inl q_f, T⟩ := by
+    rw [h_eval_eq]
+    exact hb₂_mem
+  have hb₂_eq : b₂ = ⟨Sum.inr (Sum.inr q_done), T'⟩ := by
+    rcases hb₂_rel with ⟨hq, hT⟩
+    cases b₂
+    simp at hq hT
+    simp [hq, hT]
+  exact (Part.get_eq_of_mem hb₂_mem' h_c_dom).trans hb₂_eq
+
+/-- A machine that runs an operation on the field after the first
+    `chainConsBottom`, bounded by the next `chainConsBottom`. -/
+def TM0RealizesAfterFirstBeforeSecondConsBottom
+    (f : List ChainΓ → List ChainΓ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine ChainΓ Λ),
+    ∀ (left right suffix : List ChainΓ),
+      (∀ g ∈ left, g ≠ default) →
+      (∀ g ∈ left, g ≠ chainConsBottom) →
+      (∀ g ∈ right, g ≠ default) →
+      (∀ g ∈ right, g ≠ chainConsBottom) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (∀ g ∈ f right, g ≠ default) →
+      (∀ g ∈ f right, g ≠ chainConsBottom) →
+      (TM0Seq.evalCfg M
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom),
+        ((TM0Seq.evalCfg M
+          (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get h).Tape =
+          Tape.mk₁ (left ++ chainConsBottom :: f right ++
+            chainConsBottom :: suffix)
+
+inductive BinSuccAfterFirstConsBottomSt where
+  | scan | succ (q : BinSuccSt)
+
+noncomputable instance : DecidableEq BinSuccAfterFirstConsBottomSt :=
+  Classical.typeDecidableEq _
+noncomputable instance : Inhabited BinSuccAfterFirstConsBottomSt := ⟨.scan⟩
+
+noncomputable instance : Fintype BinSuccAfterFirstConsBottomSt := by
+  exact
+  { elems := {.scan} ∪ Finset.univ.map
+      ⟨BinSuccAfterFirstConsBottomSt.succ, fun a b h => by cases h; rfl⟩
+    complete := by
+      intro x
+      cases x <;> simp [Finset.mem_map, Finset.mem_insert] }
+
+noncomputable def binSuccAfterFirstConsBottomMachine :
+    @TM0.Machine ChainΓ BinSuccAfterFirstConsBottomSt ⟨.scan⟩ :=
+  fun q a =>
+    match q with
+    | .scan =>
+      if a = chainConsBottom then some (.succ .carry, .move Dir.right)
+      else if a = default then none
+      else some (.scan, .move Dir.right)
+    | .succ q =>
+      match binSuccMachineSep chainConsBottom q a with
+      | some (q', stmt) => some (.succ q', stmt)
+      | none => none
+
+theorem binSuccAfterFirstConsBottom_succ_lift {c d : TM0.Cfg ChainΓ BinSuccSt}
+    (h : Reaches (TM0.step (binSuccMachineSep chainConsBottom)) c d) :
+    Reaches (TM0.step binSuccAfterFirstConsBottomMachine)
+      ⟨BinSuccAfterFirstConsBottomSt.succ c.q, c.Tape⟩
+      ⟨BinSuccAfterFirstConsBottomSt.succ d.q, d.Tape⟩ := by
+  induction h with
+  | refl => exact Relation.ReflTransGen.refl
+  | tail _ hstep ih =>
+      refine ih.tail ?_
+      unfold TM0.step at hstep ⊢
+      simp [binSuccAfterFirstConsBottomMachine] at hstep ⊢
+      rcases hstep with ⟨q', stmt, hstep, hcfg⟩
+      exact ⟨stmt, by rw [hstep]; cases hcfg; simp⟩
+
+theorem binSuccAfterFirstConsBottom_step_done (T : Tape ChainΓ) :
+    TM0.step binSuccAfterFirstConsBottomMachine
+      ⟨BinSuccAfterFirstConsBottomSt.succ BinSuccSt.done, T⟩ = none := by
+  simp [TM0.step, binSuccAfterFirstConsBottomMachine, binSuccMachineSep]
+
+theorem binSuccAfterFirstConsBottom_scan_reaches
+    (left revLeft right suffix : List ChainΓ)
+    (hleft_nd : ∀ g ∈ left, g ≠ default)
+    (hleft_nsep : ∀ g ∈ left, g ≠ chainConsBottom)
+    (hrevLeft_nd : ∀ g ∈ revLeft, g ≠ default) :
+    Reaches (TM0.step binSuccAfterFirstConsBottomMachine)
+      ⟨.scan, ⟨(left ++ chainConsBottom :: right ++ chainConsBottom :: suffix).headI,
+        ListBlank.mk revLeft,
+        ListBlank.mk (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix).tail⟩⟩
+      ⟨.succ .carry, ⟨(right ++ chainConsBottom :: suffix).headI,
+        ListBlank.mk (chainConsBottom :: left.reverse ++ revLeft),
+        ListBlank.mk (right ++ chainConsBottom :: suffix).tail⟩⟩ := by
+  induction left generalizing revLeft with
+  | nil =>
+      apply Relation.ReflTransGen.single
+      unfold TM0.step binSuccAfterFirstConsBottomMachine
+      simp [Tape.move, ListBlank.cons_mk]
+  | cons c rest ih =>
+      have hc_nd : c ≠ default := hleft_nd c List.mem_cons_self
+      have hc_nsep : c ≠ chainConsBottom := hleft_nsep c List.mem_cons_self
+      have hrest_nd : ∀ g ∈ rest, g ≠ default :=
+        fun g hg => hleft_nd g (List.mem_cons_of_mem _ hg)
+      have hrest_nsep : ∀ g ∈ rest, g ≠ chainConsBottom :=
+        fun g hg => hleft_nsep g (List.mem_cons_of_mem _ hg)
+      have hstep : TM0.step binSuccAfterFirstConsBottomMachine
+          ⟨BinSuccAfterFirstConsBottomSt.scan,
+            ⟨((c :: rest) ++ chainConsBottom :: right ++ chainConsBottom :: suffix).headI,
+              ListBlank.mk revLeft,
+              ListBlank.mk
+                (((c :: rest) ++ chainConsBottom :: right ++ chainConsBottom :: suffix).tail)⟩⟩ =
+          some ⟨BinSuccAfterFirstConsBottomSt.scan,
+            ⟨(rest ++ chainConsBottom :: right ++ chainConsBottom :: suffix).headI,
+              ListBlank.mk (c :: revLeft),
+              ListBlank.mk
+                ((rest ++ chainConsBottom :: right ++ chainConsBottom :: suffix).tail)⟩⟩ := by
+        unfold TM0.step binSuccAfterFirstConsBottomMachine
+        simp [hc_nd, hc_nsep, Tape.move]
+      refine Relation.ReflTransGen.head hstep ?_
+      convert ih (c :: revLeft) hrest_nd hrest_nsep ?_ using 1
+      · simp [List.reverse_cons, List.append_assoc]
+      · intro g hg
+        cases hg with
+        | head => exact hc_nd
+        | tail _ hg => exact hrevLeft_nd g hg
+
+theorem binSuccAfterFirstConsBottom_full_reaches
+    (left right suffix : List ChainΓ)
+    (hleft_nd : ∀ g ∈ left, g ≠ default)
+    (hleft_nsep : ∀ g ∈ left, g ≠ chainConsBottom)
+    (hright_nd : ∀ g ∈ right, g ≠ default)
+    (hright_nsep : ∀ g ∈ right, g ≠ chainConsBottom)
+    (hsuffix_nd : ∀ g ∈ suffix, g ≠ default)
+    (hbinSucc_nd : ∀ g ∈ binSucc right, g ≠ default) :
+    Reaches (TM0.step binSuccAfterFirstConsBottomMachine)
+      (TM0.init (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix))
+      ⟨.succ .done,
+        Tape.mk₁ (left ++ chainConsBottom :: binSucc right ++
+          chainConsBottom :: suffix)⟩ := by
+  have hscan := binSuccAfterFirstConsBottom_scan_reaches left [] right suffix
+    hleft_nd hleft_nsep (by simp)
+  have hsucc := binSucc_carry_aux_sep chainConsBottom
+    (by decide) (by decide) chainConsBottom_ne_default
+    right suffix (chainConsBottom :: left.reverse)
+    hright_nd hright_nsep hsuffix_nd hbinSucc_nd
+    (by
+      intro g hg
+      cases hg with
+      | head => exact chainConsBottom_ne_default
+      | tail _ hg => exact reverse_ne_default left hleft_nd g hg)
+  have hsucc_lift := binSuccAfterFirstConsBottom_succ_lift hsucc
+  have hscan' :
+      Reaches (TM0.step binSuccAfterFirstConsBottomMachine)
+        (TM0.init (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix))
+        ⟨.succ .carry, ⟨(right ++ chainConsBottom :: suffix).headI,
+          ListBlank.mk (chainConsBottom :: left.reverse),
+          ListBlank.mk (right ++ chainConsBottom :: suffix).tail⟩⟩ := by
+    simpa using hscan
+  convert hscan'.trans hsucc_lift using 1
+  simp [List.append_assoc]
+
+theorem tm0_binSucc_afterFirstBeforeSecondConsBottom :
+    TM0RealizesAfterFirstBeforeSecondConsBottom binSucc := by
+  refine ⟨BinSuccAfterFirstConsBottomSt, inferInstance, inferInstance,
+    binSuccAfterFirstConsBottomMachine, ?_⟩
+  intro left right suffix hleft_nd hleft_nsep hright_nd hright_nsep hsuffix_nd
+    hf_nd _hf_nsep
+  have h_reaches := binSuccAfterFirstConsBottom_full_reaches left right suffix
+    hleft_nd hleft_nsep hright_nd hright_nsep hsuffix_nd hf_nd
+  constructor
+  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr
+      ⟨h_reaches, binSuccAfterFirstConsBottom_step_done _⟩⟩
+  · intro h
+    exact (Part.mem_unique (Part.get_mem h) (Turing.mem_eval.mpr
+      ⟨h_reaches, binSuccAfterFirstConsBottom_step_done _⟩)).symm ▸ rfl
+
+noncomputable def pairedDecrLeftIncrRightRaw (block : List ChainΓ) : List ChainΓ :=
+  let (left, right) := splitAtConsBottom block
+  binPred left ++ [chainConsBottom] ++ binSucc right
+
+theorem pairedDecrLeftIncrRightRaw_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ pairedDecrLeftIncrRightRaw block, g ≠ default := by
+  rcases hsplit : splitAtConsBottom block with ⟨left, right⟩
+  have hleft_nd : ∀ g ∈ left, g ≠ default := by
+    intro g hg
+    exact hblock g (splitAtConsBottom_fst_subset block g (by simpa [hsplit] using hg))
+  have hright_nd : ∀ g ∈ right, g ≠ default := by
+    intro g hg
+    exact hblock g (splitAtConsBottom_snd_subset block g (by simpa [hsplit] using hg))
+  unfold pairedDecrLeftIncrRightRaw
+  simp [hsplit]
+  rintro g (hg | rfl | hg)
+  · exact binPred_ne_default _ hleft_nd g hg
+  · exact chainConsBottom_ne_default
+  · exact binSucc_ne_default _ hright_nd g hg
+
+theorem pairedDecrLeftIncrRightRaw_eq_pairedDecrLeftIncrRight_of_right_normalized
+    (block : List ChainΓ) (hInv : pairedSepInv block)
+    (n : ℕ) (hright : (splitAtConsBottom block).2 = chainBinaryRepr n) :
+    pairedDecrLeftIncrRightRaw block = pairedDecrLeftIncrRight block := by
+  rcases hsplit : splitAtConsBottom block with ⟨left, right⟩
+  have hright' : right = chainBinaryRepr n := by
+    simpa [hsplit] using hright
+  rw [pairedDecrLeftIncrRight_eq_binPred_binSuccNormalize block hInv]
+  unfold pairedDecrLeftIncrRightRaw Function.comp normalizeBlock
+  simp [hsplit, hright', binSucc_correct]
+
+theorem blockValueLeq_paired_prefix_append_secondSep
+    (k : ℕ) (left right suffix : List ChainΓ) :
+    blockValueLeq k
+        (left ++ [chainConsBottom] ++ right ++ [chainConsBottom] ++ suffix) ↔
+      blockValueLeq k (left ++ [chainConsBottom] ++ right) := by
+  unfold blockValueLeq
+  have hdecode :
+      decodeBinaryBlock
+          (left ++ [chainConsBottom] ++ right ++ [chainConsBottom] ++ suffix) =
+        decodeBinaryBlock (left ++ [chainConsBottom] ++ right) := by
+    convert decodeBinaryBlock_append_nonbit
+      (left ++ [chainConsBottom] ++ right) suffix chainConsBottom
+        (by decide) (by decide) using 2
+    simp [List.append_assoc]
+  rw [hdecode]
+
+theorem tm0_pairedDecrLeftIncrRightRaw_beforeSecond :
+    TM0RealizesPairedBlockBeforeConsBottom pairedDecrLeftIncrRightRaw := by
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ := tm0_incBeforeSep_present_blockSep
+  obtain ⟨Λs, hΛsi, hΛsf, Ms, hMs⟩ :=
+    tm0_binSucc_afterFirstBeforeSecondConsBottom
+  let hsum : Inhabited (Λp ⊕ Λs) := ⟨Sum.inl (@default _ hΛpi)⟩
+  refine ⟨Λp ⊕ Λs, hsum, inferInstance,
+    @TM0Seq.compose ChainΓ Λp hΛpi Λs hΛsi Mp Ms, ?_⟩
+  intro left right suffix hleft_nd hleft_nsep hright_nd hright_nsep hsuffix_nd hf_nd
+  have hpred_nd : ∀ g ∈ binPred left, g ≠ default :=
+    binPred_ne_default left hleft_nd
+  have hpred_nsep : ∀ g ∈ binPred left, g ≠ chainConsBottom :=
+    binPred_no_consBottom left
+  have hsucc_nd : ∀ g ∈ binSucc right, g ≠ default :=
+    binSucc_ne_default right hright_nd
+  have hsucc_nsep : ∀ g ∈ binSucc right, g ≠ chainConsBottom :=
+    binSucc_no_consBottom right hright_nsep
+  obtain ⟨hp_dom, hp_tape⟩ :=
+    hMp left (right ++ [chainConsBottom] ++ suffix)
+      hleft_nd hleft_nsep
+      (by
+        intro g hg
+        simp [List.mem_append] at hg
+        rcases hg with hg | rfl | hg
+        · exact hright_nd g hg
+        · exact chainConsBottom_ne_default
+        · exact hsuffix_nd g hg)
+      hpred_nd hpred_nsep
+  have hp_dom' :
+      (TM0Seq.evalCfg Mp
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom := by
+    simpa [List.append_assoc] using hp_dom
+  have hp_tape' :
+      ((TM0Seq.evalCfg Mp
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get hp_dom').Tape =
+        Tape.mk₁ (binPred left ++ chainConsBottom :: right ++ chainConsBottom :: suffix) := by
+    have hget :
+        (TM0Seq.evalCfg Mp
+          (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get hp_dom' =
+          (TM0Seq.evalCfg Mp
+            (left ++ chainConsBottom :: (right ++ [chainConsBottom] ++ suffix))).get hp_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [List.append_assoc]
+    rw [hget, hp_tape hp_dom]
+    simp [List.append_assoc]
+  obtain ⟨hs_dom, hs_tape⟩ :=
+    hMs (binPred left) right suffix
+      hpred_nd hpred_nsep hright_nd hright_nsep hsuffix_nd hsucc_nd hsucc_nsep
+  have hs_from_cfg :
+      (TM0Seq.evalFromCfg Ms
+        ⟨default, ((TM0Seq.evalCfg Mp
+          (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get hp_dom').Tape⟩).Dom := by
+    rw [hp_tape']
+    show (TM0Seq.evalFromCfg Ms
+      (TM0.init (binPred left ++ chainConsBottom :: right ++ chainConsBottom :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hs_dom
+  have hcomp_dom :
+      (TM0Seq.evalCfg
+        (@TM0Seq.compose ChainΓ Λp hΛpi Λs hΛsi Mp Ms)
+        (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff
+      (@TM0Seq.compose ChainΓ Λp hΛpi Λs hΛsi Mp Ms)
+      (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).mpr
+        (@TM0Seq.compose_dom_of_parts ChainΓ _ Λp hΛpi Λs hΛsi
+          Mp Ms
+          (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)
+          hp_dom' hs_from_cfg)
+  refine ⟨hcomp_dom, ?_⟩
+  intro h
+  have hcomp_tape :=
+    @TM0Seq.compose_evalCfg_tape ChainΓ _ Λp hΛpi Λs hΛsi Mp Ms
+      (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)
+      (binPred left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)
+      hp_dom' hp_tape' hs_dom h
+  rw [hcomp_tape, hs_tape hs_dom]
+  unfold pairedDecrLeftIncrRightRaw
+  rw [splitAtConsBottom_general left right hleft_nsep]
+  simp [List.append_assoc]
+
+theorem tm0_pairedDecrLeftIncrRightRaw_beforeSecondCond :
+    TM0RealizesPairedBlockBeforeConsBottomCond
+      pairedDecrLeftIncrRightRaw pairedAddCond := by
+  obtain ⟨Λr, hΛri, hΛrf, Mr, hMr⟩ :=
+    tm0_pairedDecrLeftIncrRightRaw_beforeSecond
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, q_le, q_gt, hne, hp⟩ :=
+    tm0_blockValueLeq_decidable_2 0
+  haveI : DecidableEq Λp := Classical.decEq Λp
+  let hΛrFi : Inhabited (Λr ⊕ FinalizeSt) := ⟨Sum.inl (@default _ hΛri)⟩
+  let MrF : TM0.Machine ChainΓ (Λr ⊕ FinalizeSt) :=
+    @TM0Seq.compose ChainΓ Λr hΛri FinalizeSt inferInstance Mr finalizeMachine
+  let Mcond : TM0.Machine ChainΓ (Λp ⊕ FinalizeSt ⊕ (Λr ⊕ FinalizeSt)) :=
+    @tm0CondCompose Λp FinalizeSt (Λr ⊕ FinalizeSt)
+      hΛpi inferInstance hΛrFi inferInstance
+      Mp finalizeMachine MrF q_le q_gt
+  refine ⟨Λp ⊕ FinalizeSt ⊕ (Λr ⊕ FinalizeSt), inferInstance, inferInstance,
+    Mcond, Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)), ?_⟩
+  intro left right suffix hleft_nd hleft_nsep hright_nd hright_nsep hsuffix_nd hstep_nd
+  set pairBlock := left ++ [chainConsBottom] ++ right with hpair_def
+  set whole := left ++ chainConsBottom :: right ++ chainConsBottom :: suffix with hwhole_def
+  have hwhole_nd : ∀ g ∈ whole, g ≠ default := by
+    intro g hg
+    simp [whole, List.mem_append] at hg
+    rcases hg with hg | rfl | hg | rfl | hg
+    · exact hleft_nd g hg
+    · exact chainConsBottom_ne_default
+    · exact hright_nd g hg
+    · exact chainConsBottom_ne_default
+    · exact hsuffix_nd g hg
+  have hp_spec := hp whole [] hwhole_nd (by simp)
+  have hp_dom_with_default := hp_spec.1
+  have hp_dom : (TM0Seq.evalCfg Mp whole).Dom := by
+    rw [← evalCfg_append_default]
+    simpa using hp_dom_with_default
+  have hp_out_with_default := hp_spec.2 hp_dom_with_default
+  set cp := (TM0Seq.evalCfg Mp whole).get hp_dom
+  have hcp_get :
+      cp =
+        (TM0Seq.evalCfg Mp (whole ++ [default])).get hp_dom_with_default := by
+    apply Part.get_eq_get_of_eq
+    exact (evalCfg_append_default Mp whole).symm
+  have hcp_tape : cp.Tape = Tape.mk₁ whole := by
+    rw [hcp_get, hp_out_with_default.1]
+    exact tape_mk₁_append_default whole
+  have hcp_mem : cp ∈ TM0Seq.evalCfg Mp whole := Part.get_mem hp_dom
+  have hcp_eval := Turing.mem_eval.mp hcp_mem
+  have hcp_halt : TM0.step Mp cp = none := hcp_eval.2
+  have hcp_reaches : Reaches (TM0.step Mp) (TM0.init whole) cp := hcp_eval.1
+  have hphase1 := condCompose_phase1_reaches Mp finalizeMachine MrF q_le q_gt
+    cp whole hcp_reaches
+  change Reaches (TM0.step Mcond) (TM0.init whole)
+    { q := Sum.inl cp.q, Tape := cp.Tape } at hphase1
+  have heval_rewrite :
+      TM0Seq.evalCfg Mcond whole =
+        Turing.eval (TM0.step Mcond) ⟨Sum.inl cp.q, cp.Tape⟩ := by
+    exact Turing.reaches_eval hphase1
+  have hwhole_eq_pair_suffix :
+      whole = pairBlock ++ chainConsBottom :: suffix := by
+    simp [whole, pairBlock, List.append_assoc]
+  have hcond_bridge :
+      blockValueLeq 0 whole ↔ blockValueLeq 0 pairBlock := by
+    rw [hwhole_eq_pair_suffix]
+    simpa [pairBlock, List.append_assoc] using
+      blockValueLeq_paired_prefix_append_secondSep 0 left right suffix
+  by_cases hcond : pairedAddCond pairBlock
+  · have hp_false : ¬ blockValueLeq 0 whole := by
+      intro hle
+      exact hcond ((hcond_bridge.mp hle))
+    have hq : cp.q = q_gt := by
+      have hout := hp_out_with_default.2.2 hp_false
+      rw [← hcp_get] at hout
+      exact hout
+    have hhalt_q : TM0.step Mp ⟨q_gt, cp.Tape⟩ = none := hq ▸ hcp_halt
+    have hraw_nd : ∀ g ∈ pairedDecrLeftIncrRightRaw pairBlock, g ≠ default :=
+      hstep_nd hcond
+    obtain ⟨hMr_dom, hMr_tape⟩ :=
+      hMr left right suffix hleft_nd hleft_nsep hright_nd hright_nsep hsuffix_nd
+        (by simpa [pairBlock] using hraw_nd)
+    have hMr_dom' : (TM0Seq.evalCfg Mr whole).Dom := by
+      simpa [whole] using hMr_dom
+    have hMr_tape' :
+        ∀ h, ((TM0Seq.evalCfg Mr whole).get h).Tape =
+          Tape.mk₁ (pairedDecrLeftIncrRightRaw pairBlock ++ chainConsBottom :: suffix) := by
+      intro h
+      have hget :
+          (TM0Seq.evalCfg Mr whole).get h =
+            (TM0Seq.evalCfg Mr
+              (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get hMr_dom := by
+        apply Part.get_eq_get_of_eq
+        simp [whole]
+      rw [hget, hMr_tape hMr_dom]
+    have hfinal := compose_finalize_evalCfg Mr whole
+      (pairedDecrLeftIncrRightRaw pairBlock ++ chainConsBottom :: suffix)
+      hMr_dom' (hMr_tape' hMr_dom')
+    have hbranch_dom :
+        (TM0Seq.evalFromCfg MrF ⟨default, cp.Tape⟩).Dom := by
+      rw [hcp_tape]
+      change (TM0Seq.evalFromCfg MrF (TM0.init whole)).Dom
+      rw [TM0Seq.evalFromCfg_init]
+      exact hfinal.1
+    have hbranch_spec :
+        ∀ h, (TM0Seq.evalFromCfg MrF ⟨default, cp.Tape⟩).get h =
+          ⟨Sum.inr FinalizeSt.done,
+            Tape.mk₁ (pairedDecrLeftIncrRightRaw pairBlock ++
+              chainConsBottom :: suffix)⟩ := by
+      intro h
+      have heq :
+          TM0Seq.evalFromCfg MrF ⟨default, cp.Tape⟩ =
+            TM0Seq.evalCfg MrF whole := by
+        rw [hcp_tape]
+        exact TM0Seq.evalFromCfg_init (M := MrF) (l := whole)
+      have hget :
+          (TM0Seq.evalFromCfg MrF ⟨default, cp.Tape⟩).get h =
+            (TM0Seq.evalCfg MrF whole).get hfinal.1 := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hfinal.2 hfinal.1
+    have hbranch_step :
+        ∃ c₂, TM0.step MrF ⟨default, cp.Tape⟩ = some c₂ := by
+      rw [hcp_tape]
+      change ∃ c₂, TM0.step MrF (TM0.init whole) = some c₂
+      change ∃ c₂, TM0.step MrF ⟨default, Tape.mk₁ whole⟩ = some c₂
+      rcases hfirst : TM0.step Mr ⟨default, Tape.mk₁ whole⟩ with _ | c₂
+      · refine ⟨(⟨Sum.inr FinalizeSt.done, Tape.mk₁ whole⟩ :
+            TM0.Cfg ChainΓ (Λr ⊕ FinalizeSt)), ?_⟩
+        change TM0.step (@TM0Seq.compose ChainΓ Λr hΛri FinalizeSt inferInstance
+          Mr finalizeMachine) ⟨Sum.inl default, Tape.mk₁ whole⟩ =
+          some ⟨Sum.inr FinalizeSt.done, Tape.mk₁ whole⟩
+        rw [TM0Seq.compose_step_on_halt Mr finalizeMachine default
+          (Tape.mk₁ whole) hfirst]
+        change Option.map
+          (fun c₂ : TM0.Cfg ChainΓ FinalizeSt =>
+            ({ q := Sum.inr c₂.q, Tape := c₂.Tape } :
+              TM0.Cfg ChainΓ (Λr ⊕ FinalizeSt)))
+          (TM0.step finalizeMachine ⟨FinalizeSt.start, Tape.mk₁ whole⟩) =
+          some ⟨Sum.inr FinalizeSt.done, Tape.mk₁ whole⟩
+        rw [finalize_step_start]
+        rfl
+      · refine ⟨(⟨Sum.inl c₂.q, c₂.Tape⟩ :
+            TM0.Cfg ChainΓ (Λr ⊕ FinalizeSt)), ?_⟩
+        change TM0.step (@TM0Seq.compose ChainΓ Λr hΛri FinalizeSt inferInstance
+          Mr finalizeMachine) ⟨Sum.inl default, Tape.mk₁ whole⟩ =
+          some ⟨Sum.inl c₂.q, c₂.Tape⟩
+        simpa using TM0Seq.compose_step_inl Mr finalizeMachine
+          (⟨default, Tape.mk₁ whole⟩ : TM0.Cfg ChainΓ Λr) c₂ hfirst
+    have hbranch_eval_dom :
+        (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩).Dom := by
+      change (Turing.eval
+        (TM0.step (tm0CondCompose Mp finalizeMachine MrF q_le q_gt))
+        ⟨Sum.inl q_gt, cp.Tape⟩).Dom
+      exact (condCompose_eval_at_halt_false Mp finalizeMachine MrF q_le q_gt hne
+        cp.Tape hhalt_q).mpr hbranch_dom
+    have hdom : (TM0Seq.evalCfg Mcond whole).Dom := by
+      rw [heval_rewrite, hq]
+      exact hbranch_eval_dom
+    refine ⟨hdom, ?_⟩
+    intro h
+    have hcfg := condCompose_fixed_at_halt_false_of_step_local
+      Mp finalizeMachine MrF q_le q_gt hne (Sum.inr FinalizeSt.done) cp.Tape
+      (Tape.mk₁ (pairedDecrLeftIncrRightRaw pairBlock ++ chainConsBottom :: suffix))
+      hhalt_q hbranch_step hbranch_dom hbranch_spec
+    have hcfg' : (TM0Seq.evalCfg Mcond whole).get h =
+        ⟨Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)),
+          Tape.mk₁ (pairedDecrLeftIncrRightRaw pairBlock ++ chainConsBottom :: suffix)⟩ := by
+      have heq :
+          TM0Seq.evalCfg Mcond whole =
+            Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩ := by
+        rw [heval_rewrite, hq]
+      have hget :
+          (TM0Seq.evalCfg Mcond whole).get h =
+            (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩).get
+              hbranch_eval_dom := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hcfg hbranch_eval_dom
+    have hle_false : ¬ blockValueLeq 0 (left ++ chainConsBottom :: right) := by
+      simpa [pairedAddCond, pairBlock] using hcond
+    have hle_pair_false : ¬ blockValueLeq 0 pairBlock := by
+      simpa [pairedAddCond] using hcond
+    simp [hle_pair_false]
+    constructor
+    · simpa [hwhole_def] using congrArg TM0.Cfg.q hcfg'
+    · simpa [hwhole_def, hpair_def] using congrArg TM0.Cfg.Tape hcfg'
+  · have hp_true : blockValueLeq 0 whole := by
+      exact hcond_bridge.mpr (by simpa [pairedAddCond] using hcond)
+    have hq : cp.q = q_le := by
+      have hout := hp_out_with_default.2.1 hp_true
+      rw [← hcp_get] at hout
+      exact hout
+    have hhalt_q : TM0.step Mp ⟨q_le, cp.Tape⟩ = none := hq ▸ hcp_halt
+    obtain ⟨hid_dom, hid_spec⟩ := finalize_evalFromCfg cp.Tape
+    have hid_step : ∃ c₂, TM0.step finalizeMachine ⟨default, cp.Tape⟩ = some c₂ := by
+      exact ⟨⟨FinalizeSt.done, cp.Tape⟩, finalize_step_start cp.Tape⟩
+    have hbranch_eval_dom :
+        (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩).Dom := by
+      change (Turing.eval
+        (TM0.step (tm0CondCompose Mp finalizeMachine MrF q_le q_gt))
+        ⟨Sum.inl q_le, cp.Tape⟩).Dom
+      exact (condCompose_eval_at_halt_true Mp finalizeMachine MrF q_le q_gt
+        cp.Tape hhalt_q).mpr hid_dom
+    have hdom : (TM0Seq.evalCfg Mcond whole).Dom := by
+      rw [heval_rewrite, hq]
+      exact hbranch_eval_dom
+    refine ⟨hdom, ?_⟩
+    intro h
+    have hcfg := condCompose_fixed_at_halt_true_of_step_local
+      Mp finalizeMachine MrF q_le q_gt FinalizeSt.done cp.Tape cp.Tape
+      hhalt_q hid_step hid_dom (fun h => hid_spec h)
+    have hcfg' : (TM0Seq.evalCfg Mcond whole).get h =
+        ⟨Sum.inr (Sum.inl FinalizeSt.done), cp.Tape⟩ := by
+      have heq :
+          TM0Seq.evalCfg Mcond whole =
+            Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩ := by
+        rw [heval_rewrite, hq]
+      have hget :
+          (TM0Seq.evalCfg Mcond whole).get h =
+            (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩).get
+              hbranch_eval_dom := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hcfg hbranch_eval_dom
+    have hq_ne :
+        Sum.inr (Sum.inl FinalizeSt.done) ≠
+          (Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)) :
+            Λp ⊕ FinalizeSt ⊕ (Λr ⊕ FinalizeSt)) := by
+      simp
+    have hle_pair : blockValueLeq 0 pairBlock := by
+      simpa [pairedAddCond] using hcond
+    have hle_true : blockValueLeq 0 (left ++ chainConsBottom :: right) := by
+      simpa [pairBlock] using hle_pair
+    simp [hle_pair]
+    constructor
+    · have hq_out : ((TM0Seq.evalCfg Mcond whole).get h).q ≠
+          (Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)) :
+            Λp ⊕ FinalizeSt ⊕ (Λr ⊕ FinalizeSt)) := by
+        rw [hcfg']
+        exact hq_ne
+      simpa [hwhole_def] using hq_out
+    · have htape_out : ((TM0Seq.evalCfg Mcond whole).get h).Tape =
+          Tape.mk₁ whole := by
+        rw [hcfg', hcp_tape]
+      simpa [hwhole_def] using htape_out
+
+theorem tm0RealizesPairedBlockBeforeConsBottom_while_pairedSepInv
+    (step result : List ChainΓ → List ChainΓ) (cond : List ChainΓ → Prop)
+    [DecidablePred cond]
+    (hbody : TM0RealizesPairedBlockBeforeConsBottomCond step cond)
+    (hinv_step : ∀ block, pairedSepInv block → (∀ g ∈ block, g ≠ default) →
+      cond block → pairedSepInv (step block))
+    (hstep_nd : ∀ block, (∀ g ∈ block, g ≠ default) → cond block →
+      ∀ g ∈ step block, g ≠ default)
+    (hresult_eq : ∀ block, (∀ g ∈ block, g ≠ default) → pairedSepInv block →
+      ∃ n, result block = blockIterateWhile step cond n block ∧
+        ¬cond (blockIterateWhile step cond n block)) :
+    TM0RealizesPairedBlockBeforeConsBottom result := by
+  obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
+  haveI : DecidableEq Λ := Classical.decEq Λ
+  refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
+  intro left right suffix hleft_nd hleft_nsep hright_nd hright_nsep hsuffix_nd hresult
+  set block := left ++ [chainConsBottom] ++ right with hblock_def
+  have hblock_nd : ∀ g ∈ block, g ≠ default := by
+    intro g hg
+    simp [block, List.mem_append] at hg
+    rcases hg with hg | rfl | hg
+    · exact hleft_nd g hg
+    · exact chainConsBottom_ne_default
+    · exact hright_nd g hg
+  have hblockInv : pairedSepInv block := by
+    constructor
+    · unfold hasConsBottom
+      simp [block]
+    · rw [show splitAtConsBottom block = (left, right) by
+        simpa [block] using splitAtConsBottom_general left right hleft_nsep]
+      exact hright_nsep
+  obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock_nd hblockInv
+  suffices key : ∀ (m : ℕ) (blk : List ChainΓ),
+      pairedSepInv blk →
+      (∀ g ∈ blk, g ≠ default) →
+      ¬cond (blockIterateWhile step cond m blk) →
+      (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+        (blk ++ chainConsBottom :: suffix)).Dom ∧
+      ∀ (hd : (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+        (blk ++ chainConsBottom :: suffix)).Dom),
+        ((TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+          (blk ++ chainConsBottom :: suffix)).get hd).Tape =
+          Tape.mk₁ (blockIterateWhile step cond m blk ++
+            chainConsBottom :: suffix) by
+    obtain ⟨h_dom, h_tape⟩ := key n block hblockInv hblock_nd hn_not_cond
+    have hinput : block ++ chainConsBottom :: suffix =
+        left ++ chainConsBottom :: right ++ chainConsBottom :: suffix := by
+      simp [block, List.append_assoc]
+    refine ⟨by simpa [hinput] using h_dom, ?_⟩
+    intro hd
+    have hget :
+        (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+          (left ++ chainConsBottom :: right ++ chainConsBottom :: suffix)).get hd =
+        (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+          (block ++ chainConsBottom :: suffix)).get h_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [hinput]
+    rw [hget, h_tape h_dom, hn_eq]
+  intro m
+  induction m with
+  | zero =>
+    intro blk hInv hblk hn_not
+    simp only [blockIterateWhile] at hn_not ⊢
+    rcases hsplit : splitAtConsBottom blk with ⟨l, r⟩
+    have hblk_recon : blk = l ++ chainConsBottom :: r := by
+      simpa [hsplit] using paired_splitAtConsBottom_reconstruct_of_mem blk hInv.1
+    have hl_nd : ∀ g ∈ l, g ≠ default := by
+      intro g hg
+      exact hblk g (splitAtConsBottom_fst_subset blk g (by simpa [hsplit] using hg))
+    have hr_nd : ∀ g ∈ r, g ≠ default := by
+      intro g hg
+      exact hblk g (splitAtConsBottom_snd_subset blk g (by simpa [hsplit] using hg))
+    have hl_nsep : ∀ g ∈ l, g ≠ chainConsBottom := by
+      simpa [hsplit] using splitAtConsBottom_fst_no_sep blk
+    have hr_nsep : ∀ g ∈ r, g ≠ chainConsBottom := by
+      simpa [pairedSepInv, hsplit] using hInv.2
+    obtain ⟨h_body_dom, h_body_spec⟩ := hM l r suffix
+      hl_nd hl_nsep hr_nd hr_nsep hsuffix_nd
+      (fun hc => by
+        simpa [hblk_recon] using hstep_nd blk hblk
+          (by simpa [hblk_recon] using hc))
+    have h_body_dom' :
+        (TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).Dom := by
+      simpa [hblk_recon, List.append_assoc] using h_body_dom
+    have h_body_spec' := h_body_spec h_body_dom
+    have hcond_lr : ¬ cond (l ++ chainConsBottom :: r) := by
+      simpa [hblk_recon] using hn_not
+    by_cases hc_lr : cond (l ++ chainConsBottom :: r)
+    · exact False.elim (hcond_lr hc_lr)
+    ·
+      simp [hc_lr] at h_body_spec'
+      obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+      have hget_body :
+          (TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).get h_body_dom' =
+          (TM0Seq.evalCfg M
+            (l ++ chainConsBottom :: r ++ chainConsBottom :: suffix)).get h_body_dom := by
+        apply Part.get_eq_get_of_eq
+        simp [hblk_recon, List.append_assoc]
+      have h_q_ne' :
+          ((TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).get
+            h_body_dom').q ≠ q_cont := by
+        rw [hget_body]
+        simpa [List.append_assoc] using h_q_ne
+      obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _
+        h_body_dom' h_q_ne'
+      exact ⟨h_dom, fun hd => by
+        rw [h_tape hd]
+        simpa [hblk_recon, List.append_assoc] using h_tape_eq⟩
+  | succ m ih =>
+    intro blk hInv hblk hn_not
+    by_cases hcond : cond blk
+    · rw [blockIterateWhile_succ_true _ _ _ _ hcond] at hn_not ⊢
+      have h_step_nd := hstep_nd blk hblk hcond
+      have h_step_inv := hinv_step blk hInv hblk hcond
+      rcases hsplit : splitAtConsBottom blk with ⟨l, r⟩
+      have hblk_recon : blk = l ++ chainConsBottom :: r := by
+        simpa [hsplit] using paired_splitAtConsBottom_reconstruct_of_mem blk hInv.1
+      have hl_nd : ∀ g ∈ l, g ≠ default := by
+        intro g hg
+        exact hblk g (splitAtConsBottom_fst_subset blk g (by simpa [hsplit] using hg))
+      have hr_nd : ∀ g ∈ r, g ≠ default := by
+        intro g hg
+        exact hblk g (splitAtConsBottom_snd_subset blk g (by simpa [hsplit] using hg))
+      have hl_nsep : ∀ g ∈ l, g ≠ chainConsBottom := by
+        simpa [hsplit] using splitAtConsBottom_fst_no_sep blk
+      have hr_nsep : ∀ g ∈ r, g ≠ chainConsBottom := by
+        simpa [pairedSepInv, hsplit] using hInv.2
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM l r suffix
+        hl_nd hl_nsep hr_nd hr_nsep hsuffix_nd
+        (fun _ => by simpa [hblk_recon] using h_step_nd)
+      have h_body_dom' :
+          (TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).Dom := by
+        simpa [hblk_recon, List.append_assoc] using h_body_dom
+      have h_body_spec' := h_body_spec h_body_dom
+      have hcond_lr : cond (l ++ chainConsBottom :: r) := by
+        simpa [hblk_recon] using hcond
+      by_cases hc_lr : cond (l ++ chainConsBottom :: r)
+      ·
+        simp [hc_lr] at h_body_spec'
+        obtain ⟨h_q_cont, h_tape_step⟩ := h_body_spec'
+        have hget_body :
+            (TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).get h_body_dom' =
+            (TM0Seq.evalCfg M
+              (l ++ chainConsBottom :: r ++ chainConsBottom :: suffix)).get h_body_dom := by
+          apply Part.get_eq_get_of_eq
+          simp [hblk_recon, List.append_assoc]
+        have h_q_cont' :
+            ((TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).get
+              h_body_dom').q = q_cont := by
+          rw [hget_body]
+          simpa [List.append_assoc] using h_q_cont
+        obtain ⟨h_W_step_dom, h_W_step_tape⟩ :=
+          ih (step blk) h_step_inv h_step_nd hn_not
+        obtain ⟨h_W_dom, h_W_tape⟩ := whileLoop_eval_cont M q_cont _ _
+          h_body_dom' h_q_cont'
+          (by simpa [hblk_recon, List.append_assoc] using h_tape_step)
+          h_W_step_dom
+        exact ⟨h_W_dom, fun hd => by
+          rw [h_W_tape hd, h_W_step_tape h_W_step_dom]⟩
+      · exact False.elim (hc_lr hcond_lr)
+    · rw [blockIterateWhile_succ_false _ _ _ _ hcond] at hn_not ⊢
+      rcases hsplit : splitAtConsBottom blk with ⟨l, r⟩
+      have hblk_recon : blk = l ++ chainConsBottom :: r := by
+        simpa [hsplit] using paired_splitAtConsBottom_reconstruct_of_mem blk hInv.1
+      have hl_nd : ∀ g ∈ l, g ≠ default := by
+        intro g hg
+        exact hblk g (splitAtConsBottom_fst_subset blk g (by simpa [hsplit] using hg))
+      have hr_nd : ∀ g ∈ r, g ≠ default := by
+        intro g hg
+        exact hblk g (splitAtConsBottom_snd_subset blk g (by simpa [hsplit] using hg))
+      have hl_nsep : ∀ g ∈ l, g ≠ chainConsBottom := by
+        simpa [hsplit] using splitAtConsBottom_fst_no_sep blk
+      have hr_nsep : ∀ g ∈ r, g ≠ chainConsBottom := by
+        simpa [pairedSepInv, hsplit] using hInv.2
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM l r suffix
+        hl_nd hl_nsep hr_nd hr_nsep hsuffix_nd
+        (fun hc => False.elim (hcond (by simpa [hblk_recon] using hc)))
+      have h_body_dom' :
+          (TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).Dom := by
+        simpa [hblk_recon, List.append_assoc] using h_body_dom
+      have h_body_spec' := h_body_spec h_body_dom
+      have hcond_lr : ¬ cond (l ++ chainConsBottom :: r) := by
+        simpa [hblk_recon] using hcond
+      by_cases hc_lr : cond (l ++ chainConsBottom :: r)
+      · exact False.elim (hcond_lr hc_lr)
+      ·
+        simp [hc_lr] at h_body_spec'
+        obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+        have hget_body :
+            (TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).get h_body_dom' =
+            (TM0Seq.evalCfg M
+              (l ++ chainConsBottom :: r ++ chainConsBottom :: suffix)).get h_body_dom := by
+          apply Part.get_eq_get_of_eq
+          simp [hblk_recon, List.append_assoc]
+        have h_q_ne' :
+            ((TM0Seq.evalCfg M (blk ++ chainConsBottom :: suffix)).get
+              h_body_dom').q ≠ q_cont := by
+          rw [hget_body]
+          simpa [List.append_assoc] using h_q_ne
+        obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _
+          h_body_dom' h_q_ne'
+        exact ⟨h_dom, fun hd => by
+          rw [h_tape hd]
+          simpa [hblk_recon, List.append_assoc] using h_tape_eq⟩
+
 
 theorem binMulPairedStep_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) (_hcond : binMulPairedCond block) :
@@ -727,6 +1839,19 @@ theorem binMulPairedStep_ne_default (block : List ChainΓ)
   · exact chainConsBottom_ne_default
   · exact binPred_ne_default _ hfuel g hg
 
+theorem binMulPairedStep_stateInv (block : List ChainΓ)
+    (_hInv : binMulPairedStateInv block) :
+    binMulPairedStateInv (binMulPairedStep block) := by
+  unfold binMulPairedStateInv binMulPairedStep hasConsBottom
+  rcases splitAtConsBottom block with ⟨acc, rest⟩
+  rcases hrest : splitAtConsBottom rest with ⟨addend, fuel⟩
+  simp [hrest, binAddPaired, List.append_assoc]
+  rw [show splitAtConsBottom (addend ++ chainConsBottom :: binPred fuel) =
+      (addend, binPred fuel) by
+    simpa using splitAtConsBottom_general addend (binPred fuel)
+      (by simpa [hrest] using splitAtConsBottom_fst_no_sep rest)]
+  exact binPred_no_consBottom fuel
+
 /-- The loop over an already-initialized multiplication state. -/
 noncomputable def binMulPairedLoop (block : List ChainΓ) : List ChainΓ :=
   blockIterateWhile binMulPairedStep binMulPairedCond
@@ -744,6 +1869,18 @@ theorem binMulPairedLoop_ne_default (block : List ChainΓ)
     · simp [blockIterateWhile, hcond]
       exact hblock
 
+theorem binMulPairedLoop_stateInv (block : List ChainΓ)
+    (hInv : binMulPairedStateInv block) :
+    binMulPairedStateInv (binMulPairedLoop block) := by
+  unfold binMulPairedLoop
+  induction' decodeBinaryBlock (binMulPairedFuel block) with n ih generalizing block
+  · exact hInv
+  · by_cases hcond : binMulPairedCond block
+    · simp [blockIterateWhile, hcond]
+      exact ih _ (binMulPairedStep_stateInv block hInv)
+    · simp [blockIterateWhile, hcond]
+      exact hInv
+
 @[simp]
 theorem decodeBinaryBlock_binMulPairedInit_fuel (block : List ChainΓ) :
     decodeBinaryBlock (binMulPairedFuel (binMulPairedInit block)) =
@@ -758,6 +1895,11 @@ theorem binMulPairedWhile_eq_loop :
   funext block
   unfold binMulPairedWhile binMulPairedLoop
   simp
+
+theorem binMulPairedWhile_stateInv (block : List ChainΓ) :
+    binMulPairedStateInv (binMulPairedWhile block) := by
+  rw [binMulPairedWhile_eq_loop]
+  exact binMulPairedLoop_stateInv _ (binMulPairedInit_stateInv block)
 
 theorem binMulPairedWhile_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) :
@@ -856,13 +1998,6 @@ theorem binMulPaired_eq_repeated_add :
   simp [binMulPaired, binMulPairedWhile, binMulPairedInit, normalizePairedBlocks,
     pairNormalizedBlocks, binMulPairedResult, Function.comp, hsplit,
     Nat.mul_comm, List.append_assoc]
-
-/-- The multiplication loop body is realized by rebuilding the paired-add
-    input, running paired addition under the paired separator invariant,
-    restoring the retained addend, and decrementing the copied multiplier. -/
-theorem tm0_binMulPairedStep_blockCond :
-    TM0RealizesBlockCond binMulPairedStep binMulPairedCond := by
-  sorry
 
 /-- `decodeBinaryBlock (binPred block) = decodeBinaryBlock block - 1` -/
 theorem decodeBinaryBlock_binPred (block : List ChainΓ) :
@@ -1018,6 +2153,61 @@ theorem binMulConst_eq_paired (c : ℕ) :
   simp only [Function.comp, binMulConst, binMulPaired, pairWithConstLeft]
   simp [decodeBinaryBlock_chainBinaryRepr]
 
+theorem tm0_binMulPairedLoop_blockInv
+    (hstep : TM0RealizesBlockCondInv binMulPairedStep binMulPairedCond
+      binMulPairedStateInv) :
+    TM0RealizesBlockInv binMulPairedLoop binMulPairedStateInv := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ :=
+    tm0RealizesBlock_while_inv
+      binMulPairedStep
+      binMulPairedLoop
+      binMulPairedCond
+      binMulPairedStateInv
+      hstep
+      (fun block hInv _hblock _hcond => binMulPairedStep_stateInv block hInv)
+      binMulPairedStep_ne_default
+      (fun block hblock hInv => binMulPairedWhile_eq_iterate block hblock)
+      (fun block hblock _hInv => binMulPairedLoop_ne_default block hblock)
+  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
+  intro block hInv hblock hresult
+  exact hM block hInv hblock hresult
+
+theorem tm0_binMulPairedLoop_blockInvSuffix
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
+      binMulPairedStateInv) :
+    TM0RealizesBlockInvSuffix binMulPairedLoop binMulPairedStateInv := by
+  exact tm0RealizesBlockInvSuffix_while
+    binMulPairedStep
+    binMulPairedLoop
+    binMulPairedCond
+    binMulPairedStateInv
+    hstep
+    (fun block hInv _hblock _hcond => binMulPairedStep_stateInv block hInv)
+    binMulPairedStep_ne_default
+    (fun block hblock hInv => binMulPairedWhile_eq_iterate block hblock)
+    (fun block hblock _hInv => binMulPairedLoop_ne_default block hblock)
+
+/-- Downstream multiplication only needs the loop body on invariant states,
+with the default-delimited suffix preserved.
+
+This is the replacement for the old total malformed-state step theorem: the
+initializer establishes `binMulPairedStateInv`, the suffix-preserving while
+combinator maintains it, and result extraction runs after the loop. -/
+theorem tm0_binMulPaired_block_of_stepInvSuffix
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
+      binMulPairedStateInv) :
+    TM0RealizesBlock ChainΓ binMulPaired := by
+  rw [binMulPaired_eq_repeated_add, binMulPairedWhile_eq_loop]
+  apply tm0RealizesBlock_comp
+  · exact tm0RealizesBlock_comp_invSuffix
+      tm0_binMulPairedInit_block
+      (tm0_binMulPairedLoop_blockInvSuffix hstep)
+      (fun block _hblock => binMulPairedInit_stateInv block)
+      binMulPairedInit_ne_default
+  · exact tm0_binMulPairedResult_block
+  · exact fun block hblock =>
+      binMulPairedLoop_ne_default _ (binMulPairedInit_ne_default _ hblock)
+
 /-- General paired multiplication is block-realizable.
 
 The implementation loops over a copied multiplier, repeatedly rebuilding a
@@ -1025,24 +2215,11 @@ paired-addition input from the accumulator and addend, applying `binAddPaired`,
 and decrementing the multiplier copy. The concrete copy/loop machine is
 isolated here so clients can reduce to multiplication rather than each carrying
 their own arithmetic loop. -/
-theorem tm0_binMulPaired_block :
+theorem tm0_binMulPaired_block
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
+      binMulPairedStateInv) :
     TM0RealizesBlock ChainΓ binMulPaired := by
-  rw [binMulPaired_eq_repeated_add, binMulPairedWhile_eq_loop]
-  apply tm0RealizesBlock_comp
-  · apply tm0RealizesBlock_comp
-    · exact tm0_binMulPairedInit_block
-    · exact tm0RealizesBlock_while
-        binMulPairedStep
-        binMulPairedLoop
-        binMulPairedCond
-        tm0_binMulPairedStep_blockCond
-        binMulPairedStep_ne_default
-        binMulPairedWhile_eq_iterate
-        binMulPairedLoop_ne_default
-    · exact binMulPairedInit_ne_default
-  · exact tm0_binMulPairedResult_block
-  · exact fun block hblock =>
-      binMulPairedLoop_ne_default _ (binMulPairedInit_ne_default _ hblock)
+  exact tm0_binMulPaired_block_of_stepInvSuffix hstep
 
 /-- `duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock`. -/
 theorem duplicateNormalizedPaired_eq_copyWithSep_comp :
@@ -1062,12 +2239,16 @@ theorem tm0_duplicateNormalizedPaired_block :
     tm0_copyBinaryWithSep_block
     (fun _ _ => normalizeBlock_ne_default _)
 
-/-- **Multiplication by constant is block-realizable.** -/
-theorem tm0_binMulConst_block (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
+/-- **Multiplication by constant is block-realizable**, once paired
+multiplication has the invariant/suffix loop body. -/
+theorem tm0_binMulConst_block
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
+      binMulPairedStateInv)
+    (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
   rw [binMulConst_eq_paired]
   exact tm0RealizesBlock_comp
     (tm0_pairWithConstLeft_block c)
-    tm0_binMulPaired_block
+    (tm0_binMulPaired_block hstep)
     (pairWithConstLeft_ne_default c)
 
 /-! ### Binary Squaring -/
@@ -1091,9 +2272,12 @@ theorem binSquare_eq_paired :
   rw [splitAtConsBottom_chainBinaryRepr_sep]
   simp [pow_two, decodeBinaryBlock_chainBinaryRepr]
 
-theorem tm0_binSquare_block : TM0RealizesBlock ChainΓ binSquare := by
+theorem tm0_binSquare_block
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
+      binMulPairedStateInv) :
+    TM0RealizesBlock ChainΓ binSquare := by
   rw [binSquare_eq_paired]
   exact tm0RealizesBlock_comp
     tm0_duplicateNormalizedPaired_block
-    tm0_binMulPaired_block
+    (tm0_binMulPaired_block hstep)
     duplicateNormalizedPaired_ne_default

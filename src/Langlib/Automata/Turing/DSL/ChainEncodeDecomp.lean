@@ -83,8 +83,12 @@ theorem binPairConstSucc_eq_cond (k : ℕ) (block : List ChainΓ) :
     have hlt : k < decodeBinaryBlock block := Nat.lt_of_not_le h
     simp [Nat.pair, if_pos hlt, sq]; ring_nf
 
-/-- **Nat.pair-succ with constant is block-realizable.** -/
-theorem tm0_binPairConstSucc_block (k : ℕ) :
+/-- **Nat.pair-succ with constant is block-realizable**, assuming the
+invariant/suffix multiplication step body. -/
+theorem tm0_binPairConstSucc_block
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
+      binMulPairedStateInv)
+    (k : ℕ) :
     TM0RealizesBlock ChainΓ (binPairConstSucc k) := by
   rw [show binPairConstSucc k = binCondBlock (blockValueLeq k)
         (binAddConstRepr (k * k + k + 1))
@@ -92,7 +96,8 @@ theorem tm0_binPairConstSucc_block (k : ℕ) :
     from funext (binPairConstSucc_eq_cond k)]
   exact tm0RealizesBlock_cond
     (tm0_binAddConstRepr_block _)
-    (tm0RealizesBlock_comp tm0_binSquare_block (tm0_binAddConstRepr_block _) binSquare_ne_default)
+    (tm0RealizesBlock_comp (tm0_binSquare_block hstep)
+      (tm0_binAddConstRepr_block _) binSquare_ne_default)
     (fun block hblock => binAddConstRepr_ne_default _ _ hblock)
     (fun block hblock => binAddConstRepr_ne_default _ _ (binSquare_ne_default _ hblock))
     (tm0_blockValueLeq_decidable_2 k)
@@ -173,7 +178,10 @@ theorem binPairConstSucc_ne_default (k : ℕ) (block : List ChainΓ)
   fun g hg => chainBinaryRepr_ne_default _ g hg
 
 /-- Phase 1: Fold computation on heterogeneous tape. -/
-theorem chainEncode_fold (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
+theorem chainEncode_fold
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
+      binMulPairedStateInv)
+    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
       ∀ w : List T,
@@ -184,7 +192,7 @@ theorem chainEncode_fold (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] 
               (some ∘ @Sum.inr T ChainΓ)) := by
   obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0Het_fold_blockRealizable T
     (fun t => binPairConstSucc (Encodable.encode t))
-    (fun t => tm0_binPairConstSucc_block (Encodable.encode t))
+    (fun t => tm0_binPairConstSucc_block hstep (Encodable.encode t))
     (fun t _ _ => binPairConstSucc_ne_default (Encodable.encode t) _ (by assumption))
   exact ⟨Λ, hΛi, hΛf, M, fun w => by
     obtain ⟨hdom, htape⟩ := hM w
