@@ -68,6 +68,30 @@ def TM0RealizesBlockInvFixed {Γ : Type} [Inhabited Γ]
         let cfg := (TM0Seq.evalCfg M (block ++ [default])).get h
         cfg.q = q_done ∧ cfg.Tape = Tape.mk₁ (f block ++ [default])
 
+theorem tm0RealizesBlockInvFixed_of_inv {Γ : Type} [Inhabited Γ]
+    {f : List Γ → List Γ} {blockInv : List Γ → Prop}
+    (hf : TM0RealizesBlockInv f blockInv) :
+    TM0RealizesBlockInvFixed f blockInv := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hf
+  let hsum : Inhabited (Λ ⊕ FinalizeSt) := ⟨Sum.inl (@default _ hΛi)⟩
+  let Mcomp : TM0.Machine Γ (Λ ⊕ FinalizeSt) :=
+    @TM0Seq.compose Γ Λ hΛi FinalizeSt inferInstance M finalizeMachine
+  refine ⟨Λ ⊕ FinalizeSt, hsum, inferInstance, Mcomp,
+    Sum.inr FinalizeSt.done, ?_⟩
+  intro block hInv hblock hfblock
+  obtain ⟨hM_dom, hM_tape⟩ := hM block hInv hblock hfblock
+  have hfinal := compose_finalize_evalCfg M (block ++ [default]) (f block ++ [default])
+    hM_dom (hM_tape hM_dom)
+  change (TM0Seq.evalCfg Mcomp (block ++ [default])).Dom ∧
+    ∀ h, let cfg := (TM0Seq.evalCfg Mcomp (block ++ [default])).get h
+      cfg.q = Sum.inr FinalizeSt.done ∧ cfg.Tape = Tape.mk₁ (f block ++ [default])
+  constructor
+  · exact hfinal.1
+  · intro h
+    have hcfg := hfinal.2 h
+    rw [hcfg]
+    simp
+
 theorem tm0RealizesBlockInv_comp {Γ : Type} [Inhabited Γ]
     {f g : List Γ → List Γ} {blockInv : List Γ → Prop}
     (hf : TM0RealizesBlockInv f blockInv)
