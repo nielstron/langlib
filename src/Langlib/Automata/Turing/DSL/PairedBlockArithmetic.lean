@@ -795,9 +795,16 @@ theorem tm0_normalizeBlock_afterConsBottom_innerDefault :
   intro block _hblock
   exact normalizeBlock_no_consBottom block
 
-theorem tm0_normalizePairedBlocks_block :
-    TM0RealizesBlock ChainΓ normalizePairedBlocks := by
-  sorry
+/- The tempting total theorem
+
+     `TM0RealizesBlock ChainΓ normalizePairedBlocks`
+
+   is stronger than the arithmetic pipeline needs.  The problematic cases are
+   malformed blocks whose right side contains extra paired separators: the
+   semantic function normalizes through the first non-bit, while the existing
+   separator-framed lifting lemmas require a clean inner block.  Downstream
+   multiplication is therefore routed through normalizing initializers that
+   build the invariant loop state directly. -/
 
 /-! #### Multiplication as repeated paired addition
 
@@ -2122,11 +2129,12 @@ theorem tm0_pairWithConstLeft_block (c : ℕ) :
       · rw [List.mem_singleton.mp hg]
         exact chainConsBottom_ne_default)
 
-theorem tm0_binMulPairedInit_block :
+theorem tm0_binMulPairedInit_block
+    (hnorm : TM0RealizesBlock ChainΓ normalizePairedBlocks) :
     TM0RealizesBlock ChainΓ binMulPairedInit := by
   unfold binMulPairedInit
   exact tm0RealizesBlock_comp
-    tm0_normalizePairedBlocks_block
+    hnorm
     (tm0_prependList_block (chainBinaryRepr 0 ++ [chainConsBottom]) (by
       intro g hg
       rcases List.mem_append.mp hg with hg | hg
@@ -2194,13 +2202,14 @@ This is the replacement for the old total malformed-state step theorem: the
 initializer establishes `binMulPairedStateInv`, the suffix-preserving while
 combinator maintains it, and result extraction runs after the loop. -/
 theorem tm0_binMulPaired_block_of_stepInvSuffix
+    (hnorm : TM0RealizesBlock ChainΓ normalizePairedBlocks)
     (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
       binMulPairedStateInv) :
     TM0RealizesBlock ChainΓ binMulPaired := by
   rw [binMulPaired_eq_repeated_add, binMulPairedWhile_eq_loop]
   apply tm0RealizesBlock_comp
   · exact tm0RealizesBlock_comp_invSuffix
-      tm0_binMulPairedInit_block
+      (tm0_binMulPairedInit_block hnorm)
       (tm0_binMulPairedLoop_blockInvSuffix hstep)
       (fun block _hblock => binMulPairedInit_stateInv block)
       binMulPairedInit_ne_default
@@ -2216,10 +2225,11 @@ and decrementing the multiplier copy. The concrete copy/loop machine is
 isolated here so clients can reduce to multiplication rather than each carrying
 their own arithmetic loop. -/
 theorem tm0_binMulPaired_block
+    (hnorm : TM0RealizesBlock ChainΓ normalizePairedBlocks)
     (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
       binMulPairedStateInv) :
     TM0RealizesBlock ChainΓ binMulPaired := by
-  exact tm0_binMulPaired_block_of_stepInvSuffix hstep
+  exact tm0_binMulPaired_block_of_stepInvSuffix hnorm hstep
 
 /-- `duplicateNormalizedPaired = copyBinaryWithSep ∘ normalizeBlock`. -/
 theorem duplicateNormalizedPaired_eq_copyWithSep_comp :
@@ -2239,17 +2249,70 @@ theorem tm0_duplicateNormalizedPaired_block :
     tm0_copyBinaryWithSep_block
     (fun _ _ => normalizeBlock_ne_default _)
 
+noncomputable def binMulConstInit (c : ℕ) (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr 0 ++ [chainConsBottom] ++ chainBinaryRepr c ++
+    [chainConsBottom] ++ normalizeBlock block
+
+theorem binMulConstInit_ne_default (c : ℕ) (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulConstInit c block, g ≠ default := by
+  unfold binMulConstInit
+  simp +zetaDelta
+  rintro g (hg | rfl | hg | rfl | hg)
+  · exact chainBinaryRepr_ne_default _ g hg
+  · exact chainConsBottom_ne_default
+  · exact chainBinaryRepr_ne_default _ g hg
+  · exact chainConsBottom_ne_default
+  · exact normalizeBlock_ne_default block g hg
+
+theorem binMulConstInit_stateInv (c : ℕ) (block : List ChainΓ) :
+    binMulPairedStateInv (binMulConstInit c block) := by
+  unfold binMulPairedStateInv binMulConstInit hasConsBottom
+  simp [splitAtConsBottom_binary_sep, normalizeBlock_no_consBottom, List.append_assoc]
+  exact normalizeBlock_no_consBottom block
+
+theorem tm0_binMulConstInit_block (c : ℕ) :
+    TM0RealizesBlock ChainΓ (binMulConstInit c) := by
+  unfold binMulConstInit
+  exact tm0RealizesBlock_comp
+    tm0_normalizeBlock
+    (tm0_prependList_block
+      (chainBinaryRepr 0 ++ [chainConsBottom] ++ chainBinaryRepr c ++ [chainConsBottom])
+      (by
+        intro g hg
+        simp +zetaDelta at hg
+        rcases hg with hg | rfl | hg | rfl
+        · exact chainBinaryRepr_ne_default _ g hg
+        · exact chainConsBottom_ne_default
+        · exact chainBinaryRepr_ne_default _ g hg
+        · exact chainConsBottom_ne_default))
+    (fun _ _ => normalizeBlock_ne_default _)
+
+theorem binMulConst_eq_direct_loop (c : ℕ) :
+    binMulConst c =
+      binMulPairedResult ∘ binMulPairedLoop ∘ binMulConstInit c := by
+  funext block
+  unfold Function.comp binMulConst binMulPairedResult binMulPairedLoop binMulConstInit normalizeBlock
+  rw [binMulPairedFuel_normalized_state, decodeBinaryBlock_chainBinaryRepr,
+    binMulPairedLoop_normalized_state]
+  simp [Nat.mul_comm, List.append_assoc]
+
 /-- **Multiplication by constant is block-realizable**, once paired
 multiplication has the invariant/suffix loop body. -/
 theorem tm0_binMulConst_block
     (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
       binMulPairedStateInv)
     (c : ℕ) : TM0RealizesBlock ChainΓ (binMulConst c) := by
-  rw [binMulConst_eq_paired]
-  exact tm0RealizesBlock_comp
-    (tm0_pairWithConstLeft_block c)
-    (tm0_binMulPaired_block hstep)
-    (pairWithConstLeft_ne_default c)
+  rw [binMulConst_eq_direct_loop]
+  apply tm0RealizesBlock_comp
+  · exact tm0RealizesBlock_comp_invSuffix
+      (tm0_binMulConstInit_block c)
+      (tm0_binMulPairedLoop_blockInvSuffix hstep)
+      (fun block _hblock => binMulConstInit_stateInv c block)
+      (binMulConstInit_ne_default c)
+  · exact tm0_binMulPairedResult_block
+  · exact fun block hblock =>
+      binMulPairedLoop_ne_default _ (binMulConstInit_ne_default c block hblock)
 
 /-! ### Binary Squaring -/
 
@@ -2265,6 +2328,41 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
     ∀ g ∈ binSquare block, g ≠ default := by
   unfold binSquare; exact chainBinaryRepr_ne_default _
 
+noncomputable def binSquareInit (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr 0 ++ [chainConsBottom] ++ duplicateNormalizedPaired block
+
+theorem binSquareInit_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binSquareInit block, g ≠ default := by
+  unfold binSquareInit
+  intro g hg
+  rcases List.mem_append.mp hg with hg | hg
+  · rcases List.mem_append.mp hg with hg | hg
+    · exact chainBinaryRepr_ne_default _ g hg
+    · rw [List.mem_singleton.mp hg]
+      exact chainConsBottom_ne_default
+  · exact duplicateNormalizedPaired_ne_default block hblock g hg
+
+theorem binSquareInit_stateInv (block : List ChainΓ) :
+    binMulPairedStateInv (binSquareInit block) := by
+  unfold binMulPairedStateInv binSquareInit duplicateNormalizedPaired pairNormalizedBlocks
+    hasConsBottom
+  simp [splitAtConsBottom_binary_sep, chainBinaryRepr_no_consBottom, List.append_assoc]
+  exact chainBinaryRepr_no_consBottom _
+
+theorem tm0_binSquareInit_block :
+    TM0RealizesBlock ChainΓ binSquareInit := by
+  unfold binSquareInit
+  exact tm0RealizesBlock_comp
+    tm0_duplicateNormalizedPaired_block
+    (tm0_prependList_block (chainBinaryRepr 0 ++ [chainConsBottom]) (by
+      intro g hg
+      rcases List.mem_append.mp hg with hg | hg
+      · exact chainBinaryRepr_ne_default _ g hg
+      · rw [List.mem_singleton.mp hg]
+        exact chainConsBottom_ne_default))
+    duplicateNormalizedPaired_ne_default
+
 theorem binSquare_eq_paired :
     binSquare = binMulPaired ∘ duplicateNormalizedPaired := by
   funext block
@@ -2272,12 +2370,26 @@ theorem binSquare_eq_paired :
   rw [splitAtConsBottom_chainBinaryRepr_sep]
   simp [pow_two, decodeBinaryBlock_chainBinaryRepr]
 
+theorem binSquare_eq_direct_loop :
+    binSquare = binMulPairedResult ∘ binMulPairedLoop ∘ binSquareInit := by
+  rw [binSquare_eq_paired, binMulPaired_eq_repeated_add, binMulPairedWhile_eq_loop]
+  funext block
+  simp [Function.comp, binMulPairedInit, binSquareInit, normalizePairedBlocks,
+    duplicateNormalizedPaired, pairNormalizedBlocks, normalizeBlock,
+    splitAtConsBottom_chainBinaryRepr_sep, decodeBinaryBlock_chainBinaryRepr,
+    List.append_assoc]
+
 theorem tm0_binSquare_block
     (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
       binMulPairedStateInv) :
     TM0RealizesBlock ChainΓ binSquare := by
-  rw [binSquare_eq_paired]
-  exact tm0RealizesBlock_comp
-    tm0_duplicateNormalizedPaired_block
-    (tm0_binMulPaired_block hstep)
-    duplicateNormalizedPaired_ne_default
+  rw [binSquare_eq_direct_loop]
+  apply tm0RealizesBlock_comp
+  · exact tm0RealizesBlock_comp_invSuffix
+      tm0_binSquareInit_block
+      (tm0_binMulPairedLoop_blockInvSuffix hstep)
+      (fun block _hblock => binSquareInit_stateInv block)
+      binSquareInit_ne_default
+  · exact tm0_binMulPairedResult_block
+  · exact fun block hblock =>
+      binMulPairedLoop_ne_default _ (binSquareInit_ne_default block hblock)
