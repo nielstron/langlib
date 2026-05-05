@@ -637,6 +637,45 @@ theorem tm0_binMulPairedStep_blockCond :
   have _hadd := tm0_binAddPaired_block
   sorry
 
+/-- `decodeBinaryBlock (binPred block) = decodeBinaryBlock block - 1` -/
+theorem decodeBinaryBlock_binPred (block : List ChainΓ) :
+    decodeBinaryBlock (binPred block) = decodeBinaryBlock block - 1 := by
+  simp [binPred, decodeBinaryBlock_chainBinaryRepr]
+/-
+The fuel field of `binMulPairedStep block` is `binPred` of the fuel field of `block`.
+-/
+theorem binMulPairedFuel_step (block : List ChainΓ) :
+    binMulPairedFuel (binMulPairedStep block) = binPred (binMulPairedFuel block) := by
+  unfold binMulPairedFuel binMulPairedStep;
+  have h_split : ∀ (acc addend fuel : List ChainΓ), (∀ c ∈ acc, c ≠ chainConsBottom) → (∀ c ∈ addend, c ≠ chainConsBottom) → splitAtConsBottom (acc ++ [chainConsBottom] ++ addend ++ [chainConsBottom] ++ binPred fuel) = (acc, addend ++ [chainConsBottom] ++ binPred fuel) := by
+    intros acc addend fuel hacc haddend
+    have h_split : splitAtConsBottom (acc ++ [chainConsBottom] ++ addend ++ [chainConsBottom] ++ binPred fuel) = (acc, addend ++ [chainConsBottom] ++ binPred fuel) := by
+      have h_split_acc : splitAtConsBottom (acc ++ [chainConsBottom] ++ addend ++ [chainConsBottom] ++ binPred fuel) = (acc, addend ++ [chainConsBottom] ++ binPred fuel) := by
+        have h_split_acc : splitAtConsBottom (acc ++ [chainConsBottom] ++ addend ++ [chainConsBottom] ++ binPred fuel) = splitAtConsBottom (acc ++ [chainConsBottom] ++ (addend ++ [chainConsBottom] ++ binPred fuel)) := by
+          simp +decide [ List.append_assoc ]
+        convert splitAtConsBottom_general acc ( addend ++ [ chainConsBottom ] ++ binPred fuel ) hacc using 1
+      exact h_split_acc;
+    exact h_split;
+  unfold binAddPaired; simp +decide [ h_split ] ;
+  have := splitAtConsBottom_general ( ( splitAtConsBottom ( splitAtConsBottom block ).2 ).1 ) ( binPred ( splitAtConsBottom ( splitAtConsBottom block ).2 ).2 ) ( splitAtConsBottom_fst_no_sep _ ) ; aesop;
+/-
+After iterating `binMulPairedStep` with `blockIterateWhile` for `n` steps
+    starting from `block`, the condition is false at the result,
+    provided `n ≥ decodeBinaryBlock (binMulPairedFuel block)`.
+-/
+theorem binMulPairedCond_false_after_iterate (n : ℕ) (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (hn : decodeBinaryBlock (binMulPairedFuel block) ≤ n) :
+    ¬ binMulPairedCond
+      (blockIterateWhile binMulPairedStep binMulPairedCond n block) := by
+  induction' n with n ih generalizing block;
+  · exact?;
+  · by_cases h : binMulPairedCond block <;> simp +decide [ h, blockIterateWhile ];
+    convert ih ( binMulPairedStep block ) ( binMulPairedStep_ne_default block hblock h ) _ using 1;
+    · grind +qlia;
+    · rw [ binMulPairedFuel_step ];
+      rw [ decodeBinaryBlock_binPred ] ; omega
+
 theorem binMulPairedWhile_eq_iterate (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
     ∃ n, binMulPairedLoop block =
@@ -644,7 +683,7 @@ theorem binMulPairedWhile_eq_iterate (block : List ChainΓ)
       ¬ binMulPairedCond
         (blockIterateWhile binMulPairedStep binMulPairedCond n block) := by
   refine ⟨decodeBinaryBlock (binMulPairedFuel block), rfl, ?_⟩
-  sorry
+  exact binMulPairedCond_false_after_iterate _ _ _hblock le_rfl
 
 theorem tm0_binMulPairedResult_block :
     TM0RealizesBlock ChainΓ binMulPairedResult := by
