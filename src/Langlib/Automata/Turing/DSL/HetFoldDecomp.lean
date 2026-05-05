@@ -634,31 +634,7 @@ theorem tm0RealizesBlock_while_inv {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [
 
 /-- **Het fold step is conditionally block-realizable (with invariant).**
 
-    Weakened from the original `TM0RealizesBlockCond` to
-    `TM0RealizesBlockCondInv` with the `isWellFormedHetBlock` invariant.
-
-    The original statement required the constructed machine to work on ALL
-    non-default blocks with ALL non-default suffixes. This is too strong
-    because the inner machine `M_t` (from `hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t)`)
-    is lifted to the `Option (T ⊕ Γ₀)` alphabet via `hetInv`, which maps
-    `Sum.inl` elements to `default`. This means:
-    - `Sum.inl` elements in the block appear as blank cells to `M_t`
-    - If `M_t` writes to cells outside its block during execution
-      (allowed by `TM0RealizesBlock`), it may corrupt `Sum.inl` elements
-    - The suffix through `hetInv` may contain spurious `default` values
-
-    By restricting to well-formed blocks (`hetMix ts acc`) with empty
-    suffix, we ensure:
-    - The `inr` accumulator forms a valid contiguous `Γ₀` block
-    - The `inl` tail appears as blanks to the left (consistent with `M_t`)
-    - No suffix interference
-
-    The body machine:
-    1. Reads the head of the block.
-    2. If `some(inl t)`: records `t` in the finite state, scans right past
-       remaining `inl` tags, applies the lifted `f t` machine to the `inr`
-       accumulator, shifts back to close the gap. Halts at `q_cont`.
-    3. If not `some(inl _)`: halts immediately at a state ≠ `q_cont`. -/
+    This is the local machine-construction obligation for one fold-body step. -/
 theorem tm0RealizesBlockCond_hetFoldStep
     (f : T → List Γ₀ → List Γ₀)
     (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
@@ -699,8 +675,7 @@ theorem hetFoldWhile_eq_iterateWhile_wf
 /-- **Het fold while loop machine exists for well-formed blocks.**
 
     Derived from:
-    - `tm0RealizesBlockCond_hetFoldStep` (body is conditionally realizable
-      with invariant)
+    - a supplied conditional body machine for `hetFoldStep`
     - `tm0RealizesBlock_while_inv` (while-loop combinator with invariant)
     - `hetFoldWhile_eq_iterateWhile_wf` (iteration equals definition) -/
 theorem tm0RealizesBlock_hetFoldWhile_inv

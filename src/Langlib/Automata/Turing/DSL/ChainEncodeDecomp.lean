@@ -179,8 +179,6 @@ theorem binPairConstSucc_ne_default (k : ℕ) (block : List ChainΓ)
 
 /-- Phase 1: Fold computation on heterogeneous tape. -/
 theorem chainEncode_fold
-    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
-      binMulPairedStateInv)
     (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
@@ -192,7 +190,8 @@ theorem chainEncode_fold
               (some ∘ @Sum.inr T ChainΓ)) := by
   obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0Het_fold_blockRealizable T
     (fun t => binPairConstSucc (Encodable.encode t))
-    (fun t => tm0_binPairConstSucc_block hstep (Encodable.encode t))
+    (fun t => tm0_binPairConstSucc_block tm0_binMulPairedStep_blockCondInvSuffix
+      (Encodable.encode t))
     (fun t _ _ => binPairConstSucc_ne_default (Encodable.encode t) _ (by assumption))
   exact ⟨Λ, hΛi, hΛf, M, fun w => by
     obtain ⟨hdom, htape⟩ := hM w

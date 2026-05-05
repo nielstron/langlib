@@ -116,8 +116,6 @@ with **finite states**.
 This uses `is_TM_of_searchable_fintype` which produces a TM0 with
 `Fintype` state type via support restriction. -/
 theorem grammar_language_is_TM_fintype {T : Type} [DecidableEq T] [Fintype T]
-    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
-      binMulPairedStateInv)
     (g : grammar T) [DecidableEq g.nt] [Fintype g.nt] :
     is_TM (grammar_language g) := by
   haveI : Primcodable T :=
@@ -126,7 +124,7 @@ theorem grammar_language_is_TM_fintype {T : Type} [DecidableEq T] [Fintype T]
     Primcodable.ofEquiv (Fin (Fintype.card g.nt)) (Fintype.truncEquivFin g.nt).out
   have hcomp := grammarTest_computable₂ g
   obtain ⟨c, hc⟩ := search_is_partrec (grammarTest g) hcomp
-  exact code_implies_isTM hstep (grammar_language g) c (fun w => by
+  exact code_implies_isTM (grammar_language g) c (fun w => by
     constructor
     · intro hw
       rw [← hc]

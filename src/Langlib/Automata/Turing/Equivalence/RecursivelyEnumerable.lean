@@ -16,7 +16,8 @@ theorem TM_eq_RE {T : Type} [DecidableEq T] [Fintype T] :
   exact Set.Subset.antisymm TM_subset_RE RE_subset_TM
 
 /-- Pointwise version of `TM_eq_RE`. -/
-theorem is_TM_iff_is_RE {T : Type} [DecidableEq T] [Fintype T]
+theorem is_TM_iff_is_RE
+    {T : Type} [DecidableEq T] [Fintype T]
     (L : Language T) :
     is_TM L ↔ is_RE L := by
   change L ∈ (TM : Set (Language T)) ↔ L ∈ RE
