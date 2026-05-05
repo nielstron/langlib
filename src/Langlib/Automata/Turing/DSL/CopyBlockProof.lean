@@ -410,7 +410,7 @@ theorem sh_cascade (sep2 : Γ) (s carry : Γ) (hcarry : carry ≠ default)
        Tape.mk₂ ((carry :: elems).dropLast.reverse ++ L)
                  [(carry :: elems).getLast (List.cons_ne_nil carry elems)]⟩ := by
   induction' elems with e elems ih generalizing L carry;
-  · exact?;
+  · simpa using shW_end sep2 s carry L hcarry
   · have h_step : Reaches (TM0.step (M sep2)) ⟨Sum.inl (s, carry, .shW), Tape.mk₂ L (e :: elems)⟩ ⟨Sum.inl (s, e, .shW), Tape.mk₂ (carry :: L) elems⟩ := by
       apply shW_step;
       tauto;
@@ -429,7 +429,75 @@ theorem grab_to_shW (sep2 : Γ) (x : Γ) (rest copied L : List Γ)
       ⟨.inr (.inr .grab), Tape.mk₂ L (x :: rest ++ default :: copied ++ default :: suffix)⟩
       ⟨.inl (x, default, .shW),
        Tape.mk₂ (x :: copied.reverse ++ default :: rest.reverse ++ default :: L) suffix⟩ := by
-  sorry
+  have h_grab : TM0.step (M sep2)
+      ⟨.inr (.inr .grab),
+       Tape.mk₂ L (x :: rest ++ default :: copied ++ default :: suffix)⟩ =
+      some ⟨.inr (.inl (x, .markMv)),
+       Tape.mk₂ L (default :: rest ++ default :: copied ++ default :: suffix)⟩ := by
+    unfold TM0.step M
+    simp +decide [hx, Tape.mk₂]
+  have h_mark : TM0.step (M sep2)
+      ⟨.inr (.inl (x, .markMv)),
+       Tape.mk₂ L (default :: rest ++ default :: copied ++ default :: suffix)⟩ =
+      some ⟨.inr (.inl (x, .scanR)),
+       Tape.mk₂ (default :: L) (rest ++ default :: copied ++ default :: suffix)⟩ := by
+    unfold TM0.step M
+    simp +decide [Tape.mk₂]
+  have h_scanR : Reaches (TM0.step (M sep2))
+      ⟨.inr (.inl (x, .scanR)),
+       Tape.mk₂ (default :: L) (rest ++ default :: copied ++ default :: suffix)⟩
+      ⟨.inr (.inl (x, .scanR)),
+       Tape.mk₂ (rest.reverse ++ default :: L) (default :: copied ++ default :: suffix)⟩ := by
+    simpa [List.append_assoc] using
+      generic_scan_right sep2 (.inr (.inl (x, .scanR))) rest (default :: L)
+      (default :: copied ++ default :: suffix) hrest (by
+        intro a ha
+        unfold M
+        simp +decide [ha])
+  have h_cross : TM0.step (M sep2)
+      ⟨.inr (.inl (x, .scanR)),
+       Tape.mk₂ (rest.reverse ++ default :: L) (default :: copied ++ default :: suffix)⟩ =
+      some ⟨.inr (.inl (x, .scanR2)),
+       Tape.mk₂ (default :: rest.reverse ++ default :: L) (copied ++ default :: suffix)⟩ := by
+    unfold TM0.step M
+    simp +decide [Tape.mk₂]
+  have h_scanR2 : Reaches (TM0.step (M sep2))
+      ⟨.inr (.inl (x, .scanR2)),
+       Tape.mk₂ (default :: rest.reverse ++ default :: L) (copied ++ default :: suffix)⟩
+      ⟨.inr (.inl (x, .scanR2)),
+       Tape.mk₂ (copied.reverse ++ default :: rest.reverse ++ default :: L)
+         (default :: suffix)⟩ := by
+    simpa [List.append_assoc] using
+      generic_scan_right sep2 (.inr (.inl (x, .scanR2))) copied
+      (default :: rest.reverse ++ default :: L) (default :: suffix) hcopied (by
+        intro a ha
+        unfold M
+        simp +decide [ha])
+  have h_write : TM0.step (M sep2)
+      ⟨.inr (.inl (x, .scanR2)),
+       Tape.mk₂ (copied.reverse ++ default :: rest.reverse ++ default :: L)
+         (default :: suffix)⟩ =
+      some ⟨.inl (x, default, .shM),
+       Tape.mk₂ (copied.reverse ++ default :: rest.reverse ++ default :: L)
+         (x :: suffix)⟩ := by
+    unfold TM0.step M
+    simp +decide [Tape.mk₂]
+  have h_move : TM0.step (M sep2)
+      ⟨.inl (x, default, .shM),
+       Tape.mk₂ (copied.reverse ++ default :: rest.reverse ++ default :: L)
+         (x :: suffix)⟩ =
+      some ⟨.inl (x, default, .shW),
+       Tape.mk₂ (x :: copied.reverse ++ default :: rest.reverse ++ default :: L)
+         suffix⟩ := by
+    unfold TM0.step M
+    simp +decide [Tape.mk₂]
+  exact Relation.ReflTransGen.head h_grab
+    (Relation.ReflTransGen.head h_mark
+      (h_scanR.trans
+        (Relation.ReflTransGen.head h_cross
+          (h_scanR2.trans
+            (Relation.ReflTransGen.head h_write
+              (Relation.ReflTransGen.single h_move))))))
 
 /-- Phase 1c: three-phase return from ret1 back to grab (after restore + advance). -/
 theorem ret_to_grab (sep2 : Γ) (x : Γ) (rest copied L : List Γ)
@@ -463,6 +531,51 @@ theorem one_iter_reaches (sep2 : Γ) (x : Γ) (rest copied L : List Γ)
 
 /-! ### Copy Loop -/
 
+theorem copy_loop_reaches_aux (sep2 : Γ) (block copied L suffix : List Γ)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (hcopied : ∀ g ∈ copied, g ≠ default)
+    (hL : ∀ g ∈ L, g ≠ default)
+    (hsuffix : ∀ g ∈ suffix, g ≠ default) :
+    Reaches (TM0.step (M sep2))
+      ⟨Sum.inr (Sum.inr NPhase.grab),
+       Tape.mk₂ L (block ++ default :: copied ++ default :: suffix)⟩
+      ⟨Sum.inr (Sum.inr NPhase.grab),
+       Tape.mk₂ (block.reverse ++ L) (default :: copied ++ block ++ default :: suffix)⟩ := by
+  induction' block with x rest ih generalizing copied L
+  · simpa [List.append_assoc] using
+      (Relation.ReflTransGen.refl :
+        Reaches (TM0.step (M sep2))
+          ⟨Sum.inr (Sum.inr NPhase.grab),
+           Tape.mk₂ L (default :: copied ++ default :: suffix)⟩
+          ⟨Sum.inr (Sum.inr NPhase.grab),
+           Tape.mk₂ L (default :: copied ++ default :: suffix)⟩)
+  · have hx : x ≠ default := hblock x (by simp)
+    have hrest : ∀ g ∈ rest, g ≠ default := by
+      intro g hg
+      exact hblock g (by simp [hg])
+    have hone := one_iter_reaches sep2 x rest copied L suffix hx hrest hcopied
+      hsuffix hL
+    have hcopied' : ∀ g ∈ copied ++ [x], g ≠ default := by
+      intro g hg
+      rcases List.mem_append.mp hg with hg | hg
+      · exact hcopied g hg
+      · rw [List.mem_singleton.mp hg]
+        exact hx
+    have hL' : ∀ g ∈ x :: L, g ≠ default := by
+      intro g hg
+      rcases List.mem_cons.mp hg with rfl | hg
+      · exact hx
+      · exact hL g hg
+    have hrest_loop := ih (copied ++ [x]) (x :: L) hrest hcopied' hL'
+    have hrest_loop' : Reaches (TM0.step (M sep2))
+        ⟨Sum.inr (Sum.inr NPhase.grab),
+         Tape.mk₂ (x :: L) (rest ++ default :: copied ++ [x] ++ default :: suffix)⟩
+        ⟨Sum.inr (Sum.inr NPhase.grab),
+         Tape.mk₂ (rest.reverse ++ x :: L)
+           (default :: copied ++ x :: rest ++ default :: suffix)⟩ := by
+      simpa [List.append_assoc] using hrest_loop
+    convert hone.trans hrest_loop' using 1 <;> simp [List.append_assoc]
+
 /-- The full copy loop. -/
 theorem copy_loop_reaches (sep2 : Γ) (block suffix : List Γ)
     (hblock : ∀ g ∈ block, g ≠ default)
@@ -472,7 +585,8 @@ theorem copy_loop_reaches (sep2 : Γ) (block suffix : List Γ)
        Tape.mk₂ [] (block ++ default :: default :: suffix)⟩
       ⟨Sum.inr (Sum.inr NPhase.grab),
        Tape.mk₂ block.reverse (default :: block ++ default :: suffix)⟩ := by
-  sorry
+  simpa using
+    copy_loop_reaches_aux sep2 block [] [] suffix hblock (by simp) (by simp) hsuffix
 
 /-! ### Phase 2-3: write sep2, rewind, and halt -/
 
