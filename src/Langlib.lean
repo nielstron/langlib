@@ -42,6 +42,7 @@ import Langlib.Automata.Turing.DSL.EncodingBridge
 import Langlib.Automata.Turing.DSL.Enumeration
 import Langlib.Automata.Turing.DSL.FixedStateFinalize
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
+import Langlib.Automata.Turing.DSL.HetLift
 import Langlib.Automata.Turing.DSL.IncAfterSepDecomp
 import Langlib.Automata.Turing.DSL.IncBeforeSepMachine
 import Langlib.Automata.Turing.DSL.PairedAddHelpers

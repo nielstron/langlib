@@ -6,3 +6,5 @@ secret.sh
 /test/mwe.lean
 /li
 .lake
+# Nightshift plan artifacts (keep out of version control)
+.nightshift-plan

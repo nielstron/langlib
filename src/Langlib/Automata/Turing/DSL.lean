@@ -6,6 +6,7 @@ import Langlib.Automata.Turing.DSL.EmptyTM
 import Langlib.Automata.Turing.DSL.ParrecToTM0
 import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.Compile
+import Langlib.Automata.Turing.DSL.HetLift
 
 /-! # Composable TM Generators / Transformers — DSL Overview
 

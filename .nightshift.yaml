@@ -1,0 +1,21 @@
+tasks:
+  enabled:
+    - sorries
+    - missing
+  custom:
+    - type: sorries
+      name: "Close remaining sorries"
+      description: |
+        Look for remaining sorries in feat/ branches and attempt resolving them. Create a branch for solutions you found if you are unsure they work and directly merge direct proofs. You may introduce new sorries by reducing existing theorems, but not introduce axioms.
+      category: pr
+      cost_tier: high
+      risk_level: medium
+      interval: "2h"
+    - type: missing
+      name: "Create theory to tackle missing results"
+      description: |
+        Look for remaining results that were not proven formally but are stated in the README. Create a feat/ branch for intermediate results. You may leave sorries, but not introduce axioms.
+      category: pr
+      cost_tier: high
+      risk_level: medium
+      interval: "2h"

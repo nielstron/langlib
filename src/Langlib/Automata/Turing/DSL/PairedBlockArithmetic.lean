@@ -254,6 +254,73 @@ def TM0RealizesBlockCondInvSuffix {Γ : Type} [Inhabited Γ]
         else
           cfg.q ≠ q_cont ∧ cfg.Tape = Tape.mk₁ (block ++ default :: suffix)
 
+theorem tm0RealizesBlockInvSuffix_of_block {Γ : Type} [Inhabited Γ]
+    {f : List Γ → List Γ} {blockInv : List Γ → Prop}
+    (hf : TM0RealizesBlock Γ f) :
+    TM0RealizesBlockInvSuffix f blockInv := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hf
+  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
+  intro block suffix _hInv hblock hsuffix hfblock
+  exact hM block suffix hblock hsuffix hfblock
+
+theorem tm0RealizesBlockInvSuffix_comp {Γ : Type} [Inhabited Γ]
+    {f g : List Γ → List Γ} {blockInv : List Γ → Prop}
+    (hf : TM0RealizesBlockInvSuffix f blockInv)
+    (hg : TM0RealizesBlockInvSuffix g blockInv)
+    (hf_inv : ∀ block, blockInv block → (∀ x ∈ block, x ≠ default) → blockInv (f block))
+    (hf_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ f block, x ≠ default) :
+    TM0RealizesBlockInvSuffix (g ∘ f) blockInv := by
+  obtain ⟨Λ_f, hΛfi, hΛff, M_f, hM_f⟩ := hf
+  obtain ⟨Λ_g, hΛgi, hΛgf, M_g, hM_g⟩ := hg
+  let hsum : Inhabited (Λ_f ⊕ Λ_g) := ⟨Sum.inl (@default _ hΛfi)⟩
+  refine ⟨Λ_f ⊕ Λ_g, hsum, inferInstance,
+    @TM0Seq.compose Γ Λ_f hΛfi Λ_g hΛgi M_f M_g, ?_⟩
+  intro block suffix hInv hblock hsuffix hgf
+  have hfblock_nd := hf_nd block hblock
+  obtain ⟨hf_dom, hf_tape⟩ := hM_f block suffix hInv hblock hsuffix hfblock_nd
+  obtain ⟨hg_dom, hg_tape⟩ := hM_g (f block) suffix
+    (hf_inv block hInv hblock) hfblock_nd hsuffix hgf
+  have hg_from_cfg :
+      (TM0Seq.evalFromCfg M_g
+        ⟨default, ((TM0Seq.evalCfg M_f (block ++ default :: suffix)).get
+          hf_dom).Tape⟩).Dom := by
+    rw [hf_tape hf_dom]
+    show (TM0Seq.evalFromCfg M_g (TM0.init (f block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hg_dom
+  have hcomp_dom :
+      (TM0Seq.evalCfg
+        (@TM0Seq.compose Γ Λ_f hΛfi Λ_g hΛgi M_f M_g)
+        (block ++ default :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff
+      (@TM0Seq.compose Γ Λ_f hΛfi Λ_g hΛgi M_f M_g)
+      (block ++ default :: suffix)).mpr
+        (@TM0Seq.compose_dom_of_parts Γ _ Λ_f hΛfi Λ_g hΛgi
+          M_f M_g (block ++ default :: suffix) hf_dom hg_from_cfg)
+  refine ⟨hcomp_dom, ?_⟩
+  intro h
+  have hcomp_tape :=
+    @TM0Seq.compose_evalCfg_tape Γ _ Λ_f hΛfi Λ_g hΛgi M_f M_g
+      (block ++ default :: suffix) (f block ++ default :: suffix)
+      hf_dom (hf_tape hf_dom) hg_dom h
+  rw [hcomp_tape]
+  exact hg_tape hg_dom
+
+theorem tm0RealizesBlockInvSuffix_congr {Γ : Type} [Inhabited Γ]
+    {f g : List Γ → List Γ} {blockInv : List Γ → Prop}
+    (hf : TM0RealizesBlockInvSuffix f blockInv)
+    (hfg : ∀ block, blockInv block → f block = g block) :
+    TM0RealizesBlockInvSuffix g blockInv := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hf
+  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
+  intro block suffix hInv hblock hsuffix hgblock
+  have hfblock : ∀ x ∈ f block, x ≠ default := by
+    simpa [hfg block hInv] using hgblock
+  obtain ⟨hdom, htape⟩ := hM block suffix hInv hblock hsuffix hfblock
+  refine ⟨hdom, ?_⟩
+  intro h
+  rw [htape h, hfg block hInv]
+
 theorem tm0RealizesBlockInv_comp {Γ : Type} [Inhabited Γ]
     {f g : List Γ → List Γ} {blockInv : List Γ → Prop}
     (hf : TM0RealizesBlockInv f blockInv)
