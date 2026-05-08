@@ -29,9 +29,49 @@ noncomputable def γ'ToChainΓ (γ' : Γ') : ChainΓ :=
 noncomputable def chainConsBottom : ChainΓ :=
   (true, Function.update (fun _ => none) K'.main (some Γ'.cons))
 
+/-- Auxiliary multiplication separator: a non-binary marker distinct from
+    `chainConsBottom`. -/
+noncomputable def chainMulSep₁ : ChainΓ :=
+  (true, Function.update (fun _ => none) K'.main (some Γ'.consₗ))
+
+/-- Auxiliary multiplication separator: a non-binary marker distinct from the
+    other multiplication separators. -/
+noncomputable def chainMulSep₂ : ChainΓ :=
+  (true, Function.update (fun _ => none) K'.rev (some Γ'.cons))
+
 /-- `chainConsBottom` is non-default. -/
 theorem chainConsBottom_ne_default : chainConsBottom ≠ (default : ChainΓ) := by
   simp +decide [chainConsBottom]
+
+theorem chainMulSep₁_ne_default : chainMulSep₁ ≠ (default : ChainΓ) := by
+  simp +decide [chainMulSep₁]
+
+theorem chainMulSep₂_ne_default : chainMulSep₂ ≠ (default : ChainΓ) := by
+  simp +decide [chainMulSep₂]
+
+theorem chainMulSep₁_ne_chainConsBottom : chainMulSep₁ ≠ chainConsBottom := by
+  simp +decide [chainMulSep₁, chainConsBottom]
+
+theorem chainMulSep₂_ne_chainConsBottom : chainMulSep₂ ≠ chainConsBottom := by
+  simp +decide [chainMulSep₂, chainConsBottom]
+
+theorem chainMulSep₁_ne_chainMulSep₂ : chainMulSep₁ ≠ chainMulSep₂ := by
+  simp +decide [chainMulSep₁, chainMulSep₂]
+
+theorem chainMulSep₂_ne_chainMulSep₁ : chainMulSep₂ ≠ chainMulSep₁ :=
+  Ne.symm chainMulSep₁_ne_chainMulSep₂
+
+theorem chainMulSep₁_ne_bit0 : chainMulSep₁ ≠ γ'ToChainΓ Γ'.bit0 := by
+  simp +decide [chainMulSep₁, γ'ToChainΓ]
+
+theorem chainMulSep₁_ne_bit1 : chainMulSep₁ ≠ γ'ToChainΓ Γ'.bit1 := by
+  simp +decide [chainMulSep₁, γ'ToChainΓ]
+
+theorem chainMulSep₂_ne_bit0 : chainMulSep₂ ≠ γ'ToChainΓ Γ'.bit0 := by
+  simp +decide [chainMulSep₂, γ'ToChainΓ]
+
+theorem chainMulSep₂_ne_bit1 : chainMulSep₂ ≠ γ'ToChainΓ Γ'.bit1 := by
+  simp +decide [chainMulSep₂, γ'ToChainΓ]
 
 /-! ### Binary Representation -/
 
@@ -57,6 +97,18 @@ theorem chainBinaryRepr_no_consBottom (n : ℕ) :
     ∀ c ∈ chainBinaryRepr n, c ≠ chainConsBottom := by
   unfold chainBinaryRepr chainConsBottom;
   unfold γ'ToChainΓ; simp +decide ;
+  grind
+
+theorem chainBinaryRepr_no_chainMulSep₁ (n : ℕ) :
+    ∀ c ∈ chainBinaryRepr n, c ≠ chainMulSep₁ := by
+  unfold chainBinaryRepr chainMulSep₁ γ'ToChainΓ
+  simp +decide
+  grind
+
+theorem chainBinaryRepr_no_chainMulSep₂ (n : ℕ) :
+    ∀ c ∈ chainBinaryRepr n, c ≠ chainMulSep₂ := by
+  unfold chainBinaryRepr chainMulSep₂ γ'ToChainΓ
+  simp +decide
   grind
 
 /-! ### Chain Encoding Decomposition Equation -/

@@ -226,6 +226,10 @@ theorem bvlMachine_rewind_loop (k : ℕ) (result : Bool) (revBlock : List Chain�
     (ListBlank.mk ([] : List ChainΓ)).cons default = ListBlank.mk [] := by
   apply Quot.sound; exact Or.inr ⟨1, by simp⟩
 
+@[simp] theorem listBlank_mk_single_default_chainΓ :
+    ListBlank.mk ([default] : List ChainΓ) = ListBlank.mk [] := by
+  apply Quot.sound; exact Or.inr ⟨1, by simp⟩
+
 /-! ### Main Result -/
 
 /-
@@ -293,3 +297,76 @@ theorem bvlMachine_correct (k : ℕ) (block suffix : List ChainΓ)
       have := hc.1;
       exact?;
     grind +suggestions
+
+theorem bvlMachine_correct_with_left (k : ℕ)
+    (leftRev block suffix : List ChainΓ)
+    (hleftRev : ∀ x ∈ leftRev, x ≠ (default : ChainΓ))
+    (hblock : ∀ x ∈ block, x ≠ (default : ChainΓ))
+    (_hsuffix : ∀ x ∈ suffix, x ≠ (default : ChainΓ)) :
+    let M := bvlMachine k
+    let l := leftRev.reverse ++ block ++ default :: suffix
+    let start : TM0.Cfg ChainΓ (BVLState k) :=
+      ⟨Sum.inl ⟨k, by omega⟩,
+        Tape.mk' (ListBlank.mk leftRev)
+          (ListBlank.mk (block ++ default :: suffix))⟩
+    (TM0Seq.evalFromCfg M start).Dom ∧
+    ∀ (h : (TM0Seq.evalFromCfg M start).Dom),
+      ((TM0Seq.evalFromCfg M start).get h).Tape = Tape.mk₁ l ∧
+      (decodeBinaryBlock block ≤ k →
+        ((TM0Seq.evalFromCfg M start).get h).q = Sum.inr (Sum.inr true)) ∧
+      (¬decodeBinaryBlock block ≤ k →
+        ((TM0Seq.evalFromCfg M start).get h).q = Sum.inr (Sum.inr false)) := by
+  set M := bvlMachine k
+  set l := leftRev.reverse ++ block ++ default :: suffix
+  set result := ((bvlScanFinal k block).val ≠ k + 1)
+  set start : TM0.Cfg ChainΓ (BVLState k) :=
+    ⟨Sum.inl ⟨k, by omega⟩,
+      Tape.mk' (ListBlank.mk leftRev)
+        (ListBlank.mk (block ++ default :: suffix))⟩
+  have h_scan := bvlMachine_scan_gen k ⟨k, by omega⟩ block leftRev suffix hblock
+  have h_trans1 := bvlMachine_scan_default k (bvlScanFinal k block)
+    (ListBlank.mk (block.reverse ++ leftRev)) (ListBlank.mk suffix)
+  have hrew_nd : ∀ x ∈ block.reverse ++ leftRev, x ≠ (default : ChainΓ) := by
+    intro x hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact hblock x (List.mem_reverse.mp hx)
+    · exact hleftRev x hx
+  have h_rewind := bvlMachine_rewind_loop k result (block.reverse ++ leftRev)
+    hrew_nd (default :: suffix)
+  have h_trans2 := bvlMachine_rewind_default k result
+    (ListBlank.mk []) (ListBlank.mk ((block.reverse ++ leftRev).reverse ++ default :: suffix))
+  have h_halt : TM0.step M ⟨Sum.inr (Sum.inr result), Tape.mk₁ l⟩ = none := by
+    simpa [M] using bvlMachine_halt k result (Tape.mk₁ l)
+  have h_chain :
+      Reaches (TM0.step M) start
+        ⟨Sum.inr (Sum.inr (decide result)), Tape.mk₁ l⟩ := by
+    refine h_scan.trans ?_
+    refine Relation.ReflTransGen.trans ?_ (h_rewind.trans ?_)
+    · refine Relation.ReflTransGen.single ?_
+      simpa [M, result, bvlScanFinal] using h_trans1
+    · refine Relation.ReflTransGen.single ?_
+      simpa [M, result, l, List.reverse_append, List.append_assoc, Tape.mk₁, Tape.mk₂,
+        Tape.mk', ListBlank.cons_mk, listBlank_mk_single_default_chainΓ] using h_trans2
+  refine ⟨?_, ?_⟩
+  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨h_chain, h_halt⟩⟩
+  · intro h
+    have h_eval :
+        (TM0Seq.evalFromCfg M start).get h =
+          ⟨Sum.inr (Sum.inr (decide result)), Tape.mk₁ l⟩ := by
+      exact Part.get_eq_of_mem (Turing.mem_eval.mpr ⟨h_chain, h_halt⟩) h
+    rw [h_eval]
+    constructor
+    · rfl
+    constructor
+    · intro hle
+      have hres : result = True := by
+        exact propext (by simp [result, (bvlScanFinal_correct k block).mp hle])
+      simp [hres]
+    · intro hle
+      have hres : result = False := by
+        exact propext (by
+          have hnot : ¬ (bvlScanFinal k block).val ≠ k + 1 := by
+            intro hne
+            exact hle ((bvlScanFinal_correct k block).mpr hne)
+          simp [result, hnot])
+      simp [hres]

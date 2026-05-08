@@ -504,3 +504,165 @@ theorem tm0_blockValueLeq_decidable_2 (k : ℕ) :
   refine ⟨BVLState k, bvlInhabited k, inferInstance, bvlMachine k,
     Sum.inr (Sum.inr true), Sum.inr (Sum.inr false), by simp, fun block suffix hblock hsuffix => ?_⟩
   exact bvlMachine_correct k block suffix hblock hsuffix
+
+/-! ### Block value comparison after a separator -/
+
+inductive BVLAfterSepSt (k : ℕ) where
+  | scan
+  | bvl (q : BVLState k)
+
+noncomputable instance (k : ℕ) : DecidableEq (BVLAfterSepSt k) :=
+  Classical.typeDecidableEq _
+
+noncomputable instance (k : ℕ) : Inhabited (BVLAfterSepSt k) :=
+  ⟨.scan⟩
+
+noncomputable instance (k : ℕ) : Fintype (BVLAfterSepSt k) := by
+  exact
+  { elems := {BVLAfterSepSt.scan}
+      ∪ Finset.univ.map ⟨BVLAfterSepSt.bvl, fun _ _ h => by cases h; rfl⟩
+    complete := by
+      intro x
+      cases x <;> simp [Finset.mem_map, Finset.mem_insert] }
+
+noncomputable def bvlAfterSepMachine (k : ℕ) (sep : ChainΓ) :
+    @TM0.Machine ChainΓ (BVLAfterSepSt k) ⟨.scan⟩ :=
+  fun q a =>
+    match q with
+    | .scan =>
+        if a = sep then some (.bvl (Sum.inl ⟨k, by omega⟩), .move Dir.right)
+        else some (.scan, .move Dir.right)
+    | .bvl q =>
+        match bvlMachine k q a with
+        | some (q', stmt) => some (.bvl q', stmt)
+        | none => none
+
+theorem bvlAfterSep_lift {k : ℕ} {sep : ChainΓ}
+    {c d : TM0.Cfg ChainΓ (BVLState k)}
+    (h : Reaches (TM0.step (bvlMachine k)) c d) :
+    Reaches (TM0.step (bvlAfterSepMachine k sep))
+      ⟨BVLAfterSepSt.bvl c.q, c.Tape⟩
+      ⟨BVLAfterSepSt.bvl d.q, d.Tape⟩ := by
+  induction h with
+  | refl => exact Relation.ReflTransGen.refl
+  | tail _ hstep ih =>
+      rename_i inter final _hprev
+      refine ih.tail ?_
+      unfold TM0.step at hstep ⊢
+      cases hb : bvlMachine k inter.q inter.Tape.head with
+      | none =>
+          simp [hb] at hstep
+      | some pair =>
+          rcases pair with ⟨q', stmt⟩
+          simp [hb] at hstep
+          cases hstep
+          simp [bvlAfterSepMachine, hb]
+
+theorem bvlAfterSep_scan_prefix_gen (k : ℕ) (sep : ChainΓ)
+    (pref revL inner suffix : List ChainΓ)
+    (hpref : ∀ x ∈ pref, x ≠ sep) :
+    Reaches (TM0.step (bvlAfterSepMachine k sep))
+      ⟨BVLAfterSepSt.scan,
+        Tape.mk' (ListBlank.mk revL)
+          (ListBlank.mk (pref ++ sep :: inner ++ default :: suffix))⟩
+      ⟨BVLAfterSepSt.bvl (Sum.inl ⟨k, by omega⟩),
+        Tape.mk' (ListBlank.mk (sep :: pref.reverse ++ revL))
+          (ListBlank.mk (inner ++ default :: suffix))⟩ := by
+  induction pref generalizing revL with
+  | nil =>
+      apply Relation.ReflTransGen.single
+      simp [TM0.step, bvlAfterSepMachine, Tape.move, Tape.mk']
+  | cons c pref ih =>
+      have hc : c ≠ sep := hpref c (by simp)
+      have hp : ∀ x ∈ pref, x ≠ sep := by
+        intro x hx
+        exact hpref x (by simp [hx])
+      convert (Relation.ReflTransGen.single ?_).trans (ih (c :: revL) hp) using 1
+      · simp [List.reverse_cons, List.append_assoc]
+      · simp [TM0.step, bvlAfterSepMachine, Tape.move, Tape.mk', hc, List.reverse_cons,
+          List.append_assoc]
+
+theorem bvlAfterSep_step_halt {k : ℕ} {sep : ChainΓ}
+    (q : BVLState k) (T : Tape ChainΓ)
+    (h : TM0.step (bvlMachine k) ⟨q, T⟩ = none) :
+    TM0.step (bvlAfterSepMachine k sep) ⟨BVLAfterSepSt.bvl q, T⟩ = none := by
+  unfold TM0.step at h ⊢
+  cases hb : bvlMachine k q T.head with
+  | none => simp [bvlAfterSepMachine, hb]
+  | some x => simp [hb] at h
+
+theorem tm0_blockValueLeq_afterSep_decidable_2 (k : ℕ) (sep : ChainΓ)
+    (hsep : sep ≠ default) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ) (q_true q_false : Λ),
+      q_true ≠ q_false ∧
+      ∀ (pref block suffix : List ChainΓ),
+        (∀ x ∈ pref, x ≠ default) →
+        (∀ x ∈ pref, x ≠ sep) →
+        (∀ x ∈ block, x ≠ default) →
+        (∀ x ∈ suffix, x ≠ default) →
+        (TM0Seq.evalCfg M (pref ++ sep :: block ++ default :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (pref ++ sep :: block ++ default :: suffix)).Dom),
+          ((TM0Seq.evalCfg M (pref ++ sep :: block ++ default :: suffix)).get h).Tape =
+            Tape.mk₁ (pref ++ sep :: block ++ default :: suffix) ∧
+          (blockValueLeq k block →
+            ((TM0Seq.evalCfg M (pref ++ sep :: block ++ default :: suffix)).get h).q =
+              q_true) ∧
+          (¬blockValueLeq k block →
+            ((TM0Seq.evalCfg M (pref ++ sep :: block ++ default :: suffix)).get h).q =
+              q_false) := by
+  refine ⟨BVLAfterSepSt k, inferInstance, inferInstance, bvlAfterSepMachine k sep,
+    BVLAfterSepSt.bvl (Sum.inr (Sum.inr true)),
+    BVLAfterSepSt.bvl (Sum.inr (Sum.inr false)), by simp, ?_⟩
+  intro pref block suffix hpref_nd hpref_nsep hblock hsuffix
+  let bvlStart : TM0.Cfg ChainΓ (BVLState k) :=
+    ⟨Sum.inl ⟨k, by omega⟩,
+      Tape.mk' (ListBlank.mk (sep :: pref.reverse))
+        (ListBlank.mk (block ++ default :: suffix))⟩
+  have hleft : ∀ x ∈ sep :: pref.reverse, x ≠ (default : ChainΓ) := by
+    intro x hx
+    rcases List.mem_cons.mp hx with rfl | hx
+    · exact hsep
+    · exact hpref_nd x (List.mem_reverse.mp hx)
+  obtain ⟨hbvl_dom, hbvl_spec⟩ :=
+    bvlMachine_correct_with_left k (sep :: pref.reverse) block suffix hleft hblock hsuffix
+  let cb := (TM0Seq.evalFromCfg (bvlMachine k) bvlStart).get hbvl_dom
+  have hbvl_mem : cb ∈ TM0Seq.evalFromCfg (bvlMachine k) bvlStart := Part.get_mem hbvl_dom
+  have hbvl_eval := Turing.mem_eval.mp hbvl_mem
+  have hscan := bvlAfterSep_scan_prefix_gen k sep pref [] block suffix hpref_nsep
+  have hscan' :
+      Reaches (TM0.step (bvlAfterSepMachine k sep))
+        (TM0.init (pref ++ sep :: block ++ default :: suffix))
+        ⟨BVLAfterSepSt.bvl bvlStart.q, bvlStart.Tape⟩ := by
+    simpa [TM0.init, bvlStart, List.append_assoc] using hscan
+  have hchain :
+      Reaches (TM0.step (bvlAfterSepMachine k sep))
+        (TM0.init (pref ++ sep :: block ++ default :: suffix))
+        ⟨BVLAfterSepSt.bvl cb.q, cb.Tape⟩ := by
+    exact hscan'.trans (bvlAfterSep_lift (sep := sep) hbvl_eval.1)
+  have hhalt :
+      TM0.step (bvlAfterSepMachine k sep) ⟨BVLAfterSepSt.bvl cb.q, cb.Tape⟩ = none :=
+    bvlAfterSep_step_halt cb.q cb.Tape hbvl_eval.2
+  have hmem :
+      ⟨BVLAfterSepSt.bvl cb.q, cb.Tape⟩ ∈
+        TM0Seq.evalCfg (bvlAfterSepMachine k sep)
+          (pref ++ sep :: block ++ default :: suffix) :=
+    Turing.mem_eval.mpr ⟨hchain, hhalt⟩
+  refine ⟨Part.dom_iff_mem.mpr ⟨_, hmem⟩, ?_⟩
+  intro h
+  have hget :
+      (TM0Seq.evalCfg (bvlAfterSepMachine k sep)
+        (pref ++ sep :: block ++ default :: suffix)).get h =
+        ⟨BVLAfterSepSt.bvl cb.q, cb.Tape⟩ :=
+    Part.get_eq_of_mem hmem h
+  rw [hget]
+  have hspec := hbvl_spec hbvl_dom
+  constructor
+  · simpa [cb, bvlStart, List.append_assoc] using hspec.1
+  constructor
+  · intro hle
+    have hq := hspec.2.1 (by simpa [blockValueLeq] using hle)
+    simpa [cb] using congrArg BVLAfterSepSt.bvl hq
+  · intro hle
+    have hq := hspec.2.2 (by simpa [blockValueLeq] using hle)
+    simpa [cb] using congrArg BVLAfterSepSt.bvl hq

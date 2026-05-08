@@ -13,6 +13,98 @@ machine files can import them without creating circular dependencies.
 
 open Turing PartrecToTM2 TM2to1
 
+/-! ### Generic split-at-separator -/
+
+/-- Split a block at the first occurrence of `sep`.
+    Returns `(prefix before sep, suffix after sep)`. -/
+def splitAtSep {Γ : Type} [DecidableEq Γ] (sep : Γ) : List Γ → List Γ × List Γ
+  | [] => ([], [])
+  | c :: rest =>
+    if c = sep then ([], rest)
+    else let (l, r) := splitAtSep sep rest; (c :: l, r)
+
+/-- Splitting `l ++ [sep] ++ r` when `l` contains no `sep`. -/
+@[simp]
+theorem splitAtSep_general {Γ : Type} [DecidableEq Γ] (sep : Γ)
+    (l r : List Γ) (hl : ∀ c ∈ l, c ≠ sep) :
+    splitAtSep sep (l ++ [sep] ++ r) = (l, r) := by
+  induction l with
+  | nil => simp [splitAtSep]
+  | cons c l ih =>
+      change (if c = sep then ([], l ++ [sep] ++ r)
+        else
+          let p := splitAtSep sep (l ++ [sep] ++ r)
+          (c :: p.1, p.2)) = (c :: l, r)
+      rw [if_neg (hl c List.mem_cons_self)]
+      rw [ih (fun x hx => hl x (List.mem_cons_of_mem c hx))]
+
+@[simp]
+theorem splitAtSep_general_cons {Γ : Type} [DecidableEq Γ] (sep : Γ)
+    (l r : List Γ) (hl : ∀ c ∈ l, c ≠ sep) :
+    splitAtSep sep (l ++ sep :: r) = (l, r) := by
+  simpa using splitAtSep_general sep l r hl
+
+/-- The left part of `splitAtSep` contains no `sep`. -/
+theorem splitAtSep_fst_no_sep {Γ : Type} [DecidableEq Γ] (sep : Γ)
+    (block : List Γ) :
+    ∀ c ∈ (splitAtSep sep block).1, c ≠ sep := by
+  induction block with
+  | nil => simp [splitAtSep]
+  | cons c rest ih =>
+      unfold splitAtSep
+      split_ifs with h
+      · simp
+      · intro g hg
+        rcases List.mem_cons.mp hg with rfl | hg
+        · exact h
+        · exact ih g hg
+
+/-- Elements of the first component of `splitAtSep` come from the input. -/
+theorem splitAtSep_fst_subset {Γ : Type} [DecidableEq Γ] (sep : Γ)
+    (block : List Γ) :
+    ∀ g ∈ (splitAtSep sep block).1, g ∈ block := by
+  intro g hg
+  induction block with
+  | nil => simp [splitAtSep] at hg
+  | cons c rest ih =>
+      simp only [splitAtSep] at hg
+      split_ifs at hg with h
+      · simp at hg
+      · simp only [List.mem_cons] at hg ⊢
+        rcases hg with rfl | hg
+        · left; rfl
+        · right; exact ih hg
+
+/-- Elements of the second component of `splitAtSep` come from the input. -/
+theorem splitAtSep_snd_subset {Γ : Type} [DecidableEq Γ] (sep : Γ)
+    (block : List Γ) :
+    ∀ g ∈ (splitAtSep sep block).2, g ∈ block := by
+  intro g hg
+  induction block with
+  | nil => simp [splitAtSep] at hg
+  | cons c rest ih =>
+      simp only [splitAtSep] at hg
+      split_ifs at hg with h
+      · exact List.mem_cons_of_mem _ hg
+      · exact List.mem_cons_of_mem _ (ih hg)
+
+/-- Reconstruct a block from the result of splitting at an existing separator. -/
+theorem splitAtSep_reconstruct_of_mem {Γ : Type} [DecidableEq Γ] (sep : Γ)
+    (block : List Γ) (h : sep ∈ block) :
+    block = (splitAtSep sep block).1 ++ sep :: (splitAtSep sep block).2 := by
+  induction block with
+  | nil => simp at h
+  | cons c rest ih =>
+      by_cases hc : c = sep
+      · simp [splitAtSep, hc]
+      · have hrest : sep ∈ rest := by
+          simp at h
+          rcases h with h' | h'
+          · exact absurd h'.symm hc
+          · exact h'
+        simp only [splitAtSep, hc, if_false]
+        exact congrArg (List.cons c) (ih hrest)
+
 /-! ### splitAtConsBottom -/
 
 /-- Split a block at the first `chainConsBottom` cell.
