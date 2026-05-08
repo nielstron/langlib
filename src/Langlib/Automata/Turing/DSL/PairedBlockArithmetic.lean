@@ -61,6 +61,26 @@ noncomputable def binAddPaired (block : List ChainΓ) : List ChainΓ :=
   let (left, right) := splitAtConsBottom block
   chainBinaryRepr (decodeBinaryBlock left + decodeBinaryBlock right)
 
+/-- Separator-parametric paired addition.
+
+This is extensionally the same operation as `binAddPaired`, but the separator
+between the two addends is not fixed to `chainConsBottom`. -/
+noncomputable def binAddPairedSep (sep : ChainΓ) (block : List ChainΓ) :
+    List ChainΓ :=
+  let (left, right) := splitAtSep sep block
+  chainBinaryRepr (decodeBinaryBlock left + decodeBinaryBlock right)
+
+/-- Separator-parametric paired addition that keeps the right operand.
+
+On `left ++ [sep] ++ right`, this produces
+`chainBinaryRepr (decode left + decode right) ++ [sep] ++ right`.
+This is the operation needed by one multiplication step: update the
+accumulator while leaving the addend available for later iterations. -/
+noncomputable def binAddPairedKeepRightSep (sep : ChainΓ)
+    (block : List ChainΓ) : List ChainΓ :=
+  let (_, right) := splitAtSep sep block
+  binAddPairedSep sep block ++ sep :: right
+
 /-- Extract the left sub-block (prefix before first `chainConsBottom`). -/
 noncomputable def extractPairedLeft (block : List ChainΓ) : List ChainΓ :=
   (splitAtConsBottom block).1
@@ -72,6 +92,32 @@ theorem binAddPaired_ne_default (block : List ChainΓ)
   unfold binAddPaired
   simp +zetaDelta
   exact fun g hg => chainBinaryRepr_ne_default _ g hg
+
+theorem binAddPairedSep_ne_default (sep : ChainΓ) (block : List ChainΓ)
+    (_h : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binAddPairedSep sep block, g ≠ default := by
+  unfold binAddPairedSep
+  simp +zetaDelta
+  exact fun g hg => chainBinaryRepr_ne_default _ g hg
+
+theorem binAddPairedKeepRightSep_ne_default (sep : ChainΓ) (block : List ChainΓ)
+    (hsep : sep ≠ default) (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binAddPairedKeepRightSep sep block, g ≠ default := by
+  rcases hsplit : splitAtSep sep block with ⟨left, right⟩
+  unfold binAddPairedKeepRightSep
+  simp [hsplit]
+  rintro g (hg | rfl | hg)
+  · exact binAddPairedSep_ne_default sep block hblock g hg
+  · exact hsep
+  · exact hblock g (splitAtSep_snd_subset sep block g (by simpa [hsplit] using hg))
+
+theorem binAddPairedKeepRightSep_eq_cons
+    (sep : ChainΓ) (left right : List ChainΓ)
+    (hleft_sep : ∀ g ∈ left, g ≠ sep) :
+    binAddPairedKeepRightSep sep (left ++ sep :: right) =
+      binAddPairedSep sep (left ++ sep :: right) ++ sep :: right := by
+  unfold binAddPairedKeepRightSep
+  rw [splitAtSep_general_cons sep left right hleft_sep]
 
 /-- `extractPairedLeft` preserves non-defaultness. -/
 theorem extractPairedLeft_ne_default (block : List ChainΓ)
@@ -1142,9 +1188,8 @@ theorem binMulPairedStateInv3_fuel_ne_default (block : List ChainΓ)
 noncomputable def binMulPairedStep3 (block : List ChainΓ) : List ChainΓ :=
   let (acc, rest) := splitAtSep binMulStateSep₁ block
   let (addend, fuel) := splitAtSep binMulStateSep₂ rest
-  binAddPaired (acc ++ [chainConsBottom] ++ addend)
-    ++ [binMulStateSep₁]
-    ++ addend
+  binAddPairedKeepRightSep binMulStateSep₁
+      (acc ++ [binMulStateSep₁] ++ addend)
     ++ [binMulStateSep₂]
     ++ binPred fuel
 
@@ -1231,6 +1276,22 @@ theorem binAddPaired_no_mulSep₂ (block : List ChainΓ) :
       (decodeBinaryBlock (splitAtConsBottom block).1 +
         decodeBinaryBlock (splitAtConsBottom block).2)
 
+theorem binAddPairedSep_no_mulSep₁ (sep : ChainΓ) (block : List ChainΓ) :
+    ∀ g ∈ binAddPairedSep sep block, g ≠ binMulStateSep₁ := by
+  unfold binAddPairedSep
+  rcases splitAtSep sep block with ⟨left, right⟩
+  simpa [binMulStateSep₁] using
+    chainBinaryRepr_no_chainMulSep₁
+      (decodeBinaryBlock left + decodeBinaryBlock right)
+
+theorem binAddPairedSep_no_mulSep₂ (sep : ChainΓ) (block : List ChainΓ) :
+    ∀ g ∈ binAddPairedSep sep block, g ≠ binMulStateSep₂ := by
+  unfold binAddPairedSep
+  rcases splitAtSep sep block with ⟨left, right⟩
+  simpa [binMulStateSep₂] using
+    chainBinaryRepr_no_chainMulSep₂
+      (decodeBinaryBlock left + decodeBinaryBlock right)
+
 theorem binMulPairedInit3_ne_default (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ binMulPairedInit3 block, g ≠ default := by
@@ -1270,7 +1331,8 @@ theorem binMulPairedStep3_normalized_state (acc addend fuel : ℕ) :
         [binMulStateSep₂] ++ chainBinaryRepr fuel) =
     chainBinaryRepr (acc + addend) ++ [binMulStateSep₁] ++ chainBinaryRepr addend ++
       [binMulStateSep₂] ++ chainBinaryRepr (fuel - 1) := by
-  simp [binMulPairedStep3, binAddPaired, binPred, List.append_assoc]
+  simp [binMulPairedStep3, binAddPairedKeepRightSep, binAddPairedSep,
+    binPred, List.append_assoc]
 
 theorem binMulPairedStep3_ne_default (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ default) (_hcond : binMulPairedCond3 block) :
@@ -1293,19 +1355,24 @@ theorem binMulPairedStep3_ne_default (block : List ChainΓ)
     intro g hg
     exact hrest_block g (splitAtSep_snd_subset binMulStateSep₂ rest g
       (by simpa [hrest] using hg))
-  have haddInput : ∀ g ∈ acc ++ chainConsBottom :: addend, g ≠ default := by
+  have haddInput : ∀ g ∈ acc ++ binMulStateSep₁ :: addend, g ≠ default := by
     intro g hg
     rcases List.mem_append.mp hg with hg | hg
     · exact hacc g hg
     · cases hg with
-      | head => exact chainConsBottom_ne_default
+      | head => exact chainMulSep₁_ne_default
       | tail _ hg => exact haddend g hg
+  have hkeep_nd :
+      ∀ g ∈ binAddPairedKeepRightSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend),
+        g ≠ default :=
+    binAddPairedKeepRightSep_ne_default binMulStateSep₁
+      (acc ++ binMulStateSep₁ :: addend)
+      chainMulSep₁_ne_default haddInput
   unfold binMulPairedStep3
   simp [hsplit, hrest]
-  rintro g (hg | rfl | hg | rfl | hg)
-  · exact binAddPaired_ne_default _ haddInput g hg
-  · exact chainMulSep₁_ne_default
-  · exact haddend g hg
+  rintro g (hg | rfl | hg)
+  · exact hkeep_nd g hg
   · exact chainMulSep₂_ne_default
   · exact binPred_ne_default _ hfuel g hg
 
@@ -1324,26 +1391,47 @@ theorem binMulPairedStep3_stateInv (block : List ChainΓ)
   have hfuel_no_sep₂ : ∀ g ∈ fuel, g ≠ binMulStateSep₂ := by
     simpa [binMulPairedFuel3, hsplit, hrest] using
       binMulPairedStateInv3_fuel_no_sep₂ block hInv
+  have hacc_no_sep₁ : ∀ g ∈ acc, g ≠ binMulStateSep₁ := by
+    simpa [hsplit] using splitAtSep_fst_no_sep binMulStateSep₁ block
+  have hkeep :
+      binAddPairedKeepRightSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend) =
+        binAddPairedSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend) ++
+          binMulStateSep₁ :: addend := by
+    exact binAddPairedKeepRightSep_eq_cons binMulStateSep₁ acc addend
+      hacc_no_sep₁
   have hstep_split₁ :
       splitAtSep binMulStateSep₁
-        (binAddPaired (acc ++ chainConsBottom :: addend) ++
-          binMulStateSep₁ :: (addend ++ binMulStateSep₂ :: binPred fuel)) =
-        (binAddPaired (acc ++ chainConsBottom :: addend),
+        (binAddPairedKeepRightSep binMulStateSep₁
+            (acc ++ binMulStateSep₁ :: addend) ++
+          binMulStateSep₂ :: binPred fuel) =
+        (binAddPairedSep binMulStateSep₁
+            (acc ++ binMulStateSep₁ :: addend),
           addend ++ binMulStateSep₂ :: binPred fuel) := by
-    exact splitAtSep_general_cons binMulStateSep₁
-      (binAddPaired (acc ++ chainConsBottom :: addend))
-      (addend ++ binMulStateSep₂ :: binPred fuel)
-      (binAddPaired_no_mulSep₁ (acc ++ chainConsBottom :: addend))
+    rw [hkeep]
+    simpa [List.append_assoc] using
+      splitAtSep_general_cons binMulStateSep₁
+        (binAddPairedSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend))
+        (addend ++ binMulStateSep₂ :: binPred fuel)
+        (binAddPairedSep_no_mulSep₁ binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend))
   have hstep_split₂ :
       splitAtSep binMulStateSep₂ (addend ++ binMulStateSep₂ :: binPred fuel) =
         (addend, binPred fuel) := by
     exact splitAtSep_general_cons binMulStateSep₂ addend (binPred fuel)
       haddend_no_sep₂
   unfold binMulPairedStateInv3 binMulPairedStep3
-  simp [hsplit, hrest, hstep_split₁, hstep_split₂, binAddPaired_no_mulSep₂,
+  simp [hsplit, hrest, hstep_split₁, hstep_split₂,
     chainMulSep₁_ne_chainMulSep₂]
   constructor
-  · exact binAddPaired_no_mulSep₂ (acc ++ chainConsBottom :: addend)
+  · left
+    rw [hkeep]
+    simp
+  constructor
+  · exact binAddPairedSep_no_mulSep₂ binMulStateSep₁
+      (acc ++ binMulStateSep₁ :: addend)
   constructor
   · exact haddend_no_sep₁
   constructor
@@ -2530,16 +2618,31 @@ theorem binMulPairedFuel3_step (block : List ChainΓ)
   rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
   have haddend_no_sep₂ : ∀ g ∈ addend, g ≠ binMulStateSep₂ := by
     simpa [hsplit, hrest] using binMulPairedStateInv3_addend_no_sep₂ block hInv
+  have hacc_no_sep₁ : ∀ g ∈ acc, g ≠ binMulStateSep₁ := by
+    simpa [hsplit] using splitAtSep_fst_no_sep binMulStateSep₁ block
+  have hkeep :
+      binAddPairedKeepRightSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend) =
+        binAddPairedSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend) ++
+          binMulStateSep₁ :: addend := by
+    exact binAddPairedKeepRightSep_eq_cons binMulStateSep₁ acc addend
+      hacc_no_sep₁
   have hsplit_step :
       splitAtSep binMulStateSep₁
-        (binAddPaired (acc ++ chainConsBottom :: addend) ++
-          binMulStateSep₁ :: addend ++ binMulStateSep₂ :: binPred fuel) =
-        (binAddPaired (acc ++ chainConsBottom :: addend),
+        (binAddPairedKeepRightSep binMulStateSep₁
+            (acc ++ binMulStateSep₁ :: addend) ++
+          binMulStateSep₂ :: binPred fuel) =
+        (binAddPairedSep binMulStateSep₁
+            (acc ++ binMulStateSep₁ :: addend),
           addend ++ binMulStateSep₂ :: binPred fuel) := by
+    rw [hkeep]
     simpa [List.append_assoc] using splitAtSep_general_cons binMulStateSep₁
-      (binAddPaired (acc ++ chainConsBottom :: addend))
+      (binAddPairedSep binMulStateSep₁
+        (acc ++ binMulStateSep₁ :: addend))
       (addend ++ binMulStateSep₂ :: binPred fuel)
-      (binAddPaired_no_mulSep₁ (acc ++ chainConsBottom :: addend))
+      (binAddPairedSep_no_mulSep₁ binMulStateSep₁
+        (acc ++ binMulStateSep₁ :: addend))
   have hrest_step :
       splitAtSep binMulStateSep₂
         (addend ++ binMulStateSep₂ :: binPred fuel) =
@@ -2549,10 +2652,12 @@ theorem binMulPairedFuel3_step (block : List ChainΓ)
   unfold binMulPairedFuel3 binMulPairedStep3
   simp only [hsplit, hrest]
   rw [show
-      binAddPaired (acc ++ [chainConsBottom] ++ addend) ++ [binMulStateSep₁] ++
-          addend ++ [binMulStateSep₂] ++ binPred fuel =
-        binAddPaired (acc ++ chainConsBottom :: addend) ++
-          binMulStateSep₁ :: addend ++ binMulStateSep₂ :: binPred fuel by
+      binAddPairedKeepRightSep binMulStateSep₁
+          (acc ++ [binMulStateSep₁] ++ addend) ++
+          [binMulStateSep₂] ++ binPred fuel =
+        binAddPairedKeepRightSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend) ++
+          binMulStateSep₂ :: binPred fuel by
     simp [List.append_assoc]]
   rw [hsplit_step, hrest_step]
 
