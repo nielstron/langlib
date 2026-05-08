@@ -483,8 +483,8 @@ theorem tm0_binSucc_block : TM0RealizesBlock ChainΓ binSucc := by
   intro block suffix hblock hsuffix hfblock
   have h_reaches : Reaches (TM0.step binSuccMachine) (TM0.init (block ++ default :: suffix)) ⟨.done, Tape.mk₁ (binSucc block ++ default :: suffix)⟩ := by
     convert binSucc_carry_aux block suffix [] hblock hsuffix hfblock (by simp) using 1;
-  obtain ⟨c, hc⟩ : ∃ c : TM0.Cfg ChainΓ BinSuccSt, c ∈ Turing.eval (TM0.step binSuccMachine) (TM0.init (block ++ default :: suffix)) ∧ c.Tape = Tape.mk₁ (binSucc block ++ default :: suffix) := by
-    exact ⟨ _, Turing.mem_eval.mpr ⟨ h_reaches, by tauto ⟩, rfl ⟩;
-  unfold TM0Seq.evalCfg;
-  simp_all +decide [ Part.mem_eq ];
-  grind
+  have h_mem : ⟨.done, Tape.mk₁ (binSucc block ++ default :: suffix)⟩ ∈
+      Turing.eval (TM0.step binSuccMachine) (TM0.init (block ++ default :: suffix)) :=
+    Turing.mem_eval.mpr ⟨h_reaches, by tauto⟩
+  exact ⟨Part.dom_iff_mem.mpr ⟨_, h_mem⟩, fun h =>
+    (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl⟩

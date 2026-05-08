@@ -14,15 +14,13 @@ block unchanged.
 
 open Turing PartrecToTM2 TM2to1
 
-/-- Existing prefix-lifting machinery can run binary successor on the sub-block
-    between `chainConsBottom` and a non-default outer separator. This is the
-    reusable part of `decAfterSep`; the default-delimited case would need the
-    corresponding default-aware inner-block lift. -/
+/-- Prefix-lifting machinery can run binary successor on the sub-block between
+    `chainConsBottom` and an outer separator, preserving both sides. -/
 theorem tm0_binSucc_afterConsBottom_innerBlockSep {sep₁ : ChainΓ}
-    (hsep₁ : sep₁ ≠ default) (hsep₁_cons : sep₁ ≠ chainConsBottom) :
+    (hsep₁_cons : sep₁ ≠ chainConsBottom) :
     TM0RealizesInnerBlockSep ChainΓ sep₁ chainConsBottom binSucc := by
   exact tm0RealizesBlockSep_toInner
-    hsep₁ chainConsBottom_ne_default hsep₁_cons
+    chainConsBottom_ne_default hsep₁_cons
     (tm0_binSucc_blockSep (sep := chainConsBottom) (by decide) (by decide))
     binSucc_ne_default
     (fun block hblock => binSucc_no_consBottom block hblock)

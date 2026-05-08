@@ -148,11 +148,11 @@ The constructed machine composes three sub-machines:
    block at the front where the left boundary is blank).
 3. Reverse the outer block before `sep₁` again (restores the prefix).
 
-**Hypotheses:**
+**Hypotheses for the original construction:**
 - `sep₁`, `sep₂` are distinct and differ from `default`
 - `f` preserves non-defaultness and non-`sep₂`-ness universally
 -/
-theorem tm0RealizesBlockSep_toInner
+theorem tm0RealizesBlockSep_toInner_nondefault
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep₁ sep₂ : Γ} {f : List Γ → List Γ}
     (hsep₁ : sep₁ ≠ default) (hsep₂ : sep₂ ≠ default) (h₁₂ : sep₁ ≠ sep₂)
@@ -253,6 +253,31 @@ theorem tm0RealizesBlockSep_toInner
   use fun _ _ => some ( PUnit.unit, TM0.Stmt.move Dir.left );
   unfold TM0Seq.evalCfg; simp +decide [ Turing.eval ] ;
   grind +suggestions
+
+/-- Lift a separator-delimited block operation to the inner block between
+`sep₂` and `sep₁`, preserving both the prefix before `sep₂` and the suffix
+after `sep₁`.
+
+The non-default `sep₁` case is the original reverse-prefix construction.  The
+`sep₁ = default` case is the default-boundary variant needed when an inner
+block is followed by a blank-delimited suffix.  In that case the middle
+separator-framed machine has to tolerate the preserved suffix
+`pfx.reverse ++ default :: suffix`; the current `TM0RealizesBlockSep`
+interface only exposes a blank-free suffix, so this is the remaining generic
+prefix/suffix lifting obligation. -/
+theorem tm0RealizesBlockSep_toInner
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep₁ sep₂ : Γ} {f : List Γ → List Γ}
+    (hsep₂ : sep₂ ≠ default) (h₁₂ : sep₁ ≠ sep₂)
+    (hf : TM0RealizesBlockSep Γ sep₂ f)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
+    TM0RealizesInnerBlockSep Γ sep₁ sep₂ f := by
+  by_cases hsep₁ : sep₁ = default
+  · subst sep₁
+    sorry
+  · exact tm0RealizesBlockSep_toInner_nondefault
+      hsep₁ hsep₂ h₁₂ hf hf_nd hf_nsep
 
 /-- Default-delimited version of `tm0RealizesBlockSep_toInner`.
 

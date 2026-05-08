@@ -49,6 +49,22 @@ def TM0RealizesBlockSep (Γ : Type) [Inhabited Γ] (sep : Γ)
         ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).Tape =
           Tape.mk₁ (f block ++ sep :: suffix)
 
+/-- Strong separator-delimited block realizability: no invariant is required
+of the suffix after the separator. -/
+def TM0RealizesBlockSepAnySuffix (Γ : Type) [Inhabited Γ] (sep : Γ)
+    (f : List Γ → List Γ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (block suffix : List Γ),
+      (∀ g ∈ block, g ≠ default) →
+      (∀ g ∈ block, g ≠ sep) →
+      (∀ g ∈ f block, g ≠ default) →
+      (∀ g ∈ f block, g ≠ sep) →
+      (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom),
+        ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).Tape =
+          Tape.mk₁ (f block ++ sep :: suffix)
+
 /-- A TM0 that operates on a contiguous block of non-default cells,
     preserving everything after the first blank.
 
@@ -67,6 +83,55 @@ def TM0RealizesBlock (Γ : Type) [Inhabited Γ] (f : List Γ → List Γ) : Prop
         ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).Tape =
           Tape.mk₁ (f block ++ default :: suffix)
 
+/-- Strong blank-delimited block realizability: no invariant is required of
+the suffix after the delimiter. -/
+def TM0RealizesBlockAnySuffix (Γ : Type) [Inhabited Γ]
+    (f : List Γ → List Γ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (block suffix : List Γ),
+      (∀ g ∈ block, g ≠ default) →
+      (∀ g ∈ f block, g ≠ default) →
+      (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom),
+        ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).Tape =
+          Tape.mk₁ (f block ++ default :: suffix)
+
+theorem tm0RealizesBlockSep_of_anySuffix {Γ : Type} [Inhabited Γ]
+    {sep : Γ} {f : List Γ → List Γ}
+    (hf : TM0RealizesBlockSepAnySuffix Γ sep f) :
+    TM0RealizesBlockSep Γ sep f := by
+  obtain ⟨Λ, hΛ, hΛfin, M, hM⟩ := hf
+  exact ⟨Λ, hΛ, hΛfin, M,
+    fun block suffix hblock_nd hblock_nsep _hsuffix_nd hf_nd hf_nsep =>
+      hM block suffix hblock_nd hblock_nsep hf_nd hf_nsep⟩
+
+theorem tm0RealizesBlock_of_anySuffix {Γ : Type} [Inhabited Γ]
+    {f : List Γ → List Γ} (hf : TM0RealizesBlockAnySuffix Γ f) :
+    TM0RealizesBlock Γ f := by
+  obtain ⟨Λ, hΛ, hΛfin, M, hM⟩ := hf
+  exact ⟨Λ, hΛ, hΛfin, M,
+    fun block suffix hblock_nd _hsuffix_nd hf_nd =>
+      hM block suffix hblock_nd hf_nd⟩
+
+theorem tm0RealizesBlockSepAnySuffix_default_of_block
+    {Γ : Type} [Inhabited Γ] {f : List Γ → List Γ}
+    (hf : TM0RealizesBlockAnySuffix Γ f) :
+    TM0RealizesBlockSepAnySuffix Γ default f := by
+  obtain ⟨Λ, hΛ, hΛfin, M, hM⟩ := hf
+  exact ⟨Λ, hΛ, hΛfin, M,
+    fun block suffix hblock_nd _hblock_nsep hf_nd _hf_nsep =>
+      hM block suffix hblock_nd hf_nd⟩
+
+theorem tm0RealizesBlockAnySuffix_of_sep_default
+    {Γ : Type} [Inhabited Γ] {f : List Γ → List Γ}
+    (hf : TM0RealizesBlockSepAnySuffix Γ default f) :
+    TM0RealizesBlockAnySuffix Γ f := by
+  obtain ⟨Λ, hΛ, hΛfin, M, hM⟩ := hf
+  exact ⟨Λ, hΛ, hΛfin, M,
+    fun block suffix hblock_nd hf_nd =>
+      hM block suffix hblock_nd hblock_nd hf_nd hf_nd⟩
+
 theorem tm0RealizesBlockSep_default_of_block {Γ : Type} [Inhabited Γ]
     {f : List Γ → List Γ} (hf : TM0RealizesBlock Γ f) :
     TM0RealizesBlockSep Γ default f := by
@@ -83,6 +148,67 @@ theorem tm0RealizesBlock_of_sep_default {Γ : Type} [Inhabited Γ]
 
 /-! ### Composition -/
 
+/-- Composition for strong separator-delimited block-realizable functions. -/
+theorem tm0RealizesBlockSepAnySuffix_comp {Γ : Type} [Inhabited Γ]
+    {sep : Γ} {f g : List Γ → List Γ}
+    (hf : TM0RealizesBlockSepAnySuffix Γ sep f)
+    (hg : TM0RealizesBlockSepAnySuffix Γ sep g)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep) → ∀ g ∈ f block, g ≠ sep) :
+    TM0RealizesBlockSepAnySuffix Γ sep (g ∘ f) := by
+  apply Classical.byContradiction
+  intro h_contra
+  obtain ⟨Λ_f, h_f_inhabited, h_f_fintype, M_f, hM_f⟩ := hf
+  obtain ⟨Λ_g, h_g_inhabited, h_g_fintype, M_g, hM_g⟩ := hg
+  refine' h_contra ⟨_, _, _, TM0Seq.compose M_f M_g, _⟩
+  · infer_instance
+  · intro block suffix hblock_nd hblock_nsep hgf_nd hgf_nsep
+    obtain ⟨hM_f_dom, hM_f_tape⟩ :=
+      hM_f block suffix hblock_nd hblock_nsep
+        (hf_nd block hblock_nd) (hf_nsep block hblock_nsep)
+    obtain ⟨hM_g_dom, hM_g_tape⟩ :=
+      hM_g (f block) suffix (hf_nd block hblock_nd) (hf_nsep block hblock_nsep)
+        hgf_nd hgf_nsep
+    refine' ⟨_, _⟩
+    · apply TM0Seq.compose_dom_of_parts
+      any_goals assumption
+      convert hM_g_dom using 1
+      exact hM_f_tape hM_f_dom ▸ rfl
+    · intro h
+      convert TM0Seq.compose_evalCfg_tape M_f M_g
+        (block ++ sep :: suffix) (f block ++ sep :: suffix)
+        hM_f_dom (hM_f_tape hM_f_dom) hM_g_dom h using 1
+      exact hM_g_tape hM_g_dom ▸ rfl
+
+/-- Composition for strong blank-delimited block-realizable functions. -/
+theorem tm0RealizesBlockAnySuffix_comp {Γ : Type} [Inhabited Γ]
+    {f g : List Γ → List Γ}
+    (hf : TM0RealizesBlockAnySuffix Γ f)
+    (hg : TM0RealizesBlockAnySuffix Γ g)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default) :
+    TM0RealizesBlockAnySuffix Γ (g ∘ f) := by
+  apply Classical.byContradiction
+  intro h_contra
+  obtain ⟨Λ_f, h_f_inhabited, h_f_fintype, M_f, hM_f⟩ := hf
+  obtain ⟨Λ_g, h_g_inhabited, h_g_fintype, M_g, hM_g⟩ := hg
+  refine' h_contra ⟨_, _, _, TM0Seq.compose M_f M_g, _⟩
+  · infer_instance
+  · intro block suffix hblock hgf
+    obtain ⟨hM_f_dom, hM_f_tape⟩ :=
+      hM_f block suffix hblock (hf_nd block hblock)
+    obtain ⟨hM_g_dom, hM_g_tape⟩ :=
+      hM_g (f block) suffix (hf_nd block hblock) hgf
+    refine' ⟨_, _⟩
+    · apply TM0Seq.compose_dom_of_parts
+      any_goals assumption
+      convert hM_g_dom using 1
+      exact hM_f_tape hM_f_dom ▸ rfl
+    · intro h
+      convert TM0Seq.compose_evalCfg_tape M_f M_g
+        (block ++ default :: suffix) (f block ++ default :: suffix)
+        hM_f_dom (hM_f_tape hM_f_dom) hM_g_dom h using 1
+      exact hM_g_tape hM_g_dom ▸ rfl
+
 /-- Composition for separator-delimited block-realizable functions. -/
 theorem tm0RealizesBlockSep_comp {Γ : Type} [Inhabited Γ]
     {sep : Γ} {f g : List Γ → List Γ}
@@ -96,13 +222,13 @@ theorem tm0RealizesBlockSep_comp {Γ : Type} [Inhabited Γ]
   obtain ⟨Λ_g, h_g_inhabited, h_g_fintype, M_g, hM_g⟩ := hg
   refine' h_contra ⟨_, _, _, TM0Seq.compose M_f M_g, _⟩
   · infer_instance
-  · intro block suffix hblock_nd hblock_nsep hsuffix hgf_nd hgf_nsep
+  · intro block suffix hblock_nd hblock_nsep hsuffix_nd hgf_nd hgf_nsep
     obtain ⟨hM_f_dom, hM_f_tape⟩ :=
-      hM_f block suffix hblock_nd hblock_nsep hsuffix
+      hM_f block suffix hblock_nd hblock_nsep hsuffix_nd
         (hf_nd block hblock_nd) (hf_nsep block hblock_nsep)
     obtain ⟨hM_g_dom, hM_g_tape⟩ :=
       hM_g (f block) suffix (hf_nd block hblock_nd) (hf_nsep block hblock_nsep)
-        hsuffix hgf_nd hgf_nsep
+        hsuffix_nd hgf_nd hgf_nsep
     refine' ⟨_, _⟩
     · apply TM0Seq.compose_dom_of_parts
       any_goals assumption
@@ -151,7 +277,7 @@ theorem tm0RealizesBlockSep_iterate {Γ : Type} [Inhabited Γ]
     TM0RealizesBlockSep Γ sep (Nat.iterate f n) := by
   induction' n with n ih
   · refine' ⟨Fin 2, inferInstance, inferInstance, fun _ _ => none, ?_⟩
-    intro block suffix hblock_nd hblock_nsep hsuffix hfblock_nd hfblock_nsep
+    intro block suffix hblock_nd hblock_nsep hsuffix_nd hfblock_nd hfblock_nsep
     unfold TM0Seq.evalCfg
     simp +decide [TM0Seq.evalCfg]
     unfold eval
@@ -173,6 +299,7 @@ theorem tm0RealizesBlock_iterate {Γ : Type} [Inhabited Γ]
     exact inferInstance;
     exact inferInstance;
     exact fun _ _ => none;
+    intro block suffix hblock_nd hsuffix_nd hfblock_nd
     unfold TM0Seq.evalCfg; simp +decide [ TM0Seq.evalCfg ] ;
     unfold eval; simp +decide [ TM0.step ] ;
     unfold PFun.fix; simp +decide [ TM0.init ] ;
@@ -230,11 +357,11 @@ theorem reverse_ne_default {Γ : Type} [Inhabited Γ]
 /-- List reverse is block-realizable before any separator.
     The underlying machine `RevBlock.MSep` uses `sep` for right-boundary
     detection and `default` for left-boundary detection. -/
-theorem tm0_reverse_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+theorem tm0_reverse_blockSep_anySuffix {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep : Γ} :
-    TM0RealizesBlockSep Γ sep List.reverse := by
+    TM0RealizesBlockSepAnySuffix Γ sep List.reverse := by
   use RevBlock.RSt Γ, inferInstance, inferInstance, RevBlock.MSep Γ sep
-  intro block suffix hblock_nd hblock_nsep hsuffix hfblock_nd _hfblock_nsep
+  intro block suffix hblock_nd hblock_nsep hfblock_nd _hfblock_nsep
   have h_reaches := RevBlock.full_reaches sep block suffix hblock_nd hblock_nsep
   constructor
   · apply Part.dom_iff_mem.mpr
@@ -244,11 +371,20 @@ theorem tm0_reverse_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintyp
     have h_eval := Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _ _⟩
     exact (Part.mem_unique h_mem h_eval).symm ▸ rfl
 
+theorem tm0_reverse_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} :
+    TM0RealizesBlockSep Γ sep List.reverse :=
+  tm0RealizesBlockSep_of_anySuffix tm0_reverse_blockSep_anySuffix
+
 /-- List reverse is block-realizable. A TM0 can reverse a contiguous
     block of non-default cells while preserving the suffix. -/
+theorem tm0_reverse_block_anySuffix {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
+    TM0RealizesBlockAnySuffix Γ List.reverse :=
+  tm0RealizesBlockAnySuffix_of_sep_default tm0_reverse_blockSep_anySuffix
+
 theorem tm0_reverse_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ] :
     TM0RealizesBlock Γ List.reverse :=
-  tm0RealizesBlock_of_sep_default tm0_reverse_blockSep
+  tm0RealizesBlock_of_anySuffix tm0_reverse_block_anySuffix
 
 /-! ### Cons (prepend) is block-realizable -/
 
@@ -309,30 +445,40 @@ theorem consSimpleMachine_tape {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
 The cons machine (`consSimpleMachine`) moves left, writes `c`, and halts.
 It never inspects any cell to detect a block boundary, so it works with
 any separator. -/
-theorem tm0_cons_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+theorem tm0_cons_blockSep_anySuffix {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep : Γ} (c : Γ) :
-    TM0RealizesBlockSep Γ sep (c :: ·) := by
+    TM0RealizesBlockSepAnySuffix Γ sep (c :: ·) := by
   refine ⟨Fin 3, ⟨0⟩, inferInstance, consSimpleMachine c,
-    fun block suffix _hblock_nd _hblock_nsep _hsuffix _hfblock_nd _hfblock_nsep => ?_⟩
+    fun block suffix _hblock_nd _hblock_nsep _hfblock_nd _hfblock_nsep => ?_⟩
   exact ⟨consSimpleMachine_halts c _,
     fun h => by rw [consSimpleMachine_tape]; simp⟩
 
+theorem tm0_cons_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} (c : Γ) :
+    TM0RealizesBlockSep Γ sep (c :: ·) :=
+  tm0RealizesBlockSep_of_anySuffix (tm0_cons_blockSep_anySuffix c)
+
 /-- Prepending a fixed non-default element is block-realizable. -/
+theorem tm0_cons_block_anySuffix {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (c : Γ) (_hc : c ≠ default) :
+    TM0RealizesBlockAnySuffix Γ (c :: ·) :=
+  tm0RealizesBlockAnySuffix_of_sep_default (tm0_cons_blockSep_anySuffix c)
+
 theorem tm0_cons_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     (c : Γ) (_hc : c ≠ default) :
     TM0RealizesBlock Γ (c :: ·) :=
-  tm0RealizesBlock_of_sep_default (tm0_cons_blockSep c)
+  tm0RealizesBlock_of_anySuffix (tm0_cons_block_anySuffix c _hc)
 
 /-! ### Identity is block-realizable -/
 
 /-- The identity function is realizable before any separator.
 
 A trivial TM0 machine that halts immediately on any input tape. -/
-theorem tm0_id_blockSep {Γ : Type} [Inhabited Γ]
+theorem tm0_id_blockSep_anySuffix {Γ : Type} [Inhabited Γ]
     {sep : Γ} :
-    TM0RealizesBlockSep Γ sep id := by
+    TM0RealizesBlockSepAnySuffix Γ sep id := by
   refine ⟨Fin 2, inferInstance, inferInstance, fun _ _ => none, ?_⟩
-  intro block suffix _hblock_nd _hblock_nsep _hsuffix _hfblock_nd _hfblock_nsep
+  intro block suffix _hblock_nd _hblock_nsep _hfblock_nd _hfblock_nsep
   unfold TM0Seq.evalCfg
   simp +decide [TM0Seq.evalCfg]
   unfold eval
@@ -341,10 +487,19 @@ theorem tm0_id_blockSep {Γ : Type} [Inhabited Γ]
   simp +decide [TM0.init]
   grind +suggestions
 
+theorem tm0_id_blockSep {Γ : Type} [Inhabited Γ]
+    {sep : Γ} :
+    TM0RealizesBlockSep Γ sep id :=
+  tm0RealizesBlockSep_of_anySuffix tm0_id_blockSep_anySuffix
+
 /-- The identity function is block-realizable. -/
+theorem tm0_id_block_anySuffix {Γ : Type} [Inhabited Γ] :
+    TM0RealizesBlockAnySuffix Γ id :=
+  tm0RealizesBlockAnySuffix_of_sep_default tm0_id_blockSep_anySuffix
+
 theorem tm0_id_block {Γ : Type} [Inhabited Γ] :
     TM0RealizesBlock Γ id :=
-  tm0RealizesBlock_of_sep_default tm0_id_blockSep
+  tm0RealizesBlock_of_anySuffix tm0_id_block_anySuffix
 
 /-! ### Prepend list is block-realizable -/
 
@@ -365,19 +520,20 @@ theorem reverse_ne_sep {Γ : Type}
   simp_all
 
 /-- Prepending a fixed non-default, non-sep list is realizable before a separator. -/
-theorem tm0_prependList_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+theorem tm0_prependList_blockSep_anySuffix {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep : Γ} (pref : List Γ)
     (hpref_nd : ∀ g ∈ pref, g ≠ default)
     (hpref_nsep : ∀ g ∈ pref, g ≠ sep) :
-    TM0RealizesBlockSep Γ sep (fun block => pref ++ block) := by
+    TM0RealizesBlockSepAnySuffix Γ sep (fun block => pref ++ block) := by
   induction pref with
-  | nil => simpa using (tm0_id_blockSep (Γ := Γ) (sep := sep))
+  | nil => simpa using (tm0_id_blockSep_anySuffix (Γ := Γ) (sep := sep))
   | cons c rest ih =>
     have hc_nd : c ≠ default := hpref_nd c List.mem_cons_self
     have hc_nsep : c ≠ sep := hpref_nsep c List.mem_cons_self
     have hrest_nd : ∀ g ∈ rest, g ≠ default := fun g hg => hpref_nd g (List.mem_cons_of_mem _ hg)
     have hrest_nsep : ∀ g ∈ rest, g ≠ sep := fun g hg => hpref_nsep g (List.mem_cons_of_mem _ hg)
-    have hcomp := tm0RealizesBlockSep_comp (ih hrest_nd hrest_nsep) (tm0_cons_blockSep c)
+    have hcomp := tm0RealizesBlockSepAnySuffix_comp (ih hrest_nd hrest_nsep)
+      (tm0_cons_blockSep_anySuffix c)
       (fun block hblock => prependList_ne_default' rest block hrest_nd hblock)
       (fun block hblock g hg => by
         simp [List.mem_append] at hg
@@ -385,3 +541,11 @@ theorem tm0_prependList_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fi
         · exact hrest_nsep g hg
         · exact hblock g hg)
     simpa [Function.comp, List.cons_append] using hcomp
+
+theorem tm0_prependList_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} (pref : List Γ)
+    (hpref_nd : ∀ g ∈ pref, g ≠ default)
+    (hpref_nsep : ∀ g ∈ pref, g ≠ sep) :
+    TM0RealizesBlockSep Γ sep (fun block => pref ++ block) := by
+  exact tm0RealizesBlockSep_of_anySuffix
+    (tm0_prependList_blockSep_anySuffix pref hpref_nd hpref_nsep)

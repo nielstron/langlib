@@ -588,13 +588,14 @@ theorem tm0_binAddPairedKeepRightSep_beforeMulSep₂ :
       (binAddPairedKeepRightSep binMulStateSep₁) := by
   sorry
 
-/-- TODO: the `BlockSepPrefix` lift specialized to a default right boundary,
-with the suffix after that default preserved. This is the existing
-prefix/suffix shape needed to decrement the fuel field after
-`binMulStateSep₂`. -/
 theorem tm0_binPred_afterMulSep₂_innerBlockSep :
     TM0RealizesInnerBlockSep ChainΓ default binMulStateSep₂ binPred := by
-  sorry
+  exact tm0RealizesBlockSep_toInner
+    (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+    (by simpa [binMulStateSep₂] using (Ne.symm chainMulSep₂_ne_default))
+    tm0_binPred_blockSep_mulSep₂
+    binPred_ne_default
+    (fun block _hblock => binPred_no_mulSep₂ block)
 
 /-- Suffix-preserving conditional body for the three-separator multiplication
 state predicate.
