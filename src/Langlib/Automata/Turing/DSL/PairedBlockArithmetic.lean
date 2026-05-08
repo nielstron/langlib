@@ -901,6 +901,70 @@ def binMulPairedStateInv (block : List ChainΓ) : Prop :=
   hasConsBottom block ∧ hasConsBottom rest ∧
     ∀ g ∈ (splitAtConsBottom rest).2, g ≠ chainConsBottom
 
+theorem binMulPairedStateInv_reconstruct (block : List ChainΓ)
+    (hInv : binMulPairedStateInv block) :
+    block =
+      (splitAtConsBottom block).1 ++ [chainConsBottom] ++
+        (splitAtConsBottom (splitAtConsBottom block).2).1 ++ [chainConsBottom] ++
+        (splitAtConsBottom (splitAtConsBottom block).2).2 := by
+  unfold binMulPairedStateInv at hInv
+  rcases hsplit : splitAtConsBottom block with ⟨acc, rest⟩
+  rcases hrest : splitAtConsBottom rest with ⟨addend, fuel⟩
+  have hblock_rec : block = acc ++ chainConsBottom :: rest := by
+    simpa [hsplit] using paired_splitAtConsBottom_reconstruct_of_mem block hInv.1
+  have hrest_mem : chainConsBottom ∈ rest := by
+    simpa [hsplit] using hInv.2.1
+  have hrest_rec : rest = addend ++ chainConsBottom :: fuel := by
+    simpa [hrest] using paired_splitAtConsBottom_reconstruct_of_mem rest hrest_mem
+  rw [hblock_rec, hrest_rec]
+  simp [List.append_assoc]
+
+theorem binMulPairedStateInv_acc_no_consBottom (block : List ChainΓ)
+    (_hInv : binMulPairedStateInv block) :
+    ∀ g ∈ (splitAtConsBottom block).1, g ≠ chainConsBottom :=
+  splitAtConsBottom_fst_no_sep block
+
+theorem binMulPairedStateInv_addend_no_consBottom (block : List ChainΓ)
+    (_hInv : binMulPairedStateInv block) :
+    ∀ g ∈ (splitAtConsBottom (splitAtConsBottom block).2).1,
+      g ≠ chainConsBottom :=
+  splitAtConsBottom_fst_no_sep (splitAtConsBottom block).2
+
+theorem binMulPairedStateInv_fuel_no_consBottom (block : List ChainΓ)
+    (hInv : binMulPairedStateInv block) :
+    ∀ g ∈ (splitAtConsBottom (splitAtConsBottom block).2).2,
+      g ≠ chainConsBottom := by
+  unfold binMulPairedStateInv at hInv
+  exact hInv.2.2
+
+theorem binMulPairedStateInv_acc_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ (splitAtConsBottom block).1, g ≠ default := by
+  intro g hg
+  exact hblock g (splitAtConsBottom_fst_subset block g hg)
+
+theorem binMulPairedStateInv_rest_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ (splitAtConsBottom block).2, g ≠ default := by
+  intro g hg
+  exact hblock g (splitAtConsBottom_snd_subset block g hg)
+
+theorem binMulPairedStateInv_addend_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ (splitAtConsBottom (splitAtConsBottom block).2).1,
+      g ≠ default := by
+  intro g hg
+  exact binMulPairedStateInv_rest_ne_default block hblock g
+    (splitAtConsBottom_fst_subset (splitAtConsBottom block).2 g hg)
+
+theorem binMulPairedStateInv_fuel_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ (splitAtConsBottom (splitAtConsBottom block).2).2,
+      g ≠ default := by
+  intro g hg
+  exact binMulPairedStateInv_rest_ne_default block hblock g
+    (splitAtConsBottom_snd_subset (splitAtConsBottom block).2 g hg)
+
 /-- One multiplication iteration:
     add `addend` into `acc` using `binAddPaired`, keep `addend`, and decrement
     the copied multiplier. -/
