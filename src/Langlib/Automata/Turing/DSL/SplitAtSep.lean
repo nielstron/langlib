@@ -75,6 +75,19 @@ theorem splitAtSep_fst_subset {Γ : Type} [DecidableEq Γ] (sep : Γ)
         · left; rfl
         · right; exact ih hg
 
+/-- The first component of `splitAtSep` is the prefix before the first
+separator. -/
+theorem splitAtSep_fst_eq_takeWhile {Γ : Type} [DecidableEq Γ] (sep : Γ)
+    (block : List Γ) :
+    (splitAtSep sep block).1 =
+      block.takeWhile (fun x => !decide (x = sep)) := by
+  induction block with
+  | nil => simp [splitAtSep]
+  | cons c rest ih =>
+      by_cases hc : c = sep
+      · simp [splitAtSep, hc]
+      · simp [splitAtSep, hc, ih]
+
 /-- Elements of the second component of `splitAtSep` come from the input. -/
 theorem splitAtSep_snd_subset {Γ : Type} [DecidableEq Γ] (sep : Γ)
     (block : List Γ) :

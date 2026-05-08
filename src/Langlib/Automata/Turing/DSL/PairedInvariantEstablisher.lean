@@ -455,9 +455,120 @@ theorem tm0_binAddPaired_blockInv :
   exact tm0RealizesBlockInv_congr hf (fun block hInv =>
     (binAddPaired_eq_while_decomp block hInv).symm)
 
-/-- Local machine-construction obligation for one suffix-preserving paired
-multiplication loop step, restricted to the established state invariant. -/
-theorem tm0_binMulPairedStep_blockCondInvSuffix :
-    TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
-      binMulPairedStateInv := by
+/-- Suffix-preserving conditional body for the three-separator multiplication
+state predicate.
+
+This is the mirrored condition-only variant: the predicate machine decides
+`blockValueLeq 0` on the fuel field after `binMulStateSep₂`, so the continuing
+state is the `false` result of that decider because `binMulPairedCond3` is the
+negation of that fuel test. -/
+theorem tm0_binMulPairedCond3_blockCondInvSuffix :
+    TM0RealizesBlockCondInvSuffix (fun block => block) binMulPairedCond3
+      binMulPairedStateInv3 := by
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, q_le, q_gt, hne, hp⟩ :=
+    tm0_blockValueLeq_afterSep_decidable_2 0 binMulStateSep₂
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+  refine ⟨Λp, hΛpi, hΛpf, Mp, q_gt, ?_⟩
+  intro block suffix hInv hblock hsuffix _hstep_nd
+  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
+  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
+  have hreconstruct :
+      block = acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel := by
+    simpa [hsplit, hrest, List.append_assoc] using
+      binMulPairedStateInv3_reconstruct block hInv
+  let pref := acc ++ binMulStateSep₁ :: addend
+  have hpref_nd : ∀ x ∈ pref, x ≠ (default : ChainΓ) := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact binMulPairedStateInv3_acc_ne_default block hblock x (by simpa [hsplit] using hx)
+    · simpa [binMulStateSep₁] using chainMulSep₁_ne_default
+    · exact binMulPairedStateInv3_addend_ne_default block hblock x (by
+        simpa [hsplit, hrest] using hx)
+  have hpref_no_sep₂ : ∀ x ∈ pref, x ≠ binMulStateSep₂ := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact binMulPairedStateInv3_acc_no_sep₂ block hInv x (by simpa [hsplit] using hx)
+    · simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂
+    · exact binMulPairedStateInv3_addend_no_sep₂ block hInv x (by
+        simpa [hsplit, hrest] using hx)
+  have hfuel_nd : ∀ x ∈ fuel, x ≠ (default : ChainΓ) := by
+    simpa [binMulPairedFuel3, hsplit, hrest] using
+      binMulPairedStateInv3_fuel_ne_default block hblock
+  obtain ⟨hp_dom, hp_spec⟩ := hp pref fuel suffix hpref_nd hpref_no_sep₂ hfuel_nd hsuffix
+  have hinput :
+      pref ++ binMulStateSep₂ :: fuel ++ default :: suffix =
+        block ++ default :: suffix := by
+    simp [pref, hreconstruct, List.append_assoc]
+  refine ⟨?_, ?_⟩
+  · simpa [hinput] using hp_dom
+  · intro h
+    have h' : (TM0Seq.evalCfg Mp
+        (pref ++ binMulStateSep₂ :: fuel ++ default :: suffix)).Dom := by
+      simpa [hinput] using h
+    have hspec := hp_spec h'
+    have htape :
+        ((TM0Seq.evalCfg Mp (block ++ default :: suffix)).get h).Tape =
+          Tape.mk₁ (block ++ default :: suffix) := by
+      have hget :
+          (TM0Seq.evalCfg Mp (block ++ default :: suffix)).get h =
+            (TM0Seq.evalCfg Mp
+              (pref ++ binMulStateSep₂ :: fuel ++ default :: suffix)).get h' := by
+        apply Part.get_eq_get_of_eq
+        simp [hinput]
+      rw [hget]
+      simpa [hinput] using hspec.1
+    have hq_le :
+        blockValueLeq 0 fuel →
+          ((TM0Seq.evalCfg Mp (block ++ default :: suffix)).get h).q = q_le := by
+      intro hle
+      have hget :
+          (TM0Seq.evalCfg Mp (block ++ default :: suffix)).get h =
+            (TM0Seq.evalCfg Mp
+              (pref ++ binMulStateSep₂ :: fuel ++ default :: suffix)).get h' := by
+        apply Part.get_eq_get_of_eq
+        simp [hinput]
+      rw [hget]
+      exact hspec.2.1 hle
+    have hq_gt :
+        ¬ blockValueLeq 0 fuel →
+          ((TM0Seq.evalCfg Mp (block ++ default :: suffix)).get h).q = q_gt := by
+      intro hle
+      have hget :
+          (TM0Seq.evalCfg Mp (block ++ default :: suffix)).get h =
+            (TM0Seq.evalCfg Mp
+              (pref ++ binMulStateSep₂ :: fuel ++ default :: suffix)).get h' := by
+        apply Part.get_eq_get_of_eq
+        simp [hinput]
+      rw [hget]
+      exact hspec.2.2 hle
+    have hcond_iff :
+        binMulPairedCond3 block ↔ ¬ blockValueLeq 0 fuel := by
+      simp [binMulPairedCond3, binMulPairedFuel3, hsplit, hrest]
+    by_cases hcond : binMulPairedCond3 block
+    · simp [hcond]
+      exact ⟨hq_gt (hcond_iff.mp hcond), htape⟩
+    · simp [hcond]
+      constructor
+      · intro hq
+        apply hne
+        have hle : blockValueLeq 0 fuel := by
+          by_contra hle
+          exact hcond ((hcond_iff.mpr hle))
+        exact (hq_le hle).symm.trans hq
+      · exact htape
+
+/-- TODO: full suffix-preserving body for the three-separator multiplication
+step.
+
+The proven condition-only theorem above handles the mirrored fuel test over
+`binMulStateSep₂`. This theorem is the remaining arithmetic obligation: on
+continuing states it must additionally transform
+`acc sep₁ addend sep₂ fuel` into
+`(acc + addend) sep₁ addend sep₂ (fuel - 1)`, preserving the default-delimited
+suffix. -/
+theorem tm0_binMulPairedStep3_blockCondInvSuffix :
+    TM0RealizesBlockCondInvSuffix binMulPairedStep3 binMulPairedCond3
+      binMulPairedStateInv3 := by
   sorry

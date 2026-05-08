@@ -88,8 +88,8 @@ theorem binPairConstSucc_eq_cond (k : ℕ) (block : List ChainΓ) :
 /-- **Nat.pair-succ with constant is block-realizable**, assuming the
 invariant/suffix multiplication step body. -/
 theorem tm0_binPairConstSucc_block
-    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
-      binMulPairedStateInv)
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep3 binMulPairedCond3
+      binMulPairedStateInv3)
     (k : ℕ) :
     TM0RealizesBlock ChainΓ (binPairConstSucc k) := by
   rw [show binPairConstSucc k = binCondBlock (blockValueLeq k)
@@ -192,7 +192,7 @@ theorem chainEncode_fold
               (some ∘ @Sum.inr T ChainΓ)) := by
   obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0Het_fold_blockRealizable T
     (fun t => binPairConstSucc (Encodable.encode t))
-    (fun t => tm0_binPairConstSucc_block tm0_binMulPairedStep_blockCondInvSuffix
+    (fun t => tm0_binPairConstSucc_block tm0_binMulPairedStep3_blockCondInvSuffix
       (Encodable.encode t))
     (fun t _ _ => binPairConstSucc_ne_default (Encodable.encode t) _ (by assumption))
   exact ⟨Λ, hΛi, hΛf, M, fun w => by

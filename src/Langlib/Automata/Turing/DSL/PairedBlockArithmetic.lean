@@ -2515,6 +2515,144 @@ theorem binMulPairedWhile_eq_iterate (block : List ChainΓ)
   refine ⟨decodeBinaryBlock (binMulPairedFuel block), rfl, ?_⟩
   exact binMulPairedCond_false_after_iterate _ _ _hblock le_rfl
 
+/-! #### Three-separator multiplication loop -/
+
+/-- The loop over an already-initialized three-separator multiplication state. -/
+noncomputable def binMulPairedLoop3 (block : List ChainΓ) : List ChainΓ :=
+  blockIterateWhile binMulPairedStep3 binMulPairedCond3
+    (decodeBinaryBlock (binMulPairedFuel3 block)) block
+
+theorem binMulPairedFuel3_step (block : List ChainΓ)
+    (hInv : binMulPairedStateInv3 block) :
+    binMulPairedFuel3 (binMulPairedStep3 block) =
+      binPred (binMulPairedFuel3 block) := by
+  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
+  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
+  have haddend_no_sep₂ : ∀ g ∈ addend, g ≠ binMulStateSep₂ := by
+    simpa [hsplit, hrest] using binMulPairedStateInv3_addend_no_sep₂ block hInv
+  have hsplit_step :
+      splitAtSep binMulStateSep₁
+        (binAddPaired (acc ++ chainConsBottom :: addend) ++
+          binMulStateSep₁ :: addend ++ binMulStateSep₂ :: binPred fuel) =
+        (binAddPaired (acc ++ chainConsBottom :: addend),
+          addend ++ binMulStateSep₂ :: binPred fuel) := by
+    simpa [List.append_assoc] using splitAtSep_general_cons binMulStateSep₁
+      (binAddPaired (acc ++ chainConsBottom :: addend))
+      (addend ++ binMulStateSep₂ :: binPred fuel)
+      (binAddPaired_no_mulSep₁ (acc ++ chainConsBottom :: addend))
+  have hrest_step :
+      splitAtSep binMulStateSep₂
+        (addend ++ binMulStateSep₂ :: binPred fuel) =
+        (addend, binPred fuel) := by
+    exact splitAtSep_general_cons binMulStateSep₂ addend (binPred fuel)
+      haddend_no_sep₂
+  unfold binMulPairedFuel3 binMulPairedStep3
+  simp only [hsplit, hrest]
+  rw [show
+      binAddPaired (acc ++ [chainConsBottom] ++ addend) ++ [binMulStateSep₁] ++
+          addend ++ [binMulStateSep₂] ++ binPred fuel =
+        binAddPaired (acc ++ chainConsBottom :: addend) ++
+          binMulStateSep₁ :: addend ++ binMulStateSep₂ :: binPred fuel by
+    simp [List.append_assoc]]
+  rw [hsplit_step, hrest_step]
+
+theorem binMulPairedLoop3_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binMulPairedLoop3 block, g ≠ default := by
+  unfold binMulPairedLoop3
+  induction' decodeBinaryBlock (binMulPairedFuel3 block) with n ih generalizing block
+  · exact hblock
+  · by_cases hcond : binMulPairedCond3 block
+    · simp [blockIterateWhile, hcond]
+      exact ih _ (binMulPairedStep3_ne_default _ hblock hcond)
+    · simp [blockIterateWhile, hcond]
+      exact hblock
+
+theorem binMulPairedLoop3_stateInv (block : List ChainΓ)
+    (hInv : binMulPairedStateInv3 block) :
+    binMulPairedStateInv3 (binMulPairedLoop3 block) := by
+  unfold binMulPairedLoop3
+  induction' decodeBinaryBlock (binMulPairedFuel3 block) with n ih generalizing block
+  · exact hInv
+  · by_cases hcond : binMulPairedCond3 block
+    · simp [blockIterateWhile, hcond]
+      exact ih _ (binMulPairedStep3_stateInv block hInv)
+    · simp [blockIterateWhile, hcond]
+      exact hInv
+
+theorem binMulPairedCond3_false_after_iterate (n : ℕ) (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (hInv : binMulPairedStateInv3 block)
+    (hn : decodeBinaryBlock (binMulPairedFuel3 block) ≤ n) :
+    ¬ binMulPairedCond3
+      (blockIterateWhile binMulPairedStep3 binMulPairedCond3 n block) := by
+  induction' n with n ih generalizing block
+  · simp only [blockIterateWhile]
+    unfold binMulPairedCond3 blockValueLeq at *
+    exact not_not_intro (by omega)
+  · by_cases hcond : binMulPairedCond3 block
+    · simp [blockIterateWhile, hcond]
+      have hnot := ih (binMulPairedStep3 block)
+          (binMulPairedStep3_ne_default block hblock hcond)
+          (binMulPairedStep3_stateInv block hInv)
+          (by
+            rw [binMulPairedFuel3_step block hInv, decodeBinaryBlock_binPred]
+            omega)
+      simpa [binMulPairedCond3] using hnot
+    · simp [blockIterateWhile, hcond]
+
+theorem binMulPairedLoop3_eq_iterate (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (hInv : binMulPairedStateInv3 block) :
+    ∃ n, binMulPairedLoop3 block =
+        blockIterateWhile binMulPairedStep3 binMulPairedCond3 n block ∧
+      ¬ binMulPairedCond3
+        (blockIterateWhile binMulPairedStep3 binMulPairedCond3 n block) := by
+  refine ⟨decodeBinaryBlock (binMulPairedFuel3 block), rfl, ?_⟩
+  exact binMulPairedCond3_false_after_iterate _ _ hblock hInv le_rfl
+
+theorem tm0_binMulPairedLoop3_blockInvSuffix
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep3 binMulPairedCond3
+      binMulPairedStateInv3) :
+    TM0RealizesBlockInvSuffix binMulPairedLoop3 binMulPairedStateInv3 := by
+  exact tm0RealizesBlockInvSuffix_while
+    binMulPairedStep3
+    binMulPairedLoop3
+    binMulPairedCond3
+    binMulPairedStateInv3
+    hstep
+    (fun block hInv _hblock _hcond => binMulPairedStep3_stateInv block hInv)
+    binMulPairedStep3_ne_default
+    (fun block hblock hInv => binMulPairedLoop3_eq_iterate block hblock hInv)
+    (fun block hblock _hInv => binMulPairedLoop3_ne_default block hblock)
+
+@[simp]
+theorem binMulPairedLoop3_normalized_state (acc addend fuel : ℕ) :
+    blockIterateWhile binMulPairedStep3 binMulPairedCond3 fuel
+      (chainBinaryRepr acc ++ [binMulStateSep₁] ++ chainBinaryRepr addend ++
+        [binMulStateSep₂] ++ chainBinaryRepr fuel) =
+    chainBinaryRepr (acc + fuel * addend) ++ [binMulStateSep₁] ++
+      chainBinaryRepr addend ++ [binMulStateSep₂] ++ chainBinaryRepr 0 := by
+  induction' fuel with fuel ih generalizing acc
+  · simp [blockIterateWhile]
+  · rw [blockIterateWhile_succ_true]
+    · rw [binMulPairedStep3_normalized_state]
+      simpa [Nat.succ_mul, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using
+        ih (acc + addend)
+    · unfold binMulPairedCond3 blockValueLeq
+      rw [binMulPairedFuel3_normalized_state]
+      simp [decodeBinaryBlock_chainBinaryRepr]
+
+theorem tm0_binMulPairedResult3_block :
+    TM0RealizesBlock ChainΓ binMulPairedResult3 := by
+  rw [show binMulPairedResult3 =
+      (List.takeWhile (fun x => !decide (x = binMulStateSep₁))) from ?_]
+  · exact tm0_takeWhileNeSep binMulStateSep₁
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default)
+  · funext block
+    unfold binMulPairedResult3
+    exact splitAtSep_fst_eq_takeWhile binMulStateSep₁ block
+
 theorem tm0_binMulPairedResult_block :
     TM0RealizesBlock ChainΓ binMulPairedResult := by
   simpa [binMulPairedResult, extractPairedLeft] using tm0_extractPairedLeft_block
@@ -2789,6 +2927,88 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
     ∀ g ∈ binSquare block, g ≠ default := by
   unfold binSquare; exact chainBinaryRepr_ne_default _
 
+/-! #### Three-separator square route -/
+
+noncomputable def binSquareInit3 (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr 0 ++ [binMulStateSep₁] ++ normalizeBlock block ++
+    [binMulStateSep₂] ++ normalizeBlock block
+
+theorem binSquareInit3_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binSquareInit3 block, g ≠ default := by
+  unfold binSquareInit3
+  simp
+  rintro g (hg | rfl | hg | rfl | hg)
+  · exact chainBinaryRepr_ne_default _ g hg
+  · exact chainMulSep₁_ne_default
+  · exact normalizeBlock_ne_default block g hg
+  · exact chainMulSep₂_ne_default
+  · exact normalizeBlock_ne_default block g hg
+
+theorem binSquareInit3_stateInv (block : List ChainΓ) :
+    binMulPairedStateInv3 (binSquareInit3 block) := by
+  unfold binMulPairedStateInv3 binSquareInit3
+  simp [chainMulSep₁_ne_chainMulSep₂, normalizeBlock_no_mulSep₁,
+    normalizeBlock_no_mulSep₂, chainBinaryRepr_no_chainMulSep₂]
+  exact ⟨
+    (by simpa [binMulStateSep₂] using chainBinaryRepr_no_chainMulSep₂ 0),
+    normalizeBlock_no_mulSep₁ block,
+    normalizeBlock_no_mulSep₂ block⟩
+
+theorem binSquareInit3_eq_copyWithSep_comp :
+    binSquareInit3 =
+      (fun block => chainBinaryRepr 0 ++ [binMulStateSep₁] ++ block) ∘
+        copyWithSep binMulStateSep₂ ∘ normalizeBlock := by
+  funext block
+  simp [Function.comp, binSquareInit3, copyWithSep, List.append_assoc]
+
+theorem tm0_binSquareInit3_block :
+    TM0RealizesBlock ChainΓ binSquareInit3 := by
+  rw [binSquareInit3_eq_copyWithSep_comp]
+  apply tm0RealizesBlock_comp
+  · exact tm0RealizesBlock_comp
+      tm0_normalizeBlock
+      (tm0_copyWithSep_block
+        (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default))
+      (fun _ _ => normalizeBlock_ne_default _)
+  · exact tm0_prependList_block
+      (chainBinaryRepr 0 ++ [binMulStateSep₁])
+      (by
+        intro g hg
+        rcases List.mem_append.mp hg with hg | hg
+        · exact chainBinaryRepr_ne_default _ g hg
+        · rw [List.mem_singleton.mp hg]
+          exact chainMulSep₁_ne_default)
+  · intro block hblock
+    exact copyWithSep_ne_default
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+      (normalizeBlock block) (normalizeBlock_ne_default block)
+
+theorem binSquare_eq_direct_loop3 :
+    binSquare = binMulPairedResult3 ∘ binMulPairedLoop3 ∘ binSquareInit3 := by
+  funext block
+  unfold Function.comp binSquare binMulPairedResult3 binMulPairedLoop3 binSquareInit3
+    normalizeBlock
+  rw [binMulPairedFuel3_normalized_state]
+  rw [decodeBinaryBlock_chainBinaryRepr]
+  rw [binMulPairedLoop3_normalized_state]
+  simp [pow_two, Nat.mul_comm, List.append_assoc]
+
+theorem tm0_binSquare_block
+    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep3 binMulPairedCond3
+      binMulPairedStateInv3) :
+    TM0RealizesBlock ChainΓ binSquare := by
+  rw [binSquare_eq_direct_loop3]
+  apply tm0RealizesBlock_comp
+  · exact tm0RealizesBlock_comp_invSuffix
+      tm0_binSquareInit3_block
+      (tm0_binMulPairedLoop3_blockInvSuffix hstep)
+      (fun block _hblock => binSquareInit3_stateInv block)
+      binSquareInit3_ne_default
+  · exact tm0_binMulPairedResult3_block
+  · exact fun block hblock =>
+      binMulPairedLoop3_ne_default _ (binSquareInit3_ne_default block hblock)
+
 noncomputable def binSquareInit (block : List ChainΓ) : List ChainΓ :=
   chainBinaryRepr 0 ++ [chainConsBottom] ++ duplicateNormalizedPaired block
 
@@ -2840,7 +3060,7 @@ theorem binSquare_eq_direct_loop :
     splitAtConsBottom_chainBinaryRepr_sep, decodeBinaryBlock_chainBinaryRepr,
     List.append_assoc]
 
-theorem tm0_binSquare_block
+theorem tm0_binSquare_block_consBottom
     (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep binMulPairedCond
       binMulPairedStateInv) :
     TM0RealizesBlock ChainΓ binSquare := by
