@@ -806,6 +806,90 @@ theorem tm0RealizesBlock_while_inv {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [
 
 /-! ## Block Realizability -/
 
+abbrev HetFoldStepState (T : Type) (Λ : T → Type) :=
+  Unit ⊕ Unit ⊕ T ⊕ (Σ t, Λ t)
+
+namespace HetFoldStepState
+
+def start {T : Type} {Λ : T → Type} : HetFoldStepState T Λ :=
+  Sum.inl ()
+
+def cont {T : Type} {Λ : T → Type} : HetFoldStepState T Λ :=
+  Sum.inr (Sum.inl ())
+
+def move {T : Type} {Λ : T → Type} (t : T) : HetFoldStepState T Λ :=
+  Sum.inr (Sum.inr (Sum.inl t))
+
+def run {T : Type} {Λ : T → Type} (t : T) (q : Λ t) : HetFoldStepState T Λ :=
+  Sum.inr (Sum.inr (Sum.inr ⟨t, q⟩))
+
+instance {T : Type} {Λ : T → Type} : Inhabited (HetFoldStepState T Λ) :=
+  ⟨start⟩
+
+end HetFoldStepState
+
+noncomputable def tm0HetFoldStepMachine
+    {T Γ₀ : Type} [DecidableEq T]
+    (Λ : T → Type) [∀ t, Inhabited (Λ t)]
+    (M : ∀ t, TM0.Machine (Option (T ⊕ Γ₀)) (Λ t)) :
+    TM0.Machine (Option (T ⊕ Γ₀)) (HetFoldStepState T Λ) :=
+  fun q a =>
+    match q with
+    | .inl () =>
+        match a with
+        | some (Sum.inl t) => some (HetFoldStepState.move t, .write default)
+        | _ => none
+    | .inr (.inl ()) => none
+    | .inr (.inr (.inl t)) =>
+        some (HetFoldStepState.run t default, .move Dir.right)
+    | .inr (.inr (.inr tq)) =>
+        match M tq.1 tq.2 a with
+        | some (q', s) => some (HetFoldStepState.run tq.1 q', s)
+        | none => some (HetFoldStepState.cont, .write a)
+
+theorem tm0HetFoldStepMachine_run_step
+    {T Γ₀ : Type} [DecidableEq T]
+    (Λ : T → Type) [∀ t, Inhabited (Λ t)]
+    (M : ∀ t, TM0.Machine (Option (T ⊕ Γ₀)) (Λ t))
+    (t : T)
+    {c c' : TM0.Cfg (Option (T ⊕ Γ₀)) (Λ t)}
+    (h : c' ∈ TM0.step (M t) c) :
+    ⟨HetFoldStepState.run t c'.q, c'.Tape⟩ ∈
+      TM0.step (tm0HetFoldStepMachine (T := T) (Γ₀ := Γ₀) Λ M)
+        ⟨HetFoldStepState.run t c.q, c.Tape⟩ := by
+  rcases c with ⟨q, tape⟩
+  rcases c' with ⟨q', tape'⟩
+  have hstep : TM0.step (M t) ⟨q, tape⟩ = some ⟨q', tape'⟩ :=
+    Option.mem_def.mp h
+  unfold TM0.step at hstep ⊢
+  simp only [tm0HetFoldStepMachine, HetFoldStepState.run]
+  cases hm : M t q tape.head with
+  | none =>
+      simp [hm] at hstep
+  | some step =>
+      rcases step with ⟨qNext, stmt⟩
+      simp [hm] at hstep ⊢
+      rcases hstep with ⟨hq, htape⟩
+      cases hq
+      cases htape
+      exact ⟨rfl, rfl⟩
+
+theorem tm0HetFoldStepMachine_run_reaches
+    {T Γ₀ : Type} [DecidableEq T]
+    (Λ : T → Type) [∀ t, Inhabited (Λ t)]
+    (M : ∀ t, TM0.Machine (Option (T ⊕ Γ₀)) (Λ t))
+    (t : T) {l : List (Option (T ⊕ Γ₀))}
+    {c : TM0.Cfg (Option (T ⊕ Γ₀)) (Λ t)}
+    (h : Reaches (TM0.step (M t)) (TM0.init l) c) :
+    Reaches (TM0.step (tm0HetFoldStepMachine (T := T) (Γ₀ := Γ₀) Λ M))
+      ⟨HetFoldStepState.run t default, Tape.mk₁ l⟩
+      ⟨HetFoldStepState.run t c.q, c.Tape⟩ := by
+  induction h with
+  | refl => exact Relation.ReflTransGen.refl
+  | tail hreach hstep ih =>
+      exact ih.tail
+        (tm0HetFoldStepMachine_run_step Λ M t hstep)
+
 /-- **Het fold step is conditionally block-realizable (with invariant).**
 
     This is the local machine-construction obligation for one fold-body step. -/
@@ -815,7 +899,133 @@ theorem tm0RealizesBlockCond_hetFoldStep
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ F t block, g ≠ default) :
     TM0RealizesBlockCondInv (hetFoldStep F) (@hasHetInlHead T Γ₀)
       (isWellFormedHetBlock (T := T) (Γ₀ := Γ₀)) := by
-  sorry
+  classical
+  choose Λ hΛi hΛf M hM using hf_block
+  refine ⟨HetFoldStepState T Λ, inferInstance, inferInstance,
+    tm0HetFoldStepMachine (T := T) (Γ₀ := Γ₀) Λ M,
+    HetFoldStepState.cont, ?_⟩
+  intro block hInv hblock hstep_nd
+  obtain ⟨ts, acc, rfl, hacc_nd⟩ := hInv
+  cases ts with
+  | nil =>
+      constructor
+      · apply Part.dom_iff_mem.mpr
+        refine ⟨⟨HetFoldStepState.start, Tape.mk₁ (hetMix ([] : List T) acc ++ [default])⟩,
+          Turing.mem_eval.mpr ⟨Relation.ReflTransGen.refl, ?_⟩⟩
+        simp [TM0.step, tm0HetFoldStepMachine, HetFoldStepState.start,
+          hetMix, hetMixSep, separatedMix, hetSep, Tape.mk₁, Tape.mk₂, Tape.mk']
+      · intro h
+        have hmem := Part.get_mem h
+        have hhalt :
+            ⟨HetFoldStepState.start,
+              Tape.mk₁ (hetMix (T := T) (Γ₀ := Γ₀) ([] : List T) acc ++ [default])⟩ ∈
+              TM0Seq.evalCfg
+                (tm0HetFoldStepMachine (T := T) (Γ₀ := Γ₀) Λ M)
+                (hetMix (T := T) (Γ₀ := Γ₀) ([] : List T) acc ++ [default]) := by
+          exact Turing.mem_eval.mpr ⟨Relation.ReflTransGen.refl, by
+            simp [TM0.step, tm0HetFoldStepMachine, HetFoldStepState.start,
+              hetMix, hetMixSep, separatedMix, hetSep, Tape.mk₁, Tape.mk₂, Tape.mk']⟩
+        rw [Part.mem_unique hmem hhalt]
+        simp [HetFoldStepState.start, HetFoldStepState.cont]
+        exact not_hasHetInlHead_hetMix_nil acc
+  | cons t ts =>
+      let rest : List (Option (T ⊕ Γ₀)) := hetMix (T := T) (Γ₀ := Γ₀) ts acc
+      let input : List (Option (T ⊕ Γ₀)) :=
+        hetMix (T := T) (Γ₀ := Γ₀) (t :: ts) acc ++ [default]
+      let Mstep := tm0HetFoldStepMachine (T := T) (Γ₀ := Γ₀) Λ M
+      have hrest_nd : ∀ g ∈ rest, g ≠ (default : Option (T ⊕ Γ₀)) := by
+        intro g hg
+        have htail :
+            (∃ a ∈ ts, some (Sum.inl a) = g) ∨
+              g = hetSep (T := T) (Γ₀ := Γ₀) ∨
+              ∃ a ∈ acc, hetAccEmb (T := T) a = g := by
+          simpa [rest, hetMix, hetMixSep, separatedMix, hetTagEmb] using hg
+        exact hblock g (by
+          simp [hetMix, hetMixSep, separatedMix, hetTagEmb]
+          exact Or.inr htail)
+      have hF_nd : ∀ g ∈ F t rest, g ≠ (default : Option (T ⊕ Γ₀)) :=
+        hf_nd t rest hrest_nd
+      obtain ⟨hbody_dom, hbody_tape⟩ :=
+        hM t rest [] hrest_nd (by simp) hF_nd
+      let bodyCfg :=
+        (TM0Seq.evalCfg (M t) (rest ++ [default])).get hbody_dom
+      have hbody_mem : bodyCfg ∈ TM0Seq.evalCfg (M t) (rest ++ [default]) :=
+        Part.get_mem hbody_dom
+      obtain ⟨hbody_reach, hbody_halt⟩ := Turing.mem_eval.mp hbody_mem
+      have hbody_tape' : bodyCfg.Tape = Tape.mk₁ (F t rest ++ [default]) :=
+        hbody_tape hbody_dom
+      have hstart :
+          TM0.step Mstep ⟨HetFoldStepState.start, Tape.mk₁ input⟩ =
+            some ⟨HetFoldStepState.move t,
+              Tape.write default (Tape.mk₁ input)⟩ := by
+        simp [TM0.step, Mstep, tm0HetFoldStepMachine, HetFoldStepState.start,
+          HetFoldStepState.move, input, hetMix, hetMixSep, separatedMix,
+          hetTagEmb, Tape.mk₁, Tape.mk₂, Tape.mk']
+      have hmove :
+          TM0.step Mstep
+              ⟨HetFoldStepState.move t, Tape.write default (Tape.mk₁ input)⟩ =
+            some ⟨HetFoldStepState.run t default, Tape.mk₁ (rest ++ [default])⟩ := by
+        simp [TM0.step, Mstep, tm0HetFoldStepMachine, HetFoldStepState.move,
+          HetFoldStepState.run]
+        change Tape.move Dir.right
+            (Tape.write default
+              (Tape.mk₁ ((some (Sum.inl t) : Option (T ⊕ Γ₀)) ::
+                (rest ++ [default])))) =
+          Tape.mk₁ (rest ++ [default])
+        exact tape_erase_step (some (Sum.inl t) : Option (T ⊕ Γ₀))
+          (rest ++ [default])
+      have hrun_reach :
+          Reaches (TM0.step Mstep)
+            ⟨HetFoldStepState.run t default, Tape.mk₁ (rest ++ [default])⟩
+            ⟨HetFoldStepState.run t bodyCfg.q, bodyCfg.Tape⟩ :=
+        tm0HetFoldStepMachine_run_reaches Λ M t hbody_reach
+      have hfinal_step :
+          TM0.step Mstep ⟨HetFoldStepState.run t bodyCfg.q, bodyCfg.Tape⟩ =
+            some ⟨HetFoldStepState.cont, bodyCfg.Tape⟩ := by
+        rcases bodyCfg with ⟨q, tape⟩
+        unfold TM0.step at hbody_halt ⊢
+        simp [Mstep, tm0HetFoldStepMachine, HetFoldStepState.run,
+          HetFoldStepState.cont] at hbody_halt ⊢
+        simpa [hbody_halt]
+      have hreach :
+          Reaches (TM0.step Mstep)
+            (TM0.init input)
+            ⟨HetFoldStepState.cont, bodyCfg.Tape⟩ := by
+        let c0 : TM0.Cfg (Option (T ⊕ Γ₀)) (HetFoldStepState T Λ) :=
+          TM0.init input
+        let c1 : TM0.Cfg (Option (T ⊕ Γ₀)) (HetFoldStepState T Λ) :=
+          ⟨HetFoldStepState.move t, Tape.write default (Tape.mk₁ input)⟩
+        let c2 : TM0.Cfg (Option (T ⊕ Γ₀)) (HetFoldStepState T Λ) :=
+          ⟨HetFoldStepState.run t default, Tape.mk₁ (rest ++ [default])⟩
+        let c3 : TM0.Cfg (Option (T ⊕ Γ₀)) (HetFoldStepState T Λ) :=
+          ⟨HetFoldStepState.run t bodyCfg.q, bodyCfg.Tape⟩
+        have h01 : c1 ∈ TM0.step Mstep c0 := Option.mem_def.mpr hstart
+        have h12 : c2 ∈ TM0.step Mstep c1 := Option.mem_def.mpr hmove
+        have h34 :
+            ⟨HetFoldStepState.cont, bodyCfg.Tape⟩ ∈ TM0.step Mstep c3 :=
+          Option.mem_def.mpr hfinal_step
+        have r01 : Reaches (TM0.step Mstep) c0 c1 :=
+          Relation.ReflTransGen.single h01
+        have r12 : Reaches (TM0.step Mstep) c1 c2 :=
+          Relation.ReflTransGen.single h12
+        exact ((r01.trans r12).trans hrun_reach).tail h34
+      have hhalt :
+          TM0.step Mstep ⟨HetFoldStepState.cont, bodyCfg.Tape⟩ = none := by
+        simp [TM0.step, Mstep, tm0HetFoldStepMachine, HetFoldStepState.cont]
+      constructor
+      · apply Part.dom_iff_mem.mpr
+        exact ⟨⟨HetFoldStepState.cont, bodyCfg.Tape⟩,
+          Turing.mem_eval.mpr ⟨hreach, hhalt⟩⟩
+      · intro h
+        have hmem := Part.get_mem h
+        have htarget :
+            ⟨HetFoldStepState.cont, bodyCfg.Tape⟩ ∈
+              TM0Seq.evalCfg Mstep input :=
+          Turing.mem_eval.mpr ⟨hreach, hhalt⟩
+        rw [Part.mem_unique hmem htarget]
+        simp [hasHetInlHead, HetFoldStepState.cont, hbody_tape',
+          hetFoldStep, prefixFoldStep, hetTagDecode, input, rest, hetMix,
+          hetMixSep, separatedMix, hetTagEmb]
 
 /-- `isWellFormedHetBlock` is preserved by `hetFoldStep` when the
     condition holds. -/
