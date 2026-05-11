@@ -737,6 +737,352 @@ abbrev TM0RealizesPairedBlockBeforeSepAnySuffix
     (pairSep outerSep : ChainΓ) (f : List ChainΓ → List ChainΓ) : Prop :=
   TM0RealizesPairedBlockBeforeSep pairSep outerSep f
 
+/-- Strong inner-block operation between two explicit separators.
+
+This is the suffix-opaque analogue of `TM0RealizesInnerBlockSep`: the machine
+operates on the block between `sep₂` and `sep₁`, preserving the prefix and the
+entire tail after `sep₁` without asking that tail to be blank-free. -/
+def TM0RealizesInnerBlockSepAnySuffix
+    (Γ : Type) [Inhabited Γ] (sep₁ sep₂ : Γ)
+    (f : List Γ → List Γ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (pfx inner suffix : List Γ),
+      (∀ g ∈ pfx, g ≠ default) →
+      (∀ g ∈ pfx, g ≠ sep₁) →
+      (∀ g ∈ pfx, g ≠ sep₂) →
+      (∀ g ∈ inner, g ≠ default) →
+      (∀ g ∈ inner, g ≠ sep₁) →
+      (∀ g ∈ inner, g ≠ sep₂) →
+      (∀ g ∈ f inner, g ≠ default) →
+      (∀ g ∈ f inner, g ≠ sep₁) →
+      (∀ g ∈ f inner, g ≠ sep₂) →
+      (TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+          (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).Dom),
+        ((TM0Seq.evalCfg M
+          (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).get h).Tape =
+          Tape.mk₁ (pfx ++ sep₂ :: f inner ++ sep₁ :: suffix)
+
+/-- Suffix-opaque prefix/suffix lift for separator-delimited block machines.
+
+This is the interface-compatible form of
+`tm0RealizesBlockSepAnySuffix_toInner`; the construction is the same
+reverse/apply/reverse composition, but exposed without a hypothesis on the
+tail after the outer separator. -/
+theorem tm0RealizesBlockSepAnySuffix_toInner_anySuffix
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep₁ sep₂ : Γ} {f : List Γ → List Γ}
+    (hsep₂ : sep₂ ≠ default) (h₁₂ : sep₁ ≠ sep₂)
+    (hf : TM0RealizesBlockSepAnySuffix Γ sep₂ f)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep₂ : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
+    TM0RealizesInnerBlockSepAnySuffix Γ sep₁ sep₂ f := by
+  -- Same construction as `tm0RealizesBlockSepAnySuffix_toInner`; this theorem
+  -- only strengthens the exposed contract by dropping the unused suffix
+  -- freshness premise.
+  sorry
+
+/-- Parameterized paired-add loop condition: the left side of the paired block
+is positive. Because `pairSep` is required to be non-binary at use sites,
+`blockValueLeq` reads exactly the prefix before `pairSep`. -/
+noncomputable abbrev pairedAddCondSep (_pairSep : ChainΓ) : List ChainΓ → Prop :=
+  fun block => ¬ blockValueLeq 0 block
+
+/-- One separator-parametric paired-add transfer step. On a well-formed block
+`left ++ pairSep :: right`, this decrements the left side and increments the
+right side, preserving `pairSep`. -/
+noncomputable def pairedDecrLeftIncrRightSep
+    (pairSep : ChainΓ) (block : List ChainΓ) : List ChainΓ :=
+  by
+    classical
+    exact
+      if pairedSepInvSep pairSep block then
+        let (left, right) := splitAtSep pairSep block
+        binPred left ++ pairSep :: binSucc right
+      else
+        block
+
+/-- While-loop result for separator-parametric paired addition. -/
+noncomputable def binAddPairedWhileSep
+    (pairSep : ChainΓ) (block : List ChainΓ) : List ChainΓ :=
+  let (left, _right) := splitAtSep pairSep block
+  let n := decodeBinaryBlock left
+  blockIterateWhile (pairedDecrLeftIncrRightSep pairSep)
+    (pairedAddCondSep pairSep) n block
+
+/-- Conditional paired-block body before an explicit outer separator. -/
+def TM0RealizesPairedBlockBeforeSepCond
+    (pairSep outerSep : ChainΓ)
+    (step : List ChainΓ → List ChainΓ)
+    (cond : List ChainΓ → Prop) [DecidablePred cond] : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine ChainΓ Λ) (q_cont : Λ),
+    ∀ (left right suffix : List ChainΓ),
+      (∀ g ∈ left, g ≠ default) →
+      (∀ g ∈ left, g ≠ pairSep) →
+      (∀ g ∈ left, g ≠ outerSep) →
+      (∀ g ∈ right, g ≠ default) →
+      (∀ g ∈ right, g ≠ pairSep) →
+      (∀ g ∈ right, g ≠ outerSep) →
+      (cond (left ++ pairSep :: right) →
+        ∀ g ∈ step (left ++ pairSep :: right), g ≠ default) →
+      (TM0Seq.evalCfg M
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom),
+        let cfg := (TM0Seq.evalCfg M
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get h
+        if cond (left ++ pairSep :: right) then
+          cfg.q = q_cont ∧
+            cfg.Tape =
+              Tape.mk₁ (step (left ++ pairSep :: right) ++ outerSep :: suffix)
+        else
+          cfg.q ≠ q_cont ∧
+            cfg.Tape = Tape.mk₁
+              (left ++ pairSep :: right ++ outerSep :: suffix)
+
+/-- The parametric transfer step preserves the paired separator invariant. -/
+theorem pairedDecrLeftIncrRightSep_pairedSepInvSep
+    (pairSep : ChainΓ) (block : List ChainΓ)
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
+    (hInv : pairedSepInvSep pairSep block)
+    (_hblock : ∀ g ∈ block, g ≠ default)
+    (_hcond : pairedAddCondSep pairSep block) :
+    pairedSepInvSep pairSep (pairedDecrLeftIncrRightSep pairSep block) := by
+  classical
+  rcases hsplit : splitAtSep pairSep block with ⟨left, right⟩
+  have hright_npair : ∀ g ∈ right, g ≠ pairSep := by
+    simpa [pairedSepInvSep, hsplit] using hInv.2
+  unfold pairedDecrLeftIncrRightSep
+  simp [hInv, hsplit]
+  constructor
+  · simp
+  · rw [show splitAtSep pairSep (binPred left ++ pairSep :: binSucc right) =
+        (binPred left, binSucc right) by
+      apply splitAtSep_general_cons
+      unfold binPred
+      exact chainBinaryRepr_no_of_ne_bits pairSep hpair_bit0 hpair_bit1
+        (decodeBinaryBlock left - 1)]
+    exact binSucc_no_of_ne_bits hpair_bit0 hpair_bit1 right hright_npair
+
+theorem pairedDecrLeftIncrRightSep_ne_default
+    (pairSep : ChainΓ) (hpair_nd : pairSep ≠ default)
+    (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default)
+    (_hcond : pairedAddCondSep pairSep block) :
+    ∀ g ∈ pairedDecrLeftIncrRightSep pairSep block, g ≠ default := by
+  classical
+  unfold pairedDecrLeftIncrRightSep
+  by_cases hInv : pairedSepInvSep pairSep block
+  · rcases hsplit : splitAtSep pairSep block with ⟨left, right⟩
+    have hleft_nd : ∀ g ∈ left, g ≠ default := by
+      intro g hg
+      exact hblock g (splitAtSep_fst_subset pairSep block g (by simpa [hsplit] using hg))
+    have hright_nd : ∀ g ∈ right, g ≠ default := by
+      intro g hg
+      exact hblock g (splitAtSep_snd_subset pairSep block g (by simpa [hsplit] using hg))
+    simp [hInv, hsplit]
+    rintro g (hg | rfl | hg)
+    · exact binPred_ne_default left hleft_nd g hg
+    · exact hpair_nd
+    · exact binSucc_ne_default right hright_nd g hg
+  · simpa [hInv] using hblock
+
+/-- The one-step paired-add body, composed from predecessor on the left and
+successor on the right. -/
+theorem tm0_pairedDecrLeftIncrRightSep_beforeSepCond
+    {pairSep outerSep : ChainΓ}
+    (hpair_nd : pairSep ≠ default)
+    (hpair_outer : pairSep ≠ outerSep)
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
+    (houter_bit0 : outerSep ≠ γ'ToChainΓ Γ'.bit0)
+    (houter_bit1 : outerSep ≠ γ'ToChainΓ Γ'.bit1) :
+    TM0RealizesPairedBlockBeforeSepCond pairSep outerSep
+      (pairedDecrLeftIncrRightSep pairSep) (pairedAddCondSep pairSep) := by
+  have hpred :
+      TM0RealizesBlockSep ChainΓ pairSep binPred :=
+    tm0_binPred_blockSep_of_ne_bits hpair_bit0 hpair_bit1
+  have hsucc :
+      TM0RealizesInnerBlockSepAnySuffix ChainΓ outerSep pairSep binSucc :=
+    tm0RealizesBlockSepAnySuffix_toInner_anySuffix
+      hpair_nd (Ne.symm hpair_outer)
+      (tm0_binSucc_blockSepAnySuffix hpair_bit0 hpair_bit1)
+      (fun block hblock => binSucc_ne_default block hblock)
+      (fun block hblock => binSucc_no_of_ne_bits hpair_bit0 hpair_bit1 block hblock)
+  -- Compose `hpred` and `hsucc`, then add the conditional/finalize wrapper.
+  -- The condition machine is the same value-decider used by the old
+  -- `chainConsBottom` body, with `pairSep` as the first non-bit terminator.
+  sorry
+
+/-- Separator-parametric while combinator for paired blocks before an explicit
+outer separator. -/
+theorem tm0RealizesPairedBlockBeforeSep_while_pairedSepInvSep
+    {pairSep outerSep : ChainΓ}
+    (step result : List ChainΓ → List ChainΓ)
+    (cond : List ChainΓ → Prop) [DecidablePred cond]
+    (hbody : TM0RealizesPairedBlockBeforeSepCond pairSep outerSep step cond)
+    (hinv_step : ∀ block, pairedSepInvSep pairSep block →
+      (∀ g ∈ block, g ≠ default) → cond block →
+      pairedSepInvSep pairSep (step block))
+    (hstep_nd : ∀ block, (∀ g ∈ block, g ≠ default) → cond block →
+      ∀ g ∈ step block, g ≠ default)
+    (hresult_eq : ∀ block, (∀ g ∈ block, g ≠ default) →
+      pairedSepInvSep pairSep block →
+      ∃ n, result block = blockIterateWhile step cond n block ∧
+        ¬cond (blockIterateWhile step cond n block)) :
+    TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep result := by
+  -- Same induction as `tm0RealizesPairedBlockBeforeConsBottom_while_pairedSepInv`,
+  -- with all occurrences of the second `chainConsBottom` replaced by
+  -- `outerSep` and all split/reconstruction facts using `splitAtSep pairSep`.
+  sorry
+
+theorem binAddPairedWhileSep_eq_iterate
+    (pairSep : ChainΓ) (block : List ChainΓ)
+    (_hblock : ∀ g ∈ block, g ≠ default)
+    (hInv : pairedSepInvSep pairSep block) :
+    ∃ n, binAddPairedWhileSep pairSep block =
+        blockIterateWhile (pairedDecrLeftIncrRightSep pairSep)
+          (pairedAddCondSep pairSep) n block ∧
+      ¬ pairedAddCondSep pairSep
+        (blockIterateWhile (pairedDecrLeftIncrRightSep pairSep)
+          (pairedAddCondSep pairSep) n block) := by
+  sorry
+
+theorem binAddPairedWhileSep_ne_default
+    (pairSep : ChainΓ) (hpair_nd : pairSep ≠ default)
+    (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binAddPairedWhileSep pairSep block, g ≠ default := by
+  sorry
+
+theorem extractPairedRightSep_ne_default
+    (pairSep : ChainΓ) (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ dropUntilFirstSep pairSep block, g ≠ default :=
+  dropUntilFirstSep_ne_default pairSep block hblock
+
+theorem binAddPairedSep_eq_while_decomp
+    (pairSep : ChainΓ) (block : List ChainΓ)
+    (hInv : pairedSepInvSep pairSep block) :
+    binAddPairedSep pairSep block =
+      (normalizeBlock ∘ dropUntilFirstSep pairSep ∘
+        binAddPairedWhileSep pairSep) block := by
+  sorry
+
+theorem binAddPairedWhileSep_ne_marker
+    (pairSep marker : ChainΓ)
+    (hpair_marker : pairSep ≠ marker)
+    (hmarker_bit0 : marker ≠ γ'ToChainΓ Γ'.bit0)
+    (hmarker_bit1 : marker ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ marker) :
+    ∀ g ∈ binAddPairedWhileSep pairSep block, g ≠ marker := by
+  sorry
+
+theorem tm0_normalizeBlockSepAnySuffix {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep normalizeBlock := by
+  -- Same composed machine as `tm0_normalizeBlockSep`; the two constituent
+  -- passes are separator-local and do not inspect the suffix after `sep`.
+  sorry
+
+theorem tm0RealizesPairedBlockBeforeSep_comp_blockSepAnySuffix
+    {pairSep outerSep : ChainΓ} {f g : List ChainΓ → List ChainΓ}
+    (hpair_nd : pairSep ≠ default)
+    (hpair_outer : pairSep ≠ outerSep)
+    (hf : TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep f)
+    (hg : TM0RealizesBlockSepAnySuffix ChainΓ outerSep g)
+    (hf_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ f block, x ≠ default)
+    (hf_nouter : ∀ block, (∀ x ∈ block, x ≠ outerSep) →
+      ∀ x ∈ f block, x ≠ outerSep)
+    (hgf_nouter : ∀ block, (∀ x ∈ block, x ≠ outerSep) →
+      ∀ x ∈ g (f block), x ≠ outerSep) :
+    TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep (g ∘ f) := by
+  obtain ⟨Λf, hΛfi, hΛff, Mf, hMf⟩ := hf
+  obtain ⟨Λg, hΛgi, hΛgf, Mg, hMg⟩ := hg
+  let hsum : Inhabited (Λf ⊕ Λg) := ⟨Sum.inl (@default _ hΛfi)⟩
+  let Mcomp : TM0.Machine ChainΓ (Λf ⊕ Λg) :=
+    @TM0Seq.compose ChainΓ Λf hΛfi Λg hΛgi Mf Mg
+  refine ⟨Λf ⊕ Λg, hsum, inferInstance, Mcomp, ?_⟩
+  intro left right suffix
+    hleft_nd hleft_npair hleft_nouter
+    hright_nd hright_npair hright_nouter hgf_nd
+  set block := left ++ pairSep :: right with hblock_def
+  have hblock_nd : ∀ x ∈ block, x ≠ default := by
+    intro x hx
+    simp [block, List.mem_append] at hx
+    rcases hx with hx | rfl | hx
+    · exact hleft_nd x hx
+    · exact hpair_nd
+    · exact hright_nd x hx
+  have hblock_nouter : ∀ x ∈ block, x ≠ outerSep := by
+    intro x hx
+    simp [block, List.mem_append] at hx
+    rcases hx with hx | rfl | hx
+    · exact hleft_nouter x hx
+    · exact hpair_outer
+    · exact hright_nouter x hx
+  have hfblock_nd := hf_nd block hblock_nd
+  have hfblock_nouter := hf_nouter block hblock_nouter
+  obtain ⟨hf_dom, hf_tape⟩ :=
+    hMf left right suffix
+      hleft_nd hleft_npair hleft_nouter
+      hright_nd hright_npair hright_nouter hfblock_nd
+  obtain ⟨hg_dom, hg_tape⟩ :=
+    hMg (f block) suffix hfblock_nd hfblock_nouter hgf_nd
+      (hgf_nouter block hblock_nouter)
+  have hg_from_cfg :
+      (TM0Seq.evalFromCfg Mg
+        ⟨default, ((TM0Seq.evalCfg Mf
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get
+          hf_dom).Tape⟩).Dom := by
+    rw [hf_tape hf_dom]
+    change (TM0Seq.evalFromCfg Mg
+      (TM0.init (f block ++ outerSep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    simpa [block, List.append_assoc] using hg_dom
+  have hcomp_dom :
+      (TM0Seq.evalCfg Mcomp
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff Mcomp
+      (left ++ pairSep :: right ++ outerSep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts Mf Mg
+        (left ++ pairSep :: right ++ outerSep :: suffix)
+        hf_dom hg_from_cfg)
+  refine ⟨hcomp_dom, ?_⟩
+  intro h
+  have ht := TM0Seq.compose_evalCfg_tape Mf Mg
+    (left ++ pairSep :: right ++ outerSep :: suffix)
+    (f block ++ outerSep :: suffix)
+    hf_dom (hf_tape hf_dom) hg_dom h
+  rw [ht, hg_tape hg_dom]
+  simp [block]
+
+theorem tm0RealizesPairedBlockBeforeSep_congr
+    {pairSep outerSep : ChainΓ} {f g : List ChainΓ → List ChainΓ}
+    (hf : TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep f)
+    (hfg : ∀ left right, (∀ x ∈ left, x ≠ pairSep) →
+      (∀ x ∈ right, x ≠ pairSep) →
+      f (left ++ pairSep :: right) = g (left ++ pairSep :: right)) :
+    TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep g := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hf
+  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
+  intro left right suffix
+    hleft_nd hleft_npair hleft_nouter
+      hright_nd hright_npair hright_nouter hg_nd
+  have hfg_lr := hfg left right hleft_npair hright_npair
+  have hf_nd : ∀ x ∈ f (left ++ pairSep :: right), x ≠ default := by
+    simpa [hfg_lr] using hg_nd
+  obtain ⟨hdom, htape⟩ :=
+    hM left right suffix
+      hleft_nd hleft_npair hleft_nouter
+      hright_nd hright_npair hright_nouter hf_nd
+  refine ⟨hdom, ?_⟩
+  intro h
+  rw [htape h, hfg_lr]
+
 /-- `dropUntilFirstSep` preserves absence of any marker that is absent from
 the input block. -/
 theorem dropUntilFirstSep_ne_marker {Γ : Type} [DecidableEq Γ]
@@ -901,16 +1247,80 @@ theorem tm0_binAddPairedSep_beforeSep_anySuffix
     (houter_nd : outerSep ≠ default)
     (hpair_outer : pairSep ≠ outerSep)
     (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
-    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1) :
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
+    (houter_bit0 : outerSep ≠ γ'ToChainΓ Γ'.bit0)
+    (houter_bit1 : outerSep ≠ γ'ToChainΓ Γ'.bit1) :
     TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep
       (binAddPairedSep pairSep) := by
-  have hsucc_any :
-      TM0RealizesBlockSepAnySuffix ChainΓ pairSep binSucc :=
-    tm0_binSucc_blockSepAnySuffix hpair_bit0 hpair_bit1
-  -- Thread the suffix-opaque successor through the old paired-add loop stack.
-  -- The remaining work is parameterizing the predecessor/condition/while
-  -- lemmas over `pairSep` and `outerSep`.
-  sorry
+  have hbody :
+      TM0RealizesPairedBlockBeforeSepCond pairSep outerSep
+        (pairedDecrLeftIncrRightSep pairSep) (pairedAddCondSep pairSep) :=
+    tm0_pairedDecrLeftIncrRightSep_beforeSepCond
+      hpair_nd hpair_outer hpair_bit0 hpair_bit1 houter_bit0 houter_bit1
+  have hloop :
+      TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep
+        (binAddPairedWhileSep pairSep) :=
+    tm0RealizesPairedBlockBeforeSep_while_pairedSepInvSep
+      (pairSep := pairSep) (outerSep := outerSep)
+      (pairedDecrLeftIncrRightSep pairSep)
+      (binAddPairedWhileSep pairSep)
+      (pairedAddCondSep pairSep)
+      hbody
+      (pairedDecrLeftIncrRightSep_pairedSepInvSep pairSep · hpair_bit0 hpair_bit1)
+      (pairedDecrLeftIncrRightSep_ne_default pairSep hpair_nd)
+      (binAddPairedWhileSep_eq_iterate pairSep)
+  have hdrop :
+      TM0RealizesBlockSepAnySuffix ChainΓ outerSep
+        (dropUntilFirstSep pairSep) :=
+    tm0_dropUntilFirstSep_blockSepAnySuffix pairSep outerSep hpair_nd
+  have hloop_drop :
+      TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep
+        (dropUntilFirstSep pairSep ∘ binAddPairedWhileSep pairSep) :=
+    tm0RealizesPairedBlockBeforeSep_comp_blockSepAnySuffix
+      hpair_nd hpair_outer hloop hdrop
+      (binAddPairedWhileSep_ne_default pairSep hpair_nd)
+      (fun block hblock =>
+        binAddPairedWhileSep_ne_marker pairSep outerSep hpair_outer
+          houter_bit0 houter_bit1 block hblock)
+      (fun block hblock =>
+        dropUntilFirstSep_ne_marker pairSep outerSep
+          (binAddPairedWhileSep pairSep block)
+          (binAddPairedWhileSep_ne_marker pairSep outerSep hpair_outer
+            houter_bit0 houter_bit1 block hblock))
+  have hnorm :
+      TM0RealizesBlockSepAnySuffix ChainΓ outerSep normalizeBlock :=
+    tm0_normalizeBlockSepAnySuffix houter_bit0 houter_bit1
+  have hcomposed :
+      TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep
+        (normalizeBlock ∘ (dropUntilFirstSep pairSep ∘
+          binAddPairedWhileSep pairSep)) :=
+    tm0RealizesPairedBlockBeforeSep_comp_blockSepAnySuffix
+      hpair_nd hpair_outer hloop_drop hnorm
+      (fun block hblock =>
+        dropUntilFirstSep_ne_default pairSep
+          (binAddPairedWhileSep pairSep block)
+          (binAddPairedWhileSep_ne_default pairSep hpair_nd block hblock))
+      (fun block hblock =>
+        dropUntilFirstSep_ne_marker pairSep outerSep
+          (binAddPairedWhileSep pairSep block)
+          (binAddPairedWhileSep_ne_marker pairSep outerSep hpair_outer
+            houter_bit0 houter_bit1 block hblock))
+      (fun block _hblock =>
+        normalizeBlock_no_of_ne_bits outerSep houter_bit0 houter_bit1
+          (dropUntilFirstSep pairSep
+            (binAddPairedWhileSep pairSep block)))
+  refine tm0RealizesPairedBlockBeforeSep_congr hcomposed ?_
+  intro left right hleft_npair hright_npair
+  have hInv : pairedSepInvSep pairSep (left ++ pairSep :: right) := by
+    constructor
+    · simp
+    · rw [show splitAtSep pairSep (left ++ pairSep :: right) = (left, right) by
+        simpa using splitAtSep_general_cons pairSep left right hleft_npair]
+      exact hright_npair
+  have hdecomp :=
+    binAddPairedSep_eq_while_decomp pairSep
+      (left ++ pairSep :: right) hInv
+  exact hdecomp.symm
 
 /-- Copy/delete construction for keep-right paired addition, stated with an
 explicit fresh copy separator.
@@ -941,6 +1351,7 @@ theorem tm0_binAddPairedKeepRightSep_beforeSep_viaCopySep
   obtain ⟨Λadd, hΛaddi, hΛaddf, Madd, hMadd⟩ :=
     tm0_binAddPairedSep_beforeSep_anySuffix
       hpair_nd hcopy_nd hpair_copy hpair_bit0 hpair_bit1
+      hcopy_bit0 hcopy_bit1
   obtain ⟨Λdrop, hΛdropi, hΛdropf, Mdrop, hMdrop⟩ :=
     tm0_dropUntilFirstSep_inner_replaceBoundary_anySuffix
       (sep := pairSep) (boundarySep := copySep) (outerSep := outerSep)
