@@ -21,11 +21,6 @@ tape lists can be computed by a TM0 machine that always halts with
 3. The full converter function is TM0-realizable (`chain_converter_fn_realizes`).
 4. `converter_tm_exists` (in `EncodingBridge.lean`) follows from these.
 
-We also define `TM0RealizesFn Γ T f` for heterogeneous functions
-`f : List Γ → List T`, using `Option (Γ ⊕ T)` as the tape alphabet
-with `none` as blank. This enables composing functions between different
-types (e.g., `f : T → S` and `g : S → U`).
-
 ## Blank-Preserving Embedding
 
 The blank-preserving embedding `blankPreservingEmb` and its inverse are
@@ -87,26 +82,6 @@ def TM0Realizes (Γ : Type) [Inhabited Γ] (f : List Γ → List Γ) : Prop :=
       (TM0Seq.evalCfg M l).Dom ∧
       ∀ (h : (TM0Seq.evalCfg M l).Dom),
         ((TM0Seq.evalCfg M l).get h).Tape = Tape.mk₁ (f l)
-
-/-! ### TM0 Realizability (Heterogeneous) -/
-
-/-- A total function `f : List Γ → List T` is **heterogeneously TM0-realizable**
-if there exists a finite-state TM0 machine over the tape alphabet
-`Option (Γ ⊕ T)` (where `none` serves as the blank symbol) that always halts
-on any input `l` (encoded as `l.map (some ∘ Sum.inl)`) and produces
-`Tape.mk₁ ((f l).map (some ∘ Sum.inr))` as the output tape.
-
-The tape type `Option (Γ ⊕ T)` separates input symbols (via `Sum.inl`)
-from output symbols (via `Sum.inr`), with `none` as the universal blank.
-This enables composing functions between different types. -/
-def TM0RealizesFn (Γ T : Type) (f : List Γ → List T) : Prop :=
-  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
-    (M : TM0.Machine (Option (Γ ⊕ T)) Λ),
-    ∀ l : List Γ,
-      (TM0Seq.evalCfg M (l.map (some ∘ Sum.inl))).Dom ∧
-      ∀ (h : (TM0Seq.evalCfg M (l.map (some ∘ Sum.inl))).Dom),
-        ((TM0Seq.evalCfg M (l.map (some ∘ Sum.inl))).get h).Tape =
-          Tape.mk₁ ((f l).map (some ∘ Sum.inr))
 
 /-! ### Compose output tape tracking -/
 /-! ### TM0Realizes closure properties -/
@@ -224,180 +199,6 @@ theorem chain_converter_fn_on_identity {T : Type} [DecidableEq T] [Primcodable T
     (chainEncode T w).map (blankPreservingEmb (T := T)) :=
   converter_fn_on_identity (chainEncode T) w
 
-/-! ### Alphabet lifting: tape tracking -/
-
-/-
-When a TM0 machine halts producing `Tape.mk₁ l'`, the lifted machine
-halts producing `Tape.mk₁ (l'.map emb)`. This extends `lift_eval_dom`
-with output tape tracking.
--/
-theorem TM0AlphabetSim.lift_evalCfg_tape {Γ₁ Γ₂ : Type} [Inhabited Γ₁] [Inhabited Γ₂]
-    {Λ : Type} [Inhabited Λ]
-    (M : TM0.Machine Γ₁ Λ) (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
-    (hemb : ∀ a, inv (emb a) = a) (hemb_default : emb default = default)
-    (l l' : List Γ₁)
-    (h : (TM0Seq.evalCfg M l).Dom)
-    (htape : ((TM0Seq.evalCfg M l).get h).Tape = Tape.mk₁ l') :
-    ∃ h' : (TM0Seq.evalCfg (TM0AlphabetSim.liftMachine M emb inv) (l.map emb)).Dom,
-      ((TM0Seq.evalCfg (TM0AlphabetSim.liftMachine M emb inv) (l.map emb)).get h').Tape =
-        Tape.mk₁ (l'.map emb) := by
-  obtain ⟨c₁, hc₁⟩ : ∃ c₁, c₁ ∈ Turing.eval (TM0.step M) (TM0.init l) ∧ c₁.Tape = Tape.mk₁ l' := by
-    exact ⟨ _, Part.get_mem _, htape ⟩;
-  have := Turing.tr_eval ( TM0AlphabetSim.lift_respects M emb inv hemb hemb_default ) ( TM0AlphabetSim.lift_init_rel emb inv hemb hemb_default l ) hc₁.1;
-  obtain ⟨ c₂, hc₂₁, hc₂₂ ⟩ := this;
-  obtain ⟨h', hc'⟩ : ∃ h' : (TM0Seq.evalCfg (liftMachine M emb inv) (l.map emb)).Dom, ((TM0Seq.evalCfg (liftMachine M emb inv) (l.map emb)).get h') = c₂ := by
-    exact Set.mem_range.mp hc₂₂
-  generalize_proofs at *; (
-  use h';
-  rw [ hc', hc₂₁.2, hc₁.2, Tape.map_mk₁ ];
-  unfold embPM; aesop;)
-
-/-! ### Heterogeneous composition -/
-
-/-- Embedding from `Option (Γ₁ ⊕ Γ₂)` into `Option (Γ₁ ⊕ (Γ₂ ⊕ Γ₃))`,
-preserving the blank (none → none). Used to lift the first machine in
-a heterogeneous composition. -/
-noncomputable def sumEmbLeft {Γ₁ Γ₂ Γ₃ : Type}
-    (x : Option (Γ₁ ⊕ Γ₂)) : Option (Γ₁ ⊕ (Γ₂ ⊕ Γ₃)) :=
-  match x with
-  | none => none
-  | some (Sum.inl a) => some (Sum.inl a)
-  | some (Sum.inr b) => some (Sum.inr (Sum.inl b))
-
-/-- Inverse of `sumEmbLeft`. -/
-noncomputable def sumEmbLeftInv {Γ₁ Γ₂ Γ₃ : Type}
-    (x : Option (Γ₁ ⊕ (Γ₂ ⊕ Γ₃))) : Option (Γ₁ ⊕ Γ₂) :=
-  match x with
-  | none => none
-  | some (Sum.inl a) => some (Sum.inl a)
-  | some (Sum.inr (Sum.inl b)) => some (Sum.inr b)
-  | some (Sum.inr (Sum.inr _)) => none
-
-/-- Embedding from `Option (Γ₂ ⊕ Γ₃)` into `Option (Γ₁ ⊕ (Γ₂ ⊕ Γ₃))`,
-preserving the blank (none → none). Used to lift the second machine in
-a heterogeneous composition. -/
-noncomputable def sumEmbRight {Γ₁ Γ₂ Γ₃ : Type}
-    (x : Option (Γ₂ ⊕ Γ₃)) : Option (Γ₁ ⊕ (Γ₂ ⊕ Γ₃)) :=
-  match x with
-  | none => none
-  | some (Sum.inl b) => some (Sum.inr (Sum.inl b))
-  | some (Sum.inr c) => some (Sum.inr (Sum.inr c))
-
-/-- Inverse of `sumEmbRight`. -/
-noncomputable def sumEmbRightInv {Γ₁ Γ₂ Γ₃ : Type}
-    (x : Option (Γ₁ ⊕ (Γ₂ ⊕ Γ₃))) : Option (Γ₂ ⊕ Γ₃) :=
-  match x with
-  | none => none
-  | some (Sum.inl _) => none
-  | some (Sum.inr (Sum.inl b)) => some (Sum.inl b)
-  | some (Sum.inr (Sum.inr c)) => some (Sum.inr c)
-
-theorem sumEmbLeft_default {Γ₁ Γ₂ Γ₃ : Type} :
-    sumEmbLeft (Γ₃ := Γ₃) (default : Option (Γ₁ ⊕ Γ₂)) =
-      (default : Option (Γ₁ ⊕ (Γ₂ ⊕ Γ₃))) := by
-  rfl
-
-theorem sumEmbRight_default {Γ₁ Γ₂ Γ₃ : Type} :
-    sumEmbRight (Γ₁ := Γ₁) (default : Option (Γ₂ ⊕ Γ₃)) =
-      (default : Option (Γ₁ ⊕ (Γ₂ ⊕ Γ₃))) := by
-  rfl
-
-theorem sumEmbLeftInv_emb {Γ₁ Γ₂ Γ₃ : Type} (x : Option (Γ₁ ⊕ Γ₂)) :
-    sumEmbLeftInv (Γ₃ := Γ₃) (sumEmbLeft x) = x := by
-  cases x with
-  | none => simp [sumEmbLeft, sumEmbLeftInv]
-  | some v => cases v <;> simp [sumEmbLeft, sumEmbLeftInv]
-
-theorem sumEmbRightInv_emb {Γ₁ Γ₂ Γ₃ : Type} (x : Option (Γ₂ ⊕ Γ₃)) :
-    sumEmbRightInv (Γ₁ := Γ₁) (sumEmbRight x) = x := by
-  cases x with
-  | none => simp [sumEmbRight, sumEmbRightInv]
-  | some v => cases v <;> simp [sumEmbRight, sumEmbRightInv]
-
-/-- After M_f produces output `(f l).map (some ∘ Sum.inr)` on `Option (T ⊕ S)`,
-the lifted version on `Option (T ⊕ (S ⊕ U))` produces
-`(f l).map (some ∘ Sum.inr ∘ Sum.inl)`, which matches M_g's expected input
-`(f l).map (some ∘ Sum.inl)` after lifting via `sumEmbRight`. -/
-theorem sumEmbLeft_output_eq_sumEmbRight_input {T S U : Type}
-    (l : List S) :
-    (l.map (sumEmbLeft (Γ₃ := U) ∘ some ∘ @Sum.inr T S)) =
-    (l.map (sumEmbRight (Γ₁ := T) ∘ some ∘ @Sum.inl S U)) := by
-  simp [sumEmbLeft, sumEmbRight, Function.comp]
-
-/-
-**Heterogeneous composition**: If `f : List T → List S` and `g : List S → List U`
-are both TM0-realizable (heterogeneously), then `g ∘ f` can be computed by a TM0
-machine on the enlarged tape alphabet `Option (T ⊕ (S ⊕ U))`.
-
-Both M_f and M_g are lifted to this common alphabet using blank-preserving embeddings.
-The key insight is that M_f's output format (`Sum.inr (Sum.inl s)` for S-values)
-matches M_g's input format after lifting.
-
-The result is stated as a raw existential rather than `TM0RealizesFn T U` because
-the composed machine operates on `Option (T ⊕ (S ⊕ U))` (which contains the
-intermediate type S), not `Option (T ⊕ U)`.
--/
-theorem tm0RealizesFn_comp {T S U : Type}
-    {f : List T → List S} {g : List S → List U}
-    (hf : TM0RealizesFn T S f) (hg : TM0RealizesFn S U g) :
-    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
-      (M : TM0.Machine (Option (T ⊕ (S ⊕ U))) Λ),
-      ∀ l : List T,
-        (TM0Seq.evalCfg M (l.map (some ∘ Sum.inl))).Dom ∧
-        ∀ (h : (TM0Seq.evalCfg M (l.map (some ∘ Sum.inl))).Dom),
-          ((TM0Seq.evalCfg M (l.map (some ∘ Sum.inl))).get h).Tape =
-            Tape.mk₁ ((g (f l)).map (some ∘ Sum.inr ∘ Sum.inr)) := by
-  obtain ⟨Λ_f, _, _, M_f, hf⟩ := hf
-  obtain ⟨Λ_g, _, _, M_g, hg⟩ := hg
-  -- Lift both machines to the common alphabet Option (T ⊕ (S ⊕ U))
-  let M_f' := TM0AlphabetSim.liftMachine M_f
-    (sumEmbLeft (Γ₃ := U)) (sumEmbLeftInv (Γ₃ := U))
-  let M_g' := TM0AlphabetSim.liftMachine M_g
-    (sumEmbRight (Γ₁ := T)) (sumEmbRightInv (Γ₁ := T))
-  letI : Inhabited (Λ_f ⊕ Λ_g) := ⟨Sum.inl default⟩
-  refine ⟨Λ_f ⊕ Λ_g, inferInstance, inferInstance,
-    TM0Seq.compose M_f' M_g', fun l => ?_⟩
-  have h_lift_f : ∃ h_f : (TM0Seq.evalCfg M_f' (l.map (some ∘ Sum.inl))).Dom,
-    ((TM0Seq.evalCfg M_f' (l.map (some ∘ Sum.inl))).get h_f).Tape = Tape.mk₁ ((f l).map (fun s => some (Sum.inr (Sum.inl s)))) := by
-      convert TM0AlphabetSim.lift_evalCfg_tape M_f sumEmbLeft sumEmbLeftInv _ _ _ _ _ _ using 1;
-      any_goals exact hf l |>.1;
-      any_goals exact hf l |>.2 _;
-      all_goals norm_num [ Function.comp ];
-      any_goals tauto;
-      · congr! 3;
-        exact List.ext_get ( by simp +decide ) ( by simp +decide [ sumEmbLeft ] );
-      · exact fun a => sumEmbLeftInv_emb a;
-  have h_lift_g : ∃ h_g : (TM0Seq.evalCfg M_g' ((f l).map (fun s => some (Sum.inr (Sum.inl s))))).Dom,
-    ((TM0Seq.evalCfg M_g' ((f l).map (fun s => some (Sum.inr (Sum.inl s))))).get h_g).Tape = Tape.mk₁ ((g (f l)).map (some ∘ Sum.inr ∘ Sum.inr)) := by
-      convert TM0AlphabetSim.lift_evalCfg_tape M_g sumEmbRight sumEmbRightInv _ _ _ _ _ _ using 1;
-      any_goals exact hg ( f l ) |>.1;
-      any_goals exact hg ( f l ) |>.2 _;
-      congr! 1;
-      · congr! 1;
-        exact List.ext_get ( by aesop ) ( by aesop );
-      · congr! 2;
-        · congr! 1;
-          exact List.ext_get ( by simp +decide ) ( by simp +decide [ sumEmbRight ] );
-        · congr! 2;
-          exact congr_arg _ ( by ext; simp +decide [ sumEmbRight ] );
-        · congr! 1;
-          exact List.ext_get ( by aesop ) ( by aesop );
-      · exact fun a => sumEmbRightInv_emb a;
-      · exact sumEmbRight_default;
-  obtain ⟨h_f, h_f_tape⟩ := h_lift_f
-  obtain ⟨h_g, h_g_tape⟩ := h_lift_g
-  have h_comp_dom : (TM0Seq.evalCfg (TM0Seq.compose M_f' M_g') (l.map (some ∘ Sum.inl))).Dom := by
-    apply TM0Seq.compose_dom_of_parts;
-    convert h_g using 1;
-    rw [ h_f_tape ];
-    exact Part.eq_of_get_eq_get h_g h_g rfl
-  have h_comp_tape : ((TM0Seq.evalCfg (TM0Seq.compose M_f' M_g') (l.map (some ∘ Sum.inl))).get h_comp_dom).Tape = Tape.mk₁ ((g (f l)).map (some ∘ Sum.inr ∘ Sum.inr)) := by
-    convert TM0Seq.compose_evalCfg_tape M_f' M_g' ( List.map ( some ∘ Sum.inl ) l ) ( List.map ( fun s => some ( Sum.inr ( Sum.inl s ) ) ) ( f l ) ) h_f h_f_tape h_g h_comp_dom using 1
-    (generalize_proofs at *; aesop;)
-  exact ⟨h_comp_dom, fun h => h_comp_tape⟩
-
-/-! ### Bridging heterogeneous to homogeneous -/
-
 /-! ### Chain encoding never produces default ChainΓ -/
 
 /-
@@ -436,39 +237,6 @@ theorem chainEncode_map_blankPreservingEmb {T : Type} [DecidableEq T] [Primcodab
   intro γ hγ
   exact blankPreservingEmb_ne_default γ (chainEncode_ne_default w γ hγ)
 
-/-! ### Pointwise heterogeneous maps are TM0-realizable -/
-
-/-
-Pointwise heterogeneous maps are TM0-realizable.
-
-Given a function `φ : T → S` between Fintypes, the pointwise map
-`fun l => l.map φ` is `TM0RealizesFn T S`. The proof lifts
-`tm0_map_blankfree` to the heterogeneous setting by defining a
-homogeneous map `ψ : Option (T ⊕ S) → Option (T ⊕ S)` that sends
-`Sum.inl t ↦ Sum.inr (φ t)` and is the identity elsewhere.
--/
-theorem tm0RealizesFn_pointwise {T S : Type}
-    [DecidableEq T] [DecidableEq S] [Fintype T] [Fintype S]
-    (φ : T → S) :
-    TM0RealizesFn T S (fun l => l.map φ) := by
-  convert TM0BB.tm0_map_blankfree _ _ _;
-  rotate_left;
-  exact Option ( T ⊕ S );
-  all_goals try infer_instance;
-  exact fun x => x.map ( fun y => y.elim ( fun t => Sum.inr ( φ t ) ) fun s => Sum.inr s );
-  · rfl;
-  · grind +extAll;
-  · constructor;
-    · intro h;
-      convert TM0BB.tm0_map_blankfree _ _ _;
-      · infer_instance;
-      · infer_instance;
-      · rfl;
-      · rintro ( _ | _ | a ) <;> simp +decide;
-    · rintro ⟨ Λ, x, x_1, M, hM ⟩;
-      use Λ, x, x_1, M;
-      intro l; specialize hM ( List.map ( some ∘ Sum.inl ) l ) ; aesop;
-
 /-! ### Component realizability for chain_converter_fn -/
 
 /-- The chain encoding equals formatting applied to the binary representation. -/
@@ -479,7 +247,13 @@ theorem chainEncode_eq_format (T : Type) [Primcodable T] (w : List T) :
 
 theorem chainEncode_realizes
     {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] :
-    TM0RealizesFn T ChainΓ (chainEncode T) := by
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
+      ∀ w : List T,
+        (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom),
+          ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
+            Tape.mk₁ ((chainEncode T w).map (some ∘ Sum.inr)) := by
   obtain ⟨Λ₁, hΛ₁i, hΛ₁f, M₁, hM₁⟩ := chainEncode_fold T
   obtain ⟨Λ₂, hΛ₂i, hΛ₂f, M₂, hM₂⟩ := chainEncode_format T
   letI : Inhabited (Λ₁ ⊕ Λ₂) := ⟨Sum.inl default⟩

@@ -306,18 +306,16 @@ def hetMix (ts : List T) (acc : List Γ₀) : List (Option (T ⊕ Γ₀)) :=
   ts.map (some ∘ Sum.inl) ++ acc.map (some ∘ Sum.inr)
 
 /-- One step of the het fold while loop.
-    Pops the leftmost `inl t` tag and applies `f t` to the `inr` accumulator.
+    Pops the leftmost `inl t` tag and runs the same-alphabet step `F t` on
+    the remaining block.
 
-    On a block `hetMix (t :: ts) acc`, produces `hetMix ts (f t acc)`. -/
+    The fact that `F t` preserves the remaining tags and updates only the
+    accumulator is a function-level obligation, not part of this generic fold
+    construction. -/
 noncomputable def hetFoldStep
-    (f : T → List Γ₀ → List Γ₀) :
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))) :
     List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))
-  | (some (Sum.inl t)) :: rest =>
-    let inlTail := rest.takeWhile (isHetInl (T := T) (Γ₀ := Γ₀))
-    let inrPart := rest.dropWhile (isHetInl (T := T) (Γ₀ := Γ₀))
-    let acc := inrPart.filterMap
-      (fun x => match x with | some (Sum.inr g) => some g | _ => none)
-    inlTail ++ (f t acc).map (some ∘ Sum.inr)
+  | (some (Sum.inl t)) :: rest => F t rest
   | block => block
 
 /-- The full while-loop result function, defined as iterated application
@@ -327,10 +325,26 @@ noncomputable def hetFoldStep
     iterate `hetFoldStep` while `hasHetInlHead`, stopping when no more
     `inl` tags remain at the head. -/
 noncomputable def hetFoldWhile
-    (f : T → List Γ₀ → List Γ₀)
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (block : List (Option (T ⊕ Γ₀))) : List (Option (T ⊕ Γ₀)) :=
-  blockIterateWhile (hetFoldStep f) hasHetInlHead
+  blockIterateWhile (hetFoldStep F) hasHetInlHead
     (block.takeWhile (isHetInl (T := T) (Γ₀ := Γ₀))).length block
+
+/-- Function-level adapter from an accumulator operation to a homogeneous
+    het-tape operation.
+
+This is intentionally not part of the generic fold theorem.  Any machine
+realizability proof for this adapter must account for the alphabet/layout
+boundary explicitly. -/
+noncomputable def hetFoldAdapt
+    (f : T → List Γ₀ → List Γ₀) (t : T) :
+    List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
+  fun rest =>
+    let inlTail := rest.takeWhile (isHetInl (T := T) (Γ₀ := Γ₀))
+    let inrPart := rest.dropWhile (isHetInl (T := T) (Γ₀ := Γ₀))
+    let acc := inrPart.filterMap
+      (fun x => match x with | some (Sum.inr g) => some g | _ => none)
+    inlTail ++ (f t acc).map (some ∘ Sum.inr)
 
 /-! ## Mathematical Correctness -/
 
@@ -347,12 +361,23 @@ theorem not_hasHetInlHead_hetMix_nil (acc : List Γ₀) :
   | nil => simp [hasHetInlHead]
   | cons a rest => simp [hasHetInlHead]
 
-/-- One step is correct on `hetMix`: pops the head tag and applies `f`. -/
+/-- One step is correct on `hetMix` when the same-alphabet step has the
+    intended function-level behavior. -/
 theorem hetFoldStep_hetMix
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
+    (f : T → List Γ₀ → List Γ₀)
+    (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
+    (t : T) (ts : List T) (acc : List Γ₀) :
+    hetFoldStep F (hetMix (t :: ts) acc) = hetMix ts (f t acc) := by
+  simp [hetFoldStep, hetMix]
+  exact hF t ts acc
+
+theorem hetFoldAdapt_hetMix
     (f : T → List Γ₀ → List Γ₀) (t : T) (ts : List T) (acc : List Γ₀) :
-    hetFoldStep f (hetMix (t :: ts) acc) = hetMix ts (f t acc) := by
-  unfold hetFoldStep
-  unfold hetMix; simp +decide [isHetInl]
+    hetFoldAdapt f t (hetMix ts acc) = hetMix ts (f t acc) := by
+  unfold hetFoldAdapt
+  unfold hetMix
+  simp +decide [isHetInl]
   rw [List.takeWhile_eq_nil_iff.mpr]
   · rw [show List.dropWhile isHetInl (List.map (some ∘ Sum.inr) acc) =
         List.map (some ∘ Sum.inr) acc from ?_]
@@ -376,8 +401,11 @@ theorem takeWhile_isHetInl_hetMix (ts : List T) (acc : List Γ₀) :
 
 /-- `hetFoldWhile` is correct on `hetMix`: computes `foldl`. -/
 theorem hetFoldWhile_hetMix
-    (f : T → List Γ₀ → List Γ₀) (ts : List T) (acc : List Γ₀) :
-    hetFoldWhile f (hetMix ts acc) =
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
+    (f : T → List Γ₀ → List Γ₀)
+    (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
+    (ts : List T) (acc : List Γ₀) :
+    hetFoldWhile F (hetMix ts acc) =
       (List.foldl (fun a t => f t a) acc ts).map (some ∘ Sum.inr) := by
   unfold hetFoldWhile
   rw [takeWhile_isHetInl_hetMix, List.length_map]
@@ -388,7 +416,7 @@ theorem hetFoldWhile_hetMix
   | cons t ts ih =>
     rw [List.length_cons, blockIterateWhile_succ_true _ _ _ _
         (hasHetInlHead_hetMix_cons t ts acc)]
-    rw [hetFoldStep_hetMix]
+    rw [hetFoldStep_hetMix F f hF]
     exact ih (f t acc)
 
 /-- The fold identity: `foldl` on the reversed list equals `foldr`. -/
@@ -400,49 +428,16 @@ theorem foldl_flip_reverse_eq_foldr
 /-- **Decomposition identity**: `hetFoldWhile ∘ reverse` on a pure `inl`
     block equals the `foldr` result. -/
 theorem hetFold_decomp
-    (f : T → List Γ₀ → List Γ₀) (w : List T) :
-    hetFoldWhile f ((w.map (some ∘ Sum.inl)).reverse) =
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
+    (f : T → List Γ₀ → List Γ₀)
+    (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
+    (w : List T) :
+    hetFoldWhile F ((w.map (some ∘ Sum.inl)).reverse) =
       (List.foldr f [] w).map (some ∘ @Sum.inr T Γ₀) := by
   rw [← List.map_reverse]
   have : hetMix (T := T) (Γ₀ := Γ₀) w.reverse [] =
       List.map (some ∘ Sum.inl) w.reverse := by simp [hetMix]
-  rw [← this, hetFoldWhile_hetMix, foldl_flip_reverse_eq_foldr]
-
-/-
-`hetFoldWhile` equals iterated `hetFoldStep` with sufficient fuel.
-    This is immediate from the definition: `hetFoldWhile` IS defined as
-    `blockIterateWhile`.
--/
-theorem hetFoldWhile_eq_iterateWhile
-    (f : T → List Γ₀ → List Γ₀)
-    (_hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
-    (block : List (Option (T ⊕ Γ₀)))
-    (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀))) :
-    ∃ n, hetFoldWhile f block =
-      blockIterateWhile (hetFoldStep f) hasHetInlHead n block ∧
-      ¬hasHetInlHead (blockIterateWhile (hetFoldStep f) hasHetInlHead n block) := by
-  -- By definition of `hetFoldWhile`, we know that it is equal to `blockIterateWhile` with the appropriate parameters.
-  use (block.takeWhile isHetInl).length;
-  induction' n : ( block.takeWhile isHetInl ).length with n ih generalizing block <;> simp_all +decide;
-  · rcases block <;> simp_all +decide;
-    · exact ⟨ rfl, by rintro ⟨ ⟩ ⟩;
-    · cases ‹Option ( T ⊕ Γ₀ ) › <;> simp_all +decide [ isHetInl ];
-      · tauto;
-      · cases ‹T ⊕ Γ₀› <;> tauto;
-  · -- Since the length of the takeWhile is n+1, the block must start with an inl element.
-    obtain ⟨t, ts, h_block⟩ : ∃ t ts, block = some (Sum.inl t) :: ts := by
-      rcases block with ( _ | ⟨ x, block ⟩ ) <;> simp_all +decide;
-      rcases x with ( _ | _ | x ) <;> simp_all +decide [ isHetInl ];
-    specialize ih (hetFoldStep f block) (by
-    intro g hg; contrapose! hg; simp_all +decide [ hetFoldStep ] ;
-    intro h; have := List.mem_takeWhile_imp h; simp_all +decide [ isHetInl ] ;) (by
-    simp_all +decide [ List.takeWhile_cons ];
-    rw [ show hetFoldStep f ( some ( Sum.inl t ) :: ts ) = List.takeWhile isHetInl ts ++ ( f t ( List.filterMap ( fun x => match x with | some ( Sum.inr g ) => some g | _ => none ) ( List.dropWhile isHetInl ts ) ) |> List.map ( some ∘ Sum.inr ) ) from ?_ ];
-    · rw [ List.takeWhile_append ];
-      rw [ List.takeWhile_takeWhile ] ; aesop;
-    · grind +locals);
-    unfold hetFoldWhile at *; simp_all +decide [ List.takeWhile ] ;
-    convert ih.2 using 1
+  rw [← this, hetFoldWhile_hetMix F f hF, foldl_flip_reverse_eq_foldr]
 
 /-! ## Non-Defaultness -/
 
@@ -465,21 +460,23 @@ theorem map_inl_ne_default (w : List T) :
 omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
 /-- `hetFoldStep` preserves non-defaultness when the condition holds. -/
 theorem hetFoldStep_ne_default
-    (f : T → List Γ₀ → List Γ₀)
-    (_hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
+    (hF_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ F t block, g ≠ default)
     (block : List (Option (T ⊕ Γ₀)))
     (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀)))
     (hcond : hasHetInlHead block) :
-    ∀ g ∈ hetFoldStep f block, g ≠ (default : Option (T ⊕ Γ₀)) := by
+    ∀ g ∈ hetFoldStep F block, g ≠ (default : Option (T ⊕ Γ₀)) := by
   cases block with
   | nil => cases hcond
-  | cons h t =>
-    rcases h with (_ | ⟨_ | t'⟩) <;> simp_all +decide [hasHetInlHead]
-    unfold hetFoldStep; simp +decide [*]
-    rintro g (hg | ⟨a, ha, rfl⟩)
-    · have := List.mem_takeWhile_imp hg
-      cases g <;> simp_all +decide [isHetInl]
-    · exact fun h => by cases h
+  | cons h rest =>
+    cases h with
+    | none => cases hcond
+    | some s =>
+      cases s with
+      | inl t =>
+          simpa [hetFoldStep] using
+            hF_nd t rest (fun g hg => hblock g (List.mem_cons_of_mem _ hg))
+      | inr g => cases hcond
 
 omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
 /-
@@ -489,18 +486,18 @@ omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
     pure `inr` block (when processing succeeds).
 -/
 theorem hetFoldWhile_ne_default
-    (f : T → List Γ₀ → List Γ₀)
-    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
+    (hF_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ F t block, g ≠ default)
     (block : List (Option (T ⊕ Γ₀)))
     (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀))) :
-    ∀ g ∈ hetFoldWhile f block, g ≠ (default : Option (T ⊕ Γ₀)) := by
+    ∀ g ∈ hetFoldWhile F block, g ≠ (default : Option (T ⊕ Γ₀)) := by
   intro g hg;
-  have h_block_ne_default : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ n, (∀ g ∈ blockIterateWhile (hetFoldStep f) hasHetInlHead n block, g ≠ default) := by
+  have h_block_ne_default : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ n, (∀ g ∈ blockIterateWhile (hetFoldStep F) hasHetInlHead n block, g ≠ default) := by
     intros block hblock n
     induction' n with n ih generalizing block;
     · exact hblock;
     · by_cases h : hasHetInlHead block <;> simp +decide [ *, blockIterateWhile ];
-      · exact ih _ ( hetFoldStep_ne_default f hf_nd block hblock h );
+      · exact ih _ ( hetFoldStep_ne_default F hF_nd block hblock h );
       · exact hblock;
   exact h_block_ne_default block hblock _ _ hg
 
@@ -636,41 +633,60 @@ theorem tm0RealizesBlock_while_inv {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [
 
     This is the local machine-construction obligation for one fold-body step. -/
 theorem tm0RealizesBlockCond_hetFoldStep
-    (f : T → List Γ₀ → List Γ₀)
-    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
-    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
-    TM0RealizesBlockCondInv (hetFoldStep f) (@hasHetInlHead T Γ₀)
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
+    (hf_block : ∀ t, TM0RealizesBlock (Option (T ⊕ Γ₀)) (F t))
+    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ F t block, g ≠ default) :
+    TM0RealizesBlockCondInv (hetFoldStep F) (@hasHetInlHead T Γ₀)
       (isWellFormedHetBlock (T := T) (Γ₀ := Γ₀)) := by
   sorry
 
 /-- `isWellFormedHetBlock` is preserved by `hetFoldStep` when the
     condition holds. -/
 theorem isWellFormedHetBlock_step
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (f : T → List Γ₀ → List Γ₀)
+    (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
     (block : List (Option (T ⊕ Γ₀)))
     (hInv : isWellFormedHetBlock block)
     (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀)))
     (hcond : hasHetInlHead block) :
-    isWellFormedHetBlock (hetFoldStep f block) := by
+    isWellFormedHetBlock (hetFoldStep F block) := by
   obtain ⟨ts, acc, rfl, hacc⟩ := hInv
   cases ts with
   | nil => exact absurd hcond (not_hasHetInlHead_hetMix_nil acc)
   | cons t ts =>
-    rw [hetFoldStep_hetMix]
+    rw [hetFoldStep_hetMix F f hF]
     exact ⟨ts, f t acc, rfl, hf_nd t acc hacc⟩
 
-/-- `hetFoldWhile_eq_iterateWhile` restricted to well-formed blocks. -/
+/-- `hetFoldWhile` equals an iteration that has actually stopped on
+    well-formed blocks.  The semantic `hF` is the important assumption:
+    each successful step removes one leading tag from the `hetMix` block. -/
 theorem hetFoldWhile_eq_iterateWhile_wf
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (f : T → List Γ₀ → List Γ₀)
-    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default)
+    (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
     (block : List (Option (T ⊕ Γ₀)))
-    (hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀)))
     (hInv : isWellFormedHetBlock block) :
-    ∃ n, hetFoldWhile f block =
-      blockIterateWhile (hetFoldStep f) hasHetInlHead n block ∧
-      ¬hasHetInlHead (blockIterateWhile (hetFoldStep f) hasHetInlHead n block) :=
-  hetFoldWhile_eq_iterateWhile f hf_nd block hblock
+    ∃ n, hetFoldWhile F block =
+      blockIterateWhile (hetFoldStep F) hasHetInlHead n block ∧
+      ¬hasHetInlHead (blockIterateWhile (hetFoldStep F) hasHetInlHead n block) := by
+  obtain ⟨ts, acc, rfl, _hacc⟩ := hInv
+  refine ⟨ts.length, ?_, ?_⟩
+  · unfold hetFoldWhile
+    rw [takeWhile_isHetInl_hetMix, List.length_map]
+  · have hiter :
+        blockIterateWhile (hetFoldStep F) hasHetInlHead ts.length
+            (hetMix (T := T) (Γ₀ := Γ₀) ts acc) =
+          (List.foldl (fun a t => f t a) acc ts).map
+            (some ∘ @Sum.inr T Γ₀) := by
+      rw [← hetFoldWhile_hetMix F f hF ts acc]
+      unfold hetFoldWhile
+      rw [takeWhile_isHetInl_hetMix, List.length_map]
+    rw [hiter]
+    simpa [hetMix] using
+      (not_hasHetInlHead_hetMix_nil
+        (T := T) (Γ₀ := Γ₀) (List.foldl (fun a t => f t a) acc ts))
 
 /-- **Het fold while loop machine exists for well-formed blocks.**
 
@@ -679,27 +695,30 @@ theorem hetFoldWhile_eq_iterateWhile_wf
     - `tm0RealizesBlock_while_inv` (while-loop combinator with invariant)
     - `hetFoldWhile_eq_iterateWhile_wf` (iteration equals definition) -/
 theorem tm0RealizesBlock_hetFoldWhile_inv
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (f : T → List Γ₀ → List Γ₀)
-    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
+    (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
+    (hf_block : ∀ t, TM0RealizesBlock (Option (T ⊕ Γ₀)) (F t))
+    (hF_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ F t block, g ≠ default)
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ Γ₀)) Λ),
       ∀ (block : List (Option (T ⊕ Γ₀))),
         isWellFormedHetBlock block →
         (∀ g ∈ block, g ≠ (default : Option (T ⊕ Γ₀))) →
-        (∀ g ∈ hetFoldWhile f block, g ≠ (default : Option (T ⊕ Γ₀))) →
+        (∀ g ∈ hetFoldWhile F block, g ≠ (default : Option (T ⊕ Γ₀))) →
         (TM0Seq.evalCfg M (block ++ [default])).Dom ∧
         ∀ (h : (TM0Seq.evalCfg M (block ++ [default])).Dom),
           ((TM0Seq.evalCfg M (block ++ [default])).get h).Tape =
-            Tape.mk₁ (hetFoldWhile f block ++ [default]) :=
+            Tape.mk₁ (hetFoldWhile F block ++ [default]) :=
   tm0RealizesBlock_while_inv
-    (hetFoldStep f) (hetFoldWhile f) hasHetInlHead
+    (hetFoldStep F) (hetFoldWhile F) hasHetInlHead
     isWellFormedHetBlock
-    (tm0RealizesBlockCond_hetFoldStep f hf_block hf_nd)
-    (fun block hInv hnd hcond => isWellFormedHetBlock_step f hf_nd block hInv hnd hcond)
-    (fun block hblock hcond => hetFoldStep_ne_default f hf_nd block hblock hcond)
-    (fun block hblock hInv => hetFoldWhile_eq_iterateWhile_wf f hf_nd block hblock hInv)
-    (fun block hblock _hInv => hetFoldWhile_ne_default f hf_nd block hblock)
+    (tm0RealizesBlockCond_hetFoldStep F hf_block hF_nd)
+    (fun block hInv hnd hcond => isWellFormedHetBlock_step F f hF hf_nd block hInv hnd hcond)
+    (fun block hblock hcond => hetFoldStep_ne_default F hF_nd block hblock hcond)
+    (fun block _hblock hInv => hetFoldWhile_eq_iterateWhile_wf F f hF block hInv)
+    (fun block hblock _hInv => hetFoldWhile_ne_default F hF_nd block hblock)
 
 /-- `w.map (some ∘ Sum.inl)` forms a well-formed het block. -/
 theorem isWellFormedHetBlock_map_inl (w : List T) :
@@ -729,8 +748,12 @@ theorem isWellFormedHetBlock_reverse_map_inl (w : List T) :
 theorem tm0Het_fold_blockRealizable'
     (T : Type) [DecidableEq T] [Fintype T]
     {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (f : T → List Γ₀ → List Γ₀)
-    (hf_block : ∀ t, TM0RealizesBlock Γ₀ (f t))
+    (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
+    (hf_block : ∀ t, TM0RealizesBlock (Option (T ⊕ Γ₀)) (F t))
+    (hF_nd : ∀ t block, (∀ g ∈ block, g ≠ default) →
+      ∀ g ∈ F t block, g ≠ default)
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) →
       ∀ g ∈ f t block, g ≠ default) :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -741,7 +764,8 @@ theorem tm0Het_fold_blockRealizable'
           ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
             Tape.mk₁ ((List.foldr f [] w).map
               (some ∘ @Sum.inr T Γ₀)) := by
-  obtain ⟨ Λ, _, _, M, hM ⟩ := tm0RealizesBlock_hetFoldWhile_inv f hf_block hf_nd;
+  obtain ⟨ Λ, _, _, M, hM ⟩ :=
+    tm0RealizesBlock_hetFoldWhile_inv F f hF hf_block hF_nd hf_nd;
   -- Let's obtain the machine M_rev from the theorem tm0_reverse_block.
   obtain ⟨Λ_rev, _, _, M_rev, hM_rev⟩ := tm0_reverse_block (Γ := Option (T ⊕ Γ₀));
   refine' ⟨ _, _, _, TM0Seq.compose M_rev M, _ ⟩;
@@ -754,7 +778,7 @@ theorem tm0Het_fold_blockRealizable'
         apply (hM ((List.map (some ∘ Sum.inl) w).reverse) (isWellFormedHetBlock_reverse_map_inl w) (by
         simp +decide [ List.mem_reverse, List.mem_map ]) (by
         apply hetFoldWhile_ne_default;
-        · exact hf_nd;
+        · exact hF_nd;
         · simp +decide [ List.mem_reverse, List.mem_map ])).left;
       convert TM0Seq.compose_dom_of_parts M_rev M ( List.map ( some ∘ Sum.inl ) w ) _ _ using 1;
       convert h_dom_rev using 1;
@@ -786,17 +810,17 @@ theorem tm0Het_fold_blockRealizable'
         · grind +suggestions;
         · simp +decide [ List.mem_reverse, List.mem_map ];
         · apply hetFoldWhile_ne_default;
-          · exact hf_nd;
+          · exact hF_nd;
           · simp +decide [ List.mem_reverse ];
         · grind +suggestions;
       · specialize hM ( List.map ( some ∘ Sum.inl ) w |> List.reverse ) ; simp_all +decide [ isWellFormedHetBlock_reverse_map_inl ];
         convert hM _ |>.2 _ |> Eq.symm using 1;
         all_goals generalize_proofs at *;
         · rw [ ← tape_mk₁_append_default ];
-          rw [ hetFold_decomp ];
+          rw [ hetFold_decomp F f hF ];
         · grind +suggestions;
         · apply hetFoldWhile_ne_default;
-          · exact hf_nd;
+          · exact hF_nd;
           · simp +decide [ List.mem_reverse, List.mem_map ];
         · grind +suggestions
 
