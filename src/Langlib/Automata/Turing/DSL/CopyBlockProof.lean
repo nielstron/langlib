@@ -1387,7 +1387,7 @@ noncomputable def M (sep2 outerSep : Γ) :
       some (.inr .sourceCheck, TM0.Stmt.move Dir.left)
   | .inr .doneSeekLeft =>
       if a = default then
-        some (.inr .doneSeekOrigin, TM0.Stmt.move Dir.right)
+        some (.inr .done, TM0.Stmt.move Dir.right)
       else
         some (.inr .doneSeekLeft, TM0.Stmt.move Dir.left)
   | .inr .doneSeekOrigin =>
@@ -1548,6 +1548,332 @@ theorem generic_scan_left_to_blank
     simpa [List.reverse_cons, List.append_assoc] using
       ih a (h :: R) ha helems'
 
+/-- From the temporary boundary marker, move left across the copied suffix to
+the first blank workspace cell and write the carried symbol there. -/
+theorem write_copy_cell_reaches
+    (sep2 outerSep c : Γ) (copied R : List Γ)
+    (hcopied_nd : ∀ g ∈ copied, g ≠ default) :
+    Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inl (c, LPhase.toBoundary),
+        Tape.mk₂ copied.reverse (outerSep :: R)⟩
+      ⟨Sum.inl (c, LPhase.returnBoundary),
+        Tape.mk₂ [] (c :: copied ++ outerSep :: R)⟩ := by
+  cases hrev : copied.reverse with
+  | nil =>
+      have hcopied_nil : copied = [] := by
+        simpa using congrArg List.reverse hrev
+      subst copied
+      have h_move : TM0.step (M sep2 outerSep)
+          ⟨Sum.inl (c, LPhase.toBoundary),
+            Tape.mk₂ [] (outerSep :: R)⟩ =
+          some ⟨Sum.inl (c, LPhase.toCopyBlank),
+            Tape.mk₂ [] (default :: outerSep :: R)⟩ := by
+        unfold TM0.step M
+        simp +decide [Tape.mk₂]
+      have h_write : TM0.step (M sep2 outerSep)
+          ⟨Sum.inl (c, LPhase.toCopyBlank),
+            Tape.mk₂ [] (default :: outerSep :: R)⟩ =
+          some ⟨Sum.inl (c, LPhase.returnBoundary),
+            Tape.mk₂ [] (c :: outerSep :: R)⟩ := by
+        unfold TM0.step M
+        simp +decide [Tape.mk₂]
+      have h_move_reaches : Reaches (TM0.step (M sep2 outerSep))
+          ⟨Sum.inl (c, LPhase.toBoundary),
+            Tape.mk₂ [] (outerSep :: R)⟩
+          ⟨Sum.inl (c, LPhase.toCopyBlank),
+            Tape.mk₂ [] (default :: outerSep :: R)⟩ :=
+        Relation.ReflTransGen.single (Option.mem_def.mpr h_move)
+      have h_write_reaches : Reaches (TM0.step (M sep2 outerSep))
+          ⟨Sum.inl (c, LPhase.toCopyBlank),
+            Tape.mk₂ [] (default :: outerSep :: R)⟩
+          ⟨Sum.inl (c, LPhase.returnBoundary),
+            Tape.mk₂ [] (c :: outerSep :: R)⟩ :=
+        Relation.ReflTransGen.single (Option.mem_def.mpr h_write)
+      exact h_move_reaches.trans h_write_reaches
+  | cons h t =>
+      have hcopied_eq : copied = t.reverse ++ [h] := by
+        calc
+          copied = copied.reverse.reverse := by simp
+          _ = (h :: t).reverse := by rw [hrev]
+          _ = t.reverse ++ [h] := by simp
+      have hh_nd : h ≠ default := by
+        exact hcopied_nd h (by rw [hcopied_eq]; simp)
+      have ht_nd : ∀ g ∈ t, g ≠ default := by
+        intro g hg
+        exact hcopied_nd g (by rw [hcopied_eq]; simp [hg])
+      have h_move : TM0.step (M sep2 outerSep)
+          ⟨Sum.inl (c, LPhase.toBoundary),
+            Tape.mk₂ (h :: t) (outerSep :: R)⟩ =
+          some ⟨Sum.inl (c, LPhase.toCopyBlank),
+            Tape.mk₂ t (h :: outerSep :: R)⟩ := by
+        unfold TM0.step M
+        simp +decide [Tape.mk₂]
+      have h_scan : Reaches (TM0.step (M sep2 outerSep))
+          ⟨Sum.inl (c, LPhase.toCopyBlank),
+            Tape.mk₂ t (h :: outerSep :: R)⟩
+          ⟨Sum.inl (c, LPhase.toCopyBlank),
+            Tape.mk₂ [] (default :: t.reverse ++ h :: outerSep :: R)⟩ := by
+        exact generic_scan_left_to_blank sep2 outerSep
+          (Sum.inl (c, LPhase.toCopyBlank)) h t (outerSep :: R)
+          hh_nd (by
+            intro a ha
+            unfold M
+            simp +decide [ha]) ht_nd
+      have h_write : TM0.step (M sep2 outerSep)
+          ⟨Sum.inl (c, LPhase.toCopyBlank),
+            Tape.mk₂ [] (default :: t.reverse ++ h :: outerSep :: R)⟩ =
+          some ⟨Sum.inl (c, LPhase.returnBoundary),
+            Tape.mk₂ [] (c :: t.reverse ++ h :: outerSep :: R)⟩ := by
+        unfold TM0.step M
+        simp +decide [Tape.mk₂]
+      have h0 : Reaches (TM0.step (M sep2 outerSep))
+          ⟨Sum.inl (c, LPhase.toBoundary),
+            Tape.mk₂ (h :: t) (outerSep :: R)⟩
+          ⟨Sum.inl (c, LPhase.returnBoundary),
+            Tape.mk₂ [] (c :: t.reverse ++ h :: outerSep :: R)⟩ :=
+        let h_move_reaches : Reaches (TM0.step (M sep2 outerSep))
+            ⟨Sum.inl (c, LPhase.toBoundary),
+              Tape.mk₂ (h :: t) (outerSep :: R)⟩
+            ⟨Sum.inl (c, LPhase.toCopyBlank),
+              Tape.mk₂ t (h :: outerSep :: R)⟩ :=
+          Relation.ReflTransGen.single (Option.mem_def.mpr h_move)
+        let h_write_reaches : Reaches (TM0.step (M sep2 outerSep))
+            ⟨Sum.inl (c, LPhase.toCopyBlank),
+              Tape.mk₂ [] (default :: t.reverse ++ h :: outerSep :: R)⟩
+            ⟨Sum.inl (c, LPhase.returnBoundary),
+              Tape.mk₂ [] (c :: t.reverse ++ h :: outerSep :: R)⟩ :=
+          Relation.ReflTransGen.single (Option.mem_def.mpr h_write)
+        h_move_reaches.trans (h_scan.trans h_write_reaches)
+      convert h0 using 1 <;> simp [hrev, hcopied_eq, List.append_assoc]
+
+/-- One right-to-left copy iteration for `CopyBlockLeft.M`.
+
+`todoRev.reverse ++ [h] ++ copied` is the original block. The current head is
+on `h`; `copied` is the already-copied suffix in original order. -/
+theorem copy_one_reaches
+    (sep2 outerSep h : Γ) (todoRev copied suffix : List Γ)
+    (houter : outerSep ≠ default)
+    (hh_outer : h ≠ outerSep)
+    (htodo_outer : ∀ g ∈ todoRev, g ≠ outerSep)
+    (htodo_nd : ∀ g ∈ todoRev, g ≠ default)
+    (hcopied_outer : ∀ g ∈ copied, g ≠ outerSep)
+    (hcopied_nd : ∀ g ∈ copied, g ≠ default) :
+    Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (todoRev ++ outerSep :: copied.reverse)
+          (h :: copied ++ outerSep :: suffix)⟩
+      (match todoRev with
+       | [] =>
+          ⟨Sum.inr LPhase.sourceCheck,
+            Tape.mk₂ (h :: copied).reverse
+              (outerSep :: h :: copied ++ outerSep :: suffix)⟩
+       | next :: rest =>
+          ⟨Sum.inr LPhase.sourceCheck,
+            Tape.mk₂ (rest ++ outerSep :: (h :: copied).reverse)
+              (next :: h :: copied ++ outerSep :: suffix)⟩) := by
+  have h_write_source : TM0.step (M sep2 outerSep)
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (todoRev ++ outerSep :: copied.reverse)
+          (h :: copied ++ outerSep :: suffix)⟩ =
+      some ⟨Sum.inl (h, LPhase.toBoundary),
+        Tape.mk₂ (todoRev ++ outerSep :: copied.reverse)
+          (default :: copied ++ outerSep :: suffix)⟩ := by
+    unfold TM0.step M
+    simp +decide [hh_outer, Tape.mk₂]
+  have h_to_marker : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inl (h, LPhase.toBoundary),
+        Tape.mk₂ (todoRev ++ outerSep :: copied.reverse)
+          (default :: copied ++ outerSep :: suffix)⟩
+      ⟨Sum.inl (h, LPhase.toBoundary),
+        Tape.mk₂ copied.reverse
+          (outerSep :: todoRev.reverse ++ default :: copied ++ outerSep :: suffix)⟩ := by
+    simpa [List.append_assoc] using
+      generic_scan_left_to_stop sep2 outerSep outerSep
+        (Sum.inl (h, LPhase.toBoundary)) default todoRev copied.reverse
+        (copied ++ outerSep :: suffix) (Ne.symm houter) (by
+          intro a ha
+          unfold M
+          simp +decide [ha]) htodo_outer
+  have h_write_copy := write_copy_cell_reaches sep2 outerSep h copied
+    (todoRev.reverse ++ default :: copied ++ outerSep :: suffix) hcopied_nd
+  have h_write_copy' : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inl (h, LPhase.toBoundary),
+        Tape.mk₂ copied.reverse
+          (outerSep :: todoRev.reverse ++ default :: copied ++ outerSep :: suffix)⟩
+      ⟨Sum.inl (h, LPhase.returnBoundary),
+        Tape.mk₂ [] (h :: copied ++ outerSep :: todoRev.reverse ++
+          default :: copied ++ outerSep :: suffix)⟩ := by
+    simpa [List.append_assoc] using h_write_copy
+  have h_return_boundary : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inl (h, LPhase.returnBoundary),
+        Tape.mk₂ [] (h :: copied ++ outerSep :: todoRev.reverse ++
+          default :: copied ++ outerSep :: suffix)⟩
+      ⟨Sum.inl (h, LPhase.returnBoundary),
+        Tape.mk₂ (h :: copied).reverse
+          (outerSep :: todoRev.reverse ++ default :: copied ++ outerSep :: suffix)⟩ := by
+    have hhc : ∀ g ∈ h :: copied, g ≠ outerSep := by
+      intro g hg
+      rcases List.mem_cons.mp hg with rfl | hg
+      · exact hh_outer
+      · exact hcopied_outer g hg
+    simpa [List.append_assoc] using
+      generic_scan_right sep2 outerSep outerSep
+        (Sum.inl (h, LPhase.returnBoundary)) (h :: copied) []
+        (outerSep :: todoRev.reverse ++ default :: copied ++ outerSep :: suffix)
+        (by
+          intro a ha
+          unfold M
+          simp +decide [ha]) hhc
+  have h_return_marker_start : TM0.step (M sep2 outerSep)
+      ⟨Sum.inl (h, LPhase.returnBoundary),
+        Tape.mk₂ (h :: copied).reverse
+          (outerSep :: todoRev.reverse ++ default :: copied ++ outerSep :: suffix)⟩ =
+      some ⟨Sum.inl (h, LPhase.returnMarker),
+        Tape.mk₂ (outerSep :: (h :: copied).reverse)
+          (todoRev.reverse ++ default :: copied ++ outerSep :: suffix)⟩ := by
+    unfold TM0.step M
+    simp +decide [Tape.mk₂]
+  have h_return_marker_scan : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inl (h, LPhase.returnMarker),
+        Tape.mk₂ (outerSep :: (h :: copied).reverse)
+          (todoRev.reverse ++ default :: copied ++ outerSep :: suffix)⟩
+      ⟨Sum.inl (h, LPhase.returnMarker),
+        Tape.mk₂ (todoRev ++ outerSep :: (h :: copied).reverse)
+          (default :: copied ++ outerSep :: suffix)⟩ := by
+    have htodo_rev : ∀ g ∈ todoRev.reverse, g ≠ default := by
+      intro g hg
+      exact htodo_nd g (List.mem_reverse.mp hg)
+    have hscan := generic_scan_right sep2 outerSep default
+        (Sum.inl (h, LPhase.returnMarker)) todoRev.reverse
+        (outerSep :: (h :: copied).reverse)
+        (default :: copied ++ outerSep :: suffix)
+        (by
+          intro a ha
+          unfold M
+          simp +decide [ha]) htodo_rev
+    simpa [List.reverse_reverse, List.append_assoc] using hscan
+  have h_restore : TM0.step (M sep2 outerSep)
+      ⟨Sum.inl (h, LPhase.returnMarker),
+        Tape.mk₂ (todoRev ++ outerSep :: (h :: copied).reverse)
+          (default :: copied ++ outerSep :: suffix)⟩ =
+      some ⟨Sum.inr LPhase.afterRestore,
+        Tape.mk₂ (todoRev ++ outerSep :: (h :: copied).reverse)
+          (h :: copied ++ outerSep :: suffix)⟩ := by
+    unfold TM0.step M
+    simp +decide [Tape.mk₂]
+  let afterRestoreCfg : TM0.Cfg Γ (LSt Γ) :=
+    match todoRev with
+    | [] =>
+        ⟨Sum.inr LPhase.sourceCheck,
+          Tape.mk₂ (h :: copied).reverse
+            (outerSep :: h :: copied ++ outerSep :: suffix)⟩
+    | next :: rest =>
+        ⟨Sum.inr LPhase.sourceCheck,
+          Tape.mk₂ (rest ++ outerSep :: (h :: copied).reverse)
+            (next :: h :: copied ++ outerSep :: suffix)⟩
+  have h_after_restore :
+      TM0.step (M sep2 outerSep)
+        ⟨Sum.inr LPhase.afterRestore,
+          Tape.mk₂ (todoRev ++ outerSep :: (h :: copied).reverse)
+            (h :: copied ++ outerSep :: suffix)⟩ =
+      some afterRestoreCfg := by
+    cases todoRev with
+    | nil =>
+        unfold TM0.step M
+        simp +decide [afterRestoreCfg, Tape.mk₂]
+    | cons next rest =>
+        unfold TM0.step M
+        simp +decide [afterRestoreCfg, Tape.mk₂, List.append_assoc]
+  have h_write_source_reaches : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (todoRev ++ outerSep :: copied.reverse)
+          (h :: copied ++ outerSep :: suffix)⟩
+      ⟨Sum.inl (h, LPhase.toBoundary),
+        Tape.mk₂ (todoRev ++ outerSep :: copied.reverse)
+          (default :: copied ++ outerSep :: suffix)⟩ :=
+    Relation.ReflTransGen.single (Option.mem_def.mpr h_write_source)
+  have h_return_marker_start_reaches : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inl (h, LPhase.returnBoundary),
+        Tape.mk₂ (h :: copied).reverse
+          (outerSep :: todoRev.reverse ++ default :: copied ++ outerSep :: suffix)⟩
+      ⟨Sum.inl (h, LPhase.returnMarker),
+        Tape.mk₂ (outerSep :: (h :: copied).reverse)
+          (todoRev.reverse ++ default :: copied ++ outerSep :: suffix)⟩ :=
+    Relation.ReflTransGen.single (Option.mem_def.mpr h_return_marker_start)
+  have h_restore_reaches : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inl (h, LPhase.returnMarker),
+        Tape.mk₂ (todoRev ++ outerSep :: (h :: copied).reverse)
+          (default :: copied ++ outerSep :: suffix)⟩
+      ⟨Sum.inr LPhase.afterRestore,
+        Tape.mk₂ (todoRev ++ outerSep :: (h :: copied).reverse)
+          (h :: copied ++ outerSep :: suffix)⟩ :=
+    Relation.ReflTransGen.single (Option.mem_def.mpr h_restore)
+  have h_after_restore_reaches : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.afterRestore,
+        Tape.mk₂ (todoRev ++ outerSep :: (h :: copied).reverse)
+          (h :: copied ++ outerSep :: suffix)⟩
+      afterRestoreCfg :=
+    Relation.ReflTransGen.single (Option.mem_def.mpr h_after_restore)
+  have h_chain : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (todoRev ++ outerSep :: copied.reverse)
+          (h :: copied ++ outerSep :: suffix)⟩
+      afterRestoreCfg :=
+    h_write_source_reaches.trans
+      (h_to_marker.trans
+        (h_write_copy'.trans
+          (h_return_boundary.trans
+            (h_return_marker_start_reaches.trans
+              (h_return_marker_scan.trans
+                (h_restore_reaches.trans h_after_restore_reaches))))))
+  cases todoRev <;> simpa [afterRestoreCfg, List.append_assoc] using h_chain
+
+/-- Iterate the right-to-left copy loop until the head returns to the temporary
+left marker. -/
+theorem copy_loop_left_reaches
+    (sep2 outerSep h : Γ) (todoRev copied suffix : List Γ)
+    (houter : outerSep ≠ default)
+    (hh_nd : h ≠ default)
+    (hh_outer : h ≠ outerSep)
+    (htodo_outer : ∀ g ∈ todoRev, g ≠ outerSep)
+    (htodo_nd : ∀ g ∈ todoRev, g ≠ default)
+    (hcopied_outer : ∀ g ∈ copied, g ≠ outerSep)
+    (hcopied_nd : ∀ g ∈ copied, g ≠ default) :
+    Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (todoRev ++ outerSep :: copied.reverse)
+          (h :: copied ++ outerSep :: suffix)⟩
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (todoRev.reverse ++ [h] ++ copied).reverse
+          (outerSep :: (todoRev.reverse ++ [h] ++ copied) ++ outerSep :: suffix)⟩ := by
+  induction' todoRev with next rest ih generalizing h copied
+  · have hone := copy_one_reaches sep2 outerSep h [] copied suffix houter
+      hh_outer htodo_outer htodo_nd hcopied_outer hcopied_nd
+    simpa [List.append_assoc] using hone
+  · have hnext_outer : next ≠ outerSep := htodo_outer next List.mem_cons_self
+    have hnext_nd : next ≠ default := htodo_nd next List.mem_cons_self
+    have hrest_outer : ∀ g ∈ rest, g ≠ outerSep := by
+      intro g hg
+      exact htodo_outer g (List.mem_cons_of_mem next hg)
+    have hrest_nd : ∀ g ∈ rest, g ≠ default := by
+      intro g hg
+      exact htodo_nd g (List.mem_cons_of_mem next hg)
+    have hcopied'_outer : ∀ g ∈ h :: copied, g ≠ outerSep := by
+      intro g hg
+      rcases List.mem_cons.mp hg with rfl | hg
+      · exact hh_outer
+      · exact hcopied_outer g hg
+    have hcopied'_nd : ∀ g ∈ h :: copied, g ≠ default := by
+      intro g hg
+      rcases List.mem_cons.mp hg with rfl | hg
+      · exact hh_nd
+      · exact hcopied_nd g hg
+    have hone := copy_one_reaches sep2 outerSep h (next :: rest) copied suffix
+      houter hh_outer htodo_outer htodo_nd hcopied_outer hcopied_nd
+    have hrest := ih next (h :: copied) hnext_nd hnext_outer hrest_outer hrest_nd
+      hcopied'_outer hcopied'_nd
+    convert hone.trans hrest using 1 <;> simp [List.append_assoc]
+
 /-- Non-empty correctness for `CopyBlockLeft.M`.
 
 This is the remaining loop invariant for the left-origin copy machine. The
@@ -1557,13 +1883,172 @@ left of that marker, overwrites the temporary marker with `sep2`, and halts on
 the new left origin. -/
 theorem nonempty_block_reaches
     (sep2 outerSep : Γ) (x : Γ) (xs suffix : List Γ)
+    (hsep2 : sep2 ≠ default)
+    (houter : outerSep ≠ default)
     (hblock_nd : ∀ g ∈ x :: xs, g ≠ default)
     (hblock_nouter : ∀ g ∈ x :: xs, g ≠ outerSep) :
     Reaches (TM0.step (M sep2 outerSep))
       (TM0.init ((x :: xs) ++ outerSep :: suffix))
       ⟨Sum.inr LPhase.done,
         Tape.mk₁ (copyWithSep sep2 (x :: xs) ++ outerSep :: suffix)⟩ := by
-  sorry
+  let block := x :: xs
+  have hblock_nd' : ∀ g ∈ block, g ≠ default := hblock_nd
+  have hblock_outer' : ∀ g ∈ block, g ≠ outerSep := hblock_nouter
+  have hrev_ne : block.reverse ≠ [] := by
+    simp [block]
+  obtain ⟨last, restRev, hrev⟩ := List.exists_cons_of_ne_nil hrev_ne
+  have hblock_eq : block = restRev.reverse ++ [last] := by
+    calc
+      block = block.reverse.reverse := by simp
+      _ = (last :: restRev).reverse := by rw [hrev]
+      _ = restRev.reverse ++ [last] := by simp
+  have hlast_nd : last ≠ default := by
+    exact hblock_nd' last (by rw [hblock_eq]; simp)
+  have hlast_outer : last ≠ outerSep := by
+    exact hblock_outer' last (by rw [hblock_eq]; simp)
+  have hrest_nd : ∀ g ∈ restRev, g ≠ default := by
+    intro g hg
+    exact hblock_nd' g (by rw [hblock_eq]; simp [hg])
+  have hrest_outer : ∀ g ∈ restRev, g ≠ outerSep := by
+    intro g hg
+    exact hblock_outer' g (by rw [hblock_eq]; simp [hg])
+  have h_start : Reaches (TM0.step (M sep2 outerSep))
+      (TM0.init (block ++ outerSep :: suffix))
+      ⟨Sum.inr LPhase.scanEnd,
+        Tape.mk₂ [outerSep] (block ++ outerSep :: suffix)⟩ := by
+    have hx_outer : x ≠ outerSep := hblock_nouter x List.mem_cons_self
+    have h_step1 : TM0.step (M sep2 outerSep)
+        (TM0.init (block ++ outerSep :: suffix)) =
+        some ⟨Sum.inr LPhase.initWrite,
+          Tape.mk₂ [] (default :: block ++ outerSep :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [TM0.init, Tape.mk₁, Tape.mk₂, block, hx_outer]
+    have h_step2 : TM0.step (M sep2 outerSep)
+        ⟨Sum.inr LPhase.initWrite,
+          Tape.mk₂ [] (default :: block ++ outerSep :: suffix)⟩ =
+        some ⟨Sum.inr LPhase.initReturn,
+          Tape.mk₂ [] (outerSep :: block ++ outerSep :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_step3 : TM0.step (M sep2 outerSep)
+        ⟨Sum.inr LPhase.initReturn,
+          Tape.mk₂ [] (outerSep :: block ++ outerSep :: suffix)⟩ =
+        some ⟨Sum.inr LPhase.scanEnd,
+          Tape.mk₂ [outerSep] (block ++ outerSep :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have h_step1_reaches : Reaches (TM0.step (M sep2 outerSep))
+        (TM0.init (block ++ outerSep :: suffix))
+        ⟨Sum.inr LPhase.initWrite,
+          Tape.mk₂ [] (default :: block ++ outerSep :: suffix)⟩ :=
+      Relation.ReflTransGen.single (Option.mem_def.mpr h_step1)
+    have h_step2_reaches : Reaches (TM0.step (M sep2 outerSep))
+        ⟨Sum.inr LPhase.initWrite,
+          Tape.mk₂ [] (default :: block ++ outerSep :: suffix)⟩
+        ⟨Sum.inr LPhase.initReturn,
+          Tape.mk₂ [] (outerSep :: block ++ outerSep :: suffix)⟩ :=
+      Relation.ReflTransGen.single (Option.mem_def.mpr h_step2)
+    have h_step3_reaches : Reaches (TM0.step (M sep2 outerSep))
+        ⟨Sum.inr LPhase.initReturn,
+          Tape.mk₂ [] (outerSep :: block ++ outerSep :: suffix)⟩
+        ⟨Sum.inr LPhase.scanEnd,
+          Tape.mk₂ [outerSep] (block ++ outerSep :: suffix)⟩ :=
+      Relation.ReflTransGen.single (Option.mem_def.mpr h_step3)
+    exact h_step1_reaches.trans (h_step2_reaches.trans h_step3_reaches)
+  have h_scan_end : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.scanEnd,
+        Tape.mk₂ [outerSep] (block ++ outerSep :: suffix)⟩
+      ⟨Sum.inr LPhase.scanEnd,
+        Tape.mk₂ (block.reverse ++ [outerSep]) (outerSep :: suffix)⟩ := by
+    simpa [List.append_assoc] using
+      generic_scan_right sep2 outerSep outerSep (Sum.inr LPhase.scanEnd)
+        block [outerSep] (outerSep :: suffix) (by
+          intro a ha
+          unfold M
+          simp +decide [ha]) hblock_outer'
+  have h_to_last : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.scanEnd,
+        Tape.mk₂ (block.reverse ++ [outerSep]) (outerSep :: suffix)⟩
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (restRev ++ [outerSep]) (last :: outerSep :: suffix)⟩ := by
+    have h_cross : TM0.step (M sep2 outerSep)
+        ⟨Sum.inr LPhase.scanEnd,
+          Tape.mk₂ (block.reverse ++ [outerSep]) (outerSep :: suffix)⟩ =
+        some ⟨Sum.inr LPhase.sourceCheck,
+          Tape.mk₂ (restRev ++ [outerSep]) (last :: outerSep :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [hrev, Tape.mk₂, List.append_assoc]
+    exact Relation.ReflTransGen.single (Option.mem_def.mpr h_cross)
+  have h_loop : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (restRev ++ outerSep :: ([] : List Γ).reverse)
+          (last :: ([] : List Γ) ++ outerSep :: suffix)⟩
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ block.reverse (outerSep :: block ++ outerSep :: suffix)⟩ := by
+    have h := copy_loop_left_reaches sep2 outerSep last restRev [] suffix
+      houter hlast_nd hlast_outer hrest_outer hrest_nd (by simp) (by simp)
+    convert h using 1 <;> simp [hblock_eq, hrev, List.append_assoc]
+  have h_finish : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ block.reverse (outerSep :: block ++ outerSep :: suffix)⟩
+      ⟨Sum.inr LPhase.done,
+        Tape.mk₁ (copyWithSep sep2 block ++ outerSep :: suffix)⟩ := by
+    have h_write_sep : TM0.step (M sep2 outerSep)
+        ⟨Sum.inr LPhase.sourceCheck,
+          Tape.mk₂ block.reverse (outerSep :: block ++ outerSep :: suffix)⟩ =
+        some ⟨Sum.inr LPhase.doneSeekLeft,
+          Tape.mk₂ block.reverse (sep2 :: block ++ outerSep :: suffix)⟩ := by
+      unfold TM0.step M
+      simp +decide [Tape.mk₂]
+    have hblock_rev_nd : ∀ g ∈ block.reverse, g ≠ default := by
+      intro g hg
+      exact hblock_nd' g (List.mem_reverse.mp hg)
+    have h_seek_left : Reaches (TM0.step (M sep2 outerSep))
+        ⟨Sum.inr LPhase.doneSeekLeft,
+          Tape.mk₂ block.reverse (sep2 :: block ++ outerSep :: suffix)⟩
+        ⟨Sum.inr LPhase.doneSeekLeft,
+          Tape.mk₂ [] (default :: block ++ sep2 :: block ++ outerSep :: suffix)⟩ := by
+      simpa [List.append_assoc] using
+        generic_scan_left_to_blank sep2 outerSep (Sum.inr LPhase.doneSeekLeft)
+          sep2 block.reverse (block ++ outerSep :: suffix) hsep2 (by
+            intro a ha
+            unfold M
+            simp +decide [ha]) hblock_rev_nd
+    have h_done : TM0.step (M sep2 outerSep)
+        ⟨Sum.inr LPhase.doneSeekLeft,
+          Tape.mk₂ [] (default :: block ++ sep2 :: block ++ outerSep :: suffix)⟩ =
+        some ⟨Sum.inr LPhase.done,
+          Tape.mk₁ (block ++ sep2 :: block ++ outerSep :: suffix)⟩ := by
+      unfold TM0.step
+      simp +decide [Tape.mk₁]
+      refine ⟨TM0.Stmt.move Dir.right, ?_, ?_⟩
+      · unfold M
+        simp +decide [Tape.mk₂]
+      · simpa [Tape.mk₂] using CopyBlock.mk₂_default_left sep2
+          (block ++ sep2 :: block ++ outerSep :: suffix)
+    have h_write_sep_reaches : Reaches (TM0.step (M sep2 outerSep))
+        ⟨Sum.inr LPhase.sourceCheck,
+          Tape.mk₂ block.reverse (outerSep :: block ++ outerSep :: suffix)⟩
+        ⟨Sum.inr LPhase.doneSeekLeft,
+          Tape.mk₂ block.reverse (sep2 :: block ++ outerSep :: suffix)⟩ :=
+      Relation.ReflTransGen.single (Option.mem_def.mpr h_write_sep)
+    have h_done_reaches : Reaches (TM0.step (M sep2 outerSep))
+        ⟨Sum.inr LPhase.doneSeekLeft,
+          Tape.mk₂ [] (default :: block ++ sep2 :: block ++ outerSep :: suffix)⟩
+        ⟨Sum.inr LPhase.done,
+          Tape.mk₁ (block ++ sep2 :: block ++ outerSep :: suffix)⟩ :=
+      Relation.ReflTransGen.single (Option.mem_def.mpr h_done)
+    have h_reaches := h_write_sep_reaches.trans
+      (h_seek_left.trans h_done_reaches)
+    simpa [copyWithSep, List.append_assoc] using h_reaches
+  have h_loop' : Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ (restRev ++ [outerSep]) (last :: outerSep :: suffix)⟩
+      ⟨Sum.inr LPhase.sourceCheck,
+        Tape.mk₂ block.reverse (outerSep :: block ++ outerSep :: suffix)⟩ := by
+    convert h_loop using 1 <;> simp [List.append_assoc]
+  simpa [block] using
+    h_start.trans (h_scan_end.trans (h_to_last.trans (h_loop'.trans h_finish)))
 
 end CopyBlockLeft
 
@@ -1578,7 +2063,8 @@ left, and therefore can preserve an arbitrary suffix opaquely. -/
 theorem tm0_copyWithSep_blockSepAnySuffix_outer
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep2 outerSep : Γ}
-    (hsep2 : sep2 ≠ default) :
+    (hsep2 : sep2 ≠ default)
+    (houter : outerSep ≠ default) :
     TM0RealizesBlockSepAnySuffix Γ outerSep (copyWithSep sep2) := by
   refine ⟨CopyBlockLeft.LSt Γ, inferInstance, inferInstance,
     CopyBlockLeft.M sep2 outerSep, ?_⟩
@@ -1606,7 +2092,7 @@ theorem tm0_copyWithSep_blockSepAnySuffix_outer
   | cons x xs =>
       have h_reaches :=
         CopyBlockLeft.nonempty_block_reaches sep2 outerSep x xs suffix
-          hblock_nd hblock_nouter
+          hsep2 houter hblock_nd hblock_nouter
       have h_mem :
           ⟨Sum.inr CopyBlockLeft.LPhase.done,
             Tape.mk₁ (copyWithSep sep2 (x :: xs) ++ outerSep :: suffix)⟩ ∈
