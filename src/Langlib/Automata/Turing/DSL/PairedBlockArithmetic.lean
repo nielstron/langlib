@@ -149,8 +149,8 @@ theorem binMulConst_ne_default (c : ℕ) (block : List ChainΓ)
 
    is stronger than the paired arithmetic use case needs: it would have to
    implement the identity branch for blocks with no `chainConsBottom`. The
-   actual paired-block step should instead use the separator-aware predecessor
-   theorem `tm0_incBeforeSep_present_blockSep` under a well-formedness
+   actual paired-block step should instead use the separator-parametric
+   predecessor block theorem under a well-formedness
    invariant saying that the paired separator is present. -/
 
 /-- Paired-block well-formedness fragment needed by the left/right transfer:
@@ -595,7 +595,8 @@ theorem pairedIncrRightNormalize_pairedSepInv (block : List ChainΓ)
 
 theorem tm0_pairedDecrLeftOnly_blockInv :
     TM0RealizesBlockInv pairedDecrLeftOnly pairedSepInv := by
-  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0_incBeforeSep_present_blockSep
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ :=
+    tm0_binPred_blockSep_of_ne_bits (sep := chainConsBottom) (by decide) (by decide)
   refine ⟨Λ, hΛi, hΛf, M, ?_⟩
   intro block hInv hblock hfblock
   rcases hsplit : splitAtConsBottom block with ⟨left, right⟩
@@ -1907,7 +1908,8 @@ theorem blockValueLeq_paired_prefix_append_secondSep
 
 theorem tm0_pairedDecrLeftIncrRightRaw_beforeSecond :
     TM0RealizesPairedBlockBeforeConsBottom pairedDecrLeftIncrRightRaw := by
-  obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ := tm0_incBeforeSep_present_blockSep
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
+    tm0_binPred_blockSep_of_ne_bits (sep := chainConsBottom) (by decide) (by decide)
   obtain ⟨Λs, hΛsi, hΛsf, Ms, hMs⟩ :=
     tm0_binSucc_afterFirstBeforeSecondConsBottom
   let hsum : Inhabited (Λp ⊕ Λs) := ⟨Sum.inl (@default _ hΛpi)⟩
