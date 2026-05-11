@@ -1,6 +1,7 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.CopyBinaryBlock
 import Langlib.Automata.Turing.DSL.ReverseBlock
+import Langlib.Automata.Turing.DSL.BlockSepPrefix
 
 /-! # Copy Block Correctness Proof -/
 
@@ -1160,6 +1161,135 @@ theorem tm0_copyWithSep_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fi
     Turing.mem_eval.mpr ⟨h_reaches, CopyBlock.step_done sep2 _⟩
   exact ⟨Part.dom_iff_mem.mpr ⟨_, h_mem⟩, fun h =>
     (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl⟩
+
+/-- The general copy-with-separator operation before an arbitrary outer
+separator.
+
+The underlying copy machine still uses `default` as its internal boundary
+marker. We expose an arbitrary outer separator by first replacing that boundary
+with `default`, running the existing copy machine, then restoring the boundary
+separator. -/
+theorem tm0_copyWithSep_blockSep_outer
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep2 outerSep : Γ}
+    (hsep2 : sep2 ≠ default) :
+    TM0RealizesBlockSep Γ outerSep (copyWithSep sep2) := by
+  let Mpre := boundaryReplaceMachine outerSep (default : Γ)
+  let Mcopy := CopyBlock.M sep2
+  let Mpost := boundaryReplaceMachine (default : Γ) outerSep
+  let h12i : Inhabited (BoundaryReplaceSt ⊕ CopyBlock.CSt Γ) :=
+    ⟨Sum.inl (@default _ inferInstance)⟩
+  let M12 : TM0.Machine Γ (BoundaryReplaceSt ⊕ CopyBlock.CSt Γ) :=
+    @TM0Seq.compose Γ BoundaryReplaceSt inferInstance (CopyBlock.CSt Γ)
+      inferInstance Mpre Mcopy
+  let h123i : Inhabited ((BoundaryReplaceSt ⊕ CopyBlock.CSt Γ) ⊕ BoundaryReplaceSt) :=
+    ⟨Sum.inl (@default _ h12i)⟩
+  let M123 : TM0.Machine Γ ((BoundaryReplaceSt ⊕ CopyBlock.CSt Γ) ⊕ BoundaryReplaceSt) :=
+    @TM0Seq.compose Γ (BoundaryReplaceSt ⊕ CopyBlock.CSt Γ) h12i
+      BoundaryReplaceSt inferInstance M12 Mpost
+  refine ⟨(BoundaryReplaceSt ⊕ CopyBlock.CSt Γ) ⊕ BoundaryReplaceSt, h123i,
+    inferInstance, M123, ?_⟩
+  intro block suffix hblock_nd hblock_nouter hsuffix_nd hf_nd _hf_nouter
+  have hpre := tm0_boundaryReplace outerSep (default : Γ)
+    block suffix hblock_nd hblock_nouter
+  have hcopy_reaches :=
+    CopyBlock.full_reaches sep2 hsep2 block suffix hblock_nd hsuffix_nd
+  have hcopy_mem :
+      ⟨Sum.inr (Sum.inr CopyBlock.NPhase.done),
+        Tape.mk₁ (copyWithSep sep2 block ++ default :: suffix)⟩ ∈
+        Turing.eval (TM0.step Mcopy)
+          (TM0.init (block ++ default :: suffix)) :=
+    Turing.mem_eval.mpr ⟨hcopy_reaches, CopyBlock.step_done sep2 _⟩
+  have hcopy_dom :
+      (TM0Seq.evalCfg Mcopy (block ++ default :: suffix)).Dom :=
+    Part.dom_iff_mem.mpr ⟨_, hcopy_mem⟩
+  have hcopy_tape :
+      ∀ h,
+        ((TM0Seq.evalCfg Mcopy (block ++ default :: suffix)).get h).Tape =
+          Tape.mk₁ (copyWithSep sep2 block ++ default :: suffix) := by
+    intro h
+    exact (Part.mem_unique (Part.get_mem h) hcopy_mem).symm ▸ rfl
+  have hcopy_from_cfg :
+      (TM0Seq.evalFromCfg Mcopy
+        ⟨default, ((TM0Seq.evalCfg Mpre
+          (block ++ outerSep :: suffix)).get hpre.1).Tape⟩).Dom := by
+    rw [hpre.2 hpre.1]
+    show (TM0Seq.evalFromCfg Mcopy (TM0.init (block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hcopy_dom
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (block ++ outerSep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M12 (block ++ outerSep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts Mpre Mcopy
+        (block ++ outerSep :: suffix) hpre.1 hcopy_from_cfg)
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (block ++ outerSep :: suffix)).get hM12_dom).Tape =
+        Tape.mk₁ (copyWithSep sep2 block ++ default :: suffix) := by
+    have ht := TM0Seq.compose_evalCfg_tape Mpre Mcopy
+      (block ++ outerSep :: suffix) (block ++ default :: suffix)
+      hpre.1 (hpre.2 hpre.1) hcopy_dom hM12_dom
+    rw [ht]
+    exact hcopy_tape hcopy_dom
+  have hpost := tm0_boundaryReplace (default : Γ) outerSep
+    (copyWithSep sep2 block) suffix hf_nd hf_nd
+  have hpost_from_cfg :
+      (TM0Seq.evalFromCfg Mpost
+        ⟨default, ((TM0Seq.evalCfg M12
+          (block ++ outerSep :: suffix)).get hM12_dom).Tape⟩).Dom := by
+    rw [hM12_tape]
+    show (TM0Seq.evalFromCfg Mpost
+      (TM0.init (copyWithSep sep2 block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hpost.1
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (block ++ outerSep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M123 (block ++ outerSep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts M12 Mpost
+        (block ++ outerSep :: suffix) hM12_dom hpost_from_cfg)
+  refine ⟨hM123_dom, ?_⟩
+  intro h
+  have ht := TM0Seq.compose_evalCfg_tape M12 Mpost
+    (block ++ outerSep :: suffix)
+    (copyWithSep sep2 block ++ default :: suffix)
+    hM12_dom hM12_tape hpost.1 h
+  rw [ht]
+  exact hpost.2 hpost.1
+
+/-- `copyWithSep` preserves freshness for a separator distinct from the
+inserted copy separator. -/
+theorem copyWithSep_ne_sep {Γ : Type} {sep2 sep : Γ}
+    (hsep2_sep : sep2 ≠ sep) (block : List Γ)
+    (hblock : ∀ g ∈ block, g ≠ sep) :
+    ∀ g ∈ copyWithSep sep2 block, g ≠ sep := by
+  unfold copyWithSep
+  intro g hg
+  rw [List.mem_append] at hg
+  rcases hg with hg | hg
+  · rw [List.mem_append] at hg
+    rcases hg with hg | hg
+    · exact hblock g hg
+    · have hg_eq : g = sep2 := by simpa using hg
+      simpa [hg_eq] using hsep2_sep
+  · exact hblock g hg
+
+/-- Separator-bounded copy, with no assumptions about the suffix after the
+outer separator.
+
+The existing `CopyBlock.M` proof above is default-boundary based and uses
+`default` as its moving marker while shifting the post-boundary region, so it
+requires the suffix after that boundary to be default-free.  This stronger
+interface is the one needed by multiplication: copy the whole prefix before a
+real separator while leaving everything after that separator opaque.
+
+Operationally this should be proved by a separator-aware copy machine that
+uses `outerSep` as the right boundary for shifts instead of relying on the
+first `default` in the suffix. -/
+theorem tm0_copyWithSep_blockSepAnySuffix_outer
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep2 outerSep : Γ}
+    (hsep2 : sep2 ≠ default) :
+    TM0RealizesBlockSepAnySuffix Γ outerSep (copyWithSep sep2) := by
+  sorry
 
 /-- The general copy-with-sep operation is block-realizable.
 

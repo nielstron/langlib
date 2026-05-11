@@ -119,6 +119,33 @@ theorem binAddPairedKeepRightSep_eq_cons
   unfold binAddPairedKeepRightSep
   rw [splitAtSep_general_cons sep left right hleft_sep]
 
+/-- After copying a paired block, deleting through the first paired separator
+in the copied half recovers the original right operand. This is the list-level
+shape behind the copy-then-delete construction for keep-right paired addition. -/
+theorem dropUntilFirstSep_copyWithSep_pairedRight
+    (copySep pairSep : ChainΓ) (left right : List ChainΓ)
+    (hpair_copy : pairSep ≠ copySep)
+    (hleft_pair : ∀ g ∈ left, g ≠ pairSep)
+    (hleft_copy : ∀ g ∈ left, g ≠ copySep)
+    (hright_copy : ∀ g ∈ right, g ≠ copySep) :
+    dropUntilFirstSep pairSep
+      (dropUntilFirstSep copySep
+        (copyWithSep copySep (left ++ pairSep :: right))) = right := by
+  unfold copyWithSep
+  rw [show left ++ pairSep :: right ++ [copySep] ++ (left ++ pairSep :: right) =
+      (left ++ pairSep :: right) ++ copySep :: (left ++ pairSep :: right) by
+        simp [List.append_assoc]]
+  rw [dropUntilFirstSep_append_cons copySep
+    (left ++ pairSep :: right) (left ++ pairSep :: right)]
+  · exact dropUntilFirstSep_append_cons pairSep left right hleft_pair
+  · intro g hg
+    rw [List.mem_append] at hg
+    rcases hg with hg | hg
+    · exact hleft_copy g hg
+    · cases hg with
+      | head => exact hpair_copy
+      | tail _ hg_right => exact hright_copy g hg_right
+
 /-- `extractPairedLeft` preserves non-defaultness. -/
 theorem extractPairedLeft_ne_default (block : List ChainΓ)
     (h : ∀ g ∈ block, g ≠ default) :
@@ -164,6 +191,17 @@ def hasConsBottom (block : List ChainΓ) : Prop :=
     no second `chainConsBottom`. -/
 def pairedSepInv (block : List ChainΓ) : Prop :=
   hasConsBottom block ∧ ∀ g ∈ (splitAtConsBottom block).2, g ≠ chainConsBottom
+
+/-- Separator-parametric paired separator invariant: the block contains `sep`,
+    and the suffix after the first `sep` contains no second `sep`. -/
+def pairedSepInvSep (sep : ChainΓ) (block : List ChainΓ) : Prop :=
+  sep ∈ block ∧ ∀ g ∈ (splitAtSep sep block).2, g ≠ sep
+
+/-- The separator-parametric paired invariant plus freshness for an auxiliary
+    separator. This is the shape used when reducing an arbitrary paired
+    separator to the existing `chainConsBottom` machine proof. -/
+def pairedSepInvFresh (sep fresh : ChainΓ) (block : List ChainΓ) : Prop :=
+  pairedSepInvSep sep block ∧ ∀ g ∈ block, g ≠ fresh
 
 /-! ### Decrement-left / increment-right decomposition for paired addition -/
 
@@ -252,6 +290,17 @@ theorem paired_splitAtConsBottom_reconstruct_of_mem (block : List ChainΓ)
     (h : chainConsBottom ∈ block) :
     block = (splitAtConsBottom block).1 ++ chainConsBottom :: (splitAtConsBottom block).2 := by
   simpa using splitAtConsBottom_reconstruct_of_mem block h
+
+theorem binAddPairedSep_eq_binAddPaired_replaceSep
+    (pairSep : ChainΓ) (left right : List ChainΓ)
+    (hleft_pair : ∀ g ∈ left, g ≠ pairSep)
+    (hleft_cons : ∀ g ∈ left, g ≠ chainConsBottom) :
+    binAddPairedSep pairSep (left ++ pairSep :: right) =
+      binAddPaired (left ++ chainConsBottom :: right) := by
+  unfold binAddPairedSep binAddPaired
+  rw [splitAtSep_general_cons pairSep left right hleft_pair]
+  rw [show splitAtConsBottom (left ++ chainConsBottom :: right) = (left, right) by
+    simpa using splitAtConsBottom_general left right hleft_cons]
 
 /-! ### Invariant-restricted block machines for paired arithmetic -/
 

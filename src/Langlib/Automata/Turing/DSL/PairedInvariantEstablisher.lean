@@ -494,6 +494,117 @@ theorem tm0_binAddPaired_blockInv :
   exact tm0RealizesBlockInv_congr hf (fun block hInv =>
     (binAddPaired_eq_while_decomp block hInv).symm)
 
+/-- Separator-parametric paired addition, reduced through the existing
+`chainConsBottom` paired-add machine.
+
+The strengthened invariant says the chosen auxiliary separator
+`chainConsBottom` is fresh for the whole paired block. Under that condition,
+we may rewrite the first `pairSep` boundary to `chainConsBottom`, run the
+fixed paired-add machine, and read the result as `binAddPairedSep pairSep`. -/
+theorem tm0_binAddPairedSep_blockInvFreshConsBottom
+    (pairSep : ChainΓ) :
+    TM0RealizesBlockInv (binAddPairedSep pairSep)
+      (pairedSepInvFresh pairSep chainConsBottom) := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0_binAddPaired_blockInv
+  let Mpre := boundaryReplaceMachine pairSep chainConsBottom
+  let hsum : Inhabited (BoundaryReplaceSt ⊕ Λ) :=
+    ⟨Sum.inl (@default _ inferInstance)⟩
+  let Mcomp : TM0.Machine ChainΓ (BoundaryReplaceSt ⊕ Λ) :=
+    @TM0Seq.compose ChainΓ BoundaryReplaceSt inferInstance Λ hΛi Mpre M
+  refine ⟨BoundaryReplaceSt ⊕ Λ, hsum, inferInstance, Mcomp, ?_⟩
+  intro block hInv hblock hfblock
+  rcases hsplit : splitAtSep pairSep block with ⟨left, right⟩
+  have hmem : pairSep ∈ block := hInv.1.1
+  have hblock_reconstruct :
+      block = left ++ pairSep :: right := by
+    simpa [hsplit] using splitAtSep_reconstruct_of_mem pairSep block hmem
+  have hleft_nd : ∀ g ∈ left, g ≠ default := by
+    intro g hg
+    exact hblock g (by
+      rw [hblock_reconstruct]
+      exact List.mem_append_left _ hg)
+  have hleft_npair : ∀ g ∈ left, g ≠ pairSep := by
+    simpa [hsplit] using splitAtSep_fst_no_sep pairSep block
+  have hleft_ncons : ∀ g ∈ left, g ≠ chainConsBottom := by
+    intro g hg
+    exact hInv.2 g (by
+      rw [hblock_reconstruct]
+      exact List.mem_append_left _ hg)
+  have hright_nd : ∀ g ∈ right, g ≠ default := by
+    intro g hg
+    exact hblock g (by
+      rw [hblock_reconstruct]
+      exact List.mem_append_right _ (List.mem_cons_of_mem _ hg))
+  have hright_ncons : ∀ g ∈ right, g ≠ chainConsBottom := by
+    intro g hg
+    exact hInv.2 g (by
+      rw [hblock_reconstruct]
+      exact List.mem_append_right _ (List.mem_cons_of_mem _ hg))
+  have hfixed_inv : pairedSepInv (left ++ chainConsBottom :: right) := by
+    constructor
+    · unfold hasConsBottom
+      simp
+    · rw [show splitAtConsBottom (left ++ chainConsBottom :: right) = (left, right) by
+        simpa using splitAtConsBottom_general left right hleft_ncons]
+      exact hright_ncons
+  have hfixed_nd : ∀ g ∈ left ++ chainConsBottom :: right, g ≠ default := by
+    intro g hg
+    simp only [List.mem_append, List.mem_cons] at hg
+    rcases hg with hg | rfl | hg
+    · exact hleft_nd g hg
+    · exact chainConsBottom_ne_default
+    · exact hright_nd g hg
+  have hfixed_out_nd :
+      ∀ g ∈ binAddPaired (left ++ chainConsBottom :: right), g ≠ default :=
+    binAddPaired_ne_default _ hfixed_nd
+  have hpre := tm0_boundaryReplace pairSep chainConsBottom
+    left (right ++ [default]) hleft_nd hleft_npair
+  have hpre_dom' : (TM0Seq.evalCfg Mpre (block ++ [default])).Dom := by
+    rw [hblock_reconstruct]
+    simpa [Mpre, List.append_assoc] using hpre.1
+  have hpre_tape' :
+      ((TM0Seq.evalCfg Mpre (block ++ [default])).get hpre_dom').Tape =
+        Tape.mk₁ (left ++ chainConsBottom :: right ++ [default]) := by
+    have hget :
+        (TM0Seq.evalCfg Mpre (block ++ [default])).get hpre_dom' =
+          (TM0Seq.evalCfg Mpre (left ++ pairSep :: (right ++ [default]))).get hpre.1 := by
+      apply Part.get_eq_get_of_eq
+      rw [hblock_reconstruct]
+      simpa [Mpre, List.append_assoc]
+    rw [hget, hpre.2 hpre.1]
+    simp [List.append_assoc]
+  obtain ⟨hm_dom, hm_tape⟩ :=
+    hM (left ++ chainConsBottom :: right) hfixed_inv hfixed_nd hfixed_out_nd
+  have hm_from_cfg :
+      (TM0Seq.evalFromCfg M
+        ⟨default, ((TM0Seq.evalCfg Mpre (block ++ [default])).get
+          hpre_dom').Tape⟩).Dom := by
+    rw [hpre_tape']
+    show (TM0Seq.evalFromCfg M
+      (TM0.init ((left ++ chainConsBottom :: right) ++ [default]))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    simpa [List.append_assoc] using hm_dom
+  have hcomp_dom :
+      (TM0Seq.evalCfg Mcomp (block ++ [default])).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff Mcomp (block ++ [default])).mpr
+      (TM0Seq.compose_dom_of_parts Mpre M
+        (block ++ [default]) hpre_dom' hm_from_cfg)
+  refine ⟨hcomp_dom, ?_⟩
+  intro h
+  have hcomp_tape :=
+    TM0Seq.compose_evalCfg_tape Mpre M
+      (block ++ [default]) (left ++ chainConsBottom :: right ++ [default])
+      hpre_dom' hpre_tape' hm_dom h
+  rw [hcomp_tape]
+  have hsem :
+      binAddPairedSep pairSep block =
+        binAddPaired (left ++ chainConsBottom :: right) := by
+    rw [hblock_reconstruct]
+    exact binAddPairedSep_eq_binAddPaired_replaceSep
+      pairSep left right hleft_npair hleft_ncons
+  rw [hm_tape hm_dom]
+  rw [hsem]
+
 theorem binPredRaw_no_mulSep₂ (block : List ChainΓ)
     (hblock : ∀ g ∈ block, g ≠ binMulStateSep₂) :
     ∀ g ∈ binPredRaw block, g ≠ binMulStateSep₂ := by

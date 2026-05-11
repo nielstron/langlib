@@ -78,6 +78,18 @@ theorem dropUntilFirstSep_ne_default {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     · exact fun g hg => hblock g (List.mem_cons_of_mem _ hg)
     · exact ih (fun g hg => hblock g (List.mem_cons_of_mem _ hg))
 
+theorem dropUntilFirstSep_append_cons {Γ : Type} [DecidableEq Γ]
+    (sep : Γ) (left right : List Γ)
+    (hleft : ∀ g ∈ left, g ≠ sep) :
+    dropUntilFirstSep sep (left ++ sep :: right) = right := by
+  induction' left with c left ih
+  · simp [dropUntilFirstSep]
+  · have hc : c ≠ sep := hleft c (by simp)
+    have hleft' : ∀ g ∈ left, g ≠ sep := by
+      intro g hg
+      exact hleft g (by simp [hg])
+    simp [dropUntilFirstSep, hc, ih hleft']
+
 /-
 Key connection: `dropFromLastSep` applied to a block with `sep` equals
     `dropFromLastSep` applied after removing the first occurrence via

@@ -1,5 +1,6 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.BlockRealizability
+import Langlib.Automata.Turing.DSL.BlockSepPrefix
 import Langlib.Automata.Turing.DSL.DropWhileNeSep
 import Langlib.Automata.Turing.DSL.TakeWhileBlock
 
@@ -106,3 +107,28 @@ theorem tm0_dropUntilFirstSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] 
   · intro h
     have h_mem := Turing.mem_eval.mpr ⟨h_reaches, h_halts⟩
     exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
+
+/-- `dropUntilFirstSep sep` is strong blank-delimited block-realizable: the
+machine halts as soon as it reaches `sep` or the boundary blank, so it never
+needs any invariant on the suffix after that boundary. -/
+theorem tm0_dropUntilFirstSep_blockAnySuffix
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (sep : Γ) (hsep : sep ≠ default) :
+    TM0RealizesBlockAnySuffix Γ (dropUntilFirstSep sep) := by
+  refine ⟨DUFSState, inferInstance, inferInstance, dufsM sep, ?_⟩
+  intro block suffix hblock hfblock
+  obtain ⟨q, h_reaches, h_halts⟩ := dufs_reaches_halts sep hsep block suffix hblock
+  constructor
+  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨h_reaches, h_halts⟩⟩
+  · intro h
+    have h_mem := Turing.mem_eval.mpr ⟨h_reaches, h_halts⟩
+    exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
+
+/-- Separator-bounded `dropUntilFirstSep`, with an unrestricted suffix after
+the outer separator. -/
+theorem tm0_dropUntilFirstSep_blockSepAnySuffix
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    (sep outerSep : Γ) (hsep : sep ≠ default) :
+    TM0RealizesBlockSepAnySuffix Γ outerSep (dropUntilFirstSep sep) :=
+  tm0RealizesBlockAnySuffix_toBlockSepAnySuffix
+    (tm0_dropUntilFirstSep_blockAnySuffix sep hsep)

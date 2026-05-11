@@ -300,6 +300,151 @@ theorem tm0_boundaryReplace {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
   intro h
   exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
 
+/-- Any default-delimited block machine can be run before an arbitrary
+non-default separator by temporarily replacing that separator with `default`,
+running the machine, and restoring the separator. -/
+theorem tm0RealizesBlock_toBlockSep
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} {f : List Γ → List Γ}
+    (hf : TM0RealizesBlock Γ f) :
+    TM0RealizesBlockSep Γ sep f := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hf
+  let Mpre := boundaryReplaceMachine sep (default : Γ)
+  let Mpost := boundaryReplaceMachine (default : Γ) sep
+  let h12i : Inhabited (BoundaryReplaceSt ⊕ Λ) :=
+    ⟨Sum.inl (@default _ inferInstance)⟩
+  let M12 : TM0.Machine Γ (BoundaryReplaceSt ⊕ Λ) :=
+    @TM0Seq.compose Γ BoundaryReplaceSt inferInstance Λ hΛi Mpre M
+  let h123i : Inhabited ((BoundaryReplaceSt ⊕ Λ) ⊕ BoundaryReplaceSt) :=
+    ⟨Sum.inl (@default _ h12i)⟩
+  let M123 : TM0.Machine Γ ((BoundaryReplaceSt ⊕ Λ) ⊕ BoundaryReplaceSt) :=
+    @TM0Seq.compose Γ (BoundaryReplaceSt ⊕ Λ) h12i BoundaryReplaceSt
+      inferInstance M12 Mpost
+  refine ⟨(BoundaryReplaceSt ⊕ Λ) ⊕ BoundaryReplaceSt, h123i,
+    inferInstance, M123, ?_⟩
+  intro block suffix hblock_nd hblock_nsep hsuffix_nd hf_nd hf_nsep
+  have hpre := tm0_boundaryReplace sep (default : Γ)
+    block suffix hblock_nd hblock_nsep
+  obtain ⟨hm_dom, hm_tape⟩ := hM block suffix hblock_nd hsuffix_nd hf_nd
+  have hm_from_cfg :
+      (TM0Seq.evalFromCfg M
+        ⟨default, ((TM0Seq.evalCfg Mpre
+          (block ++ sep :: suffix)).get hpre.1).Tape⟩).Dom := by
+    rw [hpre.2 hpre.1]
+    show (TM0Seq.evalFromCfg M (TM0.init (block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hm_dom
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (block ++ sep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M12 (block ++ sep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts Mpre M
+        (block ++ sep :: suffix) hpre.1 hm_from_cfg)
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (block ++ sep :: suffix)).get hM12_dom).Tape =
+        Tape.mk₁ (f block ++ default :: suffix) := by
+    have ht := TM0Seq.compose_evalCfg_tape Mpre M
+      (block ++ sep :: suffix) (block ++ default :: suffix)
+      hpre.1 (hpre.2 hpre.1) hm_dom hM12_dom
+    rw [ht]
+    exact hm_tape hm_dom
+  have hpost := tm0_boundaryReplace (default : Γ) sep
+    (f block) suffix hf_nd hf_nd
+  have hpost_from_cfg :
+      (TM0Seq.evalFromCfg Mpost
+        ⟨default, ((TM0Seq.evalCfg M12
+          (block ++ sep :: suffix)).get hM12_dom).Tape⟩).Dom := by
+    rw [hM12_tape]
+    show (TM0Seq.evalFromCfg Mpost (TM0.init (f block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hpost.1
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (block ++ sep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M123 (block ++ sep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts M12 Mpost
+        (block ++ sep :: suffix) hM12_dom hpost_from_cfg)
+  refine ⟨hM123_dom, ?_⟩
+  intro h
+  have ht := TM0Seq.compose_evalCfg_tape M12 Mpost
+    (block ++ sep :: suffix) (f block ++ default :: suffix)
+    hM12_dom hM12_tape hpost.1 h
+  rw [ht]
+  exact hpost.2 hpost.1
+
+/-- Any strong default-delimited block machine can be run before an arbitrary
+non-default separator by temporarily replacing that separator with `default`,
+running the machine, and restoring the separator.
+
+Unlike `tm0RealizesBlock_toBlockSep`, this preserves an entirely opaque suffix:
+the wrapped machine must already be a strong `TM0RealizesBlockAnySuffix`
+machine, and the boundary replacement machines only touch the first boundary
+cell. -/
+theorem tm0RealizesBlockAnySuffix_toBlockSepAnySuffix
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} {f : List Γ → List Γ}
+    (hf : TM0RealizesBlockAnySuffix Γ f) :
+    TM0RealizesBlockSepAnySuffix Γ sep f := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hf
+  let Mpre := boundaryReplaceMachine sep (default : Γ)
+  let Mpost := boundaryReplaceMachine (default : Γ) sep
+  let h12i : Inhabited (BoundaryReplaceSt ⊕ Λ) :=
+    ⟨Sum.inl (@default _ inferInstance)⟩
+  let M12 : TM0.Machine Γ (BoundaryReplaceSt ⊕ Λ) :=
+    @TM0Seq.compose Γ BoundaryReplaceSt inferInstance Λ hΛi Mpre M
+  let h123i : Inhabited ((BoundaryReplaceSt ⊕ Λ) ⊕ BoundaryReplaceSt) :=
+    ⟨Sum.inl (@default _ h12i)⟩
+  let M123 : TM0.Machine Γ ((BoundaryReplaceSt ⊕ Λ) ⊕ BoundaryReplaceSt) :=
+    @TM0Seq.compose Γ (BoundaryReplaceSt ⊕ Λ) h12i BoundaryReplaceSt
+      inferInstance M12 Mpost
+  refine ⟨(BoundaryReplaceSt ⊕ Λ) ⊕ BoundaryReplaceSt, h123i,
+    inferInstance, M123, ?_⟩
+  intro block suffix hblock_nd hblock_nsep hf_nd hf_nsep
+  have hpre := tm0_boundaryReplace sep (default : Γ)
+    block suffix hblock_nd hblock_nsep
+  obtain ⟨hm_dom, hm_tape⟩ := hM block suffix hblock_nd hf_nd
+  have hm_from_cfg :
+      (TM0Seq.evalFromCfg M
+        ⟨default, ((TM0Seq.evalCfg Mpre
+          (block ++ sep :: suffix)).get hpre.1).Tape⟩).Dom := by
+    rw [hpre.2 hpre.1]
+    show (TM0Seq.evalFromCfg M (TM0.init (block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hm_dom
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (block ++ sep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M12 (block ++ sep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts Mpre M
+        (block ++ sep :: suffix) hpre.1 hm_from_cfg)
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (block ++ sep :: suffix)).get hM12_dom).Tape =
+        Tape.mk₁ (f block ++ default :: suffix) := by
+    have ht := TM0Seq.compose_evalCfg_tape Mpre M
+      (block ++ sep :: suffix) (block ++ default :: suffix)
+      hpre.1 (hpre.2 hpre.1) hm_dom hM12_dom
+    rw [ht]
+    exact hm_tape hm_dom
+  have hpost := tm0_boundaryReplace (default : Γ) sep
+    (f block) suffix hf_nd hf_nd
+  have hpost_from_cfg :
+      (TM0Seq.evalFromCfg Mpost
+        ⟨default, ((TM0Seq.evalCfg M12
+          (block ++ sep :: suffix)).get hM12_dom).Tape⟩).Dom := by
+    rw [hM12_tape]
+    show (TM0Seq.evalFromCfg Mpost (TM0.init (f block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hpost.1
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (block ++ sep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M123 (block ++ sep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts M12 Mpost
+        (block ++ sep :: suffix) hM12_dom hpost_from_cfg)
+  refine ⟨hM123_dom, ?_⟩
+  intro h
+  have ht := TM0Seq.compose_evalCfg_tape M12 Mpost
+    (block ++ sep :: suffix) (f block ++ default :: suffix)
+    hM12_dom hM12_tape hpost.1 h
+  rw [ht]
+  exact hpost.2 hpost.1
+
 /-! ### Composition: reverse ∘ f ∘ reverse -/
 
 /-- If `f` is `TM0RealizesBlockSep Γ sep`, then `reverse ∘ f ∘ reverse`
