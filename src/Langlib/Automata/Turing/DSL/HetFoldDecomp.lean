@@ -542,7 +542,17 @@ theorem hetFoldStep_hetMix
 theorem hetFoldAdapt_hetMix
     (f : T → List Γ₀ → List Γ₀) (t : T) (ts : List T) (acc : List Γ₀) :
     hetFoldAdapt f t (hetMix ts acc) = hetMix ts (f t acc) := by
-  sorry
+  have hdecode : List.filterMap (hetAccDecode (T := T) ∘ hetAccEmb (T := T)) acc = acc := by
+    induction acc with
+    | nil => simp
+    | cons g acc ih => simp [Function.comp, hetAccDecode, hetAccEmb, ih]
+  induction ts with
+  | nil =>
+      simp [hetFoldAdapt, hetFoldAdaptSep, separatedAccLift, hetMix, hetMixSep,
+        separatedMix, hetSep, isHetInl, hdecode]
+  | cons t' ts ih =>
+      simp [hetFoldAdapt, hetFoldAdaptSep, separatedAccLift, hetMix, hetMixSep,
+        separatedMix, hetTagEmb, hetSep, isHetInl, hdecode]
 
 /-
 The `takeWhile isHetInl` length of `hetMix ts acc` is `ts.length`.
