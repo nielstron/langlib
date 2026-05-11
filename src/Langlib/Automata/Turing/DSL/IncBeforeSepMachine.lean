@@ -141,6 +141,22 @@ theorem tm0_binPred_blockSep_of_ne_bits {sep : ChainΓ}
       binPredRaw_no_of_ne_bits sep hsep0 hsep1 _
         (normalizeBlock_no_of_ne_bits sep hsep0 hsep1 block))
 
+theorem tm0_binPred_blockSepAnySuffix_of_ne_bits {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep binPred := by
+  rw [binPred_eq_comp]
+  exact tm0RealizesBlockSepAnySuffix_comp
+    (tm0RealizesBlockSepAnySuffix_comp
+      (tm0_normalizeBlockSep_anySuffix (sep := sep) hsep0 hsep1)
+      (tm0_binPredRaw_blockSepAnySuffix sep hsep1 hsep0)
+      (fun _ _ => normalizeBlock_ne_default _)
+      (fun _ _ => normalizeBlock_no_of_ne_bits sep hsep0 hsep1 _))
+    (tm0_normalizeBlockSep_anySuffix (sep := sep) hsep0 hsep1)
+    (fun block _hblock => binPredRaw_ne_default _ (normalizeBlock_ne_default block))
+    (fun block _hblock =>
+      binPredRaw_no_of_ne_bits sep hsep0 hsep1 _
+        (normalizeBlock_no_of_ne_bits sep hsep0 hsep1 block))
+
 /-- The raw predecessor machine decrements the prefix before
     `chainConsBottom`, preserves the separator and the right side, and
     rewinds to the start. -/

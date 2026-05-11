@@ -332,6 +332,28 @@ theorem tm0_binPredRaw_blockSep (sep : ChainΓ)
     have h_mem := Turing.mem_eval.mpr ⟨h_reaches, by simp [TM0.step, binPredRawMachine]⟩
     exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
 
+/-- `binPredRaw` is realizable before any non-bit separator, without any
+invariant requirement on the suffix after that separator. -/
+theorem tm0_binPredRaw_blockSepAnySuffix (sep : ChainΓ)
+    (hsep_bit1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (hsep_bit0 : sep ≠ γ'ToChainΓ Γ'.bit0) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep binPredRaw := by
+  use BinPredSt, inferInstance, inferInstance, binPredRawMachine
+  intro block suffix hblock _hblock_sep _hfblock _hfblock_sep
+  have h_reaches : Reaches (TM0.step binPredRawMachine)
+      (TM0.init (block ++ sep :: suffix))
+      ⟨.done, Tape.mk₁ (binPredRaw block ++ sep :: suffix)⟩ := by
+    simpa [TM0.init] using
+      binPredRaw_borrow_until_nonbit block suffix [] sep hsep_bit1 hsep_bit0
+        hblock (by simp)
+  constructor
+  · exact Part.dom_iff_mem.mpr
+      ⟨_, Turing.mem_eval.mpr ⟨h_reaches, by simp [TM0.step, binPredRawMachine]⟩⟩
+  · intro h
+    have h_mem := Turing.mem_eval.mpr
+      ⟨h_reaches, by simp [TM0.step, binPredRawMachine]⟩
+    exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
+
 /-- `binPredRaw` is block-realizable. -/
 theorem tm0_binPredRaw_block : TM0RealizesBlock ChainΓ binPredRaw := by
   use BinPredSt, inferInstance, inferInstance, binPredRawMachine

@@ -874,6 +874,115 @@ theorem pairedDecrLeftIncrRightSep_ne_marker
         (normalizeBlock_no_of_ne_bits marker hmarker_bit0 hmarker_bit1 right) g hg
   · simpa [hInv] using hblock
 
+/-- The unconditional paired-add transfer body before an explicit outer
+separator. The left predecessor is suffix-opaque, and the right successor runs
+as an inner block before `outerSep`. -/
+theorem tm0_pairedDecrLeftIncrRightSep_beforeSep
+    {pairSep outerSep : ChainΓ}
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
+    (houter_bit0 : outerSep ≠ γ'ToChainΓ Γ'.bit0)
+    (houter_bit1 : outerSep ≠ γ'ToChainΓ Γ'.bit1)
+    (hsucc :
+      TM0RealizesInnerBlockSepAnySuffix ChainΓ outerSep pairSep
+        (binSucc ∘ normalizeBlock)) :
+    TM0RealizesPairedBlockBeforeSep pairSep outerSep
+      (pairedDecrLeftIncrRightSep pairSep) := by
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
+    tm0_binPred_blockSepAnySuffix_of_ne_bits (sep := pairSep) hpair_bit0 hpair_bit1
+  obtain ⟨Λs, hΛsi, hΛsf, Ms, hMs⟩ := hsucc
+  let hsum : Inhabited (Λp ⊕ Λs) := ⟨Sum.inl (@default _ hΛpi)⟩
+  refine ⟨Λp ⊕ Λs, hsum, inferInstance,
+    @TM0Seq.compose ChainΓ Λp hΛpi Λs hΛsi Mp Ms, ?_⟩
+  intro left right suffix hleft_nd hleft_npair hleft_nouter
+    hright_nd hright_npair hright_nouter hf_nd
+  have hpred_nd : ∀ g ∈ binPred left, g ≠ default :=
+    binPred_ne_default left hleft_nd
+  have hpred_npair : ∀ g ∈ binPred left, g ≠ pairSep := by
+    unfold binPred
+    exact chainBinaryRepr_no_of_ne_bits pairSep hpair_bit0 hpair_bit1
+      (decodeBinaryBlock left - 1)
+  have hpred_nouter : ∀ g ∈ binPred left, g ≠ outerSep := by
+    unfold binPred
+    exact chainBinaryRepr_no_of_ne_bits outerSep houter_bit0 houter_bit1
+      (decodeBinaryBlock left - 1)
+  have hsucc_nd : ∀ g ∈ (binSucc ∘ normalizeBlock) right, g ≠ default := by
+    intro g hg
+    exact binSucc_ne_default (normalizeBlock right)
+      (normalizeBlock_ne_default right) g hg
+  have hsucc_nouter : ∀ g ∈ (binSucc ∘ normalizeBlock) right, g ≠ outerSep := by
+    intro g hg
+    exact binSucc_no_of_ne_bits houter_bit0 houter_bit1
+      (normalizeBlock right)
+      (normalizeBlock_no_of_ne_bits outerSep houter_bit0 houter_bit1 right) g hg
+  have hsucc_npair : ∀ g ∈ (binSucc ∘ normalizeBlock) right, g ≠ pairSep := by
+    intro g hg
+    exact binSucc_no_of_ne_bits hpair_bit0 hpair_bit1
+      (normalizeBlock right)
+      (normalizeBlock_no_of_ne_bits pairSep hpair_bit0 hpair_bit1 right) g hg
+  obtain ⟨hp_dom, hp_tape⟩ :=
+    hMp left (right ++ outerSep :: suffix)
+      hleft_nd hleft_npair hpred_nd hpred_npair
+  have hp_dom' :
+      (TM0Seq.evalCfg Mp
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom := by
+    simpa [List.append_assoc] using hp_dom
+  have hp_tape' :
+      ((TM0Seq.evalCfg Mp
+        (left ++ pairSep :: right ++ outerSep :: suffix)).get hp_dom').Tape =
+        Tape.mk₁ (binPred left ++ pairSep :: right ++ outerSep :: suffix) := by
+    have hget :
+        (TM0Seq.evalCfg Mp
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get hp_dom' =
+          (TM0Seq.evalCfg Mp
+            (left ++ pairSep :: (right ++ outerSep :: suffix))).get hp_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [List.append_assoc]
+    rw [hget, hp_tape hp_dom]
+    simp [List.append_assoc]
+  obtain ⟨hs_dom, hs_tape⟩ :=
+    hMs (binPred left) right suffix
+      hpred_nd hpred_nouter hpred_npair
+      hright_nd hright_nouter hright_npair
+      hsucc_nd hsucc_nouter hsucc_npair
+  have hs_from_cfg :
+      (TM0Seq.evalFromCfg Ms
+        ⟨default, ((TM0Seq.evalCfg Mp
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get hp_dom').Tape⟩).Dom := by
+    rw [hp_tape']
+    show (TM0Seq.evalFromCfg Ms
+      (TM0.init (binPred left ++ pairSep :: right ++ outerSep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hs_dom
+  have hcomp_dom :
+      (TM0Seq.evalCfg
+        (@TM0Seq.compose ChainΓ Λp hΛpi Λs hΛsi Mp Ms)
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff
+      (@TM0Seq.compose ChainΓ Λp hΛpi Λs hΛsi Mp Ms)
+      (left ++ pairSep :: right ++ outerSep :: suffix)).mpr
+        (@TM0Seq.compose_dom_of_parts ChainΓ _ Λp hΛpi Λs hΛsi
+          Mp Ms
+          (left ++ pairSep :: right ++ outerSep :: suffix)
+          hp_dom' hs_from_cfg)
+  refine ⟨hcomp_dom, ?_⟩
+  intro h
+  have hcomp_tape :=
+    @TM0Seq.compose_evalCfg_tape ChainΓ _ Λp hΛpi Λs hΛsi Mp Ms
+      (left ++ pairSep :: right ++ outerSep :: suffix)
+      (binPred left ++ pairSep :: right ++ outerSep :: suffix)
+      hp_dom' hp_tape' hs_dom h
+  rw [hcomp_tape, hs_tape hs_dom]
+  unfold pairedDecrLeftIncrRightSep
+  have hInv : pairedSepInvSep pairSep (left ++ pairSep :: right) := by
+    constructor
+    · simp
+    · rw [splitAtSep_general_cons pairSep left right hleft_npair]
+      exact hright_npair
+  rw [if_pos hInv]
+  rw [splitAtSep_general_cons pairSep left right hleft_npair]
+  simp [Function.comp, List.append_assoc]
+
 /-- The one-step paired-add body, composed from predecessor on the left and
 successor on the right. -/
 theorem tm0_pairedDecrLeftIncrRightSep_beforeSepCond
@@ -886,20 +995,263 @@ theorem tm0_pairedDecrLeftIncrRightSep_beforeSepCond
     (houter_bit1 : outerSep ≠ γ'ToChainΓ Γ'.bit1) :
     TM0RealizesPairedBlockBeforeSepCond pairSep outerSep
       (pairedDecrLeftIncrRightSep pairSep) (pairedAddCondSep pairSep) := by
-  have hpred :
-      TM0RealizesBlockSep ChainΓ pairSep binPred :=
-    tm0_binPred_blockSep_of_ne_bits hpair_bit0 hpair_bit1
+  have hRightNormSucc :
+      TM0RealizesBlockSepAnySuffix ChainΓ pairSep (binSucc ∘ normalizeBlock) := by
+    exact tm0RealizesBlockSepAnySuffix_comp
+      (tm0_normalizeBlockSep_anySuffix hpair_bit0 hpair_bit1)
+      (tm0_binSucc_blockSepAnySuffix hpair_bit0 hpair_bit1)
+      (fun block _ => normalizeBlock_ne_default block)
+      (fun block _ =>
+        normalizeBlock_no_of_ne_bits pairSep hpair_bit0 hpair_bit1 block)
   have hsucc :
-      TM0RealizesInnerBlockSepAnySuffix ChainΓ outerSep pairSep binSucc :=
+      TM0RealizesInnerBlockSepAnySuffix ChainΓ outerSep pairSep
+        (binSucc ∘ normalizeBlock) :=
     tm0RealizesBlockSepAnySuffix_toInner
       hpair_nd (Ne.symm hpair_outer)
-      (tm0_binSucc_blockSepAnySuffix hpair_bit0 hpair_bit1)
-      (fun block hblock => binSucc_ne_default block hblock)
-      (fun block hblock => binSucc_no_of_ne_bits hpair_bit0 hpair_bit1 block hblock)
-  -- Compose `hpred` and `hsucc`, then add the conditional/finalize wrapper.
-  -- The condition machine is the same value-decider used by the old
-  -- `chainConsBottom` body, with `pairSep` as the first non-bit terminator.
-  sorry
+      hRightNormSucc
+      (fun block _ =>
+        binSucc_ne_default (normalizeBlock block)
+          (normalizeBlock_ne_default block))
+      (fun block _ =>
+        binSucc_no_of_ne_bits hpair_bit0 hpair_bit1
+          (normalizeBlock block)
+          (normalizeBlock_no_of_ne_bits pairSep hpair_bit0 hpair_bit1 block))
+  obtain ⟨Λr, hΛri, hΛrf, Mr, hMr⟩ :=
+    tm0_pairedDecrLeftIncrRightSep_beforeSep
+      hpair_bit0 hpair_bit1 houter_bit0 houter_bit1 hsucc
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, q_le, q_gt, hne, hp⟩ :=
+    tm0_blockValueLeq_beforeSep_decidable_2 0 pairSep
+  haveI : DecidableEq Λp := Classical.decEq Λp
+  let hΛrFi : Inhabited (Λr ⊕ FinalizeSt) := ⟨Sum.inl (@default _ hΛri)⟩
+  let MrF : TM0.Machine ChainΓ (Λr ⊕ FinalizeSt) :=
+    @TM0Seq.compose ChainΓ Λr hΛri FinalizeSt inferInstance Mr finalizeMachine
+  let Mcond : TM0.Machine ChainΓ (Λp ⊕ FinalizeSt ⊕ (Λr ⊕ FinalizeSt)) :=
+    @tm0CondCompose Λp FinalizeSt (Λr ⊕ FinalizeSt)
+      hΛpi inferInstance hΛrFi inferInstance
+      Mp finalizeMachine MrF q_le q_gt
+  refine ⟨Λp ⊕ FinalizeSt ⊕ (Λr ⊕ FinalizeSt), inferInstance, inferInstance,
+    Mcond, Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)), ?_⟩
+  intro left right suffix hleft_nd hleft_npair hleft_nouter
+    hright_nd hright_npair hright_nouter hstep_nd
+  set pairBlock := left ++ pairSep :: right with hpair_def
+  set whole := left ++ pairSep :: right ++ outerSep :: suffix with hwhole_def
+  have hcond_bridge :
+      blockValueLeqBeforeSep 0 pairSep whole ↔
+        blockValueLeqBeforeSep 0 pairSep pairBlock := by
+    have hsplit_whole :
+        splitAtSep pairSep whole = (left, right ++ outerSep :: suffix) := by
+      simpa [whole, List.append_assoc] using
+        splitAtSep_general_cons pairSep left (right ++ outerSep :: suffix)
+          hleft_npair
+    have hsplit_pair : splitAtSep pairSep pairBlock = (left, right) := by
+      simpa [pairBlock] using splitAtSep_general_cons pairSep left right hleft_npair
+    unfold blockValueLeqBeforeSep
+    rw [hsplit_whole, hsplit_pair]
+  obtain ⟨hp_dom, hp_out⟩ :=
+    hp left (right ++ outerSep :: suffix) hleft_nd hleft_npair
+  have hp_dom' : (TM0Seq.evalCfg Mp whole).Dom := by
+    simpa [whole, List.append_assoc] using hp_dom
+  set cp := (TM0Seq.evalCfg Mp whole).get hp_dom'
+  have hcp_get :
+      cp =
+        (TM0Seq.evalCfg Mp (left ++ pairSep :: (right ++ outerSep :: suffix))).get
+          hp_dom := by
+    apply Part.get_eq_get_of_eq
+    simp [whole, List.append_assoc]
+  have hp_out' := hp_out hp_dom
+  have hcp_tape : cp.Tape = Tape.mk₁ whole := by
+    rw [hcp_get, hp_out'.1]
+    simp [whole, List.append_assoc]
+  have hcp_mem : cp ∈ TM0Seq.evalCfg Mp whole := Part.get_mem hp_dom'
+  have hcp_eval := Turing.mem_eval.mp hcp_mem
+  have hcp_halt : TM0.step Mp cp = none := hcp_eval.2
+  have hcp_reaches : Reaches (TM0.step Mp) (TM0.init whole) cp := hcp_eval.1
+  have hphase1 := condCompose_phase1_reaches Mp finalizeMachine MrF q_le q_gt
+    cp whole hcp_reaches
+  change Reaches (TM0.step Mcond) (TM0.init whole)
+    { q := Sum.inl cp.q, Tape := cp.Tape } at hphase1
+  have heval_rewrite :
+      TM0Seq.evalCfg Mcond whole =
+        Turing.eval (TM0.step Mcond) ⟨Sum.inl cp.q, cp.Tape⟩ := by
+    exact Turing.reaches_eval hphase1
+  by_cases hcond : pairedAddCondSep pairSep pairBlock
+  · have hp_false : ¬ blockValueLeqBeforeSep 0 pairSep whole := by
+      intro hle
+      exact hcond (hcond_bridge.mp hle)
+    have hq : cp.q = q_gt := by
+      have hout := hp_out'.2.2 (by simpa [whole, List.append_assoc] using hp_false)
+      rw [← hcp_get] at hout
+      exact hout
+    have hhalt_q : TM0.step Mp ⟨q_gt, cp.Tape⟩ = none := hq ▸ hcp_halt
+    have hstep_nd' :
+        ∀ g ∈ pairedDecrLeftIncrRightSep pairSep pairBlock, g ≠ default :=
+      hstep_nd hcond
+    obtain ⟨hMr_dom, hMr_tape⟩ :=
+      hMr left right suffix hleft_nd hleft_npair hleft_nouter
+        hright_nd hright_npair hright_nouter
+        (by simpa [pairBlock] using hstep_nd')
+    have hMr_dom' : (TM0Seq.evalCfg Mr whole).Dom := by
+      simpa [whole] using hMr_dom
+    have hMr_tape' :
+        ∀ h, ((TM0Seq.evalCfg Mr whole).get h).Tape =
+          Tape.mk₁ (pairedDecrLeftIncrRightSep pairSep pairBlock ++
+            outerSep :: suffix) := by
+      intro h
+      have hget :
+          (TM0Seq.evalCfg Mr whole).get h =
+            (TM0Seq.evalCfg Mr
+              (left ++ pairSep :: right ++ outerSep :: suffix)).get hMr_dom := by
+        apply Part.get_eq_get_of_eq
+        simp [whole]
+      rw [hget, hMr_tape hMr_dom]
+    have hfinal := compose_finalize_evalCfg Mr whole
+      (pairedDecrLeftIncrRightSep pairSep pairBlock ++ outerSep :: suffix)
+      hMr_dom' (hMr_tape' hMr_dom')
+    have hbranch_dom :
+        (TM0Seq.evalFromCfg MrF ⟨default, cp.Tape⟩).Dom := by
+      rw [hcp_tape]
+      change (TM0Seq.evalFromCfg MrF (TM0.init whole)).Dom
+      rw [TM0Seq.evalFromCfg_init]
+      exact hfinal.1
+    have hbranch_spec :
+        ∀ h, (TM0Seq.evalFromCfg MrF ⟨default, cp.Tape⟩).get h =
+          ⟨Sum.inr FinalizeSt.done,
+            Tape.mk₁ (pairedDecrLeftIncrRightSep pairSep pairBlock ++
+              outerSep :: suffix)⟩ := by
+      intro h
+      have heq :
+          TM0Seq.evalFromCfg MrF ⟨default, cp.Tape⟩ =
+            TM0Seq.evalCfg MrF whole := by
+        rw [hcp_tape]
+        exact TM0Seq.evalFromCfg_init (M := MrF) (l := whole)
+      have hget :
+          (TM0Seq.evalFromCfg MrF ⟨default, cp.Tape⟩).get h =
+            (TM0Seq.evalCfg MrF whole).get hfinal.1 := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hfinal.2 hfinal.1
+    have hbranch_step :
+        ∃ c₂, TM0.step MrF ⟨default, cp.Tape⟩ = some c₂ := by
+      rw [hcp_tape]
+      change ∃ c₂, TM0.step MrF (TM0.init whole) = some c₂
+      change ∃ c₂, TM0.step MrF ⟨default, Tape.mk₁ whole⟩ = some c₂
+      rcases hfirst : TM0.step Mr ⟨default, Tape.mk₁ whole⟩ with _ | c₂
+      · refine ⟨(⟨Sum.inr FinalizeSt.done, Tape.mk₁ whole⟩ :
+            TM0.Cfg ChainΓ (Λr ⊕ FinalizeSt)), ?_⟩
+        change TM0.step (@TM0Seq.compose ChainΓ Λr hΛri FinalizeSt inferInstance
+          Mr finalizeMachine) ⟨Sum.inl default, Tape.mk₁ whole⟩ =
+          some ⟨Sum.inr FinalizeSt.done, Tape.mk₁ whole⟩
+        rw [TM0Seq.compose_step_on_halt Mr finalizeMachine default
+          (Tape.mk₁ whole) hfirst]
+        change Option.map
+          (fun c₂ : TM0.Cfg ChainΓ FinalizeSt =>
+            ({ q := Sum.inr c₂.q, Tape := c₂.Tape } :
+              TM0.Cfg ChainΓ (Λr ⊕ FinalizeSt)))
+          (TM0.step finalizeMachine ⟨FinalizeSt.start, Tape.mk₁ whole⟩) =
+          some ⟨Sum.inr FinalizeSt.done, Tape.mk₁ whole⟩
+        rw [finalize_step_start]
+        rfl
+      · refine ⟨(⟨Sum.inl c₂.q, c₂.Tape⟩ :
+            TM0.Cfg ChainΓ (Λr ⊕ FinalizeSt)), ?_⟩
+        change TM0.step (@TM0Seq.compose ChainΓ Λr hΛri FinalizeSt inferInstance
+          Mr finalizeMachine) ⟨Sum.inl default, Tape.mk₁ whole⟩ =
+          some ⟨Sum.inl c₂.q, c₂.Tape⟩
+        simpa using TM0Seq.compose_step_inl Mr finalizeMachine
+          (⟨default, Tape.mk₁ whole⟩ : TM0.Cfg ChainΓ Λr) c₂ hfirst
+    have hbranch_eval_dom :
+        (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩).Dom := by
+      change (Turing.eval
+        (TM0.step (tm0CondCompose Mp finalizeMachine MrF q_le q_gt))
+        ⟨Sum.inl q_gt, cp.Tape⟩).Dom
+      exact (condCompose_eval_at_halt_false Mp finalizeMachine MrF q_le q_gt hne
+        cp.Tape hhalt_q).mpr hbranch_dom
+    have hdom : (TM0Seq.evalCfg Mcond whole).Dom := by
+      rw [heval_rewrite, hq]
+      exact hbranch_eval_dom
+    refine ⟨hdom, ?_⟩
+    intro h
+    have hcfg := condCompose_fixed_at_halt_false_of_step_local
+      Mp finalizeMachine MrF q_le q_gt hne (Sum.inr FinalizeSt.done) cp.Tape
+      (Tape.mk₁ (pairedDecrLeftIncrRightSep pairSep pairBlock ++
+        outerSep :: suffix))
+      hhalt_q hbranch_step hbranch_dom hbranch_spec
+    have hcfg' : (TM0Seq.evalCfg Mcond whole).get h =
+        ⟨Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)),
+          Tape.mk₁ (pairedDecrLeftIncrRightSep pairSep pairBlock ++
+            outerSep :: suffix)⟩ := by
+      have heq :
+          TM0Seq.evalCfg Mcond whole =
+            Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩ := by
+        rw [heval_rewrite, hq]
+      have hget :
+          (TM0Seq.evalCfg Mcond whole).get h =
+            (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩).get
+              hbranch_eval_dom := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hcfg hbranch_eval_dom
+    simp [hcond]
+    constructor
+    · simpa [hwhole_def] using congrArg TM0.Cfg.q hcfg'
+    · simpa [hwhole_def, hpair_def] using congrArg TM0.Cfg.Tape hcfg'
+  · have hp_true : blockValueLeqBeforeSep 0 pairSep whole := by
+      exact hcond_bridge.mpr (by simpa [pairedAddCondSep] using hcond)
+    have hq : cp.q = q_le := by
+      have hout := hp_out'.2.1 (by simpa [whole, List.append_assoc] using hp_true)
+      rw [← hcp_get] at hout
+      exact hout
+    have hhalt_q : TM0.step Mp ⟨q_le, cp.Tape⟩ = none := hq ▸ hcp_halt
+    obtain ⟨hid_dom, hid_spec⟩ := finalize_evalFromCfg cp.Tape
+    have hid_step : ∃ c₂, TM0.step finalizeMachine ⟨default, cp.Tape⟩ = some c₂ := by
+      exact ⟨⟨FinalizeSt.done, cp.Tape⟩, finalize_step_start cp.Tape⟩
+    have hbranch_eval_dom :
+        (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩).Dom := by
+      change (Turing.eval
+        (TM0.step (tm0CondCompose Mp finalizeMachine MrF q_le q_gt))
+        ⟨Sum.inl q_le, cp.Tape⟩).Dom
+      exact (condCompose_eval_at_halt_true Mp finalizeMachine MrF q_le q_gt
+        cp.Tape hhalt_q).mpr hid_dom
+    have hdom : (TM0Seq.evalCfg Mcond whole).Dom := by
+      rw [heval_rewrite, hq]
+      exact hbranch_eval_dom
+    refine ⟨hdom, ?_⟩
+    intro h
+    have hcfg := condCompose_fixed_at_halt_true_of_step_local
+      Mp finalizeMachine MrF q_le q_gt FinalizeSt.done cp.Tape cp.Tape
+      hhalt_q hid_step hid_dom (fun h => hid_spec h)
+    have hcfg' : (TM0Seq.evalCfg Mcond whole).get h =
+        ⟨Sum.inr (Sum.inl FinalizeSt.done), cp.Tape⟩ := by
+      have heq :
+          TM0Seq.evalCfg Mcond whole =
+            Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩ := by
+        rw [heval_rewrite, hq]
+      have hget :
+          (TM0Seq.evalCfg Mcond whole).get h =
+            (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩).get
+              hbranch_eval_dom := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hcfg hbranch_eval_dom
+    have hq_ne :
+        Sum.inr (Sum.inl FinalizeSt.done) ≠
+          (Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)) :
+            Λp ⊕ FinalizeSt ⊕ (Λr ⊕ FinalizeSt)) := by
+      simp
+    simp [hcond]
+    constructor
+    · have hq_out : ((TM0Seq.evalCfg Mcond whole).get h).q ≠
+          (Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)) :
+            Λp ⊕ FinalizeSt ⊕ (Λr ⊕ FinalizeSt)) := by
+        rw [hcfg']
+        exact hq_ne
+      simpa [hwhole_def] using hq_out
+    · have htape_out : ((TM0Seq.evalCfg Mcond whole).get h).Tape =
+          Tape.mk₁ whole := by
+        rw [hcfg', hcp_tape]
+      simpa [hwhole_def] using htape_out
 
 /-- Separator-parametric while combinator for paired blocks before an explicit
 outer separator. -/
@@ -1792,7 +2144,7 @@ theorem tm0_binAddPairedSep_beforeSep_anySuffix
             houter_bit0 houter_bit1 block hblock))
   have hnorm :
       TM0RealizesBlockSepAnySuffix ChainΓ outerSep normalizeBlock :=
-    tm0_normalizeBlockSepAnySuffix houter_bit0 houter_bit1
+    tm0_normalizeBlockSep_anySuffix houter_bit0 houter_bit1
   have hcomposed :
       TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep
         (normalizeBlock ∘ (dropUntilFirstSep pairSep ∘
