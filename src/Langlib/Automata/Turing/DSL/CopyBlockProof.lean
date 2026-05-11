@@ -1272,24 +1272,352 @@ theorem copyWithSep_ne_sep {Γ : Type} {sep2 sep : Γ}
       simpa [hg_eq] using hsep2_sep
   · exact hblock g hg
 
+/-- Appending just the copy separator is realizable before an opaque outer
+separator. This is the first phase needed by a left-origin copy construction;
+unlike `CopyBlock.M`, it does not shift the suffix by scanning through it. -/
+theorem tm0_appendCopySep_blockSepAnySuffix
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep2 outerSep : Γ}
+    (hsep2 : sep2 ≠ default) (hsep2_outer : sep2 ≠ outerSep) :
+    TM0RealizesBlockSepAnySuffix Γ outerSep (fun block => block ++ [sep2]) := by
+  exact tm0_appendList_blockSep_anySuffix [sep2]
+    (by
+      intro g hg
+      simp at hg
+      exact hg ▸ hsep2)
+    (by
+      intro g hg
+      simp at hg
+      exact hg ▸ hsep2_outer)
+
+namespace CopyBlockLeft
+
+variable {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+
+/-- States for the left-origin copy machine.
+
+Unlike `CopyBlock.M`, this machine should not shift the suffix after the outer
+separator. It copies source symbols into blank cells to the left of the current
+origin, then finishes with the head on the new left origin.
+
+The intended layout for a non-empty block is:
+
+* original input, physical cells `0..n`: `block ++ [outerSep]`;
+* output keeps `outerSep` in the same physical cell;
+* the new origin is shifted left by `n + 1`, so the finite tape reads
+  `block ++ [sep2] ++ block ++ [outerSep] ++ suffix`.
+-/
+inductive LPhase where
+  | start
+  | emptyWrite
+  | initWrite
+  | initReturn
+  | scanEnd
+  | sourceCheck
+  | toBoundary
+  | toCopyBlank
+  | returnBoundary
+  | returnMarker
+  | afterRestore
+  | doneSeekLeft
+  | doneSeekOrigin
+  | done
+  deriving DecidableEq, Repr
+
+instance : Fintype LPhase where
+  elems := {.start, .emptyWrite, .initWrite, .initReturn, .scanEnd,
+    .sourceCheck, .toBoundary, .toCopyBlank, .returnBoundary, .returnMarker,
+    .afterRestore, .doneSeekLeft, .doneSeekOrigin, .done}
+  complete q := by cases q <;> simp
+
+abbrev LSt (Γ : Type) := (Γ × LPhase) ⊕ LPhase
+
+instance : Inhabited (LSt Γ) := ⟨Sum.inr .start⟩
+
+/-- Copy before `outerSep` by growing into the blank cells left of the current
+origin, preserving the entire suffix after `outerSep` opaquely.
+
+`default` is used only as the left boundary/source marker. Since active blocks
+are default-free, the marker is unambiguous. -/
+noncomputable def M (sep2 outerSep : Γ) :
+    @TM0.Machine Γ (LSt Γ) ⟨Sum.inr .start⟩ := fun q a =>
+  match q with
+  | .inr .start =>
+      if a = outerSep then
+        some (.inr .emptyWrite, TM0.Stmt.move Dir.left)
+      else
+        some (.inr .initWrite, TM0.Stmt.move Dir.left)
+  | .inr .emptyWrite =>
+      some (.inr .done, TM0.Stmt.write sep2)
+  | .inr .initWrite =>
+      some (.inr .initReturn, TM0.Stmt.write outerSep)
+  | .inr .initReturn =>
+      some (.inr .scanEnd, TM0.Stmt.move Dir.right)
+  | .inr .scanEnd =>
+      if a = outerSep then
+        some (.inr .sourceCheck, TM0.Stmt.move Dir.left)
+      else
+        some (.inr .scanEnd, TM0.Stmt.move Dir.right)
+  | .inr .sourceCheck =>
+      if a = outerSep then
+        some (.inr .doneSeekLeft, TM0.Stmt.write sep2)
+      else
+        some (.inl (a, .toBoundary), TM0.Stmt.write default)
+  | .inl (c, .toBoundary) =>
+      if a = outerSep then
+        some (.inl (c, .toCopyBlank), TM0.Stmt.move Dir.left)
+      else
+        some (.inl (c, .toBoundary), TM0.Stmt.move Dir.left)
+  | .inl (c, .toCopyBlank) =>
+      if a = default then
+        some (.inl (c, .returnBoundary), TM0.Stmt.write c)
+      else
+        some (.inl (c, .toCopyBlank), TM0.Stmt.move Dir.left)
+  | .inl (c, .returnBoundary) =>
+      if a = outerSep then
+        some (.inl (c, .returnMarker), TM0.Stmt.move Dir.right)
+      else
+        some (.inl (c, .returnBoundary), TM0.Stmt.move Dir.right)
+  | .inl (c, .returnMarker) =>
+      if a = default then
+        some (.inr .afterRestore, TM0.Stmt.write c)
+      else
+        some (.inl (c, .returnMarker), TM0.Stmt.move Dir.right)
+  | .inr .afterRestore =>
+      some (.inr .sourceCheck, TM0.Stmt.move Dir.left)
+  | .inr .doneSeekLeft =>
+      if a = default then
+        some (.inr .doneSeekOrigin, TM0.Stmt.move Dir.right)
+      else
+        some (.inr .doneSeekLeft, TM0.Stmt.move Dir.left)
+  | .inr .doneSeekOrigin =>
+      some (.inr .done, TM0.Stmt.move Dir.right)
+  | .inr .done => none
+  | .inr .toBoundary
+  | .inr .toCopyBlank
+  | .inr .returnBoundary
+  | .inr .returnMarker => none
+  | .inl (_, .start)
+  | .inl (_, .emptyWrite)
+  | .inl (_, .initWrite)
+  | .inl (_, .initReturn)
+  | .inl (_, .scanEnd)
+  | .inl (_, .sourceCheck)
+  | .inl (_, .afterRestore)
+  | .inl (_, .doneSeekLeft)
+  | .inl (_, .doneSeekOrigin)
+  | .inl (_, .done) => none
+
+theorem step_done (sep2 outerSep : Γ) (t : Tape Γ) :
+    TM0.step (M sep2 outerSep)
+      ⟨Sum.inr LPhase.done, t⟩ = none := by
+  simp [TM0.step, M]
+
+/-- Empty-block path for the left-origin copy machine. No suffix invariant is
+needed: the machine only moves left of the outer separator and writes `sep2`. -/
+theorem empty_block_reaches (sep2 outerSep : Γ) (suffix : List Γ) :
+    Reaches (TM0.step (M sep2 outerSep))
+      ⟨Sum.inr LPhase.start, Tape.mk₁ (outerSep :: suffix)⟩
+      ⟨Sum.inr LPhase.done, Tape.mk₁ (sep2 :: outerSep :: suffix)⟩ := by
+  refine Relation.ReflTransGen.head (b :=
+      ⟨Sum.inr LPhase.emptyWrite,
+        Tape.mk₂ ([] : List Γ) (default :: outerSep :: suffix)⟩) ?_ ?_
+  · simp +decide [TM0.step, M, Tape.mk₁, Tape.mk₂]
+  · refine Relation.ReflTransGen.single ?_
+    simp +decide [TM0.step, M, Tape.mk₁, Tape.mk₂]
+
+/-- Generic scan-left lemma for states whose transition is "move left while
+the current symbol is not `stop`". -/
+theorem generic_scan_left
+    (sep2 outerSep stop : Γ) (q : LSt Γ)
+    (h : Γ) (elems L R : List Γ)
+    (hh : h ≠ stop)
+    (hstep : ∀ a, a ≠ stop →
+      M sep2 outerSep q a = some (q, TM0.Stmt.move Dir.left))
+    (helems : ∀ a ∈ elems, a ≠ stop) :
+    Reaches (TM0.step (M sep2 outerSep))
+      ⟨q, Tape.mk₂ (elems ++ L) (h :: R)⟩
+      ⟨q, Tape.mk₂ L (elems.reverse ++ h :: R)⟩ := by
+  induction' elems with a elems ih generalizing h R
+  · exact Relation.ReflTransGen.refl
+  · have ha : a ≠ stop := helems a List.mem_cons_self
+    have helems' : ∀ x ∈ elems, x ≠ stop := by
+      intro x hx
+      exact helems x (List.mem_cons_of_mem a hx)
+    have h_step :
+        TM0.step (M sep2 outerSep)
+          ⟨q, Tape.mk₂ (a :: elems ++ L) (h :: R)⟩ =
+        some ⟨q, Tape.mk₂ (elems ++ L) (a :: h :: R)⟩ := by
+      unfold TM0.step
+      simp +decide [Tape.mk₂, hstep h hh]
+    refine Relation.ReflTransGen.head (by exact Option.mem_def.mpr h_step) ?_
+    simpa [List.reverse_cons, List.append_assoc] using
+      ih a (h :: R) ha helems'
+
+/-- Generic scan-right lemma for states whose transition is "move right while
+the current symbol is not `stop`". -/
+theorem generic_scan_right
+    (sep2 outerSep stop : Γ) (q : LSt Γ)
+    (elems L R : List Γ)
+    (hstep : ∀ a, a ≠ stop →
+      M sep2 outerSep q a = some (q, TM0.Stmt.move Dir.right))
+    (helems : ∀ a ∈ elems, a ≠ stop) :
+    Reaches (TM0.step (M sep2 outerSep))
+      ⟨q, Tape.mk₂ L (elems ++ R)⟩
+      ⟨q, Tape.mk₂ (elems.reverse ++ L) R⟩ := by
+  induction' elems with a elems ih generalizing L
+  · exact Relation.ReflTransGen.refl
+  · have ha : a ≠ stop := helems a List.mem_cons_self
+    have helems' : ∀ x ∈ elems, x ≠ stop := by
+      intro x hx
+      exact helems x (List.mem_cons_of_mem a hx)
+    have h_step :
+        TM0.step (M sep2 outerSep)
+          ⟨q, Tape.mk₂ L (a :: elems ++ R)⟩ =
+        some ⟨q, Tape.mk₂ (a :: L) (elems ++ R)⟩ := by
+      unfold TM0.step
+      simp +decide [Tape.mk₂, hstep a ha]
+    refine Relation.ReflTransGen.head (by exact Option.mem_def.mpr h_step) ?_
+    simpa [List.reverse_cons, List.append_assoc] using ih (a :: L) helems'
+
+/-- Scan left across `elems` and then one more step onto an explicit stop
+symbol stored immediately to their left. -/
+theorem generic_scan_left_to_stop
+    (sep2 outerSep stop : Γ) (q : LSt Γ)
+    (h : Γ) (elems L R : List Γ)
+    (hh : h ≠ stop)
+    (hstep : ∀ a, a ≠ stop →
+      M sep2 outerSep q a = some (q, TM0.Stmt.move Dir.left))
+    (helems : ∀ a ∈ elems, a ≠ stop) :
+    Reaches (TM0.step (M sep2 outerSep))
+      ⟨q, Tape.mk₂ (elems ++ stop :: L) (h :: R)⟩
+      ⟨q, Tape.mk₂ L (stop :: elems.reverse ++ h :: R)⟩ := by
+  induction' elems with a elems ih generalizing h R
+  · have h_step :
+        TM0.step (M sep2 outerSep)
+          ⟨q, Tape.mk₂ (stop :: L) (h :: R)⟩ =
+        some ⟨q, Tape.mk₂ L (stop :: h :: R)⟩ := by
+      unfold TM0.step
+      simp +decide [Tape.mk₂, hstep h hh]
+    exact Relation.ReflTransGen.single (Option.mem_def.mpr h_step)
+  · have ha : a ≠ stop := helems a List.mem_cons_self
+    have helems' : ∀ x ∈ elems, x ≠ stop := by
+      intro x hx
+      exact helems x (List.mem_cons_of_mem a hx)
+    have h_step :
+        TM0.step (M sep2 outerSep)
+          ⟨q, Tape.mk₂ (a :: elems ++ stop :: L) (h :: R)⟩ =
+        some ⟨q, Tape.mk₂ (elems ++ stop :: L) (a :: h :: R)⟩ := by
+      unfold TM0.step
+      simp +decide [Tape.mk₂, hstep h hh]
+    refine Relation.ReflTransGen.head (Option.mem_def.mpr h_step) ?_
+    simpa [List.reverse_cons, List.append_assoc] using
+      ih a (h :: R) ha helems'
+
+/-- Scan left across the represented cells until the implicit blank just past
+the left end of the finite tape. -/
+theorem generic_scan_left_to_blank
+    (sep2 outerSep : Γ) (q : LSt Γ)
+    (h : Γ) (elems R : List Γ)
+    (hh : h ≠ default)
+    (hstep : ∀ a, a ≠ default →
+      M sep2 outerSep q a = some (q, TM0.Stmt.move Dir.left))
+    (helems : ∀ a ∈ elems, a ≠ default) :
+    Reaches (TM0.step (M sep2 outerSep))
+      ⟨q, Tape.mk₂ elems (h :: R)⟩
+      ⟨q, Tape.mk₂ [] (default :: elems.reverse ++ h :: R)⟩ := by
+  induction' elems with a elems ih generalizing h R
+  · have h_step :
+        TM0.step (M sep2 outerSep)
+          ⟨q, Tape.mk₂ [] (h :: R)⟩ =
+        some ⟨q, Tape.mk₂ [] (default :: h :: R)⟩ := by
+      unfold TM0.step
+      simp +decide [Tape.mk₂, hstep h hh]
+    exact Relation.ReflTransGen.single (Option.mem_def.mpr h_step)
+  · have ha : a ≠ default := helems a List.mem_cons_self
+    have helems' : ∀ x ∈ elems, x ≠ default := by
+      intro x hx
+      exact helems x (List.mem_cons_of_mem a hx)
+    have h_step :
+        TM0.step (M sep2 outerSep)
+          ⟨q, Tape.mk₂ (a :: elems) (h :: R)⟩ =
+        some ⟨q, Tape.mk₂ elems (a :: h :: R)⟩ := by
+      unfold TM0.step
+      simp +decide [Tape.mk₂, hstep h hh]
+    refine Relation.ReflTransGen.head (Option.mem_def.mpr h_step) ?_
+    simpa [List.reverse_cons, List.append_assoc] using
+      ih a (h :: R) ha helems'
+
+/-- Non-empty correctness for `CopyBlockLeft.M`.
+
+This is the remaining loop invariant for the left-origin copy machine. The
+machine first installs a temporary `outerSep` marker immediately to the left of
+the source block, copies source symbols right-to-left into the blank workspace
+left of that marker, overwrites the temporary marker with `sep2`, and halts on
+the new left origin. -/
+theorem nonempty_block_reaches
+    (sep2 outerSep : Γ) (x : Γ) (xs suffix : List Γ)
+    (hblock_nd : ∀ g ∈ x :: xs, g ≠ default)
+    (hblock_nouter : ∀ g ∈ x :: xs, g ≠ outerSep) :
+    Reaches (TM0.step (M sep2 outerSep))
+      (TM0.init ((x :: xs) ++ outerSep :: suffix))
+      ⟨Sum.inr LPhase.done,
+        Tape.mk₁ (copyWithSep sep2 (x :: xs) ++ outerSep :: suffix)⟩ := by
+  sorry
+
+end CopyBlockLeft
+
 /-- Separator-bounded copy, with no assumptions about the suffix after the
 outer separator.
 
-The existing `CopyBlock.M` proof above is default-boundary based and uses
-`default` as its moving marker while shifting the post-boundary region, so it
-requires the suffix after that boundary to be default-free.  This stronger
-interface is the one needed by multiplication: copy the whole prefix before a
-real separator while leaving everything after that separator opaque.
-
-Operationally this should be proved by a separator-aware copy machine that
-uses `outerSep` as the right boundary for shifts instead of relying on the
-first `default` in the suffix. -/
+The existing `CopyBlock.M` proof above is default-boundary based and shifts
+the post-boundary region, so it requires that region to be default-free.  The
+machine intended for this theorem is `CopyBlockLeft.M`: it leaves the physical
+outer separator and suffix fixed, grows the represented finite tape to the
+left, and therefore can preserve an arbitrary suffix opaquely. -/
 theorem tm0_copyWithSep_blockSepAnySuffix_outer
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep2 outerSep : Γ}
     (hsep2 : sep2 ≠ default) :
     TM0RealizesBlockSepAnySuffix Γ outerSep (copyWithSep sep2) := by
-  sorry
+  refine ⟨CopyBlockLeft.LSt Γ, inferInstance, inferInstance,
+    CopyBlockLeft.M sep2 outerSep, ?_⟩
+  intro block suffix hblock_nd hblock_nouter hf_nd hf_nouter
+  cases block with
+  | nil =>
+      have h_reaches := CopyBlockLeft.empty_block_reaches sep2 outerSep suffix
+      have h_reaches' :
+          Reaches (TM0.step (CopyBlockLeft.M sep2 outerSep))
+            (TM0.init ([] ++ outerSep :: suffix))
+            ⟨Sum.inr CopyBlockLeft.LPhase.done,
+              Tape.mk₁ (copyWithSep sep2 [] ++ outerSep :: suffix)⟩ := by
+        simpa [TM0.init, copyWithSep] using h_reaches
+      have h_mem :
+          ⟨Sum.inr CopyBlockLeft.LPhase.done,
+            Tape.mk₁ (copyWithSep sep2 [] ++ outerSep :: suffix)⟩ ∈
+          Turing.eval (TM0.step (CopyBlockLeft.M sep2 outerSep))
+            (TM0.init ([] ++ outerSep :: suffix)) :=
+        Turing.mem_eval.mpr
+          ⟨h_reaches',
+            CopyBlockLeft.step_done sep2 outerSep
+              (Tape.mk₁ (copyWithSep sep2 [] ++ outerSep :: suffix))⟩
+      exact ⟨Part.dom_iff_mem.mpr ⟨_, h_mem⟩, fun h =>
+        (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl⟩
+  | cons x xs =>
+      have h_reaches :=
+        CopyBlockLeft.nonempty_block_reaches sep2 outerSep x xs suffix
+          hblock_nd hblock_nouter
+      have h_mem :
+          ⟨Sum.inr CopyBlockLeft.LPhase.done,
+            Tape.mk₁ (copyWithSep sep2 (x :: xs) ++ outerSep :: suffix)⟩ ∈
+          Turing.eval (TM0.step (CopyBlockLeft.M sep2 outerSep))
+            (TM0.init ((x :: xs) ++ outerSep :: suffix)) :=
+        Turing.mem_eval.mpr
+          ⟨h_reaches,
+            CopyBlockLeft.step_done sep2 outerSep
+              (Tape.mk₁ (copyWithSep sep2 (x :: xs) ++ outerSep :: suffix))⟩
+      exact ⟨Part.dom_iff_mem.mpr ⟨_, h_mem⟩, fun h =>
+        (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl⟩
 
 /-- The general copy-with-sep operation is block-realizable.
 

@@ -487,6 +487,50 @@ theorem tm0RealizesBlockSepAnySuffix_revFRev
     (fun b hb g hg => hf_nd b.reverse (reverse_ne_default b hb) g hg)
     (fun b hb g hg => hf_nsep b.reverse (reverse_ne_sep b hb) g hg)
 
+/-- Appending a fixed non-default, non-separator list is realizable before a
+separator, with no invariant on the suffix. This follows by reversing the
+active block, prepending the reversed fixed suffix, and reversing back. -/
+theorem tm0_appendList_blockSep_anySuffix
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} (suf : List Γ)
+    (hsuf_nd : ∀ g ∈ suf, g ≠ default)
+    (hsuf_nsep : ∀ g ∈ suf, g ≠ sep) :
+    TM0RealizesBlockSepAnySuffix Γ sep (fun block => block ++ suf) := by
+  have hpre : TM0RealizesBlockSepAnySuffix Γ sep
+      (fun block => suf.reverse ++ block) :=
+    tm0_prependList_blockSep_anySuffix suf.reverse
+      (by
+        intro g hg
+        exact hsuf_nd g (List.mem_reverse.mp hg))
+      (by
+        intro g hg
+        exact hsuf_nsep g (List.mem_reverse.mp hg))
+  have h := tm0RealizesBlockSepAnySuffix_revFRev hpre
+    (by
+      intro block hblock g hg
+      rw [List.mem_append] at hg
+      rcases hg with hg | hg
+      · exact hsuf_nd g (List.mem_reverse.mp hg)
+      · exact hblock g hg)
+    (by
+      intro block hblock g hg
+      rw [List.mem_append] at hg
+      rcases hg with hg | hg
+      · exact hsuf_nsep g (List.mem_reverse.mp hg)
+      · exact hblock g hg)
+  convert h using 1
+  funext block
+  simp [Function.comp, List.reverse_append]
+
+theorem tm0_appendList_blockSep
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} (suf : List Γ)
+    (hsuf_nd : ∀ g ∈ suf, g ≠ default)
+    (hsuf_nsep : ∀ g ∈ suf, g ≠ sep) :
+    TM0RealizesBlockSep Γ sep (fun block => block ++ suf) := by
+  exact tm0RealizesBlockSep_of_anySuffix
+    (tm0_appendList_blockSep_anySuffix suf hsuf_nd hsuf_nsep)
+
 /-! ### Main Theorem: Lifting to Inner Block -/
 
 /-

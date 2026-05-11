@@ -691,6 +691,74 @@ def TM0RealizesPairedBlockBeforeSep
           (left ++ pairSep :: right ++ outerSep :: suffix)).get h).Tape =
           Tape.mk₁ (f (left ++ pairSep :: right) ++ outerSep :: suffix)
 
+/-- Variant of `TM0RealizesPairedBlockBeforeSep` that exposes the extra
+freshness needed by the copy/delete construction.
+
+The intended route is:
+
+1. copy the paired block with `copySep`, using the new suffix-opaque copy
+   machine before `outerSep`;
+2. run paired addition before the copied tail;
+3. use the copied tail and `dropUntilFirstSep pairSep` to recover the right
+   component.
+
+The plain `TM0RealizesPairedBlockBeforeSep` interface has no assumptions that
+`copySep` is fresh for `left` and `right`, so this is the theorem shape that
+can actually be proved by the generic copy machine. -/
+def TM0RealizesPairedBlockBeforeSepViaCopySep
+    (pairSep copySep outerSep : ChainΓ)
+    (f : List ChainΓ → List ChainΓ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine ChainΓ Λ),
+    ∀ (left right suffix : List ChainΓ),
+      (∀ g ∈ left, g ≠ default) →
+      (∀ g ∈ left, g ≠ pairSep) →
+      (∀ g ∈ left, g ≠ copySep) →
+      (∀ g ∈ left, g ≠ outerSep) →
+      (∀ g ∈ right, g ≠ default) →
+      (∀ g ∈ right, g ≠ pairSep) →
+      (∀ g ∈ right, g ≠ copySep) →
+      (∀ g ∈ right, g ≠ outerSep) →
+      (∀ g ∈ f (left ++ pairSep :: right), g ≠ default) →
+      (TM0Seq.evalCfg M
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom),
+        ((TM0Seq.evalCfg M
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get h).Tape =
+          Tape.mk₁ (f (left ++ pairSep :: right) ++ outerSep :: suffix)
+
+/-- Copy/delete construction for keep-right paired addition, stated with an
+explicit fresh copy separator.
+
+This is the version that can use `tm0_copyWithSep_blockSepAnySuffix_outer`:
+the suffix after `outerSep` is opaque throughout the copy phase, and `copySep`
+is kept distinct from all data that the later delete-through-separator phase
+must inspect. -/
+theorem tm0_binAddPairedKeepRightSep_beforeSep_viaCopySep
+    {pairSep copySep outerSep : ChainΓ}
+    (hpair_nd : pairSep ≠ default)
+    (hcopy_nd : copySep ≠ default)
+    (houter_nd : outerSep ≠ default)
+    (hpair_copy : pairSep ≠ copySep)
+    (hpair_outer : pairSep ≠ outerSep)
+    (hcopy_outer : copySep ≠ outerSep) :
+    TM0RealizesPairedBlockBeforeSepViaCopySep pairSep copySep outerSep
+      (binAddPairedKeepRightSep pairSep) := by
+  obtain ⟨Λcopy, hΛcopyi, hΛcopyf, Mcopy, hMcopy⟩ :=
+    tm0_copyWithSep_blockSepAnySuffix_outer
+      (sep2 := copySep) (outerSep := outerSep) hcopy_nd
+  obtain ⟨ΛdropCopy, hΛdropCopyi, hΛdropCopyf, MdropCopy, hMdropCopy⟩ :=
+    tm0_dropUntilFirstSep_blockSepAnySuffix
+      (sep := copySep) (outerSep := outerSep) hcopy_nd
+  obtain ⟨ΛdropPair, hΛdropPairi, hΛdropPairf, MdropPair, hMdropPair⟩ :=
+    tm0_dropUntilFirstSep_blockSepAnySuffix
+      (sep := pairSep) (outerSep := outerSep) hpair_nd
+  -- The remaining composition glues the new suffix-opaque copy machine to the
+  -- paired-add block proof and then uses `dropUntilFirstSep_copyWithSep_pairedRight`
+  -- for the list-level recovery of the preserved right operand.
+  sorry
+
 /-- TODO: generalize the paired-add-keep-right machine to an arbitrary internal
 paired separator and a distinct outer separator. This is the real machine
 obligation; concrete multiplication separators should only be specializations
