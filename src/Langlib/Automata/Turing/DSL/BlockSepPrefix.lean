@@ -69,6 +69,48 @@ def TM0RealizesInnerBlockSep (Γ : Type) [Inhabited Γ] (sep₁ sep₂ : Γ)
         ((TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).get h).Tape =
           Tape.mk₁ (pfx ++ sep₂ :: f inner ++ sep₁ :: suffix)
 
+/-- Strong suffix version of `TM0RealizesInnerBlockSep`.
+
+The machine applies `f` to the block between `sep₂` and `sep₁`, preserving
+the entire suffix after `sep₁` without requiring it to be blank-free. -/
+def TM0RealizesInnerBlockSepAnySuffix
+    (Γ : Type) [Inhabited Γ] (sep₁ sep₂ : Γ)
+    (f : List Γ → List Γ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (pfx inner suffix : List Γ),
+      (∀ g ∈ pfx, g ≠ default) →
+      (∀ g ∈ pfx, g ≠ sep₁) →
+      (∀ g ∈ pfx, g ≠ sep₂) →
+      (∀ g ∈ inner, g ≠ default) →
+      (∀ g ∈ inner, g ≠ sep₁) →
+      (∀ g ∈ inner, g ≠ sep₂) →
+      (∀ g ∈ f inner, g ≠ default) →
+      (∀ g ∈ f inner, g ≠ sep₁) →
+      (∀ g ∈ f inner, g ≠ sep₂) →
+      (TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+          (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).Dom),
+        ((TM0Seq.evalCfg M
+          (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).get h).Tape =
+          Tape.mk₁ (pfx ++ sep₂ :: f inner ++ sep₁ :: suffix)
+
+/-- Forget that an inner-block machine is suffix-opaque. -/
+theorem tm0RealizesInnerBlockSep_of_anySuffix
+    {Γ : Type} [Inhabited Γ] {sep₁ sep₂ : Γ} {f : List Γ → List Γ}
+    (hf : TM0RealizesInnerBlockSepAnySuffix Γ sep₁ sep₂ f) :
+    TM0RealizesInnerBlockSep Γ sep₁ sep₂ f := by
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hf
+  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
+  intro pfx inner suffix
+    hpfx_nd hpfx_nsep₁ hpfx_nsep₂
+    hinn_nd hinn_nsep₁ hinn_nsep₂
+    _hsuffix_nd hfinn_nd hfinn_nsep₁ hfinn_nsep₂
+  exact hM pfx inner suffix
+    hpfx_nd hpfx_nsep₁ hpfx_nsep₂
+    hinn_nd hinn_nsep₁ hinn_nsep₂
+    hfinn_nd hfinn_nsep₁ hfinn_nsep₂
+
 /-- A default-delimited version of `TM0RealizesInnerBlockSep`.
 
 This is the shape needed by invariant while-loop bodies: the whole active
@@ -665,7 +707,7 @@ theorem tm0RealizesBlockSepAnySuffix_toInner
     (hf : TM0RealizesBlockSepAnySuffix Γ sep₂ f)
     (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
     (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
-    TM0RealizesInnerBlockSep Γ sep₁ sep₂ f := by
+    TM0RealizesInnerBlockSepAnySuffix Γ sep₁ sep₂ f := by
   have hrev₁ := @tm0_reverse_blockSep_anySuffix Γ _ _ _ (sep := sep₁)
   have hrfr := tm0RealizesBlockSepAnySuffix_revFRev hf hf_nd hf_nsep
   obtain ⟨Λ_rev, h_rev_inh, h_rev_fin, M_rev, hM_rev⟩ := hrev₁
@@ -682,7 +724,7 @@ theorem tm0RealizesBlockSepAnySuffix_toInner
   intro pfx inner suffix
     hpfx_nd hpfx_nsep₁ hpfx_nsep₂
     hinn_nd hinn_nsep₁ hinn_nsep₂
-    _hsuf_nd hfinn_nd hfinn_nsep₁ hfinn_nsep₂
+    hfinn_nd hfinn_nsep₁ hfinn_nsep₂
   set outer := pfx ++ sep₂ :: inner with h_outer_def
   have h_outer_rev : outer.reverse = inner.reverse ++ sep₂ :: pfx.reverse :=
     reverse_append_cons pfx sep₂ inner

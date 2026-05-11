@@ -737,52 +737,6 @@ abbrev TM0RealizesPairedBlockBeforeSepAnySuffix
     (pairSep outerSep : ChainΓ) (f : List ChainΓ → List ChainΓ) : Prop :=
   TM0RealizesPairedBlockBeforeSep pairSep outerSep f
 
-/-- Strong inner-block operation between two explicit separators.
-
-This is the suffix-opaque analogue of `TM0RealizesInnerBlockSep`: the machine
-operates on the block between `sep₂` and `sep₁`, preserving the prefix and the
-entire tail after `sep₁` without asking that tail to be blank-free. -/
-def TM0RealizesInnerBlockSepAnySuffix
-    (Γ : Type) [Inhabited Γ] (sep₁ sep₂ : Γ)
-    (f : List Γ → List Γ) : Prop :=
-  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
-    (M : TM0.Machine Γ Λ),
-    ∀ (pfx inner suffix : List Γ),
-      (∀ g ∈ pfx, g ≠ default) →
-      (∀ g ∈ pfx, g ≠ sep₁) →
-      (∀ g ∈ pfx, g ≠ sep₂) →
-      (∀ g ∈ inner, g ≠ default) →
-      (∀ g ∈ inner, g ≠ sep₁) →
-      (∀ g ∈ inner, g ≠ sep₂) →
-      (∀ g ∈ f inner, g ≠ default) →
-      (∀ g ∈ f inner, g ≠ sep₁) →
-      (∀ g ∈ f inner, g ≠ sep₂) →
-      (TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).Dom ∧
-      ∀ (h : (TM0Seq.evalCfg M
-          (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).Dom),
-        ((TM0Seq.evalCfg M
-          (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).get h).Tape =
-          Tape.mk₁ (pfx ++ sep₂ :: f inner ++ sep₁ :: suffix)
-
-/-- Suffix-opaque prefix/suffix lift for separator-delimited block machines.
-
-This is the interface-compatible form of
-`tm0RealizesBlockSepAnySuffix_toInner`; the construction is the same
-reverse/apply/reverse composition, but exposed without a hypothesis on the
-tail after the outer separator. -/
-theorem tm0RealizesBlockSepAnySuffix_toInner_anySuffix
-    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
-    {sep₁ sep₂ : Γ} {f : List Γ → List Γ}
-    (hsep₂ : sep₂ ≠ default) (h₁₂ : sep₁ ≠ sep₂)
-    (hf : TM0RealizesBlockSepAnySuffix Γ sep₂ f)
-    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
-    (hf_nsep₂ : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
-    TM0RealizesInnerBlockSepAnySuffix Γ sep₁ sep₂ f := by
-  -- Same construction as `tm0RealizesBlockSepAnySuffix_toInner`; this theorem
-  -- only strengthens the exposed contract by dropping the unused suffix
-  -- freshness premise.
-  sorry
-
 /-- Parameterized paired-add loop condition: the left side of the paired block
 is positive. Because `pairSep` is required to be non-binary at use sites,
 `blockValueLeq` reads exactly the prefix before `pairSep`. -/
@@ -890,6 +844,34 @@ theorem pairedDecrLeftIncrRightSep_ne_default
     · exact binSucc_ne_default right hright_nd g hg
   · simpa [hInv] using hblock
 
+theorem pairedDecrLeftIncrRightSep_ne_marker
+    (pairSep marker : ChainΓ)
+    (hpair_marker : pairSep ≠ marker)
+    (hmarker_bit0 : marker ≠ γ'ToChainΓ Γ'.bit0)
+    (hmarker_bit1 : marker ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ marker)
+    (_hcond : pairedAddCondSep pairSep block) :
+    ∀ g ∈ pairedDecrLeftIncrRightSep pairSep block, g ≠ marker := by
+  classical
+  unfold pairedDecrLeftIncrRightSep
+  by_cases hInv : pairedSepInvSep pairSep block
+  · rcases hsplit : splitAtSep pairSep block with ⟨left, right⟩
+    have hleft_nm : ∀ g ∈ left, g ≠ marker := by
+      intro g hg
+      exact hblock g (splitAtSep_fst_subset pairSep block g (by simpa [hsplit] using hg))
+    have hright_nm : ∀ g ∈ right, g ≠ marker := by
+      intro g hg
+      exact hblock g (splitAtSep_snd_subset pairSep block g (by simpa [hsplit] using hg))
+    simp [hInv, hsplit]
+    rintro g (hg | rfl | hg)
+    · unfold binPred at hg
+      exact chainBinaryRepr_no_of_ne_bits marker hmarker_bit0 hmarker_bit1
+        (decodeBinaryBlock left - 1) g hg
+    · exact hpair_marker
+    · exact binSucc_no_of_ne_bits hmarker_bit0 hmarker_bit1 right hright_nm g hg
+  · simpa [hInv] using hblock
+
 /-- The one-step paired-add body, composed from predecessor on the left and
 successor on the right. -/
 theorem tm0_pairedDecrLeftIncrRightSep_beforeSepCond
@@ -907,7 +889,7 @@ theorem tm0_pairedDecrLeftIncrRightSep_beforeSepCond
     tm0_binPred_blockSep_of_ne_bits hpair_bit0 hpair_bit1
   have hsucc :
       TM0RealizesInnerBlockSepAnySuffix ChainΓ outerSep pairSep binSucc :=
-    tm0RealizesBlockSepAnySuffix_toInner_anySuffix
+    tm0RealizesBlockSepAnySuffix_toInner
       hpair_nd (Ne.symm hpair_outer)
       (tm0_binSucc_blockSepAnySuffix hpair_bit0 hpair_bit1)
       (fun block hblock => binSucc_ne_default block hblock)
@@ -929,6 +911,8 @@ theorem tm0RealizesPairedBlockBeforeSep_while_pairedSepInvSep
       pairedSepInvSep pairSep (step block))
     (hstep_nd : ∀ block, (∀ g ∈ block, g ≠ default) → cond block →
       ∀ g ∈ step block, g ≠ default)
+    (hstep_nouter : ∀ block, (∀ g ∈ block, g ≠ outerSep) → cond block →
+      ∀ g ∈ step block, g ≠ outerSep)
     (hresult_eq : ∀ block, (∀ g ∈ block, g ≠ default) →
       pairedSepInvSep pairSep block →
       ∃ n, result block = blockIterateWhile step cond n block ∧
@@ -955,7 +939,24 @@ theorem binAddPairedWhileSep_ne_default
     (pairSep : ChainΓ) (hpair_nd : pairSep ≠ default)
     (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ binAddPairedWhileSep pairSep block, g ≠ default := by
-  sorry
+  have h_ind :
+      ∀ (n : ℕ) (block : List ChainΓ), (∀ g ∈ block, g ≠ default) →
+        ∀ g ∈ blockIterateWhile (pairedDecrLeftIncrRightSep pairSep)
+          (pairedAddCondSep pairSep) n block, g ≠ default := by
+    intro n
+    induction n with
+    | zero =>
+        intro block hblock
+        simpa [blockIterateWhile] using hblock
+    | succ n ih =>
+        intro block hblock
+        by_cases hcond : pairedAddCondSep pairSep block
+        · simp [blockIterateWhile, hcond]
+          exact ih _ (pairedDecrLeftIncrRightSep_ne_default
+            pairSep hpair_nd block hblock hcond)
+        · simpa [blockIterateWhile, hcond] using hblock
+  unfold binAddPairedWhileSep
+  exact h_ind (decodeBinaryBlock (splitAtSep pairSep block).1) block hblock
 
 theorem extractPairedRightSep_ne_default
     (pairSep : ChainΓ) (block : List ChainΓ)
@@ -978,15 +979,31 @@ theorem binAddPairedWhileSep_ne_marker
     (hmarker_bit1 : marker ≠ γ'ToChainΓ Γ'.bit1)
     (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ marker) :
     ∀ g ∈ binAddPairedWhileSep pairSep block, g ≠ marker := by
-  sorry
+  have h_ind :
+      ∀ (n : ℕ) (block : List ChainΓ), (∀ g ∈ block, g ≠ marker) →
+        ∀ g ∈ blockIterateWhile (pairedDecrLeftIncrRightSep pairSep)
+          (pairedAddCondSep pairSep) n block, g ≠ marker := by
+    intro n
+    induction n with
+    | zero =>
+        intro block hblock
+        simpa [blockIterateWhile] using hblock
+    | succ n ih =>
+        intro block hblock
+        by_cases hcond : pairedAddCondSep pairSep block
+        · simp [blockIterateWhile, hcond]
+          exact ih _ (pairedDecrLeftIncrRightSep_ne_marker
+            pairSep marker hpair_marker hmarker_bit0 hmarker_bit1
+            block hblock hcond)
+        · simpa [blockIterateWhile, hcond] using hblock
+  unfold binAddPairedWhileSep
+  exact h_ind (decodeBinaryBlock (splitAtSep pairSep block).1) block hblock
 
 theorem tm0_normalizeBlockSepAnySuffix {sep : ChainΓ}
     (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
     (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) :
-    TM0RealizesBlockSepAnySuffix ChainΓ sep normalizeBlock := by
-  -- Same composed machine as `tm0_normalizeBlockSep`; the two constituent
-  -- passes are separator-local and do not inspect the suffix after `sep`.
-  sorry
+    TM0RealizesBlockSepAnySuffix ChainΓ sep normalizeBlock :=
+  tm0_normalizeBlockSep_anySuffix hsep0 hsep1
 
 theorem tm0RealizesPairedBlockBeforeSep_comp_blockSepAnySuffix
     {pairSep outerSep : ChainΓ} {f g : List ChainΓ → List ChainΓ}
@@ -1137,11 +1154,12 @@ theorem tm0_dropUntilFirstSep_inner_replaceBoundary
       (sep := sep) (outerSep := boundarySep) hsep_nd
   have hinner : TM0RealizesInnerBlockSep Γ outerSep boundarySep
       (dropUntilFirstSep sep) :=
-    tm0RealizesBlockSepAnySuffix_toInner
-      (sep₁ := outerSep) (sep₂ := boundarySep)
-      hboundary_nd (Ne.symm hboundary_outer) hdropAny
-      (fun block hblock => dropUntilFirstSep_ne_default sep block hblock)
-      (fun block hblock => dropUntilFirstSep_ne_marker sep boundarySep block hblock)
+    tm0RealizesInnerBlockSep_of_anySuffix
+      (tm0RealizesBlockSepAnySuffix_toInner
+        (sep₁ := outerSep) (sep₂ := boundarySep)
+        hboundary_nd (Ne.symm hboundary_outer) hdropAny
+        (fun block hblock => dropUntilFirstSep_ne_default sep block hblock)
+        (fun block hblock => dropUntilFirstSep_ne_marker sep boundarySep block hblock))
   obtain ⟨Λi, hΛii, hΛif, Mi, hMi⟩ := hinner
   let Mpost := boundaryReplaceMachine boundarySep sep
   let hsum : Inhabited (Λi ⊕ BoundaryReplaceSt) :=
@@ -1233,7 +1251,78 @@ theorem tm0_dropUntilFirstSep_inner_replaceBoundary_anySuffix
             (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).get h).Tape =
             Tape.mk₁ (pfx ++ sep :: dropUntilFirstSep sep inner ++
               outerSep :: suffix) := by
-  sorry
+  have hdropAny :
+      TM0RealizesBlockSepAnySuffix Γ boundarySep (dropUntilFirstSep sep) :=
+    tm0_dropUntilFirstSep_blockSepAnySuffix
+      (sep := sep) (outerSep := boundarySep) hsep_nd
+  have hinner : TM0RealizesInnerBlockSepAnySuffix Γ outerSep boundarySep
+      (dropUntilFirstSep sep) :=
+    tm0RealizesBlockSepAnySuffix_toInner
+      (sep₁ := outerSep) (sep₂ := boundarySep)
+      hboundary_nd (Ne.symm hboundary_outer) hdropAny
+      (fun block hblock => dropUntilFirstSep_ne_default sep block hblock)
+      (fun block hblock => dropUntilFirstSep_ne_marker sep boundarySep block hblock)
+  obtain ⟨Λi, hΛii, hΛif, Mi, hMi⟩ := hinner
+  let Mpost := boundaryReplaceMachine boundarySep sep
+  let hsum : Inhabited (Λi ⊕ BoundaryReplaceSt) :=
+    ⟨Sum.inl (@default _ hΛii)⟩
+  let Mcomp : TM0.Machine Γ (Λi ⊕ BoundaryReplaceSt) :=
+    @TM0Seq.compose Γ Λi hΛii BoundaryReplaceSt inferInstance Mi Mpost
+  refine ⟨Λi ⊕ BoundaryReplaceSt, hsum, inferInstance, Mcomp, ?_⟩
+  intro pfx inner suffix
+    hpfx_nd hpfx_nouter hpfx_ncopy
+    hinner_nd hinner_nouter hinner_ncopy
+  have hdrop_nd : ∀ g ∈ dropUntilFirstSep sep inner, g ≠ default :=
+    dropUntilFirstSep_ne_default sep inner hinner_nd
+  have hdrop_nouter : ∀ g ∈ dropUntilFirstSep sep inner, g ≠ outerSep :=
+    dropUntilFirstSep_ne_marker sep outerSep inner hinner_nouter
+  have hdrop_ncopy : ∀ g ∈ dropUntilFirstSep sep inner, g ≠ boundarySep :=
+    dropUntilFirstSep_ne_marker sep boundarySep inner hinner_ncopy
+  obtain ⟨hi_dom, hi_tape⟩ :=
+    hMi pfx inner suffix
+      hpfx_nd
+      hpfx_nouter
+      hpfx_ncopy
+      hinner_nd hinner_nouter hinner_ncopy
+      hdrop_nd hdrop_nouter hdrop_ncopy
+  have hi_dom' :
+      (TM0Seq.evalCfg Mi
+        (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).Dom := hi_dom
+  have hi_tape' :
+      ((TM0Seq.evalCfg Mi
+        (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).get hi_dom').Tape =
+        Tape.mk₁ (pfx ++ boundarySep :: dropUntilFirstSep sep inner ++
+          outerSep :: suffix) := hi_tape hi_dom
+  have hpost := tm0_boundaryReplace boundarySep sep
+    pfx (dropUntilFirstSep sep inner ++ outerSep :: suffix) hpfx_nd hpfx_ncopy
+  have hpost_from_cfg :
+      (TM0Seq.evalFromCfg Mpost
+        ⟨default, ((TM0Seq.evalCfg Mi
+          (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).get
+          hi_dom').Tape⟩).Dom := by
+    rw [hi_tape']
+    show (TM0Seq.evalFromCfg Mpost
+      (TM0.init (pfx ++ boundarySep :: dropUntilFirstSep sep inner ++
+        outerSep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    simpa [Mpost, List.append_assoc] using hpost.1
+  have hcomp_dom :
+      (TM0Seq.evalCfg Mcomp
+        (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff Mcomp
+      (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts Mi Mpost
+        (pfx ++ boundarySep :: inner ++ outerSep :: suffix)
+        hi_dom' hpost_from_cfg)
+  refine ⟨hcomp_dom, ?_⟩
+  intro h
+  have hcomp_tape :=
+    TM0Seq.compose_evalCfg_tape Mi Mpost
+      (pfx ++ boundarySep :: inner ++ outerSep :: suffix)
+      (pfx ++ boundarySep :: dropUntilFirstSep sep inner ++ outerSep :: suffix)
+      hi_dom' hi_tape' (by simpa [Mpost, List.append_assoc] using hpost.1) h
+  rw [hcomp_tape]
+  simpa [List.append_assoc] using hpost.2 hpost.1
 
 /-- Separator-parametric, suffix-opaque paired addition.
 
@@ -1268,6 +1357,8 @@ theorem tm0_binAddPairedSep_beforeSep_anySuffix
       hbody
       (pairedDecrLeftIncrRightSep_pairedSepInvSep pairSep · hpair_bit0 hpair_bit1)
       (pairedDecrLeftIncrRightSep_ne_default pairSep hpair_nd)
+      (pairedDecrLeftIncrRightSep_ne_marker pairSep outerSep hpair_outer
+        houter_bit0 houter_bit1)
       (binAddPairedWhileSep_eq_iterate pairSep)
   have hdrop :
       TM0RealizesBlockSepAnySuffix ChainΓ outerSep

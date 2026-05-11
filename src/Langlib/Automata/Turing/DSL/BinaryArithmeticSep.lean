@@ -163,11 +163,12 @@ theorem replNS_reaches_sep (sep : ChainΓ) (block suffix : List ChainΓ)
       ⟨4, Tape.mk₁ (replaceNonStandard block ++ sep :: suffix)⟩ :=
   replNS_scan_gen_sep sep block suffix [] hblock hblock_nsep (by simp)
 
-/-- **replaceNonStandard is block-realizable before any separator.** -/
-theorem tm0_replaceNonStandard_blockSep {sep : ChainΓ} :
-    TM0RealizesBlockSep ChainΓ sep replaceNonStandard := by
+/-- **replaceNonStandard is block-realizable before any separator**, with an
+unrestricted suffix after the separator. -/
+theorem tm0_replaceNonStandard_blockSep_anySuffix {sep : ChainΓ} :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep replaceNonStandard := by
   refine ⟨Fin 5, ⟨0⟩, inferInstance, replNSMachineSep sep,
-    fun block suffix hblock hblock_nsep _hsuffix _hfblock _hfblock_nsep => ?_⟩
+    fun block suffix hblock hblock_nsep _hfblock _hfblock_nsep => ?_⟩
   have h_reaches := replNS_reaches_sep sep block suffix hblock hblock_nsep
   constructor
   · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr
@@ -175,6 +176,11 @@ theorem tm0_replaceNonStandard_blockSep {sep : ChainΓ} :
   · intro h
     exact (Part.mem_unique (Part.get_mem h) (Turing.mem_eval.mpr
       ⟨h_reaches, by simp [TM0.step, replNSMachineSep]⟩)).symm ▸ rfl
+
+/-- **replaceNonStandard is block-realizable before any separator.** -/
+theorem tm0_replaceNonStandard_blockSep {sep : ChainΓ} :
+    TM0RealizesBlockSep ChainΓ sep replaceNonStandard :=
+  tm0RealizesBlockSep_of_anySuffix tm0_replaceNonStandard_blockSep_anySuffix
 
 /-! ## dropLeadingBit0 — sep version -/
 
@@ -235,11 +241,12 @@ theorem dropLBSep_step_halt (sep : ChainΓ) (block suffix : List ChainΓ)
   contrapose! h; induction block <;> simp_all +decide [ dropLeadingBit0 ] ;
   grind
 
-/-- **dropLeadingBit0 is block-realizable before any separator.** -/
-theorem tm0_dropLeadingBit0_blockSep {sep : ChainΓ} :
-    TM0RealizesBlockSep ChainΓ sep dropLeadingBit0 := by
+/-- **dropLeadingBit0 is block-realizable before any separator**, with an
+unrestricted suffix after the separator. -/
+theorem tm0_dropLeadingBit0_blockSep_anySuffix {sep : ChainΓ} :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep dropLeadingBit0 := by
   refine ⟨Fin 2, ⟨0⟩, inferInstance, dropLBMachineSep sep,
-    fun block suffix _hblock hblock_nsep _hsuffix _hfblock _hfblock_nsep => ?_⟩
+    fun block suffix _hblock hblock_nsep _hfblock _hfblock_nsep => ?_⟩
   have h_reaches := dropLB_reaches_sep sep block suffix _hblock hblock_nsep
   have h_halt := dropLBSep_step_halt sep block suffix hblock_nsep
   constructor
@@ -247,6 +254,11 @@ theorem tm0_dropLeadingBit0_blockSep {sep : ChainΓ} :
   · intro h
     exact (Part.mem_unique (Part.get_mem h)
       (Turing.mem_eval.mpr ⟨h_reaches, h_halt⟩)).symm ▸ rfl
+
+/-- **dropLeadingBit0 is block-realizable before any separator.** -/
+theorem tm0_dropLeadingBit0_blockSep {sep : ChainΓ} :
+    TM0RealizesBlockSep ChainΓ sep dropLeadingBit0 :=
+  tm0RealizesBlockSep_of_anySuffix tm0_dropLeadingBit0_blockSep_anySuffix
 
 /-! ## stripTrailingBit0 — sep version -/
 
@@ -264,20 +276,29 @@ theorem dropLeadingBit0_ne_sep (block : List ChainΓ)
       · exact hg
   exact hblock_nsep g this
 
-/-- **stripTrailingBit0 is block-realizable before any separator.**
+/-- **stripTrailingBit0 is block-realizable before any separator**, with an
+    unrestricted suffix after the separator.
     Decomposed as: reverse, drop leading bit0, reverse. -/
-theorem tm0_stripTrailingBit0_blockSep {sep : ChainΓ} :
-    TM0RealizesBlockSep ChainΓ sep stripTrailingBit0 := by
+theorem tm0_stripTrailingBit0_blockSep_anySuffix {sep : ChainΓ} :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep stripTrailingBit0 := by
   rw [stripTrailingBit0_eq_rev_drop_rev]
-  have h1 : TM0RealizesBlockSep ChainΓ sep (dropLeadingBit0 ∘ List.reverse) :=
-    tm0RealizesBlockSep_comp tm0_reverse_blockSep tm0_dropLeadingBit0_blockSep
+  have h1 : TM0RealizesBlockSepAnySuffix ChainΓ sep
+      (dropLeadingBit0 ∘ List.reverse) :=
+    tm0RealizesBlockSepAnySuffix_comp
+      tm0_reverse_blockSep_anySuffix tm0_dropLeadingBit0_blockSep_anySuffix
       (fun block hblock => reverse_ne_default block hblock)
       (fun block hblock => reverse_ne_sep block hblock)
-  exact tm0RealizesBlockSep_comp h1 tm0_reverse_blockSep
+  exact tm0RealizesBlockSepAnySuffix_comp h1 tm0_reverse_blockSep_anySuffix
     (fun block hblock =>
       dropLeadingBit0_ne_default _ (fun g hg => reverse_ne_default block hblock g hg))
     (fun block hblock =>
       dropLeadingBit0_ne_sep _ (fun g hg => reverse_ne_sep block hblock g hg))
+
+/-- **stripTrailingBit0 is block-realizable before any separator.**
+    Decomposed as: reverse, drop leading bit0, reverse. -/
+theorem tm0_stripTrailingBit0_blockSep {sep : ChainΓ} :
+    TM0RealizesBlockSep ChainΓ sep stripTrailingBit0 :=
+  tm0RealizesBlockSep_of_anySuffix tm0_stripTrailingBit0_blockSep_anySuffix
 
 /-! ## Normalization — sep version -/
 
@@ -292,6 +313,18 @@ theorem replaceNonStandard_ne_sep_of_bits
   rcases this with h | h <;> (rw [h]; exact Ne.symm ‹_›)
 
 /-- **Normalization is block-realizable before any separator that differs
+    from `bit0` and `bit1`**, with an unrestricted suffix after the separator. -/
+theorem tm0_normalizeBlockSep_anySuffix {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep normalizeBlock := by
+  rw [normalizeBlock_eq_comp]
+  exact tm0RealizesBlockSepAnySuffix_comp
+    tm0_replaceNonStandard_blockSep_anySuffix
+    tm0_stripTrailingBit0_blockSep_anySuffix
+    (fun block hblock => replaceNonStandard_ne_default block hblock)
+    (fun _block _hblock => replaceNonStandard_ne_sep_of_bits hsep0 hsep1 _)
+
+/-- **Normalization is block-realizable before any separator that differs
     from `bit0` and `bit1`.**
 
     The constraint `sep ≠ bit0 ∧ sep ≠ bit1` is necessary because the
@@ -300,11 +333,9 @@ theorem replaceNonStandard_ne_sep_of_bits
     distinguish block content from the separator in the intermediate state. -/
 theorem tm0_normalizeBlockSep {sep : ChainΓ}
     (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) :
-    TM0RealizesBlockSep ChainΓ sep normalizeBlock := by
-  rw [normalizeBlock_eq_comp]
-  exact tm0RealizesBlockSep_comp tm0_replaceNonStandard_blockSep tm0_stripTrailingBit0_blockSep
-    (fun block hblock => replaceNonStandard_ne_default block hblock)
-    (fun _block _hblock => replaceNonStandard_ne_sep_of_bits hsep0 hsep1 _)
+    TM0RealizesBlockSep ChainΓ sep normalizeBlock :=
+  tm0RealizesBlockSep_of_anySuffix
+    (tm0_normalizeBlockSep_anySuffix hsep0 hsep1)
 
 /-! ## Binary successor — sep version -/
 
@@ -689,7 +720,35 @@ theorem binSucc_no_of_ne_bits {sep : ChainΓ}
     (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
     (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ sep) :
     ∀ g ∈ binSucc block, g ≠ sep := by
-  sorry
+  induction block with
+  | nil =>
+      intro g hg
+      simp [binSucc] at hg
+      rw [hg]
+      exact Ne.symm hsep1
+  | cons c rest ih =>
+      have hc : c ≠ sep := hblock c (by simp)
+      have hrest : ∀ g ∈ rest, g ≠ sep := by
+        intro g hg
+        exact hblock g (List.mem_cons_of_mem c hg)
+      intro g hg
+      by_cases hc0 : c = γ'ToChainΓ Γ'.bit0
+      · have hmem : g = γ'ToChainΓ Γ'.bit1 ∨ g ∈ rest := by
+          simpa [binSucc, hc0] using hg
+        rcases hmem with rfl | hg
+        · exact Ne.symm hsep1
+        · exact hrest g hg
+      · by_cases hc1 : c = γ'ToChainΓ Γ'.bit1
+        · have hmem : g = γ'ToChainΓ Γ'.bit0 ∨ g ∈ binSucc rest := by
+            simpa +decide [binSucc, hc0, hc1] using hg
+          rcases hmem with rfl | hg
+          · exact Ne.symm hsep0
+          · exact ih hrest g hg
+        · have hmem : g = c ∨ g ∈ rest := by
+            simpa [binSucc, hc0, hc1] using hg
+          rcases hmem with rfl | hg
+          · exact hc
+          · exact hrest g hg
 
 theorem binSuccLsbLast_ne_sep {sep : ChainΓ}
     (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
