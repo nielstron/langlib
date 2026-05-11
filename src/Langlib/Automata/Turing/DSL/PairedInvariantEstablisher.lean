@@ -928,7 +928,11 @@ theorem tm0_binAddPairedKeepRightSep_beforeSep_viaCopySep
     (hpair_outer : pairSep ≠ outerSep)
     (hcopy_outer : copySep ≠ outerSep)
     (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
-    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1) :
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
+    (hcopy_bit0 : copySep ≠ γ'ToChainΓ Γ'.bit0)
+    (hcopy_bit1 : copySep ≠ γ'ToChainΓ Γ'.bit1)
+    (houter_bit0 : outerSep ≠ γ'ToChainΓ Γ'.bit0)
+    (houter_bit1 : outerSep ≠ γ'ToChainΓ Γ'.bit1) :
     TM0RealizesPairedBlockBeforeSepViaCopySep pairSep copySep outerSep
       (binAddPairedKeepRightSep pairSep) := by
   obtain ⟨Λcopy, hΛcopyi, hΛcopyf, Mcopy, hMcopy⟩ :=
@@ -941,11 +945,188 @@ theorem tm0_binAddPairedKeepRightSep_beforeSep_viaCopySep
     tm0_dropUntilFirstSep_inner_replaceBoundary_anySuffix
       (sep := pairSep) (boundarySep := copySep) (outerSep := outerSep)
       hpair_nd hcopy_nd hcopy_outer
-  -- The composition is now the intended one:
-  --   copy before outerSep;
-  --   paired-add before copySep using the suffix-opaque add theorem;
-  --   replace copySep by pairSep and drop the copied left half.
-  sorry
+  let h12i : Inhabited (Λcopy ⊕ Λadd) := ⟨Sum.inl (@default _ hΛcopyi)⟩
+  let M12 : TM0.Machine ChainΓ (Λcopy ⊕ Λadd) :=
+    @TM0Seq.compose ChainΓ Λcopy hΛcopyi Λadd hΛaddi Mcopy Madd
+  let h123i : Inhabited ((Λcopy ⊕ Λadd) ⊕ Λdrop) :=
+    ⟨Sum.inl (@default _ h12i)⟩
+  let M123 : TM0.Machine ChainΓ ((Λcopy ⊕ Λadd) ⊕ Λdrop) :=
+    @TM0Seq.compose ChainΓ (Λcopy ⊕ Λadd) h12i Λdrop hΛdropi M12 Mdrop
+  refine ⟨(Λcopy ⊕ Λadd) ⊕ Λdrop, h123i, inferInstance, M123, ?_⟩
+  intro left right suffix
+    hleft_nd hleft_npair hleft_ncopy hleft_nouter
+    hright_nd hright_npair hright_ncopy hright_nouter hf_nd
+  set block := left ++ pairSep :: right with hblock_def
+  set sum := binAddPairedSep pairSep block with hsum_def
+  have hblock_nd : ∀ g ∈ block, g ≠ default := by
+    intro g hg
+    simp [block, List.mem_append] at hg
+    rcases hg with hg | rfl | hg
+    · exact hleft_nd g hg
+    · exact hpair_nd
+    · exact hright_nd g hg
+  have hblock_ncopy : ∀ g ∈ block, g ≠ copySep := by
+    intro g hg
+    simp [block, List.mem_append] at hg
+    rcases hg with hg | rfl | hg
+    · exact hleft_ncopy g hg
+    · exact hpair_copy
+    · exact hright_ncopy g hg
+  have hblock_nouter : ∀ g ∈ block, g ≠ outerSep := by
+    intro g hg
+    simp [block, List.mem_append] at hg
+    rcases hg with hg | rfl | hg
+    · exact hleft_nouter g hg
+    · exact hpair_outer
+    · exact hright_nouter g hg
+  have hsum_nd : ∀ g ∈ sum, g ≠ default := by
+    simpa [sum] using binAddPairedSep_ne_default pairSep block hblock_nd
+  have hsum_ncopy : ∀ g ∈ sum, g ≠ copySep := by
+    unfold sum binAddPairedSep
+    rcases splitAtSep pairSep block with ⟨l, r⟩
+    exact chainBinaryRepr_no_of_ne_bits copySep hcopy_bit0 hcopy_bit1
+      (decodeBinaryBlock l + decodeBinaryBlock r)
+  have hsum_nouter : ∀ g ∈ sum, g ≠ outerSep := by
+    unfold sum binAddPairedSep
+    rcases splitAtSep pairSep block with ⟨l, r⟩
+    exact chainBinaryRepr_no_of_ne_bits outerSep houter_bit0 houter_bit1
+      (decodeBinaryBlock l + decodeBinaryBlock r)
+  obtain ⟨hcopy_dom, hcopy_tape⟩ :=
+    hMcopy block suffix hblock_nd hblock_nouter
+      (copyWithSep_ne_default hcopy_nd block hblock_nd)
+      (copyWithSep_ne_sep hcopy_outer block hblock_nouter)
+  have hcopy_dom' :
+      (TM0Seq.evalCfg Mcopy
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom := by
+    simpa [block, List.append_assoc] using hcopy_dom
+  have hcopy_tape' :
+      ((TM0Seq.evalCfg Mcopy
+        (left ++ pairSep :: right ++ outerSep :: suffix)).get hcopy_dom').Tape =
+        Tape.mk₁ (left ++ pairSep :: right ++ copySep ::
+          left ++ pairSep :: right ++ outerSep :: suffix) := by
+    have hget :
+        (TM0Seq.evalCfg Mcopy
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get hcopy_dom' =
+          (TM0Seq.evalCfg Mcopy (block ++ outerSep :: suffix)).get hcopy_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [block, List.append_assoc]
+    rw [hget, hcopy_tape hcopy_dom]
+    simp [block, copyWithSep, List.append_assoc]
+  obtain ⟨hadd_dom, hadd_tape⟩ :=
+    hMadd left right (block ++ outerSep :: suffix)
+      hleft_nd hleft_npair hleft_ncopy
+      hright_nd hright_npair hright_ncopy
+      (by simpa [block, sum] using hsum_nd)
+  have hadd_dom' :
+      (TM0Seq.evalCfg Madd
+        (left ++ pairSep :: right ++ copySep ::
+          left ++ pairSep :: right ++ outerSep :: suffix)).Dom := by
+    simpa [block, List.append_assoc] using hadd_dom
+  have hadd_tape' :
+      ((TM0Seq.evalCfg Madd
+        (left ++ pairSep :: right ++ copySep ::
+          left ++ pairSep :: right ++ outerSep :: suffix)).get hadd_dom').Tape =
+        Tape.mk₁ (sum ++ copySep ::
+          left ++ pairSep :: right ++ outerSep :: suffix) := by
+    have hget :
+        (TM0Seq.evalCfg Madd
+          (left ++ pairSep :: right ++ copySep ::
+            left ++ pairSep :: right ++ outerSep :: suffix)).get hadd_dom' =
+          (TM0Seq.evalCfg Madd
+            (left ++ pairSep :: right ++ copySep :: (block ++ outerSep :: suffix))).get
+              hadd_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [block, List.append_assoc]
+    rw [hget, hadd_tape hadd_dom]
+    simp [block, sum, List.append_assoc]
+  obtain ⟨hdrop_dom, hdrop_tape⟩ :=
+    hMdrop sum block suffix
+      hsum_nd hsum_nouter hsum_ncopy
+      hblock_nd hblock_nouter hblock_ncopy
+  have hdrop_dom' :
+      (TM0Seq.evalCfg Mdrop
+        (sum ++ copySep :: left ++ pairSep :: right ++ outerSep :: suffix)).Dom := by
+    simpa [block, List.append_assoc] using hdrop_dom
+  have hdrop_tape' :
+      ((TM0Seq.evalCfg Mdrop
+        (sum ++ copySep :: left ++ pairSep :: right ++ outerSep :: suffix)).get
+          hdrop_dom').Tape =
+        Tape.mk₁ (sum ++ pairSep :: right ++ outerSep :: suffix) := by
+    have hget :
+        (TM0Seq.evalCfg Mdrop
+          (sum ++ copySep :: left ++ pairSep :: right ++ outerSep :: suffix)).get
+            hdrop_dom' =
+          (TM0Seq.evalCfg Mdrop
+            (sum ++ copySep :: block ++ outerSep :: suffix)).get hdrop_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [block, List.append_assoc]
+    rw [hget, hdrop_tape hdrop_dom]
+    have hdrop_right :
+        dropUntilFirstSep pairSep block = right := by
+      simpa [block] using
+        dropUntilFirstSep_append_cons pairSep left right hleft_npair
+    simp [block, hdrop_right, List.append_assoc]
+  have hadd_from_cfg :
+      (TM0Seq.evalFromCfg Madd
+        ⟨default, ((TM0Seq.evalCfg Mcopy
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get
+          hcopy_dom').Tape⟩).Dom := by
+    rw [hcopy_tape']
+    change (TM0Seq.evalFromCfg Madd
+      (TM0.init (left ++ pairSep :: right ++ copySep ::
+        left ++ pairSep :: right ++ outerSep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hadd_dom'
+  have hM12_dom :
+      (TM0Seq.evalCfg M12
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M12
+      (left ++ pairSep :: right ++ outerSep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts Mcopy Madd
+        (left ++ pairSep :: right ++ outerSep :: suffix)
+        hcopy_dom' hadd_from_cfg)
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12
+        (left ++ pairSep :: right ++ outerSep :: suffix)).get hM12_dom).Tape =
+        Tape.mk₁ (sum ++ copySep ::
+          left ++ pairSep :: right ++ outerSep :: suffix) := by
+    have ht := TM0Seq.compose_evalCfg_tape Mcopy Madd
+      (left ++ pairSep :: right ++ outerSep :: suffix)
+      (left ++ pairSep :: right ++ copySep ::
+        left ++ pairSep :: right ++ outerSep :: suffix)
+      hcopy_dom' hcopy_tape' hadd_dom' hM12_dom
+    rw [ht, hadd_tape']
+  have hdrop_from_cfg :
+      (TM0Seq.evalFromCfg Mdrop
+        ⟨default, ((TM0Seq.evalCfg M12
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get
+          hM12_dom).Tape⟩).Dom := by
+    rw [hM12_tape]
+    change (TM0Seq.evalFromCfg Mdrop
+      (TM0.init (sum ++ copySep ::
+        left ++ pairSep :: right ++ outerSep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hdrop_dom'
+  have hM123_dom :
+      (TM0Seq.evalCfg M123
+        (left ++ pairSep :: right ++ outerSep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M123
+      (left ++ pairSep :: right ++ outerSep :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts M12 Mdrop
+        (left ++ pairSep :: right ++ outerSep :: suffix)
+        hM12_dom hdrop_from_cfg)
+  refine ⟨hM123_dom, ?_⟩
+  intro h
+  have ht := TM0Seq.compose_evalCfg_tape M12 Mdrop
+      (left ++ pairSep :: right ++ outerSep :: suffix)
+      (sum ++ copySep :: left ++ pairSep :: right ++ outerSep :: suffix)
+      hM12_dom hM12_tape hdrop_dom' h
+  rw [ht, hdrop_tape']
+  have hkeep :
+      binAddPairedKeepRightSep pairSep block = sum ++ pairSep :: right := by
+    simpa [sum, block] using
+      binAddPairedKeepRightSep_eq_cons pairSep left right hleft_npair
+  simpa [block, hkeep, List.append_assoc]
 
 theorem tm0_binPred_afterMulSep₂_innerBlockSep_outer {outerSep : ChainΓ}
     (houter_nd : outerSep ≠ default)
@@ -991,6 +1172,8 @@ theorem tm0_binMulPairedStep3_update_splitBeforeSep
     (houter_nd : outerSep ≠ default)
     (hsep₁_copy : binMulStateSep₁ ≠ copySep)
     (hcopy_sep₂ : copySep ≠ binMulStateSep₂)
+    (hcopy_bit0 : copySep ≠ γ'ToChainΓ Γ'.bit0)
+    (hcopy_bit1 : copySep ≠ γ'ToChainΓ Γ'.bit1)
     (houter_ne_sep₂ : outerSep ≠ binMulStateSep₂) :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine ChainΓ Λ),
@@ -1032,6 +1215,10 @@ theorem tm0_binMulPairedStep3_update_splitBeforeSep
       hcopy_sep₂
       (by simpa [binMulStateSep₁] using chainMulSep₁_ne_bit0)
       (by simpa [binMulStateSep₁] using chainMulSep₁_ne_bit1)
+      hcopy_bit0
+      hcopy_bit1
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_bit0)
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_bit1)
   obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
     tm0_binPred_afterMulSep₂_innerBlockSep_outer
       houter_nd houter_ne_sep₂
@@ -1294,6 +1481,10 @@ theorem tm0_binMulPairedStep3_update_blockInvSuffixFixed :
       (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_chainConsBottom)
       (by simpa [binMulStateSep₁] using chainMulSep₁_ne_bit0)
       (by simpa [binMulStateSep₁] using chainMulSep₁_ne_bit1)
+      (by decide)
+      (by decide)
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_bit0)
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_bit1)
   obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
     tm0_binPred_afterMulSep₂_innerDefaultViaConsBottom
   let h12i : Inhabited (Λa ⊕ Λp) := ⟨Sum.inl (@default _ hΛai)⟩

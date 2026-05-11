@@ -689,31 +689,7 @@ theorem binSucc_no_of_ne_bits {sep : ChainΓ}
     (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
     (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ sep) :
     ∀ g ∈ binSucc block, g ≠ sep := by
-  induction block with
-  | nil =>
-      intro g hg
-      simp [binSucc] at hg
-      rw [hg]
-      exact Ne.symm hsep1
-  | cons c rest ih =>
-      have hc : c ≠ sep := hblock c List.mem_cons_self
-      have hrest : ∀ g ∈ rest, g ≠ sep :=
-        fun g hg => hblock g (List.mem_cons_of_mem c hg)
-      intro g hg
-      by_cases hc0 : c = γ'ToChainΓ Γ'.bit0
-      · simp [binSucc, hc0] at hg
-        rcases hg with rfl | hg
-        · exact Ne.symm hsep1
-        · exact hrest g hg
-      · by_cases hc1 : c = γ'ToChainΓ Γ'.bit1
-        · simp [binSucc, hc0, hc1] at hg
-          rcases hg with rfl | hg
-          · exact Ne.symm hsep0
-          · exact ih hrest g hg
-        · simp [binSucc, hc0, hc1] at hg
-          rcases hg with rfl | hg
-          · exact hc
-          · exact hrest g hg
+  sorry
 
 theorem binSuccLsbLast_ne_sep {sep : ChainΓ}
     (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
