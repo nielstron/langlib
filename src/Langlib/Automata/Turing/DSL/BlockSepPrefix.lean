@@ -142,6 +142,164 @@ theorem forall_mem_append_cons {α : Type} {P : α → Prop} {a : α}
     · exact ha
     · exact h₂ g hg
 
+/-! ### Boundary replacement helper -/
+
+inductive BoundaryReplaceSt where
+  | scan
+  | goLeft
+  | rewind
+  | done
+  deriving DecidableEq, Fintype
+
+instance : Inhabited BoundaryReplaceSt := ⟨.scan⟩
+
+/-- Scan to the first occurrence of `target`, replace it by `repl`, then rewind
+to the left edge of the active block. -/
+noncomputable def boundaryReplaceMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (target repl : Γ) : TM0.Machine Γ BoundaryReplaceSt :=
+  fun q a =>
+    match q with
+    | .scan =>
+        if a = target then
+          some (.goLeft, TM0.Stmt.write repl)
+        else
+          some (.scan, TM0.Stmt.move Dir.right)
+    | .goLeft =>
+        some (.rewind, TM0.Stmt.move Dir.left)
+    | .rewind =>
+        if a = default then
+          some (.done, TM0.Stmt.move Dir.right)
+        else
+          some (.rewind, TM0.Stmt.move Dir.left)
+    | .done => none
+
+theorem boundaryReplace_rewind_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (target repl : Γ) (revBlock acc : List Γ)
+    (hrevBlock : ∀ x ∈ revBlock, x ≠ (default : Γ)) :
+    Reaches (TM0.step (boundaryReplaceMachine target repl))
+      ⟨BoundaryReplaceSt.rewind,
+        ⟨revBlock.headI, ListBlank.mk revBlock.tail, ListBlank.mk acc⟩⟩
+      ⟨BoundaryReplaceSt.rewind,
+        ⟨default, ListBlank.mk [], ListBlank.mk (revBlock.reverse ++ acc)⟩⟩ := by
+  induction revBlock generalizing acc with
+  | nil => exact Relation.ReflTransGen.refl
+  | cons a revBlock ih =>
+      have ha : a ≠ (default : Γ) := hrevBlock a (by simp)
+      have hrest : ∀ x ∈ revBlock, x ≠ (default : Γ) := by
+        intro x hx
+        exact hrevBlock x (List.mem_cons_of_mem a hx)
+      let mid : TM0.Cfg Γ BoundaryReplaceSt :=
+        ⟨BoundaryReplaceSt.rewind,
+          Tape.move Dir.left ⟨a, ListBlank.mk revBlock, ListBlank.mk acc⟩⟩
+      refine Relation.ReflTransGen.trans (b := mid) ?_ ?_
+      · apply Relation.ReflTransGen.single
+        simp [TM0.step, boundaryReplaceMachine, ha, mid, Tape.move]
+      · convert ih (a :: acc) hrest using 1
+        simp [List.reverse_cons, List.append_assoc]
+
+theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (target repl : Γ) (block suffix revL : List Γ)
+    (hblock_default : ∀ g ∈ block, g ≠ (default : Γ))
+    (hblock_target : ∀ g ∈ block, g ≠ target)
+    (hrevL_default : ∀ g ∈ revL, g ≠ (default : Γ)) :
+    Reaches (TM0.step (boundaryReplaceMachine target repl))
+      ⟨BoundaryReplaceSt.scan,
+        ⟨(block ++ target :: suffix).headI,
+          ListBlank.mk revL,
+          ListBlank.mk (block ++ target :: suffix).tail⟩⟩
+      ⟨BoundaryReplaceSt.done,
+        Tape.mk₁ (revL.reverse ++ block ++ repl :: suffix)⟩ := by
+  induction block generalizing revL suffix with
+  | nil =>
+      have h_write : Reaches (TM0.step (boundaryReplaceMachine target repl))
+          ⟨BoundaryReplaceSt.scan,
+            ⟨target, ListBlank.mk revL, ListBlank.mk suffix⟩⟩
+          ⟨BoundaryReplaceSt.goLeft,
+            ⟨repl, ListBlank.mk revL, ListBlank.mk suffix⟩⟩ := by
+        apply Relation.ReflTransGen.single
+        simp [TM0.step, boundaryReplaceMachine]
+      have h_left : Reaches (TM0.step (boundaryReplaceMachine target repl))
+          ⟨BoundaryReplaceSt.goLeft,
+            ⟨repl, ListBlank.mk revL, ListBlank.mk suffix⟩⟩
+          ⟨BoundaryReplaceSt.rewind,
+            Tape.move Dir.left ⟨repl, ListBlank.mk revL, ListBlank.mk suffix⟩⟩ := by
+        apply Relation.ReflTransGen.single
+        simp [TM0.step, boundaryReplaceMachine]
+      have h_rewind := boundaryReplace_rewind_loop target repl revL (repl :: suffix)
+        hrevL_default
+      have h_done : Reaches (TM0.step (boundaryReplaceMachine target repl))
+          ⟨BoundaryReplaceSt.rewind,
+            ⟨default, ListBlank.mk [], ListBlank.mk (revL.reverse ++ repl :: suffix)⟩⟩
+          ⟨BoundaryReplaceSt.done,
+            Tape.mk₁ (revL.reverse ++ repl :: suffix)⟩ := by
+        apply Relation.ReflTransGen.single
+        simp [TM0.step, boundaryReplaceMachine, Tape.move, Tape.mk₁, Tape.mk₂,
+          Tape.mk']
+        exact listBlank_mk_append_default []
+      convert h_write.trans (h_left.trans (h_rewind.trans h_done)) using 1
+      simp [Tape.move, Tape.mk₁, Tape.mk₂, Tape.mk']
+  | cons a block ih =>
+      have ha_default : a ≠ (default : Γ) := hblock_default a (by simp)
+      have ha_target : a ≠ target := hblock_target a (by simp)
+      have hrest_default : ∀ g ∈ block, g ≠ (default : Γ) := by
+        intro g hg
+        exact hblock_default g (List.mem_cons_of_mem a hg)
+      have hrest_target : ∀ g ∈ block, g ≠ target := by
+        intro g hg
+        exact hblock_target g (List.mem_cons_of_mem a hg)
+      have hrevL' : ∀ g ∈ a :: revL, g ≠ (default : Γ) := by
+        intro g hg
+        rcases List.mem_cons.mp hg with rfl | hg
+        · exact ha_default
+        · exact hrevL_default g hg
+      have h_step : Reaches (TM0.step (boundaryReplaceMachine target repl))
+          ⟨BoundaryReplaceSt.scan,
+            ⟨a, ListBlank.mk revL, ListBlank.mk (block ++ target :: suffix)⟩⟩
+          ⟨BoundaryReplaceSt.scan,
+            ⟨(block ++ target :: suffix).headI,
+              ListBlank.mk (a :: revL),
+              ListBlank.mk (block ++ target :: suffix).tail⟩⟩ := by
+        apply Relation.ReflTransGen.single
+        simp [TM0.step, boundaryReplaceMachine, ha_target, Tape.move]
+      convert h_step.trans (ih suffix (a :: revL) hrest_default hrest_target hrevL') using 1
+      simp [List.reverse_cons, List.append_assoc]
+
+theorem boundaryReplace_reaches {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (target repl : Γ) (block suffix : List Γ)
+    (hblock_default : ∀ g ∈ block, g ≠ (default : Γ))
+    (hblock_target : ∀ g ∈ block, g ≠ target) :
+    Reaches (TM0.step (boundaryReplaceMachine target repl))
+      (TM0.init (block ++ target :: suffix))
+      ⟨BoundaryReplaceSt.done, Tape.mk₁ (block ++ repl :: suffix)⟩ := by
+  exact boundaryReplace_scan_gen target repl block suffix [] hblock_default
+    hblock_target (by simp)
+
+theorem tm0_boundaryReplace {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+    (target repl : Γ) :
+    ∀ (block suffix : List Γ),
+      (∀ g ∈ block, g ≠ default) →
+      (∀ g ∈ block, g ≠ target) →
+      (TM0Seq.evalCfg (boundaryReplaceMachine target repl)
+        (block ++ target :: suffix)).Dom ∧
+      ∀ h,
+        ((TM0Seq.evalCfg (boundaryReplaceMachine target repl)
+          (block ++ target :: suffix)).get h).Tape =
+          Tape.mk₁ (block ++ repl :: suffix) := by
+  intro block suffix hblock_default hblock_target
+  have h_reaches := boundaryReplace_reaches target repl block suffix
+    hblock_default hblock_target
+  have h_halt : TM0.step (boundaryReplaceMachine target repl)
+      ⟨BoundaryReplaceSt.done, Tape.mk₁ (block ++ repl :: suffix)⟩ = none := by
+    simp [TM0.step, boundaryReplaceMachine]
+  have h_mem :
+      ⟨BoundaryReplaceSt.done, Tape.mk₁ (block ++ repl :: suffix)⟩ ∈
+        TM0Seq.evalCfg (boundaryReplaceMachine target repl)
+          (block ++ target :: suffix) :=
+    Turing.mem_eval.mpr ⟨h_reaches, h_halt⟩
+  refine ⟨Part.dom_iff_mem.mpr ⟨_, h_mem⟩, ?_⟩
+  intro h
+  exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
+
 /-! ### Composition: reverse ∘ f ∘ reverse -/
 
 /-- If `f` is `TM0RealizesBlockSep Γ sep`, then `reverse ∘ f ∘ reverse`
@@ -486,10 +644,104 @@ theorem tm0RealizesBlockSep_toInnerDefaultViaSep
     (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
     (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
     TM0RealizesInnerBlockDefaultViaSep Γ tmp sep₂ f := by
-  -- TODO: compose boundary-default-to-`tmp`, the nondefault inner lift, and
-  -- boundary-`tmp`-to-default. The middle component is:
-  -- `tm0RealizesBlockSep_toInner_nondefault htmp hsep₂ htmp₂ hf hf_nd hf_nsep`.
-  sorry
+  have hmid_realizes :=
+    tm0RealizesBlockSep_toInner_nondefault htmp hsep₂ htmp₂ hf hf_nd hf_nsep
+  obtain ⟨Λ_mid, h_mid_inh, h_mid_fin, M_mid, hM_mid⟩ := hmid_realizes
+  let M_pre := boundaryReplaceMachine (default : Γ) tmp
+  let M_post := boundaryReplaceMachine tmp (default : Γ)
+  let h12_inh : Inhabited (BoundaryReplaceSt ⊕ Λ_mid) :=
+    ⟨Sum.inl BoundaryReplaceSt.scan⟩
+  let h123_inh : Inhabited ((BoundaryReplaceSt ⊕ Λ_mid) ⊕ BoundaryReplaceSt) :=
+    ⟨Sum.inl (@default _ h12_inh)⟩
+  let M12 := @TM0Seq.compose Γ BoundaryReplaceSt inferInstance Λ_mid h_mid_inh
+    M_pre M_mid
+  let M123 := @TM0Seq.compose Γ (BoundaryReplaceSt ⊕ Λ_mid) h12_inh
+    BoundaryReplaceSt inferInstance M12 M_post
+  refine ⟨(BoundaryReplaceSt ⊕ Λ_mid) ⊕ BoundaryReplaceSt, h123_inh,
+    @instFintypeSum _ _ (@instFintypeSum _ _ inferInstance h_mid_fin) inferInstance,
+    M123, ?_⟩
+  intro pfx inner suffix
+    hpfx_nd hpfx_ntmp hpfx_nsep₂
+    hinn_nd hinn_ntmp hinn_nsep₂
+    hsuf_nd hfinn_nd hfinn_ntmp hfinn_nsep₂
+  set outer := pfx ++ sep₂ :: inner with h_outer_def
+  set out := pfx ++ sep₂ :: f inner with h_out_def
+  have houter_nd : ∀ g ∈ outer, g ≠ default :=
+    forall_mem_append_cons.mpr ⟨hpfx_nd, hsep₂, hinn_nd⟩
+  have houter_ntmp : ∀ g ∈ outer, g ≠ tmp :=
+    forall_mem_append_cons.mpr ⟨hpfx_ntmp, htmp₂.symm, hinn_ntmp⟩
+  have hout_nd : ∀ g ∈ out, g ≠ default :=
+    forall_mem_append_cons.mpr ⟨hpfx_nd, hsep₂, hfinn_nd⟩
+  have hout_ntmp : ∀ g ∈ out, g ≠ tmp :=
+    forall_mem_append_cons.mpr ⟨hpfx_ntmp, htmp₂.symm, hfinn_ntmp⟩
+  have hpre := tm0_boundaryReplace (default : Γ) tmp outer suffix houter_nd houter_nd
+  have hmid := hM_mid pfx inner suffix
+    hpfx_nd hpfx_ntmp hpfx_nsep₂
+    hinn_nd hinn_ntmp hinn_nsep₂
+    hsuf_nd hfinn_nd hfinn_ntmp hfinn_nsep₂
+  have hpost := tm0_boundaryReplace tmp (default : Γ) out suffix hout_nd hout_ntmp
+  have hpre_tape :
+      ((TM0Seq.evalCfg M_pre (outer ++ default :: suffix)).get hpre.1).Tape =
+        Tape.mk₁ (outer ++ tmp :: suffix) := hpre.2 hpre.1
+  have hmid_dom' :
+      (TM0Seq.evalCfg M_mid (outer ++ tmp :: suffix)).Dom := by
+    simpa [outer, List.append_assoc] using hmid.1
+  have hmid_tape' :
+      ((TM0Seq.evalCfg M_mid (outer ++ tmp :: suffix)).get hmid_dom').Tape =
+        Tape.mk₁ (out ++ tmp :: suffix) := by
+    have hget :
+        (TM0Seq.evalCfg M_mid (outer ++ tmp :: suffix)).get hmid_dom' =
+          (TM0Seq.evalCfg M_mid
+            (pfx ++ sep₂ :: inner ++ tmp :: suffix)).get hmid.1 := by
+      apply Part.get_eq_get_of_eq
+      simp [outer, List.append_assoc]
+    rw [hget, hmid.2 hmid.1]
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (outer ++ default :: suffix)).Dom := by
+    apply @TM0Seq.compose_dom_of_parts Γ _ BoundaryReplaceSt inferInstance
+      Λ_mid h_mid_inh M_pre M_mid (outer ++ default :: suffix) hpre.1
+    convert hmid_dom' using 1
+    rw [hpre_tape]
+    rfl
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (outer ++ default :: suffix)).get hM12_dom).Tape =
+        Tape.mk₁ (out ++ tmp :: suffix) := by
+    convert @TM0Seq.compose_evalCfg_tape Γ _ BoundaryReplaceSt inferInstance
+      Λ_mid h_mid_inh M_pre M_mid
+      (outer ++ default :: suffix) (outer ++ tmp :: suffix)
+      hpre.1 hpre_tape hmid_dom' hM12_dom using 1
+    exact hmid_tape'.symm
+  have hpost_dom' :
+      (TM0Seq.evalCfg M_post (out ++ tmp :: suffix)).Dom := hpost.1
+  have hpost_tape' :
+      ((TM0Seq.evalCfg M_post (out ++ tmp :: suffix)).get hpost_dom').Tape =
+        Tape.mk₁ (out ++ default :: suffix) := hpost.2 hpost_dom'
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (outer ++ default :: suffix)).Dom := by
+    apply @TM0Seq.compose_dom_of_parts Γ _ (BoundaryReplaceSt ⊕ Λ_mid) h12_inh
+      BoundaryReplaceSt inferInstance M12 M_post
+      (outer ++ default :: suffix) hM12_dom
+    convert hpost_dom' using 1
+    rw [hM12_tape]
+    rfl
+  refine ⟨?_, ?_⟩
+  · convert hM123_dom using 1
+  · intro h
+    have h_tape := @TM0Seq.compose_evalCfg_tape Γ _ (BoundaryReplaceSt ⊕ Λ_mid)
+      h12_inh BoundaryReplaceSt inferInstance M12 M_post
+      (outer ++ default :: suffix) (out ++ tmp :: suffix)
+      hM12_dom hM12_tape hpost_dom' hM123_dom
+    have h_final :
+        ((TM0Seq.evalCfg M123 (outer ++ default :: suffix)).get hM123_dom).Tape =
+          Tape.mk₁ (pfx ++ sep₂ :: f inner ++ default :: suffix) := by
+      rw [h_tape, hpost_tape']
+    have h_get_eq :
+        (TM0Seq.evalCfg M123
+          (pfx ++ sep₂ :: inner ++ default :: suffix)).get h =
+          (TM0Seq.evalCfg M123 (outer ++ default :: suffix)).get hM123_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [outer, List.append_assoc]
+    rw [h_get_eq, h_final]
 
 /-- Default-delimited inner-block lift with no suffix after the final blank.
 
