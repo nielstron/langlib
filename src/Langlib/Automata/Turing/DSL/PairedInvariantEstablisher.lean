@@ -728,6 +728,15 @@ def TM0RealizesPairedBlockBeforeSepViaCopySep
           (left ++ pairSep :: right ++ outerSep :: suffix)).get h).Tape =
           Tape.mk₁ (f (left ++ pairSep :: right) ++ outerSep :: suffix)
 
+/-- Suffix-opaque paired-block operation before an explicit separator.
+
+This is the same external contract as `TM0RealizesPairedBlockBeforeSep`; the
+separate name marks the implementation requirement: proofs of this shape must
+not consume the suffix after `outerSep`. -/
+abbrev TM0RealizesPairedBlockBeforeSepAnySuffix
+    (pairSep outerSep : ChainΓ) (f : List ChainΓ → List ChainΓ) : Prop :=
+  TM0RealizesPairedBlockBeforeSep pairSep outerSep f
+
 /-- `dropUntilFirstSep` preserves absence of any marker that is absent from
 the input block. -/
 theorem dropUntilFirstSep_ne_marker {Γ : Type} [DecidableEq Γ]
@@ -850,6 +859,59 @@ theorem tm0_dropUntilFirstSep_inner_replaceBoundary
   rw [hcomp_tape]
   simpa [List.append_assoc] using hpost.2 hpost.1
 
+/-- Suffix-opaque version of `tm0_dropUntilFirstSep_inner_replaceBoundary`.
+
+The implementation should be the same reverse/inner-block construction as
+`tm0RealizesBlockSepAnySuffix_toInner`, but exposed without the stale
+`∀ g ∈ suffix, g ≠ default` premise. -/
+theorem tm0_dropUntilFirstSep_inner_replaceBoundary_anySuffix
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep boundarySep outerSep : Γ}
+    (hsep_nd : sep ≠ default)
+    (hboundary_nd : boundarySep ≠ default)
+    (hboundary_outer : boundarySep ≠ outerSep) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine Γ Λ),
+      ∀ (pfx inner suffix : List Γ),
+        (∀ g ∈ pfx, g ≠ default) →
+        (∀ g ∈ pfx, g ≠ outerSep) →
+        (∀ g ∈ pfx, g ≠ boundarySep) →
+        (∀ g ∈ inner, g ≠ default) →
+        (∀ g ∈ inner, g ≠ outerSep) →
+        (∀ g ∈ inner, g ≠ boundarySep) →
+        (TM0Seq.evalCfg M
+          (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M
+          (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M
+            (pfx ++ boundarySep :: inner ++ outerSep :: suffix)).get h).Tape =
+            Tape.mk₁ (pfx ++ sep :: dropUntilFirstSep sep inner ++
+              outerSep :: suffix) := by
+  sorry
+
+/-- Separator-parametric, suffix-opaque paired addition.
+
+This is the theorem needed between the copy phase and the copied-tail cleanup
+in `tm0_binAddPairedKeepRightSep_beforeSep_viaCopySep`. Its successor step is
+intended to use `tm0_binSucc_blockSepAnySuffix`, so `pairSep` must be a
+non-binary separator. -/
+theorem tm0_binAddPairedSep_beforeSep_anySuffix
+    {pairSep outerSep : ChainΓ}
+    (hpair_nd : pairSep ≠ default)
+    (houter_nd : outerSep ≠ default)
+    (hpair_outer : pairSep ≠ outerSep)
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1) :
+    TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep
+      (binAddPairedSep pairSep) := by
+  have hsucc_any :
+      TM0RealizesBlockSepAnySuffix ChainΓ pairSep binSucc :=
+    tm0_binSucc_blockSepAnySuffix hpair_bit0 hpair_bit1
+  -- Thread the suffix-opaque successor through the old paired-add loop stack.
+  -- The remaining work is parameterizing the predecessor/condition/while
+  -- lemmas over `pairSep` and `outerSep`.
+  sorry
+
 /-- Copy/delete construction for keep-right paired addition, stated with an
 explicit fresh copy separator.
 
@@ -864,21 +926,25 @@ theorem tm0_binAddPairedKeepRightSep_beforeSep_viaCopySep
     (houter_nd : outerSep ≠ default)
     (hpair_copy : pairSep ≠ copySep)
     (hpair_outer : pairSep ≠ outerSep)
-    (hcopy_outer : copySep ≠ outerSep) :
+    (hcopy_outer : copySep ≠ outerSep)
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1) :
     TM0RealizesPairedBlockBeforeSepViaCopySep pairSep copySep outerSep
       (binAddPairedKeepRightSep pairSep) := by
   obtain ⟨Λcopy, hΛcopyi, hΛcopyf, Mcopy, hMcopy⟩ :=
     tm0_copyWithSep_blockSepAnySuffix_outer
-      (sep2 := copySep) (outerSep := outerSep) hcopy_nd
-  obtain ⟨ΛdropCopy, hΛdropCopyi, hΛdropCopyf, MdropCopy, hMdropCopy⟩ :=
-    tm0_dropUntilFirstSep_blockSepAnySuffix
-      (sep := copySep) (outerSep := outerSep) hcopy_nd
-  obtain ⟨ΛdropPair, hΛdropPairi, hΛdropPairf, MdropPair, hMdropPair⟩ :=
-    tm0_dropUntilFirstSep_blockSepAnySuffix
-      (sep := pairSep) (outerSep := outerSep) hpair_nd
-  -- The remaining composition glues the new suffix-opaque copy machine to the
-  -- paired-add block proof and then uses `dropUntilFirstSep_copyWithSep_pairedRight`
-  -- for the list-level recovery of the preserved right operand.
+      (sep2 := copySep) (outerSep := outerSep) hcopy_nd houter_nd
+  obtain ⟨Λadd, hΛaddi, hΛaddf, Madd, hMadd⟩ :=
+    tm0_binAddPairedSep_beforeSep_anySuffix
+      hpair_nd hcopy_nd hpair_copy hpair_bit0 hpair_bit1
+  obtain ⟨Λdrop, hΛdropi, hΛdropf, Mdrop, hMdrop⟩ :=
+    tm0_dropUntilFirstSep_inner_replaceBoundary_anySuffix
+      (sep := pairSep) (boundarySep := copySep) (outerSep := outerSep)
+      hpair_nd hcopy_nd hcopy_outer
+  -- The composition is now the intended one:
+  --   copy before outerSep;
+  --   paired-add before copySep using the suffix-opaque add theorem;
+  --   replace copySep by pairSep and drop the copied left half.
   sorry
 
 theorem tm0_binPred_afterMulSep₂_innerBlockSep_outer {outerSep : ChainΓ}
@@ -964,6 +1030,8 @@ theorem tm0_binMulPairedStep3_update_splitBeforeSep
       hsep₁_copy
       (by simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂)
       hcopy_sep₂
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_bit0)
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_bit1)
   obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
     tm0_binPred_afterMulSep₂_innerBlockSep_outer
       houter_nd houter_ne_sep₂
@@ -1224,6 +1292,8 @@ theorem tm0_binMulPairedStep3_update_blockInvSuffixFixed :
       (by simpa [binMulStateSep₁] using chainMulSep₁_ne_chainConsBottom)
       (by simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂)
       (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_chainConsBottom)
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_bit0)
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_bit1)
   obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
     tm0_binPred_afterMulSep₂_innerDefaultViaConsBottom
   let h12i : Inhabited (Λa ⊕ Λp) := ⟨Sum.inl (@default _ hΛai)⟩

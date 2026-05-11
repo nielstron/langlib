@@ -1,5 +1,6 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
+import Langlib.Automata.Turing.DSL.BlockSepPrefix
 
 /-! # Separator-parameterized versions of normalize and related block operations
 
@@ -666,3 +667,177 @@ theorem tm0_binSucc_blockSep {sep : ChainΓ}
     · intro h
       exact (Part.mem_unique (Part.get_mem h) (Turing.mem_eval.mpr
         ⟨h_reaches, by simp [TM0.step, binSuccMachineSep]⟩)).symm ▸ rfl
+
+/-! ## LSB-last successor — opaque suffix version -/
+
+/-- Binary successor for blocks whose least-significant bit is at the end of
+the list. This is ordinary `binSucc` conjugated by list reversal. -/
+noncomputable def binSuccLsbLast : List ChainΓ → List ChainΓ :=
+  List.reverse ∘ binSucc ∘ List.reverse
+
+theorem binSuccLsbLast_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binSuccLsbLast block, g ≠ default := by
+  intro g hg
+  unfold binSuccLsbLast at hg
+  simp only [Function.comp_apply] at hg
+  exact reverse_ne_default _ (binSucc_ne_default _ (reverse_ne_default block hblock))
+    g hg
+
+theorem binSucc_no_of_ne_bits {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ sep) :
+    ∀ g ∈ binSucc block, g ≠ sep := by
+  induction block with
+  | nil =>
+      intro g hg
+      simp [binSucc] at hg
+      rw [hg]
+      exact Ne.symm hsep1
+  | cons c rest ih =>
+      have hc : c ≠ sep := hblock c List.mem_cons_self
+      have hrest : ∀ g ∈ rest, g ≠ sep :=
+        fun g hg => hblock g (List.mem_cons_of_mem c hg)
+      intro g hg
+      by_cases hc0 : c = γ'ToChainΓ Γ'.bit0
+      · simp [binSucc, hc0] at hg
+        rcases hg with rfl | hg
+        · exact Ne.symm hsep1
+        · exact hrest g hg
+      · by_cases hc1 : c = γ'ToChainΓ Γ'.bit1
+        · simp [binSucc, hc0, hc1] at hg
+          rcases hg with rfl | hg
+          · exact Ne.symm hsep0
+          · exact ih hrest g hg
+        · simp [binSucc, hc0, hc1] at hg
+          rcases hg with rfl | hg
+          · exact hc
+          · exact hrest g hg
+
+theorem binSuccLsbLast_ne_sep {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ sep) :
+    ∀ g ∈ binSuccLsbLast block, g ≠ sep := by
+  intro g hg
+  unfold binSuccLsbLast at hg
+  simp only [Function.comp_apply] at hg
+  have hsucc :
+      ∀ g ∈ binSucc block.reverse, g ≠ sep := by
+    exact binSucc_no_of_ne_bits hsep0 hsep1 block.reverse
+      (reverse_ne_sep block hblock)
+  exact reverse_ne_sep _ hsucc g hg
+
+inductive BinSuccLsbLastSt where
+  | scan | carry | carryMove | rewind | done
+
+noncomputable instance : DecidableEq BinSuccLsbLastSt :=
+  Classical.typeDecidableEq _
+
+noncomputable instance : Inhabited BinSuccLsbLastSt := ⟨.scan⟩
+
+noncomputable instance : Fintype BinSuccLsbLastSt := by
+  exact
+  { elems := {.scan, .carry, .carryMove, .rewind, .done}
+    complete := by intro x; cases x <;> simp }
+
+/-- Increment a separator-bounded block whose least-significant bit is the
+rightmost cell. The machine never moves right of the separator, so the suffix
+after `sep` is completely opaque. -/
+noncomputable def binSuccLsbLastMachine (sep : ChainΓ) :
+    @TM0.Machine ChainΓ BinSuccLsbLastSt ⟨.scan⟩ := fun q a =>
+  match q with
+  | .scan =>
+      if a = sep then some (.carry, .move Dir.left)
+      else some (.scan, .move Dir.right)
+  | .carry =>
+      if a = γ'ToChainΓ Γ'.bit0 then
+        some (.rewind, .write (γ'ToChainΓ Γ'.bit1))
+      else if a = γ'ToChainΓ Γ'.bit1 then
+        some (.carryMove, .write (γ'ToChainΓ Γ'.bit0))
+      else if a = default then
+        some (.done, .write (γ'ToChainΓ Γ'.bit1))
+      else
+        some (.rewind, .move Dir.left)
+  | .carryMove => some (.carry, .move Dir.left)
+  | .rewind =>
+      if a = default then some (.done, .move Dir.right)
+      else some (.rewind, .move Dir.left)
+  | .done => none
+
+theorem binSuccLsbLast_step_done (sep : ChainΓ) (T : Tape ChainΓ) :
+    TM0.step (binSuccLsbLastMachine sep) ⟨.done, T⟩ = none := by
+  simp [TM0.step, binSuccLsbLastMachine]
+
+theorem binSuccLsbLast_scan_reaches
+    (sep : ChainΓ) (block suffix : List ChainΓ)
+    (hblock_nsep : ∀ g ∈ block, g ≠ sep) :
+    Reaches (TM0.step (binSuccLsbLastMachine sep))
+      (TM0.init (block ++ sep :: suffix))
+      ⟨.carry, Tape.move Dir.left (Tape.mk₂ block.reverse (sep :: suffix))⟩ := by
+  sorry
+
+theorem binSuccLsbLast_rewind_reaches
+    (sep : ChainΓ) (left : List ChainΓ) (head : ChainΓ) (right : List ChainΓ)
+    (hleft_nd : ∀ g ∈ left, g ≠ default)
+    (hhead_nd : head ≠ default) :
+    Reaches (TM0.step (binSuccLsbLastMachine sep))
+      ⟨.rewind, Tape.mk₂ left (head :: right)⟩
+      ⟨.done, Tape.mk₁ (left.reverse ++ head :: right)⟩ := by
+  sorry
+
+theorem binSuccLsbLast_carry_reaches
+    (sep : ChainΓ) (revBlock suffix : List ChainΓ)
+    (hrev_nd : ∀ g ∈ revBlock, g ≠ default) :
+    Reaches (TM0.step (binSuccLsbLastMachine sep))
+      ⟨.carry, Tape.move Dir.left (Tape.mk₂ revBlock (sep :: suffix))⟩
+      ⟨.done, Tape.mk₁ ((binSucc revBlock).reverse ++ sep :: suffix)⟩ := by
+  sorry
+
+theorem tm0_binSuccLsbLast_blockSepAnySuffix {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep binSuccLsbLast := by
+  refine ⟨BinSuccLsbLastSt, inferInstance, inferInstance,
+    binSuccLsbLastMachine sep, ?_⟩
+  intro block suffix hblock_nd hblock_nsep hfblock_nd hfblock_nsep
+  have hscan := binSuccLsbLast_scan_reaches sep block suffix hblock_nsep
+  have hcarry := binSuccLsbLast_carry_reaches sep block.reverse suffix
+    (reverse_ne_default block hblock_nd)
+  have h_reaches : Reaches (TM0.step (binSuccLsbLastMachine sep))
+      (TM0.init (block ++ sep :: suffix))
+      ⟨.done, Tape.mk₁ (binSuccLsbLast block ++ sep :: suffix)⟩ := by
+    simpa [binSuccLsbLast, Function.comp_def] using hscan.trans hcarry
+  constructor
+  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr
+      ⟨h_reaches, binSuccLsbLast_step_done sep _⟩⟩
+  · intro h
+    exact (Part.mem_unique (Part.get_mem h) (Turing.mem_eval.mpr
+      ⟨h_reaches, binSuccLsbLast_step_done sep _⟩)).symm ▸ rfl
+
+theorem tm0_binSucc_blockSepAnySuffix {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep binSucc := by
+  have hlsb := tm0_binSuccLsbLast_blockSepAnySuffix
+    (sep := sep) hsep0 hsep1
+  have hrev := tm0RealizesBlockSepAnySuffix_revFRev hlsb
+    (fun block hblock => binSuccLsbLast_ne_default block hblock)
+    (fun block hblock => binSuccLsbLast_ne_sep hsep0 hsep1 block hblock)
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hrev
+  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
+  intro block suffix hblock_nd hblock_nsep hf_nd hf_nsep
+  have hf_nd' :
+      ∀ g ∈ (List.reverse ∘ binSuccLsbLast ∘ List.reverse) block,
+        g ≠ default := by
+    simpa [binSuccLsbLast, Function.comp_def] using hf_nd
+  have hf_nsep' :
+      ∀ g ∈ (List.reverse ∘ binSuccLsbLast ∘ List.reverse) block,
+        g ≠ sep := by
+    simpa [binSuccLsbLast, Function.comp_def] using hf_nsep
+  obtain ⟨hdom, htape⟩ :=
+    hM block suffix hblock_nd hblock_nsep hf_nd' hf_nsep'
+  refine ⟨hdom, ?_⟩
+  intro h
+  simpa [binSuccLsbLast, Function.comp_def] using htape h
