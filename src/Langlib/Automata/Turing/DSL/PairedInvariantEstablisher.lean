@@ -738,10 +738,10 @@ abbrev TM0RealizesPairedBlockBeforeSepAnySuffix
   TM0RealizesPairedBlockBeforeSep pairSep outerSep f
 
 /-- Parameterized paired-add loop condition: the left side of the paired block
-is positive. Because `pairSep` is required to be non-binary at use sites,
-`blockValueLeq` reads exactly the prefix before `pairSep`. -/
-noncomputable abbrev pairedAddCondSep (_pairSep : ChainΓ) : List ChainΓ → Prop :=
-  fun block => ¬ blockValueLeq 0 block
+is positive. The value comparison is separator-bounded, so `pairSep` does not
+need to be a non-binary decoder sentinel. -/
+noncomputable abbrev pairedAddCondSep (pairSep : ChainΓ) : List ChainΓ → Prop :=
+  fun block => ¬ blockValueLeqBeforeSep 0 pairSep block
 
 /-- One separator-parametric paired-add transfer step. On a well-formed block
 `left ++ pairSep :: right`, this decrements the left side and increments the
@@ -753,7 +753,7 @@ noncomputable def pairedDecrLeftIncrRightSep
     exact
       if pairedSepInvSep pairSep block then
         let (left, right) := splitAtSep pairSep block
-        binPred left ++ pairSep :: binSucc right
+        binPred left ++ pairSep :: binSucc (normalizeBlock right)
       else
         block
 
@@ -799,11 +799,12 @@ def TM0RealizesPairedBlockBeforeSepCond
 /-- The parametric transfer step preserves the paired separator invariant. -/
 theorem pairedDecrLeftIncrRightSep_pairedSepInvSep
     (pairSep : ChainΓ) (block : List ChainΓ)
-    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
-    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
-    (hInv : pairedSepInvSep pairSep block)
-    (_hblock : ∀ g ∈ block, g ≠ default)
-    (_hcond : pairedAddCondSep pairSep block) :
+    (hpred_npair : ∀ left : List ChainΓ,
+      ∀ g ∈ binPred left, g ≠ pairSep)
+    (hsucc_npair : ∀ right : List ChainΓ,
+      (∀ g ∈ right, g ≠ pairSep) →
+      ∀ g ∈ binSucc (normalizeBlock right), g ≠ pairSep)
+    (hInv : pairedSepInvSep pairSep block) :
     pairedSepInvSep pairSep (pairedDecrLeftIncrRightSep pairSep block) := by
   classical
   rcases hsplit : splitAtSep pairSep block with ⟨left, right⟩
@@ -813,13 +814,12 @@ theorem pairedDecrLeftIncrRightSep_pairedSepInvSep
   simp [hInv, hsplit]
   constructor
   · simp
-  · rw [show splitAtSep pairSep (binPred left ++ pairSep :: binSucc right) =
-        (binPred left, binSucc right) by
+  · rw [show splitAtSep pairSep
+        (binPred left ++ pairSep :: binSucc (normalizeBlock right)) =
+        (binPred left, binSucc (normalizeBlock right)) by
       apply splitAtSep_general_cons
-      unfold binPred
-      exact chainBinaryRepr_no_of_ne_bits pairSep hpair_bit0 hpair_bit1
-        (decodeBinaryBlock left - 1)]
-    exact binSucc_no_of_ne_bits hpair_bit0 hpair_bit1 right hright_npair
+      exact hpred_npair left]
+    exact hsucc_npair right hright_npair
 
 theorem pairedDecrLeftIncrRightSep_ne_default
     (pairSep : ChainΓ) (hpair_nd : pairSep ≠ default)
@@ -841,7 +841,7 @@ theorem pairedDecrLeftIncrRightSep_ne_default
     rintro g (hg | rfl | hg)
     · exact binPred_ne_default left hleft_nd g hg
     · exact hpair_nd
-    · exact binSucc_ne_default right hright_nd g hg
+    · exact binSucc_ne_default _ (normalizeBlock_ne_default right) g hg
   · simpa [hInv] using hblock
 
 theorem pairedDecrLeftIncrRightSep_ne_marker
@@ -869,7 +869,9 @@ theorem pairedDecrLeftIncrRightSep_ne_marker
       exact chainBinaryRepr_no_of_ne_bits marker hmarker_bit0 hmarker_bit1
         (decodeBinaryBlock left - 1) g hg
     · exact hpair_marker
-    · exact binSucc_no_of_ne_bits hmarker_bit0 hmarker_bit1 right hright_nm g hg
+    · exact binSucc_no_of_ne_bits hmarker_bit0 hmarker_bit1
+        (normalizeBlock right)
+        (normalizeBlock_no_of_ne_bits marker hmarker_bit0 hmarker_bit1 right) g hg
   · simpa [hInv] using hblock
 
 /-- The one-step paired-add body, composed from predecessor on the left and
@@ -903,6 +905,8 @@ theorem tm0_pairedDecrLeftIncrRightSep_beforeSepCond
 outer separator. -/
 theorem tm0RealizesPairedBlockBeforeSep_while_pairedSepInvSep
     {pairSep outerSep : ChainΓ}
+    (hpair_nd : pairSep ≠ default)
+    (hpair_outer : pairSep ≠ outerSep)
     (step result : List ChainΓ → List ChainΓ)
     (cond : List ChainΓ → Prop) [DecidablePred cond]
     (hbody : TM0RealizesPairedBlockBeforeSepCond pairSep outerSep step cond)
@@ -918,13 +922,334 @@ theorem tm0RealizesPairedBlockBeforeSep_while_pairedSepInvSep
       ∃ n, result block = blockIterateWhile step cond n block ∧
         ¬cond (blockIterateWhile step cond n block)) :
     TM0RealizesPairedBlockBeforeSepAnySuffix pairSep outerSep result := by
-  -- Same induction as `tm0RealizesPairedBlockBeforeConsBottom_while_pairedSepInv`,
-  -- with all occurrences of the second `chainConsBottom` replaced by
-  -- `outerSep` and all split/reconstruction facts using `splitAtSep pairSep`.
-  sorry
+  obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
+  haveI : DecidableEq Λ := Classical.decEq Λ
+  refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
+  intro left right suffix hleft_nd hleft_npair hleft_nouter
+    hright_nd hright_npair hright_nouter hresult
+  set block := left ++ [pairSep] ++ right with hblock_def
+  have hblock_nd : ∀ g ∈ block, g ≠ default := by
+    intro g hg
+    simp [block, List.mem_append] at hg
+    rcases hg with hg | rfl | hg
+    · exact hleft_nd g hg
+    · exact hpair_nd
+    · exact hright_nd g hg
+  have hblock_nouter : ∀ g ∈ block, g ≠ outerSep := by
+    intro g hg
+    simp [block, List.mem_append] at hg
+    rcases hg with hg | rfl | hg
+    · exact hleft_nouter g hg
+    · exact hpair_outer
+    · exact hright_nouter g hg
+  have hblockInv : pairedSepInvSep pairSep block := by
+    constructor
+    · simp [block]
+    · rw [show splitAtSep pairSep block = (left, right) by
+        simpa [block] using splitAtSep_general pairSep left right hleft_npair]
+      exact hright_npair
+  obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock_nd hblockInv
+  suffices key : ∀ (m : ℕ) (blk : List ChainΓ),
+      pairedSepInvSep pairSep blk →
+      (∀ g ∈ blk, g ≠ default) →
+      (∀ g ∈ blk, g ≠ outerSep) →
+      ¬cond (blockIterateWhile step cond m blk) →
+      (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+        (blk ++ outerSep :: suffix)).Dom ∧
+      ∀ (hd : (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+        (blk ++ outerSep :: suffix)).Dom),
+        ((TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+          (blk ++ outerSep :: suffix)).get hd).Tape =
+          Tape.mk₁ (blockIterateWhile step cond m blk ++
+            outerSep :: suffix) by
+    obtain ⟨h_dom, h_tape⟩ :=
+      key n block hblockInv hblock_nd hblock_nouter hn_not_cond
+    have hinput : block ++ outerSep :: suffix =
+        left ++ pairSep :: right ++ outerSep :: suffix := by
+      simp [block, List.append_assoc]
+    refine ⟨by simpa [hinput] using h_dom, ?_⟩
+    intro hd
+    have hget :
+        (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+          (left ++ pairSep :: right ++ outerSep :: suffix)).get hd =
+        (TM0Seq.evalCfg (tm0WhileLoop M q_cont)
+          (block ++ outerSep :: suffix)).get h_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [hinput]
+    rw [hget, h_tape h_dom, ← hn_eq]
+    simp [block]
+  intro m
+  induction m with
+  | zero =>
+      intro blk hInv hblk_nd hblk_nouter hn_not
+      simp only [blockIterateWhile] at hn_not ⊢
+      rcases hsplit : splitAtSep pairSep blk with ⟨l, r⟩
+      have hblk_recon : blk = l ++ pairSep :: r := by
+        simpa [hsplit] using splitAtSep_reconstruct_of_mem pairSep blk hInv.1
+      have hl_nd : ∀ g ∈ l, g ≠ default := by
+        intro g hg
+        exact hblk_nd g
+          (splitAtSep_fst_subset pairSep blk g (by simpa [hsplit] using hg))
+      have hr_nd : ∀ g ∈ r, g ≠ default := by
+        intro g hg
+        exact hblk_nd g
+          (splitAtSep_snd_subset pairSep blk g (by simpa [hsplit] using hg))
+      have hl_npair : ∀ g ∈ l, g ≠ pairSep := by
+        simpa [hsplit] using splitAtSep_fst_no_sep pairSep blk
+      have hr_npair : ∀ g ∈ r, g ≠ pairSep := by
+        simpa [pairedSepInvSep, hsplit] using hInv.2
+      have hl_nouter : ∀ g ∈ l, g ≠ outerSep := by
+        intro g hg
+        exact hblk_nouter g
+          (splitAtSep_fst_subset pairSep blk g (by simpa [hsplit] using hg))
+      have hr_nouter : ∀ g ∈ r, g ≠ outerSep := by
+        intro g hg
+        exact hblk_nouter g
+          (splitAtSep_snd_subset pairSep blk g (by simpa [hsplit] using hg))
+      obtain ⟨h_body_dom, h_body_spec⟩ := hM l r suffix
+        hl_nd hl_npair hl_nouter hr_nd hr_npair hr_nouter
+        (fun hc => by
+          simpa [hblk_recon] using hstep_nd blk hblk_nd
+            (by simpa [hblk_recon] using hc))
+      have h_body_dom' :
+          (TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).Dom := by
+        simpa [hblk_recon, List.append_assoc] using h_body_dom
+      have h_body_spec' := h_body_spec h_body_dom
+      have hcond_lr : ¬ cond (l ++ pairSep :: r) := by
+        simpa [hblk_recon] using hn_not
+      by_cases hc_lr : cond (l ++ pairSep :: r)
+      · exact False.elim (hcond_lr hc_lr)
+      ·
+        simp [hc_lr] at h_body_spec'
+        obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+        have hget_body :
+            (TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).get h_body_dom' =
+            (TM0Seq.evalCfg M
+              (l ++ pairSep :: r ++ outerSep :: suffix)).get h_body_dom := by
+          apply Part.get_eq_get_of_eq
+          simp [hblk_recon, List.append_assoc]
+        have h_q_ne' :
+            ((TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).get
+              h_body_dom').q ≠ q_cont := by
+          rw [hget_body]
+          simpa [List.append_assoc] using h_q_ne
+        obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _
+          h_body_dom' h_q_ne'
+        exact ⟨h_dom, fun hd => by
+          rw [h_tape hd]
+          simpa [hblk_recon, List.append_assoc] using h_tape_eq⟩
+  | succ m ih =>
+      intro blk hInv hblk_nd hblk_nouter hn_not
+      by_cases hcond : cond blk
+      · rw [blockIterateWhile_succ_true _ _ _ _ hcond] at hn_not ⊢
+        have h_step_nd := hstep_nd blk hblk_nd hcond
+        have h_step_nouter := hstep_nouter blk hblk_nouter hcond
+        have h_step_inv := hinv_step blk hInv hblk_nd hcond
+        rcases hsplit : splitAtSep pairSep blk with ⟨l, r⟩
+        have hblk_recon : blk = l ++ pairSep :: r := by
+          simpa [hsplit] using splitAtSep_reconstruct_of_mem pairSep blk hInv.1
+        have hl_nd : ∀ g ∈ l, g ≠ default := by
+          intro g hg
+          exact hblk_nd g
+            (splitAtSep_fst_subset pairSep blk g (by simpa [hsplit] using hg))
+        have hr_nd : ∀ g ∈ r, g ≠ default := by
+          intro g hg
+          exact hblk_nd g
+            (splitAtSep_snd_subset pairSep blk g (by simpa [hsplit] using hg))
+        have hl_npair : ∀ g ∈ l, g ≠ pairSep := by
+          simpa [hsplit] using splitAtSep_fst_no_sep pairSep blk
+        have hr_npair : ∀ g ∈ r, g ≠ pairSep := by
+          simpa [pairedSepInvSep, hsplit] using hInv.2
+        have hl_nouter : ∀ g ∈ l, g ≠ outerSep := by
+          intro g hg
+          exact hblk_nouter g
+            (splitAtSep_fst_subset pairSep blk g (by simpa [hsplit] using hg))
+        have hr_nouter : ∀ g ∈ r, g ≠ outerSep := by
+          intro g hg
+          exact hblk_nouter g
+            (splitAtSep_snd_subset pairSep blk g (by simpa [hsplit] using hg))
+        obtain ⟨h_body_dom, h_body_spec⟩ := hM l r suffix
+          hl_nd hl_npair hl_nouter hr_nd hr_npair hr_nouter
+          (fun _ => by simpa [hblk_recon] using h_step_nd)
+        have h_body_dom' :
+            (TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).Dom := by
+          simpa [hblk_recon, List.append_assoc] using h_body_dom
+        have h_body_spec' := h_body_spec h_body_dom
+        have hcond_lr : cond (l ++ pairSep :: r) := by
+          simpa [hblk_recon] using hcond
+        by_cases hc_lr : cond (l ++ pairSep :: r)
+        ·
+          simp [hc_lr] at h_body_spec'
+          obtain ⟨h_q_cont, h_tape_step⟩ := h_body_spec'
+          have hget_body :
+              (TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).get h_body_dom' =
+              (TM0Seq.evalCfg M
+                (l ++ pairSep :: r ++ outerSep :: suffix)).get h_body_dom := by
+            apply Part.get_eq_get_of_eq
+            simp [hblk_recon, List.append_assoc]
+          have h_q_cont' :
+              ((TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).get
+                h_body_dom').q = q_cont := by
+            rw [hget_body]
+            simpa [List.append_assoc] using h_q_cont
+          obtain ⟨h_W_step_dom, h_W_step_tape⟩ :=
+            ih (step blk) h_step_inv h_step_nd h_step_nouter hn_not
+          obtain ⟨h_W_dom, h_W_tape⟩ := whileLoop_eval_cont M q_cont _ _
+            h_body_dom' h_q_cont'
+            (by simpa [hblk_recon, List.append_assoc] using h_tape_step)
+            h_W_step_dom
+          exact ⟨h_W_dom, fun hd => by
+            rw [h_W_tape hd, h_W_step_tape h_W_step_dom]⟩
+        · exact False.elim (hc_lr hcond_lr)
+      · rw [blockIterateWhile_succ_false _ _ _ _ hcond] at hn_not ⊢
+        rcases hsplit : splitAtSep pairSep blk with ⟨l, r⟩
+        have hblk_recon : blk = l ++ pairSep :: r := by
+          simpa [hsplit] using splitAtSep_reconstruct_of_mem pairSep blk hInv.1
+        have hl_nd : ∀ g ∈ l, g ≠ default := by
+          intro g hg
+          exact hblk_nd g
+            (splitAtSep_fst_subset pairSep blk g (by simpa [hsplit] using hg))
+        have hr_nd : ∀ g ∈ r, g ≠ default := by
+          intro g hg
+          exact hblk_nd g
+            (splitAtSep_snd_subset pairSep blk g (by simpa [hsplit] using hg))
+        have hl_npair : ∀ g ∈ l, g ≠ pairSep := by
+          simpa [hsplit] using splitAtSep_fst_no_sep pairSep blk
+        have hr_npair : ∀ g ∈ r, g ≠ pairSep := by
+          simpa [pairedSepInvSep, hsplit] using hInv.2
+        have hl_nouter : ∀ g ∈ l, g ≠ outerSep := by
+          intro g hg
+          exact hblk_nouter g
+            (splitAtSep_fst_subset pairSep blk g (by simpa [hsplit] using hg))
+        have hr_nouter : ∀ g ∈ r, g ≠ outerSep := by
+          intro g hg
+          exact hblk_nouter g
+            (splitAtSep_snd_subset pairSep blk g (by simpa [hsplit] using hg))
+        obtain ⟨h_body_dom, h_body_spec⟩ := hM l r suffix
+          hl_nd hl_npair hl_nouter hr_nd hr_npair hr_nouter
+          (fun hc => False.elim (hcond (by simpa [hblk_recon] using hc)))
+        have h_body_dom' :
+            (TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).Dom := by
+          simpa [hblk_recon, List.append_assoc] using h_body_dom
+        have h_body_spec' := h_body_spec h_body_dom
+        have hcond_lr : ¬ cond (l ++ pairSep :: r) := by
+          simpa [hblk_recon] using hcond
+        by_cases hc_lr : cond (l ++ pairSep :: r)
+        · exact False.elim (hcond_lr hc_lr)
+        ·
+          simp [hc_lr] at h_body_spec'
+          obtain ⟨h_q_ne, h_tape_eq⟩ := h_body_spec'
+          have hget_body :
+              (TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).get h_body_dom' =
+              (TM0Seq.evalCfg M
+                (l ++ pairSep :: r ++ outerSep :: suffix)).get h_body_dom := by
+            apply Part.get_eq_get_of_eq
+            simp [hblk_recon, List.append_assoc]
+          have h_q_ne' :
+              ((TM0Seq.evalCfg M (blk ++ outerSep :: suffix)).get
+                h_body_dom').q ≠ q_cont := by
+            rw [hget_body]
+            simpa [List.append_assoc] using h_q_ne
+          obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _
+            h_body_dom' h_q_ne'
+          exact ⟨h_dom, fun hd => by
+            rw [h_tape hd]
+            simpa [hblk_recon, List.append_assoc] using h_tape_eq⟩
+
+/-- `decodeBinaryBlock` on a paired block equals decoding the prefix before
+the first non-binary separator. -/
+theorem decodeBinaryBlock_eq_splitLeftSep
+    (sep : ChainΓ)
+    (hsep_bit0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep_bit1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) :
+    decodeBinaryBlock block = decodeBinaryBlock (splitAtSep sep block).1 := by
+  induction block with
+  | nil => rfl
+  | cons c rest ih =>
+      by_cases hc : c = sep
+      · subst c
+        simp [splitAtSep, decodeBinaryBlock, hsep_bit0, hsep_bit1]
+      · by_cases hc0 : c = γ'ToChainΓ Γ'.bit0
+        · have hbit0_ne_sep : γ'ToChainΓ Γ'.bit0 ≠ sep := by
+            intro h
+            exact hsep_bit0 h.symm
+          simp [splitAtSep, decodeBinaryBlock, hc, hc0, hbit0_ne_sep, ih]
+        · by_cases hc1 : c = γ'ToChainΓ Γ'.bit1
+          · have hbit1_ne_sep : γ'ToChainΓ Γ'.bit1 ≠ sep := by
+              intro h
+              exact hsep_bit1 h.symm
+            simp [splitAtSep, decodeBinaryBlock, hc, hc0, hc1, hbit1_ne_sep, ih]
+          · simp [splitAtSep, decodeBinaryBlock, hc, hc0, hc1]
+
+theorem decodeBinaryBlock_binSucc_normalizeBlock (block : List ChainΓ) :
+    decodeBinaryBlock (binSucc (normalizeBlock block)) =
+      decodeBinaryBlock block + 1 := by
+  unfold normalizeBlock
+  rw [binSucc_correct, decodeBinaryBlock_chainBinaryRepr]
+
+/-- After `k` transfer steps, the decoded left value has been decremented by
+`k` and the decoded right value incremented by `k`. -/
+theorem pairedDecrLeftIncrRightSep_iterate_decode
+    (pairSep : ChainΓ)
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) (k : ℕ)
+    (hInv : pairedSepInvSep pairSep block)
+    (hk : k ≤ decodeBinaryBlock (splitAtSep pairSep block).1) :
+    let result := (pairedDecrLeftIncrRightSep pairSep)^[k] block
+    decodeBinaryBlock (splitAtSep pairSep result).1 =
+      decodeBinaryBlock (splitAtSep pairSep block).1 - k ∧
+    decodeBinaryBlock (splitAtSep pairSep result).2 =
+      decodeBinaryBlock (splitAtSep pairSep block).2 + k := by
+  induction k generalizing block with
+  | zero =>
+      norm_num
+  | succ k ih =>
+      convert ih (pairedDecrLeftIncrRightSep pairSep block)
+        (pairedDecrLeftIncrRightSep_pairedSepInvSep
+          pairSep block
+          (fun left => by
+            unfold binPred
+            exact chainBinaryRepr_no_of_ne_bits pairSep hpair_bit0 hpair_bit1
+              (decodeBinaryBlock left - 1))
+          (fun right _hright_npair =>
+            binSucc_no_of_ne_bits hpair_bit0 hpair_bit1
+              (normalizeBlock right)
+              (normalizeBlock_no_of_ne_bits pairSep hpair_bit0 hpair_bit1 right))
+          hInv)
+        (by
+          simp [pairedDecrLeftIncrRightSep, hInv]
+          rcases hsplit : splitAtSep pairSep block with ⟨left, right⟩
+          have hpred_npair : ∀ g ∈ binPred left, g ≠ pairSep := by
+            unfold binPred
+            exact chainBinaryRepr_no_of_ne_bits pairSep hpair_bit0 hpair_bit1
+              (decodeBinaryBlock left - 1)
+          rw [show splitAtSep pairSep
+                (binPred left ++ pairSep :: binSucc (normalizeBlock right)) =
+                (binPred left, binSucc (normalizeBlock right)) by
+              exact splitAtSep_general_cons pairSep (binPred left)
+                (binSucc (normalizeBlock right)) hpred_npair]
+          simp [decodeBinaryBlock_binPred]
+          simpa [hsplit] using Nat.le_sub_one_of_lt hk) using 1
+      · simp [pairedDecrLeftIncrRightSep, hInv]
+        rcases hsplit : splitAtSep pairSep block with ⟨left, right⟩
+        have hpred_npair : ∀ g ∈ binPred left, g ≠ pairSep := by
+          unfold binPred
+          exact chainBinaryRepr_no_of_ne_bits pairSep hpair_bit0 hpair_bit1
+            (decodeBinaryBlock left - 1)
+        rw [show splitAtSep pairSep
+              (binPred left ++ pairSep :: binSucc (normalizeBlock right)) =
+              (binPred left, binSucc (normalizeBlock right)) by
+            exact splitAtSep_general_cons pairSep (binPred left)
+              (binSucc (normalizeBlock right)) hpred_npair]
+        simp [decodeBinaryBlock_binPred, decodeBinaryBlock_binSucc_normalizeBlock]
+        omega
 
 theorem binAddPairedWhileSep_eq_iterate
     (pairSep : ChainΓ) (block : List ChainΓ)
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
     (_hblock : ∀ g ∈ block, g ≠ default)
     (hInv : pairedSepInvSep pairSep block) :
     ∃ n, binAddPairedWhileSep pairSep block =
@@ -933,7 +1258,43 @@ theorem binAddPairedWhileSep_eq_iterate
       ¬ pairedAddCondSep pairSep
         (blockIterateWhile (pairedDecrLeftIncrRightSep pairSep)
           (pairedAddCondSep pairSep) n block) := by
-  sorry
+  unfold binAddPairedWhileSep pairedAddCondSep blockValueLeqBeforeSep
+  refine ⟨decodeBinaryBlock (splitAtSep pairSep block).1, rfl, ?_⟩
+  rw [blockIterateWhile_eq_iterate_of_cond]
+  · have hdec := (pairedDecrLeftIncrRightSep_iterate_decode
+      pairSep hpair_bit0 hpair_bit1 block
+      (decodeBinaryBlock (splitAtSep pairSep block).1) hInv le_rfl).1
+    simp [hdec]
+  · intro k hk
+    have hdec := (pairedDecrLeftIncrRightSep_iterate_decode
+      pairSep hpair_bit0 hpair_bit1 block k hInv (by omega)).1
+    simp [hdec]
+    omega
+
+theorem pairedDecrLeftIncrRightSep_iterate_pairedSepInvSep
+    (pairSep : ChainΓ)
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) (n : ℕ)
+    (hInv : pairedSepInvSep pairSep block) :
+    pairedSepInvSep pairSep
+      ((pairedDecrLeftIncrRightSep pairSep)^[n] block) := by
+  induction n with
+  | zero =>
+      simpa
+  | succ n ih =>
+      rw [Function.iterate_succ_apply']
+      exact pairedDecrLeftIncrRightSep_pairedSepInvSep
+        pairSep _ 
+        (fun left => by
+          unfold binPred
+          exact chainBinaryRepr_no_of_ne_bits pairSep hpair_bit0 hpair_bit1
+            (decodeBinaryBlock left - 1))
+        (fun right _hright_npair =>
+          binSucc_no_of_ne_bits hpair_bit0 hpair_bit1
+            (normalizeBlock right)
+            (normalizeBlock_no_of_ne_bits pairSep hpair_bit0 hpair_bit1 right))
+        ih
 
 theorem binAddPairedWhileSep_ne_default
     (pairSep : ChainΓ) (hpair_nd : pairSep ≠ default)
@@ -964,13 +1325,52 @@ theorem extractPairedRightSep_ne_default
     ∀ g ∈ dropUntilFirstSep pairSep block, g ≠ default :=
   dropUntilFirstSep_ne_default pairSep block hblock
 
+theorem dropUntilFirstSep_eq_splitAtSep_snd_of_mem
+    {Γ : Type} [DecidableEq Γ] (sep : Γ) (block : List Γ)
+    (hmem : sep ∈ block) :
+    dropUntilFirstSep sep block = (splitAtSep sep block).2 := by
+  conv_lhs =>
+    rw [splitAtSep_reconstruct_of_mem sep block hmem]
+  exact dropUntilFirstSep_append_cons sep
+    (splitAtSep sep block).1 (splitAtSep sep block).2
+    (splitAtSep_fst_no_sep sep block)
+
 theorem binAddPairedSep_eq_while_decomp
     (pairSep : ChainΓ) (block : List ChainΓ)
+    (hpair_bit0 : pairSep ≠ γ'ToChainΓ Γ'.bit0)
+    (hpair_bit1 : pairSep ≠ γ'ToChainΓ Γ'.bit1)
     (hInv : pairedSepInvSep pairSep block) :
     binAddPairedSep pairSep block =
       (normalizeBlock ∘ dropUntilFirstSep pairSep ∘
         binAddPairedWhileSep pairSep) block := by
-  sorry
+  rcases hsplit : splitAtSep pairSep block with ⟨left, right⟩
+  unfold binAddPairedSep binAddPairedWhileSep normalizeBlock Function.comp
+  simp [hsplit]
+  have h_iter :
+      blockIterateWhile (pairedDecrLeftIncrRightSep pairSep)
+        (pairedAddCondSep pairSep)
+        (decodeBinaryBlock left) block =
+      (pairedDecrLeftIncrRightSep pairSep)^[
+        decodeBinaryBlock left] block := by
+    apply blockIterateWhile_eq_iterate_of_cond
+    intro k hk
+    unfold pairedAddCondSep blockValueLeqBeforeSep
+    have hdec := (pairedDecrLeftIncrRightSep_iterate_decode
+      pairSep hpair_bit0 hpair_bit1 block k hInv (by
+        simpa [hsplit] using Nat.le_of_lt hk)).1
+    simp [hdec, hsplit]
+    omega
+  rw [h_iter]
+  have hInv_iter :=
+    pairedDecrLeftIncrRightSep_iterate_pairedSepInvSep
+      pairSep hpair_bit0 hpair_bit1 block
+      (decodeBinaryBlock left) hInv
+  rw [dropUntilFirstSep_eq_splitAtSep_snd_of_mem pairSep _ hInv_iter.1]
+  have hright := (pairedDecrLeftIncrRightSep_iterate_decode
+    pairSep hpair_bit0 hpair_bit1 block
+    (decodeBinaryBlock left) hInv (by simp [hsplit])).2
+  rw [hright]
+  simp [hsplit, Nat.add_comm]
 
 theorem binAddPairedWhileSep_ne_marker
     (pairSep marker : ChainΓ)
@@ -1351,15 +1751,27 @@ theorem tm0_binAddPairedSep_beforeSep_anySuffix
         (binAddPairedWhileSep pairSep) :=
     tm0RealizesPairedBlockBeforeSep_while_pairedSepInvSep
       (pairSep := pairSep) (outerSep := outerSep)
+      hpair_nd hpair_outer
       (pairedDecrLeftIncrRightSep pairSep)
       (binAddPairedWhileSep pairSep)
       (pairedAddCondSep pairSep)
       hbody
-      (pairedDecrLeftIncrRightSep_pairedSepInvSep pairSep · hpair_bit0 hpair_bit1)
+      (fun block hInv _hblock _hcond =>
+        pairedDecrLeftIncrRightSep_pairedSepInvSep
+          pairSep block
+          (fun left => by
+            unfold binPred
+            exact chainBinaryRepr_no_of_ne_bits pairSep hpair_bit0 hpair_bit1
+              (decodeBinaryBlock left - 1))
+          (fun right hright_npair =>
+            binSucc_no_of_ne_bits hpair_bit0 hpair_bit1
+              (normalizeBlock right)
+              (normalizeBlock_no_of_ne_bits pairSep hpair_bit0 hpair_bit1 right))
+          hInv)
       (pairedDecrLeftIncrRightSep_ne_default pairSep hpair_nd)
       (pairedDecrLeftIncrRightSep_ne_marker pairSep outerSep hpair_outer
         houter_bit0 houter_bit1)
-      (binAddPairedWhileSep_eq_iterate pairSep)
+      (binAddPairedWhileSep_eq_iterate pairSep · hpair_bit0 hpair_bit1)
   have hdrop :
       TM0RealizesBlockSepAnySuffix ChainΓ outerSep
         (dropUntilFirstSep pairSep) :=
@@ -1410,7 +1822,7 @@ theorem tm0_binAddPairedSep_beforeSep_anySuffix
       exact hright_npair
   have hdecomp :=
     binAddPairedSep_eq_while_decomp pairSep
-      (left ++ pairSep :: right) hInv
+      (left ++ pairSep :: right) hpair_bit0 hpair_bit1 hInv
   exact hdecomp.symm
 
 /-- Copy/delete construction for keep-right paired addition, stated with an

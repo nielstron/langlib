@@ -3,6 +3,7 @@ import Langlib.Automata.Turing.DSL.ChainAlphabet
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.BinaryArithmetic
 import Langlib.Automata.Turing.DSL.BlockValueLeqMachine
+import Langlib.Automata.Turing.DSL.SplitAtSep
 
 /-! # Conditional Block Operations
 
@@ -464,8 +465,19 @@ theorem tm0RealizesBlock_cond
 noncomputable def blockValueLeq (k : ℕ) (block : List ChainΓ) : Prop :=
   decodeBinaryBlock block ≤ k
 
+/-- Separator-bounded value comparison: only the prefix before the first
+`sep` is decoded. This is the right condition for paired blocks whose
+separator is a logical marker rather than a non-binary decoder sentinel. -/
+noncomputable def blockValueLeqBeforeSep (k : ℕ) (sep : ChainΓ)
+    (block : List ChainΓ) : Prop :=
+  decodeBinaryBlock (splitAtSep sep block).1 ≤ k
+
 noncomputable instance blockValueLeq_decidable (k : ℕ) :
     DecidablePred (blockValueLeq k) :=
+  fun _ => inferInstanceAs (Decidable (_ ≤ _))
+
+noncomputable instance blockValueLeqBeforeSep_decidable (k : ℕ) (sep : ChainΓ) :
+    DecidablePred (blockValueLeqBeforeSep k sep) :=
   fun _ => inferInstanceAs (Decidable (_ ≤ _))
 
 theorem tm0_blockValueLeq_decidable (k : ℕ) :
@@ -504,6 +516,219 @@ theorem tm0_blockValueLeq_decidable_2 (k : ℕ) :
   refine ⟨BVLState k, bvlInhabited k, inferInstance, bvlMachine k,
     Sum.inr (Sum.inr true), Sum.inr (Sum.inr false), by simp, fun block suffix hblock hsuffix => ?_⟩
   exact bvlMachine_correct k block suffix hblock hsuffix
+
+/-! ### Block value comparison before a separator -/
+
+/-- Variant of the block-value comparator that treats `sep` as the end marker
+instead of blank. It decides the value of the prefix before `sep` and leaves
+the tape unchanged. -/
+noncomputable def bvlBeforeSepMachine (k : ℕ) (sep : ChainΓ) :
+    @TM0.Machine ChainΓ (BVLState k) (bvlInhabited k) :=
+  fun q a =>
+    match q with
+    | Sum.inl b =>
+      if a = sep then
+        if b.val = k + 1 then
+          some (Sum.inr (Sum.inl false), TM0.Stmt.move Dir.left)
+        else
+          some (Sum.inr (Sum.inl true), TM0.Stmt.move Dir.left)
+      else
+        some (Sum.inl (bvlBudgetUpdate k b a), TM0.Stmt.move Dir.right)
+    | Sum.inr (Sum.inl result) =>
+      if a = (default : ChainΓ) then
+        some (Sum.inr (Sum.inr result), TM0.Stmt.move Dir.right)
+      else
+        some (Sum.inr (Sum.inl result), TM0.Stmt.move Dir.left)
+    | Sum.inr (Sum.inr _) => none
+
+theorem bvlBeforeSepMachine_scan_gen (k : ℕ) (sep : ChainΓ) (b : Fin (k + 3))
+    (remaining processed_rev suffix : List ChainΓ)
+    (hremaining_sep : ∀ x ∈ remaining, x ≠ sep) :
+    Reaches (TM0.step (bvlBeforeSepMachine k sep))
+      ⟨Sum.inl b,
+       Tape.mk' (ListBlank.mk processed_rev)
+         (ListBlank.mk (remaining ++ sep :: suffix))⟩
+      ⟨Sum.inl (remaining.foldl (bvlBudgetUpdate k) b),
+       Tape.mk' (ListBlank.mk (remaining.reverse ++ processed_rev))
+         (ListBlank.mk (sep :: suffix))⟩ := by
+  induction remaining generalizing b processed_rev with
+  | nil =>
+      exact Relation.ReflTransGen.refl
+  | cons a remaining ih =>
+      have ha : a ≠ sep := hremaining_sep a (by simp)
+      have hrest : ∀ x ∈ remaining, x ≠ sep := by
+        intro x hx
+        exact hremaining_sep x (List.mem_cons_of_mem a hx)
+      convert Relation.ReflTransGen.trans
+        (Relation.ReflTransGen.single ?_)
+        (ih (bvlBudgetUpdate k b a) (a :: processed_rev) hrest) using 1
+      · simp [List.reverse_cons, List.append_assoc]
+      · simp [TM0.step, bvlBeforeSepMachine, Tape.move, Tape.mk', ha,
+          List.reverse_cons, List.append_assoc]
+
+theorem bvlBeforeSepMachine_scan_sep (k : ℕ) (sep : ChainΓ) (b : Fin (k + 3))
+    (L R : ListBlank ChainΓ) :
+    TM0.step (bvlBeforeSepMachine k sep) ⟨Sum.inl b, ⟨sep, L, R⟩⟩ =
+      some ⟨Sum.inr (Sum.inl (b.val ≠ k + 1)),
+        ⟨L.head, L.tail, ListBlank.cons sep R⟩⟩ := by
+  simp [TM0.step, bvlBeforeSepMachine, Tape.move]
+  by_cases hb : b.val = k + 1 <;> simp [hb]
+
+theorem bvlBeforeSepMachine_rewind_nondefault (k : ℕ) (sep : ChainΓ)
+    (result : Bool) (a : ChainΓ) (ha : a ≠ (default : ChainΓ))
+    (L R : ListBlank ChainΓ) :
+    TM0.step (bvlBeforeSepMachine k sep) ⟨Sum.inr (Sum.inl result), ⟨a, L, R⟩⟩ =
+      some ⟨Sum.inr (Sum.inl result),
+        ⟨L.head, L.tail, ListBlank.cons a R⟩⟩ := by
+  simp [TM0.step, bvlBeforeSepMachine, Tape.move, ha]
+
+theorem bvlBeforeSepMachine_rewind_default (k : ℕ) (sep : ChainΓ)
+    (result : Bool) (L R : ListBlank ChainΓ) :
+    TM0.step (bvlBeforeSepMachine k sep) ⟨Sum.inr (Sum.inl result), ⟨default, L, R⟩⟩ =
+      some ⟨Sum.inr (Sum.inr result), ⟨R.head, ListBlank.cons default L, R.tail⟩⟩ := by
+  simp [TM0.step, bvlBeforeSepMachine, Tape.move]
+
+theorem bvlBeforeSepMachine_halt (k : ℕ) (sep : ChainΓ)
+    (result : Bool) (T : Tape ChainΓ) :
+    TM0.step (bvlBeforeSepMachine k sep) ⟨Sum.inr (Sum.inr result), T⟩ = none := by
+  simp [TM0.step, bvlBeforeSepMachine]
+
+theorem bvlBeforeSepMachine_rewind_loop (k : ℕ) (sep : ChainΓ)
+    (result : Bool) (revBlock : List ChainΓ)
+    (hrevBlock : ∀ x ∈ revBlock, x ≠ (default : ChainΓ)) (acc : List ChainΓ) :
+    Reaches (TM0.step (bvlBeforeSepMachine k sep))
+      ⟨Sum.inr (Sum.inl result),
+       ⟨revBlock.headI, ListBlank.mk revBlock.tail, ListBlank.mk acc⟩⟩
+      ⟨Sum.inr (Sum.inl result),
+       ⟨default, ListBlank.mk [], ListBlank.mk (revBlock.reverse ++ acc)⟩⟩ := by
+  induction revBlock generalizing acc with
+  | nil =>
+      exact Relation.ReflTransGen.refl
+  | cons a revBlock ih =>
+      have ha : a ≠ (default : ChainΓ) := hrevBlock a (by simp)
+      have hrest : ∀ x ∈ revBlock, x ≠ (default : ChainΓ) := by
+        intro x hx
+        exact hrevBlock x (List.mem_cons_of_mem a hx)
+      convert Relation.ReflTransGen.head _ (ih hrest (a :: acc)) using 1
+      · simp [List.reverse_cons]
+      · convert bvlBeforeSepMachine_rewind_nondefault k sep result a ha
+          (ListBlank.mk revBlock) (ListBlank.mk acc) using 1
+
+theorem bvlBeforeSepMachine_correct_with_left (k : ℕ) (sep : ChainΓ)
+    (leftRev block suffix : List ChainΓ)
+    (hleftRev : ∀ x ∈ leftRev, x ≠ (default : ChainΓ))
+    (hblock_nd : ∀ x ∈ block, x ≠ (default : ChainΓ))
+    (hblock_nsep : ∀ x ∈ block, x ≠ sep) :
+    let M := bvlBeforeSepMachine k sep
+    let l := leftRev.reverse ++ block ++ sep :: suffix
+    let start : TM0.Cfg ChainΓ (BVLState k) :=
+      ⟨Sum.inl ⟨k, by omega⟩,
+        Tape.mk' (ListBlank.mk leftRev)
+          (ListBlank.mk (block ++ sep :: suffix))⟩
+    (TM0Seq.evalFromCfg M start).Dom ∧
+    ∀ (h : (TM0Seq.evalFromCfg M start).Dom),
+      ((TM0Seq.evalFromCfg M start).get h).Tape = Tape.mk₁ l ∧
+      (decodeBinaryBlock block ≤ k →
+        ((TM0Seq.evalFromCfg M start).get h).q = Sum.inr (Sum.inr true)) ∧
+      (¬decodeBinaryBlock block ≤ k →
+        ((TM0Seq.evalFromCfg M start).get h).q = Sum.inr (Sum.inr false)) := by
+  set M := bvlBeforeSepMachine k sep
+  set l := leftRev.reverse ++ block ++ sep :: suffix
+  set result := ((bvlScanFinal k block).val ≠ k + 1)
+  set start : TM0.Cfg ChainΓ (BVLState k) :=
+    ⟨Sum.inl ⟨k, by omega⟩,
+      Tape.mk' (ListBlank.mk leftRev)
+        (ListBlank.mk (block ++ sep :: suffix))⟩
+  have h_scan := bvlBeforeSepMachine_scan_gen k sep ⟨k, by omega⟩
+    block leftRev suffix hblock_nsep
+  have h_trans1 := bvlBeforeSepMachine_scan_sep k sep (bvlScanFinal k block)
+    (ListBlank.mk (block.reverse ++ leftRev)) (ListBlank.mk suffix)
+  have hrew_nd : ∀ x ∈ block.reverse ++ leftRev, x ≠ (default : ChainΓ) := by
+    intro x hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact hblock_nd x (List.mem_reverse.mp hx)
+    · exact hleftRev x hx
+  have h_rewind := bvlBeforeSepMachine_rewind_loop k sep result
+    (block.reverse ++ leftRev) hrew_nd (sep :: suffix)
+  have h_trans2 := bvlBeforeSepMachine_rewind_default k sep result
+    (ListBlank.mk []) (ListBlank.mk ((block.reverse ++ leftRev).reverse ++ sep :: suffix))
+  have h_halt : TM0.step M ⟨Sum.inr (Sum.inr result), Tape.mk₁ l⟩ = none := by
+    simpa [M] using bvlBeforeSepMachine_halt k sep result (Tape.mk₁ l)
+  have h_chain :
+      Reaches (TM0.step M) start
+        ⟨Sum.inr (Sum.inr (decide result)), Tape.mk₁ l⟩ := by
+    refine h_scan.trans ?_
+    refine Relation.ReflTransGen.trans ?_ (h_rewind.trans ?_)
+    · refine Relation.ReflTransGen.single ?_
+      simpa [M, result, bvlScanFinal] using h_trans1
+    · refine Relation.ReflTransGen.single ?_
+      simpa [M, result, l, List.reverse_append, List.append_assoc, Tape.mk₁,
+        Tape.mk₂, Tape.mk', ListBlank.cons_mk, listBlank_mk_single_default_chainΓ]
+        using h_trans2
+  refine ⟨?_, ?_⟩
+  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨h_chain, h_halt⟩⟩
+  · intro h
+    have h_eval :
+        (TM0Seq.evalFromCfg M start).get h =
+          ⟨Sum.inr (Sum.inr (decide result)), Tape.mk₁ l⟩ := by
+      exact Part.get_eq_of_mem (Turing.mem_eval.mpr ⟨h_chain, h_halt⟩) h
+    rw [h_eval]
+    constructor
+    · rfl
+    constructor
+    · intro hle
+      have hres : result = True := by
+        exact propext (by simp [result, (bvlScanFinal_correct k block).mp hle])
+      simp [hres]
+    · intro hle
+      have hres : result = False := by
+        exact propext (by
+          have hnot : ¬ (bvlScanFinal k block).val ≠ k + 1 := by
+            intro hne
+            exact hle ((bvlScanFinal_correct k block).mpr hne)
+          simp [result, hnot])
+      simp [hres]
+
+theorem tm0_blockValueLeq_beforeSep_decidable_2 (k : ℕ) (sep : ChainΓ) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ) (q_true q_false : Λ),
+      q_true ≠ q_false ∧
+      ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) →
+        (∀ x ∈ block, x ≠ sep) →
+        (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).Tape =
+            Tape.mk₁ (block ++ sep :: suffix) ∧
+          (blockValueLeqBeforeSep k sep (block ++ sep :: suffix) →
+            ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).q = q_true) ∧
+          (¬blockValueLeqBeforeSep k sep (block ++ sep :: suffix) →
+            ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).q = q_false) := by
+  refine ⟨BVLState k, bvlInhabited k, inferInstance,
+    bvlBeforeSepMachine k sep, Sum.inr (Sum.inr true), Sum.inr (Sum.inr false),
+    by simp, ?_⟩
+  intro block suffix hblock_nd hblock_nsep
+  obtain ⟨hdom, hspec⟩ :=
+    bvlBeforeSepMachine_correct_with_left k sep [] block suffix (by simp)
+      hblock_nd hblock_nsep
+  refine ⟨by simpa using hdom, ?_⟩
+  intro h
+  have hspec' := hspec (by simpa using h)
+  constructor
+  · simpa using hspec'.1
+  constructor
+  · intro hle
+    have hsplit :
+        splitAtSep sep (block ++ sep :: suffix) = (block, suffix) := by
+      simpa using splitAtSep_general_cons sep block suffix hblock_nsep
+    exact hspec'.2.1 (by simpa [blockValueLeqBeforeSep, hsplit] using hle)
+  · intro hle
+    have hsplit :
+        splitAtSep sep (block ++ sep :: suffix) = (block, suffix) := by
+      simpa using splitAtSep_general_cons sep block suffix hblock_nsep
+    exact hspec'.2.2 (by
+      intro hle_block
+      exact hle (by simpa [blockValueLeqBeforeSep, hsplit] using hle_block))
 
 /-! ### Block value comparison after a separator -/
 
