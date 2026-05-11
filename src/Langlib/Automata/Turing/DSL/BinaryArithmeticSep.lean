@@ -805,13 +805,48 @@ theorem binSuccLsbLast_step_done (sep : ChainΓ) (T : Tape ChainΓ) :
     TM0.step (binSuccLsbLastMachine sep) ⟨.done, T⟩ = none := by
   simp [TM0.step, binSuccLsbLastMachine]
 
+private theorem listBlank_mk_headI_tail_chainΓ (R : List ChainΓ) :
+    ListBlank.mk (R.headI :: R.tail) = ListBlank.mk R := by
+  apply ListBlank.ext
+  intro i
+  simp only [ListBlank.nth_mk]
+  cases R with
+  | nil => cases i <;> simp [List.getI, List.getD, List.headI]
+  | cons _ _ => rfl
+
+theorem binSuccLsbLast_scan_reaches_aux
+    (sep : ChainΓ) (block suffix revLeft : List ChainΓ)
+    (hblock_nsep : ∀ g ∈ block, g ≠ sep) :
+    Reaches (TM0.step (binSuccLsbLastMachine sep))
+      ⟨.scan, Tape.mk₂ revLeft (block ++ sep :: suffix)⟩
+      ⟨.carry,
+        Tape.move Dir.left (Tape.mk₂ (block.reverse ++ revLeft) (sep :: suffix))⟩ := by
+  induction block generalizing revLeft with
+  | nil =>
+      exact Relation.ReflTransGen.single (by
+        simp [TM0.step, binSuccLsbLastMachine, RevBlock.mk₂_head])
+  | cons c rest ih =>
+      have hc_nsep : c ≠ sep := hblock_nsep c (by simp)
+      have hrest_nsep : ∀ g ∈ rest, g ≠ sep := by
+        intro g hg
+        exact hblock_nsep g (List.mem_cons_of_mem c hg)
+      have hstep : Reaches (TM0.step (binSuccLsbLastMachine sep))
+          ⟨.scan, Tape.mk₂ revLeft (c :: rest ++ sep :: suffix)⟩
+          ⟨.scan, Tape.mk₂ (c :: revLeft) (rest ++ sep :: suffix)⟩ := by
+        exact Relation.ReflTransGen.single (by
+          simp [TM0.step, binSuccLsbLastMachine, hc_nsep,
+            RevBlock.mk₂_head, RevBlock.mk₂_move_right])
+      convert hstep.trans (ih (c :: revLeft) hrest_nsep) using 1
+      simp [List.append_assoc]
+
 theorem binSuccLsbLast_scan_reaches
     (sep : ChainΓ) (block suffix : List ChainΓ)
     (hblock_nsep : ∀ g ∈ block, g ≠ sep) :
     Reaches (TM0.step (binSuccLsbLastMachine sep))
       (TM0.init (block ++ sep :: suffix))
       ⟨.carry, Tape.move Dir.left (Tape.mk₂ block.reverse (sep :: suffix))⟩ := by
-  sorry
+  convert binSuccLsbLast_scan_reaches_aux sep block suffix [] hblock_nsep using 1
+  simp [Tape.mk₁, RevBlock.mk₂_nil_eq_mk₁]
 
 theorem binSuccLsbLast_rewind_reaches
     (sep : ChainΓ) (left : List ChainΓ) (head : ChainΓ) (right : List ChainΓ)
@@ -820,7 +855,111 @@ theorem binSuccLsbLast_rewind_reaches
     Reaches (TM0.step (binSuccLsbLastMachine sep))
       ⟨.rewind, Tape.mk₂ left (head :: right)⟩
       ⟨.done, Tape.mk₁ (left.reverse ++ head :: right)⟩ := by
-  sorry
+  induction left generalizing head right with
+  | nil =>
+      have h1 : Reaches (TM0.step (binSuccLsbLastMachine sep))
+          ⟨.rewind, Tape.mk₂ [] (head :: right)⟩
+          ⟨.rewind, Tape.move Dir.left (Tape.mk₂ [] (head :: right))⟩ :=
+        Relation.ReflTransGen.single (by
+          simp [TM0.step, binSuccLsbLastMachine, hhead_nd, RevBlock.mk₂_head])
+      have h2 : Reaches (TM0.step (binSuccLsbLastMachine sep))
+          ⟨.rewind, Tape.move Dir.left (Tape.mk₂ [] (head :: right))⟩
+          ⟨.done, Tape.mk₁ (head :: right)⟩ :=
+        Relation.ReflTransGen.single (by
+          simp [TM0.step, binSuccLsbLastMachine, Tape.move, Tape.mk₁,
+            Tape.mk₂, Tape.mk']
+          exact listBlank_mk_append_default [])
+      simpa using h1.trans h2
+  | cons c rest ih =>
+      have hc_nd : c ≠ default := hleft_nd c (by simp)
+      have hrest_nd : ∀ g ∈ rest, g ≠ default := by
+        intro g hg
+        exact hleft_nd g (List.mem_cons_of_mem c hg)
+      have hstep : Reaches (TM0.step (binSuccLsbLastMachine sep))
+          ⟨.rewind, Tape.mk₂ (c :: rest) (head :: right)⟩
+          ⟨.rewind, Tape.mk₂ rest (c :: head :: right)⟩ :=
+        Relation.ReflTransGen.single (by
+          simp [TM0.step, binSuccLsbLastMachine, hhead_nd, RevBlock.mk₂_head,
+            RevBlock.mk₂_move_left])
+      convert hstep.trans (ih c (head :: right) hrest_nd hc_nd) using 1
+      simp [List.append_assoc]
+
+theorem binSuccLsbLast_rewind_after_left_reaches
+    (sep : ChainΓ) (left tail : List ChainΓ)
+    (hleft_nd : ∀ g ∈ left, g ≠ default) :
+    Reaches (TM0.step (binSuccLsbLastMachine sep))
+      ⟨.rewind, Tape.move Dir.left (Tape.mk₂ left tail)⟩
+      ⟨.done, Tape.mk₁ (left.reverse ++ tail)⟩ := by
+  cases left with
+  | nil =>
+      exact Relation.ReflTransGen.single (by
+        simp [TM0.step, binSuccLsbLastMachine, Tape.move, Tape.mk₁,
+          Tape.mk₂, Tape.mk']
+        exact listBlank_mk_append_default [])
+  | cons c rest =>
+      have hc_nd : c ≠ default := hleft_nd c (by simp)
+      have hrest_nd : ∀ g ∈ rest, g ≠ default := by
+        intro g hg
+        exact hleft_nd g (List.mem_cons_of_mem c hg)
+      simpa [RevBlock.mk₂_move_left, List.reverse_cons, List.append_assoc] using
+        binSuccLsbLast_rewind_reaches sep rest c tail hrest_nd hc_nd
+
+theorem binSuccLsbLast_carry_reaches_tail
+    (sep : ChainΓ) (revBlock tail : List ChainΓ)
+    (hrev_nd : ∀ g ∈ revBlock, g ≠ default) :
+    Reaches (TM0.step (binSuccLsbLastMachine sep))
+      ⟨.carry, Tape.move Dir.left (Tape.mk₂ revBlock tail)⟩
+      ⟨.done, Tape.mk₁ ((binSucc revBlock).reverse ++ tail)⟩ := by
+  induction revBlock generalizing tail with
+  | nil =>
+      exact Relation.ReflTransGen.single (by
+        simp +decide [TM0.step, binSuccLsbLastMachine, binSucc, Tape.move,
+          Tape.write, Tape.mk₁, Tape.mk₂, Tape.mk']
+        exact listBlank_mk_headI_tail_chainΓ tail)
+  | cons c rest ih =>
+      have hc_nd : c ≠ default := hrev_nd c (by simp)
+      have hrest_nd : ∀ g ∈ rest, g ≠ default := by
+        intro g hg
+        exact hrev_nd g (List.mem_cons_of_mem c hg)
+      by_cases hc0 : c = γ'ToChainΓ Γ'.bit0
+      · subst hc0
+        have hstep : Reaches (TM0.step (binSuccLsbLastMachine sep))
+            ⟨.carry,
+              Tape.move Dir.left (Tape.mk₂ (γ'ToChainΓ Γ'.bit0 :: rest) tail)⟩
+            ⟨.rewind, Tape.mk₂ rest (γ'ToChainΓ Γ'.bit1 :: tail)⟩ :=
+          Relation.ReflTransGen.single (by
+            simp [TM0.step, binSuccLsbLastMachine, RevBlock.mk₂_move_left,
+              RevBlock.mk₂_write, RevBlock.mk₂_head])
+        convert hstep.trans (binSuccLsbLast_rewind_reaches sep rest
+            (γ'ToChainΓ Γ'.bit1) tail hrest_nd (by decide)) using 1
+        simp [binSucc, List.append_assoc]
+      · by_cases hc1 : c = γ'ToChainΓ Γ'.bit1
+        · subst hc1
+          have hwrite : Reaches (TM0.step (binSuccLsbLastMachine sep))
+              ⟨.carry,
+                Tape.move Dir.left (Tape.mk₂ (γ'ToChainΓ Γ'.bit1 :: rest) tail)⟩
+              ⟨.carryMove, Tape.mk₂ rest (γ'ToChainΓ Γ'.bit0 :: tail)⟩ :=
+            Relation.ReflTransGen.single (by
+              simp [TM0.step, binSuccLsbLastMachine, hc0, RevBlock.mk₂_move_left,
+                RevBlock.mk₂_write, RevBlock.mk₂_head])
+          have hmove : Reaches (TM0.step (binSuccLsbLastMachine sep))
+              ⟨.carryMove, Tape.mk₂ rest (γ'ToChainΓ Γ'.bit0 :: tail)⟩
+              ⟨.carry, Tape.move Dir.left
+                (Tape.mk₂ rest (γ'ToChainΓ Γ'.bit0 :: tail))⟩ :=
+            Relation.ReflTransGen.single (by
+              simp [TM0.step, binSuccLsbLastMachine])
+          convert hwrite.trans (hmove.trans (ih (γ'ToChainΓ Γ'.bit0 :: tail) hrest_nd)) using 1
+          simp [binSucc, hc0, List.append_assoc]
+        · have hstep : Reaches (TM0.step (binSuccLsbLastMachine sep))
+              ⟨.carry, Tape.move Dir.left (Tape.mk₂ (c :: rest) tail)⟩
+              ⟨.rewind, Tape.move Dir.left (Tape.mk₂ rest (c :: tail))⟩ :=
+            Relation.ReflTransGen.single (by
+              simp [TM0.step, binSuccLsbLastMachine, hc0, hc1, hc_nd,
+                RevBlock.mk₂_move_left, RevBlock.mk₂_head])
+          convert hstep.trans
+            (binSuccLsbLast_rewind_after_left_reaches sep rest (c :: tail) hrest_nd)
+            using 1
+          simp [binSucc, hc0, hc1, List.append_assoc]
 
 theorem binSuccLsbLast_carry_reaches
     (sep : ChainΓ) (revBlock suffix : List ChainΓ)
@@ -828,7 +967,7 @@ theorem binSuccLsbLast_carry_reaches
     Reaches (TM0.step (binSuccLsbLastMachine sep))
       ⟨.carry, Tape.move Dir.left (Tape.mk₂ revBlock (sep :: suffix))⟩
       ⟨.done, Tape.mk₁ ((binSucc revBlock).reverse ++ sep :: suffix)⟩ := by
-  sorry
+  simpa using binSuccLsbLast_carry_reaches_tail sep revBlock (sep :: suffix) hrev_nd
 
 theorem tm0_binSuccLsbLast_blockSepAnySuffix {sep : ChainΓ}
     (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
