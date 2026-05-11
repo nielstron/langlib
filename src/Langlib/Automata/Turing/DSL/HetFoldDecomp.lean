@@ -278,7 +278,53 @@ theorem tm0RealizesBlock_while {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fint
       obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _ h_body_dom h_q_ne
       exact ⟨h_dom, fun hd => by rw [h_tape hd, h_tape_eq]⟩
 
-/-! ## Generic Separated Fold Layout -/
+/-! ## Generic Prefix Fold -/
+
+section PrefixFold
+
+variable {Gamma Tag : Type}
+
+/-- A generic fold step over one ambient alphabet.
+
+The fold layer only knows how to decode the first cell as a tag.  The body
+already operates on the same alphabet as the tape block. -/
+noncomputable def prefixFoldStep
+    (tagOf : Gamma → Option Tag) (F : Tag → List Gamma → List Gamma) :
+    List Gamma → List Gamma
+  | c :: rest =>
+      match tagOf c with
+      | some t => F t rest
+      | none => c :: rest
+  | [] => []
+
+/-- Generic head condition for the prefix fold. -/
+def hasTagHead (tagOf : Gamma → Option Tag) : List Gamma → Prop
+  | c :: _ => (tagOf c).isSome
+  | [] => False
+
+instance (tagOf : Gamma → Option Tag) : DecidablePred (hasTagHead tagOf)
+  | [] => isFalse id
+  | c :: _ => by
+      dsimp [hasTagHead]
+      infer_instance
+
+/-- Boolean predicate used for the fuel bound of the prefix fold. -/
+def isTagCell (tagOf : Gamma → Option Tag) (c : Gamma) : Bool :=
+  (tagOf c).isSome
+
+/-- Generic while-style fold over a leading tag prefix.
+
+This is the folding mechanism.  It is deliberately independent of any
+embedding/decoding between alphabets. -/
+noncomputable def prefixFoldWhile
+    (tagOf : Gamma → Option Tag) (F : Tag → List Gamma → List Gamma)
+    (block : List Gamma) : List Gamma :=
+  blockIterateWhile (prefixFoldStep tagOf F) (hasTagHead tagOf)
+    (block.takeWhile (isTagCell tagOf)).length block
+
+end PrefixFold
+
+/-! ## Generic Separated Layout Mapping -/
 
 section SeparatedFold
 
@@ -290,12 +336,15 @@ def separatedMix (tagEmb : Tag → Gamma) (sep : Gamma) (accEmb : Acc → Gamma)
     (tags : List Tag) (acc : List Acc) : List Gamma :=
   tags.map tagEmb ++ [sep] ++ acc.map accEmb
 
-/-- Generic function-level adapter for one fold step over a separated block.
+/-- Generic layout/mapping adapter over a separated block.
 
 It keeps the tag prefix, consumes exactly the first non-tag cell as separator,
 decodes the accumulator suffix, applies the accumulator operation, and writes
-the result back using `accEmb`. -/
-noncomputable def separatedFoldAdapt
+the result back using `accEmb`.
+
+This is not the fold.  It is the alphabet/layout bridge that turns an
+accumulator-alphabet operation into an ambient-alphabet block operation. -/
+noncomputable def separatedAccLift
     (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
     (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag) :
     List Gamma → List Gamma :=
@@ -309,11 +358,28 @@ noncomputable def separatedFoldAdapt
     let acc := accPart.filterMap decodeAcc
     tagTail ++ [sep] ++ (f t acc).map accEmb
 
+/-- Backwards-compatible name for the separated layout adapter. -/
+noncomputable def separatedFoldAdapt
+    (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
+    (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag) :
+    List Gamma → List Gamma :=
+  separatedAccLift isTag sep decodeAcc accEmb f t
+
 /-- Machine-lift obligation for the generic separated adapter.
 
 This is the alphabet-parametric version of the old heterogeneous adapter:
 a block machine over accumulator symbols can be lifted to the ambient
 separated alphabet, preserving the tag prefix and explicit separator. -/
+theorem tm0_separatedAccLift_block
+    {Gamma Tag Acc : Type} [Inhabited Gamma] [DecidableEq Gamma] [Fintype Gamma]
+    [Inhabited Acc] [DecidableEq Acc] [Fintype Acc]
+    (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
+    (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag)
+    (hf : TM0RealizesBlock Acc (f t)) :
+    TM0RealizesBlock Gamma (separatedAccLift isTag sep decodeAcc accEmb f t) := by
+  sorry
+
+/-- Backwards-compatible theorem name for the separated layout adapter. -/
 theorem tm0_separatedFoldAdapt_block
     {Gamma Tag Acc : Type} [Inhabited Gamma] [DecidableEq Gamma] [Fintype Gamma]
     [Inhabited Acc] [DecidableEq Acc] [Fintype Acc]
@@ -321,7 +387,7 @@ theorem tm0_separatedFoldAdapt_block
     (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag)
     (hf : TM0RealizesBlock Acc (f t)) :
     TM0RealizesBlock Gamma (separatedFoldAdapt isTag sep decodeAcc accEmb f t) := by
-  sorry
+  exact tm0_separatedAccLift_block isTag sep decodeAcc accEmb f t hf
 
 end SeparatedFold
 
@@ -335,6 +401,11 @@ variable {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
 /-- Check if a het block element is an `inl` tag. -/
 def isHetInl (x : Option (T ⊕ Γ₀)) : Bool :=
   match x with | some (Sum.inl _) => true | _ => false
+
+/-- Decode fold tags from the concrete heterogeneous alphabet. -/
+def hetTagDecode : Option (T ⊕ Γ₀) → Option T
+  | some (Sum.inl t) => some t
+  | _ => none
 
 /-- Condition: block starts with an `inl` tag (signals the while loop
     should continue). -/
@@ -389,9 +460,8 @@ def hetMix (ts : List T) (acc : List Γ₀) : List (Option (T ⊕ Γ₀)) :=
     construction. -/
 noncomputable def hetFoldStep
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))) :
-    List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))
-  | (some (Sum.inl t)) :: rest => F t rest
-  | block => block
+    List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
+  prefixFoldStep (hetTagDecode (Γ₀ := Γ₀)) F
 
 /-- The full while-loop result function, defined as iterated application
     of `hetFoldStep` with fuel equal to the number of leading `inl` tags.
@@ -415,7 +485,7 @@ noncomputable def hetFoldAdaptSep
     (sep : Option (T ⊕ Γ₀))
     (f : T → List Γ₀ → List Γ₀) (t : T) :
     List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
-  separatedFoldAdapt
+  separatedAccLift
     (isHetInl (T := T) (Γ₀ := Γ₀)) sep
     (hetAccDecode (T := T)) (hetAccEmb (T := T)) f t
 
@@ -436,7 +506,7 @@ theorem tm0_hetFoldAdaptSep_block
     (f : T → List Γ₀ → List Γ₀) (t : T)
     (hf : TM0RealizesBlock Γ₀ (f t)) :
     TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldAdaptSep sep f t) := by
-  exact tm0_separatedFoldAdapt_block
+  exact tm0_separatedAccLift_block
     (isHetInl (T := T) (Γ₀ := Γ₀)) sep
     (hetAccDecode (T := T)) (hetAccEmb (T := T)) f t hf
 
@@ -863,6 +933,142 @@ theorem tm0Het_fold_blockRealizable'
           ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
             Tape.mk₁ ((List.foldr f [] w).map
               (some ∘ @Sum.inr T Γ₀)) := by
-  sorry
+  let Γ := Option (T ⊕ Γ₀)
+  let sep : Γ := hetSep (T := T) (Γ₀ := Γ₀)
+  have hsep_nd : sep ≠ (default : Γ) := by
+    simp [sep, hetSep]
+
+  have hcons_nd :
+      ∀ block : List Γ, (∀ g ∈ block, g ≠ default) →
+        ∀ g ∈ (sep :: block), g ≠ default := by
+    intro block hblock g hg
+    simp only [List.mem_cons] at hg
+    rcases hg with rfl | hg
+    · exact hsep_nd
+    · exact hblock g hg
+
+  have hrev_cons_block :
+      TM0RealizesBlock Γ (List.reverse ∘ (fun block : List Γ => sep :: block)) :=
+    tm0RealizesBlock_comp
+      (tm0_cons_block sep hsep_nd)
+      (tm0_reverse_block (Γ := Γ))
+      hcons_nd
+
+  obtain ⟨Λ₁, hΛ₁i, hΛ₁f, M₁, hM₁⟩ := hrev_cons_block
+  obtain ⟨Λ₂, hΛ₂i, hΛ₂f, M₂, hM₂⟩ :=
+    tm0RealizesBlock_hetFoldWhile_inv F f hF hf_block hF_nd hf_nd
+  obtain ⟨Λ₃, hΛ₃i, hΛ₃f, M₃, hM₃⟩ :=
+    tm0_dropUntilFirstSep_block sep hsep_nd
+
+  letI : Inhabited (Λ₂ ⊕ Λ₃) := ⟨Sum.inl default⟩
+  let M₂₃ : TM0.Machine Γ (Λ₂ ⊕ Λ₃) := TM0Seq.compose M₂ M₃
+  letI : Inhabited (Λ₁ ⊕ (Λ₂ ⊕ Λ₃)) := ⟨Sum.inl default⟩
+  let M : TM0.Machine Γ (Λ₁ ⊕ (Λ₂ ⊕ Λ₃)) := TM0Seq.compose M₁ M₂₃
+
+  refine ⟨Λ₁ ⊕ (Λ₂ ⊕ Λ₃), inferInstance, inferInstance, M, ?_⟩
+  intro w
+  let input : List Γ := w.map (some ∘ @Sum.inl T Γ₀)
+  let mid : List Γ := (List.reverse ∘ (fun block : List Γ => sep :: block)) input
+  let folded : List Γ := hetFoldWhile F mid
+  let output : List Γ := dropUntilFirstSep sep folded
+
+  have hinput_nd : ∀ g ∈ input, g ≠ (default : Γ) := by
+    simpa [input, Γ] using (map_inl_ne_default (T := T) (Γ₀ := Γ₀) w)
+  have hmid_eq : mid =
+      (w.map (some ∘ @Sum.inl T Γ₀)).reverse ++
+        [hetSep (T := T) (Γ₀ := Γ₀)] := by
+    simp [mid, input, sep, Function.comp]
+  have hmid_wf : isWellFormedHetBlock (T := T) (Γ₀ := Γ₀) mid := by
+    rw [hmid_eq]
+    exact isWellFormedHetBlock_reverse_map_inl_sep (T := T) (Γ₀ := Γ₀) w
+  have hmid_nd : ∀ g ∈ mid, g ≠ (default : Γ) := by
+    rw [hmid_eq]
+    intro g hg
+    simp only [List.mem_append, List.mem_reverse, List.mem_map,
+      Function.comp, List.mem_singleton] at hg
+    rcases hg with htag | hsep
+    · rcases htag with ⟨t, _ht, rfl⟩
+      simp [Γ]
+    · rw [hsep]
+      exact hsep_nd
+  have hfolded_nd : ∀ g ∈ folded, g ≠ (default : Γ) := by
+    exact hetFoldWhile_ne_default F hF_nd mid hmid_nd
+  have houtput_nd : ∀ g ∈ output, g ≠ (default : Γ) := by
+    exact dropUntilFirstSep_ne_default sep folded hfolded_nd
+  have hfolded_eq :
+      folded = hetMix (T := T) (Γ₀ := Γ₀) [] (List.foldr f [] w) := by
+    simp [folded]
+    rw [hmid_eq]
+    exact hetFold_decomp F f hF w
+  have houtput_eq :
+      output = (List.foldr f [] w).map (some ∘ @Sum.inr T Γ₀) := by
+    simp [output, hfolded_eq, sep, hetMix, hetMixSep, separatedMix, hetSep,
+      hetAccEmb, dropUntilFirstSep]
+
+  have hM₁_eval := hM₁ input [] hinput_nd (by simp) (by
+    simpa [mid] using hmid_nd)
+  obtain ⟨hM₁_dom, hM₁_tape⟩ := hM₁_eval
+
+  have hM₂_eval := hM₂ mid hmid_wf hmid_nd hfolded_nd
+  obtain ⟨hM₂_dom, hM₂_tape⟩ := hM₂_eval
+
+  have hM₃_eval := hM₃ folded [] hfolded_nd (by simp) houtput_nd
+  obtain ⟨hM₃_dom, hM₃_tape⟩ := hM₃_eval
+
+  have hM₂M₃_dom :
+      (TM0Seq.evalCfg M₂₃ (mid ++ [default])).Dom := by
+    change (TM0Seq.evalCfg (TM0Seq.compose M₂ M₃) (mid ++ [default])).Dom
+    exact (TM0Seq.compose_dom_iff' M₂ M₃ (mid ++ [default])
+      (folded ++ [default]) hM₂_dom (hM₂_tape hM₂_dom)).2 hM₃_dom
+
+  have hM₂M₃_tape
+      (h : (TM0Seq.evalCfg M₂₃ (mid ++ [default])).Dom) :
+      ((TM0Seq.evalCfg M₂₃ (mid ++ [default])).get h).Tape =
+        Tape.mk₁ (output ++ [default]) := by
+    change ((TM0Seq.evalCfg (TM0Seq.compose M₂ M₃) (mid ++ [default])).get h).Tape =
+      Tape.mk₁ (output ++ [default])
+    rw [TM0Seq.compose_evalCfg_tape M₂ M₃ (mid ++ [default])
+      (folded ++ [default]) hM₂_dom (hM₂_tape hM₂_dom) hM₃_dom h,
+      hM₃_tape hM₃_dom]
+
+  have hcomp_dom_default :
+      (TM0Seq.evalCfg M (input ++ [default])).Dom := by
+    change (TM0Seq.evalCfg (TM0Seq.compose M₁ M₂₃) (input ++ [default])).Dom
+    exact (TM0Seq.compose_dom_iff' M₁ M₂₃ (input ++ [default])
+      (mid ++ [default]) hM₁_dom (hM₁_tape hM₁_dom)).2 hM₂M₃_dom
+
+  have hcomp_tape_default
+      (h : (TM0Seq.evalCfg M (input ++ [default])).Dom) :
+      ((TM0Seq.evalCfg M (input ++ [default])).get h).Tape =
+          Tape.mk₁ (output ++ [default]) := by
+    change ((TM0Seq.evalCfg (TM0Seq.compose M₁ M₂₃)
+      (input ++ [default])).get h).Tape = Tape.mk₁ (output ++ [default])
+    rw [TM0Seq.compose_evalCfg_tape M₁ M₂₃
+      (input ++ [default]) (mid ++ [default]) hM₁_dom
+      (hM₁_tape hM₁_dom) hM₂M₃_dom h]
+    exact hM₂M₃_tape hM₂M₃_dom
+
+  have heval_input :
+      TM0Seq.evalCfg M input = TM0Seq.evalCfg M (input ++ [default]) := by
+    rw [evalCfg_append_default]
+
+  constructor
+  · change (TM0Seq.evalCfg M input).Dom
+    rw [heval_input]
+    exact hcomp_dom_default
+  · intro h
+    have h' :
+        (TM0Seq.evalCfg M (input ++ [default])).Dom := by
+      rw [← heval_input]
+      exact h
+    change ((TM0Seq.evalCfg M input).get h).Tape =
+      Tape.mk₁ ((List.foldr f [] w).map (some ∘ @Sum.inr T Γ₀))
+    have hget :
+        (TM0Seq.evalCfg M input).get h =
+          (TM0Seq.evalCfg M (input ++ [default])).get h' := by
+      apply Part.get_eq_get_of_eq
+      exact heval_input
+    rw [hget]
+    rw [hcomp_tape_default h', houtput_eq, tape_mk₁_append_default]
 
 end HetFold

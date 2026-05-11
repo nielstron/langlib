@@ -213,7 +213,7 @@ theorem chainEncodeFoldTapeStep_ne_default
     ∀ g ∈ chainEncodeFoldTapeStep T t block,
       g ≠ (default : Option (T ⊕ ChainΓ)) := by
   intro g hg
-  unfold chainEncodeFoldTapeStep hetFoldAdapt hetFoldAdaptSep separatedFoldAdapt at hg
+  unfold chainEncodeFoldTapeStep hetFoldAdapt hetFoldAdaptSep separatedAccLift at hg
   simp only [List.mem_append, List.mem_singleton, List.mem_map] at hg
   rcases hg with hfront | hacc
   · rcases hfront with htag | hsep
