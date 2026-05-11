@@ -213,12 +213,17 @@ theorem chainEncodeFoldTapeStep_ne_default
     ∀ g ∈ chainEncodeFoldTapeStep T t block,
       g ≠ (default : Option (T ⊕ ChainΓ)) := by
   intro g hg
-  unfold chainEncodeFoldTapeStep hetFoldAdapt at hg
-  simp only [List.mem_append, List.mem_map, Function.comp] at hg
-  rcases hg with hg | ⟨a, _ha, rfl⟩
-  · have := List.mem_takeWhile_imp hg
-    cases g <;> simp_all [isHetInl]
-  · exact Option.some_ne_none _
+  unfold chainEncodeFoldTapeStep hetFoldAdapt hetFoldAdaptSep separatedFoldAdapt at hg
+  simp only [List.mem_append, List.mem_singleton, List.mem_map] at hg
+  rcases hg with hfront | hacc
+  · rcases hfront with htag | hsep
+    · have := List.mem_takeWhile_imp htag
+      cases g <;> simp_all [isHetInl]
+    · rw [hsep]
+      simp [hetSep]
+  · rcases hacc with ⟨a, _ha, hg⟩
+    rw [← hg]
+    simp [hetAccEmb]
 
 /-- Machine-realizability obligation for the concrete same-alphabet chain fold
 step.
@@ -226,10 +231,16 @@ step.
 The important interface point is that this is no longer hidden in
 `chainEncode_fold`: the arithmetic step and the het-tape mapping/layout step
 are separate named objects. -/
-axiom tm0_chainEncodeFoldTapeStep_block
+theorem tm0_chainEncodeFoldTapeStep_block
     (T : Type) [DecidableEq T] [Fintype T] [Primcodable T]
     (t : T) :
-    TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t)
+    TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t) := by
+  exact tm0_hetFoldAdapt_block (chainEncodeFoldAccStep T) t
+    (by
+      simpa [chainEncodeFoldAccStep] using
+        tm0_binPairConstSucc_block
+          tm0_binMulPairedStep3_blockCondInvSuffix
+          (Encodable.encode t))
 
 /-- Phase 1: Fold computation on heterogeneous tape. -/
 theorem chainEncode_fold

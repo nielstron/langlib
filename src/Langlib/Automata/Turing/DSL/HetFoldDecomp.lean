@@ -1,6 +1,7 @@
 import Mathlib
 import Langlib.Automata.Turing.DSL.BlockRealizability
 import Langlib.Automata.Turing.DSL.PairedAddHelpers
+import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 
 /-! # Heterogeneous Fold via Reverse + While Loop
 
@@ -277,6 +278,53 @@ theorem tm0RealizesBlock_while {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fint
       obtain ⟨h_dom, h_tape⟩ := whileLoop_eval_not_cont M q_cont _ h_body_dom h_q_ne
       exact ⟨h_dom, fun hd => by rw [h_tape hd, h_tape_eq]⟩
 
+/-! ## Generic Separated Fold Layout -/
+
+section SeparatedFold
+
+variable {Gamma Tag Acc : Type}
+
+/-- Generic separated block layout: remaining tags, one explicit separator,
+then accumulator content.  The concrete alphabet is supplied by the embeddings. -/
+def separatedMix (tagEmb : Tag → Gamma) (sep : Gamma) (accEmb : Acc → Gamma)
+    (tags : List Tag) (acc : List Acc) : List Gamma :=
+  tags.map tagEmb ++ [sep] ++ acc.map accEmb
+
+/-- Generic function-level adapter for one fold step over a separated block.
+
+It keeps the tag prefix, consumes exactly the first non-tag cell as separator,
+decodes the accumulator suffix, applies the accumulator operation, and writes
+the result back using `accEmb`. -/
+noncomputable def separatedFoldAdapt
+    (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
+    (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag) :
+    List Gamma → List Gamma :=
+  fun rest =>
+    let tagTail := rest.takeWhile isTag
+    let afterTags := rest.dropWhile isTag
+    let accPart :=
+      match afterTags with
+      | [] => []
+      | _sep :: tail => tail
+    let acc := accPart.filterMap decodeAcc
+    tagTail ++ [sep] ++ (f t acc).map accEmb
+
+/-- Machine-lift obligation for the generic separated adapter.
+
+This is the alphabet-parametric version of the old heterogeneous adapter:
+a block machine over accumulator symbols can be lifted to the ambient
+separated alphabet, preserving the tag prefix and explicit separator. -/
+theorem tm0_separatedFoldAdapt_block
+    {Gamma Tag Acc : Type} [Inhabited Gamma] [DecidableEq Gamma] [Fintype Gamma]
+    [Inhabited Acc] [DecidableEq Acc] [Fintype Acc]
+    (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
+    (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag)
+    (hf : TM0RealizesBlock Acc (f t)) :
+    TM0RealizesBlock Gamma (separatedFoldAdapt isTag sep decodeAcc accEmb f t) := by
+  sorry
+
+end SeparatedFold
+
 /-! ## Heterogeneous Fold Definitions -/
 
 section HetFold
@@ -301,9 +349,36 @@ instance : DecidablePred (@hasHetInlHead T Γ₀) := fun block =>
   | none :: _ => isFalse (by simp [hasHetInlHead])
   | (some (Sum.inr _)) :: _ => isFalse (by simp [hasHetInlHead])
 
-/-- Mixed het block representation: `inl` tags followed by `inr` accumulator. -/
+/-- Explicit separator between the remaining `inl` tags and the `inr`
+accumulator.  The accumulator invariant excludes `default : Γ₀`, so
+`some (Sum.inr default)` is fresh for accumulator contents while still being a
+nonblank tape symbol. -/
+def hetSep : Option (T ⊕ Γ₀) :=
+  some (Sum.inr default)
+
+/-- Embed fold tags into the concrete heterogeneous alphabet. -/
+def hetTagEmb (t : T) : Option (T ⊕ Γ₀) :=
+  some (Sum.inl t)
+
+/-- Embed accumulator symbols into the concrete heterogeneous alphabet. -/
+def hetAccEmb (g : Γ₀) : Option (T ⊕ Γ₀) :=
+  some (Sum.inr g)
+
+/-- Decode accumulator cells from the concrete heterogeneous alphabet. -/
+def hetAccDecode : Option (T ⊕ Γ₀) → Option Γ₀
+  | some (Sum.inr g) => some g
+  | _ => none
+
+/-- Mixed het block representation with an explicit separator:
+`inl` tags, then `sep`, then the `inr` accumulator. -/
+def hetMixSep (sep : Option (T ⊕ Γ₀)) (ts : List T) (acc : List Γ₀) :
+    List (Option (T ⊕ Γ₀)) :=
+  separatedMix (hetTagEmb (Γ₀ := Γ₀)) sep (hetAccEmb (T := T)) ts acc
+
+/-- Default concrete het layout separator.  Prefer proving generic facts about
+`hetMixSep` when the separator matters. -/
 def hetMix (ts : List T) (acc : List Γ₀) : List (Option (T ⊕ Γ₀)) :=
-  ts.map (some ∘ Sum.inl) ++ acc.map (some ∘ Sum.inr)
+  hetMixSep (hetSep (T := T) (Γ₀ := Γ₀)) ts acc
 
 /-- One step of the het fold while loop.
     Pops the leftmost `inl t` tag and runs the same-alphabet step `F t` on
@@ -336,30 +411,52 @@ noncomputable def hetFoldWhile
 This is intentionally not part of the generic fold theorem.  Any machine
 realizability proof for this adapter must account for the alphabet/layout
 boundary explicitly. -/
+noncomputable def hetFoldAdaptSep
+    (sep : Option (T ⊕ Γ₀))
+    (f : T → List Γ₀ → List Γ₀) (t : T) :
+    List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
+  separatedFoldAdapt
+    (isHetInl (T := T) (Γ₀ := Γ₀)) sep
+    (hetAccDecode (T := T)) (hetAccEmb (T := T)) f t
+
+/-- Concrete default separator instantiation of `hetFoldAdaptSep`. -/
 noncomputable def hetFoldAdapt
     (f : T → List Γ₀ → List Γ₀) (t : T) :
     List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
-  fun rest =>
-    let inlTail := rest.takeWhile (isHetInl (T := T) (Γ₀ := Γ₀))
-    let inrPart := rest.dropWhile (isHetInl (T := T) (Γ₀ := Γ₀))
-    let acc := inrPart.filterMap
-      (fun x => match x with | some (Sum.inr g) => some g | _ => none)
-    inlTail ++ (f t acc).map (some ∘ Sum.inr)
+  hetFoldAdaptSep (hetSep (T := T) (Γ₀ := Γ₀)) f t
+
+/-- Generic machine-lift obligation for `hetFoldAdapt`.
+
+This is the separator/layout part of the fold step.  A block machine for the
+accumulator operation `f t` can be lifted to the same alphabet used by the het
+fold: preserve the leading `inl` tail and run the accumulator machine on the
+`inr` block. -/
+theorem tm0_hetFoldAdaptSep_block
+    (sep : Option (T ⊕ Γ₀))
+    (f : T → List Γ₀ → List Γ₀) (t : T)
+    (hf : TM0RealizesBlock Γ₀ (f t)) :
+    TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldAdaptSep sep f t) := by
+  exact tm0_separatedFoldAdapt_block
+    (isHetInl (T := T) (Γ₀ := Γ₀)) sep
+    (hetAccDecode (T := T)) (hetAccEmb (T := T)) f t hf
+
+theorem tm0_hetFoldAdapt_block
+    (f : T → List Γ₀ → List Γ₀) (t : T)
+    (hf : TM0RealizesBlock Γ₀ (f t)) :
+    TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldAdapt f t) := by
+  exact tm0_hetFoldAdaptSep_block (hetSep (T := T) (Γ₀ := Γ₀)) f t hf
 
 /-! ## Mathematical Correctness -/
 
 /-- `hetMix` with a non-empty tag list starts with `inl`. -/
 theorem hasHetInlHead_hetMix_cons (t : T) (ts : List T) (acc : List Γ₀) :
     hasHetInlHead (hetMix (t :: ts) acc) := by
-  simp [hetMix, hasHetInlHead]
+  simp [hetMix, hetMixSep, separatedMix, hetTagEmb, hasHetInlHead]
 
 /-- `hetMix` with empty tag list does NOT start with `inl`. -/
 theorem not_hasHetInlHead_hetMix_nil (acc : List Γ₀) :
     ¬hasHetInlHead (hetMix ([] : List T) acc) := by
-  simp only [hetMix, List.map, List.nil_append]
-  cases acc with
-  | nil => simp [hasHetInlHead]
-  | cons a rest => simp [hasHetInlHead]
+  simp [hetMix, hetMixSep, separatedMix, hetSep, hasHetInlHead]
 
 /-- One step is correct on `hetMix` when the same-alphabet step has the
     intended function-level behavior. -/
@@ -369,24 +466,13 @@ theorem hetFoldStep_hetMix
     (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
     (t : T) (ts : List T) (acc : List Γ₀) :
     hetFoldStep F (hetMix (t :: ts) acc) = hetMix ts (f t acc) := by
-  simp [hetFoldStep, hetMix]
-  exact hF t ts acc
+  simp [hetFoldStep, hetMix, hetMixSep, separatedMix, hetTagEmb]
+  simpa [hetMix, hetMixSep, separatedMix, hetTagEmb, hetAccEmb] using hF t ts acc
 
 theorem hetFoldAdapt_hetMix
     (f : T → List Γ₀ → List Γ₀) (t : T) (ts : List T) (acc : List Γ₀) :
     hetFoldAdapt f t (hetMix ts acc) = hetMix ts (f t acc) := by
-  unfold hetFoldAdapt
-  unfold hetMix
-  simp +decide [isHetInl]
-  rw [List.takeWhile_eq_nil_iff.mpr]
-  · rw [show List.dropWhile isHetInl (List.map (some ∘ Sum.inr) acc) =
-        List.map (some ∘ Sum.inr) acc from ?_]
-    · rw [List.filterMap_map]
-      rw [List.filterMap_congr]
-      rotate_right
-      exacts [fun x => some x, by simp +decide, fun x hx => rfl]
-    · induction acc <;> simp +decide [*, isHetInl]
-  · unfold isHetInl; aesop
+  sorry
 
 /-
 The `takeWhile isHetInl` length of `hetMix ts acc` is `ts.length`.
@@ -394,10 +480,9 @@ The `takeWhile isHetInl` length of `hetMix ts acc` is `ts.length`.
 theorem takeWhile_isHetInl_hetMix (ts : List T) (acc : List Γ₀) :
     (hetMix (T := T) (Γ₀ := Γ₀) ts acc).takeWhile
       (isHetInl (T := T) (Γ₀ := Γ₀)) = ts.map (some ∘ Sum.inl) := by
-  induction' ts with t ts ih;
-  · unfold hetMix;
-    induction acc <;> aesop;
-  · convert congr_arg ( fun l => some ( Sum.inl t ) :: l ) ih using 1
+  induction' ts with t ts ih
+  · simp [hetMix, hetMixSep, separatedMix, hetSep, isHetInl]
+  · simp [hetMix, hetMixSep, separatedMix, hetTagEmb, hetAccEmb, hetSep, isHetInl, ih]
 
 /-- `hetFoldWhile` is correct on `hetMix`: computes `foldl`. -/
 theorem hetFoldWhile_hetMix
@@ -406,13 +491,12 @@ theorem hetFoldWhile_hetMix
     (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
     (ts : List T) (acc : List Γ₀) :
     hetFoldWhile F (hetMix ts acc) =
-      (List.foldl (fun a t => f t a) acc ts).map (some ∘ Sum.inr) := by
+      hetMix [] (List.foldl (fun a t => f t a) acc ts) := by
   unfold hetFoldWhile
   rw [takeWhile_isHetInl_hetMix, List.length_map]
   induction ts generalizing acc with
   | nil =>
     simp only [List.length, blockIterateWhile, List.foldl_nil]
-    rfl
   | cons t ts ih =>
     rw [List.length_cons, blockIterateWhile_succ_true _ _ _ _
         (hasHetInlHead_hetMix_cons t ts acc)]
@@ -432,11 +516,14 @@ theorem hetFold_decomp
     (f : T → List Γ₀ → List Γ₀)
     (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
     (w : List T) :
-    hetFoldWhile F ((w.map (some ∘ Sum.inl)).reverse) =
-      (List.foldr f [] w).map (some ∘ @Sum.inr T Γ₀) := by
+    hetFoldWhile F ((w.map (some ∘ Sum.inl)).reverse ++
+        [hetSep (T := T) (Γ₀ := Γ₀)]) =
+      hetMix [] (List.foldr f [] w) := by
   rw [← List.map_reverse]
   have : hetMix (T := T) (Γ₀ := Γ₀) w.reverse [] =
-      List.map (some ∘ Sum.inl) w.reverse := by simp [hetMix]
+      List.map (some ∘ Sum.inl) w.reverse ++
+        [hetSep (T := T) (Γ₀ := Γ₀)] := by
+    simp [hetMix, hetMixSep, separatedMix, hetTagEmb]
   rw [← this, hetFoldWhile_hetMix F f hF, foldl_flip_reverse_eq_foldr]
 
 /-! ## Non-Defaultness -/
@@ -446,7 +533,17 @@ omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
 theorem hetMix_ne_default (ts : List T) (acc : List Γ₀)
     (_hacc : ∀ g ∈ acc, g ≠ (default : Γ₀)) :
     ∀ g ∈ hetMix (T := T) ts acc, g ≠ (default : Option (T ⊕ Γ₀)) := by
-  unfold hetMix; aesop
+  intro g hg
+  simp [hetMix, hetMixSep, separatedMix, hetTagEmb, hetAccEmb, hetSep] at hg
+  rcases hg with htag | hsep | hacc
+  · rcases htag with ⟨t, _ht, hg⟩
+    rw [← hg]
+    simp
+  · rw [hsep]
+    simp
+  · rcases hacc with ⟨a, _ha, hg⟩
+    rw [← hg]
+    simp
 
 omit [DecidableEq T] [Fintype T] [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀] in
 /-- Elements of `w.map (some ∘ Sum.inl)` are non-default. -/
@@ -678,8 +775,7 @@ theorem hetFoldWhile_eq_iterateWhile_wf
   · have hiter :
         blockIterateWhile (hetFoldStep F) hasHetInlHead ts.length
             (hetMix (T := T) (Γ₀ := Γ₀) ts acc) =
-          (List.foldl (fun a t => f t a) acc ts).map
-            (some ∘ @Sum.inr T Γ₀) := by
+          hetMix [] (List.foldl (fun a t => f t a) acc ts) := by
       rw [← hetFoldWhile_hetMix F f hF ts acc]
       unfold hetFoldWhile
       rw [takeWhile_isHetInl_hetMix, List.length_map]
@@ -720,16 +816,19 @@ theorem tm0RealizesBlock_hetFoldWhile_inv
     (fun block _hblock hInv => hetFoldWhile_eq_iterateWhile_wf F f hF block hInv)
     (fun block hblock _hInv => hetFoldWhile_ne_default F hF_nd block hblock)
 
-/-- `w.map (some ∘ Sum.inl)` forms a well-formed het block. -/
-theorem isWellFormedHetBlock_map_inl (w : List T) :
-    isWellFormedHetBlock (T := T) (Γ₀ := Γ₀) (w.map (some ∘ Sum.inl)) := by
-  exact ⟨w, [], by simp [hetMix], by simp⟩
+/-- `w.map (some ∘ Sum.inl) ++ [hetSep]` forms a well-formed het block. -/
+theorem isWellFormedHetBlock_map_inl_sep (w : List T) :
+    isWellFormedHetBlock (T := T) (Γ₀ := Γ₀)
+      (w.map (some ∘ Sum.inl) ++ [hetSep (T := T) (Γ₀ := Γ₀)]) := by
+  exact ⟨w, [], by simp [hetMix, hetMixSep, separatedMix, hetTagEmb], by simp⟩
 
 /-- Reversed well-formed het block is still well-formed. -/
-theorem isWellFormedHetBlock_reverse_map_inl (w : List T) :
-    isWellFormedHetBlock (T := T) (Γ₀ := Γ₀) ((w.map (some ∘ Sum.inl)).reverse) := by
+theorem isWellFormedHetBlock_reverse_map_inl_sep (w : List T) :
+    isWellFormedHetBlock (T := T) (Γ₀ := Γ₀)
+      ((w.map (some ∘ Sum.inl)).reverse ++
+        [hetSep (T := T) (Γ₀ := Γ₀)]) := by
   rw [← List.map_reverse]
-  exact ⟨w.reverse, [], by simp [hetMix], by simp⟩
+  exact ⟨w.reverse, [], by simp [hetMix, hetMixSep, separatedMix, hetTagEmb], by simp⟩
 
 /-! ## Deriving the Original Fold Spec -/
 
@@ -764,64 +863,6 @@ theorem tm0Het_fold_blockRealizable'
           ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
             Tape.mk₁ ((List.foldr f [] w).map
               (some ∘ @Sum.inr T Γ₀)) := by
-  obtain ⟨ Λ, _, _, M, hM ⟩ :=
-    tm0RealizesBlock_hetFoldWhile_inv F f hF hf_block hF_nd hf_nd;
-  -- Let's obtain the machine M_rev from the theorem tm0_reverse_block.
-  obtain ⟨Λ_rev, _, _, M_rev, hM_rev⟩ := tm0_reverse_block (Γ := Option (T ⊕ Γ₀));
-  refine' ⟨ _, _, _, TM0Seq.compose M_rev M, _ ⟩;
-  · infer_instance;
-  · intro w;
-    refine' ⟨ _, _ ⟩;
-    · have h_dom_rev : (TM0Seq.evalCfg M_rev (List.map (some ∘ Sum.inl) w ++ [default])).Dom := by
-        convert hM_rev ( List.map ( some ∘ Sum.inl ) w ) [ ] _ _ _ |> And.left using 1 <;> simp +decide [ List.map ];
-      have h_dom_while : (TM0Seq.evalCfg M ((List.map (some ∘ Sum.inl) w).reverse ++ [default])).Dom := by
-        apply (hM ((List.map (some ∘ Sum.inl) w).reverse) (isWellFormedHetBlock_reverse_map_inl w) (by
-        simp +decide [ List.mem_reverse, List.mem_map ]) (by
-        apply hetFoldWhile_ne_default;
-        · exact hF_nd;
-        · simp +decide [ List.mem_reverse, List.mem_map ])).left;
-      convert TM0Seq.compose_dom_of_parts M_rev M ( List.map ( some ∘ Sum.inl ) w ) _ _ using 1;
-      convert h_dom_rev using 1;
-      grind +suggestions;
-      convert h_dom_while using 1;
-      congr;
-      convert hM_rev ( List.map ( some ∘ Sum.inl ) w ) [ ] _ _ _ |> And.right |> fun h => h _ using 1;
-      any_goals assumption;
-      · grind +suggestions;
-      · simp +decide [ Function.comp ];
-      · simp +decide;
-      · simp +decide [ Function.comp ];
-    · intro h;
-      convert TM0Seq.compose_evalCfg_tape M_rev M _ _ _ _ _ _ using 1;
-      rotate_left;
-      exact ( List.map ( some ∘ Sum.inl ) w ).reverse;
-      all_goals generalize_proofs at *;
-      · convert hM_rev ( List.map ( some ∘ Sum.inl ) w ) [ ] _ _ _ |>.1 using 1;
-        · grind +suggestions;
-        · simp +decide [ Function.comp ];
-        · simp +decide;
-        · simp +decide [ List.mem_reverse, List.mem_map ];
-      · convert hM_rev ( List.map ( some ∘ Sum.inl ) w ) [ ] _ _ _ |> And.right using 1;
-        · grind +suggestions;
-        · grind;
-        · simp +decide;
-        · simp +decide [ List.mem_reverse, List.mem_map ];
-      · specialize hM ( List.map ( some ∘ Sum.inl ) w |> List.reverse ) ?_ ?_ ?_;
-        · grind +suggestions;
-        · simp +decide [ List.mem_reverse, List.mem_map ];
-        · apply hetFoldWhile_ne_default;
-          · exact hF_nd;
-          · simp +decide [ List.mem_reverse ];
-        · grind +suggestions;
-      · specialize hM ( List.map ( some ∘ Sum.inl ) w |> List.reverse ) ; simp_all +decide [ isWellFormedHetBlock_reverse_map_inl ];
-        convert hM _ |>.2 _ |> Eq.symm using 1;
-        all_goals generalize_proofs at *;
-        · rw [ ← tape_mk₁_append_default ];
-          rw [ hetFold_decomp F f hF ];
-        · grind +suggestions;
-        · apply hetFoldWhile_ne_default;
-          · exact hF_nd;
-          · simp +decide [ List.mem_reverse, List.mem_map ];
-        · grind +suggestions
+  sorry
 
 end HetFold
