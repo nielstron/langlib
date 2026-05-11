@@ -17,10 +17,25 @@ open Turing PartrecToTM2 TM2to1
 /-- Prefix-lifting machinery can run binary successor on the sub-block between
     `chainConsBottom` and an outer separator, preserving both sides. -/
 theorem tm0_binSucc_afterConsBottom_innerBlockSep {sep₁ : ChainΓ}
-    (hsep₁_cons : sep₁ ≠ chainConsBottom) :
+    (hsep₁ : sep₁ ≠ default) (hsep₁_cons : sep₁ ≠ chainConsBottom) :
     TM0RealizesInnerBlockSep ChainΓ sep₁ chainConsBottom binSucc := by
-  exact tm0RealizesBlockSep_toInner
-    chainConsBottom_ne_default hsep₁_cons
+  exact tm0RealizesBlockSep_toInnerOuterSep
+    hsep₁
+    chainConsBottom_ne_default
+    hsep₁_cons
+    (tm0_binSucc_blockSep (sep := chainConsBottom) (by decide) (by decide))
+    binSucc_ne_default
+    (fun block hblock => binSucc_no_consBottom block hblock)
+
+/-- Default-boundary successor after `chainConsBottom`, using an explicit
+temporary outer separator. -/
+theorem tm0_binSucc_afterConsBottom_innerDefaultViaSep {tmp : ChainΓ}
+    (htmp : tmp ≠ default) (htmp_cons : tmp ≠ chainConsBottom) :
+    TM0RealizesInnerBlockDefaultViaSep ChainΓ tmp chainConsBottom binSucc := by
+  exact tm0RealizesBlockSep_toInnerDefaultViaSep
+    htmp
+    chainConsBottom_ne_default
+    htmp_cons
     (tm0_binSucc_blockSep (sep := chainConsBottom) (by decide) (by decide))
     binSucc_ne_default
     (fun block hblock => binSucc_no_consBottom block hblock)

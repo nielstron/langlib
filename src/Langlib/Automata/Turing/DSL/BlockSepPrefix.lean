@@ -15,8 +15,11 @@ operate on an *inner* block of a two-separator tape, preserving the prefix.
 
 ## Main result
 
-- `tm0RealizesBlockSep_toInner`: any `TM0RealizesBlockSep Γ sep₂ f` can be
-  lifted to `TM0RealizesInnerBlockSep Γ sep₁ sep₂ f`.
+- `tm0RealizesBlockSep_toInnerOuterSep`: any `TM0RealizesBlockSep Γ sep₂ f`
+  can be lifted to `TM0RealizesInnerBlockSep Γ sep₁ sep₂ f` when the outer
+  separator is non-default.
+- `tm0RealizesBlockSep_toInnerDefault`: default-boundary version of the same
+  prefix/suffix lift.
 
 ## Strategy
 
@@ -87,6 +90,36 @@ def TM0RealizesInnerBlockDefaultSep (Γ : Type) [Inhabited Γ] (sep₂ : Γ)
         ((TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ [default])).get h).Tape =
           Tape.mk₁ (pfx ++ sep₂ :: f inner ++ [default])
 
+/-- Default-delimited inner-block realizability using a temporary non-default
+outer separator.
+
+The extra separator `tmp` is not part of the input/output tape. It is the
+marker used internally to turn the outer default boundary into a real
+separator, run the non-default prefix/suffix lift, then restore the boundary
+to default. The contract records exactly the freshness facts needed for that
+construction. -/
+def TM0RealizesInnerBlockDefaultViaSep (Γ : Type) [Inhabited Γ]
+    (tmp sep₂ : Γ) (f : List Γ → List Γ) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (pfx inner suffix : List Γ),
+      (∀ g ∈ pfx, g ≠ default) →
+      (∀ g ∈ pfx, g ≠ tmp) →
+      (∀ g ∈ pfx, g ≠ sep₂) →
+      (∀ g ∈ inner, g ≠ default) →
+      (∀ g ∈ inner, g ≠ tmp) →
+      (∀ g ∈ inner, g ≠ sep₂) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (∀ g ∈ f inner, g ≠ default) →
+      (∀ g ∈ f inner, g ≠ tmp) →
+      (∀ g ∈ f inner, g ≠ sep₂) →
+      (TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ default :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M
+          (pfx ++ sep₂ :: inner ++ default :: suffix)).Dom),
+        ((TM0Seq.evalCfg M
+          (pfx ++ sep₂ :: inner ++ default :: suffix)).get h).Tape =
+          Tape.mk₁ (pfx ++ sep₂ :: f inner ++ default :: suffix)
+
 /-! ### List Reversal Helpers -/
 
 /-- Reversing `l₁ ++ a :: l₂` gives `l₂.reverse ++ a :: l₁.reverse`. -/
@@ -130,6 +163,24 @@ theorem tm0RealizesBlockSep_revFRev
       (fun b hb => reverse_ne_default b hb)
       (fun b hb => reverse_ne_sep b hb)
   exact tm0RealizesBlockSep_comp h1 tm0_reverse_blockSep
+    (fun b hb g hg => hf_nd b.reverse (reverse_ne_default b hb) g hg)
+    (fun b hb g hg => hf_nsep b.reverse (reverse_ne_sep b hb) g hg)
+
+/-- Strong suffix version of `tm0RealizesBlockSep_revFRev`. This is the form
+needed by prefix/suffix lifting when the preserved suffix after `sep` may
+itself contain `default`. -/
+theorem tm0RealizesBlockSepAnySuffix_revFRev
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} {f : List Γ → List Γ}
+    (hf : TM0RealizesBlockSepAnySuffix Γ sep f)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep) → ∀ g ∈ f block, g ≠ sep) :
+    TM0RealizesBlockSepAnySuffix Γ sep (List.reverse ∘ f ∘ List.reverse) := by
+  have h1 : TM0RealizesBlockSepAnySuffix Γ sep (f ∘ List.reverse) :=
+    tm0RealizesBlockSepAnySuffix_comp tm0_reverse_blockSep_anySuffix hf
+      (fun b hb => reverse_ne_default b hb)
+      (fun b hb => reverse_ne_sep b hb)
+  exact tm0RealizesBlockSepAnySuffix_comp h1 tm0_reverse_blockSep_anySuffix
     (fun b hb g hg => hf_nd b.reverse (reverse_ne_default b hb) g hg)
     (fun b hb g hg => hf_nsep b.reverse (reverse_ne_sep b hb) g hg)
 
@@ -254,30 +305,152 @@ theorem tm0RealizesBlockSep_toInner_nondefault
   unfold TM0Seq.evalCfg; simp +decide [ Turing.eval ] ;
   grind +suggestions
 
-/-- Lift a separator-delimited block operation to the inner block between
-`sep₂` and `sep₁`, preserving both the prefix before `sep₂` and the suffix
-after `sep₁`.
+/-- Strong suffix version of the prefix/suffix lift.
 
-The non-default `sep₁` case is the original reverse-prefix construction.  The
-`sep₁ = default` case is the default-boundary variant needed when an inner
-block is followed by a blank-delimited suffix.  In that case the middle
-separator-framed machine has to tolerate the preserved suffix
-`pfx.reverse ++ default :: suffix`; the current `TM0RealizesBlockSep`
-interface only exposes a blank-free suffix, so this is the remaining generic
-prefix/suffix lifting obligation. -/
-theorem tm0RealizesBlockSep_toInner
+This is the construction that works uniformly for `sep₁ = default` and
+`sep₁ ≠ default`: after reversing the outer block, the middle machine runs on
+`inner.reverse ++ sep₂ :: pfx.reverse ++ sep₁ :: suffix`, so the hypothesis on
+`f` must be `TM0RealizesBlockSepAnySuffix`. -/
+theorem tm0RealizesBlockSepAnySuffix_toInner
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep₁ sep₂ : Γ} {f : List Γ → List Γ}
     (hsep₂ : sep₂ ≠ default) (h₁₂ : sep₁ ≠ sep₂)
-    (hf : TM0RealizesBlockSep Γ sep₂ f)
+    (hf : TM0RealizesBlockSepAnySuffix Γ sep₂ f)
     (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
     (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
     TM0RealizesInnerBlockSep Γ sep₁ sep₂ f := by
-  by_cases hsep₁ : sep₁ = default
-  · subst sep₁
-    sorry
-  · exact tm0RealizesBlockSep_toInner_nondefault
-      hsep₁ hsep₂ h₁₂ hf hf_nd hf_nsep
+  have hrev₁ := @tm0_reverse_blockSep_anySuffix Γ _ _ _ (sep := sep₁)
+  have hrfr := tm0RealizesBlockSepAnySuffix_revFRev hf hf_nd hf_nsep
+  obtain ⟨Λ_rev, h_rev_inh, h_rev_fin, M_rev, hM_rev⟩ := hrev₁
+  obtain ⟨Λ_rfr, h_rfr_inh, h_rfr_fin, M_rfr, hM_rfr⟩ := hrfr
+  let h12_inh : Inhabited (Λ_rev ⊕ Λ_rfr) :=
+    ⟨Sum.inl (@default _ h_rev_inh)⟩
+  let h123_inh : Inhabited ((Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev) :=
+    ⟨Sum.inl (@default _ h12_inh)⟩
+  let M12 := @TM0Seq.compose Γ Λ_rev h_rev_inh Λ_rfr h_rfr_inh M_rev M_rfr
+  let M123 := @TM0Seq.compose Γ (Λ_rev ⊕ Λ_rfr) h12_inh Λ_rev h_rev_inh M12 M_rev
+  refine ⟨(Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev, h123_inh,
+    @instFintypeSum _ _ (@instFintypeSum _ _ h_rev_fin h_rfr_fin) h_rev_fin,
+    M123, ?_⟩
+  intro pfx inner suffix
+    hpfx_nd hpfx_nsep₁ hpfx_nsep₂
+    hinn_nd hinn_nsep₁ hinn_nsep₂
+    _hsuf_nd hfinn_nd hfinn_nsep₁ hfinn_nsep₂
+  set outer := pfx ++ sep₂ :: inner with h_outer_def
+  have h_outer_rev : outer.reverse = inner.reverse ++ sep₂ :: pfx.reverse :=
+    reverse_append_cons pfx sep₂ inner
+  set mid := (f inner).reverse ++ sep₂ :: pfx.reverse with h_mid_def
+  have h_mid_rev : mid.reverse = pfx ++ sep₂ :: f inner := by
+    simp only [mid, reverse_append_cons, List.reverse_reverse]
+  have houter_nd : ∀ g ∈ outer, g ≠ default :=
+    forall_mem_append_cons.mpr ⟨hpfx_nd, hsep₂, hinn_nd⟩
+  have houter_nsep₁ : ∀ g ∈ outer, g ≠ sep₁ :=
+    forall_mem_append_cons.mpr ⟨hpfx_nsep₁, h₁₂.symm, hinn_nsep₁⟩
+  have hstep1 := hM_rev outer suffix houter_nd houter_nsep₁
+    (reverse_ne_default outer houter_nd) (reverse_ne_sep outer houter_nsep₁)
+  have h_rfr_eq : (List.reverse ∘ f ∘ List.reverse) inner.reverse =
+      (f inner).reverse := by
+    simp [Function.comp, List.reverse_reverse]
+  have hrfr_nd : ∀ g ∈ (List.reverse ∘ f ∘ List.reverse) inner.reverse,
+      g ≠ default := by
+    rw [h_rfr_eq]
+    exact reverse_ne_default (f inner) hfinn_nd
+  have hrfr_nsep₂ : ∀ g ∈ (List.reverse ∘ f ∘ List.reverse) inner.reverse,
+      g ≠ sep₂ := by
+    rw [h_rfr_eq]
+    exact reverse_ne_sep (f inner) hfinn_nsep₂
+  have hstep2 := hM_rfr inner.reverse (pfx.reverse ++ sep₁ :: suffix)
+    (reverse_ne_default inner hinn_nd)
+    (reverse_ne_sep inner hinn_nsep₂)
+    hrfr_nd hrfr_nsep₂
+  have hmid_nd : ∀ g ∈ mid, g ≠ default :=
+    forall_mem_append_cons.mpr
+      ⟨reverse_ne_default (f inner) hfinn_nd, hsep₂,
+       reverse_ne_default pfx hpfx_nd⟩
+  have hmid_nsep₁ : ∀ g ∈ mid, g ≠ sep₁ :=
+    forall_mem_append_cons.mpr
+      ⟨reverse_ne_sep (f inner) hfinn_nsep₁, h₁₂.symm,
+       reverse_ne_sep pfx hpfx_nsep₁⟩
+  have hstep3 := hM_rev mid suffix hmid_nd hmid_nsep₁
+    (reverse_ne_default mid hmid_nd) (reverse_ne_sep mid hmid_nsep₁)
+  have hstep1_tape :
+      ((TM0Seq.evalCfg M_rev (outer ++ sep₁ :: suffix)).get hstep1.1).Tape =
+        Tape.mk₁ (inner.reverse ++ sep₂ :: pfx.reverse ++ sep₁ :: suffix) := by
+    rw [hstep1.2 hstep1.1]
+    simp [h_outer_rev, List.append_assoc]
+  have hstep2_dom' :
+      (TM0Seq.evalCfg M_rfr
+        (inner.reverse ++ sep₂ :: pfx.reverse ++ sep₁ :: suffix)).Dom := by
+    simpa [List.append_assoc] using hstep2.1
+  have hstep2_tape' :
+      ((TM0Seq.evalCfg M_rfr
+        (inner.reverse ++ sep₂ :: pfx.reverse ++ sep₁ :: suffix)).get
+          hstep2_dom').Tape =
+        Tape.mk₁ (mid ++ sep₁ :: suffix) := by
+    have hget :
+        (TM0Seq.evalCfg M_rfr
+          (inner.reverse ++ sep₂ :: pfx.reverse ++ sep₁ :: suffix)).get
+            hstep2_dom' =
+          (TM0Seq.evalCfg M_rfr
+            (inner.reverse ++ sep₂ :: (pfx.reverse ++ sep₁ :: suffix))).get
+              hstep2.1 := by
+      apply Part.get_eq_get_of_eq
+      simp [List.append_assoc]
+    rw [hget, hstep2.2 hstep2.1]
+    simp [mid, List.append_assoc]
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (outer ++ sep₁ :: suffix)).Dom := by
+    have hstep2_from_cfg :
+        (TM0Seq.evalFromCfg M_rfr
+          ⟨default, ((TM0Seq.evalCfg M_rev
+            (outer ++ sep₁ :: suffix)).get hstep1.1).Tape⟩).Dom := by
+      rw [hstep1_tape]
+      change (TM0Seq.evalFromCfg M_rfr
+        (TM0.init (inner.reverse ++ sep₂ :: pfx.reverse ++ sep₁ :: suffix))).Dom
+      rw [TM0Seq.evalFromCfg_init]
+      exact hstep2_dom'
+    exact @TM0Seq.compose_dom_of_parts Γ _ Λ_rev h_rev_inh Λ_rfr h_rfr_inh
+      M_rev M_rfr (outer ++ sep₁ :: suffix) hstep1.1 hstep2_from_cfg
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (outer ++ sep₁ :: suffix)).get hM12_dom).Tape =
+        Tape.mk₁ (mid ++ sep₁ :: suffix) := by
+    convert @TM0Seq.compose_evalCfg_tape Γ _ Λ_rev h_rev_inh Λ_rfr h_rfr_inh
+      M_rev M_rfr
+      (outer ++ sep₁ :: suffix)
+      (inner.reverse ++ sep₂ :: pfx.reverse ++ sep₁ :: suffix)
+      hstep1.1 hstep1_tape hstep2_dom' hM12_dom using 1
+    exact hstep2_tape'.symm
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (outer ++ sep₁ :: suffix)).Dom := by
+    have hstep3_from_cfg :
+        (TM0Seq.evalFromCfg M_rev
+          ⟨default, ((TM0Seq.evalCfg M12
+            (outer ++ sep₁ :: suffix)).get hM12_dom).Tape⟩).Dom := by
+      rw [hM12_tape]
+      change (TM0Seq.evalFromCfg M_rev
+        (TM0.init (mid ++ sep₁ :: suffix))).Dom
+      rw [TM0Seq.evalFromCfg_init]
+      exact hstep3.1
+    exact @TM0Seq.compose_dom_of_parts Γ _ (Λ_rev ⊕ Λ_rfr) h12_inh Λ_rev h_rev_inh
+      M12 M_rev (outer ++ sep₁ :: suffix) hM12_dom hstep3_from_cfg
+  refine ⟨?_, ?_⟩
+  · convert hM123_dom using 1
+  · intro h
+    have h_tape := @TM0Seq.compose_evalCfg_tape Γ _ (Λ_rev ⊕ Λ_rfr) h12_inh
+      Λ_rev h_rev_inh M12 M_rev
+      (outer ++ sep₁ :: suffix) (mid ++ sep₁ :: suffix)
+      hM12_dom hM12_tape hstep3.1 hM123_dom
+    have h_final :
+        ((TM0Seq.evalCfg M123 (outer ++ sep₁ :: suffix)).get hM123_dom).Tape =
+          Tape.mk₁ (pfx ++ sep₂ :: f inner ++ sep₁ :: suffix) := by
+      rw [h_tape, hstep3.2 hstep3.1]
+      simp [h_mid_rev, List.append_assoc]
+    have h_get_eq :
+        (TM0Seq.evalCfg M123 (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).get h =
+          (TM0Seq.evalCfg M123 (outer ++ sep₁ :: suffix)).get hM123_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [outer, List.append_assoc]
+    rw [h_get_eq, h_final]
 
 /-- Separator-delimited version of the default-boundary lift.
 
@@ -294,7 +467,31 @@ theorem tm0RealizesBlockSep_toInnerOuterSep
     TM0RealizesInnerBlockSep Γ sep₁ sep₂ f :=
   tm0RealizesBlockSep_toInner_nondefault hsep₁ hsep₂ h₁₂ hf hf_nd hf_nsep
 
-/-- Default-delimited version of `tm0RealizesBlockSep_toInner`.
+/-- Default-boundary inner-block lift through a temporary real separator.
+
+Operationally this is:
+
+1. rewrite the boundary `default` after `inner` to `tmp`;
+2. use `tm0RealizesBlockSep_toInner_nondefault` with outer separator `tmp`;
+3. rewrite the resulting boundary `tmp` back to `default`.
+
+The freshness assumptions on `tmp` are carried by
+`TM0RealizesInnerBlockDefaultViaSep`, because the temporary marker must not be
+confused with data in the prefix, inner block, or transformed inner block. -/
+theorem tm0RealizesBlockSep_toInnerDefaultViaSep
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {tmp sep₂ : Γ} {f : List Γ → List Γ}
+    (htmp : tmp ≠ default) (hsep₂ : sep₂ ≠ default) (htmp₂ : tmp ≠ sep₂)
+    (hf : TM0RealizesBlockSep Γ sep₂ f)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
+    TM0RealizesInnerBlockDefaultViaSep Γ tmp sep₂ f := by
+  -- TODO: compose boundary-default-to-`tmp`, the nondefault inner lift, and
+  -- boundary-`tmp`-to-default. The middle component is:
+  -- `tm0RealizesBlockSep_toInner_nondefault htmp hsep₂ htmp₂ hf hf_nd hf_nsep`.
+  sorry
+
+/-- Default-delimited inner-block lift with no suffix after the final blank.
 
 The construction is the same three-machine composition:
 reverse before the outer default, run `reverse ∘ f ∘ reverse` before the

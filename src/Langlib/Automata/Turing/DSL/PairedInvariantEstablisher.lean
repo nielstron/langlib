@@ -580,22 +580,225 @@ def TM0RealizesPairedBlockBeforeSep
           (left ++ pairSep :: right ++ outerSep :: suffix)).get h).Tape =
           Tape.mk₁ (f (left ++ pairSep :: right) ++ outerSep :: suffix)
 
-/-- TODO: generalize the existing `chainConsBottom` paired-add machinery to
-operate on an arbitrary internal paired separator and preserve an unrestricted
-suffix after a distinct outer separator. -/
-theorem tm0_binAddPairedKeepRightSep_beforeMulSep₂ :
-    TM0RealizesPairedBlockBeforeSep binMulStateSep₁ binMulStateSep₂
-      (binAddPairedKeepRightSep binMulStateSep₁) := by
+/-- TODO: generalize the paired-add-keep-right machine to an arbitrary internal
+paired separator and a distinct outer separator. This is the real machine
+obligation; concrete multiplication separators should only be specializations
+of this theorem. -/
+theorem tm0_binAddPairedKeepRightSep_beforeSep
+    {pairSep outerSep : ChainΓ}
+    (hpair_nd : pairSep ≠ default)
+    (houter_nd : outerSep ≠ default)
+    (hpair_outer : pairSep ≠ outerSep) :
+    TM0RealizesPairedBlockBeforeSep pairSep outerSep
+      (binAddPairedKeepRightSep pairSep) := by
   sorry
 
-theorem tm0_binPred_afterMulSep₂_innerBlockSep :
-    TM0RealizesInnerBlockSep ChainΓ default binMulStateSep₂ binPred := by
-  exact tm0RealizesBlockSep_toInner
+theorem tm0_binPred_afterMulSep₂_innerBlockSep_outer {outerSep : ChainΓ}
+    (houter_nd : outerSep ≠ default)
+    (houter_ne_sep₂ : outerSep ≠ binMulStateSep₂) :
+    TM0RealizesInnerBlockSep ChainΓ outerSep binMulStateSep₂ binPred := by
+  exact tm0RealizesBlockSep_toInnerOuterSep
+    houter_nd
     (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
-    (by simpa [binMulStateSep₂] using (Ne.symm chainMulSep₂_ne_default))
+    houter_ne_sep₂
     tm0_binPred_blockSep_mulSep₂
     binPred_ne_default
     (fun block _hblock => binPred_no_mulSep₂ block)
+
+theorem tm0_binPred_afterMulSep₂_innerDefaultViaConsBottom :
+    TM0RealizesInnerBlockDefaultViaSep ChainΓ chainConsBottom
+      binMulStateSep₂ binPred := by
+  exact tm0RealizesBlockSep_toInnerDefaultViaSep
+    chainConsBottom_ne_default
+    (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+    (by
+      intro h
+      exact chainMulSep₂_ne_chainConsBottom (by simpa [binMulStateSep₂] using h.symm))
+    tm0_binPred_blockSep_mulSep₂
+    binPred_ne_default
+    (fun block _hblock => binPred_no_mulSep₂ block)
+
+theorem tm0_binPred_afterMulSep₂_beforeMulSep₁ :
+    TM0RealizesInnerBlockSep ChainΓ binMulStateSep₁ binMulStateSep₂ binPred := by
+  exact tm0_binPred_afterMulSep₂_innerBlockSep_outer
+    (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default)
+    (by simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂)
+
+/-- Separator-bounded split form of the arithmetic update in one
+three-separator multiplication iteration.
+
+This deliberately keeps the freshness obligations for the outer separator
+explicit. After the paired-add phase the prefix contains `binMulStateSep₁`, so
+that separator is not a valid outer separator for the fuel-decrement phase; a
+caller must supply a genuinely fresh separator for `pref'` and `fuel`. -/
+theorem tm0_binMulPairedStep3_update_splitBeforeSep
+    {outerSep : ChainΓ}
+    (houter_nd : outerSep ≠ default)
+    (houter_ne_sep₂ : outerSep ≠ binMulStateSep₂) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ),
+      ∀ (acc addend fuel suffix : List ChainΓ),
+        (∀ g ∈ acc, g ≠ default) →
+        (∀ g ∈ acc, g ≠ binMulStateSep₁) →
+        (∀ g ∈ acc, g ≠ binMulStateSep₂) →
+        (∀ g ∈ addend, g ≠ default) →
+        (∀ g ∈ addend, g ≠ binMulStateSep₁) →
+        (∀ g ∈ addend, g ≠ binMulStateSep₂) →
+        (∀ g ∈ fuel, g ≠ default) →
+        (∀ g ∈ fuel, g ≠ outerSep) →
+        (∀ g ∈ fuel, g ≠ binMulStateSep₂) →
+        (∀ g ∈ suffix, g ≠ default) →
+        (∀ g ∈ binAddPairedKeepRightSep binMulStateSep₁
+            (acc ++ binMulStateSep₁ :: addend), g ≠ outerSep) →
+        (∀ g ∈ binPred fuel, g ≠ outerSep) →
+        (TM0Seq.evalCfg M
+          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+            fuel ++ outerSep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M
+          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+            fuel ++ outerSep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M
+            (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+              fuel ++ outerSep :: suffix)).get h).Tape =
+            Tape.mk₁ (binMulPairedStep3
+              (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel) ++
+              outerSep :: suffix) := by
+  obtain ⟨Λa, hΛai, hΛaf, Ma, hMa⟩ :=
+    tm0_binAddPairedKeepRightSep_beforeSep
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default)
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+      (by simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂)
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
+    tm0_binPred_afterMulSep₂_innerBlockSep_outer
+      houter_nd houter_ne_sep₂
+  let h12i : Inhabited (Λa ⊕ Λp) := ⟨Sum.inl (@default _ hΛai)⟩
+  let M12 : TM0.Machine ChainΓ (Λa ⊕ Λp) :=
+    @TM0Seq.compose ChainΓ Λa hΛai Λp hΛpi Ma Mp
+  refine ⟨Λa ⊕ Λp, h12i, inferInstance, M12, ?_⟩
+  intro acc addend fuel suffix
+    hacc_nd hacc_no_sep₁ hacc_no_sep₂
+    hadd_nd hadd_no_sep₁ hadd_no_sep₂
+    hfuel_nd hfuel_no_outer hfuel_no_sep₂ hsuffix_nd
+    hpref'_no_outer hpred_no_outer
+  let pref := acc ++ binMulStateSep₁ :: addend
+  let pref' := binAddPairedKeepRightSep binMulStateSep₁ pref
+  have hpref_nd : ∀ x ∈ pref, x ≠ (default : ChainΓ) := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact hacc_nd x hx
+    · simpa [binMulStateSep₁] using chainMulSep₁_ne_default
+    · exact hadd_nd x hx
+  have hpref_no_sep₂ : ∀ x ∈ pref, x ≠ binMulStateSep₂ := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact hacc_no_sep₂ x hx
+    · simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂
+    · exact hadd_no_sep₂ x hx
+  have hpref'_nd : ∀ x ∈ pref', x ≠ (default : ChainΓ) := by
+    exact binAddPairedKeepRightSep_ne_default binMulStateSep₁ pref
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default) hpref_nd
+  have hpref'_no_sep₂ : ∀ x ∈ pref', x ≠ binMulStateSep₂ := by
+    exact binAddPairedKeepRightSep_no_mulSep₂ pref hpref_no_sep₂
+  have hpred_nd : ∀ x ∈ binPred fuel, x ≠ (default : ChainΓ) :=
+    binPred_ne_default fuel hfuel_nd
+  have hpred_no_sep₂ : ∀ x ∈ binPred fuel, x ≠ binMulStateSep₂ :=
+    binPred_no_mulSep₂ fuel
+  obtain ⟨ha_dom, ha_tape⟩ :=
+    hMa acc addend (fuel ++ outerSep :: suffix)
+      hacc_nd hacc_no_sep₁ hacc_no_sep₂
+      hadd_nd hadd_no_sep₁ hadd_no_sep₂
+        (by
+          have := binAddPairedKeepRightSep_ne_default binMulStateSep₁
+            (acc ++ binMulStateSep₁ :: addend)
+          simpa [pref] using this
+            (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default) hpref_nd)
+  have ha_dom' :
+      (TM0Seq.evalCfg Ma
+        (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+          fuel ++ outerSep :: suffix)).Dom := by
+    simpa [List.append_assoc] using ha_dom
+  have ha_tape' :
+      ((TM0Seq.evalCfg Ma
+        (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+          fuel ++ outerSep :: suffix)).get ha_dom').Tape =
+        Tape.mk₁ (pref' ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix) := by
+    have hget :
+        (TM0Seq.evalCfg Ma
+          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+            fuel ++ outerSep :: suffix)).get ha_dom' =
+          (TM0Seq.evalCfg Ma
+            (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+              (fuel ++ outerSep :: suffix))).get ha_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [List.append_assoc]
+    rw [hget]
+    simpa [pref, pref', List.append_assoc] using ha_tape ha_dom
+  obtain ⟨hp_dom, hp_tape⟩ :=
+    hMp pref' fuel suffix
+      hpref'_nd hpref'_no_outer hpref'_no_sep₂
+      hfuel_nd hfuel_no_outer hfuel_no_sep₂
+      hsuffix_nd hpred_nd hpred_no_outer hpred_no_sep₂
+  have hp_from_cfg :
+      (TM0Seq.evalFromCfg Mp
+        ⟨default, ((TM0Seq.evalCfg Ma
+          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+            fuel ++ outerSep :: suffix)).get ha_dom').Tape⟩).Dom := by
+    rw [ha_tape']
+    change (TM0Seq.evalFromCfg Mp
+      (TM0.init (pref' ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hp_dom
+  have hM12_dom :
+      (TM0Seq.evalCfg M12
+        (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+          fuel ++ outerSep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M12
+      (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+        fuel ++ outerSep :: suffix)).mpr
+      (@TM0Seq.compose_dom_of_parts ChainΓ _ Λa hΛai Λp hΛpi
+          Ma Mp
+          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+            fuel ++ outerSep :: suffix)
+          ha_dom' hp_from_cfg)
+  refine ⟨hM12_dom, ?_⟩
+  intro h
+  have hcomp_tape :=
+    @TM0Seq.compose_evalCfg_tape ChainΓ _ Λa hΛai Λp hΛpi Ma Mp
+        (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+          fuel ++ outerSep :: suffix)
+        (pref' ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix)
+        ha_dom' ha_tape' hp_dom h
+  rw [hcomp_tape, hp_tape hp_dom]
+  have hstep_eq :
+      binMulPairedStep3
+          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel) =
+        pref' ++ binMulStateSep₂ :: binPred fuel := by
+    have hsplit₁ :
+        splitAtSep binMulStateSep₁
+            (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel) =
+          (acc, addend ++ binMulStateSep₂ :: fuel) := by
+      simpa [List.append_assoc] using
+        splitAtSep_general_cons binMulStateSep₁ acc
+          (addend ++ binMulStateSep₂ :: fuel) hacc_no_sep₁
+    have hsplit₂ :
+        splitAtSep binMulStateSep₂ (addend ++ binMulStateSep₂ :: fuel) =
+          (addend, fuel) := by
+      exact splitAtSep_general_cons binMulStateSep₂ addend fuel hadd_no_sep₂
+    have hsplit₁' :
+        splitAtSep binMulStateSep₁
+            (acc ++ binMulStateSep₁ :: (addend ++ binMulStateSep₂ :: fuel)) =
+          (acc, addend ++ binMulStateSep₂ :: fuel) := by
+      simpa [List.append_assoc] using hsplit₁
+    unfold binMulPairedStep3
+    simp [hsplit₁', hsplit₂, pref, pref', List.append_assoc]
+  have hstep_eq' :
+      binMulPairedStep3
+          (acc ++ binMulStateSep₁ :: (addend ++ binMulStateSep₂ :: fuel)) =
+        pref' ++ binMulStateSep₂ :: binPred fuel := by
+    simpa [List.append_assoc] using hstep_eq
+  simpa [hstep_eq', List.append_assoc]
 
 /-- Suffix-preserving conditional body for the three-separator multiplication
 state predicate.
@@ -718,9 +921,12 @@ default-delimited suffix. -/
 theorem tm0_binMulPairedStep3_update_blockInvSuffixFixed :
     TM0RealizesBlockInvSuffixFixed binMulPairedStep3 binMulPairedStateInv3 := by
   obtain ⟨Λa, hΛai, hΛaf, Ma, hMa⟩ :=
-    tm0_binAddPairedKeepRightSep_beforeMulSep₂
+    tm0_binAddPairedKeepRightSep_beforeSep
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default)
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+      (by simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂)
   obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
-    tm0_binPred_afterMulSep₂_innerBlockSep
+    tm0_binPred_afterMulSep₂_innerDefaultViaConsBottom
   let h12i : Inhabited (Λa ⊕ Λp) := ⟨Sum.inl (@default _ hΛai)⟩
   let M12 : TM0.Machine ChainΓ (Λa ⊕ Λp) :=
     @TM0Seq.compose ChainΓ Λa hΛai Λp hΛpi Ma Mp
@@ -748,6 +954,8 @@ theorem tm0_binMulPairedStep3_update_blockInvSuffixFixed :
     simpa [hsplit] using binMulPairedStateInv3_acc_no_sep₁ block hInv
   have hacc_no_sep₂ : ∀ x ∈ acc, x ≠ binMulStateSep₂ := by
     simpa [hsplit] using binMulPairedStateInv3_acc_no_sep₂ block hInv
+  have hacc_no_consBottom : ∀ x ∈ acc, x ≠ chainConsBottom := by
+    simpa [hsplit] using binMulPairedStateInv3_acc_no_consBottom block hInv
   have hadd_nd : ∀ x ∈ addend, x ≠ (default : ChainΓ) := by
     intro x hx
     exact binMulPairedStateInv3_addend_ne_default block hblock x
@@ -756,12 +964,18 @@ theorem tm0_binMulPairedStep3_update_blockInvSuffixFixed :
     simpa [hsplit, hrest] using binMulPairedStateInv3_addend_no_sep₁ block hInv
   have hadd_no_sep₂ : ∀ x ∈ addend, x ≠ binMulStateSep₂ := by
     simpa [hsplit, hrest] using binMulPairedStateInv3_addend_no_sep₂ block hInv
+  have hadd_no_consBottom : ∀ x ∈ addend, x ≠ chainConsBottom := by
+    simpa [hsplit, hrest] using
+      binMulPairedStateInv3_addend_no_consBottom block hInv
   have hfuel_nd : ∀ x ∈ fuel, x ≠ (default : ChainΓ) := by
     simpa [binMulPairedFuel3, hsplit, hrest] using
       binMulPairedStateInv3_fuel_ne_default block hblock
   have hfuel_no_sep₂ : ∀ x ∈ fuel, x ≠ binMulStateSep₂ := by
     simpa [binMulPairedFuel3, hsplit, hrest] using
       binMulPairedStateInv3_fuel_no_sep₂ block hInv
+  have hfuel_no_consBottom : ∀ x ∈ fuel, x ≠ chainConsBottom := by
+    simpa [binMulPairedFuel3, hsplit, hrest] using
+      binMulPairedStateInv3_fuel_no_consBottom block hInv
   have hpref_nd : ∀ x ∈ pref, x ≠ (default : ChainΓ) := by
     intro x hx
     simp [pref] at hx
@@ -776,15 +990,28 @@ theorem tm0_binMulPairedStep3_update_blockInvSuffixFixed :
     · exact hacc_no_sep₂ x hx
     · simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂
     · exact hadd_no_sep₂ x hx
+  have hpref_no_consBottom : ∀ x ∈ pref, x ≠ chainConsBottom := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact hacc_no_consBottom x hx
+    · simpa [binMulStateSep₁] using chainMulSep₁_ne_chainConsBottom
+    · exact hadd_no_consBottom x hx
   have hpref'_nd : ∀ x ∈ pref', x ≠ (default : ChainΓ) := by
     exact binAddPairedKeepRightSep_ne_default binMulStateSep₁ pref
       (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default) hpref_nd
   have hpref'_no_sep₂ : ∀ x ∈ pref', x ≠ binMulStateSep₂ := by
     exact binAddPairedKeepRightSep_no_mulSep₂ pref hpref_no_sep₂
+  have hpref'_no_consBottom : ∀ x ∈ pref', x ≠ chainConsBottom := by
+    exact binAddPairedKeepRightSep_no_consBottom binMulStateSep₁ pref
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_chainConsBottom)
+      hpref_no_consBottom
   have hpred_nd : ∀ x ∈ binPred fuel, x ≠ (default : ChainΓ) :=
     binPred_ne_default fuel hfuel_nd
   have hpred_no_sep₂ : ∀ x ∈ binPred fuel, x ≠ binMulStateSep₂ :=
     binPred_no_mulSep₂ fuel
+  have hpred_no_consBottom : ∀ x ∈ binPred fuel, x ≠ chainConsBottom :=
+    binPred_no_consBottom fuel
   obtain ⟨ha_dom, ha_tape⟩ :=
     hMa acc addend (fuel ++ default :: suffix)
       hacc_nd hacc_no_sep₁ hacc_no_sep₂
@@ -817,9 +1044,9 @@ theorem tm0_binMulPairedStep3_update_blockInvSuffixFixed :
       simpa [pref, pref', List.append_assoc] using ha_tape ha_dom
   obtain ⟨hp_dom, hp_tape⟩ :=
     hMp pref' fuel suffix
-      hpref'_nd hpref'_nd hpref'_no_sep₂
-      hfuel_nd hfuel_nd hfuel_no_sep₂
-      hsuffix hpred_nd hpred_nd hpred_no_sep₂
+      hpref'_nd hpref'_no_consBottom hpref'_no_sep₂
+      hfuel_nd hfuel_no_consBottom hfuel_no_sep₂
+      hsuffix hpred_nd hpred_no_consBottom hpred_no_sep₂
   have hp_from_cfg :
       (TM0Seq.evalFromCfg Mp
         ⟨default, ((TM0Seq.evalCfg Ma
