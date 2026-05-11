@@ -898,6 +898,19 @@ theorem normalizePairedBlocks_ne_default (block : List ChainΓ)
     (fun g hg => hblock g (splitAtConsBottom_fst_subset block g hg))
     (fun g hg => hblock g (splitAtConsBottom_snd_subset block g hg))
 
+theorem tm0_normalizeBlock_afterConsBottom_innerBlockSep {sep₁ : ChainΓ}
+    (hsep₁ : sep₁ ≠ default) (hsep₁_cons : sep₁ ≠ chainConsBottom) :
+    TM0RealizesInnerBlockSep ChainΓ sep₁ chainConsBottom normalizeBlock := by
+  refine tm0RealizesBlockSep_toInnerOuterSep
+    hsep₁
+    chainConsBottom_ne_default
+    hsep₁_cons
+    (tm0_normalizeBlockSep (sep := chainConsBottom) (by decide) (by decide))
+    (fun block _hblock => normalizeBlock_ne_default block)
+    ?_
+  intro block _hblock
+  exact normalizeBlock_no_consBottom block
+
 theorem tm0_normalizeBlock_afterConsBottom_innerDefault :
     TM0RealizesInnerBlockDefaultSep ChainΓ chainConsBottom normalizeBlock := by
   refine tm0RealizesBlockSep_toInnerDefault

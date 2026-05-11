@@ -27,6 +27,30 @@ theorem tm0_binSucc_afterConsBottom_innerBlockSep {sep₁ : ChainΓ}
 
 /-- On a default-delimited paired block, run normalized binary successor on the
     sub-block after `chainConsBottom`, preserving the prefix before it. -/
+theorem tm0_binSuccNormalize_afterConsBottom_innerBlockSep {sep₁ : ChainΓ}
+    (hsep₁ : sep₁ ≠ default) (hsep₁_cons : sep₁ ≠ chainConsBottom) :
+    TM0RealizesInnerBlockSep ChainΓ sep₁ chainConsBottom (binSucc ∘ normalizeBlock) := by
+  refine tm0RealizesBlockSep_toInnerOuterSep
+    hsep₁
+    chainConsBottom_ne_default
+    hsep₁_cons
+    (tm0RealizesBlockSep_comp
+      (tm0_normalizeBlockSep (sep := chainConsBottom) (by decide) (by decide))
+      (tm0_binSucc_blockSep (sep := chainConsBottom) (by decide) (by decide))
+      (fun _ _ => normalizeBlock_ne_default _)
+      (fun _ _ => ?_))
+    ?_ ?_
+  · unfold normalizeBlock
+    exact chainBinaryRepr_no_consBottom _
+  · intro block _hblock
+    exact binSucc_ne_default _ (normalizeBlock_ne_default block)
+  · intro block _hblock
+    exact binSucc_no_consBottom _ (by
+      unfold normalizeBlock
+      exact chainBinaryRepr_no_consBottom _)
+
+/-- On a default-delimited paired block, run normalized binary successor on the
+    sub-block after `chainConsBottom`, preserving the prefix before it. -/
 theorem tm0_binSuccNormalize_afterConsBottom_innerDefault :
     TM0RealizesInnerBlockDefaultSep ChainΓ chainConsBottom (binSucc ∘ normalizeBlock) := by
   refine tm0RealizesBlockSep_toInnerDefault

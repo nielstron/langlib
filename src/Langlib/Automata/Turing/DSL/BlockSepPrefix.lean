@@ -279,6 +279,21 @@ theorem tm0RealizesBlockSep_toInner
   · exact tm0RealizesBlockSep_toInner_nondefault
       hsep₁ hsep₂ h₁₂ hf hf_nd hf_nsep
 
+/-- Separator-delimited version of the default-boundary lift.
+
+This is the form to use when the outer delimiter after the inner block should
+be a real separator `sep₁`, not the tape blank.  The tape shape is
+`pfx ++ sep₂ :: inner ++ sep₁ :: suffix`. -/
+theorem tm0RealizesBlockSep_toInnerOuterSep
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep₁ sep₂ : Γ} {f : List Γ → List Γ}
+    (hsep₁ : sep₁ ≠ default) (hsep₂ : sep₂ ≠ default) (h₁₂ : sep₁ ≠ sep₂)
+    (hf : TM0RealizesBlockSep Γ sep₂ f)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
+    TM0RealizesInnerBlockSep Γ sep₁ sep₂ f :=
+  tm0RealizesBlockSep_toInner_nondefault hsep₁ hsep₂ h₁₂ hf hf_nd hf_nsep
+
 /-- Default-delimited version of `tm0RealizesBlockSep_toInner`.
 
 The construction is the same three-machine composition:
