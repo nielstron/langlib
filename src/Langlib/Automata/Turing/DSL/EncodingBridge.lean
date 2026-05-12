@@ -120,9 +120,7 @@ on the tape.
 Derived from `converter_fn_realizes` and `converter_fn_on_identity`
 (both in `TapeConvert.lean`). -/
 theorem converter_tm_exists
-    {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
-    (hstep_block : ∀ t : T,
-      TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t)) :
+    {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] :
     ∃ (Λ_conv : Type) (_ : Inhabited Λ_conv) (_ : Fintype Λ_conv)
       (M_conv : TM0.Machine (Option (T ⊕ ChainΓ)) Λ_conv),
       ∀ w : List T,
@@ -131,7 +129,7 @@ theorem converter_tm_exists
           ((TM0Seq.evalCfg M_conv (w.map (fun x => some (Sum.inl x)))).get h).Tape =
             Tape.mk₁ ((chainEncode T w).map
                 (blankPreservingEmb (T := T))) := by
-  exact chain_converter_fn_realizes (T := T) hstep_block
+  exact chain_converter_fn_realizes (T := T)
 
 /-! ### Building Block 4: Chain-to-Identity Encoding Bridge -/
 
@@ -152,9 +150,7 @@ By `TM0Seq.compose_dom_iff'`, the composition halts on identity input iff
 this is equivalent to `M₀` halting on the original chain input. -/
 theorem chain_encoding_bridge {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
     {Λ₀ : Type} [Inhabited Λ₀] [Fintype Λ₀]
-    (M₀ : TM0.Machine ChainΓ Λ₀)
-    (hstep_block : ∀ t : T,
-      TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t)) :
+    (M₀ : TM0.Machine ChainΓ Λ₀) :
     ∃ (Γ : Type) (_ : Fintype Γ)
       (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ Γ)) Λ),
@@ -164,7 +160,7 @@ theorem chain_encoding_bridge {T : Type} [DecidableEq T] [Fintype T] [Primcodabl
             (PartrecToTM2.trList [Encodable.encode w]))).Dom ↔
         (TM0.eval M (w.map (fun x => some (Sum.inl x)))).Dom := by
   obtain ⟨Λ_conv, hΛci, hΛcf, M_conv, hconv⟩ :=
-    converter_tm_exists (T := T) hstep_block
+    converter_tm_exists (T := T)
   refine ⟨ChainΓ, inferInstance, Λ_conv ⊕ Λ₀, ⟨Sum.inl default⟩, inferInstance,
     TM0Seq.compose M_conv (embedTM0 (T := T) M₀), fun w => ?_⟩
   have h1 := (hconv w).1
@@ -186,12 +182,10 @@ theorem code_implies_isTM
     {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
     (L : Language T)
     (c : Turing.ToPartrec.Code)
-    (hL : ∀ w : List T, w ∈ L ↔ (c.eval [Encodable.encode w]).Dom)
-    (hstep_block : ∀ t : T,
-      TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t)) :
+    (hL : ∀ w : List T, w ∈ L ↔ (c.eval [Encodable.encode w]).Dom) :
     is_TM L := by
   obtain ⟨Λ₀, hΛ₀i, hΛ₀f, M₀, hM₀⟩ := code_to_tm0_fintype c
   obtain ⟨Γ, hΓf, Λ, hΛi, hΛf, M, hM⟩ :=
-    chain_encoding_bridge (T := T) M₀ hstep_block
+    chain_encoding_bridge (T := T) M₀
   exact ⟨T ⊕ Γ, inferInstance, Λ, hΛi, hΛf, M, Sum.inl, fun w => by
     rw [hL, hM₀ (Encodable.encode w)]; exact hM w⟩

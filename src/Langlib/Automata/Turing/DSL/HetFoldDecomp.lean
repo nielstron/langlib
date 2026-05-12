@@ -721,6 +721,25 @@ def isWellFormedHetBlock (block : List (Option (T ⊕ Γ₀))) : Prop :=
   ∃ (ts : List T) (acc : List Γ₀), block = hetMix ts acc ∧
     ∀ g ∈ acc, g ≠ (default : Γ₀)
 
+/-- A fold body machine only needs to run on well-formed het blocks.
+
+This is intentionally weaker than `TM0RealizesBlock`: the fold step erases
+one leading tag and then invokes the tag-specific body on the remaining
+`hetMix ts acc`. It never invokes that body on arbitrary malformed blocks. -/
+def TM0RealizesHetFoldBody
+    (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))) : Prop :=
+  ∃ (Λ : T → Type) (_ : ∀ t, Inhabited (Λ t)) (_ : ∀ t, Fintype (Λ t))
+    (M : ∀ t, TM0.Machine (Option (T ⊕ Γ₀)) (Λ t)),
+    ∀ (t : T) (ts : List T) (acc : List Γ₀),
+      (∀ g ∈ acc, g ≠ (default : Γ₀)) →
+      (TM0Seq.evalCfg (M t)
+        (hetMix (T := T) (Γ₀ := Γ₀) ts acc ++ [default])).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg (M t)
+        (hetMix (T := T) (Γ₀ := Γ₀) ts acc ++ [default])).Dom),
+        ((TM0Seq.evalCfg (M t)
+          (hetMix (T := T) (Γ₀ := Γ₀) ts acc ++ [default])).get h).Tape =
+          Tape.mk₁ (F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) ++ [default])
+
 /-! ## While-Loop with Invariant -/
 
 /-- **While-loop combinator with block invariant (empty suffix).**
@@ -895,12 +914,11 @@ theorem tm0HetFoldStepMachine_run_reaches
     This is the local machine-construction obligation for one fold-body step. -/
 theorem tm0RealizesBlockCond_hetFoldStep
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
-    (hf_block : ∀ t, TM0RealizesBlock (Option (T ⊕ Γ₀)) (F t))
-    (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ F t block, g ≠ default) :
+    (hf_body : TM0RealizesHetFoldBody (T := T) (Γ₀ := Γ₀) F) :
     TM0RealizesBlockCondInv (hetFoldStep F) (@hasHetInlHead T Γ₀)
       (isWellFormedHetBlock (T := T) (Γ₀ := Γ₀)) := by
   classical
-  choose Λ hΛi hΛf M hM using hf_block
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := hf_body
   refine ⟨HetFoldStepState T Λ, inferInstance, inferInstance,
     tm0HetFoldStepMachine (T := T) (Γ₀ := Γ₀) Λ M,
     HetFoldStepState.cont, ?_⟩
@@ -943,10 +961,8 @@ theorem tm0RealizesBlockCond_hetFoldStep
         exact hblock g (by
           simp [hetMix, hetMixSep, separatedMix, hetTagEmb]
           exact Or.inr htail)
-      have hF_nd : ∀ g ∈ F t rest, g ≠ (default : Option (T ⊕ Γ₀)) :=
-        hf_nd t rest hrest_nd
       obtain ⟨hbody_dom, hbody_tape⟩ :=
-        hM t rest [] hrest_nd (by simp) hF_nd
+        hM t ts acc hacc_nd
       let bodyCfg :=
         (TM0Seq.evalCfg (M t) (rest ++ [default])).get hbody_dom
       have hbody_mem : bodyCfg ∈ TM0Seq.evalCfg (M t) (rest ++ [default]) :=
@@ -1084,7 +1100,7 @@ theorem tm0RealizesBlock_hetFoldWhile_inv
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (f : T → List Γ₀ → List Γ₀)
     (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
-    (hf_block : ∀ t, TM0RealizesBlock (Option (T ⊕ Γ₀)) (F t))
+    (hf_body : TM0RealizesHetFoldBody (T := T) (Γ₀ := Γ₀) F)
     (hF_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ F t block, g ≠ default)
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f t block, g ≠ default) :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -1100,7 +1116,7 @@ theorem tm0RealizesBlock_hetFoldWhile_inv
   tm0RealizesBlock_while_inv
     (hetFoldStep F) (hetFoldWhile F) hasHetInlHead
     isWellFormedHetBlock
-    (tm0RealizesBlockCond_hetFoldStep F hf_block hF_nd)
+    (tm0RealizesBlockCond_hetFoldStep F hf_body)
     (fun block hInv hnd hcond => isWellFormedHetBlock_step F f hF hf_nd block hInv hnd hcond)
     (fun block hblock hcond => hetFoldStep_ne_default F hF_nd block hblock hcond)
     (fun block _hblock hInv => hetFoldWhile_eq_iterateWhile_wf F f hF block hInv)
@@ -1140,7 +1156,7 @@ theorem tm0Het_fold_blockRealizable'
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (f : T → List Γ₀ → List Γ₀)
     (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
-    (hf_block : ∀ t, TM0RealizesBlock (Option (T ⊕ Γ₀)) (F t))
+    (hf_body : TM0RealizesHetFoldBody (T := T) (Γ₀ := Γ₀) F)
     (hF_nd : ∀ t block, (∀ g ∈ block, g ≠ default) →
       ∀ g ∈ F t block, g ≠ default)
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) →
@@ -1176,7 +1192,7 @@ theorem tm0Het_fold_blockRealizable'
 
   obtain ⟨Λ₁, hΛ₁i, hΛ₁f, M₁, hM₁⟩ := hrev_cons_block
   obtain ⟨Λ₂, hΛ₂i, hΛ₂f, M₂, hM₂⟩ :=
-    tm0RealizesBlock_hetFoldWhile_inv F f hF hf_block hF_nd hf_nd
+    tm0RealizesBlock_hetFoldWhile_inv F f hF hf_body hF_nd hf_nd
   obtain ⟨Λ₃, hΛ₃i, hΛ₃f, M₃, hM₃⟩ :=
     tm0_dropUntilFirstSep_block sep hsep_nd
 

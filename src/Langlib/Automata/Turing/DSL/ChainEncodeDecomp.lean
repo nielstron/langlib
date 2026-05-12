@@ -7,6 +7,7 @@ import Langlib.Automata.Turing.DSL.CondBlockOps
 import Langlib.Automata.Turing.DSL.PairedBlockArithmetic
 import Langlib.Automata.Turing.DSL.PairedInvariantEstablisher
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
+import Langlib.Automata.Turing.DSL.BlockSepPrefix
 
 /-! # Chain Encoding Decomposition
 
@@ -149,7 +150,7 @@ theorem tm0Het_fold_blockRealizable
     (f : T → List Γ₀ → List Γ₀)
     (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) =
       hetMix ts (f t acc))
-    (hF_block : ∀ t, TM0RealizesBlock (Option (T ⊕ Γ₀)) (F t))
+    (hF_body : TM0RealizesHetFoldBody (T := T) (Γ₀ := Γ₀) F)
     (hF_nd : ∀ t block, (∀ g ∈ block, g ≠ default) →
       ∀ g ∈ F t block, g ≠ default)
     (hf_nd : ∀ t block, (∀ g ∈ block, g ≠ default) →
@@ -162,7 +163,7 @@ theorem tm0Het_fold_blockRealizable
           ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
             Tape.mk₁ ((List.foldr f [] w).map
               (some ∘ @Sum.inr T Γ₀)) :=
-  tm0Het_fold_blockRealizable' T F f hF hF_block hF_nd hf_nd
+  tm0Het_fold_blockRealizable' T F f hF hF_body hF_nd hf_nd
 
 /-! ### Deriving chainEncode_fold from the general fold -/
 
@@ -225,25 +226,448 @@ theorem chainEncodeFoldTapeStep_ne_default
     rw [← hg]
     simp [hetAccEmb]
 
-/-- Machine-realizability obligation for the concrete same-alphabet chain fold
-step.
+/-- The operation induced on the accumulator cells of a het fold body.
 
-The important interface point is that this is no longer derived from the
-accumulator-only arithmetic block machine: the arithmetic step and the het-tape
-mapping/layout step are separate named objects. -/
-theorem tm0_chainEncodeFoldTapeStep_block_of_sameAlphabet
-    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T]
-    (t : T)
-    (hf : TM0RealizesBlock (Option (T ⊕ ChainΓ))
-      (chainEncodeFoldTapeStep T t)) :
-    TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t) :=
-  hf
+The inner block contains only `some (inr γ)` cells. We decode those cells,
+run the accumulator arithmetic, and re-embed into the same het alphabet. -/
+noncomputable def chainEncodeFoldInnerStep
+    (T : Type) [Primcodable T] (t : T) :
+    List (Option (T ⊕ ChainΓ)) → List (Option (T ⊕ ChainΓ)) :=
+  fun inner =>
+    (chainEncodeFoldAccStep T t
+      (inner.filterMap (hetAccDecode (T := T)))).map (hetAccEmb (T := T))
+
+theorem filterMap_hetAccDecode_map_hetAccEmb
+    (T : Type) (acc : List ChainΓ) :
+    (acc.map (hetAccEmb (T := T))).filterMap (hetAccDecode (T := T)) = acc := by
+  induction acc with
+  | nil => simp
+  | cons g acc ih => simp [hetAccEmb, hetAccDecode, ih]
+
+theorem filterMap_hetAccDecode_comp_hetAccEmb
+    (T : Type) (acc : List ChainΓ) :
+    acc.filterMap (hetAccDecode (T := T) ∘ hetAccEmb (T := T)) = acc := by
+  induction acc with
+  | nil => simp
+  | cons g acc ih => simp [Function.comp, hetAccEmb, hetAccDecode, ih]
+
+theorem chainEncodeFoldInnerStep_on_acc
+    (T : Type) [Primcodable T] (t : T) (acc : List ChainΓ) :
+    chainEncodeFoldInnerStep T t (acc.map (hetAccEmb (T := T))) =
+      (chainEncodeFoldAccStep T t acc).map (hetAccEmb (T := T)) := by
+  simp [chainEncodeFoldInnerStep, List.filterMap_map,
+    filterMap_hetAccDecode_comp_hetAccEmb]
+
+/-- Separator-delimited block realizability with a block invariant.
+
+This is the right shape for het accumulator blocks: a machine can be required
+to work only on cells satisfying the layout invariant, instead of pretending
+it handles arbitrary cells from the ambient alphabet. -/
+def TM0RealizesBlockSepInv (Γ : Type) [Inhabited Γ] (sep : Γ)
+    (f : List Γ → List Γ) (blockInv : List Γ → Prop) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (block suffix : List Γ),
+      blockInv block →
+      (∀ g ∈ block, g ≠ default) →
+      (∀ g ∈ block, g ≠ sep) →
+      (∀ g ∈ suffix, g ≠ default) →
+      (∀ g ∈ f block, g ≠ default) →
+      (∀ g ∈ f block, g ≠ sep) →
+      (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom),
+        ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).Tape =
+          Tape.mk₁ (f block ++ sep :: suffix)
+
+/-- Default-delimited inner-block realizability with an invariant on the inner
+block between the explicit separator and the final blank. -/
+def TM0RealizesInnerBlockDefaultSepInv (Γ : Type) [Inhabited Γ] (sep₂ : Γ)
+    (f : List Γ → List Γ) (blockInv : List Γ → Prop) : Prop :=
+  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine Γ Λ),
+    ∀ (pfx inner : List Γ),
+      blockInv inner →
+      (∀ g ∈ pfx, g ≠ default) →
+      (∀ g ∈ pfx, g ≠ sep₂) →
+      (∀ g ∈ inner, g ≠ default) →
+      (∀ g ∈ inner, g ≠ sep₂) →
+      (∀ g ∈ f inner, g ≠ default) →
+      (∀ g ∈ f inner, g ≠ sep₂) →
+      (TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ [default])).Dom ∧
+      ∀ (h : (TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ [default])).Dom),
+        ((TM0Seq.evalCfg M (pfx ++ sep₂ :: inner ++ [default])).get h).Tape =
+          Tape.mk₁ (pfx ++ sep₂ :: f inner ++ [default])
+
+theorem tm0RealizesBlockSepInv_revFRev
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} {f : List Γ → List Γ} {blockInv : List Γ → Prop}
+    (hf : TM0RealizesBlockSepInv Γ sep f blockInv)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep) → ∀ g ∈ f block, g ≠ sep) :
+    TM0RealizesBlockSepInv Γ sep (List.reverse ∘ f ∘ List.reverse)
+      (fun block => blockInv block.reverse) := by
+  classical
+  obtain ⟨Λ_rev, h_rev_inh, h_rev_fin, M_rev, hM_rev⟩ :=
+    (@tm0_reverse_blockSep Γ _ _ _ (sep := sep))
+  obtain ⟨Λ_f, h_f_inh, h_f_fin, M_f, hM_f⟩ := hf
+  let h12_inh : Inhabited (Λ_rev ⊕ Λ_f) :=
+    ⟨Sum.inl (@default _ h_rev_inh)⟩
+  let h123_inh : Inhabited ((Λ_rev ⊕ Λ_f) ⊕ Λ_rev) :=
+    ⟨Sum.inl (@default _ h12_inh)⟩
+  let M12 := @TM0Seq.compose Γ Λ_rev h_rev_inh Λ_f h_f_inh M_rev M_f
+  let M123 := @TM0Seq.compose Γ (Λ_rev ⊕ Λ_f) h12_inh Λ_rev h_rev_inh M12 M_rev
+  refine ⟨(Λ_rev ⊕ Λ_f) ⊕ Λ_rev, h123_inh,
+    @instFintypeSum _ _ (@instFintypeSum _ _ h_rev_fin h_f_fin) h_rev_fin,
+    M123, ?_⟩
+  intro block suffix hblock_inv hblock_nd hblock_nsep hsuffix_nd hout_nd hout_nsep
+  have hrev_nd : ∀ g ∈ block.reverse, g ≠ default :=
+    reverse_ne_default block hblock_nd
+  have hrev_nsep : ∀ g ∈ block.reverse, g ≠ sep :=
+    reverse_ne_sep block hblock_nsep
+  have hfblock_nd : ∀ g ∈ f block.reverse, g ≠ default :=
+    hf_nd block.reverse hrev_nd
+  have hfblock_nsep : ∀ g ∈ f block.reverse, g ≠ sep :=
+    hf_nsep block.reverse hrev_nsep
+  have hstep1 := hM_rev block suffix hblock_nd hblock_nsep hsuffix_nd hrev_nd hrev_nsep
+  have hstep2 := hM_f block.reverse suffix hblock_inv hrev_nd hrev_nsep
+    hsuffix_nd hfblock_nd hfblock_nsep
+  have hstep3 := hM_rev (f block.reverse) suffix hfblock_nd hfblock_nsep
+    hsuffix_nd hout_nd hout_nsep
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (block ++ sep :: suffix)).Dom := by
+    apply @TM0Seq.compose_dom_of_parts Γ _ Λ_rev h_rev_inh Λ_f h_f_inh
+      M_rev M_f (block ++ sep :: suffix) hstep1.1
+    convert hstep2.1 using 1
+    rw [hstep1.2 hstep1.1]
+    rfl
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (block ++ sep :: suffix)).get hM12_dom).Tape =
+        Tape.mk₁ (f block.reverse ++ sep :: suffix) := by
+    convert @TM0Seq.compose_evalCfg_tape Γ _ Λ_rev h_rev_inh Λ_f h_f_inh
+      M_rev M_f
+      (block ++ sep :: suffix) (block.reverse ++ sep :: suffix)
+      hstep1.1 (hstep1.2 hstep1.1) hstep2.1 hM12_dom using 1
+    exact (hstep2.2 hstep2.1).symm
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (block ++ sep :: suffix)).Dom := by
+    apply @TM0Seq.compose_dom_of_parts Γ _ (Λ_rev ⊕ Λ_f) h12_inh
+      Λ_rev h_rev_inh M12 M_rev
+      (block ++ sep :: suffix) hM12_dom
+    convert hstep3.1 using 1
+    rw [hM12_tape]
+    rfl
+  refine ⟨hM123_dom, ?_⟩
+  intro h
+  have h_tape := @TM0Seq.compose_evalCfg_tape Γ _ (Λ_rev ⊕ Λ_f) h12_inh
+    Λ_rev h_rev_inh M12 M_rev
+    (block ++ sep :: suffix) (f block.reverse ++ sep :: suffix)
+    hM12_dom hM12_tape hstep3.1 h
+  rw [h_tape, hstep3.2 hstep3.1]
+  rfl
+
+theorem tm0RealizesBlockSepInv_toInnerDefault
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep₂ : Γ} {f : List Γ → List Γ} {blockInv : List Γ → Prop}
+    (hsep₂ : sep₂ ≠ default)
+    (hf : TM0RealizesBlockSepInv Γ sep₂ f blockInv)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep₂) → ∀ g ∈ f block, g ≠ sep₂) :
+    TM0RealizesInnerBlockDefaultSepInv Γ sep₂ f blockInv := by
+  have hrev := @tm0_reverse_blockSep Γ _ _ _ (sep := default)
+  have hrfr := tm0RealizesBlockSepInv_revFRev hf hf_nd hf_nsep
+  obtain ⟨Λ_rev, h_rev_inh, h_rev_fin, M_rev, hM_rev⟩ := hrev
+  obtain ⟨Λ_rfr, h_rfr_inh, h_rfr_fin, M_rfr, hM_rfr⟩ := hrfr
+  let h12_inh : Inhabited (Λ_rev ⊕ Λ_rfr) :=
+    ⟨Sum.inl (@default _ h_rev_inh)⟩
+  let h123_inh : Inhabited ((Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev) :=
+    ⟨Sum.inl (@default _ h12_inh)⟩
+  let M12 := @TM0Seq.compose Γ Λ_rev h_rev_inh Λ_rfr h_rfr_inh M_rev M_rfr
+  let M123 := @TM0Seq.compose Γ (Λ_rev ⊕ Λ_rfr) h12_inh Λ_rev h_rev_inh M12 M_rev
+  refine ⟨(Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev, h123_inh,
+    @instFintypeSum _ _ (@instFintypeSum _ _ h_rev_fin h_rfr_fin) h_rev_fin,
+    M123, ?_⟩
+  intro pfx inner hinner_inv hpfx_nd hpfx_nsep₂ hinn_nd hinn_nsep₂ hfinn_nd hfinn_nsep₂
+  set outer := pfx ++ sep₂ :: inner with h_outer_def
+  have h_outer_rev : outer.reverse = inner.reverse ++ sep₂ :: pfx.reverse :=
+    reverse_append_cons pfx sep₂ inner
+  set mid := (f inner).reverse ++ sep₂ :: pfx.reverse with h_mid_def
+  have h_mid_rev : mid.reverse = pfx ++ sep₂ :: f inner := by
+    simp only [mid, reverse_append_cons, List.reverse_reverse]
+
+  have houter_nd : ∀ g ∈ outer, g ≠ default :=
+    forall_mem_append_cons.mpr ⟨hpfx_nd, hsep₂, hinn_nd⟩
+  have hstep1 := hM_rev outer [] houter_nd houter_nd (by simp)
+    (reverse_ne_default outer houter_nd) (reverse_ne_default outer houter_nd)
+  have h_rfr_eq : (List.reverse ∘ f ∘ List.reverse) inner.reverse =
+      (f inner).reverse := by
+    simp [Function.comp, List.reverse_reverse]
+  have hrfr_inv : (fun block => blockInv block.reverse) inner.reverse := by
+    simpa using hinner_inv
+  have hrfr_nd : ∀ g ∈ (List.reverse ∘ f ∘ List.reverse) inner.reverse,
+      g ≠ default := by
+    rw [h_rfr_eq]
+    exact reverse_ne_default (f inner) hfinn_nd
+  have hrfr_nsep₂ : ∀ g ∈ (List.reverse ∘ f ∘ List.reverse) inner.reverse,
+      g ≠ sep₂ := by
+    rw [h_rfr_eq]
+    exact reverse_ne_sep (f inner) hfinn_nsep₂
+  have hpfx_rev_nd : ∀ g ∈ pfx.reverse, g ≠ default :=
+    reverse_ne_default pfx hpfx_nd
+  have hstep2 := hM_rfr inner.reverse pfx.reverse
+    hrfr_inv
+    (reverse_ne_default inner hinn_nd)
+    (reverse_ne_sep inner hinn_nsep₂)
+    hpfx_rev_nd hrfr_nd hrfr_nsep₂
+  have hmid_nd : ∀ g ∈ mid, g ≠ default :=
+    forall_mem_append_cons.mpr
+      ⟨reverse_ne_default (f inner) hfinn_nd, hsep₂,
+       reverse_ne_default pfx hpfx_nd⟩
+  have hstep3 := hM_rev mid [] hmid_nd hmid_nd (by simp)
+    (reverse_ne_default mid hmid_nd) (reverse_ne_default mid hmid_nd)
+
+  have hstep1_tape :
+      ((TM0Seq.evalCfg M_rev (outer ++ [default])).get hstep1.1).Tape =
+        Tape.mk₁ (inner.reverse ++ sep₂ :: pfx.reverse ++ [default]) := by
+    rw [hstep1.2 hstep1.1]
+    simp [h_outer_rev]
+  have hstep2_dom_trailing :
+      (TM0Seq.evalCfg M_rfr
+        (inner.reverse ++ sep₂ :: pfx.reverse ++ [default])).Dom := by
+    rw [evalCfg_append_default]
+    exact hstep2.1
+  have hstep2_tape_trailing :
+      ((TM0Seq.evalCfg M_rfr
+        (inner.reverse ++ sep₂ :: pfx.reverse ++ [default])).get hstep2_dom_trailing).Tape =
+        Tape.mk₁ ((f inner).reverse ++ sep₂ :: pfx.reverse ++ [default]) := by
+    have hcfg_eq :
+        (TM0Seq.evalCfg M_rfr
+          (inner.reverse ++ sep₂ :: pfx.reverse ++ [default])).get hstep2_dom_trailing =
+          (TM0Seq.evalCfg M_rfr
+            (inner.reverse ++ sep₂ :: pfx.reverse)).get hstep2.1 := by
+      apply Part.get_eq_get_of_eq
+      exact evalCfg_append_default M_rfr (inner.reverse ++ sep₂ :: pfx.reverse)
+    rw [hcfg_eq, hstep2.2 hstep2.1]
+    rw [h_rfr_eq]
+    exact (tape_mk₁_append_default ((f inner).reverse ++ sep₂ :: pfx.reverse)).symm
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (outer ++ [default])).Dom := by
+    apply @TM0Seq.compose_dom_of_parts Γ _ Λ_rev h_rev_inh Λ_rfr h_rfr_inh
+      M_rev M_rfr (outer ++ [default]) hstep1.1
+    convert hstep2_dom_trailing using 1
+    rw [hstep1_tape]
+    rfl
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (outer ++ [default])).get hM12_dom).Tape =
+        Tape.mk₁ (mid ++ [default]) := by
+    convert @TM0Seq.compose_evalCfg_tape Γ _ Λ_rev h_rev_inh Λ_rfr h_rfr_inh
+      M_rev M_rfr
+      (outer ++ [default])
+      (inner.reverse ++ sep₂ :: pfx.reverse ++ [default])
+      hstep1.1 hstep1_tape hstep2_dom_trailing hM12_dom using 1
+    rw [hstep2_tape_trailing]
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (outer ++ [default])).Dom := by
+    apply @TM0Seq.compose_dom_of_parts Γ _ (Λ_rev ⊕ Λ_rfr) h12_inh Λ_rev h_rev_inh
+      M12 M_rev (outer ++ [default]) hM12_dom
+    convert hstep3.1 using 1
+    rw [hM12_tape]
+    rfl
+  refine ⟨?_, ?_⟩
+  · convert hM123_dom using 1
+  · intro h
+    have h_tape := @TM0Seq.compose_evalCfg_tape Γ _ (Λ_rev ⊕ Λ_rfr) h12_inh
+      Λ_rev h_rev_inh M12 M_rev
+      (outer ++ [default]) (mid ++ [default])
+      hM12_dom hM12_tape hstep3.1 hM123_dom
+    have h_final : ((TM0Seq.evalCfg M123 (outer ++ [default])).get hM123_dom).Tape =
+        Tape.mk₁ (pfx ++ sep₂ :: f inner ++ [default]) := by
+      rw [h_tape, hstep3.2 hstep3.1]
+      simp [h_mid_rev]
+    have h_get_eq :
+        (TM0Seq.evalCfg M123 (pfx ++ sep₂ :: inner ++ [default])).get h =
+          (TM0Seq.evalCfg M123 (outer ++ [default])).get hM123_dom := by
+      apply Part.get_eq_get_of_eq
+      simp [outer, List.append_assoc]
+    rw [h_get_eq, h_final]
+
+/-- The concrete invariant for a het accumulator block: every cell is an
+embedded accumulator symbol. -/
+def isHetAccBlock (T : Type) (block : List (Option (T ⊕ ChainΓ))) : Prop :=
+  ∃ acc : List ChainΓ, block = acc.map (hetAccEmb (T := T))
+
+theorem isHetAccBlock_reverse (T : Type)
+    (block : List (Option (T ⊕ ChainΓ))) :
+    isHetAccBlock T block → isHetAccBlock T block.reverse := by
+  rintro ⟨acc, rfl⟩
+  exact ⟨acc.reverse, by simp⟩
+
+theorem chainEncodeFoldInnerStep_ne_default
+    (T : Type) [Primcodable T] (t : T)
+    (block : List (Option (T ⊕ ChainΓ)))
+    (_hblock : ∀ g ∈ block, g ≠ (default : Option (T ⊕ ChainΓ))) :
+    ∀ g ∈ chainEncodeFoldInnerStep T t block,
+      g ≠ (default : Option (T ⊕ ChainΓ)) := by
+  intro g hg
+  unfold chainEncodeFoldInnerStep at hg
+  rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
+  simp [hetAccEmb]
+
+theorem filterMap_hetAccDecode_ne_default_of_ne_sep
+    (T : Type) (block : List (Option (T ⊕ ChainΓ)))
+    (hblock_nsep : ∀ g ∈ block, g ≠ hetSep (T := T) (Γ₀ := ChainΓ)) :
+    ∀ g ∈ block.filterMap (hetAccDecode (T := T)),
+      g ≠ (default : ChainΓ) := by
+  intro g hg hdefault
+  rcases List.mem_filterMap.mp hg with ⟨x, hx, hdecode⟩
+  subst hdefault
+  cases x with
+  | none => simp [hetAccDecode] at hdecode
+  | some x =>
+      cases x with
+      | inl t => simp [hetAccDecode] at hdecode
+      | inr a =>
+          simp [hetAccDecode] at hdecode
+          subst hdecode
+          exact hblock_nsep (some (Sum.inr default)) hx rfl
+
+theorem chainEncodeFoldInnerStep_ne_sep
+    (T : Type) [Primcodable T] (t : T)
+    (block : List (Option (T ⊕ ChainΓ)))
+    (hblock_nsep : ∀ g ∈ block, g ≠ hetSep (T := T) (Γ₀ := ChainΓ)) :
+    ∀ g ∈ chainEncodeFoldInnerStep T t block,
+      g ≠ hetSep (T := T) (Γ₀ := ChainΓ) := by
+  intro g hg
+  unfold chainEncodeFoldInnerStep at hg
+  rcases List.mem_map.mp hg with ⟨a, ha, rfl⟩
+  have hdecoded_nd :
+      ∀ g ∈ block.filterMap (hetAccDecode (T := T)),
+        g ≠ (default : ChainΓ) :=
+    filterMap_hetAccDecode_ne_default_of_ne_sep T block hblock_nsep
+  have ha_nd := binPairConstSucc_ne_default (Encodable.encode t)
+    (block.filterMap (hetAccDecode (T := T))) hdecoded_nd a ha
+  change hetAccEmb (T := T) a ≠ hetSep (T := T) (Γ₀ := ChainΓ)
+  intro h
+  injection h with hsum
+  injection hsum with hdefault
+  exact ha_nd hdefault
+
+/-- Plain separator-delimited version of the concrete chain fold inner step.
+
+This is the actual alphabet/layout bridge: it must run ChainΓ arithmetic on
+the accumulator-shaped cells of the het alphabet before the explicit
+`hetSep` boundary. -/
+theorem tm0_chainEncodeFoldInnerStep_blockSep
+    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] (t : T) :
+    TM0RealizesBlockSepInv (Option (T ⊕ ChainΓ))
+      (hetSep (T := T) (Γ₀ := ChainΓ))
+      (chainEncodeFoldInnerStep T t)
+      (isHetAccBlock T) := by
+  classical
+  sorry
+
+/-- Concrete separator-lift needed by the chain fold body.
+
+This is the remaining construction obligation: lift the ChainΓ block machine
+for `binPairConstSucc` to the actual het alphabet, operating only on the
+inner accumulator block after `hetSep` and preserving the tag prefix. -/
+theorem tm0_chainEncodeFoldInnerStep_inner
+    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] (t : T) :
+    TM0RealizesInnerBlockDefaultSepInv (Option (T ⊕ ChainΓ))
+      (hetSep (T := T) (Γ₀ := ChainΓ))
+      (chainEncodeFoldInnerStep T t)
+      (isHetAccBlock T) := by
+  classical
+  refine tm0RealizesBlockSepInv_toInnerDefault ?_ ?_ ?_ ?_
+  · simp [hetSep]
+  · exact tm0_chainEncodeFoldInnerStep_blockSep T t
+  · intro block hblock
+    exact chainEncodeFoldInnerStep_ne_default T t block hblock
+  · intro block hblock
+    exact chainEncodeFoldInnerStep_ne_sep T t block hblock
+
+/-- Machine-realizability obligation for the concrete chain fold body on
+well-formed het blocks. -/
+theorem tm0_chainEncodeFoldTapeStep_body
+    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
+    TM0RealizesHetFoldBody (T := T) (Γ₀ := ChainΓ)
+      (chainEncodeFoldTapeStep T) := by
+  classical
+  let Γ := Option (T ⊕ ChainΓ)
+  let sep : Γ := hetSep (T := T) (Γ₀ := ChainΓ)
+  have hinner : ∀ t : T,
+      TM0RealizesInnerBlockDefaultSepInv Γ sep
+        (chainEncodeFoldInnerStep T t) (isHetAccBlock T) := by
+    intro t
+    simpa [Γ, sep] using tm0_chainEncodeFoldInnerStep_inner T t
+  choose Λ hΛi hΛf M hM using hinner
+  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
+  intro t ts acc hacc_nd
+  let pfx : List Γ := ts.map (hetTagEmb (Γ₀ := ChainΓ))
+  let inner : List Γ := acc.map (hetAccEmb (T := T))
+  have hinner_inv : isHetAccBlock T inner := by
+    exact ⟨acc, rfl⟩
+  have hpfx_nd : ∀ g ∈ pfx, g ≠ (default : Γ) := by
+    intro g hg
+    rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
+    simp [Γ, hetTagEmb]
+  have hpfx_nsep : ∀ g ∈ pfx, g ≠ sep := by
+    intro g hg
+    rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
+    change hetTagEmb (Γ₀ := ChainΓ) a ≠ hetSep (T := T) (Γ₀ := ChainΓ)
+    simp [hetTagEmb, hetSep]
+  have hinner_nd : ∀ g ∈ inner, g ≠ (default : Γ) := by
+    intro g hg
+    rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
+    simp [Γ, hetAccEmb]
+  have hinner_nsep : ∀ g ∈ inner, g ≠ sep := by
+    intro g hg
+    rcases List.mem_map.mp hg with ⟨a, ha, rfl⟩
+    change hetAccEmb (T := T) a ≠ hetSep (T := T) (Γ₀ := ChainΓ)
+    intro h
+    injection h with hsum
+    injection hsum with hdefault
+    exact hacc_nd a ha hdefault
+  have hstep_nd :
+      ∀ g ∈ chainEncodeFoldInnerStep T t inner, g ≠ (default : Γ) := by
+    rw [chainEncodeFoldInnerStep_on_acc]
+    intro g hg
+    rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
+    simp [Γ, hetAccEmb]
+  have hstep_nsep :
+      ∀ g ∈ chainEncodeFoldInnerStep T t inner, g ≠ sep := by
+    rw [chainEncodeFoldInnerStep_on_acc]
+    intro g hg
+    rcases List.mem_map.mp hg with ⟨a, ha, rfl⟩
+    have ha_nd := binPairConstSucc_ne_default (Encodable.encode t) acc hacc_nd a ha
+    simp [sep, hetAccEmb, hetSep, ha_nd]
+  obtain ⟨hdom, htape⟩ :=
+    hM t pfx inner hinner_inv
+      hpfx_nd hpfx_nsep hinner_nd hinner_nsep hstep_nd hstep_nsep
+  have hinput :
+      hetMix (T := T) (Γ₀ := ChainΓ) ts acc ++ [default] =
+        pfx ++ sep :: inner ++ [default] := by
+    simp [pfx, inner, sep, hetMix, hetMixSep, separatedMix, hetTagEmb, hetAccEmb]
+  refine ⟨?_, ?_⟩
+  · simpa [hinput] using hdom
+  · intro h
+    have h' :
+        (TM0Seq.evalCfg (M t) (pfx ++ sep :: inner ++ [default])).Dom := by
+      simpa [hinput] using h
+    have hget :
+        (TM0Seq.evalCfg (M t)
+          (hetMix (T := T) (Γ₀ := ChainΓ) ts acc ++ [default])).get h =
+        (TM0Seq.evalCfg (M t) (pfx ++ sep :: inner ++ [default])).get h' := by
+      apply Part.get_eq_get_of_eq
+      simp [hinput]
+    rw [hget, htape h']
+    congr 1
+    rw [chainEncodeFoldInnerStep_on_acc]
+    rw [chainEncodeFoldTapeStep_hetMix]
+    simp [pfx, inner, sep, hetMix, hetMixSep, separatedMix, hetTagEmb, hetAccEmb]
 
 /-- Phase 1: Fold computation on heterogeneous tape. -/
 theorem chainEncode_fold
-    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T]
-    (hstep_block : ∀ t : T,
-      TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t)) :
+    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
       ∀ w : List T,
@@ -256,7 +680,7 @@ theorem chainEncode_fold
     (chainEncodeFoldTapeStep T)
     (chainEncodeFoldAccStep T)
     (chainEncodeFoldTapeStep_hetMix T)
-    hstep_block
+    (tm0_chainEncodeFoldTapeStep_body T)
     (chainEncodeFoldTapeStep_ne_default T)
     (fun t _ _ => binPairConstSucc_ne_default (Encodable.encode t) _ (by assumption))
   exact ⟨Λ, hΛi, hΛf, M, fun w => by
