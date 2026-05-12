@@ -365,29 +365,32 @@ noncomputable def separatedFoldAdapt
     List Gamma → List Gamma :=
   separatedAccLift isTag sep decodeAcc accEmb f t
 
-/-- Machine-lift obligation for the generic separated adapter.
+/-- Trivial same-alphabet interface for the generic separated adapter.
 
-This is the alphabet-parametric version of the old heterogeneous adapter:
-a block machine over accumulator symbols can be lifted to the ambient
-separated alphabet, preserving the tag prefix and explicit separator. -/
-theorem tm0_separatedAccLift_block
+The old statement tried to derive this from an accumulator-alphabet block
+machine.  That is not valid without stronger assumptions on the concrete
+encoding/decoding and on suffix preservation.  Callers should provide the
+same-alphabet block machine for the actual adapter they use. -/
+theorem tm0_separatedAccLift_block_of_sameAlphabet
     {Gamma Tag Acc : Type} [Inhabited Gamma] [DecidableEq Gamma] [Fintype Gamma]
     [Inhabited Acc] [DecidableEq Acc] [Fintype Acc]
     (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
     (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag)
-    (hf : TM0RealizesBlock Acc (f t)) :
-    TM0RealizesBlock Gamma (separatedAccLift isTag sep decodeAcc accEmb f t) := by
-  sorry
+    (hf : TM0RealizesBlock Gamma
+      (separatedAccLift isTag sep decodeAcc accEmb f t)) :
+    TM0RealizesBlock Gamma (separatedAccLift isTag sep decodeAcc accEmb f t) :=
+  hf
 
-/-- Backwards-compatible theorem name for the separated layout adapter. -/
-theorem tm0_separatedFoldAdapt_block
+/-- Trivial same-alphabet interface for the separated layout adapter. -/
+theorem tm0_separatedFoldAdapt_block_of_sameAlphabet
     {Gamma Tag Acc : Type} [Inhabited Gamma] [DecidableEq Gamma] [Fintype Gamma]
     [Inhabited Acc] [DecidableEq Acc] [Fintype Acc]
     (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
     (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag)
-    (hf : TM0RealizesBlock Acc (f t)) :
+    (hf : TM0RealizesBlock Gamma
+      (separatedFoldAdapt isTag sep decodeAcc accEmb f t)) :
     TM0RealizesBlock Gamma (separatedFoldAdapt isTag sep decodeAcc accEmb f t) := by
-  exact tm0_separatedAccLift_block isTag sep decodeAcc accEmb f t hf
+  exact hf
 
 end SeparatedFold
 
@@ -495,26 +498,23 @@ noncomputable def hetFoldAdapt
     List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
   hetFoldAdaptSep (hetSep (T := T) (Γ₀ := Γ₀)) f t
 
-/-- Generic machine-lift obligation for `hetFoldAdapt`.
+/-- Same-alphabet machine obligation for `hetFoldAdaptSep`.
 
-This is the separator/layout part of the fold step.  A block machine for the
-accumulator operation `f t` can be lifted to the same alphabet used by the het
-fold: preserve the leading `inl` tail and run the accumulator machine on the
-`inr` block. -/
-theorem tm0_hetFoldAdaptSep_block
+This theorem deliberately no longer claims that an accumulator-alphabet
+machine is enough.  Preserving the leading `inl` tail is a concrete
+same-alphabet obligation. -/
+theorem tm0_hetFoldAdaptSep_block_of_sameAlphabet
     (sep : Option (T ⊕ Γ₀))
     (f : T → List Γ₀ → List Γ₀) (t : T)
-    (hf : TM0RealizesBlock Γ₀ (f t)) :
-    TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldAdaptSep sep f t) := by
-  exact tm0_separatedAccLift_block
-    (isHetInl (T := T) (Γ₀ := Γ₀)) sep
-    (hetAccDecode (T := T)) (hetAccEmb (T := T)) f t hf
+    (hf : TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldAdaptSep sep f t)) :
+    TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldAdaptSep sep f t) :=
+  hf
 
-theorem tm0_hetFoldAdapt_block
+theorem tm0_hetFoldAdapt_block_of_sameAlphabet
     (f : T → List Γ₀ → List Γ₀) (t : T)
-    (hf : TM0RealizesBlock Γ₀ (f t)) :
+    (hf : TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldAdapt f t)) :
     TM0RealizesBlock (Option (T ⊕ Γ₀)) (hetFoldAdapt f t) := by
-  exact tm0_hetFoldAdaptSep_block (hetSep (T := T) (Γ₀ := Γ₀)) f t hf
+  exact hf
 
 /-! ## Mathematical Correctness -/
 

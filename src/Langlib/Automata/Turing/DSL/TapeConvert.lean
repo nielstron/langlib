@@ -246,7 +246,9 @@ theorem chainEncode_eq_format (T : Type) [Primcodable T] (w : List T) :
   trInit_trList_singleton_eq (Encodable.encode w)
 
 theorem chainEncode_realizes
-    {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] :
+    {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
+    (hstep_block : ∀ t : T,
+      TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t)) :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
       ∀ w : List T,
@@ -254,7 +256,7 @@ theorem chainEncode_realizes
         ∀ (h : (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom),
           ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
             Tape.mk₁ ((chainEncode T w).map (some ∘ Sum.inr)) := by
-  obtain ⟨Λ₁, hΛ₁i, hΛ₁f, M₁, hM₁⟩ := chainEncode_fold T
+  obtain ⟨Λ₁, hΛ₁i, hΛ₁f, M₁, hM₁⟩ := chainEncode_fold T hstep_block
   obtain ⟨Λ₂, hΛ₂i, hΛ₂f, M₂, hM₂⟩ := chainEncode_format T
   letI : Inhabited (Λ₁ ⊕ Λ₂) := ⟨Sum.inl default⟩
   refine ⟨Λ₁ ⊕ Λ₂, inferInstance, inferInstance, TM0Seq.compose M₁ M₂, fun w => ?_⟩
@@ -294,7 +296,9 @@ The proof uses `chainEncode_realizes` (which gives a machine on
 with `some ∘ Sum.inr` on chain-encoded data (since chain-encoded
 values are never default). -/
 theorem chain_converter_fn_realizes
-    {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] :
+    {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
+    (hstep_block : ∀ t : T,
+      TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t)) :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
       ∀ w : List T,
@@ -303,7 +307,7 @@ theorem chain_converter_fn_realizes
         ∀ (h : (TM0Seq.evalCfg M input).Dom),
           ((TM0Seq.evalCfg M input).get h).Tape =
             Tape.mk₁ ((chainEncode T w).map (blankPreservingEmb (T := T))) := by
-  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := chainEncode_realizes (T := T)
+  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := chainEncode_realizes (T := T) hstep_block
   refine ⟨Λ, hΛi, hΛf, M, fun w => ?_⟩
   have ⟨hdom, htape⟩ := hM w
   refine ⟨hdom, fun h => ?_⟩

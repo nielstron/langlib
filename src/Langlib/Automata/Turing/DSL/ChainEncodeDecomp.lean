@@ -228,23 +228,22 @@ theorem chainEncodeFoldTapeStep_ne_default
 /-- Machine-realizability obligation for the concrete same-alphabet chain fold
 step.
 
-The important interface point is that this is no longer hidden in
-`chainEncode_fold`: the arithmetic step and the het-tape mapping/layout step
-are separate named objects. -/
-theorem tm0_chainEncodeFoldTapeStep_block
+The important interface point is that this is no longer derived from the
+accumulator-only arithmetic block machine: the arithmetic step and the het-tape
+mapping/layout step are separate named objects. -/
+theorem tm0_chainEncodeFoldTapeStep_block_of_sameAlphabet
     (T : Type) [DecidableEq T] [Fintype T] [Primcodable T]
-    (t : T) :
-    TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t) := by
-  exact tm0_hetFoldAdapt_block (chainEncodeFoldAccStep T) t
-    (by
-      simpa [chainEncodeFoldAccStep] using
-        tm0_binPairConstSucc_block
-          tm0_binMulPairedStep3_blockCondInvSuffix
-          (Encodable.encode t))
+    (t : T)
+    (hf : TM0RealizesBlock (Option (T ⊕ ChainΓ))
+      (chainEncodeFoldTapeStep T t)) :
+    TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t) :=
+  hf
 
 /-- Phase 1: Fold computation on heterogeneous tape. -/
 theorem chainEncode_fold
-    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
+    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T]
+    (hstep_block : ∀ t : T,
+      TM0RealizesBlock (Option (T ⊕ ChainΓ)) (chainEncodeFoldTapeStep T t)) :
     ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
       (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
       ∀ w : List T,
@@ -257,7 +256,7 @@ theorem chainEncode_fold
     (chainEncodeFoldTapeStep T)
     (chainEncodeFoldAccStep T)
     (chainEncodeFoldTapeStep_hetMix T)
-    (tm0_chainEncodeFoldTapeStep_block T)
+    hstep_block
     (chainEncodeFoldTapeStep_ne_default T)
     (fun t _ _ => binPairConstSucc_ne_default (Encodable.encode t) _ (by assumption))
   exact ⟨Λ, hΛi, hΛf, M, fun w => by
