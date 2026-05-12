@@ -312,6 +312,52 @@ theorem replaceNonStandard_ne_sep_of_bits
   have := replaceNonStandard_allBits block g hg
   rcases this with h | h <;> (rw [h]; exact Ne.symm ‹_›)
 
+/-- Binary numerals contain only `bit0` and `bit1`, so they avoid any
+separator distinct from both bits. -/
+theorem chainBinaryRepr_no_of_ne_bits (sep : ChainΓ)
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (n : ℕ) :
+    ∀ g ∈ chainBinaryRepr n, g ≠ sep := by
+  intro g hg
+  have hpos : ∀ p : PosNum, ∀ g ∈ (trPosNum p).map γ'ToChainΓ, g ≠ sep := by
+    intro p
+    induction p with
+    | one =>
+        intro g hg
+        simp [trPosNum] at hg
+        subst hg
+        exact hsep1.symm
+    | bit0 p ih =>
+        intro g hg
+        simp [trPosNum] at hg
+        rcases hg with rfl | hg
+        · exact hsep0.symm
+        · exact ih g (List.mem_map.mpr hg)
+    | bit1 p ih =>
+        intro g hg
+        simp [trPosNum] at hg
+        rcases hg with rfl | hg
+        · exact hsep1.symm
+        · exact ih g (List.mem_map.mpr hg)
+  simp only [chainBinaryRepr, trNat] at hg
+  cases hn : (n : Num) with
+  | zero =>
+      rw [hn] at hg
+      simp [trNum] at hg
+  | pos p =>
+      rw [hn] at hg
+      exact hpos p g (by simpa [trNum] using hg)
+
+/-- Normalization produces only binary digits, so it cannot introduce a
+separator that is distinct from both bits. -/
+theorem normalizeBlock_no_of_ne_bits (sep : ChainΓ)
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) (block : List ChainΓ) :
+    ∀ g ∈ normalizeBlock block, g ≠ sep := by
+  unfold normalizeBlock
+  intro g hg
+  exact chainBinaryRepr_no_of_ne_bits sep hsep0 hsep1 _ g hg
+
 /-- **Normalization is block-realizable before any separator that differs
     from `bit0` and `bit1`**, with an unrestricted suffix after the separator. -/
 theorem tm0_normalizeBlockSep_anySuffix {sep : ChainΓ}
@@ -1015,3 +1061,29 @@ theorem tm0_binSucc_blockSepAnySuffix {sep : ChainΓ}
   refine ⟨hdom, ?_⟩
   intro h
   simpa [binSuccLsbLast, Function.comp_def] using htape h
+
+/-- Constant addition is separator-realizable with an unrestricted suffix. -/
+theorem tm0_binAddConst_blockSepAnySuffix {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) (c : ℕ) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep (binAddConst c) := by
+  unfold binAddConst
+  exact tm0RealizesBlockSepAnySuffix_iterate
+    (tm0_binSucc_blockSepAnySuffix hsep0 hsep1)
+    binSucc_ne_default
+    (fun block hblock => binSucc_no_of_ne_bits hsep0 hsep1 block hblock)
+    c
+
+/-- Decode/re-encode constant addition is separator-realizable with an
+unrestricted suffix. -/
+theorem tm0_binAddConstRepr_blockSepAnySuffix {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1) (c : ℕ) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep (binAddConstRepr c) := by
+  rw [binAddConstRepr_eq_comp]
+  exact tm0RealizesBlockSepAnySuffix_comp
+    (tm0_normalizeBlockSep_anySuffix hsep0 hsep1)
+    (tm0_binAddConst_blockSepAnySuffix hsep0 hsep1 c)
+    (fun _block _hblock => normalizeBlock_ne_default _)
+    (fun block _hblock =>
+      normalizeBlock_no_of_ne_bits sep hsep0 hsep1 block)

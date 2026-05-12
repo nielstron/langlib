@@ -84,12 +84,8 @@ theorem binPairConstSucc_eq_cond (k : ℕ) (block : List ChainΓ) :
     have hlt : k < decodeBinaryBlock block := Nat.lt_of_not_le h
     simp [Nat.pair, if_pos hlt, sq]; ring_nf
 
-/-- **Nat.pair-succ with constant is block-realizable**, assuming the
-invariant/suffix multiplication step body. -/
-theorem tm0_binPairConstSucc_block
-    (hstep : TM0RealizesBlockCondInvSuffix binMulPairedStep3 binMulPairedCond3
-      binMulPairedStateInv3)
-    (k : ℕ) :
+/-- **Nat.pair-succ with constant is block-realizable.** -/
+theorem tm0_binPairConstSucc_block (k : ℕ) :
     TM0RealizesBlock ChainΓ (binPairConstSucc k) := by
   rw [show binPairConstSucc k = binCondBlock (blockValueLeq k)
         (binAddConstRepr (k * k + k + 1))
@@ -97,7 +93,8 @@ theorem tm0_binPairConstSucc_block
     from funext (binPairConstSucc_eq_cond k)]
   exact tm0RealizesBlock_cond
     (tm0_binAddConstRepr_block _)
-    (tm0RealizesBlock_comp (tm0_binSquare_block hstep)
+    (tm0RealizesBlock_comp
+      (tm0_binSquare_block tm0_binMulPairedStep3_blockCondInvSuffix)
       (tm0_binAddConstRepr_block _) binSquare_ne_default)
     (fun block hblock => binAddConstRepr_ne_default _ _ hblock)
     (fun block hblock => binAddConstRepr_ne_default _ _ (binSquare_ne_default _ hblock))
@@ -184,6 +181,14 @@ theorem binPairConstSucc_ne_default (k : ℕ) (block : List ChainΓ)
     (_hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ binPairConstSucc k block, g ≠ default :=
   fun g hg => chainBinaryRepr_ne_default _ g hg
+
+theorem binPairConstSucc_no_of_ne_bits (sep : ChainΓ)
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (k : ℕ) (block : List ChainΓ) :
+    ∀ g ∈ binPairConstSucc k block, g ≠ sep := by
+  unfold binPairConstSucc
+  exact chainBinaryRepr_no_of_ne_bits sep hsep0 hsep1 _
 
 /-- The accumulator-level function used by the chain fold. -/
 noncomputable def chainEncodeFoldAccStep
@@ -551,12 +556,26 @@ theorem chainEncodeFoldInnerStep_ne_sep
   injection hsum with hdefault
   exact ha_nd hdefault
 
-/-- Plain separator-delimited version of the concrete chain fold inner step.
+theorem chainEncodeFoldInnerStep_preserves_accBlock
+    (T : Type) [Primcodable T] (t : T)
+    (block : List (Option (T ⊕ ChainΓ))) :
+    isHetAccBlock T block →
+    isHetAccBlock T (chainEncodeFoldInnerStep T t block) := by
+  rintro ⟨acc, rfl⟩
+  exact ⟨chainEncodeFoldAccStep T t acc, by
+    rw [chainEncodeFoldInnerStep_on_acc]⟩
 
-This is the actual alphabet/layout bridge: it must run ChainΓ arithmetic on
-the accumulator-shaped cells of the het alphabet before the explicit
-`hetSep` boundary. -/
-theorem tm0_chainEncodeFoldInnerStep_blockSep
+/-- Same-alphabet separator lift needed by the chain fold body.
+
+This is the remaining construction obligation: lift the ChainΓ block machine
+for `binPairConstSucc` to the actual het alphabet, operating only on the
+accumulator cells before `hetSep`, while preserving the arbitrary suffix after
+that separator.
+
+The invariant states the active block is made only of embedded accumulator
+symbols.  This is the honest alphabet-boundary obligation: the arithmetic
+machine must not see or reinterpret the preserved suffix. -/
+theorem tm0_chainEncodeFoldInnerStep_blockSepInv
     (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] (t : T) :
     TM0RealizesBlockSepInv (Option (T ⊕ ChainΓ))
       (hetSep (T := T) (Γ₀ := ChainΓ))
@@ -565,11 +584,7 @@ theorem tm0_chainEncodeFoldInnerStep_blockSep
   classical
   sorry
 
-/-- Concrete separator-lift needed by the chain fold body.
-
-This is the remaining construction obligation: lift the ChainΓ block machine
-for `binPairConstSucc` to the actual het alphabet, operating only on the
-inner accumulator block after `hetSep` and preserving the tag prefix. -/
+/-- Concrete separator-lift needed by the chain fold body. -/
 theorem tm0_chainEncodeFoldInnerStep_inner
     (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] (t : T) :
     TM0RealizesInnerBlockDefaultSepInv (Option (T ⊕ ChainΓ))
@@ -577,13 +592,11 @@ theorem tm0_chainEncodeFoldInnerStep_inner
       (chainEncodeFoldInnerStep T t)
       (isHetAccBlock T) := by
   classical
-  refine tm0RealizesBlockSepInv_toInnerDefault ?_ ?_ ?_ ?_
-  · simp [hetSep]
-  · exact tm0_chainEncodeFoldInnerStep_blockSep T t
-  · intro block hblock
-    exact chainEncodeFoldInnerStep_ne_default T t block hblock
-  · intro block hblock
-    exact chainEncodeFoldInnerStep_ne_sep T t block hblock
+  exact tm0RealizesBlockSepInv_toInnerDefault
+    (by simp [hetSep])
+    (tm0_chainEncodeFoldInnerStep_blockSepInv T t)
+    (chainEncodeFoldInnerStep_ne_default T t)
+    (chainEncodeFoldInnerStep_ne_sep T t)
 
 /-- Machine-realizability obligation for the concrete chain fold body on
 well-formed het blocks. -/
@@ -646,7 +659,7 @@ theorem tm0_chainEncodeFoldTapeStep_body
   have hinput :
       hetMix (T := T) (Γ₀ := ChainΓ) ts acc ++ [default] =
         pfx ++ sep :: inner ++ [default] := by
-    simp [pfx, inner, sep, hetMix, hetMixSep, separatedMix, hetTagEmb, hetAccEmb]
+    simp [pfx, inner, sep, hetMix, hetMixSep, separatedMix]
   refine ⟨?_, ?_⟩
   · simpa [hinput] using hdom
   · intro h
@@ -663,7 +676,7 @@ theorem tm0_chainEncodeFoldTapeStep_body
     congr 1
     rw [chainEncodeFoldInnerStep_on_acc]
     rw [chainEncodeFoldTapeStep_hetMix]
-    simp [pfx, inner, sep, hetMix, hetMixSep, separatedMix, hetTagEmb, hetAccEmb]
+    simp [pfx, sep, hetMix, hetMixSep, separatedMix]
 
 /-- Phase 1: Fold computation on heterogeneous tape. -/
 theorem chainEncode_fold
@@ -704,8 +717,8 @@ theorem chainFormatBlock_ne_default (block : List ChainΓ)
   intro g hg
   simp [chainFormatBlock] at hg
   rcases hg with rfl | hg
-  · simp +decide [chainConsBottom]
-  · exact hblock g (by simp_all [List.mem_reverse])
+  · simp +decide
+  · exact hblock g (by simp_all)
 
 /-- `chainFormatBlock` is block-realizable, by composing reverse and
     prepend via `tm0RealizesBlock_comp`. -/

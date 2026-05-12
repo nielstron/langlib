@@ -55,47 +55,6 @@ theorem binPredRaw_no_consBottom (block : List ChainΓ)
           · exact hblock _ (by simp)
           · exact hrest g hg
 
-theorem chainBinaryRepr_no_of_ne_bits (sep : ChainΓ)
-    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
-    (n : ℕ) :
-    ∀ g ∈ chainBinaryRepr n, g ≠ sep := by
-  intro g hg
-  have hpos : ∀ p : PosNum, ∀ g ∈ (trPosNum p).map γ'ToChainΓ, g ≠ sep := by
-    intro p
-    induction p with
-    | one =>
-        intro g hg
-        simp [trPosNum] at hg
-        subst hg
-        exact hsep1.symm
-    | bit0 p ih =>
-        intro g hg
-        simp [trPosNum] at hg
-        rcases hg with rfl | hg
-        · exact hsep0.symm
-        · exact ih g (List.mem_map.mpr hg)
-    | bit1 p ih =>
-        intro g hg
-        simp [trPosNum] at hg
-        rcases hg with rfl | hg
-        · exact hsep1.symm
-        · exact ih g (List.mem_map.mpr hg)
-  simp only [chainBinaryRepr, trNat] at hg
-  cases hn : (n : Num) with
-  | zero =>
-      rw [hn] at hg
-      simp [trNum] at hg
-  | pos p =>
-      rw [hn] at hg
-      exact hpos p g (by simpa [trNum] using hg)
-
-theorem normalizeBlock_no_of_ne_bits (sep : ChainΓ)
-    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
-    (block : List ChainΓ) :
-    ∀ g ∈ normalizeBlock block, g ≠ sep := by
-  unfold normalizeBlock
-  exact chainBinaryRepr_no_of_ne_bits sep hsep0 hsep1 _
-
 theorem binPredRaw_no_of_ne_bits (sep : ChainΓ)
     (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0) (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
     (block : List ChainΓ) (hblock : ∀ g ∈ block, g ≠ sep) :

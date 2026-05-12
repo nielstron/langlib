@@ -287,6 +287,29 @@ theorem tm0RealizesBlockSep_iterate {Γ : Type} [Inhabited Γ]
     grind +suggestions
   · convert tm0RealizesBlockSep_comp hf ih hf_nd hf_nsep using 1
 
+/-- Iterated strong separator-delimited block operations preserve
+realizability. -/
+theorem tm0RealizesBlockSepAnySuffix_iterate {Γ : Type} [Inhabited Γ]
+    {sep : Γ} {f : List Γ → List Γ}
+    (hf : TM0RealizesBlockSepAnySuffix Γ sep f)
+    (hf_nd : ∀ block, (∀ g ∈ block, g ≠ default) → ∀ g ∈ f block, g ≠ default)
+    (hf_nsep : ∀ block, (∀ g ∈ block, g ≠ sep) → ∀ g ∈ f block, g ≠ sep)
+    (n : ℕ) :
+    TM0RealizesBlockSepAnySuffix Γ sep (Nat.iterate f n) := by
+  induction n with
+  | zero =>
+      refine ⟨Fin 2, inferInstance, inferInstance, fun _ _ => none, ?_⟩
+      intro block suffix _hblock_nd _hblock_nsep _hfblock_nd _hfblock_nsep
+      unfold TM0Seq.evalCfg
+      simp +decide [TM0Seq.evalCfg]
+      unfold eval
+      simp +decide [TM0.step]
+      unfold PFun.fix
+      simp +decide [TM0.init]
+      grind +suggestions
+  | succ n ih =>
+      convert tm0RealizesBlockSepAnySuffix_comp hf ih hf_nd hf_nsep using 1
+
 /-- Iterated block operations preserve block-realizability. -/
 theorem tm0RealizesBlock_iterate {Γ : Type} [Inhabited Γ]
     {f : List Γ → List Γ} (hf : TM0RealizesBlock Γ f)

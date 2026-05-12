@@ -3158,6 +3158,14 @@ theorem binSquare_ne_default (block : List ChainΓ) (_hblock : ∀ g ∈ block, 
     ∀ g ∈ binSquare block, g ≠ default := by
   unfold binSquare; exact chainBinaryRepr_ne_default _
 
+theorem binSquare_no_of_ne_bits (sep : ChainΓ)
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (block : List ChainΓ) :
+    ∀ g ∈ binSquare block, g ≠ sep := by
+  unfold binSquare
+  exact chainBinaryRepr_no_of_ne_bits sep hsep0 hsep1 _
+
 /-! #### Three-separator square route -/
 
 noncomputable def binSquareInit3 (block : List ChainΓ) : List ChainΓ :=
