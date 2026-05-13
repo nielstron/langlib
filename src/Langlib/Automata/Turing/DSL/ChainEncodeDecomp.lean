@@ -190,6 +190,43 @@ theorem binPairConstSucc_no_of_ne_bits (sep : ChainΓ)
   unfold binPairConstSucc
   exact chainBinaryRepr_no_of_ne_bits sep hsep0 hsep1 _
 
+/-- Separator/any-suffix realization of `binPairConstSucc`, factored through
+an any-suffix square realization.
+
+The remaining real obligation for the chain fold is therefore isolated to
+`binSquare`: the conditional and constant-addition branches compose without
+mentioning a concrete separator. -/
+theorem tm0_binPairConstSucc_blockSepAnySuffix_of_square
+    {sep : ChainΓ}
+    (hsep0 : sep ≠ γ'ToChainΓ Γ'.bit0)
+    (hsep1 : sep ≠ γ'ToChainΓ Γ'.bit1)
+    (k : ℕ)
+    (hsquare : TM0RealizesBlockSepAnySuffix ChainΓ sep binSquare) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep (binPairConstSucc k) := by
+  rw [show binPairConstSucc k = binCondBlock (blockValueLeq k)
+        (binAddConstRepr (k * k + k + 1))
+        (binAddConstRepr (k + 1) ∘ binSquare)
+    from funext (binPairConstSucc_eq_cond k)]
+  exact tm0RealizesBlockSepAnySuffix_cond
+    (tm0_binAddConstRepr_blockSepAnySuffix hsep0 hsep1 _)
+    (tm0RealizesBlockSepAnySuffix_comp
+      hsquare
+      (tm0_binAddConstRepr_blockSepAnySuffix hsep0 hsep1 _)
+      binSquare_ne_default
+      (fun block _hblock => binSquare_no_of_ne_bits sep hsep0 hsep1 block))
+    (fun block hblock => binAddConstRepr_ne_default _ _ hblock)
+    (fun block _hblock =>
+      by
+        unfold binAddConstRepr
+        exact chainBinaryRepr_no_of_ne_bits sep hsep0 hsep1 _)
+    (fun block hblock =>
+      binAddConstRepr_ne_default _ _ (binSquare_ne_default _ hblock))
+    (fun block _hblock =>
+      by
+        unfold Function.comp binAddConstRepr
+        exact chainBinaryRepr_no_of_ne_bits sep hsep0 hsep1 _)
+    (tm0_blockValueLeq_beforeSep_decidable_plain_2 k sep)
+
 /-- The accumulator-level function used by the chain fold. -/
 noncomputable def chainEncodeFoldAccStep
     (T : Type) [Primcodable T] (t : T) : List ChainΓ → List ChainΓ :=

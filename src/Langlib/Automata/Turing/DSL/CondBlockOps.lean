@@ -459,6 +459,198 @@ theorem tm0RealizesBlock_cond
   exact @tm0RealizesBlock_cond_core p _ f g Λ_p Λ_f Λ_g iΛ_p iΛ_f iΛ_g fΛ_p fΛ_f fΛ_g
     (Classical.decEq _) M_p M_f M_g q_t q_f hne hp_spec hf_spec hg_spec hf_nd hg_nd
 
+/-- Separator-delimited conditional block operation with an unrestricted
+suffix after the separator. -/
+theorem tm0RealizesBlockSepAnySuffix_cond_core
+    {sep : ChainΓ}
+    {p : List ChainΓ → Prop} [DecidablePred p]
+    {f g : List ChainΓ → List ChainΓ}
+    {Λ_p Λ_f Λ_g : Type}
+    [Inhabited Λ_p] [Inhabited Λ_f] [Inhabited Λ_g]
+    [Fintype Λ_p] [Fintype Λ_f] [Fintype Λ_g]
+    [DecidableEq Λ_p]
+    (M_p : TM0.Machine ChainΓ Λ_p)
+    (M_f : TM0.Machine ChainΓ Λ_f)
+    (M_g : TM0.Machine ChainΓ Λ_g)
+    (q_t q_f : Λ_p)
+    (hne : q_t ≠ q_f)
+    (hp_spec : ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) →
+        (∀ x ∈ block, x ≠ sep) →
+        (TM0Seq.evalCfg M_p (block ++ sep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M_p (block ++ sep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M_p (block ++ sep :: suffix)).get h).Tape =
+            Tape.mk₁ (block ++ sep :: suffix) ∧
+          (p block →
+            ((TM0Seq.evalCfg M_p (block ++ sep :: suffix)).get h).q = q_t) ∧
+          (¬p block →
+            ((TM0Seq.evalCfg M_p (block ++ sep :: suffix)).get h).q = q_f))
+    (hf_spec : ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) →
+        (∀ x ∈ block, x ≠ sep) →
+        (∀ x ∈ f block, x ≠ default) →
+        (∀ x ∈ f block, x ≠ sep) →
+        (TM0Seq.evalCfg M_f (block ++ sep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M_f (block ++ sep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M_f (block ++ sep :: suffix)).get h).Tape =
+            Tape.mk₁ (f block ++ sep :: suffix))
+    (hg_spec : ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) →
+        (∀ x ∈ block, x ≠ sep) →
+        (∀ x ∈ g block, x ≠ default) →
+        (∀ x ∈ g block, x ≠ sep) →
+        (TM0Seq.evalCfg M_g (block ++ sep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M_g (block ++ sep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M_g (block ++ sep :: suffix)).get h).Tape =
+            Tape.mk₁ (g block ++ sep :: suffix))
+    (hf_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ f block, x ≠ default)
+    (hf_nsep : ∀ block, (∀ x ∈ block, x ≠ sep) → ∀ x ∈ f block, x ≠ sep)
+    (hg_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ g block, x ≠ default)
+    (hg_nsep : ∀ block, (∀ x ∈ block, x ≠ sep) → ∀ x ∈ g block, x ≠ sep) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep (binCondBlock p f g) := by
+  refine ⟨Λ_p ⊕ Λ_f ⊕ Λ_g, inferInstance, inferInstance,
+    tm0CondCompose M_p M_f M_g q_t q_f, ?_⟩
+  intro block suffix hblock_nd hblock_nsep hresult_nd hresult_nsep
+  set l := block ++ sep :: suffix
+  have hp_dom := (hp_spec block suffix hblock_nd hblock_nsep).1
+  have hp_result := (hp_spec block suffix hblock_nd hblock_nsep).2 hp_dom
+  set c_p := (TM0Seq.evalCfg M_p l).get hp_dom
+  have hc_p_tape : c_p.Tape = Tape.mk₁ l := hp_result.1
+  have hc_p_mem : c_p ∈ TM0Seq.evalCfg M_p l := Part.get_mem hp_dom
+  have hc_p_eval := Turing.mem_eval.mp hc_p_mem
+  have hc_p_halt : TM0.step M_p c_p = none := hc_p_eval.2
+  have hc_p_reaches : Turing.Reaches (TM0.step M_p) (TM0.init l) c_p := hc_p_eval.1
+  have h_reaches_c := condCompose_phase1_reaches M_p M_f M_g q_t q_f c_p l hc_p_reaches
+  have h_eval_rewrite : TM0Seq.evalCfg (tm0CondCompose M_p M_f M_g q_t q_f) l =
+      Turing.eval (TM0.step (tm0CondCompose M_p M_f M_g q_t q_f))
+        ⟨Sum.inl c_p.q, c_p.Tape⟩ := Turing.reaches_eval h_reaches_c
+  unfold binCondBlock at hresult_nd hresult_nsep ⊢
+  by_cases hp : p block
+  · simp only [hp, ite_true] at hresult_nd hresult_nsep ⊢
+    have hq : c_p.q = q_t := hp_result.2.1 hp
+    have h_halt_qt : TM0.step M_p ⟨q_t, c_p.Tape⟩ = none := hq ▸ hc_p_halt
+    have hf_dom : (TM0Seq.evalCfg M_f l).Dom :=
+      (hf_spec block suffix hblock_nd hblock_nsep
+        (hf_nd block hblock_nd) (hf_nsep block hblock_nsep)).1
+    have h_f_from_init : (TM0Seq.evalFromCfg M_f ⟨default, c_p.Tape⟩).Dom := by
+      rw [hc_p_tape]; show (TM0Seq.evalFromCfg M_f (TM0.init l)).Dom
+      rw [TM0Seq.evalFromCfg_init]; exact hf_dom
+    constructor
+    · rw [h_eval_rewrite, hq]
+      exact (condCompose_eval_at_halt_true M_p M_f M_g q_t q_f c_p.Tape h_halt_qt).mpr h_f_from_init
+    · intro h_dom
+      have h_tape_eq :
+          ((TM0Seq.evalFromCfg M_f ⟨default, c_p.Tape⟩).get h_f_from_init).Tape =
+            Tape.mk₁ (f block ++ sep :: suffix) := by
+        have hcfg :
+            TM0Seq.evalFromCfg M_f ⟨default, c_p.Tape⟩ =
+              TM0Seq.evalCfg M_f l := by
+          rw [hc_p_tape]
+          exact TM0Seq.evalFromCfg_init M_f l
+        have hgetf :
+            (TM0Seq.evalFromCfg M_f ⟨default, c_p.Tape⟩).get h_f_from_init =
+              (TM0Seq.evalCfg M_f l).get hf_dom := by
+          apply Part.get_eq_get_of_eq
+          exact hcfg
+        have hgetf_tape :=
+          congrArg (fun c : TM0.Cfg ChainΓ Λ_f => c.Tape) hgetf
+        exact hgetf_tape.trans
+          ((hf_spec block suffix hblock_nd hblock_nsep
+            hresult_nd hresult_nsep).2 hf_dom)
+      have h_dom' :
+          (Turing.eval (TM0.step (tm0CondCompose M_p M_f M_g q_t q_f))
+            ⟨Sum.inl q_t, c_p.Tape⟩).Dom := by
+        simpa [h_eval_rewrite, hq] using h_dom
+      have hget :
+          (TM0Seq.evalCfg (tm0CondCompose M_p M_f M_g q_t q_f) l).get h_dom =
+            (Turing.eval (TM0.step (tm0CondCompose M_p M_f M_g q_t q_f))
+              ⟨Sum.inl q_t, c_p.Tape⟩).get h_dom' := by
+        apply Part.get_eq_get_of_eq
+        simp [h_eval_rewrite, hq]
+      rw [hget]
+      rw [condCompose_tape_at_halt_true M_p M_f M_g q_t q_f c_p.Tape
+        h_halt_qt h_f_from_init h_dom']
+      exact h_tape_eq
+  · simp only [hp, ite_false] at hresult_nd hresult_nsep ⊢
+    have hq : c_p.q = q_f := hp_result.2.2 hp
+    have h_halt_qf : TM0.step M_p ⟨q_f, c_p.Tape⟩ = none := hq ▸ hc_p_halt
+    have hg_dom : (TM0Seq.evalCfg M_g l).Dom :=
+      (hg_spec block suffix hblock_nd hblock_nsep
+        (hg_nd block hblock_nd) (hg_nsep block hblock_nsep)).1
+    have h_g_from_init : (TM0Seq.evalFromCfg M_g ⟨default, c_p.Tape⟩).Dom := by
+      rw [hc_p_tape]; show (TM0Seq.evalFromCfg M_g (TM0.init l)).Dom
+      rw [TM0Seq.evalFromCfg_init]; exact hg_dom
+    constructor
+    · rw [h_eval_rewrite, hq]
+      exact (condCompose_eval_at_halt_false M_p M_f M_g q_t q_f hne c_p.Tape h_halt_qf).mpr h_g_from_init
+    · intro h_dom
+      have h_tape_eq :
+          ((TM0Seq.evalFromCfg M_g ⟨default, c_p.Tape⟩).get h_g_from_init).Tape =
+            Tape.mk₁ (g block ++ sep :: suffix) := by
+        have hcfg :
+            TM0Seq.evalFromCfg M_g ⟨default, c_p.Tape⟩ =
+              TM0Seq.evalCfg M_g l := by
+          rw [hc_p_tape]
+          exact TM0Seq.evalFromCfg_init M_g l
+        have hgetg :
+            (TM0Seq.evalFromCfg M_g ⟨default, c_p.Tape⟩).get h_g_from_init =
+              (TM0Seq.evalCfg M_g l).get hg_dom := by
+          apply Part.get_eq_get_of_eq
+          exact hcfg
+        have hgetg_tape :=
+          congrArg (fun c : TM0.Cfg ChainΓ Λ_g => c.Tape) hgetg
+        exact hgetg_tape.trans
+          ((hg_spec block suffix hblock_nd hblock_nsep
+            hresult_nd hresult_nsep).2 hg_dom)
+      have h_dom' :
+          (Turing.eval (TM0.step (tm0CondCompose M_p M_f M_g q_t q_f))
+            ⟨Sum.inl q_f, c_p.Tape⟩).Dom := by
+        simpa [h_eval_rewrite, hq] using h_dom
+      have hget :
+          (TM0Seq.evalCfg (tm0CondCompose M_p M_f M_g q_t q_f) l).get h_dom =
+            (Turing.eval (TM0.step (tm0CondCompose M_p M_f M_g q_t q_f))
+              ⟨Sum.inl q_f, c_p.Tape⟩).get h_dom' := by
+        apply Part.get_eq_get_of_eq
+        simp [h_eval_rewrite, hq]
+      rw [hget]
+      rw [condCompose_tape_at_halt_false M_p M_f M_g q_t q_f hne c_p.Tape
+        h_halt_qf h_g_from_init h_dom']
+      exact h_tape_eq
+
+/-- Public separator-delimited conditional interface with unrestricted suffix. -/
+theorem tm0RealizesBlockSepAnySuffix_cond
+    {sep : ChainΓ}
+    {p : List ChainΓ → Prop} [DecidablePred p]
+    {f g : List ChainΓ → List ChainΓ}
+    (hf : TM0RealizesBlockSepAnySuffix ChainΓ sep f)
+    (hg : TM0RealizesBlockSepAnySuffix ChainΓ sep g)
+    (hf_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ f block, x ≠ default)
+    (hf_nsep : ∀ block, (∀ x ∈ block, x ≠ sep) → ∀ x ∈ f block, x ≠ sep)
+    (hg_nd : ∀ block, (∀ x ∈ block, x ≠ default) → ∀ x ∈ g block, x ≠ default)
+    (hg_nsep : ∀ block, (∀ x ∈ block, x ≠ sep) → ∀ x ∈ g block, x ≠ sep)
+    (hp_decidable : ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ) (q_true q_false : Λ),
+      q_true ≠ q_false ∧
+      ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) →
+        (∀ x ∈ block, x ≠ sep) →
+        (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).Tape =
+            Tape.mk₁ (block ++ sep :: suffix) ∧
+          (p block →
+            ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).q = q_true) ∧
+          (¬p block →
+            ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).q = q_false)) :
+    TM0RealizesBlockSepAnySuffix ChainΓ sep (binCondBlock p f g) := by
+  obtain ⟨Λ_p, iΛ_p, fΛ_p, M_p, q_t, q_f, hne, hp_spec⟩ := hp_decidable
+  obtain ⟨Λ_f, iΛ_f, fΛ_f, M_f, hf_spec⟩ := hf
+  obtain ⟨Λ_g, iΛ_g, fΛ_g, M_g, hg_spec⟩ := hg
+  exact @tm0RealizesBlockSepAnySuffix_cond_core sep p _ f g
+    Λ_p Λ_f Λ_g iΛ_p iΛ_f iΛ_g fΛ_p fΛ_f fΛ_g
+    (Classical.decEq _) M_p M_f M_g q_t q_f hne hp_spec
+    hf_spec hg_spec hf_nd hf_nsep hg_nd hg_nsep
+
 /-! ### Block value comparison -/
 
 /-- Predicate: the binary block represents a value ≤ k. -/
@@ -730,6 +922,51 @@ theorem tm0_blockValueLeq_beforeSep_decidable_2 (k : ℕ) (sep : ChainΓ) :
       intro hle_block
       exact hle (by simpa [blockValueLeqBeforeSep, hsplit] using hle_block))
 
+/-- Same machine as `tm0_blockValueLeq_beforeSep_decidable_2`, exposed with
+the plain prefix predicate expected by separator-bounded conditional
+composition. -/
+theorem tm0_blockValueLeq_beforeSep_decidable_plain_2
+    (k : ℕ) (sep : ChainΓ) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ) (q_true q_false : Λ),
+      q_true ≠ q_false ∧
+      ∀ (block suffix : List ChainΓ),
+        (∀ x ∈ block, x ≠ default) →
+        (∀ x ∈ block, x ≠ sep) →
+        (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M (block ++ sep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).Tape =
+            Tape.mk₁ (block ++ sep :: suffix) ∧
+          (blockValueLeq k block →
+            ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).q = q_true) ∧
+          (¬blockValueLeq k block →
+            ((TM0Seq.evalCfg M (block ++ sep :: suffix)).get h).q = q_false) := by
+  obtain ⟨Λ, hΛi, hΛf, M, q_true, q_false, hne, hM⟩ :=
+    tm0_blockValueLeq_beforeSep_decidable_2 k sep
+  refine ⟨Λ, hΛi, hΛf, M, q_true, q_false, hne, ?_⟩
+  intro block suffix hblock_nd hblock_nsep
+  obtain ⟨hdom, hspec⟩ := hM block suffix hblock_nd hblock_nsep
+  refine ⟨hdom, ?_⟩
+  intro h
+  have hspec' := hspec h
+  constructor
+  · exact hspec'.1
+  constructor
+  · intro hle
+    exact hspec'.2.1 (by
+      have hsplit :
+          splitAtSep sep (block ++ sep :: suffix) = (block, suffix) := by
+        simpa using splitAtSep_general_cons sep block suffix hblock_nsep
+      simpa [blockValueLeqBeforeSep, blockValueLeq, hsplit] using hle)
+  · intro hle
+    exact hspec'.2.2 (by
+      intro hbefore
+      have hsplit :
+          splitAtSep sep (block ++ sep :: suffix) = (block, suffix) := by
+        simpa using splitAtSep_general_cons sep block suffix hblock_nsep
+      exact hle (by
+        simpa [blockValueLeqBeforeSep, blockValueLeq, hsplit] using hbefore))
+
 /-! ### Block value comparison after a separator -/
 
 inductive BVLAfterSepSt (k : ℕ) where
@@ -891,3 +1128,180 @@ theorem tm0_blockValueLeq_afterSep_decidable_2 (k : ℕ) (sep : ChainΓ)
   · intro hle
     have hq := hspec.2.2 (by simpa [blockValueLeq] using hle)
     simpa [cb] using congrArg BVLAfterSepSt.bvl hq
+
+/-! ### Block value comparison between explicit separators -/
+
+inductive BVLBetweenSepSt (k : ℕ) where
+  | scan
+  | bvl (q : BVLState k)
+
+noncomputable instance (k : ℕ) : DecidableEq (BVLBetweenSepSt k) :=
+  Classical.typeDecidableEq _
+
+noncomputable instance (k : ℕ) : Inhabited (BVLBetweenSepSt k) :=
+  ⟨.scan⟩
+
+noncomputable instance (k : ℕ) : Fintype (BVLBetweenSepSt k) := by
+  exact
+  { elems := {BVLBetweenSepSt.scan}
+      ∪ Finset.univ.map ⟨BVLBetweenSepSt.bvl, fun _ _ h => by cases h; rfl⟩
+    complete := by
+      intro x
+      cases x <;> simp [Finset.mem_map, Finset.mem_insert] }
+
+noncomputable def bvlBetweenSepMachine (k : ℕ) (startSep endSep : ChainΓ) :
+    @TM0.Machine ChainΓ (BVLBetweenSepSt k) ⟨.scan⟩ :=
+  fun q a =>
+    match q with
+    | .scan =>
+        if a = startSep then
+          some (.bvl (Sum.inl ⟨k, by omega⟩), .move Dir.right)
+        else
+          some (.scan, .move Dir.right)
+    | .bvl q =>
+        match bvlBeforeSepMachine k endSep q a with
+        | some (q', stmt) => some (.bvl q', stmt)
+        | none => none
+
+theorem bvlBetweenSep_lift {k : ℕ} {startSep endSep : ChainΓ}
+    {c d : TM0.Cfg ChainΓ (BVLState k)}
+    (h : Reaches (TM0.step (bvlBeforeSepMachine k endSep)) c d) :
+    Reaches (TM0.step (bvlBetweenSepMachine k startSep endSep))
+      ⟨BVLBetweenSepSt.bvl c.q, c.Tape⟩
+      ⟨BVLBetweenSepSt.bvl d.q, d.Tape⟩ := by
+  induction h with
+  | refl => exact Relation.ReflTransGen.refl
+  | tail _ hstep ih =>
+      rename_i inter final _hprev
+      refine ih.tail ?_
+      unfold TM0.step at hstep ⊢
+      cases hb : bvlBeforeSepMachine k endSep inter.q inter.Tape.head with
+      | none =>
+          simp [hb] at hstep
+      | some pair =>
+          rcases pair with ⟨q', stmt⟩
+          simp [hb] at hstep
+          cases hstep
+          simp [bvlBetweenSepMachine, hb]
+
+theorem bvlBetweenSep_scan_prefix_gen (k : ℕ) (startSep endSep : ChainΓ)
+    (pref revL inner suffix : List ChainΓ)
+    (hpref : ∀ x ∈ pref, x ≠ startSep) :
+    Reaches (TM0.step (bvlBetweenSepMachine k startSep endSep))
+      ⟨BVLBetweenSepSt.scan,
+        Tape.mk' (ListBlank.mk revL)
+          (ListBlank.mk (pref ++ startSep :: inner ++ endSep :: suffix))⟩
+      ⟨BVLBetweenSepSt.bvl (Sum.inl ⟨k, by omega⟩),
+        Tape.mk' (ListBlank.mk (startSep :: pref.reverse ++ revL))
+          (ListBlank.mk (inner ++ endSep :: suffix))⟩ := by
+  induction pref generalizing revL with
+  | nil =>
+      apply Relation.ReflTransGen.single
+      simp [TM0.step, bvlBetweenSepMachine, Tape.move, Tape.mk']
+  | cons c pref ih =>
+      have hc : c ≠ startSep := hpref c (by simp)
+      have hp : ∀ x ∈ pref, x ≠ startSep := by
+        intro x hx
+        exact hpref x (by simp [hx])
+      convert (Relation.ReflTransGen.single ?_).trans (ih (c :: revL) hp) using 1
+      · simp [List.reverse_cons, List.append_assoc]
+      · simp [TM0.step, bvlBetweenSepMachine, Tape.move, Tape.mk', hc,
+          List.reverse_cons, List.append_assoc]
+
+theorem bvlBetweenSep_step_halt {k : ℕ} {startSep endSep : ChainΓ}
+    (q : BVLState k) (T : Tape ChainΓ)
+    (h : TM0.step (bvlBeforeSepMachine k endSep) ⟨q, T⟩ = none) :
+    TM0.step (bvlBetweenSepMachine k startSep endSep)
+      ⟨BVLBetweenSepSt.bvl q, T⟩ = none := by
+  unfold TM0.step at h ⊢
+  cases hb : bvlBeforeSepMachine k endSep q T.head with
+  | none => simp [bvlBetweenSepMachine, hb]
+  | some x => simp [hb] at h
+
+theorem tm0_blockValueLeq_betweenSep_decidable_2
+    (k : ℕ) (startSep endSep : ChainΓ)
+    (hstart : startSep ≠ default) :
+    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+      (M : TM0.Machine ChainΓ Λ) (q_true q_false : Λ),
+      q_true ≠ q_false ∧
+      ∀ (pref block suffix : List ChainΓ),
+        (∀ x ∈ pref, x ≠ default) →
+        (∀ x ∈ pref, x ≠ startSep) →
+        (∀ x ∈ block, x ≠ default) →
+        (∀ x ∈ block, x ≠ endSep) →
+        (TM0Seq.evalCfg M (pref ++ startSep :: block ++ endSep :: suffix)).Dom ∧
+        ∀ (h : (TM0Seq.evalCfg M
+            (pref ++ startSep :: block ++ endSep :: suffix)).Dom),
+          ((TM0Seq.evalCfg M
+            (pref ++ startSep :: block ++ endSep :: suffix)).get h).Tape =
+            Tape.mk₁ (pref ++ startSep :: block ++ endSep :: suffix) ∧
+          (blockValueLeq k block →
+            ((TM0Seq.evalCfg M
+              (pref ++ startSep :: block ++ endSep :: suffix)).get h).q =
+              q_true) ∧
+          (¬blockValueLeq k block →
+            ((TM0Seq.evalCfg M
+              (pref ++ startSep :: block ++ endSep :: suffix)).get h).q =
+              q_false) := by
+  refine ⟨BVLBetweenSepSt k, inferInstance, inferInstance,
+    bvlBetweenSepMachine k startSep endSep,
+    BVLBetweenSepSt.bvl (Sum.inr (Sum.inr true)),
+    BVLBetweenSepSt.bvl (Sum.inr (Sum.inr false)), by simp, ?_⟩
+  intro pref block suffix hpref_nd hpref_nstart hblock_nd hblock_nend
+  let bvlStart : TM0.Cfg ChainΓ (BVLState k) :=
+    ⟨Sum.inl ⟨k, by omega⟩,
+      Tape.mk' (ListBlank.mk (startSep :: pref.reverse))
+        (ListBlank.mk (block ++ endSep :: suffix))⟩
+  have hleft : ∀ x ∈ startSep :: pref.reverse, x ≠ (default : ChainΓ) := by
+    intro x hx
+    rcases List.mem_cons.mp hx with rfl | hx
+    · exact hstart
+    · exact hpref_nd x (List.mem_reverse.mp hx)
+  obtain ⟨hbvl_dom, hbvl_spec⟩ :=
+    bvlBeforeSepMachine_correct_with_left k endSep
+      (startSep :: pref.reverse) block suffix hleft hblock_nd hblock_nend
+  let cb := (TM0Seq.evalFromCfg (bvlBeforeSepMachine k endSep) bvlStart).get hbvl_dom
+  have hbvl_mem :
+      cb ∈ TM0Seq.evalFromCfg (bvlBeforeSepMachine k endSep) bvlStart :=
+    Part.get_mem hbvl_dom
+  have hbvl_eval := Turing.mem_eval.mp hbvl_mem
+  have hscan := bvlBetweenSep_scan_prefix_gen k startSep endSep
+    pref [] block suffix hpref_nstart
+  have hscan' :
+      Reaches (TM0.step (bvlBetweenSepMachine k startSep endSep))
+        (TM0.init (pref ++ startSep :: block ++ endSep :: suffix))
+        ⟨BVLBetweenSepSt.bvl bvlStart.q, bvlStart.Tape⟩ := by
+    simpa [TM0.init, bvlStart, List.append_assoc] using hscan
+  have hchain :
+      Reaches (TM0.step (bvlBetweenSepMachine k startSep endSep))
+        (TM0.init (pref ++ startSep :: block ++ endSep :: suffix))
+        ⟨BVLBetweenSepSt.bvl cb.q, cb.Tape⟩ := by
+    exact hscan'.trans
+      (bvlBetweenSep_lift (startSep := startSep) hbvl_eval.1)
+  have hhalt :
+      TM0.step (bvlBetweenSepMachine k startSep endSep)
+        ⟨BVLBetweenSepSt.bvl cb.q, cb.Tape⟩ = none :=
+    bvlBetweenSep_step_halt cb.q cb.Tape hbvl_eval.2
+  have hmem :
+      ⟨BVLBetweenSepSt.bvl cb.q, cb.Tape⟩ ∈
+        TM0Seq.evalCfg (bvlBetweenSepMachine k startSep endSep)
+          (pref ++ startSep :: block ++ endSep :: suffix) :=
+    Turing.mem_eval.mpr ⟨hchain, hhalt⟩
+  refine ⟨Part.dom_iff_mem.mpr ⟨_, hmem⟩, ?_⟩
+  intro h
+  have hget :
+      (TM0Seq.evalCfg (bvlBetweenSepMachine k startSep endSep)
+        (pref ++ startSep :: block ++ endSep :: suffix)).get h =
+        ⟨BVLBetweenSepSt.bvl cb.q, cb.Tape⟩ :=
+    Part.get_eq_of_mem hmem h
+  rw [hget]
+  have hspec := hbvl_spec hbvl_dom
+  constructor
+  · simpa [cb, bvlStart, List.append_assoc] using hspec.1
+  constructor
+  · intro hle
+    have hq := hspec.2.1 (by simpa [blockValueLeq] using hle)
+    simpa [cb] using congrArg BVLBetweenSepSt.bvl hq
+  · intro hle
+    have hq := hspec.2.2 (by simpa [blockValueLeq] using hle)
+    simpa [cb] using congrArg BVLBetweenSepSt.bvl hq

@@ -2406,6 +2406,21 @@ theorem tm0_binPred_afterMulSep₂_innerBlockSep_outer {outerSep : ChainΓ}
     binPred_ne_default
     (fun block _hblock => binPred_no_mulSep₂ block)
 
+theorem tm0_binPred_afterMulSep₂_innerBlockSep_outer_anySuffix
+    {outerSep : ChainΓ}
+    (houter_ne_sep₂ : outerSep ≠ binMulStateSep₂) :
+    TM0RealizesInnerBlockSepAnySuffix ChainΓ outerSep binMulStateSep₂
+      binPred := by
+  exact tm0RealizesBlockSepAnySuffix_toInner
+    (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+    houter_ne_sep₂
+    (tm0_binPred_blockSepAnySuffix_of_ne_bits
+      (sep := binMulStateSep₂)
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_bit0)
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_bit1))
+    binPred_ne_default
+    (fun block _hblock => binPred_no_mulSep₂ block)
+
 theorem tm0_binPred_afterMulSep₂_innerDefaultViaConsBottom :
     TM0RealizesInnerBlockDefaultViaSep ChainΓ chainConsBottom
       binMulStateSep₂ binPred := by
@@ -2435,7 +2450,6 @@ caller must supply a genuinely fresh separator for `pref'` and `fuel`. -/
 theorem tm0_binMulPairedStep3_update_splitBeforeSep
     {copySep outerSep : ChainΓ}
     (hcopy_nd : copySep ≠ default)
-    (houter_nd : outerSep ≠ default)
     (hsep₁_copy : binMulStateSep₁ ≠ copySep)
     (hcopy_sep₂ : copySep ≠ binMulStateSep₂)
     (hcopy_bit0 : copySep ≠ γ'ToChainΓ Γ'.bit0)
@@ -2455,7 +2469,6 @@ theorem tm0_binMulPairedStep3_update_splitBeforeSep
         (∀ g ∈ fuel, g ≠ default) →
         (∀ g ∈ fuel, g ≠ outerSep) →
         (∀ g ∈ fuel, g ≠ binMulStateSep₂) →
-        (∀ g ∈ suffix, g ≠ default) →
         (∀ g ∈ binAddPairedKeepRightSep binMulStateSep₁
             (acc ++ binMulStateSep₁ :: addend), g ≠ outerSep) →
         (∀ g ∈ binPred fuel, g ≠ outerSep) →
@@ -2486,8 +2499,8 @@ theorem tm0_binMulPairedStep3_update_splitBeforeSep
       (by simpa [binMulStateSep₂] using chainMulSep₂_ne_bit0)
       (by simpa [binMulStateSep₂] using chainMulSep₂_ne_bit1)
   obtain ⟨Λp, hΛpi, hΛpf, Mp, hMp⟩ :=
-    tm0_binPred_afterMulSep₂_innerBlockSep_outer
-      houter_nd houter_ne_sep₂
+    tm0_binPred_afterMulSep₂_innerBlockSep_outer_anySuffix
+      houter_ne_sep₂
   let h12i : Inhabited (Λa ⊕ Λp) := ⟨Sum.inl (@default _ hΛai)⟩
   let M12 : TM0.Machine ChainΓ (Λa ⊕ Λp) :=
     @TM0Seq.compose ChainΓ Λa hΛai Λp hΛpi Ma Mp
@@ -2495,7 +2508,7 @@ theorem tm0_binMulPairedStep3_update_splitBeforeSep
   intro acc addend fuel suffix
     hacc_nd hacc_no_sep₁ hacc_no_copy hacc_no_sep₂
     hadd_nd hadd_no_sep₁ hadd_no_copy hadd_no_sep₂
-    hfuel_nd hfuel_no_outer hfuel_no_sep₂ hsuffix_nd
+    hfuel_nd hfuel_no_outer hfuel_no_sep₂
     hpref'_no_outer hpred_no_outer
   let pref := acc ++ binMulStateSep₁ :: addend
   let pref' := binAddPairedKeepRightSep binMulStateSep₁ pref
@@ -2556,7 +2569,7 @@ theorem tm0_binMulPairedStep3_update_splitBeforeSep
     hMp pref' fuel suffix
       hpref'_nd hpref'_no_outer hpref'_no_sep₂
       hfuel_nd hfuel_no_outer hfuel_no_sep₂
-      hsuffix_nd hpred_nd hpred_no_outer hpred_no_sep₂
+      hpred_nd hpred_no_outer hpred_no_sep₂
   have hp_from_cfg :
       (TM0Seq.evalFromCfg Mp
         ⟨default, ((TM0Seq.evalCfg Ma
@@ -2720,6 +2733,219 @@ theorem tm0_binMulPairedCond3_blockCondInvSuffix :
           exact hcond ((hcond_iff.mpr hle))
         exact (hq_le hle).symm.trans hq
       · exact htape
+
+theorem tm0_binMulPairedCond3_blockCondInvSepAnySuffix
+    {outerSep : ChainΓ} :
+    TM0RealizesBlockCondInvSepAnySuffix outerSep
+      (fun block => block) binMulPairedCond3 binMulPairedStateInv3 := by
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, q_le, q_gt, hne, hp⟩ :=
+    tm0_blockValueLeq_betweenSep_decidable_2 0
+      binMulStateSep₂ outerSep
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+  refine ⟨Λp, hΛpi, hΛpf, Mp, q_gt, ?_⟩
+  intro block suffix hInv hblock hblock_nouter _hstep_nd _hstep_nouter
+  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
+  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
+  have hreconstruct :
+      block = acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel := by
+    simpa [hsplit, hrest, List.append_assoc] using
+      binMulPairedStateInv3_reconstruct block hInv
+  let pref := acc ++ binMulStateSep₁ :: addend
+  have hpref_nd : ∀ x ∈ pref, x ≠ (default : ChainΓ) := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact binMulPairedStateInv3_acc_ne_default block hblock x
+        (by simpa [hsplit] using hx)
+    · simpa [binMulStateSep₁] using chainMulSep₁_ne_default
+    · exact binMulPairedStateInv3_addend_ne_default block hblock x (by
+        simpa [hsplit, hrest] using hx)
+  have hpref_no_sep₂ : ∀ x ∈ pref, x ≠ binMulStateSep₂ := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact binMulPairedStateInv3_acc_no_sep₂ block hInv x
+        (by simpa [hsplit] using hx)
+    · simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂
+    · exact binMulPairedStateInv3_addend_no_sep₂ block hInv x (by
+        simpa [hsplit, hrest] using hx)
+  have hfuel_nd : ∀ x ∈ fuel, x ≠ (default : ChainΓ) := by
+    simpa [binMulPairedFuel3, hsplit, hrest] using
+      binMulPairedStateInv3_fuel_ne_default block hblock
+  have hfuel_no_outer : ∀ x ∈ fuel, x ≠ outerSep := by
+    intro x hx
+    exact hblock_nouter x (by
+      rw [hreconstruct]
+      simp [hx, List.append_assoc])
+  obtain ⟨hp_dom, hp_spec⟩ :=
+    hp pref fuel suffix hpref_nd hpref_no_sep₂ hfuel_nd hfuel_no_outer
+  have hinput :
+      pref ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix =
+        block ++ outerSep :: suffix := by
+    simp [pref, hreconstruct, List.append_assoc]
+  refine ⟨?_, ?_⟩
+  · simpa [hinput] using hp_dom
+  · intro h
+    have h' : (TM0Seq.evalCfg Mp
+        (pref ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix)).Dom := by
+      simpa [hinput] using h
+    have hspec := hp_spec h'
+    have htape :
+        ((TM0Seq.evalCfg Mp (block ++ outerSep :: suffix)).get h).Tape =
+          Tape.mk₁ (block ++ outerSep :: suffix) := by
+      have hget :
+          (TM0Seq.evalCfg Mp (block ++ outerSep :: suffix)).get h =
+            (TM0Seq.evalCfg Mp
+              (pref ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix)).get h' := by
+        apply Part.get_eq_get_of_eq
+        simp [hinput]
+      rw [hget]
+      simpa [hinput] using hspec.1
+    have hq_le :
+        blockValueLeq 0 fuel →
+          ((TM0Seq.evalCfg Mp (block ++ outerSep :: suffix)).get h).q = q_le := by
+      intro hle
+      have hget :
+          (TM0Seq.evalCfg Mp (block ++ outerSep :: suffix)).get h =
+            (TM0Seq.evalCfg Mp
+              (pref ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix)).get h' := by
+        apply Part.get_eq_get_of_eq
+        simp [hinput]
+      rw [hget]
+      exact hspec.2.1 hle
+    have hq_gt :
+        ¬ blockValueLeq 0 fuel →
+          ((TM0Seq.evalCfg Mp (block ++ outerSep :: suffix)).get h).q = q_gt := by
+      intro hle
+      have hget :
+          (TM0Seq.evalCfg Mp (block ++ outerSep :: suffix)).get h =
+            (TM0Seq.evalCfg Mp
+              (pref ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix)).get h' := by
+        apply Part.get_eq_get_of_eq
+        simp [hinput]
+      rw [hget]
+      exact hspec.2.2 hle
+    have hcond_iff :
+        binMulPairedCond3 block ↔ ¬ blockValueLeq 0 fuel := by
+      simp [binMulPairedCond3, binMulPairedFuel3, hsplit, hrest]
+    by_cases hcond : binMulPairedCond3 block
+    · simp [hcond]
+      exact ⟨hq_gt (hcond_iff.mp hcond), htape⟩
+    · simp [hcond]
+      constructor
+      · intro hq
+        apply hne
+        have hle : blockValueLeq 0 fuel := by
+          by_contra hle
+          exact hcond ((hcond_iff.mpr hle))
+        exact (hq_le hle).symm.trans hq
+      · exact htape
+
+theorem tm0_binMulPairedStep3_update_blockInvSepAnySuffix
+    {outerSep : ChainΓ}
+    (houter_ne_sep₂ : outerSep ≠ binMulStateSep₂) :
+    TM0RealizesBlockInvSepAnySuffix outerSep
+      binMulPairedStep3 binMulPairedStateInv3 := by
+  obtain ⟨Λs, hΛsi, hΛsf, Ms, hMs⟩ :=
+    tm0_binMulPairedStep3_update_splitBeforeSep
+      (copySep := chainConsBottom) (outerSep := outerSep)
+      chainConsBottom_ne_default
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_chainConsBottom)
+      (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_chainConsBottom)
+      (by decide)
+      (by decide)
+      houter_ne_sep₂
+  refine ⟨Λs, hΛsi, hΛsf, Ms, ?_⟩
+  intro block suffix hInv hblock hblock_nouter hstep_nd hstep_nouter
+  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
+  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
+  have hreconstruct :
+      block = acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel := by
+    simpa [hsplit, hrest, List.append_assoc] using
+      binMulPairedStateInv3_reconstruct block hInv
+  let pref := acc ++ binMulStateSep₁ :: addend
+  let pref' := binAddPairedKeepRightSep binMulStateSep₁ pref
+  have hacc_nd : ∀ x ∈ acc, x ≠ (default : ChainΓ) := by
+    intro x hx
+    exact binMulPairedStateInv3_acc_ne_default block hblock x
+      (by simpa [hsplit] using hx)
+  have hacc_no_sep₁ : ∀ x ∈ acc, x ≠ binMulStateSep₁ := by
+    simpa [hsplit] using binMulPairedStateInv3_acc_no_sep₁ block hInv
+  have hacc_no_copy : ∀ x ∈ acc, x ≠ chainConsBottom := by
+    simpa [hsplit] using binMulPairedStateInv3_acc_no_consBottom block hInv
+  have hacc_no_sep₂ : ∀ x ∈ acc, x ≠ binMulStateSep₂ := by
+    simpa [hsplit] using binMulPairedStateInv3_acc_no_sep₂ block hInv
+  have hadd_nd : ∀ x ∈ addend, x ≠ (default : ChainΓ) := by
+    intro x hx
+    exact binMulPairedStateInv3_addend_ne_default block hblock x
+      (by simpa [hsplit, hrest] using hx)
+  have hadd_no_sep₁ : ∀ x ∈ addend, x ≠ binMulStateSep₁ := by
+    simpa [hsplit, hrest] using binMulPairedStateInv3_addend_no_sep₁ block hInv
+  have hadd_no_copy : ∀ x ∈ addend, x ≠ chainConsBottom := by
+    simpa [hsplit, hrest] using
+      binMulPairedStateInv3_addend_no_consBottom block hInv
+  have hadd_no_sep₂ : ∀ x ∈ addend, x ≠ binMulStateSep₂ := by
+    simpa [hsplit, hrest] using binMulPairedStateInv3_addend_no_sep₂ block hInv
+  have hfuel_nd : ∀ x ∈ fuel, x ≠ (default : ChainΓ) := by
+    simpa [binMulPairedFuel3, hsplit, hrest] using
+      binMulPairedStateInv3_fuel_ne_default block hblock
+  have hfuel_no_outer : ∀ x ∈ fuel, x ≠ outerSep := by
+    intro x hx
+    exact hblock_nouter x (by
+      rw [hreconstruct]
+      simp [hx, List.append_assoc])
+  have hfuel_no_sep₂ : ∀ x ∈ fuel, x ≠ binMulStateSep₂ := by
+    simpa [binMulPairedFuel3, hsplit, hrest] using
+      binMulPairedStateInv3_fuel_no_sep₂ block hInv
+  have hpref'_no_outer : ∀ x ∈ pref', x ≠ outerSep := by
+    intro x hx
+    exact hstep_nouter x (by
+      have hx' : x ∈ pref' ++ binMulStateSep₂ :: binPred fuel := by
+        simp [hx]
+      have hstep_eq :
+          binMulPairedStep3 block =
+            pref' ++ binMulStateSep₂ :: binPred fuel := by
+        unfold binMulPairedStep3
+        simp [hsplit, hrest, pref, pref', List.append_assoc]
+      simpa [hstep_eq] using hx')
+  have hpred_no_outer : ∀ x ∈ binPred fuel, x ≠ outerSep := by
+    intro x hx
+    exact hstep_nouter x (by
+      have hx' : x ∈ pref' ++ binMulStateSep₂ :: binPred fuel := by
+        simp [hx]
+      have hstep_eq :
+          binMulPairedStep3 block =
+            pref' ++ binMulStateSep₂ :: binPred fuel := by
+        unfold binMulPairedStep3
+        simp [hsplit, hrest, pref, pref', List.append_assoc]
+      simpa [hstep_eq] using hx')
+  obtain ⟨hdom, htape⟩ :=
+    hMs acc addend fuel suffix
+      hacc_nd hacc_no_sep₁ hacc_no_copy hacc_no_sep₂
+      hadd_nd hadd_no_sep₁ hadd_no_copy hadd_no_sep₂
+      hfuel_nd hfuel_no_outer hfuel_no_sep₂
+      hpref'_no_outer hpred_no_outer
+  have hinput :
+      block ++ outerSep :: suffix =
+        acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+          fuel ++ outerSep :: suffix := by
+    simp [hreconstruct, List.append_assoc]
+  refine ⟨?_, ?_⟩
+  · simpa [hinput, List.append_assoc] using hdom
+  · intro h
+    have h' : (TM0Seq.evalCfg Ms
+        (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+          fuel ++ outerSep :: suffix)).Dom := by
+      simpa [hinput, List.append_assoc] using h
+    have hget :
+        (TM0Seq.evalCfg Ms (block ++ outerSep :: suffix)).get h =
+          (TM0Seq.evalCfg Ms
+            (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ ::
+              fuel ++ outerSep :: suffix)).get h' := by
+      apply Part.get_eq_get_of_eq
+      simp [hinput, List.append_assoc]
+    rw [hget]
+    simpa [hreconstruct, List.append_assoc] using htape h'
 
 /-- TODO: unconditional suffix-preserving body for the three-separator
 multiplication step.
@@ -3158,3 +3384,75 @@ theorem tm0_binMulPairedStep3_blockCondInvSuffix :
             Λp ⊕ FinalizeSt ⊕ (Λs ⊕ FinalizeSt)) := by
       simp
     simp [hcond, hcfg', hq_ne, hcp_tape]
+
+theorem binMulPairedResult3_eq_rev_dropUntil_rev_of_stateInv
+    (block : List ChainΓ) (hInv : binMulPairedStateInv3 block) :
+    (List.reverse ∘ dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) block =
+      binMulPairedResult3 block := by
+  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
+  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
+  have hreconstruct :
+      block = acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel := by
+    simpa [hsplit, hrest, List.append_assoc] using
+      binMulPairedStateInv3_reconstruct block hInv
+  have htail_no_sep₁ :
+      ∀ g ∈ (addend ++ binMulStateSep₂ :: fuel).reverse,
+        g ≠ binMulStateSep₁ := by
+    intro g hg
+    have hg' : g ∈ addend ++ binMulStateSep₂ :: fuel :=
+      List.mem_reverse.mp hg
+    simp at hg'
+    rcases hg' with hg' | rfl | hg'
+    · exact binMulPairedStateInv3_addend_no_sep₁ block hInv g
+        (by simpa [hsplit, hrest] using hg')
+    · simpa [binMulStateSep₁, binMulStateSep₂] using
+        chainMulSep₂_ne_chainMulSep₁
+    · exact binMulPairedStateInv3_fuel_no_sep₁ block hInv g
+        (by simpa [binMulPairedFuel3, hsplit, hrest] using hg')
+  unfold Function.comp binMulPairedResult3
+  rw [hreconstruct]
+  rw [show (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel).reverse =
+      (addend ++ binMulStateSep₂ :: fuel).reverse ++ binMulStateSep₁ :: acc.reverse by
+    simp [List.append_assoc]]
+  rw [dropUntilFirstSep_append_cons binMulStateSep₁
+    (addend ++ binMulStateSep₂ :: fuel).reverse acc.reverse htail_no_sep₁]
+  have hsplit_acc :
+      splitAtSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel) =
+        (acc, addend ++ binMulStateSep₂ :: fuel) := by
+    simpa [List.append_assoc] using
+      splitAtSep_general_cons binMulStateSep₁ acc
+        (addend ++ binMulStateSep₂ :: fuel)
+        (by simpa [hsplit] using binMulPairedStateInv3_acc_no_sep₁ block hInv)
+  have hsplit_acc' :
+      splitAtSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: (addend ++ binMulStateSep₂ :: fuel)) =
+        (acc, addend ++ binMulStateSep₂ :: fuel) := by
+    simpa [List.append_assoc] using hsplit_acc
+  simp [hsplit_acc']
+
+theorem tm0_binMulPairedResult3_blockInvSepAnySuffix {sep : ChainΓ} :
+    TM0RealizesBlockInvSepAnySuffix sep binMulPairedResult3
+      binMulPairedStateInv3 := by
+  have hdrop : TM0RealizesBlockSepAnySuffix ChainΓ sep
+      (List.reverse ∘ dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) := by
+    have h1 : TM0RealizesBlockSepAnySuffix ChainΓ sep
+        (dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) :=
+      tm0RealizesBlockSepAnySuffix_comp
+        tm0_reverse_blockSep_anySuffix
+        (tm0_dropUntilFirstSep_blockSepAnySuffix binMulStateSep₁ sep
+          (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default))
+        (fun block hblock => reverse_ne_default block hblock)
+        (fun block hblock => reverse_ne_sep block hblock)
+    exact tm0RealizesBlockSepAnySuffix_comp
+      h1
+      tm0_reverse_blockSep_anySuffix
+      (fun block hblock =>
+        dropUntilFirstSep_ne_default binMulStateSep₁ block.reverse
+          (reverse_ne_default block hblock))
+      (fun block hblock =>
+        dropUntilFirstSep_ne_marker binMulStateSep₁ sep block.reverse
+          (reverse_ne_sep block hblock))
+  exact tm0RealizesBlockInvSepAnySuffix_congr
+    (tm0RealizesBlockInvSepAnySuffix_of_sepAnySuffix hdrop)
+    binMulPairedResult3_eq_rev_dropUntil_rev_of_stateInv
