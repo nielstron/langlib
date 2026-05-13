@@ -101,4 +101,140 @@ theorem lift_eval_dom (M : TM0.Machine Γ₁ Λ)
   exact tr_eval_dom (lift_respects M emb inv hemb hemb_default)
     (lift_init_rel emb inv hemb hemb_default l) |>.symm
 
+/-! ## Inverse-default-fiber-preserving lift -/
+
+/-- The PointedMap from an inverse function. -/
+noncomputable def invPM (inv : Γ₂ → Γ₁) (hinv_default : inv default = default) :
+    PointedMap Γ₂ Γ₁ :=
+  ⟨inv, hinv_default⟩
+
+/-- Write translation for the inverse-relation lift.
+
+When the source writes `default`, target symbols that already map to `default`
+are preserved. This lets the target alphabet carry protected symbols that the
+source machine observes as blanks. -/
+noncomputable def liftWritePreserveDefaultFiber
+    (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁) [DecidableEq Γ₁]
+    (current : Γ₂) (a : Γ₁) : Γ₂ :=
+  if a = default then
+    if inv current = default then current else emb default
+  else
+    emb a
+
+/-- Lift a TM0 machine while preserving target symbols in the inverse-default
+fiber whenever the source writes `default`. -/
+noncomputable def liftMachinePreserveDefaultFiber
+    [DecidableEq Γ₁] (M : TM0.Machine Γ₁ Λ)
+    (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁) :
+    TM0.Machine Γ₂ Λ :=
+  fun q a =>
+    match M q (inv a) with
+    | some (q', stmt) =>
+      some (q', match stmt with
+        | TM0.Stmt.move d => TM0.Stmt.move d
+        | TM0.Stmt.write a' =>
+            TM0.Stmt.write (liftWritePreserveDefaultFiber emb inv a a'))
+    | none => none
+
+/-- Inverse-form relation between source and target configurations.
+
+The target tape may contain symbols outside the embedding image; the source
+tape only has to be recovered by mapping target symbols through `inv`. -/
+def liftInvRel (inv : Γ₂ → Γ₁) (hinv_default : inv default = default) :
+    TM0.Cfg Γ₁ Λ → TM0.Cfg Γ₂ Λ → Prop :=
+  fun c₁ c₂ => c₁.q = c₂.q ∧ c₁.Tape = c₂.Tape.map (invPM inv hinv_default)
+
+theorem inv_liftWritePreserveDefaultFiber
+    [DecidableEq Γ₁]
+    (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
+    (hemb : ∀ a, inv (emb a) = a)
+    (current : Γ₂) (a : Γ₁) :
+    inv (liftWritePreserveDefaultFiber emb inv current a) = a := by
+  unfold liftWritePreserveDefaultFiber
+  by_cases ha : a = default
+  · subst ha
+    by_cases hcur : inv current = default
+    · simp [hcur]
+    · simp [hcur, hemb]
+  · simp [ha, hemb]
+
+theorem lift_preserveDefaultFiber_respects
+    [DecidableEq Γ₁]
+    (M : TM0.Machine Γ₁ Λ)
+    (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
+    (hemb : ∀ a, inv (emb a) = a)
+    (hinv_default : inv default = default) :
+    Respects
+      (TM0.step M)
+      (TM0.step (liftMachinePreserveDefaultFiber M emb inv))
+      (liftInvRel inv hinv_default) := by
+  unfold Respects liftInvRel
+  unfold TM0.step liftMachinePreserveDefaultFiber
+  rintro ⟨q, T⟩ ⟨q', T'⟩ ⟨hq, hT⟩
+  have hhead : T.head = inv T'.head := by
+    have := congrArg Tape.head hT
+    simpa [invPM] using this
+  change q = q' at hq
+  subst q'
+  change T = Tape.map (invPM inv hinv_default) T' at hT
+  rcases h : M q (inv T'.head) with (_ | ⟨q'', stmt⟩)
+  · have hsrc : M q T.head = none := by
+      rw [hhead]
+      exact h
+    simp +decide [hsrc, h]
+  · have hsrc : M q T.head = some (q'', stmt) := by
+      rw [hhead]
+      exact h
+    simp +decide [Reaches₁, hsrc]
+    refine ⟨⟨q'', match stmt with
+      | TM0.Stmt.move d => Tape.move d T'
+      | TM0.Stmt.write a =>
+          Tape.write (liftWritePreserveDefaultFiber emb inv T'.head a) T'⟩, ?_, ?_⟩
+    · constructor
+      · rfl
+      · cases stmt with
+        | move d =>
+            simp [hT, Tape.map_move]
+        | write a =>
+            have hw :
+                (invPM inv hinv_default).f
+                  (liftWritePreserveDefaultFiber emb inv T'.head a) = a := by
+              simpa [invPM] using
+                inv_liftWritePreserveDefaultFiber emb inv hemb T'.head a
+            simp [hT, Tape.map_write, hw]
+    · refine Relation.TransGen.single ?_
+      cases stmt with
+      | move d =>
+          refine ⟨q'', TM0.Stmt.move d, ?_, rfl⟩
+          simp [hhead, h]
+      | write a =>
+          refine ⟨q'', TM0.Stmt.write
+            (liftWritePreserveDefaultFiber emb inv T'.head a), ?_, rfl⟩
+          simp [hhead, h]
+
+theorem liftInv_init_rel
+    (inv : Γ₂ → Γ₁) (hinv_default : inv default = default)
+    (l : List Γ₂) :
+    liftInvRel inv hinv_default
+      (@TM0.init Γ₁ Λ _ _ (l.map inv))
+      (@TM0.init Γ₂ Λ _ _ l) := by
+  constructor
+  · rfl
+  · simp [liftInvRel, TM0.init, Tape.map_mk₁, invPM]
+
+/-- Evaluation preserves Dom for the inverse-default-fiber-preserving lift. -/
+theorem lift_preserveDefaultFiber_eval_dom
+    [DecidableEq Γ₁]
+    (M : TM0.Machine Γ₁ Λ)
+    (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
+    (hemb : ∀ a, inv (emb a) = a)
+    (hinv_default : inv default = default)
+    (l : List Γ₂) :
+    (TM0.eval M (l.map inv)).Dom ↔
+    (TM0.eval (liftMachinePreserveDefaultFiber M emb inv) l).Dom := by
+  simp only [TM0.eval]
+  exact tr_eval_dom
+    (lift_preserveDefaultFiber_respects M emb inv hemb hinv_default)
+    (liftInv_init_rel inv hinv_default l) |>.symm
+
 end TM0AlphabetSim

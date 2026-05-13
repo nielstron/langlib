@@ -245,6 +245,19 @@ theorem tm0_binPairConstSucc_blockAnySuffix (k : ℕ) :
         (tm0_binSquare_blockAnySuffix
           tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default)))
 
+theorem tm0_binPairConstSucc_blockSepAnySuffix_consBottom (k : ℕ) :
+    TM0RealizesBlockSepAnySuffix ChainΓ chainConsBottom
+      (binPairConstSucc k) := by
+  exact tm0_binPairConstSucc_blockSepAnySuffix_of_square
+    (sep := chainConsBottom)
+    (by decide)
+    (by decide)
+    k
+    (tm0_binSquare_blockSepAnySuffix_consBottom
+      (tm0_binMulPairedStep3_blockCondInvSepAnySuffix
+        (outerSep := chainConsBottom)
+        (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_chainConsBottom)))
+
 /-- The accumulator-level function used by the chain fold. -/
 noncomputable def chainEncodeFoldAccStep
     (T : Type) [Primcodable T] (t : T) : List ChainΓ → List ChainΓ :=

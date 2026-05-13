@@ -669,7 +669,7 @@ theorem binAddPairedKeepRightSep_no_mulSep₂
 
 /-- A paired-block operation bounded by an outer separator. The suffix after
 the outer separator is unrestricted: in the multiplication step it is
-`fuel ++ default :: suffix`, so requiring it to be blank-free would be the
+`fuel ++ outerSep :: suffix`, so requiring it to be blank-free would be the
 wrong interface. -/
 def TM0RealizesPairedBlockBeforeSep
     (pairSep outerSep : ChainΓ) (f : List ChainΓ → List ChainΓ) : Prop :=
@@ -2932,17 +2932,18 @@ theorem tm0_binMulPairedStep3_update_blockInvSepAnySuffix
     rw [hget]
     simpa [hreconstruct, List.append_assoc] using htape h'
 
-theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
-    TM0RealizesBlockCondInvSepAnySuffix (default : ChainΓ)
+theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix
+    {outerSep : ChainΓ} (houterSep₂ : outerSep ≠ binMulStateSep₂) :
+    TM0RealizesBlockCondInvSepAnySuffix outerSep
       binMulPairedStep3 binMulPairedCond3 binMulPairedStateInv3 := by
   obtain ⟨Λp, hΛpi, hΛpf, Mp, q_le, q_gt, hne, hp⟩ :=
     tm0_blockValueLeq_betweenSep_decidable_2 0
-      binMulStateSep₂ (default : ChainΓ)
+      binMulStateSep₂ outerSep
       (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
   obtain ⟨Λs, hΛsi, hΛsf, Ms, hMs⟩ :=
     tm0_binMulPairedStep3_update_blockInvSepAnySuffix
-      (outerSep := (default : ChainΓ))
-      (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_default)
+      (outerSep := outerSep)
+      houterSep₂
   haveI : DecidableEq Λp := Classical.decEq Λp
   let hΛsFi : Inhabited (Λs ⊕ FinalizeSt) := ⟨Sum.inl (@default _ hΛsi)⟩
   let MsF : TM0.Machine ChainΓ (Λs ⊕ FinalizeSt) :=
@@ -2982,22 +2983,27 @@ theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
   have hfuel_nd : ∀ x ∈ fuel, x ≠ (default : ChainΓ) := by
     simpa [binMulPairedFuel3, hsplit, hrest] using
       binMulPairedStateInv3_fuel_ne_default block hblock
+  have hfuel_nouter : ∀ x ∈ fuel, x ≠ outerSep := by
+    intro x hx
+    exact hblock_nsep x (by
+      rw [hreconstruct]
+      simp [List.append_assoc, hx])
   obtain ⟨hp_dom, hp_spec⟩ :=
-    hp pref fuel suffix hpref_nd hpref_no_sep₂ hfuel_nd hfuel_nd
+    hp pref fuel suffix hpref_nd hpref_no_sep₂ hfuel_nd hfuel_nouter
   have hinput :
-      pref ++ binMulStateSep₂ :: fuel ++ default :: suffix =
-        block ++ default :: suffix := by
+      pref ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix =
+        block ++ outerSep :: suffix := by
     simp [pref, hreconstruct, List.append_assoc]
-  have hp_dom_block : (TM0Seq.evalCfg Mp (block ++ default :: suffix)).Dom := by
+  have hp_dom_block : (TM0Seq.evalCfg Mp (block ++ outerSep :: suffix)).Dom := by
     simpa [hinput] using hp_dom
-  set cp := (TM0Seq.evalCfg Mp (block ++ default :: suffix)).get hp_dom_block
+  set cp := (TM0Seq.evalCfg Mp (block ++ outerSep :: suffix)).get hp_dom_block
   have hcp_get :
       cp =
         (TM0Seq.evalCfg Mp
-          (pref ++ binMulStateSep₂ :: fuel ++ default :: suffix)).get hp_dom := by
+          (pref ++ binMulStateSep₂ :: fuel ++ outerSep :: suffix)).get hp_dom := by
     apply Part.get_eq_get_of_eq
     simp [hinput]
-  have hcp_tape : cp.Tape = Tape.mk₁ (block ++ default :: suffix) := by
+  have hcp_tape : cp.Tape = Tape.mk₁ (block ++ outerSep :: suffix) := by
     rw [hcp_get]
     simpa [hinput] using (hp_spec hp_dom).1
   have hq_le :
@@ -3013,18 +3019,18 @@ theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
   have hcond_iff :
       binMulPairedCond3 block ↔ ¬ blockValueLeq 0 fuel := by
     simp [binMulPairedCond3, binMulPairedFuel3, hsplit, hrest]
-  have hcp_mem : cp ∈ TM0Seq.evalCfg Mp (block ++ default :: suffix) :=
+  have hcp_mem : cp ∈ TM0Seq.evalCfg Mp (block ++ outerSep :: suffix) :=
     Part.get_mem hp_dom_block
   have hcp_eval := Turing.mem_eval.mp hcp_mem
   have hcp_halt : TM0.step Mp cp = none := hcp_eval.2
   have hcp_reaches : Reaches (TM0.step Mp)
-      (TM0.init (block ++ default :: suffix)) cp := hcp_eval.1
+      (TM0.init (block ++ outerSep :: suffix)) cp := hcp_eval.1
   have hphase1 := condCompose_phase1_reaches Mp finalizeMachine MsF q_le q_gt
-    cp (block ++ default :: suffix) hcp_reaches
-  change Reaches (TM0.step Mcond) (TM0.init (block ++ default :: suffix))
+    cp (block ++ outerSep :: suffix) hcp_reaches
+  change Reaches (TM0.step Mcond) (TM0.init (block ++ outerSep :: suffix))
     { q := Sum.inl cp.q, Tape := cp.Tape } at hphase1
   have heval_rewrite :
-      TM0Seq.evalCfg Mcond (block ++ default :: suffix) =
+      TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix) =
         Turing.eval (TM0.step Mcond) ⟨Sum.inl cp.q, cp.Tape⟩ := by
     exact Turing.reaches_eval hphase1
   by_cases hcond : binMulPairedCond3 block
@@ -3032,34 +3038,34 @@ theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
     have hhalt_q : TM0.step Mp ⟨q_gt, cp.Tape⟩ = none := hq ▸ hcp_halt
     have hstep_block_nd : ∀ g ∈ binMulPairedStep3 block, g ≠ default :=
       hstep_nd hcond
-    have hstep_block_nsep : ∀ g ∈ binMulPairedStep3 block, g ≠ (default : ChainΓ) :=
+    have hstep_block_nsep : ∀ g ∈ binMulPairedStep3 block, g ≠ outerSep :=
       hstep_nsep hcond
     obtain ⟨hMs_dom, hMs_spec⟩ :=
       hMs block suffix hInv hblock hblock_nsep hstep_block_nd hstep_block_nsep
-    have hfinal := compose_finalize_evalCfg Ms (block ++ default :: suffix)
-      (binMulPairedStep3 block ++ default :: suffix)
+    have hfinal := compose_finalize_evalCfg Ms (block ++ outerSep :: suffix)
+      (binMulPairedStep3 block ++ outerSep :: suffix)
       hMs_dom (hMs_spec hMs_dom)
     have hbranch_dom :
         (TM0Seq.evalFromCfg MsF ⟨default, cp.Tape⟩).Dom := by
       rw [hcp_tape]
       change (TM0Seq.evalFromCfg MsF
-        (TM0.init (block ++ default :: suffix))).Dom
+        (TM0.init (block ++ outerSep :: suffix))).Dom
       rw [TM0Seq.evalFromCfg_init]
       exact hfinal.1
     have hbranch_spec :
         ∀ h, (TM0Seq.evalFromCfg MsF ⟨default, cp.Tape⟩).get h =
           ⟨Sum.inr FinalizeSt.done,
-            Tape.mk₁ (binMulPairedStep3 block ++ default :: suffix)⟩ := by
+            Tape.mk₁ (binMulPairedStep3 block ++ outerSep :: suffix)⟩ := by
       intro h
       have heq :
           TM0Seq.evalFromCfg MsF ⟨default, cp.Tape⟩ =
-            TM0Seq.evalCfg MsF (block ++ default :: suffix) := by
+            TM0Seq.evalCfg MsF (block ++ outerSep :: suffix) := by
         rw [hcp_tape]
         exact TM0Seq.evalFromCfg_init (M := MsF)
-          (l := block ++ default :: suffix)
+          (l := block ++ outerSep :: suffix)
       have hget :
           (TM0Seq.evalFromCfg MsF ⟨default, cp.Tape⟩).get h =
-            (TM0Seq.evalCfg MsF (block ++ default :: suffix)).get hfinal.1 := by
+            (TM0Seq.evalCfg MsF (block ++ outerSep :: suffix)).get hfinal.1 := by
         apply Part.get_eq_get_of_eq
         exact heq
       rw [hget]
@@ -3067,39 +3073,39 @@ theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
     have hbranch_step :
         ∃ c₂, TM0.step MsF ⟨default, cp.Tape⟩ = some c₂ := by
       rw [hcp_tape]
-      change ∃ c₂, TM0.step MsF (TM0.init (block ++ default :: suffix)) = some c₂
+      change ∃ c₂, TM0.step MsF (TM0.init (block ++ outerSep :: suffix)) = some c₂
       change ∃ c₂, TM0.step MsF
-        ⟨default, Tape.mk₁ (block ++ default :: suffix)⟩ = some c₂
+        ⟨default, Tape.mk₁ (block ++ outerSep :: suffix)⟩ = some c₂
       rcases hfirst : TM0.step Ms
-          ⟨default, Tape.mk₁ (block ++ default :: suffix)⟩ with _ | c₂
+          ⟨default, Tape.mk₁ (block ++ outerSep :: suffix)⟩ with _ | c₂
       · refine ⟨(⟨Sum.inr FinalizeSt.done,
-            Tape.mk₁ (block ++ default :: suffix)⟩ :
+            Tape.mk₁ (block ++ outerSep :: suffix)⟩ :
             TM0.Cfg ChainΓ (Λs ⊕ FinalizeSt)), ?_⟩
         change TM0.step (@TM0Seq.compose ChainΓ Λs hΛsi FinalizeSt inferInstance
           Ms finalizeMachine) ⟨Sum.inl default,
-            Tape.mk₁ (block ++ default :: suffix)⟩ =
+            Tape.mk₁ (block ++ outerSep :: suffix)⟩ =
           some ⟨Sum.inr FinalizeSt.done,
-            Tape.mk₁ (block ++ default :: suffix)⟩
+            Tape.mk₁ (block ++ outerSep :: suffix)⟩
         rw [TM0Seq.compose_step_on_halt Ms finalizeMachine default
-          (Tape.mk₁ (block ++ default :: suffix)) hfirst]
+          (Tape.mk₁ (block ++ outerSep :: suffix)) hfirst]
         change Option.map
           (fun c₂ : TM0.Cfg ChainΓ FinalizeSt =>
             ({ q := Sum.inr c₂.q, Tape := c₂.Tape } :
               TM0.Cfg ChainΓ (Λs ⊕ FinalizeSt)))
           (TM0.step finalizeMachine
-            ⟨FinalizeSt.start, Tape.mk₁ (block ++ default :: suffix)⟩) =
+            ⟨FinalizeSt.start, Tape.mk₁ (block ++ outerSep :: suffix)⟩) =
           some ⟨Sum.inr FinalizeSt.done,
-            Tape.mk₁ (block ++ default :: suffix)⟩
+            Tape.mk₁ (block ++ outerSep :: suffix)⟩
         rw [finalize_step_start]
         rfl
       · refine ⟨(⟨Sum.inl c₂.q, c₂.Tape⟩ :
             TM0.Cfg ChainΓ (Λs ⊕ FinalizeSt)), ?_⟩
         change TM0.step (@TM0Seq.compose ChainΓ Λs hΛsi FinalizeSt inferInstance
           Ms finalizeMachine) ⟨Sum.inl default,
-            Tape.mk₁ (block ++ default :: suffix)⟩ =
+            Tape.mk₁ (block ++ outerSep :: suffix)⟩ =
           some ⟨Sum.inl c₂.q, c₂.Tape⟩
         simpa using TM0Seq.compose_step_inl Ms finalizeMachine
-          (⟨default, Tape.mk₁ (block ++ default :: suffix)⟩ :
+          (⟨default, Tape.mk₁ (block ++ outerSep :: suffix)⟩ :
             TM0.Cfg ChainΓ Λs) c₂ hfirst
     have hbranch_eval_dom :
         (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩).Dom := by
@@ -3108,24 +3114,24 @@ theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
         ⟨Sum.inl q_gt, cp.Tape⟩).Dom
       exact (condCompose_eval_at_halt_false Mp finalizeMachine MsF q_le q_gt hne
         cp.Tape hhalt_q).mpr hbranch_dom
-    have hdom : (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).Dom := by
+    have hdom : (TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix)).Dom := by
       rw [heval_rewrite, hq]
       exact hbranch_eval_dom
     refine ⟨hdom, ?_⟩
     intro h
     have hcfg := condCompose_fixed_at_halt_false_of_step
       Mp finalizeMachine MsF q_le q_gt hne (Sum.inr FinalizeSt.done) cp.Tape
-      (Tape.mk₁ (binMulPairedStep3 block ++ default :: suffix))
+      (Tape.mk₁ (binMulPairedStep3 block ++ outerSep :: suffix))
       hhalt_q hbranch_step hbranch_dom hbranch_spec
-    have hcfg' : (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).get h =
+    have hcfg' : (TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix)).get h =
         ⟨Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)),
-          Tape.mk₁ (binMulPairedStep3 block ++ default :: suffix)⟩ := by
+          Tape.mk₁ (binMulPairedStep3 block ++ outerSep :: suffix)⟩ := by
       have heq :
-          TM0Seq.evalCfg Mcond (block ++ default :: suffix) =
+          TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix) =
             Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩ := by
         rw [heval_rewrite, hq]
       have hget :
-          (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).get h =
+          (TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix)).get h =
             (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩).get
               hbranch_eval_dom := by
         apply Part.get_eq_get_of_eq
@@ -3148,7 +3154,7 @@ theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
         ⟨Sum.inl q_le, cp.Tape⟩).Dom
       exact (condCompose_eval_at_halt_true Mp finalizeMachine MsF q_le q_gt
         cp.Tape hhalt_q).mpr hid_dom
-    have hdom : (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).Dom := by
+    have hdom : (TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix)).Dom := by
       rw [heval_rewrite, hq]
       exact hbranch_eval_dom
     refine ⟨hdom, ?_⟩
@@ -3156,14 +3162,14 @@ theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
     have hcfg := condCompose_fixed_at_halt_true_of_step
       Mp finalizeMachine MsF q_le q_gt FinalizeSt.done cp.Tape cp.Tape
       hhalt_q hid_step hid_dom (fun h => hid_spec h)
-    have hcfg' : (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).get h =
+    have hcfg' : (TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix)).get h =
         ⟨Sum.inr (Sum.inl FinalizeSt.done), cp.Tape⟩ := by
       have heq :
-          TM0Seq.evalCfg Mcond (block ++ default :: suffix) =
+          TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix) =
             Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩ := by
         rw [heval_rewrite, hq]
       have hget :
-          (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).get h =
+          (TM0Seq.evalCfg Mcond (block ++ outerSep :: suffix)).get h =
             (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩).get
               hbranch_eval_dom := by
         apply Part.get_eq_get_of_eq
@@ -3176,6 +3182,12 @@ theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
             Λp ⊕ FinalizeSt ⊕ (Λs ⊕ FinalizeSt)) := by
       simp
     simp [hcond, hcfg', hq_ne, hcp_tape]
+
+theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
+    TM0RealizesBlockCondInvSepAnySuffix (default : ChainΓ)
+      binMulPairedStep3 binMulPairedCond3 binMulPairedStateInv3 :=
+  tm0_binMulPairedStep3_blockCondInvSepAnySuffix
+    (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_default)
 
 
 /-- TODO: unconditional suffix-preserving body for the three-separator

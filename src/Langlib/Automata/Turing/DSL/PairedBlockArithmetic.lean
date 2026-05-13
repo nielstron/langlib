@@ -3912,6 +3912,51 @@ theorem tm0_binSquare_blockAnySuffix
         binMulPairedLoop3_ne_default _
           (binSquareInit3_ne_default block hblock_nd)))
 
+theorem tm0_binSquare_blockSepAnySuffix_consBottom
+    (hstep : TM0RealizesBlockCondInvSepAnySuffix chainConsBottom
+      binMulPairedStep3 binMulPairedCond3 binMulPairedStateInv3) :
+    TM0RealizesBlockSepAnySuffix ChainΓ chainConsBottom binSquare := by
+  rw [binSquare_eq_direct_loop3]
+  have hinit_loop :
+      TM0RealizesBlockSepAnySuffix ChainΓ chainConsBottom
+        (binMulPairedLoop3 ∘ binSquareInit3) :=
+    tm0RealizesBlockSepAnySuffix_comp_invSepAnySuffix
+      (tm0_binSquareInit3_blockSepAnySuffix
+        (sep := chainConsBottom)
+        (by decide)
+        (by decide)
+        (by simpa [binMulStateSep₁] using Ne.symm chainMulSep₁_ne_chainConsBottom)
+        (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_chainConsBottom)
+        chainConsBottom_ne_default)
+      (tm0_binMulPairedLoop3_blockInvSepAnySuffix_consBottom hstep)
+      (fun block _hblock_nd _hblock_nsep => binSquareInit3_stateInv block)
+      binSquareInit3_ne_default
+      (fun block _hblock_nd =>
+        binSquareInit3_no_of_ne_sep chainConsBottom
+          (by decide)
+          (by decide)
+          (by simpa [binMulStateSep₁] using Ne.symm chainMulSep₁_ne_chainConsBottom)
+          (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_chainConsBottom)
+          block)
+  exact tm0RealizesBlockSepAnySuffix_comp_invSepAnySuffix
+    hinit_loop
+    (tm0_binMulPairedResult3_blockInvSepAnySuffix (sep := chainConsBottom))
+    (fun block _hblock_nd _hblock_nsep =>
+      binMulPairedLoop3_stateInv
+        (binSquareInit3 block)
+        (binSquareInit3_stateInv block))
+    (fun block hblock_nd =>
+      binMulPairedLoop3_ne_default _
+        (binSquareInit3_ne_default block hblock_nd))
+    (fun block _hblock_nsep =>
+      binMulPairedLoop3_no_consBottom _
+        (binSquareInit3_no_of_ne_sep chainConsBottom
+          (by decide)
+          (by decide)
+          (by simpa [binMulStateSep₁] using Ne.symm chainMulSep₁_ne_chainConsBottom)
+          (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_chainConsBottom)
+          block))
+
 noncomputable def binSquareInit (block : List ChainΓ) : List ChainΓ :=
   chainBinaryRepr 0 ++ [chainConsBottom] ++ duplicateNormalizedPaired block
 

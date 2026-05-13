@@ -32,10 +32,32 @@ theorem hetEmb_default {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀]
     (T : Type) : hetEmb T (default : Γ₀) = (none : Option (T ⊕ Γ₀)) := by
   simp [hetEmb]
 
+theorem hetInv_default {Γ₀ : Type} [Inhabited Γ₀]
+    (T : Type) :
+    hetInv T (default : Option (T ⊕ Γ₀)) = (default : Γ₀) := by
+  rfl
+
 theorem hetEmb_ne_default {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀]
     (T : Type) (g : Γ₀) (hg : g ≠ default) :
     hetEmb T g = some (Sum.inr g) := by
   simp [hetEmb, hg]
+
+/-- The het alphabet lift that treats `some (inl t)` as source default while
+preserving it when the source machine writes default. -/
+noncomputable def hetLiftMachinePreserveDefaultFiber
+    {Γ₀ Λ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Inhabited Λ]
+    (T : Type) (M : TM0.Machine Γ₀ Λ) :
+    TM0.Machine (Option (T ⊕ Γ₀)) Λ :=
+  TM0AlphabetSim.liftMachinePreserveDefaultFiber M (hetEmb T) (hetInv T)
+
+theorem hetLiftMachinePreserveDefaultFiber_eval_dom
+    {Γ₀ Λ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀] [Inhabited Λ]
+    (T : Type) [DecidableEq T]
+    (M : TM0.Machine Γ₀ Λ) (l : List (Option (T ⊕ Γ₀))) :
+    (TM0.eval M (l.map (hetInv T))).Dom ↔
+    (TM0.eval (hetLiftMachinePreserveDefaultFiber T M) l).Dom := by
+  exact TM0AlphabetSim.lift_preserveDefaultFiber_eval_dom
+    M (hetEmb T) (hetInv T) (hetInv_hetEmb T) (hetInv_default T) l
 
 theorem map_hetEmb_block {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀]
     (T : Type) (block : List Γ₀) (hblock : ∀ g ∈ block, g ≠ default) :
