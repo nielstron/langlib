@@ -1852,21 +1852,6 @@ theorem tm0RealizesPairedBlockBeforeSep_congr
   intro h
   rw [htape h, hfg_lr]
 
-/-- `dropUntilFirstSep` preserves absence of any marker that is absent from
-the input block. -/
-theorem dropUntilFirstSep_ne_marker {Γ : Type} [DecidableEq Γ]
-    (sep marker : Γ) (block : List Γ)
-    (hblock : ∀ g ∈ block, g ≠ marker) :
-    ∀ g ∈ dropUntilFirstSep sep block, g ≠ marker := by
-  induction block with
-  | nil => simp [dropUntilFirstSep]
-  | cons c rest ih =>
-      simp only [dropUntilFirstSep]
-      split_ifs
-      · intro g hg
-        exact hblock g (List.mem_cons_of_mem _ hg)
-      · exact ih (fun g hg => hblock g (List.mem_cons_of_mem _ hg))
-
 /-- Apply `dropUntilFirstSep sep` to the inner block between two separators,
 then replace the left boundary separator by `sep`.
 
@@ -2947,6 +2932,252 @@ theorem tm0_binMulPairedStep3_update_blockInvSepAnySuffix
     rw [hget]
     simpa [hreconstruct, List.append_assoc] using htape h'
 
+theorem tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default :
+    TM0RealizesBlockCondInvSepAnySuffix (default : ChainΓ)
+      binMulPairedStep3 binMulPairedCond3 binMulPairedStateInv3 := by
+  obtain ⟨Λp, hΛpi, hΛpf, Mp, q_le, q_gt, hne, hp⟩ :=
+    tm0_blockValueLeq_betweenSep_decidable_2 0
+      binMulStateSep₂ (default : ChainΓ)
+      (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+  obtain ⟨Λs, hΛsi, hΛsf, Ms, hMs⟩ :=
+    tm0_binMulPairedStep3_update_blockInvSepAnySuffix
+      (outerSep := (default : ChainΓ))
+      (by simpa [binMulStateSep₂] using Ne.symm chainMulSep₂_ne_default)
+  haveI : DecidableEq Λp := Classical.decEq Λp
+  let hΛsFi : Inhabited (Λs ⊕ FinalizeSt) := ⟨Sum.inl (@default _ hΛsi)⟩
+  let MsF : TM0.Machine ChainΓ (Λs ⊕ FinalizeSt) :=
+    @TM0Seq.compose ChainΓ Λs hΛsi FinalizeSt inferInstance Ms finalizeMachine
+  let Mcond : TM0.Machine ChainΓ (Λp ⊕ FinalizeSt ⊕ (Λs ⊕ FinalizeSt)) :=
+    @tm0CondCompose Λp FinalizeSt (Λs ⊕ FinalizeSt)
+      hΛpi inferInstance hΛsFi inferInstance
+      Mp finalizeMachine MsF q_le q_gt
+  refine ⟨Λp ⊕ FinalizeSt ⊕ (Λs ⊕ FinalizeSt), inferInstance, inferInstance,
+    Mcond, Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)), ?_⟩
+  intro block suffix hInv hblock hblock_nsep hstep_nd hstep_nsep
+  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
+  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
+  have hreconstruct :
+      block = acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel := by
+    simpa [hsplit, hrest, List.append_assoc] using
+      binMulPairedStateInv3_reconstruct block hInv
+  let pref := acc ++ binMulStateSep₁ :: addend
+  have hpref_nd : ∀ x ∈ pref, x ≠ (default : ChainΓ) := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact binMulPairedStateInv3_acc_ne_default block hblock x
+        (by simpa [hsplit] using hx)
+    · simpa [binMulStateSep₁] using chainMulSep₁_ne_default
+    · exact binMulPairedStateInv3_addend_ne_default block hblock x (by
+        simpa [hsplit, hrest] using hx)
+  have hpref_no_sep₂ : ∀ x ∈ pref, x ≠ binMulStateSep₂ := by
+    intro x hx
+    simp [pref] at hx
+    rcases hx with hx | rfl | hx
+    · exact binMulPairedStateInv3_acc_no_sep₂ block hInv x
+        (by simpa [hsplit] using hx)
+    · simpa [binMulStateSep₁, binMulStateSep₂] using chainMulSep₁_ne_chainMulSep₂
+    · exact binMulPairedStateInv3_addend_no_sep₂ block hInv x (by
+        simpa [hsplit, hrest] using hx)
+  have hfuel_nd : ∀ x ∈ fuel, x ≠ (default : ChainΓ) := by
+    simpa [binMulPairedFuel3, hsplit, hrest] using
+      binMulPairedStateInv3_fuel_ne_default block hblock
+  obtain ⟨hp_dom, hp_spec⟩ :=
+    hp pref fuel suffix hpref_nd hpref_no_sep₂ hfuel_nd hfuel_nd
+  have hinput :
+      pref ++ binMulStateSep₂ :: fuel ++ default :: suffix =
+        block ++ default :: suffix := by
+    simp [pref, hreconstruct, List.append_assoc]
+  have hp_dom_block : (TM0Seq.evalCfg Mp (block ++ default :: suffix)).Dom := by
+    simpa [hinput] using hp_dom
+  set cp := (TM0Seq.evalCfg Mp (block ++ default :: suffix)).get hp_dom_block
+  have hcp_get :
+      cp =
+        (TM0Seq.evalCfg Mp
+          (pref ++ binMulStateSep₂ :: fuel ++ default :: suffix)).get hp_dom := by
+    apply Part.get_eq_get_of_eq
+    simp [hinput]
+  have hcp_tape : cp.Tape = Tape.mk₁ (block ++ default :: suffix) := by
+    rw [hcp_get]
+    simpa [hinput] using (hp_spec hp_dom).1
+  have hq_le :
+      blockValueLeq 0 fuel → cp.q = q_le := by
+    intro hle
+    rw [hcp_get]
+    exact (hp_spec hp_dom).2.1 hle
+  have hq_gt :
+      ¬ blockValueLeq 0 fuel → cp.q = q_gt := by
+    intro hle
+    rw [hcp_get]
+    exact (hp_spec hp_dom).2.2 hle
+  have hcond_iff :
+      binMulPairedCond3 block ↔ ¬ blockValueLeq 0 fuel := by
+    simp [binMulPairedCond3, binMulPairedFuel3, hsplit, hrest]
+  have hcp_mem : cp ∈ TM0Seq.evalCfg Mp (block ++ default :: suffix) :=
+    Part.get_mem hp_dom_block
+  have hcp_eval := Turing.mem_eval.mp hcp_mem
+  have hcp_halt : TM0.step Mp cp = none := hcp_eval.2
+  have hcp_reaches : Reaches (TM0.step Mp)
+      (TM0.init (block ++ default :: suffix)) cp := hcp_eval.1
+  have hphase1 := condCompose_phase1_reaches Mp finalizeMachine MsF q_le q_gt
+    cp (block ++ default :: suffix) hcp_reaches
+  change Reaches (TM0.step Mcond) (TM0.init (block ++ default :: suffix))
+    { q := Sum.inl cp.q, Tape := cp.Tape } at hphase1
+  have heval_rewrite :
+      TM0Seq.evalCfg Mcond (block ++ default :: suffix) =
+        Turing.eval (TM0.step Mcond) ⟨Sum.inl cp.q, cp.Tape⟩ := by
+    exact Turing.reaches_eval hphase1
+  by_cases hcond : binMulPairedCond3 block
+  · have hq : cp.q = q_gt := hq_gt (hcond_iff.mp hcond)
+    have hhalt_q : TM0.step Mp ⟨q_gt, cp.Tape⟩ = none := hq ▸ hcp_halt
+    have hstep_block_nd : ∀ g ∈ binMulPairedStep3 block, g ≠ default :=
+      hstep_nd hcond
+    have hstep_block_nsep : ∀ g ∈ binMulPairedStep3 block, g ≠ (default : ChainΓ) :=
+      hstep_nsep hcond
+    obtain ⟨hMs_dom, hMs_spec⟩ :=
+      hMs block suffix hInv hblock hblock_nsep hstep_block_nd hstep_block_nsep
+    have hfinal := compose_finalize_evalCfg Ms (block ++ default :: suffix)
+      (binMulPairedStep3 block ++ default :: suffix)
+      hMs_dom (hMs_spec hMs_dom)
+    have hbranch_dom :
+        (TM0Seq.evalFromCfg MsF ⟨default, cp.Tape⟩).Dom := by
+      rw [hcp_tape]
+      change (TM0Seq.evalFromCfg MsF
+        (TM0.init (block ++ default :: suffix))).Dom
+      rw [TM0Seq.evalFromCfg_init]
+      exact hfinal.1
+    have hbranch_spec :
+        ∀ h, (TM0Seq.evalFromCfg MsF ⟨default, cp.Tape⟩).get h =
+          ⟨Sum.inr FinalizeSt.done,
+            Tape.mk₁ (binMulPairedStep3 block ++ default :: suffix)⟩ := by
+      intro h
+      have heq :
+          TM0Seq.evalFromCfg MsF ⟨default, cp.Tape⟩ =
+            TM0Seq.evalCfg MsF (block ++ default :: suffix) := by
+        rw [hcp_tape]
+        exact TM0Seq.evalFromCfg_init (M := MsF)
+          (l := block ++ default :: suffix)
+      have hget :
+          (TM0Seq.evalFromCfg MsF ⟨default, cp.Tape⟩).get h =
+            (TM0Seq.evalCfg MsF (block ++ default :: suffix)).get hfinal.1 := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hfinal.2 hfinal.1
+    have hbranch_step :
+        ∃ c₂, TM0.step MsF ⟨default, cp.Tape⟩ = some c₂ := by
+      rw [hcp_tape]
+      change ∃ c₂, TM0.step MsF (TM0.init (block ++ default :: suffix)) = some c₂
+      change ∃ c₂, TM0.step MsF
+        ⟨default, Tape.mk₁ (block ++ default :: suffix)⟩ = some c₂
+      rcases hfirst : TM0.step Ms
+          ⟨default, Tape.mk₁ (block ++ default :: suffix)⟩ with _ | c₂
+      · refine ⟨(⟨Sum.inr FinalizeSt.done,
+            Tape.mk₁ (block ++ default :: suffix)⟩ :
+            TM0.Cfg ChainΓ (Λs ⊕ FinalizeSt)), ?_⟩
+        change TM0.step (@TM0Seq.compose ChainΓ Λs hΛsi FinalizeSt inferInstance
+          Ms finalizeMachine) ⟨Sum.inl default,
+            Tape.mk₁ (block ++ default :: suffix)⟩ =
+          some ⟨Sum.inr FinalizeSt.done,
+            Tape.mk₁ (block ++ default :: suffix)⟩
+        rw [TM0Seq.compose_step_on_halt Ms finalizeMachine default
+          (Tape.mk₁ (block ++ default :: suffix)) hfirst]
+        change Option.map
+          (fun c₂ : TM0.Cfg ChainΓ FinalizeSt =>
+            ({ q := Sum.inr c₂.q, Tape := c₂.Tape } :
+              TM0.Cfg ChainΓ (Λs ⊕ FinalizeSt)))
+          (TM0.step finalizeMachine
+            ⟨FinalizeSt.start, Tape.mk₁ (block ++ default :: suffix)⟩) =
+          some ⟨Sum.inr FinalizeSt.done,
+            Tape.mk₁ (block ++ default :: suffix)⟩
+        rw [finalize_step_start]
+        rfl
+      · refine ⟨(⟨Sum.inl c₂.q, c₂.Tape⟩ :
+            TM0.Cfg ChainΓ (Λs ⊕ FinalizeSt)), ?_⟩
+        change TM0.step (@TM0Seq.compose ChainΓ Λs hΛsi FinalizeSt inferInstance
+          Ms finalizeMachine) ⟨Sum.inl default,
+            Tape.mk₁ (block ++ default :: suffix)⟩ =
+          some ⟨Sum.inl c₂.q, c₂.Tape⟩
+        simpa using TM0Seq.compose_step_inl Ms finalizeMachine
+          (⟨default, Tape.mk₁ (block ++ default :: suffix)⟩ :
+            TM0.Cfg ChainΓ Λs) c₂ hfirst
+    have hbranch_eval_dom :
+        (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩).Dom := by
+      change (Turing.eval
+        (TM0.step (tm0CondCompose Mp finalizeMachine MsF q_le q_gt))
+        ⟨Sum.inl q_gt, cp.Tape⟩).Dom
+      exact (condCompose_eval_at_halt_false Mp finalizeMachine MsF q_le q_gt hne
+        cp.Tape hhalt_q).mpr hbranch_dom
+    have hdom : (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).Dom := by
+      rw [heval_rewrite, hq]
+      exact hbranch_eval_dom
+    refine ⟨hdom, ?_⟩
+    intro h
+    have hcfg := condCompose_fixed_at_halt_false_of_step
+      Mp finalizeMachine MsF q_le q_gt hne (Sum.inr FinalizeSt.done) cp.Tape
+      (Tape.mk₁ (binMulPairedStep3 block ++ default :: suffix))
+      hhalt_q hbranch_step hbranch_dom hbranch_spec
+    have hcfg' : (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).get h =
+        ⟨Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)),
+          Tape.mk₁ (binMulPairedStep3 block ++ default :: suffix)⟩ := by
+      have heq :
+          TM0Seq.evalCfg Mcond (block ++ default :: suffix) =
+            Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩ := by
+        rw [heval_rewrite, hq]
+      have hget :
+          (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).get h =
+            (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_gt, cp.Tape⟩).get
+              hbranch_eval_dom := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hcfg hbranch_eval_dom
+    simp [hcond, hcfg']
+  · have hle : blockValueLeq 0 fuel := by
+      by_contra hle
+      exact hcond (hcond_iff.mpr hle)
+    have hq : cp.q = q_le := hq_le hle
+    have hhalt_q : TM0.step Mp ⟨q_le, cp.Tape⟩ = none := hq ▸ hcp_halt
+    obtain ⟨hid_dom, hid_spec⟩ := finalize_evalFromCfg cp.Tape
+    have hid_step : ∃ c₂, TM0.step finalizeMachine ⟨default, cp.Tape⟩ = some c₂ := by
+      exact ⟨⟨FinalizeSt.done, cp.Tape⟩, finalize_step_start cp.Tape⟩
+    have hbranch_eval_dom :
+        (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩).Dom := by
+      change (Turing.eval
+        (TM0.step (tm0CondCompose Mp finalizeMachine MsF q_le q_gt))
+        ⟨Sum.inl q_le, cp.Tape⟩).Dom
+      exact (condCompose_eval_at_halt_true Mp finalizeMachine MsF q_le q_gt
+        cp.Tape hhalt_q).mpr hid_dom
+    have hdom : (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).Dom := by
+      rw [heval_rewrite, hq]
+      exact hbranch_eval_dom
+    refine ⟨hdom, ?_⟩
+    intro h
+    have hcfg := condCompose_fixed_at_halt_true_of_step
+      Mp finalizeMachine MsF q_le q_gt FinalizeSt.done cp.Tape cp.Tape
+      hhalt_q hid_step hid_dom (fun h => hid_spec h)
+    have hcfg' : (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).get h =
+        ⟨Sum.inr (Sum.inl FinalizeSt.done), cp.Tape⟩ := by
+      have heq :
+          TM0Seq.evalCfg Mcond (block ++ default :: suffix) =
+            Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩ := by
+        rw [heval_rewrite, hq]
+      have hget :
+          (TM0Seq.evalCfg Mcond (block ++ default :: suffix)).get h =
+            (Turing.eval (TM0.step Mcond) ⟨Sum.inl q_le, cp.Tape⟩).get
+              hbranch_eval_dom := by
+        apply Part.get_eq_get_of_eq
+        exact heq
+      rw [hget]
+      exact hcfg hbranch_eval_dom
+    have hq_ne :
+        Sum.inr (Sum.inl FinalizeSt.done) ≠
+          (Sum.inr (Sum.inr (Sum.inr FinalizeSt.done)) :
+            Λp ⊕ FinalizeSt ⊕ (Λs ⊕ FinalizeSt)) := by
+      simp
+    simp [hcond, hcfg', hq_ne, hcp_tape]
+
+
 /-- TODO: unconditional suffix-preserving body for the three-separator
 multiplication step.
 
@@ -3384,75 +3615,3 @@ theorem tm0_binMulPairedStep3_blockCondInvSuffix :
             Λp ⊕ FinalizeSt ⊕ (Λs ⊕ FinalizeSt)) := by
       simp
     simp [hcond, hcfg', hq_ne, hcp_tape]
-
-theorem binMulPairedResult3_eq_rev_dropUntil_rev_of_stateInv
-    (block : List ChainΓ) (hInv : binMulPairedStateInv3 block) :
-    (List.reverse ∘ dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) block =
-      binMulPairedResult3 block := by
-  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
-  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
-  have hreconstruct :
-      block = acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel := by
-    simpa [hsplit, hrest, List.append_assoc] using
-      binMulPairedStateInv3_reconstruct block hInv
-  have htail_no_sep₁ :
-      ∀ g ∈ (addend ++ binMulStateSep₂ :: fuel).reverse,
-        g ≠ binMulStateSep₁ := by
-    intro g hg
-    have hg' : g ∈ addend ++ binMulStateSep₂ :: fuel :=
-      List.mem_reverse.mp hg
-    simp at hg'
-    rcases hg' with hg' | rfl | hg'
-    · exact binMulPairedStateInv3_addend_no_sep₁ block hInv g
-        (by simpa [hsplit, hrest] using hg')
-    · simpa [binMulStateSep₁, binMulStateSep₂] using
-        chainMulSep₂_ne_chainMulSep₁
-    · exact binMulPairedStateInv3_fuel_no_sep₁ block hInv g
-        (by simpa [binMulPairedFuel3, hsplit, hrest] using hg')
-  unfold Function.comp binMulPairedResult3
-  rw [hreconstruct]
-  rw [show (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel).reverse =
-      (addend ++ binMulStateSep₂ :: fuel).reverse ++ binMulStateSep₁ :: acc.reverse by
-    simp [List.append_assoc]]
-  rw [dropUntilFirstSep_append_cons binMulStateSep₁
-    (addend ++ binMulStateSep₂ :: fuel).reverse acc.reverse htail_no_sep₁]
-  have hsplit_acc :
-      splitAtSep binMulStateSep₁
-          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel) =
-        (acc, addend ++ binMulStateSep₂ :: fuel) := by
-    simpa [List.append_assoc] using
-      splitAtSep_general_cons binMulStateSep₁ acc
-        (addend ++ binMulStateSep₂ :: fuel)
-        (by simpa [hsplit] using binMulPairedStateInv3_acc_no_sep₁ block hInv)
-  have hsplit_acc' :
-      splitAtSep binMulStateSep₁
-          (acc ++ binMulStateSep₁ :: (addend ++ binMulStateSep₂ :: fuel)) =
-        (acc, addend ++ binMulStateSep₂ :: fuel) := by
-    simpa [List.append_assoc] using hsplit_acc
-  simp [hsplit_acc']
-
-theorem tm0_binMulPairedResult3_blockInvSepAnySuffix {sep : ChainΓ} :
-    TM0RealizesBlockInvSepAnySuffix sep binMulPairedResult3
-      binMulPairedStateInv3 := by
-  have hdrop : TM0RealizesBlockSepAnySuffix ChainΓ sep
-      (List.reverse ∘ dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) := by
-    have h1 : TM0RealizesBlockSepAnySuffix ChainΓ sep
-        (dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) :=
-      tm0RealizesBlockSepAnySuffix_comp
-        tm0_reverse_blockSep_anySuffix
-        (tm0_dropUntilFirstSep_blockSepAnySuffix binMulStateSep₁ sep
-          (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default))
-        (fun block hblock => reverse_ne_default block hblock)
-        (fun block hblock => reverse_ne_sep block hblock)
-    exact tm0RealizesBlockSepAnySuffix_comp
-      h1
-      tm0_reverse_blockSep_anySuffix
-      (fun block hblock =>
-        dropUntilFirstSep_ne_default binMulStateSep₁ block.reverse
-          (reverse_ne_default block hblock))
-      (fun block hblock =>
-        dropUntilFirstSep_ne_marker binMulStateSep₁ sep block.reverse
-          (reverse_ne_sep block hblock))
-  exact tm0RealizesBlockInvSepAnySuffix_congr
-    (tm0RealizesBlockInvSepAnySuffix_of_sepAnySuffix hdrop)
-    binMulPairedResult3_eq_rev_dropUntil_rev_of_stateInv

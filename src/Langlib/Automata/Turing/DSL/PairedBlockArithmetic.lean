@@ -476,6 +476,170 @@ theorem tm0RealizesBlockInvSepAnySuffix_congr {Γ : Type} [Inhabited Γ]
     hM block suffix hInv hblock_nd hblock_nsep hf_nd hf_nsep
   exact ⟨hdom, fun h => by rw [htape h, hfg block hInv]⟩
 
+theorem tm0RealizesBlockSepAnySuffix_comp_invSepAnySuffix
+    {Γ : Type} [Inhabited Γ]
+    {sep : Γ} {f g : List Γ → List Γ} {blockInv : List Γ → Prop}
+    (hf : TM0RealizesBlockSepAnySuffix Γ sep f)
+    (hg : TM0RealizesBlockInvSepAnySuffix sep g blockInv)
+    (hf_inv : ∀ block, (∀ x ∈ block, x ≠ default) →
+      (∀ x ∈ block, x ≠ sep) → blockInv (f block))
+    (hf_nd : ∀ block, (∀ x ∈ block, x ≠ default) →
+      ∀ x ∈ f block, x ≠ default)
+    (hf_nsep : ∀ block, (∀ x ∈ block, x ≠ sep) →
+      ∀ x ∈ f block, x ≠ sep) :
+    TM0RealizesBlockSepAnySuffix Γ sep (g ∘ f) := by
+  obtain ⟨Λf, hΛfi, hΛff, Mf, hMf⟩ := hf
+  obtain ⟨Λg, hΛgi, hΛgf, Mg, hMg⟩ := hg
+  let hsum : Inhabited (Λf ⊕ Λg) := ⟨Sum.inl (@default _ hΛfi)⟩
+  refine ⟨Λf ⊕ Λg, hsum, inferInstance,
+    @TM0Seq.compose Γ Λf hΛfi Λg hΛgi Mf Mg, ?_⟩
+  intro block suffix hblock_nd hblock_nsep hgf_nd hgf_nsep
+  have hfblock_nd := hf_nd block hblock_nd
+  have hfblock_nsep := hf_nsep block hblock_nsep
+  obtain ⟨hf_dom, hf_tape⟩ :=
+    hMf block suffix hblock_nd hblock_nsep hfblock_nd hfblock_nsep
+  obtain ⟨hg_dom, hg_tape⟩ :=
+    hMg (f block) suffix
+      (hf_inv block hblock_nd hblock_nsep)
+      hfblock_nd hfblock_nsep hgf_nd hgf_nsep
+  have hg_from_cfg :
+      (TM0Seq.evalFromCfg Mg
+        ⟨default, ((TM0Seq.evalCfg Mf (block ++ sep :: suffix)).get
+          hf_dom).Tape⟩).Dom := by
+    rw [hf_tape hf_dom]
+    show (TM0Seq.evalFromCfg Mg (TM0.init (f block ++ sep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hg_dom
+  have hcomp_dom :
+      (TM0Seq.evalCfg
+        (@TM0Seq.compose Γ Λf hΛfi Λg hΛgi Mf Mg)
+        (block ++ sep :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff
+      (@TM0Seq.compose Γ Λf hΛfi Λg hΛgi Mf Mg)
+      (block ++ sep :: suffix)).mpr
+        (@TM0Seq.compose_dom_of_parts Γ _ Λf hΛfi Λg hΛgi
+          Mf Mg (block ++ sep :: suffix) hf_dom hg_from_cfg)
+  refine ⟨hcomp_dom, ?_⟩
+  intro h
+  have hcomp_tape :=
+    @TM0Seq.compose_evalCfg_tape Γ _ Λf hΛfi Λg hΛgi Mf Mg
+      (block ++ sep :: suffix) (f block ++ sep :: suffix)
+      hf_dom (hf_tape hf_dom) hg_dom h
+  rw [hcomp_tape]
+  exact hg_tape hg_dom
+
+theorem tm0RealizesBlockAnySuffix_comp_sepAnySuffix
+    {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+    {sep : Γ} {f g : List Γ → List Γ}
+    (hsep_nd : sep ≠ default)
+    (hf : TM0RealizesBlockAnySuffix Γ f)
+    (hg : TM0RealizesBlockSepAnySuffix Γ sep g)
+    (hf_nd : ∀ block, (∀ x ∈ block, x ≠ default) →
+      ∀ x ∈ f block, x ≠ default)
+    (hf_nsep : ∀ block, (∀ x ∈ block, x ≠ default) →
+      ∀ x ∈ f block, x ≠ sep)
+    (hg_nsep : ∀ block, (∀ x ∈ block, x ≠ sep) →
+      ∀ x ∈ g block, x ≠ sep) :
+    TM0RealizesBlockAnySuffix Γ (g ∘ f) := by
+  obtain ⟨Λf, hΛfi, hΛff, Mf, hMf⟩ := hf
+  obtain ⟨Λg, hΛgi, hΛgf, Mg, hMg⟩ := hg
+  let Mpre := boundaryReplaceMachine (default : Γ) sep
+  let Mpost := boundaryReplaceMachine sep (default : Γ)
+  let h12i : Inhabited (Λf ⊕ BoundaryReplaceSt) :=
+    ⟨Sum.inl (@default _ hΛfi)⟩
+  let M12 : TM0.Machine Γ (Λf ⊕ BoundaryReplaceSt) :=
+    @TM0Seq.compose Γ Λf hΛfi BoundaryReplaceSt inferInstance Mf Mpre
+  let h123i : Inhabited ((Λf ⊕ BoundaryReplaceSt) ⊕ Λg) :=
+    ⟨Sum.inl (@default _ h12i)⟩
+  let M123 : TM0.Machine Γ ((Λf ⊕ BoundaryReplaceSt) ⊕ Λg) :=
+    @TM0Seq.compose Γ (Λf ⊕ BoundaryReplaceSt) h12i Λg hΛgi M12 Mg
+  let h1234i :
+      Inhabited (((Λf ⊕ BoundaryReplaceSt) ⊕ Λg) ⊕ BoundaryReplaceSt) :=
+    ⟨Sum.inl (@default _ h123i)⟩
+  let M1234 : TM0.Machine Γ
+      (((Λf ⊕ BoundaryReplaceSt) ⊕ Λg) ⊕ BoundaryReplaceSt) :=
+    @TM0Seq.compose Γ ((Λf ⊕ BoundaryReplaceSt) ⊕ Λg) h123i
+      BoundaryReplaceSt inferInstance M123 Mpost
+  refine ⟨_, h1234i, inferInstance, M1234, ?_⟩
+  intro block suffix hblock_nd hgf_nd
+  have hfblock_nd := hf_nd block hblock_nd
+  have hfblock_nsep := hf_nsep block hblock_nd
+  obtain ⟨hf_dom, hf_tape⟩ := hMf block suffix hblock_nd hfblock_nd
+  have hpre := tm0_boundaryReplace (default : Γ) sep
+    (f block) suffix hfblock_nd hfblock_nd
+  have hpre_from_cfg :
+      (TM0Seq.evalFromCfg Mpre
+        ⟨default, ((TM0Seq.evalCfg Mf
+          (block ++ default :: suffix)).get hf_dom).Tape⟩).Dom := by
+    rw [hf_tape hf_dom]
+    show (TM0Seq.evalFromCfg Mpre
+      (TM0.init (f block ++ default :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hpre.1
+  have hM12_dom :
+      (TM0Seq.evalCfg M12 (block ++ default :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M12
+      (block ++ default :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts Mf Mpre
+        (block ++ default :: suffix) hf_dom hpre_from_cfg)
+  have hM12_tape :
+      ((TM0Seq.evalCfg M12 (block ++ default :: suffix)).get hM12_dom).Tape =
+        Tape.mk₁ (f block ++ sep :: suffix) := by
+    have ht := TM0Seq.compose_evalCfg_tape Mf Mpre
+      (block ++ default :: suffix) (f block ++ default :: suffix)
+      hf_dom (hf_tape hf_dom) hpre.1 hM12_dom
+    rw [ht]
+    exact hpre.2 hpre.1
+  obtain ⟨hg_dom, hg_tape⟩ :=
+    hMg (f block) suffix hfblock_nd hfblock_nsep hgf_nd
+      (hg_nsep (f block) hfblock_nsep)
+  have hg_from_cfg :
+      (TM0Seq.evalFromCfg Mg
+        ⟨default, ((TM0Seq.evalCfg M12
+          (block ++ default :: suffix)).get hM12_dom).Tape⟩).Dom := by
+    rw [hM12_tape]
+    show (TM0Seq.evalFromCfg Mg (TM0.init (f block ++ sep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hg_dom
+  have hM123_dom :
+      (TM0Seq.evalCfg M123 (block ++ default :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M123
+      (block ++ default :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts M12 Mg
+        (block ++ default :: suffix) hM12_dom hg_from_cfg)
+  have hM123_tape :
+      ((TM0Seq.evalCfg M123 (block ++ default :: suffix)).get hM123_dom).Tape =
+        Tape.mk₁ (g (f block) ++ sep :: suffix) := by
+    have ht := TM0Seq.compose_evalCfg_tape M12 Mg
+      (block ++ default :: suffix) (f block ++ sep :: suffix)
+      hM12_dom hM12_tape hg_dom hM123_dom
+    rw [ht]
+    exact hg_tape hg_dom
+  have hpost := tm0_boundaryReplace sep (default : Γ)
+    (g (f block)) suffix hgf_nd (hg_nsep (f block) hfblock_nsep)
+  have hpost_from_cfg :
+      (TM0Seq.evalFromCfg Mpost
+        ⟨default, ((TM0Seq.evalCfg M123
+          (block ++ default :: suffix)).get hM123_dom).Tape⟩).Dom := by
+    rw [hM123_tape]
+    show (TM0Seq.evalFromCfg Mpost
+      (TM0.init (g (f block) ++ sep :: suffix))).Dom
+    rw [TM0Seq.evalFromCfg_init]
+    exact hpost.1
+  have hM1234_dom :
+      (TM0Seq.evalCfg M1234 (block ++ default :: suffix)).Dom := by
+    exact (TM0Seq.evalCfg_dom_iff M1234
+      (block ++ default :: suffix)).mpr
+      (TM0Seq.compose_dom_of_parts M123 Mpost
+        (block ++ default :: suffix) hM123_dom hpost_from_cfg)
+  refine ⟨hM1234_dom, ?_⟩
+  intro h
+  have ht := TM0Seq.compose_evalCfg_tape M123 Mpost
+    (block ++ default :: suffix) (g (f block) ++ sep :: suffix)
+    hM123_dom hM123_tape hpost.1 h
+  rw [ht]
+  simpa [Function.comp] using hpost.2 hpost.1
+
 theorem tm0RealizesBlockInv_comp {Γ : Type} [Inhabited Γ]
     {f g : List Γ → List Γ} {blockInv : List Γ → Prop}
     (hf : TM0RealizesBlockInv f blockInv)
@@ -1626,6 +1790,52 @@ theorem binMulPairedStep3_ne_default (block : List ChainΓ)
   · exact hkeep_nd g hg
   · exact chainMulSep₂_ne_default
   · exact binPred_ne_default _ hfuel g hg
+
+theorem binMulPairedStep3_no_consBottom (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ chainConsBottom)
+    (_hcond : binMulPairedCond3 block) :
+    ∀ g ∈ binMulPairedStep3 block, g ≠ chainConsBottom := by
+  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
+  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
+  have hacc : ∀ g ∈ acc, g ≠ chainConsBottom := by
+    intro g hg
+    exact hblock g (splitAtSep_fst_subset binMulStateSep₁ block g
+      (by simpa [hsplit] using hg))
+  have hrest_block : ∀ g ∈ rest, g ≠ chainConsBottom := by
+    intro g hg
+    exact hblock g (splitAtSep_snd_subset binMulStateSep₁ block g
+      (by simpa [hsplit] using hg))
+  have haddend : ∀ g ∈ addend, g ≠ chainConsBottom := by
+    intro g hg
+    exact hrest_block g (splitAtSep_fst_subset binMulStateSep₂ rest g
+      (by simpa [hrest] using hg))
+  have hfuel : ∀ g ∈ fuel, g ≠ chainConsBottom := by
+    intro g hg
+    exact hrest_block g (splitAtSep_snd_subset binMulStateSep₂ rest g
+      (by simpa [hrest] using hg))
+  have haddInput :
+      ∀ g ∈ acc ++ binMulStateSep₁ :: addend, g ≠ chainConsBottom := by
+    intro g hg
+    rcases List.mem_append.mp hg with hg | hg
+    · exact hacc g hg
+    · cases hg with
+      | head =>
+          simpa [binMulStateSep₁] using chainMulSep₁_ne_chainConsBottom
+      | tail _ hg => exact haddend g hg
+  have hkeep :
+      ∀ g ∈ binAddPairedKeepRightSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend),
+        g ≠ chainConsBottom :=
+    binAddPairedKeepRightSep_no_consBottom binMulStateSep₁
+      (acc ++ binMulStateSep₁ :: addend)
+      (by simpa [binMulStateSep₁] using chainMulSep₁_ne_chainConsBottom)
+      haddInput
+  unfold binMulPairedStep3
+  simp [hsplit, hrest]
+  rintro g (hg | rfl | hg)
+  · exact hkeep g hg
+  · simpa [binMulStateSep₂] using chainMulSep₂_ne_chainConsBottom
+  · exact binPred_no_consBottom fuel g hg
 
 theorem binMulPairedStep3_stateInv (block : List ChainΓ)
     (hInv : binMulPairedStateInv3 block) :
@@ -2938,6 +3148,18 @@ theorem binMulPairedLoop3_ne_default (block : List ChainΓ)
     · simp [blockIterateWhile, hcond]
       exact hblock
 
+theorem binMulPairedLoop3_no_consBottom (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ chainConsBottom) :
+    ∀ g ∈ binMulPairedLoop3 block, g ≠ chainConsBottom := by
+  unfold binMulPairedLoop3
+  induction' decodeBinaryBlock (binMulPairedFuel3 block) with n ih generalizing block
+  · exact hblock
+  · by_cases hcond : binMulPairedCond3 block
+    · simp [blockIterateWhile, hcond]
+      exact ih _ (binMulPairedStep3_no_consBottom _ hblock hcond)
+    · simp [blockIterateWhile, hcond]
+      exact hblock
+
 theorem binMulPairedLoop3_stateInv (block : List ChainΓ)
     (hInv : binMulPairedStateInv3 block) :
     binMulPairedStateInv3 (binMulPairedLoop3 block) := by
@@ -2996,6 +3218,44 @@ theorem tm0_binMulPairedLoop3_blockInvSuffix
     (fun block hblock hInv => binMulPairedLoop3_eq_iterate block hblock hInv)
     (fun block hblock _hInv => binMulPairedLoop3_ne_default block hblock)
 
+theorem tm0_binMulPairedLoop3_blockInvSepAnySuffix_consBottom
+    (hstep : TM0RealizesBlockCondInvSepAnySuffix chainConsBottom
+      binMulPairedStep3 binMulPairedCond3 binMulPairedStateInv3) :
+    TM0RealizesBlockInvSepAnySuffix chainConsBottom
+      binMulPairedLoop3 binMulPairedStateInv3 := by
+  exact tm0RealizesBlockInvSepAnySuffix_while
+    chainConsBottom
+    binMulPairedStep3
+    binMulPairedLoop3
+    binMulPairedCond3
+    binMulPairedStateInv3
+    hstep
+    (fun block hInv _hblock _hcond => binMulPairedStep3_stateInv block hInv)
+    binMulPairedStep3_ne_default
+    binMulPairedStep3_no_consBottom
+    (fun block hblock hInv => binMulPairedLoop3_eq_iterate block hblock hInv)
+    (fun block hblock _hInv => binMulPairedLoop3_ne_default block hblock)
+    (fun block hblock _hInv => binMulPairedLoop3_no_consBottom block hblock)
+
+theorem tm0_binMulPairedLoop3_blockInvSepAnySuffix_default
+    (hstep : TM0RealizesBlockCondInvSepAnySuffix (default : ChainΓ)
+      binMulPairedStep3 binMulPairedCond3 binMulPairedStateInv3) :
+    TM0RealizesBlockInvSepAnySuffix (default : ChainΓ)
+      binMulPairedLoop3 binMulPairedStateInv3 := by
+  exact tm0RealizesBlockInvSepAnySuffix_while
+    (default : ChainΓ)
+    binMulPairedStep3
+    binMulPairedLoop3
+    binMulPairedCond3
+    binMulPairedStateInv3
+    hstep
+    (fun block hInv _hblock _hcond => binMulPairedStep3_stateInv block hInv)
+    binMulPairedStep3_ne_default
+    (fun block hblock hcond => binMulPairedStep3_ne_default block hblock hcond)
+    (fun block hblock hInv => binMulPairedLoop3_eq_iterate block hblock hInv)
+    (fun block hblock _hInv => binMulPairedLoop3_ne_default block hblock)
+    (fun block hblock _hInv => binMulPairedLoop3_ne_default block hblock)
+
 @[simp]
 theorem binMulPairedLoop3_normalized_state (acc addend fuel : ℕ) :
     blockIterateWhile binMulPairedStep3 binMulPairedCond3 fuel
@@ -3022,6 +3282,91 @@ theorem tm0_binMulPairedResult3_block :
   · funext block
     unfold binMulPairedResult3
     exact splitAtSep_fst_eq_takeWhile binMulStateSep₁ block
+
+theorem dropUntilFirstSep_ne_marker {Γ : Type} [DecidableEq Γ]
+    (sep marker : Γ) (block : List Γ)
+    (hblock : ∀ g ∈ block, g ≠ marker) :
+    ∀ g ∈ dropUntilFirstSep sep block, g ≠ marker := by
+  induction block with
+  | nil => simp [dropUntilFirstSep]
+  | cons c rest ih =>
+      simp only [dropUntilFirstSep]
+      split_ifs
+      · intro g hg
+        exact hblock g (List.mem_cons_of_mem _ hg)
+      · exact ih (fun g hg => hblock g (List.mem_cons_of_mem _ hg))
+
+theorem binMulPairedResult3_eq_rev_dropUntil_rev_of_stateInv
+    (block : List ChainΓ) (hInv : binMulPairedStateInv3 block) :
+    (List.reverse ∘ dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) block =
+      binMulPairedResult3 block := by
+  rcases hsplit : splitAtSep binMulStateSep₁ block with ⟨acc, rest⟩
+  rcases hrest : splitAtSep binMulStateSep₂ rest with ⟨addend, fuel⟩
+  have hreconstruct :
+      block = acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel := by
+    simpa [hsplit, hrest, List.append_assoc] using
+      binMulPairedStateInv3_reconstruct block hInv
+  have htail_no_sep₁ :
+      ∀ g ∈ (addend ++ binMulStateSep₂ :: fuel).reverse,
+        g ≠ binMulStateSep₁ := by
+    intro g hg
+    have hg' : g ∈ addend ++ binMulStateSep₂ :: fuel :=
+      List.mem_reverse.mp hg
+    simp at hg'
+    rcases hg' with hg' | rfl | hg'
+    · exact binMulPairedStateInv3_addend_no_sep₁ block hInv g
+        (by simpa [hsplit, hrest] using hg')
+    · simpa [binMulStateSep₁, binMulStateSep₂] using
+        chainMulSep₂_ne_chainMulSep₁
+    · exact binMulPairedStateInv3_fuel_no_sep₁ block hInv g
+        (by simpa [binMulPairedFuel3, hsplit, hrest] using hg')
+  unfold Function.comp binMulPairedResult3
+  rw [hreconstruct]
+  rw [show (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel).reverse =
+      (addend ++ binMulStateSep₂ :: fuel).reverse ++ binMulStateSep₁ :: acc.reverse by
+    simp [List.append_assoc]]
+  rw [dropUntilFirstSep_append_cons binMulStateSep₁
+    (addend ++ binMulStateSep₂ :: fuel).reverse acc.reverse htail_no_sep₁]
+  have hsplit_acc :
+      splitAtSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: addend ++ binMulStateSep₂ :: fuel) =
+        (acc, addend ++ binMulStateSep₂ :: fuel) := by
+    simpa [List.append_assoc] using
+      splitAtSep_general_cons binMulStateSep₁ acc
+        (addend ++ binMulStateSep₂ :: fuel)
+        (by simpa [hsplit] using binMulPairedStateInv3_acc_no_sep₁ block hInv)
+  have hsplit_acc' :
+      splitAtSep binMulStateSep₁
+          (acc ++ binMulStateSep₁ :: (addend ++ binMulStateSep₂ :: fuel)) =
+        (acc, addend ++ binMulStateSep₂ :: fuel) := by
+    simpa [List.append_assoc] using hsplit_acc
+  simp [hsplit_acc']
+
+theorem tm0_binMulPairedResult3_blockInvSepAnySuffix {sep : ChainΓ} :
+    TM0RealizesBlockInvSepAnySuffix sep binMulPairedResult3
+      binMulPairedStateInv3 := by
+  have hdrop : TM0RealizesBlockSepAnySuffix ChainΓ sep
+      (List.reverse ∘ dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) := by
+    have h1 : TM0RealizesBlockSepAnySuffix ChainΓ sep
+        (dropUntilFirstSep binMulStateSep₁ ∘ List.reverse) :=
+      tm0RealizesBlockSepAnySuffix_comp
+        tm0_reverse_blockSep_anySuffix
+        (tm0_dropUntilFirstSep_blockSepAnySuffix binMulStateSep₁ sep
+          (by simpa [binMulStateSep₁] using chainMulSep₁_ne_default))
+        (fun block hblock => reverse_ne_default block hblock)
+        (fun block hblock => reverse_ne_sep block hblock)
+    exact tm0RealizesBlockSepAnySuffix_comp
+      h1
+      tm0_reverse_blockSep_anySuffix
+      (fun block hblock =>
+        dropUntilFirstSep_ne_default binMulStateSep₁ block.reverse
+          (reverse_ne_default block hblock))
+      (fun block hblock =>
+        dropUntilFirstSep_ne_marker binMulStateSep₁ sep block.reverse
+          (reverse_ne_sep block hblock))
+  exact tm0RealizesBlockInvSepAnySuffix_congr
+    (tm0RealizesBlockInvSepAnySuffix_of_sepAnySuffix hdrop)
+    binMulPairedResult3_eq_rev_dropUntil_rev_of_stateInv
 
 theorem tm0_binMulPairedResult_block :
     TM0RealizesBlock ChainΓ binMulPairedResult := by
@@ -3420,6 +3765,98 @@ theorem tm0_binSquareInit3_blockSepAnySuffix {sep : ChainΓ}
       (normalizeBlock block)
       (normalizeBlock_no_of_ne_bits sep hsep0 hsep1 block)
 
+noncomputable def binSquareInit3Normalized (block : List ChainΓ) : List ChainΓ :=
+  chainBinaryRepr 0 ++ [binMulStateSep₁] ++ block ++ [binMulStateSep₂] ++ block
+
+theorem binSquareInit3_eq_normalized_comp :
+    binSquareInit3 = binSquareInit3Normalized ∘ normalizeBlock := by
+  funext block
+  simp [Function.comp, binSquareInit3Normalized, binSquareInit3,
+    copyWithSep, List.append_assoc]
+
+theorem binSquareInit3Normalized_ne_default (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ default) :
+    ∀ g ∈ binSquareInit3Normalized block, g ≠ default := by
+  unfold binSquareInit3Normalized
+  simp
+  rintro g (hg | rfl | hg | rfl | hg)
+  · exact chainBinaryRepr_ne_default _ g hg
+  · exact chainMulSep₁_ne_default
+  · exact hblock g hg
+  · exact chainMulSep₂_ne_default
+  · exact hblock g hg
+
+theorem binSquareInit3Normalized_no_consBottom (block : List ChainΓ)
+    (hblock : ∀ g ∈ block, g ≠ chainConsBottom) :
+    ∀ g ∈ binSquareInit3Normalized block, g ≠ chainConsBottom := by
+  unfold binSquareInit3Normalized
+  simp
+  rintro g (hg | rfl | hg | rfl | hg)
+  · exact chainBinaryRepr_no_consBottom _ g hg
+  · simpa [binMulStateSep₁] using chainMulSep₁_ne_chainConsBottom
+  · exact hblock g hg
+  · simpa [binMulStateSep₂] using chainMulSep₂_ne_chainConsBottom
+  · exact hblock g hg
+
+theorem tm0_binSquareInit3Normalized_blockSepAnySuffix_consBottom :
+    TM0RealizesBlockSepAnySuffix ChainΓ chainConsBottom
+      binSquareInit3Normalized := by
+  rw [show binSquareInit3Normalized =
+      (fun block => chainBinaryRepr 0 ++ [binMulStateSep₁] ++ block) ∘
+        copyWithSep binMulStateSep₂ from ?_]
+  · refine tm0RealizesBlockSepAnySuffix_comp
+      (tm0_copyWithSep_blockSepAnySuffix_outer
+        (sep2 := binMulStateSep₂) (outerSep := chainConsBottom)
+        (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+        chainConsBottom_ne_default)
+      (tm0_prependList_blockSep_anySuffix
+        (chainBinaryRepr 0 ++ [binMulStateSep₁])
+        (by
+          intro g hg
+          rcases List.mem_append.mp hg with hg | hg
+          · exact chainBinaryRepr_ne_default _ g hg
+          · rw [List.mem_singleton.mp hg]
+            exact chainMulSep₁_ne_default)
+        (by
+          intro g hg
+          rcases List.mem_append.mp hg with hg | hg
+          · exact chainBinaryRepr_no_consBottom _ g hg
+          · rw [List.mem_singleton.mp hg]
+            simpa [binMulStateSep₁] using chainMulSep₁_ne_chainConsBottom))
+      ?_ ?_
+    · intro block hblock
+      exact copyWithSep_ne_default
+        (by simpa [binMulStateSep₂] using chainMulSep₂_ne_default)
+        block hblock
+    · intro block hblock
+      exact copyWithSep_ne_sep
+        (by simpa [binMulStateSep₂] using chainMulSep₂_ne_chainConsBottom)
+        block hblock
+  · funext block
+    simp [Function.comp, binSquareInit3Normalized, copyWithSep, List.append_assoc]
+
+theorem tm0_binSquareInit3_blockAnySuffix :
+    TM0RealizesBlockAnySuffix ChainΓ binSquareInit3 := by
+  rw [binSquareInit3_eq_normalized_comp]
+  exact tm0RealizesBlockAnySuffix_comp_sepAnySuffix
+    (sep := chainConsBottom)
+    chainConsBottom_ne_default
+    (tm0RealizesBlockAnySuffix_of_sep_default
+      (tm0_normalizeBlockSep_anySuffix
+        (sep := (default : ChainΓ))
+        (by
+          intro h
+          have := congrArg (fun x : ChainΓ => x.2 K'.main) h
+          simp [γ'ToChainΓ] at this)
+        (by
+          intro h
+          have := congrArg (fun x : ChainΓ => x.2 K'.main) h
+          simp [γ'ToChainΓ] at this)))
+    tm0_binSquareInit3Normalized_blockSepAnySuffix_consBottom
+    (fun block _hblock => normalizeBlock_ne_default block)
+    (fun block _hblock => normalizeBlock_no_consBottom block)
+    binSquareInit3Normalized_no_consBottom
+
 theorem binSquare_eq_direct_loop3 :
     binSquare = binMulPairedResult3 ∘ binMulPairedLoop3 ∘ binSquareInit3 := by
   funext block
@@ -3444,6 +3881,36 @@ theorem tm0_binSquare_block
   · exact tm0_binMulPairedResult3_block
   · exact fun block hblock =>
       binMulPairedLoop3_ne_default _ (binSquareInit3_ne_default block hblock)
+
+theorem tm0_binSquare_blockAnySuffix
+    (hstep : TM0RealizesBlockCondInvSepAnySuffix (default : ChainΓ)
+      binMulPairedStep3 binMulPairedCond3 binMulPairedStateInv3) :
+    TM0RealizesBlockAnySuffix ChainΓ binSquare := by
+  rw [binSquare_eq_direct_loop3]
+  have hinit_loop :
+      TM0RealizesBlockSepAnySuffix ChainΓ (default : ChainΓ)
+        (binMulPairedLoop3 ∘ binSquareInit3) :=
+    tm0RealizesBlockSepAnySuffix_comp_invSepAnySuffix
+      (tm0RealizesBlockSepAnySuffix_default_of_block
+        tm0_binSquareInit3_blockAnySuffix)
+      (tm0_binMulPairedLoop3_blockInvSepAnySuffix_default hstep)
+      (fun block _hblock_nd _hblock_nsep => binSquareInit3_stateInv block)
+      binSquareInit3_ne_default
+      (fun block hblock => binSquareInit3_ne_default block hblock)
+  exact tm0RealizesBlockAnySuffix_of_sep_default
+    (tm0RealizesBlockSepAnySuffix_comp_invSepAnySuffix
+      hinit_loop
+      (tm0_binMulPairedResult3_blockInvSepAnySuffix (sep := (default : ChainΓ)))
+      (fun block hblock_nd _hblock_nsep =>
+        binMulPairedLoop3_stateInv
+          (binSquareInit3 block)
+          (binSquareInit3_stateInv block))
+      (fun block hblock_nd =>
+        binMulPairedLoop3_ne_default _
+          (binSquareInit3_ne_default block hblock_nd))
+      (fun block hblock_nd =>
+        binMulPairedLoop3_ne_default _
+          (binSquareInit3_ne_default block hblock_nd)))
 
 noncomputable def binSquareInit (block : List ChainΓ) : List ChainΓ :=
   chainBinaryRepr 0 ++ [chainConsBottom] ++ duplicateNormalizedPaired block

@@ -227,6 +227,24 @@ theorem tm0_binPairConstSucc_blockSepAnySuffix_of_square
         exact chainBinaryRepr_no_of_ne_bits sep hsep0 hsep1 _)
     (tm0_blockValueLeq_beforeSep_decidable_plain_2 k sep)
 
+theorem tm0_binPairConstSucc_blockAnySuffix (k : ℕ) :
+    TM0RealizesBlockAnySuffix ChainΓ (binPairConstSucc k) := by
+  exact tm0RealizesBlockAnySuffix_of_sep_default
+    (tm0_binPairConstSucc_blockSepAnySuffix_of_square
+      (sep := (default : ChainΓ))
+      (by
+        intro h
+        have := congrArg (fun x : ChainΓ => x.2 K'.main) h
+        simp [γ'ToChainΓ] at this)
+      (by
+        intro h
+        have := congrArg (fun x : ChainΓ => x.2 K'.main) h
+        simp [γ'ToChainΓ] at this)
+      k
+      (tm0RealizesBlockSepAnySuffix_default_of_block
+        (tm0_binSquare_blockAnySuffix
+          tm0_binMulPairedStep3_blockCondInvSepAnySuffix_default)))
+
 /-- The accumulator-level function used by the chain fold. -/
 noncomputable def chainEncodeFoldAccStep
     (T : Type) [Primcodable T] (t : T) : List ChainΓ → List ChainΓ :=
@@ -237,15 +255,22 @@ noncomputable def chainEncodeFoldAccStep
 This deliberately separates the layout/mapping obligation from the arithmetic
 function.  The arithmetic is `chainEncodeFoldAccStep`; this function says how
 that arithmetic acts on the actual `Option (T ⊕ ChainΓ)` tape block. -/
+noncomputable def chainEncodeFoldTapeStepSep
+    (T : Type) [DecidableEq T] [Primcodable T]
+    (sep : Option (T ⊕ ChainΓ)) (t : T) :
+    List (Option (T ⊕ ChainΓ)) → List (Option (T ⊕ ChainΓ)) :=
+  hetFoldAdaptSep sep (chainEncodeFoldAccStep T) t
+
+/-- Default separator instantiation of `chainEncodeFoldTapeStepSep`. -/
 noncomputable def chainEncodeFoldTapeStep
     (T : Type) [DecidableEq T] [Primcodable T] (t : T) :
     List (Option (T ⊕ ChainΓ)) → List (Option (T ⊕ ChainΓ)) :=
-  hetFoldAdapt (chainEncodeFoldAccStep T) t
+  chainEncodeFoldTapeStepSep T (hetSep (T := T) (Γ₀ := ChainΓ)) t
 
 theorem chainEncodeFoldTapeStep_hetMix
     (T : Type) [DecidableEq T] [Fintype T] [Primcodable T]
     (t : T) (ts : List T) (acc : List ChainΓ) :
-    chainEncodeFoldTapeStep T t (hetMix ts acc) =
+  chainEncodeFoldTapeStep T t (hetMix ts acc) =
       hetMix ts (chainEncodeFoldAccStep T t acc) :=
   hetFoldAdapt_hetMix (chainEncodeFoldAccStep T) t ts acc
 
@@ -256,7 +281,7 @@ theorem chainEncodeFoldTapeStep_ne_default
     ∀ g ∈ chainEncodeFoldTapeStep T t block,
       g ≠ (default : Option (T ⊕ ChainΓ)) := by
   intro g hg
-  unfold chainEncodeFoldTapeStep hetFoldAdapt hetFoldAdaptSep separatedAccLift at hg
+  unfold chainEncodeFoldTapeStep chainEncodeFoldTapeStepSep hetFoldAdaptSep separatedAccLift at hg
   simp only [List.mem_append, List.mem_singleton, List.mem_map] at hg
   rcases hg with hfront | hacc
   · rcases hfront with htag | hsep
