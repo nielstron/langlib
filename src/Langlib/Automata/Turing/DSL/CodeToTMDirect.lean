@@ -11,10 +11,10 @@ import Langlib.Automata.Turing.DSL.TM0Composition
 /-! # Direct `ToPartrec.Code` → TM Recognition
 
 This file proves the direct bridge from a semideciding `ToPartrec.Code` to
-`is_TM`.  It composes the user code with `listEncodeCode`, so the generalized
-Partrec chain runs on a variable-length `List ℕ` input representing the encoded
-word.  The tape-level part realizes the finite per-symbol conversion from the
-input alphabet to the shifted chain fragments used by `shiftedEncoding`.
+`is_TM`.  It composes the user code with `listEncodeCode`, so the Partrec chain
+runs on a variable-length `List ℕ` input representing the encoded word.  The
+tape-level part realizes the finite per-symbol conversion from the input
+alphabet to the shifted chain fragments used by `shiftedEncoding`.
 
 ## Key results
 
@@ -522,10 +522,9 @@ theorem code_implies_isTM_of_shifted_converter
   obtain ⟨Λ₀, hΛ₀i, hΛ₀f, M₀, hM₀⟩ := code_to_tm0_fintype_general c'
   obtain ⟨Λ_conv, hΛci, hΛcf, M_conv, hM_conv⟩ := hconv
   letI : Inhabited (Λ_conv ⊕ Λ₀) := ⟨Sum.inl default⟩
-  refine ⟨T ⊕ ChainΓ, inferInstance, Λ_conv ⊕ Λ₀, inferInstance,
+  refine ⟨ChainΓ, inferInstance, Λ_conv ⊕ Λ₀, inferInstance,
     inferInstance,
-    TM0Seq.compose M_conv (directEmbedTM0 (T := T) M₀),
-    Sum.inl, ?_⟩
+    TM0Seq.compose M_conv (directEmbedTM0 (T := T) M₀), ?_⟩
   intro w
   let input : List (Option (T ⊕ ChainΓ)) :=
     w.map (fun x => some (Sum.inl x))

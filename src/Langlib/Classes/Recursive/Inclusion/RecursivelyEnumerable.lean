@@ -251,16 +251,35 @@ lemma recognizer_tm0_eval_iff {Λ : Type} [Inhabited Λ]
 /-- Every recursive language is TM-recognisable.
 
 **Proof**: The decider `M` is converted to a recognizer `M_rec` over
-`Option T` (via `decider_to_recognizer`). With `Γ = T` and `encode = id`,
-the recognizer directly satisfies the generalized `is_TM` definition. -/
+`Option T` (via `decider_to_recognizer`).  We then alphabet-lift it to the
+canonical `is_TM` input alphabet `Option (T ⊕ T)`, where input symbols are
+written as `some (Sum.inl t)`. -/
 theorem is_Recursive_implies_is_TM
     [Fintype T] {L : Language T} (hL : is_Recursive L) : is_TM L := by
   obtain ⟨Λ, hΛ, hΛf, M, accept, halts, hmem⟩ := hL
   letI : Inhabited (Λ ⊕ Unit) := ⟨Sum.inl default⟩
-  exact ⟨T, inferInstance, Λ ⊕ Unit, inferInstance, inferInstance,
-    decider_to_recognizer M accept, id, fun w => by
-    show w ∈ L ↔ (TM0.eval (decider_to_recognizer M accept) (w.map some)).Dom
-    exact recognizer_tm0_eval_iff L M accept halts hmem w⟩
+  let emb : Option T → Option (T ⊕ T)
+    | none => none
+    | some t => some (Sum.inl t)
+  let inv : Option (T ⊕ T) → Option T
+    | none => none
+    | some (Sum.inl t) => some t
+    | some (Sum.inr _) => none
+  have hinv_emb : ∀ a, inv (emb a) = a := by
+    intro a
+    cases a <;> rfl
+  refine ⟨T, inferInstance, Λ ⊕ Unit, inferInstance, inferInstance,
+    TM0AlphabetSim.liftMachine (decider_to_recognizer M accept) emb inv, ?_⟩
+  intro w
+  have hlift :
+      (TM0.eval (decider_to_recognizer M accept) (w.map some)).Dom ↔
+      (TM0.eval
+        (TM0AlphabetSim.liftMachine (decider_to_recognizer M accept) emb inv)
+        ((w.map some).map emb)).Dom := by
+    exact TM0AlphabetSim.lift_eval_dom (decider_to_recognizer M accept)
+      emb inv hinv_emb (by rfl) (w.map some)
+  exact (recognizer_tm0_eval_iff L M accept halts hmem w).trans
+    (by simpa [List.map_map, emb] using hlift)
 
 /-- Every recursive language is recursively enumerable. -/
 theorem is_Recursive_implies_is_RE [DecidableEq T] [Fintype T]

@@ -10,17 +10,17 @@ import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 This file proves that the grammar `tmToGrammar` constructed from a TM0 machine is
 **sound**: it only generates words on which the TM halts.
 
-## Proof strategy for the generalized `is_TM`
+## Proof strategy for `is_TM`
 
-The generalized `is_TM` existentially quantifies the tape alphabet `Γ` and
-an encoding function `encode : T → Γ`. The TM operates over tape alphabet
-`Option Γ` with input encoded as `w.map (fun t => some (encode t))`.
+The `is_TM` definition fixes the input embedding into the tape alphabet:
+input symbols are written as `some (Sum.inl t)`, while the recognizer may use
+additional work symbols from an existential finite alphabet `Γ`.
 
 To reduce to the existing `tmToGrammar` construction (which works with
-`Option Γ` for any `Γ`), we:
-1. Apply `tmToGrammar Γ Λ M` to get a grammar over `Γ`.
-2. Apply `pullbackGrammar` to convert from grammar over `Γ` to grammar over `T`
-   via the encoding function.
+`Option Δ` for any `Δ`), we:
+1. Apply `tmToGrammar (T ⊕ Γ) Λ M` to get a grammar over all tape symbols.
+2. Apply `pullbackGrammar` to convert from grammar over `T ⊕ Γ` to grammar
+   over `T` via the fixed `Sum.inl` inclusion.
 3. Use `pullbackGrammar_language` and `tmToGrammar_correct` to establish
    the language correspondence.
 -/
@@ -33,28 +33,29 @@ theorem tm_recognizable_implies_re
     {T : Type} [DecidableEq T] [Fintype T]
     (L : Language T) :
     is_TM L → is_RE L := by
-  intro ⟨Γ, hΓf, Λ, hΛ, hFin, M, encode, hM⟩
+  intro ⟨Γ, hΓf, Λ, hΛ, hFin, M, hM⟩
   haveI := hΓf
   haveI : DecidableEq Γ := Classical.decEq Γ
   haveI : DecidableEq Λ := Classical.decEq Λ
-  -- Use existing tmToGrammar with the tape alphabet Γ
-  let g := tmToGrammar Γ Λ M
-  -- Pull back the grammar from Γ to T via encode
-  let g' := GrammarPullback.pullbackGrammar g encode
+  let inputSym : T → T ⊕ Γ := Sum.inl
+  -- Use existing tmToGrammar with the full nonblank tape alphabet.
+  let g := tmToGrammar (T ⊕ Γ) Λ M
+  -- Pull back the grammar from tape symbols to input symbols via the fixed inclusion.
+  let g' := GrammarPullback.pullbackGrammar g inputSym
   refine ⟨g', ?_⟩
   ext w
   rw [GrammarPullback.pullbackGrammar_language]
   simp only [grammar_language, Set.mem_setOf_eq, grammar_generates, g]
   constructor
   · intro h
-    have := tmToGrammar_halts_of_generates M (w.map encode) h
-    rw [show (w.map encode).map some = w.map (fun t => some (encode t)) from by
-      simp [List.map_map]] at this
+    have := tmToGrammar_halts_of_generates M (w.map inputSym) h
+    rw [show (w.map inputSym).map some = w.map (fun t => some (Sum.inl t)) from by
+      simp [List.map_map, inputSym]] at this
     exact (hM w).mpr this
   · intro h
     apply tmToGrammar_generates_of_halts
-    rw [show (w.map encode).map some = w.map (fun t => some (encode t)) from by
-      simp [List.map_map]]
+    rw [show (w.map inputSym).map some = w.map (fun t => some (Sum.inl t)) from by
+      simp [List.map_map, inputSym]]
     exact (hM w).mp h
 
 theorem TM_subset_RE {T: Type} [DecidableEq T] [Fintype T] : (TM : Set (Language T)) ⊆ RE
