@@ -3,7 +3,7 @@ import Langlib.Automata.Turing.DSL.SearchProc
 import Langlib.Automata.Turing.DSL.Compile
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
-import Langlib.Automata.Turing.DSL.EncodingBridge
+import Langlib.Automata.Turing.DSL.DirectBridge
 
 /-! # Grammar Membership as a Search Procedure
 
@@ -124,7 +124,7 @@ theorem grammar_language_is_TM_fintype {T : Type} [DecidableEq T] [Fintype T]
     Primcodable.ofEquiv (Fin (Fintype.card g.nt)) (Fintype.truncEquivFin g.nt).out
   have hcomp := grammarTest_computable₂ g
   obtain ⟨c, hc⟩ := search_is_partrec (grammarTest g) hcomp
-  exact code_implies_isTM (grammar_language g) c (fun w => by
+  exact code_implies_isTM_direct (grammar_language g) c (fun w => by
     constructor
     · intro hw
       rw [← hc]

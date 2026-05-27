@@ -3,7 +3,7 @@ import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Automata.Turing.Definition
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.GrammarSearch
 import Langlib.Grammars.Unrestricted.FiniteNonterminals
-import Langlib.Automata.Turing.DSL.EncodingBridge
+import Langlib.Automata.Turing.DSL.DirectBridge
 
 /-! # Unrestricted Grammars → Turing Machines
 
@@ -20,9 +20,9 @@ is TM-recognizable (internally): `RE ⊆ TM`.
 1. Restrict the grammar to finitely many nonterminals.
 2. Show grammar membership is a `Computable₂` search: `w ∈ L ↔ ∃ seq, grammarTest g seq w`.
 3. The µ-search is `Nat.Partrec` (via `search_is_partrec`), giving a `Code`.
-4. Apply `code_implies_isTM` to get `is_TM L`.
+4. Apply `code_implies_isTM_direct` to get `is_TM L`.
 
-Step 4 uses the encoding bridge (`EncodingBridge.lean`).
+Step 4 uses the direct encoding bridge (`DirectBridge.lean`).
 -/
 
 open Turing
@@ -45,8 +45,8 @@ theorem re_implies_tm {T : Type} [DecidableEq T] [Fintype T]
   have hcomp := grammarTest_computable₂ g'
   -- Get the Code from the Partrec chain
   obtain ⟨c, hc⟩ := search_is_partrec (grammarTest g') hcomp
-  -- Apply the encoding bridge
-  exact code_implies_isTM (grammar_language g') c (fun w => by
+  -- Apply the direct encoding bridge
+  exact code_implies_isTM_direct (grammar_language g') c (fun w => by
     constructor
     · intro hw
       rw [← hc]

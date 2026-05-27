@@ -76,7 +76,7 @@
 | ⊊ (⊆ RE [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
 | Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |
-| Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
+| Recursively enumerable languages | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machine languages (Mathlib) |
 
 **Additional results**
 

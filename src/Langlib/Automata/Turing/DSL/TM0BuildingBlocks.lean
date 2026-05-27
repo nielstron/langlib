@@ -4,7 +4,7 @@ import Langlib.Automata.Turing.DSL.TM0Compose
 /-! # TM0 Building Blocks
 
 This file provides TM0 machines for basic operations on blank-free lists.
-These are used as building blocks for the tape converter in `TapeConvert.lean`.
+These are used as building blocks for the finite tape converters in the DSL.
 
 ## Main results
 

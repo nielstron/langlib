@@ -8,6 +8,7 @@ import Langlib.Automata.Turing.DSL.PairedBlockArithmetic
 import Langlib.Automata.Turing.DSL.PairedInvariantEstablisher
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
 import Langlib.Automata.Turing.DSL.BlockSepPrefix
+import Langlib.Automata.Turing.DSL.HetLift
 
 /-! # Chain Encoding Decomposition
 
@@ -162,7 +163,7 @@ theorem tm0Het_fold_blockRealizable
               (some ∘ @Sum.inr T Γ₀)) :=
   tm0Het_fold_blockRealizable' T F f hF hF_body hF_nd hf_nd
 
-/-! ### Deriving chainEncode_fold from the general fold -/
+/-! ### Algebraic chain-encoding fold facts -/
 
 /-- The binary fold over a list matches `chainBinaryRepr (Encodable.encode w)`. -/
 theorem chainEncode_fold_eq {T : Type} [Encodable T] (w : List T) :
@@ -337,6 +338,21 @@ theorem chainEncodeFoldInnerStep_on_acc
       (chainEncodeFoldAccStep T t acc).map (hetAccEmb (T := T)) := by
   simp [chainEncodeFoldInnerStep, List.filterMap_map,
     filterMap_hetAccDecode_comp_hetAccEmb]
+
+theorem map_hetInv_hetAccEmb
+    (T : Type) (acc : List ChainΓ) :
+    acc.map (hetInv T ∘ hetAccEmb (T := T)) = acc := by
+  induction acc with
+  | nil => rfl
+  | cons a acc ih => simp [Function.comp, hetAccEmb, hetInv, ih]
+
+theorem map_hetInv_accBlock_sep_suffix
+    (T : Type) (acc : List ChainΓ)
+    (suffix : List (Option (T ⊕ ChainΓ))) :
+    (((acc.map (hetAccEmb (T := T))) ++
+      hetSep (T := T) (Γ₀ := ChainΓ) :: suffix).map (hetInv T)) =
+      acc ++ default :: suffix.map (hetInv T) := by
+  simp [List.map_append, map_hetInv_hetAccEmb, hetSep, hetInv]
 
 /-- Separator-delimited block realizability with a block invariant.
 
@@ -640,145 +656,6 @@ theorem chainEncodeFoldInnerStep_preserves_accBlock
   exact ⟨chainEncodeFoldAccStep T t acc, by
     rw [chainEncodeFoldInnerStep_on_acc]⟩
 
-/-- Same-alphabet separator lift needed by the chain fold body.
-
-This is the remaining construction obligation: lift the ChainΓ block machine
-for `binPairConstSucc` to the actual het alphabet, operating only on the
-accumulator cells before `hetSep`, while preserving the arbitrary suffix after
-that separator.
-
-The invariant states the active block is made only of embedded accumulator
-symbols.  This is the honest alphabet-boundary obligation: the arithmetic
-machine must not see or reinterpret the preserved suffix. -/
-theorem tm0_chainEncodeFoldInnerStep_blockSepInv
-    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] (t : T) :
-    TM0RealizesBlockSepInv (Option (T ⊕ ChainΓ))
-      (hetSep (T := T) (Γ₀ := ChainΓ))
-      (chainEncodeFoldInnerStep T t)
-      (isHetAccBlock T) := by
-  classical
-  sorry
-
-/-- Concrete separator-lift needed by the chain fold body. -/
-theorem tm0_chainEncodeFoldInnerStep_inner
-    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] (t : T) :
-    TM0RealizesInnerBlockDefaultSepInv (Option (T ⊕ ChainΓ))
-      (hetSep (T := T) (Γ₀ := ChainΓ))
-      (chainEncodeFoldInnerStep T t)
-      (isHetAccBlock T) := by
-  classical
-  exact tm0RealizesBlockSepInv_toInnerDefault
-    (by simp [hetSep])
-    (tm0_chainEncodeFoldInnerStep_blockSepInv T t)
-    (chainEncodeFoldInnerStep_ne_default T t)
-    (chainEncodeFoldInnerStep_ne_sep T t)
-
-/-- Machine-realizability obligation for the concrete chain fold body on
-well-formed het blocks. -/
-theorem tm0_chainEncodeFoldTapeStep_body
-    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
-    TM0RealizesHetFoldBody (T := T) (Γ₀ := ChainΓ)
-      (chainEncodeFoldTapeStep T) := by
-  classical
-  let Γ := Option (T ⊕ ChainΓ)
-  let sep : Γ := hetSep (T := T) (Γ₀ := ChainΓ)
-  have hinner : ∀ t : T,
-      TM0RealizesInnerBlockDefaultSepInv Γ sep
-        (chainEncodeFoldInnerStep T t) (isHetAccBlock T) := by
-    intro t
-    simpa [Γ, sep] using tm0_chainEncodeFoldInnerStep_inner T t
-  choose Λ hΛi hΛf M hM using hinner
-  refine ⟨Λ, hΛi, hΛf, M, ?_⟩
-  intro t ts acc hacc_nd
-  let pfx : List Γ := ts.map (hetTagEmb (Γ₀ := ChainΓ))
-  let inner : List Γ := acc.map (hetAccEmb (T := T))
-  have hinner_inv : isHetAccBlock T inner := by
-    exact ⟨acc, rfl⟩
-  have hpfx_nd : ∀ g ∈ pfx, g ≠ (default : Γ) := by
-    intro g hg
-    rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-    simp [Γ, hetTagEmb]
-  have hpfx_nsep : ∀ g ∈ pfx, g ≠ sep := by
-    intro g hg
-    rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-    change hetTagEmb (Γ₀ := ChainΓ) a ≠ hetSep (T := T) (Γ₀ := ChainΓ)
-    simp [hetTagEmb, hetSep]
-  have hinner_nd : ∀ g ∈ inner, g ≠ (default : Γ) := by
-    intro g hg
-    rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-    simp [Γ, hetAccEmb]
-  have hinner_nsep : ∀ g ∈ inner, g ≠ sep := by
-    intro g hg
-    rcases List.mem_map.mp hg with ⟨a, ha, rfl⟩
-    change hetAccEmb (T := T) a ≠ hetSep (T := T) (Γ₀ := ChainΓ)
-    intro h
-    injection h with hsum
-    injection hsum with hdefault
-    exact hacc_nd a ha hdefault
-  have hstep_nd :
-      ∀ g ∈ chainEncodeFoldInnerStep T t inner, g ≠ (default : Γ) := by
-    rw [chainEncodeFoldInnerStep_on_acc]
-    intro g hg
-    rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-    simp [Γ, hetAccEmb]
-  have hstep_nsep :
-      ∀ g ∈ chainEncodeFoldInnerStep T t inner, g ≠ sep := by
-    rw [chainEncodeFoldInnerStep_on_acc]
-    intro g hg
-    rcases List.mem_map.mp hg with ⟨a, ha, rfl⟩
-    have ha_nd := binPairConstSucc_ne_default (Encodable.encode t) acc hacc_nd a ha
-    simp [sep, hetAccEmb, hetSep, ha_nd]
-  obtain ⟨hdom, htape⟩ :=
-    hM t pfx inner hinner_inv
-      hpfx_nd hpfx_nsep hinner_nd hinner_nsep hstep_nd hstep_nsep
-  have hinput :
-      hetMix (T := T) (Γ₀ := ChainΓ) ts acc ++ [default] =
-        pfx ++ sep :: inner ++ [default] := by
-    simp [pfx, inner, sep, hetMix, hetMixSep, separatedMix]
-  refine ⟨?_, ?_⟩
-  · simpa [hinput] using hdom
-  · intro h
-    have h' :
-        (TM0Seq.evalCfg (M t) (pfx ++ sep :: inner ++ [default])).Dom := by
-      simpa [hinput] using h
-    have hget :
-        (TM0Seq.evalCfg (M t)
-          (hetMix (T := T) (Γ₀ := ChainΓ) ts acc ++ [default])).get h =
-        (TM0Seq.evalCfg (M t) (pfx ++ sep :: inner ++ [default])).get h' := by
-      apply Part.get_eq_get_of_eq
-      simp [hinput]
-    rw [hget, htape h']
-    congr 1
-    rw [chainEncodeFoldInnerStep_on_acc]
-    rw [chainEncodeFoldTapeStep_hetMix]
-    simp [pfx, sep, hetMix, hetMixSep, separatedMix]
-
-/-- Phase 1: Fold computation on heterogeneous tape. -/
-theorem chainEncode_fold
-    (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] :
-    ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
-      (M : TM0.Machine (Option (T ⊕ ChainΓ)) Λ),
-      ∀ w : List T,
-        (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom ∧
-        ∀ (h : (TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).Dom),
-          ((TM0Seq.evalCfg M (w.map (some ∘ Sum.inl))).get h).Tape =
-            Tape.mk₁ ((chainBinaryRepr (Encodable.encode w)).map
-              (some ∘ @Sum.inr T ChainΓ)) := by
-  obtain ⟨Λ, hΛi, hΛf, M, hM⟩ := tm0Het_fold_blockRealizable T
-    (chainEncodeFoldTapeStep T)
-    (chainEncodeFoldAccStep T)
-    (chainEncodeFoldTapeStep_hetMix T)
-    (tm0_chainEncodeFoldTapeStep_body T)
-    (chainEncodeFoldTapeStep_ne_default T)
-    (fun t _ _ => binPairConstSucc_ne_default (Encodable.encode t) _ (by assumption))
-  exact ⟨Λ, hΛi, hΛf, M, fun w => by
-    obtain ⟨hdom, htape⟩ := hM w
-    exact ⟨hdom, fun h => by
-      rw [htape h]
-      congr 1
-      exact congr_arg (List.map (some ∘ @Sum.inr T ChainΓ))
-        (by simpa [chainEncodeFoldAccStep] using chainEncode_fold_eq (T := T) w)⟩⟩
-
 /-! ### Format block operation -/
 
 /-- The chain format operation: reverse a block and prepend `chainConsBottom`. -/
@@ -873,17 +750,15 @@ theorem chainEncode_format (T : Type) [DecidableEq T] [Fintype T] :
 
 /-! ### Summary
 
-The decomposition provides the following path to `chainEncode_realizes`:
+This decomposition keeps the reusable arithmetic and chain-formatting pieces
+available for direct tape converters:
 
-1. `chainEncode_fold` — Phase 1: process input into binary accumulator
-   - Derived from `tm0Het_fold_blockRealizable` (general het fold)
-   - + `tm0_binPairConstSucc_block` (each fold step is block-realizable)
-   - + `chainEncode_fold_eq` (algebraic correctness of the fold)
-2. `chainEncode_format` — Phase 2: reverse + prepend cons marker
-   - Derived from `tm0_chainFormatHetBlock_block` on the actual het tape
-   - + `tm0_chainFormatBlock_block` documents the pure ChainΓ operation
-3. `chainEncode_eq_format` (in TapeConvert) — equational glue
-4. Compose Phase 1 and Phase 2 via `TM0Seq.compose`
+1. `chainEncode_fold_eq` gives the algebraic fold equation for binary
+   accumulator construction.
+2. `tm0_binPairConstSucc_blockSepAnySuffix_of_square` isolates the remaining
+   square-realization obligation needed by that fold style.
+3. `tm0_chainFormatHetBlock_block` realizes the final reverse + cons-marker
+   formatting step on the heterogeneous tape representation.
 
 ### Reuse Architecture
 

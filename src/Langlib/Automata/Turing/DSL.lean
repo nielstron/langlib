@@ -4,7 +4,9 @@ import Langlib.Automata.Turing.DSL.TM0Restrict
 import Langlib.Automata.Turing.DSL.EmptyTM
 import Langlib.Automata.Turing.DSL.ParrecToTM0
 import Langlib.Automata.Turing.DSL.ParrecChain
+import Langlib.Automata.Turing.DSL.CodeListEncode
 import Langlib.Automata.Turing.DSL.Compile
+import Langlib.Automata.Turing.DSL.DirectBridge
 
 /-! # Composable TM Generators / Transformers — DSL Overview
 
