@@ -265,7 +265,7 @@ Helper: splitting flatMap at a nonterminal (ε-free case)
 In the ε-free case, every nonterminal in `ds.flatMap (dToHom' h)` comes from a
     unique DSym element, and we can split ds at that element.
 -/
-private lemma dsym_flatMap_split_at_nonterminal (heps : ∀ a, h a ≠ [])
+private lemma dsym_flatMap_split_at_nonterminal (_heps : ∀ a, h a ≠ [])
     (ds : List (@DSym α g.nt))
     (u v : List (symbol β (g.nt ⊕ α))) (x : g.nt ⊕ α) :
     ds.flatMap (dToHom' h) = u ++ [symbol.nonterminal x] ++ v →
@@ -277,14 +277,14 @@ private lemma dsym_flatMap_split_at_nonterminal (heps : ∀ a, h a ≠ [])
   induction ds generalizing u v;
   · aesop;
   · rename_i d ds ih;
-    rcases d with ( _ | _ | _ ) <;> simp_all +decide [ List.append_assoc ];
-    · rcases u with ( _ | ⟨ y, u ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+    rcases d with ( _ | _ | _ ) <;> simp_all +decide;
+    · rcases u with ( _ | ⟨ y, u ⟩ ) <;> simp_all +decide;
       · intro h;
         cases h;
         exact ⟨ [ ], DSym.nt _, ds, rfl, rfl, by tauto ⟩;
       · grind +locals;
     · intro h;
-      rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+      rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide;
       · use [ ], DSym.unexpanded ‹_›, ds;
         cases h ; aesop;
       · grind +locals;
@@ -293,8 +293,8 @@ private lemma dsym_flatMap_split_at_nonterminal (heps : ∀ a, h a ≠ [])
         have h_prefix : (h ‹_›).map symbol.terminal ++ flatMap (dToHom' h) ds = u ++ symbol.nonterminal x :: v := by
           exact h_eq;
         have h_prefix : ∀ {l₁ l₂ l₃ : List (symbol β (g.nt ⊕ α))}, l₁ ++ l₂ = l₃ ++ symbol.nonterminal x :: v → (∀ y ∈ l₁, y ≠ symbol.nonterminal x) → ∃ u', l₃ = l₁ ++ u' := by
-          intros l₁ l₂ l₃ h_eq h_no_x; induction' l₁ with a l₁ ih generalizing l₃ <;> simp_all +decide [ List.append_assoc ] ;
-          rcases l₃ with ( _ | ⟨ b, l₃ ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+          intros l₁ l₂ l₃ h_eq h_no_x; induction' l₁ with a l₁ ih generalizing l₃ <;> simp_all +decide;
+          rcases l₃ with ( _ | ⟨ b, l₃ ⟩ ) <;> simp_all +decide;
         grind;
       specialize ih u' v;
       simp_all +decide [ List.append_assoc ];
@@ -472,8 +472,6 @@ def reHomomorphismTest [DecidableEq α] [DecidableEq β]
     (p : List α × List (ℕ × ℕ)) (w : List β) : Bool :=
   grammarTest g p.2 p.1 && decide (p.1.flatMap h = w)
 
-set_option maxHeartbeats 1600000
-
 /-- The homomorphic-image search test is computable over finite source alphabets. -/
 theorem reHomomorphismTest_computable₂ [DecidableEq α] [DecidableEq β]
     [Primcodable α] [Primcodable β] [Finite α]
@@ -514,7 +512,7 @@ theorem RE_closed_under_homomorphism [Fintype α] [Fintype β]
       constructor
       · intro hw
         rw [← hc]
-        simp only [Language.homomorphicImage, Language.subst, Set.mem_setOf_eq] at hw
+        simp only [Language.homomorphicImage, Language.subst] at hw
         obtain ⟨x, hxL, hxprod⟩ := hw
         have hxg : x ∈ grammar_language g' := by
           rw [← hlang, hg]
@@ -533,7 +531,7 @@ theorem RE_closed_under_homomorphism [Fintype α] [Fintype β]
           exact grammarTest_sound g' p.2 p.1 hboth.1
         have hxflat : p.1.flatMap h = w := by
           simpa using hboth.2
-        simp only [Language.homomorphicImage, Language.subst, Set.mem_setOf_eq]
+        simp only [Language.homomorphicImage, Language.subst]
         exact ⟨p.1, hxL, (mem_prod_singletons_iff_flatMap p.1 h w).mpr hxflat.symm⟩)
   exact tm_recognizable_implies_re (L.homomorphicImage h) htm
 
