@@ -134,6 +134,7 @@ import Langlib.Classes.Recursive.Definition
 import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
+import Langlib.Classes.RecursivelyEnumerable.Closure.Complement
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
 import Langlib.Classes.RecursivelyEnumerable.Closure.Homomorphism
 import Langlib.Classes.RecursivelyEnumerable.Closure.Intersection
