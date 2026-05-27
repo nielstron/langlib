@@ -13,15 +13,18 @@ import Mathlib
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Utilities.ClosurePredicates
 
-/-! # Context-Free Closure Under Right Quotient with Regular Languages
+/-! # Context-Free Right Quotients
 
-This file proves that context-free languages are closed under right quotient with
-regular languages: if `L` is context-free and `R` is regular, then `L / R`
-is context-free.
+This file proves the sharp closure behavior for right quotients of context-free languages:
 
-## Strategy
+* CFLs are closed under right quotient with regular languages: if `L` is context-free and
+  `R` is regular, then `L / R` is context-free.
+* CFLs are not closed under right quotient with context-free languages.
 
-We use an abstract, closure-property-based proof. The key idea is to "tag" each letter
+## Regular Quotient Strategy
+
+For the positive theorem, we use an abstract, closure-property-based proof.
+The key idea is to "tag" each letter
 with whether it belongs to the kept prefix (`Sum.inl`) or the removed suffix (`Sum.inr`),
 then intersect with a regular "block" language that enforces the structure and R-membership,
 and finally erase the suffix tags via substitution.
@@ -41,12 +44,25 @@ Concretely, given a CFL `L` over `T` and a regular language `R` over `T`:
 
 5. **Correctness**: `(L.subst σ ⊓ blockLang R).subst η = L / R`.
 
+## CFL Quotient Counterexample
+
+For the negative theorem, the witness is
+`quotientNumerator / quotientDenominator`, where
+
+* `quotientNumerator = {a^(2n)b^n | n ≥ 1}*`
+* `quotientDenominator = {b^n a^n | n ≥ 1}* {b}`
+
+with `false = a` and `true = b`. Both languages are CFLs. Their quotient has unary
+regular slice exactly `{a^(2^(k+1)) | k ∈ ℕ}`, which is not CFL by the pumping lemma.
+
 ## Main declarations
 
 - `blockLang` — the regular "block" language
 - `blockLangDFA` — a DFA recognising `blockLang R`
 - `is_CF_rightQuotient_regular` — the main theorem (`is_CF` formulation)
 - `Language.IsContextFree.rightQuotient_regular` — Mathlib-style formulation
+- `quotient_slice_eq_unaryPow2` — identifies the unary slice of the CFL/CFL quotient
+- `CF_notClosedUnderRightQuotient` — CFLs are not closed under right quotient by CFLs
 -/
 
 open Language Set List
