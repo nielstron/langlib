@@ -132,6 +132,7 @@ import Langlib.Classes.Recursive.Closure.Complement
 import Langlib.Classes.Recursive.Decidability.Membership
 import Langlib.Classes.Recursive.Definition
 import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
+import Langlib.Classes.Recursive.Inclusion.StrictRecursivelyEnumerable
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Classes.RecursivelyEnumerable.Closure.Complement

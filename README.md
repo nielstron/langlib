@@ -75,7 +75,7 @@
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ | LBA languages (LBA ⇔? DLBA) |
 | ⊊ (⊆ RE [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
 | Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
-| ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |
+| ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |
 | Recursively enumerable languages | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/TMEqualsRE.lean) | Turing-machine languages (Mathlib) |
 
 **Additional results**
