@@ -1,11 +1,17 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.TM0Compose
+import Langlib.Automata.Turing.DSL.TM0Composition
 
 /-! # TM0 Reverse Block Machine
 
 The machine is parameterized by a separator `sep` that marks the right end of
 the block. It works on any separator as long as block elements are distinct
 from both `default` (the tape blank) and `sep`.
+
+## Key results
+
+- `RevBlock.MSep`: the separator-parametric reverse-block TM0 machine.
+- `RevBlock.full_reaches`: the machine reaches a reversed block plus suffix.
+- `RevBlock.full_reaches_default`: blank-delimited specialization.
 -/
 
 open Turing

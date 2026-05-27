@@ -43,7 +43,7 @@ Boolean combinators.
 
 ## Compilation to TM0
 
-The key theorem `SearchProc.toTM0` (in `Compile.lean`) states:
+The search-to-machine compilation lives in `SearchProcToTM0.lean`.
 if the enumeration and test are "TM-computable" (formalized via
 a computability predicate), then the search procedure compiles to
 a TM0 machine satisfying `is_TM`.

@@ -1,8 +1,8 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.BlockRealizability
-import Langlib.Automata.Turing.DSL.BlockSepPrefix
-import Langlib.Automata.Turing.DSL.DropWhileNeSep
-import Langlib.Automata.Turing.DSL.TakeWhileBlock
+import Langlib.Automata.Turing.DSL.TM0BlockRealizability
+import Langlib.Automata.Turing.DSL.InnerBlockRealizability
+import Langlib.Automata.Turing.DSL.DropFromLastSep
+import Langlib.Automata.Turing.DSL.TakeWhileNeSepMachine
 
 /-! # DropUntilFirstSep is Block-Realizable
 
@@ -15,6 +15,13 @@ The machine has four states:
 - `wSep`: move right → `done`.
 - `wOther`: move right → `erase`.
 - `done`: halt.
+
+## Key results
+
+- `dufsM`: the drop-until-first-separator TM0 machine.
+- `dufs_reaches_halts`: exact reaching behavior on separator-containing blocks.
+- `tm0_dropUntilFirstSep_blockSepAnySuffix`: separator-delimited block
+  realizability for `dropUntilFirstSep`.
 -/
 
 open Turing PartrecToTM2 TM2to1

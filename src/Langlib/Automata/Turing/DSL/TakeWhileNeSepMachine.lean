@@ -1,6 +1,6 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.BlockRealizability
-import Langlib.Automata.Turing.DSL.DropWhileNeSep
+import Langlib.Automata.Turing.DSL.TM0BlockRealizability
+import Langlib.Automata.Turing.DSL.DropFromLastSep
 
 /-! # TakeWhile (· ≠ sep) is Block-Realizable
 
@@ -11,6 +11,12 @@ We prove `List.takeWhile (· ≠ sep)` is block-realizable by showing:
 and proving `dropFromLastSep sep` is block-realizable via a simple 7-state
 TM0 machine that iteratively scans for `sep` and erases the block prefix
 up to (and including) the first `sep`, repeating until no `sep` remains.
+
+## Key results
+
+- `dropUntilFirstSep`: drops through the first occurrence of `sep`.
+- `tm0_dropFromLastSep_direct`: realizes `dropFromLastSep sep` by TM0.
+- `tm0_takeWhileNeSep'`: realizes `List.takeWhile (· ≠ sep)` by TM0.
 -/
 
 open Turing

@@ -2,7 +2,7 @@ import Mathlib
 import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
 
-/-! # Grammar Pullback (Inverse Homomorphism)
+/-! # Grammar Inverse Homomorphism
 
 Given a grammar `g` over terminal alphabet `Γ` and a map `encode : T → Γ`
 (with `[Fintype T]`), we construct a grammar
@@ -12,6 +12,12 @@ Given a grammar `g` over terminal alphabet `Γ` and a map `encode : T → Γ`
 
 This is the inverse-homomorphism construction used to change the terminal
 alphabet of a grammar along an encoding function.
+
+## Key results
+
+- `GrammarPullback.pullbackGrammar`: constructs the pulled-back grammar.
+- `GrammarPullback.pullbackGrammar_language`: proves
+  `w ∈ pullbackGrammar g encode` iff `w.map encode ∈ grammar_language g`.
 -/
 
 namespace GrammarPullback

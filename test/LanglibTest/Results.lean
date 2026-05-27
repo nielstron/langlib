@@ -14,7 +14,7 @@ import Langlib.Classes.Regular.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
-import Langlib.Automata.Turing.Equivalence.RecursivelyEnumerable
+import Langlib.Automata.Turing.Equivalence.TMEqualsRE
 
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.WrittenByOthers.PrintSorries

@@ -34,7 +34,7 @@ eventually appears (surjectivity onto the range).
 ## References
 
 This is the "generator" layer of the DSL described in the module
-`Langlib.Automata.Turing.DSL.SearchProc`.
+`Langlib.Automata.Turing.DSL.SearchProcedure`.
 -/
 
 /-- An enumeration of elements of type `α`.

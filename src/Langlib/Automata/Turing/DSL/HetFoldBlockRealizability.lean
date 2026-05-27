@@ -1,5 +1,5 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.BlockRealizability
+import Langlib.Automata.Turing.DSL.TM0BlockRealizability
 import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine
 
 /-! # Heterogeneous Fold via Reverse + While Loop
@@ -41,6 +41,13 @@ hence non-default (`none`), so this is a valid block for
 The fold identity `List.foldr f [] w = List.foldl (fun a t => f t a) [] w.reverse`
 connects the right-to-left fold to the left-to-right while loop on the
 reversed input.
+
+## Key results
+
+- `tm0RealizesBlock_while`: generic TM0 while-loop combinator for blocks.
+- `hetFold_decomp`: decomposition of the heterogeneous fold into reverse plus
+  while-loop iteration.
+- `tm0Het_fold_blockRealizable'`: block-realizability of the heterogeneous fold.
 -/
 
 open Turing

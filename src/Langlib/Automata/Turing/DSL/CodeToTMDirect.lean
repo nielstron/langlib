@@ -1,23 +1,30 @@
 import Mathlib
 import Langlib.Automata.Turing.Definition
-import Langlib.Automata.Turing.DSL.AlphabetSim
-import Langlib.Automata.Turing.DSL.BlockSepPrefix
-import Langlib.Automata.Turing.DSL.ChainAlphabet
-import Langlib.Automata.Turing.DSL.CodeListEncode
-import Langlib.Automata.Turing.DSL.HetFoldDecomp
-import Langlib.Automata.Turing.DSL.ParrecChain
-import Langlib.Automata.Turing.DSL.TM0Compose
+import Langlib.Automata.Turing.DSL.TM0AlphabetSimulation
+import Langlib.Automata.Turing.DSL.InnerBlockRealizability
+import Langlib.Automata.Turing.DSL.PartrecChainAlphabet
+import Langlib.Automata.Turing.DSL.ListEncodeCode
+import Langlib.Automata.Turing.DSL.HetFoldBlockRealizability
+import Langlib.Automata.Turing.DSL.PartrecCodeToTM0
+import Langlib.Automata.Turing.DSL.TM0Composition
 
-/-! # Direct `Code → is_TM` bridge scaffold
+/-! # Direct `ToPartrec.Code` → TM Recognition
 
-This file factors the currently hard encoding bridge through
-`CodeListEncode.lean`.
+This file factors the encoding bridge through `ListEncodeCode.lean`.
 
 The old bridge asks a preprocessing TM to compute `Encodable.encode w` on the
 tape.  The direct route composes the user `ToPartrec.Code` with a Code-level
 list encoder, then uses the generalized Partrec chain on a variable-length
 `List ℕ` input.  The remaining machine obligation is therefore only a finite
 per-symbol conversion from identity input to `shiftedEncoding`.
+
+## Key results
+
+- `shifted_converter_exists`: realizes the finite per-symbol conversion.
+- `directEmbedTM0_eval_dom`: alphabet lifting preserves the embedded TM0's
+  halting domain.
+- `code_implies_isTM_direct`: a `ToPartrec.Code` recognizing a language gives
+  `is_TM` for that language.
 -/
 
 open Turing PartrecToTM2 TM2to1

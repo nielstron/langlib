@@ -1,7 +1,7 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.ParrecChain
+import Langlib.Automata.Turing.DSL.PartrecCodeToTM0
 
-/-! # Chain Alphabet — Binary Representation on ChainΓ
+/-! # Partrec Chain Alphabet Fragments
 
 This file provides basic definitions and lemmas for working with the
 chain tape alphabet `ChainΓ`:
@@ -9,6 +9,12 @@ chain tape alphabet `ChainΓ`:
 - `γ'ToChainΓ` and `chainConsBottom`: distinguished cells
 - `chainBinaryRepr`: binary representation of natural numbers as ChainΓ cells
 - Basic non-defaultness properties used by the direct code bridge
+
+## Key results
+
+- `chainConsBottom_ne_default`: the cons-bottom marker is a valid nonblank cell.
+- `chainBinaryRepr_zero`: zero is represented by the empty fragment.
+- `chainBinaryRepr_ne_default`: every encoded natural-number cell is nonblank.
 -/
 
 open Turing PartrecToTM2 TM2to1

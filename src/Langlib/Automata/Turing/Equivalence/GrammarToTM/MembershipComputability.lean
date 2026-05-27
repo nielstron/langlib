@@ -1,9 +1,9 @@
 import Mathlib
 import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipTest
 import Langlib.Utilities.PrimrecHelpers
 
-/-! # Computability of Grammar Operations
+/-! # Computability of the Grammar Membership Test
 
 This file establishes that the `grammarTest` function is `Computable₂`.
 

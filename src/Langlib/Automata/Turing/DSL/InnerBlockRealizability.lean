@@ -1,9 +1,9 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.TM0Compose
-import Langlib.Automata.Turing.DSL.BlockRealizability
-import Langlib.Automata.Turing.DSL.ReverseBlock
+import Langlib.Automata.Turing.DSL.TM0Composition
+import Langlib.Automata.Turing.DSL.TM0BlockRealizability
+import Langlib.Automata.Turing.DSL.ReverseBlockMachine
 
-/-! # Block-Separator Prefix Preservation
+/-! # Inner-Block Realizability
 
 This file shows that any `TM0RealizesBlockSep Γ sep f` can be lifted to
 operate on an *inner* block of a two-separator tape, preserving the prefix.

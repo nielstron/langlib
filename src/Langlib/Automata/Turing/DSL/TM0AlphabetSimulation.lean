@@ -1,7 +1,7 @@
 import Mathlib
 import Langlib.Automata.Turing.Definition
-import Langlib.Automata.Turing.DSL.EmptyTM
-import Langlib.Automata.Turing.DSL.TM0Restrict
+import Langlib.Automata.Turing.DSL.EmptyAlphabetTM
+import Langlib.Automata.Turing.DSL.TM0FiniteSupport
 
 /-! # Alphabet Simulation for TM0
 

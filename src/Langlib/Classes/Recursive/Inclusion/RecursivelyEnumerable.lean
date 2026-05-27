@@ -1,6 +1,6 @@
 import Mathlib
 import Langlib.Automata.Turing.Equivalence.TMToGrammar
-import Langlib.Automata.Turing.DSL.AlphabetSim
+import Langlib.Automata.Turing.DSL.TM0AlphabetSimulation
 import Langlib.Classes.Recursive.Definition
 import Langlib.Classes.RecursivelyEnumerable.Definition
 

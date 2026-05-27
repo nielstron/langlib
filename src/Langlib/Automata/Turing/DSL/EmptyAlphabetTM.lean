@@ -5,6 +5,12 @@ import Langlib.Automata.Turing.Definition
 
 When `T = Empty`, every language over `T` is trivially TM-recognizable,
 since `List Empty = {[]}` and any language is either `∅` or `{[]}`.
+
+## Key results
+
+- `alwaysHaltTM_halts`: the trivial halting TM halts on every input.
+- `neverHaltTM_diverges`: the trivial moving TM never halts.
+- `is_TM_of_empty`: every language over `Empty` is TM-recognizable.
 -/
 
 open Turing

@@ -1,5 +1,5 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.TM0Restrict
+import Langlib.Automata.Turing.DSL.TM0FiniteSupport
 
 /-! # TM0 Re-rooting and Chain Infrastructure
 

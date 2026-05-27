@@ -1,7 +1,7 @@
 import Mathlib
 import Langlib.Grammars.Unrestricted.Toolbox
 
-/-! # Decidability of Grammar Operations
+/-! # Decidable Grammar Membership Test
 
 This file shows that the basic operations of unrestricted grammars are
 decidable / computable, which is needed to express grammar membership

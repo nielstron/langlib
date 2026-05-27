@@ -1,7 +1,7 @@
 import Mathlib
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Grammars.Unrestricted.Pullback
+import Langlib.Grammars.Unrestricted.InverseHomomorphism
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 

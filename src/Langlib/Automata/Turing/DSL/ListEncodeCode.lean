@@ -9,6 +9,14 @@ computes list encoding from a variable-length `List ℕ` input.
 
 The remaining tape-level bridge then only has to translate each finite input
 symbol to a fixed chain fragment.
+
+## Key results
+
+- `pairCode_eval`: the `Nat.pair` helper code is correct.
+- `listEncodeCode_eval`: `listEncodeCode` computes `Encodable.encode` for
+  lists of natural numbers.
+- `composedCode_halts_iff`: composing a user code with `listEncodeCode`
+  recognizes shifted list encodings.
 -/
 
 open Turing ToPartrec

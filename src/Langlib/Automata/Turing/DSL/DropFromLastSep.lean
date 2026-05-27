@@ -1,7 +1,15 @@
 import Mathlib
 
-/-! # DropFromLastSep: Generic erase-prefix-through-last-separator
-Generic definitions for `dropFromLastSep`.
+/-! # Drop from the Last Separator
+
+This file contains the list-level operation used by separator-erasing block
+machines.
+
+## Key results
+
+- `dropFromLastSep`: drops everything through the final occurrence of `sep`.
+- `dropFromLastSep_not_mem`: if `sep` is absent, the operation is the identity.
+- `dropFromLastSep_ne_default`: non-default cells stay non-default.
 -/
 open Turing
 

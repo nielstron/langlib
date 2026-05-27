@@ -1,10 +1,10 @@
 import Mathlib
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Grammars.Unrestricted.FiniteNonterminals
-import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
-import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
-import Langlib.Automata.Turing.DSL.Compile
-import Langlib.Automata.Turing.DSL.DirectBridge
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipComputability
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipTest
+import Langlib.Automata.Turing.DSL.SearchProcToTM0
+import Langlib.Automata.Turing.DSL.CodeToTMDirect
 
 /-! # Unrestricted Grammars → Turing Machines
 
@@ -23,7 +23,7 @@ is TM-recognizable (internally): `RE ⊆ TM`.
 3. The µ-search is `Nat.Partrec` (via `search_is_partrec`), giving a `Code`.
 4. Apply `code_implies_isTM_direct` to get `is_TM L`.
 
-Step 4 uses the direct encoding bridge (`DirectBridge.lean`).
+Step 4 uses the direct encoding bridge (`CodeToTMDirect.lean`).
 -/
 
 open Turing

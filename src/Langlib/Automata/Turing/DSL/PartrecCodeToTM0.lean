@@ -1,5 +1,5 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.ParrecToTM0
+import Langlib.Automata.Turing.DSL.TM0ChainInfrastructure
 
 /-! # Partrec Code → TM0 Assembly
 
@@ -10,36 +10,10 @@ evaluated by a TM0 machine.
 ## Main results
 
 - `partrec_init_trCfg` — TrCfg for PartrecToTM2.init (the key lemma)
-- `code_to_tm0_halts` — full chain: Code halts iff TM0 halts (PROVED)
-- `code_to_tm0` — existential form (PROVED, no Fintype on states)
-- `code_to_tm0_fintype` — with Fintype states (PROVED)
-
-## Hurdles for Fintype states
-
-The main obstacle to proving `code_to_tm0_fintype` is a **Lean `Inhabited`
-instance mismatch**:
-
-1. `PartrecToTM2.tr_supports c k` produces `TM2.Supports` with a
-   *code-dependent* `Inhabited` instance: `⟨trNormal c k⟩`. The canonical
-   `Inhabited PartrecToTM2.Λ'` uses `⟨ret halt⟩` instead.
-
-2. `TM1to0.instInhabitedΛ'` defines `default = (some (M default), default)`,
-   so the `Inhabited` instance for `ChainΛ_TM0` depends on the upstream
-   `Inhabited ChainΛ_TM1`, which in turn depends on `Inhabited PartrecToTM2.Λ'`.
-
-3. These instances are **not definitionally equal**, causing Lean to reject
-   `exact` when the support proof uses one instance but the goal expects another.
-
-**This is NOT a mathematical obstacle** — the support sets are the same regardless
-of the `Inhabited` choice. But it requires either:
-- Refactoring `PartrecToTM2.tr_supports` to use the canonical instance
-  (requires `ret halt ∈ codeSupp c halt`, which is not true for all codes)
-- Or carefully threading `@`-explicit instances through the entire chain
-  (very tedious but mechanically straightforward)
-
-Additionally, `init_q0_mem_chainSuppTM0` (initial state ∈ support) needs:
-- `trNormal c halt ∈ codeSupp c halt` (true but needs induction on Code)
-- `some (ChainTM1 q) ∈ TM1.stmts` for `q ∈ chainSuppTM1` (follows from stmts₁_self)
+- `code_to_tm0_halts` — full chain: Code halts iff TM0 halts
+- `code_to_tm0` — existential form, without finite state restriction
+- `code_to_tm0_fintype` / `code_to_tm0_fintype_general` — finite-state TM0
+  realizations for unary and list inputs
 -/
 
 open Turing PartrecToTM2 TM2to1
@@ -280,4 +254,3 @@ theorem code_to_tm0_fintype_general (c : ToPartrec.Code) :
   rw [chainTM0_trCfg_eq_general c v]
   exact ParrecToTM0.tm0RestrictReroot_eval_dom M₀ S hTM0 q₀ hq₀
     (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList v))
-

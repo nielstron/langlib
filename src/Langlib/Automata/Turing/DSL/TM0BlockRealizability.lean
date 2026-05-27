@@ -1,7 +1,7 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.TM0Compose
-import Langlib.Automata.Turing.DSL.TM0BuildingBlocks
-import Langlib.Automata.Turing.DSL.ReverseBlock
+import Langlib.Automata.Turing.DSL.TM0Composition
+import Langlib.Automata.Turing.DSL.TM0MapBlankfree
+import Langlib.Automata.Turing.DSL.ReverseBlockMachine
 
 /-! # Block Realizability Framework
 

@@ -1,13 +1,14 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.TM0Compose
+import Langlib.Automata.Turing.DSL.TM0Composition
 
-/-! # TM0 Building Blocks
+/-! # TM0 Blank-Free Map Machine
 
-This file provides TM0 machines for basic operations on blank-free lists.
-These are used as building blocks for the finite tape converters in the DSL.
+This file provides the TM0 machine that maps a function over a blank-free
+input block and rewinds to the left edge.
 
 ## Main results
 
+- `TM0BB.mapM` — the concrete map-and-rewind TM0 machine.
 - `TM0BB.tm0_map_blankfree` — a TM0 that applies a function to each cell of a
   blank-free list, producing `Tape.mk₁ (l.map f)` as the output tape.
 -/

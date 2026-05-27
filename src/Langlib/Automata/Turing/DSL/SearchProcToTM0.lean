@@ -1,9 +1,9 @@
 import Mathlib
-import Langlib.Automata.Turing.DSL.SearchProc
-import Langlib.Automata.Turing.DSL.TM0Restrict
-import Langlib.Automata.Turing.DSL.EmptyTM
-import Langlib.Automata.Turing.DSL.ParrecToTM0
-import Langlib.Automata.Turing.DSL.ParrecChain
+import Langlib.Automata.Turing.DSL.SearchProcedure
+import Langlib.Automata.Turing.DSL.TM0FiniteSupport
+import Langlib.Automata.Turing.DSL.EmptyAlphabetTM
+import Langlib.Automata.Turing.DSL.TM0ChainInfrastructure
+import Langlib.Automata.Turing.DSL.PartrecCodeToTM0
 
 /-! # Compilation of Search Procedures to TM0
 
@@ -23,14 +23,9 @@ by a TM0 machine.
 
 ## Architecture note
 
-The compilation produces a TM0 over the chain's internal alphabet (`ChainΓ`),
-not over `Option T`. Converting to `Option T` requires **alphabet simulation**
-(encoding `ChainΓ` symbols as blocks of `Option T` symbols), which is a
-standard but substantial result in TM theory. The theorem
-
-The key mathematical content — that computable search is TM-recognizable —
-is fully proved here. The alphabet/encoding conversion to obtain the full
-`is_TM` result is a separate, orthogonal concern.
+This file compiles computable witness search to the internal Partrec-chain
+TM0 alphabet. The final alphabet/encoding bridge to `is_TM` is supplied by
+`CodeToTMDirect.lean`.
 -/
 
 open Turing
