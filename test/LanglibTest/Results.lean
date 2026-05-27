@@ -14,6 +14,7 @@ import Langlib.Classes.Regular.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
+import Langlib.Automata.Turing.Equivalence.TMEqualsRE
 
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.WrittenByOthers.PrintSorries
@@ -33,6 +34,8 @@ This file checks that the main closure and non-closure theorems elaborate.
 - `RE_of_RE_u_RE`
 - `RE_of_reverse_RE`
 - `RE_of_RE_c_RE`
+- `TM_eq_RE`
+- `is_TM_iff_is_RE`
 - `Language.prefixLang`
 - `Language.suffixLang`
 - `Language.IsRegular.prefixLang`
@@ -95,3 +98,13 @@ section unrestricted
 #print_sorries_in RE_of_RE_c_RE
 
 end unrestricted
+
+section turing_equivalence
+
+#check            TM_eq_RE
+#print_sorries_in TM_eq_RE
+
+#check            is_TM_iff_is_RE
+#print_sorries_in is_TM_iff_is_RE
+
+end turing_equivalence
