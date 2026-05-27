@@ -1,2 +1,0 @@
-#!/bin/sh
-exec uv run aristotle submit "$@" --project-dir .
