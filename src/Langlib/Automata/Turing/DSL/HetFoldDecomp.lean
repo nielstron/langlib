@@ -726,16 +726,11 @@ theorem hetFoldWhile_ne_default
 
     This weakens `TM0RealizesBlockCond` by only requiring the machine to
     work on blocks satisfying `blockInv`, with empty suffix.
-    This is necessary for the het fold step because the lifted inner
-    machine `M_t` (from `TM0RealizesBlock Γ₀ (f t)`) can only correctly
-    handle well-formed het blocks: through the alphabet inverse `hetInv`,
-    `Sum.inl` elements map to `default`, making them indistinguishable
-    from blanks. A machine proved via `TM0RealizesBlock Γ₀` may write to
-    cells outside the block during execution and restore them at the end;
-    through the lift, such writes corrupt `Sum.inl` elements that happen
-    to appear in the "blank" region from the lifted machine's perspective.
-    Restricting to well-formed blocks (where `inl` and `inr` elements are
-    properly separated) with empty suffix avoids this issue. -/
+    This is necessary for the het fold step because each conditional
+    step is only specified on well-formed blocks, where `inl` heads and
+    `inr` payloads are properly separated. Keeping the suffix empty
+    prevents the block machine contract from needing to preserve unrelated
+    heterogeneous tape cells beyond the active block. -/
 def TM0RealizesBlockCondInv {Γ : Type} [Inhabited Γ]
     (step : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
     (blockInv : List Γ → Prop) : Prop :=

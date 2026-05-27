@@ -32,7 +32,6 @@ import Langlib.Automata.Turing.DSL.DropWhileNeSep
 import Langlib.Automata.Turing.DSL.EmptyTM
 import Langlib.Automata.Turing.DSL.Enumeration
 import Langlib.Automata.Turing.DSL.HetFoldDecomp
-import Langlib.Automata.Turing.DSL.HetLift
 import Langlib.Automata.Turing.DSL.ParrecChain
 import Langlib.Automata.Turing.DSL.ParrecToTM0
 import Langlib.Automata.Turing.DSL.ReverseBlock
