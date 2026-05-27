@@ -10,13 +10,11 @@ import Langlib.Automata.Turing.DSL.TM0Composition
 
 /-! # Direct `ToPartrec.Code` → TM Recognition
 
-This file factors the encoding bridge through `ListEncodeCode.lean`.
-
-The old bridge asks a preprocessing TM to compute `Encodable.encode w` on the
-tape.  The direct route composes the user `ToPartrec.Code` with a Code-level
-list encoder, then uses the generalized Partrec chain on a variable-length
-`List ℕ` input.  The remaining machine obligation is therefore only a finite
-per-symbol conversion from identity input to `shiftedEncoding`.
+This file proves the direct bridge from a semideciding `ToPartrec.Code` to
+`is_TM`.  It composes the user code with `listEncodeCode`, so the generalized
+Partrec chain runs on a variable-length `List ℕ` input representing the encoded
+word.  The tape-level part realizes the finite per-symbol conversion from the
+input alphabet to the shifted chain fragments used by `shiftedEncoding`.
 
 ## Key results
 
