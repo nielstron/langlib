@@ -107,7 +107,7 @@ def substBlock (f : α → Language β) : Language (α ⊕ β) :=
 
 theorem mem_homomorphicImage_iff_flatMap (L : Language α) (h : α → List β) (w : List β) :
     w ∈ L.homomorphicImage h ↔ ∃ x ∈ L, x.flatMap h = w := by
-  simp only [homomorphicImage, subst, Set.mem_setOf_eq]
+  simp only [homomorphicImage, subst]
   constructor
   · rintro ⟨x, hx, hw⟩
     exact ⟨x, hx, ((mem_prod_singletons_iff_flatMap x h w).mp hw).symm⟩
@@ -120,7 +120,7 @@ theorem mem_substBlock_iff (f : α → Language β) (z : List (α ⊕ β)) :
   · intro hz
     change z ∈ (⋃ a, ({[Sum.inl a]} : Language (α ⊕ β)) *
       ((f a).homomorphicImage fun b => [Sum.inr b])) at hz
-    simp only [Set.mem_iUnion, Language.mul_def, Set.mem_image2, Set.mem_singleton_iff] at hz
+    simp only [Set.mem_iUnion] at hz
     obtain ⟨a, x, hx, y, hy, rfl⟩ := hz
     subst x
     obtain ⟨u, hu, hflat⟩ :=
@@ -216,7 +216,7 @@ theorem subst_coding_eq_subst (L : Language α) (f : α → Language β) :
       exact (Language.mem_list_prod_iff_forall2 (x.map f) W.flatten).mpr
         ⟨W, rfl, forall₂_mem_map hW⟩
   · intro hw
-    simp only [subst, Set.mem_setOf_eq] at hw
+    simp only [subst] at hw
     obtain ⟨x, hxL, hwprod⟩ := hw
     obtain ⟨W, hWflat, hW⟩ := (Language.mem_list_prod_iff_forall2 (x.map f) w).mp hwprod
     have hW' : List.Forall₂ (fun u a => u ∈ f a) W x := by
