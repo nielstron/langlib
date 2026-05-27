@@ -44,7 +44,6 @@ import Langlib.Automata.Turing.DSL
 import Langlib.Automata.Turing.Definition
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
-import Langlib.Automata.Turing.Equivalence.GrammarToTM.GrammarSearch
 import Langlib.Automata.Turing.Equivalence.GrammarToTM
 import Langlib.Automata.Turing.Equivalence.RecursivelyEnumerable
 import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction

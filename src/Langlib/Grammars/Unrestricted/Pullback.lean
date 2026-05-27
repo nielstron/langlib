@@ -10,7 +10,8 @@ Given a grammar `g` over terminal alphabet `Γ` and a map `encode : T → Γ`
 
   `w ∈ grammar_language (pullbackGrammar g encode) ↔ w.map encode ∈ grammar_language g`
 
-This generalizes `GrammarProjection.projectGrammar` to arbitrary encoding functions.
+This is the inverse-homomorphism construction used to change the terminal
+alphabet of a grammar along an encoding function.
 -/
 
 namespace GrammarPullback

@@ -1,8 +1,9 @@
 import Mathlib
 import Langlib.Classes.RecursivelyEnumerable.Definition
-import Langlib.Automata.Turing.Definition
-import Langlib.Automata.Turing.Equivalence.GrammarToTM.GrammarSearch
 import Langlib.Grammars.Unrestricted.FiniteNonterminals
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.Computability
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.Decidability
+import Langlib.Automata.Turing.DSL.Compile
 import Langlib.Automata.Turing.DSL.DirectBridge
 
 /-! # Unrestricted Grammars → Turing Machines
