@@ -1,15 +1,23 @@
 import Mathlib
 import Langlib.Grammars.Unrestricted.Toolbox
+import Langlib.Grammars.Unrestricted.FiniteNonterminals
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipComputability
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipTest
+import Langlib.Automata.Turing.DSL.SearchProcToTM0
+import Langlib.Automata.Turing.DSL.CodeToTMDirect
+import Langlib.Automata.Turing.Equivalence.TMToGrammar
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Utilities.LanguageOperations
 import Langlib.Utilities.Homomorphism
 import Langlib.Utilities.ClosurePredicates
+import Langlib.Utilities.PrimrecHelpers
 
 /-! # RE Closure Under String Homomorphism
 
 This file proves that the class of recursively enumerable languages is closed under
-ε-free string homomorphism.
+string homomorphism.  It also keeps the older grammar construction for the ε-free
+case, where no symbol is erased.
 
 Given an unrestricted grammar `g` over terminals `α` generating `L`, and an ε-free string
 homomorphism `h : α → List β`, we construct an unrestricted grammar `hom_grammar g h`
@@ -18,6 +26,8 @@ over terminals `β` whose language is `L.homomorphicImage h`.
 ## Main declarations
 
 - `hom_grammar`
+- `RE_closed_under_homomorphism`
+- `RE_closedUnderHomomorphism`
 - `RE_closed_under_epsfree_homomorphism`
 
 ## Note on erasing homomorphisms
@@ -33,6 +43,8 @@ A correct construction for the general case would require a more sophisticated m
 open List
 
 variable {α β : Type}
+
+open Turing
 
 -- ============================================================================
 -- Grammar construction
@@ -451,6 +463,83 @@ end backward_direction
 -- ============================================================================
 -- Main theorems
 -- ============================================================================
+
+/-- Search test for the homomorphic image of a grammar language.
+
+The witness contains both a preimage word and a derivation sequence for that preimage. -/
+def reHomomorphismTest [DecidableEq α] [DecidableEq β]
+    (g : grammar α) [DecidableEq g.nt] (h : α → List β)
+    (p : List α × List (ℕ × ℕ)) (w : List β) : Bool :=
+  grammarTest g p.2 p.1 && decide (p.1.flatMap h = w)
+
+set_option maxHeartbeats 1600000
+
+/-- The homomorphic-image search test is computable over finite source alphabets. -/
+theorem reHomomorphismTest_computable₂ [DecidableEq α] [DecidableEq β]
+    [Primcodable α] [Primcodable β] [Finite α]
+    (g : grammar α) [DecidableEq g.nt] [Primcodable g.nt] (h : α → List β) :
+    Computable₂ (reHomomorphismTest g h) := by
+  apply Computable₂.mk
+  unfold reHomomorphismTest
+  have hmem : Computable (fun p : (List α × List (ℕ × ℕ)) × List β =>
+      grammarTest g p.1.2 p.1.1) :=
+    (grammarTest_computable₂ g).comp (Computable.snd.comp Computable.fst)
+      (Computable.fst.comp Computable.fst)
+  have heq : Computable (fun p : (List α × List (ℕ × ℕ)) × List β =>
+      decide (p.1.1.flatMap h = p.2)) :=
+    (computable₂_flatMap_eq_finite h).comp (Computable.fst.comp Computable.fst) Computable.snd
+  exact (Primrec.and.to_comp).comp hmem heq
+
+/-- The class of RE languages is closed under arbitrary finite-alphabet string homomorphism. -/
+theorem RE_closed_under_homomorphism [Fintype α] [Fintype β]
+    (L : Language α) (h : α → List β) (hL : is_RE L) :
+    is_RE (L.homomorphicImage h) := by
+  haveI : DecidableEq α := Classical.decEq _
+  haveI : DecidableEq β := Classical.decEq _
+  obtain ⟨g, hg⟩ := hL
+  obtain ⟨g', _hfin, hlang⟩ := grammar_equivalent_finiteNT g
+  haveI : Fintype g'.nt := Fintype.ofFinite _
+  haveI : DecidableEq g'.nt := Classical.decEq _
+  haveI : Primcodable α :=
+    Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
+  haveI : Primcodable β :=
+    Primcodable.ofEquiv (Fin (Fintype.card β)) (Fintype.truncEquivFin β).out
+  haveI : Primcodable g'.nt :=
+    Primcodable.ofEquiv (Fin (Fintype.card g'.nt)) (Fintype.truncEquivFin g'.nt).out
+  let test := reHomomorphismTest g' h
+  have hcomp : Computable₂ test := reHomomorphismTest_computable₂ g' h
+  obtain ⟨c, hc⟩ := search_is_partrec test hcomp
+  have htm : is_TM (L.homomorphicImage h) :=
+    code_implies_isTM_direct (L.homomorphicImage h) c (fun w => by
+      constructor
+      · intro hw
+        rw [← hc]
+        simp only [Language.homomorphicImage, Language.subst, Set.mem_setOf_eq] at hw
+        obtain ⟨x, hxL, hxprod⟩ := hw
+        have hxg : x ∈ grammar_language g' := by
+          rw [← hlang, hg]
+          exact hxL
+        have hxflat : x.flatMap h = w :=
+          ((mem_prod_singletons_iff_flatMap x h w).mp hxprod).symm
+        obtain ⟨seq, hseq⟩ := grammarTest_complete g' x hxg
+        exact ⟨(x, seq), by simp [test, reHomomorphismTest, hseq, hxflat]⟩
+      · intro hdom
+        rw [← hc] at hdom
+        obtain ⟨p, hp⟩ := hdom
+        have hboth : grammarTest g' p.2 p.1 = true ∧ (p.1.flatMap h == w) = true := by
+          simpa [test, reHomomorphismTest] using hp
+        have hxL : p.1 ∈ L := by
+          rw [← hg, hlang]
+          exact grammarTest_sound g' p.2 p.1 hboth.1
+        have hxflat : p.1.flatMap h = w := by
+          simpa using hboth.2
+        simp only [Language.homomorphicImage, Language.subst, Set.mem_setOf_eq]
+        exact ⟨p.1, hxL, (mem_prod_singletons_iff_flatMap p.1 h w).mpr hxflat.symm⟩)
+  exact tm_recognizable_implies_re (L.homomorphicImage h) htm
+
+/-- The class of recursively enumerable languages is closed under string homomorphism. -/
+theorem RE_closedUnderHomomorphism : ClosedUnderHomomorphism is_RE :=
+  fun L h hL => RE_closed_under_homomorphism L h hL
 
 /-- The class of RE languages is closed under ε-free string homomorphism. -/
 theorem RE_closed_under_epsfree_homomorphism (L : Language α) (h : α → List β)

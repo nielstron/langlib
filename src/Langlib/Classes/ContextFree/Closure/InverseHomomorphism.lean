@@ -497,9 +497,9 @@ theorem CF_closed_under_inverse_homomorphism [Fintype α]
   · exact isRegular_dLang h
 
 /-- The class of context-free languages is closed under inverse string homomorphism. -/
-theorem CF_closedUnderInverseHomomorphism [Fintype α] :
+theorem CF_closedUnderInverseHomomorphism :
     ClosedUnderInverseHomomorphism is_CF := by
-  intro α β _ L h hL
+  intro α β _ _ L h hL
   simpa [Language.inverseHomomorphicImage] using
     CF_closed_under_inverse_homomorphism (α := α) (β := β) L h hL
 

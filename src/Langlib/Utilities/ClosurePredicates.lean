@@ -92,15 +92,16 @@ def ClosedUnderEpsFreeHomomorphism (isP : ∀ {α : Type}, Language α → Prop)
 /-- An alphabet-indexed language class is closed under inverse string homomorphism.
 
 The inverse homomorphic image of `L : Language β` under `h : α → List β` is
-`{ w : List α | w.flatMap h ∈ L }`. -/
+`{ w : List α | w.flatMap h ∈ L }`. Both alphabets are finite, matching the
+finite-alphabet convention used by the other cross-alphabet closure predicates. -/
 def ClosedUnderInverseHomomorphism (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
-  ∀ {α β : Type} [Fintype α] (L : Language β) (h : α → List β),
+  ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language β) (h : α → List β),
     isP L → isP { w : List α | w.flatMap h ∈ L }
 
 /-- An alphabet-indexed language class is closed under substitution.
 
-The source alphabet is assumed finite so the predicate matches the regular-language
-substitution theorem formalized in this library. -/
+Both alphabets are finite, matching the finite-alphabet convention used by the
+TM-recognizability bridge and the other cross-alphabet closure predicates. -/
 def ClosedUnderSubstitution (isP : ∀ {α : Type}, Language α → Prop) : Prop :=
-  ∀ {α β : Type} [Fintype α] (L : Language α) (f : α → Language β),
+  ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (f : α → Language β),
     isP L → (∀ a, isP (f a)) → isP (L.subst f)

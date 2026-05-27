@@ -87,6 +87,25 @@ lemma primrec₂_list_drop : Primrec₂ (fun (n : ℕ) (l : List α) => l.drop n
 
 end PrimrecListOps
 
+section PrimrecFiniteHomomorphism
+
+/-- A fixed string homomorphism out of a finite alphabet is primitive recursive on words. -/
+theorem primrec_flatMap_finite {α β : Type} [Primcodable α] [Primcodable β] [Finite α]
+    (h : α → List β) : Primrec (fun w : List α => w.flatMap h) := by
+  exact Primrec.list_flatMap (f := fun w : List α => w) (g := fun _ a => h a)
+    Primrec.id ((Primrec.dom_finite h).comp Primrec.snd)
+
+/-- Equality against the image of a fixed finite-alphabet string homomorphism is computable. -/
+theorem computable₂_flatMap_eq_finite {α β : Type} [DecidableEq β]
+    [Primcodable α] [Primcodable β] [Finite α]
+    (h : α → List β) :
+    Computable₂ (fun w : List α => fun u : List β => decide (w.flatMap h = u)) := by
+  apply Computable₂.mk
+  simpa only [decide_eq_true_eq] using
+    (Primrec.beq.comp ((primrec_flatMap_finite h).comp Primrec.fst) Primrec.snd).to_comp
+
+end PrimrecFiniteHomomorphism
+
 section PrimrecListAny
 
 variable {α : Type} [Primcodable α]

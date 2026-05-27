@@ -27,5 +27,5 @@ theorem CF_of_subst_CF (L : Language α) (f : α → Language β) :
 /-- The class of context-free languages is closed under substitution. -/
 theorem CF_closedUnderSubstitution [Fintype α] :
     ClosedUnderSubstitution is_CF := by
-  intro α β _ L f hL hf
+  intro α β _ _ L f hL hf
   exact CF_of_subst_CF L f hL hf

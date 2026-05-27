@@ -14,6 +14,12 @@ import Langlib.Classes.Regular.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
+import Langlib.Classes.RecursivelyEnumerable.Closure.Homomorphism
+import Langlib.Classes.RecursivelyEnumerable.Closure.Intersection
+import Langlib.Classes.RecursivelyEnumerable.Closure.InverseHomomorphism
+import Langlib.Classes.RecursivelyEnumerable.Closure.Quotient
+import Langlib.Classes.RecursivelyEnumerable.Closure.Star
+import Langlib.Classes.RecursivelyEnumerable.Closure.Substitution
 import Langlib.Automata.Turing.Equivalence.TMEqualsRE
 
 import Langlib.Utilities.LanguageOperations
@@ -34,6 +40,12 @@ This file checks that the main closure and non-closure theorems elaborate.
 - `RE_of_RE_u_RE`
 - `RE_of_reverse_RE`
 - `RE_of_RE_c_RE`
+- `RE_of_star_RE`
+- `RE_of_RE_i_RE`
+- `RE_of_subst_RE`
+- `RE_of_inverseHomomorphism_RE`
+- `RE_of_RE_rightQuotient_RE`
+- `RE_of_RE_rightQuotient_regular`
 - `TM_eq_RE`
 - `is_TM_iff_is_RE`
 - `Language.prefixLang`
@@ -91,11 +103,74 @@ section unrestricted
 #check            RE_of_RE_u_RE
 #print_sorries_in RE_of_RE_u_RE
 
+#check            RE_closedUnderUnion
+#print_sorries_in RE_closedUnderUnion
+
 #check            RE_of_reverse_RE
 #print_sorries_in RE_of_reverse_RE
 
+#check            RE_closedUnderReverse
+#print_sorries_in RE_closedUnderReverse
+
 #check            RE_of_RE_c_RE
 #print_sorries_in RE_of_RE_c_RE
+
+#check            RE_closedUnderConcatenation
+#print_sorries_in RE_closedUnderConcatenation
+
+#check            RE_of_star_RE
+#print_sorries_in RE_of_star_RE
+
+#check            RE_closedUnderKleeneStar
+#print_sorries_in RE_closedUnderKleeneStar
+
+#check            RE_closed_under_homomorphism
+#print_sorries_in RE_closed_under_homomorphism
+
+#check            RE_closedUnderHomomorphism
+#print_sorries_in RE_closedUnderHomomorphism
+
+#check            RE_closed_under_epsfree_homomorphism
+#print_sorries_in RE_closed_under_epsfree_homomorphism
+
+#check            RE_closedUnderEpsFreeHomomorphism
+#print_sorries_in RE_closedUnderEpsFreeHomomorphism
+
+#check            RE_of_RE_i_RE
+#print_sorries_in RE_of_RE_i_RE
+
+#check            RE_closedUnderIntersection
+#print_sorries_in RE_closedUnderIntersection
+
+#check            RE_of_RE_i_regular
+#print_sorries_in RE_of_RE_i_regular
+
+#check            RE_closedUnderIntersectionWithRegular
+#print_sorries_in RE_closedUnderIntersectionWithRegular
+
+#check            RE_of_subst_RE
+#print_sorries_in RE_of_subst_RE
+
+#check            RE_closedUnderSubstitution
+#print_sorries_in RE_closedUnderSubstitution
+
+#check            RE_of_inverseHomomorphism_RE
+#print_sorries_in RE_of_inverseHomomorphism_RE
+
+#check            RE_closedUnderInverseHomomorphism
+#print_sorries_in RE_closedUnderInverseHomomorphism
+
+#check            RE_of_RE_rightQuotient_RE
+#print_sorries_in RE_of_RE_rightQuotient_RE
+
+#check            RE_closedUnderRightQuotient
+#print_sorries_in RE_closedUnderRightQuotient
+
+#check            RE_of_RE_rightQuotient_regular
+#print_sorries_in RE_of_RE_rightQuotient_regular
+
+#check            RE_closedUnderRightQuotientWithRegular
+#print_sorries_in RE_closedUnderRightQuotientWithRegular
 
 end unrestricted
 

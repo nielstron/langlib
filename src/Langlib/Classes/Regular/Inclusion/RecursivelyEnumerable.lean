@@ -3,6 +3,7 @@ Copyright (c) 2025 Harmonic. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib
+import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 import Langlib.Classes.Regular.Definition
 import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
@@ -64,5 +65,9 @@ theorem RG_subclass_RE {L : Language T} (h : is_RG L) : is_RE L := by
   ext w
   simp only [grammar_language, RG_language]
   exact (RG_derives_iff_grammar_derives g _ _).symm
+
+/-- Every Mathlib-regular language over a finite alphabet is recursively enumerable. -/
+theorem is_RE_of_isRegular [Fintype T] {L : Language T} (h : L.IsRegular) : is_RE L :=
+  RG_subclass_RE (is_RG_of_isRegular h)
 
 end
