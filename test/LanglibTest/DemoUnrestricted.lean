@@ -3,6 +3,7 @@ module
 public import Langlib.Grammars.Unrestricted.Toolbox
 public import Langlib.Utilities.ListUtils
 public import Langlib.Utilities.WrittenByOthers.TrimAssoc
+import Mathlib.Tactic
 
 @[expose] public section
 
