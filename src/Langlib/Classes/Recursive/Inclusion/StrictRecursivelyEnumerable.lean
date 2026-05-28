@@ -23,11 +23,14 @@ open Language
 
 /-- Recursive languages over the unary alphabet form a strict subclass of RE. -/
 theorem Recursive_strict_subclass_RE_unit :
-    (Recursive : Set (Language Unit)) ⊂ (RE : Set (Language Unit)) := by
-  refine ⟨Recursive_subset_RE, ?_⟩
-  intro hREsubsetRecursive
-  exact RE_notClosedUnderComplement (fun L hL => by
-    exact Recursive_subset_RE (is_Recursive_complement (hREsubsetRecursive hL)))
+    (Recursive : Set (Language Unit)) ⊂ (RE : Set (Language Unit)) :=
+  strict_subset_of_subset_different_property
+    (P := is_Recursive) (Q := is_RE)
+    (fun _ hL => Recursive_subset_RE hL)
+    (X := ClosedUnderComplement)
+    (fun hiff => ClosedUnderComplement_of_iff hiff)
+    Recursive_closedUnderComplement
+    RE_notClosedUnderComplement
 
 /-- Recursive languages are included in RE for every finite alphabet, and the inclusion
 is strict for at least one alphabet. -/
