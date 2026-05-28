@@ -1,7 +1,50 @@
-import Mathlib
-import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
+module
+
+public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
+public import Langlib.Grammars.NonContracting.Definition
+import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
-import Langlib.Grammars.NonContracting.Definition
+import Langlib.Grammars.Unrestricted.Toolbox
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.List.GetD
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+
+@[expose] public section
 
 /-! # Non-Contracting and Context-Sensitive
 
@@ -95,34 +138,34 @@ section NoncontractingToCS
 variable {T : Type}
 
 /-- Nonterminal type for the CS grammar constructed from a non-contracting grammar. -/
-private abbrev NC_NT (g : grammar T) := g.nt ⊕ (T ⊕ (ℕ × ℕ))
+abbrev NC_NT (g : grammar T) := g.nt ⊕ (T ⊕ (ℕ × ℕ))
 
 /-- Convert a symbol to a nonterminal in the new grammar (lifting terminals). -/
-private def nc_symToNT {g : grammar T} : symbol T g.nt → NC_NT g
+def nc_symToNT {g : grammar T} : symbol T g.nt → NC_NT g
   | .terminal t => .inr (.inl t)
   | .nonterminal n => .inl n
 
 /-- Lift a symbol: all symbols become `nonterminal` symbols in the new grammar. -/
-private def nc_liftSym {g : grammar T} (s : symbol T g.nt) : symbol T (NC_NT g) :=
+def nc_liftSym {g : grammar T} (s : symbol T g.nt) : symbol T (NC_NT g) :=
   .nonterminal (nc_symToNT s)
 
 /-- Auxiliary nonterminal symbol for rule index `ri`, step `k`. -/
-private def nc_aux {g : grammar T} (ri k : ℕ) : symbol T (NC_NT g) :=
+def nc_aux {g : grammar T} (ri k : ℕ) : symbol T (NC_NT g) :=
   .nonterminal (.inr (.inr (ri, k)))
 
 /-- Collect all terminals from a list of symbols. -/
-private def nc_collectTerminals {N : Type} : List (symbol T N) → List T
+def nc_collectTerminals {N : Type} : List (symbol T N) → List T
   | [] => []
   | (.terminal t) :: rest => t :: nc_collectTerminals rest
   | (.nonterminal _) :: rest => nc_collectTerminals rest
 
 /-- All terminals appearing in the grammar's rules (inputs and outputs). -/
-private def nc_grammarTerminals (g : grammar T) : List T :=
+def nc_grammarTerminals (g : grammar T) : List T :=
   g.rules.flatMap fun r =>
     nc_collectTerminals (r.input_L ++ r.input_R ++ r.output_string)
 
 /-- Un-lifting rules: convert lifted terminal nonterminals back to actual terminals. -/
-private def nc_unliftRules (g : grammar T) : List (csrule T (NC_NT g)) :=
+def nc_unliftRules (g : grammar T) : List (csrule T (NC_NT g)) :=
   (nc_grammarTerminals g).map fun t =>
     { context_left := [],
       input_nonterminal := .inr (.inl t),
@@ -130,7 +173,7 @@ private def nc_unliftRules (g : grammar T) : List (csrule T (NC_NT g)) :=
       output_string := [.terminal t] }
 
 /-- Generate CS rules for simulating one grammar rule at index `ri`. -/
-private def nc_simRules {g : grammar T} (ri : ℕ) (r : grule T g.nt) :
+def nc_simRules {g : grammar T} (ri : ℕ) (r : grule T g.nt) :
     List (csrule T (NC_NT g)) :=
   let pattern := r.input_L ++ [.nonterminal r.input_N] ++ r.input_R
   let n := pattern.length
@@ -160,12 +203,12 @@ private def nc_simRules {g : grammar T} (ri : ℕ) (r : grule T g.nt) :
     phase1 ++ [phase2_0] ++ phase2_rest
 
 /-- All CS rules: un-lifting rules plus simulation rules for each grammar rule. -/
-private def nc_allRules (g : grammar T) : List (csrule T (NC_NT g)) :=
+def nc_allRules (g : grammar T) : List (csrule T (NC_NT g)) :=
   nc_unliftRules g ++ ((List.range g.rules.length).zip g.rules).flatMap
     fun ⟨i, r⟩ => nc_simRules i r
 
 /-- Every rule in `nc_unliftRules` has nonempty output. -/
-private lemma nc_unliftRules_output_nonempty (g : grammar T)
+lemma nc_unliftRules_output_nonempty (g : grammar T)
     (r : csrule T (NC_NT g)) (hr : r ∈ nc_unliftRules g) :
     r.output_string ≠ [] := by
   simp [nc_unliftRules, nc_grammarTerminals] at hr
@@ -173,7 +216,7 @@ private lemma nc_unliftRules_output_nonempty (g : grammar T)
   exact List.cons_ne_nil _ _
 
 /-- Every rule in `nc_simRules` has nonempty output, provided the non-contracting property. -/
-private lemma nc_simRules_output_nonempty (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_simRules_output_nonempty (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (grule : grule T g.nt) (hgrule : grule ∈ g.rules)
     (r : csrule T (NC_NT g)) (hr : r ∈ nc_simRules ri grule) :
     r.output_string ≠ [] := by
@@ -208,7 +251,7 @@ CS derivation with additional context (pref and suffix).
 PROVIDED SOLUTION
 By induction on the CS_derives derivation h. Base case (refl): trivial. Step case (tail): if CS_derives g w₁ w₃ and CS_transforms g w₃ w₂, by IH CS_derives g (p ++ w₁ ++ s) (p ++ w₃ ++ s). For the single transform CS_transforms g w₃ w₂, we have r, u, v with w₃ = u ++ CL ++ [nt A] ++ CR ++ v and w₂ = u ++ CL ++ OS ++ CR ++ v. Then p ++ w₃ ++ s = (p ++ u) ++ CL ++ [nt A] ++ CR ++ (v ++ s), and p ++ w₂ ++ s = (p ++ u) ++ CL ++ OS ++ CR ++ (v ++ s). So CS_transforms g (p ++ w₃ ++ s) (p ++ w₂ ++ s) with u' = p ++ u, v' = v ++ s. Then CS_deri_of_deri_tran gives the result.
 -/
-private lemma CS_deri_with_context {g : CS_grammar T}
+lemma CS_deri_with_context {g : CS_grammar T}
     {w₁ w₂ : List (symbol T g.nt)}
     (p s : List (symbol T g.nt))
     (h : CS_derives g w₁ w₂) :
@@ -219,7 +262,7 @@ private lemma CS_deri_with_context {g : CS_grammar T}
     obtain ⟨ r, u, v, hr, rfl, rfl ⟩ := h₂;
     exact h₃.tail ⟨ r, p ++ u, v ++ s, hr, by simp +decide [ ← List.append_assoc ], by simp +decide [ ← List.append_assoc ] ⟩
 
-private lemma CS_transform_removed_symbol_is_input_general {g : CS_grammar T}
+lemma CS_transform_removed_symbol_is_input_general {g : CS_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {x : symbol T g.nt}
     (h : CS_transforms g s₁ s₂) (hx₁ : x ∈ s₁) (hx₂ : x ∉ s₂) :
     ∃ r : csrule T g.nt, r ∈ g.rules ∧ x = symbol.nonterminal r.input_nonterminal := by
@@ -234,7 +277,7 @@ private lemma CS_transform_removed_symbol_is_input_general {g : CS_grammar T}
   · exact (hx₂.2.2.2.1 hx).elim
   · exact (hx₂.2.2.2.2 hx).elim
 
-private lemma CS_transform_removed_symbol_actual_input {g : CS_grammar T}
+lemma CS_transform_removed_symbol_actual_input {g : CS_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {x : symbol T g.nt}
     (h : CS_transforms g s₁ s₂) (hx₁ : x ∈ s₁) (hx₂ : x ∉ s₂) :
     ∃ (r : csrule T g.nt) (u v : List (symbol T g.nt)),
@@ -254,7 +297,7 @@ private lemma CS_transform_removed_symbol_actual_input {g : CS_grammar T}
   · exact (hx₂.2.2.2.1 hx).elim
   · exact (hx₂.2.2.2.2 hx).elim
 
-private lemma CS_transform_removed_symbol_is_input_with_output_mem
+lemma CS_transform_removed_symbol_is_input_with_output_mem
     {g : CS_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {x : symbol T g.nt}
     (h : CS_transforms g s₁ s₂) (hx₁ : x ∈ s₁) (hx₂ : x ∉ s₂) :
@@ -276,7 +319,7 @@ private lemma CS_transform_removed_symbol_is_input_with_output_mem
   · exact (hx₂.2.2.2.1 hx).elim
   · exact (hx₂.2.2.2.2 hx).elim
 
-private lemma CS_transform_added_symbol_is_output_general {g : CS_grammar T}
+lemma CS_transform_added_symbol_is_output_general {g : CS_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {x : symbol T g.nt}
     (h : CS_transforms g s₁ s₂) (hx₂ : x ∈ s₂) (hx₁ : x ∉ s₁) :
     ∃ r : csrule T g.nt, r ∈ g.rules ∧ x ∈ r.output_string := by
@@ -291,7 +334,7 @@ private lemma CS_transform_added_symbol_is_output_general {g : CS_grammar T}
   · exact (hx₁.2.2.2.1 hx).elim
   · exact (hx₁.2.2.2.2 hx).elim
 
-private lemma CS_transform_added_symbol_is_output_with_input_mem {g : CS_grammar T}
+lemma CS_transform_added_symbol_is_output_with_input_mem {g : CS_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {x : symbol T g.nt}
     (h : CS_transforms g s₁ s₂) (hx₂ : x ∈ s₂) (hx₁ : x ∉ s₁) :
     ∃ r : csrule T g.nt, r ∈ g.rules ∧ x ∈ r.output_string ∧
@@ -328,7 +371,7 @@ The matching:
 
 Use exists with the rule, u, and v.
 -/
-private lemma nc_unlift_one (g : grammar T) (hg : grammar_noncontracting g) (t : T)
+lemma nc_unlift_one (g : grammar T) (hg : grammar_noncontracting g) (t : T)
     (ht : t ∈ nc_grammarTerminals g)
     (u v : List (symbol T (NC_NT g))) :
     CS_transforms (csg_of_noncontracting g hg)
@@ -364,7 +407,7 @@ Step 4: Combine steps 1 and 3 by transitivity.
 
 Use hw t (List.mem_cons_self t w') for the base terminal t, and (fun t' ht' => hw t' (List.mem_cons_of_mem t ht')) for the IH.
 -/
-private lemma nc_unlift_all (g : grammar T) (hg : grammar_noncontracting g) (w : List T)
+lemma nc_unlift_all (g : grammar T) (hg : grammar_noncontracting g) (w : List T)
     (hw : ∀ t ∈ w, t ∈ nc_grammarTerminals g) :
     CS_derives (csg_of_noncontracting g hg)
       (w.map (fun t => symbol.nonterminal (.inr (.inl t) : NC_NT g)))
@@ -393,7 +436,7 @@ A terminal appearing in a rule's output is in nc_grammarTerminals.
 PROVIDED SOLUTION
 By definition, nc_grammarTerminals g = g.rules.flatMap (fun r => nc_collectTerminals (r.input_L ++ r.input_R ++ r.output_string)). Since r ∈ g.rules, the contribution of r is included. We need t ∈ nc_collectTerminals (r.input_L ++ r.input_R ++ r.output_string). Since terminal t ∈ r.output_string, and r.output_string is a suffix of r.input_L ++ r.input_R ++ r.output_string, terminal t appears in the combined list. Then nc_collectTerminals extracts t from terminal t. So t ∈ nc_collectTerminals (r.input_L ++ r.input_R ++ r.output_string), and by flatMap membership, t ∈ nc_grammarTerminals g.
 -/
-private lemma terminal_in_output_mem_grammarTerminals (g : grammar T)
+lemma terminal_in_output_mem_grammarTerminals (g : grammar T)
     (r : grule T g.nt) (hr : r ∈ g.rules) (t : T)
     (ht : symbol.terminal t ∈ r.output_string) :
     t ∈ nc_grammarTerminals g := by
@@ -419,7 +462,7 @@ So cr is in the flatMap part, hence in nc_allRules g, hence in (csg_of_noncontra
 
 Use List.mem_append_right, List.mem_flatMap, and the fact that (ri, r) ∈ (List.range g.rules.length).zip g.rules.
 -/
-private lemma nc_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length)
     (hr : g.rules[ri] = r)
     (cr : csrule T (NC_NT g)) (hcr : cr ∈ nc_simRules ri r) :
@@ -430,7 +473,7 @@ private lemma nc_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)
   exact List.mem_append_right _ ( List.mem_flatMap.mpr ⟨ _, h_zip, hcr ⟩ )
 
 /-- Membership in the zipped rule-index list recovers the indexed rule. -/
-private lemma nc_rule_zip_mem_get (g : grammar T) {ri : ℕ} {r : grule T g.nt}
+lemma nc_rule_zip_mem_get (g : grammar T) {ri : ℕ} {r : grule T g.nt}
     (hpair : (ri, r) ∈ (List.range g.rules.length).zip g.rules) :
     ∃ hri : ri < g.rules.length, g.rules[ri] = r := by
   rw [List.mem_iff_get] at hpair
@@ -448,7 +491,7 @@ private lemma nc_rule_zip_mem_get (g : grammar T) {ri : ℕ} {r : grule T g.nt}
   simpa [hidx_eq_ri] using hr_idx
 
 /-- The rule component for a fixed simulation-rule index is unique. -/
-private lemma nc_rule_zip_rule_unique (g : grammar T) {ri : ℕ}
+lemma nc_rule_zip_rule_unique (g : grammar T) {ri : ℕ}
     {r₁ r₂ : grule T g.nt}
     (h₁ : (ri, r₁) ∈ (List.range g.rules.length).zip g.rules)
     (h₂ : (ri, r₂) ∈ (List.range g.rules.length).zip g.rules) :
@@ -458,7 +501,7 @@ private lemma nc_rule_zip_rule_unique (g : grammar T) {ri : ℕ}
   exact hr₁.symm.trans hr₂
 
 /-- A list decomposition around the first occurrence of a marker is unique. -/
-private lemma list_append_singleton_eq_of_not_mem {α : Type} {x : α}
+lemma list_append_singleton_eq_of_not_mem {α : Type} {x : α}
     {a b c d : List α} (ha : x ∉ a) (hc : x ∉ c)
     (h : a ++ [x] ++ b = c ++ [x] ++ d) :
     a = c ∧ b = d := by
@@ -487,7 +530,7 @@ private lemma list_append_singleton_eq_of_not_mem {α : Type} {x : α}
 
 /-- If `u ++ [x] ++ w` has no `x` in `u` or `w`, then any decomposition of
 the same list as `a ++ [x] ++ b` has no `x` in `a`. -/
-private lemma list_prefix_not_mem_of_unique_singleton_decomp {α : Type} {x : α}
+lemma list_prefix_not_mem_of_unique_singleton_decomp {α : Type} {x : α}
     {u w a b : List α} (hu : x ∉ u) (hw : x ∉ w)
     (h : u ++ [x] ++ w = a ++ [x] ++ b) :
     x ∉ a := by
@@ -541,7 +584,7 @@ Case 2: n ≥ 2
 
 To handle both cases: split on whether r.input_L.length + 1 + r.input_R.length ≤ 1. For the n ≤ 1 case, r.input_L = [] and r.input_R = [] (since both are lists and their total length is 0). Use List.length_eq_zero to derive input_L = [] and input_R = []. Then simplify and construct the single CS step.
 -/
-private lemma nc_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length) (hr : g.rules[ri] = r) :
     CS_derives (csg_of_noncontracting g hg)
       ((r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R).map nc_liftSym)
@@ -630,7 +673,7 @@ private lemma nc_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
     exact h_phase1.trans ( h_phase2_0.trans ( h_phase2_rest_seq 0 bot_le ) ) |> fun h => h.trans ( by aesop )
 
 /-- A single grammar step can be simulated by CS derivation on lifted forms. -/
-private lemma nc_sim_one_transform (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_sim_one_transform (g : grammar T) (hg : grammar_noncontracting g)
     {w₁ w₂ : List (symbol T g.nt)} (h : grammar_transforms g w₁ w₂) :
     CS_derives (csg_of_noncontracting g hg)
       (w₁.map nc_liftSym) (w₂.map nc_liftSym) := by
@@ -653,7 +696,7 @@ Base case (refl): CS_deri_self.
 
 Step case (tail): grammar_derives g w₁ w₃ and grammar_transforms g w₃ w₂. By IH, CS_derives g' (w₁.map nc_liftSym) (w₃.map nc_liftSym). By nc_sim_one_transform, CS_derives g' (w₃.map nc_liftSym) (w₂.map nc_liftSym). By CS_deri_of_deri_deri (transitivity), CS_derives g' (w₁.map nc_liftSym) (w₂.map nc_liftSym).
 -/
-private lemma nc_sim_derives (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_sim_derives (g : grammar T) (hg : grammar_noncontracting g)
     {w₁ w₂ : List (symbol T g.nt)} (h : grammar_derives g w₁ w₂) :
     CS_derives (csg_of_noncontracting g hg)
       (w₁.map nc_liftSym) (w₂.map nc_liftSym) := by
@@ -680,7 +723,7 @@ First prove a helper: for any grammar_derives g w₁ w₂, if all terminals in w
 
 Then apply this helper with w₁ = [nt g.initial] (which has no terminals, so the base condition is vacuously true) and w₂ = map terminal w.
 -/
-private lemma nc_derived_terminal_in_grammarTerminals (g : grammar T)
+lemma nc_derived_terminal_in_grammarTerminals (g : grammar T)
     (w : List T) (hw : w ∈ grammar_language g) (t : T) (ht : t ∈ w) :
     t ∈ nc_grammarTerminals g := by
   -- Apply induction on the derivation to show that every terminal in the sentential form at each step is in nc_grammarTerminals.
@@ -712,7 +755,7 @@ Step 3: By CS_deri_of_deri_deri (transitivity), CS_derives g' [nt g'.initial] (m
 Key: show map nc_liftSym [nt g.initial] = [nt (Sum.inl g.initial)] by unfolding nc_liftSym and nc_symToNT.
 And map nc_liftSym (map terminal w) = map (fun t => nt (Sum.inr (Sum.inl t))) w by unfolding nc_liftSym and nc_symToNT on terminal.
 -/
-private lemma nc_forward (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_forward (g : grammar T) (hg : grammar_noncontracting g)
     (w : List T) (hw : w ∈ grammar_language g) :
     w ∈ CS_language (csg_of_noncontracting g hg) := by
   obtain ⟨hw₁, hw₂⟩ : grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal) ∧ ∀ t ∈ w, t ∈ nc_grammarTerminals g := by
@@ -748,44 +791,44 @@ markers to clean lifted symbols after the simulated rule has completed.
 -/
 
 /-- Nonterminals for the locked CS construction. -/
-private inductive NC_LockedNT (g : grammar T) where
+inductive NC_LockedNT (g : grammar T) where
   | orig : g.nt → NC_LockedNT g
   | term : T → NC_LockedNT g
   | mark : ℕ → ℕ → NC_LockedNT g
   | out : ℕ → ℕ → symbol T g.nt → NC_LockedNT g
 
 /-- Convert an original symbol to a locked-construction nonterminal. -/
-private def nc_locked_symToNT {g : grammar T} : symbol T g.nt → NC_LockedNT g
+def nc_locked_symToNT {g : grammar T} : symbol T g.nt → NC_LockedNT g
   | .terminal t => .term t
   | .nonterminal n => .orig n
 
-private lemma nc_locked_symToNT_ne_mark {g : grammar T} (s : symbol T g.nt)
+lemma nc_locked_symToNT_ne_mark {g : grammar T} (s : symbol T g.nt)
     (ri k : ℕ) :
     nc_locked_symToNT s ≠ NC_LockedNT.mark ri k := by
   cases s <;> simp [nc_locked_symToNT]
 
-private lemma nc_locked_symToNT_ne_out {g : grammar T} (s : symbol T g.nt)
+lemma nc_locked_symToNT_ne_out {g : grammar T} (s : symbol T g.nt)
     (ri k : ℕ) (a : symbol T g.nt) :
     nc_locked_symToNT s ≠ NC_LockedNT.out ri k a := by
   cases s <;> simp [nc_locked_symToNT]
 
 /-- Lift an original symbol into the locked construction. -/
-private def nc_locked_liftSym {g : grammar T} (s : symbol T g.nt) :
+def nc_locked_liftSym {g : grammar T} (s : symbol T g.nt) :
     symbol T (NC_LockedNT g) :=
   .nonterminal (nc_locked_symToNT s)
 
 /-- Input-position marker for a simulated rule. -/
-private def nc_locked_mark {g : grammar T} (ri k : ℕ) :
+def nc_locked_mark {g : grammar T} (ri k : ℕ) :
     symbol T (NC_LockedNT g) :=
   .nonterminal (.mark ri k)
 
 /-- Output-position marker for a simulated rule. -/
-private def nc_locked_out {g : grammar T} (ri k : ℕ) (s : symbol T g.nt) :
+def nc_locked_out {g : grammar T} (ri k : ℕ) (s : symbol T g.nt) :
     symbol T (NC_LockedNT g) :=
   .nonterminal (.out ri k s)
 
 /-- Marked output suffix beginning at position `k`. -/
-private def nc_locked_outputSuffix {g : grammar T} (ri : ℕ)
+def nc_locked_outputSuffix {g : grammar T} (ri : ℕ)
     (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ) :
     List (symbol T (NC_LockedNT g)) :=
   (List.range (out.length - k)).map fun off =>
@@ -794,13 +837,13 @@ private def nc_locked_outputSuffix {g : grammar T} (ri : ℕ)
 /-- Marked output suffix beginning at position `k`, forced syntactically nonempty.
 For non-contracting rules the head index is in bounds; the default only keeps the
 definition total. -/
-private def nc_locked_outputFrom {g : grammar T} (ri : ℕ)
+def nc_locked_outputFrom {g : grammar T} (ri : ℕ)
     (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ) :
     List (symbol T (NC_LockedNT g)) :=
   nc_locked_out ri k (out.getD k dflt) :: nc_locked_outputSuffix ri out dflt (k + 1)
 
 /-- Un-lifting rules for the locked construction. -/
-private def nc_locked_unliftRules (g : grammar T) : List (csrule T (NC_LockedNT g)) :=
+def nc_locked_unliftRules (g : grammar T) : List (csrule T (NC_LockedNT g)) :=
   (nc_grammarTerminals g).map fun t =>
     { context_left := [],
       input_nonterminal := .term t,
@@ -808,7 +851,7 @@ private def nc_locked_unliftRules (g : grammar T) : List (csrule T (NC_LockedNT 
       output_string := [.terminal t] }
 
 /-- Simulation rules for one original non-contracting rule in the locked construction. -/
-private def nc_locked_simRules {g : grammar T} (ri : ℕ) (r : grule T g.nt) :
+def nc_locked_simRules {g : grammar T} (ri : ℕ) (r : grule T g.nt) :
     List (csrule T (NC_LockedNT g)) :=
   let pattern := r.input_L ++ [.nonterminal r.input_N] ++ r.input_R
   let n := pattern.length
@@ -837,23 +880,23 @@ private def nc_locked_simRules {g : grammar T} (ri : ℕ) (r : grule T g.nt) :
   markInput ++ [emitLast] ++ emitRest ++ cleanup
 
 /-- All locked-construction CS rules. -/
-private def nc_locked_allRules (g : grammar T) : List (csrule T (NC_LockedNT g)) :=
+def nc_locked_allRules (g : grammar T) : List (csrule T (NC_LockedNT g)) :=
   nc_locked_unliftRules g ++ ((List.range g.rules.length).zip g.rules).flatMap
     fun ⟨i, r⟩ => nc_locked_simRules i r
 
-private lemma nc_locked_unliftRules_output_nonempty (g : grammar T)
+lemma nc_locked_unliftRules_output_nonempty (g : grammar T)
     (r : csrule T (NC_LockedNT g)) (hr : r ∈ nc_locked_unliftRules g) :
     r.output_string ≠ [] := by
   simp [nc_locked_unliftRules, nc_grammarTerminals] at hr
   obtain ⟨_, _, _, rfl⟩ := hr
   exact List.cons_ne_nil _ _
 
-private lemma nc_locked_outputFrom_ne_nil (g : grammar T) (ri : ℕ)
+lemma nc_locked_outputFrom_ne_nil (g : grammar T) (ri : ℕ)
     (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ) :
     nc_locked_outputFrom ri out dflt k ≠ [] := by
   simp [nc_locked_outputFrom]
 
-private lemma nc_locked_simRules_output_nonempty (g : grammar T)
+lemma nc_locked_simRules_output_nonempty (g : grammar T)
     (ri : ℕ) (grule : grule T g.nt)
     (r : csrule T (NC_LockedNT g)) (hr : r ∈ nc_locked_simRules ri grule) :
     r.output_string ≠ [] := by
@@ -874,7 +917,7 @@ noncomputable def locked_csg_of_noncontracting (g : grammar T)
     · exact nc_locked_simRules_output_nonempty g ri grule r hr_sim
 
 /-- A locked simulation rule is a rule of the locked constructed CS grammar. -/
-private lemma nc_locked_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length)
     (hr : g.rules[ri] = r)
     (cr : csrule T (NC_LockedNT g)) (hcr : cr ∈ nc_locked_simRules ri r) :
@@ -886,7 +929,7 @@ private lemma nc_locked_simRule_mem (g : grammar T) (hg : grammar_noncontracting
   exact List.mem_append_right _ (List.mem_flatMap.mpr ⟨_, h_zip, hcr⟩)
 
 /-- An un-lifting rule is a rule of the locked constructed CS grammar. -/
-private lemma nc_locked_unliftRule_mem (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_unliftRule_mem (g : grammar T) (hg : grammar_noncontracting g)
     {t : T} (ht : t ∈ nc_grammarTerminals g) :
     { context_left := [],
       input_nonterminal := NC_LockedNT.term t,
@@ -896,7 +939,7 @@ private lemma nc_locked_unliftRule_mem (g : grammar T) (hg : grammar_noncontract
   exact List.mem_append_left _ (List.mem_map.mpr ⟨t, ht, rfl⟩)
 
 /-- Un-lift one locked terminal marker to the actual terminal. -/
-private lemma nc_locked_unlift_one (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_unlift_one (g : grammar T) (hg : grammar_noncontracting g)
     (t : T) (ht : t ∈ nc_grammarTerminals g)
     (u v : List (symbol T (NC_LockedNT g))) :
     CS_transforms (locked_csg_of_noncontracting g hg)
@@ -912,7 +955,7 @@ private lemma nc_locked_unlift_one (g : grammar T) (hg : grammar_noncontracting 
   · simp
 
 /-- Un-lift all locked terminal markers in a terminal word. -/
-private lemma nc_locked_unlift_all (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_unlift_all (g : grammar T) (hg : grammar_noncontracting g)
     (w : List T) (hw : ∀ t ∈ w, t ∈ nc_grammarTerminals g) :
     CS_derives (locked_csg_of_noncontracting g hg)
       (w.map (fun t => symbol.nonterminal (NC_LockedNT.term t)))
@@ -937,7 +980,7 @@ private lemma nc_locked_unlift_all (g : grammar T) (hg : grammar_noncontracting 
       exact CS_deri_of_tran_deri hstep htail
 
 /-- Clean up one locked output marker into the corresponding lifted output symbol. -/
-private lemma nc_locked_cleanup_one (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_cleanup_one (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length)
     (hr : g.rules[ri] = r) (j : ℕ) (hj : j < r.output_string.length)
     (u v : List (symbol T (NC_LockedNT g))) :
@@ -957,13 +1000,13 @@ private lemma nc_locked_cleanup_one (g : grammar T) (hg : grammar_noncontracting
   · simp [cr, nc_locked_out]
   · simp [cr]
 
-private lemma nc_locked_outputSuffix_nil_of_len_le (g : grammar T)
+lemma nc_locked_outputSuffix_nil_of_len_le (g : grammar T)
     (ri : ℕ) (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ)
     (hk : out.length ≤ k) :
     nc_locked_outputSuffix ri out dflt k = [] := by
   simp [nc_locked_outputSuffix, Nat.sub_eq_zero_of_le hk]
 
-private lemma nc_locked_outputSuffix_cons (g : grammar T)
+lemma nc_locked_outputSuffix_cons (g : grammar T)
     (ri : ℕ) (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ)
     (hk : k < out.length) :
     nc_locked_outputSuffix ri out dflt k =
@@ -975,7 +1018,7 @@ private lemma nc_locked_outputSuffix_cons (g : grammar T)
   rw [hsub, List.range_succ_eq_map]
   simp [Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
 
-private lemma nc_locked_outputFrom_eq_suffix (g : grammar T)
+lemma nc_locked_outputFrom_eq_suffix (g : grammar T)
     (ri : ℕ) (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ)
     (hk : k < out.length) :
     nc_locked_outputFrom ri out dflt k =
@@ -983,7 +1026,7 @@ private lemma nc_locked_outputFrom_eq_suffix (g : grammar T)
   rw [nc_locked_outputSuffix_cons g ri out dflt k hk]
   rfl
 
-private lemma nc_locked_outputSuffix_mem_out_shape (g : grammar T)
+lemma nc_locked_outputSuffix_mem_out_shape (g : grammar T)
     {ri ri' k k' : ℕ} {out : List (symbol T g.nt)}
     {dflt a : symbol T g.nt}
     (hmem :
@@ -998,7 +1041,7 @@ private lemma nc_locked_outputSuffix_mem_out_shape (g : grammar T)
   refine ⟨rfl, by omega, by omega, ?_⟩
   simpa using ha.symm
 
-private lemma nc_locked_outputFrom_mem_out_shape (g : grammar T)
+lemma nc_locked_outputFrom_mem_out_shape (g : grammar T)
     {ri ri' k k' : ℕ} {out : List (symbol T g.nt)}
     {dflt a : symbol T g.nt}
     (hk : k < out.length)
@@ -1016,12 +1059,12 @@ private lemma nc_locked_outputFrom_mem_out_shape (g : grammar T)
       nc_locked_outputSuffix_mem_out_shape (g := g) htail
     exact ⟨hri, by omega, hlt, ha⟩
 
-private lemma nc_locked_outputSuffix_length (g : grammar T)
+lemma nc_locked_outputSuffix_length (g : grammar T)
     (ri : ℕ) (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ) :
     (nc_locked_outputSuffix ri out dflt k).length = out.length - k := by
   simp [nc_locked_outputSuffix]
 
-private lemma nc_locked_outputSuffix_head_mem (g : grammar T)
+lemma nc_locked_outputSuffix_head_mem (g : grammar T)
     (ri : ℕ) (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ)
     (hk : k < out.length) :
     nc_locked_out (g := g) ri k (out.getD k dflt) ∈
@@ -1032,7 +1075,7 @@ private lemma nc_locked_outputSuffix_head_mem (g : grammar T)
   · simp [Nat.sub_pos_of_lt hk]
   · simp [nc_locked_out]
 
-private lemma nc_locked_take_succ_map (g : grammar T)
+lemma nc_locked_take_succ_map (g : grammar T)
     (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ)
     (hk : k < out.length) :
     (out.take (k + 1)).map nc_locked_liftSym =
@@ -1042,7 +1085,7 @@ private lemma nc_locked_take_succ_map (g : grammar T)
   rw [List.take_add_one]
   simp [List.getElem?_eq_getElem (by simpa using hk), List.getD_eq_getElem]
 
-private lemma nc_locked_cleanup_suffix (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_cleanup_suffix (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length)
     (hr : g.rules[ri] = r) (k : ℕ) (hk : k ≤ r.output_string.length) :
     CS_derives (locked_csg_of_noncontracting g hg)
@@ -1079,7 +1122,7 @@ private lemma nc_locked_cleanup_suffix (g : grammar T) (hg : grammar_noncontract
         List.append_assoc] using hih
     exact CS_deri_of_tran_deri hstep htail
 
-private lemma nc_locked_cleanup_outputFrom_with_context (g : grammar T)
+lemma nc_locked_cleanup_outputFrom_with_context (g : grammar T)
     (hg : grammar_noncontracting g)
     {ri : ℕ} {r : grule T g.nt}
     (hpair : (ri, r) ∈ (List.range g.rules.length).zip g.rules)
@@ -1107,7 +1150,7 @@ private lemma nc_locked_cleanup_outputFrom_with_context (g : grammar T)
     simpa using hcleanup
   simpa [List.append_assoc] using CS_deri_with_context u v hcleanup'
 
-private lemma nc_locked_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length) (hr : g.rules[ri] = r) :
     CS_derives (locked_csg_of_noncontracting g hg)
       ((r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R).map nc_locked_liftSym)
@@ -1246,7 +1289,7 @@ private lemma nc_locked_sim_pattern (g : grammar T) (hg : grammar_noncontracting
   have h := h_mark.trans (h_emit.trans h_cleanup)
   simpa [pattern, out] using h
 
-private lemma nc_locked_sim_one_transform (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_sim_one_transform (g : grammar T) (hg : grammar_noncontracting g)
     {w₁ w₂ : List (symbol T g.nt)} (h : grammar_transforms g w₁ w₂) :
     CS_derives (locked_csg_of_noncontracting g hg)
       (w₁.map nc_locked_liftSym) (w₂.map nc_locked_liftSym) := by
@@ -1260,7 +1303,7 @@ private lemma nc_locked_sim_one_transform (g : grammar T) (hg : grammar_noncontr
   simp only [List.map_append, List.map_cons, List.map_nil] at hctx ⊢
   convert hctx using 1 <;> simp [List.append_assoc]
 
-private lemma nc_locked_sim_derives (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_sim_derives (g : grammar T) (hg : grammar_noncontracting g)
     {w₁ w₂ : List (symbol T g.nt)} (h : grammar_derives g w₁ w₂) :
     CS_derives (locked_csg_of_noncontracting g hg)
       (w₁.map nc_locked_liftSym) (w₂.map nc_locked_liftSym) := by
@@ -1269,7 +1312,7 @@ private lemma nc_locked_sim_derives (g : grammar T) (hg : grammar_noncontracting
   | tail h₁ h₂ ih =>
       exact CS_deri_of_deri_deri ih (nc_locked_sim_one_transform g hg h₂)
 
-private lemma nc_locked_forward (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_forward (g : grammar T) (hg : grammar_noncontracting g)
     (w : List T) (hw : w ∈ grammar_language g) :
     w ∈ CS_language (locked_csg_of_noncontracting g hg) := by
   obtain ⟨hderive, hterms⟩ :
@@ -1294,7 +1337,7 @@ theorem grammar_language_subset_locked_csg_of_noncontracting (g : grammar T)
   fun w hw => nc_locked_forward g hg w hw
 
 /-- Projection from locked-construction symbols back to original grammar symbols. -/
-private def nc_locked_proj_sym (g : grammar T) :
+def nc_locked_proj_sym (g : grammar T) :
     symbol T (NC_LockedNT g) → symbol T g.nt
   | .terminal t => .terminal t
   | .nonterminal (.orig n) => .nonterminal n
@@ -1303,15 +1346,15 @@ private def nc_locked_proj_sym (g : grammar T) :
   | .nonterminal (.out _ _ _) => .nonterminal g.initial
 
 /-- Project a locked-construction sentential form back to original grammar symbols. -/
-private def nc_locked_proj (g : grammar T)
+def nc_locked_proj (g : grammar T)
     (s : List (symbol T (NC_LockedNT g))) : List (symbol T g.nt) :=
   s.map (nc_locked_proj_sym g)
 
-private lemma nc_locked_proj_liftSym (g : grammar T) (s : symbol T g.nt) :
+lemma nc_locked_proj_liftSym (g : grammar T) (s : symbol T g.nt) :
     nc_locked_proj_sym g (nc_locked_liftSym s) = s := by
   cases s <;> rfl
 
-private lemma nc_locked_proj_map_liftSym (g : grammar T)
+lemma nc_locked_proj_map_liftSym (g : grammar T)
     (l : List (symbol T g.nt)) :
     nc_locked_proj g (l.map nc_locked_liftSym) = l := by
   unfold nc_locked_proj
@@ -1321,44 +1364,44 @@ private lemma nc_locked_proj_map_liftSym (g : grammar T)
   ext s
   exact nc_locked_proj_liftSym g s
 
-private lemma nc_locked_proj_initial (g : grammar T) :
+lemma nc_locked_proj_initial (g : grammar T) :
     nc_locked_proj g [symbol.nonterminal (NC_LockedNT.orig g.initial)] =
       [symbol.nonterminal g.initial] := by
   simp [nc_locked_proj, nc_locked_proj_sym]
 
-private lemma nc_locked_proj_terminal (g : grammar T) (w : List T) :
+lemma nc_locked_proj_terminal (g : grammar T) (w : List T) :
     nc_locked_proj g (w.map symbol.terminal) = w.map symbol.terminal := by
   simp [nc_locked_proj, nc_locked_proj_sym, List.map_map]
 
 /-- A locked sentential form is clean if it contains no input or output markers. -/
-private def nc_locked_is_clean (g : grammar T)
+def nc_locked_is_clean (g : grammar T)
     (s : List (symbol T (NC_LockedNT g))) : Prop :=
   ∀ x ∈ s,
     (∀ ri k, x ≠ symbol.nonterminal (NC_LockedNT.mark ri k)) ∧
       (∀ ri k a, x ≠ symbol.nonterminal (NC_LockedNT.out ri k a))
 
-private lemma nc_locked_initial_clean (g : grammar T) :
+lemma nc_locked_initial_clean (g : grammar T) :
     nc_locked_is_clean g [symbol.nonterminal (NC_LockedNT.orig g.initial)] := by
   intro x hx
   simp at hx
   subst x
   constructor <;> intro <;> simp
 
-private lemma nc_locked_terminal_clean (g : grammar T) (w : List T) :
+lemma nc_locked_terminal_clean (g : grammar T) (w : List T) :
     nc_locked_is_clean g (w.map symbol.terminal) := by
   intro x hx
   simp [List.mem_map] at hx
   obtain ⟨t, _, rfl⟩ := hx
   constructor <;> intro <;> simp
 
-private lemma nc_locked_liftSym_clean (g : grammar T) (s : symbol T g.nt) :
+lemma nc_locked_liftSym_clean (g : grammar T) (s : symbol T g.nt) :
     nc_locked_is_clean g [nc_locked_liftSym s] := by
   intro x hx
   simp at hx
   subst x
   cases s <;> constructor <;> intro <;> simp [nc_locked_liftSym, nc_locked_symToNT]
 
-private lemma nc_locked_map_liftSym_clean (g : grammar T)
+lemma nc_locked_map_liftSym_clean (g : grammar T)
     (s : List (symbol T g.nt)) :
     nc_locked_is_clean g (s.map nc_locked_liftSym) := by
   intro x hx
@@ -1366,26 +1409,26 @@ private lemma nc_locked_map_liftSym_clean (g : grammar T)
   obtain ⟨y, _hy, rfl⟩ := hx
   cases y <;> constructor <;> intro <;> simp [nc_locked_liftSym, nc_locked_symToNT]
 
-private lemma nc_locked_is_clean_of_subset (g : grammar T)
+lemma nc_locked_is_clean_of_subset (g : grammar T)
     {s t : List (symbol T (NC_LockedNT g))}
     (hclean : nc_locked_is_clean g t) (hsub : ∀ x, x ∈ s → x ∈ t) :
     nc_locked_is_clean g s := by
   intro x hx
   exact hclean x (hsub x hx)
 
-private lemma nc_locked_is_clean_append_left (g : grammar T)
+lemma nc_locked_is_clean_append_left (g : grammar T)
     {s t : List (symbol T (NC_LockedNT g))}
     (hclean : nc_locked_is_clean g (s ++ t)) :
     nc_locked_is_clean g s :=
   nc_locked_is_clean_of_subset g hclean (by intro x hx; simp [List.mem_append, hx])
 
-private lemma nc_locked_is_clean_append_right (g : grammar T)
+lemma nc_locked_is_clean_append_right (g : grammar T)
     {s t : List (symbol T (NC_LockedNT g))}
     (hclean : nc_locked_is_clean g (s ++ t)) :
     nc_locked_is_clean g t :=
   nc_locked_is_clean_of_subset g hclean (by intro x hx; simp [List.mem_append, hx])
 
-private lemma nc_locked_is_clean_append (g : grammar T)
+lemma nc_locked_is_clean_append (g : grammar T)
     {s t : List (symbol T (NC_LockedNT g))}
     (hs : nc_locked_is_clean g s) (ht : nc_locked_is_clean g t) :
     nc_locked_is_clean g (s ++ t) := by
@@ -1395,7 +1438,7 @@ private lemma nc_locked_is_clean_append (g : grammar T)
   | inl hx => exact hs x hx
   | inr hx => exact ht x hx
 
-private lemma nc_locked_not_clean_iff_exists_marker (g : grammar T)
+lemma nc_locked_not_clean_iff_exists_marker (g : grammar T)
     (s : List (symbol T (NC_LockedNT g))) :
     ¬ nc_locked_is_clean g s ↔
       (∃ ri k, nc_locked_mark (g := g) ri k ∈ s) ∨
@@ -1418,7 +1461,7 @@ private lemma nc_locked_not_clean_iff_exists_marker (g : grammar T)
     · exact (hclean (nc_locked_mark (g := g) ri k) hmem).1 ri k rfl
     · exact (hclean (nc_locked_out (g := g) ri k a) hmem).2 ri k a rfl
 
-private lemma nc_locked_clean_step_dirty_new_marker (g : grammar T)
+lemma nc_locked_clean_step_dirty_new_marker (g : grammar T)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (hclean : nc_locked_is_clean g s₁) (hdirty : ¬ nc_locked_is_clean g s₂) :
     (∃ ri k, nc_locked_mark (g := g) ri k ∈ s₂ ∧
@@ -1432,7 +1475,7 @@ private lemma nc_locked_clean_step_dirty_new_marker (g : grammar T)
   · exact Or.inr ⟨ri, k, a, hmem,
       fun hsrc => (hclean (nc_locked_out (g := g) ri k a) hsrc).2 ri k a rfl⟩
 
-private lemma nc_locked_clean_step_proj_eq (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_clean_step_proj_eq (g : grammar T) (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
     (hclean₁ : nc_locked_is_clean g s₁) (hclean₂ : nc_locked_is_clean g s₂) :
@@ -1479,7 +1522,7 @@ private lemma nc_locked_clean_step_proj_eq (g : grammar T) (hg : grammar_noncont
           (grule.output_string.getD k (symbol.nonterminal grule.input_N))) hmem).2
         simRi k (grule.output_string.getD k (symbol.nonterminal grule.input_N)) rfl).elim
 
-private lemma nc_locked_clean_step_grammar_derives (g : grammar T)
+lemma nc_locked_clean_step_grammar_derives (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -1488,7 +1531,7 @@ private lemma nc_locked_clean_step_grammar_derives (g : grammar T)
   rw [nc_locked_clean_step_proj_eq g hg h hclean₁ hclean₂]
   exact grammar_deri_self
 
-private lemma nc_locked_clean_step_dirty_mark_zero_shape (g : grammar T)
+lemma nc_locked_clean_step_dirty_mark_zero_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -1576,7 +1619,7 @@ private lemma nc_locked_clean_step_dirty_mark_zero_shape (g : grammar T)
           (grule.output_string.getD k (symbol.nonterminal grule.input_N))) hsrc).2
         simRi k (grule.output_string.getD k (symbol.nonterminal grule.input_N)) rfl).elim
 
-private lemma nc_locked_dirty_step_clean_cleanup_shape (g : grammar T)
+lemma nc_locked_dirty_step_clean_cleanup_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -1654,7 +1697,7 @@ private lemma nc_locked_dirty_step_clean_cleanup_shape (g : grammar T)
       · simpa [nc_locked_out, List.append_assoc] using hs₁
       · simpa [List.append_assoc] using hs₂
 
-private lemma nc_locked_rule_mem_cases (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_locked_rule_mem_cases (g : grammar T) (hg : grammar_noncontracting g)
     {cr : csrule T (NC_LockedNT g)}
     (hcr : cr ∈ (locked_csg_of_noncontracting g hg).rules) :
     (∃ t, t ∈ nc_grammarTerminals g ∧
@@ -1722,7 +1765,7 @@ private lemma nc_locked_rule_mem_cases (g : grammar T) (hg : grammar_noncontract
     · obtain ⟨k, hk, rfl⟩ := hcleanup
       exact Or.inr (Or.inr (Or.inr ⟨k, by simpa using hk, rfl⟩))
 
-private lemma nc_locked_rule_input_mark_shape (g : grammar T)
+lemma nc_locked_rule_input_mark_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {cr : csrule T (NC_LockedNT g)}
     (hcr : cr ∈ (locked_csg_of_noncontracting g hg).rules)
@@ -1784,7 +1827,7 @@ private lemma nc_locked_rule_input_mark_shape (g : grammar T)
     · obtain ⟨j, _hj, rfl⟩ := hcleanup
       simp [nc_locked_out] at hinput
 
-private lemma nc_locked_rule_input_out_shape (g : grammar T)
+lemma nc_locked_rule_input_out_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {cr : csrule T (NC_LockedNT g)}
     (hcr : cr ∈ (locked_csg_of_noncontracting g hg).rules)
@@ -1830,7 +1873,7 @@ private lemma nc_locked_rule_input_out_shape (g : grammar T)
       refine ⟨simRi, grule, hpair, hri.symm, by simpa using hj, ha.symm, ?_⟩
       simp
 
-private lemma nc_locked_rule_output_mark_shape (g : grammar T)
+lemma nc_locked_rule_output_mark_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {cr : csrule T (NC_LockedNT g)}
     (hcr : cr ∈ (locked_csg_of_noncontracting g hg).rules)
@@ -1876,7 +1919,7 @@ private lemma nc_locked_rule_output_mark_shape (g : grammar T)
       exact ((hclean (nc_locked_mark (g := g) ri k) (by simpa using hout)).1
         ri k rfl).elim
 
-private lemma nc_locked_rule_output_out_shape (g : grammar T)
+lemma nc_locked_rule_output_out_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {cr : csrule T (NC_LockedNT g)}
     (hcr : cr ∈ (locked_csg_of_noncontracting g hg).rules)
@@ -1955,7 +1998,7 @@ private lemma nc_locked_rule_output_out_shape (g : grammar T)
       exact ((hclean (nc_locked_out (g := g) ri k a) (by simpa using hout)).2
         ri k a rfl).elim
 
-private lemma nc_locked_transform_added_mark_shape (g : grammar T)
+lemma nc_locked_transform_added_mark_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -1991,7 +2034,7 @@ private lemma nc_locked_transform_added_mark_shape (g : grammar T)
 /-- If a transform newly creates marker `k`, then the rule that creates it is a
 phase-1 marking rule and all lower markers for that same simulation occur in the
 source.  This records the context dependency of the locked input-marking phase. -/
-private lemma nc_locked_transform_added_mark_source_context_marks (g : grammar T)
+lemma nc_locked_transform_added_mark_source_context_marks (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2031,7 +2074,7 @@ private lemma nc_locked_transform_added_mark_source_context_marks (g : grammar T
   rw [hs₁, hcrshape]
   simp [List.mem_append, hctx]
 
-private lemma nc_locked_transform_added_mark_from_single_mark_source (g : grammar T)
+lemma nc_locked_transform_added_mark_from_single_mark_source (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2096,7 +2139,7 @@ private lemma nc_locked_transform_added_mark_from_single_mark_source (g : gramma
 /-- If a step whose source contains a single phase-`0` marker creates the phase-`1`
 marker for that same simulation, then the step is exactly the first continuation
 marking rule for the corresponding original production. -/
-private lemma nc_locked_transform_added_base_one_mark_shape (g : grammar T)
+lemma nc_locked_transform_added_base_one_mark_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2132,7 +2175,7 @@ private lemma nc_locked_transform_added_base_one_mark_shape (g : grammar T)
 locked simulation.  Once the boundary phase-`1` marker is newly created, the
 whole step is forced to replace the second lifted input symbol by that marker,
 with the original surrounding context unchanged. -/
-private lemma nc_locked_transform_added_base_one_mark_exact
+lemma nc_locked_transform_added_base_one_mark_exact
     (g : grammar T) (hg : grammar_noncontracting g)
     {ri : ℕ} {r : grule T g.nt}
     {u v smid : List (symbol T (NC_LockedNT g))}
@@ -2278,7 +2321,7 @@ private lemma nc_locked_transform_added_base_one_mark_exact
   refine ⟨hpat, ?_⟩
   simpa [pattern, hu_eq, hv_eq, List.append_assoc, List.map_drop, List.map_append] using hs_tgt'
 
-private lemma nc_locked_mark_not_mem_prior_range (g : grammar T) (ri n : ℕ) :
+lemma nc_locked_mark_not_mem_prior_range (g : grammar T) (ri n : ℕ) :
     nc_locked_mark (g := g) ri n ∉ (List.range n).map (nc_locked_mark ri) := by
   intro hmem
   simp [List.mem_map] at hmem
@@ -2287,7 +2330,7 @@ private lemma nc_locked_mark_not_mem_prior_range (g : grammar T) (ri n : ℕ) :
     simpa [nc_locked_mark] using heq
   omega
 
-private lemma nc_locked_mark_range_succ (g : grammar T) (ri k : ℕ) :
+lemma nc_locked_mark_range_succ (g : grammar T) (ri k : ℕ) :
     (List.range (k + 1)).map (nc_locked_mark (g := g) ri) =
       (List.range k).map (nc_locked_mark (g := g) ri) ++
         [nc_locked_mark (g := g) ri k] := by
@@ -2297,7 +2340,7 @@ private lemma nc_locked_mark_range_succ (g : grammar T) (ri k : ℕ) :
 simulation.  If phases `0..k` have already been marked and the next step creates
 phase `k+1`, then the selected rule is forced to replace exactly the next lifted
 input symbol, with the surrounding context unchanged. -/
-private lemma nc_locked_transform_added_next_mark_exact
+lemma nc_locked_transform_added_next_mark_exact
     (g : grammar T) (hg : grammar_noncontracting g)
     {ri : ℕ} {r : grule T g.nt} {k : ℕ}
     {u v smid : List (symbol T (NC_LockedNT g))}
@@ -2469,7 +2512,7 @@ private lemma nc_locked_transform_added_next_mark_exact
   refine ⟨hpat, ?_⟩
   simpa [pattern, pref, hu_eq, hv_eq, List.append_assoc] using hs_tgt'
 
-private lemma nc_locked_transform_added_mark_preserves_source_mark (g : grammar T)
+lemma nc_locked_transform_added_mark_preserves_source_mark (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2511,7 +2554,7 @@ private lemma nc_locked_transform_added_mark_preserves_source_mark (g : grammar 
       ri k rfl).elim
   · simp [hmark]
 
-private lemma nc_locked_transform_added_out_shape (g : grammar T)
+lemma nc_locked_transform_added_out_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2564,7 +2607,7 @@ private lemma nc_locked_transform_added_out_shape (g : grammar T)
     · rw [hcrshape]
     · rw [hcrshape]
 
-private lemma nc_locked_transform_added_out_source_mark (g : grammar T)
+lemma nc_locked_transform_added_out_source_mark (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2612,7 +2655,7 @@ private lemma nc_locked_transform_added_out_source_mark (g : grammar T)
     rw [hcrshape] at hinput_mem
     simpa [nc_locked_mark, pattern] using hinput_mem
 
-private lemma nc_locked_transform_added_out_from_out_free_source (g : grammar T)
+lemma nc_locked_transform_added_out_from_out_free_source (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2672,7 +2715,7 @@ private lemma nc_locked_transform_added_out_from_out_free_source (g : grammar T)
     exact (hnoout simRi (k + 1)
       (grule.output_string.getD (k + 1) dflt) hsource_out).elim
 
-private lemma nc_locked_transform_removed_mark_shape (g : grammar T)
+lemma nc_locked_transform_removed_mark_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2726,7 +2769,7 @@ private lemma nc_locked_transform_removed_mark_shape (g : grammar T)
     · rw [hcrshape]
     · rw [hcrshape]
 
-private lemma nc_locked_transform_removed_mark_adds_out (g : grammar T)
+lemma nc_locked_transform_removed_mark_adds_out (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2777,7 +2820,7 @@ private lemma nc_locked_transform_removed_mark_adds_out (g : grammar T)
         (grule.output_string.getD k (symbol.nonterminal grule.input_N)))
       (by simp [nc_locked_out])
 
-private lemma nc_locked_transform_removed_out_shape (g : grammar T)
+lemma nc_locked_transform_removed_out_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2810,7 +2853,7 @@ private lemma nc_locked_transform_removed_out_shape (g : grammar T)
     by rw [hshape],
     by rw [hshape]⟩
 
-private lemma nc_locked_transform_removed_out_adds_liftSym (g : grammar T)
+lemma nc_locked_transform_removed_out_adds_liftSym (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2840,7 +2883,7 @@ private lemma nc_locked_transform_removed_out_adds_liftSym (g : grammar T)
   simpa [ha]
     using hlift
 
-private lemma nc_locked_clean_step_dirty_mark_zero_unique (g : grammar T)
+lemma nc_locked_clean_step_dirty_mark_zero_unique (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2906,7 +2949,7 @@ private lemma nc_locked_clean_step_dirty_mark_zero_unique (g : grammar T)
         (nc_locked_out (g := g) ri k a) hmem').2 ri k a rfl).elim
     · exact ((hv (nc_locked_out (g := g) ri k a) hmem).2 ri k a rfl).elim
 
-private lemma nc_locked_dirty_step_clean_cleanup_unique (g : grammar T)
+lemma nc_locked_dirty_step_clean_cleanup_unique (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -2964,7 +3007,7 @@ private lemma nc_locked_dirty_step_clean_cleanup_unique (g : grammar T)
 
 /-- Step-counted derivations for the locked construction.  This is equivalent to
 `CS_derives`, but exposes split points needed by the dirty-phase grouping proof. -/
-private inductive NC_locked_derives_n (g : grammar T) (hg : grammar_noncontracting g) :
+inductive NC_locked_derives_n (g : grammar T) (hg : grammar_noncontracting g) :
     ℕ → List (symbol T (NC_LockedNT g)) →
       List (symbol T (NC_LockedNT g)) → Prop
   | zero (s) :
@@ -2974,7 +3017,7 @@ private inductive NC_locked_derives_n (g : grammar T) (hg : grammar_noncontracti
       NC_locked_derives_n g hg n s₂ s₃ →
       NC_locked_derives_n g hg (n + 1) s₁ s₃
 
-private lemma nc_locked_derives_n_to_derives (g : grammar T)
+lemma nc_locked_derives_n_to_derives (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂) :
@@ -2985,7 +3028,7 @@ private lemma nc_locked_derives_n_to_derives (g : grammar T)
   | step hstep _ ih =>
       exact CS_deri_of_tran_deri hstep ih
 
-private lemma nc_locked_derives_n_append (g : grammar T)
+lemma nc_locked_derives_n_append (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ s₃ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -2997,7 +3040,7 @@ private lemma nc_locked_derives_n_append (g : grammar T)
   | step hfirst _ ih =>
       exact NC_locked_derives_n.step hfirst (ih hstep)
 
-private lemma nc_locked_derives_to_derives_n (g : grammar T)
+lemma nc_locked_derives_to_derives_n (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_derives (locked_csg_of_noncontracting g hg) s₁ s₂) :
@@ -3009,7 +3052,7 @@ private lemma nc_locked_derives_to_derives_n (g : grammar T)
       obtain ⟨n, hn⟩ := ih
       exact ⟨n + 1, nc_locked_derives_n_append g hg hn hstep⟩
 
-private lemma nc_locked_derives_n_tail (g : grammar T)
+lemma nc_locked_derives_n_tail (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg (n + 1) s₁ s₂) :
@@ -3027,7 +3070,7 @@ private lemma nc_locked_derives_n_tail (g : grammar T)
           obtain ⟨s_last, hprefix, hlast⟩ := ih hrest
           exact ⟨s_last, NC_locked_derives_n.step hstep hprefix, hlast⟩
 
-private lemma nc_locked_derives_n_split (g : grammar T)
+lemma nc_locked_derives_n_split (g : grammar T)
     (hg : grammar_noncontracting g)
     {m n : ℕ} {s₁ s₃ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg (m + n) s₁ s₃) :
@@ -3043,7 +3086,7 @@ private lemma nc_locked_derives_n_split (g : grammar T)
           obtain ⟨s₂, hleft, hright⟩ := ih hrest
           exact ⟨s₂, NC_locked_derives_n.step hstep hleft, hright⟩
 
-private lemma nc_locked_derives_n_removed_mark_event (g : grammar T)
+lemma nc_locked_derives_n_removed_mark_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3075,7 +3118,7 @@ private lemma nc_locked_derives_n_removed_mark_event (g : grammar T)
           NC_locked_derives_n.step hstep (NC_locked_derives_n.zero smid),
           htail, hpair, hri, hj, hout⟩
 
-private lemma nc_locked_derives_n_removed_mark_step_event (g : grammar T)
+lemma nc_locked_derives_n_removed_mark_step_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3112,7 +3155,7 @@ private lemma nc_locked_derives_n_removed_mark_step_event (g : grammar T)
           NC_locked_derives_n.zero s₁, hstep, htail, hpair, hri, hj, hsrc,
           hmid, hout⟩
 
-private lemma nc_locked_derives_n_removed_out_event (g : grammar T)
+lemma nc_locked_derives_n_removed_out_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3144,7 +3187,7 @@ private lemma nc_locked_derives_n_removed_out_event (g : grammar T)
           NC_locked_derives_n.step hstep (NC_locked_derives_n.zero smid),
           htail, hpair, hri, hk, ha, hlift⟩
 
-private lemma nc_locked_derives_n_added_out_event (g : grammar T)
+lemma nc_locked_derives_n_added_out_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3176,7 +3219,7 @@ private lemma nc_locked_derives_n_added_out_event (g : grammar T)
           NC_locked_derives_n.step hstep hpre, hsuf, hpair, hri, hk, ha, hout⟩
         omega
 
-private lemma nc_locked_derives_n_added_mark_step_event (g : grammar T)
+lemma nc_locked_derives_n_added_mark_step_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3214,7 +3257,7 @@ private lemma nc_locked_derives_n_added_mark_step_event (g : grammar T)
           hnot_spre, hmark_spost⟩
         omega
 
-private lemma nc_locked_derives_n_added_out_step_event (g : grammar T)
+lemma nc_locked_derives_n_added_out_step_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3248,7 +3291,7 @@ private lemma nc_locked_derives_n_added_out_step_event (g : grammar T)
           hnot_spre, hout⟩
         omega
 
-private lemma nc_locked_derives_n_added_out_step_source_mark_event
+lemma nc_locked_derives_n_added_out_step_source_mark_event
     (g : grammar T) (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3277,7 +3320,7 @@ private lemma nc_locked_derives_n_added_out_step_source_mark_event
   exact ⟨pre, rest, spre, spost, simRi, grule, markIdx, hn, hpre, hintro, hrest,
     hpair, hri, hk, ha, hmark⟩
 
-private lemma nc_locked_derives_n_to_clean_mark_event (g : grammar T)
+lemma nc_locked_derives_n_to_clean_mark_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3295,7 +3338,7 @@ private lemma nc_locked_derives_n_to_clean_mark_event (g : grammar T)
   exact nc_locked_derives_n_removed_mark_event g hg h hsrc
     (fun htgt => (hclean₂ (nc_locked_mark (g := g) ri k) htgt).1 ri k rfl)
 
-private lemma nc_locked_derives_n_to_clean_out_event (g : grammar T)
+lemma nc_locked_derives_n_to_clean_out_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -3314,7 +3357,7 @@ private lemma nc_locked_derives_n_to_clean_out_event (g : grammar T)
     (fun htgt => (hclean₂ (nc_locked_out (g := g) ri k a) htgt).2 ri k a rfl)
 
 /-- Counted locked derivations whose every boundary state is dirty. -/
-private inductive NC_locked_dirty_derives_n (g : grammar T)
+inductive NC_locked_dirty_derives_n (g : grammar T)
     (hg : grammar_noncontracting g) :
     ℕ → List (symbol T (NC_LockedNT g)) →
       List (symbol T (NC_LockedNT g)) → Prop
@@ -3328,7 +3371,7 @@ private inductive NC_locked_dirty_derives_n (g : grammar T)
       NC_locked_dirty_derives_n g hg n s₂ s₃ →
       NC_locked_dirty_derives_n g hg (n + 1) s₁ s₃
 
-private lemma nc_locked_dirty_derives_n_to_derives_n (g : grammar T)
+lemma nc_locked_dirty_derives_n_to_derives_n (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_dirty_derives_n g hg n s₁ s₂) :
@@ -3339,7 +3382,7 @@ private lemma nc_locked_dirty_derives_n_to_derives_n (g : grammar T)
   | step hstep _ _ _ ih =>
       exact NC_locked_derives_n.step hstep ih
 
-private lemma nc_locked_dirty_derives_n_end_dirty (g : grammar T)
+lemma nc_locked_dirty_derives_n_end_dirty (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_dirty_derives_n g hg n s₁ s₂) :
@@ -3350,7 +3393,7 @@ private lemma nc_locked_dirty_derives_n_end_dirty (g : grammar T)
   | step _ _ _ _ ih =>
       exact ih
 
-private lemma nc_locked_dirty_return_mark_event (g : grammar T)
+lemma nc_locked_dirty_return_mark_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {m : ℕ} {s_after s_dirty s_clean : List (symbol T (NC_LockedNT g))}
     (hdirty : NC_locked_dirty_derives_n g hg m s_after s_dirty)
@@ -3371,7 +3414,7 @@ private lemma nc_locked_dirty_return_mark_event (g : grammar T)
       (nc_locked_dirty_derives_n_to_derives_n g hg hdirty) hreturn
   exact nc_locked_derives_n_to_clean_mark_event g hg hderive hclean hmark
 
-private lemma nc_locked_dirty_return_mark_step_event (g : grammar T)
+lemma nc_locked_dirty_return_mark_step_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {m : ℕ} {s_after s_dirty s_clean : List (symbol T (NC_LockedNT g))}
     (hdirty : NC_locked_dirty_derives_n g hg m s_after s_dirty)
@@ -3396,7 +3439,7 @@ private lemma nc_locked_dirty_return_mark_step_event (g : grammar T)
   exact nc_locked_derives_n_removed_mark_step_event g hg hderive hmark
     (fun htgt => (hclean (nc_locked_mark (g := g) ri k) htgt).1 ri k rfl)
 
-private lemma nc_locked_dirty_return_out_event (g : grammar T)
+lemma nc_locked_dirty_return_out_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {m : ℕ} {s_after s_dirty s_clean : List (symbol T (NC_LockedNT g))}
     (hdirty : NC_locked_dirty_derives_n g hg m s_after s_dirty)
@@ -3420,7 +3463,7 @@ private lemma nc_locked_dirty_return_out_event (g : grammar T)
 /-- The initial marker introduced by a clean-to-dirty step must eventually produce
 an output marker for the same indexed original rule before the interval can return
 to a clean form. -/
-private lemma nc_locked_dirty_interval_start_rule_output_event (g : grammar T)
+lemma nc_locked_dirty_interval_start_rule_output_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3458,7 +3501,7 @@ private lemma nc_locked_dirty_interval_start_rule_output_event (g : grammar T)
 /-- In a dirty interval that starts from a clean form, the unique output marker
 cleaned by the final dirty-to-clean step must have been introduced during the
 dirty part of the interval. -/
-private lemma nc_locked_dirty_interval_final_cleanup_added_out_event (g : grammar T)
+lemma nc_locked_dirty_interval_final_cleanup_added_out_event (g : grammar T)
     (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3509,7 +3552,7 @@ private lemma nc_locked_dirty_interval_final_cleanup_added_out_event (g : gramma
 `nc_locked_dirty_interval_final_cleanup_added_out_event`: the output marker cleaned
 by the final return-to-clean step has a concrete introduction step inside the
 dirty interval. -/
-private lemma nc_locked_dirty_interval_final_cleanup_added_out_step_event
+lemma nc_locked_dirty_interval_final_cleanup_added_out_step_event
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3565,7 +3608,7 @@ private lemma nc_locked_dirty_interval_final_cleanup_added_out_step_event
 `nc_locked_dirty_interval_final_cleanup_added_out_step_event`: the output marker
 cleaned by the final return-to-clean step is introduced by a step whose source
 contains the corresponding locked input marker. -/
-private lemma nc_locked_dirty_interval_final_cleanup_source_mark_event
+lemma nc_locked_dirty_interval_final_cleanup_source_mark_event
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3620,7 +3663,7 @@ private lemma nc_locked_dirty_interval_final_cleanup_source_mark_event
 /-- A dirty interval cannot return to a clean form immediately after its
 clean-to-dirty start.  The start state contains a single input marker and no
 output marker, while a dirty-to-clean step must clean a unique output marker. -/
-private lemma nc_locked_dirty_interval_mid_length_pos (g : grammar T)
+lemma nc_locked_dirty_interval_mid_length_pos (g : grammar T)
     (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3648,7 +3691,7 @@ private lemma nc_locked_dirty_interval_mid_length_pos (g : grammar T)
   | step _ _ _ =>
       omega
 
-private lemma nc_locked_dirty_derives_n_step_split_of_pos (g : grammar T)
+lemma nc_locked_dirty_derives_n_step_split_of_pos (g : grammar T)
     (hg : grammar_noncontracting g)
     {m : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (hpos : 0 < m)
@@ -3665,7 +3708,7 @@ private lemma nc_locked_dirty_derives_n_step_split_of_pos (g : grammar T)
       exact ⟨_, _, rfl, hstep, hdirty_mid, htail⟩
 
 /-- Nondegenerate dirty intervals expose their first dirty-to-dirty step. -/
-private lemma nc_locked_dirty_interval_first_dirty_step (g : grammar T)
+lemma nc_locked_dirty_interval_first_dirty_step (g : grammar T)
     (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3689,7 +3732,7 @@ private lemma nc_locked_dirty_interval_first_dirty_step (g : grammar T)
 /-- In the first dirty-to-dirty step after a clean start, any newly introduced
 marker is either a fresh `0` marker for some simulation, or the `1` marker for
 the simulation opened by the clean-to-dirty step. -/
-private lemma nc_locked_dirty_interval_first_step_added_mark_shape
+lemma nc_locked_dirty_interval_first_step_added_mark_shape
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3738,7 +3781,7 @@ private lemma nc_locked_dirty_interval_first_step_added_mark_shape
 markers in the first dirty-to-dirty step.  Any fresh marker created by that step
 comes from a locked phase-1 marking rule whose lower markers were already present
 in `s_after`. -/
-private lemma nc_locked_dirty_interval_first_step_added_mark_source_context
+lemma nc_locked_dirty_interval_first_step_added_mark_source_context
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3786,7 +3829,7 @@ private lemma nc_locked_dirty_interval_first_step_added_mark_source_context
 /-- If the first dirty step consumes the marker created by the clean-to-dirty
 boundary, then that same step has not introduced any new marker.  Any
 marker-introduction rule preserves all source markers. -/
-private lemma nc_locked_dirty_interval_first_step_removed_start_mark_no_added_mark
+lemma nc_locked_dirty_interval_first_step_removed_start_mark_no_added_mark
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3832,7 +3875,7 @@ private lemma nc_locked_dirty_interval_first_step_removed_start_mark_no_added_ma
 /-- If the first dirty step consumes the boundary marker, then the next state
 contains no input markers.  Existing markers in the source are only the boundary
 marker, and marker-introducing steps preserve it. -/
-private lemma nc_locked_dirty_interval_first_step_removed_start_mark_no_marks
+lemma nc_locked_dirty_interval_first_step_removed_start_mark_no_marks
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3880,7 +3923,7 @@ private lemma nc_locked_dirty_interval_first_step_removed_start_mark_no_marks
 /-- If the first dirty-to-dirty step of an interval removes the marker introduced
 by the clean-to-dirty start, then that step has produced an output marker for
 the same indexed original rule. -/
-private lemma nc_locked_dirty_interval_first_step_removed_start_mark_adds_out
+lemma nc_locked_dirty_interval_first_step_removed_start_mark_adds_out
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3926,7 +3969,7 @@ private lemma nc_locked_dirty_interval_first_step_removed_start_mark_adds_out
 /-- Stronger first-step consequence: because the start state is output-free, if
 the first dirty-to-dirty step consumes the start marker then it must be the
 last-marker emission for a length-one input pattern. -/
-private lemma nc_locked_dirty_interval_first_step_removed_start_mark_unit_pattern
+lemma nc_locked_dirty_interval_first_step_removed_start_mark_unit_pattern
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -3993,7 +4036,7 @@ private lemma nc_locked_dirty_interval_first_step_removed_start_mark_unit_patter
 marker opened by the clean-to-dirty boundary disappears, then the simulated
 input pattern had length one, the next state has no input markers, and the same
 step produced an output marker for that simulation. -/
-private lemma nc_locked_dirty_interval_first_step_removed_start_mark_summary
+lemma nc_locked_dirty_interval_first_step_removed_start_mark_summary
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -4074,7 +4117,7 @@ private lemma nc_locked_dirty_interval_first_step_removed_start_mark_summary
 /-- First-step case split for a dirty interval.  Either the marker opened by the
 clean-to-dirty boundary is still present after the first dirty-to-dirty step, or
 that first step is the complete consumed-boundary branch summarized above. -/
-private lemma nc_locked_dirty_interval_first_step_split_summary
+lemma nc_locked_dirty_interval_first_step_split_summary
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -4118,7 +4161,7 @@ private lemma nc_locked_dirty_interval_first_step_split_summary
 last-marker emission rule for the opened simulation, specialized to a unit
 input pattern.  This records the actual CS rule shape, which is the next piece
 needed to turn the branch into a clean macro simulation. -/
-private lemma nc_locked_dirty_interval_first_step_removed_start_mark_emit_rule
+lemma nc_locked_dirty_interval_first_step_removed_start_mark_emit_rule
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -4184,7 +4227,7 @@ private lemma nc_locked_dirty_interval_first_step_removed_start_mark_emit_rule
 /-- The consumed-boundary branch can only happen for an original rule whose
 contextual input has no left or right side: the whole input pattern is the
 distinguished nonterminal. -/
-private lemma nc_locked_dirty_interval_first_step_removed_start_mark_empty_context
+lemma nc_locked_dirty_interval_first_step_removed_start_mark_empty_context
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -4228,7 +4271,7 @@ private lemma nc_locked_dirty_interval_first_step_removed_start_mark_empty_conte
 
 /-- In the consumed-boundary branch, the first dirty-to-dirty step has exactly
 the clean macro target for the opened original rule. -/
-private lemma nc_locked_dirty_interval_first_step_removed_start_mark_endpoint
+lemma nc_locked_dirty_interval_first_step_removed_start_mark_endpoint
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -4335,7 +4378,7 @@ private lemma nc_locked_dirty_interval_first_step_removed_start_mark_endpoint
       simpa using hlen
     omega
 
-private lemma nc_locked_dirty_trace_first_clean_step (g : grammar T)
+lemma nc_locked_dirty_trace_first_clean_step (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -4358,7 +4401,7 @@ private lemma nc_locked_dirty_trace_first_clean_step (g : grammar T)
         exact ⟨m + 1, s_dirty, s_clean,
           NC_locked_derives_n.step hstep hprefix, hdirty, hcleanStep, hclean⟩
 
-private lemma nc_locked_dirty_trace_first_clean_step_split (g : grammar T)
+lemma nc_locked_dirty_trace_first_clean_step_split (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -4384,7 +4427,7 @@ private lemma nc_locked_dirty_trace_first_clean_step_split (g : grammar T)
           NC_locked_derives_n.step hstep hprefix, hdirty, hreturn, hs_clean, hrest⟩
         omega
 
-private lemma nc_locked_dirty_trace_first_clean_step_dirty_split (g : grammar T)
+lemma nc_locked_dirty_trace_first_clean_step_dirty_split (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -4415,7 +4458,7 @@ private lemma nc_locked_dirty_trace_first_clean_step_dirty_split (g : grammar T)
 /-- Clean macro steps in the locked construction.  The `sim` constructor is the
 macro endpoint for one complete locked simulation of an original
 non-contracting rule under arbitrary surrounding context. -/
-private inductive NC_locked_clean_macro_step (g : grammar T)
+inductive NC_locked_clean_macro_step (g : grammar T)
     (hg : grammar_noncontracting g) :
     List (symbol T (NC_LockedNT g)) →
       List (symbol T (NC_LockedNT g)) → Prop
@@ -4434,7 +4477,7 @@ private inductive NC_locked_clean_macro_step (g : grammar T)
 
 /-- Every locked clean macro step projects to an unrestricted derivation in the
 original grammar. -/
-private lemma nc_locked_clean_macro_step_grammar_derives (g : grammar T)
+lemma nc_locked_clean_macro_step_grammar_derives (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_clean_macro_step g hg s₁ s₂) :
@@ -4453,7 +4496,7 @@ private lemma nc_locked_clean_macro_step_grammar_derives (g : grammar T)
           nc_locked_proj_liftSym]
 
 /-- Step-counted traces of locked clean macro steps. -/
-private inductive NC_locked_clean_macro_derives_n (g : grammar T)
+inductive NC_locked_clean_macro_derives_n (g : grammar T)
     (hg : grammar_noncontracting g) :
     ℕ → List (symbol T (NC_LockedNT g)) →
       List (symbol T (NC_LockedNT g)) → Prop
@@ -4467,7 +4510,7 @@ private inductive NC_locked_clean_macro_derives_n (g : grammar T)
 
 /-- Locked clean macro traces project to unrestricted derivations in the
 original grammar. -/
-private lemma nc_locked_clean_macro_trace_grammar_derives (g : grammar T)
+lemma nc_locked_clean_macro_trace_grammar_derives (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_clean_macro_derives_n g hg n s₁ s₂) :
@@ -4480,7 +4523,7 @@ private lemma nc_locked_clean_macro_trace_grammar_derives (g : grammar T)
         (nc_locked_clean_macro_step_grammar_derives g hg hstep)
         ih
 
-private lemma nc_locked_clean_macro_derives_n_append (g : grammar T)
+lemma nc_locked_clean_macro_derives_n_append (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ s₃ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_clean_macro_derives_n g hg n s₁ s₂)
@@ -4494,7 +4537,7 @@ private lemma nc_locked_clean_macro_derives_n_append (g : grammar T)
   | step hfirst _ ih =>
       exact NC_locked_clean_macro_derives_n.step hfirst (ih hstep hclean₃)
 
-private lemma nc_locked_clean_macro_derives_n_trans (g : grammar T)
+lemma nc_locked_clean_macro_derives_n_trans (g : grammar T)
     (hg : grammar_noncontracting g)
     {m n : ℕ} {s₁ s₂ s₃ : List (symbol T (NC_LockedNT g))}
     (h₁ : NC_locked_clean_macro_derives_n g hg m s₁ s₂)
@@ -4507,7 +4550,7 @@ private lemma nc_locked_clean_macro_derives_n_trans (g : grammar T)
       convert NC_locked_clean_macro_derives_n.step hstep (ih h₂) using 1
       omega
 
-private lemma nc_locked_clean_macro_derives_n_cons (g : grammar T)
+lemma nc_locked_clean_macro_derives_n_cons (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ s₃ : List (symbol T (NC_LockedNT g))}
     (hstep : NC_locked_clean_macro_step g hg s₁ s₂)
@@ -4516,7 +4559,7 @@ private lemma nc_locked_clean_macro_derives_n_cons (g : grammar T)
   exact NC_locked_clean_macro_derives_n.step hstep htail
 
 /-- A finite locked CS derivation trace whose adjacent endpoints are all clean. -/
-private inductive NC_locked_clean_derives_n (g : grammar T)
+inductive NC_locked_clean_derives_n (g : grammar T)
     (hg : grammar_noncontracting g) :
     ℕ → List (symbol T (NC_LockedNT g)) →
       List (symbol T (NC_LockedNT g)) → Prop
@@ -4530,7 +4573,7 @@ private inductive NC_locked_clean_derives_n (g : grammar T)
       NC_locked_clean_derives_n g hg n s₂ s₃ →
       NC_locked_clean_derives_n g hg (n + 1) s₁ s₃
 
-private lemma nc_locked_clean_trace_or_first_dirty_segment (g : grammar T)
+lemma nc_locked_clean_trace_or_first_dirty_segment (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -4578,7 +4621,7 @@ private lemma nc_locked_clean_trace_or_first_dirty_segment (g : grammar T)
             hprefix, hs_dirty, hreturn, hs_clean, hrest⟩
         · omega
 
-private lemma nc_locked_clean_trace_or_first_dirty_segment_dirty (g : grammar T)
+lemma nc_locked_clean_trace_or_first_dirty_segment_dirty (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -4627,7 +4670,7 @@ private lemma nc_locked_clean_trace_or_first_dirty_segment_dirty (g : grammar T)
         · omega
         · exact nc_locked_dirty_derives_n_end_dirty g hg hprefix
 
-private lemma nc_locked_clean_trace_or_first_dirty_segment_shapes (g : grammar T)
+lemma nc_locked_clean_trace_or_first_dirty_segment_shapes (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -4685,7 +4728,7 @@ private lemma nc_locked_clean_trace_or_first_dirty_segment_shapes (g : grammar T
           nc_locked_clean_step_dirty_mark_zero_unique g hg hstart hs_start hs_after,
           nc_locked_dirty_step_clean_cleanup_unique g hg hreturn hs_dirty hs_clean⟩
 
-private lemma nc_locked_clean_trace_or_first_dirty_segment_dirty_shapes (g : grammar T)
+lemma nc_locked_clean_trace_or_first_dirty_segment_dirty_shapes (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -4744,7 +4787,7 @@ private lemma nc_locked_clean_trace_or_first_dirty_segment_dirty_shapes (g : gra
           nc_locked_dirty_step_clean_cleanup_unique g hg hreturn hs_dirty hs_clean⟩
 
 /-- Ordinary locked clean traces are a special case of locked clean macro traces. -/
-private lemma nc_locked_clean_trace_to_macro_trace (g : grammar T)
+lemma nc_locked_clean_trace_to_macro_trace (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_clean_derives_n g hg n s₁ s₂) :
@@ -4759,7 +4802,7 @@ private lemma nc_locked_clean_trace_to_macro_trace (g : grammar T)
 
 /-- Locked clean-only traces project to unrestricted derivations in the original
 grammar. -/
-private lemma nc_locked_clean_trace_grammar_derives (g : grammar T)
+lemma nc_locked_clean_trace_grammar_derives (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_clean_derives_n g hg n s₁ s₂) :
@@ -4770,7 +4813,7 @@ private lemma nc_locked_clean_trace_grammar_derives (g : grammar T)
 /-- The remaining local grouping property for the locked construction: any
 dirty interval bracketed by one clean-to-dirty step and one dirty-to-clean step
 compresses to some clean macro trace. -/
-private def NC_locked_dirty_interval_macro_property
+def NC_locked_dirty_interval_macro_property
     (g : grammar T) (hg : grammar_noncontracting g) : Prop :=
   ∀ {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))},
@@ -4786,7 +4829,7 @@ private def NC_locked_dirty_interval_macro_property
 /-- Abstract compression principle for locked traces.  Once every dirty interval
 between clean endpoints can be replaced by a clean macro trace, every clean-to-clean
 locked derivation can be compressed to a clean macro trace. -/
-private lemma nc_locked_clean_endpoints_to_macro_trace_of_dirty_interval_macro
+lemma nc_locked_clean_endpoints_to_macro_trace_of_dirty_interval_macro
     (g : grammar T) (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : NC_locked_derives_n g hg n s₁ s₂)
@@ -4819,7 +4862,7 @@ private lemma nc_locked_clean_endpoints_to_macro_trace_of_dirty_interval_macro
 
 /-- Reverse language inclusion for the locked construction, assuming the local
 dirty-interval grouping property. -/
-private lemma CS_language_subset_locked_csg_of_noncontracting_of_dirty_interval_macro
+lemma CS_language_subset_locked_csg_of_noncontracting_of_dirty_interval_macro
     (g : grammar T) (hg : grammar_noncontracting g)
     (hgroup : NC_locked_dirty_interval_macro_property g hg) :
     ∀ w, w ∈ CS_language (locked_csg_of_noncontracting g hg) →
@@ -4838,7 +4881,7 @@ private lemma CS_language_subset_locked_csg_of_noncontracting_of_dirty_interval_
 
 /-- Language equality for the locked construction, reduced to the local
 dirty-interval grouping property. -/
-private lemma locked_csg_of_noncontracting_language_eq_of_dirty_interval_macro
+lemma locked_csg_of_noncontracting_language_eq_of_dirty_interval_macro
     (g : grammar T) (hg : grammar_noncontracting g)
     (hgroup : NC_locked_dirty_interval_macro_property g hg) :
     CS_language (locked_csg_of_noncontracting g hg) = grammar_language g := by
@@ -4850,7 +4893,7 @@ private lemma locked_csg_of_noncontracting_language_eq_of_dirty_interval_macro
 
 /-- Class-level reverse inclusion, reduced to the local dirty-interval grouping
 property for the locked construction. -/
-private lemma is_noncontracting_implies_is_CS_of_locked_dirty_interval_macro
+lemma is_noncontracting_implies_is_CS_of_locked_dirty_interval_macro
     {L : Language T} (hL : is_noncontracting L)
     (hgroup : ∀ (g : grammar T) (hg : grammar_noncontracting g),
       NC_locked_dirty_interval_macro_property g hg) :
@@ -4862,7 +4905,7 @@ private lemma is_noncontracting_implies_is_CS_of_locked_dirty_interval_macro
   exact (locked_csg_of_noncontracting_language_eq_of_dirty_interval_macro
     g hg (hgroup g hg)).trans hLg
 
-private lemma nc_locked_proj_sim_source_head_drop (g : grammar T)
+lemma nc_locked_proj_sim_source_head_drop (g : grammar T)
     (r : grule T g.nt) (u v : List (symbol T (NC_LockedNT g))) :
     let pattern := r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R
     let dflt : symbol T g.nt := symbol.nonterminal r.input_N
@@ -4875,7 +4918,7 @@ private lemma nc_locked_proj_sim_source_head_drop (g : grammar T)
     simp [nc_locked_proj, List.map_append, Function.comp_def,
       nc_locked_proj_liftSym]
 
-private lemma nc_locked_lifted_pattern_eq_head_drop (g : grammar T)
+lemma nc_locked_lifted_pattern_eq_head_drop (g : grammar T)
     (r : grule T g.nt) :
     let pattern := r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R
     let dflt : symbol T g.nt := symbol.nonterminal r.input_N
@@ -4885,14 +4928,14 @@ private lemma nc_locked_lifted_pattern_eq_head_drop (g : grammar T)
   dsimp only
   cases r.input_L <;> simp [nc_locked_liftSym]
 
-private lemma nc_locked_proj_sim_target (g : grammar T)
+lemma nc_locked_proj_sim_target (g : grammar T)
     (r : grule T g.nt) (u v : List (symbol T (NC_LockedNT g))) :
     nc_locked_proj g (u ++ r.output_string.map nc_locked_liftSym ++ v) =
       nc_locked_proj g u ++ r.output_string ++ nc_locked_proj g v := by
   simp [nc_locked_proj, List.map_append, Function.comp_def,
     nc_locked_proj_liftSym]
 
-private lemma nc_locked_boundary_macro_step_grammar_derives (g : grammar T)
+lemma nc_locked_boundary_macro_step_grammar_derives (g : grammar T)
     {ri : ℕ} {r : grule T g.nt}
     {u v s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (hpair : (ri, r) ∈ (List.range g.rules.length).zip g.rules)
@@ -4911,7 +4954,7 @@ private lemma nc_locked_boundary_macro_step_grammar_derives (g : grammar T)
   · simpa [List.append_assoc] using nc_locked_proj_sim_source_head_drop g r u v
   · simpa [List.append_assoc] using nc_locked_proj_sim_target g r u v
 
-private lemma nc_locked_boundary_macro_step (g : grammar T)
+lemma nc_locked_boundary_macro_step (g : grammar T)
     (hg : grammar_noncontracting g)
     {ri : ℕ} {r : grule T g.nt}
     {u v s₁ s₂ : List (symbol T (NC_LockedNT g))}
@@ -4933,7 +4976,7 @@ private lemma nc_locked_boundary_macro_step (g : grammar T)
 
 /-- The first dirty step out of a clean locked form identifies the complete
 original-rule macro step that it begins. -/
-private lemma nc_locked_clean_step_dirty_begins_macro_step (g : grammar T)
+lemma nc_locked_clean_step_dirty_begins_macro_step (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
     (h : CS_transforms (locked_csg_of_noncontracting g hg) s₁ s₂)
@@ -4956,7 +4999,7 @@ private lemma nc_locked_clean_step_dirty_begins_macro_step (g : grammar T)
 dirty state produced by consuming the boundary marker is the locked output block,
 that block cleans to the macro target, and the original clean boundary step
 already determines the corresponding clean macro simulation. -/
-private lemma nc_locked_dirty_interval_consumed_boundary_macro_target
+lemma nc_locked_dirty_interval_consumed_boundary_macro_target
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5007,7 +5050,7 @@ private lemma nc_locked_dirty_interval_consumed_boundary_macro_target
 /-- Counted clean-macro pref for the consumed-boundary branch.  This is the
 canonical first macro segment that will later be concatenated with whatever
 clean behavior remains after all dirty markers have disappeared. -/
-private lemma nc_locked_dirty_interval_consumed_boundary_macro_prefix
+lemma nc_locked_dirty_interval_consumed_boundary_macro_prefix
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5068,7 +5111,7 @@ grouping induction.  After the first dirty-to-dirty step, either the marker
 opened by the clean-to-dirty boundary is still present, or that first step has
 already completed the boundary simulation and yields a canonical one-step clean
 macro pref. -/
-private lemma nc_locked_dirty_interval_first_step_macro_prefix_or_mark_retained
+lemma nc_locked_dirty_interval_first_step_macro_prefix_or_mark_retained
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5110,7 +5153,7 @@ private lemma nc_locked_dirty_interval_first_step_macro_prefix_or_mark_retained
 event.  If the marker opened by the clean-to-dirty boundary survives the first
 dirty step, then the remaining dirty interval must later emit an output marker
 for the same original rule before it can return to a clean form. -/
-private lemma nc_locked_dirty_interval_first_step_event_or_macro_prefix
+lemma nc_locked_dirty_interval_first_step_event_or_macro_prefix
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5167,7 +5210,7 @@ private lemma nc_locked_dirty_interval_first_step_event_or_macro_prefix
 `nc_locked_dirty_interval_first_step_event_or_macro_prefix`.  In the retained
 branch this records the exact later transform that removes the start marker and
 emits an output marker for the same original rule. -/
-private lemma nc_locked_dirty_interval_first_step_emit_step_or_macro_prefix
+lemma nc_locked_dirty_interval_first_step_emit_step_or_macro_prefix
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5230,7 +5273,7 @@ one of exactly two emit steps.  For a unit input pattern it is the `emitLast`
 rule and exposes the whole marked output block; otherwise it is the `emitRest`
 rule at index `0` and requires the already-emitted output suffix as right
 context. -/
-private lemma nc_locked_removed_zero_mark_step_shape
+lemma nc_locked_removed_zero_mark_step_shape
     (g : grammar T) (hg : grammar_noncontracting g)
     {ri : ℕ} {r : grule T g.nt}
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
@@ -5297,7 +5340,7 @@ private lemma nc_locked_removed_zero_mark_step_shape
 
 /-- The target of any step that removes a phase-`0` marker can be locally cleaned
 to a lifted copy of the corresponding original rule output. -/
-private lemma nc_locked_removed_zero_mark_step_cleanup_target
+lemma nc_locked_removed_zero_mark_step_cleanup_target
     (g : grammar T) (hg : grammar_noncontracting g)
     {ri : ℕ} {r : grule T g.nt}
     {s₁ s₂ : List (symbol T (NC_LockedNT g))}
@@ -5327,7 +5370,7 @@ the later emit step.  This is the form needed by the eventual grouping argument:
 the branch where the boundary marker survives the first dirty step now carries
 the exact source and target decomposition of the step that finally removes that
 marker. -/
-private lemma nc_locked_dirty_interval_first_step_emit_shape_or_macro_prefix
+lemma nc_locked_dirty_interval_first_step_emit_shape_or_macro_prefix
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5406,7 +5449,7 @@ private lemma nc_locked_dirty_interval_first_step_emit_shape_or_macro_prefix
 first dirty step.  In the retained branch this keeps the later emit-step shape,
 while also recording that the first dirty step can only introduce a fresh
 phase-`0` marker or the phase-`1` marker for the boundary simulation. -/
-private lemma nc_locked_dirty_interval_first_step_emit_shape_or_macro_prefix_with_added_mark_shape
+lemma nc_locked_dirty_interval_first_step_emit_shape_or_macro_prefix_with_added_mark_shape
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5517,7 +5560,7 @@ private lemma nc_locked_dirty_interval_first_step_emit_shape_or_macro_prefix_wit
 /-- Dirty-interval first-step data specialized to the case where the step creates
 the boundary simulation's phase-`1` marker.  This identifies that branch as the
 first continuation marking rule of the same original production. -/
-private lemma nc_locked_dirty_interval_first_step_base_one_mark_shape
+lemma nc_locked_dirty_interval_first_step_base_one_mark_shape
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5589,7 +5632,7 @@ private lemma nc_locked_dirty_interval_first_step_base_one_mark_shape
 the boundary simulation's phase-`1` marker, with the exact resulting sentential
 form.  This strengthens `nc_locked_dirty_interval_first_step_base_one_mark_shape`
 from the rule that fired to the whole target shape of that first dirty step. -/
-private lemma nc_locked_dirty_interval_first_step_base_one_mark_exact
+lemma nc_locked_dirty_interval_first_step_base_one_mark_exact
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5651,7 +5694,7 @@ private lemma nc_locked_dirty_interval_first_step_base_one_mark_exact
 /-- Complementary retained-branch invariant: if the first dirty step did not
 create the boundary simulation's phase-`1` marker, then every marker newly
 introduced by that step is a fresh phase-`0` marker for some simulation. -/
-private lemma nc_locked_dirty_interval_first_step_without_base_one_only_new_zero_marks
+lemma nc_locked_dirty_interval_first_step_without_base_one_only_new_zero_marks
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5706,7 +5749,7 @@ private lemma nc_locked_dirty_interval_first_step_without_base_one_only_new_zero
 step either creates the boundary phase-`1` marker, in which case its whole target
 has the exact continuation shape, or it does not, in which case every marker
 newly introduced by that step is a fresh phase-`0` marker. -/
-private lemma nc_locked_dirty_interval_first_step_base_one_exact_or_new_zero
+lemma nc_locked_dirty_interval_first_step_base_one_exact_or_new_zero
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5793,7 +5836,7 @@ Either the first dirty-to-dirty step already gives the complete one-step clean
 macro pref, or it advances the boundary simulation from phase `0` to phase `1`
 with exact target shape, or it leaves the boundary phase-`1` marker absent and
 any newly introduced marker is a nested phase-`0` marker. -/
-private lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_new_zero
+lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_new_zero
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5891,7 +5934,7 @@ private lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_new_zero
 normalized.  If the boundary simulation has not advanced to phase `1`, then any
 marker created by the first dirty step is a phase-`0` marker for a genuine
 simulation rule whose input pattern is nonempty. -/
-private lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_fresh_zero
+lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_fresh_zero
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -5960,7 +6003,7 @@ completes the boundary macro nor advances it to phase `1`, then every fresh
 marker it creates is a nested phase-`0` marker for a different simulation.  The
 current boundary phase-`0` marker is already present in `s_after`, so it cannot
 be one of the fresh markers. -/
-private lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_nested_fresh_zero
+lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_nested_fresh_zero
     (g : grammar T) (hg : grammar_noncontracting g)
     {m : ℕ} {s_start s_after s_dirty s_clean :
       List (symbol T (NC_LockedNT g))}
@@ -6032,7 +6075,7 @@ private lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_nested_fr
 
 /-- Terminal words reached by locked clean macro traces are generated by the
 original non-contracting grammar. -/
-private lemma nc_locked_clean_macro_trace_terminal_mem_grammar_language
+lemma nc_locked_clean_macro_trace_terminal_mem_grammar_language
     (g : grammar T) (hg : grammar_noncontracting g) {n : ℕ} {w : List T}
     (h : NC_locked_clean_macro_derives_n g hg n
       [symbol.nonterminal (NC_LockedNT.orig g.initial)]
@@ -6044,7 +6087,7 @@ private lemma nc_locked_clean_macro_trace_terminal_mem_grammar_language
 
 /-- Terminal words reached by locked clean-only traces are generated by the
 original non-contracting grammar. -/
-private lemma nc_locked_clean_trace_terminal_mem_grammar_language
+lemma nc_locked_clean_trace_terminal_mem_grammar_language
     (g : grammar T) (hg : grammar_noncontracting g) {n : ℕ} {w : List T}
     (h : NC_locked_clean_derives_n g hg n
       [symbol.nonterminal (NC_LockedNT.orig g.initial)]
@@ -6061,23 +6104,23 @@ private lemma nc_locked_clean_trace_terminal_mem_grammar_language
 
 /-- Projection from extended grammar symbols to original grammar symbols.
     For clean forms (no aux nonterminals), this is the natural "un-lifting" map. -/
-private def nc_proj_sym (g : grammar T) : symbol T (NC_NT g) → symbol T g.nt
+def nc_proj_sym (g : grammar T) : symbol T (NC_NT g) → symbol T g.nt
   | .terminal t => .terminal t
   | .nonterminal (.inl n) => .nonterminal n
   | .nonterminal (.inr (.inl t)) => .terminal t
   | .nonterminal (.inr (.inr _)) => .nonterminal g.initial  -- dummy for aux
 
 /-- Projection on lists: apply nc_proj_sym pointwise. -/
-private def nc_proj (g : grammar T) (s : List (symbol T (NC_NT g))) : List (symbol T g.nt) :=
+def nc_proj (g : grammar T) (s : List (symbol T (NC_NT g))) : List (symbol T g.nt) :=
   s.map (nc_proj_sym g)
 
 /-- proj ∘ liftSym = id: projecting a lifted symbol recovers the original. -/
-private lemma nc_proj_liftSym (g : grammar T) (s : symbol T g.nt) :
+lemma nc_proj_liftSym (g : grammar T) (s : symbol T g.nt) :
     nc_proj_sym g (nc_liftSym s) = s := by
   cases s <;> rfl
 
 /-- Projecting a list of lifted symbols recovers the original list. -/
-private lemma nc_proj_map_liftSym (g : grammar T) (l : List (symbol T g.nt)) :
+lemma nc_proj_map_liftSym (g : grammar T) (l : List (symbol T g.nt)) :
     nc_proj g (l.map nc_liftSym) = l := by
   unfold nc_proj
   rw [List.map_map]
@@ -6087,11 +6130,11 @@ private lemma nc_proj_map_liftSym (g : grammar T) (l : List (symbol T g.nt)) :
   exact nc_proj_liftSym g s
 
 /-- A sentential form is "clean" if it has no auxiliary nonterminals. -/
-private def nc_is_clean (g : grammar T) (s : List (symbol T (NC_NT g))) : Prop :=
+def nc_is_clean (g : grammar T) (s : List (symbol T (NC_NT g))) : Prop :=
   ∀ x ∈ s, ∀ p : ℕ × ℕ, x ≠ symbol.nonterminal (Sum.inr (Sum.inr p))
 
 /-- Cleanliness is preserved by taking a sublist in the membership sense. -/
-private lemma nc_is_clean_of_subset (g : grammar T)
+lemma nc_is_clean_of_subset (g : grammar T)
     {s t : List (symbol T (NC_NT g))}
     (hclean : nc_is_clean g t) (hsub : ∀ x, x ∈ s → x ∈ t) :
     nc_is_clean g s := by
@@ -6099,21 +6142,21 @@ private lemma nc_is_clean_of_subset (g : grammar T)
   exact hclean x (hsub x hx) p haux
 
 /-- The left side of a clean append is clean. -/
-private lemma nc_is_clean_append_left (g : grammar T)
+lemma nc_is_clean_append_left (g : grammar T)
     {s t : List (symbol T (NC_NT g))}
     (hclean : nc_is_clean g (s ++ t)) :
     nc_is_clean g s :=
   nc_is_clean_of_subset g hclean (by intro x hx; simp [List.mem_append, hx])
 
 /-- The right side of a clean append is clean. -/
-private lemma nc_is_clean_append_right (g : grammar T)
+lemma nc_is_clean_append_right (g : grammar T)
     {s t : List (symbol T (NC_NT g))}
     (hclean : nc_is_clean g (s ++ t)) :
     nc_is_clean g t :=
   nc_is_clean_of_subset g hclean (by intro x hx; simp [List.mem_append, hx])
 
 /-- The initial form is clean. -/
-private lemma nc_initial_clean (g : grammar T) :
+lemma nc_initial_clean (g : grammar T) :
     nc_is_clean g [symbol.nonterminal (Sum.inl g.initial)] := by
   intro x hx p heq
   simp at hx
@@ -6121,7 +6164,7 @@ private lemma nc_initial_clean (g : grammar T) :
   exact absurd heq (by simp)
 
 /-- Terminal strings are clean. -/
-private lemma nc_terminal_clean (g : grammar T) (w : List T) :
+lemma nc_terminal_clean (g : grammar T) (w : List T) :
     nc_is_clean g (w.map symbol.terminal) := by
   intro x hx p
   simp [List.mem_map] at hx
@@ -6129,7 +6172,7 @@ private lemma nc_terminal_clean (g : grammar T) (w : List T) :
   intro h; cases h
 
 /-- Lifted original symbols are clean. -/
-private lemma nc_liftSym_clean (g : grammar T) (s : symbol T g.nt) :
+lemma nc_liftSym_clean (g : grammar T) (s : symbol T g.nt) :
     nc_is_clean g [nc_liftSym s] := by
   intro x hx p haux
   simp at hx
@@ -6137,7 +6180,7 @@ private lemma nc_liftSym_clean (g : grammar T) (s : symbol T g.nt) :
   cases s <;> simp [nc_liftSym, nc_symToNT] at *
 
 /-- Lifted original sentential forms are clean. -/
-private lemma nc_map_liftSym_clean (g : grammar T) (s : List (symbol T g.nt)) :
+lemma nc_map_liftSym_clean (g : grammar T) (s : List (symbol T g.nt)) :
     nc_is_clean g (s.map nc_liftSym) := by
   intro x hx p haux
   simp [List.mem_map] at hx
@@ -6145,7 +6188,7 @@ private lemma nc_map_liftSym_clean (g : grammar T) (s : List (symbol T g.nt)) :
   cases y <;> simp [nc_liftSym, nc_symToNT] at *
 
 /-- Failure of cleanliness is exactly the presence of an auxiliary nonterminal. -/
-private lemma nc_not_clean_iff_exists_aux (g : grammar T)
+lemma nc_not_clean_iff_exists_aux (g : grammar T)
     (s : List (symbol T (NC_NT g))) :
     ¬ nc_is_clean g s ↔ ∃ ri k, nc_aux (g := g) ri k ∈ s := by
   classical
@@ -6161,23 +6204,23 @@ private lemma nc_not_clean_iff_exists_aux (g : grammar T)
     exact hclean (nc_aux (g := g) ri k) hmem (ri, k) rfl
 
 /-- Original symbols never lift to auxiliary nonterminals. -/
-private lemma nc_symToNT_ne_aux (g : grammar T) (s : symbol T g.nt) (p : ℕ × ℕ) :
+lemma nc_symToNT_ne_aux (g : grammar T) (s : symbol T g.nt) (p : ℕ × ℕ) :
     nc_symToNT s ≠ Sum.inr (Sum.inr p) := by
   cases s <;> simp [nc_symToNT]
 
 /-- Projection of the initial symbol. -/
-private lemma nc_proj_initial (g : grammar T) :
+lemma nc_proj_initial (g : grammar T) :
     nc_proj g [symbol.nonterminal (Sum.inl g.initial)] = [symbol.nonterminal g.initial] := by
   simp [nc_proj, nc_proj_sym]
 
 /-- Projection of a terminal string. -/
-private lemma nc_proj_terminal (g : grammar T) (w : List T) :
+lemma nc_proj_terminal (g : grammar T) (w : List T) :
     nc_proj g (w.map symbol.terminal) = w.map symbol.terminal := by
   simp [nc_proj, nc_proj_sym, List.map_map]
 
 /-- If a CS step creates a symbol that was not present before the step, that symbol
 must come from the selected rule's output string. -/
-private lemma CS_transform_new_symbol_mem_rule_output {g : CS_grammar T}
+lemma CS_transform_new_symbol_mem_rule_output {g : CS_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {x : symbol T g.nt}
     (h : CS_transforms g s₁ s₂) (hx₂ : x ∈ s₂) (hx₁ : x ∉ s₁) :
     ∃ r : csrule T g.nt, r ∈ g.rules ∧ x ∈ r.output_string := by
@@ -6194,7 +6237,7 @@ private lemma CS_transform_new_symbol_mem_rule_output {g : CS_grammar T}
 /-- If a CS step removes every occurrence of a symbol, that symbol must be the
 rewritten input nonterminal of the selected rule.  Surrounding context and the
 outer pref/suffix are preserved by a context-sensitive step. -/
-private lemma CS_transform_removed_symbol_is_input {g : CS_grammar T}
+lemma CS_transform_removed_symbol_is_input {g : CS_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {x : symbol T g.nt}
     (h : CS_transforms g s₁ s₂) (hx₁ : x ∈ s₁) (hx₂ : x ∉ s₂) :
     ∃ r : csrule T g.nt, r ∈ g.rules ∧ x = symbol.nonterminal r.input_nonterminal := by
@@ -6210,7 +6253,7 @@ private lemma CS_transform_removed_symbol_is_input {g : CS_grammar T}
   · exact (hx₂.2.2.2.2 hx).elim
 
 /-- If a clean step becomes dirty, some auxiliary was newly introduced. -/
-private lemma nc_clean_step_dirty_new_aux (g : grammar T)
+lemma nc_clean_step_dirty_new_aux (g : grammar T)
     {s₁ s₂ : List (symbol T (NC_NT g))}
     (hclean : nc_is_clean g s₁) (hdirty : ¬ nc_is_clean g s₂) :
     ∃ ri k, nc_aux (g := g) ri k ∈ s₂ ∧ nc_aux (g := g) ri k ∉ s₁ := by
@@ -6219,7 +6262,7 @@ private lemma nc_clean_step_dirty_new_aux (g : grammar T)
 
 /-- The only rules of the non-contracting simulation whose output string contains
 an auxiliary nonterminal are phase-1 marking rules. -/
-private lemma nc_rule_output_aux_is_phase1 (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_rule_output_aux_is_phase1 (g : grammar T) (hg : grammar_noncontracting g)
     {cr : csrule T (NC_NT g)} (hcr : cr ∈ (csg_of_noncontracting g hg).rules)
     {ri k : ℕ} (haux : nc_aux (g := g) ri k ∈ cr.output_string) :
     ∃ simRi grule phaseK,
@@ -6256,7 +6299,7 @@ private lemma nc_rule_output_aux_is_phase1 (g : grammar T) (hg : grammar_noncont
 
 /-- Stronger form of `nc_rule_output_aux_is_phase1`: if a constructed rule outputs
 an auxiliary, the whole selected rule is exactly the corresponding phase-1 rule. -/
-private lemma nc_rule_output_aux_phase1_rule_shape (g : grammar T)
+lemma nc_rule_output_aux_phase1_rule_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {cr : csrule T (NC_NT g)} (hcr : cr ∈ (csg_of_noncontracting g hg).rules)
     {ri k : ℕ} (haux : nc_aux (g := g) ri k ∈ cr.output_string) :
@@ -6303,7 +6346,7 @@ private lemma nc_rule_output_aux_phase1_rule_shape (g : grammar T)
 
 /-- A clean-to-dirty step must be the beginning of a simulated non-contracting
 rule: the newly introduced auxiliary can only come from a phase-1 marking rule. -/
-private lemma nc_clean_step_dirty_is_phase1 (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_clean_step_dirty_is_phase1 (g : grammar T) (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : CS_transforms (csg_of_noncontracting g hg) s₁ s₂)
     (hclean : nc_is_clean g s₁) (hdirty : ¬ nc_is_clean g s₂) :
@@ -6323,7 +6366,7 @@ private lemma nc_clean_step_dirty_is_phase1 (g : grammar T) (hg : grammar_noncon
 /-- A clean-to-dirty step is specifically phase `0` of a simulated rule.  Positive
 phase-1 steps have an auxiliary in their left context, so they cannot apply to a
 clean source. -/
-private lemma nc_clean_step_dirty_phase1_zero_shape (g : grammar T)
+lemma nc_clean_step_dirty_phase1_zero_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : CS_transforms (csg_of_noncontracting g hg) s₁ s₂)
@@ -6377,7 +6420,7 @@ private lemma nc_clean_step_dirty_phase1_zero_shape (g : grammar T)
 
 /-- If a selected constructed rule rewrites an auxiliary nonterminal, then it is
 one of the right-to-left phase-2 cleanup rules. -/
-private lemma nc_rule_input_aux_phase2_rest_shape (g : grammar T)
+lemma nc_rule_input_aux_phase2_rest_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {cr : csrule T (NC_NT g)} (hcr : cr ∈ (csg_of_noncontracting g hg).rules)
     {ri k : ℕ} (hinput : cr.input_nonterminal = Sum.inr (Sum.inr (ri, k))) :
@@ -6436,7 +6479,7 @@ private lemma nc_rule_input_aux_phase2_rest_shape (g : grammar T)
 /-- A dirty-to-clean step must be the final phase-2 cleanup rule at phase `0`.
 Positive phase-2 cleanup rules preserve earlier auxiliaries in their left context,
 so their target cannot be clean. -/
-private lemma nc_dirty_step_clean_phase2_zero_shape (g : grammar T)
+lemma nc_dirty_step_clean_phase2_zero_shape (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : CS_transforms (csg_of_noncontracting g hg) s₁ s₂)
@@ -6486,7 +6529,7 @@ private lemma nc_dirty_step_clean_phase2_zero_shape (g : grammar T)
 
 /-- In the boundary dirty form produced by a clean-to-dirty step, the surrounding
 context is clean and the only auxiliary is the freshly introduced `phase 0` marker. -/
-private lemma nc_clean_step_dirty_phase1_zero_unique_aux (g : grammar T)
+lemma nc_clean_step_dirty_phase1_zero_unique_aux (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : CS_transforms (csg_of_noncontracting g hg) s₁ s₂)
@@ -6547,7 +6590,7 @@ private lemma nc_clean_step_dirty_phase1_zero_unique_aux (g : grammar T)
 
 /-- In the boundary dirty form consumed by a dirty-to-clean step, the surrounding
 context is clean and the only auxiliary is the remaining `phase 0` marker. -/
-private lemma nc_dirty_step_clean_phase2_zero_unique_aux (g : grammar T)
+lemma nc_dirty_step_clean_phase2_zero_unique_aux (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : CS_transforms (csg_of_noncontracting g hg) s₁ s₂)
@@ -6622,7 +6665,7 @@ Key approach: Unfold CS_transforms to get the rule r ∈ (csg_of_noncontracting 
 
 For case 2 (direct simulation), construct the grammar_transforms witness: use the original grammar rule r' with input_L = [], input_N = A, input_R = [], output_string = out. The projected form gives u' = nc_proj g u, v' = nc_proj g v. The grammar_transforms step is: nc_proj g s₁ = u' ++ [nonterminal A] ++ v' → u' ++ out ++ v' = nc_proj g s₂.
 -/
-private lemma nc_clean_step_grammar_derives (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_clean_step_grammar_derives (g : grammar T) (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : CS_transforms (csg_of_noncontracting g hg) s₁ s₂)
     (h₁ : nc_is_clean g s₁) (h₂ : nc_is_clean g s₂) :
@@ -6650,7 +6693,7 @@ private lemma nc_clean_step_grammar_derives (g : grammar T) (hg : grammar_noncon
       · exact False.elim ( h₁' _ ( Or.inr <| Or.inr <| Or.inl rfl ) _ _ rfl )
 
 /-- Inductive step-count version of CS_derives. -/
-private inductive CS_derives_n (g : CS_grammar T) : ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
+inductive CS_derives_n (g : CS_grammar T) : ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
   | zero : ∀ s, CS_derives_n g 0 s s
   | step : ∀ {n s₁ s₂ s₃}, CS_transforms g s₁ s₂ → CS_derives_n g n s₂ s₃ → CS_derives_n g (n+1) s₁ s₃
 
@@ -6658,7 +6701,7 @@ private inductive CS_derives_n (g : CS_grammar T) : ℕ → List (symbol T g.nt)
 PROVIDED SOLUTION
 By induction on the CS_derives_n proof. Case zero: CS_deri_self. Case step: use CS_deri_of_tran_deri to combine the single step with the inductive hypothesis.
 -/
-private lemma CS_derives_n_to_derives {g : CS_grammar T} {n : ℕ} {s₁ s₂ : List (symbol T g.nt)}
+lemma CS_derives_n_to_derives {g : CS_grammar T} {n : ℕ} {s₁ s₂ : List (symbol T g.nt)}
     (h : CS_derives_n g n s₁ s₂) : CS_derives g s₁ s₂ := by
   induction h;
   · exact CS_deri_self;
@@ -6668,7 +6711,7 @@ private lemma CS_derives_n_to_derives {g : CS_grammar T} {n : ℕ} {s₁ s₂ : 
 PROVIDED SOLUTION
 By induction on h (ReflTransGen). Case refl: use ⟨0, CS_derives_n.zero s₁⟩. Case tail: obtain ⟨n, hn⟩ from IH, then use ⟨n+1, CS_derives_n.step (the step) hn⟩. Wait, ReflTransGen.tail gives h₁₂ : ReflTransGen R s₁ s₂ and h₂₃ : R s₂ s₃. The IH is for h₁₂. So we get ⟨n, hn⟩ from IH. Then CS_derives_n n s₁ s₂ and CS_transforms s₂ s₃. We need CS_derives_n for s₁ to s₃. But CS_derives_n.step prepends a step, not appends. So we need to show CS_derives_n (n+1) s₁ s₃ from CS_derives_n n s₁ s₂ and CS_transforms s₂ s₃. Define a helper by induction on CS_derives_n that appends a step.
 -/
-private lemma CS_derives_to_derives_n {g : CS_grammar T} {s₁ s₂ : List (symbol T g.nt)}
+lemma CS_derives_to_derives_n {g : CS_grammar T} {s₁ s₂ : List (symbol T g.nt)}
     (h : CS_derives g s₁ s₂) : ∃ n, CS_derives_n g n s₁ s₂ := by
   have h_ind : ∀ {s₁ s₂ : List (symbol T g.nt)}, CS_derives g s₁ s₂ → ∃ n, CS_derives_n g n s₁ s₂ := by
     intros s₁ s₂ h_trans
@@ -6691,7 +6734,7 @@ Tail decomposition: CS_derives_n can be split from the end.
 PROVIDED SOLUTION
 By induction on h : CS_derives_n g (n+1) s₁ s₂. The only constructor that can produce n+1 is CS_derives_n.step. So h = step h_step h_rest where h_step : CS_transforms g s₁ s_mid, h_rest : CS_derives_n g n s_mid s₂. Now induct on h_rest: if n = 0, h_rest is zero, so s_mid = s₂, and s_last = s₁ with CS_derives_n 0 s₁ s₁ and CS_transforms s₁ s₂. If n = k+1, h_rest = step h_step' h_rest'. By IH on h_rest (which has n steps, one less), get s_last' with CS_derives_n k s_mid s_last' and CS_transforms s_last' s₂. Then s_last = s_last' with CS_derives_n (k+1) s₁ s_last' (using step h_step (CS_derives_n k part)) and CS_transforms s_last' s₂.
 -/
-private lemma CS_derives_n_tail {g : CS_grammar T} {n : ℕ} {s₁ s₂ : List (symbol T g.nt)}
+lemma CS_derives_n_tail {g : CS_grammar T} {n : ℕ} {s₁ s₂ : List (symbol T g.nt)}
     (h : CS_derives_n g (n+1) s₁ s₂) :
     ∃ s_last, CS_derives_n g n s₁ s_last ∧ CS_transforms g s_last s₂ := by
   induction' n with n ih generalizing s₁ s₂;
@@ -6711,7 +6754,7 @@ Split CS_derives_n at any point.
 PROVIDED SOLUTION
 By induction on m. Base case m = 0: s₂ = s₁, use ⟨s₁, CS_derives_n.zero s₁, h⟩. Inductive case m+1: h : CS_derives_n g ((m+1)+n) s₁ s₃. This is CS_derives_n.step h_step h_rest where h_step : CS_transforms s₁ s_mid, h_rest : CS_derives_n g (m+n) s_mid s₃. By IH on h_rest: ∃ s₂, CS_derives_n g m s_mid s₂ ∧ CS_derives_n g n s₂ s₃. Prepend h_step: CS_derives_n g (m+1) s₁ s₂ and CS_derives_n g n s₂ s₃.
 -/
-private lemma CS_derives_n_split {g : CS_grammar T} {m n : ℕ} {s₁ s₃ : List (symbol T g.nt)}
+lemma CS_derives_n_split {g : CS_grammar T} {m n : ℕ} {s₁ s₃ : List (symbol T g.nt)}
     (h : CS_derives_n g (m + n) s₁ s₃) :
     ∃ s₂, CS_derives_n g m s₁ s₂ ∧ CS_derives_n g n s₂ s₃ := by
   induction' m with m ih generalizing s₁ s₃;
@@ -6722,7 +6765,7 @@ private lemma CS_derives_n_split {g : CS_grammar T} {m n : ℕ} {s₁ s₃ : Lis
     exact ⟨ s₂, by exact CS_derives_n.step ‹_› hs₂.1, hs₂.2 ⟩
 
 /-- Prepend a step to CS_derives_n. -/
-private lemma CS_derives_n_cons {g : CS_grammar T} {n : ℕ} {s₁ s₂ s₃ : List (symbol T g.nt)}
+lemma CS_derives_n_cons {g : CS_grammar T} {n : ℕ} {s₁ s₂ s₃ : List (symbol T g.nt)}
     (h₁ : CS_transforms g s₁ s₂) (h₂ : CS_derives_n g n s₂ s₃) :
     CS_derives_n g (n+1) s₁ s₃ :=
   CS_derives_n.step h₁ h₂
@@ -6741,7 +6784,7 @@ argument for derivations that temporarily contain `nc_aux` symbols.
 /-- Clean macro steps in the constructed grammar.  The second constructor is the
 intended endpoint of dirty-phase grouping: one complete auxiliary simulation of
 an original non-contracting rule, under arbitrary surrounding context. -/
-private inductive NC_clean_macro_step (g : grammar T) (hg : grammar_noncontracting g) :
+inductive NC_clean_macro_step (g : grammar T) (hg : grammar_noncontracting g) :
     List (symbol T (NC_NT g)) → List (symbol T (NC_NT g)) → Prop
   | clean {s₁ s₂} :
       CS_transforms (csg_of_noncontracting g hg) s₁ s₂ →
@@ -6757,7 +6800,7 @@ private inductive NC_clean_macro_step (g : grammar T) (hg : grammar_noncontracti
 
 /-- Every clean macro step projects to an unrestricted derivation in the original
 grammar. -/
-private lemma nc_clean_macro_step_grammar_derives (g : grammar T)
+lemma nc_clean_macro_step_grammar_derives (g : grammar T)
     (hg : grammar_noncontracting g)
     {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : NC_clean_macro_step g hg s₁ s₂) :
@@ -6773,7 +6816,7 @@ private lemma nc_clean_macro_step_grammar_derives (g : grammar T)
       · simp [nc_proj, List.map_append, Function.comp_def, nc_proj_liftSym]
 
 /-- Step-counted traces of clean macro steps. -/
-private inductive NC_clean_macro_derives_n (g : grammar T) (hg : grammar_noncontracting g) :
+inductive NC_clean_macro_derives_n (g : grammar T) (hg : grammar_noncontracting g) :
     ℕ → List (symbol T (NC_NT g)) → List (symbol T (NC_NT g)) → Prop
   | zero {s} : nc_is_clean g s → NC_clean_macro_derives_n g hg 0 s s
   | step {n s₁ s₂ s₃} :
@@ -6782,7 +6825,7 @@ private inductive NC_clean_macro_derives_n (g : grammar T) (hg : grammar_noncont
       NC_clean_macro_derives_n g hg (n + 1) s₁ s₃
 
 /-- Clean macro traces project to unrestricted derivations in the original grammar. -/
-private lemma nc_clean_macro_trace_grammar_derives (g : grammar T)
+lemma nc_clean_macro_trace_grammar_derives (g : grammar T)
     (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : NC_clean_macro_derives_n g hg n s₁ s₂) :
@@ -6796,7 +6839,7 @@ private lemma nc_clean_macro_trace_grammar_derives (g : grammar T)
         ih
 
 /-- A finite CS derivation trace all of whose adjacent endpoints are clean. -/
-private inductive NC_clean_derives_n (g : grammar T) (hg : grammar_noncontracting g) :
+inductive NC_clean_derives_n (g : grammar T) (hg : grammar_noncontracting g) :
     ℕ → List (symbol T (NC_NT g)) → List (symbol T (NC_NT g)) → Prop
   | zero {s} : nc_is_clean g s → NC_clean_derives_n g hg 0 s s
   | step {n s₁ s₂ s₃} :
@@ -6807,7 +6850,7 @@ private inductive NC_clean_derives_n (g : grammar T) (hg : grammar_noncontractin
       NC_clean_derives_n g hg (n + 1) s₁ s₃
 
 /-- Ordinary clean traces are a special case of clean macro traces. -/
-private lemma nc_clean_trace_to_macro_trace (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_clean_trace_to_macro_trace (g : grammar T) (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : NC_clean_derives_n g hg n s₁ s₂) :
     NC_clean_macro_derives_n g hg n s₁ s₂ := by
@@ -6820,7 +6863,7 @@ private lemma nc_clean_trace_to_macro_trace (g : grammar T) (hg : grammar_noncon
         ih
 
 /-- Clean CS traces project to unrestricted derivations in the original grammar. -/
-private lemma nc_clean_trace_grammar_derives (g : grammar T) (hg : grammar_noncontracting g)
+lemma nc_clean_trace_grammar_derives (g : grammar T) (hg : grammar_noncontracting g)
     {n : ℕ} {s₁ s₂ : List (symbol T (NC_NT g))}
     (h : NC_clean_derives_n g hg n s₁ s₂) :
     grammar_derives g (nc_proj g s₁) (nc_proj g s₂) := by
@@ -6834,7 +6877,7 @@ private lemma nc_clean_trace_grammar_derives (g : grammar T) (hg : grammar_nonco
 
 /-- A terminal word reached by a clean trace of the constructed CS grammar is generated
 by the original non-contracting grammar. -/
-private lemma nc_clean_trace_terminal_mem_grammar_language
+lemma nc_clean_trace_terminal_mem_grammar_language
     (g : grammar T) (hg : grammar_noncontracting g) {n : ℕ} {w : List T}
     (h : NC_clean_derives_n g hg n
       [symbol.nonterminal (Sum.inl g.initial)]
@@ -6845,7 +6888,7 @@ private lemma nc_clean_trace_terminal_mem_grammar_language
 
 /-- A terminal word reached by a clean macro trace of the constructed CS grammar is
 generated by the original non-contracting grammar. -/
-private lemma nc_clean_macro_trace_terminal_mem_grammar_language
+lemma nc_clean_macro_trace_terminal_mem_grammar_language
     (g : grammar T) (hg : grammar_noncontracting g) {n : ℕ} {w : List T}
     (h : NC_clean_macro_derives_n g hg n
       [symbol.nonterminal (Sum.inl g.initial)]

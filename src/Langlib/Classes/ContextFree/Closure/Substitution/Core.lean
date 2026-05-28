@@ -1,14 +1,17 @@
+module
+
 /-
 Copyright (c) 2026 Niels Mündler. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Niels Mündler
 -/
-import Mathlib.Computability.ContextFreeGrammar
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Tactic.Linarith
-import Mathlib.Algebra.Group.Pointwise.Set.ListOfFn
+public import Mathlib.Computability.ContextFreeGrammar
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Closure.Substitution.Support
-import Langlib.Utilities.LanguageOperations
+import Mathlib.Tactic.Linarith.Frontend
+
+@[expose] public section
 
 /-!
 # Context-Free Language Closure Properties

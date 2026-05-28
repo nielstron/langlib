@@ -1,8 +1,49 @@
-import Mathlib
-import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Classes.RecursivelyEnumerable.Definition
-import Langlib.Utilities.ListUtils
-import Langlib.Utilities.ClosurePredicates
+module
+
+public import Langlib.Grammars.Unrestricted.Toolbox
+public import Langlib.Classes.RecursivelyEnumerable.Definition
+public import Langlib.Utilities.ListUtils
+public import Langlib.Utilities.ClosurePredicates
+public import Mathlib.Tactic.Continuity
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+
+@[expose] public section
 
 /-! # RE Closure Under Concatenation
 
@@ -38,14 +79,14 @@ def wrap_symbol₂ {N₂ : Type} (N₁ : Type) : symbol T N₂ → nst T N₁ N�
 | (symbol.terminal t)    => symbol.nonterminal (Sum.inr (Sum.inr t))
 | (symbol.nonterminal n) => symbol.nonterminal (Sum.inl (some (Sum.inr n)))
 
-private def wrap_grule₁ {N₁ : Type} (N₂ : Type) (r : grule T N₁) : grule T (nnn T N₁ N₂) :=
+def wrap_grule₁ {N₁ : Type} (N₂ : Type) (r : grule T N₁) : grule T (nnn T N₁ N₂) :=
 grule.mk
   (List.map (wrap_symbol₁ N₂) r.input_L)
   (Sum.inl (some (Sum.inl r.input_N)))
   (List.map (wrap_symbol₁ N₂) r.input_R)
   (List.map (wrap_symbol₁ N₂) r.output_string)
 
-private def wrap_grule₂ {N₂ : Type} (N₁ : Type) (r : grule T N₂) : grule T (nnn T N₁ N₂) :=
+def wrap_grule₂ {N₂ : Type} (N₁ : Type) (r : grule T N₂) : grule T (nnn T N₁ N₂) :=
 grule.mk
   (List.map (wrap_symbol₂ N₁) r.input_L)
   (Sum.inl (some (Sum.inr r.input_N)))
@@ -115,7 +156,7 @@ by
           right
           exact symbol_derived
 
-private lemma first_transformation {g₁ g₂ : grammar T} :
+lemma first_transformation {g₁ g₂ : grammar T} :
   grammar_transforms (big_grammar g₁ g₂) [symbol.nonterminal (big_grammar g₁ g₂).initial] [
       symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))),
       symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))
@@ -129,7 +170,7 @@ by
   ·
     refine ⟨[], [], ?_, ?_⟩ <;> rfl
 
-private lemma substitute_terminals
+lemma substitute_terminals
     {g₁ g₂ : grammar T}
     {side : T → T ⊕ T}
     {w : List T}
@@ -232,7 +273,7 @@ section hard_direction
 
 section correspondence_for_terminals
 
-private def corresponding_symbols {N₁ N₂ : Type} : nst T N₁ N₂ → nst T N₁ N₂ → Prop
+def corresponding_symbols {N₁ N₂ : Type} : nst T N₁ N₂ → nst T N₁ N₂ → Prop
 | symbol.terminal t,                               symbol.terminal t'                               => t = t'
 | symbol.nonterminal (Sum.inr (Sum.inl a)),        symbol.nonterminal (Sum.inr (Sum.inl a'))        => a = a'
 | symbol.nonterminal (Sum.inr (Sum.inr a)),        symbol.nonterminal (Sum.inr (Sum.inr a'))        => a = a'
@@ -243,7 +284,7 @@ private def corresponding_symbols {N₁ N₂ : Type} : nst T N₁ N₂ → nst T
 | symbol.nonterminal (Sum.inl none),               symbol.nonterminal (Sum.inl none)                => True
 | _,                                               _                                                => False
 
-private lemma corresponding_symbols_self {N₁ N₂ : Type} (s : nst T N₁ N₂) : corresponding_symbols s s :=
+lemma corresponding_symbols_self {N₁ N₂ : Type} (s : nst T N₁ N₂) : corresponding_symbols s s :=
 by
   cases s with
   | terminal t => rfl
@@ -261,20 +302,20 @@ by
           | inl => rfl
           | inr => rfl
 
-private lemma corresponding_symbols_never₁ {N₁ N₂ : Type} {s₁ : symbol T N₁} {s₂ : symbol T N₂} :
+lemma corresponding_symbols_never₁ {N₁ N₂ : Type} {s₁ : symbol T N₁} {s₂ : symbol T N₂} :
   ¬ corresponding_symbols (wrap_symbol₁ N₂ s₁) (wrap_symbol₂ N₁ s₂) :=
 by
   cases s₁ <;> cases s₂ <;> simp [wrap_symbol₁, wrap_symbol₂, corresponding_symbols]
 
-private lemma corresponding_symbols_never₂ {N₁ N₂ : Type} {s₁ : symbol T N₁} {s₂ : symbol T N₂} :
+lemma corresponding_symbols_never₂ {N₁ N₂ : Type} {s₁ : symbol T N₁} {s₂ : symbol T N₂} :
   ¬ corresponding_symbols (wrap_symbol₂ N₁ s₂) (wrap_symbol₁ N₂ s₁) :=
 by
   cases s₁ <;> cases s₂ <;> simp [wrap_symbol₁, wrap_symbol₂, corresponding_symbols]
 
-private def corresponding_strings {N₁ N₂ : Type} : List (nst T N₁ N₂) → List (nst T N₁ N₂) → Prop :=
+def corresponding_strings {N₁ N₂ : Type} : List (nst T N₁ N₂) → List (nst T N₁ N₂) → Prop :=
 List.Forall₂ corresponding_symbols
 
-private lemma corresponding_strings_self {N₁ N₂ : Type} {x : List (nst T N₁ N₂)} :
+lemma corresponding_strings_self {N₁ N₂ : Type} {x : List (nst T N₁ N₂)} :
   corresponding_strings x x :=
 by
   induction x with
@@ -283,13 +324,13 @@ by
   | cons s xs ih =>
       simp [corresponding_strings, corresponding_symbols_self, ih]
 
-private lemma corresponding_strings_singleton {N₁ N₂ : Type} {s₁ s₂ : nst T N₁ N₂}
+lemma corresponding_strings_singleton {N₁ N₂ : Type} {s₁ s₂ : nst T N₁ N₂}
     (ass : corresponding_symbols s₁ s₂) :
   corresponding_strings [s₁] [s₂] :=
 by
   simp [corresponding_strings, ass]
 
-private lemma corresponding_strings_append {N₁ N₂ : Type} {x₁ x₂ y₁ y₂ : List (nst T N₁ N₂)}
+lemma corresponding_strings_append {N₁ N₂ : Type} {x₁ x₂ y₁ y₂ : List (nst T N₁ N₂)}
     (ass₁ : corresponding_strings x₁ y₁)
     (ass₂ : corresponding_strings x₂ y₂) :
   corresponding_strings (x₁ ++ x₂) (y₁ ++ y₂) :=
@@ -297,14 +338,14 @@ by
   unfold corresponding_strings at *
   exact List.rel_append ass₁ ass₂
 
-private lemma corresponding_strings_length {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
+lemma corresponding_strings_length {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
     (ass : corresponding_strings x y) :
   x.length = y.length :=
 by
   unfold corresponding_strings at ass
   exact List.Forall₂.length_eq ass
 
-private lemma corresponding_strings_nth_le {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)} {i : ℕ}
+lemma corresponding_strings_nth_le {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)} {i : ℕ}
     (i_lt_len_x : i < x.length) (i_lt_len_y : i < y.length)
     (ass : corresponding_strings x y) :
   corresponding_symbols (x.nthLe i i_lt_len_x) (y.nthLe i i_lt_len_y) :=
@@ -322,7 +363,7 @@ by
       · exact ih hxy.2 ( by simpa using i_lt_len_x ) ( by simpa using i_lt_len_y );
   exact h_nth ass i i_lt_len_x i_lt_len_y
 
-private lemma corresponding_strings_reverse {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
+lemma corresponding_strings_reverse {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
     (ass : corresponding_strings x y) :
   corresponding_strings x.reverse y.reverse :=
 by
@@ -330,7 +371,7 @@ by
   rw [List.forall₂_reverse_iff]
   exact ass
 
-private lemma corresponding_strings_of_reverse {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
+lemma corresponding_strings_of_reverse {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
     (ass : corresponding_strings x.reverse y.reverse) :
   corresponding_strings x y :=
 by
@@ -338,21 +379,21 @@ by
   rw [List.forall₂_reverse_iff] at ass
   exact ass
 
-private lemma corresponding_strings_take {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
+lemma corresponding_strings_take {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
     (n : ℕ) (ass : corresponding_strings x y) :
   corresponding_strings (List.take n x) (List.take n y) :=
 by
   unfold corresponding_strings at *
   exact List.forall₂_take n ass
 
-private lemma corresponding_strings_drop {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
+lemma corresponding_strings_drop {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
     (n : ℕ) (ass : corresponding_strings x y) :
   corresponding_strings (List.drop n x) (List.drop n y) :=
 by
   unfold corresponding_strings at *
   exact List.forall₂_drop n ass
 
-private lemma corresponding_strings_split {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
+lemma corresponding_strings_split {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
     (n : ℕ) (ass : corresponding_strings x y) :
   corresponding_strings (List.take n x) (List.take n y) ∧
   corresponding_strings (List.drop n x) (List.drop n y) :=
@@ -366,7 +407,7 @@ end correspondence_for_terminals
 
 section unwrapping_nst
 
-private def unwrap_symbol₁ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (symbol T N₁)
+def unwrap_symbol₁ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (symbol T N₁)
 | (symbol.terminal t)                               => some (symbol.terminal t)
 | (symbol.nonterminal (Sum.inr (Sum.inl a)))        => some (symbol.terminal a)
 | (symbol.nonterminal (Sum.inr (Sum.inr a)))        => none
@@ -374,7 +415,7 @@ private def unwrap_symbol₁ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (sy
 | (symbol.nonterminal (Sum.inl (some (Sum.inr n)))) => none
 | (symbol.nonterminal (Sum.inl none))               => none
 
-private def unwrap_symbol₂ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (symbol T N₂)
+def unwrap_symbol₂ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (symbol T N₂)
 | (symbol.terminal t)                               => some (symbol.terminal t)
 | (symbol.nonterminal (Sum.inr (Sum.inl a)))        => none
 | (symbol.nonterminal (Sum.inr (Sum.inr a)))        => some (symbol.terminal a)
@@ -383,31 +424,31 @@ private def unwrap_symbol₂ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (sy
 | (symbol.nonterminal (Sum.inl none))               => none
 
 
-private lemma unwrap_wrap₁_symbol {N₁ N₂ : Type} : @unwrap_symbol₁ T N₁ N₂ ∘ wrap_symbol₁ N₂ = Option.some :=
+lemma unwrap_wrap₁_symbol {N₁ N₂ : Type} : @unwrap_symbol₁ T N₁ N₂ ∘ wrap_symbol₁ N₂ = Option.some :=
 by
   ext1 a
   cases a <;> rfl
 
-private lemma unwrap_wrap₂_symbol {N₁ N₂ : Type} : @unwrap_symbol₂ T N₁ N₂ ∘ wrap_symbol₂ N₁ = Option.some :=
+lemma unwrap_wrap₂_symbol {N₁ N₂ : Type} : @unwrap_symbol₂ T N₁ N₂ ∘ wrap_symbol₂ N₁ = Option.some :=
 by
   ext1 a
   cases a <;> rfl
 
-private lemma unwrap_wrap₁_string {N₁ N₂ : Type} {w : List (symbol T N₁)} :
+lemma unwrap_wrap₁_string {N₁ N₂ : Type} {w : List (symbol T N₁)} :
   List.filterMap unwrap_symbol₁ (List.map (wrap_symbol₁ N₂) w) = w :=
 by
   rw [List.filterMap_map]
   rw [unwrap_wrap₁_symbol]
   apply List.filterMap_some
 
-private lemma unwrap_wrap₂_string {N₁ N₂ : Type} {w : List (symbol T N₂)} :
+lemma unwrap_wrap₂_string {N₁ N₂ : Type} {w : List (symbol T N₂)} :
   List.filterMap unwrap_symbol₂ (List.map (wrap_symbol₂ N₁) w) = w :=
 by
   rw [List.filterMap_map]
   rw [unwrap_wrap₂_symbol]
   apply List.filterMap_some
 
-private lemma unwrap_eq_some_of_corresponding_symbols₁ {N₁ N₂ : Type} {s₁ : symbol T N₁} {s : nst T N₁ N₂}
+lemma unwrap_eq_some_of_corresponding_symbols₁ {N₁ N₂ : Type} {s₁ : symbol T N₁} {s : nst T N₁ N₂}
     (ass : corresponding_symbols (wrap_symbol₁ N₂ s₁) s) :
   unwrap_symbol₁ s = some s₁ :=
 by
@@ -423,7 +464,7 @@ by
       exact?;
     · cases ‹T ⊕ T› <;> tauto
 
-private lemma unwrap_eq_some_of_corresponding_symbols₂ {N₁ N₂ : Type} {s₂ : symbol T N₂} {s : nst T N₁ N₂}
+lemma unwrap_eq_some_of_corresponding_symbols₂ {N₁ N₂ : Type} {s₂ : symbol T N₂} {s : nst T N₁ N₂}
     (ass : corresponding_symbols (wrap_symbol₂ N₁ s₂) s) :
   unwrap_symbol₂ s = some s₂ :=
 by
@@ -440,7 +481,7 @@ by
         rfl;
     · cases n₁ <;> tauto
 
-private lemma map_unwrap_eq_map_some_of_corresponding_strings₁ {N₁ N₂ : Type} :
+lemma map_unwrap_eq_map_some_of_corresponding_strings₁ {N₁ N₂ : Type} :
   ∀ {v : List (symbol T N₁)}, ∀ {w : List (nst T N₁ N₂)},
     corresponding_strings (List.map (wrap_symbol₁ N₂) v) w →
       List.map unwrap_symbol₁ w = List.map Option.some v := by
@@ -451,7 +492,7 @@ private lemma map_unwrap_eq_map_some_of_corresponding_strings₁ {N₁ N₂ : Ty
   · cases ass;
     exact ⟨ by exact? , ih ‹_› ⟩
 
-private lemma map_unwrap_eq_map_some_of_corresponding_strings₂ {N₁ N₂ : Type} :
+lemma map_unwrap_eq_map_some_of_corresponding_strings₂ {N₁ N₂ : Type} :
   ∀ {v : List (symbol T N₂)}, ∀ {w : List (nst T N₁ N₂)},
     corresponding_strings (List.map (wrap_symbol₂ N₁) v) w →
       List.map unwrap_symbol₂ w = List.map Option.some v := by
@@ -464,7 +505,7 @@ private lemma map_unwrap_eq_map_some_of_corresponding_strings₂ {N₁ N₂ : Ty
       grind +suggestions;
   exact h_ind ass
 
-private lemma filter_map_unwrap_of_corresponding_strings₁ {N₁ N₂ : Type}
+lemma filter_map_unwrap_of_corresponding_strings₁ {N₁ N₂ : Type}
     {v : List (symbol T N₁)} {w : List (nst T N₁ N₂)}
     (ass : corresponding_strings (List.map (wrap_symbol₁ N₂) v) w) :
   List.filterMap unwrap_symbol₁ w = v :=
@@ -472,7 +513,7 @@ by
   apply list_filter_map_eq_of_map_eq_map_some
   exact map_unwrap_eq_map_some_of_corresponding_strings₁ ass
 
-private lemma filter_map_unwrap_of_corresponding_strings₂ {N₁ N₂ : Type}
+lemma filter_map_unwrap_of_corresponding_strings₂ {N₁ N₂ : Type}
     {v : List (symbol T N₂)} {w : List (nst T N₁ N₂)}
     (ass : corresponding_strings (List.map (wrap_symbol₂ N₁) v) w) :
   List.filterMap unwrap_symbol₂ w = v :=
@@ -480,13 +521,13 @@ by
   apply list_filter_map_eq_of_map_eq_map_some
   exact map_unwrap_eq_map_some_of_corresponding_strings₂ ass
 
-private lemma corresponding_string_after_wrap_unwrap_self₁ {N₁ N₂ : Type} {w : List (nst T N₁ N₂)}
+lemma corresponding_string_after_wrap_unwrap_self₁ {N₁ N₂ : Type} {w : List (nst T N₁ N₂)}
     (ass : ∃ z : List (symbol T N₁), corresponding_strings (List.map (wrap_symbol₁ N₂) z) w) :
   corresponding_strings (List.map (wrap_symbol₁ N₂) (List.filterMap unwrap_symbol₁ w)) w :=
 by
   obtain ⟨ z, hz ⟩ := ass; rw [ filter_map_unwrap_of_corresponding_strings₁ hz ] ; exact hz;
 
-private lemma corresponding_string_after_wrap_unwrap_self₂ {N₁ N₂ : Type} {w : List (nst T N₁ N₂)}
+lemma corresponding_string_after_wrap_unwrap_self₂ {N₁ N₂ : Type} {w : List (nst T N₁ N₂)}
     (ass : ∃ z : List (symbol T N₂), corresponding_strings (List.map (wrap_symbol₂ N₁) z) w) :
   corresponding_strings (List.map (wrap_symbol₂ N₁) (List.filterMap unwrap_symbol₂ w)) w :=
 by
@@ -501,15 +542,15 @@ section helpers_for_induction_steps
 
 variable {N₁ N₂ : Type}
 
-private lemma unwrap₁_of_wrap₂_eq_none (s : symbol T N₂) :
+lemma unwrap₁_of_wrap₂_eq_none (s : symbol T N₂) :
     @unwrap_symbol₁ T N₁ N₂ (wrap_symbol₂ N₁ s) = none := by
       cases s <;> rfl
 
-private lemma unwrap₂_of_wrap₁_eq_none (s : symbol T N₁) :
+lemma unwrap₂_of_wrap₁_eq_none (s : symbol T N₁) :
     @unwrap_symbol₂ T N₁ N₂ (wrap_symbol₁ N₂ s) = none := by
       cases s <;> rfl
 
-private lemma filterMap_unwrap₁_map_wrap₂ (w : List (symbol T N₂)) :
+lemma filterMap_unwrap₁_map_wrap₂ (w : List (symbol T N₂)) :
     List.filterMap (@unwrap_symbol₁ T N₁ N₂) (List.map (wrap_symbol₂ N₁) w) = [] := by
       have h_filterMap_none : ∀ s ∈ List.map (wrap_symbol₂ N₁) w, @unwrap_symbol₁ T N₁ N₂ s = none := by
         intro s hs
@@ -518,7 +559,7 @@ private lemma filterMap_unwrap₁_map_wrap₂ (w : List (symbol T N₂)) :
         exact?);
       rw [ List.filterMap_eq_nil_iff ] ; aesop
 
-private lemma filterMap_unwrap₂_map_wrap₁ (w : List (symbol T N₁)) :
+lemma filterMap_unwrap₂_map_wrap₁ (w : List (symbol T N₁)) :
     List.filterMap (@unwrap_symbol₂ T N₁ N₂) (List.map (wrap_symbol₁ N₂) w) = [] := by
       -- By the induction hypothesis, the filterMap of the map of wrap_symbol₁ N₂ over w is empty.
       simp [List.map_append, List.filterMap_append, *];
@@ -527,7 +568,7 @@ private lemma filterMap_unwrap₂_map_wrap₁ (w : List (symbol T N₁)) :
 /-
 Splitting Forall₂ at an append boundary
 -/
-private lemma forall₂_append_split {α β : Type} {R : α → β → Prop} {l₁ l₂ : List α} {m : List β}
+lemma forall₂_append_split {α β : Type} {R : α → β → Prop} {l₁ l₂ : List α} {m : List β}
     (h : List.Forall₂ R (l₁ ++ l₂) m) :
     ∃ m₁ m₂, m = m₁ ++ m₂ ∧ List.Forall₂ R l₁ m₁ ∧ List.Forall₂ R l₂ m₂ := by
       have h_split : ∀ {l₁ l₂ : List α} {m : List β}, List.Forall₂ R (l₁ ++ l₂) m → ∃ m₁ m₂, m = m₁ ++ m₂ ∧ List.Forall₂ R l₁ m₁ ∧ List.Forall₂ R l₂ m₂ := by
@@ -539,7 +580,7 @@ private lemma forall₂_append_split {α β : Type} {R : α → β → Prop} {l�
 /-
 The wrap_symbol₁ nonterminal Sum.inl (some (Sum.inl n₁)) cannot correspond to any wrap_symbol₂ output
 -/
-private lemma no_wrap₂_corr_sum_inl_inl {n₁ : N₁} {s₂ : symbol T N₂} :
+lemma no_wrap₂_corr_sum_inl_inl {n₁ : N₁} {s₂ : symbol T N₂} :
     ¬ corresponding_symbols (wrap_symbol₂ N₁ s₂)
       (symbol.nonterminal (Sum.inl (some (Sum.inl n₁))) : nst T N₁ N₂) := by
         cases s₂ <;> aesop
@@ -547,7 +588,7 @@ private lemma no_wrap₂_corr_sum_inl_inl {n₁ : N₁} {s₂ : symbol T N₂} :
 /-
 Symmetric: wrap_symbol₂ nonterminal Sum.inl (some (Sum.inr n₂)) cannot correspond to any wrap_symbol₁ output
 -/
-private lemma no_wrap₁_corr_sum_inl_inr {n₂ : N₂} {s₁ : symbol T N₁} :
+lemma no_wrap₁_corr_sum_inl_inr {n₂ : N₂} {s₁ : symbol T N₁} :
     ¬ corresponding_symbols (wrap_symbol₁ N₂ s₁)
       (symbol.nonterminal (Sum.inl (some (Sum.inr n₂))) : nst T N₁ N₂) := by
         cases s₁ <;> aesop
@@ -555,7 +596,7 @@ private lemma no_wrap₁_corr_sum_inl_inr {n₂ : N₂} {s₁ : symbol T N₁} :
 /-
 If corresponding_strings (map wrap₁ x ++ map wrap₂ y) a, then filterMap unwrap₁ (take x.length a) = x
 -/
-private lemma x_from_take_filterMap
+lemma x_from_take_filterMap
     {x : List (symbol T N₁)} {y : List (symbol T N₂)}
     {a : List (nst T N₁ N₂)}
     (h : corresponding_strings (List.map (wrap_symbol₁ N₂) x ++ List.map (wrap_symbol₂ N₁) y) a) :
@@ -567,7 +608,7 @@ private lemma x_from_take_filterMap
 /-
 Symmetric: filterMap unwrap₂ (drop x.length a) = y
 -/
-private lemma y_from_drop_filterMap
+lemma y_from_drop_filterMap
     {x : List (symbol T N₁)} {y : List (symbol T N₂)}
     {a : List (nst T N₁ N₂)}
     (h : corresponding_strings (List.map (wrap_symbol₁ N₂) x ++ List.map (wrap_symbol₂ N₁) y) a) :
@@ -579,7 +620,7 @@ private lemma y_from_drop_filterMap
 /-
 The rule pattern from g₁ (wrapped) fits entirely within the first x.length elements
 -/
-private lemma rule_in_first_half
+lemma rule_in_first_half
     {x : List (symbol T N₁)} {y : List (symbol T N₂)}
     {a u v : List (nst T N₁ N₂)}
     {r₁ : grule T N₁}
@@ -603,7 +644,7 @@ private lemma rule_in_first_half
 /-
 Symmetric: rule from g₂ fits in the last y.length elements (i.e., starts at or after x.length)
 -/
-private lemma rule_in_second_half
+lemma rule_in_second_half
     {x : List (symbol T N₁)} {y : List (symbol T N₂)}
     {a u v : List (nst T N₁ N₂)}
     {r₂ : grule T N₂}
@@ -629,14 +670,14 @@ private lemma rule_in_second_half
 Pure list fact: take of a concatenation u ++ L ++ [n] ++ R ++ v when the take length
 exceeds u ++ L ++ [n] ++ R
 -/
-private lemma take_of_append_five {α : Type} {u L : List α} {n : α} {R v : List α} {m : ℕ}
+lemma take_of_append_five {α : Type} {u L : List α} {n : α} {R v : List α} {m : ℕ}
     (h_le : u.length + L.length + 1 + R.length ≤ m) :
     List.take m (u ++ L ++ [n] ++ R ++ v) =
       u ++ L ++ [n] ++ R ++ List.take (m - (u.length + L.length + 1 + R.length)) v := by
         rw [ List.take_append, List.take_append, List.take_append, List.take_append ] ; simp +arith +decide [ * ] ; ring;
         rw [ List.take_of_length_le, List.take_of_length_le, List.take_of_length_le ] <;> norm_num <;> omega;
 
-private lemma drop_of_append_five {α : Type} {u L : List α} {n : α} {R v : List α} {m : ℕ}
+lemma drop_of_append_five {α : Type} {u L : List α} {n : α} {R v : List α} {m : ℕ}
     (h_le : u.length + L.length + 1 + R.length ≤ m)
     (h_le2 : m ≤ u.length + L.length + 1 + R.length + v.length) :
     List.drop m (u ++ L ++ [n] ++ R ++ v) =
@@ -649,7 +690,7 @@ end helpers_for_induction_steps
 section very_complicated
 
 set_option maxHeartbeats 800000 in
-private lemma induction_step_for_lifted_rule_from_g₁
+lemma induction_step_for_lifted_rule_from_g₁
     {g₁ g₂ : grammar T}
     {a b u v : List (nst T g₁.nt g₂.nt)}
     {x : List (symbol T g₁.nt)}
@@ -739,7 +780,7 @@ by
   exact grammar_deri_of_deri_tran ih_x ( by exact ⟨ r₁, hr₁_mem, List.filterMap unwrap_symbol₁ u, List.filterMap unwrap_symbol₁ v₁, rfl, rfl ⟩ )
 
 set_option maxHeartbeats 800000 in
-private lemma induction_step_for_lifted_rule_from_g₂
+lemma induction_step_for_lifted_rule_from_g₂
     {g₁ g₂ : grammar T}
     {a b u v : List (nst T g₁.nt g₂.nt)}
     {x : List (symbol T g₁.nt)}
@@ -815,18 +856,18 @@ by
       exact corresponding_strings_self;
     exact corresponding_strings_append h_take ( corresponding_strings_append h_drop ( corresponding_strings_append h_drop'' h_drop' ) )
 
-private lemma no_none_in_wrapped₁ {N₁ N₂ : Type} (s : symbol T N₁) :
+lemma no_none_in_wrapped₁ {N₁ N₂ : Type} (s : symbol T N₁) :
     wrap_symbol₁ N₂ s ≠ symbol.nonterminal (Sum.inl none) := by
   cases s <;> simp +decide [ * ];
   · exact fun h => by cases h;
   · grind +locals
 
-private lemma no_none_in_wrapped₂ {N₁ N₂ : Type} (s : symbol T N₂) :
+lemma no_none_in_wrapped₂ {N₁ N₂ : Type} (s : symbol T N₂) :
     wrap_symbol₂ N₁ s ≠ symbol.nonterminal (Sum.inl none) := by
   cases s <;> simp_all +decide [ wrap_symbol₂ ];
   grind +ring
 
-private lemma induction_step_for_terminal_rule₁
+lemma induction_step_for_terminal_rule₁
     {g₁ g₂ : grammar T}
     {a b u v : List (nst T g₁.nt g₂.nt)}
     {x : List (symbol T g₁.nt)}
@@ -854,7 +895,7 @@ private lemma induction_step_for_terminal_rule₁
     unfold corresponding_symbols at * ; aesop;
   convert corresponding_strings_append hl₂.2.1 h_replace using 1 ; aesop
 
-private lemma induction_step_for_terminal_rule₂
+lemma induction_step_for_terminal_rule₂
     {g₁ g₂ : grammar T}
     {a b u v : List (nst T g₁.nt g₂.nt)}
     {x : List (symbol T g₁.nt)}
@@ -878,7 +919,7 @@ private lemma induction_step_for_terminal_rule₂
   · grind +splitIndPred
 
 set_option maxHeartbeats 800000 in
-private lemma big_induction
+lemma big_induction
     {g₁ g₂ : grammar T}
     {w : List (nst T g₁.nt g₂.nt)}
     (ass :

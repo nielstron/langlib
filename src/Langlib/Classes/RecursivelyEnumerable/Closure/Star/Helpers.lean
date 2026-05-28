@@ -1,28 +1,64 @@
-import Mathlib
+module
+
+public import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
-import Langlib.Classes.RecursivelyEnumerable.Definition
-import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
 import Langlib.Utilities.ListUtils
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Presheaf
+
+@[expose] public section
 
 /-! # Helper lemmas for RE closure under Kleene star -/
 
 variable {T : Type}
 
+namespace StarHelpers
+
 section star_helpers
 
-private abbrev nn (N : Type) : Type := N ⊕ Fin 3
-private abbrev ns (T N : Type) : Type := symbol T (nn N)
+abbrev nn (N : Type) : Type := N ⊕ Fin 3
+abbrev ns (T N : Type) : Type := symbol T (nn N)
 
-private def Z {N : Type} : ns T N := symbol.nonterminal (Sum.inr 0)
-private def H {N : Type} : ns T N := symbol.nonterminal (Sum.inr 1)
-private def R {N : Type} : ns T N := symbol.nonterminal (Sum.inr 2)
+def Z {N : Type} : ns T N := symbol.nonterminal (Sum.inr 0)
+def H {N : Type} : ns T N := symbol.nonterminal (Sum.inr 1)
+def R {N : Type} : ns T N := symbol.nonterminal (Sum.inr 2)
 
-private def wrap_sym {N : Type} : symbol T N → ns T N
+def wrap_sym {N : Type} : symbol T N → ns T N
   | symbol.terminal t    => symbol.terminal t
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)
 
-private lemma wrap_sym_injective {N : Type} : Function.Injective (@wrap_sym T N) := by
+lemma wrap_sym_injective {N : Type} : Function.Injective (@wrap_sym T N) := by
   intro a b h; cases a <;> cases b <;> simp [wrap_sym] at h <;> exact congrArg _ h
 
 /-- `symbol.nonterminal (Sum.inr i)` does not appear in `List.map wrap_sym l`. -/
@@ -167,3 +203,5 @@ lemma R_only_at_head {N : Type} {x : List (List (symbol T N))} :
   unfold wrap_sym; aesop;
 
 end star_helpers
+
+end StarHelpers

@@ -1,16 +1,16 @@
+module
+
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl
 -/
 
-import Mathlib.Computability.ContextFreeGrammar
-import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
-import Langlib.Classes.ContextFree.Pumping.EpsilonElimination
-import Langlib.Classes.ContextFree.Pumping.UnitElimination
-import Langlib.Classes.ContextFree.Pumping.TerminalRestriction
-import Langlib.Classes.ContextFree.Pumping.LengthRestriction
+public import Langlib.Classes.ContextFree.Pumping.TerminalRestriction
+public import Langlib.Classes.ContextFree.Pumping.LengthRestriction
 
+
+@[expose] public section
 
 /-! # Translation to Chomsky Normal Form
 

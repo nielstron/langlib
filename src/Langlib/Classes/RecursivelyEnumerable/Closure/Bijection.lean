@@ -1,6 +1,10 @@
+module
+
+public import Langlib.Classes.RecursivelyEnumerable.Definition
+public import Langlib.Utilities.LanguageOperations
 import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Classes.RecursivelyEnumerable.Definition
-import Langlib.Utilities.LanguageOperations
+
+@[expose] public section
 
 /-! # RE Closure Under Terminal Bijection
 

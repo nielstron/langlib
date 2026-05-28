@@ -1,13 +1,14 @@
+module
+
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl
 -/
 
-import Mathlib.Computability.ContextFreeGrammar
-import Langlib.Classes.ContextFree.Pumping.Utils
-import Langlib.Classes.ContextFree.Pumping.EpsilonElimination
-import Langlib.Classes.ContextFree.Pumping.UnitElimination
+public import Langlib.Classes.ContextFree.Pumping.UnitElimination
+
+@[expose] public section
 
 /-! # Terminal Restriction for CFGs
 

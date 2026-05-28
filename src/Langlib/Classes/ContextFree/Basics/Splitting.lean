@@ -1,5 +1,10 @@
+module
+
+public import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.Toolbox
 
+
+@[expose] public section
 
 /-! # Context-Free Splitting Lemmas
 

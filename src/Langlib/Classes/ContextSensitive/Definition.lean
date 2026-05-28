@@ -1,5 +1,8 @@
-import Langlib.Grammars.ContextSensitive.Definition
-import Langlib.Grammars.Unrestricted.Definition
+module
+
+public import Langlib.Grammars.ContextSensitive.Definition
+
+@[expose] public section
 
 /-! # Context-Sensitive Languages
 

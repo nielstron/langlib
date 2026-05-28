@@ -1,15 +1,60 @@
-import Langlib.Classes.ContextFree.Closure.Substitution
+module
+
+public import Langlib.Classes.ContextFree.Definition
+public import Langlib.Utilities.ClosurePredicates
+public import Langlib.Examples.A2nBnPosStar
+public import Langlib.Examples.BnAnPosStarB
+public import Langlib.Examples.UnaryA2PowSucc
+public import Mathlib.Computability.ContextFreeGrammar
+public import Mathlib.Order.BourbakiWitt
 import Langlib.Classes.ContextFree.Closure.IntersectionRegular
+import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Examples.A2nBnPosStar
 import Langlib.Classes.ContextFree.Examples.BnAnPosStarB
 import Langlib.Classes.ContextFree.Examples.UnaryA2PowSucc
 import Langlib.Classes.Regular.Closure.Homomorphism
 import Langlib.Classes.Regular.Closure.Star
-import Langlib.Utilities.LanguageOperations
-import Mathlib
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Utilities.ClosurePredicates
+import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Utilities.ListUtils
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.List.TakeWhile
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+
+@[expose] public section
 
 /-! # Context-Free Right Quotients
 

@@ -1,6 +1,8 @@
-import Mathlib.Computability.ContextFreeGrammar
-import Mathlib.Algebra.Group.Pointwise.Set.ListOfFn
-import Mathlib.Data.List.Lemmas
+module
+
+public import Mathlib.Computability.ContextFreeGrammar
+
+@[expose] public section
 
 namespace List
 

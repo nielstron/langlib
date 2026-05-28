@@ -1,5 +1,9 @@
-import Langlib.Grammars.Unrestricted.Definition
+module
 
+public import Langlib.Grammars.Unrestricted.Definition
+
+
+@[expose] public section
 
 /-! # Context-Sensitive Grammar Definitions
 

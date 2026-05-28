@@ -1,4 +1,8 @@
-import Mathlib.Computability.DFA
+module
+
+public import Mathlib.Computability.DFA
+
+@[expose] public section
 
 /-! # Finite Stack Summaries for Regular Lookahead
 

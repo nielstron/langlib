@@ -1,5 +1,8 @@
-import Mathlib.Data.List.Basic
-import Mathlib.Computability.ContextFreeGrammar
+module
+
+public import Mathlib.Computability.ContextFreeGrammar
+
+@[expose] public section
 
 /-! # Pumping CFG Utilities
 

@@ -1,12 +1,16 @@
+module
+
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl
 -/
 
-import Mathlib.Computability.ContextFreeGrammar
-import Mathlib.Data.Finset.Prod
-import Langlib.Classes.ContextFree.Pumping.EpsilonElimination
+public import Mathlib.Data.Finset.Prod
+public import Langlib.Classes.ContextFree.Pumping.EpsilonElimination
+import Langlib.Classes.ContextFree.Pumping.Utils
+
+@[expose] public section
 
 /-! # Unit-Rule Elimination for CFGs
 

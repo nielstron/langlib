@@ -1,11 +1,47 @@
-import Langlib.Classes.ContextFree.Basics.Lifting
-import Langlib.Classes.ContextFree.Basics.Splitting
-import Langlib.Utilities.WrittenByOthers.TrimAssoc
-import Langlib.Utilities.ListUtils
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
-import Langlib.Utilities.Tactics
+module
 
+public import Langlib.Classes.ContextFree.Basics.Lifting
+public import Langlib.Classes.ContextFree.Definition
+import Langlib.Classes.ContextFree.Basics.Splitting
+import Langlib.Grammars.ContextFree.Toolbox
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Langlib.Utilities.ListUtils
+import Langlib.Utilities.Tactics
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+
+
+@[expose] public section
 
 /-! # Context-Free Concatenation Bonus Construction
 
@@ -19,7 +55,7 @@ concatenation.
 
 variable {T : Type}
 
-private def combined_grammar (gₗ gᵣ : CF_grammar T) : CF_grammar T :=
+def combined_grammar (gₗ gᵣ : CF_grammar T) : CF_grammar T :=
 CF_grammar.mk
   (Option (gₗ.nt ⊕ gᵣ.nt))
   none

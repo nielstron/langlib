@@ -1,7 +1,42 @@
-import Mathlib
-import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipTest
+module
+
+public import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipTest
+public import Mathlib.Algebra.Group.End
+public import Mathlib.Computability.Partrec
 import Langlib.Utilities.PrimrecHelpers
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+
+@[expose] public section
 
 /-! # Computability of the Grammar Membership Test
 
@@ -191,24 +226,28 @@ theorem primrec_applyRuleSeq_step {N : Type} [DecidableEq N]
         match rules[p.2.1]? with
         | none => none
         | some r => applyRuleAt r sf p.2.2) := by
-          simp [step_eq_bind];
-          apply Primrec.option_bind;
-          · exact Primrec.fst;
-          · have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N)) => (rules[p.1.2.1]?).bind (fun r => applyRuleAt r p.2 p.1.2.2)) := by
-              have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N)) => (rules[p.1.2.1]?)) := by
-                convert Primrec.list_getElem? |> Primrec.comp <| Primrec.const rules |> Primrec.pair <| Primrec.fst.comp ( Primrec.snd.comp Primrec.fst ) using 1;
-              have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N) × grule T N) => applyRuleAt p.2.2 p.2.1 p.1.2.2) := by
-                convert primrec_applyRuleAt.comp _ using 1;
-                rotate_left;
+          have hbind : Primrec (fun (p : Option (List (symbol T N)) × (ℕ × ℕ)) =>
+              p.1.bind (fun sf => (rules[p.2.1]?).bind (fun r => applyRuleAt r sf p.2.2))) := by
+            apply Primrec.option_bind;
+            · exact Primrec.fst;
+            · have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N)) => (rules[p.1.2.1]?).bind (fun r => applyRuleAt r p.2 p.1.2.2)) := by
+                have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N)) => (rules[p.1.2.1]?)) := by
+                  convert Primrec.list_getElem? |> Primrec.comp <| Primrec.const rules |> Primrec.pair <| Primrec.fst.comp ( Primrec.snd.comp Primrec.fst ) using 1;
+                have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N) × grule T N) => applyRuleAt p.2.2 p.2.1 p.1.2.2) := by
+                  convert primrec_applyRuleAt.comp _ using 1;
+                  rotate_left;
+                  all_goals try infer_instance;
+                  exact fun p => ( p.2.2, p.2.1, p.1.2.2 );
+                  · exact Primrec.pair ( Primrec.snd.comp ( Primrec.snd ) ) ( Primrec.pair ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) );
+                  · rfl;
+                convert Primrec.option_bind _ _ using 1;
                 all_goals try infer_instance;
-                exact fun p => ( p.2.2, p.2.1, p.1.2.2 );
-                · exact Primrec.pair ( Primrec.snd.comp ( Primrec.snd ) ) ( Primrec.pair ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) );
-                · rfl;
-              convert Primrec.option_bind _ _ using 1;
-              all_goals try infer_instance;
-              · grind;
-              · convert h_step.comp ( Primrec.fst.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd ) using 1;
-            exact?
+                · grind;
+                · convert h_step.comp ( Primrec.fst.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd ) using 1;
+              exact?
+          convert hbind using 1
+          funext p
+          exact step_eq_bind rules p
 
 theorem computable_applyRuleSeq {N : Type} [DecidableEq N]
     [Primcodable T] [Primcodable N]

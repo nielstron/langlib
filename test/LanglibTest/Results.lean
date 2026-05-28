@@ -1,30 +1,34 @@
-import Langlib.Classes.ContextFree.Closure.Union
-import Langlib.Classes.ContextFree.Closure.Reverse
-import Langlib.Classes.ContextFree.Closure.Concatenation
-import Langlib.Classes.ContextFree.Closure.Intersection
-import Langlib.Classes.ContextFree.Closure.Complement
+module
 
-import Langlib.Classes.Regular.Closure.Complement
-import Langlib.Classes.Regular.Closure.Intersection
-import Langlib.Classes.Regular.Closure.Prefix
-import Langlib.Classes.Regular.Closure.Suffix
-import Langlib.Classes.Regular.Closure.Reverse
-import Langlib.Classes.Regular.Closure.Union
+public import Langlib.Classes.ContextFree.Closure.Union
+public import Langlib.Classes.ContextFree.Closure.Reverse
+public import Langlib.Classes.ContextFree.Closure.Concatenation
+public import Langlib.Classes.ContextFree.Closure.Intersection
+public import Langlib.Classes.ContextFree.Closure.Complement
 
-import Langlib.Classes.RecursivelyEnumerable.Closure.Union
-import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
-import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
-import Langlib.Classes.RecursivelyEnumerable.Closure.Homomorphism
-import Langlib.Classes.RecursivelyEnumerable.Closure.Intersection
-import Langlib.Classes.RecursivelyEnumerable.Closure.InverseHomomorphism
-import Langlib.Classes.RecursivelyEnumerable.Closure.Quotient
-import Langlib.Classes.RecursivelyEnumerable.Closure.Star
-import Langlib.Classes.RecursivelyEnumerable.Closure.Substitution
-import Langlib.Automata.Turing.Equivalence.TMEqualsRE
+public import Langlib.Classes.Regular.Closure.Complement
+public import Langlib.Classes.Regular.Closure.Intersection
+public import Langlib.Classes.Regular.Closure.Prefix
+public import Langlib.Classes.Regular.Closure.Suffix
+public import Langlib.Classes.Regular.Closure.Reverse
+public import Langlib.Classes.Regular.Closure.Union
 
-import Langlib.Utilities.LanguageOperations
-import Langlib.Utilities.WrittenByOthers.PrintSorries
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Union
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Homomorphism
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Intersection
+public import Langlib.Classes.RecursivelyEnumerable.Closure.InverseHomomorphism
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Quotient
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Star
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Substitution
+public import Langlib.Automata.Turing.Equivalence.TMEqualsRE
 
+public import Langlib.Utilities.LanguageOperations
+public import Langlib.Utilities.WrittenByOthers.PrintSorries
+
+
+@[expose] public section
 
 /-! # Closure Theorem Checks
 

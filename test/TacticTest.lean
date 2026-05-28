@@ -1,7 +1,11 @@
-import Langlib.Utilities.Tactics
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.ContextFree.Examples.AnBn
-import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+module
+
+public import Langlib.Utilities.Tactics
+public import Langlib.Classes.ContextFree.Definition
+public import Langlib.Classes.ContextFree.Examples.AnBn
+public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+
+@[expose] public section
 
 /-! # Tactic smoke tests
 

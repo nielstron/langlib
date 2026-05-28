@@ -1,6 +1,10 @@
-import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Utilities.ListUtils
-import Langlib.Utilities.WrittenByOthers.TrimAssoc
+module
+
+public import Langlib.Grammars.Unrestricted.Toolbox
+public import Langlib.Utilities.ListUtils
+public import Langlib.Utilities.WrittenByOthers.TrimAssoc
+
+@[expose] public section
 
 /-! # Unrestricted Grammar Examples
 

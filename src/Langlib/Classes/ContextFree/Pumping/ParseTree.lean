@@ -1,12 +1,15 @@
+module
+
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl
 -/
 
-import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
-import Langlib.Classes.ContextFree.Pumping.ChomskyCountingSteps
+public import Langlib.Classes.ContextFree.Pumping.ChomskyCountingSteps
 import Langlib.Classes.ContextFree.Pumping.toMathlib
+
+@[expose] public section
 
 /-! # Parse Trees for Chomsky Grammars
 

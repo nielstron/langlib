@@ -1,10 +1,14 @@
+module
+
 /-
 Copyright (c) 2024 Alexander Loitzl, Martin Dvorak. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl, Martin Dvorak
 -/
 
-import Mathlib.Computability.ContextFreeGrammar
+public import Mathlib.Computability.Language
+
+@[expose] public section
 
 /-! # Chomsky Normal Form Grammars
 

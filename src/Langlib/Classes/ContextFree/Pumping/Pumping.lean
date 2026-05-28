@@ -1,13 +1,18 @@
+module
+
 /-
 Copyright (c) 2024 Alexander Loitzl, Martin Dvorak. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl, Martin Dvorak
 -/
 
+public import Langlib.Classes.ContextFree.Pumping.Utils
+public import Langlib.Classes.ContextFree.Pumping.ParseTree
 import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
-import Langlib.Classes.ContextFree.Pumping.Utils
-import Langlib.Classes.ContextFree.Pumping.ParseTree
-import Mathlib.Data.Set.Card
+import Mathlib.Data.Nat.SuccPred
+import Mathlib.Tactic.Bound.Init
+
+@[expose] public section
 
 /-! # Pumping Lemma via Chomsky Normal Form
 

@@ -1,5 +1,8 @@
-import Mathlib.Computability.Language
-import Mathlib.Logic.Relation
+module
+
+public import Mathlib.Computability.Language
+
+@[expose] public section
 
 /-! # Unrestricted Grammar Definitions
 

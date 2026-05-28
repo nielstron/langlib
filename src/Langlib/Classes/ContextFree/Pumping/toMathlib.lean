@@ -1,4 +1,8 @@
-import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
+module
+
+public import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
+
+@[expose] public section
 
 /-! # CNF Bridge Lemmas
 

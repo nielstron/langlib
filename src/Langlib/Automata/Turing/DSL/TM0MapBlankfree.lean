@@ -1,5 +1,41 @@
-import Mathlib
-import Langlib.Automata.Turing.DSL.TM0Composition
+module
+
+public import Langlib.Automata.Turing.DSL.TM0Composition
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+
+@[expose] public section
 
 /-! # TM0 Blank-Free Map Machine
 
@@ -120,7 +156,7 @@ theorem forward_phase_cons {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (mapM f)) (TM0.init (a :: rest))
       ⟨MState.readNext,
        Tape.mk' (ListBlank.mk ((a :: rest).map f).reverse) (ListBlank.mk [])⟩ := by
-  unfold Reaches at *; simp_all +decide [ List.repr ] ;
+  unfold Reaches at *; simp_all +decide ;
   -- Apply the `readNext_process_one` lemma repeatedly to process each element in `rest`.
   have h_process_rest : ∀ (rest : List Γ), (∀ x ∈ rest, x ≠ default) → ∀ (l : List Γ), Relation.ReflTransGen (fun a b => TM0.step (mapM f) a = some b) ⟨MState.readNext, ⟨rest.headI, ListBlank.mk l, ListBlank.mk rest.tail⟩⟩ ⟨MState.readNext, ⟨List.headI [], ListBlank.mk (List.reverse (List.map f rest) ++ l), ListBlank.mk []⟩⟩ := by
     intro rest hrest l; induction' rest with x rest ih generalizing l <;> simp_all +decide [ List.map ] ;

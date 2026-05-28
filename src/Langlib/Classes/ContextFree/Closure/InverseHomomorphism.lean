@@ -1,13 +1,53 @@
-import Mathlib
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.ContextFree.Closure.Substitution
+module
+
+public import Langlib.Classes.ContextFree.Definition
+public import Langlib.Utilities.ClosurePredicates
+public import Mathlib.Data.Matrix.Mul
+import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Classes.ContextFree.Closure.Homomorphism
 import Langlib.Classes.ContextFree.Closure.IntersectionRegular
 import Langlib.Classes.ContextFree.Closure.Star
-import Langlib.Classes.ContextFree.Closure.Concatenation
-import Langlib.Utilities.LanguageOperations
-import Langlib.Utilities.Homomorphism
-import Langlib.Utilities.ClosurePredicates
+import Langlib.Classes.ContextFree.Closure.Substitution
+import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+
+@[expose] public section
 
 /-! # Context-Free Closure Under Inverse String Homomorphism
 
@@ -43,7 +83,7 @@ noncomputable section
 variable {α β : Type}
 
 /-- Extend a homomorphism to words by concatenation. -/
-private def extendHom (h : α → List β) (w : List α) : List β :=
+def extendHom (h : α → List β) (w : List α) : List β :=
   (w.map h).flatten
 
 -- ============================================================================
@@ -100,10 +140,11 @@ Composing `embedWord` then `piHom` is the identity.
 -/
 lemma extendHom_embedWord_piHom (h : α → List β) (w : List α) :
     (extendHom (embedWord h) w).flatMap piHom = w := by
-      convert embedWord_flatMap_piHom h using 1;
-      constructor <;> intro h <;> induction w <;> simp_all +decide [ extendHom ];
-      · exact?;
-      · exact?
+  induction w with
+  | nil => simp [extendHom]
+  | cons a w ih =>
+      simp [extendHom, embedWord_flatMap_piHom]
+      simpa [extendHom] using ih
 
 -- ============================================================================
 -- §3. The language S of single inl-symbol words
@@ -446,7 +487,7 @@ lemma inverseHomomorphicImage_eq (L : Language β) (h : α → List β) :
           · use [embedWord h ‹_›] ++ List.map (fun a => embedWord h a) ‹List α›; simp [extendHom];
             exact ⟨ ⟨ _, rfl ⟩, fun a ha => ⟨ _, rfl ⟩ ⟩;
         · have h_flatMap : (extendHom (embedWord h) w).flatMap piHom = w := by
-            exact?;
+            exact extendHom_embedWord_piHom h w;
           rw [ ← h_flatMap, Language.mem_list_prod_iff_forall2 ];
           grind +suggestions;
       · rintro ⟨ v, hv₁, hv₂ ⟩;
@@ -476,8 +517,13 @@ lemma inverseHomomorphicImage_eq (L : Language β) (h : α → List β) :
               refine' List.ext_get _ _ <;> aesop;
             aesop;
           rw [ ← h_w_eq_w', hw', extendHom_embedWord_piHom ];
-        have := hv₁.1; simp_all +decide [ fInv ] ;
-        grind +suggestions
+        rw [h_w_eq_w'] at *
+        have hvL : (extendHom (embedWord h) w').flatMap fHom ∈ L := by
+          rw [hw'] at hv₁
+          simpa [fInv] using hv₁.1
+        change extendHom h w' ∈ L
+        rw [extendHom_eq_flatMap_embedWord_fHom h w']
+        exact hvL
 
 -- ============================================================================
 -- §7. Main theorem

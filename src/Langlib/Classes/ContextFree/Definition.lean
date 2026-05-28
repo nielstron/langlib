@@ -1,5 +1,8 @@
-import Langlib.Grammars.ContextFree.Definition
-import Langlib.Grammars.Unrestricted.Definition
+module
+
+public import Langlib.Grammars.ContextFree.Definition
+
+@[expose] public section
 
 /-! # Context-Free Languages
 

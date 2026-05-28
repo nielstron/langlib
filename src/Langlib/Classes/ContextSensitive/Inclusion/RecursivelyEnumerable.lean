@@ -1,7 +1,11 @@
+module
+
+public import Langlib.Classes.ContextSensitive.Definition
+public import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Classes.ContextSensitive.Definition
-import Langlib.Classes.RecursivelyEnumerable.Definition
+
+@[expose] public section
 
 /-! # Context-Sensitive Inclusions
 

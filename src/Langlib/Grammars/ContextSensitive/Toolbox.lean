@@ -1,4 +1,8 @@
-import Langlib.Grammars.ContextSensitive.Definition
+module
+
+public import Langlib.Grammars.ContextSensitive.Definition
+
+@[expose] public section
 
 /-! # Context-Sensitive Derivation Toolbox
 

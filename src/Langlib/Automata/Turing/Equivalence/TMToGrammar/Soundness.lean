@@ -1,8 +1,41 @@
-import Mathlib
-import Langlib.Classes.RecursivelyEnumerable.Definition
-import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
-import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
+module
+
+public import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+
+@[expose] public section
 
 /-! # Soundness of the TM → Grammar Construction
 
@@ -322,7 +355,13 @@ theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
   · have := no_leftBound_rule_genMore_context M r hr h; simp_all +decide ;
     rcases u with ( _ | ⟨ _, _ | u ⟩ ) <;> simp_all +decide;
     · grind;
-    · grind +suggestions;
+    · have hmem :
+          symbol.nonterminal leftBound ∈
+            (((List.map (fun t => symbol.nonterminal (cell (some t) (some t))) ts) ++
+              [symbol.nonterminal rightBound]) : List (symbol T (TMtoGrammarNT T Λ))) := by
+          rw [heq.2.2]
+          simp
+      simp +decide at hmem
   · rcases u with ( _ | ⟨ a, _ | ⟨ b, u ⟩ ⟩ ) <;> simp_all +decide;
     · have := genMore_rules_classification M r hr ‹_›; aesop;
     · have h_genMore_rules : r.input_L = [] ∧ r.input_R = [] ∧ (∃ t : T, r.output_string = [symbol.nonterminal genMore, symbol.nonterminal (cell (some t) (some t))]) ∨ r.input_L = [] ∧ r.input_R = [] ∧ (∃ t : T, r.output_string = [symbol.nonterminal (headCell (default : Λ) (some t) (some t))]) ∨ r.input_L = [] ∧ r.input_R = [symbol.nonterminal rightBound] ∧ r.output_string = [symbol.nonterminal (headCell (default : Λ) none none), symbol.nonterminal rightBound] := by
@@ -353,13 +392,25 @@ theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
         · constructor <;> aesop;
         · exact Relation.ReflTransGen.refl;
         · rfl;
-    · grind +suggestions;
+    · have hmem :
+          symbol.nonterminal genMore ∈
+            (((List.map (fun t => symbol.nonterminal (cell (some t) (some t))) ts) ++
+              [symbol.nonterminal rightBound]) : List (symbol T (TMtoGrammarNT T Λ))) := by
+          rw [heq.2.2]
+          simp
+      simp +decide at hmem
   · have := no_cell_rule M r hr ( some t ) ( some t ) ; aesop;
   · -- By definition of `no_rightBound_rule_cell_context`, we know that `r.input_L = [symbol.nonterminal (haltCell orig)]` for some `orig`.
     obtain ⟨orig, horig⟩ : ∃ orig, r.input_L = [symbol.nonterminal (haltCell orig)] := by
       apply no_rightBound_rule_cell_context M r hr h;
     rcases u with ( _ | ⟨ a, _ | ⟨ b, u ⟩ ⟩ ) <;> simp_all +decide;
-    grind +suggestions
+    have hmem :
+        symbol.nonterminal (haltCell orig) ∈
+          (((List.map (fun t => symbol.nonterminal (cell (some t) (some t))) ts) ++
+            [symbol.nonterminal rightBound]) : List (symbol T (TMtoGrammarNT T Λ))) := by
+      rw [heq.2.2]
+      simp
+    simp +decide at hmem
 
 /-
 Every symbol in `encodeTwoTrack tc` is a nonterminal of type leftBound, cell, headCell, or rightBound.
@@ -519,11 +570,29 @@ theorem encodeTwoTrack_unique_split (tc : @TwoTrackConfig T Λ)
     (heq : encodeTwoTrack tc = u ++ [symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur)] ++ v) :
     u = [symbol.nonterminal leftBound] ++ tc.leftCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ∧
     v = tc.rightCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ++ [symbol.nonterminal rightBound] := by
-  simp_all +decide [ encodeTwoTrack ];
-  rw [ eq_comm ] at heq;
-  rw [ List.append_eq_cons_iff ] at heq;
-  rcases heq with ( ⟨ rfl, heq ⟩ | ⟨ as', rfl, heq ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-  grind +suggestions
+  unfold encodeTwoTrack at heq
+  have heq' :
+      (([symbol.nonterminal leftBound] ++
+        tc.leftCells.map (fun p => symbol.nonterminal (cell p.1 p.2))) ++
+      symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur) ::
+        (tc.rightCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ++
+          [symbol.nonterminal rightBound])) =
+      u ++ symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur) :: v := by
+    simpa +decide [List.singleton_append, List.append_assoc] using heq
+  have hnot_left :
+      symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur) ∉
+        (([symbol.nonterminal leftBound] ++
+          tc.leftCells.map (fun p => symbol.nonterminal (cell p.1 p.2))) :
+          List (symbol T (TMtoGrammarNT T Λ))) := by
+    simp +decide
+  have hnot_right :
+      symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur) ∉
+        ((tc.rightCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ++
+          [symbol.nonterminal rightBound]) :
+          List (symbol T (TMtoGrammarNT T Λ))) := by
+    simp +decide
+  have hsplit := (List.append_cons_inj_of_notMem hnot_left hnot_right).mp heq'
+  exact ⟨hsplit.1.symm, hsplit.2.2.symm⟩
 
 set_option maxHeartbeats 800000 in
 theorem sim_rule_write_case (M : Turing.TM0.Machine (Option T) Λ)
@@ -724,28 +793,19 @@ theorem encodeTwoTrack_no_headCell_in_parts (tc : @TwoTrackConfig T Λ)
     (hs : s ∈ u ∨ s ∈ v)
     (q : Λ) (orig cur : Option T) :
     s ≠ symbol.nonterminal (headCell q orig cur) := by
-  contrapose! hs;
-  unfold encodeTwoTrack at heq; simp_all +decide [ List.append_assoc ] ;
-  rcases u with ( _ | ⟨ a, u ⟩ ) <;> rcases v with ( _ | ⟨ b, v ⟩ ) <;> simp_all +decide [ List.sublist_append_iff ];
-  · replace heq := congr_arg List.reverse heq.2 ; simp_all +decide [ List.reverse_append ];
-  · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-    · rcases tc with ⟨ ⟨ l₁, l₂ ⟩, q, o₁, o₂, ⟨ r₁, r₂ ⟩ ⟩ ; aesop;
-      · aesop;
-      · cases heq.2;
-      · aesop;
-    · rcases heq with ⟨ rfl, heq ⟩;
-      rcases tc with ⟨ leftCells, headState, headOrig, headCur, rightCells ⟩;
-      rcases leftCells with ( _ | ⟨ x, leftCells ⟩ ) <;> simp_all +decide [ List.map ];
-      · grind +suggestions;
-      · induction leftCells generalizing u <;> simp_all +decide [ List.map ];
-        · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.map ];
-          · grind +splitImp;
-          · rcases rightCells with ( _ | ⟨ x, rightCells ⟩ ) <;> simp_all +decide [ List.map ];
-            · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.map ];
-            · induction u generalizing b v <;> simp_all +decide [ List.map ];
-              grind;
-        · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.map ];
-          grind
+  obtain ⟨ hu, hv ⟩ := encodeTwoTrack_unique_split tc u v heq
+  subst u
+  subst v
+  apply encodeTwoTrack_no_headCell_outside_head tc s
+  cases hs with
+  | inl hs =>
+      simp +decide [List.mem_append] at hs ⊢
+      cases hs with
+      | inl hs => exact Or.inl hs
+      | inr hs => exact Or.inr (Or.inl hs)
+  | inr hs =>
+      simp +decide [List.mem_append] at hs ⊢
+      exact Or.inr (Or.inr hs)
 
 /-
 TM0.step when M gives some action.

@@ -1,6 +1,41 @@
-import Langlib.Grammars.Unrestricted.Definition
+module
+
+public import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
-import Mathlib
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+
+@[expose] public section
 
 /-!
 # Every unrestricted grammar is equivalent to one with finitely many nonterminals
@@ -160,8 +195,7 @@ lemma allNTsUsed_singleton_nonterminal {g : grammar T} {n : g.nt} :
 
 lemma allNTsUsed_initial (g : grammar T) :
     allNTsUsed g [symbol.nonterminal g.initial] := by
-  convert initial_mem_usedNTs g using 1;
-  exact?
+  exact allNTsUsed_singleton_nonterminal.mpr (initial_mem_usedNTs g)
 
 lemma allNTsUsed_of_rule_input_L {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
     allNTsUsed g r.input_L := by
@@ -250,7 +284,7 @@ lemma transforms_restrict {g : grammar T} {u v : List (symbol T g.nt)}
       (u.map (restrictSym g)) (v.map (restrictSym g)) := by
   obtain ⟨ r, hr, u_prefix, v_suffix, hu_eq, hv_eq ⟩ := ht;
   refine' ⟨ _, restrictGrammar_rule_of_mem hr, List.map ( restrictSym g ) u_prefix, List.map ( restrictSym g ) v_suffix, _, _ ⟩ <;> simp +decide [ *, List.map_append ];
-  exact?
+  rfl
 
 /-
 Forward direction lifted to multi-step derivation.

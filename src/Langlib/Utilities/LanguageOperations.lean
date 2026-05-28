@@ -1,6 +1,8 @@
-import Mathlib.Computability.Language
-import Mathlib.Computability.MyhillNerode
-import Mathlib.Algebra.Group.Pointwise.Set.ListOfFn
+module
+
+public import Mathlib.Computability.MyhillNerode
+
+@[expose] public section
 
 /-! # Language Operations
 

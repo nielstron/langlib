@@ -1,4 +1,8 @@
-import Langlib.Grammars.ContextFree.Definition
+module
+
+public import Langlib.Grammars.ContextFree.Definition
+
+@[expose] public section
 
 /-! # Context-Free Derivation Toolbox
 

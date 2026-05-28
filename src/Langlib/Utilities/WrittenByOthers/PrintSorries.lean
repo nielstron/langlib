@@ -1,4 +1,9 @@
-import Lean
+module
+
+public meta import Lean.Elab.Command
+import Lean.Message
+
+@[expose] public section
 
 /-! # Print Sorries Compatibility
 
