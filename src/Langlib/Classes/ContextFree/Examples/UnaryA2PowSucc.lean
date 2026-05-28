@@ -1,4 +1,5 @@
 import Langlib.Classes.ContextFree.Basics.Pumping
+import Langlib.Examples.UnaryA2PowSucc
 import Mathlib
 
 /-! # The unary `{a^(2^(k+1))}` language
@@ -8,10 +9,6 @@ with `false = a`, and proves it is not context-free.
 -/
 
 open Language Set List
-
-/-- The unary language `{a^(2^(k+1)) | k in N}` over `Bool`, with `false` as `a`. -/
-def unaryPow2 : Language Bool :=
-  fun w => ∃ k : ℕ, w = List.replicate ((2 : ℕ) ^ (k + 1)) false
 
 /-- The unary powers-of-two language is not context-free.
 

@@ -1,5 +1,6 @@
 import Langlib.Classes.ContextFree.Closure.Homomorphism
 import Langlib.Classes.ContextFree.Examples.AnBn
+import Langlib.Examples.A2nBn
 import Mathlib
 
 /-! # The `{a^(2n)b^n}` language
@@ -36,10 +37,6 @@ private lemma mem_prod_singleton_words_iff {α β : Type} (h : α → List β) :
         rw [Language.mul_def]
         refine ⟨h x, Set.mem_singleton _, xs.flatMap h, ?_, rfl⟩
         exact (mem_prod_singleton_words_iff h xs _).2 rfl
-
-/-- The core block language `{a^(2n)b^n | n in N}`. -/
-def quotientLeftBlockCore : Language Bool :=
-  fun w => ∃ n : ℕ, w = List.replicate (2 * n) false ++ List.replicate n true
 
 private lemma flatten_replicate_pair_false (n : ℕ) :
     (List.replicate n [false, false]).flatten = List.replicate (2 * n) false := by

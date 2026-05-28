@@ -1,16 +1,19 @@
 import Mathlib
 import Langlib.Examples.AnBn
+import Langlib.Classes.Regular.Closure.Bijection
 
 /-! # Existence of Non-Regular Languages
 
-This file proves the existence of a non-regular language over `Bool`, using the
-Myhill–Nerode theorem. The language `{aⁿbⁿ | n ∈ ℕ}` (encoded with `false` = a, `true` = b)
-is shown to have infinitely many distinct left quotients, hence is not regular.
+This file proves the existence of a non-regular language, using the Myhill–Nerode
+theorem. The language `{aⁿbⁿ | n ∈ ℕ}` (encoded with `false` = a, `true` = b) is shown
+to have infinitely many distinct left quotients, hence is not regular.
 
 ## Main declarations
 
 - `anbn_not_isRegular` — Proof that `anbn` is not regular.
 - `exists_nonRegular_language` — There exists a non-regular language over `Bool`.
+- `exists_nonRegular_language_of_nontrivial` — There exists a non-regular language over
+  any nontrivial alphabet.
 -/
 
 open Language List
@@ -58,3 +61,38 @@ theorem anbn_not_isRegular : ¬ anbn.IsRegular := by
 /-- There exists a non-regular language over `Bool`. -/
 theorem exists_nonRegular_language : ∃ L : Language Bool, ¬ L.IsRegular :=
   ⟨anbn, anbn_not_isRegular⟩
+
+/-- Injective alphabet maps preserve the nonregularity of the `anbn` witness. -/
+theorem map_anbn_not_isRegular {T : Type*} {f : Bool → T} (hf : Function.Injective f) :
+    ¬ (Language.map f anbn).IsRegular := by
+  intro h
+  exact anbn_not_isRegular (Language.IsRegular.of_map_injective hf h)
+
+/-- There exists a non-regular language over any alphabet admitting an injective coding
+of `Bool`. -/
+theorem exists_nonRegular_language_of_injective_bool {T : Type*} (f : Bool → T)
+    (hf : Function.Injective f) :
+    ∃ L : Language T, ¬ L.IsRegular :=
+  ⟨Language.map f anbn, map_anbn_not_isRegular hf⟩
+
+/-- There exists a non-regular language over any alphabet with two distinguished symbols. -/
+theorem exists_nonRegular_language_of_pair {T : Type*} (a b : T) (hab : a ≠ b) :
+    ∃ L : Language T, ¬ L.IsRegular := by
+  let f : Bool → T := fun x => if x then b else a
+  have hf : Function.Injective f := by
+    intro x y hxy
+    cases x <;> cases y <;> simp_all [f]
+  exact exists_nonRegular_language_of_injective_bool f hf
+
+/-- There exists a non-regular language over any nontrivial alphabet. -/
+theorem exists_nonRegular_language_of_nontrivial {T : Type*} [Nontrivial T] :
+    ∃ L : Language T, ¬ L.IsRegular := by
+  obtain ⟨a, b, hab⟩ := exists_pair_ne T
+  exact exists_nonRegular_language_of_pair a b hab
+
+/-- There exists a non-regular language over any finite alphabet with at least two symbols. -/
+theorem exists_nonRegular_language_of_card {T : Type*} [Fintype T] (hT : 2 ≤ Fintype.card T) :
+    ∃ L : Language T, ¬ L.IsRegular := by
+  let π : T ≃ Fin (Fintype.card T) := Fintype.equivFin T
+  let e : Fin 2 ↪ T := (Fin.castLEEmb hT).trans π.symm.toEmbedding
+  exact exists_nonRegular_language_of_pair (e 0) (e 1) (by intro h; simpa using e.injective h)

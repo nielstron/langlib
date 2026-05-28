@@ -50,3 +50,16 @@ theorem CF_notClosedUnderComplement_of_three {α : Type}
   have hunion := CF_of_CF_u_CF L₁ᶜ L₂ᶜ ⟨hc₁, hc₂⟩
   have hcc := hcomp (L₁ᶜ + L₂ᶜ) hunion
   rwa [Language.add_def, Set.compl_union, compl_compl, compl_compl] at hcc
+
+/-- Context-free languages are not closed under complement for any finite alphabet with
+    at least three symbols. -/
+theorem CF_notClosedUnderComplement_of_card {α : Type} [Fintype α]
+    (hα : 3 ≤ Fintype.card α) :
+    ¬ ClosedUnderComplement (α := α) is_CF := by
+  let π : α ≃ Fin (Fintype.card α) := Fintype.equivFin α
+  let e : Fin 3 ↪ α := (Fin.castLEEmb hα).trans π.symm.toEmbedding
+  exact CF_notClosedUnderComplement_of_three
+    (e 0) (e 1) (e 2)
+    (fun h => by simpa using e.injective h)
+    (fun h => by simpa using e.injective h)
+    (fun h => by simpa using e.injective h)

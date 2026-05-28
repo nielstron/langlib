@@ -17,7 +17,9 @@ form a strict subclass of context-free languages.
 
 ## Main results
 
-- `exists_CF_not_regular` — There exists a CF language that is not regular.
+- `exists_CF_not_regular` — There exists a CF language over `Bool` that is not regular.
+- `exists_CF_not_regular_of_nontrivial` — There exists a CF nonregular language over any
+  nontrivial alphabet.
 - `RG_strict_subclass_CF` — Right-regular languages form a strict subclass of CF languages.
 -/
 
@@ -27,7 +29,7 @@ open Language List
 theorem exists_CF_not_regular : ∃ L : Language Bool, is_CF L ∧ ¬ L.IsRegular :=
   ⟨anbn, anbn_is_CF, anbn_not_isRegular⟩
 
-private theorem map_anbn_is_CF (f : Bool → T) : is_CF (Language.map f anbn) := by
+private theorem map_anbn_is_CF {T : Type} (f : Bool → T) : is_CF (Language.map f anbn) := by
   have hsubst : is_CF (anbn.subst (fun x => ({[f x]} : Language T))) := by
     apply CF_of_subst_CF anbn
     · exact anbn_is_CF
@@ -35,6 +37,16 @@ private theorem map_anbn_is_CF (f : Bool → T) : is_CF (Language.map f anbn) :=
       rw [is_CF_iff_isContextFree]
       exact isContextFree_singleton [f x]
   simpa [Language.subst_singletons_eq_map] using hsubst
+
+/-- There exists a context-free nonregular language over any nontrivial alphabet. -/
+theorem exists_CF_not_regular_of_nontrivial {T : Type} [Nontrivial T] :
+    ∃ L : Language T, is_CF L ∧ ¬ L.IsRegular := by
+  obtain ⟨a, b, hab⟩ := exists_pair_ne T
+  let f : Bool → T := fun x => if x then b else a
+  have hf : Function.Injective f := by
+    intro x y hxy
+    cases x <;> cases y <;> simp_all [f]
+  exact ⟨Language.map f anbn, map_anbn_is_CF f, map_anbn_not_isRegular hf⟩
 
 /-- Right-regular languages form a strict subclass of context-free languages over any nontrivial alphabet. -/
 theorem RG_strict_subclass_CF [Nontrivial T] :

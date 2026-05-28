@@ -1,5 +1,6 @@
 import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Classes.ContextFree.Examples.A2nBn
+import Langlib.Examples.A2nBnPos
 
 /-! # The positive `{a^(2n)b^n}` language
 
@@ -8,10 +9,6 @@ This file defines `{a^(2n)b^n | n >= 1}` over `Bool`, with `false = a` and
 -/
 
 open Language
-
-/-- The positive block language `{a^(2n)b^n | n >= 1}`, with `false = a` and `true = b`. -/
-def quotientLeftBlock : Language Bool :=
-  fun w => ∃ n : ℕ, w = List.replicate (2 * (n + 1)) false ++ List.replicate (n + 1) true
 
 lemma quotientLeftBlock_eq_singletons_core :
     quotientLeftBlock = ({[false, false]} : Language Bool) * quotientLeftBlockCore * {[true]} := by

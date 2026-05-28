@@ -10,12 +10,14 @@ enumerable languages.
 
 The proof is indirect.  If every RE language over the unary alphabet were recursive,
 then RE would be closed under complement: move an RE language into `Recursive`, take
-the recursive complement, and use `Recursive ⊆ RE`.  This contradicts
-`RE_notClosedUnderComplement`.
+the recursive complement, and use `Recursive ⊆ RE`. This contradicts RE non-closure under
+complement.
 
 ## Main declarations
 
 - `Recursive_strict_subclass_RE_unit` — strict inclusion over `Unit`.
+- `Recursive_strict_subclass_RE_of_nonempty` — strict inclusion over any nonempty finite
+  alphabet.
 - `Recursive_subclass_RE_and_exists_strict` — class-level inclusion plus a strict
   witness alphabet.
 -/
@@ -32,6 +34,18 @@ theorem Recursive_strict_subclass_RE_unit :
     (fun hiff => ClosedUnderComplement_of_iff hiff)
     Recursive_closedUnderComplement
     RE_notClosedUnderComplement
+
+/-- Recursive languages over any nonempty finite alphabet form a strict subclass of RE. -/
+theorem Recursive_strict_subclass_RE_of_nonempty {T : Type} [DecidableEq T] [Fintype T]
+    [Nonempty T] :
+    (Recursive : Set (Language T)) ⊂ (RE : Set (Language T)) :=
+  strict_subset_of_subset_different_property
+    (P := is_Recursive) (Q := is_RE)
+    (fun _ hL => Recursive_subset_RE hL)
+    (X := ClosedUnderComplement)
+    (fun hiff => ClosedUnderComplement_of_iff hiff)
+    Recursive_closedUnderComplement
+    RE_notClosedUnderComplement_of_nonempty
 
 /-- Recursive languages are included in RE for every finite alphabet, and the inclusion
 is strict for at least one alphabet. -/

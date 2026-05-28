@@ -14,7 +14,9 @@ form a strict subclass of linear languages.
 
 ## Main results
 
-- `exists_Linear_not_regular` — There exists a linear language that is not regular.
+- `exists_Linear_not_regular` — There exists a linear language over `Bool` that is not regular.
+- `exists_Linear_not_regular_of_nontrivial` — There exists a linear nonregular language over
+  any nontrivial alphabet.
 - `RG_strict_subclass_Linear` — Right-regular languages form a strict subclass of linear languages.
 -/
 
@@ -81,6 +83,16 @@ private lemma map_anbn_is_Linear (f : Bool → T) (_hf : Function.Injective f) :
                                                                                                                                                                                                                                         exact Nat.recOn n rfl fun n ih => by rw [ replicate_succ' ] ; aesop;
           convert h_derives.tail _;
           use ⟨ [ ], (), [ ], [ ] ⟩ ; aesop
+
+/-- There exists a linear nonregular language over any nontrivial alphabet. -/
+theorem exists_Linear_not_regular_of_nontrivial {T : Type} [Nontrivial T] :
+    ∃ L : Language T, is_Linear L ∧ ¬ L.IsRegular := by
+  obtain ⟨a, b, hab⟩ := exists_pair_ne T
+  let f : Bool → T := fun x => if x then b else a
+  have hf : Function.Injective f := by
+    intro x y hxy
+    cases x <;> cases y <;> simp_all [f]
+  exact ⟨Language.map f anbn, map_anbn_is_Linear f hf, map_anbn_not_isRegular hf⟩
 
 /-- Right-regular languages form a strict subclass of linear languages over any nontrivial alphabet. -/
 theorem RG_strict_subclass_Linear [Nontrivial T] :

@@ -1,5 +1,6 @@
 import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Classes.ContextFree.Examples.BnAn
+import Langlib.Examples.BnAnPos
 
 /-! # The positive `{b^n a^n}` language
 
@@ -8,10 +9,6 @@ This file defines `{b^n a^n | n >= 1}` over `Bool`, with `false = a` and
 -/
 
 open Language
-
-/-- The positive block language `{b^n a^n | n >= 1}`, with `false = a` and `true = b`. -/
-def quotientRightBlock : Language Bool :=
-  fun w => ∃ n : ℕ, w = List.replicate (n + 1) true ++ List.replicate (n + 1) false
 
 lemma quotientRightBlock_eq_singletons_core :
     quotientRightBlock = ({[true]} : Language Bool) * quotientRightBlockCore * {[false]} := by

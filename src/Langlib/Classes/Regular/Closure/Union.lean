@@ -7,7 +7,7 @@ import Langlib.Utilities.ClosurePredicates
 /-! # Regular Closure Under Union
 
 This file restates mathlib's closure of regular languages under union and shows
-that the converse fails.
+that the converse fails over any nontrivial alphabet.
 
 ## Main declarations
 
@@ -24,15 +24,16 @@ theorem IsRegular.add' {L₁ L₂ : Language α} (h₁ : L₁.IsRegular) (h₂ :
     (L₁ + L₂).IsRegular := by
   exact h₁.add h₂
 
-/-- The converse of union closure fails. -/
-theorem not_iff_regular_union :
-    ¬ (∀ (L₁ L₂ : Language Bool), (L₁ + L₂).IsRegular ↔ (L₁.IsRegular ∧ L₂.IsRegular)) := by
+/-- The converse of union closure fails over any nontrivial alphabet. -/
+theorem not_iff_regular_union [Nontrivial α] :
+    ¬ (∀ (L₁ L₂ : Language α), (L₁ + L₂).IsRegular ↔ (L₁.IsRegular ∧ L₂.IsRegular)) := by
   intro h
-  have hunion : (anbn + anbnᶜ).IsRegular := by
-    have : anbn + anbnᶜ = ⊤ := sup_compl_eq_top
+  obtain ⟨L, hL⟩ := exists_nonRegular_language_of_nontrivial (T := α)
+  have hunion : (L + Lᶜ).IsRegular := by
+    have : L + Lᶜ = ⊤ := sup_compl_eq_top
     rw [this]
     exact isRegular_top
-  exact anbn_not_isRegular ((h anbn anbnᶜ).mp hunion).1
+  exact hL ((h L Lᶜ).mp hunion).1
 
 end Language
 

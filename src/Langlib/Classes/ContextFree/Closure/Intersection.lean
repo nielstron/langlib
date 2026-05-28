@@ -875,3 +875,16 @@ theorem CF_notClosedUnderIntersection_of_three {α : Type}
     hclosed _ _ hfL₁ hfL₂
   rw [← Language.map_inf_injective hf] at hinter
   exact CF_of_map_injective_CF_rev hf _ hinter
+
+/-- Context-free languages are not closed under intersection for any finite alphabet with
+    at least three symbols. -/
+theorem CF_notClosedUnderIntersection_of_card {α : Type} [Fintype α]
+    (hα : 3 ≤ Fintype.card α) :
+    ¬ ClosedUnderIntersection (α := α) is_CF := by
+  let π : α ≃ Fin (Fintype.card α) := Fintype.equivFin α
+  let e : Fin 3 ↪ α := (Fin.castLEEmb hα).trans π.symm.toEmbedding
+  exact CF_notClosedUnderIntersection_of_three
+    (e 0) (e 1) (e 2)
+    (fun h => by simpa using e.injective h)
+    (fun h => by simpa using e.injective h)
+    (fun h => by simpa using e.injective h)

@@ -7,7 +7,7 @@ import Langlib.Utilities.ClosurePredicates
 /-! # Regular Closure Under Intersection
 
 This file restates mathlib's closure of regular languages under intersection and
-shows that the converse fails.
+shows that the converse fails over any nontrivial alphabet.
 
 ## Main declarations
 
@@ -24,14 +24,15 @@ theorem IsRegular.inf' {L₁ L₂ : Language α} (h₁ : L₁.IsRegular) (h₂ :
     (L₁ ⊓ L₂).IsRegular := by
   exact h₁.inf h₂
 
-/-- The converse of intersection closure fails. -/
-theorem not_iff_regular_intersection :
-    ¬ (∀ (L₁ L₂ : Language Bool), (L₁ ⊓ L₂).IsRegular ↔ (L₁.IsRegular ∧ L₂.IsRegular)) := by
+/-- The converse of intersection closure fails over any nontrivial alphabet. -/
+theorem not_iff_regular_intersection [Nontrivial α] :
+    ¬ (∀ (L₁ L₂ : Language α), (L₁ ⊓ L₂).IsRegular ↔ (L₁.IsRegular ∧ L₂.IsRegular)) := by
   intro h
-  have hinf : (anbn ⊓ ⊥).IsRegular := by
-    rw [show anbn ⊓ (⊥ : Language Bool) = ⊥ by simp]
+  obtain ⟨L, hL⟩ := exists_nonRegular_language_of_nontrivial (T := α)
+  have hinf : (L ⊓ ⊥).IsRegular := by
+    rw [show L ⊓ (⊥ : Language α) = ⊥ by simp]
     exact isRegular_bot
-  exact anbn_not_isRegular ((h anbn ⊥).mp hinf).1
+  exact hL ((h L ⊥).mp hinf).1
 
 end Language
 

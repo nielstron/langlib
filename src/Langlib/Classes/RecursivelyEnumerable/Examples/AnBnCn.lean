@@ -8,6 +8,7 @@ import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Examples.AnBnCnPos
 
 /-! # `a^n b^n c^n` as an RE Language
 
@@ -45,13 +46,6 @@ private abbrev gB : symbol (Fin 3) grammar_anbncn.nt := symbol.nonterminal ⟨1,
 private abbrev ga : symbol (Fin 3) grammar_anbncn.nt := symbol.terminal 0
 private abbrev gb : symbol (Fin 3) grammar_anbncn.nt := symbol.terminal 1
 private abbrev gc : symbol (Fin 3) grammar_anbncn.nt := symbol.terminal 2
-
-private def lang_eq_eq_pos : Language (Fin 3) :=
-  fun w => ∃ n : ℕ, w = List.replicate (n + 1) 0 ++
-    List.replicate (n + 1) 1 ++ List.replicate (n + 1) 2
-
-private def lang_epsilon : Language (Fin 3) :=
-  fun w => w = []
 
 -- Single-step lemmas
 
@@ -509,7 +503,7 @@ private def grammar_epsilon : grammar (Fin 3) where
   initial := ()
   rules := [⟨[], (), [], []⟩]
 
-private lemma grammar_epsilon_language : grammar_language grammar_epsilon = lang_epsilon := by
+private lemma grammar_epsilon_language : grammar_language grammar_epsilon = lang_abc_epsilon := by
   ext w
   constructor
   · intro hw
@@ -524,19 +518,19 @@ private lemma grammar_epsilon_language : grammar_language grammar_epsilon = lang
       subst v
       have h' := grammar_tran_or_id_of_deri hd
       rcases h' with h' | ⟨v'', hv'', _⟩
-      · simpa [lang_epsilon] using h'
+      · simpa [lang_abc_epsilon] using h'
       · rcases hv'' with ⟨r, hr, u, v', hw₁, _⟩
         simp [grammar_epsilon] at hr
         rcases hr with rfl
         simp at hw₁
   · intro hw
     change grammar_generates grammar_epsilon w
-    unfold lang_epsilon at hw
+    unfold lang_abc_epsilon at hw
     subst w
     exact grammar_deri_of_tran (by
       refine ⟨⟨[], grammar_epsilon.initial, [], []⟩, by simp [grammar_epsilon], [], [], ?_, ?_⟩ <;> simp)
 
-private lemma lang_eq_eq_pos_union_epsilon : lang_eq_eq_pos + lang_epsilon = lang_eq_eq := by
+private lemma lang_eq_eq_pos_union_epsilon : lang_eq_eq_pos + lang_abc_epsilon = lang_eq_eq := by
   ext w
   constructor
   · intro hw
@@ -560,6 +554,6 @@ private lemma lang_eq_eq_pos_union_epsilon : lang_eq_eq_pos + lang_epsilon = lan
 /-- The language `{aⁿbⁿcⁿ}` is recursively enumerable. -/
 theorem lang_eq_eq_is_RE : is_RE lang_eq_eq := by
   have hpos : is_RE lang_eq_eq_pos := ⟨grammar_anbncn, grammar_anbncn_language⟩
-  have heps : is_RE lang_epsilon := ⟨grammar_epsilon, grammar_epsilon_language⟩
+  have heps : is_RE lang_abc_epsilon := ⟨grammar_epsilon, grammar_epsilon_language⟩
   rw [← lang_eq_eq_pos_union_epsilon]
   exact RE_of_RE_u_RE _ _ ⟨hpos, heps⟩

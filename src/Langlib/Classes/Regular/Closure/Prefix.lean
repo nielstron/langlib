@@ -7,7 +7,7 @@ import Langlib.Utilities.LanguageOperations
 /-! # Regular Closure Under Prefix
 
 This file proves that regular languages are closed under the prefix operation
-and shows that the converse fails.
+and shows that the converse fails over any nontrivial alphabet.
 
 ## Main declarations
 
@@ -65,36 +65,54 @@ theorem IsRegular.prefixLang {L : Language α} (h : L.IsRegular) :
   obtain ⟨σ, _, M, rfl⟩ := h
   exact ⟨σ, inferInstance, M.prefixDFA, M.prefixDFA_accepts⟩
 
-private lemma anbn_compl_not_isRegular : ¬ anbnᶜ.IsRegular := by
+private lemma map_anbn_compl_not_isRegular {T : Type*} {f : Bool → T}
+    (hf : Function.Injective f) : ¬ (Language.map f anbn)ᶜ.IsRegular := by
   intro h
-  exact anbn_not_isRegular (Language.isRegular_compl_iff.mp h)
+  exact map_anbn_not_isRegular hf (Language.isRegular_compl_iff.mp h)
 
-/-- No word of the form `w ++ [false]` belongs to `anbn`. -/
-private lemma append_false_not_mem_anbn (w : List Bool) :
-    w ++ [false] ∉ anbn := by
-  by_contra h_contra
-  obtain ⟨n, hn⟩ := h_contra
-  replace hn := congr_arg List.reverse hn
-  simp_all +decide [List.reverse_append]
-  cases n <;> simp_all +decide [List.replicate]
+/-- No word of the form `w ++ [f false]` belongs to the injective image of `anbn`. -/
+private lemma append_false_image_not_mem_map_anbn {T : Type*} {f : Bool → T}
+    (hf : Function.Injective f) (w : List T) :
+    w ++ [f false] ∉ Language.map f anbn := by
+  rintro ⟨u, ⟨n, rfl⟩, hmap⟩
+  cases n with
+  | zero =>
+      simp at hmap
+  | succ n =>
+      have hrev := congr_arg List.reverse hmap
+      have hhead := congr_arg List.head? hrev
+      have hne : f true ≠ f false := by
+        intro h
+        have htf : true = false := hf h
+        cases htf
+      simp [List.map_append, List.reverse_append, List.replicate] at hhead
+      have hrep : (List.replicate n (f true)).head?.getD (f true) = f true := by
+        cases n <;> simp [List.replicate]
+      exact hne (hrep.symm.trans hhead)
 
-/-- `prefixLang(anbnᶜ) = ⊤`. -/
-private lemma prefixLang_anbn_compl_eq_top :
-    prefixLang anbnᶜ = ⊤ := by
+/-- `prefixLang((map f anbn)ᶜ) = ⊤` for injective two-symbol codings. -/
+private lemma prefixLang_map_anbn_compl_eq_top {T : Type*} {f : Bool → T}
+    (hf : Function.Injective f) :
+    prefixLang (Language.map f anbn)ᶜ = ⊤ := by
   ext w
   constructor
   · intro _
     trivial
   · intro _
-    exact ⟨[false], append_false_not_mem_anbn w⟩
+    exact ⟨[f false], append_false_image_not_mem_map_anbn hf w⟩
 
-/-- The converse of prefix closure fails. -/
-theorem not_iff_regular_prefix :
-    ¬ (∀ (L : Language Bool), (prefixLang L).IsRegular ↔ L.IsRegular) := by
+/-- The converse of prefix closure fails over any nontrivial alphabet. -/
+theorem not_iff_regular_prefix [Nontrivial α] :
+    ¬ (∀ (L : Language α), (prefixLang L).IsRegular ↔ L.IsRegular) := by
   intro h
-  have hpref : (prefixLang anbnᶜ).IsRegular := by
-    rw [prefixLang_anbn_compl_eq_top]
+  obtain ⟨a, b, hab⟩ := exists_pair_ne α
+  let f : Bool → α := fun x => if x then b else a
+  have hf : Function.Injective f := by
+    intro x y hxy
+    cases x <;> cases y <;> simp_all [f]
+  have hpref : (prefixLang (Language.map f anbn)ᶜ).IsRegular := by
+    rw [prefixLang_map_anbn_compl_eq_top hf]
     exact isRegular_top
-  exact anbn_compl_not_isRegular ((h anbnᶜ).mp hpref)
+  exact map_anbn_compl_not_isRegular hf ((h (Language.map f anbn)ᶜ).mp hpref)
 
 end Language

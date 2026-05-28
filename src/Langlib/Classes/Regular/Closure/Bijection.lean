@@ -17,13 +17,13 @@ This file packages regular-language transport lemmas for renaming terminals.
 namespace Language
 
 /-- Regular languages are closed under preimage along `List.map`. -/
-theorem IsRegular.preimage {α β : Type} {L : Language α} (h : L.IsRegular) (f : β → α) :
+theorem IsRegular.preimage {α β : Type*} {L : Language α} (h : L.IsRegular) (f : β → α) :
     Language.IsRegular (((List.map f) ⁻¹' L : Set (List β))) := by
   rcases h with ⟨σ, hσ, M, hM⟩
   exact ⟨σ, hσ, M.comap f, by simpa [hM] using (DFA.accepts_comap (M := M) f)⟩
 
 /-- Injective alphabet maps reflect regularity. -/
-theorem IsRegular.of_map_injective {α β : Type} {L : Language α} {f : α → β}
+theorem IsRegular.of_map_injective {α β : Type*} {L : Language α} {f : α → β}
     (hf : Function.Injective f) (h : (Language.map f L).IsRegular) : L.IsRegular := by
   have hpre : Language.IsRegular (((List.map f) ⁻¹' Language.map f L : Set (List α))) := h.preimage f
   have hEq : (List.map f) ⁻¹' Language.map f L = L := by
@@ -38,7 +38,7 @@ theorem IsRegular.of_map_injective {α β : Type} {L : Language α} {f : α → 
 
 end Language
 
-variable {T₁ T₂ : Type}
+variable {T₁ T₂ : Type*}
 
 /-- Regular languages are closed under bijections of the terminal alphabet. -/
 theorem isRegular_of_bijemap_isRegular (π : T₁ ≃ T₂) (L : Language T₁) :
