@@ -119,11 +119,13 @@ import Langlib.Classes.ContextSensitive.Definition
 import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Closure.Complement
+import Langlib.Classes.DeterministicContextFree.Closure.Intersection
 import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
 import Langlib.Classes.DeterministicContextFree.Closure.UnionRegular
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
+import Langlib.Classes.DeterministicContextFree.Inclusion.StrictContextFree
 import Langlib.Classes.DeterministicContextFree.Totalization.AnnotatedStack
 import Langlib.Classes.DeterministicContextFree.Totalization.Construction
 import Langlib.Classes.DeterministicContextFree.Totalization.Definition

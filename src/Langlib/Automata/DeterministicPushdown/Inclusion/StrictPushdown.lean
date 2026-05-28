@@ -1,6 +1,6 @@
 import Langlib.Automata.DeterministicPushdown.Inclusion.Pushdown
 import Langlib.Automata.Pushdown.Equivalence.ContextFree
-import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
+import Langlib.Classes.DeterministicContextFree.Inclusion.StrictContextFree
 
 /-! # DPDAs are a strict subclass of PDAs
 
