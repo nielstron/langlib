@@ -1,8 +1,10 @@
 module
 
 public import Mathlib.Computability.MyhillNerode
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Language Operations
 
@@ -18,7 +20,7 @@ open scoped Classical
 
 namespace Language
 
-theorem mem_list_prod_iff_forall2 (S : List (Language α)) (w : List α) :
+public theorem mem_list_prod_iff_forall2 (S : List (Language α)) (w : List α) :
     w ∈ S.prod ↔ ∃ W : List (List α), w = W.flatten ∧ List.Forall₂ (fun w s => w ∈ s) W S := by
   induction S generalizing w with
   | nil => simp
@@ -36,10 +38,11 @@ theorem mem_list_prod_iff_forall2 (S : List (Language α)) (w : List α) :
           rw [List.forall₂_cons] at h
           exact ⟨w, h.1, W.flatten, (ih _).mpr ⟨W, rfl, h.2⟩, rfl⟩
 
-def subst {α β : Type} (L : Language α) (f : α → Language β) : Language β :=
+@[expose]
+public def subst {α β : Type} (L : Language α) (f : α → Language β) : Language β :=
   {u | ∃ w ∈ L, u ∈ (w.map f).prod}
 
-theorem subst_pair_eq_mul {β : Type} (f : Bool → Language β) :
+public theorem subst_pair_eq_mul {β : Type} (f : Bool → Language β) :
     ({[false, true]} : Language Bool).subst f = f false * f true := by
   apply Set.ext
   intro u
@@ -59,7 +62,7 @@ theorem subst_pair_eq_mul {β : Type} (f : Bool → Language β) :
       simp only [List.map_cons, List.map_nil, List.foldr_cons, List.foldr_nil, mul_one]
       exact ⟨a, ha, b, hb, hab⟩
 
-theorem subst_singletons_eq_add {β : Type}
+public theorem subst_singletons_eq_add {β : Type}
     (f : Bool → Language β) :
     ({[false], [true]} : Language Bool).subst f = f false + f true := by
   ext u
@@ -78,7 +81,7 @@ theorem subst_singletons_eq_add {β : Type}
       refine ⟨[true], by tauto, ?_⟩
       simpa [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
 
-theorem subst_univ_unit_eq_kstar {β : Type} (f : Unit → Language β) :
+public theorem subst_univ_unit_eq_kstar {β : Type} (f : Unit → Language β) :
     Language.subst (Set.univ : Language Unit) f = KStar.kstar (f ()) := by
   ext u
   constructor
@@ -101,7 +104,7 @@ theorem subst_univ_unit_eq_kstar {β : Type} (f : Unit → Language β) :
         simpa [List.replicate_succ, List.prod_cons, List.prod_nil, mul_one] using
           (Set.mem_image2_of_mem (List.forall_mem_cons.mp hL).1 ih'.2)
 
-lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
+public lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
     ∀ w : List α, ∀ u : List β,
       u ∈ (w.map fun x => ({[f x]} : Language β)).prod ↔ u = List.map f w
   | [], u => by
@@ -127,7 +130,7 @@ lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
 
 /-- Substituting each symbol `x` with the singleton language `{[f x]}` is the same as
 mapping the whole language along `f`. -/
-theorem subst_singletons_eq_map {α β : Type} (L : Language α) (f : α → β) :
+public theorem subst_singletons_eq_map {α β : Type} (L : Language α) (f : α → β) :
     L.subst (fun x => ({[f x]} : Language β)) = Language.map f L := by
   ext u
   constructor
@@ -138,7 +141,8 @@ theorem subst_singletons_eq_map {α β : Type} (L : Language α) (f : α → β)
 
 /-- The prefix language of `L` consists of all words that can be extended on the right to a word
 in `L`. -/
-def prefixLang (L : Language α) : Language α :=
+@[expose]
+public def prefixLang (L : Language α) : Language α :=
   { w | ∃ v : List α, w ++ v ∈ L }
 
 @[simp] theorem mem_prefixLang {L : Language α} {w : List α} :
@@ -190,7 +194,8 @@ theorem prefixLang_prefixLang (L : Language α) :
 
 /-- The suffix language of `L` consists of all words that can be extended on the left to a word in
 `L`. -/
-def suffixLang (L : Language α) : Language α :=
+@[expose]
+public def suffixLang (L : Language α) : Language α :=
   { w | ∃ v : List α, v ++ w ∈ L }
 
 @[simp] theorem mem_suffixLang {L : Language α} {w : List α} :
@@ -228,19 +233,21 @@ theorem suffixLang_mono {L₁ L₂ : Language α} (h : L₁ ≤ L₂) :
 
 variable {T : Type _}
 
-def bijemapLang {T' : Type _} (L : Language T) (π : T ≃ T') : Language T' :=
+@[expose]
+public def bijemapLang {T' : Type _} (L : Language T) (π : T ≃ T') : Language T' :=
   fun w : List T' => List.map π.symm w ∈ L
 
-def permuteLang (L : Language T) (π : Equiv.Perm T) : Language T :=
+@[expose]
+public def permuteLang (L : Language T) (π : Equiv.Perm T) : Language T :=
   bijemapLang L π
 
-@[simp] theorem bijemapLang_symm_bijemapLang (L : Language T) (π : T ≃ T') :
+@[simp] public theorem bijemapLang_symm_bijemapLang (L : Language T) (π : T ≃ T') :
     bijemapLang (bijemapLang L π) π.symm = L := by
   ext w
   change List.map π.symm (List.map π w) ∈ L ↔ w ∈ L
   simp [List.map_map]
 
-theorem suffixLang_eq_reverse_prefixLang_reverse (L : Language T) :
+public theorem suffixLang_eq_reverse_prefixLang_reverse (L : Language T) :
     suffixLang L = (prefixLang L.reverse).reverse := by
   ext w
   constructor
@@ -268,7 +275,8 @@ theorem prefixLang_eq_reverse_suffixLang_reverse (L : Language T) :
 
 /-- The right quotient of `L` by `R`: the set of words `w` such that `w ++ v ∈ L` for some
 `v ∈ R`. This generalises `prefixLang` (which is `rightQuotient L Set.univ`). -/
-def rightQuotient (L : Language α) (R : Language α) : Language α :=
+@[expose]
+public def rightQuotient (L : Language α) (R : Language α) : Language α :=
   { w | ∃ v ∈ R, w ++ v ∈ L }
 
 instance : HDiv (Language α) (Language α) (Language α) where
@@ -280,7 +288,7 @@ infixl:70 " \\\\ " => fun x L => Language.leftQuotient L x
     w ∈ rightQuotient L R ↔ ∃ v ∈ R, w ++ v ∈ L :=
   Iff.rfl
 
-theorem prefixLang_eq_rightQuotient_univ (L : Language α) :
+public theorem prefixLang_eq_rightQuotient_univ (L : Language α) :
     prefixLang L = rightQuotient L Set.univ := by
   ext w; constructor
   · rintro ⟨v, hv⟩; exact ⟨v, Set.mem_univ _, hv⟩

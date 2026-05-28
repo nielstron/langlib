@@ -42,8 +42,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Closure Under Prefix and Suffix
 
@@ -267,7 +269,8 @@ end PrefixGrammar
 section SteppedDerivation
 
 /-- Derivation in exactly `n` steps. -/
-def CF_derives_in (g : CF_grammar T) : ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
+@[expose]
+public def CF_derives_in (g : CF_grammar T) : ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
   | 0, w₁, w₂ => w₁ = w₂
   | n + 1, w₁, w₃ => ∃ w₂, CF_transforms g w₁ w₂ ∧ CF_derives_in g n w₂ w₃
 
@@ -277,7 +280,7 @@ lemma derives_of_derives_in {g : CF_grammar T} {n : ℕ} {w₁ w₂ : List (symb
       · exact fun h => by rw [ h ] ; exact CF_deri_self;
       · rintro ⟨ w₃, h₁, h₂ ⟩ ; exact CF_deri_of_deri_deri ( CF_deri_of_tran h₁ ) ( ih h₂ ) ;
 
-lemma derives_in_of_derives {g : CF_grammar T} {w₁ w₂ : List (symbol T g.nt)} :
+public lemma derives_in_of_derives {g : CF_grammar T} {w₁ w₂ : List (symbol T g.nt)} :
     CF_derives g w₁ w₂ → ∃ n, CF_derives_in g n w₁ w₂ := by
       have h_ind : ∀ {w₁ w₂ : List (symbol T g.nt)}, CF_derives g w₁ w₂ → ∃ n, CF_derives_in g n w₁ w₂ := by
         intro w₁ w₂ h;
@@ -296,7 +299,7 @@ lemma derives_in_of_derives {g : CF_grammar T} {w₁ w₂ : List (symbol T g.nt)
 /-
 A CF_transforms on a concatenation either acts in the left part or the right part.
 -/
-lemma transform_in_append {g : CF_grammar T} {s₁ s₂ w : List (symbol T g.nt)}
+public lemma transform_in_append {g : CF_grammar T} {s₁ s₂ w : List (symbol T g.nt)}
     (h : CF_transforms g (s₁ ++ s₂) w) :
     (∃ s₁', CF_transforms g s₁ s₁' ∧ w = s₁' ++ s₂) ∨
     (∃ s₂', CF_transforms g s₂ s₂' ∧ w = s₁ ++ s₂') := by
@@ -319,7 +322,7 @@ lemma transform_in_append {g : CF_grammar T} {s₁ s₂ w : List (symbol T g.nt)
 /-
 Splitting lemma with step counts.
 -/
-lemma head_tail_split_in {g : CF_grammar T} (n : ℕ) (s : symbol T g.nt)
+public lemma head_tail_split_in {g : CF_grammar T} (n : ℕ) (s : symbol T g.nt)
     (ss : List (symbol T g.nt)) (x : List (symbol T g.nt))
     (h : CF_derives_in g n (s :: ss) x) :
     ∃ n₁ n₂, n₁ + n₂ ≤ n ∧ ∃ u v,

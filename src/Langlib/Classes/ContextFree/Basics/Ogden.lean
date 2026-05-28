@@ -43,8 +43,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 set_option maxHeartbeats 400000
 

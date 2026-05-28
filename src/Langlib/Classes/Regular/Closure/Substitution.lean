@@ -37,8 +37,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Regular Closure Under Substitution
 
@@ -64,7 +66,8 @@ variable (M : DFA α σ) (τ : α → Type) [inst_fin : ∀ a, Fintype (τ a)]
   (N : (a : α) → DFA β (τ a))
 
 /-- ε-NFA for the substitution of a DFA language by a family of DFA languages. -/
-noncomputable def substεNFA : εNFA β (σ ⊕ (σ × (Σ a : α, τ a))) where
+@[expose]
+public noncomputable def substεNFA : εNFA β (σ ⊕ (σ × (Σ a : α, τ a))) where
   step := fun state c =>
     match state, c with
     | Sum.inl q, none => Set.range fun a => Sum.inr (q, ⟨a, (N a).start⟩)
@@ -387,7 +390,7 @@ private lemma subst_forward {u : List β}
   exact Exists.elim ( this.1 q' hq'.1 ) fun w hw => ⟨ w, by aesop ⟩
 
 /-- The substitution ε-NFA accepts exactly the substitution of the DFA language. -/
-theorem substεNFA_correct :
+public theorem substεNFA_correct :
     (substεNFA M τ N).accepts = M.accepts.subst (fun a => (N a).accepts) :=
   Set.eq_of_subset_of_subset
     (fun _ hw => subst_forward hw)
@@ -396,7 +399,7 @@ theorem substεNFA_correct :
 end SubstεNFA
 
 /-- Regular languages are closed under substitution (requires finite source alphabet). -/
-theorem IsRegular.subst' {L : Language α} {f : α → Language β}
+public theorem IsRegular.subst' {L : Language α} {f : α → Language β}
     (hL : L.IsRegular) (hf : ∀ a, (f a).IsRegular) :
     (L.subst f).IsRegular := by
   obtain ⟨σ, _, M, rfl⟩ := hL

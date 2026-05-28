@@ -38,8 +38,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Regular Closure Under Kleene Star
 
@@ -66,7 +68,8 @@ variable {σ : Type*} [Fintype σ]
 States are `σ ⊕ Unit`. The fresh state `Sum.inr ()` is both the start and the
 sole accepting state. It has an ε-transition into the DFA's start state.
 Accepting states of the DFA have an ε-transition back to the fresh state. -/
-noncomputable def starεNFA (M : DFA α σ) : εNFA α (σ ⊕ Unit) where
+@[expose]
+public noncomputable def starεNFA (M : DFA α σ) : εNFA α (σ ⊕ Unit) where
   step := fun s c =>
     match s, c with
     | Sum.inl q, some a => {Sum.inl (M.step q a)}
@@ -391,7 +394,7 @@ private lemma star_forward {w : List α}
         exact hw_kstar
 
 /-- The Kleene star ε-NFA accepts exactly the Kleene star of the DFA language. -/
-theorem starεNFA_correct :
+public theorem starεNFA_correct :
     (starεNFA M).accepts = KStar.kstar M.accepts :=
   Set.eq_of_subset_of_subset
     (fun _ hw => star_forward M hw)
@@ -400,7 +403,7 @@ theorem starεNFA_correct :
 end StarεNFA
 
 /-- Regular languages are closed under Kleene star. -/
-theorem IsRegular.kstar' {L : Language α}
+public theorem IsRegular.kstar' {L : Language α}
     (hL : L.IsRegular) :
     (KStar.kstar L).IsRegular := by
   obtain ⟨σ, _, M, rfl⟩ := hL

@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # String Homomorphism
 
@@ -49,9 +51,11 @@ singleton language `{h(a)}`.
 variable {α β : Type}
 
 /-- The image of a language `L` under a string homomorphism `h`. -/
-def Language.homomorphicImage (L : Language α) (h : α → List β) : Language β :=
+@[expose]
+public def Language.homomorphicImage (L : Language α) (h : α → List β) : Language β :=
   L.subst (fun a => ({h a} : Language β))
 
 /-- A string homomorphism is ε-free if no symbol maps to the empty string. -/
-def IsEpsFreeHomomorphism (h : α → List β) : Prop :=
+@[expose]
+public def IsEpsFreeHomomorphism (h : α → List β) : Prop :=
   ∀ a, h a ≠ []

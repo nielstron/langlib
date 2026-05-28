@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Inner-Block Realizability
 
@@ -149,7 +151,8 @@ theorem tm0RealizesInnerBlockSep_of_anySuffix
 This is the shape needed by invariant while-loop bodies: the whole active
 block is default-delimited, and an internal separator `sep₂` splits the
 preserved prefix from the inner block transformed by `f`. -/
-def TM0RealizesInnerBlockDefaultSep (Γ : Type) [Inhabited Γ] (sep₂ : Γ)
+@[expose]
+public def TM0RealizesInnerBlockDefaultSep (Γ : Type) [Inhabited Γ] (sep₂ : Γ)
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
     (M : TM0.Machine Γ Λ),
@@ -198,13 +201,13 @@ def TM0RealizesInnerBlockDefaultViaSep (Γ : Type) [Inhabited Γ]
 /-! ### List Reversal Helpers -/
 
 /-- Reversing `l₁ ++ a :: l₂` gives `l₂.reverse ++ a :: l₁.reverse`. -/
-theorem reverse_append_cons {α : Type} (l₁ : List α) (a : α) (l₂ : List α) :
+public theorem reverse_append_cons {α : Type} (l₁ : List α) (a : α) (l₂ : List α) :
     (l₁ ++ a :: l₂).reverse = l₂.reverse ++ a :: l₁.reverse := by
   simp [List.reverse_append, List.reverse_cons, List.append_assoc]
 
 /-- All elements of `l₁ ++ a :: l₂` satisfy `P` iff elements of `l₁`, `a`,
     and elements of `l₂` all satisfy `P`. -/
-theorem forall_mem_append_cons {α : Type} {P : α → Prop} {a : α}
+public theorem forall_mem_append_cons {α : Type} {P : α → Prop} {a : α}
     {l₁ l₂ : List α} :
     (∀ g ∈ l₁ ++ a :: l₂, P g) ↔
     (∀ g ∈ l₁, P g) ∧ P a ∧ (∀ g ∈ l₂, P g) := by
@@ -219,7 +222,7 @@ theorem forall_mem_append_cons {α : Type} {P : α → Prop} {a : α}
 
 /-! ### Boundary replacement helper -/
 
-inductive BoundaryReplaceSt where
+public inductive BoundaryReplaceSt where
   | scan
   | goLeft
   | rewind
@@ -230,7 +233,8 @@ instance : Inhabited BoundaryReplaceSt := ⟨.scan⟩
 
 /-- Scan to the first occurrence of `target`, replace it by `repl`, then rewind
 to the left edge of the active block. -/
-noncomputable def boundaryReplaceMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+@[expose]
+public noncomputable def boundaryReplaceMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) : TM0.Machine Γ BoundaryReplaceSt :=
   fun q a =>
     match q with
@@ -248,7 +252,7 @@ noncomputable def boundaryReplaceMachine {Γ : Type} [Inhabited Γ] [DecidableEq
           some (.rewind, TM0.Stmt.move Dir.left)
     | .done => none
 
-theorem boundaryReplace_rewind_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+public theorem boundaryReplace_rewind_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) (revBlock acc : List Γ)
     (hrevBlock : ∀ x ∈ revBlock, x ≠ (default : Γ)) :
     Reaches (TM0.step (boundaryReplaceMachine target repl))
@@ -272,7 +276,7 @@ theorem boundaryReplace_rewind_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
       · convert ih (a :: acc) hrest using 1
         simp [List.reverse_cons, List.append_assoc]
 
-theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+public theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) (block suffix revL : List Γ)
     (hblock_default : ∀ g ∈ block, g ≠ (default : Γ))
     (hblock_target : ∀ g ∈ block, g ≠ target)
@@ -339,7 +343,7 @@ theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
       convert h_step.trans (ih suffix (a :: revL) hrest_default hrest_target hrevL') using 1
       simp [List.reverse_cons, List.append_assoc]
 
-theorem boundaryReplace_reaches {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+public theorem boundaryReplace_reaches {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) (block suffix : List Γ)
     (hblock_default : ∀ g ∈ block, g ≠ (default : Γ))
     (hblock_target : ∀ g ∈ block, g ≠ target) :
@@ -349,7 +353,7 @@ theorem boundaryReplace_reaches {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
   exact boundaryReplace_scan_gen target repl block suffix [] hblock_default
     hblock_target (by simp)
 
-theorem tm0_boundaryReplace {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+public theorem tm0_boundaryReplace {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) :
     ∀ (block suffix : List Γ),
       (∀ g ∈ block, g ≠ default) →
@@ -453,7 +457,7 @@ Unlike `tm0RealizesBlock_toBlockSep`, this preserves an entirely opaque suffix:
 the wrapped machine must already be a strong `TM0RealizesBlockAnySuffix`
 machine, and the boundary replacement machines only touch the first boundary
 cell. -/
-theorem tm0RealizesBlockAnySuffix_toBlockSepAnySuffix
+public theorem tm0RealizesBlockAnySuffix_toBlockSepAnySuffix
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep : Γ} {f : List Γ → List Γ}
     (hf : TM0RealizesBlockAnySuffix Γ f) :
@@ -529,7 +533,7 @@ theorem tm0RealizesBlockAnySuffix_toBlockSepAnySuffix
 This is a reusable sub-machine composition: it takes any block-sep-realizable
 function and produces a machine for the "conjugated" function
 `reverse ∘ f ∘ reverse`. -/
-theorem tm0RealizesBlockSep_revFRev
+public theorem tm0RealizesBlockSep_revFRev
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep : Γ} {f : List Γ → List Γ}
     (hf : TM0RealizesBlockSep Γ sep f)
@@ -547,7 +551,7 @@ theorem tm0RealizesBlockSep_revFRev
 /-- Strong suffix version of `tm0RealizesBlockSep_revFRev`. This is the form
 needed by prefix/suffix lifting when the preserved suffix after `sep` may
 itself contain `default`. -/
-theorem tm0RealizesBlockSepAnySuffix_revFRev
+public theorem tm0RealizesBlockSepAnySuffix_revFRev
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep : Γ} {f : List Γ → List Γ}
     (hf : TM0RealizesBlockSepAnySuffix Γ sep f)
@@ -565,7 +569,7 @@ theorem tm0RealizesBlockSepAnySuffix_revFRev
 /-- Appending a fixed non-default, non-separator list is realizable before a
 separator, with no invariant on the suffix. This follows by reversing the
 active block, prepending the reversed fixed suffix, and reversing back. -/
-theorem tm0_appendList_blockSep_anySuffix
+public theorem tm0_appendList_blockSep_anySuffix
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep : Γ} (suf : List Γ)
     (hsuf_nd : ∀ g ∈ suf, g ≠ default)
@@ -1014,7 +1018,7 @@ reverse before the outer default, run `reverse ∘ f ∘ reverse` before the
 internal separator, then reverse before the outer default again. The middle
 phase is applied to a list without the trailing default; `evalCfg_append_default`
 identifies that with the actual intermediate tape. -/
-theorem tm0RealizesBlockSep_toInnerDefault
+public theorem tm0RealizesBlockSep_toInnerDefault
     {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep₂ : Γ} {f : List Γ → List Γ}
     (hsep₂ : sep₂ ≠ default)

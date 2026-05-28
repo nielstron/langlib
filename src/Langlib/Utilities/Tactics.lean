@@ -1,10 +1,10 @@
 module
 
 public meta import Aesop.BuiltinRules
-public import Langlib.Grammars.ContextFree.Toolbox
-public import Langlib.Utilities.ListUtils
 public meta import Mathlib.Tactic.ToAdditive
 public meta import Mathlib.Tactic.ToDual
+public import Langlib.Grammars.ContextFree.Toolbox
+public import Langlib.Utilities.ListUtils
 import Langlib.Grammars.Unrestricted.Definition
 import Mathlib.CategoryTheory.Category.Init
 import Mathlib.Tactic.NormNum.BigOperators
@@ -21,8 +21,10 @@ import Mathlib.Tactic.NormNum.Ordinal
 import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Custom Tactics for Langlib
 

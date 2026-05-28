@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Definition Equivalence with Mathlib's ContextFreeGrammar
 
@@ -47,18 +49,22 @@ This file relates the project's context-free grammars to context-sensitive, unre
 - `is_CF_iff_isContextFree`
 -/
 
-def Symbol_of_symbol {T N : Type} : symbol T N → Symbol T N
+@[expose]
+public def Symbol_of_symbol {T N : Type} : symbol T N → Symbol T N
 | symbol.terminal t => Symbol.terminal t
 | symbol.nonterminal n => Symbol.nonterminal n
 
-def symbol_of_Symbol {T N : Type} : Symbol T N → symbol T N
+@[expose]
+public def symbol_of_Symbol {T N : Type} : Symbol T N → symbol T N
 | Symbol.terminal t => symbol.terminal t
 | Symbol.nonterminal n => symbol.nonterminal n
 
-def lsSymbol_of_lssymbol {T N : Type} : List (symbol T N) → List (Symbol T N) :=
+@[expose]
+public def lsSymbol_of_lssymbol {T N : Type} : List (symbol T N) → List (Symbol T N) :=
   List.map Symbol_of_symbol
 
-def lssymbol_of_lsSymbol {T N : Type} : List (Symbol T N) → List (symbol T N) :=
+@[expose]
+public def lssymbol_of_lsSymbol {T N : Type} : List (Symbol T N) → List (symbol T N) :=
   List.map symbol_of_Symbol
 
 @[simp] private lemma symbol_of_Symbol_of_symbol {T N : Type} (s : symbol T N) :
@@ -83,19 +89,22 @@ def lssymbol_of_lsSymbol {T N : Type} : List (Symbol T N) → List (symbol T N) 
   | cons h t ih =>
     simpa [lsSymbol_of_lssymbol, lssymbol_of_lsSymbol, List.map_map] using ih
 
-noncomputable def mathlib_cfg_of_cfg (g : CF_grammar T) : ContextFreeGrammar T :=
+@[expose]
+public noncomputable def mathlib_cfg_of_cfg (g : CF_grammar T) : ContextFreeGrammar T :=
   by
     classical
     exact ⟨g.nt, g.initial, (g.rules.map fun r => ⟨r.fst, lsSymbol_of_lssymbol r.snd⟩).toFinset⟩
 
-noncomputable def cfg_of_mathlib_cfg (g : ContextFreeGrammar T) : CF_grammar T :=
+@[expose]
+public noncomputable def cfg_of_mathlib_cfg (g : ContextFreeGrammar T) : CF_grammar T :=
   ⟨g.NT, g.initial, g.rules.toList.map fun r => (r.input, lssymbol_of_lsSymbol r.output)⟩
 
 /-- A context-free grammar has no ε-productions (every rule has a non-empty right-hand side). -/
-def CF_no_epsilon (g : CF_grammar T) : Prop :=
+@[expose]
+public def CF_no_epsilon (g : CF_grammar T) : Prop :=
   ∀ r ∈ g.rules, r.snd ≠ []
 
-lemma CF_language_eq_mathlib_language (g : CF_grammar T) :
+public lemma CF_language_eq_mathlib_language (g : CF_grammar T) :
   CF_language g = (mathlib_cfg_of_cfg g).language := by
   classical
   unfold CF_language ContextFreeGrammar.language
@@ -171,7 +180,7 @@ lemma CF_language_eq_mathlib_language (g : CF_grammar T) :
     intro h
     simpa [lssymbol_of_lsSymbol, List.map_map] using indu (List.map Symbol.terminal w) h
 
-lemma mathlib_cfg_of_cfg_of_mathlib_cfg (g : ContextFreeGrammar T) :
+public lemma mathlib_cfg_of_cfg_of_mathlib_cfg (g : ContextFreeGrammar T) :
   mathlib_cfg_of_cfg (cfg_of_mathlib_cfg g) = g := by
   classical
   cases g with
@@ -185,13 +194,13 @@ lemma mathlib_cfg_of_cfg_of_mathlib_cfg (g : ContextFreeGrammar T) :
       simp [List.mem_map]
     simp [mathlib_cfg_of_cfg, cfg_of_mathlib_cfg, hrules]
 
-lemma mathlib_language_eq_CF_language (g : ContextFreeGrammar T) :
+public lemma mathlib_language_eq_CF_language (g : ContextFreeGrammar T) :
   g.language = CF_language (cfg_of_mathlib_cfg g) := by
   have h := CF_language_eq_mathlib_language (cfg_of_mathlib_cfg g)
   rw [mathlib_cfg_of_cfg_of_mathlib_cfg g] at h
   exact h.symm
 
-theorem is_CF_iff_isContextFree {L : Language T} :
+public theorem is_CF_iff_isContextFree {L : Language T} :
   is_CF L ↔ L.IsContextFree := by
   constructor
   ·

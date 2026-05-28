@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 open PDA
 
@@ -48,7 +50,8 @@ namespace DPDA
 /-- Construct the **complement DPDA** by replacing the set of accepting states
     with its complement. This is a syntactic operation that swaps which states
     are accepting. -/
-def complement (M : DPDA Q T S) : DPDA Q T S where
+@[expose]
+public def complement (M : DPDA Q T S) : DPDA Q T S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol
   final_states := M.final_statesᶜ
@@ -90,16 +93,16 @@ theorem complement_toPDA (M : DPDA Q T S) :
     M.complement.toPDA.initial_state = M.toPDA.initial_state := rfl
 
 /-- The complement DPDA has the same transition functions as the original. -/
-theorem complement_toPDA_transition_fun (M : DPDA Q T S) :
+public theorem complement_toPDA_transition_fun (M : DPDA Q T S) :
     M.complement.toPDA.transition_fun = M.toPDA.transition_fun := rfl
 
 /-- The complement DPDA has the same ε-transition functions as the original. -/
-theorem complement_toPDA_transition_fun' (M : DPDA Q T S) :
+public theorem complement_toPDA_transition_fun' (M : DPDA Q T S) :
     M.complement.toPDA.transition_fun' = M.toPDA.transition_fun' := rfl
 
 /-- The multi-step reachability relation is the same for a DPDA and its complement,
     because the step function depends only on the transitions, not the accepting states. -/
-theorem complement_toPDA_reaches (M : DPDA Q T S) (q q' : Q)
+public theorem complement_toPDA_reaches (M : DPDA Q T S) (q q' : Q)
     (w : List T) (γ γ' : List S) :
     @PDA.Reaches _ _ _ _ _ _ M.complement.toPDA ⟨q, w, γ⟩ ⟨q', [], γ'⟩ ↔
     @PDA.Reaches _ _ _ _ _ _ M.toPDA ⟨q, w, γ⟩ ⟨q', [], γ'⟩ := by
@@ -115,7 +118,7 @@ theorem complement_toPDA_reaches (M : DPDA Q T S) (q q' : Q)
 
 /-- For a DPDA that decides every input, the complemented DPDA accepts precisely the
     complement of the original language. -/
-theorem complement_acceptsByFinalState (M : DPDA Q T S) (h : M.DecidesEveryInput) :
+public theorem complement_acceptsByFinalState (M : DPDA Q T S) (h : M.DecidesEveryInput) :
     M.complement.acceptsByFinalState = (M.acceptsByFinalState)ᶜ := by
   obtain ⟨htotal, hconsistent⟩ := h
   unfold DPDA.acceptsByFinalState PDA.acceptsByFinalState

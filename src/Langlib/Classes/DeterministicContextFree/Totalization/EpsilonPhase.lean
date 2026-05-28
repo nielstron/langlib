@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Epsilon Phases of a DPDA
 
@@ -51,16 +53,19 @@ namespace DPDA
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- The stack/control part of a DPDA configuration, ignoring the unchanged input. -/
-abbrev EpsilonConf (Q S : Type) := Q × List S
+@[expose]
+public abbrev EpsilonConf (Q S : Type) := Q × List S
 
 /-- One forced epsilon step on the control/stack part of a configuration. -/
-def EpsilonStep (M : DPDA Q T S) :
+@[expose]
+public def EpsilonStep (M : DPDA Q T S) :
     EpsilonConf Q S → EpsilonConf Q S → Prop
   | (q, Z :: γ), (p, γ') => ∃ β, M.epsilon_transition q Z = some (p, β) ∧ γ' = β ++ γ
   | (_, []), _ => False
 
 /-- The deterministic successor function for one epsilon step, if one exists. -/
-def epsilonNext? (M : DPDA Q T S) : EpsilonConf Q S → Option (EpsilonConf Q S)
+@[expose]
+public def epsilonNext? (M : DPDA Q T S) : EpsilonConf Q S → Option (EpsilonConf Q S)
   | (q, Z :: γ) =>
       match M.epsilon_transition q Z with
       | some (p, β) => some (p, β ++ γ)
@@ -68,17 +73,20 @@ def epsilonNext? (M : DPDA Q T S) : EpsilonConf Q S → Option (EpsilonConf Q S)
   | (_, []) => none
 
 /-- Epsilon-only reachability on the control/stack part of a configuration. -/
-def EpsilonReaches (M : DPDA Q T S) :
+@[expose]
+public def EpsilonReaches (M : DPDA Q T S) :
     EpsilonConf Q S → EpsilonConf Q S → Prop :=
   Relation.ReflTransGen M.EpsilonStep
 
 /-- A control/stack configuration is stable when no epsilon transition is forced. -/
-def EpsilonStable (M : DPDA Q T S) : EpsilonConf Q S → Prop
+@[expose]
+public def EpsilonStable (M : DPDA Q T S) : EpsilonConf Q S → Prop
   | (_, []) => True
   | (q, Z :: _) => M.epsilon_transition q Z = none
 
 /-- An epsilon phase stops at a stable control/stack configuration. -/
-def EpsilonStopsAt (M : DPDA Q T S) (c c' : EpsilonConf Q S) : Prop :=
+@[expose]
+public def EpsilonStopsAt (M : DPDA Q T S) (c c' : EpsilonConf Q S) : Prop :=
   M.EpsilonReaches c c' ∧ M.EpsilonStable c'
 
 /-- An infinite epsilon-only computation from a control/stack configuration. -/
@@ -90,7 +98,7 @@ theorem epsilonNext?_nil (M : DPDA Q T S) (q : Q) :
     M.epsilonNext? (q, []) = none :=
   rfl
 
-theorem epsilonStep_iff_next?_eq_some (M : DPDA Q T S) (c c' : EpsilonConf Q S) :
+public theorem epsilonStep_iff_next?_eq_some (M : DPDA Q T S) (c c' : EpsilonConf Q S) :
     M.EpsilonStep c c' ↔ M.epsilonNext? c = some c' := by
   rcases c with ⟨q, γ⟩
   rcases c' with ⟨p, γ'⟩
@@ -110,7 +118,7 @@ theorem epsilonStep_iff_next?_eq_some (M : DPDA Q T S) (c c' : EpsilonConf Q S) 
           obtain ⟨rfl, rfl⟩ := h
           exact ⟨β, hε, rfl⟩
 
-theorem epsilonStable_iff_next?_eq_none (M : DPDA Q T S) (c : EpsilonConf Q S) :
+public theorem epsilonStable_iff_next?_eq_none (M : DPDA Q T S) (c : EpsilonConf Q S) :
     M.EpsilonStable c ↔ M.epsilonNext? c = none := by
   rcases c with ⟨q, γ⟩
   rcases γ with _ | ⟨Z, γ⟩
@@ -126,7 +134,7 @@ theorem exists_epsilonStep_of_not_stable (M : DPDA Q T S) {c : EpsilonConf Q S}
   | some c' =>
       exact ⟨c', (epsilonStep_iff_next?_eq_some M c c').2 hn⟩
 
-theorem not_epsilonStep_of_stable (M : DPDA Q T S) {c c' : EpsilonConf Q S}
+public theorem not_epsilonStep_of_stable (M : DPDA Q T S) {c c' : EpsilonConf Q S}
     (hstable : M.EpsilonStable c) :
     ¬ M.EpsilonStep c c' := by
   rw [epsilonStable_iff_next?_eq_none] at hstable
@@ -134,13 +142,13 @@ theorem not_epsilonStep_of_stable (M : DPDA Q T S) {c c' : EpsilonConf Q S}
   rw [hstable]
   simp
 
-theorem epsilonStep_deterministic (M : DPDA Q T S) {c c₁ c₂ : EpsilonConf Q S}
+public theorem epsilonStep_deterministic (M : DPDA Q T S) {c c₁ c₂ : EpsilonConf Q S}
     (h₁ : M.EpsilonStep c c₁) (h₂ : M.EpsilonStep c c₂) :
     c₁ = c₂ := by
   rw [epsilonStep_iff_next?_eq_some] at h₁ h₂
   exact Option.some.inj (h₁.symm.trans h₂)
 
-theorem epsilonStep_suffix_of_stops {M : DPDA Q T S} {c c₁ cfinal : EpsilonConf Q S}
+public theorem epsilonStep_suffix_of_stops {M : DPDA Q T S} {c c₁ cfinal : EpsilonConf Q S}
     (hstep : M.EpsilonStep c c₁)
     (hstops : M.EpsilonStopsAt c cfinal) :
     M.EpsilonStopsAt c₁ cfinal := by
@@ -153,7 +161,7 @@ theorem epsilonStep_suffix_of_stops {M : DPDA Q T S} {c c₁ cfinal : EpsilonCon
       subst hsame
       exact ⟨hrest, hstable⟩
 
-theorem epsilonReaches_suffix_of_stops {M : DPDA Q T S} {c c₁ cfinal : EpsilonConf Q S}
+public theorem epsilonReaches_suffix_of_stops {M : DPDA Q T S} {c c₁ cfinal : EpsilonConf Q S}
     (hreach : M.EpsilonReaches c c₁)
     (hstops : M.EpsilonStopsAt c cfinal) :
     M.EpsilonStopsAt c₁ cfinal := by
@@ -162,7 +170,7 @@ theorem epsilonReaches_suffix_of_stops {M : DPDA Q T S} {c c₁ cfinal : Epsilon
   | tail _ hstep ih =>
       exact epsilonStep_suffix_of_stops hstep ih
 
-theorem epsilonStopsAt_of_step {M : DPDA Q T S} {c c₁ : EpsilonConf Q S}
+public theorem epsilonStopsAt_of_step {M : DPDA Q T S} {c c₁ : EpsilonConf Q S}
     (hstep : M.EpsilonStep c c₁)
     (hstops : ∃ cfinal, M.EpsilonStopsAt c₁ cfinal) :
     ∃ cfinal, M.EpsilonStopsAt c cfinal := by
@@ -228,7 +236,7 @@ theorem epsilonPhase_stops_or_diverges (M : DPDA Q T S) (c : EpsilonConf Q S) :
     exact hs ▸ hnext
 
 /-- Lift one semantic epsilon step to the underlying PDA step relation, for any fixed input. -/
-theorem epsilonStep_toPDA {M : DPDA Q T S} {c c' : EpsilonConf Q S} {w : List T}
+public theorem epsilonStep_toPDA {M : DPDA Q T S} {c c' : EpsilonConf Q S} {w : List T}
     (h : M.EpsilonStep c c') :
     @PDA.Reaches₁ Q T S _ _ _ M.toPDA
       ⟨c.1, w, c.2⟩ ⟨c'.1, w, c'.2⟩ := by
@@ -247,7 +255,7 @@ theorem epsilonStep_toPDA {M : DPDA Q T S} {c c' : EpsilonConf Q S} {w : List T}
           ⟨p, β, by simp [DPDA.toPDA, hβ], rfl⟩
 
 /-- Lift epsilon-only reachability to ordinary PDA reachability, preserving the input. -/
-theorem epsilonReaches_toPDA {M : DPDA Q T S} {c c' : EpsilonConf Q S} {w : List T}
+public theorem epsilonReaches_toPDA {M : DPDA Q T S} {c c' : EpsilonConf Q S} {w : List T}
     (h : M.EpsilonReaches c c') :
     @PDA.Reaches Q T S _ _ _ M.toPDA
       ⟨c.1, w, c.2⟩ ⟨c'.1, w, c'.2⟩ := by
@@ -256,7 +264,7 @@ theorem epsilonReaches_toPDA {M : DPDA Q T S} {c c' : EpsilonConf Q S} {w : List
   | tail _ hstep ih =>
       exact Relation.ReflTransGen.tail ih (epsilonStep_toPDA (w := w) hstep)
 
-theorem epsilonStep_of_toPDA_empty_step {M : DPDA Q T S} {q p : Q} {γ γ' : List S}
+public theorem epsilonStep_of_toPDA_empty_step {M : DPDA Q T S} {q p : Q} {γ γ' : List S}
     (h : @PDA.Reaches₁ Q T S _ _ _ M.toPDA ⟨q, [], γ⟩ ⟨p, [], γ'⟩) :
     M.EpsilonStep (q, γ) (p, γ') := by
   cases γ with
@@ -274,7 +282,7 @@ theorem epsilonStep_of_toPDA_empty_step {M : DPDA Q T S} {q p : Q} {γ γ' : Lis
           subst β
           exact ⟨δ, hε, rfl⟩
 
-theorem epsilonReaches_of_toPDA_empty_reaches {M : DPDA Q T S} {q p : Q} {γ γ' : List S}
+public theorem epsilonReaches_of_toPDA_empty_reaches {M : DPDA Q T S} {q p : Q} {γ γ' : List S}
     (h : @PDA.Reaches Q T S _ _ _ M.toPDA ⟨q, [], γ⟩ ⟨p, [], γ'⟩) :
     M.EpsilonReaches (q, γ) (p, γ') := by
   rw [PDA.reaches_iff_reachesIn] at h
@@ -297,7 +305,7 @@ theorem epsilonReaches_of_toPDA_empty_reaches {M : DPDA Q T S} {q p : Q} {γ γ'
       exact Relation.ReflTransGen.tail (ih hprev)
         (epsilonStep_of_toPDA_empty_step (PDA.reaches₁_iff_reachesIn_one.mpr hone))
 
-theorem stable_reaches_nonempty_decompose {M : DPDA Q T S}
+public theorem stable_reaches_nonempty_decompose {M : DPDA Q T S}
     {q qf : Q} {a : T} {w : List T} {Z : S} {γ γf : List S}
     (hstable : M.epsilon_transition q Z = none)
     (hreach : @PDA.Reaches Q T S _ _ _ M.toPDA
@@ -331,7 +339,7 @@ theorem stable_reaches_nonempty_decompose {M : DPDA Q T S}
           refine ⟨p, δ, rfl, ?_⟩
           exact PDA.reaches_of_reachesIn hrest
 
-theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
+public theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
     {c c' : EpsilonConf Q S} {qf : Q} {a : T} {w : List T} {γf : List S}
     (hstep : M.EpsilonStep c c')
     (hreach : @PDA.Reaches Q T S _ _ _ M.toPDA
@@ -363,7 +371,7 @@ theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
           subst stack'
           simpa [hr] using PDA.reaches_of_reachesIn hrest
 
-theorem toPDA_reaches_suffix_of_epsilonReaches_nonempty {M : DPDA Q T S}
+public theorem toPDA_reaches_suffix_of_epsilonReaches_nonempty {M : DPDA Q T S}
     {c c' : EpsilonConf Q S} {qf : Q} {a : T} {w : List T} {γf : List S}
     (heps : M.EpsilonReaches c c')
     (hreach : @PDA.Reaches Q T S _ _ _ M.toPDA
@@ -375,7 +383,7 @@ theorem toPDA_reaches_suffix_of_epsilonReaches_nonempty {M : DPDA Q T S}
   | tail _ hstep ih =>
       exact toPDA_reaches_suffix_of_epsilonStep_nonempty hstep ih
 
-theorem epsilonStopsAt_of_toPDA_reaches_nonempty {M : DPDA Q T S}
+public theorem epsilonStopsAt_of_toPDA_reaches_nonempty {M : DPDA Q T S}
     {q qf : Q} {a : T} {w : List T} {γ γf : List S}
     (hreach : @PDA.Reaches Q T S _ _ _ M.toPDA
       ⟨q, a :: w, γ⟩ ⟨qf, [], γf⟩) :

@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Transport for Closure Predicates
 
@@ -58,7 +60,7 @@ theorem ClosedUnderIntersection_of_iff {P Q : Language α → Prop}
   exact (hiff (L₁ ⊓ L₂)).1 (hP L₁ L₂ ((hiff L₁).2 hL₁) ((hiff L₂).2 hL₂))
 
 /-- Complement closure is invariant under pointwise equivalence of language classes. -/
-theorem ClosedUnderComplement_of_iff {P Q : Language α → Prop}
+public theorem ClosedUnderComplement_of_iff {P Q : Language α → Prop}
     (hiff : ∀ L, P L ↔ Q L) :
     ClosedUnderComplement P → ClosedUnderComplement Q := by
   intro hP L hQL

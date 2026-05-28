@@ -33,12 +33,15 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The positive language `{b^n a^n}` -/
 
 /-- The positive block language `{b^n a^n | n >= 1}` over `Bool`,
 with `false = a` and `true = b`. -/
-def quotientRightBlock : Language Bool :=
+@[expose]
+public def quotientRightBlock : Language Bool :=
   fun w => ∃ n : ℕ, w = List.replicate (n + 1) true ++ List.replicate (n + 1) false

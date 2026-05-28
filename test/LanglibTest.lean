@@ -7,7 +7,8 @@ public import LanglibTest.DemoContextFree
 public import LanglibTest.DemoContextSensitive
 public import LanglibTest.DemoUnrestricted
 public import LanglibTest.Results
-@[expose] public section
+@[expose]
+public section
 
 /-! # Langlib Test Suite
 

@@ -34,8 +34,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Partrec Code → TM0 Assembly
 
@@ -66,7 +68,7 @@ theorem partrec_init_stk_eq (c : ToPartrec.Code) (v : List ℕ) :
 
 /-! ### TrCfg for PartrecToTM2.init -/
 
-theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
+public theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
     @TrCfg K' (fun _ => Γ') Λ' (Option Γ')
       (PartrecToTM2.init c v)
       ⟨Option.map Λ'.normal (PartrecToTM2.init c v).l,
@@ -109,16 +111,22 @@ theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
 
 /-! ### Chain Type Abbreviations -/
 
-abbrev ChainΓ := Γ' K' (fun _ : K' => PartrecToTM2.Γ')
-abbrev ChainΛ_TM1 := Λ' K' (fun _ => PartrecToTM2.Γ') PartrecToTM2.Λ' (Option PartrecToTM2.Γ')
-abbrev ChainTM1 := TM2to1.tr PartrecToTM2.tr
-abbrev ChainTM0 := TM1to0.tr ChainTM1
-abbrev ChainΛ_TM0 := TM1to0.Λ' ChainTM1
+@[expose]
+public abbrev ChainΓ := Γ' K' (fun _ : K' => PartrecToTM2.Γ')
+@[expose]
+public abbrev ChainΛ_TM1 := Λ' K' (fun _ => PartrecToTM2.Γ') PartrecToTM2.Λ' (Option PartrecToTM2.Γ')
+@[expose]
+public abbrev ChainTM1 := TM2to1.tr PartrecToTM2.tr
+@[expose]
+public abbrev ChainTM0 := TM1to0.tr ChainTM1
+@[expose]
+public abbrev ChainΛ_TM0 := TM1to0.Λ' ChainTM1
 
 instance : Fintype PartrecToTM2.K' :=
   Fintype.ofList [.main, .rev, .aux, .stack] (by intro x; cases x <;> simp)
 
-instance : Fintype PartrecToTM2.Γ' :=
+@[expose]
+public instance : Fintype PartrecToTM2.Γ' :=
   Fintype.ofList [.consₗ, .cons, .bit0, .bit1] (by intro x; cases x <;> simp)
 
 /-- TM2 halts iff Code evaluates. -/
@@ -130,7 +138,7 @@ theorem code_eval_iff_tm2 (c : ToPartrec.Code) (v : List ℕ) :
 /-! ### Full Chain: Code → TM0 -/
 
 /-- **Full chain: Code → TM0 (eval form).** -/
-theorem code_to_tm0_halts (c : ToPartrec.Code) (v : List ℕ) :
+public theorem code_to_tm0_halts (c : ToPartrec.Code) (v : List ℕ) :
     let cfg₁ : TM1.Cfg ChainΓ ChainΛ_TM1 (Option Γ') :=
       ⟨Option.map Λ'.normal (PartrecToTM2.init c v).l,
        (PartrecToTM2.init c v).var,
@@ -155,7 +163,8 @@ theorem code_to_tm0_halts (c : ToPartrec.Code) (v : List ℕ) :
 /-! ### Support Chain (for Fintype states) -/
 
 /-- The TM2 support set for a given code `c`. -/
-def chainSuppTM2 (c : ToPartrec.Code) : Finset PartrecToTM2.Λ' :=
+@[expose]
+public def chainSuppTM2 (c : ToPartrec.Code) : Finset PartrecToTM2.Λ' :=
   PartrecToTM2.codeSupp c PartrecToTM2.Cont'.halt
 
 /-- The TM1 support set. -/
@@ -163,7 +172,8 @@ noncomputable def chainSuppTM1 (c : ToPartrec.Code) : Finset ChainΛ_TM1 :=
   TM2to1.trSupp PartrecToTM2.tr (chainSuppTM2 c)
 
 /-- The TM0 support set. -/
-noncomputable def chainSuppTM0 (c : ToPartrec.Code) : Finset ChainΛ_TM0 :=
+@[expose]
+public noncomputable def chainSuppTM0 (c : ToPartrec.Code) : Finset ChainΛ_TM0 :=
   TM1to0.trStmts ChainTM1 (chainSuppTM1 c)
 
 /-! ### Full Chain with Fintype States -/
@@ -180,7 +190,7 @@ abbrev chainTM1Cfg (c : ToPartrec.Code) (v : List ℕ) :
 The TM0 config `TM1to0.trCfg` applied to the chain's initial config
     equals `⟨q₀, Tape.mk₁ input⟩` where `q₀` is the non-canonical default.
 -/
-lemma chainTM0_trCfg_eq_nc (c : ToPartrec.Code) (n : ℕ) :
+public lemma chainTM0_trCfg_eq_nc (c : ToPartrec.Code) (n : ℕ) :
     letI : Inhabited PartrecToTM2.Λ' :=
       ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
     TM1to0.trCfg (TM2to1.tr PartrecToTM2.tr) (chainTM1Cfg c [n]) =
@@ -192,7 +202,7 @@ lemma chainTM0_trCfg_eq_nc (c : ToPartrec.Code) (n : ℕ) :
 Works because the TM0 state depends only on the Code `c` (via the non-canonical
 `Inhabited` instance), not on the input list. The `var` component of `init c v`
 is always `none : Option Γ'`. -/
-lemma chainTM0_trCfg_eq_general (c : ToPartrec.Code) (v : List ℕ) :
+public lemma chainTM0_trCfg_eq_general (c : ToPartrec.Code) (v : List ℕ) :
     letI : Inhabited PartrecToTM2.Λ' :=
       ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
     TM1to0.trCfg (TM2to1.tr PartrecToTM2.tr) (chainTM1Cfg c v) =
@@ -205,7 +215,8 @@ lemma chainTM0_trCfg_eq_general (c : ToPartrec.Code) (v : List ℕ) :
 This is the strengthened version of `code_to_tm0` that provides `Fintype Λ`.
 The key insight is to override the `Inhabited PartrecToTM2.Λ'` instance
 to `⟨trNormal c halt⟩` (matching `tr_supports`), then thread the non-canonical
-instance through the entire chain. The resulting TM0 machine is definitionally
+@[expose]
+public instance through the entire chain. The resulting TM0 machine is definitionally
 the same as `ChainTM0` (since `TM1to0.tr` ignores `Inhabited`), but the support
 proof uses the non-canonical default. -/
 theorem code_to_tm0_fintype (c : ToPartrec.Code) :
@@ -259,7 +270,7 @@ theorem code_to_tm0_fintype (c : ToPartrec.Code) :
 Same as `code_to_tm0_fintype` but works for arbitrary `v : List ℕ` instead of
 just `[n]`. The machine and state space are identical — only the input encoding
 `trInit K'.main (trList v)` varies with the input list. -/
-theorem code_to_tm0_fintype_general (c : ToPartrec.Code) :
+public theorem code_to_tm0_fintype_general (c : ToPartrec.Code) :
     ∃ (ΛTy : Type) (_ : Inhabited ΛTy) (_ : Fintype ΛTy)
       (M : TM0.Machine ChainΓ ΛTy),
       ∀ v : List ℕ,

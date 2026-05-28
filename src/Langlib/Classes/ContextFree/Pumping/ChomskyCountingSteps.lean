@@ -6,8 +6,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl, Martin Dvorak
 -/
 public import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Counting Derivation Steps in CNF
 
@@ -27,13 +29,13 @@ namespace ChomskyNormalFormGrammar
 
 /-- Given a context-free grammar `g`, strings `u` and `v`, and number `n`
 `g.DerivesIn u v n` means that `g` can transform `u` to `v` in `n` rewriting steps. -/
-inductive DerivesIn (g : ChomskyNormalFormGrammar.{uN} T) : List (Symbol T g.NT) → List (Symbol T g.NT) → ℕ → Prop
+public inductive DerivesIn (g : ChomskyNormalFormGrammar.{uN} T) : List (Symbol T g.NT) → List (Symbol T g.NT) → ℕ → Prop
   /-- 0 steps entail no transformation -/
   | refl (w : List (Symbol T g.NT)) : g.DerivesIn w w 0
   /-- n + 1 steps, if transforms `u` to `v` in n steps, and `v` to `w` in 1 step  -/
   | tail (u v w : List (Symbol T g.NT)) (n : ℕ) : g.DerivesIn u v n → g.Produces v w → g.DerivesIn u w n.succ
 
-lemma derives_iff_derivesIn (g : ChomskyNormalFormGrammar.{uN} T) (v w : List (Symbol T g.NT)) :
+public lemma derives_iff_derivesIn (g : ChomskyNormalFormGrammar.{uN} T) (v w : List (Symbol T g.NT)) :
     g.Derives v w ↔ ∃ n : ℕ, g.DerivesIn v w n := by
   constructor
   · intro hgvw
@@ -59,15 +61,15 @@ lemma mem_language_iff_derivesIn (g : ChomskyNormalFormGrammar.{uN} T) (w : List
 
 variable {g : ChomskyNormalFormGrammar.{uN} T}
 
-lemma DerivesIn.zero_steps (w : List (Symbol T g.NT)) : g.DerivesIn w w 0 := by
+public lemma DerivesIn.zero_steps (w : List (Symbol T g.NT)) : g.DerivesIn w w 0 := by
   left
 
-lemma DerivesIn.zero_steps_eq {u v : List (Symbol T g.NT)} (huv: g.DerivesIn u v 0) :
+public lemma DerivesIn.zero_steps_eq {u v : List (Symbol T g.NT)} (huv: g.DerivesIn u v 0) :
     u = v:= by
   cases huv
   rfl
 
-lemma Produces.single_step {v w : List (Symbol T g.NT)} (hvw : g.Produces v w) :
+public lemma Produces.single_step {v w : List (Symbol T g.NT)} (hvw : g.Produces v w) :
     g.DerivesIn v w 1 := by
   right
   left
@@ -75,20 +77,20 @@ lemma Produces.single_step {v w : List (Symbol T g.NT)} (hvw : g.Produces v w) :
 
 variable {n : ℕ}
 
-lemma DerivesIn.trans_produces {u v w : List (Symbol T g.NT)}
+public lemma DerivesIn.trans_produces {u v w : List (Symbol T g.NT)}
     (huv : g.DerivesIn u v n) (hvw : g.Produces v w) :
     g.DerivesIn u w n.succ :=
   DerivesIn.tail u v w n huv hvw
 
 @[trans]
-lemma DerivesIn.trans {u v w : List (Symbol T g.NT)} {m : ℕ}
+public lemma DerivesIn.trans {u v w : List (Symbol T g.NT)} {m : ℕ}
     (huv : g.DerivesIn u v n) (hvw : g.DerivesIn v w m) :
     g.DerivesIn u w (n + m) := by
   induction hvw with
   | refl => exact huv
   | tail _ _ _ _ last ih => exact trans_produces ih last
 
-lemma Produces.trans_derivesIn {u v w : List (Symbol T g.NT)}
+public lemma Produces.trans_derivesIn {u v w : List (Symbol T g.NT)}
     (huv : g.Produces u v) (hvw : g.DerivesIn v w n) :
     g.DerivesIn u w n.succ :=
   n.succ_eq_one_add ▸ huv.single_step.trans hvw
@@ -99,7 +101,7 @@ lemma DerivesIn.tail_of_succ {u w : List (Symbol T g.NT)} (huw : g.DerivesIn u w
   | tail v w n huv hvw =>
     use v
 
-lemma DerivesIn.head_of_succ {u w : List (Symbol T g.NT)} (huw : g.DerivesIn u w n.succ) :
+public lemma DerivesIn.head_of_succ {u w : List (Symbol T g.NT)} (huw : g.DerivesIn u w n.succ) :
     ∃ v : List (Symbol T g.NT), g.Produces u v ∧ g.DerivesIn v w n := by
   induction n generalizing w with
   | zero =>
@@ -129,7 +131,7 @@ lemma DerivesIn.append_right {v w : List (Symbol T g.NT)}
   | refl => left
   | tail _ _ _ _ last ih => exact ih.trans_produces <| last.append_right p
 
-lemma DerivesIn.append_split {p q w : List (Symbol T g.NT)} {n : ℕ} (hpqw : g.DerivesIn (p ++ q) w n) :
+public lemma DerivesIn.append_split {p q w : List (Symbol T g.NT)} {n : ℕ} (hpqw : g.DerivesIn (p ++ q) w n) :
     ∃ x y m₁ m₂, w = x ++ y ∧ g.DerivesIn p x m₁ ∧ g.DerivesIn q y m₂ ∧ n = m₁ + m₂ := by
   cases n with
   | zero =>

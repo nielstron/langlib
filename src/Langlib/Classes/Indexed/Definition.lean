@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Indexed Languages
 
@@ -48,9 +50,11 @@ This file defines the class of indexed languages via indexed grammars.
 variable {T : Type}
 
 /-- Predicate that a language is an indexed language. -/
-def is_Indexed (L : Language T) : Prop :=
+@[expose]
+public def is_Indexed (L : Language T) : Prop :=
   ∃ g : IndexedGrammar T, g.Language = L
 
 /-- The class of indexed languages. -/
-def Indexed : Set (Language T) :=
+@[expose]
+public def Indexed : Set (Language T) :=
   setOf is_Indexed

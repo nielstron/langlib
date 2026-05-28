@@ -4,8 +4,10 @@ public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.Unrestricted.Toolbox
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Sensitive Inclusions
 
@@ -20,14 +22,15 @@ This file embeds context-sensitive grammars into unrestricted grammars and deriv
 variable {T : Type}
 
 
-def grammar_of_csg (g : CS_grammar T) : grammar T :=
+@[expose]
+public def grammar_of_csg (g : CS_grammar T) : grammar T :=
 grammar.mk g.nt g.initial (List.map
   (fun r : csrule T g.nt => grule.mk
     r.context_left r.input_nonterminal r.context_right
     (r.context_left ++ r.output_string ++ r.context_right)
   ) g.rules)
 
-lemma CS_language_eq_grammar_language (g : CS_grammar T) :
+public lemma CS_language_eq_grammar_language (g : CS_grammar T) :
   CS_language g = grammar_language (grammar_of_csg g) :=
 by
   unfold CS_language

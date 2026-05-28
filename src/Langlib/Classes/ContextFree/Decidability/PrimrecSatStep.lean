@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Primitive Recursiveness of Saturation Step
 
@@ -368,7 +370,7 @@ private lemma satFixpoint_primrec :
 /-! ## checkMembershipEncoded is Computable -/
 
 set_option maxHeartbeats 1600000 in
-theorem checkMembershipEncoded_computable' [Fintype T] :
+public theorem checkMembershipEncoded_computable' [Fintype T] :
     Computable (checkMembershipEncoded : EncodedCFG T × List T → Bool) := by
   apply Primrec.to_comp
   show Primrec (fun p : (ℕ × ℕ × List (ℕ × List (ℕ ⊕ T))) × List T =>

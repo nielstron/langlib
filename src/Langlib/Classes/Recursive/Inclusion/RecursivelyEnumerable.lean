@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Recursive Inclusions
 
@@ -61,14 +63,16 @@ variable {Λ : Type} [Inhabited Λ]
 
 /-- Lift a TM0 configuration from state type `Λ` to `Λ ⊕ Unit` by wrapping the
 state in `Sum.inl`. -/
-def liftCfg (c : TM0.Cfg (Option T) Λ) :
+@[expose]
+public def liftCfg (c : TM0.Cfg (Option T) Λ) :
     @TM0.Cfg (Option T) (Λ ⊕ Unit) _ :=
   ⟨Sum.inl c.q, c.Tape⟩
 
 /-- Construct a recogniser TM from a decider TM with acceptance predicate.
 The recogniser halts iff the decider would halt in an accepting state;
 when the decider rejects, the recogniser enters an infinite loop. -/
-def decider_to_recognizer
+@[expose]
+public def decider_to_recognizer
     (M : TM0.Machine (Option T) Λ) (accept : Λ → Bool) :
     @TM0.Machine (Option T) (Λ ⊕ Unit) ⟨Sum.inl default⟩ :=
   fun q γ =>
@@ -84,7 +88,7 @@ def decider_to_recognizer
 
 variable (M : TM0.Machine (Option T) Λ) (accept : Λ → Bool)
 
-lemma recognizer_step_of_decider_step
+public lemma recognizer_step_of_decider_step
     (c c' : TM0.Cfg (Option T) Λ)
     (hs : c' ∈ TM0.step M c) :
     @TM0.step _ _ ⟨Sum.inl default⟩ _ (decider_to_recognizer M accept) (liftCfg c) =
@@ -94,7 +98,7 @@ lemma recognizer_step_of_decider_step
   unfold liftCfg at *
   grind
 
-lemma recognizer_reaches_of_decider_reaches
+public lemma recognizer_reaches_of_decider_reaches
     (c c' : TM0.Cfg (Option T) Λ)
     (hr : Reaches (TM0.step M) c c') :
     @Reaches _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (decider_to_recognizer M accept))
@@ -107,7 +111,7 @@ lemma recognizer_reaches_of_decider_reaches
       convert ih.tail _
       convert recognizer_step_of_decider_step M accept _ _ hc'
 
-lemma recognizer_halts_of_accept
+public lemma recognizer_halts_of_accept
     (c : TM0.Cfg (Option T) Λ)
     (hstep : TM0.step M c = none)
     (hacc : accept c.q = true) :
@@ -124,7 +128,7 @@ lemma recognizer_inr_step (tape : Tape (Option T)) :
   unfold decider_to_recognizer TM0.step
   grind
 
-lemma recognizer_inr_reaches_inr (tape : Tape (Option T))
+public lemma recognizer_inr_reaches_inr (tape : Tape (Option T))
     (c' : @TM0.Cfg (Option T) (Λ ⊕ Unit) _)
     (hr : @Reaches _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (decider_to_recognizer M accept))
       ⟨Sum.inr (), tape⟩ c') :
@@ -134,7 +138,7 @@ lemma recognizer_inr_reaches_inr (tape : Tape (Option T))
   unfold TM0.step at h₂
   aesop
 
-lemma recognizer_inr_never_halts (tape : Tape (Option T)) :
+public lemma recognizer_inr_never_halts (tape : Tape (Option T)) :
     ¬ (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
       (decider_to_recognizer M accept))
       (⟨Sum.inr (), tape⟩ : @TM0.Cfg _ (Λ ⊕ Unit) _)).Dom := by
@@ -146,7 +150,7 @@ lemma recognizer_inr_never_halts (tape : Tape (Option T)) :
   unfold decider_to_recognizer at hc
   aesop
 
-lemma recognizer_diverges_of_reject
+public lemma recognizer_diverges_of_reject
     (c : TM0.Cfg (Option T) Λ)
     (w : List T)
     (hreach : Reaches (TM0.step M) (TM0.init (w.map Option.some)) c)
@@ -177,7 +181,7 @@ lemma recognizer_diverges_of_reject
 /-
 If the decider halts in an accepting state, the recognizer's `Turing.eval` is Dom.
 -/
-lemma recognizer_eval_dom_of_accept
+public lemma recognizer_eval_dom_of_accept
     (w : List T)
     (hdom : (Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).Dom)
     (hacc : accept ((Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).get hdom).q
@@ -197,7 +201,7 @@ lemma recognizer_eval_dom_of_accept
 /-
 If the decider halts in a rejecting state, the recognizer's `Turing.eval` is not Dom.
 -/
-lemma recognizer_eval_not_dom_of_reject
+public lemma recognizer_eval_not_dom_of_reject
     (w : List T)
     (hdom : (Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).Dom)
     (hrej : accept ((Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).get hdom).q
@@ -259,7 +263,7 @@ lemma tm0_eval_dom_iff_eval_dom {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
 /-
 The recognizer TM over `Option T` recognizes exactly `L`: it halts iff `w ∈ L`.
 -/
-lemma recognizer_tm0_eval_iff {Λ : Type} [Inhabited Λ]
+public lemma recognizer_tm0_eval_iff {Λ : Type} [Inhabited Λ]
     (L : Language T)
     (M : TM0.Machine (Option T) Λ) (accept : Λ → Bool)
     (halts : ∀ w : List T,
@@ -289,7 +293,7 @@ lemma recognizer_tm0_eval_iff {Λ : Type} [Inhabited Λ]
 `Option T` (via `decider_to_recognizer`).  We then alphabet-lift it to the
 canonical `is_TM` input alphabet `Option (T ⊕ T)`, where input symbols are
 written as `some (Sum.inl t)`. -/
-theorem is_Recursive_implies_is_TM
+public theorem is_Recursive_implies_is_TM
     [Fintype T] {L : Language T} (hL : is_Recursive L) : is_TM L := by
   obtain ⟨Λ, hΛ, hΛf, M, accept, halts, hmem⟩ := hL
   letI : Inhabited (Λ ⊕ Unit) := ⟨Sum.inl default⟩
@@ -317,11 +321,11 @@ theorem is_Recursive_implies_is_TM
     (by simpa [List.map_map, emb] using hlift)
 
 /-- Every recursive language is recursively enumerable. -/
-theorem is_Recursive_implies_is_RE [DecidableEq T] [Fintype T]
+public theorem is_Recursive_implies_is_RE [DecidableEq T] [Fintype T]
     {L : Language T} (hL : is_Recursive L) : is_RE L :=
   tm_recognizable_implies_re L (is_Recursive_implies_is_TM hL)
 
 /-- The class of recursive languages is a subset of the class of RE languages. -/
-theorem Recursive_subset_RE [DecidableEq T] [Fintype T] :
+public theorem Recursive_subset_RE [DecidableEq T] [Fintype T] :
     (Recursive : Set (Language T)) ⊆ RE :=
   fun _ hL => is_Recursive_implies_is_RE hL

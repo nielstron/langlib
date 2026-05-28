@@ -31,16 +31,21 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The three-symbol alphabet used by `a/b/c` examples -/
 
 /-- The symbol `a` in the shared `Fin 3` alphabet. -/
-def a_ : Fin 3 := 0
+@[expose]
+public def a_ : Fin 3 := 0
 
 /-- The symbol `b` in the shared `Fin 3` alphabet. -/
-def b_ : Fin 3 := 1
+@[expose]
+public def b_ : Fin 3 := 1
 
 /-- The symbol `c` in the shared `Fin 3` alphabet. -/
-def c_ : Fin 3 := 2
+@[expose]
+public def c_ : Fin 3 := 2

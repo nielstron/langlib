@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # TM0 Re-rooting and Chain Infrastructure
 
@@ -60,13 +62,14 @@ namespace ParrecToTM0
 
 /-- Wrapper type that allows re-rooting to a specified initial state. -/
 @[ext]
-structure Rooted (Λ : Type*) (q₀ : Λ) where
+public structure Rooted (Λ : Type*) (q₀ : Λ) where
   val : Λ
 
 instance {Λ : Type*} {q₀ : Λ} : Inhabited (Rooted Λ q₀) := ⟨⟨q₀⟩⟩
 
 /-- Re-root a TM0 machine to start from state `q₀` instead of `default`. -/
-def tm0Reroot {Γ : Type*} {Λ : Type*} [Inhabited Λ]
+@[expose]
+public def tm0Reroot {Γ : Type*} {Λ : Type*} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (q₀ : Λ) :
     @TM0.Machine Γ (Rooted Λ q₀) ⟨⟨q₀⟩⟩ :=
   fun ⟨q⟩ a => (M q a).map (fun (q', s) => (⟨q'⟩, s))
@@ -74,7 +77,7 @@ def tm0Reroot {Γ : Type*} {Λ : Type*} [Inhabited Λ]
 /-
 The re-rooted TM0 respects the original via the unwrapping relation.
 -/
-theorem tm0Reroot_respects {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
+public theorem tm0Reroot_respects {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
     (M : TM0.Machine Γ Λ) (q₀ : Λ) :
     Respects
       (TM0.step M)
@@ -87,7 +90,7 @@ theorem tm0Reroot_respects {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited �
   refine' ⟨ _, ⟨ rfl, rfl ⟩, Relation.TransGen.single ⟨ q'', s, h, rfl ⟩ ⟩
 
 /-- Evaluation of the re-rooted TM0 starting from `q₀` preserves halting. -/
-theorem tm0Reroot_eval_dom {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
+public theorem tm0Reroot_eval_dom {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
     (M : TM0.Machine Γ Λ) (q₀ : Λ) (l : List Γ) :
     (eval (TM0.step M) ⟨q₀, Tape.mk₁ l⟩).Dom ↔
     (@TM0.eval Γ (Rooted Λ q₀) ⟨⟨q₀⟩⟩ _ (tm0Reroot M q₀) l).Dom := by
@@ -97,7 +100,7 @@ theorem tm0Reroot_eval_dom {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited �
 /-! ### Chain Dom Preservation for Arbitrary Initial Configs -/
 
 /-- TM2 → TM1 preserves Dom for arbitrary initial configs related by `TrCfg`. -/
-theorem tm2to1_dom_general
+public theorem tm2to1_dom_general
     {K : Type*} {Γ : K → Type*} {Λ : Type*} {σ : Type*}
     [DecidableEq K]
     (M : Λ → TM2.Stmt Γ Λ σ)
@@ -109,7 +112,7 @@ theorem tm2to1_dom_general
   tr_eval_dom (TM2to1.tr_respects M) hrel
 
 /-- TM1 → TM0 preserves Dom for arbitrary initial configs. -/
-theorem tm1to0_dom_general
+public theorem tm1to0_dom_general
     {Γ : Type*} {Λ : Type*} [Inhabited Λ] {σ : Type*} [Inhabited σ] [Inhabited Γ]
     (M : Λ → TM1.Stmt Γ Λ σ)
     (cfg₁ : TM1.Cfg Γ Λ σ) :
@@ -130,12 +133,13 @@ theorem tm1to0_fintype_states
 /-! ### Re-rooting Support -/
 
 /-- Embedding function for `Rooted`: wraps a value into a `Rooted`. -/
-def rootedEmbFn {Λ : Type*} {q₀ : Λ} : Λ ↪ Rooted Λ q₀ :=
+@[expose]
+public def rootedEmbFn {Λ : Type*} {q₀ : Λ} : Λ ↪ Rooted Λ q₀ :=
   ⟨fun q => ⟨q⟩, fun _ _ h => by cases h; rfl⟩
 
 /-- If `TM0.Supports M S` and `q₀ ∈ S`, then `tm0Reroot M q₀` is supported
 by the image of `S` under the `Rooted` embedding. -/
-theorem tm0Reroot_supports {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
+public theorem tm0Reroot_supports {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
     (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S) (q₀ : Λ)
     (hq₀ : q₀ ∈ S) :
     @TM0.Supports Γ (Rooted Λ q₀) ⟨⟨q₀⟩⟩ (tm0Reroot M q₀)
@@ -162,7 +166,8 @@ theorem tm0Reroot_supports {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited �
 /-- Restrict + reroot a TM0: combine re-rooting and restriction into one step.
 Given `TM0.Supports M S` with `q₀ ∈ S`, produce a TM0 with `Fintype` states
 that halts on `l` iff the original does when started from `q₀`. -/
-noncomputable def tm0RestrictReroot {Γ : Type*} {Λ : Type*}
+@[expose]
+public noncomputable def tm0RestrictReroot {Γ : Type*} {Λ : Type*}
     [Inhabited Λ] [Inhabited Γ]
     (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S)
     (q₀ : Λ) (hq₀ : q₀ ∈ S) :
@@ -174,13 +179,14 @@ noncomputable def tm0RestrictReroot {Γ : Type*} {Λ : Type*}
   Turing.TM0.restrict (tm0Reroot M q₀) (S.map rootedEmbFn)
     (tm0Reroot_supports M S hS q₀ hq₀)
 
-noncomputable def tm0RestrictReroot_fintype {Λ : Type*}
+@[expose]
+public noncomputable def tm0RestrictReroot_fintype {Λ : Type*}
     (S : Finset Λ) (q₀ : Λ) :
     Fintype { q : Rooted Λ q₀ // q ∈ S.map (rootedEmbFn (q₀ := q₀)) } :=
   Finset.Subtype.fintype _
 
 /-- The restrict+reroot machine halts iff the original does when started from `q₀`. -/
-theorem tm0RestrictReroot_eval_dom {Γ : Type*} {Λ : Type*}
+public theorem tm0RestrictReroot_eval_dom {Γ : Type*} {Λ : Type*}
     [Inhabited Λ] [Inhabited Γ]
     (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S)
     (q₀ : Λ) (hq₀ : q₀ ∈ S) (l : List Γ) :

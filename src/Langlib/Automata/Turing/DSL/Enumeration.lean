@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Composable Enumerations
 
@@ -80,14 +82,16 @@ or is a no-op (`none`). The **range** of `e` is `{a | ∃ n, e n = some a}`.
 
 Note: an `Enum` may produce the same element multiple times; what matters is
 that every element in the intended set appears at least once. -/
-def Enum (α : Type*) := ℕ → Option α
+@[expose]
+public def Enum (α : Type*) := ℕ → Option α
 
 namespace Enum
 
 variable {α β γ : Type*}
 
 /-- The range (set of produced elements) of an enumeration. -/
-def range (e : Enum α) : Set α :=
+@[expose]
+public def range (e : Enum α) : Set α :=
   { a | ∃ n, e n = some a }
 
 /-- An enumeration is **surjective** onto a set `S` if every element of `S`
@@ -105,7 +109,8 @@ theorem exact_iff_range_eq (e : Enum α) (S : Set α) :
 /-! ### Basic enumerations -/
 
 /-- Enumerate all natural numbers: `0, 1, 2, ...` -/
-def naturals : Enum ℕ := fun n => some n
+@[expose]
+public def naturals : Enum ℕ := fun n => some n
 
 theorem naturals_range : naturals.range = Set.univ := by
   ext n; simp [range, naturals]
@@ -117,7 +122,8 @@ theorem ofList_range (l : List α) : (ofList l).range = { a | a ∈ l } := by
   ext a; simp [range, ofList, List.mem_iff_getElem?]
 
 /-- Enumerate all elements of an `Encodable` type. -/
-def ofEncodable [Encodable α] : Enum α := fun n => Encodable.decode n
+@[expose]
+public def ofEncodable [Encodable α] : Enum α := fun n => Encodable.decode n
 
 theorem ofEncodable_range [Encodable α] : (ofEncodable (α := α)).range = Set.univ := by
   ext a; simp [range, ofEncodable]
@@ -192,14 +198,15 @@ To enumerate all pairs `(a, b)` from two enumerations, we use the Cantor
 pairing function to dovetail. -/
 
 /-- Enumerate all pairs from two enumerations using dovetailing. -/
-def product (e₁ : Enum α) (e₂ : Enum β) : Enum (α × β) :=
+@[expose]
+public def product (e₁ : Enum α) (e₂ : Enum β) : Enum (α × β) :=
   fun n =>
     let (i, j) := Nat.unpair n
     match e₁ i, e₂ j with
     | some a, some b => some (a, b)
     | _, _ => none
 
-theorem product_range (e₁ : Enum α) (e₂ : Enum β) :
+public theorem product_range (e₁ : Enum α) (e₂ : Enum β) :
     (e₁.product e₂).range = { p | p.1 ∈ e₁.range ∧ p.2 ∈ e₂.range } := by
   ext ⟨a, b⟩; simp only [range, product, Set.mem_setOf_eq]
   constructor

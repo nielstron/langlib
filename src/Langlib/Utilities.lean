@@ -14,7 +14,8 @@ public import Langlib.Utilities.Tactics
 public import Langlib.Utilities.WrittenByOthers.ListTakeJoin
 public import Langlib.Utilities.WrittenByOthers.PrintSorries
 public import Langlib.Utilities.WrittenByOthers.TrimAssoc
-@[expose] public section
+@[expose]
+public section
 
 /-! # Langlib Utilities
 

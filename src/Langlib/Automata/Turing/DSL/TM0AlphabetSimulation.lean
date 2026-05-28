@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Alphabet Simulation for TM0
 
@@ -55,7 +57,8 @@ variable {Λ : Type} [Inhabited Λ]
 
 /-- Lift a TM0 machine from alphabet Γ₁ to Γ₂ via an embedding/inverse pair.
     The inverse maps Γ₂ symbols back to Γ₁ (left inverse of emb). -/
-noncomputable def liftMachine (M : TM0.Machine Γ₁ Λ)
+@[expose]
+public noncomputable def liftMachine (M : TM0.Machine Γ₁ Λ)
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁) :
     TM0.Machine Γ₂ Λ :=
   fun q a =>
@@ -67,12 +70,14 @@ noncomputable def liftMachine (M : TM0.Machine Γ₁ Λ)
     | none => none
 
 /-- The PointedMap from the embedding function. -/
-noncomputable def embPM (emb : Γ₁ → Γ₂) (hemb_default : emb default = default) :
+@[expose]
+public noncomputable def embPM (emb : Γ₁ → Γ₂) (hemb_default : emb default = default) :
     PointedMap Γ₁ Γ₂ :=
   ⟨emb, hemb_default⟩
 
 /-- The relation between Γ₁ configs and Γ₂ configs under the alphabet lift. -/
-def liftRel (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
+@[expose]
+public def liftRel (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
     (hemb : ∀ a, inv (emb a) = a)
     (hemb_default : emb default = default) :
     TM0.Cfg Γ₁ Λ → TM0.Cfg Γ₂ Λ → Prop :=
@@ -81,7 +86,7 @@ def liftRel (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
 /-
 The lifted machine respects the original via the alphabet relation.
 -/
-theorem lift_respects (M : TM0.Machine Γ₁ Λ)
+public theorem lift_respects (M : TM0.Machine Γ₁ Λ)
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
     (hemb : ∀ a, inv (emb a) = a)
     (hemb_default : emb default = default) :
@@ -107,7 +112,7 @@ theorem lift_respects (M : TM0.Machine Γ₁ Λ)
 /-
 Initial configs are related under the alphabet lift.
 -/
-theorem lift_init_rel (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
+public theorem lift_init_rel (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
     (hemb : ∀ a, inv (emb a) = a)
     (hemb_default : emb default = default)
     (l : List Γ₁) :
@@ -122,7 +127,7 @@ theorem lift_init_rel (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
     cases l <;> aesop
 
 /-- Evaluation preserves Dom under alphabet lift. -/
-theorem lift_eval_dom (M : TM0.Machine Γ₁ Λ)
+public theorem lift_eval_dom (M : TM0.Machine Γ₁ Λ)
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
     (hemb : ∀ a, inv (emb a) = a)
     (hemb_default : emb default = default)
@@ -136,7 +141,8 @@ theorem lift_eval_dom (M : TM0.Machine Γ₁ Λ)
 /-! ## Inverse-default-fiber-preserving lift -/
 
 /-- The PointedMap from an inverse function. -/
-noncomputable def invPM (inv : Γ₂ → Γ₁) (hinv_default : inv default = default) :
+@[expose]
+public noncomputable def invPM (inv : Γ₂ → Γ₁) (hinv_default : inv default = default) :
     PointedMap Γ₂ Γ₁ :=
   ⟨inv, hinv_default⟩
 
@@ -145,7 +151,8 @@ noncomputable def invPM (inv : Γ₂ → Γ₁) (hinv_default : inv default = de
 When the source writes `default`, target symbols that already map to `default`
 are preserved. This lets the target alphabet carry protected symbols that the
 source machine observes as blanks. -/
-noncomputable def liftWritePreserveDefaultFiber
+@[expose]
+public noncomputable def liftWritePreserveDefaultFiber
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁) [DecidableEq Γ₁]
     (current : Γ₂) (a : Γ₁) : Γ₂ :=
   if a = default then
@@ -155,7 +162,8 @@ noncomputable def liftWritePreserveDefaultFiber
 
 /-- Lift a TM0 machine while preserving target symbols in the inverse-default
 fiber whenever the source writes `default`. -/
-noncomputable def liftMachinePreserveDefaultFiber
+@[expose]
+public noncomputable def liftMachinePreserveDefaultFiber
     [DecidableEq Γ₁] (M : TM0.Machine Γ₁ Λ)
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁) :
     TM0.Machine Γ₂ Λ :=
@@ -172,11 +180,12 @@ noncomputable def liftMachinePreserveDefaultFiber
 
 The target tape may contain symbols outside the embedding image; the source
 tape only has to be recovered by mapping target symbols through `inv`. -/
-def liftInvRel (inv : Γ₂ → Γ₁) (hinv_default : inv default = default) :
+@[expose]
+public def liftInvRel (inv : Γ₂ → Γ₁) (hinv_default : inv default = default) :
     TM0.Cfg Γ₁ Λ → TM0.Cfg Γ₂ Λ → Prop :=
   fun c₁ c₂ => c₁.q = c₂.q ∧ c₁.Tape = c₂.Tape.map (invPM inv hinv_default)
 
-theorem inv_liftWritePreserveDefaultFiber
+public theorem inv_liftWritePreserveDefaultFiber
     [DecidableEq Γ₁]
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
     (hemb : ∀ a, inv (emb a) = a)
@@ -190,7 +199,7 @@ theorem inv_liftWritePreserveDefaultFiber
     · simp [hcur, hemb]
   · simp [ha, hemb]
 
-theorem lift_preserveDefaultFiber_respects
+public theorem lift_preserveDefaultFiber_respects
     [DecidableEq Γ₁]
     (M : TM0.Machine Γ₁ Λ)
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
@@ -244,7 +253,7 @@ theorem lift_preserveDefaultFiber_respects
             (liftWritePreserveDefaultFiber emb inv T'.head a), ?_, rfl⟩
           simp [hhead, h]
 
-theorem liftInv_init_rel
+public theorem liftInv_init_rel
     (inv : Γ₂ → Γ₁) (hinv_default : inv default = default)
     (l : List Γ₂) :
     liftInvRel inv hinv_default
@@ -255,7 +264,7 @@ theorem liftInv_init_rel
   · simp [liftInvRel, TM0.init, Tape.map_mk₁, invPM]
 
 /-- Evaluation preserves Dom for the inverse-default-fiber-preserving lift. -/
-theorem lift_preserveDefaultFiber_eval_dom
+public theorem lift_preserveDefaultFiber_eval_dom
     [DecidableEq Γ₁]
     (M : TM0.Machine Γ₁ Λ)
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)

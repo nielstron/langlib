@@ -41,8 +41,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Regular Languages Included in Deterministic Context-Free Languages
 
@@ -62,7 +64,8 @@ noncomputable section
 variable {T : Type} [Fintype T]
 
 /-- DPDA that simulates a DFA by ignoring its stack. -/
-def DPDA_of_DFA {σ : Type} [Fintype σ] (M : DFA T σ) :
+@[expose]
+public def DPDA_of_DFA {σ : Type} [Fintype σ] (M : DFA T σ) :
     DPDA σ T Unit where
   initial_state := M.start
   start_symbol := ()
@@ -71,7 +74,7 @@ def DPDA_of_DFA {σ : Type} [Fintype σ] (M : DFA T σ) :
   epsilon_transition _ _ := none
   no_mixed := by intro _ _ h; exact absurd rfl h
 
-lemma DPDA_of_DFA_reaches {σ : Type} [Fintype σ] (M : DFA T σ) (q : σ) (w : List T) :
+public lemma DPDA_of_DFA_reaches {σ : Type} [Fintype σ] (M : DFA T σ) (q : σ) (w : List T) :
     @PDA.Reaches σ T Unit _ _ _ (DPDA_of_DFA M).toPDA
       ⟨q, w, [()]⟩ ⟨M.evalFrom q w, [], [()]⟩ := by
         induction' w with a w ih generalizing q <;> simp_all +decide [DFA.evalFrom]
@@ -82,7 +85,7 @@ lemma DPDA_of_DFA_reaches {σ : Type} [Fintype σ] (M : DFA T σ) (q : σ) (w : 
           unfold DPDA.toPDA
           simp +decide [DPDA_of_DFA]
 
-lemma DPDA_of_DFA_reaches_unique {σ : Type} [Fintype σ] (M : DFA T σ)
+public lemma DPDA_of_DFA_reaches_unique {σ : Type} [Fintype σ] (M : DFA T σ)
     (q : σ) (w : List T) (q' : σ) (γ : List Unit)
     (h : @PDA.Reaches σ T Unit _ _ _ (DPDA_of_DFA M).toPDA
       ⟨q, w, [()]⟩ ⟨q', [], γ⟩) :
@@ -108,7 +111,7 @@ lemma DPDA_of_DFA_reaches_unique {σ : Type} [Fintype σ] (M : DFA T σ)
           tauto
 
 /-- The DPDA of a DFA accepts the same language as the DFA. -/
-theorem DPDA_of_DFA_accepts {σ : Type} [Fintype σ] (M : DFA T σ) :
+public theorem DPDA_of_DFA_accepts {σ : Type} [Fintype σ] (M : DFA T σ) :
     (DPDA_of_DFA M).acceptsByFinalState = M.accepts := by
       ext w
       constructor <;> intro h
@@ -119,11 +122,11 @@ theorem DPDA_of_DFA_accepts {σ : Type} [Fintype σ] (M : DFA T σ) :
         exact ⟨M.eval w, h, [()], DPDA_of_DFA_reaches M M.start w⟩
 
 /-- Every right-regular language over a finite alphabet is a DCF. -/
-theorem is_DCF_of_is_RG {L : Language T} (h : is_RG L) : is_DCF L := by
+public theorem is_DCF_of_is_RG {L : Language T} (h : is_RG L) : is_DCF L := by
   obtain ⟨σ, hfin, M, rfl⟩ := isRegular_of_is_RG h
   exact ⟨σ, Unit, hfin, inferInstance, DPDA_of_DFA M, DPDA_of_DFA_accepts M⟩
 
-theorem RG_subclass_DCF :
+public theorem RG_subclass_DCF :
   RG ⊆ (DCF : Set (Language T)) := by
   intro L
   exact is_DCF_of_is_RG

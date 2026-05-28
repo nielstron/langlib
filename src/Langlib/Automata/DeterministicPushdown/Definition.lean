@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Deterministic Pushdown Automata (DPDAs)
 
@@ -64,7 +66,7 @@ Complement-closure results live in
     - Otherwise, if `M.transition q a Z = some (p, β)`, the unique possible move is
       `(p, w, β ++ γ)`.
     - If neither transition is defined, the machine is stuck (halts). -/
-structure DPDA (Q T S : Type) [Fintype Q] [Fintype T] [Fintype S] where
+public structure DPDA (Q T S : Type) [Fintype Q] [Fintype T] [Fintype S] where
   /-- Initial state -/
   initial_state : Q
   /-- Initial stack symbol -/
@@ -89,7 +91,8 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- Embed a DPDA into the nondeterministic PDA framework by converting each `Option`
     transition to the corresponding singleton or empty set. -/
-noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
+@[expose]
+public noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol
   final_states := M.final_states
@@ -114,7 +117,8 @@ noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
     a word `w` is accepted iff the DPDA, starting from its initial configuration,
     can reach a configuration with empty input and an accepting state
     (with any remaining stack contents). -/
-def acceptsByFinalState (M : DPDA Q T S) : Language T :=
+@[expose]
+public def acceptsByFinalState (M : DPDA Q T S) : Language T :=
   M.toPDA.acceptsByFinalState
 
 
@@ -123,7 +127,8 @@ def acceptsByFinalState (M : DPDA Q T S) : Language T :=
        empty input from the initial configuration.
     2. **Acceptance consistency**: all reachable empty-input configurations for a
        given word `w` agree on whether the state is accepting or not. -/
-def DecidesEveryInput (M : DPDA Q T S) : Prop :=
+@[expose]
+public def DecidesEveryInput (M : DPDA Q T S) : Prop :=
   (∀ w : List T, ∃ q γ, @PDA.Reaches Q T S _ _ _ M.toPDA
     ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, [], γ⟩) ∧
   (∀ (w : List T) (q₁ q₂ : Q) (γ₁ γ₂ : List S),
@@ -139,10 +144,12 @@ variable {T : Type} [Fintype T]
 
 /-- A language over a finite terminal alphabet is accepted by some DPDA via final-state
 acceptance. -/
-def is_DPDA (L : Language T) : Prop :=
+@[expose]
+public def is_DPDA (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S) (M : DPDA Q T S),
     M.acceptsByFinalState = L
 
 /-- The class of DPDA-recognizable languages. -/
-def DPDA.Class : Set (Language T) :=
+@[expose]
+public def DPDA.Class : Set (Language T) :=
   setOf is_DPDA

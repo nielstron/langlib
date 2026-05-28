@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Indexed Languages Under Injective Terminal Maps
 
@@ -44,11 +46,13 @@ variable {T₁ T₂ : Type}
 
 namespace IndexedGrammar
 
-def mapIRhsSymbol (f : T₁ → T₂) {N F : Type} : IRhsSymbol T₁ N F → IRhsSymbol T₂ N F
+@[expose]
+public def mapIRhsSymbol (f : T₁ → T₂) {N F : Type} : IRhsSymbol T₁ N F → IRhsSymbol T₂ N F
   | .terminal t => .terminal (f t)
   | .nonterminal n push => .nonterminal n push
 
-def mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁) : IndexedGrammar T₂ where
+@[expose]
+public def mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁) : IndexedGrammar T₂ where
   nt := g.nt
   flag := g.flag
   initial := g.initial
@@ -57,7 +61,8 @@ def mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁) : IndexedGrammar 
       consume := r.consume
       rhs := r.rhs.map (mapIRhsSymbol f) }
 
-def mapISym (f : T₁ → T₂) (g : IndexedGrammar T₁) :
+@[expose]
+public def mapISym (f : T₁ → T₂) (g : IndexedGrammar T₁) :
     g.ISym → (g.mapTerminals f).ISym
   | .terminal t => .terminal (f t)
   | .indexed n σ => .indexed n σ
@@ -237,7 +242,7 @@ private lemma derives_inv_mapTerminals [Nonempty T₁] {f : T₁ → T₂}
   | refl => exact Relation.ReflTransGen.refl
   | tail _ ht ih => exact ih.tail (transforms_inv_mapTerminals hf g ht)
 
-theorem language_mapTerminals [Nonempty T₁] {f : T₁ → T₂} (hf : Function.Injective f)
+public theorem language_mapTerminals [Nonempty T₁] {f : T₁ → T₂} (hf : Function.Injective f)
     (g : IndexedGrammar T₁) :
     (g.mapTerminals f).Language = Language.map f g.Language := by
   ext w
@@ -254,7 +259,7 @@ theorem language_mapTerminals [Nonempty T₁] {f : T₁ → T₂} (hf : Function
 
 end IndexedGrammar
 
-theorem Indexed_of_map_injective_Indexed [Nonempty T₁] {f : T₁ → T₂}
+public theorem Indexed_of_map_injective_Indexed [Nonempty T₁] {f : T₁ → T₂}
     (hf : Function.Injective f) (L : Language T₁) :
     is_Indexed L → is_Indexed (Language.map f L) := by
   intro hL

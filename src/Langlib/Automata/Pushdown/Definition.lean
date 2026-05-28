@@ -24,10 +24,12 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
+@[expose]
+public section
 
-@[expose] public section
 
-structure PDA (Q T S : Type) [Fintype Q] [Fintype T] [Fintype S] where
+
+public structure PDA (Q T S : Type) [Fintype Q] [Fintype T] [Fintype S] where
   initial_state : Q
   start_symbol : S
   final_states : Set Q
@@ -41,7 +43,7 @@ namespace PDA
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 @[ext]
-structure conf (p : PDA Q T S) where
+public structure conf (p : PDA Q T S) where
   state : Q
   input : List T
   stack : List S
@@ -50,7 +52,8 @@ variable {pda : PDA Q T S}
 
 namespace conf
 
-abbrev appendInput (r : conf pda) (x : List T) : conf pda :=
+@[expose]
+public abbrev appendInput (r : conf pda) (x : List T) : conf pda :=
   ⟨r.state, r.input++x, r.stack⟩
 
 abbrev appendStack (r : conf pda) (β : List S) : conf pda :=
@@ -64,7 +67,8 @@ abbrev stackPostfixNontriv (r : conf pda) (β : List S): Prop :=
 
 end conf
 
-def step (r₁ : conf pda) : Set (conf pda) :=
+@[expose]
+public def step (r₁ : conf pda) : Set (conf pda) :=
   match r₁ with
     | ⟨q, a::w, Z::α⟩ =>
         { r₂ : conf pda | ∃ (p : Q) (β : List S), (p,β) ∈ pda.transition_fun q a Z ∧
@@ -75,34 +79,38 @@ def step (r₁ : conf pda) : Set (conf pda) :=
                                           r₂ = ⟨p, [], (β ++ α)⟩ }
     | ⟨_, _, []⟩ => ∅
 
-def Reaches₁ (r₁ r₂ : conf pda) : Prop := r₂ ∈ step r₁
-def Reaches : conf pda → conf pda → Prop := Relation.ReflTransGen Reaches₁
+@[expose]
+public def Reaches₁ (r₁ r₂ : conf pda) : Prop := r₂ ∈ step r₁
+@[expose]
+public def Reaches : conf pda → conf pda → Prop := Relation.ReflTransGen Reaches₁
 
-inductive ReachesIn : ℕ → conf pda → conf pda → Prop where
+public inductive ReachesIn : ℕ → conf pda → conf pda → Prop where
   | refl : (r₁ : conf pda)  → ReachesIn 0 r₁ r₁
   | step : {n: ℕ} → {r₁ r₂ r₃ : conf pda} → ReachesIn n r₁ r₂ → Reaches₁ r₂ r₃ → ReachesIn (n+1) r₁ r₃
 
-def acceptsByEmptyStack (pda : PDA Q T S) : Language T :=
+@[expose]
+public def acceptsByEmptyStack (pda : PDA Q T S) : Language T :=
   { w : List T | ∃ q : Q,
       Reaches (⟨pda.initial_state, w, [pda.start_symbol]⟩ : conf pda) ⟨q, [], []⟩ }
 
-def acceptsByFinalState (pda : PDA Q T S) : Language T :=
+@[expose]
+public def acceptsByFinalState (pda : PDA Q T S) : Language T :=
   { w : List T | ∃ q  ∈ pda.final_states, ∃ γ : List S,
       Reaches (⟨pda.initial_state, w, [pda.start_symbol]⟩ : conf pda) ⟨q, [], γ⟩ }
 
 @[refl]
-theorem Reaches.refl (r₁ : conf pda) : Reaches r₁ r₁ := Relation.ReflTransGen.refl
+public theorem Reaches.refl (r₁ : conf pda) : Reaches r₁ r₁ := Relation.ReflTransGen.refl
 
 @[refl]
 theorem reachesIn.refl (r₁ : conf pda) : ReachesIn 0 r₁ r₁ := ReachesIn.refl r₁
 
 variable {r₁ r₂ : conf pda}
 
-theorem reachesIn_zero (h: ReachesIn 0 r₁ r₂) : r₁ = r₂ := by
+public theorem reachesIn_zero (h: ReachesIn 0 r₁ r₂) : r₁ = r₂ := by
   rcases h with _|_
   · rfl
 
-theorem reaches₁_iff_reachesIn_one : Reaches₁ r₁ r₂ ↔ ReachesIn 1 r₁ r₂ := by
+public theorem reaches₁_iff_reachesIn_one : Reaches₁ r₁ r₂ ↔ ReachesIn 1 r₁ r₂ := by
   constructor
   · exact ReachesIn.step (by rfl)
   · intro h
@@ -110,14 +118,14 @@ theorem reaches₁_iff_reachesIn_one : Reaches₁ r₁ r₂ ↔ ReachesIn 1 r₁
     · apply reachesIn_zero at h₁
       simp_all
 
-theorem reachesIn_of_n_one {r₃ : conf pda} {n : ℕ} (h₁ : ReachesIn n r₁ r₂) (h₂ : ReachesIn 1 r₂ r₃) :
+public theorem reachesIn_of_n_one {r₃ : conf pda} {n : ℕ} (h₁ : ReachesIn n r₁ r₂) (h₂ : ReachesIn 1 r₂ r₃) :
     ReachesIn (n+1) r₁ r₃ :=  ReachesIn.step h₁ (reaches₁_iff_reachesIn_one.mpr h₂)
 
 
-theorem reachesIn_one : ReachesIn 1 r₁ r₂ ↔ r₂ ∈ step r₁ := by
+public theorem reachesIn_one : ReachesIn 1 r₁ r₂ ↔ r₂ ∈ step r₁ := by
   rw [←reaches₁_iff_reachesIn_one,Reaches₁]
 
-theorem reachesIn_iff_split_last {n : ℕ} :
+public theorem reachesIn_iff_split_last {n : ℕ} :
     (∃ c : conf pda, ReachesIn n r₁ c ∧ ReachesIn 1 c r₂) ↔ ReachesIn (n+1) r₁ r₂ := by
   constructor
   · intro ⟨c,h⟩
@@ -128,7 +136,7 @@ theorem reachesIn_iff_split_last {n : ℕ} :
     exact ⟨h₀,reaches₁_iff_reachesIn_one.mp h₁⟩
 
 
-theorem reachesIn_of_one_n {r₃ : conf pda} {n : ℕ} (h₁ : ReachesIn 1 r₁ r₂) (h₂ : ReachesIn n r₂ r₃) :
+public theorem reachesIn_of_one_n {r₃ : conf pda} {n : ℕ} (h₁ : ReachesIn 1 r₁ r₂) (h₂ : ReachesIn n r₂ r₃) :
     ReachesIn (n+1) r₁ r₃ := by
   induction' n with n ih generalizing r₃
   · obtain ⟨rfl⟩ := reachesIn_zero h₂
@@ -138,7 +146,7 @@ theorem reachesIn_of_one_n {r₃ : conf pda} {n : ℕ} (h₁ : ReachesIn 1 r₁ 
     exact ih hc₁
     exact reaches₁_iff_reachesIn_one.mpr hc₂
 
-theorem reachesIn_iff_split_first {n : ℕ}:
+public theorem reachesIn_iff_split_first {n : ℕ}:
     (∃ c : conf pda, ReachesIn 1 r₁ c ∧ ReachesIn n c r₂) ↔ ReachesIn (n+1) r₁ r₂ := by
   constructor
   · intro ⟨c,h₁,h₂⟩
@@ -154,7 +162,7 @@ theorem reachesIn_iff_split_first {n : ℕ}:
       exact reaches₁_iff_reachesIn_one.mp h₂
 
 
-theorem ReachesIn.trans {r₃ : conf pda} {n m : ℕ} (h₁ : ReachesIn n r₁ r₂) (h₂ : ReachesIn m r₂ r₃) :
+public theorem ReachesIn.trans {r₃ : conf pda} {n m : ℕ} (h₁ : ReachesIn n r₁ r₂) (h₂ : ReachesIn m r₂ r₃) :
     ∃ k ≤ n+m, ReachesIn k r₁ r₃ := by
   induction' m with m ih generalizing r₃
   · use n
@@ -165,7 +173,7 @@ theorem ReachesIn.trans {r₃ : conf pda} {n m : ℕ} (h₁ : ReachesIn n r₁ r
     use k+1
     exact ⟨by linarith [ih.1],reachesIn_iff_split_last.mp ⟨c, ih.2, hc₂⟩⟩
 
-theorem reaches_iff_reachesIn : Reaches r₁ r₂ ↔ ∃ n : ℕ, ReachesIn n r₁ r₂ := by
+public theorem reaches_iff_reachesIn : Reaches r₁ r₂ ↔ ∃ n : ℕ, ReachesIn n r₁ r₂ := by
   constructor
   · intro h
     induction h with
@@ -183,11 +191,11 @@ theorem reaches_iff_reachesIn : Reaches r₁ r₂ ↔ ∃ n : ℕ, ReachesIn n r
       rw [←reaches₁_iff_reachesIn_one] at hc₂
       exact Relation.ReflTransGen.tail (ih hc₁) hc₂
 
-theorem Reaches.trans {r₃ : conf pda} (h₁ : Reaches r₁ r₂) (h₂ : Reaches r₂ r₃) :
+public theorem Reaches.trans {r₃ : conf pda} (h₁ : Reaches r₁ r₂) (h₂ : Reaches r₂ r₃) :
     Reaches r₁ r₃ := Relation.ReflTransGen.trans h₁ h₂
 
 
-theorem decreasing_input_one' (h : ReachesIn 1 r₁ r₂) :
+public theorem decreasing_input_one' (h : ReachesIn 1 r₁ r₂) :
     ∃ w : List T, r₁.input = w ++ r₂.input := by
   apply reachesIn_one.mp at h           -- Apply characterization of ReachesIn 1
   rcases r₁ with ⟨q, w,  _ | ⟨Z, β⟩⟩      -- To simplify step we have to split cases
@@ -208,7 +216,7 @@ theorem decreasing_input_one' (h : ReachesIn 1 r₁ r₂) :
         use []
         simp [h.2]
 
-theorem decreasing_input_one (h : ReachesIn 1 r₁ r₂) :
+public theorem decreasing_input_one (h : ReachesIn 1 r₁ r₂) :
     ∃ w : List T, r₁.input = w ++ r₂.input := by
   apply reachesIn_one.mp at h
   rcases r₁ with ⟨q,_|⟨a,w⟩,_|⟨Z,β⟩⟩
@@ -226,7 +234,7 @@ theorem decreasing_input_one (h : ReachesIn 1 r₁ r₂) :
       rw [h.2]
       simp
 
-theorem decreasing_input (h : Reaches r₁ r₂) :
+public theorem decreasing_input (h : Reaches r₁ r₂) :
     ∃ w : List T, r₁.input = w ++ r₂.input := by
   rw [reaches_iff_reachesIn] at h
   obtain ⟨n,h'⟩ := h
@@ -243,7 +251,7 @@ theorem decreasing_input (h : Reaches r₁ r₂) :
     use w₁++w₂
     simp [hw₁,hw₂]
 
-theorem unconsumed_input_one (x : List T) :
+public theorem unconsumed_input_one (x : List T) :
     ReachesIn 1 r₁ r₂ ↔ ReachesIn 1 (r₁.appendInput x) (r₂.appendInput x) := by
   constructor
   · intro h
@@ -269,7 +277,7 @@ theorem unconsumed_input_one (x : List T) :
         · assumption
     · rwa [←List.cons_append, List.append_left_inj] at h
 
-theorem unconsumed_input_N {n : ℕ} (x : List T) :
+public theorem unconsumed_input_N {n : ℕ} (x : List T) :
     ReachesIn n r₁ r₂ ↔ ReachesIn n (r₁.appendInput x) (r₂.appendInput x) := by
   constructor
   · induction' n with n ih generalizing r₁ r₂
@@ -310,7 +318,7 @@ theorem unconsumed_input_N {n : ℕ} (x : List T) :
       · apply (unconsumed_input_one x).mpr
         exact h.2
 
-theorem unconsumed_input (x : List T) :
+public theorem unconsumed_input (x : List T) :
     Reaches r₁ r₂ ↔ Reaches (r₁.appendInput x) (r₂.appendInput x) := by
   rw [reaches_iff_reachesIn,reaches_iff_reachesIn]
   constructor <;> intro ⟨n,h'⟩ <;> use n
@@ -327,13 +335,13 @@ theorem reachesIn_pos_of_not_self {n : ℕ} (h : r₁ ≠ r₂) :
   · intro _
     apply Nat.zero_lt_succ
 
-theorem reachesIn_one_on_empty_stack {q p: Q}{w w': List T}{α : List S}:
+public theorem reachesIn_one_on_empty_stack {q p: Q}{w w': List T}{α : List S}:
     ¬pda.ReachesIn 1 ⟨q, w, []⟩ ⟨p, w', α⟩ := by
   intro h
   rw [reachesIn_one] at h
   simp [step] at h
 
-theorem reaches_on_empty_stack {q p: Q}{w w': List T}{α : List S}:
+public theorem reaches_on_empty_stack {q p: Q}{w w': List T}{α : List S}:
     pda.Reaches ⟨q, w, []⟩ ⟨p, w', α⟩ → w=w' ∧ α = [] ∧ q = p := by
   intro h
   rw [reaches_iff_reachesIn] at h
@@ -347,10 +355,10 @@ theorem reaches_on_empty_stack {q p: Q}{w w': List T}{α : List S}:
     apply reachesIn_one_on_empty_stack at h₁
     contradiction
 
-theorem reaches_of_reachesIn  {n: ℕ}(h: pda.ReachesIn n r₁ r₂) : pda.Reaches r₁ r₂ :=
+public theorem reaches_of_reachesIn  {n: ℕ}(h: pda.ReachesIn n r₁ r₂) : pda.Reaches r₁ r₂ :=
   reaches_iff_reachesIn.mpr ⟨n, h⟩
 
-theorem reaches₁_push {q : Q}{x : List T}{Z : S}{γ : List S}{c : pda.conf}
+public theorem reaches₁_push {q : Q}{x : List T}{Z : S}{γ : List S}{c : pda.conf}
     (h : pda.Reaches₁ ⟨q, x, Z::γ⟩ c) :
     (∃(a : T)(y : List T)(p : Q)(α : List S), x = a::y ∧ c = ⟨p, y, α ++ γ⟩ ∧
     (p, α) ∈ pda.transition_fun q a Z) ∨
@@ -371,7 +379,7 @@ theorem reaches₁_push {q : Q}{x : List T}{Z : S}{γ : List S}{c : pda.conf}
       use p, β
 
 
-theorem split_stack {n : ℕ}{q p : Q}{x : List T}{α β : List S}
+public theorem split_stack {n : ℕ}{q p : Q}{x : List T}{α β : List S}
     (h : pda.ReachesIn n ⟨q, x, α ++ β⟩ ⟨p, [], []⟩):
     ∃(q₁ : Q)(m₁ m₂ : ℕ)(y₁ y₂ : List T), x=y₁++y₂ ∧ m₁ ≤ n ∧ m₂ ≤ n ∧
     pda.ReachesIn m₁ ⟨q, y₁, α⟩ ⟨q₁, [], []⟩ ∧ pda.ReachesIn m₂ ⟨q₁, y₂, β⟩ ⟨p, [], []⟩ := by
@@ -405,7 +413,7 @@ theorem split_stack {n : ℕ}{q p : Q}{x : List T}{α β : List S}
         cases y₁ <;>
         simp [hr₁, reachesIn_one, step, ht]
 
-theorem Reaches₁.append_stack {x y : List T}{α β : List S}{q p : Q}(γ : List S)
+public theorem Reaches₁.append_stack {x y : List T}{α β : List S}{q p : Q}(γ : List S)
     (h : pda.Reaches₁ ⟨q, x, α⟩ ⟨p, y, β⟩):
     pda.Reaches ⟨q, x, α ++ γ⟩ ⟨p, y, β ++ γ⟩ := by
   rw [Reaches₁] at *
@@ -433,7 +441,7 @@ theorem Reaches₁.append_stack {x y : List T}{α β : List S}{q p : Q}(γ : Lis
       use h.1, h.2.1, h.2.2.1 <;>
       simp [h]
 
-theorem Reaches.append_stack {x y : List T}{α β: List S}{q p : Q}
+public theorem Reaches.append_stack {x y : List T}{α β: List S}{q p : Q}
     (h : pda.Reaches ⟨q, x, α⟩ ⟨p, y, β⟩)(γ : List S):
     pda.Reaches ⟨q, x, α ++ γ⟩ ⟨p, y, β ++ γ⟩ := by
   rw [reaches_iff_reachesIn] at h
@@ -453,7 +461,7 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 section SameTransitions
 
 /-- Two PDAs with the same transition functions have the same single-step relation. -/
-lemma reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
+public lemma reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
     (ht : P₁.transition_fun = P₂.transition_fun)
     (ht' : P₁.transition_fun' = P₂.transition_fun')
     (q q' : Q) (w w' : List T) (γ γ' : List S) :
@@ -483,7 +491,7 @@ lemma reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
         · right; exact ⟨p, β, ht'.symm ▸ h1, h2⟩
 
 /-- Two PDAs with the same transition functions have the same multi-step relation. -/
-lemma reaches_of_same_transitions (P₁ P₂ : PDA Q T S)
+public lemma reaches_of_same_transitions (P₁ P₂ : PDA Q T S)
     (ht : P₁.transition_fun = P₂.transition_fun)
     (ht' : P₁.transition_fun' = P₂.transition_fun')
     (c₁ c₂ : PDA.conf P₁)
@@ -500,25 +508,29 @@ end SameTransitions
 
 variable {T : Type} [Fintype T]
 
-def is_PDA_emptyStack (L : Language T) : Prop :=
+@[expose]
+public def is_PDA_emptyStack (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByEmptyStack = L
 
 /-- A language over a finite terminal alphabet is accepted by some PDA via empty-stack
 acceptance. -/
-alias is_PDA := is_PDA_emptyStack
+@[expose]
+public abbrev is_PDA (L : Language T) : Prop := is_PDA_emptyStack L
 
 @[simp]
-theorem is_PDA_emptyStack_iff_is_PDA {L : Language T} :
+public theorem is_PDA_emptyStack_iff_is_PDA {L : Language T} :
     is_PDA_emptyStack L  ↔ is_PDA L := by
   rw [is_PDA]
 
 /-- A language over a finite terminal alphabet is accepted by some PDA via final-state
 acceptance. -/
-def is_PDA_finalState (L : Language T) : Prop :=
+@[expose]
+public def is_PDA_finalState (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByFinalState = L
 
 /-- The class of languages recognized by PDAs via empty-stack acceptance. -/
-def EmptyStackClass : Set (Language T) :=
+@[expose]
+public def EmptyStackClass : Set (Language T) :=
   setOf is_PDA
 
 /-- The class of PDA-recognizable languages.
@@ -528,5 +540,6 @@ automaton structure. -/
 alias Class := PDA.EmptyStackClass
 
 /-- The class of languages recognized by PDAs via final-state acceptance. -/
-def FinalStateClass : Set (Language T) :=
+@[expose]
+public def FinalStateClass : Set (Language T) :=
   setOf is_PDA_finalState

@@ -35,9 +35,11 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
 
-@[expose] public section
+
 
 /-! # Context-Free Non-Closure Under Complement
 
@@ -49,7 +51,7 @@ This file derives failure of closure under complement from the corresponding int
 -/
 
 /-- The class of context-free languages isn't closed under complement. -/
-theorem nnyCF_of_complement_CF : ¬ (∀ L : Language (Fin 3),
+public theorem nnyCF_of_complement_CF : ¬ (∀ L : Language (Fin 3),
     is_CF L  →  is_CF (Lᶜ)
 ) :=
 by
@@ -65,7 +67,7 @@ by
   rwa [Language.add_def, Set.compl_union, compl_compl, compl_compl] at contra
 
 /-- Context-free languages over `Fin 3` are not closed under complement. -/
-theorem CF_notClosedUnderComplement :
+public theorem CF_notClosedUnderComplement :
     ¬ ClosedUnderComplement (α := Fin 3) is_CF := by
   rw [ClosedUnderComplement]
   exact nnyCF_of_complement_CF
@@ -73,7 +75,7 @@ theorem CF_notClosedUnderComplement :
 /-- Context-free languages are not closed under complement for any type with at least
     3 elements. That is, as long as `α` has at least 3 distinct elements, not all
     complements of context-free languages over `α` are context-free. -/
-theorem CF_notClosedUnderComplement_of_three {α : Type}
+public theorem CF_notClosedUnderComplement_of_three {α : Type}
     (a b c : α) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
     ¬ ClosedUnderComplement (α := α) is_CF := by
   intro hcomp
@@ -88,7 +90,7 @@ theorem CF_notClosedUnderComplement_of_three {α : Type}
 
 /-- Context-free languages are not closed under complement for any finite alphabet with
     at least three symbols. -/
-theorem CF_notClosedUnderComplement_of_card {α : Type} [Fintype α]
+public theorem CF_notClosedUnderComplement_of_card {α : Type} [Fintype α]
     (hα : 3 ≤ Fintype.card α) :
     ¬ ClosedUnderComplement (α := α) is_CF := by
   let π : α ≃ Fin (Fintype.card α) := Fintype.equivFin α

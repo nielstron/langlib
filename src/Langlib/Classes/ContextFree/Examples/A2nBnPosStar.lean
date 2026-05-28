@@ -35,12 +35,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The `{a^(2n)b^n | n >= 1}*` language -/
 
 open Language
 
-lemma CF_quotientNumerator : is_CF quotientNumerator :=
+public lemma CF_quotientNumerator : is_CF quotientNumerator :=
   CF_of_star_CF quotientLeftBlock CF_quotientLeftBlock

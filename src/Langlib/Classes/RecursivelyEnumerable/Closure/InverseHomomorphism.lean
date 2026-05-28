@@ -41,8 +41,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # RE Closure Under Inverse Homomorphism
 
@@ -65,13 +67,14 @@ the preimage `{w | w.flatMap h ∈ L}`.
 open Turing
 
 /-- Search test for the inverse homomorphic image of a grammar language. -/
-def reInverseHomomorphismTest {α β : Type} [DecidableEq β]
+@[expose]
+public def reInverseHomomorphismTest {α β : Type} [DecidableEq β]
     (g : grammar β) [DecidableEq g.nt] (h : α → List β)
     (seq : List (ℕ × ℕ)) (w : List α) : Bool :=
   grammarTest g seq (w.flatMap h)
 
 /-- The inverse-homomorphism grammar search test is computable. -/
-theorem reInverseHomomorphismTest_computable₂ {α β : Type}
+public theorem reInverseHomomorphismTest_computable₂ {α β : Type}
     [DecidableEq β] [Primcodable α] [Primcodable β] [Finite α]
     (g : grammar β) [DecidableEq g.nt] [Primcodable g.nt] (h : α → List β) :
     Computable₂ (reInverseHomomorphismTest g h) := by
@@ -81,7 +84,7 @@ theorem reInverseHomomorphismTest_computable₂ {α β : Type}
     ((primrec_flatMap_finite h).to_comp.comp Computable.snd)
 
 /-- RE languages over finite alphabets are closed under inverse string homomorphism. -/
-theorem RE_of_inverseHomomorphism_RE {α β : Type}
+public theorem RE_of_inverseHomomorphism_RE {α β : Type}
     [Fintype α] [Fintype β] (L : Language β) (h : α → List β) :
     is_RE L → is_RE { w : List α | w.flatMap h ∈ L } := by
   intro hL
@@ -121,7 +124,7 @@ theorem RE_of_inverseHomomorphism_RE {α β : Type}
   exact tm_recognizable_implies_re ({ w : List α | w.flatMap h ∈ L } : Language α) htm
 
 /-- The class of RE languages is closed under inverse string homomorphism. -/
-theorem RE_closedUnderInverseHomomorphism :
+public theorem RE_closedUnderInverseHomomorphism :
     ClosedUnderInverseHomomorphism is_RE := by
   intro α β _ _ L h hL
   exact RE_of_inverseHomomorphism_RE L h hL

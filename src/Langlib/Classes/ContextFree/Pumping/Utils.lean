@@ -1,8 +1,10 @@
 module
 
 public import Mathlib.Computability.ContextFreeGrammar
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Pumping CFG Utilities
 
@@ -17,17 +19,18 @@ This file contains helper lemmas for repeated concatenation and derivation induc
 
 variable {α : Type _}
 
-def nTimes (l : List α) (n : ℕ) : List α :=
+@[expose]
+public def nTimes (l : List α) (n : ℕ) : List α :=
   (List.replicate n l).flatten
 
 infixl:69 " ^+^ " => nTimes
 
 variable {l : List α} {n : ℕ}
 
-lemma nTimes_succ_l : l^+^n.succ = l ++ l^+^n := by
+public lemma nTimes_succ_l : l^+^n.succ = l ++ l^+^n := by
   simp [nTimes, List.replicate_succ]
 
-lemma nTimes_succ_r : l^+^n.succ = l^+^n ++ l := by
+public lemma nTimes_succ_r : l^+^n.succ = l^+^n ++ l := by
   simp [nTimes, List.replicate_succ']
 
 lemma nTimes_map {β : Type _} {f : α → β} : (l.map f)^+^n = (l^+^n).map f := by
@@ -51,7 +54,7 @@ universe uN uT
 
 variable {T : Type uT} {g : ContextFreeGrammar T}
 
-theorem Derives.head_induction_on {v : List (Symbol T g.NT)} {P : ∀ u, g.Derives u v → Prop}
+public theorem Derives.head_induction_on {v : List (Symbol T g.NT)} {P : ∀ u, g.Derives u v → Prop}
     {u : List (Symbol T g.NT)} (huv : g.Derives u v)
     (refl : P v (Derives.refl v))
     (head : ∀ {u w} (huw : g.Produces u w) (hwv : g.Derives w v), P w hwv → P u (hwv.head huw)) :

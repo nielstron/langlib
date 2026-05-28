@@ -38,8 +38,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Decidability of Emptiness
 
@@ -151,7 +153,8 @@ noncomputable def dfa_emptiness_decidable
   infer_instance
 
 /-- Emptiness of a regular language is decidable. -/
-noncomputable def regular_emptiness_decidable
+@[expose]
+public noncomputable def regular_emptiness_decidable
     [Fintype α] [DecidableEq α] (L : Language α) (hL : L.IsRegular) :
     Decidable (L = (∅ : Set (List α))) := by
   classical

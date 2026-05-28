@@ -37,8 +37,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The positive `{a^(2n)b^n}` language
 
@@ -48,7 +50,7 @@ This file defines `{a^(2n)b^n | n >= 1}` over `Bool`, with `false = a` and
 
 open Language
 
-lemma quotientLeftBlock_eq_singletons_core :
+public lemma quotientLeftBlock_eq_singletons_core :
     quotientLeftBlock = ({[false, false]} : Language Bool) * quotientLeftBlockCore * {[true]} := by
   ext w
   constructor
@@ -80,7 +82,7 @@ lemma quotientLeftBlock_eq_singletons_core :
     rw [show 2 * (n + 1) = 2 + 2 * n by omega]
     simp [List.replicate_add, List.append_assoc]
 
-lemma CF_quotientLeftBlock : is_CF quotientLeftBlock := by
+public lemma CF_quotientLeftBlock : is_CF quotientLeftBlock := by
   rw [quotientLeftBlock_eq_singletons_core]
   apply CF_of_CF_c_CF
   exact ⟨CF_of_CF_c_CF _ _ ⟨is_CF_singleton [false, false], CF_quotientLeftBlockCore⟩,

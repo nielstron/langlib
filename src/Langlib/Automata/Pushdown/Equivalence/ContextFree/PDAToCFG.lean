@@ -23,7 +23,9 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
-@[expose] public section
+@[expose]
+public section
+
 
 namespace PDA_to_CFG
 
@@ -50,11 +52,12 @@ open Symbol
 open PDA
 open ContextFreeGrammar
 
-abbrev AllStackPushes (M : PDA Q T S) : Set (List S) :=
+@[expose]
+public abbrev AllStackPushes (M : PDA Q T S) : Set (List S) :=
   (Prod.snd '' ⋃(q : Q)(a : T)(Z : S), M.transition_fun q a Z) ∪
   Prod.snd '' ⋃(q : Q)(Z : S), M.transition_fun' q Z
 
-theorem allStackPushes_finite (M : PDA Q T S) : (AllStackPushes M).Finite := by
+public theorem allStackPushes_finite (M : PDA Q T S) : (AllStackPushes M).Finite := by
   rw [AllStackPushes]
   rw [Set.finite_union]
   refine ⟨?_,?_⟩
@@ -85,26 +88,30 @@ theorem allStackPushes_finite (M : PDA Q T S) : (AllStackPushes M).Finite := by
       exact a_finite
     simpa [AllStackPushes, A, B]
 
-abbrev AllStackPushes' (M : PDA Q T S): Finset (List S) :=
+@[expose]
+public abbrev AllStackPushes' (M : PDA Q T S): Finset (List S) :=
   (allStackPushes_finite M).toFinset
 
-abbrev max_push (M : PDA Q T S)  := max ((AllStackPushes' M).image List.length).max 1
+@[expose]
+public abbrev max_push (M : PDA Q T S)  := max ((AllStackPushes' M).image List.length).max 1
 
-inductive N (M: PDA Q T S)  where
+public inductive N (M: PDA Q T S)  where
   | start : N M
   | single : Q → S → Q → N M
   | list : Q → List S  → Q → N M
 
 
 
-abbrev N.IsAllowed: N M → Prop
+@[expose]
+public abbrev N.IsAllowed: N M → Prop
   | N.start => True
   | N.single _ _ _ => True
   | N.list _ α _ => α.length ≤ max_push M
 
-abbrev AllowedNonterminals : Set (N M) := {n : N M | n.IsAllowed}
+@[expose]
+public abbrev AllowedNonterminals : Set (N M) := {n : N M | n.IsAllowed}
 
-theorem allowedNonterminals_finite : (AllowedNonterminals : Set (N M)).Finite  := by
+public theorem allowedNonterminals_finite : (AllowedNonterminals : Set (N M)).Finite  := by
   let S₁ : Set (N M) := ⋃ (q : Q)(Z : S)(p : Q), {N.single q Z p}
   let S₂ : Set (List S) := {α : List S | α.length  ≤ max_push M}
   let S₃ : Set (N M) := ⋃ (q : Q)(p : Q)(α ∈ S₂), {N.list q α p}
@@ -157,7 +164,7 @@ theorem allowedNonterminals_finite : (AllowedNonterminals : Set (N M)).Finite  :
       rfl
   exact Set.Finite.subset h_u this
 
-theorem push_le_max_push (α : List S)(q : Q)(Z : S)(a : T)
+public theorem push_le_max_push (α : List S)(q : Q)(Z : S)(a : T)
     (h : α ∈ Prod.snd '' M.transition_fun q a Z): α.length ≤ max_push M := by
   rw [max_push]
   apply le_max_of_le_left
@@ -175,7 +182,7 @@ theorem push_le_max_push (α : List S)(q : Q)(Z : S)(a : T)
   rcases h with ⟨x, hx, rfl⟩
   exact ⟨x, this hx, rfl⟩
 
-theorem push_le_max_push' (α : List S)(q : Q)(Z : S)
+public theorem push_le_max_push' (α : List S)(q : Q)(Z : S)
     (h : α ∈ Prod.snd '' M.transition_fun' q Z): α.length ≤ max_push M := by
   rw [max_push]
   apply le_max_of_le_left
@@ -193,30 +200,36 @@ theorem push_le_max_push' (α : List S)(q : Q)(Z : S)
   rcases h with ⟨x, hx, rfl⟩
   exact ⟨x, this hx, rfl⟩
 
-abbrev epsilon_rule (q : Q): Set (ContextFreeRule T (N M)) := {⟨N.list q [] q ,[]⟩}
+@[expose]
+public abbrev epsilon_rule (q : Q): Set (ContextFreeRule T (N M)) := {⟨N.list q [] q ,[]⟩}
 
-abbrev compute_rule (q p: Q) (a : T) (Z : S) : Set (ContextFreeRule T (N M)) :=
+@[expose]
+public abbrev compute_rule (q p: Q) (a : T) (Z : S) : Set (ContextFreeRule T (N M)) :=
   (λ ⟨q₁,α⟩ ↦ ⟨N.single q Z p, [terminal a, nonterminal (N.list q₁ α p)]⟩) '' M.transition_fun q a Z
 
-abbrev compute_rule' (q p: Q) (Z : S) : Set (ContextFreeRule T (N M)) :=
+@[expose]
+public abbrev compute_rule' (q p: Q) (Z : S) : Set (ContextFreeRule T (N M)) :=
   (λ ⟨q₁,α⟩ ↦ ⟨N.single q Z p, [nonterminal (N.list q₁ α p)]⟩) '' M.transition_fun' q Z
 
-abbrev split_rule (q₁:Q) :(n : N M) →  Set (ContextFreeRule T (N M))
+@[expose]
+public abbrev split_rule (q₁:Q) :(n : N M) →  Set (ContextFreeRule T (N M))
   | N.start => ∅
   | N.single _ _ _=> ∅
   | N.list _ [] _ => ∅
   | N.list q (Z::α)  p =>
     {⟨N.list q (Z::α) p, [nonterminal (N.single q Z q₁),nonterminal (N.list q₁ α p)]⟩}
 
-abbrev start_rule (q: Q): Set (ContextFreeRule T (N M)) :=
+@[expose]
+public abbrev start_rule (q: Q): Set (ContextFreeRule T (N M)) :=
   {⟨N.start, [nonterminal (N.list (M.initial_state) [M.start_symbol] q)]⟩}
 
-abbrev RuleSet : Set (ContextFreeRule T (N M)) :=
+@[expose]
+public abbrev RuleSet : Set (ContextFreeRule T (N M)) :=
   (⋃q:Q,  epsilon_rule q) ∪ (⋃(q:Q)(p:Q)(a:T)(Z:S), compute_rule q p a Z)
   ∪ (⋃(q:Q)(p:Q)(Z:S), compute_rule' q p Z) ∪ (⋃(q:Q)(n ∈ AllowedNonterminals), split_rule q n)
   ∪ (⋃(q:Q), start_rule q)
 
-theorem ruleSet_finite : (RuleSet : Set (ContextFreeRule T (N M))).Finite := by
+public theorem ruleSet_finite : (RuleSet : Set (ContextFreeRule T (N M))).Finite := by
   dsimp [RuleSet]
   repeat rw [Set.finite_union]
   simp only [and_assoc]
@@ -242,15 +255,17 @@ theorem ruleSet_finite : (RuleSet : Set (ContextFreeRule T (N M))).Finite := by
     dsimp [start_rule]
     apply Set.finite_singleton
 
-abbrev rules : Finset (ContextFreeRule T (N M)) := ruleSet_finite.toFinset
+@[expose]
+public abbrev rules : Finset (ContextFreeRule T (N M)) := ruleSet_finite.toFinset
 
-abbrev G (M : PDA Q T S) : ContextFreeGrammar T := {
+@[expose]
+public abbrev G (M : PDA Q T S) : ContextFreeGrammar T := {
   NT := N M
   initial := N.start
   rules := rules
 }
 
-theorem produces_epsilon (q : Q) :
+public theorem produces_epsilon (q : Q) :
     (G M).Produces [nonterminal (N.list q [] q)] (List.map terminal []) := by
   let r : ContextFreeRule T (N M) := ⟨N.list q [] q ,[]⟩
   have hr : r ∈ (G M).rules  := by
@@ -264,7 +279,7 @@ theorem produces_epsilon (q : Q) :
   rw [List.map_nil]
   simpa [r] using (ContextFreeRule.rewrites_of_exists_parts r [] [])
 
-theorem produces_split (q q₁ p : Q){α : List S}{Z : S}(h : (Z :: α).length ≤ max_push M ):
+public theorem produces_split (q q₁ p : Q){α : List S}{Z : S}(h : (Z :: α).length ≤ max_push M ):
     (G M).Produces [nonterminal (N.list q (Z :: α) p)]
     [nonterminal (N.single q Z q₁), nonterminal (N.list q₁ α p)] := by
   let r : ContextFreeRule T (N M) :=
@@ -281,7 +296,7 @@ theorem produces_split (q q₁ p : Q){α : List S}{Z : S}(h : (Z :: α).length �
   use r, hr
   simpa [r] using (ContextFreeRule.rewrites_of_exists_parts r [] [])
 
-theorem produces_compute {q q₁ p : Q}{α : List S}{a : T}{Z : S}
+public theorem produces_compute {q q₁ p : Q}{α : List S}{a : T}{Z : S}
     (h : (q₁, α) ∈ M.transition_fun q a Z) :
     (G M).Produces [nonterminal (N.single q Z p)] [terminal a, nonterminal (N.list q₁ α p)] := by
   let r : ContextFreeRule T (N M) := ⟨N.single q Z p, [terminal a, nonterminal (N.list q₁ α p)]⟩
@@ -295,7 +310,7 @@ theorem produces_compute {q q₁ p : Q}{α : List S}{a : T}{Z : S}
   use r, hr
   simpa [r] using (ContextFreeRule.rewrites_of_exists_parts r [] [])
 
-theorem produces_compute' {q q₁ p : Q}{α : List S}{Z : S}
+public theorem produces_compute' {q q₁ p : Q}{α : List S}{Z : S}
     (h : (q₁, α) ∈ M.transition_fun' q Z) :
     (G M).Produces [nonterminal (N.single q Z p)] [nonterminal (N.list q₁ α p)] := by
   let r : ContextFreeRule T (N M) := ⟨N.single q Z p, [nonterminal (N.list q₁ α p)]⟩
@@ -309,7 +324,7 @@ theorem produces_compute' {q q₁ p : Q}{α : List S}{Z : S}
   use r, hr
   simpa [r] using (ContextFreeRule.rewrites_of_exists_parts r [] [])
 
-theorem derives_of_reachesIn {γ : List S}{q p : Q}{x : List T}{n : ℕ}
+public theorem derives_of_reachesIn {γ : List S}{q p : Q}{x : List T}{n : ℕ}
     (hγ : γ.length ≤ max_push M) (h : M.ReachesIn n ⟨q,x,γ⟩ ⟨p,[],[]⟩) :
     (G M).Derives [nonterminal (N.list q γ p)] (x.map terminal) := by
   induction' n using Nat.strong_induction_on with n ih generalizing x γ p q
@@ -396,7 +411,7 @@ theorem derives_of_reachesIn {γ : List S}{q p : Q}{x : List T}{n : ℕ}
         simp [hy]
 
 
-theorem derivation_empty {n : ℕ}{x : List T}{q p : Q}
+public theorem derivation_empty {n : ℕ}{x : List T}{q p : Q}
     (h : (G M).DerivesLeftmostIn [nonterminal (N.list q [] p)] (List.map terminal x) n) :
     q = p ∧ x = [] := by
   rcases n with _|⟨n⟩
@@ -445,7 +460,7 @@ theorem derivation_empty {n : ℕ}{x : List T}{q p : Q}
       rw [hr] at h₁
       cases h₁
 
-theorem produces_cons {q p : Q}{Z : S} {γ : List S}
+public theorem produces_cons {q p : Q}{Z : S} {γ : List S}
     {u : List (Symbol T (N M))} (h : (G M).ProducesLeftmost [nonterminal (N.list q (Z::γ) p)] u):
     ∃q₁:Q, u = [nonterminal (N.single q Z q₁), nonterminal (N.list q₁ γ p)] := by
   obtain ⟨r, hr, h⟩ := h
@@ -488,7 +503,7 @@ theorem produces_cons {q p : Q}{Z : S} {γ : List S}
     rw [hr] at h
     cases h
 
-theorem produces_single {q p : Q}{Z : S}
+public theorem produces_single {q p : Q}{Z : S}
     {u v: List (Symbol T (N M))}
     (h : (G M).ProducesLeftmost ((nonterminal (N.single q Z p)) :: v) u) :
     (∃(α : List S)(q₀ : Q)(a : T), (q₀, α) ∈ M.transition_fun q a Z
@@ -541,7 +556,7 @@ theorem produces_single {q p : Q}{Z : S}
     rw [hr] at h
     cases h
 
-theorem produces_start {u : List (Symbol T (N M))}
+public theorem produces_start {u : List (Symbol T (N M))}
     (h : (G M).ProducesLeftmost [nonterminal N.start] u):
     ∃q : Q, u = [nonterminal (N.list (M.initial_state) [M.start_symbol] q)] := by
   obtain ⟨r, hr, h⟩ := h
@@ -584,7 +599,7 @@ theorem produces_start {u : List (Symbol T (N M))}
     · use q₀
       simp
 
-theorem reachesIn_of_derivesLeftmostIn {γ : List S}{q p : Q}{x : List T}{n : ℕ}
+public theorem reachesIn_of_derivesLeftmostIn {γ : List S}{q p : Q}{x : List T}{n : ℕ}
     (hγ : γ.length ≤ max_push M)
     (h : (G M).DerivesLeftmostIn [nonterminal (N.list q γ p)] (x.map terminal) n) :
     M.Reaches ⟨q, x, γ⟩ ⟨p, [], []⟩ := by
@@ -652,7 +667,7 @@ theorem reachesIn_of_derivesLeftmostIn {γ : List S}{q p : Q}{x : List T}{n : �
         apply Reaches.trans r₂
         exact r₃
 
-theorem cfg_of_pda (M : PDA Q T S) : (G M).language  = M.acceptsByEmptyStack := by
+public theorem cfg_of_pda (M : PDA Q T S) : (G M).language  = M.acceptsByEmptyStack := by
   ext w
   constructor
   · intro h

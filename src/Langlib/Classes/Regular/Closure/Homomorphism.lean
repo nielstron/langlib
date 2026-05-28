@@ -39,8 +39,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Regular Closure Under (String) Homomorphism
 
@@ -136,7 +138,7 @@ variable {γ : Type}
 /-
 The language `{[]}` (containing only the empty word) is regular.
 -/
-theorem isRegular_epsilon : ({[]} : Language γ).IsRegular := by
+public theorem isRegular_epsilon : ({[]} : Language γ).IsRegular := by
   -- The DFA has two states: state 0 (start and accepting) and state 1 (sink). All transitions from state 0 go to state 1, and all transitions from state 1 go to state 1.
   use Fin 2;
   use inferInstance;
@@ -152,7 +154,7 @@ theorem isRegular_epsilon : ({[]} : Language γ).IsRegular := by
 /-
 The language `{[a]}` (containing only the single-letter word) is regular.
 -/
-theorem isRegular_singleton_letter (a : γ) : ({[a]} : Language γ).IsRegular := by
+public theorem isRegular_singleton_letter (a : γ) : ({[a]} : Language γ).IsRegular := by
   constructor;
   refine' ⟨ _, _, _ ⟩;
   case w => exact Fin 3;
@@ -180,7 +182,7 @@ private lemma singleton_cons_eq_mul (a : γ) (w : List γ) :
         cases v ; cases hv ; aesop
 
 /-- Any singleton word language is regular. -/
-theorem isRegular_singleton_word : ∀ (w : List γ), ({w} : Language γ).IsRegular
+public theorem isRegular_singleton_word : ∀ (w : List γ), ({w} : Language γ).IsRegular
   | [] => isRegular_epsilon
   | a :: w => by
       rw [singleton_cons_eq_mul a w]

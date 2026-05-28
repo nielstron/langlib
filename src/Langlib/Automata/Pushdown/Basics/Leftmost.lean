@@ -22,8 +22,10 @@ import Mathlib.Tactic.NormNum.Ordinal
 import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-!
 # Leftmost Deriviations in Context-Free Gammars
@@ -48,7 +50,7 @@ variable {N : Type uN}
 namespace ContextFreeRule
 open Symbol
 
-inductive RewritesLeftmost (r : ContextFreeRule T N) : List (Symbol T N) → List (Symbol T N) → Prop
+public inductive RewritesLeftmost (r : ContextFreeRule T N) : List (Symbol T N) → List (Symbol T N) → Prop
   /-- The replaced nonterminal is the leftmost symbol -/
   | head (s : List (Symbol T N)) :
       r.RewritesLeftmost (Symbol.nonterminal r.input :: s) (r.output ++ s)
@@ -56,7 +58,7 @@ inductive RewritesLeftmost (r : ContextFreeRule T N) : List (Symbol T N) → Lis
   | cons (x : T) {s₁ s₂ : List (Symbol T N)} (hrs : RewritesLeftmost r s₁ s₂) :
       r.RewritesLeftmost (terminal x :: s₁) (terminal x :: s₂)
 
-theorem RewritesLeftmost.exists_parts {r : ContextFreeRule T N}
+public theorem RewritesLeftmost.exists_parts {r : ContextFreeRule T N}
     {u v : List (Symbol T N)} (hr : r.RewritesLeftmost u v) :
       ∃ (p : List T) (q : List (Symbol T N)),
         u = p.map terminal ++ [nonterminal r.input] ++ q ∧
@@ -70,7 +72,7 @@ theorem RewritesLeftmost.exists_parts {r : ContextFreeRule T N}
     use x::p, q
     simp [hpq]
 
-theorem RewritesLeftmost.rewrites_leftmost_of_exists_parts (r : ContextFreeRule T N)
+public theorem RewritesLeftmost.rewrites_leftmost_of_exists_parts (r : ContextFreeRule T N)
     (p : List T) (q : List (Symbol T N)) :
     r.RewritesLeftmost (p.map terminal ++ [nonterminal r.input] ++ q)
       (p.map terminal ++ r.output ++ q) := by
@@ -81,7 +83,7 @@ theorem RewritesLeftmost.rewrites_leftmost_of_exists_parts (r : ContextFreeRule 
     rw [List.map_cons]
     exact cons x ih
 
-theorem RewritesLeftmost.rewrites_leftmost_iff {r : ContextFreeRule T N} {u v : List (Symbol T N)} :
+public theorem RewritesLeftmost.rewrites_leftmost_iff {r : ContextFreeRule T N} {u v : List (Symbol T N)} :
     r.RewritesLeftmost u v ↔
     ∃ (p : List T) (q : List (Symbol T N)),
       u = p.map terminal ++ [nonterminal r.input] ++ q ∧
@@ -92,33 +94,33 @@ theorem RewritesLeftmost.rewrites_leftmost_iff {r : ContextFreeRule T N} {u v : 
     rw [hu, hv]
     exact rewrites_leftmost_of_exists_parts r p q
 
-theorem RewritesLeftmost.rewrite_terminal (r : ContextFreeRule T N) (w : List T)
+public theorem RewritesLeftmost.rewrite_terminal (r : ContextFreeRule T N) (w : List T)
     (u : List (Symbol T N)): ¬ RewritesLeftmost r (w.map terminal) u := by
   intro h
   induction' w with x w' ih generalizing u
   <;> cases u <;> cases h
   next tail h => exact ih tail h
 
-theorem RewritesLeftmost.append_left {r : ContextFreeRule T N}
+public theorem RewritesLeftmost.append_left {r : ContextFreeRule T N}
     {v w : List (Symbol T N)} (hr : r.RewritesLeftmost v w) (p : List T) :
     r.RewritesLeftmost (p.map terminal ++ v) (p.map terminal ++ w) := by
   induction p with
   | nil => simp [hr]
   | cons x _ ih => exact ih.cons x
 
-theorem RewritesLeftmost.append_right {r : ContextFreeRule T N}
+public theorem RewritesLeftmost.append_right {r : ContextFreeRule T N}
     {v w : List (Symbol T N)} (hr : r.RewritesLeftmost v w) (p : List (Symbol T N)) :
     r.RewritesLeftmost (v ++ p) (w ++ p) := by
   obtain ⟨s, t, rfl, rfl⟩ := hr.exists_parts
   simpa using rewrites_leftmost_of_exists_parts r s (t ++ p)
 
-theorem RewritesLeftmost.rewrites_of_rewrites_leftmost {r : ContextFreeRule T N}
+public theorem RewritesLeftmost.rewrites_of_rewrites_leftmost {r : ContextFreeRule T N}
     {u v : List (Symbol T N)} (hr : r.RewritesLeftmost u v) : r.Rewrites u v := by
   induction hr with
   | head s => exact Rewrites.head _
   | cons x _ ih => exact Rewrites.cons (terminal x) ih
 
-theorem rewrites_leftmost_cons {r : ContextFreeRule T N} {x : Symbol T N} {v u : List (Symbol T N)}
+public theorem rewrites_leftmost_cons {r : ContextFreeRule T N} {x : Symbol T N} {v u : List (Symbol T N)}
     (h : r.RewritesLeftmost (x :: v) u) :
     (∃ (u₁ u₂ : List (Symbol T N)), u = u₁ ++ u₂ ∧ (r.RewritesLeftmost [x] u₁ ∧ u₂ = v)) ∨
     (∃ (w₁ : List T) (u₂ : List (Symbol T N)),
@@ -131,7 +133,7 @@ theorem rewrites_leftmost_cons {r : ContextFreeRule T N} {x : Symbol T N} {v u :
   · right
     exact ⟨[x], s₂, by simp, by simp, hrs⟩
 
-theorem rewrites_leftmost_append {r : ContextFreeRule T N} {v₁ v₂ u : List (Symbol T N)}
+public theorem rewrites_leftmost_append {r : ContextFreeRule T N} {v₁ v₂ u : List (Symbol T N)}
     (h : r.RewritesLeftmost (v₁ ++ v₂) u) :
     (∃ (u₁ u₂ : List (Symbol T N)), u = u₁ ++ u₂ ∧ (r.RewritesLeftmost v₁ u₁ ∧ u₂ = v₂)) ∨
     (∃ (w₁ : List T)(u₂ : List (Symbol T N)),
@@ -217,13 +219,15 @@ open Symbol
 /-- Given a context-free grammar `g` and strings `u` and `v`
 `g.ProducesLeftmost u v` means that one application of a rule from `g` to the leftmost nonterminal
 of `u` send `u` to `v`. -/
-def ProducesLeftmost (g : ContextFreeGrammar T) (u v : List (Symbol T g.NT)) : Prop :=
+@[expose]
+public def ProducesLeftmost (g : ContextFreeGrammar T) (u v : List (Symbol T g.NT)) : Prop :=
   ∃ r ∈ g.rules, r.RewritesLeftmost u v
 
 /-- Given a context-free grammar `g` and strings `u` and `v`
 `g.DerivesLeftmost u v` means that `g` can transform `u` to `v` in some number of rewriting steps,
 by applying the transformation always to the leftmost symbol of `u`. -/
-abbrev DerivesLeftmost (g : ContextFreeGrammar T) :
+@[expose]
+public abbrev DerivesLeftmost (g : ContextFreeGrammar T) :
     List (Symbol T g.NT) → List (Symbol T g.NT) → Prop :=
   Relation.ReflTransGen g.ProducesLeftmost
 
@@ -233,17 +237,17 @@ variable {g : ContextFreeGrammar T}
 lemma DerivesLeftmost.refl (w : List (Symbol T g.NT)) : g.DerivesLeftmost w w :=
   Relation.ReflTransGen.refl
 
-lemma ProducesLeftmost.single {v w : List (Symbol T g.NT)} (hvw : g.ProducesLeftmost v w) :
+public lemma ProducesLeftmost.single {v w : List (Symbol T g.NT)} (hvw : g.ProducesLeftmost v w) :
     g.DerivesLeftmost v w :=
   Relation.ReflTransGen.single hvw
 
 @[trans]
-lemma DerivesLeftmost.trans {u v w : List (Symbol T g.NT)} (huv : g.DerivesLeftmost u v)
+public lemma DerivesLeftmost.trans {u v w : List (Symbol T g.NT)} (huv : g.DerivesLeftmost u v)
     (hvw : g.DerivesLeftmost v w) :
     g.DerivesLeftmost u w :=
   Relation.ReflTransGen.trans huv hvw
 
-lemma DerivesLeftmost.trans_produces {u v w : List (Symbol T g.NT)}
+public lemma DerivesLeftmost.trans_produces {u v w : List (Symbol T g.NT)}
     (huv : g.DerivesLeftmost u v) (hvw : g.ProducesLeftmost v w) :
     g.DerivesLeftmost u w :=
   huv.trans hvw.single
@@ -262,13 +266,13 @@ lemma DerivesLeftmost.eq_or_tail {u w : List (Symbol T g.NT)} (huw : g.DerivesLe
   (Relation.ReflTransGen.cases_tail huw).casesOn (Or.inl ∘ Eq.symm) Or.inr
 
 /-- Add extra prefix to context-free leftmost producing. -/
-lemma ProducesLeftmost.append_left {v w : List (Symbol T g.NT)}
+public lemma ProducesLeftmost.append_left {v w : List (Symbol T g.NT)}
     (hvw : g.ProducesLeftmost v w) (p : List T) :
     g.ProducesLeftmost (p.map terminal ++ v) (p.map terminal ++ w) :=
   match hvw with | ⟨r, hrmem, hrvw⟩ => ⟨r, hrmem, hrvw.append_left p⟩
 
 /-- Add extra postfix to context-free leftmost producing. -/
-lemma ProducesLeftmost.append_right {v w : List (Symbol T g.NT)}
+public lemma ProducesLeftmost.append_right {v w : List (Symbol T g.NT)}
     (hvw : g.ProducesLeftmost v w) (p : List (Symbol T g.NT)) :
     g.ProducesLeftmost (v ++ p) (w ++ p) :=
   match hvw with | ⟨r, hrmem, hrvw⟩ => ⟨r, hrmem, hrvw.append_right p⟩
@@ -289,20 +293,20 @@ lemma DerivesLeftmost.append_right {v w : List (Symbol T g.NT)}
   | refl => rfl
   | tail _ last ih => exact ih.trans_produces <| last.append_right p
 
-theorem produces_of_produces_leftmost {u v : List (Symbol T g.NT)} (h : g.ProducesLeftmost u v):
+public theorem produces_of_produces_leftmost {u v : List (Symbol T g.NT)} (h : g.ProducesLeftmost u v):
       g.Produces u v := by
   obtain ⟨r,hr⟩ := h
   use r, hr.1
   apply ContextFreeRule.RewritesLeftmost.rewrites_of_rewrites_leftmost
   exact hr.2
 
-theorem derives_of_derives_leftmost {u v : List (Symbol T g.NT)}(h:g.DerivesLeftmost u v) :
+public theorem derives_of_derives_leftmost {u v : List (Symbol T g.NT)}(h:g.DerivesLeftmost u v) :
     g.Derives u v := by
   induction h using Relation.ReflTransGen.head_induction_on with
   | refl => rfl
   | head h₁ _ ih => exact Produces.trans_derives (produces_of_produces_leftmost h₁) ih
 
-theorem derives_leftmost_cons {x : Symbol T g.NT} {v u : List (Symbol T g.NT)}
+public theorem derives_leftmost_cons {x : Symbol T g.NT} {v u : List (Symbol T g.NT)}
     (h : g.DerivesLeftmost (x :: v) u) :
     (∃ (u' : List (Symbol T g.NT)), u = u' ++ v ∧ g.DerivesLeftmost [x] u') ∨
     (∃ (w₁ : List T) (u₂ : List (Symbol T g.NT)), u = w₁.map terminal ++ u₂ ∧
@@ -330,7 +334,7 @@ theorem derives_leftmost_cons {x : Symbol T g.NT} {v u : List (Symbol T g.NT)}
         exact ContextFreeRule.RewritesLeftmost.rewrite_terminal _ _ _ ho.2.1
       · exact ⟨o₂, by simp_all, hu.2.1, hu.2.2.trans_produces ⟨r,hr,ho.2.2⟩⟩
 
-theorem derives_leftmost_append {v₁ v₂ u : List (Symbol T g.NT)}
+public theorem derives_leftmost_append {v₁ v₂ u : List (Symbol T g.NT)}
     (h : g.DerivesLeftmost (v₁ ++ v₂) u) :
     (∃ (u' : List (Symbol T g.NT)), u = u' ++ v₂ ∧ g.DerivesLeftmost v₁ u') ∨
     (∃ (w₁ : List T) (u₂ : List (Symbol T g.NT)), u = w₁.map terminal ++ u₂ ∧
@@ -373,7 +377,7 @@ theorem derives_cons {x : Symbol T g.NT} {v u : List (Symbol T g.NT)} (h : g.Der
     · rw [huv.2.symm]
       exact ⟨hu₂.1, hu₂.2.trans_produces ⟨r, hr, huv.1⟩⟩
 
-theorem derives_leftmost_iff {w : List T} {α : List (Symbol T g.NT)} :
+public theorem derives_leftmost_iff {w : List T} {α : List (Symbol T g.NT)} :
     g.DerivesLeftmost α (w.map terminal) ↔ g.Derives α (w.map terminal) := by
   constructor
   · exact derives_of_derives_leftmost

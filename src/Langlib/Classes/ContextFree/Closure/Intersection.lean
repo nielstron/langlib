@@ -49,9 +49,11 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
 
-@[expose] public section
+
 
 /-! # Context-Free Non-Closure Under Intersection
 
@@ -147,7 +149,7 @@ by
           rw [count_a] at hac; rw [hac] at count_c
           exact (lt_irrefl _ count_c)
 
-lemma notCF_lang_eq_eq : ¬ is_CF lang_eq_eq := by
+public lemma notCF_lang_eq_eq : ¬ is_CF lang_eq_eq := by
   intro h
 
   have pum := CF_pumping h
@@ -640,7 +642,7 @@ private lemma CF_lang_aux_c : is_CF lang_aux_c := by
   unfold lang_aux_c
   apply language_of_cfg_symbol_star
 
-lemma CF_lang_eq_any : is_CF lang_eq_any := by
+public lemma CF_lang_eq_any : is_CF lang_eq_any := by
   have concatenated : lang_eq_any = lang_aux_ab * lang_aux_c := by
     ext1 w
     constructor
@@ -702,7 +704,7 @@ private lemma CF_lang_aux_bc : is_CF lang_aux_bc := by
   rw [permuted]
   exact (CF_of_permute_CF permut lang_aux_ab).mpr CF_lang_aux_ab
 
-lemma CF_lang_any_eq : is_CF lang_any_eq := by
+public lemma CF_lang_any_eq : is_CF lang_any_eq := by
   have concatenated : lang_any_eq = lang_aux_a * lang_aux_bc := by
     ext1 w
     constructor
@@ -723,7 +725,7 @@ end yes_CF
 
 section intersection_inclusions
 
-lemma intersection_of_lang_eq_eq {w : List (Fin 3)} :
+public lemma intersection_of_lang_eq_eq {w : List (Fin 3)} :
   w ∈ lang_eq_eq  →  w ∈ lang_eq_any ⊓ lang_any_eq  :=
 by
   intro h
@@ -797,7 +799,7 @@ private lemma doubled_ge_singled
 
 
 
-lemma lang_eq_eq_of_intersection {w : List (Fin 3)} :
+public lemma lang_eq_eq_of_intersection {w : List (Fin 3)} :
   w ∈ lang_eq_any ⊓ lang_any_eq  →  w ∈ lang_eq_eq  :=
 by
   rintro ⟨⟨n₁, m₁, w_eq₁⟩, ⟨n₂, m₂, w_eq₂⟩⟩
@@ -859,7 +861,7 @@ end intersection_inclusions
 
 
 /-- The class of context-free languages isn't closed under intersection. -/
-theorem nnyCF_of_CF_i_CF : ¬ (∀ L₁ L₂ : Language (Fin 3),
+public theorem nnyCF_of_CF_i_CF : ¬ (∀ L₁ L₂ : Language (Fin 3),
     is_CF L₁  ∧  is_CF L₂   →   is_CF (L₁ ⊓ L₂)
 ) :=
 by
@@ -896,7 +898,7 @@ private lemma Language.map_inf_injective {α β : Type} {f : α → β} (hf : Fu
 /-- Context-free languages are not closed under intersection for any type with at least
     3 elements. That is, as long as `α` has at least 3 distinct elements, not all
     intersections of context-free languages over `α` are context-free. -/
-theorem CF_notClosedUnderIntersection_of_three {α : Type}
+public theorem CF_notClosedUnderIntersection_of_three {α : Type}
     (a b c : α) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) :
     ¬ ClosedUnderIntersection (α := α) is_CF := by
   intro hclosed

@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Regular Closure Under Union
 
@@ -55,7 +57,7 @@ namespace Language
 variable {α : Type*}
 
 /-- Regular languages are closed under union. -/
-theorem IsRegular.add' {L₁ L₂ : Language α} (h₁ : L₁.IsRegular) (h₂ : L₂.IsRegular) :
+public theorem IsRegular.add' {L₁ L₂ : Language α} (h₁ : L₁.IsRegular) (h₂ : L₂.IsRegular) :
     (L₁ + L₂).IsRegular := by
   exact h₁.add h₂
 

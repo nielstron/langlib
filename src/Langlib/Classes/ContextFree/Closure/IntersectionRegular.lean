@@ -41,8 +41,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Intersection of Context-Free and Regular Languages
 
@@ -68,7 +70,7 @@ variable {T : Type}
 
 /-- `CF_derivesIn g n w₁ w₂` means `g` transforms `w₁` to `w₂` in exactly `n` steps.
     Uses tail convention (matching ReflTransGen). -/
-inductive CF_derivesIn (g : CF_grammar T) :
+public inductive CF_derivesIn (g : CF_grammar T) :
     ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
   | refl (w) : CF_derivesIn g 0 w w
   | tail {n w₁ w₂ w₃} :
@@ -76,7 +78,7 @@ inductive CF_derivesIn (g : CF_grammar T) :
 
 variable {g : CF_grammar T}
 
-lemma CF_derivesIn_of_derives {w₁ w₂ : List (symbol T g.nt)}
+public lemma CF_derivesIn_of_derives {w₁ w₂ : List (symbol T g.nt)}
     (h : CF_derives g w₁ w₂) : ∃ n, CF_derivesIn g n w₁ w₂ := by
   induction h with
   | refl => exact ⟨0, .refl _⟩
@@ -100,7 +102,7 @@ lemma CF_derivesIn_trans {n m : ℕ} {w₁ w₂ w₃ : List (symbol T g.nt)}
 /-
 Head extraction: an (n+1)-step derivation starts with one step.
 -/
-lemma CF_derivesIn_head {n : ℕ} {w₁ w₃ : List (symbol T g.nt)}
+public lemma CF_derivesIn_head {n : ℕ} {w₁ w₃ : List (symbol T g.nt)}
     (h : CF_derivesIn g (n + 1) w₁ w₃) :
     ∃ w₂, CF_transforms g w₁ w₂ ∧ CF_derivesIn g n w₂ w₃ := by
   revert h;
@@ -140,7 +142,7 @@ lemma CF_derivesIn_append_right {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
 Key splitting lemma: a derivation from `p ++ q` can be split into
     independent derivations from `p` and `q` with step counts adding up.
 -/
-lemma CF_derivesIn_append_split {n : ℕ} {p q w : List (symbol T g.nt)}
+public lemma CF_derivesIn_append_split {n : ℕ} {p q w : List (symbol T g.nt)}
     (h : CF_derivesIn g n (p ++ q) w) :
     ∃ x y n₁ n₂, w = x ++ y ∧
       CF_derivesIn g n₁ p x ∧ CF_derivesIn g n₂ q y ∧ n = n₁ + n₂ := by
@@ -181,7 +183,8 @@ variable {σ : Type} [Fintype σ]
 
 /-- Thread DFA states through a list of symbols, enumerating all valid
     annotated symbol lists with their ending DFA states. -/
-noncomputable def threadSymbols (M : DFA T σ)
+@[expose]
+public noncomputable def threadSymbols (M : DFA T σ)
     {N : Type} (syms : List (symbol T N)) (p : σ) :
     List (List (symbol T (Option (σ × N × σ))) × σ) :=
   match syms with
@@ -195,7 +198,8 @@ noncomputable def threadSymbols (M : DFA T σ)
           (symbol.nonterminal (some (p, B, qmid)) :: out, q)
 
 /-- The product grammar of a CFG `g` and a DFA `M`. -/
-noncomputable def productGrammar (g : CF_grammar T) (M : DFA T σ) : CF_grammar T where
+@[expose]
+public noncomputable def productGrammar (g : CF_grammar T) (M : DFA T σ) : CF_grammar T where
   nt := Option (σ × g.nt × σ)
   initial := none
   rules :=
@@ -261,7 +265,7 @@ lemma productGrammar_body_rule_mem {M : DFA T σ}
 /-
 A terminal-only derivation has 0 steps.
 -/
-lemma CF_derivesIn_terminal_zero {g' : CF_grammar T} {n : ℕ} {a : T}
+public lemma CF_derivesIn_terminal_zero {g' : CF_grammar T} {n : ℕ} {a : T}
     {w : List (symbol T g'.nt)}
     (h : CF_derivesIn g' n [symbol.terminal a] w) :
     n = 0 ∧ w = [symbol.terminal a] := by
@@ -277,7 +281,7 @@ lemma CF_derivesIn_terminal_zero {g' : CF_grammar T} {n : ℕ} {a : T}
 /-
 If a concatenation of symbols equals a map of terminals, both parts are terminal maps.
 -/
-lemma append_eq_map_terminal {N : Type}
+public lemma append_eq_map_terminal {N : Type}
     {u v : List (symbol T N)} {w : List T}
     (h : u ++ v = w.map symbol.terminal) :
     ∃ w₁ w₂, u = w₁.map symbol.terminal ∧ v = w₂.map symbol.terminal ∧ w = w₁ ++ w₂ := by
@@ -291,7 +295,7 @@ Helper: process annotated symbols from threadSymbols, projecting out
     the original grammar derivation and DFA evaluation.
     By induction on `syms`.
 -/
-lemma forward_thread {M : DFA T σ} (N_bound : ℕ)
+public lemma forward_thread {M : DFA T σ} (N_bound : ℕ)
     (syms : List (symbol T g.nt))
     (out : List (symbol T (Option (σ × g.nt × σ))))
     (p q : σ) (w : List T) (n : ℕ)
@@ -359,7 +363,7 @@ Key forward lemma:
     then `A` derives `w` in `g` and `M.evalFrom p w = q`.
     Proved by strong induction on `n`, using `forward_thread` for the recursive structure.
 -/
-lemma forward_key {M : DFA T σ} (n : ℕ) (p : σ) (A : g.nt) (q : σ) (w : List T)
+public lemma forward_key {M : DFA T σ} (n : ℕ) (p : σ) (A : g.nt) (q : σ) (w : List T)
     (hder : CF_derivesIn (productGrammar g M) n
       [symbol.nonterminal (some (p, A, q))] (w.map symbol.terminal)) :
     CF_derives g [symbol.nonterminal A] (w.map symbol.terminal) ∧
@@ -525,7 +529,7 @@ Main Theorem
 The product grammar generates exactly the intersection of the CFG language
     and the DFA language.
 -/
-theorem productGrammar_language (g : CF_grammar T) (M : DFA T σ) :
+public theorem productGrammar_language (g : CF_grammar T) (M : DFA T σ) :
     CF_language (productGrammar g M) = CF_language g ⊓ DFA.accepts M := by
   ext w
   constructor
@@ -562,7 +566,7 @@ theorem productGrammar_language (g : CF_grammar T) (M : DFA T σ) :
 /-
 The class of context-free languages is closed under intersection with regular languages.
 -/
-theorem CF_of_CF_inter_regular {L₁ L₂ : Language T}
+public theorem CF_of_CF_inter_regular {L₁ L₂ : Language T}
     (h₁ : is_CF L₁) (h₂ : L₂.IsRegular) :
     is_CF (L₁ ⊓ L₂) := by
   revert h₂;

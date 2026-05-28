@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Turing-Recognizable Languages Are Exactly RE Languages
 
@@ -53,12 +55,12 @@ This module packages the two existing directions:
 
 /-- The class of TM-recognizable languages is exactly the class of recursively
 enumerable languages. -/
-theorem TM_eq_RE {T : Type} [DecidableEq T] [Fintype T] :
+public theorem TM_eq_RE {T : Type} [DecidableEq T] [Fintype T] :
     (TM : Set (Language T)) = RE := by
   exact Set.Subset.antisymm TM_subset_RE RE_subset_TM
 
 /-- Pointwise version of `TM_eq_RE`. -/
-theorem is_TM_iff_is_RE
+public theorem is_TM_iff_is_RE
     {T : Type} [DecidableEq T] [Fintype T]
     (L : Language T) :
     is_TM L ↔ is_RE L := by

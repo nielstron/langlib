@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # TM0 Reverse Block Machine
 
@@ -60,17 +62,19 @@ variable {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
 
 /-! ### State type -/
 
-inductive CarryPhase where | carryRight | shifting | returning deriving DecidableEq
-inductive NoCarryPhase where | grab | advance | rewind | rewindDone deriving DecidableEq
+public inductive CarryPhase where | carryRight | shifting | returning deriving DecidableEq
+public inductive NoCarryPhase where | grab | advance | rewind | rewindDone deriving DecidableEq
 
-instance : Fintype CarryPhase where
+public instance : Fintype CarryPhase where
   elems := {.carryRight, .shifting, .returning}; complete x := by cases x <;> simp
 
-instance : Fintype NoCarryPhase where
+public instance : Fintype NoCarryPhase where
   elems := {.grab, .advance, .rewind, .rewindDone}; complete x := by cases x <;> simp
 
-abbrev RSt (Γ : Type) := (Γ × CarryPhase) ⊕ NoCarryPhase
-instance [Inhabited Γ] : Inhabited (RSt Γ) := ⟨Sum.inr .grab⟩
+@[expose]
+public abbrev RSt (Γ : Type) := (Γ × CarryPhase) ⊕ NoCarryPhase
+@[expose]
+public instance [Inhabited Γ] : Inhabited (RSt Γ) := ⟨Sum.inr .grab⟩
 
 /-! ### Machine definition -/
 
@@ -79,7 +83,8 @@ instance [Inhabited Γ] : Inhabited (RSt Γ) := ⟨Sum.inr .grab⟩
 * **grab / shifting / returning** use `sep` to detect the right block boundary
   and as the temporary "erased" marker when a cell is grabbed.
 * **rewind** uses `default` to find the left edge of the tape. -/
-noncomputable def MSep (Γ : Type) [Inhabited Γ] [DecidableEq Γ] (sep : Γ) :
+@[expose]
+public noncomputable def MSep (Γ : Type) [Inhabited Γ] [DecidableEq Γ] (sep : Γ) :
     @TM0.Machine Γ (RSt Γ) ⟨Sum.inr .grab⟩ :=
   fun q a => match q with
     | Sum.inr .grab =>
@@ -112,12 +117,12 @@ private theorem listBlank_mk_headI_tail (R : List Γ) :
   cases R with | nil => cases i <;> simp [List.getI, List.getD, List.headI] | cons _ _ => rfl
 
 omit [DecidableEq Γ] in
-theorem mk₂_move_right (L : List Γ) (x : Γ) (R : List Γ) :
+public theorem mk₂_move_right (L : List Γ) (x : Γ) (R : List Γ) :
     Tape.move Dir.right (Tape.mk₂ L (x :: R)) = Tape.mk₂ (x :: L) R := by
   simp [Tape.mk₂, Tape.mk', Tape.move, ListBlank.head_mk, ListBlank.tail_mk, ListBlank.cons_mk]
 
 omit [DecidableEq Γ] in
-theorem mk₂_move_left (x : Γ) (L R : List Γ) :
+public theorem mk₂_move_left (x : Γ) (L R : List Γ) :
     Tape.move Dir.left (Tape.mk₂ (x :: L) R) = Tape.mk₂ L (x :: R) := by
   simp only [Tape.mk₂, Tape.mk', Tape.move, ListBlank.head_mk, ListBlank.tail_mk,
     ListBlank.cons_mk, List.headI, List.tail_cons]
@@ -129,12 +134,12 @@ theorem mk₂_write (a : Γ) (L : List Γ) (x : Γ) (R : List Γ) :
   simp [Tape.mk₂, Tape.mk', Tape.write, ListBlank.tail_mk]
 
 omit [DecidableEq Γ] in
-theorem mk₂_head (L : List Γ) (x : Γ) (R : List Γ) :
+public theorem mk₂_head (L : List Γ) (x : Γ) (R : List Γ) :
     (Tape.mk₂ L (x :: R)).head = x := by
   simp [Tape.mk₂, Tape.mk', ListBlank.head_mk]
 
 omit [DecidableEq Γ] in
-theorem mk₂_nil_eq_mk₁ (R : List Γ) : Tape.mk₂ [] R = Tape.mk₁ R := by
+public theorem mk₂_nil_eq_mk₁ (R : List Γ) : Tape.mk₂ [] R = Tape.mk₁ R := by
   simp [Tape.mk₂, Tape.mk₁, Tape.mk']
 
 /-! ### Return loop -/
@@ -206,7 +211,7 @@ private theorem shift_to_grab_nil_cons (carry x : Γ) (xs L_orig suffix : List �
 From shifting(carry) to grab: complete shift + return + deposit + advance.
     Note: `hsuf` is not needed because the machine never accesses the suffix.
 -/
-theorem shift_to_grab (carry : Γ) (rest shifted L_orig suffix : List Γ)
+public theorem shift_to_grab (carry : Γ) (rest shifted L_orig suffix : List Γ)
     (hcarry : carry ≠ sep) (hrest : ∀ y ∈ rest, y ≠ sep)
     (hshifted : ∀ y ∈ shifted, y ≠ sep) :
     Reaches (TM0.step (MSep Γ sep))
@@ -235,7 +240,7 @@ theorem shift_to_grab (carry : Γ) (rest shifted L_orig suffix : List Γ)
 
 /-! ### One iteration -/
 
-theorem one_iteration (x : Γ) (rest L_orig suffix : List Γ)
+public theorem one_iteration (x : Γ) (rest L_orig suffix : List Γ)
     (hx : x ≠ sep) (hrest : ∀ y ∈ rest, y ≠ sep) :
     Reaches (TM0.step (MSep Γ sep))
       ⟨Sum.inr .grab, Tape.mk₂ L_orig ((x :: rest) ++ sep :: suffix)⟩
@@ -257,7 +262,7 @@ theorem one_iteration (x : Γ) (rest L_orig suffix : List Γ)
 
 /-! ### Iteration loop -/
 
-theorem iteration_loop (block suffix : List Γ)
+public theorem iteration_loop (block suffix : List Γ)
     (hblock : ∀ y ∈ block, y ≠ sep) :
     Reaches (TM0.step (MSep Γ sep))
       ⟨Sum.inr .grab, Tape.mk₂ [] (block ++ sep :: suffix)⟩
@@ -276,7 +281,7 @@ theorem iteration_loop (block suffix : List Γ)
 /-! ### Rewind loop -/
 
 /-- Rewind uses `default` (not `sep`) to find the left tape edge. -/
-theorem rewind_loop (s : Γ) (rest R_rest : List Γ)
+public theorem rewind_loop (s : Γ) (rest R_rest : List Γ)
     (hs : s ≠ default) (hrest : ∀ y ∈ rest, y ≠ default) :
     Reaches (TM0.step (MSep Γ sep))
       ⟨Sum.inr .rewind, Tape.mk₂ rest (s :: R_rest)⟩
@@ -291,7 +296,7 @@ theorem rewind_loop (s : Γ) (rest R_rest : List Γ)
 
 /-! ### Rewind phase -/
 
-theorem rewind_phase (block suffix : List Γ)
+public theorem rewind_phase (block suffix : List Γ)
     (hblock_nd : ∀ y ∈ block, y ≠ default)
     (hblock_nsep : ∀ y ∈ block, y ≠ sep) :
     Reaches (TM0.step (MSep Γ sep))
@@ -316,7 +321,7 @@ theorem rewind_phase (block suffix : List Γ)
 
 /-! ### Full computation -/
 
-theorem full_reaches (block suffix : List Γ)
+public theorem full_reaches (block suffix : List Γ)
     (hblock_nd : ∀ y ∈ block, y ≠ default)
     (hblock_nsep : ∀ y ∈ block, y ≠ sep) :
     Reaches (TM0.step (MSep Γ sep))
@@ -327,7 +332,7 @@ theorem full_reaches (block suffix : List Γ)
   exact (iteration_loop sep block suffix hblock_nsep).trans
     (rewind_phase sep block suffix hblock_nd hblock_nsep)
 
-theorem step_rewindDone (T : Tape Γ) :
+public theorem step_rewindDone (T : Tape Γ) :
     TM0.step (MSep Γ sep) ⟨Sum.inr .rewindDone, T⟩ = none := by
   simp [TM0.step, MSep]
 

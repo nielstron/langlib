@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Helper lemmas for RE closure under Kleene star -/
 
@@ -47,29 +49,35 @@ namespace StarHelpers
 
 section star_helpers
 
-abbrev nn (N : Type) : Type := N ⊕ Fin 3
-abbrev ns (T N : Type) : Type := symbol T (nn N)
+@[expose]
+public abbrev nn (N : Type) : Type := N ⊕ Fin 3
+@[expose]
+public abbrev ns (T N : Type) : Type := symbol T (nn N)
 
-def Z {N : Type} : ns T N := symbol.nonterminal (Sum.inr 0)
-def H {N : Type} : ns T N := symbol.nonterminal (Sum.inr 1)
-def R {N : Type} : ns T N := symbol.nonterminal (Sum.inr 2)
+@[expose]
+public def Z {N : Type} : ns T N := symbol.nonterminal (Sum.inr 0)
+@[expose]
+public def H {N : Type} : ns T N := symbol.nonterminal (Sum.inr 1)
+@[expose]
+public def R {N : Type} : ns T N := symbol.nonterminal (Sum.inr 2)
 
-def wrap_sym {N : Type} : symbol T N → ns T N
+@[expose]
+public def wrap_sym {N : Type} : symbol T N → ns T N
   | symbol.terminal t    => symbol.terminal t
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)
 
-lemma wrap_sym_injective {N : Type} : Function.Injective (@wrap_sym T N) := by
+public lemma wrap_sym_injective {N : Type} : Function.Injective (@wrap_sym T N) := by
   intro a b h; cases a <;> cases b <;> simp [wrap_sym] at h <;> exact congrArg _ h
 
 /-- `symbol.nonterminal (Sum.inr i)` does not appear in `List.map wrap_sym l`. -/
-lemma inr_not_in_map_wrap {N : Type} {l : List (symbol T N)} {i : Fin 3} :
+public lemma inr_not_in_map_wrap {N : Type} {l : List (symbol T N)} {i : Fin 3} :
     symbol.nonterminal (Sum.inr i) ∉ List.map (@wrap_sym T N) l := by
   intro h; rw [List.mem_map] at h
   rcases h with ⟨a, _, ha⟩
   cases a <;> simp [wrap_sym] at ha
 
 /-- No `Sum.inr i` nonterminal (other than H) appears in the flattened block structure. -/
-lemma inr_not_in_blocks {N : Type} {x : List (List (symbol T N))} {i : Fin 3}
+public lemma inr_not_in_blocks {N : Type} {x : List (List (symbol T N))} {i : Fin 3}
     (hi : symbol.nonterminal (Sum.inr i) ≠ @H T N) :
     symbol.nonterminal (Sum.inr i) ∉
       (List.map (· ++ [H]) (List.map (List.map (@wrap_sym T N)) x)).flatten := by
@@ -86,18 +94,18 @@ lemma inr_not_in_blocks {N : Type} {x : List (List (symbol T N))} {i : Fin 3}
   · rw [List.mem_singleton] at h_in_H
     exact hi h_in_H
 
-lemma Z_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
+public lemma Z_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
     @Z T N ∉ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten :=
   inr_not_in_blocks (by simp [Z, H])
 
-lemma R_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
+public lemma R_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
     @R T N ∉ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten :=
   inr_not_in_blocks (by simp [R, H])
 
 /-
 H does not appear in the input pattern of a wrapped rule.
 -/
-lemma H_not_in_wrapped_input {N : Type} {r₀ : grule T N} :
+public lemma H_not_in_wrapped_input {N : Type} {r₀ : grule T N} :
     @H T N ∉ List.map wrap_sym r₀.input_L ++
       [symbol.nonterminal (Sum.inl r₀.input_N)] ++
       List.map wrap_sym r₀.input_R := by
@@ -109,7 +117,7 @@ lemma H_not_in_wrapped_input {N : Type} {r₀ : grule T N} :
 Key decomposition: if a wrapped rule pattern matches in the flattened block structure,
     then the match occurs entirely within one block.
 -/
-lemma match_in_block {N : Type} {r₀ : grule T N}
+public lemma match_in_block {N : Type} {r₀ : grule T N}
     {x : List (List (symbol T N))} {u v : List (ns T N)} (xne : x ≠ [])
     (hyp : (List.map (· ++ [@H T N]) (List.map (List.map wrap_sym) x)).flatten =
       u ++ List.map wrap_sym r₀.input_L ++
@@ -160,7 +168,7 @@ lemma match_in_block {N : Type} {r₀ : grule T N}
 After applying a wrapped rule within a block, the result has the same block structure
     with the affected block updated.
 -/
-lemma update_block_in_flatten {N : Type}
+public lemma update_block_in_flatten {N : Type}
     {x₁ : List (List (symbol T N))} {x₂ : List (List (symbol T N))}
     {u₁ v₁ : List (symbol T N)}
     {r₀ : grule T N} :
@@ -175,7 +183,7 @@ lemma update_block_in_flatten {N : Type}
 /-
 Validity is preserved when updating a block.
 -/
-lemma valid_update_block
+public lemma valid_update_block
     {g : grammar T}
     {x₁ : List (List (symbol T g.nt))} {x₂ : List (List (symbol T g.nt))}
     {u₁ v₁ : List (symbol T g.nt)}
@@ -197,7 +205,7 @@ lemma valid_update_block
 /-
 R only appears at position 0 in [R, H] ++ blocks.
 -/
-lemma R_only_at_head {N : Type} {x : List (List (symbol T N))} :
+public lemma R_only_at_head {N : Type} {x : List (List (symbol T N))} :
     @R T N ∉ (@H T N :: (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten) := by
   simp [R, H];
   unfold wrap_sym; aesop;

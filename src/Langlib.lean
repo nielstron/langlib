@@ -8,7 +8,11 @@ public import Langlib.Classes
 public import Langlib.Examples
 public import Langlib.Grammars
 public import Langlib.Utilities
-@[expose] public section
+import Mathlib.Data.EReal.Operations
+import Mathlib.Data.Sym.Sym2.Init
+import Mathlib.Topology.MetricSpace.Bounded
+@[expose]
+public section
 
 /-! # Langlib Library
 

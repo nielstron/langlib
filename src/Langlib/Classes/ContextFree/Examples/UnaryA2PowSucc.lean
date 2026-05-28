@@ -34,8 +34,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The unary `{a^(2^(k+1))}` language
 
@@ -49,7 +51,7 @@ open Language Set List
 
 After pumping a word of length `2^(p+2)`, the new length is strictly between consecutive powers
 of two. -/
-lemma notCF_unaryPow2 : ¬ is_CF unaryPow2 := by
+public lemma notCF_unaryPow2 : ¬ is_CF unaryPow2 := by
   intro hcf
   rcases CF_pumping hcf with ⟨p, hp⟩
   let k := p + 1

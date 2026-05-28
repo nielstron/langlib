@@ -41,8 +41,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # RE Closure Under Intersection
 
@@ -66,12 +68,13 @@ open Turing
 variable {T : Type} [DecidableEq T]
 
 /-- Search test for membership in the intersection of two grammar languages. -/
-def reIntersectionTest (g₁ g₂ : grammar T) [DecidableEq g₁.nt] [DecidableEq g₂.nt]
+@[expose]
+public def reIntersectionTest (g₁ g₂ : grammar T) [DecidableEq g₁.nt] [DecidableEq g₂.nt]
     (p : List (ℕ × ℕ) × List (ℕ × ℕ)) (w : List T) : Bool :=
   grammarTest g₁ p.1 w && grammarTest g₂ p.2 w
 
 /-- The two-witness intersection search test is computable. -/
-theorem reIntersectionTest_computable₂ (g₁ g₂ : grammar T)
+public theorem reIntersectionTest_computable₂ (g₁ g₂ : grammar T)
     [DecidableEq g₁.nt] [DecidableEq g₂.nt]
     [Primcodable T] [Primcodable g₁.nt] [Primcodable g₂.nt] :
     Computable₂ (reIntersectionTest g₁ g₂) := by
@@ -86,7 +89,7 @@ theorem reIntersectionTest_computable₂ (g₁ g₂ : grammar T)
   exact (Primrec.and.to_comp).comp h₁ h₂
 
 /-- Recursively enumerable languages over a finite alphabet are closed under intersection. -/
-theorem RE_of_RE_i_RE [Fintype T] (L₁ L₂ : Language T) :
+public theorem RE_of_RE_i_RE [Fintype T] (L₁ L₂ : Language T) :
     is_RE L₁ ∧ is_RE L₂ → is_RE (L₁ ⊓ L₂) := by
   rintro ⟨hL₁, hL₂⟩
   obtain ⟨g₁, hg₁⟩ := hL₁

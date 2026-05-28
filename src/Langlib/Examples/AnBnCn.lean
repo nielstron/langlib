@@ -33,11 +33,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The language `{a^n b^n c^n}` -/
 
 /-- The language `{aⁿbⁿcⁿ | n ≥ 0}` over `Fin 3`. -/
-def lang_eq_eq : Language (Fin 3) :=
+@[expose]
+public def lang_eq_eq : Language (Fin 3) :=
   fun w => ∃ n : ℕ, w = List.replicate n a_ ++ List.replicate n b_ ++ List.replicate n c_

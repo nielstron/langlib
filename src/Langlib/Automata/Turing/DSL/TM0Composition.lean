@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # TM0 Sequential Composition
 
@@ -67,30 +69,33 @@ variable {Γ : Type} [Inhabited Γ]
 
 /-- Evaluate a TM0 machine and return the full output configuration
 (state + tape), rather than just the tape as `TM0.eval` does. -/
-def evalCfg {Λ : Type} [Inhabited Λ]
+@[expose]
+public def evalCfg {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (l : List Γ) : Part (TM0.Cfg Γ Λ) :=
   Turing.eval (TM0.step M) (TM0.init l)
 
 /-- `evalCfg` has the same `Dom` as `TM0.eval`. -/
-theorem evalCfg_dom_iff {Λ : Type} [Inhabited Λ]
+public theorem evalCfg_dom_iff {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (l : List Γ) :
     (evalCfg M l).Dom ↔ (TM0.eval M l).Dom := by
   simp [evalCfg, TM0.eval, Part.map]
 
 /-- Evaluate a TM0 from an arbitrary configuration. -/
-def evalFromCfg {Λ : Type} [Inhabited Λ]
+@[expose]
+public def evalFromCfg {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (cfg : TM0.Cfg Γ Λ) : Part (TM0.Cfg Γ Λ) :=
   Turing.eval (TM0.step M) cfg
 
 /-- `evalFromCfg` from the initial config equals `evalCfg`. -/
-theorem evalFromCfg_init {Λ : Type} [Inhabited Λ]
+public theorem evalFromCfg_init {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (l : List Γ) :
     evalFromCfg M (TM0.init l) = evalCfg M l := rfl
 
 /-- Sequential composition of TM0 machines.
 When M₁ halts (returns `none`), we immediately invoke M₂ from its default state
 on the current tape symbol. -/
-noncomputable def compose
+@[expose]
+public noncomputable def compose
     {Λ₁ : Type} [Inhabited Λ₁] {Λ₂ : Type} [Inhabited Λ₂]
     (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂) :
     @TM0.Machine Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ :=
@@ -127,7 +132,7 @@ theorem compose_step_inl (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ
 /-
 `Reaches` of M₁ lifts to `Reaches` of compose in `Sum.inl` states.
 -/
-theorem compose_phase1_reaches (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
+public theorem compose_phase1_reaches (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (c₁ : TM0.Cfg Γ Λ₁) (l : List Γ)
     (h : Reaches (TM0.step M₁) (TM0.init l) c₁) :
     Reaches (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
@@ -143,7 +148,7 @@ theorem compose_phase1_reaches (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine
 /-
 When M₁ halts, compose's transition matches M₂'s first step.
 -/
-theorem compose_step_on_halt (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
+public theorem compose_step_on_halt (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (q₁ : Λ₁) (T : Tape Γ)
     (h : TM0.step M₁ ⟨q₁, T⟩ = none) :
     @TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)
@@ -163,7 +168,7 @@ variable {Λ₁ : Type} [Inhabited Λ₁] {Λ₂ : Type} [Inhabited Λ₂]
 Phase 2 bisimulation: once in `Sum.inr` states, the composed machine
 exactly simulates M₂.
 -/
-theorem compose_phase2_respects (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂) :
+public theorem compose_phase2_respects (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂) :
     Respects
       (TM0.step M₂)
       (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
@@ -196,7 +201,7 @@ variable {Λ₁ : Type} [Inhabited Λ₁] {Λ₂ : Type} [Inhabited Λ₂]
 /-
 The composed machine's eval from init l equals its eval from M₁'s halting state.
 -/
-theorem compose_eval_split (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
+public theorem compose_eval_split (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (l : List Γ) (h₁ : (evalCfg M₁ l).Dom) :
     let c₁ := (evalCfg M₁ l).get h₁
     Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
@@ -212,7 +217,7 @@ theorem compose_eval_split (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ 
 At M₁'s halting state, the composed machine's eval equals M₂'s eval
 (via phase 2 transition).
 -/
-theorem compose_eval_at_halt (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
+public theorem compose_eval_at_halt (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (q₁ : Λ₁) (T : Tape Γ) (h : TM0.step M₁ ⟨q₁, T⟩ = none) :
     (Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
       ⟨Sum.inl q₁, T⟩).Dom ↔
@@ -249,7 +254,7 @@ theorem compose_eval_at_halt (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine �
 Forward direction: if M₁ halts producing tape T, and M₂ halts starting
 from ⟨default, T⟩, then the composed machine halts.
 -/
-theorem compose_dom_of_parts (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
+public theorem compose_dom_of_parts (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (l : List Γ)
     (h₁ : (evalCfg M₁ l).Dom)
     (h₂ : (evalFromCfg M₂ ⟨default, ((evalCfg M₁ l).get h₁).Tape⟩).Dom) :
@@ -310,7 +315,7 @@ theorem compose_dom_left (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ
 Backward: if the composed machine halts and M₁ halts producing tape T,
 then M₂ halts from ⟨default, T⟩.
 -/
-theorem compose_dom_right (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
+public theorem compose_dom_right (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (l : List Γ)
     (h₁ : (evalCfg M₁ l).Dom)
     (h : (@TM0.eval Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂) l).Dom) :
@@ -333,7 +338,7 @@ theorem compose_dom_right (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ �
 
 If M₁ halts on input `l`, then the composed machine halts on `l` iff
 M₂ halts on M₁'s output tape. -/
-theorem compose_dom_iff (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
+public theorem compose_dom_iff (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (l : List Γ)
     (h₁ : (evalCfg M₁ l).Dom) :
     (@TM0.eval Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂) l).Dom ↔
@@ -345,7 +350,7 @@ theorem compose_dom_iff (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ�
 Variant: when M₁'s output tape is `Tape.mk₁ l'`, composition halts iff
 M₂ halts on input `l'`.
 -/
-theorem compose_dom_iff' (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
+public theorem compose_dom_iff' (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (l l' : List Γ)
     (h₁ : (evalCfg M₁ l).Dom)
     (h_tape : ((evalCfg M₁ l).get h₁).Tape = Tape.mk₁ l') :
@@ -361,7 +366,7 @@ end FullComposition
 
 /-! ### Compose Output Tape Tracking -/
 
-theorem evalCfg_step_none
+public theorem evalCfg_step_none
     {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (l : List Γ)
     (h : (evalCfg M l).Dom) :
@@ -369,7 +374,7 @@ theorem evalCfg_step_none
   have := @Turing.mem_eval;
   exact this.mp ( Part.get_mem _ ) |>.2
 
-theorem compose_eval_from_halt_tape
+public theorem compose_eval_from_halt_tape
     {Λ₁ : Type} [Inhabited Λ₁] {Λ₂ : Type} [Inhabited Λ₂]
     (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (q₁ : Λ₁) (T : Tape Γ)
@@ -423,7 +428,7 @@ theorem compose_eval_from_halt_tape
       rw [ compose_step_on_halt ] <;> aesop;
     exact h_reaches.symm ▸ h_tr_eval rfl rfl hc₂_final.1 |> fun ⟨ b₂, hb₂₁, hb₂₂ ⟩ => ⟨ b₂, hb₂₂, hb₂₁.trans hc₂_final.2 ⟩
 
-theorem compose_eval_tape_mem
+public theorem compose_eval_tape_mem
     {Λ₁ : Type} [Inhabited Λ₁] {Λ₂ : Type} [Inhabited Λ₂]
     (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (l l' : List Γ)
@@ -451,7 +456,7 @@ theorem compose_eval_tape_mem
     show evalFromCfg M₂ ⟨default, c₁.Tape⟩ = evalCfg M₂ l'
     rw [h₁_tape]; rfl
 
-theorem compose_evalCfg_tape
+public theorem compose_evalCfg_tape
     {Λ₁ : Type} [Inhabited Λ₁] {Λ₂ : Type} [Inhabited Λ₂]
     (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (l l' : List Γ)

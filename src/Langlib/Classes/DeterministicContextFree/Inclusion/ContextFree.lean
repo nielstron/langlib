@@ -39,8 +39,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # DCFs are a subset of CFLs
 
@@ -52,11 +54,11 @@ This file shows that DCFs are a subset of the CFLs.
 -- DCF inclusion into CFL
 -- ============================================================================
 
-theorem is_CF_of_is_DCF {T : Type} [Fintype T] {L : Language T} (h : is_DCF L) : is_CF L := by
+public theorem is_CF_of_is_DCF {T : Type} [Fintype T] {L : Language T} (h : is_DCF L) : is_CF L := by
   obtain ⟨Q, S, _, _, M, rfl⟩ := h
   exact is_CF_of_is_PDA M.is_PDA_acceptsByFinalState
 
 /-- The class of deterministic context-free languages is contained in the class of
     context-free languages. -/
-theorem DCF_subclass_CF {T : Type} [Fintype T] : (DCF : Set (Language T)) ⊆ CF :=
+public theorem DCF_subclass_CF {T : Type} [Fintype T] : (DCF : Set (Language T)) ⊆ CF :=
   fun _ h => is_CF_of_is_DCF h

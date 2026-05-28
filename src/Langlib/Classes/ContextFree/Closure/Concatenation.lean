@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Closure Under Concatenation
 
@@ -50,7 +52,7 @@ This file derives closure under concatenation from closure under substitution.
 variable {T : Type}
 
 /-- The class of context-free languages is closed under concatenation. -/
-theorem CF_of_CF_c_CF (L₁ : Language T) (L₂ : Language T) :
+public theorem CF_of_CF_c_CF (L₁ : Language T) (L₂ : Language T) :
     is_CF L₁ ∧ is_CF L₂ → is_CF (L₁ * L₂) := by
   classical
   rintro ⟨h₁, h₂⟩

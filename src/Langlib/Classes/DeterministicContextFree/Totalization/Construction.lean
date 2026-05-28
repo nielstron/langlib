@@ -38,8 +38,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Totalization Construction
 
@@ -59,58 +61,60 @@ noncomputable section
 
 /-- Finite control states of the totalized DPDA.  The boolean in `sim` records
 whether the original machine would accept if the input ended at the current stack. -/
-inductive TotalState (Q : Type) where
+public inductive TotalState (Q : Type) where
   | init : TotalState Q
   | sim : Q → Bool → TotalState Q
   | drain : TotalState Q
 deriving DecidableEq, Fintype
 
 /-- Replacement block for an original stack update above a known suffix summary. -/
-def annotatedReplacement (below : AnalysisSummary A) (β : List S) : List (TotalStackSymbol A) :=
+@[expose]
+public def annotatedReplacement (below : AnalysisSummary A) (β : List S) : List (TotalStackSymbol A) :=
   annotateAbove A below β
 
 /-- Initial stack expansion: install the original start symbol above the permanent bottom. -/
-def initialReplacement : List (TotalStackSymbol A) :=
+@[expose]
+public def initialReplacement : List (TotalStackSymbol A) :=
   annotateAbove A (AnalysisSummary.id A) [M.start_symbol] ++ [none]
 
-theorem erase_annotatedReplacement (below : AnalysisSummary A) (β : List S) :
+public theorem erase_annotatedReplacement (below : AnalysisSummary A) (β : List S) :
     eraseAnnotatedStack (A := A) (annotatedReplacement A below β) = β :=
   erase_annotateAbove A below β
 
-theorem erase_annotatedReplacement_append (below : AnalysisSummary A) (β : List S)
+public theorem erase_annotatedReplacement_append (below : AnalysisSummary A) (β : List S)
     (rest : List (TotalStackSymbol A)) :
     eraseAnnotatedStack (A := A) (annotatedReplacement A below β ++ rest) =
       β ++ eraseAnnotatedStack (A := A) rest := by
   rw [eraseAnnotatedStack_append, erase_annotatedReplacement]
 
-theorem erase_initialReplacement :
+public theorem erase_initialReplacement :
     eraseAnnotatedStack (A := A) (initialReplacement A) = [M.start_symbol] := by
   simp [initialReplacement, eraseAnnotatedStack]
 
-theorem stackWellAnnotated_initialReplacement :
+public theorem stackWellAnnotated_initialReplacement :
     StackWellAnnotated (A := A) (initialReplacement A) := by
   simpa [initialReplacement] using
     stackWellAnnotated_annotateAbove_bottom (A := A) [M.start_symbol]
 
-theorem stackHasBottom_initialReplacement :
+public theorem stackHasBottom_initialReplacement :
     StackHasBottom (A := A) (initialReplacement A) := by
   simpa [initialReplacement] using
     stackHasBottom_annotateAbove_bottom (A := A) [M.start_symbol]
 
-theorem stackWellAnnotated_annotatedReplacement_append {below : AnalysisSummary A}
+public theorem stackWellAnnotated_annotatedReplacement_append {below : AnalysisSummary A}
     {rest : List (TotalStackSymbol A)} (β : List S)
     (hbelow : SummaryRepresents A below (eraseAnnotatedStack (A := A) rest))
     (hrest : StackWellAnnotated (A := A) rest) :
     StackWellAnnotated (A := A) (annotatedReplacement A below β ++ rest) :=
   stackWellAnnotated_annotateAbove_append (A := A) hbelow hrest β
 
-theorem stackHasBottom_annotatedReplacement_append {below : AnalysisSummary A}
+public theorem stackHasBottom_annotatedReplacement_append {below : AnalysisSummary A}
     {rest : List (TotalStackSymbol A)} (β : List S)
     (hrest : StackHasBottom (A := A) rest) :
     StackHasBottom (A := A) (annotatedReplacement A below β ++ rest) :=
   stackHasBottom_annotateAbove_append (A := A) hrest β
 
-theorem summaryRepresents_replacement {below : AnalysisSummary A}
+public theorem summaryRepresents_replacement {below : AnalysisSummary A}
     {rest : List (TotalStackSymbol A)} (β : List S)
     (hbelow : SummaryRepresents A below (eraseAnnotatedStack (A := A) rest)) :
     SummaryRepresents A (below.above A β)
@@ -118,7 +122,7 @@ theorem summaryRepresents_replacement {below : AnalysisSummary A}
   rw [erase_annotatedReplacement_append]
   exact hbelow.above (A := A) β
 
-theorem replacement_preserves_annotations {Z : S} {below : AnalysisSummary A}
+public theorem replacement_preserves_annotations {Z : S} {below : AnalysisSummary A}
     {rest : List (TotalStackSymbol A)} (β : List S)
     (hstack : StackWellAnnotated (A := A) (some (Z, below) :: rest)) :
     StackWellAnnotated (A := A) (annotatedReplacement A below β ++ rest) ∧
@@ -128,20 +132,22 @@ theorem replacement_preserves_annotations {Z : S} {below : AnalysisSummary A}
     ⟨stackWellAnnotated_annotatedReplacement_append (A := A) β hstack.1 hstack.2,
       summaryRepresents_replacement (A := A) β hstack.1⟩
 
-theorem replacement_preserves_bottom {Z : S} {below : AnalysisSummary A}
+public theorem replacement_preserves_bottom {Z : S} {below : AnalysisSummary A}
     {rest : List (TotalStackSymbol A)} (β : List S)
     (hbottom : StackHasBottom (A := A) (some (Z, below) :: rest)) :
     StackHasBottom (A := A) (annotatedReplacement A below β ++ rest) :=
   stackHasBottom_annotatedReplacement_append (A := A) β hbottom
 
-theorem initialSummaryRepresents :
+public theorem initialSummaryRepresents :
     SummaryRepresents A ((AnalysisSummary.id A).above A [M.start_symbol]) [M.start_symbol] :=
   (summaryRepresents_id A).cons (A := A) M.start_symbol
 
-def initialSummary : AnalysisSummary A :=
+@[expose]
+public def initialSummary : AnalysisSummary A :=
   (AnalysisSummary.id A).above A [M.start_symbol]
 
-def initialAcceptBit : Bool :=
+@[expose]
+public def initialAcceptBit : Bool :=
   acceptBit A M.initial_state (initialSummary A)
 
 theorem initial_configuration_annotations :
@@ -155,13 +161,15 @@ theorem initial_configuration_annotations :
       initialSummaryRepresents A⟩
 
 /-- The finite-control state corresponding to an original state and a resulting stack summary. -/
-def simState (q : Q) (summary : AnalysisSummary A) : TotalState Q :=
+@[expose]
+public def simState (q : Q) (summary : AnalysisSummary A) : TotalState Q :=
   TotalState.sim q (acceptBit A q summary)
 
 /-- The analyzed totalizer.  It follows terminating epsilon phases of `M`, treats
 divergent epsilon phases as stable decision points, and drains any remaining input
 to a rejecting state when the original computation cannot consume the next symbol. -/
-def totalizer : DPDA (TotalState Q) T (TotalStackSymbol A) := by
+@[expose]
+public def totalizer : DPDA (TotalState Q) T (TotalStackSymbol A) := by
   classical
   refine
     { initial_state := TotalState.init
@@ -231,7 +239,7 @@ def totalizer : DPDA (TotalState Q) T (TotalStackSymbol A) := by
                 · simp [hMε, hstop]
                 · simp [hMε, hstop] at hε
 
-theorem simState_mem_final_iff (q : Q) (summary : AnalysisSummary A) :
+public theorem simState_mem_final_iff (q : Q) (summary : AnalysisSummary A) :
     simState A q summary ∈ (totalizer A).final_states ↔ acceptsFromSummary A q summary := by
   classical
   simp [totalizer, simState, acceptBit_eq_true_iff]
@@ -240,22 +248,22 @@ theorem sim_mem_final_iff (q : Q) (b : Bool) :
     TotalState.sim q b ∈ (totalizer A).final_states ↔ b = true := by
   cases b <;> simp [totalizer]
 
-theorem simState_mem_final_iff_semantic {q : Q} {summary : AnalysisSummary A} {γ : List S}
+public theorem simState_mem_final_iff_semantic {q : Q} {summary : AnalysisSummary A} {γ : List S}
     (hsummary : SummaryRepresents A summary γ) :
     simState A q summary ∈ (totalizer A).final_states ↔
       ∃ q' γ', M.EpsilonReaches (q, γ) (q', γ') ∧ q' ∈ M.final_states := by
   rw [simState_mem_final_iff]
   exact acceptsFromSummary_correct A hsummary q
 
-theorem init_mem_final_iff :
+public theorem init_mem_final_iff :
     TotalState.init ∈ (totalizer A).final_states ↔ initialAcceptBit A = true := by
   simp [totalizer]
 
-theorem drain_not_mem_final :
+public theorem drain_not_mem_final :
     TotalState.drain ∉ (totalizer A).final_states := by
   simp [totalizer]
 
-theorem totalizer_empty_step_preserves_final
+public theorem totalizer_empty_step_preserves_final
     {st₁ st₂ : TotalState Q} {stack₁ stack₂ : List (TotalStackSymbol A)}
     (hstep : @PDA.Reaches₁ (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA ⟨st₁, [], stack₁⟩ ⟨st₂, [], stack₂⟩) :
@@ -297,7 +305,7 @@ theorem totalizer_empty_step_preserves_final
                     cases b <;> simp
                   · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, totalizer, hε, hstops] at hstep
 
-theorem totalizer_empty_reaches_preserves_final_aux
+public theorem totalizer_empty_reaches_preserves_final_aux
     {st₁ : TotalState Q} {stack₁ : List (TotalStackSymbol A)}
     {c₂ : @PDA.conf (TotalState Q) T (TotalStackSymbol A) _ _ _ (totalizer A).toPDA}
     (hreach : @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
@@ -324,14 +332,14 @@ theorem totalizer_empty_reaches_preserves_final_aux
               subst input₂
               exact Iff.trans ih (totalizer_empty_step_preserves_final (A := A) hstep)
 
-theorem totalizer_empty_reaches_preserves_final
+public theorem totalizer_empty_reaches_preserves_final
     {st₁ st₂ : TotalState Q} {stack₁ stack₂ : List (TotalStackSymbol A)}
     (hreach : @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA ⟨st₁, [], stack₁⟩ ⟨st₂, [], stack₂⟩) :
     st₁ ∈ (totalizer A).final_states ↔ st₂ ∈ (totalizer A).final_states :=
   totalizer_empty_reaches_preserves_final_aux (A := A) hreach
 
-theorem totalizer_step_deterministic
+public theorem totalizer_step_deterministic
     {c c₁ c₂ : @PDA.conf (TotalState Q) T (TotalStackSymbol A) _ _ _ (totalizer A).toPDA}
     (h₁ : @PDA.Reaches₁ (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA c c₁)
@@ -414,7 +422,7 @@ theorem totalizer_step_deterministic
                       · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, totalizer, hε, hstops] at h₁ h₂ ⊢
                         exact close h₁ h₂
 
-theorem totalizer_reachesIn_deterministic
+public theorem totalizer_reachesIn_deterministic
     {n : ℕ}
     {c c₁ c₂ : @PDA.conf (TotalState Q) T (TotalStackSymbol A) _ _ _ (totalizer A).toPDA}
     (h₁ : @PDA.ReachesIn (TotalState Q) T (TotalStackSymbol A) _ _ _
@@ -436,7 +444,7 @@ theorem totalizer_reachesIn_deterministic
         (PDA.reaches₁_iff_reachesIn_one.mpr hstep₁)
         (PDA.reaches₁_iff_reachesIn_one.mpr hstep₂)
 
-theorem totalizer_reachesIn_prefix_of_le
+public theorem totalizer_reachesIn_prefix_of_le
     {n m : ℕ}
     {c c₁ c₂ : @PDA.conf (TotalState Q) T (TotalStackSymbol A) _ _ _ (totalizer A).toPDA}
     (hle : n ≤ m)
@@ -460,7 +468,7 @@ theorem totalizer_reachesIn_prefix_of_le
       exact Relation.ReflTransGen.tail (ih (Nat.le_add_right n k) hd)
         (PDA.reaches₁_iff_reachesIn_one.mpr hstep)
 
-theorem totalizer_sim_step_to_original {q p : Q} {b b' : Bool}
+public theorem totalizer_sim_step_to_original {q p : Q} {b b' : Bool}
     {input input' : List T} {stack stack' : List (TotalStackSymbol A)}
     (hstep : @PDA.Reaches₁ (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -535,7 +543,7 @@ theorem totalizer_sim_step_to_original {q p : Q} {b b' : Bool}
                     simpa [PDA.Reaches₁, eraseAnnotatedStack, erase_annotatedReplacement_append] using hOrig
                   · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, totalizer, hε, hstops] at hstep
 
-theorem totalizer_no_step_to_init
+public theorem totalizer_no_step_to_init
     {c : @PDA.conf (TotalState Q) T (TotalStackSymbol A) _ _ _ (totalizer A).toPDA}
     {input : List T} {stack : List (TotalStackSymbol A)}
     (hstep : @PDA.Reaches₁ (TotalState Q) T (TotalStackSymbol A) _ _ _
@@ -594,7 +602,7 @@ theorem totalizer_no_step_to_init
                       · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, totalizer, hε, hstops] at hstep
                       · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, totalizer, hε, hstops] at hstep
 
-theorem totalizer_reaches_original_rep (w : List T)
+public theorem totalizer_reaches_original_rep (w : List T)
     {c : @PDA.conf (TotalState Q) T (TotalStackSymbol A) _ _ _ (totalizer A).toPDA}
     (hreach : @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -655,7 +663,7 @@ theorem totalizer_reaches_original_rep (w : List T)
             exact Relation.ReflTransGen.tail hOrigPrefix
               (totalizer_sim_step_to_original (A := A) hstep)
 
-theorem totalizer_reaches_sim_to_original (w : List T) {q : Q} {b : Bool}
+public theorem totalizer_reaches_sim_to_original (w : List T) {q : Q} {b : Bool}
     {input : List T} {stack : List (TotalStackSymbol A)}
     (hreach : @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -666,7 +674,7 @@ theorem totalizer_reaches_sim_to_original (w : List T) {q : Q} {b : Bool}
       ⟨q, input, eraseAnnotatedStack (A := A) stack⟩ :=
   (totalizer_reaches_original_rep (A := A) w hreach).2 q b rfl
 
-theorem totalizer_reaches_stack_invariants (w : List T)
+public theorem totalizer_reaches_stack_invariants (w : List T)
     {c : @PDA.conf (TotalState Q) T (TotalStackSymbol A) _ _ _ (totalizer A).toPDA}
     (hreach : @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -782,7 +790,7 @@ theorem totalizer_reaches_stack_invariants (w : List T)
                             rcases hstep with ⟨rfl, rfl, rfl⟩
                             exact ih
 
-theorem totalizer_empty_final_to_original_accept (w : List T)
+public theorem totalizer_empty_final_to_original_accept (w : List T)
     {c : @PDA.conf (TotalState Q) T (TotalStackSymbol A) _ _ _ (totalizer A).toPDA}
     (hreach : @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -886,14 +894,14 @@ theorem totalizer_empty_final_to_original_accept (w : List T)
                               rcases hstep with ⟨rfl, rfl, rfl⟩
                               exact (drain_not_mem_final (A := A) hfinal).elim
 
-theorem totalizer_acceptsByFinalState_subset_original :
+public theorem totalizer_acceptsByFinalState_subset_original :
     (totalizer A).acceptsByFinalState ≤ M.acceptsByFinalState := by
   intro w hw
   unfold DPDA.acceptsByFinalState PDA.acceptsByFinalState at hw ⊢
   obtain ⟨st, hfinal, stack, hreach⟩ := hw
   exact totalizer_empty_final_to_original_accept (A := A) w hreach rfl hfinal
 
-theorem totalizer_initial_step (w : List T) :
+public theorem totalizer_initial_step (w : List T) :
     @PDA.Reaches₁ (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
       ⟨TotalState.init, w, [none]⟩
@@ -917,7 +925,7 @@ theorem totalizer_initial_step (w : List T) :
         ⟨simState A M.initial_state ((AnalysisSummary.id A).above A [M.start_symbol]),
           initialReplacement A, by simp [DPDA.toPDA, totalizer], rfl⟩
 
-theorem totalizer_initial_reaches (w : List T) :
+public theorem totalizer_initial_reaches (w : List T) :
     @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
       ⟨TotalState.init, w, [none]⟩
@@ -942,7 +950,7 @@ theorem totalizer_accepts_nil_of_original_accept
   refine ⟨simState A M.initial_state (initialSummary A), hfinal, initialReplacement A, ?_⟩
   simpa [initialSummary] using totalizer_initial_reaches A ([] : List T)
 
-theorem totalizer_input_step_of_transition {q p : Q} {b : Bool} {a : T} {Z : S}
+public theorem totalizer_input_step_of_transition {q p : Q} {b : Bool} {a : T} {Z : S}
     {below : AnalysisSummary A} {β : List S} {rest : List (TotalStackSymbol A)}
     {w : List T}
     (hε : M.epsilon_transition q Z = none)
@@ -959,7 +967,7 @@ theorem totalizer_input_step_of_transition {q p : Q} {b : Bool} {a : T} {Z : S}
     ⟨simState A p (below.above A β), annotatedReplacement A below β,
       by simp [DPDA.toPDA, totalizer, simState, hε, hδ], rfl⟩
 
-theorem totalizer_input_step_preserves_annotations {q p : Q} {b : Bool} {a : T} {Z : S}
+public theorem totalizer_input_step_preserves_annotations {q p : Q} {b : Bool} {a : T} {Z : S}
     {below : AnalysisSummary A} {β : List S} {rest : List (TotalStackSymbol A)}
     {w : List T}
     (hε : M.epsilon_transition q Z = none)
@@ -983,7 +991,7 @@ theorem totalizer_input_step_preserves_annotations {q p : Q} {b : Bool} {a : T} 
   · exact (replacement_preserves_annotations (A := A) β hstack).2
   · exact erase_annotatedReplacement_append A below β rest
 
-theorem totalizer_epsilon_step_of_transition {q p : Q} {b : Bool} {Z : S}
+public theorem totalizer_epsilon_step_of_transition {q p : Q} {b : Bool} {Z : S}
     {below : AnalysisSummary A} {β : List S} {rest : List (TotalStackSymbol A)}
     {w : List T}
     (hε : M.epsilon_transition q Z = some (p, β))
@@ -1010,7 +1018,7 @@ theorem totalizer_epsilon_step_of_transition {q p : Q} {b : Bool} {Z : S}
         ⟨TotalState.sim p b, annotatedReplacement A below β,
           by simp [DPDA.toPDA, totalizer, simState, hε, hstop], rfl⟩
 
-theorem totalizer_epsilon_step_of_epsilonStep {q p : Q} {b : Bool} {γ' : List S}
+public theorem totalizer_epsilon_step_of_epsilonStep {q p : Q} {b : Bool} {γ' : List S}
     {top : TotalStackSymbol A} {rest : List (TotalStackSymbol A)} {w : List T}
     (hstack : StackWellAnnotated (A := A) (top :: rest))
     (hbottom : StackHasBottom (A := A) (top :: rest))
@@ -1051,7 +1059,7 @@ theorem totalizer_epsilon_step_of_epsilonStep {q p : Q} {b : Bool} {γ' : List S
           (replacement_preserves_annotations (A := A) β hstack).2
       · exact erase_annotatedReplacement_append A below β rest
 
-theorem totalizer_epsilonReaches_of_epsilonReaches {q : Q} {b : Bool} {c' : EpsilonConf Q S}
+public theorem totalizer_epsilonReaches_of_epsilonReaches {q : Q} {b : Bool} {c' : EpsilonConf Q S}
     {top : TotalStackSymbol A} {rest : List (TotalStackSymbol A)} {w : List T}
     (hstack : StackWellAnnotated (A := A) (top :: rest))
     (hbottom : StackHasBottom (A := A) (top :: rest))
@@ -1109,7 +1117,7 @@ theorem totalizer_epsilonReaches_of_epsilonReaches {q : Q} {b : Bool} {c' : Epsi
           refine ⟨stackNext, summaryNext, ?_, hstackNext, hbottomNext, hsummaryNext, heraseNext⟩
           exact Relation.ReflTransGen.trans hreachT (Relation.ReflTransGen.single hstepT)
 
-theorem totalizer_epsilonStopsAt_of_epsilonStopsAt {q : Q} {b : Bool} {cstable : EpsilonConf Q S}
+public theorem totalizer_epsilonStopsAt_of_epsilonStopsAt {q : Q} {b : Bool} {cstable : EpsilonConf Q S}
     {top : TotalStackSymbol A} {rest : List (TotalStackSymbol A)} {w : List T}
     (hstack : StackWellAnnotated (A := A) (top :: rest))
     (hbottom : StackHasBottom (A := A) (top :: rest))
@@ -1131,7 +1139,7 @@ theorem totalizer_epsilonStopsAt_of_epsilonStopsAt {q : Q} {b : Bool} {cstable :
       hstack hbottom hreach ⟨cstable, hreach, hstable⟩
   exact ⟨stack', summary', hreachT, hstack', hbottom', hsummary', herase', hstable⟩
 
-theorem totalizer_input_step_to_drain_of_no_transition {q : Q} {b : Bool} {a : T} {Z : S}
+public theorem totalizer_input_step_to_drain_of_no_transition {q : Q} {b : Bool} {a : T} {Z : S}
     {below : AnalysisSummary A} {rest : List (TotalStackSymbol A)} {w : List T}
     (hε : M.epsilon_transition q Z = none)
     (hδ : M.transition q a Z = none) :
@@ -1147,7 +1155,7 @@ theorem totalizer_input_step_to_drain_of_no_transition {q : Q} {b : Bool} {a : T
     ⟨TotalState.drain, [some (Z, below)],
       by simp [DPDA.toPDA, totalizer, simState, hε, hδ], rfl⟩
 
-theorem totalizer_input_step_to_drain_of_unstopping_epsilon {q p : Q} {b : Bool} {a : T} {Z : S}
+public theorem totalizer_input_step_to_drain_of_unstopping_epsilon {q p : Q} {b : Bool} {a : T} {Z : S}
     {below : AnalysisSummary A} {β : List S} {rest : List (TotalStackSymbol A)}
     {w : List T}
     (hε : M.epsilon_transition q Z = some (p, β))
@@ -1164,7 +1172,7 @@ theorem totalizer_input_step_to_drain_of_unstopping_epsilon {q p : Q} {b : Bool}
     ⟨TotalState.drain, [some (Z, below)],
       by simp [DPDA.toPDA, totalizer, simState, hε, hstop], rfl⟩
 
-theorem totalizer_input_step_to_drain_of_empty_stack {q : Q} {b : Bool} {a : T}
+public theorem totalizer_input_step_to_drain_of_empty_stack {q : Q} {b : Bool} {a : T}
     {rest : List (TotalStackSymbol A)} {w : List T} :
     @PDA.Reaches₁ (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -1177,7 +1185,7 @@ theorem totalizer_input_step_to_drain_of_empty_stack {q : Q} {b : Bool} {a : T}
   exact Set.mem_union_left _
     ⟨TotalState.drain, [none], by simp [DPDA.toPDA, totalizer, simState], rfl⟩
 
-theorem totalizer_drain_input_step (a : T) (w : List T)
+public theorem totalizer_drain_input_step (a : T) (w : List T)
     (top : TotalStackSymbol A) (rest : List (TotalStackSymbol A)) :
     @PDA.Reaches₁ (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -1189,7 +1197,7 @@ theorem totalizer_drain_input_step (a : T) (w : List T)
   exact Set.mem_union_left _
     ⟨TotalState.drain, [top], by simp [DPDA.toPDA, totalizer], rfl⟩
 
-theorem totalizer_drain_reaches_empty_input (w : List T)
+public theorem totalizer_drain_reaches_empty_input (w : List T)
     (top : TotalStackSymbol A) (rest : List (TotalStackSymbol A)) :
     @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -1201,7 +1209,7 @@ theorem totalizer_drain_reaches_empty_input (w : List T)
       exact Relation.ReflTransGen.trans
         (Relation.ReflTransGen.single (totalizer_drain_input_step A a w top rest)) ih
 
-theorem totalizer_no_transition_reaches_empty_drain {q : Q} {b : Bool} {a : T} {Z : S}
+public theorem totalizer_no_transition_reaches_empty_drain {q : Q} {b : Bool} {a : T} {Z : S}
     {below : AnalysisSummary A} {rest : List (TotalStackSymbol A)} {w : List T}
     (hε : M.epsilon_transition q Z = none)
     (hδ : M.transition q a Z = none) :
@@ -1214,7 +1222,7 @@ theorem totalizer_no_transition_reaches_empty_drain {q : Q} {b : Bool} {a : T} {
       (totalizer_input_step_to_drain_of_no_transition (A := A) (w := w) hε hδ))
     (totalizer_drain_reaches_empty_input A w (some (Z, below)) rest)
 
-theorem totalizer_stable_input_step_preserves_annotations {q p : Q} {b : Bool} {a : T} {Z : S}
+public theorem totalizer_stable_input_step_preserves_annotations {q p : Q} {b : Bool} {a : T} {Z : S}
     {below : AnalysisSummary A} {β : List S} {rest : List (TotalStackSymbol A)}
     {w : List T}
     (hstack : StackWellAnnotated (A := A) (some (Z, below) :: rest))
@@ -1235,7 +1243,7 @@ theorem totalizer_stable_input_step_preserves_annotations {q p : Q} {b : Bool} {
     simpa [EpsilonStable, eraseAnnotatedStack] using hstable
   exact totalizer_input_step_preserves_annotations (A := A) (w := w) hε hδ hstack hbottom
 
-theorem totalizer_stable_no_transition_reaches_empty_drain {q : Q} {b : Bool} {a : T} {Z : S}
+public theorem totalizer_stable_no_transition_reaches_empty_drain {q : Q} {b : Bool} {a : T} {Z : S}
     {below : AnalysisSummary A} {rest : List (TotalStackSymbol A)} {w : List T}
     (hstable : M.EpsilonStable
       (q, eraseAnnotatedStack (A := A) (some (Z, below) :: rest)))
@@ -1249,7 +1257,7 @@ theorem totalizer_stable_no_transition_reaches_empty_drain {q : Q} {b : Bool} {a
   simpa using
     totalizer_no_transition_reaches_empty_drain (A := A) (w := w) hε hδ
 
-theorem totalizer_unstopping_epsilon_reaches_empty_drain {q p : Q} {b : Bool} {a : T} {Z : S}
+public theorem totalizer_unstopping_epsilon_reaches_empty_drain {q p : Q} {b : Bool} {a : T} {Z : S}
     {below : AnalysisSummary A} {β : List S} {rest : List (TotalStackSymbol A)}
     {w : List T}
     (hε : M.epsilon_transition q Z = some (p, β))
@@ -1263,7 +1271,7 @@ theorem totalizer_unstopping_epsilon_reaches_empty_drain {q p : Q} {b : Bool} {a
       (totalizer_input_step_to_drain_of_unstopping_epsilon (A := A) (w := w) hε hstop))
     (totalizer_drain_reaches_empty_input A w (some (Z, below)) rest)
 
-theorem totalizer_empty_original_stack_reaches_empty_drain {q : Q} {b : Bool} {a : T}
+public theorem totalizer_empty_original_stack_reaches_empty_drain {q : Q} {b : Bool} {a : T}
     {rest : List (TotalStackSymbol A)} {w : List T} :
     @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -1274,7 +1282,7 @@ theorem totalizer_empty_original_stack_reaches_empty_drain {q : Q} {b : Bool} {a
       (totalizer_input_step_to_drain_of_empty_stack (A := A) (w := w)))
     (totalizer_drain_reaches_empty_input A w none rest)
 
-theorem totalizer_reaches_empty_from_sim (q : Q) (b : Bool) (w : List T)
+public theorem totalizer_reaches_empty_from_sim (q : Q) (b : Bool) (w : List T)
     (top : TotalStackSymbol A) (rest : List (TotalStackSymbol A))
     (hstack : StackWellAnnotated (A := A) (top :: rest))
     (hbottom : StackHasBottom (A := A) (top :: rest)) :
@@ -1366,7 +1374,7 @@ theorem totalizer_reaches_empty_from_sim (q : Q) (b : Bool) (w : List T)
                       (q := q) (p := p) (b := b) (a := a) (Z := Z) (below := below)
                       (β := β) (rest := rest) (w := w) hε hnotStopsFromSummary⟩
 
-theorem totalizer_accepting_reaches_from_simState (q : Q) (w : List T)
+public theorem totalizer_accepting_reaches_from_simState (q : Q) (w : List T)
     (top : TotalStackSymbol A) (rest : List (TotalStackSymbol A))
     (hstack : StackWellAnnotated (A := A) (top :: rest))
     (hbottom : StackHasBottom (A := A) (top :: rest))
@@ -1490,7 +1498,7 @@ theorem totalizer_accepting_reaches_from_simState (q : Q) (w : List T)
                   (Relation.ReflTransGen.single hinput)
                   hrec)
 
-theorem totalizer_reaches_empty (w : List T) :
+public theorem totalizer_reaches_empty (w : List T) :
     ∃ st stack,
       @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
         (totalizer A).toPDA
@@ -1509,7 +1517,7 @@ theorem totalizer_reaches_empty (w : List T) :
   exact Relation.ReflTransGen.trans (totalizer_initial_reaches A w) (by
     simpa [totalizer, initialAcceptBit, initialSummary, simState, hinitStack] using hreachSim)
 
-theorem original_accept_subset_totalizer_acceptsByFinalState :
+public theorem original_accept_subset_totalizer_acceptsByFinalState :
     M.acceptsByFinalState ≤ (totalizer A).acceptsByFinalState := by
   intro w hw
   unfold DPDA.acceptsByFinalState PDA.acceptsByFinalState at hw ⊢
@@ -1539,12 +1547,12 @@ theorem original_accept_subset_totalizer_acceptsByFinalState :
   exact Relation.ReflTransGen.trans (totalizer_initial_reaches A w) (by
     simpa [totalizer, initialSummary, hinitStack, hsummaryEq] using hreachSim)
 
-theorem totalizer_acceptsByFinalState_eq_original :
+public theorem totalizer_acceptsByFinalState_eq_original :
     (totalizer A).acceptsByFinalState = M.acceptsByFinalState :=
   le_antisymm (totalizer_acceptsByFinalState_subset_original (A := A))
     (original_accept_subset_totalizer_acceptsByFinalState (A := A))
 
-theorem totalizer_total :
+public theorem totalizer_total :
     ∀ w : List T, ∃ st stack,
       @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
         (totalizer A).toPDA
@@ -1552,7 +1560,7 @@ theorem totalizer_total :
         ⟨st, [], stack⟩ :=
   totalizer_reaches_empty A
 
-theorem totalizer_final_consistent (w : List T) (st₁ st₂ : TotalState Q)
+public theorem totalizer_final_consistent (w : List T) (st₁ st₂ : TotalState Q)
     (stack₁ stack₂ : List (TotalStackSymbol A))
     (h₁ : @PDA.Reaches (TotalState Q) T (TotalStackSymbol A) _ _ _
       (totalizer A).toPDA
@@ -1572,7 +1580,7 @@ theorem totalizer_final_consistent (w : List T) (st₁ st₂ : TotalState Q)
     exact (totalizer_empty_reaches_preserves_final (A := A)
       (totalizer_reachesIn_prefix_of_le (A := A) hle' hn₂ hn₁)).symm
 
-theorem totalizer_decides :
+public theorem totalizer_decides :
     (totalizer A).DecidesEveryInput := by
   constructor
   · exact totalizer_total A

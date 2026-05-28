@@ -38,8 +38,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Closure Under Bijections
 
@@ -67,7 +69,7 @@ level; the CF file only needs to verify structure preservation.
 variable {T₁ T₂ : Type}
 
 /-- Context-free languages are closed under alphabet maps. -/
-theorem CF_of_map_CF (f : T₁ → T₂) (L : Language T₁) :
+public theorem CF_of_map_CF (f : T₁ → T₂) (L : Language T₁) :
     is_CF L → is_CF (Language.map f L) := by
   intro hL
   have hsubst : is_CF (L.subst (fun x => ({[f x]} : Language T₂))) := by
@@ -120,7 +122,7 @@ private lemma mem_prod_decodeSingletonMap_iff {f : T₁ → T₂} (hf : Function
         exact (mem_prod_decodeSingletonMap_iff hf xs xs).2 rfl
 
 /-- Injective alphabet maps reflect context-freeness. -/
-theorem CF_of_map_injective_CF_rev {f : T₁ → T₂} (hf : Function.Injective f)
+public theorem CF_of_map_injective_CF_rev {f : T₁ → T₂} (hf : Function.Injective f)
     (L : Language T₁) : is_CF (Language.map f L) → is_CF L := by
   classical
   intro hmap

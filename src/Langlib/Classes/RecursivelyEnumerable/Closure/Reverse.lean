@@ -35,9 +35,11 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
 
-@[expose] public section
+
 
 /-! # RE Closure Under Reversal
 
@@ -63,26 +65,28 @@ section reversal_defs
 
 /-- Reverse a single unrestricted rule by swapping and reversing the left/right context
 and reversing the output string. -/
-def reversal_grule {N : Type} (r : grule T N) : grule T N :=
+@[expose]
+public def reversal_grule {N : Type} (r : grule T N) : grule T N :=
   grule.mk r.input_R.reverse r.input_N r.input_L.reverse r.output_string.reverse
 
-lemma dual_of_reversal_grule {N : Type} (r : grule T N) :
+public lemma dual_of_reversal_grule {N : Type} (r : grule T N) :
     reversal_grule (reversal_grule r) = r := by
   cases r
   unfold reversal_grule
   dsimp only
   simp [List.reverse_reverse]
 
-lemma reversal_grule_reversal_grule {N : Type} :
+public lemma reversal_grule_reversal_grule {N : Type} :
     @reversal_grule T N ∘ @reversal_grule T N = id := by
   ext
   apply dual_of_reversal_grule
 
 /-- Reverse every rule of an unrestricted grammar. -/
-def reversal_grammar (g : grammar T) : grammar T :=
+@[expose]
+public def reversal_grammar (g : grammar T) : grammar T :=
   grammar.mk g.nt g.initial (List.map reversal_grule g.rules)
 
-lemma dual_of_reversal_grammar (g : grammar T) :
+public lemma dual_of_reversal_grammar (g : grammar T) :
     reversal_grammar (reversal_grammar g) = g := by
   cases g
   unfold reversal_grammar
@@ -149,7 +153,7 @@ private lemma reversed_word_in_original_language {g : grammar T} {w : List T}
 
 This is the key lemma that is reused by the context-free and context-sensitive reversal
 closure proofs, so that the derivation-reversal argument need only be given once. -/
-theorem grammar_language_reversal_grammar (g : grammar T) :
+public theorem grammar_language_reversal_grammar (g : grammar T) :
     grammar_language (reversal_grammar g) = (grammar_language g).reverse := by
   ext w
   constructor

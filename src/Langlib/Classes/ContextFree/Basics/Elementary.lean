@@ -19,8 +19,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Elementary Context-Free Languages
 
@@ -37,11 +39,12 @@ variable {T : Type}
 
 
 /-- Context-free grammar for the empty Language (i.e., `∈` always gives `false`). -/
-def cfg_empty_lang : CF_grammar T :=
+@[expose]
+public def cfg_empty_lang : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 []
 
 /-- Characterization of the empty Language. -/
-lemma language_of_cfg_empty_lang :
+public lemma language_of_cfg_empty_lang :
   CF_language (@cfg_empty_lang T) = 0 :=
 by
   unfold CF_language
@@ -144,11 +147,12 @@ by
     · simp [hyp, cfg_empty_word]
 
 /-- Context-free grammar for a Language `{a}.star` where `a` is a given terminal symbol. -/
-def cfg_symbol_star (a : T) : CF_grammar T :=
+@[expose]
+public def cfg_symbol_star (a : T) : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 [(0, [symbol.terminal a, symbol.nonterminal 0]), (0, [])]
 
 /-- Characterization of the `{a}.star` Language. -/
-lemma language_of_cfg_symbol_star (a : T) :
+public lemma language_of_cfg_symbol_star (a : T) :
   CF_language (cfg_symbol_star a) = fun w => ∃ n : ℕ, w = List.replicate n a :=
 by
   ext w

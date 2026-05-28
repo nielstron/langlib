@@ -53,7 +53,8 @@ public import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
 public import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
 public import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness
 public import Langlib.Automata.Turing.Equivalence.TMToGrammar
-@[expose] public section
+@[expose]
+public section
 
 /-! # Langlib Automata
 

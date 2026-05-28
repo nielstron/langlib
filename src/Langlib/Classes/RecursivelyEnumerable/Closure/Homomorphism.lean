@@ -44,8 +44,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # RE Closure Under String Homomorphism
 
@@ -87,28 +89,33 @@ open Turing
 section construction
 
 /-- Map a symbol by replacing terminals with nonterminal placeholders. -/
-def homLiftSym {N : Type} : symbol α N → symbol β (N ⊕ α)
+@[expose]
+public def homLiftSym {N : Type} : symbol α N → symbol β (N ⊕ α)
   | symbol.terminal a    => symbol.nonterminal (Sum.inr a)
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)
 
 /-- Lift an entire string to placeholder form. -/
-def homLiftStr {N : Type} (s : List (symbol α N)) :
+@[expose]
+public def homLiftStr {N : Type} (s : List (symbol α N)) :
     List (symbol β (N ⊕ α)) :=
   s.map homLiftSym
 
 /-- Lift a rule to phase 1 form. -/
-def homLiftRule {N : Type} (r : grule α N) : grule β (N ⊕ α) :=
+@[expose]
+public def homLiftRule {N : Type} (r : grule α N) : grule β (N ⊕ α) :=
   ⟨homLiftStr r.input_L,
    Sum.inl r.input_N,
    homLiftStr r.input_R,
    homLiftStr r.output_string⟩
 
 /-- Create a phase 2 rule for terminal `a`. -/
-def homExpandRule {N : Type} (h : α → List β) (a : α) : grule β (N ⊕ α) :=
+@[expose]
+public def homExpandRule {N : Type} (h : α → List β) (a : α) : grule β (N ⊕ α) :=
   ⟨[], Sum.inr a, [], (h a).map symbol.terminal⟩
 
 /-- The two-phase grammar for the homomorphic image. -/
-def hom_grammar (g : grammar α) (h : α → List β) : grammar β :=
+@[expose]
+public def hom_grammar (g : grammar α) (h : α → List β) : grammar β :=
   ⟨g.nt ⊕ α,
    Sum.inl g.initial,
    (g.rules.map homLiftRule) ++ (all_used_terminals g).map (homExpandRule h)⟩
@@ -128,7 +135,7 @@ lemma homLiftStr_map_terminal (w : List α) :
       w.map (fun a => (symbol.nonterminal (Sum.inr a) : symbol β (g.nt ⊕ α))) := by
   simp [homLiftStr, homLiftSym, List.map_map]
 
-lemma mem_prod_singletons_iff_flatMap (w : List α) (h : α → List β) (u : List β) :
+public lemma mem_prod_singletons_iff_flatMap (w : List α) (h : α → List β) (u : List β) :
     u ∈ (w.map (fun a => ({h a} : Language β))).prod ↔ u = w.flatMap h := by
   induction w generalizing u with
   | nil => simp
@@ -501,13 +508,14 @@ end backward_direction
 /-- Search test for the homomorphic image of a grammar language.
 
 The witness contains both a preimage word and a derivation sequence for that preimage. -/
-def reHomomorphismTest [DecidableEq α] [DecidableEq β]
+@[expose]
+public def reHomomorphismTest [DecidableEq α] [DecidableEq β]
     (g : grammar α) [DecidableEq g.nt] (h : α → List β)
     (p : List α × List (ℕ × ℕ)) (w : List β) : Bool :=
   grammarTest g p.2 p.1 && decide (p.1.flatMap h = w)
 
 /-- The homomorphic-image search test is computable over finite source alphabets. -/
-theorem reHomomorphismTest_computable₂ [DecidableEq α] [DecidableEq β]
+public theorem reHomomorphismTest_computable₂ [DecidableEq α] [DecidableEq β]
     [Primcodable α] [Primcodable β] [Finite α]
     (g : grammar α) [DecidableEq g.nt] [Primcodable g.nt] (h : α → List β) :
     Computable₂ (reHomomorphismTest g h) := by
@@ -523,7 +531,7 @@ theorem reHomomorphismTest_computable₂ [DecidableEq α] [DecidableEq β]
   exact (Primrec.and.to_comp).comp hmem heq
 
 /-- The class of RE languages is closed under arbitrary finite-alphabet string homomorphism. -/
-theorem RE_closed_under_homomorphism [Fintype α] [Fintype β]
+public theorem RE_closed_under_homomorphism [Fintype α] [Fintype β]
     (L : Language α) (h : α → List β) (hL : is_RE L) :
     is_RE (L.homomorphicImage h) := by
   haveI : DecidableEq α := Classical.decEq _
@@ -574,7 +582,7 @@ theorem RE_closedUnderHomomorphism : ClosedUnderHomomorphism is_RE :=
   fun L h hL => RE_closed_under_homomorphism L h hL
 
 /-- The class of RE languages is closed under ε-free string homomorphism. -/
-theorem RE_closed_under_epsfree_homomorphism (L : Language α) (h : α → List β)
+public theorem RE_closed_under_epsfree_homomorphism (L : Language α) (h : α → List β)
     (hL : is_RE L) (heps : IsEpsFreeHomomorphism h) :
     is_RE (L.homomorphicImage h) := by
   obtain ⟨g, rfl⟩ := hL

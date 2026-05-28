@@ -32,11 +32,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The language `{b^n a^n | n >= 1}* {b}` -/
 
 /-- Denominator language for the CFL/CFL quotient counterexample. -/
-def quotientDenominator : Language Bool :=
+@[expose]
+public def quotientDenominator : Language Bool :=
   KStar.kstar quotientRightBlock * {[true]}

@@ -22,8 +22,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # List Take/Join Lemma
 

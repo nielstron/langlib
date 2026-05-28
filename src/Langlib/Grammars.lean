@@ -24,7 +24,8 @@ public import Langlib.Grammars.Unrestricted.Definition
 public import Langlib.Grammars.Unrestricted.FiniteNonterminals
 public import Langlib.Grammars.Unrestricted.InverseHomomorphism
 public import Langlib.Grammars.Unrestricted.Toolbox
-@[expose] public section
+@[expose]
+public section
 
 /-! # Langlib Grammars
 

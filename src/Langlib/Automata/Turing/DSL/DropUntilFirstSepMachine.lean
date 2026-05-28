@@ -37,8 +37,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # DropUntilFirstSep is Block-Realizable
 
@@ -65,7 +67,7 @@ open Turing PartrecToTM2 TM2to1
 /-! ### Machine definition -/
 
 /-- State type for the dropUntilFirstSep TM0 machine. -/
-inductive DUFSState where
+public inductive DUFSState where
   | erase    -- scanning/erasing cells
   | wSep     -- just wrote default over a sep cell
   | wOther   -- just wrote default over a non-sep cell
@@ -79,7 +81,8 @@ instance : Fintype DUFSState where
   complete := by intro x; cases x <;> simp
 
 /-- The dropUntilFirstSep TM0 machine. -/
-noncomputable def dufsM {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+@[expose]
+public noncomputable def dufsM {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (sep : Γ) : @TM0.Machine Γ DUFSState ⟨.erase⟩ := fun q a =>
   match q with
   | .erase =>
@@ -96,7 +99,7 @@ noncomputable def dufsM {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
 Erasing through the block to find sep: the machine reaches a halting
     configuration with the correct tape contents.
 -/
-theorem dufs_reaches_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+public theorem dufs_reaches_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (sep : Γ) (hsep : sep ≠ default)
     (block suffix : List Γ)
     (hblock : ∀ g ∈ block, g ≠ default) :
@@ -139,7 +142,7 @@ theorem dufs_reaches_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
 /-! ### Main result -/
 
 /-- `dropUntilFirstSep sep` is block-realizable for any `sep ≠ default`. -/
-theorem tm0_dropUntilFirstSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
+public theorem tm0_dropUntilFirstSep_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     (sep : Γ) (hsep : sep ≠ default) :
     TM0RealizesBlock Γ (dropUntilFirstSep sep) := by
   refine ⟨DUFSState, inferInstance, inferInstance, dufsM sep, ?_⟩

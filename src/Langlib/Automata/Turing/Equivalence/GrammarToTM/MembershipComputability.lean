@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Computability of the Grammar Membership Test
 
@@ -60,7 +62,8 @@ variable {T : Type} [DecidableEq T]
 
 /-! ### Primcodable instances -/
 
-noncomputable def symbolEquiv (T N : Type) : symbol T N ≃ T ⊕ N where
+@[expose]
+public noncomputable def symbolEquiv (T N : Type) : symbol T N ≃ T ⊕ N where
   toFun s := match s with
     | .terminal t => Sum.inl t
     | .nonterminal n => Sum.inr n
@@ -70,24 +73,27 @@ noncomputable def symbolEquiv (T N : Type) : symbol T N ≃ T ⊕ N where
   left_inv s := by cases s <;> rfl
   right_inv s := by cases s <;> rfl
 
-noncomputable instance symbolPrimcodable {T N : Type}
+@[expose]
+public noncomputable instance symbolPrimcodable {T N : Type}
     [Primcodable T] [Primcodable N] : Primcodable (symbol T N) :=
   Primcodable.ofEquiv (T ⊕ N) (symbolEquiv T N)
 
-noncomputable def gruleEquiv (T N : Type) :
+@[expose]
+public noncomputable def gruleEquiv (T N : Type) :
     grule T N ≃ List (symbol T N) × N × List (symbol T N) × List (symbol T N) where
   toFun r := (r.input_L, r.input_N, r.input_R, r.output_string)
   invFun p := { input_L := p.1, input_N := p.2.1, input_R := p.2.2.1, output_string := p.2.2.2 }
   left_inv r := by cases r; rfl
   right_inv p := by obtain ⟨a, b, c, d⟩ := p; rfl
 
-noncomputable instance grulePrimcodable {T N : Type}
+@[expose]
+public noncomputable instance grulePrimcodable {T N : Type}
     [Primcodable T] [Primcodable N] : Primcodable (grule T N) :=
   Primcodable.ofEquiv _ (gruleEquiv T N)
 
 /-! ### Symbol constructors are primrec -/
 
-theorem primrec_symbol_nonterminal {N : Type} [Primcodable T] [Primcodable N] :
+public theorem primrec_symbol_nonterminal {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (symbol.nonterminal : N → symbol T N) := by
   convert Primrec.of_eq _ _
   exact fun n => (symbolEquiv T N).symm (Sum.inr n)
@@ -102,7 +108,7 @@ theorem primrec_symbol_terminal {N : Type} [Primcodable T] [Primcodable N] :
   · aesop
 
 /-- Case analysis on `symbol` is primrec. -/
-theorem primrec_symbol_casesOn {N σ : Type} [Primcodable T] [Primcodable N] [Primcodable σ]
+public theorem primrec_symbol_casesOn {N σ : Type} [Primcodable T] [Primcodable N] [Primcodable σ]
     {α : Type} [Primcodable α]
     {f : α → symbol T N} {g : α → T → σ} {h : α → N → σ}
     (hf : Primrec f) (hg : Primrec₂ g) (hh : Primrec₂ h) :
@@ -114,25 +120,25 @@ theorem primrec_symbol_casesOn {N σ : Type} [Primcodable T] [Primcodable N] [Pr
 
 /-! ### grule field projections are primrec -/
 
-theorem primrec_grule_inputL {N : Type} [Primcodable T] [Primcodable N] :
+public theorem primrec_grule_inputL {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (fun (r : grule T N) => r.input_L) :=
   Primrec.fst.comp Primrec.of_equiv
 
-theorem primrec_grule_inputN {N : Type} [Primcodable T] [Primcodable N] :
+public theorem primrec_grule_inputN {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (fun (r : grule T N) => r.input_N) :=
   (Primrec.fst.comp Primrec.snd).comp Primrec.of_equiv
 
-theorem primrec_grule_inputR {N : Type} [Primcodable T] [Primcodable N] :
+public theorem primrec_grule_inputR {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (fun (r : grule T N) => r.input_R) :=
   (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)).comp Primrec.of_equiv
 
-theorem primrec_grule_outputString {N : Type} [Primcodable T] [Primcodable N] :
+public theorem primrec_grule_outputString {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (fun (r : grule T N) => r.output_string) :=
   (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)).comp Primrec.of_equiv
 
 /-! ### applyRuleAt is primrec -/
 
-theorem primrec_applyRuleAt {N : Type} [DecidableEq N]
+public theorem primrec_applyRuleAt {N : Type} [DecidableEq N]
     [Primcodable T] [Primcodable N] :
     Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
       applyRuleAt args.1 args.2.1 args.2.2) := by
@@ -175,7 +181,7 @@ theorem primrec_applyRuleAt {N : Type} [DecidableEq N]
 
 /-! ### extractTerminals is computable -/
 
-theorem computable_extractTerminals {N : Type}
+public theorem computable_extractTerminals {N : Type}
     [Primcodable T] [Primcodable N] :
     Computable (extractTerminals (T := T) (N := N)) := by
       convert Primrec.to_comp _;
@@ -216,7 +222,7 @@ private theorem step_eq_bind {N : Type} [DecidableEq N]
   rename_i sf
   cases rules[p.2.1]? <;> simp [Option.bind]
 
-theorem primrec_applyRuleSeq_step {N : Type} [DecidableEq N]
+public theorem primrec_applyRuleSeq_step {N : Type} [DecidableEq N]
     [Primcodable T] [Primcodable N]
     (rules : List (grule T N)) :
     Primrec (fun (p : Option (List (symbol T N)) × (ℕ × ℕ)) =>
@@ -249,7 +255,7 @@ theorem primrec_applyRuleSeq_step {N : Type} [DecidableEq N]
           funext p
           exact step_eq_bind rules p
 
-theorem computable_applyRuleSeq {N : Type} [DecidableEq N]
+public theorem computable_applyRuleSeq {N : Type} [DecidableEq N]
     [Primcodable T] [Primcodable N]
     (rules : List (grule T N)) (init : List (symbol T N)) :
     Computable (fun seq => applyRuleSeq rules init seq) := by
@@ -268,7 +274,7 @@ theorem computable_applyRuleSeq {N : Type} [DecidableEq N]
 
 /-! ### Main result -/
 
-theorem grammarTest_computable₂ (g : grammar T)
+public theorem grammarTest_computable₂ (g : grammar T)
     [DecidableEq g.nt] [Primcodable T] [Primcodable g.nt] :
     Computable₂ (grammarTest g) := by
       apply Computable₂.mk;

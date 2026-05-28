@@ -7,8 +7,10 @@ Authors: Alexander Loitzl
 -/
 
 public import Langlib.Classes.ContextFree.Pumping.UnitElimination
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Terminal Restriction for CFGs
 
@@ -27,39 +29,45 @@ section EmbedProject
 variable {N : Type uN}
 
 /-- Intuitive embedding of symbols of the original grammar into symbols of the new grammar's type -/
-def embedSymbol (s : Symbol T N) : Symbol T (N ⊕ T) :=
+@[expose]
+public def embedSymbol (s : Symbol T N) : Symbol T (N ⊕ T) :=
   match s with
   | Symbol.terminal t => Symbol.terminal t
   | Symbol.nonterminal n => Symbol.nonterminal (Sum.inl n)
 
 /-- Intuitive embedding of strings of the original grammar into strings of the new grammar's type -/
-abbrev embedString (u : List (Symbol T N)) : List (Symbol T (N ⊕ T)) := u.map embedSymbol
+@[expose]
+public abbrev embedString (u : List (Symbol T N)) : List (Symbol T (N ⊕ T)) := u.map embedSymbol
 
 /-- Embedding of symbols of the original grammar into nonterminals of the new grammar -/
-def rightEmbedSymbol (s : Symbol T N) : Symbol T (N ⊕ T) :=
+@[expose]
+public def rightEmbedSymbol (s : Symbol T N) : Symbol T (N ⊕ T) :=
   match s with
   | Symbol.terminal t => Symbol.nonterminal (Sum.inr t)
   | Symbol.nonterminal n => Symbol.nonterminal (Sum.inl n)
 
 /-- Embedding of strings of the original grammar into nonterminal (symbol) strings of the new
 grammar -/
-abbrev rightEmbedString (w : List (Symbol T N)) := w.map rightEmbedSymbol
+@[expose]
+public abbrev rightEmbedString (w : List (Symbol T N)) := w.map rightEmbedSymbol
 
 /-- Projection from symbols of the new grammars type into symbols of the original grammar -/
-def projectSymbol (s : Symbol T (N ⊕ T)) : Symbol T N :=
+@[expose]
+public def projectSymbol (s : Symbol T (N ⊕ T)) : Symbol T N :=
   match s with
   | Symbol.terminal t => Symbol.terminal t
   | Symbol.nonterminal (Sum.inl nt) => Symbol.nonterminal nt
   | Symbol.nonterminal (Sum.inr t) => Symbol.terminal t
 
 /-- Projection from strings of the new grammars type into strings of the original grammar -/
-def projectString (u : List (Symbol T (N ⊕ T))) : List (Symbol T N) := u.map projectSymbol
+@[expose]
+public def projectString (u : List (Symbol T (N ⊕ T))) : List (Symbol T N) := u.map projectSymbol
 
 lemma embedSymbol_nonterminal_eq {nt : N} :
     embedSymbol (Symbol.nonterminal nt) = (@Symbol.nonterminal T (N ⊕ T)) (Sum.inl nt) := by
   rfl
 
-lemma projectString_rightEmbedString_id {u : List (Symbol T N)} :
+public lemma projectString_rightEmbedString_id {u : List (Symbol T N)} :
     projectString (rightEmbedString u) = u := by
   induction u with
   | nil => rfl
@@ -69,7 +77,7 @@ lemma projectString_rightEmbedString_id {u : List (Symbol T N)} :
     · cases a <;> rfl
     · rwa [← List.map_map]
 
-lemma projectString_terminals {u : List T} :
+public lemma projectString_terminals {u : List T} :
     projectString (u.map (@Symbol.terminal T (N ⊕ T))) = u.map Symbol.terminal := by
   induction u with
   | nil => rfl
@@ -78,7 +86,7 @@ lemma projectString_terminals {u : List T} :
       List.cons.injEq] at ih ⊢
     exact ⟨rfl, ih⟩
 
-lemma projectSymbol_nonterminal {n : N} :
+public lemma projectSymbol_nonterminal {n : N} :
     projectSymbol (@Symbol.nonterminal T (N ⊕ T) (Sum.inl n)) = Symbol.nonterminal n :=
   rfl
 
@@ -86,17 +94,17 @@ lemma embedString_preserves_nonempty {u : List (Symbol T N)} (hu: u ≠ []) :
     embedString u ≠ [] := by
   aesop
 
-lemma embedString_terminals {u : List T} :
+public lemma embedString_terminals {u : List T} :
     embedString (u.map (@Symbol.terminal T N)) = u.map Symbol.terminal := by
   cases u with
   | nil => rfl
   | cons => simp [embedString, embedSymbol]
 
-lemma embedString_append {u v : List (Symbol T N)} :
+public lemma embedString_append {u v : List (Symbol T N)} :
     embedString (u ++ v) = embedString u ++ embedString v := by
   simp [embedString]
 
-lemma rightEmbed_string_nonUnit {u : List (Symbol T N)} (hu : ContextFreeGrammar.NonUnit u)
+public lemma rightEmbed_string_nonUnit {u : List (Symbol T N)} (hu : ContextFreeGrammar.NonUnit u)
     (hut : ∀ t, u ≠ [Symbol.terminal t]) :
     ContextFreeGrammar.NonUnit (rightEmbedString u) :=
   match u with
@@ -115,7 +123,8 @@ namespace ContextFreeGrammar
 section RestrictTerminals
 
 /-- Computes rules r' : T -> t, for all terminals t occuring in `r.output`-/
-def newTerminalRules {N : Type*} (r : ContextFreeRule T N) : List (ContextFreeRule T (N ⊕ T)) :=
+@[expose]
+public def newTerminalRules {N : Type*} (r : ContextFreeRule T N) : List (ContextFreeRule T (N ⊕ T)) :=
   let terminal_rule (s : Symbol T N) : Option (ContextFreeRule T (N ⊕ T)) :=
     match s with
     | Symbol.terminal t => some ⟨Sum.inr t, [Symbol.terminal t]⟩
@@ -125,20 +134,23 @@ def newTerminalRules {N : Type*} (r : ContextFreeRule T N) : List (ContextFreeRu
 /-- If `r.output` is a single terminal, we lift the rule to the new grammar, otherwise add new rules
  for each terminal symbol in `r.output` and right-lift the rule, i.e., replace all terminals with
  nonterminals -/
-def restrictTerminalRule {N : Type*} (r : ContextFreeRule T N) : List (ContextFreeRule T (N ⊕ T)) :=
+@[expose]
+public def restrictTerminalRule {N : Type*} (r : ContextFreeRule T N) : List (ContextFreeRule T (N ⊕ T)) :=
   (match r.output with
   | [Symbol.terminal t] => ⟨Sum.inl r.input, [Symbol.terminal t]⟩
   | _ => ⟨Sum.inl r.input, rightEmbedString r.output⟩
   ) :: newTerminalRules r
 
 /-- Compute all lifted rules -/
-noncomputable def restrictTerminalRules {N : Type*} [DecidableEq T] [DecidableEq N]
+@[expose]
+public noncomputable def restrictTerminalRules {N : Type*} [DecidableEq T] [DecidableEq N]
     (l : List (ContextFreeRule T N)) : Finset (ContextFreeRule T (N ⊕ T)) :=
   (l.map restrictTerminalRule).flatten.toFinset
 
 /-- Construct new grammar, using the lifted rules. Each rule's output is either a single terminal
  or only nonterminals -/
-noncomputable def restrictTerminals [DecidableEq T] (g : ContextFreeGrammar T)
+@[expose]
+public noncomputable def restrictTerminals [DecidableEq T] (g : ContextFreeGrammar T)
     [DecidableEq g.NT] :=
   ContextFreeGrammar.mk (g.NT ⊕ T) (Sum.inl g.initial) (restrictTerminalRules g.rules.toList)
 
@@ -152,7 +164,7 @@ section CorrectnessProof
 
 variable {g : ContextFreeGrammar T}
 
-lemma restrictTerminalRule_right_terminal_output {t : T} {r : ContextFreeRule T g.NT}
+public lemma restrictTerminalRule_right_terminal_output {t : T} {r : ContextFreeRule T g.NT}
     {r' : ContextFreeRule T (g.NT ⊕ T)} (hrr : r' ∈ restrictTerminalRule r)
     (hrt : r'.input = Sum.inr t) :
     r'.output = [Symbol.terminal t] := by
@@ -166,7 +178,7 @@ lemma restrictTerminalRule_right_terminal_output {t : T} {r : ContextFreeRule T 
     simp only [Sum.inr.injEq, List.cons.injEq, Symbol.terminal.injEq, and_true] at hrt ⊢
     exact hrt
 
-lemma restrictTerminalRules_right_terminal_output [DecidableEq T] [DecidableEq g.NT] {t : T}
+public lemma restrictTerminalRules_right_terminal_output [DecidableEq T] [DecidableEq g.NT] {t : T}
     {r : ContextFreeRule T (g.NT ⊕ T)} (hrg : r ∈ restrictTerminalRules g.rules.toList)
     (hrt : r.input = Sum.inr t) :
     r.output = [Symbol.terminal t] := by
@@ -175,7 +187,7 @@ lemma restrictTerminalRules_right_terminal_output [DecidableEq T] [DecidableEq g
   obtain ⟨_, _, hr⟩ := hrg
   exact restrictTerminalRule_right_terminal_output hr hrt
 
-lemma restrictTerminalRule_left {n : g.NT} {r : ContextFreeRule T g.NT}
+public lemma restrictTerminalRule_left {n : g.NT} {r : ContextFreeRule T g.NT}
     {r' : ContextFreeRule T (g.NT ⊕ T)} (hrr : r' ∈ restrictTerminalRule r)
     (hrn : r'.input = Sum.inl n) :
     r.input = n ∧ r.output = projectString r'.output := by
@@ -193,7 +205,7 @@ lemma restrictTerminalRule_left {n : g.NT} {r : ContextFreeRule T g.NT}
     rw [← hrr] at hrn
     tauto
 
-lemma terminal_mem_newTerminalRules {t : T} {r : ContextFreeRule T g.NT}
+public lemma terminal_mem_newTerminalRules {t : T} {r : ContextFreeRule T g.NT}
     (htr : Symbol.terminal t ∈ r.output) :
     ⟨Sum.inr t, [Symbol.terminal t]⟩ ∈ newTerminalRules r := by
   rw [newTerminalRules, List.mem_filterMap]
@@ -201,7 +213,7 @@ lemma terminal_mem_newTerminalRules {t : T} {r : ContextFreeRule T g.NT}
 
 variable [DecidableEq T] [DecidableEq g.NT]
 
-lemma restrictTerminalsRules_left {n : g.NT} {r' : ContextFreeRule T (g.NT ⊕ T)}
+public lemma restrictTerminalsRules_left {n : g.NT} {r' : ContextFreeRule T (g.NT ⊕ T)}
     (hrg : r' ∈ restrictTerminalRules g.rules.toList) (hrn : r'.input = Sum.inl n) :
     ∃ r ∈ g.rules, r.input = n ∧ r.output = projectString r'.output := by
   unfold restrictTerminalRules at hrg
@@ -210,7 +222,7 @@ lemma restrictTerminalsRules_left {n : g.NT} {r' : ContextFreeRule T (g.NT ⊕ T
   obtain ⟨r, hrg, hrr⟩ := hrg
   exact ⟨r, hrg, restrictTerminalRule_left hrr hrn⟩
 
-lemma restrictTerminals_produces_derives_projectString {u v : List (Symbol T (g.NT ⊕ T))}
+public lemma restrictTerminals_produces_derives_projectString {u v : List (Symbol T (g.NT ⊕ T))}
     (huv : (restrictTerminals g).Produces u v) :
     g.Derives (projectString u) (projectString v) := by
   obtain ⟨r', hrg', huv⟩ := huv
@@ -230,7 +242,7 @@ lemma restrictTerminals_produces_derives_projectString {u v : List (Symbol T (g.
     simp only [projectString, List.map_append]
     rfl
 
-lemma restrictTerminals_derives_derives_projectString {u v : List (Symbol T (g.NT ⊕ T))}
+public lemma restrictTerminals_derives_derives_projectString {u v : List (Symbol T (g.NT ⊕ T))}
     (huv : (restrictTerminals g).Derives u v) :
     g.Derives (projectString u) (projectString v) := by
   induction huv with
@@ -241,7 +253,7 @@ lemma restrictTerminals_derives_derives_projectString {u v : List (Symbol T (g.N
 -- If direction of the main correctness theorem of restrict_terminals --
 -- ****************************************************************** --
 
-lemma restrictTerminals_derives_rightEmbedString_embedString {u : List (Symbol T g.NT)}
+public lemma restrictTerminals_derives_rightEmbedString_embedString {u : List (Symbol T g.NT)}
     (hu : ∀ t, (Symbol.terminal t) ∈ u → ∃ r ∈ g.rules, (Symbol.terminal t) ∈ r.output) :
     (restrictTerminals g).Derives (rightEmbedString u) (embedString u) := by
   induction u with
@@ -272,7 +284,7 @@ lemma restrictTerminals_derives_rightEmbedString_embedString {u : List (Symbol T
         · unfold rightEmbedSymbol embedSymbol
           exact ContextFreeRule.Rewrites.input_output
 
-lemma derives_restrictTerminals_derives_embedString {u v : List (Symbol T g.NT)} (huv : g.Derives u v) :
+public lemma derives_restrictTerminals_derives_embedString {u v : List (Symbol T g.NT)} (huv : g.Derives u v) :
     (restrictTerminals g).Derives (embedString u) (embedString v) := by
   induction huv with
   | refl => rfl
@@ -317,7 +329,7 @@ lemma derives_restrictTerminals_derives_embedString {u v : List (Symbol T g.NT)}
         intros
         use r
 
-theorem restrictTerminals_correct : g.language = g.restrictTerminals.language := by
+public theorem restrictTerminals_correct : g.language = g.restrictTerminals.language := by
   apply Set.eq_of_subset_of_subset <;>
     intro w hw <;>
       rw [mem_language_iff] at hw ⊢

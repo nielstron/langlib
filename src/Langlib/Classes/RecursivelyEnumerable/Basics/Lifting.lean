@@ -17,9 +17,11 @@ import Mathlib.Tactic.NormNum.Ordinal
 import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
+@[expose]
+public section
 
 
-@[expose] public section
+
 
 /-! # Unrestricted Lifting
 
@@ -35,21 +37,26 @@ section functions_lift_sink
 
 variable {T N₀ N : Type}
 
-def lift_symbol_ (lift_N : N₀ → N) : symbol T N₀ → symbol T N
+@[expose]
+public def lift_symbol_ (lift_N : N₀ → N) : symbol T N₀ → symbol T N
 | (symbol.terminal t)    => symbol.terminal t
 | (symbol.nonterminal n) => symbol.nonterminal (lift_N n)
 
-def sink_symbol_ (sink_N : N → Option N₀) : symbol T N → Option (symbol T N₀)
+@[expose]
+public def sink_symbol_ (sink_N : N → Option N₀) : symbol T N → Option (symbol T N₀)
 | (symbol.terminal t)    => some (symbol.terminal t)
 | (symbol.nonterminal n) => Option.map symbol.nonterminal (sink_N n)
 
-def lift_string_ (lift_N : N₀ → N) : List (symbol T N₀) → List (symbol T N) :=
+@[expose]
+public def lift_string_ (lift_N : N₀ → N) : List (symbol T N₀) → List (symbol T N) :=
 List.map (lift_symbol_ lift_N)
 
-def sink_string_ (sink_N : N → Option N₀) : List (symbol T N) → List (symbol T N₀) :=
+@[expose]
+public def sink_string_ (sink_N : N → Option N₀) : List (symbol T N) → List (symbol T N₀) :=
 List.filterMap (sink_symbol_ sink_N)
 
-def lift_rule_ (lift_N : N₀ → N) : grule T N₀ → grule T N :=
+@[expose]
+public def lift_rule_ (lift_N : N₀ → N) : grule T N₀ → grule T N :=
 fun r : grule T N₀ => grule.mk
   (lift_string_ lift_N r.input_L)
   (lift_N r.input_N)
@@ -57,7 +64,7 @@ fun r : grule T N₀ => grule.mk
   (lift_string_ lift_N r.output_string)
 
 /-- `sink_string_` preserves terminal-only lists. -/
-lemma sink_string_map_terminal_ (sink_N : N → Option N₀) (w : List T) :
+public lemma sink_string_map_terminal_ (sink_N : N → Option N₀) (w : List T) :
     sink_string_ sink_N (List.map symbol.terminal w) = List.map symbol.terminal w := by
   unfold sink_string_
   rw [List.filterMap_map]
@@ -68,7 +75,7 @@ lemma sink_string_map_terminal_ (sink_N : N → Option N₀) (w : List T) :
   exact List.filterMap_some
 
 /-- `lift_string_` preserves terminal-only lists. -/
-lemma lift_string_map_terminal_ (lift_N : N₀ → N) (w : List T) :
+public lemma lift_string_map_terminal_ (lift_N : N₀ → N) (w : List T) :
     lift_string_ lift_N (List.map symbol.terminal w) = List.map symbol.terminal w := by
   simp [lift_string_, List.map_map, Function.comp, lift_symbol_]
 
@@ -77,7 +84,7 @@ end functions_lift_sink
 
 section lifting_conditions
 
-structure lifted_grammar_ (T : Type) where
+public structure lifted_grammar_ (T : Type) where
   g₀ : grammar T
   g : grammar T
   lift_nt : g₀.nt → g.nt
@@ -140,7 +147,7 @@ by
       rw [List.map_append_append] at lift_aft
       exact lift_aft
 
-lemma lift_deri_ (lg : lifted_grammar_ T) {w₁ w₂ : List (symbol T lg.g₀.nt)}
+public lemma lift_deri_ (lg : lifted_grammar_ T) {w₁ w₂ : List (symbol T lg.g₀.nt)}
     (hyp : grammar_derives lg.g₀ w₁ w₂) :
   grammar_derives lg.g (lift_string_ lg.lift_nt w₁) (lift_string_ lg.lift_nt w₂) :=
 by
@@ -153,11 +160,13 @@ by
       · exact lift_tran_ step
 
 
-def good_letter_ {lg : lifted_grammar_ T} : symbol T lg.g.nt → Prop
+@[expose]
+public def good_letter_ {lg : lifted_grammar_ T} : symbol T lg.g.nt → Prop
 | (symbol.terminal t)    => True
 | (symbol.nonterminal n) => (∃ n₀ : lg.g₀.nt, lg.sink_nt n = some n₀)
 
-def good_string_ {lg : lifted_grammar_ T} (s : List (symbol T lg.g.nt)) :=
+@[expose]
+public def good_string_ {lg : lifted_grammar_ T} (s : List (symbol T lg.g.nt)) :=
 ∀ a ∈ s, good_letter_ a
 
 private lemma sink_tran_ {lg : lifted_grammar_ T} {w₁ w₂ : List (symbol T lg.g.nt)}
@@ -260,7 +269,7 @@ by
         · exact both.1
       · exact both.2
 
-lemma sink_deri_ (lg : lifted_grammar_ T) {w₁ w₂ : List (symbol T lg.g.nt)}
+public lemma sink_deri_ (lg : lifted_grammar_ T) {w₁ w₂ : List (symbol T lg.g.nt)}
     (hyp : grammar_derives lg.g w₁ w₂)
     (ok_input : good_string_ w₁) :
   grammar_derives lg.g₀ (sink_string_ lg.sink_nt w₁) (sink_string_ lg.sink_nt w₂) :=

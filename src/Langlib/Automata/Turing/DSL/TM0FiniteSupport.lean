@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # TM0 Restriction to Finite Support
 
@@ -55,7 +57,8 @@ variable {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
 /-- Restrict a TM0 machine to states in a finite support set `S`.
 Since the machine is supported by `S`, all transitions stay within `S`,
 so the restriction doesn't change behavior. -/
-noncomputable def restrict (M : Machine Γ Λ) (S : Finset Λ)
+@[expose]
+public noncomputable def restrict (M : Machine Γ Λ) (S : Finset Λ)
     (hS : Supports M ↑S) :
     @Machine Γ { q : Λ // q ∈ S } ⟨⟨default, hS.1⟩⟩ :=
   fun ⟨q, hq⟩ a =>
@@ -106,7 +109,7 @@ theorem restrict_init_rel (M : Machine Γ Λ) (S : Finset Λ)
 /-- The restricted TM0 halts if and only if the original does.
 
 Uses `Turing.tr_eval_dom` with the bisimulation relation `restrictRel`. -/
-theorem restrict_eval_dom_iff (M : Machine Γ Λ) (S : Finset Λ)
+public theorem restrict_eval_dom_iff (M : Machine Γ Λ) (S : Finset Λ)
     (hS : Supports M ↑S) (l : List Γ) :
     (@eval Γ Λ _ _ M l).Dom ↔
     (@eval Γ _ ⟨⟨default, hS.1⟩⟩ _ (restrict M S hS) l).Dom := by

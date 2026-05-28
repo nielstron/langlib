@@ -37,8 +37,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The `{b^n a^n}` language
 
@@ -81,7 +83,7 @@ private lemma flatMap_right_hom_anbn (n : ℕ) :
       List.replicate n true ++ List.replicate n false := by
   simp [List.flatMap_append, List.flatMap_replicate]
 
-lemma quotientRightBlockCore_eq_hom :
+public lemma quotientRightBlockCore_eq_hom :
     quotientRightBlockCore =
       anbn.homomorphicImage (fun b => if b = true then [false] else [true]) := by
   ext w
@@ -99,7 +101,7 @@ lemma quotientRightBlockCore_eq_hom :
         (fun b => if b = true then [false] else [true]) src w).1 hwprod
     rw [hw, hsrc, flatMap_right_hom_anbn]
 
-lemma CF_quotientRightBlockCore : is_CF quotientRightBlockCore := by
+public lemma CF_quotientRightBlockCore : is_CF quotientRightBlockCore := by
   rw [quotientRightBlockCore_eq_hom]
   exact CF_closed_under_homomorphism anbn
     (fun b => if b = true then [false] else [true]) anbn_is_CF

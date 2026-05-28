@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Deterministic Context-Free Closure Under Complement
 
@@ -52,7 +54,7 @@ variable {T : Type} [Fintype T]
 
 /-- Complement closure for deterministic context-free languages with a deciding DPDA
 presentation. -/
-theorem is_DCF_decider_complement {L : Language T} (hL : is_DCF_decider L) :
+public theorem is_DCF_decider_complement {L : Language T} (hL : is_DCF_decider L) :
     is_DCF_decider Lᶜ := by
   obtain ⟨Q, S, hQ, hS, M, hdec, hM⟩ := hL
   refine ⟨Q, S, hQ, hS, M.complement, ?_, ?_⟩
@@ -73,19 +75,19 @@ theorem DCF_decider_closedUnderComplement :
   fun _ => is_DCF_decider_complement
 
 /-- If a language has a deciding-DPDA presentation, then its complement is a DCF. -/
-theorem is_DCF_complement_of_is_DCF_decider {L : Language T} (hL : is_DCF_decider L) :
+public theorem is_DCF_complement_of_is_DCF_decider {L : Language T} (hL : is_DCF_decider L) :
     is_DCF Lᶜ :=
   is_DCF_of_is_DCF_decider (is_DCF_decider_complement hL)
 
 /-- Once arbitrary DPDAs are totalized, DCFs are closed under complement. -/
-theorem DCF_closedUnderComplement_of_decider_presentations
+public theorem DCF_closedUnderComplement_of_decider_presentations
     (htotal : EveryDCFHasDeciderPresentation T) :
     ClosedUnderComplement (α := T) is_DCF := by
   intro L hL
   exact is_DCF_complement_of_is_DCF_decider (htotal L hL)
 
 /-- Deterministic context-free languages are closed under complement. -/
-theorem DCF_closedUnderComplement :
+public theorem DCF_closedUnderComplement :
     ClosedUnderComplement (α := T) is_DCF :=
   DCF_closedUnderComplement_of_decider_presentations
     everyDCFHasDeciderPresentation

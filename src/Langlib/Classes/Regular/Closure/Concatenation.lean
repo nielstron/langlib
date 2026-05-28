@@ -38,8 +38,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Regular Closure Under Concatenation
 
@@ -65,7 +67,8 @@ variable {σ₁ σ₂ : Type*} [Fintype σ₁] [Fintype σ₂]
 
 States are `σ₁ ⊕ σ₂`. On the left side we simulate `M₁`; on the right, `M₂`.
 Accepting states of `M₁` get an ε-transition to `M₂`'s start state. -/
-noncomputable def concatεNFA (M₁ : DFA α σ₁) (M₂ : DFA α σ₂) : εNFA α (σ₁ ⊕ σ₂) where
+@[expose]
+public noncomputable def concatεNFA (M₁ : DFA α σ₁) (M₂ : DFA α σ₂) : εNFA α (σ₁ ⊕ σ₂) where
   step := fun s c =>
     match s, c with
     | Sum.inl q, some a => {Sum.inl (M₁.step q a)}
@@ -279,7 +282,7 @@ private lemma concat_forward {w : List α} (hw : w ∈ (concatεNFA M₁ M₂).a
       · aesop
 
 /-- The concatenation ε-NFA accepts exactly the concatenation of the two DFA languages. -/
-theorem concatεNFA_correct :
+public theorem concatεNFA_correct :
     (concatεNFA M₁ M₂).accepts = M₁.accepts * M₂.accepts :=
   Set.eq_of_subset_of_subset
     (fun _ hw => concat_forward M₁ M₂ hw)
@@ -288,7 +291,7 @@ theorem concatεNFA_correct :
 end ConcatεNFA
 
 /-- Regular languages are closed under concatenation. -/
-theorem IsRegular.mul' {L₁ L₂ : Language α}
+public theorem IsRegular.mul' {L₁ L₂ : Language α}
     (h₁ : L₁.IsRegular) (h₂ : L₂.IsRegular) :
     (L₁ * L₂).IsRegular := by
   obtain ⟨σ₁, _, M₁, rfl⟩ := h₁

@@ -39,8 +39,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # DCF Closure Under Intersection with a Regular Language
 
@@ -77,7 +79,8 @@ variable {Q T S σ : Type} [Fintype Q] [Fintype T] [Fintype S] [Fintype σ]
 namespace DPDA
 
 /-- The **product DPDA×DFA**: runs a DPDA and a DFA in parallel. -/
-def productDFA (M : DPDA Q T S) (D : DFA T σ) : DPDA (Q × σ) T S where
+@[expose]
+public def productDFA (M : DPDA Q T S) (D : DFA T σ) : DPDA (Q × σ) T S where
   initial_state := (M.initial_state, D.start)
   start_symbol := M.start_symbol
   final_states := {p | p.1 ∈ M.final_states ∧ p.2 ∈ D.accept}
@@ -124,7 +127,7 @@ theorem productDFA_step_projects (M : DPDA Q T S) (D : DFA T σ)
 /-
 One step in the product: the DFA state is updated by the consumed input.
 -/
-theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
     {c₁ c₂ : @PDA.conf (Q × σ) T S _ _ _ (M.productDFA D).toPDA}
     (h : @PDA.Reaches₁ (Q × σ) T S _ _ _ (M.productDFA D).toPDA c₁ c₂) :
     ∃ consumed : List T, c₁.input = consumed ++ c₂.input ∧
@@ -151,7 +154,7 @@ theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
 /-
 One step in the DPDA lifts to one step in the product.
 -/
-theorem productDFA_step_lift (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_step_lift (M : DPDA Q T S) (D : DFA T σ)
     (q : Q) (s : σ) (w : List T) (γ : List S)
     (q' : Q) (w' : List T) (γ' : List S)
     (hstep : @PDA.Reaches₁ Q T S _ _ _ M.toPDA ⟨q, w, γ⟩ ⟨q', w', γ'⟩) :
@@ -177,7 +180,7 @@ Multi-step projection lemmas
 
 Multi-step reachability in the product projects to multi-step reachability in the DPDA.
 -/
-theorem productDFA_reaches_projects (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_reaches_projects (M : DPDA Q T S) (D : DFA T σ)
     (q : Q) (s : σ) (w : List T) (γ : List S)
     (q' : Q) (s' : σ) (w' : List T) (γ' : List S)
     (h : @PDA.Reaches (Q × σ) T S _ _ _ (M.productDFA D).toPDA
@@ -193,7 +196,7 @@ theorem productDFA_reaches_projects (M : DPDA Q T S) (D : DFA T σ)
 /-
 Multi-step reachability in the product tracks the DFA state correctly.
 -/
-theorem productDFA_reaches_dfa_state (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_reaches_dfa_state (M : DPDA Q T S) (D : DFA T σ)
     (q : Q) (s : σ) (w : List T) (γ : List S)
     (q' : Q) (s' : σ) (w' : List T) (γ' : List S)
     (h : @PDA.Reaches (Q × σ) T S _ _ _ (M.productDFA D).toPDA
@@ -213,7 +216,7 @@ theorem productDFA_reaches_dfa_state (M : DPDA Q T S) (D : DFA T σ)
 /-
 Multi-step: DPDA reachability lifts to product reachability.
 -/
-theorem productDFA_reaches_lift (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_reaches_lift (M : DPDA Q T S) (D : DFA T σ)
     (q : Q) (s : σ) (w : List T) (γ : List S)
     (q' : Q) (w' : List T) (γ' : List S)
     (hreach : @PDA.Reaches Q T S _ _ _ M.toPDA ⟨q, w, γ⟩ ⟨q', w', γ'⟩) :
@@ -233,7 +236,7 @@ theorem productDFA_reaches_lift (M : DPDA Q T S) (D : DFA T σ)
 The product DPDA accepts exactly the intersection of the DPDA language
     and the DFA language.
 -/
-theorem productDFA_correct (M : DPDA Q T S) (D : DFA T σ) :
+public theorem productDFA_correct (M : DPDA Q T S) (D : DFA T σ) :
     (M.productDFA D).acceptsByFinalState = M.acceptsByFinalState ⊓ D.accepts := by
   ext w;
   constructor;
@@ -254,7 +257,7 @@ end DPDA
 
 /-- The class of deterministic context-free languages is closed under intersection
     with regular languages. -/
-theorem DCF_inter_regular {T : Type} [Fintype T]
+public theorem DCF_inter_regular {T : Type} [Fintype T]
     (L₁ : Language T) (L₂ : Language T)
     (h₁ : is_DCF L₁) (h₂ : L₂.IsRegular) :
     is_DCF (L₁ ⊓ L₂) := by

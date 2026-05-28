@@ -34,8 +34,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Elementary Pumping Lemmas
 
@@ -51,7 +53,7 @@ open List
 variable {T : Type}
 
 /-- Pumping lemma for context-free languages.  -/
-lemma CF_pumping {T : Type} {L : Language T} (cf : is_CF L) :
+public lemma CF_pumping {T : Type} {L : Language T} (cf : is_CF L) :
   ∃ n : ℕ, ∀ w ∈ L, List.length w ≥ n → (
     ∃ u v x y z : List T,
       (w = u ++ v ++ x ++ y ++ z) ∧

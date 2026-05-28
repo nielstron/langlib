@@ -42,8 +42,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # `a^n b^n c^n` as an RE Language
 
@@ -529,7 +531,7 @@ private lemma grammar_anbncn_sub_lang_eq_eq :
           ⟩
 
 /-- The grammar `grammar_anbncn` generates exactly `{aⁿbⁿcⁿ | n ≥ 1}`. -/
-theorem grammar_anbncn_language : grammar_language grammar_anbncn = lang_eq_eq_pos := by
+public theorem grammar_anbncn_language : grammar_language grammar_anbncn = lang_eq_eq_pos := by
   ext w
   exact ⟨grammar_anbncn_sub_lang_eq_eq w, fun ⟨n, hw⟩ => hw ▸ anbncn_derivable n⟩
 
@@ -587,7 +589,7 @@ private lemma lang_eq_eq_pos_union_epsilon : lang_eq_eq_pos + lang_abc_epsilon =
         exact ⟨n, rfl⟩
 
 /-- The language `{aⁿbⁿcⁿ}` is recursively enumerable. -/
-theorem lang_eq_eq_is_RE : is_RE lang_eq_eq := by
+public theorem lang_eq_eq_is_RE : is_RE lang_eq_eq := by
   have hpos : is_RE lang_eq_eq_pos := ⟨grammar_anbncn, grammar_anbncn_language⟩
   have heps : is_RE lang_abc_epsilon := ⟨grammar_epsilon, grammar_epsilon_language⟩
   rw [← lang_eq_eq_pos_union_epsilon]

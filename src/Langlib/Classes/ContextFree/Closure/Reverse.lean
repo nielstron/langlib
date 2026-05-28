@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Closure Under Reversal
 
@@ -61,7 +63,8 @@ variable {T : Type}
 section reversal_defs
 
 /-- Reverse the right-hand side of every rule in a context-free grammar. -/
-def reversal_CF_grammar (g : CF_grammar T) : CF_grammar T :=
+@[expose]
+public def reversal_CF_grammar (g : CF_grammar T) : CF_grammar T :=
   CF_grammar.mk g.nt g.initial (List.map (
       fun r : g.nt × List (symbol T g.nt) => (r.fst, List.reverse r.snd)
     ) g.rules)
@@ -86,7 +89,7 @@ section commutation
 
 /-- Reversing a CF grammar and then embedding it as an unrestricted grammar gives the
 same grammar as embedding first and then applying the unrestricted reversal. -/
-theorem grammar_of_cfg_reversal_comm (g : CF_grammar T) :
+public theorem grammar_of_cfg_reversal_comm (g : CF_grammar T) :
     grammar_of_cfg (reversal_CF_grammar g) = reversal_grammar (grammar_of_cfg g) := by
   cases g with
   | mk nt initial rules =>
@@ -100,7 +103,7 @@ end commutation
 section closure
 
 /-- The class of context-free languages is closed under reversal. -/
-theorem CF_of_reverse_CF (L : Language T) :
+public theorem CF_of_reverse_CF (L : Language T) :
     is_CF L → is_CF (L.reverse) := by
   intro h
   obtain ⟨g, hgL⟩ := is_CF_implies_is_CF_via_cfg h

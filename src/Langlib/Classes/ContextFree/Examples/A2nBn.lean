@@ -39,8 +39,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The `{a^(2n)b^n}` language
 
@@ -92,7 +94,7 @@ private lemma flatMap_left_hom_anbn (n : ℕ) :
       List.replicate (2 * n) false ++ List.replicate n true := by
   simp [List.flatMap_append, List.flatMap_replicate, flatten_replicate_pair_false]
 
-lemma quotientLeftBlockCore_eq_hom :
+public lemma quotientLeftBlockCore_eq_hom :
     quotientLeftBlockCore =
       anbn.homomorphicImage (fun b => if b = true then [true] else [false, false]) := by
   ext w
@@ -110,7 +112,7 @@ lemma quotientLeftBlockCore_eq_hom :
         (fun b => if b = true then [true] else [false, false]) src w).1 hwprod
     rw [hw, hsrc, flatMap_left_hom_anbn]
 
-lemma CF_quotientLeftBlockCore : is_CF quotientLeftBlockCore := by
+public lemma CF_quotientLeftBlockCore : is_CF quotientLeftBlockCore := by
   rw [quotientLeftBlockCore_eq_hom]
   exact CF_closed_under_homomorphism anbn
     (fun b => if b = true then [true] else [false, false]) anbn_is_CF

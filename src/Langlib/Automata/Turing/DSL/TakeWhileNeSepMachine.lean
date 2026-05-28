@@ -37,8 +37,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # TakeWhile (· ≠ sep) is Block-Realizable
 
@@ -89,7 +91,8 @@ theorem takeWhile_eq_comp_rev_drop_rev {Γ : Type} [Inhabited Γ] [DecidableEq �
 
 /-- Drop everything up to and including the FIRST occurrence of `sep`.
     If `sep ∉ l`, returns `[]`. -/
-def dropUntilFirstSep {Γ : Type} [DecidableEq Γ] (sep : Γ) : List Γ → List Γ
+@[expose]
+public def dropUntilFirstSep {Γ : Type} [DecidableEq Γ] (sep : Γ) : List Γ → List Γ
   | [] => []
   | c :: rest => if c = sep then rest else dropUntilFirstSep sep rest
 
@@ -110,7 +113,7 @@ theorem dropUntilFirstSep_length_lt {Γ : Type} [DecidableEq Γ]
       simp only [List.length_cons]
       omega
 
-theorem dropUntilFirstSep_ne_default {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
+public theorem dropUntilFirstSep_ne_default {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (sep : Γ) (block : List Γ)
     (hblock : ∀ g ∈ block, g ≠ default) :
     ∀ g ∈ dropUntilFirstSep sep block, g ≠ default := by
@@ -209,7 +212,7 @@ noncomputable def dflMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
 Writing default at head and moving right on `Tape.mk₁ (c :: rest)`
 gives `Tape.mk₁ rest`. The leading default is absorbed by ListBlank.
 -/
-theorem tape_erase_step {Γ : Type} [Inhabited Γ]
+public theorem tape_erase_step {Γ : Type} [Inhabited Γ]
     (c : Γ) (rest : List Γ) :
     Tape.move Dir.right (Tape.write default (Tape.mk₁ (c :: rest))) =
       Tape.mk₁ rest := by

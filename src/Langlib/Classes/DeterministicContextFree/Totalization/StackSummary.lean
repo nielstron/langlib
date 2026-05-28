@@ -1,8 +1,10 @@
 module
 
 public import Mathlib.Computability.DFA
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Finite Stack Summaries for Regular Lookahead
 
@@ -17,7 +19,8 @@ namespace DFA
 variable {S σ : Type}
 
 /-- The transition function induced by reading an entire stack suffix. -/
-def stackSummary (D : DFA S σ) (γ : List S) : σ → σ :=
+@[expose]
+public def stackSummary (D : DFA S σ) (γ : List S) : σ → σ :=
   fun s => D.evalFrom s γ
 
 @[simp]
@@ -26,13 +29,14 @@ theorem stackSummary_nil (D : DFA S σ) :
   funext s
   rfl
 
-theorem stackSummary_append (D : DFA S σ) (γ δ : List S) :
+public theorem stackSummary_append (D : DFA S σ) (γ δ : List S) :
     D.stackSummary (γ ++ δ) = D.stackSummary δ ∘ D.stackSummary γ := by
   funext s
   simp [stackSummary, DFA.evalFrom, List.foldl_append]
 
 /-- The summary of a block `γ` placed above a suffix whose summary is `below`. -/
-def summaryAbove (D : DFA S σ) (below : σ → σ) (γ : List S) : σ → σ :=
+@[expose]
+public def summaryAbove (D : DFA S σ) (below : σ → σ) (γ : List S) : σ → σ :=
   below ∘ D.stackSummary γ
 
 @[simp]

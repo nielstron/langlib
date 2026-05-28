@@ -39,8 +39,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # `a^n b^n` as a CFL
 
@@ -51,7 +53,8 @@ language is context-free.
 open Language List
 
 /-- Context-free grammar for the language `{aⁿbⁿ | n ∈ ℕ}` over `Bool`. -/
-def cfg_anbn : CF_grammar Bool where
+@[expose]
+public def cfg_anbn : CF_grammar Bool where
   nt := Unit
   initial := ()
   rules := [
@@ -156,10 +159,10 @@ private lemma anbn_sub_CF_language_cfg_anbn :
   aesop
 
 /-- The grammar `cfg_anbn` generates exactly `{aⁿbⁿ}`. -/
-theorem CF_language_cfg_anbn : CF_language cfg_anbn = anbn := by
+public theorem CF_language_cfg_anbn : CF_language cfg_anbn = anbn := by
   ext w
   exact ⟨CF_language_cfg_anbn_sub_anbn w, anbn_sub_CF_language_cfg_anbn w⟩
 
 /-- The language `{aⁿbⁿ}` is context-free. -/
-theorem anbn_is_CF : is_CF anbn :=
+public theorem anbn_is_CF : is_CF anbn :=
   is_CF_via_cfg_implies_is_CF ⟨cfg_anbn, CF_language_cfg_anbn⟩

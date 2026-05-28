@@ -34,8 +34,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Compilation of Search Procedures to TM0
 
@@ -118,7 +120,7 @@ private lemma gEnc_encode_eq {T : Type} {α : Type} [Primcodable T] [Primcodable
     List.Vector.head (⟨[n], rfl⟩ : List.Vector ℕ 1) = n := rfl
 
 /-- **Sub-problem 1** (PROVED): The µ-search over a computable test is Partrec. -/
-theorem search_is_partrec {T : Type} {α : Type}
+public theorem search_is_partrec {T : Type} {α : Type}
     [Primcodable T] [Primcodable α]
     (test : α → List T → Bool) (hc : Computable₂ test) :
     ∃ c : ToPartrec.Code,

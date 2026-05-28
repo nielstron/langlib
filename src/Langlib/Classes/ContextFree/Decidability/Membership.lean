@@ -47,8 +47,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Decidability and Computability of Membership
 
@@ -78,7 +80,8 @@ open ChomskyNormalFormGrammar
 /-- CYK-style predicate: can nonterminal `n` derive word `w` in CNF grammar `g`?
     Quantifies over rules (a Finset) instead of nonterminals, so does NOT require
     `Fintype g.NT`. -/
-noncomputable def canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+@[expose]
+public noncomputable def canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : g.NT) : List T → Prop
   | [] => False
   | [t] => ChomskyNormalFormRule.leaf n t ∈ g.rules
@@ -170,7 +173,7 @@ lemma cykDecideAux_iff_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g
       refine' ⟨ _, ChomskyNormalFormRule.node n c₁ c₂, _, _ ⟩ <;> simp_all +decide;
       grind
 
-lemma parseTree_of_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+public lemma parseTree_of_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : g.NT) (w : List T) (h : canDerive g n w) :
     ∃ p : @parseTree _ g n, p.yield = w := by
   induction' k : w.length using Nat.strong_induction_on with k ih generalizing n w;
@@ -190,7 +193,7 @@ lemma parseTree_of_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     simp_all +decide [ ChomskyNormalFormGrammar.parseTree.yield ]
 
 
-lemma canDerive_of_parseTree (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+public lemma canDerive_of_parseTree (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     {n : g.NT} (p : @parseTree _ g n) :
     canDerive g n p.yield := by
   induction' p with n t hnt p₁ p₂ h₁ h₂ h₃ h₄ h₅ h₆ h₇ h₈ h₉ h₁₀ h₁₁ h₁₂ h₁₃ h₁₄ h₁₅ h₁₆ h₁₇ h₁₈ h₁₉ h₂₀ v hv₁ hv₂ hv₃ hv₄ hv₅ hv₆ hv₇ hv₈ hv₉ hv₁₀ hv₁₁ hv₁₂ hv₁₃ hv₁₄ hv₁₅ hv₁₆ hv₁₇ hv₁₈ hv₁₉ hv₂₀ hv₂₁ hv₂₂ hv₂₃ hv₂₄ hv₂₅ hv₂₆ hv₂₇ hv₂₈ hv₂₉ hv₃₀ hv₃₁ hv₃₂ hv₃₃ hv₃₄ hv₃₅ hv₃₆ hv₃₇ hv₃₈ hv₃₉ hv₄₀ hv₄₁ hv₄₂ hv₄₃ hv₄₄ hv₄₅ hv₄₆ hv₄₇ hv₄₈ hv₄₉ hv₅₀ h₁ₚ h₂ₚ h₃ₚ h₄ₚ h₅ₚ h₆ₚ h₇ₚ h₈ₚ h₉ₚ h₁₀ₚ h₁₁ₚ h₁₂ₚ h₁₃ₚ h₁₄ₚ h₁₅ₚ h₁₆ₚ h₁₇ₚ h₁₈ₚ h₁₉ₚ h₂₀ₚ h₂₁ₚ h₂₂ₚ h₂₃ₚ h₂₄ₚ h₂₅ₚ h₂₆ₚ h₂₇ₚ h₂₈ₚ hi₁ hi₂ hi₃ hi₄ hi₅ hi₆ hi₇ hi₈ hi₉ hi₁₀;
@@ -220,7 +223,7 @@ lemma canDerive_of_parseTree (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
       exact h₃.yield_length_pos
 
 /-- `canDerive` is equivalent to `Derives` (derivation in the CNF grammar). -/
-lemma canDerive_iff_derives (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+public lemma canDerive_iff_derives (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : g.NT) (w : List T) :
     canDerive g n w ↔ g.Derives [Symbol.nonterminal n] (w.map Symbol.terminal) := by
   constructor

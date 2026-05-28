@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Closure Under Substitution
 
@@ -51,7 +53,7 @@ repackages it for this project's `is_CF` predicate.
 variable {α β : Type}
 
 /-- The class of context-free languages is closed under substitution. -/
-theorem CF_of_subst_CF (L : Language α) (f : α → Language β) :
+public theorem CF_of_subst_CF (L : Language α) (f : α → Language β) :
     is_CF L → (∀ a, is_CF (f a)) → is_CF (L.subst f) := by
   intro hL hf
   rw [is_CF_iff_isContextFree]

@@ -151,7 +151,11 @@ public import Langlib.Classes.Regular.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Regular.Inclusion.StrictContextFree
 public import Langlib.Classes.Regular.Inclusion.StrictDeterministicContextFree
 public import Langlib.Classes.Regular.Inclusion.StrictLinear
-@[expose] public section
+import Mathlib.Data.EReal.Operations
+import Mathlib.Data.Sym.Sym2.Init
+import Mathlib.Topology.MetricSpace.Bounded
+@[expose]
+public section
 
 /-! # Langlib Language Classes
 

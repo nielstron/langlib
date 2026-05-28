@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The deterministic context-free language `{a^n b^m c^m}`
 
@@ -49,7 +51,7 @@ open PDA List
 
 namespace DCFLIntersection
 
-inductive AnyEqState where
+public inductive AnyEqState where
   | start
   | seenB
   | seenC
@@ -71,7 +73,8 @@ private lemma replicate_append_cons_eq {α : Type} (n : ℕ) (x : α) (rest : Li
   | succ n ih => simp [List.replicate, ih]
 
 /-- DPDA recognizing `{aⁿbᵐcᵐ | n,m ≥ 0}`. -/
-def dpda_any_eq : DPDA AnyEqState (Fin 3) ABCStack where
+@[expose]
+public def dpda_any_eq : DPDA AnyEqState (Fin 3) ABCStack where
   initial_state := AnyEqState.start
   start_symbol := bottom
   final_states := {AnyEqState.start, matched}
@@ -373,7 +376,7 @@ private lemma dpda_any_eq_sound (w : List (Fin 3))
     exact ⟨na, nb, by simpa [List.append_assoc] using hw⟩
 
 /-- The second witness language `{aⁿbᵐcᵐ | n,m ≥ 0}` is deterministic context-free. -/
-theorem DCF_lang_any_eq : is_DCF lang_any_eq := by
+public theorem DCF_lang_any_eq : is_DCF lang_any_eq := by
   refine ⟨AnyEqState, ABCStack, inferInstance, inferInstance, dpda_any_eq, ?_⟩
   ext w
   constructor

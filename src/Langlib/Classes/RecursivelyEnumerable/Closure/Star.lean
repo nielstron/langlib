@@ -43,8 +43,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # RE Closure Under Kleene Star
 
@@ -1256,7 +1258,7 @@ private lemma in_star_of_in_star_grammar {g : grammar T} {w : List T}
 end hard_direction
 
 /-- The class of recursively enumerable languages is closed under the Kleene star. -/
-theorem RE_of_star_RE (L : Language T) :
+public theorem RE_of_star_RE (L : Language T) :
     is_RE L → is_RE (KStar.kstar L) := by
   rintro ⟨g, hg⟩
   use star_grammar g

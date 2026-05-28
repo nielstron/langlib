@@ -3,8 +3,10 @@ module
 public import Langlib.Classes.RecursivelyEnumerable.Definition
 public import Langlib.Utilities.LanguageOperations
 import Langlib.Grammars.Unrestricted.Toolbox
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # RE Closure Under Terminal Bijection
 
@@ -34,17 +36,20 @@ embeddings.
 variable {T₁ T₂ : Type}
 
 /-- Map a symbol along a terminal equivalence, leaving nonterminals unchanged. -/
-def map_symbol {N : Type} (π : T₁ ≃ T₂) : symbol T₁ N → symbol T₂ N
+@[expose]
+public def map_symbol {N : Type} (π : T₁ ≃ T₂) : symbol T₁ N → symbol T₂ N
   | symbol.terminal t => symbol.terminal (π t)
   | symbol.nonterminal n => symbol.nonterminal n
 
 /-- Map a symbol back along the inverse equivalence. -/
-def map_symbol_inv {N : Type} (π : T₁ ≃ T₂) : symbol T₂ N → symbol T₁ N
+@[expose]
+public def map_symbol_inv {N : Type} (π : T₁ ≃ T₂) : symbol T₂ N → symbol T₁ N
   | symbol.terminal t => symbol.terminal (π.symm t)
   | symbol.nonterminal n => symbol.nonterminal n
 
 /-- Map terminals along an arbitrary function, leaving nonterminals unchanged. -/
-def map_symbol_fn {N : Type} (f : T₁ → T₂) : symbol T₁ N → symbol T₂ N
+@[expose]
+public def map_symbol_fn {N : Type} (f : T₁ → T₂) : symbol T₁ N → symbol T₂ N
   | symbol.terminal t => symbol.terminal (f t)
   | symbol.nonterminal n => symbol.nonterminal n
 
@@ -54,13 +59,13 @@ lemma map_symbol_fn_comp {N : Type} (f : T₁ → T₂) (g : T₂ → T₁) (s :
   cases s <;> rfl
 
 @[simp]
-lemma map_symbol_fn_leftInverse {N : Type} {f : T₁ → T₂} {g : T₂ → T₁}
+public lemma map_symbol_fn_leftInverse {N : Type} {f : T₁ → T₂} {g : T₂ → T₁}
     (hfg : Function.LeftInverse g f) (s : symbol T₁ N) :
     map_symbol_fn g (map_symbol_fn f s) = s := by
   cases s <;> simp [map_symbol_fn, hfg _]
 
 @[simp]
-lemma map_symbol_inv_map_symbol {N : Type} (π : T₁ ≃ T₂) (s : symbol T₁ N) :
+public lemma map_symbol_inv_map_symbol {N : Type} (π : T₁ ≃ T₂) (s : symbol T₁ N) :
     map_symbol_inv π (map_symbol π s) = s := by
   cases s <;> simp [map_symbol, map_symbol_inv]
 
@@ -70,16 +75,19 @@ lemma map_symbol_map_symbol_inv {N : Type} (π : T₁ ≃ T₂) (s : symbol T₂
   cases s <;> simp [map_symbol, map_symbol_inv]
 
 /-- Map an unrestricted grammar rule along a terminal equivalence. -/
-def bijection_grule {N : Type} (π : T₁ ≃ T₂) (r : grule T₁ N) : grule T₂ N :=
+@[expose]
+public def bijection_grule {N : Type} (π : T₁ ≃ T₂) (r : grule T₁ N) : grule T₂ N :=
   grule.mk (r.input_L.map (map_symbol π)) r.input_N
     (r.input_R.map (map_symbol π)) (r.output_string.map (map_symbol π))
 
 /-- Map an unrestricted grammar along a terminal equivalence. -/
-def bijection_grammar (g : grammar T₁) (π : T₁ ≃ T₂) : grammar T₂ :=
+@[expose]
+public def bijection_grammar (g : grammar T₁) (π : T₁ ≃ T₂) : grammar T₂ :=
   grammar.mk g.nt g.initial (g.rules.map (bijection_grule π))
 
 /-- Map an unrestricted grammar along an arbitrary terminal map. -/
-def map_grammar (g : grammar T₁) (f : T₁ → T₂) : grammar T₂ :=
+@[expose]
+public def map_grammar (g : grammar T₁) (f : T₁ → T₂) : grammar T₂ :=
   grammar.mk g.nt g.initial <|
     g.rules.map fun r =>
       grule.mk (r.input_L.map (map_symbol_fn f)) r.input_N
@@ -118,7 +126,7 @@ private lemma derives_symbols_in_image (g : grammar T₁) (f : T₁ → T₂) :
 /-- The bijection grammar generates exactly the π-image of the original language.
     This is the core result from which all class-specific bijection closure theorems
     are derived. -/
-theorem bijection_grammar_language (g : grammar T₁) (π : T₁ ≃ T₂) :
+public theorem bijection_grammar_language (g : grammar T₁) (π : T₁ ≃ T₂) :
     grammar_language (bijection_grammar g π) = Language.bijemapLang (grammar_language g) π := by
   ext w;
   constructor;
@@ -160,7 +168,7 @@ theorem bijection_grammar_language (g : grammar T₁) (π : T₁ ≃ T₂) :
 
 /-- If `g` is a left inverse of `f`, mapping an unrestricted grammar along `f`
     generates exactly the `Language.map f` image of the original language. -/
-theorem map_grammar_language_of_leftInverse (g : grammar T₁) {f : T₁ → T₂} {g' : T₂ → T₁}
+public theorem map_grammar_language_of_leftInverse (g : grammar T₁) {f : T₁ → T₂} {g' : T₂ → T₁}
     (hfg : Function.LeftInverse g' f) :
     grammar_language (map_grammar g f) = Language.map f (grammar_language g) := by
   ext w
@@ -250,7 +258,7 @@ theorem map_grammar_language_of_leftInverse (g : grammar T₁) {f : T₁ → T�
     simpa [List.map_map, map_symbol_fn] using h_map _ hw'
 
 /-- RE languages are closed under injective terminal maps. -/
-theorem RE_of_map_injective_RE [Nonempty T₁] {f : T₁ → T₂} (hf : Function.Injective f)
+public theorem RE_of_map_injective_RE [Nonempty T₁] {f : T₁ → T₂} (hf : Function.Injective f)
     (L : Language T₁) :
     is_RE L → is_RE (Language.map f L) := by
   rintro ⟨g, hgL⟩

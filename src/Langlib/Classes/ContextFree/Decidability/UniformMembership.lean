@@ -42,8 +42,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Uniform Membership Check for Encoded Context-Free Grammars -/
 
@@ -55,7 +57,8 @@ variable {T : Type} [DecidableEq T]
 
 /-- Match a rule's RHS against a substring of word `w`, starting from position `startPos`.
     Returns all possible end positions after matching the full RHS. -/
-def matchRHS (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
+@[expose]
+public def matchRHS (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
     (rhs : List (ℕ ⊕ T)) (startPos : ℕ) : List ℕ :=
   rhs.foldl (fun positions sym =>
     positions.flatMap fun pos =>
@@ -69,7 +72,8 @@ def matchRHS (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
   ) [startPos]
 
 /-- One step of the saturation. -/
-def satStep (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+@[expose]
+public def satStep (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) : List (ℕ × ℕ × ℕ) :=
   rules.foldl (fun S' (rule : ℕ × List (ℕ ⊕ T)) =>
     (range (w.length + 1)).foldl (fun S'' (startPos : ℕ) =>
@@ -81,12 +85,14 @@ def satStep (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
   ) S
 
 /-- Iterate the saturation step. -/
-def satFixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+@[expose]
+public def satFixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (steps : ℕ) : List (ℕ × ℕ × ℕ) :=
   (satStep nc rules w)^[steps] []
 
 /-- Check membership of word `w` in the language of encoded CFG `G`. -/
-def checkMembershipEncoded [Fintype T] (p : EncodedCFG T × List T) : Bool :=
+@[expose]
+public def checkMembershipEncoded [Fintype T] (p : EncodedCFG T × List T) : Bool :=
   let G := p.1
   let w := p.2
   let nc := G.ntCount
@@ -105,7 +111,7 @@ private lemma foldl_append_mono {α β : Type*} [DecidableEq β]
   | nil => simp
   | cons h tl ih => intro t ht; simp [List.foldl]; exact ih _ _ (hf S h t ht)
 
-lemma satStep_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satStep_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) :
     ∀ t ∈ S, t ∈ satStep nc rules w S := by
   unfold satStep; simp +decide
@@ -114,7 +120,7 @@ lemma satStep_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List
     induction' ( matchRHS w nc _ rule.2 startPos ) using List.reverseRecOn with endPos endPos ih <;> simp_all +decide [ List.foldl ]
     grind +ring) _ _ _ (ih a a_1 b hab)
 
-lemma satFixpoint_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satFixpoint_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (n m : ℕ) (h : n ≤ m) :
     ∀ t ∈ satFixpoint nc rules w n, t ∈ satFixpoint nc rules w m := by
   induction' h with m hm ih
@@ -125,21 +131,23 @@ lemma satFixpoint_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : 
 /-! ## Soundness Lemmas -/
 
 /-- Property that a triple represents a valid derivation. -/
-def TripleDerives (G : EncodedCFG T) (w : List T) (nt i j : ℕ) : Prop :=
+@[expose]
+public def TripleDerives (G : EncodedCFG T) (w : List T) (nt i j : ℕ) : Prop :=
   ∃ (hnt : nt < G.ntCount),
     i ≤ j ∧ j ≤ w.length ∧
     CF_derives G.toCFGrammar [symbol.nonterminal ⟨nt, hnt⟩]
       ((w.drop i |>.take (j - i)).map symbol.terminal)
 
 /-- Property that all triples in a set represent valid derivations. -/
-def AllSound (G : EncodedCFG T) (w : List T) (S : List (ℕ × ℕ × ℕ)) : Prop :=
+@[expose]
+public def AllSound (G : EncodedCFG T) (w : List T) (S : List (ℕ × ℕ × ℕ)) : Prop :=
   ∀ nt i j, (nt, i, j) ∈ S → TripleDerives G w nt i j
 
 /-
 Key soundness lemma for matchRHS: if matchRHS returns endPos, then the RHS
     derives the corresponding substring.
 -/
-lemma matchRHS_sound (G : EncodedCFG T) (w : List T)
+public lemma matchRHS_sound (G : EncodedCFG T) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) (hS : AllSound G w S)
     (rhs : List (ℕ ⊕ T)) (startPos endPos : ℕ)
     (hstart : startPos ≤ w.length)
@@ -176,7 +184,7 @@ lemma matchRHS_sound (G : EncodedCFG T) (w : List T)
 /-
 Characterization of elements in satStep: either in S or newly derived.
 -/
-lemma mem_satStep_iff (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma mem_satStep_iff (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) (nt i j : ℕ) :
     (nt, i, j) ∈ satStep nc rules w S →
     (nt, i, j) ∈ S ∨
@@ -213,7 +221,7 @@ lemma mem_satStep_iff (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : L
 /-
 satStep preserves soundness and newly added triples are also sound.
 -/
-lemma satStep_sound (G : EncodedCFG T) (w : List T) (S : List (ℕ × ℕ × ℕ))
+public lemma satStep_sound (G : EncodedCFG T) (w : List T) (S : List (ℕ × ℕ × ℕ))
     (hS : AllSound G w S) :
     AllSound G w (satStep G.ntCount G.rawRules w S) := by
   intro nt i j hij;
@@ -233,7 +241,7 @@ lemma satStep_sound (G : EncodedCFG T) (w : List T) (S : List (ℕ × ℕ × ℕ
 /-
 satFixpoint produces only sound triples.
 -/
-lemma satFixpoint_sound (G : EncodedCFG T) (w : List T) (steps : ℕ) :
+public lemma satFixpoint_sound (G : EncodedCFG T) (w : List T) (steps : ℕ) :
     AllSound G w (satFixpoint G.ntCount G.rawRules w steps) := by
   induction' steps with n ih <;> simp_all +decide [ satFixpoint ];
   · exact fun _ _ _ _ => by contradiction;
@@ -243,7 +251,8 @@ lemma satFixpoint_sound (G : EncodedCFG T) (w : List T) (steps : ℕ) :
 /-! ## matchRHS structural lemmas -/
 
 /-- The single-symbol matching step. -/
-def matchOneSym (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
+@[expose]
+public def matchOneSym (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
     (sym : ℕ ⊕ T) (pos : ℕ) : List ℕ :=
   match sym with
   | .inr t =>
@@ -256,7 +265,7 @@ def matchOneSym (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
 /-
 matchRHS foldl distributes over append of positions.
 -/
-lemma matchRHS_foldl_append (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
+public lemma matchRHS_foldl_append (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
     (rhs : List (ℕ ⊕ T)) (p1 p2 : List ℕ) :
     rhs.foldl (fun positions sym => positions.flatMap (matchOneSym w nc S sym))
       (p1 ++ p2) =
@@ -269,7 +278,7 @@ lemma matchRHS_foldl_append (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ
 /-
 matchRHS on cons unfolds to single-symbol match followed by matchRHS on tail.
 -/
-lemma matchRHS_cons (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
+public lemma matchRHS_cons (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
     (sym : ℕ ⊕ T) (rest : List (ℕ ⊕ T)) (startPos : ℕ) :
     matchRHS w nc S (sym :: rest) startPos =
     (matchOneSym w nc S sym startPos).flatMap (matchRHS w nc S rest) := by
@@ -384,7 +393,7 @@ private lemma mem_foldl_cond_append {α : Type*} [DecidableEq α]
 If endPos ∈ matchRHS and (lhs, rhs) ∈ rules, then (lhs % nc, startPos, endPos) is
     in satStep nc rules w S, provided startPos ≤ w.length.
 -/
-lemma mem_satStep_of_matchRHS (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma mem_satStep_of_matchRHS (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) (lhs : ℕ) (rhs : List (ℕ ⊕ T))
     (hrule : (lhs, rhs) ∈ rules) (startPos endPos : ℕ)
     (hstart : startPos ≤ w.length)
@@ -419,7 +428,7 @@ lemma matchOneSym_mono (w : List T) (nc : ℕ) (S₁ S₂ : List (ℕ × ℕ × 
     ∀ e ∈ matchOneSym w nc S₁ sym pos, e ∈ matchOneSym w nc S₂ sym pos := by
   unfold matchOneSym; aesop;
 
-lemma matchRHS_mono (w : List T) (nc : ℕ) (S₁ S₂ : List (ℕ × ℕ × ℕ))
+public lemma matchRHS_mono (w : List T) (nc : ℕ) (S₁ S₂ : List (ℕ × ℕ × ℕ))
     (hS : ∀ t ∈ S₁, t ∈ S₂) (rhs : List (ℕ ⊕ T)) (startPos : ℕ) :
     ∀ e ∈ matchRHS w nc S₁ rhs startPos, e ∈ matchRHS w nc S₂ rhs startPos := by
   induction' rhs with sym rhs ih generalizing startPos;
@@ -436,7 +445,7 @@ lemma terminal_concat_split {N : Type} {u v : List (symbol T N)} {w : List T}
   · cases w <;> simp_all +decide [ List.map ];
     grind
 
-lemma terminal_derives_in_self (g : CF_grammar T) (t : T) (n : ℕ) (w : List T)
+public lemma terminal_derives_in_self (g : CF_grammar T) (t : T) (n : ℕ) (w : List T)
     (h : CF_derives_in g n [symbol.terminal t] (List.map symbol.terminal w)) :
     n = 0 ∧ w = [t] := by
   induction' n with n ih generalizing w <;> simp_all +decide [ CF_derives_in ];
@@ -449,7 +458,7 @@ lemma terminal_derives_in_self (g : CF_grammar T) (t : T) (n : ℕ) (w : List T)
 A single nonterminal cannot derive empty list in 0 steps.
 -/
 omit [DecidableEq T] in
-lemma no_terminal_eq_nonterminal (g : CF_grammar T) (nt : g.nt) (w' : List T) :
+public lemma no_terminal_eq_nonterminal (g : CF_grammar T) (nt : g.nt) (w' : List T) :
     [symbol.nonterminal nt] ≠ w'.map symbol.terminal := by
   cases w' <;> aesop
 
@@ -457,7 +466,7 @@ lemma no_terminal_eq_nonterminal (g : CF_grammar T) (nt : g.nt) (w' : List T) :
 From CF_transforms [nonterminal nt] mid, extract the rule.
 -/
 omit [DecidableEq T] in
-lemma transforms_single_nonterminal (g : CF_grammar T) (nt : g.nt)
+public lemma transforms_single_nonterminal (g : CF_grammar T) (nt : g.nt)
     (mid : List (symbol T g.nt))
     (h : CF_transforms g [symbol.nonterminal nt] mid) :
     ∃ rhs, (nt, rhs) ∈ g.rules ∧ mid = rhs := by
@@ -468,7 +477,7 @@ lemma transforms_single_nonterminal (g : CF_grammar T) (nt : g.nt)
 Extract raw rule from G.toCFGrammar rule.
 -/
 omit [DecidableEq T] in
-lemma rawRule_of_toCFGrammar_rule (G : EncodedCFG T)
+public lemma rawRule_of_toCFGrammar_rule (G : EncodedCFG T)
     (nt : Fin G.ntCount) (rhs : List (symbol T (Fin G.ntCount)))
     (hrule : (nt, rhs) ∈ G.toCFGrammar.rules) :
     ∃ (lhs_raw : ℕ) (rhs_raw : List (ℕ ⊕ T)),
@@ -481,7 +490,7 @@ lemma rawRule_of_toCFGrammar_rule (G : EncodedCFG T)
 Key helper: if each nonterminal sub-derivation with < n+1 steps has a bound,
     then the matchRHS result is in some satFixpoint.
 -/
-lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
+public lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
     (ih_outer : ∀ m < n + 1, ∀ (nt : Fin G.ntCount) (i j : ℕ),
       i ≤ j → j ≤ w.length →
       CF_derives_in G.toCFGrammar m [symbol.nonterminal nt]
@@ -546,7 +555,7 @@ lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
 /-
 Completeness of saturation.
 -/
-lemma satFixpoint_complete (G : EncodedCFG T) (w : List T)
+public lemma satFixpoint_complete (G : EncodedCFG T) (w : List T)
     (nt : Fin G.ntCount) (i j : ℕ) (hij : i ≤ j) (hj : j ≤ w.length)
     (hder : CF_derives G.toCFGrammar [symbol.nonterminal nt]
         ((w.drop i |>.take (j - i)).map symbol.terminal)) :
@@ -576,7 +585,7 @@ lemma satFixpoint_complete (G : EncodedCFG T) (w : List T)
 /-
 satStep preserves the prefix: S is a prefix of satStep nc rules w S.
 -/
-lemma satStep_prefix (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satStep_prefix (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) :
     S <+: satStep nc rules w S := by
   induction' rules using List.reverseRecOn with rules ih generalizing S <;> simp_all +decide [ satStep ];
@@ -592,7 +601,7 @@ lemma satStep_prefix (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : Li
 /-
 All triples added by satStep have their first component < nc (when nc > 0).
 -/
-lemma satStep_fst_bound (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satStep_fst_bound (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) (nt i j : ℕ)
     (hnc : 0 < nc)
     (hS : ∀ nt' i' j', (nt', i', j') ∈ S → nt' < nc)
@@ -603,7 +612,7 @@ lemma satStep_fst_bound (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w :
 /-
 matchRHS returns positions ≤ w.length, given that S entries have endpoints ≤ w.length.
 -/
-lemma matchRHS_endPos_bound (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
+public lemma matchRHS_endPos_bound (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
     (hS : ∀ nt i j, (nt, i, j) ∈ S → j ≤ w.length)
     (rhs : List (ℕ ⊕ T)) (startPos endPos : ℕ)
     (hstart : startPos ≤ w.length)
@@ -621,7 +630,7 @@ lemma matchRHS_endPos_bound (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ
 /-
 All triples in satStep have position components ≤ w.length.
 -/
-lemma satStep_pos_bound (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satStep_pos_bound (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ))
     (hS : ∀ nt i j, (nt, i, j) ∈ S → i ≤ w.length ∧ j ≤ w.length)
     (nt i j : ℕ) (h : (nt, i, j) ∈ satStep nc rules w S) :
@@ -635,7 +644,7 @@ lemma satStep_pos_bound (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w :
 /-
 satStep preserves Nodup.
 -/
-lemma satStep_nodup (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satStep_nodup (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) (hS : S.Nodup) :
     (satStep nc rules w S).Nodup := by
   -- By definition of `satStep`, we know that if `S` is nodup, then `satStep nc rules w S` is also nodup.
@@ -652,7 +661,7 @@ lemma satStep_nodup (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : Lis
 /-
 satFixpoint has no duplicates.
 -/
-lemma satFixpoint_nodup (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satFixpoint_nodup (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (n : ℕ) : (satFixpoint nc rules w n).Nodup := by
   induction' n with n ih;
   · exact List.nodup_nil;
@@ -662,7 +671,7 @@ lemma satFixpoint_nodup (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w :
 /-
 All entries in satFixpoint are bounded (when nc > 0).
 -/
-lemma satFixpoint_entries_bounded (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satFixpoint_entries_bounded (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (hnc : 0 < nc)
     (n : ℕ) (nt i j : ℕ) (h : (nt, i, j) ∈ satFixpoint nc rules w n) :
     nt < nc ∧ i ≤ w.length ∧ j ≤ w.length := by
@@ -676,7 +685,7 @@ lemma satFixpoint_entries_bounded (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕
 /-
 satFixpoint length is bounded by the universe size (when nc > 0).
 -/
-lemma satFixpoint_length_bounded (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satFixpoint_length_bounded (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (hnc : 0 < nc)
     (n : ℕ) :
     (satFixpoint nc rules w n).length ≤ nc * (w.length + 1) * (w.length + 1) := by
@@ -690,7 +699,7 @@ lemma satFixpoint_length_bounded (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ 
 /-
 If satFixpoint stabilizes at step k, it stays the same forever.
 -/
-lemma satFixpoint_stable_after (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satFixpoint_stable_after (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (k : ℕ) (hk : satFixpoint nc rules w k = satFixpoint nc rules w (k + 1)) :
     ∀ m ≥ k, satFixpoint nc rules w m = satFixpoint nc rules w k := by
   intro m hm;
@@ -703,7 +712,7 @@ lemma satFixpoint_stable_after (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T)
 /-
 Key convergence: any triple in any satFixpoint is in the bounded satFixpoint (when nc > 0).
 -/
-lemma satFixpoint_converges (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
+public lemma satFixpoint_converges (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (hnc : 0 < nc)
     (t : ℕ × ℕ × ℕ) :
     (∃ n, t ∈ satFixpoint nc rules w n) →
@@ -742,7 +751,7 @@ lemma satFixpoint_converges (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) 
 
 /-! ## Main Correctness -/
 
-theorem checkMembershipEncoded_correct [Fintype T] (G : EncodedCFG T) (w : List T) :
+public theorem checkMembershipEncoded_correct [Fintype T] (G : EncodedCFG T) (w : List T) :
     checkMembershipEncoded (G, w) = true ↔ w ∈ CF_language G.toCFGrammar := by
   constructor;
   · intro h_true

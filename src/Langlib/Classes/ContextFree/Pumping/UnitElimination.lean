@@ -9,8 +9,10 @@ Authors: Alexander Loitzl
 public import Mathlib.Data.Finset.Prod
 public import Langlib.Classes.ContextFree.Pumping.EpsilonElimination
 import Langlib.Classes.ContextFree.Pumping.Utils
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Unit-Rule Elimination for CFGs
 
@@ -31,7 +33,7 @@ section Stuff
 
 variable {g : ContextFreeGrammar T}
 
-lemma Produces.rule {n : g.NT} {u : List (Symbol T g.NT)}
+public lemma Produces.rule {n : g.NT} {u : List (Symbol T g.NT)}
     (hnu : g.Produces [Symbol.nonterminal n] u) :
     ⟨n, u⟩ ∈ g.rules := by
   obtain ⟨_, _, hr⟩ := hnu
@@ -46,32 +48,34 @@ section UnitPairs
 variable {g : ContextFreeGrammar T} [DecidableEq g.NT]
 
 /-- Convenient to talk about the rule rewriting a nonterminal `nᵢ` to another nonterminal `nₒ` -/
-abbrev unitRule (nᵢ nₒ : g.NT) : ContextFreeRule T g.NT := ⟨nᵢ, [Symbol.nonterminal nₒ]⟩
+@[expose]
+public abbrev unitRule (nᵢ nₒ : g.NT) : ContextFreeRule T g.NT := ⟨nᵢ, [Symbol.nonterminal nₒ]⟩
 
 /-- `UnitPair n₁ n₂`, (w.r.t. a ContextFreeGrammar `g`) means that `g` can derive `n₂` from `n₁`
 only using unitRules -/
-inductive UnitPair : g.NT → g.NT → Prop where
+public inductive UnitPair : g.NT → g.NT → Prop where
   /- UnitPair is reflexive due to the empty derivation -/
   | refl {n : g.NT} (hng : n ∈ g.generators) : UnitPair n n
   /- UnitPair is transitive -/
   | trans {n₁ n₂ n₃ : g.NT} (hng : unitRule n₁ n₂ ∈ g.rules) (hnn : UnitPair n₂ n₃) : UnitPair n₁ n₃
 
 @[refl]
-lemma UnitPair.rfl {n : g.NT} (hn : n ∈ g.generators) : UnitPair n n := UnitPair.refl hn
+public lemma UnitPair.rfl {n : g.NT} (hn : n ∈ g.generators) : UnitPair n n := UnitPair.refl hn
 
-lemma UnitPair.derives {n₁ n₂ : g.NT} (hnn : UnitPair n₁ n₂) :
+public lemma UnitPair.derives {n₁ n₂ : g.NT} (hnn : UnitPair n₁ n₂) :
     g.Derives [Symbol.nonterminal n₁] [Symbol.nonterminal n₂] := by
   induction hnn with
   | refl => rfl
   | trans hr _ ih => exact Produces.trans_derives ⟨_, hr, ContextFreeRule.Rewrites.head []⟩ ih
 
 /-- We use this to concisely state a rule is not a `unitRule` if its output is `NonUnit` -/
-abbrev NonUnit {N : Type*} (u : List (Symbol T N)) : Prop :=
+@[expose]
+public abbrev NonUnit {N : Type*} (u : List (Symbol T N)) : Prop :=
   match u with
   | [Symbol.nonterminal _] => False
   | _ => True
 
-lemma DerivesIn.unitPair_prefix {u : List T} {v : List (Symbol T g.NT)} {n : g.NT} {m : ℕ}
+public lemma DerivesIn.unitPair_prefix {u : List T} {v : List (Symbol T g.NT)} {n : g.NT} {m : ℕ}
     (hvu : g.DerivesIn v (u.map Symbol.terminal) m) (hng : n ∈ g.generators)
     (hv : [Symbol.nonterminal n] = v) :
     ∃ n' w k,
@@ -114,10 +118,11 @@ section ComputeUnitPairs
 variable {g : ContextFreeGrammar T} [DecidableEq g.NT]
 
 /-- `generatorsProdDiag g` is the diagonal of `g.generators × g.generators` -/
-noncomputable def generatorsProdDiag : Finset (g.NT × g.NT) :=
+@[expose]
+public noncomputable def generatorsProdDiag : Finset (g.NT × g.NT) :=
   (g.rules.toList.map (fun r ↦ (r.input, r.input))).toFinset
 
-lemma generatorsProdDiag_subset_generators_prod : g.generatorsProdDiag ⊆ g.generators ×ˢ g.generators := by
+public lemma generatorsProdDiag_subset_generators_prod : g.generatorsProdDiag ⊆ g.generators ×ˢ g.generators := by
   unfold generatorsProdDiag generators
   cases g.rules.toList with
   | nil => simp
@@ -134,7 +139,7 @@ lemma generatorsProdDiag_subset_generators_prod : g.generatorsProdDiag ⊆ g.gen
       right
       use p'
 
-lemma generatorsProdDiag_unitPairs {p : g.NT × g.NT} (hp : p ∈ g.generatorsProdDiag) :
+public lemma generatorsProdDiag_unitPairs {p : g.NT × g.NT} (hp : p ∈ g.generatorsProdDiag) :
     UnitPair p.1 p.2 := by
   unfold generatorsProdDiag at hp
   revert hp
@@ -161,17 +166,19 @@ lemma generatorsProdDiag_unitPairs {p : g.NT × g.NT} (hp : p ∈ g.generatorsPr
 
 /-- Reflects transitivity of unit pairs. If `(n₂, n₃)` is a unit pair and `g` rewrites `n₁` to `n₂`
 then `(n₁, n₃)` are also a unit pair -/
-def addUnitPair (nᵢ nₒ : g.NT) (p : g.NT × g.NT) (l : Finset (g.NT × g.NT)) :=
+@[expose]
+public def addUnitPair (nᵢ nₒ : g.NT) (p : g.NT × g.NT) (l : Finset (g.NT × g.NT)) :=
   if nₒ = p.1 then insert (nᵢ, p.2) l else l
 
 /-- If `r` is a unit rule, add all unit pairs `(r.input, n)` to `l` for all unit pairs
 `(r.output, n)` in `l` -/
-def collectUnitPairs (r : ContextFreeRule T g.NT) (l : List (g.NT × g.NT)) :=
+@[expose]
+public def collectUnitPairs (r : ContextFreeRule T g.NT) (l : List (g.NT × g.NT)) :=
   match r.output with
   | [Symbol.nonterminal v] => l.foldr (addUnitPair r.input v) ∅
   | _ => ∅
 
-lemma collectUnitPairs_unitPair_rec {nᵢ nₒ : g.NT} {p : g.NT × g.NT} {l : List (g.NT × g.NT)}
+public lemma collectUnitPairs_unitPair_rec {nᵢ nₒ : g.NT} {p : g.NT × g.NT} {l : List (g.NT × g.NT)}
     {x : Finset (g.NT × g.NT)} (hp : p ∈ l.foldr (addUnitPair nᵢ nₒ) x) :
     p ∈ x ∨ ∃ v, (nₒ, v) ∈ l ∧ p = (nᵢ, v) := by
   induction l generalizing x with
@@ -202,7 +209,7 @@ lemma collectUnitPairs_unitPair_rec {nᵢ nₒ : g.NT} {p : g.NT × g.NT} {l : L
         right
         exact ⟨v, List.mem_cons_of_mem a hvl, hpv ▸ rfl⟩
 
-lemma collectUnitPairs_unitPair {r : ContextFreeRule T g.NT} {l : List (g.NT × g.NT)}
+public lemma collectUnitPairs_unitPair {r : ContextFreeRule T g.NT} {l : List (g.NT × g.NT)}
     (hrg : r ∈ g.rules) (hp : ∀ p ∈ l, UnitPair p.1 p.2) :
     ∀ p ∈ collectUnitPairs r l, UnitPair p.1 p.2 := by
   intro p hprl
@@ -219,10 +226,11 @@ lemma collectUnitPairs_unitPair {r : ContextFreeRule T g.NT} {l : List (g.NT × 
       exact UnitPair.trans ((congr_arg (⟨p.fst, · ⟩ ∈ g.rules) hro).mp (hpr ▸ hrg)) (hpr ▸ (hp _ hl))
 
 /-- Single step of fixpoint iteration, adding unit pairs to `l` for all rules `r` in `g.rules` -/
-noncomputable def addUnitPairs (l : Finset (g.NT × g.NT)) : Finset (g.NT × g.NT) :=
+@[expose]
+public noncomputable def addUnitPairs (l : Finset (g.NT × g.NT)) : Finset (g.NT × g.NT) :=
   g.rules.toList.attach.foldr (fun r p ↦ collectUnitPairs r l.toList ∪ p) l
 
-lemma collectUnitPairs_subset_generatorsProd {r : ContextFreeRule T g.NT} (l : Finset (g.NT × g.NT))
+public lemma collectUnitPairs_subset_generatorsProd {r : ContextFreeRule T g.NT} (l : Finset (g.NT × g.NT))
     (hlg : l ⊆ g.generators ×ˢ g.generators) (hrg : r ∈ g.rules) :
     collectUnitPairs r l.toList ⊆ g.generators ×ˢ g.generators := by
   unfold collectUnitPairs
@@ -247,7 +255,7 @@ lemma collectUnitPairs_subset_generatorsProd {r : ContextFreeRule T g.NT} (l : F
   | [Symbol.terminal _] => simp [heq] at hp
   | _ :: _ :: _ => simp [heq] at hp
 
-lemma addUnitPairs_subset_generatorsProd (l : Finset (g.NT × g.NT)) (hlg : l ⊆ g.generators ×ˢ g.generators) :
+public lemma addUnitPairs_subset_generatorsProd (l : Finset (g.NT × g.NT)) (hlg : l ⊆ g.generators ×ˢ g.generators) :
     addUnitPairs l ⊆ g.generators ×ˢ g.generators := by
   unfold addUnitPairs
   induction g.rules.toList.attach with
@@ -258,13 +266,13 @@ lemma addUnitPairs_subset_generatorsProd (l : Finset (g.NT × g.NT)) (hlg : l �
     exact Finset.union_subset
       (collectUnitPairs_subset_generatorsProd _ hlg (Finset.mem_toList.1 d.2)) ih
 
-lemma subset_addUnitPairs (l : Finset (g.NT × g.NT)) : l ⊆ (addUnitPairs l) := by
+public lemma subset_addUnitPairs (l : Finset (g.NT × g.NT)) : l ⊆ (addUnitPairs l) := by
   unfold addUnitPairs
   induction g.rules.toList.attach with
   | nil => rfl
   | cons _ _ ih => simp [subset_trans ih]
 
-lemma generatorsProd_limits_unitPairs {l : Finset (g.NT × g.NT)}
+public lemma generatorsProd_limits_unitPairs {l : Finset (g.NT × g.NT)}
     (hlg : l ⊆ g.generators ×ˢ g.generators)
     (hne : l ≠ addUnitPairs l) :
     (g.generators ×ˢ g.generators).card - (addUnitPairs l).card
@@ -274,7 +282,8 @@ lemma generatorsProd_limits_unitPairs {l : Finset (g.NT × g.NT)}
      (Finset.card_le_card (addUnitPairs_subset_generatorsProd l hlg))) (Finset.card_lt_card hl)
 
 /-- Fixpoint iteration computing the unit pairs of `g`. -/
-noncomputable def addUnitPairsIter (l : Finset (g.NT × g.NT)) (hlg : l ⊆ g.generators ×ˢ g.generators) :
+@[expose]
+public noncomputable def addUnitPairsIter (l : Finset (g.NT × g.NT)) (hlg : l ⊆ g.generators ×ˢ g.generators) :
     Finset (g.NT × g.NT) :=
   let l' := addUnitPairs l
   if l = l' then
@@ -287,14 +296,15 @@ noncomputable def addUnitPairsIter (l : Finset (g.NT × g.NT)) (hlg : l ⊆ g.ge
     exact generatorsProd_limits_unitPairs hlg hl
 
 /-- Compute the least-fixpoint of `add_unitPairs_iter`, i.e., all (and only) unit pairs -/
-noncomputable def computeUnitPairs : Finset (g.NT × g.NT) :=
+@[expose]
+public noncomputable def computeUnitPairs : Finset (g.NT × g.NT) :=
   addUnitPairsIter g.generatorsProdDiag generatorsProdDiag_subset_generators_prod
 
 -- ********************************************************************** --
 -- Only If direction of the main correctness theorem of compute_unitPairs --
 -- ********************************************************************** --
 
-lemma mem_addUnitPairs_unitPair (l : Finset (g.NT × g.NT)) (hl : ∀ p ∈ l, UnitPair p.1 p.2) :
+public lemma mem_addUnitPairs_unitPair (l : Finset (g.NT × g.NT)) (hl : ∀ p ∈ l, UnitPair p.1 p.2) :
     ∀ p ∈ addUnitPairs l, UnitPair p.1 p.2 := by
   unfold addUnitPairs
   induction g.rules.toList.attach with
@@ -319,7 +329,7 @@ lemma mem_addUnitPairs_unitPair (l : Finset (g.NT × g.NT)) (hl : ∀ p ∈ l, U
       simp
 
 -- Main correctness result of the only if direction
-lemma mem_addUnitPairIter_unitPair (l : Finset (g.NT × g.NT))
+public lemma mem_addUnitPairIter_unitPair (l : Finset (g.NT × g.NT))
     (hlg : l ⊆ g.generators ×ˢ g.generators) (hl : ∀ p ∈ l, UnitPair p.1 p.2) :
     ∀ p ∈ (addUnitPairsIter l hlg), UnitPair p.1 p.2 := by
   unfold addUnitPairsIter
@@ -338,7 +348,7 @@ lemma mem_addUnitPairIter_unitPair (l : Finset (g.NT × g.NT))
 -- If direction of the main correctness theorem of compute_unitPairs --
 -- ***************************************************************** --
 
-lemma addUnitPairsIter_fixpoint (l : Finset (g.NT × g.NT)) (hlg : l ⊆ g.generators ×ˢ g.generators) :
+public lemma addUnitPairsIter_fixpoint (l : Finset (g.NT × g.NT)) (hlg : l ⊆ g.generators ×ˢ g.generators) :
     addUnitPairsIter l hlg = addUnitPairs (addUnitPairsIter l hlg) := by
   unfold addUnitPairsIter
   simp only
@@ -350,7 +360,7 @@ lemma addUnitPairsIter_fixpoint (l : Finset (g.NT × g.NT)) (hlg : l ⊆ g.gener
     rename_i hl
     exact generatorsProd_limits_unitPairs hlg hl
 
-lemma subset_addUnitPairsIter {l : Finset (g.NT × g.NT)} {hlg : l ⊆ g.generators ×ˢ g.generators} :
+public lemma subset_addUnitPairsIter {l : Finset (g.NT × g.NT)} {hlg : l ⊆ g.generators ×ˢ g.generators} :
     l ⊆ (addUnitPairsIter l hlg) := by
   unfold addUnitPairsIter
   intro p hpl
@@ -363,7 +373,7 @@ lemma subset_addUnitPairsIter {l : Finset (g.NT × g.NT)} {hlg : l ⊆ g.generat
     rename_i hl
     exact generatorsProd_limits_unitPairs hlg hl
 
-lemma mem_collectUnitPairs {l : List (g.NT × g.NT)} {n₁ n₂ n₃ : g.NT} (hl : (n₂, n₃) ∈ l) :
+public lemma mem_collectUnitPairs {l : List (g.NT × g.NT)} {n₁ n₂ n₃ : g.NT} (hl : (n₂, n₃) ∈ l) :
     (n₁, n₃) ∈ collectUnitPairs (unitRule n₁ n₂) l := by
   unfold collectUnitPairs
   induction l with
@@ -381,7 +391,7 @@ lemma mem_collectUnitPairs {l : List (g.NT × g.NT)} {n₁ n₂ n₃ : g.NT} (hl
         exact ih hl
       · exact ih hl
 
-lemma mem_addUnitPairs {l : Finset (g.NT × g.NT)} {n₁ n₂ n₃ : g.NT} (hl : (n₂, n₃) ∈ l)
+public lemma mem_addUnitPairs {l : Finset (g.NT × g.NT)} {n₁ n₂ n₃ : g.NT} (hl : (n₂, n₃) ∈ l)
     (hg : ⟨n₁, [Symbol.nonterminal n₂]⟩ ∈ g.rules) :
     (n₁, n₃) ∈ addUnitPairs l := by
   unfold addUnitPairs
@@ -406,7 +416,7 @@ lemma mem_addUnitPairs {l : Finset (g.NT × g.NT)} {n₁ n₂ n₃ : g.NT} (hl :
       rename_i ht
       exact Or.inr (ih hl hg ht)
 
-lemma unitPair_mem_addUnitPairsIter {l : Finset (g.NT × g.NT)} {n₁ n₂ : g.NT}
+public lemma unitPair_mem_addUnitPairsIter {l : Finset (g.NT × g.NT)} {n₁ n₂ : g.NT}
     (hlg : l ⊆ g.generators ×ˢ g.generators) (hgl : generatorsProdDiag ⊆ l) (hp : UnitPair n₁ n₂) :
     (n₁, n₂) ∈ addUnitPairsIter l hlg := by
   induction hp with
@@ -425,7 +435,7 @@ lemma unitPair_mem_addUnitPairsIter {l : Finset (g.NT × g.NT)} {n₁ n₂ : g.N
     exact mem_addUnitPairs ih hur
 
 -- Main correctness theorem of computing all unit pairs --
-lemma computeUnitPairs_iff {n₁ n₂ : g.NT} :
+public lemma computeUnitPairs_iff {n₁ n₂ : g.NT} :
     (n₁, n₂) ∈ computeUnitPairs ↔ UnitPair n₁ n₂ := by
   constructor
   · intro hn
@@ -448,7 +458,8 @@ variable {g : ContextFreeGrammar T} [DecidableEq g.NT]
 
 /-- For a given unit pair `(n₁, n₂)`, computes rules `r : n₁ → o`, s.t. there is a rule
 `r' : n₂ → o` in `g` (and `o` is non-unit) -/
-noncomputable def computeUnitPairRules (p : g.NT × g.NT) : List (ContextFreeRule T g.NT) :=
+@[expose]
+public noncomputable def computeUnitPairRules (p : g.NT × g.NT) : List (ContextFreeRule T g.NT) :=
   let f (r : ContextFreeRule T g.NT) : Option (ContextFreeRule T g.NT) :=
     if r.input = p.2 then
       match r.output with
@@ -457,21 +468,23 @@ noncomputable def computeUnitPairRules (p : g.NT × g.NT) : List (ContextFreeRul
     else none
   g.rules.toList.filterMap f
 
-noncomputable def removeUnitRules [DecidableEq T] (l : Finset (g.NT × g.NT)) :=
+@[expose]
+public noncomputable def removeUnitRules [DecidableEq T] (l : Finset (g.NT × g.NT)) :=
   ((l.toList).map computeUnitPairRules).flatten.toFinset
 
 
 /-- Given `g`, computes a new grammar `g'` in which all unit rules are removed and, for each
 unit pair `(n₁, n₂)`, we add rules `r : n₁ → o` if the rule `r' : n₂ → o` is in the grammar
 (and non-unit) -/
-noncomputable def eliminateUnitRules [DecidableEq T] (g : ContextFreeGrammar T) [DecidableEq g.NT] :=
+@[expose]
+public noncomputable def eliminateUnitRules [DecidableEq T] (g : ContextFreeGrammar T) [DecidableEq g.NT] :=
   ContextFreeGrammar.mk g.NT g.initial (removeUnitRules computeUnitPairs)
 
 -- ************************************************************************ --
 -- Only If direction of the main correctness theorem of eliminate_unitRules --
 -- ************************************************************************ --
 
-lemma nonUnit_rules_mem {p : g.NT × g.NT} {r : ContextFreeRule T g.NT}
+public lemma nonUnit_rules_mem {p : g.NT × g.NT} {r : ContextFreeRule T g.NT}
     (hrp : r ∈ computeUnitPairRules p) :
     r.input = p.1 ∧ ∃ r' ∈ g.rules, r.output = r'.output ∧ r'.input = p.2 := by
   simp only [List.mem_filterMap, Finset.mem_toList, Option.ite_none_right_eq_some,
@@ -484,7 +497,7 @@ lemma nonUnit_rules_mem {p : g.NT × g.NT} {r : ContextFreeRule T g.NT}
     simp only [true_and]
     use r'
 
-lemma mem_removeUnitRules_exists_UnitPair [DecidableEq T] {l : Finset (g.NT × g.NT)}
+public lemma mem_removeUnitRules_exists_UnitPair [DecidableEq T] {l : Finset (g.NT × g.NT)}
     {r : ContextFreeRule T g.NT} (hrl : r ∈ removeUnitRules l) :
     ∃ p r', p ∈ l ∧ r' ∈ g.rules ∧ r.input = p.1 ∧ r.output = r'.output ∧ r'.input = p.2 := by
   simp only [removeUnitRules, List.mem_toFinset, List.mem_flatten, List.mem_map,
@@ -493,7 +506,7 @@ lemma mem_removeUnitRules_exists_UnitPair [DecidableEq T] {l : Finset (g.NT × g
   obtain ⟨_, ⟨r', _, _, _⟩⟩ := nonUnit_rules_mem hruv
   use (u, v), r'
 
-lemma eliminateUnitRules_derives_to_derives [DecidableEq T] {u v : List (Symbol T g.NT)}
+public lemma eliminateUnitRules_derives_to_derives [DecidableEq T] {u v : List (Symbol T g.NT)}
     (huv : g.eliminateUnitRules.Derives u v) : g.Derives u v := by
   change List (Symbol T g.eliminateUnitRules.NT) at u v
   induction huv using Derives.head_induction_on with
@@ -520,7 +533,7 @@ lemma eliminateUnitRules_derives_to_derives [DecidableEq T] {u v : List (Symbol 
 -- If direction of the main correctness theorem of eliminate_unitPairs --
 -- ******************************************************************* --
 
-lemma nonUnit_mem_computeUnitPairRules {n₁ n₂ : g.NT} {w : List (Symbol T g.NT)}
+public lemma nonUnit_mem_computeUnitPairRules {n₁ n₂ : g.NT} {w : List (Symbol T g.NT)}
     (hg : ⟨n₁, w⟩ ∈ g.rules) (hw : NonUnit w) :
     ⟨n₂, w⟩ ∈ computeUnitPairRules (n₂, n₁) := by
   simp only [computeUnitPairRules, List.mem_filterMap, Finset.mem_toList, Option.ite_none_right_eq_some]
@@ -533,14 +546,14 @@ lemma nonUnit_mem_computeUnitPairRules {n₁ n₂ : g.NT} {w : List (Symbol T g.
   | [] => rfl
   | _ :: _ :: _ => simp
 
-lemma nonUnit_mem_removeUnitRules [DecidableEq T] {n₁ n₂ : g.NT} {u : List (Symbol T g.NT)}
+public lemma nonUnit_mem_removeUnitRules [DecidableEq T] {n₁ n₂ : g.NT} {u : List (Symbol T g.NT)}
     {l : Finset (g.NT × g.NT)} (hug : ⟨n₂, u⟩ ∈ g.rules) (hu : NonUnit u) (hnn : (n₁, n₂) ∈ l) :
     ⟨n₁, u⟩ ∈ removeUnitRules l := by
   simp only [removeUnitRules, List.mem_toFinset, List.mem_flatten, List.mem_map,
     Finset.mem_toList, Prod.exists]
   exact ⟨computeUnitPairRules (n₁, n₂), ⟨n₁, n₂, hnn, rfl⟩, nonUnit_mem_computeUnitPairRules hug hu⟩
 
-lemma produces_nonUnit_eliminateUnitRules_produces [DecidableEq T] {n₁ n₂ : g.NT}
+public lemma produces_nonUnit_eliminateUnitRules_produces [DecidableEq T] {n₁ n₂ : g.NT}
     {u : List (Symbol T g.NT)} (hu : NonUnit u)
     (hnn : UnitPair n₁ n₂) (hgu : g.Produces [Symbol.nonterminal n₂] u) :
     g.eliminateUnitRules.Produces [Symbol.nonterminal n₁] u := by
@@ -550,7 +563,7 @@ lemma produces_nonUnit_eliminateUnitRules_produces [DecidableEq T] {n₁ n₂ : 
 
 variable [DecidableEq T]
 
-lemma nonUnit_output_mem_eliminateUnitRules {r : ContextFreeRule T g.NT}
+public lemma nonUnit_output_mem_eliminateUnitRules {r : ContextFreeRule T g.NT}
     (hrg : r ∈ g.rules) (hro : NonUnit r.output) :
     r ∈ g.eliminateUnitRules.rules := by
   simp only [eliminateUnitRules, removeUnitRules,
@@ -560,7 +573,7 @@ lemma nonUnit_output_mem_eliminateUnitRules {r : ContextFreeRule T g.NT}
   rw [computeUnitPairs_iff]
   exact UnitPair.rfl (input_mem_generators hrg)
 
-lemma derives_to_eliminateUnitRules_derives {u : List (Symbol T g.NT)} {v : List T} {m : ℕ}
+public lemma derives_to_eliminateUnitRules_derives {u : List (Symbol T g.NT)} {v : List T} {m : ℕ}
     (huv : g.DerivesIn u (v.map Symbol.terminal) m) :
     g.eliminateUnitRules.Derives u (v.map Symbol.terminal):= by
   cases m with
@@ -605,7 +618,7 @@ lemma derives_to_eliminateUnitRules_derives {u : List (Symbol T g.NT)} {v : List
       | _ :: _ :: _ => rw [hr'] at hro; simp [NonUnit] at hro
 
 -- Main correctness theorem of `eliminate_unitRules`
-theorem eliminateUnitRules_correct :
+public theorem eliminateUnitRules_correct :
     g.language = g.eliminateUnitRules.language := by
   apply Set.eq_of_subset_of_subset <;> intro w hw
   · rw [mem_language_iff] at hw

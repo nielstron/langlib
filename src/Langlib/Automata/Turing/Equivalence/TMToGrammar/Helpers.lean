@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Helper Lemmas for TM → Grammar Construction
 
@@ -65,7 +67,7 @@ along with the original input at each position.
 `rightCells` are the cells to the right of the head (in order from left to right).
 
 Each cell is a pair `(original, current)`. -/
-structure TwoTrackConfig where
+public structure TwoTrackConfig where
   leftCells  : List (Option T × Option T)
   headState  : Λ
   headOrig   : Option T
@@ -73,7 +75,8 @@ structure TwoTrackConfig where
   rightCells : List (Option T × Option T)
 
 /-- Encode a `TwoTrackConfig` as a sentential form of the grammar. -/
-def encodeTwoTrack (cfg : @TwoTrackConfig T Λ) :
+@[expose]
+public def encodeTwoTrack (cfg : @TwoTrackConfig T Λ) :
     List (symbol T (TMtoGrammarNT T Λ)) :=
   [.nonterminal leftBound] ++
   (cfg.leftCells.map fun ⟨orig, cur⟩ => .nonterminal (cell orig cur)) ++
@@ -83,7 +86,8 @@ def encodeTwoTrack (cfg : @TwoTrackConfig T Λ) :
 
 /-- The initial two-track configuration for input `w`. The head is at the leftmost
 position (or on blank for empty input). -/
-def initTwoTrack (w : List T) : @TwoTrackConfig T Λ :=
+@[expose]
+public def initTwoTrack (w : List T) : @TwoTrackConfig T Λ :=
   match w with
   | [] => ⟨[], default, none, none, []⟩
   | t :: ts => ⟨[], default, some t, some t,
@@ -100,7 +104,7 @@ The grammar derives the encoding of the initial configuration from [start]:
 /-
 The grammar can derive the encoding of the initial configuration from [start].
 -/
-theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : List T) :
+public theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : List T) :
     grammar_derives (tmToGrammar T Λ M)
       [.nonterminal start]
       (encodeTwoTrack (initTwoTrack w : @TwoTrackConfig T Λ)) := by
@@ -140,14 +144,16 @@ theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : List T) :
 After the TM halts, the grammar converts all nonterminals to terminals. -/
 
 /-- Encode the "halted" configuration: all cells converted to haltCells. -/
-def encodeHalted (originals : List (Option T)) :
+@[expose]
+public def encodeHalted (originals : List (Option T)) :
     List (symbol T (TMtoGrammarNT T Λ)) :=
   [.nonterminal leftBound] ++
   (originals.map fun orig => .nonterminal (haltCell orig)) ++
   [.nonterminal rightBound]
 
 /-- Extract the original input from a list of originals (keep only `some` values). -/
-def extractInput (originals : List (Option T)) : List T :=
+@[expose]
+public def extractInput (originals : List (Option T)) : List T :=
   originals.filterMap id
 
 /-
@@ -155,7 +161,7 @@ From a halted encoding, the grammar can derive the original input terminals.
 
 Convert a bare list of haltCells to terminals (no boundary markers).
 -/
-theorem haltCells_to_terminals (M : Turing.TM0.Machine (Option T) Λ)
+public theorem haltCells_to_terminals (M : Turing.TM0.Machine (Option T) Λ)
     (originals : List (Option T)) :
     grammar_derives (tmToGrammar T Λ M)
       (originals.map fun orig => symbol.nonterminal (haltCell orig))
@@ -181,7 +187,7 @@ theorem haltCells_to_terminals (M : Turing.TM0.Machine (Option T) Λ)
 Remove LB from [LB] ++ haltCells ++ [RB], producing haltCells ++ [RB] (non-empty case)
     or [] (empty case).
 -/
-theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
+public theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
     (originals : List (Option T)) :
     grammar_derives (tmToGrammar T Λ M)
       (encodeHalted originals)
@@ -211,7 +217,7 @@ theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
         · exact ⟨ [ symbol.nonterminal ( haltCell orig ) ] ++ List.map ( fun orig => symbol.nonterminal ( haltCell orig ) ) ‹_›, [ ], by simp +decide ⟩;
     exact Relation.ReflTransGen.single ‹_› |> Relation.ReflTransGen.trans <| Relation.ReflTransGen.single ‹_›
 
-theorem cleanup_derives (M : Turing.TM0.Machine (Option T) Λ)
+public theorem cleanup_derives (M : Turing.TM0.Machine (Option T) Λ)
     (originals : List (Option T)) :
     grammar_derives (tmToGrammar T Λ M)
       (encodeHalted originals)
@@ -230,7 +236,7 @@ theorem gen_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
 
 /-- A rule from the simulation rules is in the grammar. -/
 
-theorem sim_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
+public theorem sim_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ)) (hr : r ∈ simulationRules T Λ M) :
     r ∈ (tmToGrammar T Λ M).rules := by
   simp only [tmToGrammar]
@@ -245,7 +251,8 @@ theorem cleanup_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
   exact List.mem_append_right _ hr
 
 /-- Get the originals from a TwoTrackConfig. -/
-def twoTrackOriginals (cfg : @TwoTrackConfig T Λ) : List (Option T) :=
+@[expose]
+public def twoTrackOriginals (cfg : @TwoTrackConfig T Λ) : List (Option T) :=
   (cfg.leftCells.map Prod.fst) ++ [cfg.headOrig] ++ (cfg.rightCells.map Prod.fst)
 
 /-! ### Phase 2: Simulation
@@ -254,7 +261,8 @@ The simulation phase shows that each TM0 step can be mirrored by a grammar
 derivation step on the encoded sentential form. -/
 
 /-- Compute the next TwoTrackConfig after one TM0 step. Returns `none` if the TM halts. -/
-noncomputable def stepTwoTrack
+@[expose]
+public noncomputable def stepTwoTrack
     (M : Turing.TM0.Machine (Option T) Λ)
     (cfg : @TwoTrackConfig T Λ) : Option (@TwoTrackConfig T Λ) :=
   match M cfg.headState cfg.headCur with
@@ -276,7 +284,7 @@ noncomputable def stepTwoTrack
 /-
 The original input (modulo blank extension) is preserved by `stepTwoTrack`.
 -/
-theorem stepTwoTrack_preserves_extractInput
+public theorem stepTwoTrack_preserves_extractInput
     (M : Turing.TM0.Machine (Option T) Λ)
     (cfg cfg' : @TwoTrackConfig T Λ)
     (hstep : stepTwoTrack M cfg = some cfg') :
@@ -294,19 +302,19 @@ theorem stepTwoTrack_preserves_extractInput
 /-
 Any element of `Option T` is in `allOptT`.
 -/
-theorem mem_allOptT (x : Option T) : x ∈ allOptT T := by
+public theorem mem_allOptT (x : Option T) : x ∈ allOptT T := by
   unfold allOptT; cases x <;> simp +decide [ * ] ;
 
 /-
 Any element of `Λ` is in `allΛ`.
 -/
-theorem mem_allΛ (q : Λ) : q ∈ allΛ Λ := by
+public theorem mem_allΛ (q : Λ) : q ∈ allΛ Λ := by
   convert Finset.mem_toList.mpr ( Finset.mem_univ q ) using 1
 
 /-
 Simulation: write case.
 -/
-theorem sim_write
+public theorem sim_write
     (M : Turing.TM0.Machine (Option T) Λ)
     (q q' : Λ) (orig γ γ' : Option T)
     (hM : M q γ = some (q', Turing.TM0.Stmt.write γ'))
@@ -328,7 +336,7 @@ theorem sim_write
 /-
 Simulation: move right with neighbor.
 -/
-theorem sim_move_right
+public theorem sim_move_right
     (M : Turing.TM0.Machine (Option T) Λ)
     (q q' : Λ) (orig γ orig' γ' : Option T)
     (hM : M q γ = some (q', Turing.TM0.Stmt.move Dir.right))
@@ -349,7 +357,7 @@ theorem sim_move_right
 /-
 Simulation: move right at right boundary.
 -/
-theorem sim_move_right_boundary
+public theorem sim_move_right_boundary
     (M : Turing.TM0.Machine (Option T) Λ)
     (q q' : Λ) (orig γ : Option T)
     (hM : M q γ = some (q', Turing.TM0.Stmt.move Dir.right))
@@ -372,7 +380,7 @@ theorem sim_move_right_boundary
 /-
 Simulation: move left with neighbor.
 -/
-theorem sim_move_left
+public theorem sim_move_left
     (M : Turing.TM0.Machine (Option T) Λ)
     (q q' : Λ) (orig γ orig'' γ'' : Option T)
     (hM : M q γ = some (q', Turing.TM0.Stmt.move Dir.left))
@@ -392,7 +400,7 @@ theorem sim_move_left
 /-
 Simulation: move left at left boundary.
 -/
-theorem sim_move_left_boundary
+public theorem sim_move_left_boundary
     (M : Turing.TM0.Machine (Option T) Λ)
     (q q' : Λ) (orig γ : Option T)
     (hM : M q γ = some (q', Turing.TM0.Stmt.move Dir.left))
@@ -414,7 +422,7 @@ theorem sim_move_left_boundary
 /-
 One step of `stepTwoTrack` can be simulated by the grammar.
 -/
-theorem simulation_one_step
+public theorem simulation_one_step
     (M : Turing.TM0.Machine (Option T) Λ)
     (cfg cfg' : @TwoTrackConfig T Λ)
     (hstep : stepTwoTrack M cfg = some cfg') :
@@ -479,7 +487,7 @@ When the TM halts, convert the two-track encoding to the halted encoding. -/
 /-
 Step 1 of halt-to-halted: convert headCell to haltCell when TM halts.
 -/
-theorem halt_headCell_to_haltCell
+public theorem halt_headCell_to_haltCell
     (M : Turing.TM0.Machine (Option T) Λ)
     (q : Λ) (orig cur : Option T)
     (h_halts : M q cur = none)
@@ -501,7 +509,7 @@ theorem halt_headCell_to_haltCell
 /-
 Step 2: propagate halt to right cells.
 -/
-theorem propagate_halt_right
+public theorem propagate_halt_right
     (M : Turing.TM0.Machine (Option T) Λ)
     (cells : List (Option T × Option T))
     (orig : Option T)
@@ -554,7 +562,7 @@ Step 3: propagate halt to left cells, using a haltCell anchor on the right.
 The cleanup rule `cell(o'', c'') · haltCell(orig) → haltCell(o'') · haltCell(orig)` converts
 cells from right to left, using the rightmost haltCell as an anchor.
 -/
-theorem propagate_halt_left
+public theorem propagate_halt_left
     (M : Turing.TM0.Machine (Option T) Λ)
     (cells : List (Option T × Option T))
     (anchor_orig : Option T)
@@ -581,7 +589,7 @@ From a halting two-track config, the grammar derives the halted encoding.
 
 Composition of halt_headCell_to_haltCell, propagate_halt_right, and propagate_halt_left.
 -/
-theorem halt_to_halted
+public theorem halt_to_halted
     (M : Turing.TM0.Machine (Option T) Λ)
     (cfg : @TwoTrackConfig T Λ)
     (h_halts : M cfg.headState cfg.headCur = none) :
@@ -614,7 +622,7 @@ theorem halt_to_halted
 The original input stored in the initial two-track config for word `w` is exactly `w.map some`.
 That is, `extractInput (twoTrackOriginals (initTwoTrack w)) = w`.
 -/
-theorem extractInput_initTwoTrack (w : List T) :
+public theorem extractInput_initTwoTrack (w : List T) :
     extractInput (twoTrackOriginals (initTwoTrack w : @TwoTrackConfig T Λ)) = w := by
   unfold twoTrackOriginals extractInput initTwoTrack; induction w <;> aesop;
 
@@ -622,7 +630,7 @@ theorem extractInput_initTwoTrack (w : List T) :
 
 /-- A TwoTrackConfig corresponds to a TM0.Cfg if the head state, head symbol,
 and tape contents match (with the tape being blank beyond the TwoTrackConfig window). -/
-structure TMCorresponds
+public structure TMCorresponds
     (tc : @TwoTrackConfig T Λ)
     (tmCfg : Turing.TM0.Cfg (Option T) Λ) : Prop where
   state_eq : tc.headState = tmCfg.q
@@ -635,7 +643,7 @@ structure TMCorresponds
 /-
 The initial TwoTrackConfig corresponds to the initial TM0 config.
 -/
-theorem initCorresponds (w : List T) :
+public theorem initCorresponds (w : List T) :
     TMCorresponds
       (initTwoTrack w : @TwoTrackConfig T Λ)
       (Turing.TM0.init (w.map Option.some)) := by
@@ -666,7 +674,7 @@ theorem corresponds_step_none
 If tc corresponds to tmCfg and the TM steps to tmCfg', then stepTwoTrack
 produces a tc' that corresponds to tmCfg'.
 -/
-theorem corresponds_step_some
+public theorem corresponds_step_some
     (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ)
     (tmCfg tmCfg' : Turing.TM0.Cfg (Option T) Λ)
@@ -708,7 +716,7 @@ If tc corresponds to tmCfg, and the TM reaches a halting config from tmCfg,
 then the grammar can derive from tc's encoding to some halting tc_final's encoding,
 with the original track preserved.
 -/
-theorem sim_reaches_halts
+public theorem sim_reaches_halts
     (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tmCfg : Turing.TM0.Cfg (Option T) Λ)
     (hcorr : TMCorresponds tc tmCfg)
@@ -737,7 +745,7 @@ theorem sim_reaches_halts
 /-
 If the TM halts on input `w`, then the grammar derives `w`.
 -/
-theorem tmToGrammar_generates_of_halts
+public theorem tmToGrammar_generates_of_halts
     (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
     (h : (Turing.TM0.eval M (w.map Option.some)).Dom) :
     grammar_generates (tmToGrammar T Λ M) w := by

@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # `a^n b^n` as a DCF
 
@@ -48,7 +50,8 @@ This file constructs a deterministic pushdown automaton for the language
 open PDA List
 
 /-- DPDA recognizing `{aⁿbⁿ | n ≥ 0}` where `false = a` and `true = b`. -/
-def dpda_anbn : DPDA (Fin 4) Bool Bool where
+@[expose]
+public def dpda_anbn : DPDA (Fin 4) Bool Bool where
   initial_state := 0
   start_symbol := false
   final_states := {(0 : Fin 4), (3 : Fin 4)}
@@ -276,10 +279,10 @@ private lemma dpda_anbn_sound (w : List Bool)
   · exact ⟨na, rfl⟩
 
 /-- The DPDA `dpda_anbn` accepts exactly the language `{aⁿbⁿ}`. -/
-theorem dpda_anbn_accepts : dpda_anbn.acceptsByFinalState = anbn := by
+public theorem dpda_anbn_accepts : dpda_anbn.acceptsByFinalState = anbn := by
   ext w
   exact ⟨dpda_anbn_sound w, fun ⟨n, hw⟩ => hw ▸ dpda_anbn_complete n⟩
 
 /-- The language `{aⁿbⁿ}` is deterministic context-free. -/
-theorem anbn_is_DCF : is_DCF anbn :=
+public theorem anbn_is_DCF : is_DCF anbn :=
   ⟨Fin 4, Bool, inferInstance, inferInstance, dpda_anbn, dpda_anbn_accepts⟩

@@ -2,8 +2,10 @@ module
 
 public meta import Lean.Elab.Command
 import Lean.Message
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Print Sorries Compatibility
 

@@ -40,8 +40,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Strict Inclusion: CF ⊊ Indexed
 
@@ -607,7 +609,7 @@ private lemma goodForm_terminal {w : List (Fin 3)}
         exact ⟨ n, by simpa using List.map_injective_iff.mpr ( show Function.Injective ( fun t : Fin 3 => IndexedGrammar.ISym.terminal t ) from fun a b h => by cases a ; cases b ; cases h ; trivial ) hn ⟩;
       exact hg ⟨ n, hn ⟩
 
-theorem is_Indexed_lang_eq_eq : is_Indexed lang_eq_eq := by
+public theorem is_Indexed_lang_eq_eq : is_Indexed lang_eq_eq := by
   refine ⟨G, ?_⟩
   ext w; constructor
   · intro hw

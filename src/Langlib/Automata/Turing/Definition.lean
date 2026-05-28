@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Equivalence of Unrestricted Grammars and Turing Machines
 
@@ -67,11 +69,13 @@ The input word `w : List T` is written on the tape by the fixed inclusion
 `T ↪ T ⊕ Γ`, producing `w.map (fun t => some (Sum.inl t))`.  The recognizer
 may choose only the finite work alphabet and the machine, not an arbitrary
 preprocessing map on input symbols. -/
-def is_TM {T : Type} [Fintype T] (L : Language T) : Prop :=
+@[expose]
+public def is_TM {T : Type} [Fintype T] (L : Language T) : Prop :=
   ∃ (Γ : Type) (_ : Fintype Γ)
     (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
     (M : Turing.TM0.Machine (Option (T ⊕ Γ)) Λ),
     ∀ w : List T,
       w ∈ L ↔ (Turing.TM0.eval M (w.map (fun t => some (Sum.inl t)))).Dom
 
-def TM {T : Type} [Fintype T] : Set (Language T) := setOf is_TM
+@[expose]
+public def TM {T : Type} [Fintype T] : Set (Language T) := setOf is_TM

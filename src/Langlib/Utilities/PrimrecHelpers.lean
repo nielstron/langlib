@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Primitive Recursive Helpers
 
@@ -52,7 +54,7 @@ variable {α : Type} [Primcodable α]
 /-
 `List.take` is primitive recursive (as a function of both arguments).
 -/
-lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l.take n) := by
+public lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l.take n) := by
   -- We can show that `List.take` is primitive recursive using `Primrec.list_foldl.` The initial state `(n, [])` is primitive recursive.
   have h_take : Primrec (fun pl : ℕ × List α => (pl.2.foldl (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (pl.1, [])).2) := by
     have h_take : Primrec₂ (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) := by
@@ -96,7 +98,7 @@ lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l.take n
 /-
 `List.drop` is primitive recursive (as a function of both arguments).
 -/
-lemma primrec₂_list_drop : Primrec₂ (fun (n : ℕ) (l : List α) => l.drop n) := by
+public lemma primrec₂_list_drop : Primrec₂ (fun (n : ℕ) (l : List α) => l.drop n) := by
   -- We'll use induction on $n$ to prove that `drop` is primitive recursive.
   have h_ind : ∀ n : ℕ,
       Primrec (fun (l : List α) => drop n l) := by
@@ -151,7 +153,7 @@ variable {α : Type} [Primcodable α]
 /-
 `List.any` with a fixed predicate is primitive recursive.
 -/
-lemma primrec_list_any {f : α → List β} {p : α → β → Bool}
+public lemma primrec_list_any {f : α → List β} {p : α → β → Bool}
     [Primcodable β]
     (hf : Primrec f) (hp : Primrec₂ p) :
     Primrec (fun a => (f a).any (p a)) := by

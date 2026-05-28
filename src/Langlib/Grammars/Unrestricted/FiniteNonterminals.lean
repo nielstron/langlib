@@ -34,8 +34,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-!
 # Every unrestricted grammar is equivalent to one with finitely many nonterminals
@@ -64,7 +66,8 @@ variable {T : Type}
 /-! ## Extracting nonterminals from symbol lists -/
 
 /-- Extract all nonterminals from a list of symbols. -/
-def symbolsNTs {N : Type} : List (symbol T N) → List N
+@[expose]
+public def symbolsNTs {N : Type} : List (symbol T N) → List N
   | [] => []
   | symbol.terminal _ :: rest => symbolsNTs rest
   | symbol.nonterminal n :: rest => n :: symbolsNTs rest
@@ -77,7 +80,7 @@ def symbolsNTs {N : Type} : List (symbol T N) → List N
 @[simp] lemma symbolsNTs_cons_nonterminal {N : Type} (n : N) (l : List (symbol T N)) :
     symbolsNTs (symbol.nonterminal n :: l) = n :: symbolsNTs l := rfl
 
-lemma mem_symbolsNTs_iff {N : Type} {n : N} {l : List (symbol T N)} :
+public lemma mem_symbolsNTs_iff {N : Type} {n : N} {l : List (symbol T N)} :
     n ∈ symbolsNTs l ↔ symbol.nonterminal n ∈ l := by
   induction' l with s l ih;
   · aesop;
@@ -95,52 +98,60 @@ lemma symbolsNTs_map_terminal {N : Type} (w : List T) :
 /-! ## Used nonterminals of a grammar -/
 
 /-- All nonterminals mentioned in a grammar rule. -/
-def ruleNTs {N : Type} (r : grule T N) : List N :=
+@[expose]
+public def ruleNTs {N : Type} (r : grule T N) : List N :=
   symbolsNTs r.input_L ++ [r.input_N] ++ symbolsNTs r.input_R ++ symbolsNTs r.output_string
 
 /-- The list of all nonterminals used in a grammar. -/
-def usedNTsList (g : grammar T) : List g.nt :=
+@[expose]
+public def usedNTsList (g : grammar T) : List g.nt :=
   [g.initial] ++ g.rules.flatMap ruleNTs
 
 /-- The finite set of all nonterminals used in a grammar. -/
-def usedNTs (g : grammar T) : Finset g.nt :=
+@[expose]
+public def usedNTs (g : grammar T) : Finset g.nt :=
   (usedNTsList g).toFinset
 
-lemma initial_mem_usedNTs (g : grammar T) : g.initial ∈ usedNTs g := by
+public lemma initial_mem_usedNTs (g : grammar T) : g.initial ∈ usedNTs g := by
   unfold usedNTs;
   simp [usedNTsList]
 
-lemma ruleNT_mem_usedNTs {g : grammar T} {r : grule T g.nt} {n : g.nt}
+public lemma ruleNT_mem_usedNTs {g : grammar T} {r : grule T g.nt} {n : g.nt}
     (hr : r ∈ g.rules) (hn : n ∈ ruleNTs r) : n ∈ usedNTs g := by
   exact List.mem_toFinset.mpr ( List.mem_append.mpr ( Or.inr ( List.mem_flatMap.mpr ⟨ r, hr, hn ⟩ ) ) )
 
-lemma inputN_mem_ruleNTs {N : Type} (r : grule T N) : r.input_N ∈ ruleNTs r := by
+public lemma inputN_mem_ruleNTs {N : Type} (r : grule T N) : r.input_N ∈ ruleNTs r := by
   unfold ruleNTs; simp +decide ;
 
 /-! ## The restricted grammar -/
 
 /-- The subtype of used nonterminals. -/
-abbrev UsedNT (g : grammar T) := { n : g.nt // n ∈ usedNTs g }
+@[expose]
+public abbrev UsedNT (g : grammar T) := { n : g.nt // n ∈ usedNTs g }
 
 instance usedNT_fintype (g : grammar T) : Fintype (UsedNT g) :=
   Fintype.subtype (usedNTs g) (fun _ => Iff.rfl)
 
 /-- Restrict a nonterminal to `UsedNT g`. Maps unused nonterminals to the initial symbol. -/
-def restrictNT (g : grammar T) (n : g.nt) : UsedNT g :=
+@[expose]
+public def restrictNT (g : grammar T) (n : g.nt) : UsedNT g :=
   if h : n ∈ usedNTs g then ⟨n, h⟩ else ⟨g.initial, initial_mem_usedNTs g⟩
 
 /-- Restrict a symbol to `UsedNT g`. -/
-def restrictSym (g : grammar T) : symbol T g.nt → symbol T (UsedNT g)
+@[expose]
+public def restrictSym (g : grammar T) : symbol T g.nt → symbol T (UsedNT g)
   | symbol.terminal t => symbol.terminal t
   | symbol.nonterminal n => symbol.nonterminal (restrictNT g n)
 
 /-- Embed a symbol over `UsedNT g` back into a symbol over `g.nt`. -/
-def embedSym (g : grammar T) : symbol T (UsedNT g) → symbol T g.nt
+@[expose]
+public def embedSym (g : grammar T) : symbol T (UsedNT g) → symbol T g.nt
   | symbol.terminal t => symbol.terminal t
   | symbol.nonterminal ⟨n, _⟩ => symbol.nonterminal n
 
 /-- The grammar restricted to its used nonterminals. -/
-def restrictGrammar (g : grammar T) : grammar T where
+@[expose]
+public def restrictGrammar (g : grammar T) : grammar T where
   nt := UsedNT g
   initial := ⟨g.initial, initial_mem_usedNTs g⟩
   rules := g.rules.map (fun r =>
@@ -154,7 +165,7 @@ instance restrictGrammar_fintype (g : grammar T) : Fintype (restrictGrammar g).n
 
 /-! ## Properties of `restrictSym` and `embedSym` -/
 
-lemma restrictNT_of_mem {g : grammar T} {n : g.nt} (h : n ∈ usedNTs g) :
+public lemma restrictNT_of_mem {g : grammar T} {n : g.nt} (h : n ∈ usedNTs g) :
     restrictNT g n = ⟨n, h⟩ := by
   exact dif_pos h
 
@@ -179,7 +190,8 @@ lemma embedSym_restrictSym {g : grammar T} {s : symbol T g.nt}
 /-! ## The `allNTsUsed` predicate -/
 
 /-- All nonterminals in a symbol list belong to `usedNTs g`. -/
-def allNTsUsed (g : grammar T) (l : List (symbol T g.nt)) : Prop :=
+@[expose]
+public def allNTsUsed (g : grammar T) (l : List (symbol T g.nt)) : Prop :=
   ∀ n, symbol.nonterminal n ∈ l → n ∈ usedNTs g
 
 lemma allNTsUsed_nil (g : grammar T) : allNTsUsed g [] := by
@@ -189,28 +201,28 @@ lemma allNTsUsed_append {g : grammar T} {l₁ l₂ : List (symbol T g.nt)} :
     allNTsUsed g (l₁ ++ l₂) ↔ allNTsUsed g l₁ ∧ allNTsUsed g l₂ := by
   unfold allNTsUsed; aesop;
 
-lemma allNTsUsed_singleton_nonterminal {g : grammar T} {n : g.nt} :
+public lemma allNTsUsed_singleton_nonterminal {g : grammar T} {n : g.nt} :
     allNTsUsed g [symbol.nonterminal n] ↔ n ∈ usedNTs g := by
   unfold allNTsUsed; aesop;
 
-lemma allNTsUsed_initial (g : grammar T) :
+public lemma allNTsUsed_initial (g : grammar T) :
     allNTsUsed g [symbol.nonterminal g.initial] := by
   exact allNTsUsed_singleton_nonterminal.mpr (initial_mem_usedNTs g)
 
-lemma allNTsUsed_of_rule_input_L {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
+public lemma allNTsUsed_of_rule_input_L {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
     allNTsUsed g r.input_L := by
   intro n hn
   apply ruleNT_mem_usedNTs hr
   simp [ruleNTs];
   exact Or.inl <| by simpa using mem_symbolsNTs_iff.mpr hn;
 
-lemma allNTsUsed_of_rule_input_R {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
+public lemma allNTsUsed_of_rule_input_R {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
     allNTsUsed g r.input_R := by
   intro n hn;
   apply ruleNT_mem_usedNTs hr;
   unfold ruleNTs; simp_all +decide [ mem_symbolsNTs_iff ] ;
 
-lemma allNTsUsed_of_rule_output {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
+public lemma allNTsUsed_of_rule_output {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
     allNTsUsed g r.output_string := by
   intro n hn;
   apply ruleNT_mem_usedNTs hr;
@@ -218,7 +230,7 @@ lemma allNTsUsed_of_rule_output {g : grammar T} {r : grule T g.nt} (hr : r ∈ g
 
 /-! ## Roundtrip properties for lists -/
 
-lemma map_embedSym_map_restrictSym {g : grammar T} {l : List (symbol T g.nt)}
+public lemma map_embedSym_map_restrictSym {g : grammar T} {l : List (symbol T g.nt)}
     (h : allNTsUsed g l) :
     (l.map (restrictSym g)).map (embedSym g) = l := by
   refine' List.ext_get _ _ <;> simp_all +decide;
@@ -256,13 +268,13 @@ lemma allNTsUsed_preserved_by_derives {g : grammar T} {u v : List (symbol T g.nt
 
 /-! ## Rule membership in the restricted grammar -/
 
-lemma restrictGrammar_rule_of_mem {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
+public lemma restrictGrammar_rule_of_mem {g : grammar T} {r : grule T g.nt} (hr : r ∈ g.rules) :
     (grule.mk (r.input_L.map (restrictSym g)) (restrictNT g r.input_N)
       (r.input_R.map (restrictSym g)) (r.output_string.map (restrictSym g)))
     ∈ (restrictGrammar g).rules := by
   exact List.mem_map.mpr ⟨ r, hr, rfl ⟩
 
-lemma restrictGrammar_rule_mem {g : grammar T} {r' : grule T (UsedNT g)}
+public lemma restrictGrammar_rule_mem {g : grammar T} {r' : grule T (UsedNT g)}
     (hr' : r' ∈ (restrictGrammar g).rules) :
     ∃ r ∈ g.rules,
       r'.input_L = r.input_L.map (restrictSym g) ∧
@@ -278,7 +290,7 @@ lemma restrictGrammar_rule_mem {g : grammar T} {r' : grule T (UsedNT g)}
 Forward direction: a transform in `g` lifts to `restrictGrammar g` when all
     nonterminals in the source are used.
 -/
-lemma transforms_restrict {g : grammar T} {u v : List (symbol T g.nt)}
+public lemma transforms_restrict {g : grammar T} {u v : List (symbol T g.nt)}
     (ht : grammar_transforms g u v) (hu : allNTsUsed g u) :
     grammar_transforms (restrictGrammar g)
       (u.map (restrictSym g)) (v.map (restrictSym g)) := by
@@ -289,7 +301,7 @@ lemma transforms_restrict {g : grammar T} {u v : List (symbol T g.nt)}
 /-
 Forward direction lifted to multi-step derivation.
 -/
-lemma derives_restrict {g : grammar T} {u v : List (symbol T g.nt)}
+public lemma derives_restrict {g : grammar T} {u v : List (symbol T g.nt)}
     (hd : grammar_derives g u v) (hu : allNTsUsed g u) :
     grammar_derives (restrictGrammar g)
       (u.map (restrictSym g)) (v.map (restrictSym g)) := by
@@ -301,7 +313,7 @@ lemma derives_restrict {g : grammar T} {u v : List (symbol T g.nt)}
 /-
 Backward direction: a transform in `restrictGrammar g` embeds into `g`.
 -/
-lemma transforms_embed {g : grammar T} {u v : List (symbol T (UsedNT g))}
+public lemma transforms_embed {g : grammar T} {u v : List (symbol T (UsedNT g))}
     (ht : grammar_transforms (restrictGrammar g) u v) :
     grammar_transforms g (u.map (embedSym g)) (v.map (embedSym g)) := by
   obtain ⟨ r', hr', u', v', rfl, rfl ⟩ := ht;
@@ -321,7 +333,7 @@ lemma transforms_embed {g : grammar T} {u v : List (symbol T (UsedNT g))}
 /-
 Backward direction lifted to multi-step derivation.
 -/
-lemma derives_embed {g : grammar T} {u v : List (symbol T (UsedNT g))}
+public lemma derives_embed {g : grammar T} {u v : List (symbol T (UsedNT g))}
     (hd : grammar_derives (restrictGrammar g) u v) :
     grammar_derives g (u.map (embedSym g)) (v.map (embedSym g)) := by
   -- We'll use induction on `hd` to show that the derivation in the restricted grammar implies a derivation in the original grammar.
@@ -334,7 +346,7 @@ lemma derives_embed {g : grammar T} {u v : List (symbol T (UsedNT g))}
 /-
 The restricted grammar generates exactly the same language as the original.
 -/
-theorem grammar_language_eq_restrictGrammar (g : grammar T) :
+public theorem grammar_language_eq_restrictGrammar (g : grammar T) :
     grammar_language g = grammar_language (restrictGrammar g) := by
   unfold grammar_language;
   ext w;
@@ -350,7 +362,7 @@ theorem grammar_language_eq_restrictGrammar (g : grammar T) :
     unfold grammar_generates; aesop;
 
 /-- Every unrestricted grammar is equivalent to one with finitely many nonterminals. -/
-theorem grammar_equivalent_finiteNT (g : grammar T) :
+public theorem grammar_equivalent_finiteNT (g : grammar T) :
     ∃ (g' : grammar T), Finite g'.nt ∧ grammar_language g = grammar_language g' :=
   ⟨restrictGrammar g, Finite.of_fintype _, grammar_language_eq_restrictGrammar g⟩
 

@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Regular Epsilon Analysis for DPDA Totalization
 
@@ -55,7 +57,7 @@ namespace DPDA
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- A finite regular analysis of the epsilon-only behavior of a DPDA. -/
-structure RegularEpsilonAnalysis (M : DPDA Q T S) where
+public structure RegularEpsilonAnalysis (M : DPDA Q T S) where
   StopState : Q → Type
   stopDecidableEq : ∀ q, DecidableEq (StopState q)
   stopFintype : ∀ q, Fintype (StopState q)
@@ -77,7 +79,8 @@ attribute [instance] RegularEpsilonAnalysis.acceptFintype
 attribute [instance] RegularEpsilonAnalysis.acceptDecidableEq
 
 /-- The semantic epsilon-analysis existence theorem needed by the finite totalizer. -/
-def HasRegularEpsilonAnalysis (M : DPDA Q T S) : Prop :=
+@[expose]
+public def HasRegularEpsilonAnalysis (M : DPDA Q T S) : Prop :=
   Nonempty M.RegularEpsilonAnalysis
 
 noncomputable section
@@ -85,7 +88,8 @@ noncomputable section
 /-- The saturation construction supplies the finite regular epsilon analysis used
 by the totalizer.  For each control state `q`, the DFA state is the current set of
 P-automaton states reachable after reading the stack prefix. -/
-def regularEpsilonAnalysisOfSaturation (M : DPDA Q T S) :
+@[expose]
+public def regularEpsilonAnalysisOfSaturation (M : DPDA Q T S) :
     M.RegularEpsilonAnalysis where
   StopState := fun _ => Set (PAutState Q)
   stopDecidableEq := fun _ => by
@@ -111,7 +115,7 @@ def regularEpsilonAnalysisOfSaturation (M : DPDA Q T S) :
     exact finalSaturationDFA_correct M q γ
 
 /-- Every finite DPDA has a regular epsilon analysis. -/
-theorem hasRegularEpsilonAnalysis (M : DPDA Q T S) :
+public theorem hasRegularEpsilonAnalysis (M : DPDA Q T S) :
     M.HasRegularEpsilonAnalysis :=
   ⟨regularEpsilonAnalysisOfSaturation M⟩
 

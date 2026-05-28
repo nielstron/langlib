@@ -6,8 +6,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl, Martin Dvorak
 -/
 public import Mathlib.Computability.ContextFreeGrammar
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Counting Derivation Steps for CFGs
 
@@ -28,13 +30,13 @@ namespace ContextFreeGrammar
 
 /-- Given a context-free grammar `g`, strings `u` and `v`, and number `n`
 `g.DerivesIn u v n` means that `g` can transform `u` to `v` in `n` rewriting steps. -/
-inductive DerivesIn (g : ContextFreeGrammar T) : List (Symbol T g.NT) → List (Symbol T g.NT) → ℕ → Prop
+public inductive DerivesIn (g : ContextFreeGrammar T) : List (Symbol T g.NT) → List (Symbol T g.NT) → ℕ → Prop
   /-- 0 steps entail no transformation -/
   | refl (w : List (Symbol T g.NT)) : g.DerivesIn w w 0
   /-- n + 1 steps, if transforms `u` to `v` in n steps, and `v` to `w` in 1 step  -/
   | tail (u v w : List (Symbol T g.NT)) (n : ℕ) : g.DerivesIn u v n → g.Produces v w → g.DerivesIn u w n.succ
 
-lemma derives_iff_derivesIn (g : ContextFreeGrammar T) (v w : List (Symbol T g.NT)) :
+public lemma derives_iff_derivesIn (g : ContextFreeGrammar T) (v w : List (Symbol T g.NT)) :
     g.Derives v w ↔ ∃ n : ℕ, g.DerivesIn v w n := by
   constructor
   · intro hgvw
@@ -59,10 +61,10 @@ lemma mem_language_iff_derivesIn (g : ContextFreeGrammar T) (w : List T) :
 
 variable {g : ContextFreeGrammar T}
 
-lemma DerivesIn.zero_steps (w : List (Symbol T g.NT)) : g.DerivesIn w w 0 := by
+public lemma DerivesIn.zero_steps (w : List (Symbol T g.NT)) : g.DerivesIn w w 0 := by
   left
 
-lemma Produces.single_step {v w : List (Symbol T g.NT)} (hvw : g.Produces v w) :
+public lemma Produces.single_step {v w : List (Symbol T g.NT)} (hvw : g.Produces v w) :
     g.DerivesIn v w 1 := by
   right
   left
@@ -70,20 +72,20 @@ lemma Produces.single_step {v w : List (Symbol T g.NT)} (hvw : g.Produces v w) :
 
 variable {n : ℕ}
 
-lemma DerivesIn.trans_produces {u v w : List (Symbol T g.NT)}
+public lemma DerivesIn.trans_produces {u v w : List (Symbol T g.NT)}
     (huv : g.DerivesIn u v n) (hvw : g.Produces v w) :
     g.DerivesIn u w n.succ :=
   DerivesIn.tail u v w n huv hvw
 
 @[trans]
-lemma DerivesIn.trans {u v w : List (Symbol T g.NT)} {m : ℕ}
+public lemma DerivesIn.trans {u v w : List (Symbol T g.NT)} {m : ℕ}
     (huv : g.DerivesIn u v n) (hvw : g.DerivesIn v w m) :
     g.DerivesIn u w (n + m) := by
   induction hvw with
   | refl => exact huv
   | tail _ _ _ _ last ih => exact trans_produces ih last
 
-lemma Produces.trans_derivesIn {u v w : List (Symbol T g.NT)}
+public lemma Produces.trans_derivesIn {u v w : List (Symbol T g.NT)}
     (huv : g.Produces u v) (hvw : g.DerivesIn v w n) :
     g.DerivesIn u w n.succ :=
   n.succ_eq_one_add ▸ huv.single_step.trans hvw
@@ -94,7 +96,7 @@ lemma DerivesIn.tail_of_succ {u w : List (Symbol T g.NT)} (huw : g.DerivesIn u w
   | tail v w n huv hvw =>
     use v
 
-lemma DerivesIn.head_of_succ {u w : List (Symbol T g.NT)} (huw : g.DerivesIn u w n.succ) :
+public lemma DerivesIn.head_of_succ {u w : List (Symbol T g.NT)} (huw : g.DerivesIn u w n.succ) :
     ∃ v : List (Symbol T g.NT), g.Produces u v ∧ g.DerivesIn v w n := by
   induction n generalizing w with
   | zero =>
@@ -124,7 +126,7 @@ lemma DerivesIn.append_right {v w : List (Symbol T g.NT)}
   | refl => left
   | tail _ _ _ _ last ih => exact ih.trans_produces <| last.append_right p
 
-lemma DerivesIn.append_split {p q w : List (Symbol T g.NT)} {n : ℕ} (hpqw : g.DerivesIn (p ++ q) w n) :
+public lemma DerivesIn.append_split {p q w : List (Symbol T g.NT)} {n : ℕ} (hpqw : g.DerivesIn (p ++ q) w n) :
     ∃ x y m₁ m₂, w = x ++ y ∧ g.DerivesIn p x m₁ ∧ g.DerivesIn q y m₂ ∧ n = m₁ + m₂ := by
   cases n with
   | zero =>
@@ -186,7 +188,7 @@ lemma DerivesIn.append_split {p q w : List (Symbol T g.NT)} {n : ℕ} (hpqw : g.
         · rwa [List.append_assoc]
       · omega
 
-lemma DerivesIn.three_split {p q r w : List (Symbol T g.NT)} {n : ℕ}
+public lemma DerivesIn.three_split {p q r w : List (Symbol T g.NT)} {n : ℕ}
     (hg : g.DerivesIn (p ++ q ++ r) w n) :
   ∃ x y z m₁ m₂ m₃, w = x ++ y ++ z ∧ g.DerivesIn p x m₁ ∧ g.DerivesIn q y m₂
     ∧ g.DerivesIn r z m₃ ∧ n = m₁ + m₂ + m₃ := by
@@ -195,7 +197,7 @@ lemma DerivesIn.three_split {p q r w : List (Symbol T g.NT)} {n : ℕ}
   exact ⟨x, y, z, m₁, m₂, m₃, hw₁ ▸ hw₂, hd₁, hd₂, hd₃, hn₁ ▸ hn₂⟩
 
 @[elab_as_elim]
-lemma DerivesIn.head_induction_on {b : List (Symbol T g.NT)}
+public lemma DerivesIn.head_induction_on {b : List (Symbol T g.NT)}
     {P : ∀ n : ℕ, ∀ a : List (Symbol T g.NT), g.DerivesIn a b n → Prop}
     (refl : P 0 b (DerivesIn.zero_steps b))
     (head : ∀ {n a c} (hac : g.Produces a c) (hcb : g.DerivesIn c b n),

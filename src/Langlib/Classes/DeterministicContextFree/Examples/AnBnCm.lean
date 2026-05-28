@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Deterministic Context-Free Examples over `a b c`
 
@@ -48,7 +50,7 @@ open PDA List
 
 namespace DCFLIntersection
 
-inductive EqAnyState where
+public inductive EqAnyState where
   | start
   | seenA
   | seenB
@@ -56,7 +58,7 @@ inductive EqAnyState where
   | onlyC
   deriving DecidableEq, Fintype
 
-inductive ABCStack where
+public inductive ABCStack where
   | bottom
   | mark
   deriving DecidableEq, Fintype
@@ -76,7 +78,8 @@ private lemma replicate_append_cons_eq {α : Type} (n : ℕ) (x : α) (rest : Li
   | succ n ih => simp [List.replicate, ih]
 
 /-- DPDA recognizing `{aⁿbⁿcᵐ | n,m ≥ 0}`. -/
-def dpda_eq_any : DPDA EqAnyState (Fin 3) ABCStack where
+@[expose]
+public def dpda_eq_any : DPDA EqAnyState (Fin 3) ABCStack where
   initial_state := EqAnyState.start
   start_symbol := bottom
   final_states := {EqAnyState.start, trailC, onlyC}
@@ -434,7 +437,7 @@ private lemma dpda_eq_any_sound (w : List (Fin 3))
     exact ⟨0, nc, by simpa using hw⟩
 
 /-- The first witness language `{aⁿbⁿcᵐ | n,m ≥ 0}` is deterministic context-free. -/
-theorem DCF_lang_eq_any : is_DCF lang_eq_any := by
+public theorem DCF_lang_eq_any : is_DCF lang_eq_any := by
   refine ⟨EqAnyState, ABCStack, inferInstance, inferInstance, dpda_eq_any, ?_⟩
   ext w
   constructor

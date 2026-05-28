@@ -38,8 +38,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 open PDA
 
@@ -50,7 +52,8 @@ section PDA_FS_to_ES
 open Classical in
 /-- ε-transition function for the FS→ES PDA conversion.
     Defined as a top-level function to ensure good definitional reduction. -/
-noncomputable def PDA_FS_to_ES_eps {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
+@[expose]
+public noncomputable def PDA_FS_to_ES_eps {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
     (M : PDA Q T S) : (Q ⊕ Fin 2) → (Option S) → Set ((Q ⊕ Fin 2) × List (Option S))
   | Sum.inr 0, none => {(Sum.inl M.initial_state, [some M.start_symbol, none])}
   | Sum.inl q, some s =>
@@ -63,7 +66,8 @@ noncomputable def PDA_FS_to_ES_eps {Q T S : Type} [Fintype Q] [Fintype T] [Finty
 
 open Classical in
 /-- Input-reading transition function for the FS→ES PDA conversion. -/
-noncomputable def PDA_FS_to_ES_trans {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
+@[expose]
+public noncomputable def PDA_FS_to_ES_trans {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
     (M : PDA Q T S) : (Q ⊕ Fin 2) → T → (Option S) → Set ((Q ⊕ Fin 2) × List (Option S))
   | Sum.inl q, a, some s =>
       (fun p : Q × List S => (Sum.inl p.1, p.2.map some)) '' (M.transition_fun q a s)
@@ -71,7 +75,8 @@ noncomputable def PDA_FS_to_ES_trans {Q T S : Type} [Fintype Q] [Fintype T] [Fin
 
 open Classical in
 /-- The PDA that converts final-state acceptance to empty-stack acceptance. -/
-noncomputable def PDA_FS_to_ES_pda {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
+@[expose]
+public noncomputable def PDA_FS_to_ES_pda {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
     (M : PDA Q T S) : PDA (Q ⊕ Fin 2) T (Option S) where
   initial_state := Sum.inr 0
   start_symbol := none
@@ -89,11 +94,12 @@ noncomputable def PDA_FS_to_ES_pda {Q T S : Type} [Fintype Q] [Fintype T] [Finty
     · exact (by split_ifs <;> exact Set.toFinite _)
 
 /-- Lifting a configuration from the original PDA to the new PDA. -/
-def liftConf {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
+@[expose]
+public def liftConf {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
     (M : PDA Q T S) (c : PDA.conf M) : PDA.conf (PDA_FS_to_ES_pda M) :=
   ⟨Sum.inl c.state, c.input, c.stack.map some ++ [none]⟩
 
-lemma simulation_step {Q S : Type} [Fintype Q] [Fintype S]
+public lemma simulation_step {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (r₁ r₂ : PDA.conf M)
     (h : PDA.Reaches₁ r₁ r₂) :
     PDA.Reaches₁ (liftConf M r₁) (liftConf M r₂) := by
@@ -112,7 +118,7 @@ lemma simulation_step {Q S : Type} [Fintype Q] [Fintype S]
 
 /-- Multi-step simulation: if M reaches r₂ from r₁, then M' reaches
     lift(r₂) from lift(r₁). -/
-lemma simulation_reaches {Q S : Type} [Fintype Q] [Fintype S]
+public lemma simulation_reaches {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (r₁ r₂ : PDA.conf M)
     (h : PDA.Reaches r₁ r₂) :
     PDA.Reaches (liftConf M r₁) (liftConf M r₂) := by
@@ -120,7 +126,7 @@ lemma simulation_reaches {Q S : Type} [Fintype Q] [Fintype S]
   | refl => rfl
   | tail _ h₂ ih => exact Relation.ReflTransGen.tail ih (simulation_step M _ _ h₂)
 
-lemma drain_reaches {Q S : Type} [Fintype Q] [Fintype S]
+public lemma drain_reaches {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (γ : List (Option S)) :
     @PDA.Reaches (Q ⊕ Fin 2) T (Option S) _ _ _ (PDA_FS_to_ES_pda M)
       ⟨Sum.inr 1, [], γ⟩ ⟨Sum.inr 1, [], []⟩ := by
@@ -133,7 +139,7 @@ lemma drain_reaches {Q S : Type} [Fintype Q] [Fintype S]
       aesop
     exact .single h_step |> Relation.ReflTransGen.trans <| ih M
 
-lemma PDA_FS_to_ES_forward {Q S : Type} [Fintype Q] [Fintype S]
+public lemma PDA_FS_to_ES_forward {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T)
     (h : w ∈ M.acceptsByFinalState) :
     w ∈ (PDA_FS_to_ES_pda M).acceptsByEmptyStack := by
@@ -202,7 +208,8 @@ lemma reverse_simulation_step {Q S : Type} [Fintype Q] [Fintype S]
         `M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, w', γ⟩`
     (3) the drain state `(inr 1, ...)` with a witness that some final state of M
         was reached on empty input. -/
-def FSES_Inv {Q S : Type} [Fintype Q] [Fintype S]
+@[expose]
+public def FSES_Inv {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T) (c : PDA.conf (PDA_FS_to_ES_pda M)) : Prop :=
   (c = ⟨Sum.inr 0, w, [none]⟩) ∨
   (∃ q : Q, ∃ w' : List T, ∃ γ : List S,
@@ -214,7 +221,7 @@ def FSES_Inv {Q S : Type} [Fintype Q] [Fintype S]
         M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, [], γ'⟩))
 
 /-- The invariant holds for the initial configuration. -/
-lemma FSES_Inv_init {Q S : Type} [Fintype Q] [Fintype S]
+public lemma FSES_Inv_init {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T) :
     FSES_Inv M w ⟨Sum.inr 0, w, [none]⟩ := by
   left; rfl
@@ -223,7 +230,7 @@ lemma FSES_Inv_init {Q S : Type} [Fintype Q] [Fintype S]
 The invariant is preserved by a single step.
 -/
 set_option maxHeartbeats 800000 in
-lemma FSES_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
+public lemma FSES_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T)
     (c₁ c₂ : PDA.conf (PDA_FS_to_ES_pda M))
     (h_inv : FSES_Inv M w c₁)
@@ -264,7 +271,7 @@ lemma FSES_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
       · rcases h_step with ( ( ⟨ q, β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ ) | ( ⟨ q, β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ ) ) <;> simp_all +decide [ PDA_FS_to_ES_trans, PDA_FS_to_ES_eps ]
 
 /-- The invariant is preserved by multi-step reachability. -/
-lemma FSES_Inv_reaches {Q S : Type} [Fintype Q] [Fintype S]
+public lemma FSES_Inv_reaches {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T)
     (c₁ c₂ : PDA.conf (PDA_FS_to_ES_pda M))
     (h_inv : FSES_Inv M w c₁)
@@ -277,7 +284,7 @@ lemma FSES_Inv_reaches {Q S : Type} [Fintype Q] [Fintype S]
 /-
 If the invariant holds at `(q, [], [])`, then `w ∈ M.acceptsByFinalState`.
 -/
-lemma FSES_Inv_terminal {Q S : Type} [Fintype Q] [Fintype S]
+public lemma FSES_Inv_terminal {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T)
     (q : Q ⊕ Fin 2)
     (h_inv : FSES_Inv M w ⟨q, [], []⟩) :
@@ -286,7 +293,7 @@ lemma FSES_Inv_terminal {Q S : Type} [Fintype Q] [Fintype S]
   exact ⟨ _, h.choose_spec.1, _, h.choose_spec.2.choose_spec ⟩
 
 /-- Backward direction of `PDA_FS_subset_ES`. -/
-lemma PDA_FS_to_ES_backward {Q S : Type} [Fintype Q] [Fintype S]
+public lemma PDA_FS_to_ES_backward {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T)
     (h : w ∈ (PDA_FS_to_ES_pda M).acceptsByEmptyStack) :
     w ∈ M.acceptsByFinalState := by
@@ -295,7 +302,7 @@ lemma PDA_FS_to_ES_backward {Q S : Type} [Fintype Q] [Fintype S]
     (FSES_Inv_reaches M w _ _ (FSES_Inv_init M w) hreach)
 
 /-- Any PDA final-state language is also a PDA empty-stack language. -/
-theorem PDA_FS_subset_ES {Q S : Type} [Fintype Q] [Fintype S] (M : PDA Q T S) :
+public theorem PDA_FS_subset_ES {Q S : Type} [Fintype Q] [Fintype S] (M : PDA Q T S) :
     is_PDA M.acceptsByFinalState := by
   refine ⟨Q ⊕ Fin 2, Option S, inferInstance, inferInstance, PDA_FS_to_ES_pda M, ?_⟩
   ext w

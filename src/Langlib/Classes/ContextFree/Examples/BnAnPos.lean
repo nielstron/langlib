@@ -38,8 +38,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # The positive `{b^n a^n}` language
 
@@ -49,7 +51,7 @@ This file defines `{b^n a^n | n >= 1}` over `Bool`, with `false = a` and
 
 open Language
 
-lemma quotientRightBlock_eq_singletons_core :
+public lemma quotientRightBlock_eq_singletons_core :
     quotientRightBlock = ({[true]} : Language Bool) * quotientRightBlockCore * {[false]} := by
   ext w
   constructor
@@ -76,7 +78,7 @@ lemma quotientRightBlock_eq_singletons_core :
     rw [List.replicate_succ, List.replicate_succ']
     simp [List.append_assoc]
 
-lemma CF_quotientRightBlock : is_CF quotientRightBlock := by
+public lemma CF_quotientRightBlock : is_CF quotientRightBlock := by
   rw [quotientRightBlock_eq_singletons_core]
   apply CF_of_CF_c_CF
   exact ⟨CF_of_CF_c_CF _ _ ⟨is_CF_singleton [true], CF_quotientRightBlockCore⟩,

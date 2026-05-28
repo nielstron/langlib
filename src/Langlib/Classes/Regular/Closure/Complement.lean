@@ -34,8 +34,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Regular Closure Under Complement (Iff)
 
@@ -51,7 +53,7 @@ namespace Language
 variable {α : Type*}
 
 /-- A language is regular if and only if its complement is regular. -/
-theorem isRegular_compl_iff {L : Language α} :
+public theorem isRegular_compl_iff {L : Language α} :
     Lᶜ.IsRegular ↔ L.IsRegular := by
   constructor
   · intro h

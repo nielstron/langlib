@@ -40,8 +40,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # RE Non-Closure Under Complement
 
@@ -56,10 +58,12 @@ after the unary encoding would make the halting complement an `REPred`, contradi
 
 open Nat.Partrec
 
-abbrev PartrecCode := Nat.Partrec.Code
+@[expose]
+public abbrev PartrecCode := Nat.Partrec.Code
 
 /-- The unary word whose length is the code number of a partial-recursive code. -/
-def codeUnaryWord (c : PartrecCode) : List Unit :=
+@[expose]
+public def codeUnaryWord (c : PartrecCode) : List Unit :=
   (List.range (Encodable.encode c)).map (fun _ => ())
 
 @[simp] theorem codeUnaryWord_length (c : PartrecCode) :
@@ -67,14 +71,16 @@ def codeUnaryWord (c : PartrecCode) : List Unit :=
   simp [codeUnaryWord]
 
 /-- Unary halting language: a word is accepted when its length decodes to a code that halts on 0. -/
-def haltingUnaryLanguage : Language Unit :=
+@[expose]
+public def haltingUnaryLanguage : Language Unit :=
   fun w => ((Nat.Partrec.Code.ofNatCode w.length).eval 0).Dom
 
 /-- Bounded halting test for the unary language. -/
-def haltingUnaryTest (k : ℕ) (w : List Unit) : Bool :=
+@[expose]
+public def haltingUnaryTest (k : ℕ) (w : List Unit) : Bool :=
   (Nat.Partrec.Code.evaln k (Nat.Partrec.Code.ofNatCode w.length) 0).isSome
 
-theorem haltingUnaryTest_computable₂ :
+public theorem haltingUnaryTest_computable₂ :
     Computable₂ haltingUnaryTest := by
   apply Computable₂.mk
   have hEval : Primrec (fun p : ℕ × List Unit =>
@@ -87,7 +93,7 @@ theorem haltingUnaryTest_computable₂ :
     intro p
     rfl)
 
-theorem haltingUnaryLanguage_search (w : List Unit) :
+public theorem haltingUnaryLanguage_search (w : List Unit) :
     w ∈ haltingUnaryLanguage ↔ ∃ k, haltingUnaryTest k w = true := by
   unfold haltingUnaryLanguage haltingUnaryTest
   constructor
@@ -113,7 +119,7 @@ theorem haltingUnaryLanguage_search (w : List Unit) :
         exact ⟨y, Nat.Partrec.Code.evaln_sound (by simpa [hEval])⟩
 
 /-- The unary halting language is recursively enumerable. -/
-theorem haltingUnaryLanguage_RE : is_RE haltingUnaryLanguage := by
+public theorem haltingUnaryLanguage_RE : is_RE haltingUnaryLanguage := by
   obtain ⟨c, hc⟩ := search_is_partrec haltingUnaryTest haltingUnaryTest_computable₂
   have htm : is_TM haltingUnaryLanguage :=
     code_implies_isTM_direct haltingUnaryLanguage c (fun w => by
@@ -121,7 +127,7 @@ theorem haltingUnaryLanguage_RE : is_RE haltingUnaryLanguage := by
       exact haltingUnaryLanguage_search w)
   exact (is_TM_iff_is_RE haltingUnaryLanguage).1 htm
 
-theorem codeUnaryWord_computable : Computable codeUnaryWord := by
+public theorem codeUnaryWord_computable : Computable codeUnaryWord := by
   have h : Primrec codeUnaryWord := by
     unfold codeUnaryWord
     exact Primrec.list_map
@@ -129,7 +135,7 @@ theorem codeUnaryWord_computable : Computable codeUnaryWord := by
       (Primrec.const ()).to₂
   exact h.to_comp
 
-theorem codeUnaryWord_mem_haltingUnaryLanguage (c : PartrecCode) :
+public theorem codeUnaryWord_mem_haltingUnaryLanguage (c : PartrecCode) :
     codeUnaryWord c ∈ haltingUnaryLanguage ↔ (c.eval 0).Dom := by
   change ((Nat.Partrec.Code.ofNatCode (codeUnaryWord c).length).eval 0).Dom ↔
     (c.eval 0).Dom
@@ -138,7 +144,7 @@ theorem codeUnaryWord_mem_haltingUnaryLanguage (c : PartrecCode) :
   simp [Denumerable.ofNat_encode]
 
 /-- Preimage of an RE unary language along `codeUnaryWord` is an `REPred`. -/
-theorem REPred_codeUnaryWord_preimage {L : Language Unit} (hL : is_RE L) :
+public theorem REPred_codeUnaryWord_preimage {L : Language Unit} (hL : is_RE L) :
     REPred (fun c : PartrecCode => codeUnaryWord c ∈ L) := by
   obtain ⟨g, hg⟩ := hL
   obtain ⟨g', hfin, hlang⟩ := grammar_equivalent_finiteNT g
@@ -199,7 +205,7 @@ theorem REPred_codeUnaryWord_preimage {L : Language Unit} (hL : is_RE L) :
       exact ⟨seq, hseq⟩
 
 /-- The complement of the unary halting language is not RE. -/
-theorem haltingUnary_complement_not_RE : ¬ is_RE haltingUnaryLanguageᶜ := by
+public theorem haltingUnary_complement_not_RE : ¬ is_RE haltingUnaryLanguageᶜ := by
   intro hcomp
   have hpre := REPred_codeUnaryWord_preimage hcomp
   have hnot : REPred (fun c : PartrecCode => ¬(c.eval 0).Dom) :=
@@ -208,14 +214,14 @@ theorem haltingUnary_complement_not_RE : ¬ is_RE haltingUnaryLanguageᶜ := by
   exact ComputablePred.halting_problem_not_re 0 hnot
 
 /-- Recursively enumerable languages over the unary alphabet are not closed under complement. -/
-theorem RE_notClosedUnderComplement :
+public theorem RE_notClosedUnderComplement :
     ¬ ClosedUnderComplement (α := Unit) is_RE := by
   intro hclosed
   exact haltingUnary_complement_not_RE
     (hclosed haltingUnaryLanguage haltingUnaryLanguage_RE)
 
 /-- RE languages over any nonempty finite alphabet are not closed under complement. -/
-theorem RE_notClosedUnderComplement_of_nonempty {T : Type} [Fintype T] [Nonempty T] :
+public theorem RE_notClosedUnderComplement_of_nonempty {T : Type} [Fintype T] [Nonempty T] :
     ¬ ClosedUnderComplement (α := T) is_RE := by
   intro hclosed
   let a : T := Classical.choice inferInstance

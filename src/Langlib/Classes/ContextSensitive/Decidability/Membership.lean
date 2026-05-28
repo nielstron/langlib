@@ -1,16 +1,16 @@
 module
 
 public import Langlib.Grammars.ContextSensitive.Definition
+public import Mathlib.Data.Fintype.Sigma
+public import Mathlib.Data.Fintype.Vector
+public import Mathlib.Topology.Sheaves.Presheaf
 public import Mathlib.Algebra.CharZero.Defs
 public import Mathlib.Algebra.Group.Pointwise.Finset.Basic
 public import Mathlib.Data.Nat.Cast.Order.Ring
 public import Mathlib.Data.Finset.Sym
-public import Mathlib.Data.Fintype.Sigma
-public import Mathlib.Data.Fintype.Vector
 public import Mathlib.Dynamics.FixedPoints.Basic
 public import Mathlib.LinearAlgebra.Span.Defs
 public import Mathlib.Topology.Path
-public import Mathlib.Topology.Sheaves.Presheaf
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
@@ -47,8 +47,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Decidability of Membership in Context-Sensitive Languages
 

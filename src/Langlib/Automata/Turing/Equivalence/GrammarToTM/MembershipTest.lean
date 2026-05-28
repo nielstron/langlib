@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Decidable Grammar Membership Test
 
@@ -62,7 +64,8 @@ variable {T : Type} [DecidableEq T]
 /-- Given a grammar, a sentential form, a rule index, and a position,
 attempt to apply the rule at that position. Returns `none` if the rule
 doesn't match at that position. -/
-def applyRuleAt {N : Type} [DecidableEq N]
+@[expose]
+public def applyRuleAt {N : Type} [DecidableEq N]
     (r : grule T N)
     (sf : List (symbol T N))
     (pos : ℕ) : Option (List (symbol T N)) :=
@@ -78,7 +81,7 @@ def applyRuleAt {N : Type} [DecidableEq N]
 `applyRuleAt` is correct: if it returns `some sf'`, then `sf` transforms
 to `sf'` via the given rule.
 -/
-theorem applyRuleAt_correct {N : Type} [DecidableEq N]
+public theorem applyRuleAt_correct {N : Type} [DecidableEq N]
     (r : grule T N) (sf sf' : List (symbol T N)) (pos : ℕ)
     (h : applyRuleAt r sf pos = some sf') :
     ∃ u v, sf = u ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v ∧
@@ -94,7 +97,8 @@ This is the core "derivation simulator": given a sequence of instructions
 1. Starts with `init`
 2. Applies rule `rules[rᵢ]` at position `pᵢ`
 3. Returns the final sentential form (or `none` if any step fails) -/
-def applyRuleSeq {N : Type} [DecidableEq N]
+@[expose]
+public def applyRuleSeq {N : Type} [DecidableEq N]
     (rules : List (grule T N))
     (init : List (symbol T N))
     (seq : List (ℕ × ℕ)) : Option (List (symbol T N)) :=
@@ -112,7 +116,7 @@ def applyRuleSeq {N : Type} [DecidableEq N]
 If `applyRuleSeq` returns `some sf'`, then the grammar derives `sf'`
 from `init`.
 -/
-theorem applyRuleSeq_derives (g : grammar T) [DecidableEq g.nt]
+public theorem applyRuleSeq_derives (g : grammar T) [DecidableEq g.nt]
     (init sf' : List (symbol T g.nt))
     (seq : List (ℕ × ℕ))
     (h : applyRuleSeq g.rules init seq = some sf') :
@@ -142,7 +146,8 @@ theorem applyRuleSeq_derives (g : grammar T) [DecidableEq g.nt]
 
 /-- Extract the terminal word from a sentential form, if all symbols
 are terminals. Returns `none` if any nonterminal is present. -/
-def extractTerminals {N : Type} (sf : List (symbol T N)) : Option (List T) :=
+@[expose]
+public def extractTerminals {N : Type} (sf : List (symbol T N)) : Option (List T) :=
   sf.foldr
     (fun s acc =>
       match s, acc with
@@ -153,7 +158,7 @@ def extractTerminals {N : Type} (sf : List (symbol T N)) : Option (List T) :=
 /-
 `extractTerminals` returns `some w` iff `sf = w.map symbol.terminal`.
 -/
-theorem extractTerminals_eq_map_iff {N : Type}
+public theorem extractTerminals_eq_map_iff {N : Type}
     (sf : List (symbol T N)) (w : List T) :
     extractTerminals sf = some w ↔ sf = w.map symbol.terminal := by
   constructor <;> intro h;
@@ -177,7 +182,8 @@ Given a grammar `g`, a derivation sequence `seq`, and a target word `w`:
 2. Check if the result is exactly `w.map symbol.terminal`
 
 Returns `true` iff the derivation sequence witnesses `w ∈ grammar_language g`. -/
-def grammarTest (g : grammar T) [DecidableEq g.nt]
+@[expose]
+public def grammarTest (g : grammar T) [DecidableEq g.nt]
     (seq : List (ℕ × ℕ)) (w : List T) : Bool :=
   match applyRuleSeq g.rules [symbol.nonterminal g.initial] seq with
   | none => false
@@ -187,7 +193,7 @@ def grammarTest (g : grammar T) [DecidableEq g.nt]
 Soundness of `grammarTest`: if the test passes, then `w` is in the
 grammar's language.
 -/
-theorem grammarTest_sound (g : grammar T) [DecidableEq g.nt]
+public theorem grammarTest_sound (g : grammar T) [DecidableEq g.nt]
     (seq : List (ℕ × ℕ)) (w : List T)
     (h : grammarTest g seq w = true) :
     w ∈ grammar_language g := by
@@ -201,7 +207,7 @@ theorem grammarTest_sound (g : grammar T) [DecidableEq g.nt]
 Completeness of `grammarTest`: if `w` is in the grammar's language,
 then some derivation sequence witnesses it.
 -/
-theorem grammarTest_complete (g : grammar T) [DecidableEq g.nt]
+public theorem grammarTest_complete (g : grammar T) [DecidableEq g.nt]
     (w : List T) (hw : w ∈ grammar_language g) :
     ∃ seq : List (ℕ × ℕ), grammarTest g seq w = true := by
   obtain ⟨seq, hseq⟩ : ∃ seq : List (ℕ × ℕ), ∃ sf : List (symbol T g.nt), applyRuleSeq g.rules [symbol.nonterminal g.initial] seq = some sf ∧ sf = w.map symbol.terminal := by

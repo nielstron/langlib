@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Recursive (Decidable) Languages
 
@@ -61,7 +63,8 @@ machine halts in a state `q` with `accept q = true`.
 
 The machine uses `Option T` as the tape alphabet (`none` = blank) and encodes the
 input word `w : List T` as `w.map some` on the tape. -/
-def is_Recursive {T : Type} (L : Language T) : Prop :=
+@[expose]
+public def is_Recursive {T : Type} (L : Language T) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
     (M : TM0.Machine (Option T) Λ) (accept : Λ → Bool),
     (∀ w : List T,
@@ -73,4 +76,5 @@ def is_Recursive {T : Type} (L : Language T) : Prop :=
             ((Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).get h).q = true)
 
 /-- The class of recursive (decidable) languages. -/
-def Recursive : Set (Language T) := setOf is_Recursive
+@[expose]
+public def Recursive : Set (Language T) := setOf is_Recursive

@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Recursive Closure Under Complement
 
@@ -61,7 +63,7 @@ The class of recursive languages is closed under complement.
 Given a decider `(Λ, M, accept)` that always halts, we construct a decider for
 `Lᶜ` by negating the acceptance predicate: `(Λ, M, fun q => !accept q)`.
 -/
-theorem is_Recursive_complement {L : Language T} (hL : is_Recursive L) :
+public theorem is_Recursive_complement {L : Language T} (hL : is_Recursive L) :
     is_Recursive Lᶜ := by
   obtain ⟨ Λ, hΛ, hΛf, M, accept, hHalt, hCorrect ⟩ := hL;
   -- Construct the complement decider using the same machine M but with acceptance predicate `fun q => !accept q`.
@@ -77,5 +79,5 @@ theorem Recursive_complement_iff {L : Language T} :
     rwa [compl_compl] at this
   · exact is_Recursive_complement
 /-- The class of recursive languages is closed under complement. -/
-theorem Recursive_closedUnderComplement : ClosedUnderComplement (α := T) is_Recursive :=
+public theorem Recursive_closedUnderComplement : ClosedUnderComplement (α := T) is_Recursive :=
   fun L hL => is_Recursive_complement hL

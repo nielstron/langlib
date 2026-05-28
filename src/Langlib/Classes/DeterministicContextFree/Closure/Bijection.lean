@@ -32,8 +32,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # DCF Closure Under Injective Terminal Maps -/
 
@@ -47,7 +49,8 @@ variable {Q S : Type} [Fintype Q] [Fintype T₁] [Fintype T₂] [Fintype S]
 
 /-- Rename the input alphabet of a DPDA along `f`, decoding symbols in the image using `g`.
 Symbols outside the image of `f` have no transition. -/
-noncomputable def mapInput (M : DPDA Q T₁ S) (f : T₁ → T₂) (g : T₂ → T₁) : DPDA Q T₂ S where
+@[expose]
+public noncomputable def mapInput (M : DPDA Q T₁ S) (f : T₁ → T₂) (g : T₂ → T₁) : DPDA Q T₂ S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol
   final_states := M.final_states
@@ -220,7 +223,7 @@ private lemma reaches_consumed_prefix {f : T₁ → T₂} {g : T₂ → T₁}
       exact ha.elim (himg a) (himg' a)
 
 /-- Injective terminal renaming preserves final-state acceptance of DPDAs. -/
-theorem map_acceptsByFinalState_of_injective [Nonempty T₁] {f : T₁ → T₂}
+public theorem map_acceptsByFinalState_of_injective [Nonempty T₁] {f : T₁ → T₂}
     (hf : Function.Injective f) (M : DPDA Q T₁ S) :
     (M.mapInput f (Function.invFun f)).acceptsByFinalState = Language.map f M.acceptsByFinalState := by
   classical
@@ -267,7 +270,7 @@ theorem map_acceptsByFinalState_of_injective [Nonempty T₁] {f : T₁ → T₂}
 end DPDA
 
 /-- Deterministic context-free languages are preserved under injective terminal maps. -/
-theorem DCF_of_map_injective_DCF [Nonempty T₁] [Fintype T₁] [Fintype T₂]
+public theorem DCF_of_map_injective_DCF [Nonempty T₁] [Fintype T₁] [Fintype T₂]
     {f : T₁ → T₂} (hf : Function.Injective f) (L : Language T₁) :
     is_DCF L → is_DCF (Language.map f L) := by
   intro hL

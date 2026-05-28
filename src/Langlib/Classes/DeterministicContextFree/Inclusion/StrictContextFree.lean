@@ -42,8 +42,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # DCFs are a strict subset of CFLs
 
@@ -57,7 +59,7 @@ they form a strict subclass of context-free languages over `Fin 3`.
 
 This isolates the useful closure-property proof pattern behind the unconditional
 strictness theorem below. -/
-theorem DCF_strict_subclass_CF_of_closedUnderComplement
+public theorem DCF_strict_subclass_CF_of_closedUnderComplement
     (hDCFcomp : ClosedUnderComplement (α := Fin 3) is_DCF) :
     (DCF : Set (Language (Fin 3))) ⊂ (CF : Set (Language (Fin 3))) :=
   strict_subset_of_subset_different_property
@@ -116,7 +118,7 @@ theorem DCF_strict_subclass_CF_of_decider_presentations_of_card {T : Type} [Fint
 
 /-- Deterministic context-free languages are a strict subclass of context-free
 languages over a three-symbol alphabet. -/
-theorem DCF_strict_subclass_CF :
+public theorem DCF_strict_subclass_CF :
     (DCF : Set (Language (Fin 3))) ⊂ (CF : Set (Language (Fin 3))) :=
   DCF_strict_subclass_CF_of_closedUnderComplement DCF_closedUnderComplement
 

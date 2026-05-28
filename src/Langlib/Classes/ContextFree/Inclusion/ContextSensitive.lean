@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Inclusions
 
@@ -147,7 +149,7 @@ theorem CF_subclass_CS {L : Language T}
   obtain ⟨g, hg, rfl⟩ := hne
   exact is_CS_via_csg_implies_is_CS ⟨csg_of_cfg g hg, (CF_language_eq_CS_language g hg).symm⟩
 
-theorem CF_subclass_RE {L : Language T} :
+public theorem CF_subclass_RE {L : Language T} :
   is_CF L → is_RE L := by
   intro h
   obtain ⟨g, eq_L⟩ := is_CF_implies_is_CF_via_cfg h

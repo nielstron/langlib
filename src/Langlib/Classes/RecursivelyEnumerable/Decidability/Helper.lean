@@ -33,8 +33,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-!
 # Encodings for Uniform RE Computability Properties
@@ -48,18 +50,20 @@ open Nat.Partrec
 /-- The domain language of a partial-recursive code, represented over `Unit`.
 
 The word length is the program input. -/
-def partrecCodeDomainLanguageOf (c : Code) : Language Unit :=
+@[expose]
+public def partrecCodeDomainLanguageOf (c : Code) : Language Unit :=
   fun w => (c.eval w.length).Dom
 
 /-- The graph language of a partial-recursive code.
 
 Only singleton words are meaningful: `[(n, y)]` means that the code returns `y` on
 input `n`. -/
-def partrecCodeGraphLanguageOf (c : Code) : Language (ℕ × ℕ)
+@[expose]
+public def partrecCodeGraphLanguageOf (c : Code) : Language (ℕ × ℕ)
   | [(n, y)] => y ∈ c.eval n
   | _ => False
 
-theorem partrecCodeDomainLanguage_empty_iff (c : Code) :
+public theorem partrecCodeDomainLanguage_empty_iff (c : Code) :
     partrecCodeDomainLanguageOf c = (∅ : Set (List Unit)) ↔
       ∀ n, ¬(c.eval n).Dom := by
   constructor
@@ -78,7 +82,7 @@ theorem partrecCodeDomainLanguage_empty_iff (c : Code) :
     · intro hw
       exact False.elim hw
 
-theorem partrecCodeDomainLanguage_universal_iff (c : Code) :
+public theorem partrecCodeDomainLanguage_universal_iff (c : Code) :
     partrecCodeDomainLanguageOf c = (Set.univ : Set (List Unit)) ↔
       ∀ n, (c.eval n).Dom := by
   constructor
@@ -96,7 +100,7 @@ theorem partrecCodeDomainLanguage_universal_iff (c : Code) :
     · intro _
       simpa [partrecCodeDomainLanguageOf] using h w.length
 
-theorem partrecCodeGraphLanguage_eq_iff (p : Code × Code) :
+public theorem partrecCodeGraphLanguage_eq_iff (p : Code × Code) :
     partrecCodeGraphLanguageOf p.1 = partrecCodeGraphLanguageOf p.2 ↔
       p.1.eval = p.2.eval := by
   constructor

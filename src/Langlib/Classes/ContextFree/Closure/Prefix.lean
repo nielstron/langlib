@@ -40,8 +40,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Closure Under Prefix
 
@@ -87,7 +89,7 @@ in `n` steps, then there is an intermediate configuration `⟨q', [], γ⟩`
 such that `M` reaches it from `⟨q, w, α⟩` and then reaches `⟨p, [], δ⟩`
 from `⟨q', v, γ⟩`.
 -/
-theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : List S}
+public theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : List S}
     (h : M.ReachesIn n ⟨q, w ++ v, α⟩ ⟨p, [], δ⟩) :
     ∃ q' : Q, ∃ γ : List S, ∃ n₁ n₂ : ℕ,
       M.ReachesIn n₁ ⟨q, w, α⟩ ⟨q', [], γ⟩ ∧
@@ -133,7 +135,7 @@ theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : Li
             · exact hx ) y hy;
 
 /-- **Input splitting** (`Reaches` version). -/
-theorem input_splitting {q p : Q} {w v : List T} {α δ : List S}
+public theorem input_splitting {q p : Q} {w v : List T} {α δ : List S}
     (h : M.Reaches ⟨q, w ++ v, α⟩ ⟨p, [], δ⟩) :
     ∃ q' : Q, ∃ γ : List S,
       M.Reaches ⟨q, w, α⟩ ⟨q', [], γ⟩ ∧ M.Reaches ⟨q', v, γ⟩ ⟨p, [], δ⟩ := by
@@ -155,7 +157,8 @@ variable {Q S : Type} [Fintype Q] [Fintype S]
 /-- The **prefix PDA**.
 States are `Q ⊕ Q` where `Sum.inl q` is *normal mode* and `Sum.inr q`
 is *verification mode*. -/
-noncomputable def prefixPDA (M : PDA Q T S) : PDA (Q ⊕ Q) T S where
+@[expose]
+public noncomputable def prefixPDA (M : PDA Q T S) : PDA (Q ⊕ Q) T S where
   initial_state := Sum.inl M.initial_state
   start_symbol  := M.start_symbol
   final_states  := ∅
@@ -258,7 +261,7 @@ private theorem verify_reaches_of_M_reaches
 **Forward direction**: every prefix of a word in `M.acceptsByEmptyStack`
 is accepted by the prefix PDA.
 -/
-theorem prefixPDA_supset (M : PDA Q T S) :
+public theorem prefixPDA_supset (M : PDA Q T S) :
     Language.prefixLang M.acceptsByEmptyStack ≤ (prefixPDA M).acceptsByEmptyStack := by
   intro w hw
   obtain ⟨v, hv⟩ := hw;
@@ -506,7 +509,7 @@ private theorem inl_computation_to_M {n : ℕ} {q : Q} {w : List T} {α : List S
 **Backward direction**: every word accepted by the prefix PDA is a prefix
 of some word in `M.acceptsByEmptyStack`.
 -/
-theorem prefixPDA_subset (M : PDA Q T S) :
+public theorem prefixPDA_subset (M : PDA Q T S) :
     (prefixPDA M).acceptsByEmptyStack ≤ Language.prefixLang M.acceptsByEmptyStack := by
   intro w hw
   obtain ⟨s, hs⟩ := hw
@@ -524,7 +527,7 @@ end PrefixClosure
 -- ══════════════════════════════════════════════════════════════════
 
 /-- PDA-recognisable languages are closed under prefix. -/
-theorem is_PDA_prefixLang {L : Language T} (h : is_PDA L) :
+public theorem is_PDA_prefixLang {L : Language T} (h : is_PDA L) :
     is_PDA (Language.prefixLang L) := by
   obtain ⟨Q, S, _, _, M, rfl⟩ := h
   exact ⟨Q ⊕ Q, S, inferInstance, inferInstance, PrefixClosure.prefixPDA M,
@@ -532,7 +535,7 @@ theorem is_PDA_prefixLang {L : Language T} (h : is_PDA L) :
 
 /-- Context-free languages are closed under the prefix operation
 (proved via the PDA equivalence with the "all states accept" construction). -/
-theorem Language.IsContextFree.prefixLang {L : Language T}
+public theorem Language.IsContextFree.prefixLang {L : Language T}
     (h : L.IsContextFree) :
     (Language.prefixLang L).IsContextFree := by
   rw [← is_PDA_iff_isContextFree] at h ⊢
@@ -540,7 +543,7 @@ theorem Language.IsContextFree.prefixLang {L : Language T}
 
 /-- Context-free languages are closed under the prefix operation
 (project-level `is_CF` formulation). -/
-theorem is_CF_prefixLang {L : Language T} (h : is_CF L) :
+public theorem is_CF_prefixLang {L : Language T} (h : is_CF L) :
     is_CF (Language.prefixLang L) := by
   rw [is_CF_iff_isContextFree] at h ⊢
   exact h.prefixLang

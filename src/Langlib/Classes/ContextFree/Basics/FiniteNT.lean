@@ -34,8 +34,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-!
 # Every context-free grammar has an equivalent one with finite nonterminals
@@ -328,7 +330,7 @@ theorem toFiniteNT_language (g : ContextFreeGrammar T) :
     convert h_restrict_deriv.trans _;
     rw [ restrictWord_map_terminal ]
 
-theorem exists_fintype_nt (L : Language T) (hL : L.IsContextFree) :
+public theorem exists_fintype_nt (L : Language T) (hL : L.IsContextFree) :
     ∃ (g : ContextFreeGrammar T) (_ : Fintype g.NT), g.language = L := by
   obtain ⟨ g, hg ⟩ := hL;
   use g.toFiniteNT;

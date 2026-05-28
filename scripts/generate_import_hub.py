@@ -14,6 +14,7 @@ class HubConfig:
     title: str
     summary_bullet: str
     modules: tuple[str, ...] = ()
+    private_imports: tuple[str, ...] = ()
     excludes: tuple[Path, ...] = ()
 
 
@@ -33,6 +34,11 @@ DEFAULT_HUBS: dict[str, HubConfig] = {
             "Langlib.Grammars",
             "Langlib.Utilities",
         ),
+        private_imports=(
+            "Mathlib.Data.EReal.Operations",
+            "Mathlib.Data.Sym.Sym2.Init",
+            "Mathlib.Topology.MetricSpace.Bounded",
+        ),
     ),
     "automata": HubConfig(
         output=REPO_ROOT / "src" / "Langlib" / "Automata.lean",
@@ -47,6 +53,11 @@ DEFAULT_HUBS: dict[str, HubConfig] = {
         module_prefix="Langlib.Classes",
         title="Langlib Language Classes",
         summary_bullet="Imports the regular, context-free, indexed, recursive, recursively enumerable, and context-sensitive language-class developments.",
+        private_imports=(
+            "Mathlib.Data.EReal.Operations",
+            "Mathlib.Data.Sym.Sym2.Init",
+            "Mathlib.Topology.MetricSpace.Bounded",
+        ),
     ),
     "examples": HubConfig(
         output=REPO_ROOT / "src" / "Langlib" / "Examples.lean",
@@ -54,6 +65,7 @@ DEFAULT_HUBS: dict[str, HubConfig] = {
         module_prefix="Langlib.Examples",
         title="Langlib Examples",
         summary_bullet="Imports the shared example languages and alphabets.",
+        private_imports=("Mathlib.Tactic.Bound.Init",),
     ),
     "grammars": HubConfig(
         output=REPO_ROOT / "src" / "Langlib" / "Grammars.lean",
@@ -102,14 +114,17 @@ def collect_modules(config: HubConfig) -> list[str]:
 
 def render_hub(config: HubConfig) -> str:
     modules = collect_modules(config)
-    imports = "\n".join(f"public import {module}" for module in modules)
+    imports = "\n".join(
+        [*(f"public import {module}" for module in modules), *(f"import {module}" for module in config.private_imports)]
+    )
     return f"""module -- shake: keep-all
 
 --! Auto-generated import hub for the {config.title.lower()}.
 --  Run `scripts/generate_import_hub.py --hub {hub_name(config)}` to regenerate.
 
 {imports}
-@[expose] public section
+@[expose]
+public section
 
 /-! # {config.title}
 

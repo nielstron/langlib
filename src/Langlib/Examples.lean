@@ -16,7 +16,9 @@ public import Langlib.Examples.BnAn
 public import Langlib.Examples.BnAnPos
 public import Langlib.Examples.BnAnPosStarB
 public import Langlib.Examples.UnaryA2PowSucc
-@[expose] public section
+import Mathlib.Tactic.Bound.Init
+@[expose]
+public section
 
 /-! # Langlib Examples
 

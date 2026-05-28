@@ -35,8 +35,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Context-Free Closure Under String Homomorphism
 
@@ -51,7 +53,7 @@ and epsilon-free string homomorphism.
 
 
 /-- Singleton word languages are context-free. -/
-lemma is_CF_singleton (w : List β) : is_CF ({w} : Language β) := by
+public lemma is_CF_singleton (w : List β) : is_CF ({w} : Language β) := by
   rw [is_CF_iff_isContextFree]
   exact isContextFree_singleton w
 
@@ -63,7 +65,7 @@ the image `{h(w) | w ∈ L}` is also context-free.
 **Proof sketch:** A string homomorphism is a special case of substitution where each symbol `a`
 is replaced by the singleton language `{h(a)}`. Since every singleton language is context-free
 and CFLs are closed under substitution (`CF_of_subst_CF`), the result follows. -/
-theorem CF_closed_under_homomorphism (L : Language α) (h : α → List β)
+public theorem CF_closed_under_homomorphism (L : Language α) (h : α → List β)
     (hL : is_CF L) : is_CF (L.homomorphicImage h) := by
   exact CF_of_subst_CF L (fun a => {h a}) hL (fun a => is_CF_singleton (h a))
 

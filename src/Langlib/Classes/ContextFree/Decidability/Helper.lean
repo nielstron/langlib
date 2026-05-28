@@ -33,11 +33,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-- The language represented by an encoded context-free grammar. -/
-def contextFreeLanguageOf (G : EncodedCFG T) : Language T :=
+@[expose]
+public def contextFreeLanguageOf (G : EncodedCFG T) : Language T :=
   CF_language G.toCFGrammar
 
 /-- The uniform membership predicate for encoded context-free grammars.

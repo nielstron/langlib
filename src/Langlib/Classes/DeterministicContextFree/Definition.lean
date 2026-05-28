@@ -36,8 +36,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Deterministic Context-Free Languages (DCFs)
 
@@ -71,9 +73,11 @@ variable {T : Type} [Fintype T]
 
 /-- A language `L` over a finite alphabet `T` is a **deterministic context-free language
     (DCF)** if there exists a DPDA that recognizes `L` via final-state acceptance. -/
-def is_DCF (L : Language T) : Prop :=
+@[expose]
+public def is_DCF (L : Language T) : Prop :=
   is_DPDA L
 
 /-- The class of languages that are DCF -/
-def DCF : Set (Language T) :=
+@[expose]
+public def DCF : Set (Language T) :=
   DPDA.Class

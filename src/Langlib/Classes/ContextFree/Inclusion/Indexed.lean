@@ -34,8 +34,10 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
-@[expose] public section
+
 
 /-! # Indexed Language Inclusions
 
@@ -56,7 +58,8 @@ open List
 variable {T : Type}
 
 /-- Convert a context-free grammar to an indexed grammar (with no flags). -/
-def indexed_of_cfg (g : CF_grammar T) : IndexedGrammar T where
+@[expose]
+public def indexed_of_cfg (g : CF_grammar T) : IndexedGrammar T where
   nt := g.nt
   flag := Empty
   initial := g.initial
@@ -169,7 +172,7 @@ private lemma cf_to_isym_terminal_map (g : CF_grammar T) (w : List T) :
   simp [cf_to_isym, Function.comp_def]
 
 /-- The language of `indexed_of_cfg g` equals `CF_language g`. -/
-theorem indexed_of_cfg_language (g : CF_grammar T) :
+public theorem indexed_of_cfg_language (g : CF_grammar T) :
     (indexed_of_cfg g).Language = CF_language g := by
   ext w
   change (indexed_of_cfg g).Generates w ↔ CF_generates g w
@@ -184,14 +187,14 @@ theorem indexed_of_cfg_language (g : CF_grammar T) :
 
 
 /-- Every context-free language is an indexed language. -/
-theorem is_Indexed_of_is_CF {L : Language T} :
+public theorem is_Indexed_of_is_CF {L : Language T} :
     is_CF L → is_Indexed L := by
   intro h
   obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h
   exact ⟨indexed_of_cfg g, indexed_of_cfg_language g⟩
 
 /-- Every context-free language is an indexed language. -/
-theorem CF_subclass_Indexed :
+public theorem CF_subclass_Indexed :
     (CF : Set (Language T)) ⊆ (Indexed : Set (Language T)) := by
   intro L h
   obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h
