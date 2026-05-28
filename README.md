@@ -107,6 +107,10 @@ Abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.
 
 **Notes on the table above:**
 
+Additional deterministic context-free closure results formalized here:
+
+- [Union with a regular language](src/Langlib/Classes/DeterministicContextFree/Closure/UnionRegular.lean)
+
 Additional context-free closure results formalized here:
 
 - [Terminal bijections](src/Langlib/Classes/ContextFree/Closure/Bijection.lean)

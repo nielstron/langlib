@@ -120,6 +120,7 @@ import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Closure.Complement
 import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
+import Langlib.Classes.DeterministicContextFree.Closure.UnionRegular
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
@@ -215,6 +216,7 @@ import Langlib.Grammars.Unrestricted.FiniteNonterminals
 import Langlib.Grammars.Unrestricted.InverseHomomorphism
 import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Utilities.ClosurePredicates
+import Langlib.Utilities.ClosurePredicates.Transport
 import Langlib.Utilities.ComputabilityPredicates
 import Langlib.Utilities.Homomorphism
 import Langlib.Utilities.LanguageOperations

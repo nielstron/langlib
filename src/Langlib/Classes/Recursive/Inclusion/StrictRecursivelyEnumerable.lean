@@ -1,6 +1,7 @@
 import Langlib.Classes.Recursive.Closure.Complement
 import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.RecursivelyEnumerable.Closure.Complement
+import Langlib.Utilities.ClosurePredicates.Transport
 
 /-! # Strict Inclusion: Recursive ⊊ RE
 

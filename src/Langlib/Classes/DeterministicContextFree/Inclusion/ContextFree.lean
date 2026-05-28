@@ -6,6 +6,7 @@ import Mathlib
 import Langlib.Classes.DeterministicContextFree.Definition
 import Langlib.Classes.DeterministicContextFree.Closure.Complement
 import Langlib.Classes.ContextFree.Closure.Complement
+import Langlib.Utilities.ClosurePredicates.Transport
 
 /-! # DCFs are a strict subset of CFLs
 
