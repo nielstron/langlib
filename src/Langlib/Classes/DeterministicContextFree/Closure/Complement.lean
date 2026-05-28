@@ -48,14 +48,6 @@ theorem DCF_closedUnderComplement_of_decider_presentations
   intro L hL
   exact is_DCF_complement_of_is_DCF_decider (htotal L hL)
 
-/-- Once the regular epsilon analyses exist for all DPDAs, DCFs are closed under
-complement via the analyzed totalizer. -/
-theorem DCF_closedUnderComplement_of_regularEpsilonAnalysis
-    (hanalysis : EveryDPDAHasRegularEpsilonAnalysis T) :
-    ClosedUnderComplement (α := T) is_DCF :=
-  DCF_closedUnderComplement_of_decider_presentations
-    (everyDCFHasDeciderPresentation_of_regularEpsilonAnalysis hanalysis)
-
 /-- Deterministic context-free languages are closed under complement. -/
 theorem DCF_closedUnderComplement :
     ClosedUnderComplement (α := T) is_DCF :=

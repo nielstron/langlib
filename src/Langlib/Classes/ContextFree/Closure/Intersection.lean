@@ -6,6 +6,9 @@ import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Utilities.ListUtils
 import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Definition
+import Langlib.Classes.DeterministicContextFree.Examples.AnBmCm
+import Langlib.Classes.DeterministicContextFree.Examples.AnBnCm
+import Langlib.Classes.DeterministicContextFree.Examples.AnBnCn
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Utilities.Tactics
 import Langlib.Utilities.ClosurePredicates
@@ -25,10 +28,6 @@ It shows that the intersection of the two CF languages `{aⁿbⁿ | n ∈ ℕ}` 
 
 section defs_over_fin3
 
-def a_ : Fin 3 := 0
-def b_ : Fin 3 := 1
-def c_ : Fin 3 := 2
-
 private def a : symbol (Fin 3) (Fin 1) := symbol.terminal a_
 private def b : symbol (Fin 3) (Fin 1) := symbol.terminal b_
 private def c : symbol (Fin 3) (Fin 1) := symbol.terminal c_
@@ -39,16 +38,6 @@ private lemma neq_ac : a_ ≠ c_ := by decide
 private lemma neq_ca : c_ ≠ a_ := neq_ac.symm
 private lemma neq_bc : b_ ≠ c_ := by decide
 private lemma neq_cb : c_ ≠ b_ := neq_bc.symm
-
-
-def lang_eq_any : Language (Fin 3) :=
-fun w => ∃ n m : ℕ, w = List.replicate n a_ ++ List.replicate n b_ ++ List.replicate m c_
-
-def lang_any_eq : Language (Fin 3) :=
-fun w => ∃ n m : ℕ, w = List.replicate n a_ ++ List.replicate m b_ ++ List.replicate m c_
-
-def lang_eq_eq : Language (Fin 3) :=
-fun w => ∃ n : ℕ, w = List.replicate n a_ ++ List.replicate n b_ ++ List.replicate n c_
 
 end defs_over_fin3
 

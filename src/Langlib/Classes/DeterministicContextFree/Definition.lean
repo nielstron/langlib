@@ -6,7 +6,6 @@ import Mathlib
 import Langlib.Automata.DeterministicPushdown.Inclusion.Pushdown
 import Langlib.Automata.Pushdown.Equivalence.ContextFree
 import Langlib.Classes.ContextFree.Closure.Union
-import Langlib.Classes.ContextFree.Closure.Intersection
 
 /-! # Deterministic Context-Free Languages (DCFs)
 
