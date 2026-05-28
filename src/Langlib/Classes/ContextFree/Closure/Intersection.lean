@@ -6,10 +6,10 @@ import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Utilities.ListUtils
 import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.DeterministicContextFree.Examples.AnBmCm
-import Langlib.Classes.DeterministicContextFree.Examples.AnBnCm
-import Langlib.Classes.DeterministicContextFree.Examples.AnBnCn
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Langlib.Examples.AnBmCm
+import Langlib.Examples.AnBnCm
+import Langlib.Examples.AnBnCn
 import Langlib.Utilities.Tactics
 import Langlib.Utilities.ClosurePredicates
 

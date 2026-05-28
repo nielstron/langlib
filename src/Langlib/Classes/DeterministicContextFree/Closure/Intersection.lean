@@ -1,6 +1,5 @@
 import Langlib.Classes.ContextFree.Closure.Intersection
 import Langlib.Classes.DeterministicContextFree.Examples.AnBmCm
-import Langlib.Classes.DeterministicContextFree.Examples.AnBnCn
 import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 import Langlib.Utilities.ClosurePredicates
 

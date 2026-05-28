@@ -2,7 +2,7 @@ import Mathlib
 import Langlib.Classes.ContextFree.Definition
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Grammars.ContextFree.Toolbox
-import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Examples.AnBn
 import Langlib.Utilities.Tactics
 
 /-! # `a^n b^n` as a CFL

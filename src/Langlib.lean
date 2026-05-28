@@ -199,6 +199,11 @@ import Langlib.Classes.Regular.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.Regular.Inclusion.StrictContextFree
 import Langlib.Classes.Regular.Inclusion.StrictDeterministicContextFree
 import Langlib.Classes.Regular.Inclusion.StrictLinear
+import Langlib.Examples.AlphabetABC
+import Langlib.Examples.AnBmCm
+import Langlib.Examples.AnBn
+import Langlib.Examples.AnBnCm
+import Langlib.Examples.AnBnCn
 import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox

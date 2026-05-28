@@ -1,4 +1,5 @@
 import Langlib.Classes.DeterministicContextFree.Definition
+import Langlib.Examples.AnBnCm
 
 /-! # Deterministic Context-Free Examples over `a b c`
 
@@ -6,14 +7,6 @@ This file gives a deterministic pushdown automaton for `{aⁿbⁿcᵐ | n,m ≥ 
 -/
 
 open PDA List
-
-def a_ : Fin 3 := 0
-def b_ : Fin 3 := 1
-def c_ : Fin 3 := 2
-
-/-- The language `{aⁿbⁿcᵐ | n,m ≥ 0}` over `Fin 3`. -/
-def lang_eq_any : Language (Fin 3) :=
-  fun w => ∃ n m : ℕ, w = List.replicate n a_ ++ List.replicate n b_ ++ List.replicate m c_
 
 namespace DCFLIntersection
 
@@ -34,6 +27,12 @@ open EqAnyState ABCStack
 
 private lemma replicate_append_cons_self {α : Type} (n : ℕ) (x : α) (rest : List α) :
     replicate n x ++ x :: rest = x :: (replicate n x ++ rest) := by
+  induction n with
+  | zero => simp
+  | succ n ih => simp [List.replicate, ih]
+
+private lemma replicate_append_cons_eq {α : Type} (n : ℕ) (x : α) (rest : List α) :
+    replicate n x ++ x :: rest = replicate (n + 1) x ++ rest := by
   induction n with
   | zero => simp
   | succ n ih => simp [List.replicate, ih]
@@ -268,9 +267,9 @@ private lemma eq_any_inv_step_state_seenA (w : List (Fin 3)) (na : ℕ) (input :
     simp_all +decide [PDA.step, dpda_eq_any, DPDA.toPDA]
   · fin_cases x <;> simp_all +decide [PDA.Reaches₁, PDA.step, dpda_eq_any, DPDA.toPDA, List.replicate]
     · refine ⟨na + 2, 0, 0, ?_, ?_⟩
-      · simp +decide [a_, List.replicate_succ_eq_append_singleton,
-          List.replicate_succ_eq_singleton_append, List.append_assoc]
-        simpa using (replicate_append_cons_self na (0 : Fin 3) (0 :: rest)).symm
+      · simp +decide [a_, List.append_assoc]
+        simpa [a_, List.replicate, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+          using replicate_append_cons_eq (na + 1) a_ rest
       · right; left
         simp +decide [List.replicate, Nat.succ_eq_add_one]
     · refine ⟨na + 1, 1, 0, ?_, ?_⟩
@@ -302,8 +301,8 @@ private lemma eq_any_inv_step_state_seenB (w : List (Fin 3)) (na nb : ℕ)
       · fin_cases x <;>
           simp_all +decide [PDA.Reaches₁, PDA.step, dpda_eq_any, DPDA.toPDA, List.replicate]
         refine ⟨na, nb + 1, 0, ?_, ?_⟩
-        · simp +decide [b_, List.replicate_succ_eq_append_singleton,
-            List.append_assoc]
+        · simp +decide [b_, List.append_assoc]
+          simpa [b_] using replicate_append_cons_eq nb b_ rest
         · right; right; left
           have hk : k = na - (nb + 1) := by omega
           refine ⟨rfl, hna, by omega, by omega, rfl, ?_⟩
@@ -319,8 +318,8 @@ private lemma eq_any_inv_step_state_trailC (w : List (Fin 3)) (na nc : ℕ)
   rcases input with _ | ⟨x, rest⟩ <;> simp_all +decide [PDA.Reaches₁, PDA.step, dpda_eq_any, DPDA.toPDA]
   fin_cases x <;> simp_all +decide [dpda_eq_any, DPDA.toPDA]
   · refine ⟨na, na, nc + 1, ?_, ?_⟩
-    · simp +decide [c_, List.replicate_succ_eq_append_singleton,
-        List.replicate_succ_eq_singleton_append, List.append_assoc]
+    · simp +decide [c_, List.append_assoc]
+      simpa [c_] using replicate_append_cons_eq nc c_ rest
     · right; right; right; left
       simp
 
@@ -335,8 +334,8 @@ private lemma eq_any_inv_step_state_onlyC (w : List (Fin 3)) (nc : ℕ)
   rcases input with _ | ⟨x, rest⟩ <;> simp_all +decide [PDA.Reaches₁, PDA.step, dpda_eq_any, DPDA.toPDA]
   fin_cases x <;> simp_all +decide [dpda_eq_any, DPDA.toPDA]
   · refine ⟨0, 0, nc + 1, ?_, ?_⟩
-    · simp +decide [c_, List.replicate_succ_eq_append_singleton,
-        List.replicate_succ_eq_singleton_append, List.append_assoc]
+    · simp +decide [c_, List.append_assoc]
+      simpa [c_] using replicate_append_cons_eq nc c_ rest
     · right; right; right; right
       simp +arith
 

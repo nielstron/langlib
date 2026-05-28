@@ -1,4 +1,5 @@
 import Mathlib
+import Langlib.Examples.AnBn
 
 /-! # Existence of Non-Regular Languages
 
@@ -8,16 +9,11 @@ is shown to have infinitely many distinct left quotients, hence is not regular.
 
 ## Main declarations
 
-- `anbn` — The language `{aⁿbⁿ | n ∈ ℕ}`.
 - `anbn_not_isRegular` — Proof that `anbn` is not regular.
 - `exists_nonRegular_language` — There exists a non-regular language over `Bool`.
 -/
 
 open Language List
-
-/-- The language `{aⁿbⁿ}` over `Bool`, where `false` represents `a` and `true` represents `b`. -/
-def anbn : Language Bool :=
-  { w | ∃ n : ℕ, w = List.replicate n false ++ List.replicate n true }
 
 /-- Left quotient of `anbn` by `replicate k false` contains `replicate k true`. -/
 lemma anbn_leftQuotient_replicate_false (k : ℕ) :

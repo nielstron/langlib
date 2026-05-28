@@ -1,7 +1,7 @@
 import Mathlib
 import Langlib.Automata.DeterministicPushdown.Definition
 import Langlib.Classes.DeterministicContextFree.Definition
-import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Examples.AnBn
 
 /-! # `a^n b^n` as a DCF
 
