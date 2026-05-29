@@ -14,7 +14,7 @@
 - [Linear Languages](src/Langlib/Classes/Linear/Definition.lean)
 - [Deterministic Context-Free Languages](src/Langlib/Classes/DeterministicContextFree/Definition.lean)
 - [`{aⁿbⁿ}` is Linear](src/Langlib/Classes/ContextFree/Examples/AnBn.lean)
-- [Totalization of DPDAs](src/Langlib/Classes/DeterministicContextFree/Totalization.lean)
+- [Totalization of DPDAs](src/Langlib/Automata/DeterministicPushdown/Totalization.lean)
 
 ### Context-Free Languages
 
