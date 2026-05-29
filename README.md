@@ -14,6 +14,7 @@
 - [Linear Languages](src/Langlib/Classes/Linear/Definition.lean)
 - [Deterministic Context-Free Languages](src/Langlib/Classes/DeterministicContextFree/Definition.lean)
 - [`{aⁿbⁿ}` is Linear](src/Langlib/Classes/ContextFree/Examples/AnBn.lean)
+- [Totalization of DPDAs](src/Langlib/Classes/DeterministicContextFree/Totalization.lean)
 
 ### Context-Free Languages
 
@@ -40,7 +41,7 @@
 ### Recursively Enumerable Languages
 
 - [Unrestricted grammars](src/Langlib/Grammars/Unrestricted/Definition.lean)
-- [Kuroda normal form](src/Langlib/Classes/RecursivelyEnumerable/NormalForms/Kuroda.lean)
+- [Translating Languages to Turing Machines](src/Langlib/Automata/Turing/DSL.lean)
 - [`{aⁿbⁿcⁿ}` is RE](src/Langlib/Classes/RecursivelyEnumerable/Examples/AnBnCn.lean)
 
 ### Automata
