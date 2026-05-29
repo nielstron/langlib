@@ -102,6 +102,7 @@ public import Langlib.Classes.Linear.Definition
 public import Langlib.Classes.Linear.Examples.AnBn
 public import Langlib.Classes.Linear.Inclusion.ContextFree
 public import Langlib.Classes.Recursive.Closure.Complement
+public import Langlib.Classes.Recursive.Closure.Reverse
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Definition
 public import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
