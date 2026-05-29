@@ -112,12 +112,6 @@ Additional deterministic context-free closure results formalized here:
 
 - [Union with a regular language](src/Langlib/Classes/DeterministicContextFree/Closure/UnionRegular.lean)
 
-Unlinked `No` cells in the closure table are missing-proof candidates. Current candidates:
-
-- Recursive: homomorphism, substitution, right quotient.
-- Deterministic context-free: reverse, right quotient.
-- Indexed: intersection, complement, right quotient.
-
 Additional context-free closure results formalized here:
 
 - [Terminal bijections](src/Langlib/Classes/ContextFree/Closure/Bijection.lean)
