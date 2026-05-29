@@ -51,6 +51,13 @@ public section
 
 This file constructs an unrestricted grammar for the concatenation of two recursively enumerable languages.
 
+Proof idea: take the two unrestricted grammars, tag their nonterminals so they
+cannot interfere, and add a fresh start rule that emits the lifted left start
+symbol followed by the lifted right start symbol. The forward and backward
+lemmas show that derivations in the combined grammar are exactly a left
+derivation followed by a right derivation, hence the generated language is
+`L₁ * L₂`.
+
 ## Main declarations
 
 - `big_grammar`

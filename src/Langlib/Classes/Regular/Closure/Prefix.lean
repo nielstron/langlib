@@ -36,6 +36,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Prefix
+
+Proof idea: a word is a prefix of some word in `L` exactly when the DFA state
+reached after reading it can still reach an accepting state. Mark those
+co-reachable states as accepting in a new DFA.
+-/
+
 @[expose]
 public section
 

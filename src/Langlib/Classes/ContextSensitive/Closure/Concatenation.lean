@@ -44,6 +44,12 @@ public section
 
 This file sketches a concatenation construction for context-sensitive languages by reusing the unrestricted one.
 
+Proof idea: embed the two context-sensitive grammars into the unrestricted
+concatenation construction, but package the result as a context-sensitive
+grammar. The fresh start rule emits the two lifted start symbols in sequence;
+lifted component rules preserve the original non-contracting derivations, and
+the terminal cleanup rules rewrite marker nonterminals to one terminal each.
+
 ## Main declarations
 
 - `bonus_CS_of_CS_c_CS`

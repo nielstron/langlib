@@ -44,6 +44,10 @@ public section
 
 This file derives closure under Kleene star from closure under substitution.
 
+Proof idea: use mathlib's context-free closure theorem for Kleene star and
+translate between mathlib's `IsContextFree` predicate and this repository's
+`is_CF` predicate.
+
 ## Main declarations
 
 - `CF_of_star_CF`

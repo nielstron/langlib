@@ -33,6 +33,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Terminal Bijection
+
+Proof idea: a bijection of terminals is just a relabeling of the input alphabet.
+Transport the automaton transitions along the equivalence, and use the inverse
+map for the reverse direction.
+-/
+
 @[expose]
 public section
 

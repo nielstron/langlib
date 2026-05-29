@@ -36,6 +36,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Union
+
+Proof idea: run the two finite automata in product, updating both states on each
+input symbol and accepting when either component accepts. This recognizes the
+union because every input is processed by both automata in lockstep.
+-/
+
 @[expose]
 public section
 

@@ -48,6 +48,11 @@ public section
 
 This file constructs an unrestricted grammar for the union of two recursively enumerable languages.
 
+Proof idea: build a grammar with a fresh start symbol that chooses either the
+left or right grammar, then run the chosen grammar with all its nonterminals
+tagged. The soundness and completeness lemmas project derivations through the
+tags, showing the combined grammar generates exactly `L₁ + L₂`.
+
 ## Main declarations
 
 - `union_grammar`

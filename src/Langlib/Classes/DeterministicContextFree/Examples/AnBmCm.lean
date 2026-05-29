@@ -375,14 +375,17 @@ private lemma dpda_any_eq_sound (w : List (Fin 3))
     subst nc
     exact ⟨na, nb, by simpa [List.append_assoc] using hw⟩
 
-/-- The second witness language `{aⁿbᵐcᵐ | n,m ≥ 0}` is deterministic context-free. -/
-public theorem DCF_lang_any_eq : is_DCF lang_any_eq := by
-  refine ⟨AnyEqState, ABCStack, inferInstance, inferInstance, dpda_any_eq, ?_⟩
+/-- The `dpda_any_eq` automaton recognizes `{aⁿbᵐcᵐ | n,m ≥ 0}`. -/
+public theorem dpda_any_eq_accepts : dpda_any_eq.acceptsByFinalState = lang_any_eq := by
   ext w
   constructor
   · exact dpda_any_eq_sound w
   · rintro ⟨n, m, rfl⟩
     exact dpda_any_eq_complete n m
 
+/-- The second witness language `{aⁿbᵐcᵐ | n,m ≥ 0}` is deterministic context-free. -/
+public theorem DCF_lang_any_eq : is_DCF lang_any_eq := by
+  refine ⟨AnyEqState, ABCStack, inferInstance, inferInstance, dpda_any_eq, ?_⟩
+  exact dpda_any_eq_accepts
 
 end DCFLIntersection

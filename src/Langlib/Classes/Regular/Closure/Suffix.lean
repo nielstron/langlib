@@ -38,6 +38,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Suffix
+
+Proof idea: reduce suffix closure to prefix closure by reversing twice. A suffix
+of a word in `L` reverses to a prefix of a word in `L.reverse`, and regular
+languages are closed under both reverse and prefix.
+-/
+
 @[expose]
 public section
 

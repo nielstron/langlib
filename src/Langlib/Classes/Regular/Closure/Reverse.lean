@@ -34,6 +34,15 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Reverse
+
+Proof idea: reuse the regular-language characterization by proving
+regularity of `L.reverse` is equivalent to regularity of `L`. Reversing twice
+returns the original language, so the forward and backward directions are the
+same argument.
+-/
+
 @[expose]
 public section
 

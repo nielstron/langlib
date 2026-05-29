@@ -45,6 +45,9 @@ This file proves that the class of context-sensitive languages is closed under u
 
 The proof reuses the union grammar construction from the RE closure proof and additionally
 shows that the construction preserves the context-sensitive (non-contracting) property.
+The fresh start symbol chooses the left or right grammar, and every other rule is
+a lifted rule from one input grammar, so `union_grammar_context_sensitive` checks
+that the non-contracting witness survives the lifting.
 
 ## Main results
 

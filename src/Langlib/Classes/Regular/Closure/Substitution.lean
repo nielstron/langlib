@@ -40,6 +40,15 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Substitution
+
+Proof idea: replace each transition labeled by a symbol `a` with an epsilon-NFA
+for the regular language assigned to `a`, wiring copies of those NFAs between
+the source and target states of the original automaton. Runs therefore choose
+one substituted word for each input symbol.
+-/
+
 @[expose]
 public section
 
