@@ -1,9 +1,9 @@
 module
 
 public import Langlib.Utilities.ClosurePredicates
-public import Langlib.Classes.DeterministicContextFree.Totalization.Definition
+public import Langlib.Automata.DeterministicPushdown.Totalization.Definition
 import Langlib.Automata.DeterministicPushdown.ClosureProperties.Complement
-import Langlib.Classes.DeterministicContextFree.Totalization.Presentation
+import Langlib.Automata.DeterministicPushdown.Totalization.Presentation
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

@@ -1,8 +1,8 @@
 module
 
-public import Langlib.Classes.DeterministicContextFree.Totalization.Definition
-public import Langlib.Classes.DeterministicContextFree.Totalization.RegularAnalysis
-import Langlib.Classes.DeterministicContextFree.Totalization.Construction
+public import Langlib.Automata.DeterministicPushdown.Totalization.Definition
+public import Langlib.Automata.DeterministicPushdown.Totalization.RegularAnalysis
+import Langlib.Automata.DeterministicPushdown.Totalization.Construction
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

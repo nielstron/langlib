@@ -5,7 +5,7 @@ Copyright (c) 2026 Harmonic, Niels Mündler. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 public import Langlib.Classes.ContextFree.Definition
-public import Langlib.Classes.DeterministicContextFree.Totalization.Definition
+public import Langlib.Automata.DeterministicPushdown.Totalization.Definition
 public import Langlib.Utilities.ClosurePredicates
 import Langlib.Classes.ContextFree.Closure.Complement
 import Langlib.Classes.DeterministicContextFree.Closure.Complement

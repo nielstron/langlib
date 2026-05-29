@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.DeterministicContextFree.Totalization.AnnotatedStack
+public import Langlib.Automata.DeterministicPushdown.Totalization.AnnotatedStack
 public import Mathlib.Data.Fintype.Option
 public import Mathlib.Data.Fintype.Sigma
 public import Mathlib.Order.BourbakiWitt

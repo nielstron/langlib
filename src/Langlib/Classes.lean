@@ -81,15 +81,6 @@ public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCm
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCn
 public import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 public import Langlib.Classes.DeterministicContextFree.Inclusion.StrictContextFree
-public import Langlib.Classes.DeterministicContextFree.Totalization.AnnotatedStack
-public import Langlib.Classes.DeterministicContextFree.Totalization.Construction
-public import Langlib.Classes.DeterministicContextFree.Totalization.Definition
-public import Langlib.Classes.DeterministicContextFree.Totalization.EpsilonPhase
-public import Langlib.Classes.DeterministicContextFree.Totalization.Presentation
-public import Langlib.Classes.DeterministicContextFree.Totalization.RegularAnalysis
-public import Langlib.Classes.DeterministicContextFree.Totalization.Saturation
-public import Langlib.Classes.DeterministicContextFree.Totalization.StackSummary
-public import Langlib.Classes.DeterministicContextFree.Totalization
 public import Langlib.Classes.Indexed.Closure.Injection
 public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition

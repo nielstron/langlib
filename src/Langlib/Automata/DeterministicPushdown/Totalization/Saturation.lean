@@ -1,7 +1,7 @@
 module
 
 public import Mathlib.Computability.NFA
-public import Langlib.Classes.DeterministicContextFree.Totalization.EpsilonPhase
+public import Langlib.Automata.DeterministicPushdown.Totalization.EpsilonPhase
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
