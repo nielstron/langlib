@@ -204,6 +204,12 @@ theorem RG_closedUnderHomomorphism :
   intro α γ _ _ L h hL
   exact is_RG_of_isRegular (IsRegular.homomorphicImage (isRegular_of_is_RG hL) h)
 
+/-- The class of regular languages is closed under ε-free homomorphism. -/
+theorem RG_closedUnderEpsFreeHomomorphism :
+   ClosedUnderEpsFreeHomomorphism is_RG := by
+  intro α γ _ _ L h _heps hL
+  exact RG_closedUnderHomomorphism L h hL
+
 
 end StringHomomorphism
 

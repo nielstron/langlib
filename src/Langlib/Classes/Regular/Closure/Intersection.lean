@@ -76,3 +76,9 @@ end Language
 theorem RG_closedUnderIntersection [Fintype α] : ClosedUnderIntersection (α := α) is_RG := by
   intro L₁ L₂ h₁ h₂
   exact is_RG_of_isRegular (isRegular_of_is_RG h₁ |>.inf (isRegular_of_is_RG h₂))
+
+/-- The class of regular languages is closed under intersection with regular languages. -/
+theorem RG_closedUnderIntersectionWithRegular [Fintype α] :
+    ClosedUnderIntersectionWithRegular (α := α) is_RG := by
+  intro L hL R hR
+  exact is_RG_of_isRegular (isRegular_of_is_RG hL |>.inf hR)
