@@ -8,6 +8,11 @@ import Mathlib.Tactic
 
 Given indexed grammars `g₁` and `g₂`, we construct a grammar with a fresh start
 symbol and one start rule expanding to the two lifted initial symbols in sequence.
+
+Proof idea: derivations from the fresh start first enter the lifted copy of
+`g₁`, then continue with the lifted copy of `g₂`. The lifting lemmas show that
+each component derivation is preserved, so terminal yields are exactly
+concatenations of a word from the first language and a word from the second.
 -/
 
 open List

@@ -48,6 +48,11 @@ is `g₁.Language ∪ g₂.Language`.
 The construction introduces a fresh start symbol with two rules that jump to the
 respective initial symbols of `g₁` and `g₂`.
 
+Proof idea: lift the nonterminals and flags of the two grammars into disjoint
+summands and add one fresh start symbol. The only first step chooses the left or
+right grammar, and the lifting lemmas identify the resulting derivations with
+the original component derivations.
+
 ## Main declarations
 
 - `Indexed_of_Indexed_u_Indexed`

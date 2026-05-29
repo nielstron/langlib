@@ -7,6 +7,11 @@ public import Langlib.Utilities.ClosurePredicates
 
 This file maps terminal symbols in indexed grammar right-hand sides to strings of
 terminals while preserving nonterminals and their stacks.
+
+Proof idea: replace each terminal occurrence in every rule by the corresponding
+output string and leave indexed nonterminals unchanged. The derivation
+translation maps each sentential form by the same terminal expansion, giving
+exactly the homomorphic image of the generated language.
 -/
 
 variable {α β : Type}

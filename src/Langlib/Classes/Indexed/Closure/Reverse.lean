@@ -7,6 +7,11 @@ public import Langlib.Utilities.ClosurePredicates
 
 This file reverses every right-hand side of an indexed grammar rule and proves that the
 resulting grammar generates the reversal of the original language.
+
+Proof idea: map every derivation step to a derivation step in the grammar with
+reversed right-hand sides, while reversing the surrounding sentential form. This
+turns terminal yield `w` into `w.reverse`; the converse follows by applying the
+same construction again because reversing the grammar twice gives the original.
 -/
 
 variable {T : Type}

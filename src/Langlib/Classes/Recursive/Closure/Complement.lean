@@ -43,9 +43,9 @@ public section
 This file proves that the class of recursive (decidable) languages is closed under
 complement.
 
-Given a TM0 decider `(Λ, M, accept)` for `L` that always halts, the complement
-is decided by `(Λ, M, fun q => !accept q)` — the same machine with the acceptance
-predicate negated.
+Proof idea: given a TM0 decider `(Λ, M, accept)` for `L` that always halts, the
+complement is decided by `(Λ, M, fun q => !accept q)` — the same machine with the
+acceptance predicate negated.
 
 ## Main results
 
