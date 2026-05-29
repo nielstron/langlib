@@ -57,7 +57,8 @@ public def lrLookahead (k : ℕ) (w : List T) : List T :=
 
 If two rightmost derivations reach configurations where one more rightmost step
 creates the same sentential prefix, and their remaining terminal suffixes have
-the same `k`-symbol lookahead, then the handle, rule, and suffix are identical.
+the same `k`-symbol lookahead, then the reducible handle and rule are identical.
+The terminal suffixes themselves need not be equal beyond the visible lookahead.
 -/
 public def IsLRk (k : ℕ) : Prop :=
   ∀ (r₁ r₂ : ContextFreeRule T g.NT), r₁ ∈ g.rules → r₂ ∈ g.rules →
@@ -69,7 +70,7 @@ public def IsLRk (k : ℕ) : Prop :=
       p₁ ++ r₁.output = core →
       p₂ ++ r₂.output = core →
       lrLookahead k s₁ = lrLookahead k s₂ →
-      p₁ = p₂ ∧ r₁ = r₂ ∧ s₁ = s₂
+      p₁ = p₂ ∧ r₁ = r₂
 
 end ContextFreeGrammar
 
