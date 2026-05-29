@@ -67,7 +67,7 @@
 | --- | --- | --- |
 | Regular languages (Left-regular ⇔[🔗](src/Langlib/Grammars/LeftRegular/Equivalence/LGEquivRG.lean) Right-regular) | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
 | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean) |
-| Deterministic context-free languages | ≝ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
+| LR(k) grammar languages [🔗](src/Langlib/Grammars/LR/Definition.lean) | ⇔ | DPDA final-state languages [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) |
 | ⊊ [🔗](src/Langlib/Classes/DeterministicContextFree/Inclusion/ContextFree.lean) |  | ⊊ [🔗](src/Langlib/Automata/DeterministicPushdown/Inclusion/StrictPushdown.lean) |
 | Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
 | ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊆ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/ContextSensitive.lean))|  | ⊊ |

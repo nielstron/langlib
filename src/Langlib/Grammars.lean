@@ -14,6 +14,7 @@ public import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 public import Langlib.Grammars.Indexed.Basics.Higman
 public import Langlib.Grammars.Indexed.Definition
 public import Langlib.Grammars.Indexed.NormalForm.NormalForm
+public import Langlib.Grammars.LR.Definition
 public import Langlib.Grammars.LeftRegular.Definition
 public import Langlib.Grammars.LeftRegular.Equivalence.LGEquivRG
 public import Langlib.Grammars.NonContracting.Definition
