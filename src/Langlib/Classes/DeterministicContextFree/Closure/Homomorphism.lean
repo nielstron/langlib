@@ -1115,12 +1115,8 @@ public theorem DCF_leftQuotient_word {A : Type} [Fintype A]
       rw [Language.cons_leftQuotient]
       exact ih (DCF_leftQuotient_singleton a hL)
 
-public def DCFClosedUnderHomomorphism : Prop :=
-  ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (h : α → List β),
-    is_DCF L → is_DCF (L.homomorphicImage h)
-
 public theorem DCF_notClosedUnderHomomorphism :
-    ¬ DCFClosedUnderHomomorphism := by
+    ¬ ClosedUnderHomomorphism is_DCF := by
   intro hhom
   apply DCF_notClosedUnderUnion
   intro L₁ L₂ hL₁ hL₂
@@ -1133,12 +1129,8 @@ public theorem DCF_notClosedUnderHomomorphism :
     hhom (α := Bool ⊕ Fin 3) (β := Fin 3) M.acceptsByFinalState DPDA.eraseMarker hMDCF
   simpa [M, DPDA.markedUnion_hom_eq_union, hM₁, hM₂] using hImage
 
-public def DCFClosedUnderEpsFreeHomomorphism : Prop :=
-  ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (h : α → List β),
-    IsEpsFreeHomomorphism h → is_DCF L → is_DCF (L.homomorphicImage h)
-
 public theorem DCF_notClosedUnderEpsFreeHomomorphism :
-    ¬ DCFClosedUnderEpsFreeHomomorphism := by
+    ¬ ClosedUnderEpsFreeHomomorphism is_DCF := by
   intro heps
   apply DCF_notClosedUnderUnion_of_three
     (Sum.inl false : Bool ⊕ Fin 3) (Sum.inl true : Bool ⊕ Fin 3) (Sum.inr 0)

@@ -111,38 +111,38 @@ theorem ClosedUnderRightQuotientWithRegular_of_iff {P Q : Language α → Prop}
   intro hP L hQL R hR
   exact (hiff (Language.rightQuotient L R)).1 (hP L ((hiff L).2 hQL) R hR)
 
-/-- Homomorphism closure is invariant under pointwise equivalence of alphabet-indexed
+/-- Homomorphism closure is invariant under pointwise equivalence of finite-alphabet-indexed
 language classes. -/
 theorem ClosedUnderHomomorphism_of_iff
-    {isP isQ : ∀ {α : Type}, Language α → Prop}
-    (hiff : ∀ {β : Type} (L : Language β), isP L ↔ isQ L) :
+    {isP isQ : ∀ {α : Type} [Fintype α], Language α → Prop}
+    (hiff : ∀ {β : Type} [Fintype β] (L : Language β), isP L ↔ isQ L) :
     ClosedUnderHomomorphism isP → ClosedUnderHomomorphism isQ := by
   intro hP α β _ _ L h hQL
   exact (hiff (L.homomorphicImage h)).1 (hP L h ((hiff L).2 hQL))
 
 /-- Epsilon-free homomorphism closure is invariant under pointwise equivalence of
-alphabet-indexed language classes. -/
+finite-alphabet-indexed language classes. -/
 theorem ClosedUnderEpsFreeHomomorphism_of_iff
-    {isP isQ : ∀ {α : Type}, Language α → Prop}
-    (hiff : ∀ {β : Type} (L : Language β), isP L ↔ isQ L) :
+    {isP isQ : ∀ {α : Type} [Fintype α], Language α → Prop}
+    (hiff : ∀ {β : Type} [Fintype β] (L : Language β), isP L ↔ isQ L) :
     ClosedUnderEpsFreeHomomorphism isP → ClosedUnderEpsFreeHomomorphism isQ := by
   intro hP α β _ _ L h heps hQL
   exact (hiff (L.homomorphicImage h)).1 (hP L h heps ((hiff L).2 hQL))
 
 /-- Inverse-homomorphism closure is invariant under pointwise equivalence of
-alphabet-indexed language classes. -/
+finite-alphabet-indexed language classes. -/
 theorem ClosedUnderInverseHomomorphism_of_iff
-    {isP isQ : ∀ {α : Type}, Language α → Prop}
-    (hiff : ∀ {β : Type} (L : Language β), isP L ↔ isQ L) :
+    {isP isQ : ∀ {α : Type} [Fintype α], Language α → Prop}
+    (hiff : ∀ {β : Type} [Fintype β] (L : Language β), isP L ↔ isQ L) :
     ClosedUnderInverseHomomorphism isP → ClosedUnderInverseHomomorphism isQ := by
   intro hP α β _ _ L h hQL
   exact (hiff { w : List α | w.flatMap h ∈ L }).1 (hP L h ((hiff L).2 hQL))
 
-/-- Substitution closure is invariant under pointwise equivalence of alphabet-indexed
+/-- Substitution closure is invariant under pointwise equivalence of finite-alphabet-indexed
 language classes. -/
 theorem ClosedUnderSubstitution_of_iff
-    {isP isQ : ∀ {α : Type}, Language α → Prop}
-    (hiff : ∀ {β : Type} (L : Language β), isP L ↔ isQ L) :
+    {isP isQ : ∀ {α : Type} [Fintype α], Language α → Prop}
+    (hiff : ∀ {β : Type} [Fintype β] (L : Language β), isP L ↔ isQ L) :
     ClosedUnderSubstitution isP → ClosedUnderSubstitution isQ := by
   intro hP α β _ _ L f hQL hfQ
   exact (hiff (L.subst f)).1

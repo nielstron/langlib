@@ -21,20 +21,16 @@ private theorem DCF_singletons_bool : is_DCF ({[false], [true]} : Language Bool)
   convert (Language.isRegular_singleton_word [false]).add'
     (Language.isRegular_singleton_word [true]) using 1
 
-/-- The finite-alphabet substitution closure property for deterministic context-free languages. -/
-public def DCFClosedUnderSubstitution : Prop :=
-  ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (f : α → Language β),
-    is_DCF L → (∀ a, is_DCF (f a)) → is_DCF (L.subst f)
-
 /-- Deterministic context-free languages are not closed under substitution. -/
 public theorem DCF_notClosedUnderSubstitution :
-    ¬ DCFClosedUnderSubstitution := by
+    ¬ ClosedUnderSubstitution is_DCF := by
   intro hsubst
   apply DCF_notClosedUnderUnion
   intro L₁ L₂ h₁ h₂
   let f : Bool → Language (Fin 3) := fun b => if b then L₂ else L₁
   have h : is_DCF (({[false], [true]} : Language Bool).subst f) := by
-    exact hsubst ({[false], [true]} : Language Bool) f DCF_singletons_bool
+    exact @hsubst Bool (Fin 3) inferInstance inferInstance
+      ({[false], [true]} : Language Bool) f DCF_singletons_bool
       (fun b => by
         cases b
         · simpa [f] using h₁
