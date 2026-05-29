@@ -414,7 +414,7 @@ public lemma input_eq_of_rewrites_lifted {α β : Type}
 /--
 If a rule in `g.subst f` has input `Sum.inr ⟨a, n⟩`, it must be a lifted rule from `f a`.
 -/
-lemma rule_of_input_inr {α β : Type} [DecidableEq α] [DecidableEq β]
+private lemma rule_of_input_inr {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (r : ContextFreeRule β (g.NT ⊕ (Σ a, (f a).NT))) (hr : r ∈ (g.subst f).rules)
@@ -481,7 +481,7 @@ public lemma produces_lift_f_inv {α β : Type} [DecidableEq α] [DecidableEq β
 If the substitution grammar derives one lifted string from another (for component `f a`),
 then `f a` derives the corresponding unlifted string.
 -/
-lemma derives_of_subst_derives_f {α β : Type} [DecidableEq α] [DecidableEq β]
+private lemma derives_of_subst_derives_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (u v : List (Symbol β (f a).NT)) :
@@ -527,7 +527,7 @@ public def ProducesF {α β : Type} [DecidableEq α] [DecidableEq β]
 /--
 The output of an F-rule does not contain any non-terminals from G (i.e., `Sum.inl` symbols).
 -/
-lemma is_F_rule_output_no_inl {α β : Type} [DecidableEq α] [DecidableEq β]
+private lemma is_F_rule_output_no_inl {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (r : ContextFreeRule β (g.NT ⊕ (Σ a, (f a).NT))) (hr : r ∈ (g.subst f).rules) :
@@ -636,7 +636,7 @@ public lemma derives_split_G_F {α β : Type} [DecidableEq α] [DecidableEq β]
 If `g` derives `v` from `u`, then `g.subst f` derives the lifted `v` from the lifted `u` using
 only G-rules.
 -/
-lemma derivesG_of_derives {α β : Type}
+private lemma derivesG_of_derives {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β)
     {u v : List (Symbol α g.NT)} (h : g.Derives u v) :
@@ -674,7 +674,7 @@ lemma producesF_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
 If `f a` derives `v` from `u`, then the substitution grammar derives the lifted version of `v`
 from the lifted version of `u` using only F-rules.
 -/
-lemma derivesF_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
+private lemma derivesF_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (ha : a ∈ g.usedTerminals)

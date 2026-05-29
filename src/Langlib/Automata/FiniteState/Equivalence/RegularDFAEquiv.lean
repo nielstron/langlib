@@ -404,7 +404,7 @@ public lemma RG_of_DFA_epsilon_mem_iff {σ : Type} [Fintype σ] (M : DFA T σ) (
 /-
 A cons rule in the grammar implies it matches the DFA transition.
 -/
-lemma RG_of_DFA_cons_mem_iff {σ : Type} [Fintype σ] (M : DFA T σ) (q : σ) (a : T) (q' : σ) :
+private lemma RG_of_DFA_cons_mem_iff {σ : Type} [Fintype σ] (M : DFA T σ) (q : σ) (a : T) (q' : σ) :
     RG_rule.cons q a q' ∈ (RG_of_DFA M).rules ↔ q' = M.step q a := by
       constructor <;> intro H;
       · unfold RG_of_DFA at H;

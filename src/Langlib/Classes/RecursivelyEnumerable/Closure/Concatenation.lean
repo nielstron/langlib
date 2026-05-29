@@ -371,7 +371,7 @@ by
   unfold corresponding_strings at ass
   exact List.Forall₂.length_eq ass
 
-lemma corresponding_strings_nth_le {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)} {i : ℕ}
+private lemma corresponding_strings_nth_le {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)} {i : ℕ}
     (i_lt_len_x : i < x.length) (i_lt_len_y : i < y.length)
     (ass : corresponding_strings x y) :
   corresponding_symbols (x.nthLe i i_lt_len_x) (y.nthLe i i_lt_len_y) :=
@@ -389,7 +389,7 @@ by
       · exact ih hxy.2 ( by simpa using i_lt_len_x ) ( by simpa using i_lt_len_y );
   exact h_nth ass i i_lt_len_x i_lt_len_y
 
-lemma corresponding_strings_reverse {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
+private lemma corresponding_strings_reverse {N₁ N₂ : Type} {x y : List (nst T N₁ N₂)}
     (ass : corresponding_strings x y) :
   corresponding_strings x.reverse y.reverse :=
 by

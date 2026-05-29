@@ -101,7 +101,7 @@ lemma productiveStep_subset_self (g : ChomskyNormalFormGrammar T) [DecidableEq g
     (S : Finset g.NT) : S ⊆ g.productiveStep S := by
   exact fun x hx => Finset.mem_union_left _ hx
 
-lemma productiveStep_mono (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+private lemma productiveStep_mono (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     {S₁ S₂ : Finset g.NT} (h : S₁ ⊆ S₂) : g.productiveStep S₁ ⊆ g.productiveStep S₂ := by
   grind +locals
 
@@ -174,7 +174,7 @@ lemma productiveNTs_is_fixpoint (g : ChomskyNormalFormGrammar T) [DecidableEq g.
 /-
 `canDerive g nt w` implies `w ≠ []`.
 -/
-lemma canDerive_ne_nil (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+private lemma canDerive_ne_nil (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (nt : g.NT) (w : List T) (h : canDerive g nt w) : w ≠ [] := by
   contrapose! h;
   unfold ChomskyNormalFormGrammar.canDerive;
@@ -410,7 +410,7 @@ lemma mem_prodStepN_of_mem (nc : ℕ)
     apply ih; split_ifs <;> simp_all [List.mem_append]
 
 omit [Fintype T] in
-lemma prodStepN_mono (nc : ℕ)
+private lemma prodStepN_mono (nc : ℕ)
     (rules : List (ℕ × List (ℕ ⊕ T))) {S₁ S₂ : List ℕ}
     (h : ∀ x ∈ S₁, x ∈ S₂) :
     ∀ x ∈ prodStepN nc rules S₁, x ∈ prodStepN nc rules S₂ := by
@@ -423,14 +423,14 @@ lemma prodStepN_mono (nc : ℕ)
     grind +locals
 
 omit [Fintype T] in
-lemma allNTsInListN_mono (nc : ℕ) {rhs : List (ℕ ⊕ T)} {S₁ S₂ : List ℕ}
+private lemma allNTsInListN_mono (nc : ℕ) {rhs : List (ℕ ⊕ T)} {S₁ S₂ : List ℕ}
     (hsub : ∀ x ∈ S₁, x ∈ S₂) (h : allNTsInListN nc rhs S₁ = true) :
     allNTsInListN nc rhs S₂ = true := by
   unfold allNTsInListN at h ⊢;
   grind
 
 omit [Fintype T] in
-lemma iterate_prodStepN_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T)))
+private lemma iterate_prodStepN_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T)))
     {n m : ℕ} (h : n ≤ m) :
     ∀ x ∈ (prodStepN nc rules)^[n] [],
       x ∈ (prodStepN nc rules)^[m] [] := by
@@ -548,7 +548,7 @@ lemma mem_prodStepN_of_rule (nc : ℕ)
   · split_ifs <;> simp_all +decide [ allNTsInListN ]
 
 omit [Fintype T] in
-lemma CF_derives_first_step (g : CF_grammar T) (nt : g.nt)
+private lemma CF_derives_first_step (g : CF_grammar T) (nt : g.nt)
     (w : List (symbol T g.nt))
     (hd : CF_derives g [symbol.nonterminal nt] w)
     (hne : w ≠ [symbol.nonterminal nt]) :
@@ -563,7 +563,7 @@ lemma CF_derives_first_step (g : CF_grammar T) (nt : g.nt)
   rcases hr with ( _ | ⟨ a, hr ⟩ ) <;> rcases u with ( _ | ⟨ b, u ⟩ ) <;> simp +decide at hu ⊢;
   grind
 
-lemma CF_derives_each_nt_productive (g : CF_grammar T)
+private lemma CF_derives_each_nt_productive (g : CF_grammar T)
     (syms : List (symbol T g.nt)) (w : List T)
     (hd : CF_derives g syms (w.map symbol.terminal)) :
     ∀ s ∈ syms, match s with
@@ -593,7 +593,7 @@ lemma CF_derives_each_nt_productive (g : CF_grammar T)
   specialize h_ind hd ⟨ s, hs, h_nonprod ⟩ ; simp +decide at h_ind;
 
 omit [Fintype T] in
-lemma prodStepN_eq_self_iff (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (S : List ℕ) :
+private lemma prodStepN_eq_self_iff (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (S : List ℕ) :
     prodStepN nc rules S = S ↔
       ∀ rule ∈ rules, allNTsInListN nc rule.2 S = true → rule.1 % nc ∈ S := by
   refine' ⟨ _, fun h => _ ⟩;
@@ -607,13 +607,13 @@ lemma prodStepN_eq_self_iff (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) 
       · exact fun rule hrule hrule' => h rule ( List.mem_cons_of_mem _ hrule ) hrule'
 
 omit [Fintype T] in
-lemma prodStepN_iterate_stable (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T)))
+private lemma prodStepN_iterate_stable (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T)))
     (S : List ℕ) (hstab : prodStepN nc rules S = S) :
     ∀ m, (prodStepN nc rules)^[m] S = S := by
   exact fun m => Function.iterate_fixed hstab m
 
 omit [Fintype T] in
-lemma iterate_subset_rule_lhs (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (n : ℕ) :
+private lemma iterate_subset_rule_lhs (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (n : ℕ) :
     ∀ x ∈ (prodStepN nc rules)^[n] [],
       ∃ rule ∈ rules, x = rule.1 % nc := by
   intros x hx;

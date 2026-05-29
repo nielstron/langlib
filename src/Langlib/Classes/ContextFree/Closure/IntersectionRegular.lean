@@ -86,13 +86,13 @@ public lemma CF_derivesIn_of_derives {w₁ w₂ : List (symbol T g.nt)}
     obtain ⟨n, hn⟩ := ih
     exact ⟨n + 1, .tail hn htran⟩
 
-lemma CF_derives_of_derivesIn {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
+private lemma CF_derives_of_derivesIn {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     (h : CF_derivesIn g n w₁ w₂) : CF_derives g w₁ w₂ := by
   induction' h with n w₁ w₂ h ih;
   · constructor;
   · exact?
 
-lemma CF_derivesIn_trans {n m : ℕ} {w₁ w₂ w₃ : List (symbol T g.nt)}
+private lemma CF_derivesIn_trans {n m : ℕ} {w₁ w₂ w₃ : List (symbol T g.nt)}
     (h₁ : CF_derivesIn g n w₁ w₂) (h₂ : CF_derivesIn g m w₂ w₃) :
     CF_derivesIn g (n + m) w₁ w₃ := by
   induction h₂;
@@ -118,7 +118,7 @@ public lemma CF_derivesIn_head {n : ℕ} {w₁ w₃ : List (symbol T g.nt)}
 /-
 Adding a prefix preserves step count.
 -/
-lemma CF_derivesIn_append_left {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
+private lemma CF_derivesIn_append_left {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     (h : CF_derivesIn g n w₁ w₂) (pfx : List (symbol T g.nt)) :
     CF_derivesIn g n (pfx ++ w₁) (pfx ++ w₂) := by
   induction' h with pfx hw₁ hw₂ hpfx hw₁ hw₂ hpfx' hw₁' hw₂' ih;
@@ -129,7 +129,7 @@ lemma CF_derivesIn_append_left {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
 /-
 Adding a postfix preserves step count.
 -/
-lemma CF_derivesIn_append_right {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
+private lemma CF_derivesIn_append_right {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     (h : CF_derivesIn g n w₁ w₂) (sfx : List (symbol T g.nt)) :
     CF_derivesIn g n (w₁ ++ sfx) (w₂ ++ sfx) := by
   induction' n with n ih generalizing w₁ w₂ sfx;
@@ -239,7 +239,7 @@ lemma threadSymbols_nonterminal (M : DFA T σ) {N : Type} (B : N)
 /-
 threadSymbols is non-empty.
 -/
-lemma threadSymbols_nonempty (M : DFA T σ) {N : Type}
+private lemma threadSymbols_nonempty (M : DFA T σ) {N : Type}
     (syms : List (symbol T N)) (p : σ) :
     (threadSymbols M syms p).length > 0 := by
   induction' syms with sym syms ih generalizing p <;> simp_all +decide;
@@ -254,7 +254,7 @@ Forward Direction
 Project a body rule back: if a triple-nonterminal rule is in the product grammar,
     there's a corresponding original rule.
 -/
-lemma productGrammar_body_rule_mem {M : DFA T σ}
+private lemma productGrammar_body_rule_mem {M : DFA T σ}
     {p : σ} {A : g.nt} {q : σ}
     {out : List (symbol T (Option (σ × g.nt × σ)))}
     (h : (some (p, A, q), out) ∈ (productGrammar g M).rules) :
@@ -496,7 +496,7 @@ Key backward lemma:
     If `A` derives `w` in `g` and `M.evalFrom p w = q`,
     then `(p, A, q)` derives `w` in the product grammar.
 -/
-lemma backward_key {M : DFA T σ} (n : ℕ) (A : g.nt) (w : List T) (p q : σ)
+private lemma backward_key {M : DFA T σ} (n : ℕ) (A : g.nt) (w : List T) (p q : σ)
     (hder : CF_derivesIn g n [symbol.nonterminal A] (w.map symbol.terminal))
     (heval : DFA.evalFrom M p w = q) :
     CF_derives (productGrammar g M)

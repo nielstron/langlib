@@ -260,7 +260,7 @@ lemma ntInSet_ntSetBit_of_true (bv : ℕ) (idx idx' : ℕ)
   simp [ntInSet, ntSetBit, Nat.testBit_or] at *
   exact Or.inl h
 
-lemma ntInSet_zero (idx : ℕ) : ntInSet 0 idx = false := by
+private lemma ntInSet_zero (idx : ℕ) : ntInSet 0 idx = false := by
   simp [ntInSet]
 
 end BitvectorOps
@@ -406,7 +406,7 @@ variable {T : Type} [DecidableEq T] [Primcodable T]
 /-
 `cykLeafBV` with fixed leaf data is Primrec.
 -/
-lemma primrec_cykLeafBV (ld : List (ℕ × T)) :
+private lemma primrec_cykLeafBV (ld : List (ℕ × T)) :
     Primrec (fun t : T => cykLeafBV ld t) := by
   have h_foldl : ∀ (l : List (ℕ × T)), Primrec (fun t => List.foldl (fun bv p => if p.2 == t then ntSetBit bv p.1 else bv) 0 l) := by
     intro l

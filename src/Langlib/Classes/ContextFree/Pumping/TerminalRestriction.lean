@@ -63,7 +63,7 @@ public def projectSymbol (s : Symbol T (N ⊕ T)) : Symbol T N :=
 @[expose]
 public def projectString (u : List (Symbol T (N ⊕ T))) : List (Symbol T N) := u.map projectSymbol
 
-lemma embedSymbol_nonterminal_eq {nt : N} :
+private lemma embedSymbol_nonterminal_eq {nt : N} :
     embedSymbol (Symbol.nonterminal nt) = (@Symbol.nonterminal T (N ⊕ T)) (Sum.inl nt) := by
   rfl
 
@@ -90,7 +90,7 @@ public lemma projectSymbol_nonterminal {n : N} :
     projectSymbol (@Symbol.nonterminal T (N ⊕ T) (Sum.inl n)) = Symbol.nonterminal n :=
   rfl
 
-lemma embedString_preserves_nonempty {u : List (Symbol T N)} (hu: u ≠ []) :
+private lemma embedString_preserves_nonempty {u : List (Symbol T N)} (hu: u ≠ []) :
     embedString u ≠ [] := by
   aesop
 

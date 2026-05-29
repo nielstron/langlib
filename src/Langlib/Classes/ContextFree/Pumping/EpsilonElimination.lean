@@ -861,7 +861,7 @@ public lemma nullableRelated_mem_removeNullable {p : Finset g.NT} {u v : List (S
 
 variable [DecidableEq T]
 
-lemma not_empty_mem_removeNullables (p : Finset g.NT) (r : ContextFreeRule T g.NT) (hrg : r ∈ g.rules)
+private lemma not_empty_mem_removeNullables (p : Finset g.NT) (r : ContextFreeRule T g.NT) (hrg : r ∈ g.rules)
     (hne : r.output ≠ []) :
     r ∈ removeNullables p := by
   unfold removeNullables

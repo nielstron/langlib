@@ -124,13 +124,13 @@ open Classical in
 noncomputable def productiveGrammar (g : CF_grammar T) : CF_grammar T :=
   { g with rules := g.rules.filter (fun r => decide (fullyProductiveRule g r)) }
 
-lemma productiveGrammar_nt (g : CF_grammar T) :
+private lemma productiveGrammar_nt (g : CF_grammar T) :
     (productiveGrammar g).nt = g.nt := rfl
 
-lemma productiveGrammar_initial (g : CF_grammar T) :
+private lemma productiveGrammar_initial (g : CF_grammar T) :
     (productiveGrammar g).initial = g.initial := rfl
 
-lemma productiveGrammar_rules_subset {g : CF_grammar T} {r} :
+private lemma productiveGrammar_rules_subset {g : CF_grammar T} {r} :
     r ∈ (productiveGrammar g).rules → r ∈ g.rules := by
   intro h
   simp [productiveGrammar] at h
@@ -159,7 +159,7 @@ lemma CF_derives_mono {g : CF_grammar T} {rules₁ rules₂ : List (g.nt × List
 /-
 Every derivation step in g that eventually leads to a terminal string uses a fully productive rule.
 -/
-lemma derives_to_terminal_uses_productive {g : CF_grammar T}
+private lemma derives_to_terminal_uses_productive {g : CF_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {w : List T}
     (ht : CF_transforms g s₁ s₂)
     (hd : CF_derives g s₂ (List.map symbol.terminal w)) :

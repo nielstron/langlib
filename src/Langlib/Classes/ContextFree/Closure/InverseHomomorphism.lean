@@ -221,7 +221,7 @@ lemma allInl_mem_kstar_sLang (v : List (α ⊕ β)) (hv : ∀ x ∈ v, x.isLeft)
 /-
 flatMap fHom over a list of all-inl symbols is [].
 -/
-lemma flatMap_fHom_allInl (v : List (α ⊕ β)) (hv : ∀ x ∈ v, x.isLeft) :
+private lemma flatMap_fHom_allInl (v : List (α ⊕ β)) (hv : ∀ x ∈ v, x.isLeft) :
     List.flatMap fHom v = [] := by
       induction v <;> aesop
 
@@ -370,7 +370,7 @@ lemma dStep_embedWord (h : α → List β) (a : α) :
       specialize h_ind 0 ; aesop
 
 /-- foldl dStep distributes over concatenation. -/
-lemma foldl_dStep_append (h : α → List β) (v w : List (α ⊕ β)) (s : DFAState α β h) :
+private lemma foldl_dStep_append (h : α → List β) (v w : List (α ⊕ β)) (s : DFAState α β h) :
     (v ++ w).foldl (dStep h) s = w.foldl (dStep h) (v.foldl (dStep h) s) := by
   exact List.foldl_append
 

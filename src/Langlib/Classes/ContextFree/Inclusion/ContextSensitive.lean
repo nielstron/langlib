@@ -72,7 +72,7 @@ def csg_of_cfg (g : CF_grammar T) (hne : CF_no_epsilon' g) : CS_grammar T where
     obtain ⟨r₀, hr₀, rfl⟩ := hr
     exact hne r₀ hr₀
 
-lemma grammar_of_cfg_well_defined (g : CF_grammar T) (hne : CF_no_epsilon' g) :
+private lemma grammar_of_cfg_well_defined (g : CF_grammar T) (hne : CF_no_epsilon' g) :
   grammar_of_csg (csg_of_cfg g hne) = grammar_of_cfg g :=
 by
   cases g with

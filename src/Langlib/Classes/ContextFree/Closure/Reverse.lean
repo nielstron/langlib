@@ -77,7 +77,7 @@ private lemma map_reverse_reverse_comp {nt : Type} (rules : List (nt × List (sy
     cases h
     simp [Function.comp, List.reverse_reverse, ih]
 
-lemma dual_of_reversal_CF_grammar (g : CF_grammar T) :
+private lemma dual_of_reversal_CF_grammar (g : CF_grammar T) :
     reversal_CF_grammar (reversal_CF_grammar g) = g := by
   cases g with
   | mk nt initial rules =>

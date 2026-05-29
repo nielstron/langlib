@@ -295,7 +295,7 @@ public lemma matchRHS_cons (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ)
 If the RHS of a rule derives a substring, then matchRHS returns the end position.
 -/
 set_option maxHeartbeats 800000 in
-lemma matchRHS_complete (G : EncodedCFG T) (w : List T)
+private lemma matchRHS_complete (G : EncodedCFG T) (w : List T)
     (S : List (ℕ × ℕ × ℕ))
     (rhs : List (ℕ ⊕ T)) (startPos endPos : ℕ)
     (hstart : startPos ≤ endPos) (hend : endPos ≤ w.length)
@@ -423,7 +423,7 @@ public lemma mem_satStep_of_matchRHS (nc : ℕ) (rules : List (ℕ × List (ℕ 
 
 /-! ## Monotonicity of matchRHS in S -/
 
-lemma matchOneSym_mono (w : List T) (nc : ℕ) (S₁ S₂ : List (ℕ × ℕ × ℕ))
+private lemma matchOneSym_mono (w : List T) (nc : ℕ) (S₁ S₂ : List (ℕ × ℕ × ℕ))
     (hS : ∀ t ∈ S₁, t ∈ S₂) (sym : ℕ ⊕ T) (pos : ℕ) :
     ∀ e ∈ matchOneSym w nc S₁ sym pos, e ∈ matchOneSym w nc S₂ sym pos := by
   unfold matchOneSym; aesop;
@@ -437,7 +437,7 @@ public lemma matchRHS_mono (w : List T) (nc : ℕ) (S₁ S₂ : List (ℕ × ℕ
 
 /-! ## Additional splitting lemmas -/
 
-lemma terminal_concat_split {N : Type} {u v : List (symbol T N)} {w : List T}
+private lemma terminal_concat_split {N : Type} {u v : List (symbol T N)} {w : List T}
     (h : u ++ v = List.map symbol.terminal w) :
     ∃ w₁ w₂, w = w₁ ++ w₂ ∧ u = List.map symbol.terminal w₁ ∧ v = List.map symbol.terminal w₂ := by
   induction' u with u u_ih generalizing w;

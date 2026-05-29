@@ -206,7 +206,7 @@ public lemma projectString_append {u v : List (Symbol T g.NT')} :
   unfold projectString
   rw [List.map_append, List.flatten_append]
 
-lemma projectString_embedString_id {u : List (Symbol T g.NT)} : projectString (embedString u) = u := by
+private lemma projectString_embedString_id {u : List (Symbol T g.NT)} : projectString (embedString u) = u := by
   unfold projectString embedString
   induction u with
   | nil => rfl

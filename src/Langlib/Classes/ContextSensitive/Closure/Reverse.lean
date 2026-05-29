@@ -92,7 +92,7 @@ def reversal_CS_grammar (g : CS_grammar T) : CS_grammar T :=
   exact g.output_nonempty a ha_rules
   )
 
-lemma dual_of_reversal_CS_grammar (g : CS_grammar T) :
+private lemma dual_of_reversal_CS_grammar (g : CS_grammar T) :
     reversal_CS_grammar (reversal_CS_grammar g) = g := by
   cases g
   unfold reversal_CS_grammar

@@ -121,7 +121,7 @@ public lemma recognizer_halts_of_accept
   unfold decider_to_recognizer
   aesop
 
-lemma recognizer_inr_step (tape : Tape (Option T)) :
+private lemma recognizer_inr_step (tape : Tape (Option T)) :
     @TM0.step _ _ ⟨Sum.inl default⟩ _ (decider_to_recognizer M accept)
       (⟨Sum.inr (), tape⟩ : @TM0.Cfg _ (Λ ⊕ Unit) _) =
       some ⟨Sum.inr (), tape.move Dir.right⟩ := by
@@ -235,15 +235,15 @@ def optionSumEmptyInv (T : Type) : Option (T ⊕ Empty) → Option T :=
   | some (Sum.inl t) => some t
   | some (Sum.inr e) => e.elim
 
-lemma optionSumEmptyInv_emb (a : Option T) :
+private lemma optionSumEmptyInv_emb (a : Option T) :
     optionSumEmptyInv T (optionSumEmptyEmb T a) = a := by
   cases a <;> simp [optionSumEmptyEmb, optionSumEmptyInv]
 
-lemma optionSumEmptyEmb_default :
+private lemma optionSumEmptyEmb_default :
     optionSumEmptyEmb T (default : Option T) = (default : Option (T ⊕ Empty)) := by
   rfl
 
-lemma map_option_some_map_emb (w : List T) :
+private lemma map_option_some_map_emb (w : List T) :
     (w.map Option.some).map (optionSumEmptyEmb T) =
     w.map (fun x => some (Sum.inl x)) := by
   simp [optionSumEmptyEmb, List.map_map]
@@ -253,7 +253,7 @@ end AlphabetLift
 /-! ### Connecting TM0.eval.Dom and Turing.eval.Dom -/
 
 /-- `TM0.eval` Dom is equivalent to `Turing.eval` Dom on configs. -/
-lemma tm0_eval_dom_iff_eval_dom {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
+private lemma tm0_eval_dom_iff_eval_dom {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (l : List Γ) :
     (TM0.eval M l).Dom ↔ (Turing.eval (TM0.step M) (TM0.init l)).Dom := by
   simp [TM0.eval, Part.map]

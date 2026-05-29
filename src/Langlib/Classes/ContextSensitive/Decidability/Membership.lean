@@ -143,7 +143,7 @@ noncomputable def reachSet (start : α) : ℕ → Finset α
 /-
 `stepClosure` is monotone: `S ⊆ stepClosure R S`.
 -/
-lemma subset_stepClosure (S : Finset α) : S ⊆ stepClosure R S := by
+private lemma subset_stepClosure (S : Finset α) : S ⊆ stepClosure R S := by
   -- By definition of `stepClosure`, we know that `S ⊆ stepClosure R S`.
   simp [stepClosure]
 
@@ -186,7 +186,7 @@ lemma ReflTransGen_of_mem_reachSet (start : α) (n : ℕ) {b : α}
 /-
 One-step reachable elements are added by `stepClosure`.
 -/
-lemma mem_stepClosure_of_R {S : Finset α} {a b : α}
+private lemma mem_stepClosure_of_R {S : Finset α} {a b : α}
     (ha : a ∈ S) (hab : R a b) : b ∈ stepClosure R S := by
   unfold stepClosure; aesop;
 
