@@ -73,6 +73,7 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 public import Langlib.Classes.DeterministicContextFree.Closure.Complement
 public import Langlib.Classes.DeterministicContextFree.Closure.Intersection
 public import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
+public import Langlib.Classes.DeterministicContextFree.Closure.Union
 public import Langlib.Classes.DeterministicContextFree.Closure.UnionRegular
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBmCm
