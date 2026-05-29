@@ -9,6 +9,11 @@ import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 
 This file proves that context-sensitive languages, with the current non-contracting
 definition, are closed under string homomorphisms that do not erase symbols.
+
+Proof idea: reuse the unrestricted homomorphism grammar, but build it as a
+context-sensitive grammar. Original CS rules are lifted unchanged, and each
+terminal marker for `a` expands to the nonempty word `h a`; the ε-free hypothesis
+is exactly what keeps these expansion rules non-contracting.
 -/
 
 variable {α β : Type}
