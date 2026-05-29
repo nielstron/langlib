@@ -5,7 +5,14 @@ public import Langlib.Utilities.ClosurePredicates
 public import Langlib.Automata.Turing.DSL.TM0BlockRealizability
 public import Mathlib.Data.Fintype.Option
 
-/-! # Recursive Closure Under Reversal -/
+/-! # Recursive Closure Under Reversal
+
+Proof idea: given a decider `M` for `L`, first run a finite-state TM0 block
+routine that rewrites the input tape from `w` to `w.reverse`. Then continue
+with `M` on that reversed tape. The composed machine halts because both the
+reversal routine and `M` halt, and it accepts exactly when `M` accepts
+`w.reverse`, which is the definition of membership in `L.reverse`.
+-/
 
 open Turing
 
