@@ -72,6 +72,12 @@ public def IsLRk (k : ℕ) : Prop :=
       lrLookahead k s₁ = lrLookahead k s₂ →
       p₁ = p₂ ∧ r₁ = r₂
 
+/-- LR lookahead is monotone: a grammar that is LR(k) is also LR(l) for any `l >= k`. -/
+public theorem IsLRk.mono {k l : ℕ} (hkl : k ≤ l) (hg : g.IsLRk k) : g.IsLRk l := by
+  intro r₁ r₂ hr₁ hr₂ p₁ p₂ core s₁ s₂ hd₁ hd₂ hc₁ hc₂ hlook
+  exact hg r₁ r₂ hr₁ hr₂ p₁ p₂ core s₁ s₂ hd₁ hd₂ hc₁ hc₂ <| by
+    simpa [lrLookahead, List.take_take, Nat.min_eq_left hkl] using congrArg (List.take k) hlook
+
 end ContextFreeGrammar
 
 variable {T : Type}
@@ -87,6 +93,16 @@ public def is_LR (L : Language T) : Prop :=
 /-- The class of LR languages. -/
 public def LR : Set (Language T) :=
   setOf is_LR
+
+/-- Every LR(k) language is an LR language. -/
+public theorem is_LR_of_is_LRk {k : ℕ} {L : Language T} (h : is_LRk k L) : is_LR L :=
+  ⟨k, h⟩
+
+/-- LR language classes are monotone in the amount of lookahead. -/
+public theorem is_LRk_mono {k l : ℕ} (hkl : k ≤ l) {L : Language T}
+    (h : is_LRk k L) : is_LRk l L := by
+  rcases h with ⟨g, hg, hL⟩
+  exact ⟨g, ContextFreeGrammar.IsLRk.mono g hkl hg, hL⟩
 
 /-- Every LR(k) language is context-free. -/
 public theorem is_CF_of_is_LRk {k : ℕ} {L : Language T} (h : is_LRk k L) : is_CF L := by
