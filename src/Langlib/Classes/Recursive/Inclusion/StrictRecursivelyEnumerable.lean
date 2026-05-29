@@ -4,7 +4,7 @@ public import Langlib.Classes.Recursive.Definition
 public import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Classes.Recursive.Closure.Complement
 import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
-import Langlib.Classes.RecursivelyEnumerable.Closure.Complement
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Complement
 import Langlib.Utilities.ClosurePredicates.Transport
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
@@ -54,6 +54,7 @@ complement.
 
 ## Main declarations
 
+- `haltingUnaryLanguage_not_Recursive` — the unary halting language is RE but not recursive.
 - `Recursive_strict_subclass_RE_unit` — strict inclusion over `Unit`.
 - `Recursive_strict_subclass_RE_of_nonempty` — strict inclusion over any nonempty finite
   alphabet.
@@ -62,6 +63,16 @@ complement.
 -/
 
 open Language
+
+/-- The concrete unary halting language is not recursive. -/
+public theorem haltingUnaryLanguage_not_Recursive :
+    ¬ is_Recursive haltingUnaryLanguage := by
+  intro hrec
+  have hcompRec : is_Recursive haltingUnaryLanguageᶜ :=
+    is_Recursive_complement hrec
+  have hcompRE : is_RE haltingUnaryLanguageᶜ :=
+    Recursive_subset_RE hcompRec
+  exact haltingUnary_complement_not_RE hcompRE
 
 /-- Recursive languages over the unary alphabet form a strict subclass of RE. -/
 theorem Recursive_strict_subclass_RE_unit :

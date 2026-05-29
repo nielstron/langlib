@@ -436,14 +436,17 @@ private lemma dpda_eq_any_sound (w : List (Fin 3))
   · rcases honly with ⟨rfl, rfl, rfl, _, rfl⟩
     exact ⟨0, nc, by simpa using hw⟩
 
-/-- The first witness language `{aⁿbⁿcᵐ | n,m ≥ 0}` is deterministic context-free. -/
-public theorem DCF_lang_eq_any : is_DCF lang_eq_any := by
-  refine ⟨EqAnyState, ABCStack, inferInstance, inferInstance, dpda_eq_any, ?_⟩
+/-- The `dpda_eq_any` automaton recognizes `{aⁿbⁿcᵐ | n,m ≥ 0}`. -/
+public theorem dpda_eq_any_accepts : dpda_eq_any.acceptsByFinalState = lang_eq_any := by
   ext w
   constructor
   · exact dpda_eq_any_sound w
   · rintro ⟨n, m, rfl⟩
     exact dpda_eq_any_complete n m
 
+/-- The first witness language `{aⁿbⁿcᵐ | n,m ≥ 0}` is deterministic context-free. -/
+public theorem DCF_lang_eq_any : is_DCF lang_eq_any := by
+  refine ⟨EqAnyState, ABCStack, inferInstance, inferInstance, dpda_eq_any, ?_⟩
+  exact dpda_eq_any_accepts
 
 end DCFLIntersection

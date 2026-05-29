@@ -505,6 +505,20 @@ end backward_direction
 -- Main theorems
 -- ============================================================================
 
+/-- The ε-free homomorphic-image grammar generates exactly the homomorphic image. -/
+public theorem hom_grammar_language_epsfree (g : grammar α) (h : α → List β)
+    (heps : IsEpsFreeHomomorphism h) :
+    grammar_language (hom_grammar g h) = (grammar_language g).homomorphicImage h := by
+  ext w
+  simp only [Language.homomorphicImage, Language.subst, grammar_language]
+  constructor
+  · intro hd
+    obtain ⟨w', hw', rfl⟩ := backward_direction_epsfree (g := g) (h := h) heps hd
+    exact ⟨w', hw', (mem_prod_singletons_iff_flatMap w' h _).mpr rfl⟩
+  · rintro ⟨w', hw', hu⟩
+    rw [(mem_prod_singletons_iff_flatMap w' h w).mp hu]
+    exact in_hom_of_in_original (g := g) (h := h) hw'
+
 /-- Search test for the homomorphic image of a grammar language.
 
 The witness contains both a preimage word and a derivation sequence for that preimage. -/
@@ -586,16 +600,7 @@ public theorem RE_closed_under_epsfree_homomorphism (L : Language α) (h : α �
     (hL : is_RE L) (heps : IsEpsFreeHomomorphism h) :
     is_RE (L.homomorphicImage h) := by
   obtain ⟨g, rfl⟩ := hL
-  refine ⟨hom_grammar g h, ?_⟩
-  ext w
-  simp only [Language.homomorphicImage, Language.subst, grammar_language]
-  constructor
-  · intro hd
-    obtain ⟨w', hw', rfl⟩ := backward_direction_epsfree heps hd
-    exact ⟨w', hw', (mem_prod_singletons_iff_flatMap w' h _).mpr rfl⟩
-  · rintro ⟨w', hw', hu⟩
-    rw [(mem_prod_singletons_iff_flatMap w' h w).mp hu]
-    exact in_hom_of_in_original hw'
+  exact ⟨hom_grammar g h, hom_grammar_language_epsfree g h heps⟩
 
 /-- The class of recursively enumerable languages is closed under ε-free string homomorphism. -/
 theorem RE_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_RE :=
