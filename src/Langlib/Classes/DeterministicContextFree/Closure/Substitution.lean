@@ -7,7 +7,13 @@ public import Langlib.Classes.Regular.Closure.Union
 public import Langlib.Classes.Regular.Inclusion.DeterministicContextFree
 public import Langlib.Utilities.ClosurePredicates
 
-/-! # Deterministic Context-Free Languages Are Not Closed Under Substitution -/
+/-! # Deterministic Context-Free Languages Are Not Closed Under Substitution
+
+Counterexample idea: if DCFLs were closed under finite-alphabet substitution,
+then substituting the two singleton Boolean words `[false]` and `[true]` by two
+arbitrary DCFLs would produce their union. This contradicts the established
+non-closure of DCFLs under union.
+-/
 
 private theorem DCF_singletons_bool : is_DCF ({[false], [true]} : Language Bool) := by
   apply is_DCF_of_is_RG

@@ -5,7 +5,13 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Intersection
 
 
 
-/-! # Deterministic Context-Free Non-Closure Under Union -/
+/-! # Deterministic Context-Free Non-Closure Under Union
+
+Counterexample idea: DCFLs are closed under complement. If they were also closed
+under union, then De Morgan's law would make them closed under intersection:
+`L₁ ∩ L₂ = (L₁ᶜ ∪ L₂ᶜ)ᶜ`. This contradicts the explicit intersection
+non-closure witness.
+-/
 
 variable {T : Type} [Fintype T]
 
