@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Classes.DeterministicContextFree.Totalization.RegularAnalysis
-public import Langlib.Classes.DeterministicContextFree.Totalization.StackSummary
+public import Langlib.Automata.DeterministicPushdown.Totalization.RegularAnalysis
+public import Langlib.Automata.DeterministicPushdown.Totalization.StackSummary
 public import Mathlib.Algebra.Group.End
 public import Mathlib.Data.Fintype.Pi
 import Mathlib.Algebra.Order.Floor.Extended

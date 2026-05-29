@@ -1,13 +1,13 @@
 module
 
-public import Langlib.Classes.DeterministicContextFree.Totalization.AnnotatedStack
-public import Langlib.Classes.DeterministicContextFree.Totalization.Construction
-public import Langlib.Classes.DeterministicContextFree.Totalization.Definition
-public import Langlib.Classes.DeterministicContextFree.Totalization.EpsilonPhase
-public import Langlib.Classes.DeterministicContextFree.Totalization.Presentation
-public import Langlib.Classes.DeterministicContextFree.Totalization.RegularAnalysis
-public import Langlib.Classes.DeterministicContextFree.Totalization.Saturation
-public import Langlib.Classes.DeterministicContextFree.Totalization.StackSummary
+public import Langlib.Automata.DeterministicPushdown.Totalization.AnnotatedStack
+public import Langlib.Automata.DeterministicPushdown.Totalization.Construction
+public import Langlib.Automata.DeterministicPushdown.Totalization.Definition
+public import Langlib.Automata.DeterministicPushdown.Totalization.EpsilonPhase
+public import Langlib.Automata.DeterministicPushdown.Totalization.Presentation
+public import Langlib.Automata.DeterministicPushdown.Totalization.RegularAnalysis
+public import Langlib.Automata.DeterministicPushdown.Totalization.Saturation
+public import Langlib.Automata.DeterministicPushdown.Totalization.StackSummary
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

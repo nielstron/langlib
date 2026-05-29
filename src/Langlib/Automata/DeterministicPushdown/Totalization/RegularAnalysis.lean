@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.DeterministicContextFree.Totalization.Saturation
+public import Langlib.Automata.DeterministicPushdown.Totalization.Saturation
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

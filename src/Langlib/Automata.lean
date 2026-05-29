@@ -10,6 +10,15 @@ public import Langlib.Automata.DeterministicPushdown.ClosureProperties.Complemen
 public import Langlib.Automata.DeterministicPushdown.Definition
 public import Langlib.Automata.DeterministicPushdown.Inclusion.Pushdown
 public import Langlib.Automata.DeterministicPushdown.Inclusion.StrictPushdown
+public import Langlib.Automata.DeterministicPushdown.Totalization.AnnotatedStack
+public import Langlib.Automata.DeterministicPushdown.Totalization.Construction
+public import Langlib.Automata.DeterministicPushdown.Totalization.Definition
+public import Langlib.Automata.DeterministicPushdown.Totalization.EpsilonPhase
+public import Langlib.Automata.DeterministicPushdown.Totalization.Presentation
+public import Langlib.Automata.DeterministicPushdown.Totalization.RegularAnalysis
+public import Langlib.Automata.DeterministicPushdown.Totalization.Saturation
+public import Langlib.Automata.DeterministicPushdown.Totalization.StackSummary
+public import Langlib.Automata.DeterministicPushdown.Totalization
 public import Langlib.Automata.FiniteState.Decidability.Membership
 public import Langlib.Automata.FiniteState.Definition
 public import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
