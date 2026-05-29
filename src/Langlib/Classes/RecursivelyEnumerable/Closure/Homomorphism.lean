@@ -55,6 +55,12 @@ This file proves that the class of recursively enumerable languages is closed un
 string homomorphism.  It also keeps the older grammar construction for the ε-free
 case, where no symbol is erased.
 
+Proof idea for arbitrary finite-alphabet homomorphisms: a word `w` is in the
+homomorphic image iff there exists a source word `x` and a derivation witness for
+`x` in the original grammar such that `x.flatMap h = w`. This existential search
+is computable over finite alphabets, so the search-to-TM and TM-to-RE bridges
+produce the RE witness.
+
 Given an unrestricted grammar `g` over terminals `α` generating `L`, and an ε-free string
 homomorphism `h : α → List β`, we construct an unrestricted grammar `hom_grammar g h`
 over terminals `β` whose language is `L.homomorphicImage h`.
