@@ -38,6 +38,15 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Concatenation
+
+Proof idea: build an epsilon-NFA with a copy of the automaton for `L₁` and a
+copy of the automaton for `L₂`. It starts in the `L₁` copy, follows `L₁` on a
+prefix, and may take an epsilon transition from an accepting `L₁` state into the
+`L₂` start state; acceptance then records a split `w = u ++ v`.
+-/
+
 @[expose]
 public section
 

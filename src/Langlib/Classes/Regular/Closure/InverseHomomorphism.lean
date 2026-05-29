@@ -35,6 +35,14 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Inverse Homomorphism
+
+Proof idea: keep the DFA for the target language, but replace each input step on
+`a` by the DFA transition over the whole word `h a`. After reading `w`, the new
+automaton is in exactly the state the old automaton would reach on `w.flatMap h`.
+-/
+
 @[expose]
 public section
 

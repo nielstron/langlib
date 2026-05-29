@@ -43,6 +43,10 @@ public section
 
 This file proves that a language is regular if and only if its complement is regular.
 
+Proof idea: use the same deterministic finite automaton and replace its accept
+set by the Boolean complement. Since every input has a unique final DFA state,
+flipping acceptance recognizes exactly the complement language.
+
 ## Main declarations
 
 - `Language.isRegular_compl_iff`

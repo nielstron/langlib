@@ -34,6 +34,15 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Right Quotient
+
+Proof idea: after reading the candidate prefix `u`, accept if there exists a
+suffix from the quotient language that can take the original DFA from the
+current state to an accepting state. This existential set of good states is used
+as the accepting predicate of a new DFA.
+-/
+
 @[expose]
 public section
 

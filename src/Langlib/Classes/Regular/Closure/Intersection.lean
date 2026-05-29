@@ -35,6 +35,15 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Presheaf
+
+/-! # Regular Closure Under Intersection
+
+Proof idea: run the two finite automata in product, updating both states on each
+input symbol and accepting exactly when both component states accept. The same
+product construction gives intersection with a regular language as a special
+case.
+-/
+
 @[expose]
 public section
 

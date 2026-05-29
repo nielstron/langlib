@@ -38,6 +38,15 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Kleene Star
+
+Proof idea: build an epsilon-NFA with a fresh accepting start state and a copy of
+the automaton for `L`. Epsilon transitions start a new `L` block and return from
+accepting states to the start, so accepting runs correspond exactly to finite
+concatenations of words from `L`.
+-/
+
 @[expose]
 public section
 

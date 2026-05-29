@@ -39,6 +39,15 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Homomorphism
+
+Proof idea: a homomorphism is implemented as regular substitution by replacing
+each input letter with the regular singleton language containing its image
+string. The epsilon-free variant is the same construction with the extra
+nonempty-image hypothesis carried through the closure predicate.
+-/
+
 @[expose]
 public section
 
