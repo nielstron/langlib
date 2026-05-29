@@ -45,6 +45,10 @@ public section
 
 This file derives failure of closure under complement from the corresponding intersection result.
 
+Counterexample idea: if CFLs were closed under complement, then together with
+closure under union they would also be closed under intersection by De Morgan's
+law. This contradicts the explicit non-closure result for intersection.
+
 ## Main declarations
 
 - `nnyCF_of_complement_CF`

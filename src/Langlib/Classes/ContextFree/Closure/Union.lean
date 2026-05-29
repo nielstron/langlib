@@ -44,6 +44,11 @@ public section
 
 This file derives closure under union from closure under substitution.
 
+Proof idea: view `L₁ ∪ L₂` as a substitution instance of the two-word Boolean
+language `{[false], [true]}`. The substitution sends `false` to `L₁` and `true`
+to `L₂`, so choosing one of the two singleton words chooses one of the two
+component languages.
+
 ## Main declarations
 
 - `CF_of_CF_u_CF`

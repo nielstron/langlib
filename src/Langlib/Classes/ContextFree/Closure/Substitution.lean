@@ -45,6 +45,10 @@ public section
 This file imports mathlib's proof that context-free languages are closed under substitution and
 repackages it for this project's `is_CF` predicate.
 
+Proof idea: translate the assumptions from `is_CF` to mathlib's
+`Language.IsContextFree`, apply mathlib's substitution closure theorem, and
+translate the result back.
+
 ## Main declarations
 
 - `CF_of_subst_CF`

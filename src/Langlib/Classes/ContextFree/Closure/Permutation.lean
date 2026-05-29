@@ -44,6 +44,10 @@ public section
 
 This file specializes bijective terminal renaming to permutations of a fixed alphabet.
 
+Proof idea: a permutation is a terminal bijection whose source and target
+alphabets coincide, so the result is immediate from context-free closure under
+bijective terminal renaming.
+
 ## Main declarations
 
 - `CF_of_permute_CF`

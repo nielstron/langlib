@@ -44,6 +44,11 @@ public section
 
 This file derives closure under concatenation from closure under substitution.
 
+Proof idea: view `L₁ * L₂` as a substitution instance of the singleton Boolean
+word language `{[false, true]}`. The substitution sends `false` to `L₁` and
+`true` to `L₂`, so the substituted language is exactly all concatenations
+`u ++ v` with `u ∈ L₁` and `v ∈ L₂`.
+
 ## Main declarations
 
 - `CF_of_CF_c_CF`
