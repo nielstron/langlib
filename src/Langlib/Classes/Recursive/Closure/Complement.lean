@@ -65,9 +65,9 @@ Given a decider `(Λ, M, accept)` that always halts, we construct a decider for
 -/
 public theorem is_Recursive_complement {L : Language T} (hL : is_Recursive L) :
     is_Recursive Lᶜ := by
-  obtain ⟨ Λ, hΛ, hΛf, M, accept, hHalt, hCorrect ⟩ := hL;
+  obtain ⟨ Γ, hΓ, Λ, hΛ, hΛf, M, accept, hHalt, hCorrect ⟩ := hL;
   -- Construct the complement decider using the same machine M but with acceptance predicate `fun q => !accept q`.
-  use Λ, hΛ, hΛf, M, fun q => !accept q;
+  use Γ, hΓ, Λ, hΛ, hΛf, M, fun q => !accept q;
   grind
 
 /-- A language is recursive iff its complement is recursive. -/
