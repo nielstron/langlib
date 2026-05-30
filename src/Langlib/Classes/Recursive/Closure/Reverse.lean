@@ -219,16 +219,19 @@ private theorem delayed_dom
 variable {T : Type} [DecidableEq T] [Fintype T]
 
 omit [DecidableEq T] [Fintype T] in
-private lemma map_some_ne_none (w : List T) :
-    ∀ x ∈ w.map Option.some, x ≠ (default : Option T) := by
+private lemma map_input_ne_none {Γw : Type} (w : List T) :
+    ∀ x ∈ (w.map fun t => some (Sum.inl (α := T) (β := Γw) t)),
+      x ≠ (default : Option (T ⊕ Γw)) := by
   intro x hx
   obtain ⟨a, _ha, rfl⟩ := List.mem_map.mp hx
   simp
 
 omit [DecidableEq T] [Fintype T] in
 private lemma reverse_preprocessor
+    {Γw : Type}
     {Λ : Type} [Inhabited Λ] [Fintype Λ]
-    (M : TM0.Machine (Option T) Λ) (hM : ∀ (block suffix : List (Option T)),
+    (M : TM0.Machine (Option (T ⊕ Γw)) Λ)
+    (hM : ∀ (block suffix : List (Option (T ⊕ Γw))),
       (∀ g ∈ block, g ≠ default) →
       (∀ g ∈ List.reverse block, g ≠ default) →
       (TM0Seq.evalCfg M (block ++ default :: suffix)).Dom ∧
@@ -236,12 +239,12 @@ private lemma reverse_preprocessor
         ((TM0Seq.evalCfg M (block ++ default :: suffix)).get h).Tape =
           Tape.mk₁ (List.reverse block ++ default :: suffix))
     (w : List T) :
-    ∃ h : (TM0Seq.evalCfg M (w.map Option.some)).Dom,
-      ((TM0Seq.evalCfg M (w.map Option.some)).get h).Tape =
-        Tape.mk₁ (w.reverse.map Option.some) := by
-  let block := w.map Option.some
-  have hblock : ∀ x ∈ block, x ≠ (default : Option T) := map_some_ne_none w
-  have hrev : ∀ x ∈ block.reverse, x ≠ (default : Option T) :=
+    ∃ h : (TM0Seq.evalCfg M (w.map fun t => some (Sum.inl (α := T) (β := Γw) t))).Dom,
+      ((TM0Seq.evalCfg M (w.map fun t => some (Sum.inl (α := T) (β := Γw) t))).get h).Tape =
+        Tape.mk₁ (w.reverse.map fun t => some (Sum.inl (α := T) (β := Γw) t)) := by
+  let block := w.map fun t => some (Sum.inl (α := T) (β := Γw) t)
+  have hblock : ∀ x ∈ block, x ≠ (default : Option (T ⊕ Γw)) := map_input_ne_none w
+  have hrev : ∀ x ∈ block.reverse, x ≠ (default : Option (T ⊕ Γw)) :=
     reverse_ne_default block hblock
   obtain ⟨hdom₀, htape₀⟩ := hM block [] hblock hrev
   have heq : TM0Seq.evalCfg M (block ++ [default]) = TM0Seq.evalCfg M block :=
@@ -261,28 +264,36 @@ private lemma reverse_preprocessor
 public theorem is_Recursive_reverse {L : Language T} (hL : is_Recursive L) :
     is_Recursive L.reverse := by
   classical
-  obtain ⟨Λ, hΛ, hΛfin, M, accept, hHalt, hCorrect⟩ := hL
-  letI : Fintype (Option T) := inferInstance
+  obtain ⟨Γw, hΓwfin, Λ, hΛ, hΛfin, M, accept, hHalt, hCorrect⟩ := hL
+  letI : Fintype (Option (T ⊕ Γw)) := inferInstance
   obtain ⟨ΛR, hΛR, hΛRfin, MR, hMR⟩ :=
-    (tm0_reverse_block_anySuffix (Γ := Option T))
+    (tm0_reverse_block_anySuffix (Γ := Option (T ⊕ Γw)))
   letI : Inhabited (ΛR ⊕ Λ) := ⟨Sum.inl default⟩
-  refine ⟨ΛR ⊕ Λ, inferInstance, inferInstance, delayedCompose MR M,
+  refine ⟨Γw, hΓwfin, ΛR ⊕ Λ, inferInstance, inferInstance, delayedCompose MR M,
     sumAccept accept,
     ?_, ?_⟩
   · intro w
     obtain ⟨hrev, htape⟩ := reverse_preprocessor MR hMR w
-    have hdec : (TM0Seq.evalCfg M (w.reverse.map Option.some)).Dom := hHalt w.reverse
-    change (TM0Seq.evalCfg (delayedCompose MR M) (w.map Option.some)).Dom
-    exact delayed_dom MR M (w.map Option.some) (w.reverse.map Option.some) hrev htape hdec
+    have hdec : (TM0Seq.evalCfg M
+        (w.reverse.map fun t => some (Sum.inl (α := T) (β := Γw) t))).Dom := hHalt w.reverse
+    change (TM0Seq.evalCfg (delayedCompose MR M)
+      (w.map fun t => some (Sum.inl (α := T) (β := Γw) t))).Dom
+    exact delayed_dom MR M
+      (w.map fun t => some (Sum.inl (α := T) (β := Γw) t))
+      (w.reverse.map fun t => some (Sum.inl (α := T) (β := Γw) t)) hrev htape hdec
   · intro w hcomp
     obtain ⟨hrev, htape⟩ := reverse_preprocessor MR hMR w
-    have hdec : (TM0Seq.evalCfg M (w.reverse.map Option.some)).Dom := hHalt w.reverse
-    change (TM0Seq.evalCfg (delayedCompose MR M) (w.map Option.some)).Dom at hcomp
+    have hdec : (TM0Seq.evalCfg M
+        (w.reverse.map fun t => some (Sum.inl (α := T) (β := Γw) t))).Dom := hHalt w.reverse
+    change (TM0Seq.evalCfg (delayedCompose MR M)
+      (w.map fun t => some (Sum.inl (α := T) (β := Γw) t))).Dom at hcomp
     have hacc := delayed_eval_accept MR M accept
-      (w.map Option.some) (w.reverse.map Option.some) hrev htape hdec hcomp
+      (w.map fun t => some (Sum.inl (α := T) (β := Γw) t))
+      (w.reverse.map fun t => some (Sum.inl (α := T) (β := Γw) t)) hrev htape hdec hcomp
     change w.reverse ∈ L ↔
       sumAccept accept
-        (((TM0Seq.evalCfg (delayedCompose MR M) (w.map Option.some)).get hcomp).q) = true
+        (((TM0Seq.evalCfg (delayedCompose MR M)
+          (w.map fun t => some (Sum.inl (α := T) (β := Γw) t))).get hcomp).q) = true
     constructor
     · intro hw
       convert hacc.trans ((hCorrect w.reverse hdec).mp hw)
