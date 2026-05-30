@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Grammars.ContextSensitive.Definition
+public import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipTest
 public import Mathlib.Data.Fintype.Sigma
 public import Mathlib.Data.Fintype.Vector
 public import Mathlib.Topology.Sheaves.Presheaf
@@ -344,3 +345,128 @@ noncomputable def CS_membership_decidable
       (by simp [List.length_map]; exact List.length_pos_of_ne_nil hw) (le_refl _)]
     exact ReflTransGen_decidable_fintype
       (CS_transforms_bounded g (w.map (symbol.terminal (N := g.nt))).length) _ _
+
+/-! ## Computability certificates
+
+For the computability proof we use the standard RE/co-RE route. Membership is RE by
+the usual grammar derivation search. Non-membership is RE because a failed bounded
+reachability search has a finite certificate: a bounded set containing the start form,
+closed under all bounded one-step successors, but not containing the target form.
+-/
+
+section ComputableMembership
+
+variable [DecidableEq T]
+
+/-- All one-step grammar successors of `sf` that stay within `bound`. -/
+@[expose]
+public def grammarStepSuccessors {N : Type} [DecidableEq N]
+    (rules : List (grule T N)) (bound : ℕ) (sf : List (symbol T N)) :
+    List (List (symbol T N)) :=
+  (List.range rules.length).flatMap fun ri =>
+    (List.range (bound + 1)).filterMap fun pos =>
+      match rules[ri]? with
+      | none => none
+      | some r =>
+          match applyRuleAt r sf pos with
+          | none => none
+          | some sf' => if sf'.length ≤ bound then some sf' else none
+
+/-- A finite certificate that the bounded target is not reachable. -/
+@[expose]
+public def grammarClosedComplementCert (g : grammar T) [DecidableEq g.nt]
+    (bound : ℕ) (target : List (symbol T g.nt)) (S : List (List (symbol T g.nt))) : Bool :=
+  decide ([symbol.nonterminal g.initial] ∈ S) &&
+  ! decide (target ∈ S) &&
+  S.all (fun sf =>
+    decide (sf.length ≤ bound) &&
+    (grammarStepSuccessors g.rules bound sf).all (fun sf' => decide (sf' ∈ S)))
+
+lemma grammarStepSuccessors_sound {N : Type} [DecidableEq N]
+    (rules : List (grule T N)) {bound : ℕ} {sf sf' : List (symbol T N)}
+    (h : sf' ∈ grammarStepSuccessors rules bound sf) :
+    (∃ r ∈ rules, ∃ pos, applyRuleAt r sf pos = some sf') ∧ sf'.length ≤ bound := by
+  unfold grammarStepSuccessors at h
+  rw [List.mem_flatMap] at h
+  obtain ⟨ri, hri, hfilter⟩ := h
+  simp only [List.mem_range] at hri
+  rw [List.mem_filterMap] at hfilter
+  obtain ⟨pos, hpos, hstep⟩ := hfilter
+  simp only [List.mem_range] at hpos
+  split at hstep
+  · contradiction
+  · rename_i r hr
+    split at hstep
+    · contradiction
+    · rename_i out hout
+      split at hstep
+      · rename_i hlen
+        cases hstep
+        refine ⟨⟨r, List.mem_of_getElem? hr, pos, hout⟩, hlen⟩
+      · contradiction
+
+lemma grammarStepSuccessors_complete {N : Type} [DecidableEq N]
+    (rules : List (grule T N)) {bound : ℕ} {sf sf' : List (symbol T N)}
+    {r : grule T N} {pos : ℕ}
+    (hr : r ∈ rules) (hstep : applyRuleAt r sf pos = some sf')
+    (hpos : pos ≤ bound) (hlen : sf'.length ≤ bound) :
+    sf' ∈ grammarStepSuccessors rules bound sf := by
+  unfold grammarStepSuccessors
+  obtain ⟨ri, hri⟩ := List.mem_iff_getElem?.mp hr
+  have hri_lt : ri < rules.length := by
+    exact (List.getElem?_eq_some_iff.mp hri).1
+  rw [List.mem_flatMap]
+  refine ⟨ri, by simpa using hri_lt, ?_⟩
+  rw [List.mem_filterMap]
+  refine ⟨pos, by simp [hpos], ?_⟩
+  simp [hri, hstep, hlen]
+
+lemma grammarStepSuccessors_complete_of_transform (g : grammar T) [DecidableEq g.nt]
+    {bound : ℕ} {sf sf' : List (symbol T g.nt)}
+    (hstep : grammar_transforms g sf sf')
+    (hsf : sf.length ≤ bound) (hsf' : sf'.length ≤ bound) :
+    sf' ∈ grammarStepSuccessors g.rules bound sf := by
+  obtain ⟨r, hr, u, v, rfl, rfl⟩ := hstep
+  apply grammarStepSuccessors_complete g.rules hr (pos := u.length)
+  · unfold applyRuleAt
+    simp [List.take_append, List.drop_append, List.append_assoc]
+  · simp_all [List.length_append]
+    omega
+  · exact hsf'
+
+lemma grammarClosedComplementCert_start_mem (g : grammar T) [DecidableEq g.nt]
+    {bound : ℕ} {target : List (symbol T g.nt)} {S : List (List (symbol T g.nt))}
+    (hcert : grammarClosedComplementCert g bound target S = true) :
+    [symbol.nonterminal g.initial] ∈ S := by
+  unfold grammarClosedComplementCert at hcert
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hcert
+  exact hcert.1.1
+
+lemma grammarClosedComplementCert_target_not_mem (g : grammar T) [DecidableEq g.nt]
+    {bound : ℕ} {target : List (symbol T g.nt)} {S : List (List (symbol T g.nt))}
+    (hcert : grammarClosedComplementCert g bound target S = true) :
+    target ∉ S := by
+  unfold grammarClosedComplementCert at hcert
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hcert
+  intro ht
+  have hnot := hcert.1.2
+  simp [ht] at hnot
+
+lemma grammarClosedComplementCert_form_bound (g : grammar T) [DecidableEq g.nt]
+    {bound : ℕ} {target sf : List (symbol T g.nt)} {S : List (List (symbol T g.nt))}
+    (hcert : grammarClosedComplementCert g bound target S = true)
+    (hsf : sf ∈ S) : sf.length ≤ bound := by
+  unfold grammarClosedComplementCert at hcert
+  simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at hcert
+  exact (hcert.2 sf hsf).1
+
+lemma grammarClosedComplementCert_closed (g : grammar T) [DecidableEq g.nt]
+    {bound : ℕ} {target sf sf' : List (symbol T g.nt)} {S : List (List (symbol T g.nt))}
+    (hcert : grammarClosedComplementCert g bound target S = true)
+    (hsf : sf ∈ S) (hsucc : sf' ∈ grammarStepSuccessors g.rules bound sf) :
+    sf' ∈ S := by
+  unfold grammarClosedComplementCert at hcert
+  simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at hcert
+  exact (hcert.2 sf hsf).2 sf' hsucc
+
+end ComputableMembership
