@@ -8,9 +8,7 @@ public import Langlib.Grammars.ContextFree.EquivMathlibCFG
 public import Langlib.Grammars.ContextFree.Toolbox
 public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 public import Langlib.Grammars.ContextSensitive.Definition
-public import Langlib.Grammars.ContextSensitive.Equivalence.UnrestrictedCharacterization
 public import Langlib.Grammars.ContextSensitive.Toolbox
-public import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 public import Langlib.Grammars.Indexed.Basics.Higman
 public import Langlib.Grammars.Indexed.Definition
 public import Langlib.Grammars.Indexed.NormalForm.NormalForm

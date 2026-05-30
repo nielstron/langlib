@@ -63,14 +63,8 @@ public import Langlib.Classes.ContextFree.Pumping.UnitElimination
 public import Langlib.Classes.ContextFree.Pumping.Utils
 public import Langlib.Classes.ContextFree.Pumping.toMathlib
 public import Langlib.Classes.ContextSensitive.Closure.Bijection
-public import Langlib.Classes.ContextSensitive.Closure.Complement
-public import Langlib.Classes.ContextSensitive.Closure.Concatenation
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
-public import Langlib.Classes.ContextSensitive.Closure.Homomorphism
-public import Langlib.Classes.ContextSensitive.Closure.Quotient
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
-public import Langlib.Classes.ContextSensitive.Closure.Star
-public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
 public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable

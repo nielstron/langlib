@@ -4,7 +4,6 @@ public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Toolbox
-import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
