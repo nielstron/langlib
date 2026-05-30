@@ -44,7 +44,7 @@ public section
 
 /-! # Context-Free Union Bonus Construction
 
-This file records the older direct grammar construction for context-free closure under union.
+This file records a direct grammar construction for context-free closure under union.
 
 ## Main declarations
 

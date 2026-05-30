@@ -3,7 +3,6 @@ module
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Grammars.NonContracting.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
-import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
 import Langlib.Grammars.Unrestricted.Toolbox
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield

@@ -24,7 +24,7 @@ public def grammar_context_free (g : grammar T) : Prop :=
 public def is_CF (L : Language T) : Prop :=
   ∃ g : grammar T, grammar_context_free g ∧ grammar_language g = L
 
-/-- Legacy characterization of context-free languages via `CF_grammar`. -/
+/-- Characterization of context-free languages via `CF_grammar`. -/
 @[expose]
 public def is_CF_via_cfg (L : Language T) : Prop :=
   ∃ g : CF_grammar T, CF_language g = L

@@ -48,7 +48,7 @@ public theorem is_CS_of_is_noncontracting {L : Language T} (h : is_noncontractin
   obtain ⟨g, hg, hL⟩ := h
   exact ⟨g, grammar_context_sensitive_of_noncontracting g hg, hL⟩
 
-/-- Legacy characterization of context-sensitive languages via `CS_grammar`. -/
+/-- Characterization of context-sensitive languages via ε-free context-preserving grammars. -/
 @[expose]
 public def is_CS_via_csg (L : Language T) : Prop :=
   ∃ g : CS_grammar T, CS_language g = L

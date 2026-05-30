@@ -67,7 +67,7 @@ public def grammar_right_regular (g : grammar T) : Prop :=
 public def is_RG (L : Language T) : Prop :=
   ∃ g : grammar T, grammar_right_regular g ∧ grammar_language g = L
 
-/-- Legacy characterization of regular languages via `RG_grammar`. -/
+/-- Characterization of regular languages via `RG_grammar`. -/
 @[expose]
 public def is_RG_via_rg (L : Language T) : Prop :=
   ∃ g : RG_grammar T, RG_language g = L
