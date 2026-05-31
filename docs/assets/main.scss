@@ -1,0 +1,116 @@
+---
+# Site stylesheet: the minima theme plus a grouped, always-collapsed
+# (hamburger) navigation. Front matter is required so Jekyll processes the Sass.
+---
+
+@import "minima";
+
+/* ----------------------------------------------------------------------------
+   Grouped hamburger navigation
+
+   Minima expands the nav into an inline row of links on wide screens; with ~20
+   results that becomes an unreadable wall of titles. We keep it collapsed behind
+   a burger at ALL widths and lay the links out as labelled groups, one per
+   Chomsky-hierarchy class (see _data/nav.yml / _includes/header.html).
+---------------------------------------------------------------------------- */
+
+.site-nav {
+  position: absolute;
+  top: 9px;
+  right: 15px;
+  z-index: 40;
+  background-color: $background-color;
+  border: 1px solid $grey-color-light;
+  border-radius: 5px;
+  text-align: left;
+
+  .nav-trigger { display: none; }
+
+  label[for="nav-trigger"] {
+    display: block;
+    float: right;
+    width: 36px;
+    height: 36px;
+    z-index: 41;
+    cursor: pointer;
+  }
+
+  .menu-icon {
+    display: block;
+    width: 36px;
+    height: 26px;
+    padding-top: 10px;
+    line-height: 0;
+    text-align: center;
+
+    > svg path { fill: $grey-color-dark; }
+  }
+
+  /* Collapsed by default; the pure-CSS checkbox reveals the panel. */
+  input ~ .trigger { clear: both; display: none; }
+  input:checked ~ .trigger {
+    display: block;
+    min-width: 17em;
+    max-width: 22em;
+    padding: 4px 0 8px;
+  }
+
+  .nav-group { padding: 7px 18px 3px; }
+  .nav-group + .nav-group { border-top: 1px solid $grey-color-light; }
+
+  .nav-group-title {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $grey-color;
+  }
+
+  .page-link {
+    display: block;
+    padding: 3px 0;
+    color: $text-color;
+    line-height: 1.5;
+    white-space: nowrap;
+
+    &:hover { color: $brand-color; text-decoration: underline; }
+  }
+}
+
+/* On desktop (wide screens) there is room to keep the menu permanently open as a
+   fixed left sidebar; the burger is only needed on narrow screens. */
+$sidebar-width: 16em;
+
+@media screen and (min-width: 1000px) {
+  body { padding-left: $sidebar-width; }
+
+  .site-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: $sidebar-width;
+    margin: 0;
+    padding-top: 12px;
+    overflow-y: auto;
+    border: 0;
+    border-right: 1px solid $grey-color-light;
+    border-radius: 0;
+    z-index: 30;
+
+    /* Hide the toggle; the panel is always expanded here. */
+    .nav-trigger,
+    label[for="nav-trigger"],
+    .menu-icon { display: none; }
+
+    input ~ .trigger,
+    input:checked ~ .trigger {
+      display: block;
+      min-width: 0;
+      max-width: none;
+      padding: 0;
+    }
+  }
+}

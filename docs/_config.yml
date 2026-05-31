@@ -1,0 +1,19 @@
+title: Langlib
+description: >-
+  Formal-language theory formalized in Lean 4 with Mathlib: regular, context-free,
+  deterministic context-free (DCFL), indexed, context-sensitive, recursive, and
+  recursively enumerable languages — with closure properties, decidability results,
+  the Chomsky hierarchy, pumping lemmas, and automata equivalences.
+url: "https://nielstron.github.io"
+baseurl: "/langlib"
+theme: minima
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+exclude:
+  - api/
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: page

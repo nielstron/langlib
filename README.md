@@ -3,6 +3,8 @@
 
 `Langlib` is a Lean 4 library of formalized results about grammars, language classes, and automata across the Chomsky hierarchy.
 
+📖 **Documentation:** [results overview & explanations](https://nielstron.github.io/langlib/) · [API reference](https://nielstron.github.io/langlib/api/)
+
 ### Regular Languages
 
 - [Right-regular grammars](src/Langlib/Grammars/RightRegular/Definition.lean)

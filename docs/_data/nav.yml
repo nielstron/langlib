@@ -1,0 +1,51 @@
+# Site navigation, grouped by Chomsky-hierarchy class.
+# Rendered by _includes/header.html as a collapsible (hamburger) menu.
+# Each url is root-relative; the template applies the site baseurl.
+
+- title: Overview
+  items:
+    - { title: "Home / full index", url: /index.html }
+    - { title: "Chomsky hierarchy is strict", url: /results/chomsky-hierarchy-strict-inclusions.html }
+    - { title: "aⁿbⁿcⁿ — the separating example", url: /results/anbncn-not-context-free.html }
+
+- title: Regular
+  items:
+    - { title: "Regular = DFA", url: /results/regular-equals-dfa.html }
+    - { title: "Right-/left-regular grammars", url: /results/regular-grammars.html }
+    - { title: "Membership is computable", url: /results/regular-membership-computable.html }
+
+- title: Linear
+  items:
+    - { title: "Linear grammars & languages", url: /results/linear-grammars.html }
+
+- title: Context-free
+  items:
+    - { title: "PDA = CFG", url: /results/pda-equals-cfg.html }
+    - { title: "Pumping lemma", url: /results/context-free-pumping-lemma.html }
+    - { title: "Ogden's lemma", url: /results/ogdens-lemma.html }
+    - { title: "= Mathlib's IsContextFree (+ CNF)", url: /results/context-free-equals-mathlib.html }
+    - { title: "Not closed under complement", url: /results/cfl-not-closed-under-complement.html }
+    - { title: "Membership & emptiness decidable", url: /results/cfl-decidability.html }
+
+- title: Deterministic context-free
+  items:
+    - { title: "Closed under complement", url: /results/dcfl-closed-under-complement.html }
+    - { title: "DPDA totalization", url: /results/dpda-totalization.html }
+
+- title: Context-sensitive
+  items:
+    - { title: "Non-contracting vs non-erasing", url: /results/noncontracting-equals-context-sensitive.html }
+    - { title: "LBA ↔ CSG", url: /results/lba-context-sensitive.html }
+    - { title: "CS ⊆ Recursive", url: /results/context-sensitive-is-recursive.html }
+    - { title: "Membership is computable", url: /results/context-sensitive-membership-computable.html }
+
+- title: Recursive
+  items:
+    - { title: "Post's theorem", url: /results/posts-theorem.html }
+    - { title: "Closed under complement", url: /results/recursive-closed-under-complement.html }
+    - { title: "Tape vs. state acceptance", url: /results/tape-vs-state-acceptance-recursive.html }
+    - { title: "Recursive ⊊ RE", url: /results/recursive-strict-subset-re.html }
+
+- title: Recursively enumerable
+  items:
+    - { title: "TM = RE", url: /results/tm-equals-re.html }

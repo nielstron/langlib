@@ -1,0 +1,83 @@
+name: Documentation
+
+# Builds the prose documentation (docs/, Jekyll) and the API reference
+# (doc-gen4, under /api/) and deploys both to GitHub Pages.
+#
+# One-time setup: in the repository settings, set Pages → Build and deployment →
+# Source = "GitHub Actions".
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment, don't cancel in-progress runs.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Lean / API reference (doc-gen4) -------------------------------------
+      # Non-blocking: if the heavy API build fails, the prose site still ships.
+      - name: Install elan (Lean toolchain manager)
+        continue-on-error: true
+        run: |
+          curl -sSfL https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve doc-gen4 and fetch Mathlib cache
+        continue-on-error: true
+        run: |
+          lake -Kdoc=on update doc-gen4
+          lake exe cache get || true
+
+      - name: Build library
+        continue-on-error: true
+        run: lake build
+
+      - name: Build API documentation (doc-gen4)
+        id: apidocs
+        continue-on-error: true
+        run: lake -Kdoc=on build Langlib:docs
+
+      # --- Prose site (Jekyll) -------------------------------------------------
+      - name: Build prose site
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+
+      - name: Attach API reference under /api
+        run: |
+          if [ -d .lake/build/doc ]; then
+            mkdir -p _site/api
+            cp -r .lake/build/doc/. _site/api/
+          else
+            echo "::warning::doc-gen4 output not found; deploying prose site without /api."
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
