@@ -29,9 +29,22 @@ private theorem reversal_grule_context_sensitive {g : grammar T} {r : grule T g.
 private theorem reversal_grammar_context_sensitive (g : grammar T)
     (hg : grammar_context_sensitive g) :
     grammar_context_sensitive (reversal_grammar g) := by
-  intro r hr
-  obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
-  exact reversal_grule_context_sensitive (hg r₀ hr₀)
+  refine ⟨fun r hr => ?_, ?_⟩
+  · obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
+    exact reversal_grule_context_sensitive (hg.1 r₀ hr₀)
+  · -- The ε-rule on the reversed grammar comes from an ε-rule on `g`.
+    rintro ⟨r, hr, hε⟩
+    obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
+    have hε₀ : initial_epsilon_rule g r₀ := by
+      rcases hε with ⟨hL, hN, hR, hO⟩
+      simp only [reversal_grule, reversal_grammar, List.reverse_eq_nil_iff] at hL hN hR hO
+      exact ⟨hR, hN, hL, by simpa [List.reverse_eq_nil_iff] using hO⟩
+    have hrhs := hg.2 ⟨r₀, hr₀, hε₀⟩
+    intro r' hr'
+    obtain ⟨r₀', hr₀', rfl⟩ := List.mem_map.mp hr'
+    have := hrhs r₀' hr₀'
+    -- `S ∈ out.reverse ↔ S ∈ out`.
+    simpa [reversal_grammar, reversal_grule, List.mem_reverse] using this
 
 /-- The class of context-sensitive languages is closed under reversal. -/
 public theorem CS_of_reverse_CS (L : Language T) :

@@ -31,9 +31,34 @@ private theorem bijection_grule_context_sensitive (π : T₁ ≃ T₂)
 private theorem bijection_grammar_context_sensitive (g : grammar T₁) (π : T₁ ≃ T₂)
     (hg : grammar_context_sensitive g) :
     grammar_context_sensitive (bijection_grammar g π) := by
-  intro r hr
-  obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
-  exact bijection_grule_context_sensitive π (hg r₀ hr₀)
+  refine ⟨fun r hr => ?_, ?_⟩
+  · obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
+    exact bijection_grule_context_sensitive π (hg.1 r₀ hr₀)
+  · -- The ε-rule on the bijection image comes from an ε-rule on `g`.
+    rintro ⟨r, hr, hε⟩
+    obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
+    have hε₀ : initial_epsilon_rule g r₀ := by
+      rcases hε with ⟨hL, hN, hR, hO⟩
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · simpa [bijection_grule] using hL
+      · simpa [bijection_grammar, bijection_grule] using hN
+      · simpa [bijection_grule] using hR
+      · simpa [bijection_grule] using hO
+    have hrhs := hg.2 ⟨r₀, hr₀, hε₀⟩
+    -- Push `initial_not_on_rhs` forward along the bijection.
+    intro r' hr'
+    obtain ⟨r₀', hr₀', rfl⟩ := List.mem_map.mp hr'
+    have := hrhs r₀' hr₀'
+    -- `S` is a nonterminal, so it lies in the mapped output iff it lies in the original.
+    simp only [bijection_grammar, bijection_grule] at *
+    intro hmem
+    rw [List.mem_map] at hmem
+    obtain ⟨s, hs, hseq⟩ := hmem
+    cases s with
+    | terminal a => simp [map_symbol] at hseq
+    | nonterminal n =>
+        simp only [map_symbol, symbol.nonterminal.injEq] at hseq
+        exact this (hseq ▸ hs)
 
 /-- The class of context-sensitive languages is closed under bijection between terminal alphabets. -/
 public theorem CS_of_bijemap_CS (π : T₁ ≃ T₂) (L : Language T₁) :

@@ -37,14 +37,55 @@ private theorem homExpandRule_noncontracting (h : α → List β)
 private theorem hom_grammar_context_sensitive (g : grammar α) (h : α → List β)
     (heps : IsEpsFreeHomomorphism h) (hg : grammar_context_sensitive g) :
     grammar_context_sensitive (hom_grammar g h) := by
-  intro r hr
-  change r ∈
-    (g.rules.map (@homLiftRule α β g.nt) ++
-      (all_used_terminals g).map (@homExpandRule α β g.nt h)) at hr
-  simp only [List.mem_append, List.mem_map] at hr
-  rcases hr with ⟨r₀, hr₀, rfl⟩ | ⟨a, _ha, rfl⟩
-  · exact homLiftRule_context_sensitive h (hg r₀ hr₀)
-  · exact Or.inr (homExpandRule_noncontracting h heps a)
+  refine ⟨fun r hr => ?_, ?_⟩
+  · change r ∈
+      (g.rules.map (@homLiftRule α β g.nt) ++
+        (all_used_terminals g).map (@homExpandRule α β g.nt h)) at hr
+    simp only [List.mem_append, List.mem_map] at hr
+    rcases hr with ⟨r₀, hr₀, rfl⟩ | ⟨a, _ha, rfl⟩
+    · exact homLiftRule_context_sensitive h (hg.1 r₀ hr₀)
+    · exact Or.inr (homExpandRule_noncontracting h heps a)
+  · -- The ε-rule on `hom_grammar` must be a lifted ε-rule of `g`.
+    rintro ⟨r, hr, hε⟩
+    change r ∈
+      (g.rules.map (@homLiftRule α β g.nt) ++
+        (all_used_terminals g).map (@homExpandRule α β g.nt h)) at hr
+    simp only [List.mem_append, List.mem_map] at hr
+    rcases hr with ⟨r₀, hr₀, rfl⟩ | ⟨a, _ha, rfl⟩
+    · -- A lifted rule is the ε-rule iff `r₀` is the ε-rule of `g`.
+      have hε₀ : initial_epsilon_rule g r₀ := by
+        rcases hε with ⟨hL, hN, hR, hO⟩
+        refine ⟨?_, ?_, ?_, ?_⟩
+        · simpa [homLiftRule, homLiftStr] using hL
+        · have : Sum.inl r₀.input_N = (Sum.inl g.initial : g.nt ⊕ α) := by
+            simpa [hom_grammar, homLiftRule] using hN
+          exact Sum.inl.inj this
+        · simpa [homLiftRule, homLiftStr] using hR
+        · simpa [homLiftRule, homLiftStr] using hO
+      have hrhs := hg.2 ⟨r₀, hr₀, hε₀⟩
+      -- Push `initial_not_on_rhs` forward along the lift.
+      intro r' hr'
+      change r' ∈
+        (g.rules.map (@homLiftRule α β g.nt) ++
+          (all_used_terminals g).map (@homExpandRule α β g.nt h)) at hr'
+      simp only [List.mem_append, List.mem_map] at hr'
+      rcases hr' with ⟨r₀', hr₀', rfl⟩ | ⟨a, _ha, rfl⟩
+      · -- Lifted rule: `S = inl g.initial` in output iff `g.initial` in `r₀'`'s output.
+        have := hrhs r₀' hr₀'
+        simp only [hom_grammar, homLiftRule, homLiftStr]
+        intro hmem
+        rw [List.mem_map] at hmem
+        obtain ⟨s, hs, hseq⟩ := hmem
+        cases s with
+        | terminal a => simp [homLiftSym] at hseq
+        | nonterminal n =>
+            simp only [homLiftSym, symbol.nonterminal.injEq, Sum.inl.injEq] at hseq
+            exact this (hseq ▸ hs)
+      · -- Expand rule: output is all terminals, no nonterminal `S`.
+        simp [hom_grammar, homExpandRule]
+    · -- An expand rule has `input_N = Sum.inr a ≠ Sum.inl g.initial`, never the ε-rule.
+      rcases hε with ⟨_, hN, _, _⟩
+      simp [hom_grammar, homExpandRule] at hN
 
 /-- Context-sensitive languages are closed under ε-free string homomorphism. -/
 public theorem CS_closedUnderEpsFreeHomomorphism :
