@@ -32,6 +32,8 @@ public import Langlib.Automata.Pushdown.Definition
 public import Langlib.Automata.Pushdown.Equivalence.ContextFree.CFGToPDA
 public import Langlib.Automata.Pushdown.Equivalence.ContextFree.PDAToCFG
 public import Langlib.Automata.Pushdown.Equivalence.ContextFree
+public import Langlib.Automata.Recursive.Basic.TapeCharacterization
+public import Langlib.Automata.Recursive.Equivalence.TapeCharacterization
 public import Langlib.Automata.Turing.DSL.CodeToTMDirect
 public import Langlib.Automata.Turing.DSL.DropFromLastSep
 public import Langlib.Automata.Turing.DSL.DropUntilFirstSepMachine

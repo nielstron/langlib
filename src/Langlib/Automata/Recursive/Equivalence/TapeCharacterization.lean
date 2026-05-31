@@ -1,27 +1,26 @@
 module
 
+public import Langlib.Automata.Recursive.Basic.TapeCharacterization
 public import Langlib.Classes.Recursive.Definition
 import Mathlib.Tactic
 @[expose]
 public section
 
-/-! # Acceptance by tape symbol vs. acceptance by state
+/-! # Tape-symbol acceptance equals state acceptance
 
-The library's `is_Recursive` reads the **final control state** of an always-halting
-TM0 to decide acceptance. An alternative, equally natural convention is for the
-machine to signal acceptance by the **symbol left under the head** when it halts.
+This file proves that the tape-acceptance characterization `is_Recursive_byTape`
+(defined in `Automata.Recursive.Basic.TapeCharacterization`) agrees with the
+state-based `is_Recursive`: `is_Recursive_byTape L → is_Recursive L`.
 
-This file shows the two conventions define the same class: `is_Recursive_byTape L ↔
-is_Recursive L`. The forward direction (tape ⇒ state) is the useful one — it lets a
-construction that produces the decision *on the tape* (which is what the
-`Code → TM` translation chain exposes) be repackaged into the state-based
-`is_Recursive`.
+The forward direction is the useful one — it lets a construction that produces the
+decision *on the tape* (which is what the `Code → TM` translation chain exposes) be
+repackaged into the state-based `is_Recursive`.
 
 ## Construction
 
 Given a machine `M` that halts with the answer under the head, `readerMachine M
 acceptSym` runs `M`; the instant `M` would halt it instead reads the current symbol
-`γ`, and moves to the distinguished halting state `Sum.inr (decide (γ = acceptSym))`,
+`γ` and moves to the distinguished halting state `Sum.inr (decide (γ = acceptSym))`,
 which records the verdict. The acceptance predicate just reads that Boolean off the
 state.
 -/
@@ -135,23 +134,8 @@ end AcceptByTape
 
 variable {T : Type}
 
-/-- A language is recursive *by tape convention* if some always-halting TM0 leaves a
-designated `acceptSym` under the head exactly on the words of `L`. -/
-@[expose]
-public def is_Recursive_byTape (L : Language T) : Prop :=
-  ∃ (Γ : Type) (_ : Fintype Γ) (_ : DecidableEq Γ)
-    (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
-    (M : TM0.Machine (Option (T ⊕ Γ)) Λ) (acceptSym : Option (T ⊕ Γ)),
-    (∀ w : List T,
-      (Turing.eval (TM0.step M) (TM0.init (w.map fun t => some (Sum.inl t)))).Dom) ∧
-    (∀ w : List T,
-      ∀ h : (Turing.eval (TM0.step M)
-          (TM0.init (w.map fun t => some (Sum.inl t)))).Dom,
-        w ∈ L ↔
-          ((Turing.eval (TM0.step M)
-            (TM0.init (w.map fun t => some (Sum.inl t)))).get h).Tape.head = acceptSym)
-
-/-- **Tape acceptance implies state acceptance.** -/
+/-- **Tape acceptance implies state acceptance:** every `is_Recursive_byTape` language is
+`is_Recursive`. -/
 public theorem is_Recursive_of_byTape {L : Language T} (h : is_Recursive_byTape L) :
     is_Recursive L := by
   classical

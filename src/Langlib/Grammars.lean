@@ -7,6 +7,7 @@ public import Langlib.Grammars.ContextFree.Definition
 public import Langlib.Grammars.ContextFree.EquivMathlibCFG
 public import Langlib.Grammars.ContextFree.Toolbox
 public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+public import Langlib.Grammars.ContextSensitive.Basic.FiniteNT
 public import Langlib.Grammars.ContextSensitive.Definition
 public import Langlib.Grammars.ContextSensitive.Toolbox
 public import Langlib.Grammars.Indexed.Basics.Higman

@@ -65,8 +65,11 @@ public import Langlib.Classes.ContextFree.Pumping.toMathlib
 public import Langlib.Classes.ContextSensitive.Closure.Bijection
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
+public import Langlib.Classes.ContextSensitive.Decidability.CertComputable
+public import Langlib.Classes.ContextSensitive.Decidability.Computability
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
 public import Langlib.Classes.ContextSensitive.Definition
+public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 public import Langlib.Classes.DeterministicContextFree.Closure.Complement
@@ -99,10 +102,12 @@ public import Langlib.Classes.Linear.Definition
 public import Langlib.Classes.Linear.Examples.AnBn
 public import Langlib.Classes.Linear.Inclusion.ContextFree
 public import Langlib.Classes.Recursive.Basics.Elementary
+public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Closure.Complement
 public import Langlib.Classes.Recursive.Closure.Reverse
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Definition
+public import Langlib.Classes.Recursive.Inclusion.ByTapeFromComputable
 public import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Recursive.Inclusion.Regular
 public import Langlib.Classes.Recursive.Inclusion.StrictRecursivelyEnumerable
@@ -127,6 +132,7 @@ public import Langlib.Classes.RecursivelyEnumerable.Decidability.Membership
 public import Langlib.Classes.RecursivelyEnumerable.Decidability.Universality
 public import Langlib.Classes.RecursivelyEnumerable.Definition
 public import Langlib.Classes.RecursivelyEnumerable.Examples.AnBnCn
+public import Langlib.Classes.RecursivelyEnumerable.Examples.EmptyWord
 public import Langlib.Classes.RecursivelyEnumerable.NormalForms.Kuroda
 public import Langlib.Classes.Regular.Basics.NonRegular
 public import Langlib.Classes.Regular.Closure.Bijection
@@ -147,6 +153,7 @@ public import Langlib.Classes.Regular.Decidability.Equivalence
 public import Langlib.Classes.Regular.Decidability.Membership
 public import Langlib.Classes.Regular.Decidability.Universality
 public import Langlib.Classes.Regular.Definition
+public import Langlib.Classes.Regular.Examples.EmptyWord
 public import Langlib.Classes.Regular.Examples.TopBot
 public import Langlib.Classes.Regular.Inclusion.ContextFree
 public import Langlib.Classes.Regular.Inclusion.DeterministicContextFree

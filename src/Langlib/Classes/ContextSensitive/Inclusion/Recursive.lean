@@ -8,6 +8,8 @@ public import Langlib.Classes.Regular.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Regular.Closure.Homomorphism
 public import Langlib.Classes.Regular.Closure.Complement
 public import Langlib.Grammars.Unrestricted.FiniteNonterminals
+public import Langlib.Grammars.ContextSensitive.Basic.FiniteNT
+public import Langlib.Classes.RecursivelyEnumerable.Examples.EmptyWord
 public import Langlib.Grammars.NonContracting.Equivalence.ContextSensitive
 public import Langlib.Grammars.Unrestricted.Toolbox
 import Mathlib.Tactic
@@ -46,23 +48,6 @@ open Relation
 
 variable {T : Type}
 
-/-! ## Non-contracting preservation under `restrictGrammar`
-
-`restrictGrammar` rewrites every rule by mapping each of its symbol lists through
-`restrictSym`. Since `List.map` preserves length, the non-contracting inequality is
-preserved verbatim. -/
-
-/-- Restricting a non-contracting grammar to its used nonterminals keeps it
-non-contracting. -/
-public theorem restrictGrammar_noncontracting (g : grammar T)
-    (hg : grammar_noncontracting g) :
-    grammar_noncontracting (restrictGrammar g) := by
-  intro r' hr'
-  obtain ⟨r, hr, hL, hN, hR, hout⟩ := restrictGrammar_rule_mem hr'
-  have := hg r hr
-  rw [hL, hR, hout]
-  simpa [List.length_map] using this
-
 /-! ## ε-elimination of the optional start rule
 
 With the standard definition of `grammar_context_sensitive`, the start symbol `S`
@@ -84,7 +69,6 @@ an `S`-free form the matched rule is never the `S → ε` rule, hence non-contra
 `g'`. So the whole `g`-derivation is in fact a `g'`-derivation. -/
 
 /-- The ε-free grammar obtained by deleting every contracting rule of `g`. -/
-@[expose]
 private def gFilter (g : grammar T) : grammar T where
   nt := g.nt
   initial := g.initial
@@ -289,10 +273,9 @@ public theorem exists_noncontracting_offEmpty_of_CS (g : grammar T)
     (hg : grammar_context_sensitive g) :
     ∃ g₀ : grammar T, Finite g₀.nt ∧ grammar_noncontracting g₀ ∧
       grammar_language g₀ = grammar_language g \ {[]} := by
-  refine ⟨restrictGrammar (gFilter g), Finite.of_fintype _,
-    restrictGrammar_noncontracting _ (gFilter_noncontracting g), ?_⟩
-  rw [← grammar_language_eq_restrictGrammar]
-  exact gFilter_language g hg
+  obtain ⟨g₀, hfin, hnc, hlang⟩ :=
+    noncontracting_equivalent_finiteNT (gFilter g) (gFilter_noncontracting g)
+  exact ⟨g₀, hfin, hnc, by rw [hlang]; exact gFilter_language g hg⟩
 
 /-! ## RE-ness of the complement
 
@@ -311,24 +294,6 @@ public theorem is_RE_compl_of_noncontracting_finite
     Primcodable.ofEquiv (Fin (Fintype.card g₀.nt)) (Fintype.truncEquivFin g₀.nt).out
   exact is_RE_compl_of_noncontracting g₀ hnc
 
-/-- The complement of the singleton empty-word language is RE (it is regular). -/
-public theorem is_RE_compl_singleton_empty [Fintype T] :
-    is_RE (({[]} : Language T)ᶜ) :=
-  is_RE_of_isRegular (Language.IsRegular.compl Language.isRegular_epsilon)
-
-/-- The empty language is RE (it is regular as the complement of the universal regular
-language; here we get it directly as `{[]} ⊓ {[]}ᶜ`). -/
-public theorem is_RE_empty [Fintype T] [DecidableEq T] [Primcodable T] :
-    is_RE (⊥ : Language T) := by
-  have : (⊥ : Language T) = ({[]} : Language T) ⊓ ({[]} : Language T)ᶜ := by
-    simp
-  rw [this]
-  exact RE_of_RE_i_RE _ _ ⟨is_RE_of_isRegular Language.isRegular_epsilon, is_RE_compl_singleton_empty⟩
-
-/-- The singleton empty-word language is RE. -/
-public theorem is_RE_singleton_empty [Fintype T] : is_RE ({[]} : Language T) :=
-  is_RE_of_isRegular Language.isRegular_epsilon
-
 /-- If `M` agrees with `L` off the empty word (`M = L \ {[]}`), and `Mᶜ` is RE, then
 `Lᶜ` is RE.
 
@@ -342,7 +307,7 @@ public theorem is_RE_compl_of_compl_offEmpty
     is_RE Lᶜ := by
   -- The "off-empty" part.
   have hoff : is_RE (Mᶜ ⊓ ({[]} : Language T)ᶜ) :=
-    RE_of_RE_i_RE Mᶜ (({[]} : Language T)ᶜ) ⟨hcompl, is_RE_compl_singleton_empty⟩
+    RE_of_RE_i_RE Mᶜ (({[]} : Language T)ᶜ) ⟨hcompl, emptyWordLanguage_compl_isRE⟩
   -- The "at-empty" part: either `{[]}` or `∅`.
   have hat : is_RE (Lᶜ ⊓ ({[]} : Language T)) := by
     by_cases h0 : [] ∈ L
@@ -358,7 +323,7 @@ public theorem is_RE_compl_of_compl_offEmpty
         ext w; constructor
         · rintro ⟨_, hw⟩; exact hw
         · rintro (rfl : w = []); exact ⟨h0, rfl⟩
-      rw [this]; exact is_RE_singleton_empty
+      rw [this]; exact emptyWordLanguage_isRE
   -- Assemble: `Lᶜ = (Mᶜ ⊓ {[]}ᶜ) + (Lᶜ ⊓ {[]})`.
   have heq : Lᶜ = (Mᶜ ⊓ ({[]} : Language T)ᶜ) + (Lᶜ ⊓ ({[]} : Language T)) := by
     subst hM

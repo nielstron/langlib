@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.Recursive.Basics.AcceptByTape
+public import Langlib.Automata.Recursive.Equivalence.TapeCharacterization
 public import Langlib.Automata.Turing.DSL.PartrecCodeToTM0
 public import Langlib.Automata.Turing.DSL.CodeToTMDirect
 public import Mathlib.Computability.TMToPartrec
