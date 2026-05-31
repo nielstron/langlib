@@ -25,6 +25,7 @@
     - { title: "= Mathlib's IsContextFree (+ CNF)", url: /results/context-free-equals-mathlib.html }
     - { title: "Closed under substitution (+ corollaries)", url: /results/cf-closed-under-substitution.html }
     - { title: "Not closed under intersection", url: /results/cfl-not-closed-under-intersection.html }
+    - { title: "Not closed under right quotient", url: /results/cfl-not-closed-under-right-quotient.html }
     - { title: "Membership & emptiness decidable", url: /results/cfl-decidability.html }
     - { title: "aⁿbⁿcⁿ — the separating example", url: /results/anbncn-not-context-free.html }
 
@@ -32,6 +33,7 @@
   items:
     - { title: "Closed under complement", url: /results/dcfl-closed-under-complement.html }
     - { title: "DPDA totalization", url: /results/dpda-totalization.html }
+    - { title: "Closure properties", url: /results/dcfl-closure-properties.html }
 
 - title: Context-sensitive
   items:
@@ -50,3 +52,4 @@
 - title: Recursively enumerable
   items:
     - { title: "TM = RE", url: /results/tm-equals-re.html }
+    - { title: "Closure properties", url: /results/re-closure-properties.html }

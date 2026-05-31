@@ -49,8 +49,7 @@ This page is a catalog of the library's results.
 - [DCFL is closed under complement](results/dcfl-closed-under-complement.html) — the marquee result.
 - [DPDA totalization](results/dpda-totalization.html) — the always-halting deciding-DPDA construction that powers it.
 - DCFL ⊊ CFL: [`DeterministicContextFree/Inclusion/ContextFree.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Inclusion/ContextFree.lean).
-- DCFL is **not** closed under union: [`DCF_notClosedUnderUnion`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Union.lean) (and likewise intersection, concatenation, star, homomorphism, substitution, reverse, quotient).
-- DCFL **is** closed under intersection with a regular language: [`Closure/IntersectionRegular.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/IntersectionRegular.lean), and union with a regular language: [`Closure/UnionRegular.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/UnionRegular.lean).
+- [Closure properties (full picture)](results/dcfl-closure-properties.html) — closed under complement (and ∩/∪ with a regular language), but **not** under union, intersection, concatenation, star, homomorphism, substitution, or quotient.
 
 ## Context-free languages (CFL)
 
@@ -59,6 +58,7 @@ This page is a catalog of the library's results.
 - [Chomsky normal form & Mathlib compatibility](results/context-free-equals-mathlib.html).
 - [Closed under substitution](results/cf-closed-under-substitution.html) — with union, concatenation, homomorphism and Kleene star derived as corollaries.
 - [Not closed under intersection](results/cfl-not-closed-under-intersection.html) — via the pumping lemma; non-closure under complement follows as a corollary.
+- [Not closed under right quotient](results/cfl-not-closed-under-right-quotient.html) — a concrete powers-of-two construction (but closed under right quotient *with a regular language*).
 - [Membership (CYK) and emptiness are decidable](results/cfl-decidability.html).
 - Closure: union, concatenation, star, homomorphism, substitution, inverse homomorphism, reverse, intersection-with-regular, quotient-with-regular — **Yes**; complement, intersection, quotient — **No**. Also terminal bijections, permutations, prefix and suffix (see the [closure table](#closure-properties)).
 
@@ -93,8 +93,9 @@ This page is a catalog of the library's results.
 ## Recursively enumerable languages (RE)
 
 - [TM = RE](results/tm-equals-re.html).
+- [Closure properties (grammar & TM constructions)](results/re-closure-properties.html) — closed under union, intersection, concatenation, star, homomorphism, inverse homomorphism, reverse, quotient and substitution; **not** complement.
 - `{aⁿbⁿcⁿ}` is RE: [`Classes/RecursivelyEnumerable/Examples/AnBnCn.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Examples/AnBnCn.lean).
-- Closure: union, intersection, complement (**No**), concatenation, star, homomorphism, substitution, inverse homomorphism, reverse, quotient — see the [closure table](#closure-properties). Membership, emptiness, universality and equivalence are all **undecidable**: [`RecursivelyEnumerable/Decidability/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Decidability).
+- Membership, emptiness, universality and equivalence are all **undecidable**: [`RecursivelyEnumerable/Decidability/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Decidability).
 
 ## Closure properties
 
@@ -104,9 +105,9 @@ A machine-checked closure table across all seven classes is in the project
 [`Utilities/ClosurePredicates.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Utilities/ClosurePredicates.lean).
 Highlights:
 
-- [DCFL closed under complement](results/dcfl-closed-under-complement.html) (but not union/intersection).
-- [CFL not closed under intersection](results/cfl-not-closed-under-intersection.html) (nor complement; but closed under union, star, concatenation, …).
-- [Recursive closed under complement](results/recursive-closed-under-complement.html); RE **not** closed under complement.
+- [DCFL closure profile](results/dcfl-closure-properties.html) — closed under complement, but not union/intersection/concatenation/star/homomorphism.
+- [CFL closed under substitution](results/cf-closed-under-substitution.html) (and its corollaries); **not** closed under [intersection](results/cfl-not-closed-under-intersection.html) or [right quotient](results/cfl-not-closed-under-right-quotient.html) (nor complement).
+- [Recursive closed under complement](results/recursive-closed-under-complement.html); [RE closed under all standard operations except complement](results/re-closure-properties.html).
 
 ## Decidability and computability
 
