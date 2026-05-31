@@ -7,9 +7,9 @@ description: "Langlib is a Lean 4 + Mathlib library of machine-checked results a
 
 **Langlib** is a [Lean 4](https://leanprover.github.io/) + [Mathlib](https://leanprover-community.github.io/) library of fully machine-checked results about grammars, automata, and language classes across the **Chomsky hierarchy** — regular, deterministic context-free, context-free, indexed, context-sensitive, recursive (decidable) and recursively enumerable languages. It formalizes the standard hierarchy theorems (PDA = CFG, TM = RE), closure properties (including the hard result that **deterministic context-free languages are closed under complement**), and decidability/computability results (including **every context-sensitive language is recursive** and **Post's theorem**). Source and build instructions are on [GitHub](https://github.com/nielstron/langlib).
 
-This page is a catalog of the library's results. Headline results have their own detailed page; every entry links to the exact Lean declaration that proves it.
+This page is a catalog of the library's results.
 
-## Headline results
+## Main results
 
 - [Deterministic context-free languages are closed under complement](results/dcfl-closed-under-complement.html)
 - [DPDA totalization: every DPDA has an equivalent always-halting deciding DPDA](results/dpda-totalization.html)
@@ -57,7 +57,8 @@ This page is a catalog of the library's results. Headline results have their own
 - [PDA = CFG](results/pda-equals-cfg.html).
 - [Pumping lemma](results/context-free-pumping-lemma.html) and [Ogden's lemma](results/ogdens-lemma.html).
 - [Chomsky normal form & Mathlib compatibility](results/context-free-equals-mathlib.html).
-- [Context-free languages are not closed under complement (or intersection)](results/cfl-not-closed-under-complement.html).
+- [Closed under substitution](results/cf-closed-under-substitution.html) — with union, concatenation, homomorphism and Kleene star derived as corollaries.
+- [Not closed under intersection](results/cfl-not-closed-under-intersection.html) — via the pumping lemma; non-closure under complement follows as a corollary.
 - [Membership (CYK) and emptiness are decidable](results/cfl-decidability.html).
 - Closure: union, concatenation, star, homomorphism, substitution, inverse homomorphism, reverse, intersection-with-regular, quotient-with-regular — **Yes**; complement, intersection, quotient — **No**. Also terminal bijections, permutations, prefix and suffix (see the [closure table](#closure-properties)).
 
@@ -104,7 +105,7 @@ A machine-checked closure table across all seven classes is in the project
 Highlights:
 
 - [DCFL closed under complement](results/dcfl-closed-under-complement.html) (but not union/intersection).
-- [CFL not closed under complement/intersection](results/cfl-not-closed-under-complement.html) (but closed under union, star, concatenation, …).
+- [CFL not closed under intersection](results/cfl-not-closed-under-intersection.html) (nor complement; but closed under union, star, concatenation, …).
 - [Recursive closed under complement](results/recursive-closed-under-complement.html); RE **not** closed under complement.
 
 ## Decidability and computability

@@ -4,9 +4,8 @@
 
 - title: Overview
   items:
-    - { title: "Home / full index", url: /index.html }
-    - { title: "Chomsky hierarchy is strict", url: /results/chomsky-hierarchy-strict-inclusions.html }
-    - { title: "aⁿbⁿcⁿ — the separating example", url: /results/anbncn-not-context-free.html }
+    - { title: "Home", url: /index.html }
+    - { title: "Chomsky hierarchy", url: /results/chomsky-hierarchy-strict-inclusions.html }
 
 - title: Regular
   items:
@@ -24,8 +23,10 @@
     - { title: "Pumping lemma", url: /results/context-free-pumping-lemma.html }
     - { title: "Ogden's lemma", url: /results/ogdens-lemma.html }
     - { title: "= Mathlib's IsContextFree (+ CNF)", url: /results/context-free-equals-mathlib.html }
-    - { title: "Not closed under complement", url: /results/cfl-not-closed-under-complement.html }
+    - { title: "Closed under substitution (+ corollaries)", url: /results/cf-closed-under-substitution.html }
+    - { title: "Not closed under intersection", url: /results/cfl-not-closed-under-intersection.html }
     - { title: "Membership & emptiness decidable", url: /results/cfl-decidability.html }
+    - { title: "aⁿbⁿcⁿ — the separating example", url: /results/anbncn-not-context-free.html }
 
 - title: Deterministic context-free
   items:
