@@ -10,6 +10,11 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      build_api:
+        description: "Also build the Lean/doc-gen4 API reference (SLOW — builds docs for all of Mathlib, ~30-60 min)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -28,25 +33,31 @@ jobs:
       - uses: actions/checkout@v4
 
       # --- Lean / API reference (doc-gen4) -------------------------------------
+      # Opt-in only: doc-gen4 builds HTML docs for ALL of Mathlib (~30-60 min),
+      # so these steps run only on a manual dispatch with `build_api = true`.
       # Non-blocking: if the heavy API build fails, the prose site still ships.
       - name: Install elan (Lean toolchain manager)
+        if: ${{ inputs.build_api }}
         continue-on-error: true
         run: |
           curl -sSfL https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
       - name: Resolve doc-gen4 and fetch Mathlib cache
+        if: ${{ inputs.build_api }}
         continue-on-error: true
         run: |
           lake -Kdoc=on update doc-gen4
           lake exe cache get || true
 
       - name: Build library
+        if: ${{ inputs.build_api }}
         continue-on-error: true
         run: lake build
 
       - name: Build API documentation (doc-gen4)
         id: apidocs
+        if: ${{ inputs.build_api }}
         continue-on-error: true
         run: lake -Kdoc=on build Langlib:docs
 
