@@ -24,12 +24,25 @@ The grammar-to-machine translation infrastructure lives under
 (`GrammarToTM`, `TMToGrammar`) and the DSL in
 [`Automata/Turing/DSL.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/DSL.lean).
 
+## The `RE ⊆ TM` engine: compiling searches to machines
+
+The forward direction is powered by a reusable bridge that **compiles any computable
+search procedure into a Turing machine** — see
+[Compiling search procedures to Turing machines](search-procedures-to-turing-machines.html).
+Grammar membership is itself a search (enumerate derivation sequences, test each with
+the computable `grammarTest`), so feeding that search to the bridge yields a machine
+recognizing the grammar's language. The same bridge is what the
+[RE closure proofs](re-closure-properties.html) reuse — they just build a different
+computable test.
+
 ## Proof idea
 
-`RE ⊆ TM`: a Turing machine nondeterministically guesses an unrestricted-grammar
-derivation and checks it against the input. `TM ⊆ RE`: an unrestricted grammar
-simulates the machine's configurations as sentential forms, with rules mirroring the
-transition function, so the grammar generates exactly the words the machine accepts.
+`RE ⊆ TM`: membership in a grammar is the search "∃ a derivation sequence deriving the
+input"; this computable search is compiled to a partial-recursive `Code` and then to a
+`TM0` machine (the [search-to-machine bridge](search-procedures-to-turing-machines.html)).
+`TM ⊆ RE`: an unrestricted grammar simulates the machine's configurations as sentential
+forms, with rules mirroring the transition function, so the grammar generates exactly
+the words the machine accepts.
 
 ## Keywords / also known as
 

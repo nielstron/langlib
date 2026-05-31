@@ -1,6 +1,6 @@
 ---
 title: "Context-free languages are not closed under right quotient"
-description: "A concrete Lean 4 construction proving context-free languages are not closed under right quotient by a context-free language — two CF witnesses whose quotient encodes the powers of two."
+description: "A concrete Lean 4 construction proving context-free languages are not closed under right quotient by a context-free language — two explicit CF witnesses whose quotient encodes the powers of two."
 ---
 
 # Context-free languages are not closed under right quotient
@@ -12,56 +12,77 @@ The **right quotient** of `L` by `R` is `L / R = { w : ∃ v ∈ R, w·v ∈ L }
 Context-free languages **are** closed under right quotient by a *regular* language, but
 they are **not** closed under right quotient by an arbitrary context-free language.
 Langlib proves the latter with an explicit, self-contained pair of context-free
-witnesses — a concrete construction that is surprisingly hard to find written out
-anywhere.
+witnesses.
 
-## The construction
+## The two witness languages
 
-Two context-free languages over the alphabet `{false, true}` are defined so that their
-quotient, restricted to the unary slice `{false}*`, is exactly the **powers-of-two**
-language:
+Over the alphabet `{a, b}` (in the source, `a = false`, `b = true`):
 
-> `(quotientNumerator / quotientDenominator) ∩ {false}*` = `unaryPow2` = `{ falseᵏ : k is a power of 2 }`.
+- **Numerator** `N` — concatenations of blocks that have **twice as many `a`s as `b`s**:
 
-- `quotientNumerator` and `quotientDenominator` are both context-free (blocks of
-  `false`s separated by `true`s encode lists of natural numbers; the numerator uses a
-  *doubling* relationship `a²ⁿ`/`bⁿ` and the denominator the matching `bⁿ`/`aⁿ`).
-- Their right quotient relates these encoded numbers in a way that, once you keep only
-  the purely-unary words, forces the surviving lengths to be **exactly the powers of
-  two**.
-- `unaryPow2` is **not** context-free (a textbook pumping-lemma language).
+  > `N = { a²ᵐ bᵐ : m ≥ 1 }*` &nbsp; (`quotientNumerator = (quotientLeftBlock)*`)
 
-Now the punchline uses a *positive* closure property as a lever: context-free
-languages **are** closed under intersection with a regular language. If the quotient
-`quotientNumerator / quotientDenominator` were context-free, then intersecting it with
-the regular language `{false}*` would stay context-free — but that intersection is
-`unaryPow2`, which is not. Contradiction.
+  e.g. `ε`, `a²b`, `a⁴b²`, `a²b·a²b`, `a⁴b²·a²b`, … — each block is `a²ᵐbᵐ`.
+
+- **Denominator** `D` — concatenations of `bᵐaᵐ` blocks, followed by **one trailing `b`**:
+
+  > `D = { bᵐ aᵐ : m ≥ 1 }* · b` &nbsp; (`quotientDenominator = (quotientRightBlock)* · {b}`)
+
+  e.g. `b`, `b²a²·b`, `ba·b`, `b²a²·b³a³·b`, … — note the smallest element is just `b`.
+
+Both are context-free — each is the Kleene star of a single-block context-free language
+(and CFL is closed under star and concatenation): `CF_quotientNumerator`,
+`CF_quotientDenominator`.
+
+## Why the quotient is the powers of two
+
+Intersect the quotient with the **regular** unary language `{a}*`. The key identity
+(`quotient_slice_eq_unaryPow2`) is
+
+> `(N / D) ∩ {a}*` = `unaryPow2` = `{ a^(2ᵏ) : k ≥ 1 }` = `{ a², a⁴, a⁸, a¹⁶, … }`.
+
+Recall `aᵐ ∈ N / D` means *some* `v ∈ D` makes `aᵐ·v ∈ N`. Worked examples:
+
+- **`a² ∈ N/D`**: take `v = b` (∈ D). Then `a²·v = a²b`, a single `N`-block (`m = 1`). ✓
+- **`a⁴ ∈ N/D`**: take `v = b²a²·b` (∈ D). Then `a⁴·v = a⁴b² a²b = (a⁴b²)(a²b)`, two
+  `N`-blocks. ✓
+- **`a³ ∉ N/D`**: every `v ∈ D` starts with `b`, so `a³·v` begins `a³b…`; but an
+  `N`-block needs an **even** number of `a`s before its `b`s, and `a³b` has three — no
+  parse exists. ✗
+
+The general mechanism: matching `aᵐ·v` against the `N`-blocks forces the `bᵐ` tail of
+one block to be eaten by a denominator block `bᵐaᵐ`, whose `aᵐ` must then begin the
+**next** numerator block `a²ᵐ'bᵐ'` — so `m = 2m'`. Walking this chain outward from the
+single trailing `b` **doubles** the exponent at each step, so the only unary words that
+survive are `a^(2ᵏ)`. That set is `unaryPow2`, which the
+[pumping lemma](context-free-pumping-lemma.html) shows is **not** context-free
+(`notCF_unaryPow2`).
+
+## Putting it together
+
+The non-closure then follows from a *positive* closure property used as a lever:
+
+1. CFLs **are** closed under intersection with a regular language.
+2. So if `N / D` were context-free, `(N / D) ∩ {a}*` would be context-free too.
+3. But that intersection is `unaryPow2`, which is not — contradiction.
+
+Hence CFLs are not closed under right quotient. The hard part — the bulk of the
+~700-line file — is proving that the slice equals the powers of two *exactly*.
 
 ## In Lean
 
-In `Classes/ContextFree/Closure/Quotient.lean`:
+Closure result and counterexample, in `Classes/ContextFree/Closure/Quotient.lean`:
 
-- [`CF_notClosedUnderRightQuotient`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the class `is_CF` is not closed under right quotient.
-- [`notCF_quotient`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the specific quotient language is not context-free.
-- [`quotient_slice_eq_unaryPow2`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the key identity: the unary slice of the quotient is exactly `unaryPow2`.
+- [`CF_notClosedUnderRightQuotient`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — `is_CF` is not closed under right quotient.
+- [`notCF_quotient`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the specific quotient `N / D` is not context-free.
+- [`quotient_slice_eq_unaryPow2`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the identity `(N / D) ∩ {a}* = unaryPow2`.
+- [`CF_closedUnderRightQuotientWithRegular`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the contrasting *positive* result (quotient with a regular language is CF).
 
-The witnesses and the non-CF unary language, in `Classes/ContextFree/Examples/`:
+The witness languages (definitions in `Examples/`, context-freeness in `Classes/ContextFree/Examples/`):
 
-- [`quotientNumerator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/A2nBnPosStar.lean) ([`CF_quotientNumerator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/A2nBnPosStar.lean)) and [`quotientDenominator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/BnAnPosStarB.lean) ([`CF_quotientDenominator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/BnAnPosStarB.lean)) — the two context-free witnesses.
-- [`unaryPow2`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/UnaryA2PowSucc.lean) / [`notCF_unaryPow2`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/UnaryA2PowSucc.lean) — the powers-of-two unary language and its non-context-freeness.
-
-For contrast, the **positive** result is in the same file:
-[`CF_closedUnderRightQuotientWithRegular`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — closure under right quotient *with a regular language*.
-
-## Proof idea
-
-The reusable trick is to **slice with a regular language to expose a non-context-free
-unary language**: pick CF numerator/denominator whose quotient, intersected with a
-regular unary `{false}*`, lands exactly on a unary language known to be non-CF (here
-`unaryPow2`). Closure of CFL under intersection-with-regular then turns "the quotient
-is CF" into "`unaryPow2` is CF", which the pumping lemma refutes. The hard part — and
-the bulk of the ~700-line file — is designing the two grammars and proving the slice
-equals the powers of two exactly.
+- [`quotientNumerator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/A2nBnPosStar.lean) `= (quotientLeftBlock)*`, with [`quotientLeftBlock = { a²ᵐbᵐ : m ≥ 1 }`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/A2nBnPos.lean) — context-free by [`CF_quotientNumerator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/A2nBnPosStar.lean).
+- [`quotientDenominator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/BnAnPosStarB.lean) `= (quotientRightBlock)* · {b}`, with [`quotientRightBlock = { bᵐaᵐ : m ≥ 1 }`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/BnAnPos.lean) — context-free by [`CF_quotientDenominator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/BnAnPosStarB.lean).
+- [`unaryPow2 = { a^(2^(k+1)) }`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/UnaryA2PowSucc.lean) / [`notCF_unaryPow2`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/UnaryA2PowSucc.lean).
 
 ## Keywords / also known as
 

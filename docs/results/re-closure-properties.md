@@ -18,8 +18,9 @@ styles, and this page groups them that way:
 
 - **Grammar constructions** — directly build a new type-0 grammar from the given one(s).
 - **Turing-machine constructions** — exhibit a *semi-decider* (a dovetailed search that
-  accepts exactly the members), compile it to a Turing machine, and bridge back to a
-  grammar via [TM = RE](tm-equals-re.html).
+  accepts exactly the members), compile it to a Turing machine via the
+  [search-to-machine bridge](search-procedures-to-turing-machines.html), and bridge
+  back to a grammar via [TM = RE](tm-equals-re.html).
 
 ## Closed under — grammar constructions
 

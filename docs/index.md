@@ -93,6 +93,7 @@ This page is a catalog of the library's results.
 ## Recursively enumerable languages (RE)
 
 - [TM = RE](results/tm-equals-re.html).
+- [Compiling search procedures to Turing machines](results/search-procedures-to-turing-machines.html) — the reusable semi-decision → TM bridge behind TM = RE and the RE closures.
 - [Closure properties (grammar & TM constructions)](results/re-closure-properties.html) — closed under union, intersection, concatenation, star, homomorphism, inverse homomorphism, reverse, quotient and substitution; **not** complement.
 - `{aⁿbⁿcⁿ}` is RE: [`Classes/RecursivelyEnumerable/Examples/AnBnCn.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Examples/AnBnCn.lean).
 - Membership, emptiness, universality and equivalence are all **undecidable**: [`RecursivelyEnumerable/Decidability/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Decidability).

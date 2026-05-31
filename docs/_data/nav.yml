@@ -52,4 +52,5 @@
 - title: Recursively enumerable
   items:
     - { title: "TM = RE", url: /results/tm-equals-re.html }
+    - { title: "Search → TM bridge", url: /results/search-procedures-to-turing-machines.html }
     - { title: "Closure properties", url: /results/re-closure-properties.html }
