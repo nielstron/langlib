@@ -1,6 +1,7 @@
 ---
-title: "Strict inclusions of the Chomsky hierarchy"
+title: "Chomsky hierarchy"
 description: "Lean 4 proofs that each level of the Chomsky hierarchy strictly contains the level below: Regular ⊊ DCFL ⊊ CFL ⊊ Indexed, and Recursive ⊊ RE."
+nav_order: 2
 ---
 
 # The Chomsky hierarchy is strict

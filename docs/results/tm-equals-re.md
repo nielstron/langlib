@@ -1,6 +1,8 @@
 ---
 title: "TM = RE: Turing machines recognize exactly the recursively enumerable languages"
 description: "A formal Lean 4 proof that Turing machines and unrestricted grammars recognize exactly the recursively enumerable (type-0) languages."
+parent: "Recursively enumerable"
+nav_order: 1
 ---
 
 # Turing machines recognize exactly the recursively enumerable languages (TM = RE)

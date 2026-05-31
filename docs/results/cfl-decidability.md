@@ -1,6 +1,8 @@
 ---
 title: "Membership and emptiness are decidable for context-free languages"
 description: "A formal Lean 4 proof that membership (via the CYK algorithm) and emptiness are computable for context-free languages."
+parent: "Context-free"
+nav_order: 8
 ---
 
 # Membership and emptiness are decidable for context-free languages

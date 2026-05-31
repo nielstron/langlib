@@ -1,6 +1,8 @@
 ---
 title: "Context-free languages are not closed under right quotient"
 description: "A concrete Lean 4 construction proving context-free languages are not closed under right quotient by a context-free language — two explicit CF witnesses whose quotient encodes the powers of two."
+parent: "Context-free"
+nav_order: 7
 ---
 
 # Context-free languages are not closed under right quotient

@@ -1,6 +1,8 @@
 ---
 title: "Context-free languages are closed under substitution"
 description: "A formal Lean 4 proof that context-free languages are closed under substitution, with union, concatenation, homomorphism and Kleene star derived as corollaries."
+parent: "Context-free"
+nav_order: 5
 ---
 
 # Context-free languages are closed under substitution

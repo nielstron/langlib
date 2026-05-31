@@ -1,6 +1,8 @@
 ---
 title: "Closure properties of recursively enumerable languages"
 description: "Formal Lean 4 proofs that recursively enumerable languages are closed under union, intersection, concatenation, star, homomorphism, inverse homomorphism, reverse, quotient and substitution — but not complement — split by grammar-based vs Turing-machine constructions."
+parent: "Recursively enumerable"
+nav_order: 3
 ---
 
 # Closure properties of recursively enumerable languages

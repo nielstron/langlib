@@ -1,6 +1,8 @@
 ---
 title: "Recursive ⊊ RE: recursive languages are a strict subset of recursively enumerable"
 description: "A formal Lean 4 proof that the recursive (decidable) languages form a strict subclass of the recursively enumerable languages, witnessed by the halting problem."
+parent: "Recursive"
+nav_order: 4
 ---
 
 # Recursive languages are a strict subclass of recursively enumerable languages (Recursive ⊊ RE)

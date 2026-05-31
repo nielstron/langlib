@@ -6,14 +6,49 @@ description: >-
   the Chomsky hierarchy, pumping lemmas, and automata equivalences.
 url: "https://nielstron.github.io"
 baseurl: "/langlib"
-theme: minima
+
+# Documentation theme: native grouped sidebar + client-side search.
+theme: just-the-docs
+
+# Sidebar logo (shown in place of the site title text).
+logo: "/logo.svg"
+
+# --- just-the-docs options ---------------------------------------------------
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  tokenizer_separator: /[\s/]+/
+
+heading_anchors: true
+color_scheme: light
+
+# Top-right auxiliary link.
+aux_links:
+  "GitHub":
+    - "https://github.com/nielstron/langlib"
+aux_links_new_tab: true
+
+# Footer
+back_to_top: true
+back_to_top_text: "Back to top"
+last_edit_timestamp: false
+gh_edit_link: false
+
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap
+
 exclude:
   - api/
+  - vendor/
+  - Gemfile
+  - Gemfile.lock
+  - .bundle/
+  - .sass-cache/
+
 defaults:
   - scope:
       path: ""
     values:
-      layout: page
+      layout: default

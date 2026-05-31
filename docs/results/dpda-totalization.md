@@ -1,6 +1,8 @@
 ---
 title: "DPDA totalization"
 description: "Every deterministic pushdown automaton can be transformed into an equivalent total, always-halting deciding DPDA, formalized in Lean 4."
+parent: "Deterministic context-free"
+nav_order: 2
 ---
 
 # DPDA totalization: every DPDA has an equivalent always-halting deciding DPDA

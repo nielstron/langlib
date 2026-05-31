@@ -1,6 +1,8 @@
 ---
 title: "Regular grammars = DFA languages"
 description: "A formal Lean 4 proof that regular grammars and deterministic finite automata recognize exactly the same (regular) languages."
+parent: "Regular"
+nav_order: 1
 ---
 
 # Regular grammars recognize exactly the DFA languages

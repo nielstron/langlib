@@ -1,6 +1,8 @@
 ---
 title: "Right-regular and left-regular grammars"
 description: "Lean 4 definitions of right-regular and left-regular (type-3) grammars and a formal proof that they generate the same class of regular languages."
+parent: "Regular"
+nav_order: 2
 ---
 
 # Right-regular and left-regular grammars

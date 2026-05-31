@@ -1,6 +1,8 @@
 ---
 title: "Linear bounded automata and context-sensitive grammars"
 description: "Lean 4 formalizations relating linear bounded automata to context-sensitive grammars: the Myhill grammar construction and NLBA ⊆ Turing-machine languages."
+parent: "Context-sensitive"
+nav_order: 2
 ---
 
 # Linear bounded automata and context-sensitive grammars

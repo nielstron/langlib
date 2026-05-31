@@ -1,6 +1,8 @@
 ---
 title: "Membership in context-sensitive languages is computable"
 description: "A formal Lean 4 proof that membership in a context-sensitive language is a computable predicate (ComputablePred), not just abstractly decidable."
+parent: "Context-sensitive"
+nav_order: 4
 ---
 
 # Membership in context-sensitive languages is computable

@@ -1,6 +1,8 @@
 ---
 title: "Every context-sensitive language is recursive (CS ⊆ Recursive)"
 description: "A formal Lean 4 proof that every context-sensitive language is recursive (decidable), so CS ⊆ Recursive in the Chomsky hierarchy."
+parent: "Context-sensitive"
+nav_order: 3
 ---
 
 # Every context-sensitive language is recursive (CS ⊆ Recursive)

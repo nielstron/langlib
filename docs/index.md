@@ -1,6 +1,8 @@
 ---
-title: "Langlib — formal-language theory and the Chomsky hierarchy, formalized in Lean 4"
+title: "Home"
 description: "Langlib is a Lean 4 + Mathlib library of machine-checked results about regular, context-free, context-sensitive, recursive and recursively enumerable languages, automata, closure properties and decidability."
+seo_title: "Langlib — formal-language theory and the Chomsky hierarchy, formalized in Lean 4"
+nav_order: 1
 ---
 
 # Langlib: formal-language theory in Lean 4

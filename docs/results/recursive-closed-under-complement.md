@@ -1,6 +1,8 @@
 ---
 title: "Recursive languages are closed under complement"
 description: "A formal Lean 4 proof that the complement of a recursive (decidable) language is recursive."
+parent: "Recursive"
+nav_order: 2
 ---
 
 # Recursive languages are closed under complement

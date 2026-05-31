@@ -1,6 +1,8 @@
 ---
 title: "PDA = CFG: pushdown automata recognize exactly the context-free languages"
 description: "A formal Lean 4 proof that pushdown automata and context-free grammars recognize exactly the same class of languages."
+parent: "Context-free"
+nav_order: 1
 ---
 
 # Pushdown automata recognize exactly the context-free languages (PDA = CFG)

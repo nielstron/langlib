@@ -1,6 +1,8 @@
 ---
 title: "Langlib's context-free languages equal Mathlib's IsContextFree"
 description: "A formal Lean 4 proof that Langlib's notion of context-free language coincides with Mathlib's IsContextFree, and a verified Chomsky normal form."
+parent: "Context-free"
+nav_order: 4
 ---
 
 # Langlib's context-free languages coincide with Mathlib's `IsContextFree`
