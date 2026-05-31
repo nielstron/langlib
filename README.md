@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.svg" alt="Langlib logo" width="160">
+</p>
+
 # Langlib 
 [![CI](https://github.com/nielstron/langlib/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/langlib/actions/workflows/build.yml)
 
