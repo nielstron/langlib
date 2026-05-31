@@ -1,8 +1,8 @@
 <p align="center">
   <img src="docs/logo.svg" alt="Langlib logo" width="160">
+  <h1>Langlib</h1>
 </p>
 
-# Langlib 
 [![CI](https://github.com/nielstron/langlib/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/langlib/actions/workflows/build.yml)
 
 `Langlib` is a Lean 4 library of formalized results about grammars, language classes, and automata across the Chomsky hierarchy.
