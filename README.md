@@ -37,6 +37,7 @@
 ### Recursive Languages
 
 - [Recursive Languages](src/Langlib/Classes/Recursive/Definition.lean)
+- [Post's theorem](src/Langlib/Classes/Recursive/Basics/Post.lean)
 
 ### Recursively Enumerable Languages
 
