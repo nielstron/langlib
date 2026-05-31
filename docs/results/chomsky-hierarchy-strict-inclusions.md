@@ -9,12 +9,11 @@ nav_order: 2
 ## Statement
 
 Each language class in the Chomsky hierarchy strictly contains the one below it.
-Langlib formalizes the following strict inclusions:
+Langlib already formalizes the following strict inclusions:
 
-- **Regular ⊊ Deterministic context-free** (also Regular ⊊ Linear ⊊ CFL)
-- **Deterministic context-free ⊊ Context-free**
+- **Regular ⊊ Deterministic context-free ⊊ Context-free ⊊ Context Sensitive ⊆ Recursive ⊊ Recursively enumerable **
 - **Context-free ⊊ Indexed**
-- **Recursive ⊊ Recursively enumerable**
+- **Regular ⊊ Linear ⊊ CFL**
 
 ## In Lean
 
