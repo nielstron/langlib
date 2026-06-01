@@ -28,6 +28,7 @@ of a linear grammar produces.
 - [`Spine`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Pumping/Spine.lean) — the reified single-nonterminal derivation, with soundness/completeness against `grammar_derives`.
 - [`L4_not_is_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) — `{0ⁿ1ⁿ2ᵐ3ᵐ}` is not linear.
 - [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) — `Linear ⊊ CF`.
+- [`Linear_not_closedUnderConcatenation`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Closure/Concatenation.lean) — corollary: `Linear` is not closed under concatenation (`{0ⁿ1ⁿ}·{2ᵐ3ᵐ}` is not linear).
 
 ## Proof idea
 
