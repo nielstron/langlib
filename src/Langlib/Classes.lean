@@ -98,9 +98,14 @@ public import Langlib.Classes.Indexed.Closure.Reverse
 public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition
 public import Langlib.Classes.Indexed.Examples.AnBnCn
+public import Langlib.Classes.Linear.Basics.Map
+public import Langlib.Classes.Linear.Closure.Concatenation
 public import Langlib.Classes.Linear.Definition
 public import Langlib.Classes.Linear.Examples.AnBn
 public import Langlib.Classes.Linear.Inclusion.ContextFree
+public import Langlib.Classes.Linear.Inclusion.StrictContextFree
+public import Langlib.Classes.Linear.Pumping.Pumping
+public import Langlib.Classes.Linear.Pumping.Spine
 public import Langlib.Classes.Recursive.Basics.Elementary
 public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Closure.Complement

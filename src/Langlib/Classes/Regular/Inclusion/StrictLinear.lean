@@ -4,7 +4,7 @@ public import Langlib.Classes.Linear.Definition
 public import Langlib.Classes.Regular.Definition
 public import Mathlib.Computability.DFA
 import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
-import Langlib.Classes.Linear.Examples.AnBn
+public import Langlib.Classes.Linear.Examples.AnBn
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Inclusion.Linear
@@ -70,7 +70,7 @@ variable {T : Type}
 theorem exists_Linear_not_regular : ∃ L : Language Bool, is_Linear L ∧ ¬ L.IsRegular :=
   ⟨anbn, anbn_is_Linear, anbn_not_isRegular⟩
 
-private lemma map_anbn_is_Linear (f : Bool → T) (_hf : Function.Injective f) :
+public lemma map_anbn_is_Linear (f : Bool → T) (_hf : Function.Injective f) :
     is_Linear (Language.map f anbn) := by
       refine' ⟨ _, _, _ ⟩;
       exact ⟨ Unit, (), [ ⟨ [ ], (), [ ], [ symbol.terminal ( f false ), symbol.nonterminal (), symbol.terminal ( f true ) ] ⟩, ⟨ [ ], (), [ ], [ ] ⟩ ] ⟩;

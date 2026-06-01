@@ -20,6 +20,8 @@
 - [Linear Languages](src/Langlib/Classes/Linear/Definition.lean)
 - [Deterministic Context-Free Languages](src/Langlib/Classes/DeterministicContextFree/Definition.lean)
 - [`{aⁿbⁿ}` is Linear](src/Langlib/Classes/ContextFree/Examples/AnBn.lean)
+- [Pumping lemma for linear languages](src/Langlib/Classes/Linear/Pumping/Pumping.lean)
+- [`{0ⁿ1ⁿ2ᵐ3ᵐ}` is context-free but not linear](src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean)
 - [Totalization of DPDAs](src/Langlib/Automata/DeterministicPushdown/Totalization.lean)
 
 ### Context-Free Languages
@@ -89,7 +91,7 @@
 **Additional results**
 
 - Context Free Languages ⇔ [🔗](src/Langlib/Grammars/ContextFree/EquivMathlibCFG.lean) Mathlib's `IsContextFree`.
-- Regular ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) Linear ⊊ (⊆ [🔗](src/Langlib/Classes/Linear/Inclusion/ContextFree.lean)) Context-free.
+- Regular ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) Linear ⊊ [🔗](src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) Context-free.
 
 
 
