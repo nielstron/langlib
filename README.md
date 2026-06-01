@@ -22,7 +22,6 @@
 - [`{aⁿbⁿ}` is Linear](src/Langlib/Classes/ContextFree/Examples/AnBn.lean)
 - [Pumping lemma for linear languages](src/Langlib/Classes/Linear/Pumping/Pumping.lean)
 - [`{0ⁿ1ⁿ2ᵐ3ᵐ}` is context-free but not linear](src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean)
-- [Linear languages are not closed under concatenation](src/Langlib/Classes/Linear/Closure/Concatenation.lean)
 - [Totalization of DPDAs](src/Langlib/Automata/DeterministicPushdown/Totalization.lean)
 
 ### Context-Free Languages
