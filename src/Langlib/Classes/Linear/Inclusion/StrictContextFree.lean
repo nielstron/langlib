@@ -6,7 +6,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 public import Langlib.Classes.Linear.Inclusion.ContextFree
 public import Langlib.Classes.Linear.Pumping.Pumping
-public import Langlib.Classes.Linear.Closure.Homomorphism
+public import Langlib.Classes.Linear.Basics.Map
 import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Closure.Homomorphism

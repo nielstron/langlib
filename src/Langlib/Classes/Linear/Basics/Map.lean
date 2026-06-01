@@ -13,16 +13,21 @@ public section
 
 
 
-/-! # Linear languages are closed under terminal homomorphisms
+/-! # Linear languages under terminal maps (alphabet renamings)
 
-Relabelling the terminals of a grammar by a letter map `f : T₁ → T₂` (the
-construction `map_grammar`) keeps the nonterminals untouched, so it preserves the
-linear rule shape. Because a linear grammar's rules have empty left/right context,
-the relabelled grammar generates exactly the `f`-image of the original language —
-even when `f` is not injective. This yields:
+This file concerns the **letter-to-letter** map `Language.map f` for `f : T₁ → T₂`
+(an alphabet renaming). It is *not* the general string homomorphism `α → List β` of
+the `ClosedUnderHomomorphism` predicate — the symbol-to-string case is not treated
+here.
 
-- `is_Linear_map`              — `Linear` is closed under terminal maps `map f`.
-- `is_Linear_of_map_injective` — and reflects them along injective maps.
+Relabelling the terminals of a grammar by such an `f` (the construction
+`map_grammar`) keeps the nonterminals untouched, so it preserves the linear rule
+shape. Because a linear grammar's rules have empty left/right context, the
+relabelled grammar generates exactly the `f`-image of the original language — even
+when `f` is not injective. This yields:
+
+- `is_Linear_map`              — `Linear` is closed under terminal maps `Language.map f`.
+- `is_Linear_of_map_injective` — and is reflected along injective maps.
 
 The reflection direction is what lets a non-linearity result over a small concrete
 alphabet (e.g. `Fin 4`) be transported to any larger alphabet.
