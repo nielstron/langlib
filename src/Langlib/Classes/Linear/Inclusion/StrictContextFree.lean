@@ -1,17 +1,21 @@
 module
 
 /-
-Copyright (c) 2026 Harmonic, Niels Mündler. All rights reserved.
+Copyright (c) 2026 Niels Mündler. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 public import Langlib.Classes.Linear.Inclusion.ContextFree
 public import Langlib.Classes.Linear.Pumping.Pumping
+public import Langlib.Classes.Linear.Closure.Homomorphism
 import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Closure.Homomorphism
 import Langlib.Classes.ContextFree.Examples.AnBn
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Mathlib.Tactic.FinCases
+import Mathlib.Logic.Embedding.Basic
+import Mathlib.Data.Fintype.Card
+import Mathlib.Order.Fin.Basic
 public import Langlib.Examples.AnBn
 @[expose]
 public section
@@ -21,26 +25,34 @@ public section
 /-! # Linear ⊊ Context-Free
 
 The language `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` is context-free (a concatenation of two
-copies of `aⁿbⁿ`) but not linear: the linear pumping lemma confines the pumped
-pieces to the two ends, but pumping then breaks one of the two independent
-matchings.
+copies of `{aⁿbⁿ}`) but not linear: the linear pumping lemma confines the pumped
+pieces to the two ends, and pumping then breaks one of the two independent
+matchings (`L4_not_is_Linear`).
+
+The result is transported to an arbitrary alphabet `T` with at least four symbols
+by relabelling along an embedding `e : Fin 4 ↪ T`, using the fact that linear
+languages are reflected along injective terminal maps
+(`is_Linear_of_map_injective`).
 
 ## Main results
 
-- `L4_is_CF`            — `{0ⁿ1ⁿ2ᵐ3ᵐ}` is context-free.
-- `L4_not_is_Linear`    — `{0ⁿ1ⁿ2ᵐ3ᵐ}` is not linear.
-- `Linear_strict_subclass_CF` — `Linear ⊊ CF` over `Fin 4`.
+- `L4_is_CF` / `L4_not_is_Linear` — the concrete `Fin 4` witness.
+- `Linear_strict_subclass_CF`         — `Linear ⊊ CF` over `Fin 4`.
+- `Linear_strict_subclass_CF_of_card` — `Linear ⊊ CF` for any `4 ≤ Fintype.card T`.
 -/
 
 open Language List
+
+variable {T : Type}
 
 /-- Inject `aⁿbⁿ`'s alphabet to `0`/`1`. -/
 def f4 : Bool → Fin 4 := fun b => if b then 1 else 0
 /-- Inject `aⁿbⁿ`'s alphabet to `2`/`3`. -/
 def g4 : Bool → Fin 4 := fun b => if b then 3 else 2
 
-theorem map_anbn_is_CF' (f : Bool → Fin 4) : is_CF (Language.map f anbn) := by
-  have hsubst : is_CF (anbn.subst (fun x => ({[f x]} : Language (Fin 4)))) := by
+/-- `map f {aⁿbⁿ}` is context-free for any letter map `f`. -/
+public theorem map_anbn_is_CF (f : Bool → T) : is_CF (Language.map f anbn) := by
+  have hsubst : is_CF (anbn.subst (fun x => ({[f x]} : Language T))) := by
     apply CF_of_subst_CF anbn
     · exact anbn_is_CF
     · intro x
@@ -53,16 +65,16 @@ public def L4 : Language (Fin 4) := Language.map f4 anbn * Language.map g4 anbn
 
 /-- `{0ⁿ1ⁿ2ᵐ3ᵐ}` is context-free. -/
 public theorem L4_is_CF : is_CF L4 :=
-  CF_of_CF_c_CF _ _ ⟨map_anbn_is_CF' f4, map_anbn_is_CF' g4⟩
+  CF_of_CF_c_CF _ _ ⟨map_anbn_is_CF f4, map_anbn_is_CF g4⟩
 
-/-- `0ᵏ1ᵏ ∈ map f4 aⁿbⁿ`. -/
-theorem mem_map_anbn (f : Bool → Fin 4) (k : ℕ) :
+/-- `(f false)ᵏ (f true)ᵏ ∈ map f {aⁿbⁿ}`. -/
+public theorem mem_map_anbn (f : Bool → T) (k : ℕ) :
     List.replicate k (f false) ++ List.replicate k (f true) ∈ Language.map f anbn := by
   refine ⟨List.replicate k false ++ List.replicate k true, ⟨k, rfl⟩, ?_⟩
   simp [List.map_append, List.map_replicate]
 
-/-- If `s ∈ map f anbn` then `s = (f false)ᵏ (f true)ᵏ` for some `k`. -/
-theorem eq_of_mem_map_anbn {f : Bool → Fin 4} {s : List (Fin 4)} (hs : s ∈ Language.map f anbn) :
+/-- Membership in `map f {aⁿbⁿ}` is exactly `(f false)ᵏ (f true)ᵏ`. -/
+public theorem eq_of_mem_map_anbn {f : Bool → T} {s : List T} (hs : s ∈ Language.map f anbn) :
     ∃ k, s = List.replicate k (f false) ++ List.replicate k (f true) := by
   obtain ⟨ws, ⟨k, rfl⟩, rfl⟩ := hs
   exact ⟨k, by simp [List.map_append, List.map_replicate]⟩
@@ -170,3 +182,31 @@ public theorem Linear_strict_subclass_CF :
     (Linear : Set (Language (Fin 4))) ⊂ (CF : Set (Language (Fin 4))) := by
   refine ⟨Linear_subclass_CF, fun hsub => ?_⟩
   exact L4_not_is_Linear (hsub L4_is_CF)
+
+/-! ## Transport to an arbitrary alphabet with at least four symbols -/
+
+/-- The `Fin 4` witness, relabelled along an embedding, is context-free. -/
+public theorem Lwit_is_CF (e : Fin 4 ↪ T) : is_CF (Language.map e L4) := by
+  have hrw : Language.map e L4
+      = Language.map (e ∘ f4) anbn * Language.map (e ∘ g4) anbn := by
+    rw [L4, map_mul, Language.map_map, Language.map_map]
+  rw [hrw]
+  exact CF_of_CF_c_CF _ _ ⟨map_anbn_is_CF _, map_anbn_is_CF _⟩
+
+/-- The relabelled witness is not linear: linearity would reflect back to `L4`. -/
+public theorem Lwit_not_is_Linear (e : Fin 4 ↪ T) : ¬ is_Linear (Language.map e L4) :=
+  fun h => L4_not_is_Linear (is_Linear_of_map_injective e.injective h)
+
+/-- Linear languages are a strict subclass of context-free languages over any alphabet that
+admits an embedding of four distinct symbols. -/
+public theorem Linear_strict_subclass_CF_of_embedding (e : Fin 4 ↪ T) :
+    (Linear : Set (Language T)) ⊂ (CF : Set (Language T)) := by
+  refine ⟨Linear_subclass_CF, fun hsub => ?_⟩
+  exact Lwit_not_is_Linear e (hsub (Lwit_is_CF e))
+
+/-- Linear languages are a strict subclass of context-free languages over any finite alphabet
+with at least four symbols. -/
+public theorem Linear_strict_subclass_CF_of_card [Fintype T] (hT : 4 ≤ Fintype.card T) :
+    (Linear : Set (Language T)) ⊂ (CF : Set (Language T)) :=
+  Linear_strict_subclass_CF_of_embedding
+    ((Fin.castLEEmb hT).trans (Fintype.equivFin T).symm.toEmbedding)

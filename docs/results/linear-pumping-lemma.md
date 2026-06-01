@@ -26,8 +26,9 @@ of a linear grammar produces.
 
 - [`is_Linear.pumping`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Pumping/Pumping.lean) — the pumping lemma.
 - [`Spine`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Pumping/Spine.lean) — the reified single-nonterminal derivation, with soundness/completeness against `grammar_derives`.
-- [`L4_not_is_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) — `{0ⁿ1ⁿ2ᵐ3ᵐ}` is not linear.
-- [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) — `Linear ⊊ CF`.
+- [`L4_not_is_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) — the concrete witness `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` is not linear.
+- [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) and [`Linear_strict_subclass_CF_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) — `Linear ⊊ CF` over `Fin 4`, and over any alphabet with `4 ≤ Fintype.card T`.
+- [`is_Linear_map` / `is_Linear_of_map_injective`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Closure/Homomorphism.lean) — linear languages are closed under (and reflected along injective) terminal maps; this is what transports the concrete witness to a larger alphabet.
 - [`Linear_not_closedUnderConcatenation`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Closure/Concatenation.lean) — corollary: `Linear` is not closed under concatenation (`{0ⁿ1ⁿ}·{2ᵐ3ᵐ}` is not linear).
 
 ## Proof idea
@@ -49,6 +50,14 @@ context-free (a concatenation of two copies of `{aⁿbⁿ}`). Applying the pumpi
 lemma to `0ᵖ1ᵖ2ᵖ3ᵖ`, the bound confines `v` to the leading `0`-block and `y` to the
 trailing `3`-block; pumping down then unbalances either `#0 = #1` or `#2 = #3`,
 contradicting membership.
+
+This concrete `Fin 4` result is then transported to an arbitrary alphabet with at
+least four symbols. Relabelling a grammar's terminals along a map `f` (keeping the
+nonterminals) preserves the linear rule shape and, because linear rules have empty
+context, generates exactly the `f`-image of the language — giving closure of
+`Linear` under terminal maps and, via a left inverse, reflection along injective
+maps. So if `Language.map e {0ⁿ1ⁿ2ᵐ3ᵐ}` (for an embedding `e : Fin 4 ↪ T`) were
+linear, then `{0ⁿ1ⁿ2ᵐ3ᵐ}` itself would be, a contradiction.
 
 ## Keywords / also known as
 
