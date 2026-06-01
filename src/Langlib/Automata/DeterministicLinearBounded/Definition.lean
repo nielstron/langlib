@@ -304,6 +304,12 @@ public noncomputable def LanguageViaEmbed {T Γ : Type*} {Λ : Type*}
   fun w => ∃ (hw : w.map embed ≠ []),
     Accepts M (initCfgList M (w.map embed) hw)
 
+/-- Recognition with an explicit decision for the empty word (see `LBA.LanguageRecognized`). -/
+@[expose]
+public noncomputable def LanguageRecognized {T Γ : Type*} {Λ : Type*}
+    (M : Machine Γ Λ) (embed : T → Γ) (acceptEmpty : Bool) : _root_.Language T :=
+  fun w => (acceptEmpty = true ∧ w = []) ∨ LanguageViaEmbed M embed w
+
 /-! ### Complement Machine -/
 
 /-- The **complement** of a deterministic DLBA: same transitions, negated acceptance.
@@ -562,16 +568,19 @@ end DLBA
 
 variable {T : Type}
 
-/-- A language is `DLBA`-recognizable if it is accepted by some finite deterministic
-linearly bounded automaton after embedding the input alphabet into the tape alphabet. -/
+/-- A language over a finite alphabet `T` is `DLBA`-recognizable if it is accepted by some
+finite deterministic linearly bounded automaton over the tape alphabet `Option (T ⊕ Γ)`
+(arbitrary finite work alphabet `Γ`), with the input written canonically via `some ∘ Sum.inl`
+and an explicit decision `acceptEmpty` for the empty word — the same convention as `is_LBA`
+and the Turing-machine/recursive definitions. -/
 @[expose]
-public def is_DLBA (L : Language T) : Prop :=
+public def is_DLBA [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
   ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
     (_ : DecidableEq Γ) (_ : DecidableEq Λ)
-    (embed : T ↪ Γ)
-    (M : DLBA.Machine Γ Λ),
-    DLBA.LanguageViaEmbed M embed = L
+    (acceptEmpty : Bool)
+    (M : DLBA.Machine (Option (T ⊕ Γ)) Λ),
+    DLBA.LanguageRecognized M (fun t => some (Sum.inl t)) acceptEmpty = L
 
 /-- The class of deterministic LBA languages. -/
 @[expose]
-public def DLBA : Set (Language T) := setOf is_DLBA
+public def DLBA [Fintype T] [DecidableEq T] : Set (Language T) := setOf is_DLBA

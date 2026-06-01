@@ -262,14 +262,22 @@ theorem dlba_language_eq_lba_language {T Γ : Type*} {Λ : Type*} [DecidableEq �
 /-
 **Main theorem**: Every deterministic LBA language is also an LBA language.
 -/
-theorem is_DLBA_subset_is_LBA {T : Type} {L : _root_.Language T}
+theorem is_DLBA_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : _root_.Language T}
     (h : is_DLBA L) : is_LBA L := by
-  obtain ⟨ Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, embed, M, hM ⟩ := h;
-  use Γ, Option Λ;
-  use inferInstance, inferInstance, inferInstance, inferInstance;
-  exact ⟨ embed, DLBA.toLBA' M, dlba_language_eq_lba_language M embed ▸ hM ⟩
+  obtain ⟨ Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, acceptEmpty, M, hM ⟩ := h
+  haveI := hΓ; haveI := hΛ; haveI := hdecΓ; haveI := hdecΛ
+  refine ⟨ Γ, Option Λ, hΓ, inferInstance, hdecΓ, inferInstance, acceptEmpty,
+    DLBA.toLBA' M, ?_ ⟩
+  -- `toLBA'` preserves the tape and the recognized language; the `ε`-flag carries over.
+  rw [← hM]
+  have key : DLBA.LanguageViaEmbed M (fun t => some (Sum.inl t))
+      = LBA.LanguageViaEmbed (DLBA.toLBA' M) (fun t => some (Sum.inl t)) :=
+    dlba_language_eq_lba_language M (fun t => some (Sum.inl t))
+  funext w
+  simp only [DLBA.LanguageRecognized, LBA.LanguageRecognized, key]
 
-theorem DLBA_subset_LBA {T : Type} : (DLBA : Set (Language T)) ⊆ LBA := by
+theorem DLBA_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
+    (DLBA : Set (Language T)) ⊆ LBA := by
   intro L hL
   simp [DLBA] at hL
   exact is_DLBA_subset_is_LBA hL

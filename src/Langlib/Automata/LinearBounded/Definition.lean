@@ -40,8 +40,22 @@ public section
 /-!
 # Linearly Bounded Automata
 
-A **linearly bounded automaton** (LBA) is a nondeterministic Turing machine
-whose read/write head is restricted to the portion of the tape containing the input.
+A **linearly bounded automaton** (LBA) is a nondeterministic Turing machine whose read/write
+head is confined to a region of the tape whose length is bounded by a *linear function of
+the input length*.
+
+We adopt the same tape convention as the Turing-machine and recursive-language definitions
+(`Langlib.Automata.Recursive`, `is_Recursive`): the tape alphabet is `Option (T ⊕ Γ)`, where
+`none` is the blank, `some (Sum.inl t)` is an input symbol, and `some (Sum.inr γ)` is a
+*work* symbol drawn from an arbitrary finite work alphabet `Γ`. The input `w : List T` is
+written canonically as `w.map (fun t => some (Sum.inl t))` — there is no opaque embedding of
+the input alphabet that could hide computation.
+
+The head is confined to exactly the `|w|` input cells, but those cells may be freely
+overwritten with work symbols `some (Sum.inr γ)`. Because `Γ` is an arbitrary finite type,
+this provides `|w| · log|Γ| = Θ(|w|)` bits of read/write working space — i.e. genuine linear
+space (a constant number of "tracks"). This is the standard Kuroda/Hopcroft–Ullman LBA model,
+for which the recognised languages are exactly the context-sensitive languages.
 
 This is a separate automaton class from deterministic DLBAs. It reuses the bounded tape and
 configuration types from `Langlib.Automata.DeterministicLinearBounded.Definition`.
@@ -100,17 +114,43 @@ public noncomputable def LanguageViaEmbed {T Γ : Type*} {Λ : Type*}
   fun w => ∃ (hw : w.map embed ≠ []),
     Accepts M (initCfgList M (w.map embed) hw)
 
+/-- Recognition with an explicit decision for the empty word.
+
+The bounded tape requires at least one cell, so an LBA cannot run on the empty
+input the way a Turing machine can.  We therefore pair the machine with a Boolean
+`acceptEmpty` that decides membership of `ε` directly.  This mirrors the standard
+context-sensitive-grammar convention, where the optional distinguished rule `S → ε`
+decides membership of `ε` independently of the (non-contracting) core of the grammar.
+
+On non-empty words this coincides with `LanguageViaEmbed`. -/
+@[expose]
+public noncomputable def LanguageRecognized {T Γ : Type*} {Λ : Type*}
+    (M : Machine Γ Λ) (embed : T → Γ) (acceptEmpty : Bool) : Language T :=
+  fun w => (acceptEmpty = true ∧ w = []) ∨ LanguageViaEmbed M embed w
+
 end LBA
 
-/-- A language is `LBA`-recognizable if it is accepted by some finite nondeterministic
-linearly bounded automaton after embedding the input alphabet into the tape alphabet. -/
+/-- A language over a finite alphabet `T` is `LBA`-recognizable if it is accepted by some
+finite nondeterministic linearly bounded automaton over the tape alphabet `Option (T ⊕ Γ)`
+(for an arbitrary finite work alphabet `Γ`), with the input written canonically via
+`some ∘ Sum.inl`, together with an explicit decision `acceptEmpty` for the empty word.
+
+Using the fixed canonical input map `some ∘ Sum.inl` (rather than an arbitrary embedding
+`T ↪ Γ`) ensures the recognizer cannot do hidden preprocessing of the input; the only
+working power is the finite work alphabet `Γ`, which supplies linear working space.
+
+The `acceptEmpty` flag plays exactly the role of the optional `S → ε` rule in the
+definition of a context-sensitive grammar: it decides membership of `ε` and is otherwise
+irrelevant to the (genuinely space-bounded) computation on non-empty inputs.  Without it
+no LBA language could contain `ε`, whereas `{ε}` is context-sensitive — so the flag is
+exactly what is needed for `CS = LBA` to hold. -/
 @[expose]
-public def is_LBA {T : Type} (L : Language T) : Prop :=
+public def is_LBA {T : Type} [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
   ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
     (_ : DecidableEq Γ) (_ : DecidableEq Λ)
-    (embed : T ↪ Γ)
-    (M : LBA.Machine Γ Λ),
-    LBA.LanguageViaEmbed M embed = L
+    (acceptEmpty : Bool)
+    (M : LBA.Machine (Option (T ⊕ Γ)) Λ),
+    LBA.LanguageRecognized M (fun t => some (Sum.inl t)) acceptEmpty = L
 
 @[expose]
-public def LBA : Set (Language T) := setOf is_LBA
+public def LBA [Fintype T] [DecidableEq T] : Set (Language T) := setOf is_LBA
