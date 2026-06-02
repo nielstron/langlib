@@ -1,8 +1,8 @@
 ---
-title: "CSL = LBA: context-sensitive languages are exactly the linear-bounded-automaton languages"
+title: "LBA equivalence"
 description: "A formal Lean 4 proof of the Myhill–Landweber–Kuroda theorem: context-sensitive grammars and linear bounded automata characterize the same class of languages."
 parent: "Context-sensitive"
-nav_order: 2
+nav_order: 1
 ---
 
 # Context-sensitive languages are exactly the LBA languages (CSL = LBA)

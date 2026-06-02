@@ -118,12 +118,14 @@ def is_path_like(s: str) -> bool:
 
 
 def linkable(name: str, index: dict) -> bool:
-    """A bare span is linkable iff it names a declaration unambiguously and is not prose-y."""
+    """A token is linkable iff it names a declaration unambiguously and is not a bare
+    single-letter variable. Multi-character declarations (CS, LBA, RE, CF, L4, ...) link;
+    single letters (M, D, f, R, L, ...) — almost always bound variables — do not."""
     if name not in index or is_path_like(name):
         return False
     if len({p for p, _ in index[name]}) > 1:  # ambiguous: don't guess
         return False
-    return len(name) >= 4 or "_" in name or "." in name
+    return len(name) >= 2
 
 
 def resolve(name: str, index: dict, prefer_path: str | None) -> tuple[str, int] | None:
@@ -176,7 +178,39 @@ def find_file_refs(body: str):
         offset += len(seg)
 
 
-def link_segment(seg: str, index, base, ref, linked: set, stats, warnings) -> str:
+IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_'.]*")
+
+
+def _esc(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def link_span(content: str, index, base, ref):
+    """Link a code span's content. Returns the replacement (with backticks) or None.
+
+    A span that is exactly one declaration becomes a clean Markdown link; a span mixing
+    declarations with other text (e.g. `is_RE R → is_Recursive R`) becomes an HTML
+    <code> element with each known declaration wrapped in an anchor, so every mentioned
+    theorem links to its definition. Intra-word underscores in identifiers are not
+    Markdown emphasis, so this is safe inside kramdown."""
+    toks = [(m.start(), m.end(), m.group(0)) for m in IDENT_RE.finditer(content)]
+    toks = [(s, e, t) for s, e, t in toks if linkable(t, index)]
+    if not toks:
+        return None
+    stripped = content.strip()
+    if len(toks) == 1 and stripped == toks[0][2]:
+        name = stripped
+        return f"[`{name}`]({url_for(*index[name][0], base, ref)})"
+    parts, last = [], 0
+    for s, e, t in toks:
+        parts.append(_esc(content[last:s]))
+        parts.append(f'<a href="{url_for(*index[t][0], base, ref)}">{t}</a>')
+        last = e
+    parts.append(_esc(content[last:]))
+    return "<code>" + "".join(parts) + "</code>"
+
+
+def link_segment(seg: str, index, base, ref, stats, warnings) -> str:
     def on_link(m):
         label, url = m.group(1), m.group(2)
         core = label.strip()
@@ -186,7 +220,6 @@ def link_segment(seg: str, index, base, ref, linked: set, stats, warnings) -> st
             hint = SRCPATH_RE.search(url)
             loc = resolve(core, index, hint.group(1) if hint else None)
             if loc:
-                linked.add(core)
                 stats["repointed"] += 1
                 return f"[`{core}`]({url_for(loc[0], loc[1], base, ref)})"
             warnings.append(f"left as-is (ambiguous, no path hint): `{core}`")
@@ -198,14 +231,13 @@ def link_segment(seg: str, index, base, ref, linked: set, stats, warnings) -> st
     for m in SPAN_RE.finditer(seg):
         s, e = m.span()
         if seg[max(0, s - 1) : s] == "[" and seg[e : e + 2] == "](":
-            continue
-        name = m.group(1)
-        if name in linked or not linkable(name, index):
+            continue  # already a Markdown link label
+        repl = link_span(m.group(1), index, base, ref)
+        if repl is None:
             continue
         out.append(seg[last:s])
-        out.append(f"[`{name}`]({url_for(*index[name][0], base, ref)})")
+        out.append(repl)
         last = e
-        linked.add(name)
         stats["linked"] += 1
     out.append(seg[last:])
     return "".join(out)
@@ -218,9 +250,8 @@ def process_doc(path: Path, index, base, ref, stats, warnings) -> str | None:
         end = text.find("\n---\n", 4)
         if end != -1:
             fm, body = text[: end + 5], text[end + 5 :]
-    linked: set[str] = set()
     pieces = [
-        seg if is_code else link_segment(seg, index, base, ref, linked, stats, warnings)
+        seg if is_code else link_segment(seg, index, base, ref, stats, warnings)
         for is_code, seg in protect_blocks(body)
     ]
     new = fm + "".join(pieces)

@@ -1,5 +1,5 @@
 ---
-title: "Post's theorem (RE ∩ co-RE = recursive)"
+title: "Post's theorem"
 description: "A formal Lean 4 proof of Post's theorem: a language is recursive (decidable) iff both it and its complement are recursively enumerable."
 parent: "Recursive"
 nav_order: 1

@@ -1,8 +1,9 @@
 ---
-title: "Pumping lemma for context-free languages"
+title: "Pumping lemma"
 description: "A formal Lean 4 proof of the pumping lemma (and Ogden's lemma) for context-free languages."
-parent: "Context-free"
-nav_order: 2
+parent: Pumping lemmas
+nav_order: 1
+grandparent: Context-free
 ---
 
 # The pumping lemma for context-free languages

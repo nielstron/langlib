@@ -6,4 +6,9 @@ has_children: true
 
 # Recursively enumerable languages
 
-Results about the recursively enumerable (type-0) languages — Turing machines, closure properties, and the search-to-TM bridge.
+The **recursively enumerable** (type-0) languages — the most general class, those a machine
+can *semi-decide* (accept exactly the members, possibly running forever otherwise).
+
+- **Grammars.** *Unrestricted grammars*: rules `α → β` of arbitrary shape, where `α`
+  contains at least one nonterminal.
+- **Automata.** *Turing machines* (`is_RE`).

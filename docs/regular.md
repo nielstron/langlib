@@ -6,4 +6,10 @@ has_children: true
 
 # Regular languages
 
-Results about the regular (type-3) languages — DFAs, regular grammars, and their closure and computability properties.
+The **regular** (type-3) languages — the smallest class of the Chomsky hierarchy.
+
+- **Grammars.** *Regular grammars*, whose rules all share one fixed shape: *right-regular*
+  (`RG`) rules `A → a B`, `A → a`, `A → ε`, or the mirror *left-regular* (`LG`) rules
+  `A → B a`, `A → a`, `A → ε` — at most one nonterminal, always at the same end.
+- **Automata.** *Finite automata* — deterministic (`DFA`) or nondeterministic (equivalent
+  in power).

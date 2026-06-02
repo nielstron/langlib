@@ -1,5 +1,5 @@
 ---
-title: "Pumping lemma for linear languages"
+title: "Pumping lemma"
 description: "A formal Lean 4 proof of the pumping lemma for linear languages, used to show {0ⁿ1ⁿ2ᵐ3ᵐ} is context-free but not linear, hence Linear ⊊ CF."
 parent: "Linear"
 nav_order: 2

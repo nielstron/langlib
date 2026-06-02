@@ -1,8 +1,9 @@
 ---
-title: "Ogden's lemma for context-free languages"
+title: "Ogden's lemma"
 description: "A formal Lean 4 proof of Ogden's lemma — the marked-position strengthening of the context-free pumping lemma."
-parent: "Context-free"
-nav_order: 3
+parent: Pumping lemmas
+nav_order: 2
+grandparent: Context-free
 ---
 
 # Ogden's lemma for context-free languages

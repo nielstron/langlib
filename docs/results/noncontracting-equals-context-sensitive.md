@@ -1,8 +1,8 @@
 ---
-title: "Non-contracting and non-erasing context-sensitive grammars"
+title: "Grammar forms"
 description: "How Langlib defines context-sensitive languages (via non-contracting grammars) and the partially-formalized relationship to the classical non-erasing context-preserving form."
 parent: "Context-sensitive"
-nav_order: 1
+nav_order: 2
 ---
 
 # Non-contracting and non-erasing context-sensitive grammars

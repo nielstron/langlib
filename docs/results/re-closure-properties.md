@@ -1,5 +1,5 @@
 ---
-title: "Closure properties of recursively enumerable languages"
+title: "Closure properties"
 description: "Formal Lean 4 proofs that recursively enumerable languages are closed under union, intersection, concatenation, star, homomorphism, inverse homomorphism, reverse, quotient and substitution — but not complement — split by grammar-based vs Turing-machine constructions."
 parent: "Recursively enumerable"
 nav_order: 3
@@ -52,7 +52,7 @@ semi-decide by dovetailed search.
 
 ## Not closed under complement
 
-[`RE_notClosedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Closure/Complement.lean) — the one operation that fails. `Nat.Partrec.Code` is encoded as unary words (`codeUnaryWord`); the halting set is the RE language `haltingUnaryLanguage`. The crux is [`haltingUnary_complement_not_RE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Closure/Complement.lean): if its complement were RE, then `REPred_codeUnaryWord_preimage` pulls grammar-membership semi-decision back along `codeUnaryWord` to make non-halting an `REPred`, contradicting Mathlib's `ComputablePred.halting_problem_not_re`. `RE_notClosedUnderComplement` packages this (and `RE_notClosedUnderComplement_of_nonempty` transports it to any nonempty alphabet). Equivalently, by [Post's theorem](posts-theorem.html) (RE ∩ co-RE = recursive) closure under complement would collapse RE to the recursive languages, contradicting [Recursive ⊊ RE](recursive-strict-subset-re.html).
+[`RE_notClosedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Closure/Complement.lean) — the one operation that fails. `Nat.Partrec.Code` is encoded as unary words (`codeUnaryWord`); the halting set is the RE language `haltingUnaryLanguage`. The crux is [`haltingUnary_complement_not_RE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Closure/Complement.lean): if its complement were RE, then `REPred_codeUnaryWord_preimage` pulls grammar-membership semi-decision back along `codeUnaryWord` to make non-halting an `REPred`, contradicting Mathlib's `ComputablePred.halting_problem_not_re`. `RE_notClosedUnderComplement` packages this (and `RE_notClosedUnderComplement_of_nonempty` transports it to any nonempty alphabet).
 
 ## Keywords / also known as
 

@@ -1,8 +1,8 @@
 ---
-title: "{aⁿbⁿcⁿ} is indexed and context-sensitive but not context-free"
+title: "aⁿbⁿcⁿ"
 description: "Lean 4 formalizations of the classic separating language {aⁿbⁿcⁿ}: indexed, context-sensitive and recursively enumerable, but not context-free."
 parent: "Context-free"
-nav_order: 9
+nav_order: 5
 ---
 
 # The language {aⁿbⁿcⁿ}: indexed and context-sensitive, but not context-free

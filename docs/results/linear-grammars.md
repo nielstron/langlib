@@ -1,5 +1,5 @@
 ---
-title: "Linear grammars and the linear languages"
+title: "Grammars"
 description: "Lean 4 definition of linear grammars and the linear language class, with formal proofs that regular ⊊ linear ⊆ context-free and that {aⁿbⁿ} is linear."
 parent: "Linear"
 nav_order: 1

@@ -1,8 +1,9 @@
 ---
-title: "Context-free languages are not closed under intersection"
+title: "Intersection"
 description: "A formal Lean 4 proof that context-free languages are not closed under intersection (via the pumping lemma), with non-closure under complement as a corollary."
-parent: "Context-free"
-nav_order: 6
+parent: Closure
+nav_order: 2
+grandparent: Context-free
 ---
 
 # Context-free languages are not closed under intersection

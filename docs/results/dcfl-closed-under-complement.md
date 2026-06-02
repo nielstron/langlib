@@ -1,8 +1,8 @@
 ---
-title: "DCFL is closed under complement"
+title: "Complement"
 description: "A formal Lean 4 proof that the complement of a deterministic context-free language is again deterministic context-free."
 parent: "Deterministic context-free"
-nav_order: 1
+nav_order: 2
 ---
 
 # Deterministic context-free languages are closed under complement

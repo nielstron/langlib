@@ -1,5 +1,5 @@
 ---
-title: "Compiling search procedures to Turing machines (semi-decision → RE)"
+title: "Search procedures"
 description: "A reusable Lean 4 bridge that turns any computable search procedure into a Turing machine and hence a recursively enumerable language — the infrastructure behind TM = RE and the RE closure proofs."
 parent: "Recursively enumerable"
 nav_order: 2

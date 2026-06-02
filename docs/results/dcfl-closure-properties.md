@@ -1,5 +1,5 @@
 ---
-title: "Closure properties of deterministic context-free languages"
+title: "Closure properties"
 description: "Formal Lean 4 proofs of the closure properties of deterministic context-free languages: closed under complement, but not under union, intersection, concatenation, star, homomorphism, substitution, or quotient."
 parent: "Deterministic context-free"
 nav_order: 3

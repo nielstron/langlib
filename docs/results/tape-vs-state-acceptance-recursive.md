@@ -1,8 +1,8 @@
 ---
-title: "Tape acceptance implies state acceptance for recursive languages"
+title: "Tape acceptance"
 description: "A formal Lean 4 proof that tape-symbol acceptance can be repackaged as final-state acceptance for recursive (decidable) Turing-machine languages."
 parent: "Recursive"
-nav_order: 3
+nav_order: 4
 ---
 
 # Tape acceptance implies state acceptance for recursive languages

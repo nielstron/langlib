@@ -6,4 +6,8 @@ has_children: true
 
 # Recursive languages
 
-Results about the recursive (decidable) languages — Post's theorem, closure properties, and the strict inclusion in RE.
+The **recursive** (decidable) languages — those with an algorithm that halts on every
+input with the correct yes/no answer.
+
+- **Machine model.** *Total (always-halting) Turing machines* (`is_Recursive`): the
+  machine halts on every input and accepts exactly the members of the language.

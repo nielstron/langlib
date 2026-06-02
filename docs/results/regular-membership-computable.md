@@ -1,5 +1,5 @@
 ---
-title: "Regular language membership is computable"
+title: "Membership computable"
 description: "A formal Lean 4 proof that membership in a regular language (DFA acceptance) is a computable predicate."
 parent: "Regular"
 nav_order: 3

@@ -6,4 +6,9 @@ has_children: true
 
 # Context-sensitive languages
 
-Results about the context-sensitive (type-1) languages — linear bounded automata, non-contracting grammars, and recursiveness.
+The **context-sensitive** (type-1) languages — the languages decidable in linear space.
+
+- **Grammars.** *Non-contracting grammars* (`is_CS`): every rule `α → β` satisfies
+  `|α| ≤ |β|`, equivalently the context-sensitive form `γ A δ → γ β δ` with `β ≠ ε`.
+- **Automata.** *Linear bounded automata* (`LBA`) — nondeterministic Turing machines
+  confined to the tape cells occupied by the input (`NSPACE(n)`).
