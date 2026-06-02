@@ -1089,6 +1089,302 @@ theorem init_reach (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) 
             ((rewind_reach M' c (m - 1) (by omega)).trans
               (Relation.ReflTransGen.single (rewind0_step M' c))))))
 
+/-! ### Backward invariant: every reachable `flagMachine` configuration is sound.
+
+`GoodF` enumerates the configurations reachable from the start `⟨setup, c₀⟩`: the init-phase
+configurations (all non-accepting — `setup`, the partial/over scans, the dead and successful
+`verify`, the `rewind`), and the simulation-phase configurations, which are exactly `fold`-images
+of `M'`-configurations reachable from `M'`'s start on `e₀`. -/
+def GoodF (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
+    (e₀ : Fin (m + 3) → EndAlpha T Γ) (c₀ : Fin (m + 1) → FAlpha T Γ)
+    (X : DLBA.Cfg (FAlpha T Γ) (FState Λ) m) : Prop :=
+  (X = ⟨FState.setup, ⟨c₀, ⟨0, by omega⟩⟩⟩)
+  ∨ (∃ k : Fin (m + 1), 1 ≤ k.val ∧ X = ⟨FState.scan, ⟨partialTape c₀ k.val, k⟩⟩)
+  ∨ (X = ⟨FState.scan, ⟨scanLast c₀, ⟨m, by omega⟩⟩⟩)
+  ∨ (X.state = FState.verify ∧ cellRight (X.tape.contents X.tape.head) = none)
+  ∨ (X = ⟨FState.verify, ⟨foldedTape c₀, ⟨m, by omega⟩⟩⟩)
+  ∨ (∃ k : Fin (m + 1), X = ⟨FState.rewind, ⟨foldedTape c₀, k⟩⟩)
+  ∨ (∃ cfg : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2),
+        Reaches M' ⟨M'.initial, ⟨e₀, ⟨0, by omega⟩⟩⟩ cfg ∧ X = fold cfg)
+
+/-- The start configuration satisfies the invariant. -/
+theorem goodF_init (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
+    (e₀ : Fin (m + 3) → EndAlpha T Γ) (c₀ : Fin (m + 1) → FAlpha T Γ) :
+    GoodF M' e₀ c₀ ⟨FState.setup, ⟨c₀, ⟨0, by omega⟩⟩⟩ := Or.inl rfl
+
+/-- An accepting `GoodF` configuration yields an accepting `M'`-run from `M'`'s start on `e₀`. -/
+theorem goodF_accepts (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
+    (e₀ : Fin (m + 3) → EndAlpha T Γ) (c₀ : Fin (m + 1) → FAlpha T Γ)
+    {X : DLBA.Cfg (FAlpha T Γ) (FState Λ) m} (hg : GoodF M' e₀ c₀ X)
+    (hacc : (flagMachine M').accept X.state = true) :
+    Accepts M' ⟨M'.initial, ⟨e₀, ⟨0, by omega⟩⟩⟩ := by
+  rcases hg with rfl | ⟨k, _, rfl⟩ | rfl | ⟨hs, _⟩ | rfl | ⟨k, rfl⟩ | ⟨cfg, hreach, rfl⟩
+  · simp [flagMachine] at hacc
+  · simp [flagMachine] at hacc
+  · simp [flagMachine] at hacc
+  · rw [hs] at hacc; simp [flagMachine] at hacc
+  · simp [flagMachine] at hacc
+  · simp [flagMachine] at hacc
+  · refine ⟨cfg, hreach, ?_⟩
+    rw [show (fold cfg).state = FState.sim cfg.state (foldMode cfg.tape.head) from rfl] at hacc
+    rwa [flagMachine_accept_sim] at hacc
+
+set_option maxRecDepth 4000 in
+/-- The invariant is preserved by a `flagMachine` step. -/
+theorem goodF_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
+    (e₀ : Fin (m + 3) → EndAlpha T Γ) (c₀ : Fin (m + 1) → FAlpha T Γ)
+    (hbridge : foldedTape c₀ = foldContents e₀)
+    (hrawL : ∀ i : Fin (m + 1), cellLeft (c₀ i) = none)
+    (hrawR : ∀ i : Fin (m + 1), cellRight (c₀ i) = none)
+    {X X' : DLBA.Cfg (FAlpha T Γ) (FState Λ) m}
+    (hg : GoodF M' e₀ c₀ X) (hstep : Step (flagMachine M') X X') :
+    GoodF M' e₀ c₀ X' := by
+  rcases hg with rfl | ⟨k, hk, rfl⟩ | rfl | ⟨hvs, hvr⟩ | rfl | ⟨k, rfl⟩ | ⟨cfg, hreach, rfl⟩
+  · -- `setup`: deterministic step onto the scan phase.
+    obtain ⟨s, a, d, hmem, rfl⟩ := hstep
+    simp only [flagMachine, flagTransition, Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+    obtain ⟨rfl, rfl, rfl⟩ := hmem
+    by_cases hm0 : m = 0
+    · subst hm0
+      refine Or.inr (Or.inr (Or.inl ?_))
+      apply cfg_ext'
+      · rfl
+      · show Function.update c₀ ⟨0, by omega⟩
+          (some (Sum.inr (cellCur (c₀ ⟨0, by omega⟩), some leftMark, none))) = scanLast c₀
+        funext j
+        have hj0 : j = (⟨0, by omega⟩ : Fin (0 + 1)) := Fin.ext (by have := j.isLt; omega)
+        subst hj0; rw [Function.update_apply, if_pos rfl]; simp [scanLast]
+      · apply Fin.ext; simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+        rw [dif_neg (show ¬ (0 : ℕ) < 0 by omega)]
+    · have hm : 1 ≤ m := by omega
+      refine Or.inr (Or.inl ⟨⟨1, by omega⟩, by simp, ?_⟩)
+      apply cfg_ext'
+      · rfl
+      · show Function.update c₀ ⟨0, by omega⟩
+          (some (Sum.inr (cellCur (c₀ ⟨0, by omega⟩), some leftMark, none))) = partialTape c₀ 1
+        funext j
+        rw [Function.update_apply]
+        by_cases hj : j = (⟨0, by omega⟩ : Fin (m + 1))
+        · subst hj; rw [if_pos rfl]
+          simp [partialTape, foldedTape, show ¬ (0 : ℕ) = m from by omega]
+        · rw [if_neg hj]; simp only [partialTape]
+          rw [if_neg (show ¬ j.val < 1 by have : j.val ≠ 0 := fun h => hj (Fin.ext h); omega)]
+      · apply Fin.ext; simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+        rw [dif_pos (show (0 : ℕ) < m by omega)]
+  · -- `scan` at cell `k` (`1 ≤ k`): continue (fold) or guess (mark `⊣`).
+    obtain ⟨s, a, d, hmem, rfl⟩ := hstep
+    have hrk : (partialTape c₀ k.val) k = c₀ k := by simp [partialTape]
+    simp only [flagMachine, flagTransition, DLBA.BoundedTape.read, hrk, Set.mem_insert_iff,
+      Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+    have hklt := k.isLt
+    rcases hmem with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
+    · -- continue
+      by_cases hkm : k.val < m
+      · -- still interior: → `partialTape (k+1)`
+        refine Or.inr (Or.inl ⟨⟨k.val + 1, by omega⟩, Nat.le_add_left 1 k.val, ?_⟩)
+        apply cfg_ext'
+        · rfl
+        · show Function.update (partialTape c₀ k.val) k
+            (some (Sum.inr (cellCur (c₀ k), cellLeft (c₀ k), none))) = partialTape c₀ (k.val + 1)
+          rw [hrawL k]
+          funext j; rw [Function.update_apply]
+          by_cases hj : j = k
+          · rw [if_pos hj, hj]; simp only [partialTape, foldedTape]
+            rw [if_pos (show k.val < k.val + 1 by omega), if_neg (show ¬ k.val = 0 by omega),
+              if_neg (show ¬ k.val = m by omega)]
+          · rw [if_neg hj]; simp only [partialTape]
+            have hjk : j.val ≠ k.val := fun h => hj (Fin.ext h)
+            by_cases hjlt : j.val < k.val
+            · rw [if_pos hjlt, if_pos (by omega)]
+            · rw [if_neg hjlt, if_neg (by omega)]
+        · apply Fin.ext
+          simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, moveHead_right_head_val]
+          rw [dif_pos (show k.val < m by omega)]
+      · -- clamped at the last cell: → `scanLast`
+        refine Or.inr (Or.inr (Or.inl ?_))
+        have hkeq : k.val = m := by omega
+        apply cfg_ext'
+        · rfl
+        · show Function.update (partialTape c₀ k.val) k
+            (some (Sum.inr (cellCur (c₀ k), cellLeft (c₀ k), none))) = scanLast c₀
+          rw [hrawL k]
+          funext j; rw [Function.update_apply]
+          by_cases hj : j = k
+          · rw [if_pos hj, hj]; simp [scanLast, show ¬ k.val = 0 from by omega]
+          · rw [if_neg hj]; simp only [partialTape, scanLast]
+            have hjk : j.val ≠ k.val := fun h => hj (Fin.ext h)
+            have hjlt : j.val < k.val := by have := j.isLt; omega
+            rw [if_pos hjlt]; simp only [foldedTape]
+            rw [if_neg (show ¬ j.val = m by omega)]
+        · apply Fin.ext
+          simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, moveHead_right_head_val]
+          rw [dif_neg (show ¬ k.val < m by omega)]; exact hkeq
+    · -- guess
+      by_cases hkm : k.val < m
+      · -- guessed too early: dead `verify` (head on a raw cell, `cellRight = none`)
+        refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, ?_⟩)))
+        have hne : (⟨k.val + 1, by omega⟩ : Fin (m + 1)) ≠ k := by
+          rw [ne_eq, Fin.ext_iff]; show ¬ k.val + 1 = k.val; omega
+        have hhead : ((((⟨partialTape c₀ k.val, k⟩ : DLBA.BoundedTape (FAlpha T Γ) m).write
+            (some (Sum.inr (cellCur (c₀ k), cellLeft (c₀ k), some rightMark)))).moveHead
+            DLBA.Dir.right).head) = (⟨k.val + 1, by omega⟩ : Fin (m + 1)) := by
+          apply Fin.ext
+          simp only [moveHead_right_head_val, write_head, Fin.val_mk]
+          rw [if_pos (show k.val < m by omega)]
+        show cellRight (((⟨partialTape c₀ k.val, k⟩ : DLBA.BoundedTape (FAlpha T Γ) m).write
+            (some (Sum.inr (cellCur (c₀ k), cellLeft (c₀ k), some rightMark)))).moveHead
+            DLBA.Dir.right).read = none
+        rw [DLBA.BoundedTape.read, hhead]
+        simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
+        rw [Function.update_of_ne hne]
+        simp only [partialTape]
+        rw [if_neg (show ¬ (⟨k.val + 1, by omega⟩ : Fin (m + 1)).val < k.val from by
+          show ¬ k.val + 1 < k.val; omega)]
+        exact hrawR _
+      · -- guessed at the last cell: successful `verify` on the fully folded tape
+        refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ?_))))
+        have hkeq : k.val = m := by omega
+        apply cfg_ext'
+        · rfl
+        · show Function.update (partialTape c₀ k.val) k
+            (some (Sum.inr (cellCur (c₀ k), cellLeft (c₀ k), some rightMark))) = foldedTape c₀
+          rw [hrawL k]
+          funext j; rw [Function.update_apply]
+          by_cases hj : j = k
+          · rw [if_pos hj, hj]; simp only [foldedTape]
+            rw [if_neg (show ¬ k.val = 0 by omega), if_pos hkeq]
+          · rw [if_neg hj]; simp only [partialTape]
+            have hjk : j.val ≠ k.val := fun h => hj (Fin.ext h)
+            have hjlt : j.val < k.val := by have := j.isLt; omega
+            rw [if_pos hjlt]
+        · apply Fin.ext
+          simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, moveHead_right_head_val]
+          rw [dif_neg (show ¬ k.val < m by omega)]; exact hkeq
+  · -- `scanLast`: continue (self-loop) or guess (→ `verify` good)
+    obtain ⟨s, a, d, hmem, rfl⟩ := hstep
+    have hrk : (scanLast c₀) ⟨m, by omega⟩ = some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+        (if m = 0 then some leftMark else none), none)) := rfl
+    simp only [flagMachine, flagTransition, DLBA.BoundedTape.read, hrk, Set.mem_insert_iff,
+      Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+    rcases hmem with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
+    · -- continue: stays at `scanLast`
+      refine Or.inr (Or.inr (Or.inl ?_))
+      apply cfg_ext'
+      · rfl
+      · show Function.update (scanLast c₀) ⟨m, by omega⟩
+          (some (Sum.inr (cellCur (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+            (if m = 0 then some leftMark else none), none))),
+            cellLeft (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+            (if m = 0 then some leftMark else none), none))), none))) = scanLast c₀
+        rw [show cellCur (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+              (if m = 0 then some leftMark else none), none))) = cellCur (c₀ ⟨m, by omega⟩) from rfl,
+            show cellLeft (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+              (if m = 0 then some leftMark else none), none)))
+              = (if m = 0 then some leftMark else none) from rfl]
+        rw [show (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+              (if m = 0 then some leftMark else none), none)) : FAlpha T Γ)
+            = scanLast c₀ ⟨m, by omega⟩ from rfl, Function.update_eq_self]
+      · apply Fin.ext
+        simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, moveHead_right_head_val]
+        rw [dif_neg (show ¬ m < m by omega)]
+    · -- guess: commits `⊣`, reaching the fully folded tape
+      refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ?_))))
+      apply cfg_ext'
+      · rfl
+      · show Function.update (scanLast c₀) ⟨m, by omega⟩
+          (some (Sum.inr (cellCur (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+            (if m = 0 then some leftMark else none), none))),
+            cellLeft (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+            (if m = 0 then some leftMark else none), none))), some rightMark))) = foldedTape c₀
+        rw [show cellCur (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+              (if m = 0 then some leftMark else none), none))) = cellCur (c₀ ⟨m, by omega⟩) from rfl,
+            show cellLeft (some (Sum.inr (cellCur (c₀ ⟨m, by omega⟩),
+              (if m = 0 then some leftMark else none), none)))
+              = (if m = 0 then some leftMark else none) from rfl]
+        funext j; rw [Function.update_apply]
+        by_cases hj : j = (⟨m, by omega⟩ : Fin (m + 1))
+        · subst hj; rw [if_pos rfl]; simp [foldedTape]
+        · rw [if_neg hj]; simp only [scanLast, foldedTape]
+          have hjm : j.val ≠ m := fun h => hj (Fin.ext h)
+          rw [if_neg hjm]
+      · apply Fin.ext
+        simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, moveHead_right_head_val]
+        rw [dif_neg (show ¬ m < m by omega)]
+  · -- dead `verify`: no successor.
+    exfalso
+    obtain ⟨s, a, d, hmem, rfl⟩ := hstep
+    rw [hvs] at hmem
+    simp only [flagMachine, flagTransition, DLBA.BoundedTape.read, hvr, Option.isSome_none,
+      Bool.false_eq_true, if_false, Set.mem_empty_iff_false] at hmem
+  · -- successful `verify`: → `rewind` at the last cell.
+    obtain ⟨s, a, d, hmem, rfl⟩ := hstep
+    have hrt : (cellRight (foldedTape c₀ ⟨m, by omega⟩)).isSome = true := by
+      simp [foldedTape, cellRight]
+    simp only [flagMachine, flagTransition, DLBA.BoundedTape.read, hrt, if_true,
+      Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+    obtain ⟨rfl, rfl, rfl⟩ := hmem
+    refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨⟨m - 1, by omega⟩, ?_⟩)))))
+    apply cfg_ext'
+    · rfl
+    · show Function.update (foldedTape c₀) ⟨m, by omega⟩ (foldedTape c₀ ⟨m, by omega⟩) = foldedTape c₀
+      rw [Function.update_eq_self]
+    · apply Fin.ext
+      simp only [moveHead_left_head_val, write_head, Fin.val_mk]
+      split_ifs <;> omega
+  · -- `rewind` at cell `k`: continue left, or (at cell `0`) enter the simulation.
+    obtain ⟨s, a, d, hmem, rfl⟩ := hstep
+    by_cases hk0 : k.val = 0
+    · -- found `⊢`: enter simulation at `M'.initial`, head on `⊢`.
+      have hk0' : k = (⟨0, by omega⟩ : Fin (m + 1)) := Fin.ext hk0
+      have hls : (cellLeft (foldedTape c₀ k)).isSome = true := by
+        rw [hk0']; simp [foldedTape, cellLeft]
+      simp only [flagMachine, flagTransition, DLBA.BoundedTape.read, hls, if_true,
+        Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+      obtain ⟨rfl, rfl, rfl⟩ := hmem
+      refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
+        ⟨⟨M'.initial, ⟨e₀, ⟨0, by omega⟩⟩⟩, Relation.ReflTransGen.refl, ?_⟩)))))
+      apply cfg_ext'
+      · rw [show (fold ⟨M'.initial, ⟨e₀, ⟨0, by omega⟩⟩⟩ : DLBA.Cfg (FAlpha T Γ) (FState Λ) m).state
+            = FState.sim M'.initial (foldMode (⟨0, by omega⟩ : Fin (m + 3))) from rfl,
+            foldMode_zero rfl]
+      · show Function.update (foldedTape c₀) k (foldedTape c₀ k)
+          = (fold ⟨M'.initial, ⟨e₀, ⟨0, by omega⟩⟩⟩).tape.contents
+        rw [Function.update_eq_self,
+          show (fold ⟨M'.initial, ⟨e₀, ⟨0, by omega⟩⟩⟩).tape.contents = foldContents e₀ from rfl,
+          hbridge]
+      · simp only [moveHead_stay_head, write_head]
+        exact hk0'
+    · -- no `⊢`: keep rewinding left.
+      have hls : (cellLeft (foldedTape c₀ k)).isSome = false := by
+        simp only [foldedTape, cellLeft]; rw [if_neg hk0]; rfl
+      simp only [flagMachine, flagTransition, DLBA.BoundedTape.read, hls, Bool.false_eq_true,
+        if_false, Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+      obtain ⟨rfl, rfl, rfl⟩ := hmem
+      refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨⟨k.val - 1, by omega⟩, ?_⟩)))))
+      apply cfg_ext'
+      · rfl
+      · show Function.update (foldedTape c₀) k (foldedTape c₀ k) = foldedTape c₀
+        rw [Function.update_eq_self]
+      · apply Fin.ext
+        simp only [moveHead_left_head_val, write_head, Fin.val_mk]
+        rw [if_pos (show 0 < k.val by omega)]
+  · -- simulation phase: backward simulation gives the `M'`-step.
+    obtain ⟨cfg', hstepM, rfl⟩ := sim_step_inv M' hstep
+    exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨cfg', hreach.tail hstepM, rfl⟩)))))
+
+/-- Every configuration reachable from the start satisfies the invariant. -/
+theorem goodF_reaches (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
+    (e₀ : Fin (m + 3) → EndAlpha T Γ) (c₀ : Fin (m + 1) → FAlpha T Γ)
+    (hbridge : foldedTape c₀ = foldContents e₀)
+    (hrawL : ∀ i : Fin (m + 1), cellLeft (c₀ i) = none)
+    (hrawR : ∀ i : Fin (m + 1), cellRight (c₀ i) = none)
+    {X : DLBA.Cfg (FAlpha T Γ) (FState Λ) m}
+    (h : Reaches (flagMachine M') ⟨FState.setup, ⟨c₀, ⟨0, by omega⟩⟩⟩ X) :
+    GoodF M' e₀ c₀ X := by
+  induction h with
+  | refl => exact goodF_init M' e₀ c₀
+  | tail _ hbc ih => exact goodF_step M' e₀ c₀ hbridge hrawL hrawR ih hbc
+
 end LBA
 
 
