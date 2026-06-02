@@ -24,6 +24,7 @@ public import Langlib.Automata.FiniteState.Definition
 public import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
 public import Langlib.Automata.LinearBounded.Definition
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
+public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 public import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStackEquiv
