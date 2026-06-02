@@ -53,9 +53,10 @@ public section
 
 
 
-/-! # Decidability of Membership in Context-Sensitive Languages
+/-! # Membership in Context-Sensitive Languages: bounded-search infrastructure
 
-This file proves that membership in a context-sensitive language is decidable.
+This file develops the finite-search infrastructure underlying membership in a
+context-sensitive language.
 
 The key insight is that in a context-sensitive grammar (where every rule has non-empty
 output), every derivation step preserves or increases the length of the sentential form.
@@ -64,15 +65,9 @@ sentential forms have length at most `|w|`. Since there are only finitely many s
 forms (when the terminal and nonterminal alphabets are finite), the reachability problem
 reduces to search over a finite graph.
 
-Since the `CS_grammar` structure now requires `output_nonempty` (matching the standard
-definition of context-sensitive grammars), the non-contracting property
-`CSG_noncontracting` holds automatically. The main decidability result
-`CS_membership_decidable'` therefore needs no extra hypothesis.
-
-## Main results
-
-- `CSG_noncontracting_of_CS_grammar` — every CS grammar is non-contracting
-- `CS_membership_decidable'` — membership in any context-sensitive grammar is decidable
+These lemmas (bounded reachability, closed-complement certificates) feed the genuine
+computability result `CS_membership_computable` in
+`Langlib.Classes.ContextSensitive.Decidability.Computability`.
 -/
 
 open List Relation
@@ -324,27 +319,6 @@ lemma CS_derives_iff_bounded [DecidableEq T] (g : CS_grammar T) [DecidableEq g.n
       · exact CS_deri_self;
       · exact CS_deri_of_deri_tran ih h₂;
     exact h_seq h
-
-/-! ## Main theorem -/
-
-/-- Membership in a non-contracting context-sensitive grammar is decidable.
-    This is the version with an explicit `CSG_noncontracting` hypothesis. -/
-noncomputable def CS_membership_decidable
-    [Fintype T] [DecidableEq T]
-    (g : CS_grammar T) [Fintype g.nt] [DecidableEq g.nt]
-    (w : List T) : Decidable (w ∈ CS_language g) := by
-  by_cases hw : w = []
-  · -- Empty word case: not in language of non-contracting grammar
-    subst hw
-    exact isFalse (empty_not_in_CS_language g)
-  · -- Non-empty word case: reduce to bounded reachability
-    change Decidable (CS_derives g [symbol.nonterminal g.initial]
-      (w.map (symbol.terminal (N := g.nt))))
-    rw [CS_derives_iff_bounded g
-      [symbol.nonterminal g.initial] (w.map (symbol.terminal (N := g.nt)))
-      (by simp [List.length_map]; exact List.length_pos_of_ne_nil hw) (le_refl _)]
-    exact ReflTransGen_decidable_fintype
-      (CS_transforms_bounded g (w.map (symbol.terminal (N := g.nt))).length) _ _
 
 /-! ## Computability certificates
 
