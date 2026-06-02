@@ -247,6 +247,12 @@ theorem moveHead_left_head {Γ' : Type*} {N : ℕ} (t : DLBA.BoundedTape Γ' N) 
 theorem moveHead_right_head {Γ' : Type*} {N : ℕ} (t : DLBA.BoundedTape Γ' N) :
     (t.moveHead DLBA.Dir.right).head
       = if h : t.head.val < N then ⟨t.head.val + 1, by omega⟩ else t.head := rfl
+theorem moveHead_left_head_val {Γ' : Type*} {N : ℕ} (t : DLBA.BoundedTape Γ' N) :
+    (t.moveHead DLBA.Dir.left).head.val = if 0 < t.head.val then t.head.val - 1 else t.head.val := by
+  rw [moveHead_left_head]; split_ifs <;> rfl
+theorem moveHead_right_head_val {Γ' : Type*} {N : ℕ} (t : DLBA.BoundedTape Γ' N) :
+    (t.moveHead DLBA.Dir.right).head.val = if t.head.val < N then t.head.val + 1 else t.head.val := by
+  rw [moveHead_right_head]; split_ifs <;> rfl
 
 /-! ### Simulation-phase single-step correctness (one `M'`-step = one `flagMachine`-step). -/
 
@@ -387,7 +393,126 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
                 show cfg'.state = q' from rfl, hch, hmode]
           · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hhd, hprodhead]
     · -- interior: mode `mid`. The head moves; boundary detection via the folded marks.
-      sorry
+      have hmode : foldMode cfg.tape.head = FMode.mid := foldMode_mid hp0 hpL
+      have hcl := cfg.tape.head.isLt
+      have hhd : foldHead cfg.tape.head = (⟨cfg.tape.head.val - 1, by omega⟩ : Fin (m + 1)) := by
+        apply Fin.ext; rw [foldHead_val]; simp [hp0, hpL]
+      have hLval : (foldHead cfg.tape.head).val = cfg.tape.head.val - 1 := by rw [hhd]
+      have hfh : (fold cfg).tape.head.val = cfg.tape.head.val - 1 := hLval
+      have hrd : cellCur (foldContents cfg.tape.contents (foldHead cfg.tape.head))
+          = cfg.tape.contents cfg.tape.head := by
+        rw [cellCur_foldContents]; congr 1; apply Fin.ext; simp only [Fin.val_mk]; rw [hLval]; omega
+      have hLsome : (cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head))).isSome
+          = decide (cfg.tape.head.val = 1) := by
+        rw [cellLeft_foldContents, hLval]
+        by_cases h : cfg.tape.head.val = 1
+        · simp [h]
+        · rw [if_neg (show cfg.tape.head.val - 1 ≠ 0 by omega)]; simp [h]
+      have hRsome : (cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head))).isSome
+          = decide (cfg.tape.head.val = m + 1) := by
+        rw [cellRight_foldContents, hLval]
+        by_cases h : cfg.tape.head.val = m + 1
+        · simp [h]
+        · rw [if_neg (show cfg.tape.head.val - 1 ≠ m by omega)]; simp [h]
+      set wcell : FAlpha T Γ :=
+        some (Sum.inr (a', cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head)),
+          cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head)))) with hwcell
+      have hwc : wcell = foldContents (Function.update cfg.tape.contents cfg.tape.head a')
+          (foldHead cfg.tape.head) := by
+        rw [hwcell]
+        simp only [foldContents, cellLeft, cellRight, Function.update_apply,
+          if_pos (show (⟨(foldHead cfg.tape.head).val + 1, by have := cfg.tape.head.isLt; omega⟩
+            : Fin (m + 3)) = cfg.tape.head from by apply Fin.ext; simp only [Fin.val_mk]; rw [hLval]; omega),
+          if_neg (show ¬ (⟨0, by omega⟩ : Fin (m + 3)) = cfg.tape.head from by
+            simp only [Fin.ext_iff, Fin.val_mk]; omega),
+          if_neg (show ¬ (⟨m + 2, by omega⟩ : Fin (m + 3)) = cfg.tape.head from by
+            simp only [Fin.ext_iff, Fin.val_mk]; omega)]
+      have hcont : (fold cfg').tape.contents
+          = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell := by
+        rw [show (fold cfg').tape.contents
+              = foldContents (Function.update cfg.tape.contents cfg.tape.head a') from rfl, hwc]
+        exact (foldContents_update cfg.tape.contents cfg.tape.head a').symm
+      rcases d' with _ | _ | _
+      · -- left
+        have hch : cfg'.tape.head = (⟨cfg.tape.head.val - 1, by omega⟩ : Fin (m + 3)) := by
+          rw [hcfg']; simp only [moveHead_left_head, write_head,
+            dif_pos (show 0 < cfg.tape.head.val by omega)]
+        refine ⟨FState.sim q'
+            (if (cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head))).isSome
+              then FMode.onLeft else FMode.mid), wcell,
+            (if (cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head))).isSome
+              then DLBA.Dir.stay else DLBA.Dir.left), ?_, ?_⟩
+        · show _ ∈ flagTransition M' (FState.sim cfg.state (foldMode cfg.tape.head))
+            (foldContents cfg.tape.contents (foldHead cfg.tape.head))
+          rw [hmode]; exact ⟨(q', a', DLBA.Dir.left), by rw [hrd]; exact hmem, rfl⟩
+        · refine cfg_ext' ?_ hcont ?_
+          · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+                show cfg'.state = q' from rfl, hch, hLsome]
+            by_cases hb : cfg.tape.head.val = 1
+            · rw [foldMode_zero (by simp only [Fin.val_mk]; omega),
+                show (if decide (cfg.tape.head.val = 1) then FMode.onLeft else FMode.mid)
+                  = FMode.onLeft from by simp [hb]]
+            · rw [foldMode_mid (by simp only [Fin.val_mk]; omega) (by simp only [Fin.val_mk]; omega),
+                show (if decide (cfg.tape.head.val = 1) then FMode.onLeft else FMode.mid)
+                  = FMode.mid from by simp [hb]]
+          · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hLsome]
+            by_cases hb : cfg.tape.head.val = 1
+            · rw [show (if decide (cfg.tape.head.val = 1) then DLBA.Dir.stay else DLBA.Dir.left)
+                  = DLBA.Dir.stay from by simp [hb]]
+              apply Fin.ext; rw [foldHead_val]
+              simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all <;> omega
+            · rw [show (if decide (cfg.tape.head.val = 1) then DLBA.Dir.stay else DLBA.Dir.left)
+                  = DLBA.Dir.left from by simp [hb]]
+              apply Fin.ext; rw [foldHead_val]
+              simp only [moveHead_left_head_val, write_head, hfh]; split_ifs <;> simp_all <;> omega
+      · -- right
+        have hch : cfg'.tape.head = (⟨cfg.tape.head.val + 1, by omega⟩ : Fin (m + 3)) := by
+          rw [hcfg']; simp only [moveHead_right_head, write_head,
+            dif_pos (show cfg.tape.head.val < m + 2 by omega)]
+        refine ⟨FState.sim q'
+            (if (cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head))).isSome
+              then FMode.onRight else FMode.mid), wcell,
+            (if (cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head))).isSome
+              then DLBA.Dir.stay else DLBA.Dir.right), ?_, ?_⟩
+        · show _ ∈ flagTransition M' (FState.sim cfg.state (foldMode cfg.tape.head))
+            (foldContents cfg.tape.contents (foldHead cfg.tape.head))
+          rw [hmode]; exact ⟨(q', a', DLBA.Dir.right), by rw [hrd]; exact hmem, rfl⟩
+        · refine cfg_ext' ?_ hcont ?_
+          · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+                show cfg'.state = q' from rfl, hch, hRsome]
+            by_cases hb : cfg.tape.head.val = m + 1
+            · rw [foldMode_last (by simp only [Fin.val_mk]; omega),
+                show (if decide (cfg.tape.head.val = m + 1) then FMode.onRight else FMode.mid)
+                  = FMode.onRight from by simp [hb]]
+            · rw [foldMode_mid (by simp only [Fin.val_mk]; omega) (by simp only [Fin.val_mk]; omega),
+                show (if decide (cfg.tape.head.val = m + 1) then FMode.onRight else FMode.mid)
+                  = FMode.mid from by simp [hb]]
+          · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hRsome]
+            by_cases hb : cfg.tape.head.val = m + 1
+            · rw [show (if decide (cfg.tape.head.val = m + 1) then DLBA.Dir.stay else DLBA.Dir.right)
+                  = DLBA.Dir.stay from by simp [hb]]
+              apply Fin.ext; rw [foldHead_val]
+              simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all <;> omega
+            · rw [show (if decide (cfg.tape.head.val = m + 1) then DLBA.Dir.stay else DLBA.Dir.right)
+                  = DLBA.Dir.right from by simp [hb]]
+              apply Fin.ext; rw [foldHead_val]
+              show (if cfg.tape.head.val + 1 = 0 then 0
+                else if cfg.tape.head.val + 1 = m + 2 then m else cfg.tape.head.val + 1 - 1) = _
+              simp only [moveHead_right_head_val, write_head, hfh]
+              rw [if_pos (show cfg.tape.head.val - 1 < m by omega)]
+              split_ifs <;> omega
+      · -- stay
+        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+        refine ⟨FState.sim q' FMode.mid, wcell, DLBA.Dir.stay, ?_, ?_⟩
+        · show _ ∈ flagTransition M' (FState.sim cfg.state (foldMode cfg.tape.head))
+            (foldContents cfg.tape.contents (foldHead cfg.tape.head))
+          rw [hmode]; exact ⟨(q', a', DLBA.Dir.stay), by rw [hrd]; exact hmem, rfl⟩
+        · refine cfg_ext' ?_ hcont ?_
+          · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+                show cfg'.state = q' from rfl, hch, hmode]
+          · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch]
+            apply Fin.ext; rw [foldHead_val]
+            simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all <;> omega
 end LBA
 
 
