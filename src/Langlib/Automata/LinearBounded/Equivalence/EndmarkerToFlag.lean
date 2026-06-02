@@ -117,11 +117,10 @@ def flagTransition (M' : Machine (EndAlpha T Γ) Λ) :
     FState Λ → FAlpha T Γ → Set (FState Λ × FAlpha T Γ × DLBA.Dir) :=
   fun s r => match s with
   | .setup =>
-      { (FState.scan, some (Sum.inr (cellCur r, some leftMark, none)), DLBA.Dir.right),
-        (FState.verify, some (Sum.inr (cellCur r, some leftMark, some rightMark)), DLBA.Dir.right) }
+      { (FState.scan, some (Sum.inr (cellCur r, some leftMark, none)), DLBA.Dir.right) }
   | .scan =>
-      { (FState.scan, some (Sum.inr (cellCur r, none, none)), DLBA.Dir.right),
-        (FState.verify, some (Sum.inr (cellCur r, none, some rightMark)), DLBA.Dir.right) }
+      { (FState.scan, some (Sum.inr (cellCur r, cellLeft r, none)), DLBA.Dir.right),
+        (FState.verify, some (Sum.inr (cellCur r, cellLeft r, some rightMark)), DLBA.Dir.right) }
   | .verify =>
       if (cellRight r).isSome then {(FState.rewind, r, DLBA.Dir.left)} else ∅
   | .rewind =>
@@ -536,14 +535,24 @@ def foldedTape {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) : Fin (m + 1) → FAl
 def partialTape {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) (k : ℕ) : Fin (m + 1) → FAlpha T Γ :=
   fun i => if i.val < k then foldedTape c i else c i
 
+/-- The over-scanned tape: every cell folded, the `⊢` mark on cell `0`, but **no** `⊣` mark (the
+right-end guess has not yet been committed). Reached when `scan` keeps moving at the clamped last
+cell. -/
+def scanLast {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) : Fin (m + 1) → FAlpha T Γ :=
+  fun i => some (Sum.inr (cellCur (c i), (if i.val = 0 then some leftMark else none), none))
+
 /-- One `scan` step converts the cell at an interior position `k` and moves right. -/
 theorem scan_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (hraw : ∀ i : Fin (m + 1), cellLeft (c i) = none)
     (k : ℕ) (hk1 : 1 ≤ k) (hk2 : k < m) :
     Step (flagMachine M')
       ⟨FState.scan, ⟨partialTape c k, ⟨k, by omega⟩⟩⟩
       ⟨FState.scan, ⟨partialTape c (k + 1), ⟨k + 1, by omega⟩⟩⟩ := by
   have hr : (partialTape c k) ⟨k, by omega⟩ = c ⟨k, by omega⟩ := by simp [partialTape]
-  refine ⟨FState.scan, some (Sum.inr (cellCur ((partialTape c k) ⟨k, by omega⟩), none, none)),
+  have hl : cellLeft (c ⟨k, by omega⟩) = none := hraw _
+  refine ⟨FState.scan,
+    some (Sum.inr (cellCur ((partialTape c k) ⟨k, by omega⟩),
+      cellLeft ((partialTape c k) ⟨k, by omega⟩), none)),
     DLBA.Dir.right, ?_, ?_⟩
   · show _ ∈ flagTransition M' FState.scan ((partialTape c k) ⟨k, by omega⟩)
     left; rfl
@@ -552,8 +561,9 @@ theorem scan_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) �
     · -- contents
       show partialTape c (k + 1)
         = Function.update (partialTape c k) ⟨k, by omega⟩
-          (some (Sum.inr (cellCur ((partialTape c k) ⟨k, by omega⟩), none, none)))
-      rw [hr]
+          (some (Sum.inr (cellCur ((partialTape c k) ⟨k, by omega⟩),
+            cellLeft ((partialTape c k) ⟨k, by omega⟩), none)))
+      rw [hr, hl]
       funext j
       rw [Function.update_apply]
       by_cases hj : j = (⟨k, by omega⟩ : Fin (m + 1))
@@ -579,13 +589,14 @@ theorem partialTape_full {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) :
 
 /-- The `scan` phase: from cell `1` to the last cell `m`, converting each interior cell. -/
 theorem scan_reach (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (hraw : ∀ i : Fin (m + 1), cellLeft (c i) = none)
     (j : ℕ) (hj : 1 ≤ j) (hjm : j ≤ m) :
     Reaches (flagMachine M')
       ⟨FState.scan, ⟨partialTape c 1, ⟨1, by omega⟩⟩⟩
       ⟨FState.scan, ⟨partialTape c j, ⟨j, by omega⟩⟩⟩ := by
   induction j, hj using Nat.le_induction with
   | base => exact Relation.ReflTransGen.refl
-  | succ j hj ih => exact (ih (by omega)).tail (scan_step M' c j hj (by omega))
+  | succ j hj ih => exact (ih (by omega)).tail (scan_step M' c hraw j hj (by omega))
 
 /-- `setup`: mark cell `0` with `⊢` and step right (case `m ≥ 1`, so cell `0` is not the last). -/
 theorem setup_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
@@ -596,7 +607,7 @@ theorem setup_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) 
   refine ⟨FState.scan, some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, none)),
     DLBA.Dir.right, ?_, ?_⟩
   · show _ ∈ flagTransition M' FState.setup (c ⟨0, by omega⟩)
-    left; rfl
+    rfl
   · apply cfg_ext'
     · rfl
     · show partialTape c 1 = Function.update c ⟨0, by omega⟩
@@ -615,20 +626,24 @@ theorem setup_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) 
 
 /-- The last `scan` step (at cell `m`): mark it `⊣` and clamp, entering `verify`. -/
 theorem lastscan_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
-    (hm : 1 ≤ m) :
+    (hraw : ∀ i : Fin (m + 1), cellLeft (c i) = none) (hm : 1 ≤ m) :
     Step (flagMachine M')
       ⟨FState.scan, ⟨partialTape c m, ⟨m, by omega⟩⟩⟩
       ⟨FState.verify, ⟨foldedTape c, ⟨m, by omega⟩⟩⟩ := by
   have hr : (partialTape c m) ⟨m, by omega⟩ = c ⟨m, by omega⟩ := by simp [partialTape]
-  refine ⟨FState.verify, some (Sum.inr (cellCur ((partialTape c m) ⟨m, by omega⟩), none, some rightMark)),
+  have hl : cellLeft (c ⟨m, by omega⟩) = none := hraw _
+  refine ⟨FState.verify,
+    some (Sum.inr (cellCur ((partialTape c m) ⟨m, by omega⟩),
+      cellLeft ((partialTape c m) ⟨m, by omega⟩), some rightMark)),
     DLBA.Dir.right, ?_, ?_⟩
   · show _ ∈ flagTransition M' FState.scan ((partialTape c m) ⟨m, by omega⟩)
     right; rfl
   · apply cfg_ext'
     · rfl
     · show foldedTape c = Function.update (partialTape c m) ⟨m, by omega⟩
-        (some (Sum.inr (cellCur ((partialTape c m) ⟨m, by omega⟩), none, some rightMark)))
-      rw [hr]
+        (some (Sum.inr (cellCur ((partialTape c m) ⟨m, by omega⟩),
+          cellLeft ((partialTape c m) ⟨m, by omega⟩), some rightMark)))
+      rw [hr, hl]
       funext j
       rw [Function.update_apply]
       by_cases hj : j = (⟨m, by omega⟩ : Fin (m + 1))
@@ -709,28 +724,45 @@ theorem rewind0_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1
 
 /-- The whole init phase: from the input tape `c`, reach the simulation start at `M'.initial`
 on the head (`⊢`), with the tape fully folded. -/
-theorem init_reach (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) :
+theorem init_reach (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (hraw : ∀ i : Fin (m + 1), cellLeft (c i) = none) :
     Reaches (flagMachine M')
       ⟨FState.setup, ⟨c, ⟨0, by omega⟩⟩⟩
       ⟨FState.sim M'.initial FMode.onLeft, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
   by_cases hm0 : m = 0
   · subst hm0
+    -- single cell: setup marks `⊢`, scan guesses `⊣` (preserving `⊢`), then verify→rewind→sim.
     have h1 : Step (flagMachine M') ⟨FState.setup, ⟨c, ⟨0, by omega⟩⟩⟩
-        ⟨FState.verify, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
-      refine ⟨FState.verify,
-        some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, some rightMark)),
+        ⟨FState.scan, ⟨scanLast c, ⟨0, by omega⟩⟩⟩ := by
+      refine ⟨FState.scan, some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, none)),
         DLBA.Dir.right, ?_, ?_⟩
-      · show _ ∈ flagTransition M' FState.setup (c ⟨0, by omega⟩); right; rfl
+      · show _ ∈ flagTransition M' FState.setup (c ⟨0, by omega⟩); rfl
       · apply cfg_ext'
         · rfl
-        · show foldedTape c = Function.update c ⟨0, by omega⟩
-            (some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, some rightMark)))
+        · show scanLast c = Function.update c ⟨0, by omega⟩
+            (some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, none)))
           funext j
           have hj0 : j = (⟨0, by omega⟩ : Fin (0 + 1)) := Fin.ext (by have := j.isLt; omega)
-          subst hj0; rw [Function.update_apply, if_pos rfl]; simp [foldedTape]
+          subst hj0; rw [Function.update_apply, if_pos rfl]; simp [scanLast]
         · apply Fin.ext; simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
           rw [dif_neg (show ¬ (0 : ℕ) < 0 by omega)]
-    have h2 : Step (flagMachine M') ⟨FState.verify, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩
+    have h2 : Step (flagMachine M') ⟨FState.scan, ⟨scanLast c, ⟨0, by omega⟩⟩⟩
+        ⟨FState.verify, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
+      refine ⟨FState.verify,
+        some (Sum.inr (cellCur (scanLast c ⟨0, by omega⟩), cellLeft (scanLast c ⟨0, by omega⟩),
+          some rightMark)), DLBA.Dir.right, ?_, ?_⟩
+      · show _ ∈ flagTransition M' FState.scan (scanLast c ⟨0, by omega⟩); right; rfl
+      · apply cfg_ext'
+        · rfl
+        · show foldedTape c = Function.update (scanLast c) ⟨0, by omega⟩
+            (some (Sum.inr (cellCur (scanLast c ⟨0, by omega⟩), cellLeft (scanLast c ⟨0, by omega⟩),
+              some rightMark)))
+          funext j
+          have hj0 : j = (⟨0, by omega⟩ : Fin (0 + 1)) := Fin.ext (by have := j.isLt; omega)
+          subst hj0; rw [Function.update_apply, if_pos rfl]; simp [scanLast, foldedTape, cellCur, cellLeft]
+        · apply Fin.ext; simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+          rw [dif_neg (show ¬ (0 : ℕ) < 0 by omega)]
+    have h3 : Step (flagMachine M') ⟨FState.verify, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩
         ⟨FState.rewind, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
       have hrt : (cellRight (foldedTape c ⟨0, by omega⟩)).isSome = true := by
         simp [foldedTape, cellRight]
@@ -743,12 +775,12 @@ theorem init_reach (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) 
           rw [Function.update_eq_self]
         · apply Fin.ext; simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
           rw [dif_neg (show ¬ (0 : ℕ) < 0 by omega)]
-    exact Relation.ReflTransGen.head h1
-      (Relation.ReflTransGen.head h2 (Relation.ReflTransGen.single (rewind0_step M' c)))
+    exact Relation.ReflTransGen.head h1 (Relation.ReflTransGen.head h2
+      (Relation.ReflTransGen.head h3 (Relation.ReflTransGen.single (rewind0_step M' c))))
   · have hm : 1 ≤ m := by omega
     refine Relation.ReflTransGen.head (setup_step M' c hm)
-      ((scan_reach M' c m hm le_rfl).trans
-        (Relation.ReflTransGen.head (lastscan_step M' c hm)
+      ((scan_reach M' c hraw m hm le_rfl).trans
+        (Relation.ReflTransGen.head (lastscan_step M' c hraw hm)
           (Relation.ReflTransGen.head (verify_step M' c hm)
             ((rewind_reach M' c (m - 1) (by omega)).trans
               (Relation.ReflTransGen.single (rewind0_step M' c))))))
