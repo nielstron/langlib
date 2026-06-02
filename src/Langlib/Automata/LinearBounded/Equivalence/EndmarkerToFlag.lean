@@ -155,4 +155,43 @@ def flagMachine (M' : Machine (EndAlpha T Γ) Λ) : Machine (FAlpha T Γ) (FStat
   accept := fun s => match s with | .sim q _ => M'.accept q | _ => false
   initial := .setup
 
+@[simp] theorem flagMachine_accept_sim (M' : Machine (EndAlpha T Γ) Λ) (q : Λ) (mode : FMode) :
+    (flagMachine M').accept (.sim q mode) = M'.accept q := rfl
+
+/-! ### The fold encoding of an `M'`-configuration. -/
+
+/-- The folded contents: cell `i` holds the interior cell `i+1`, with the `⊢`/`⊣` cells folded
+into cells `0`/`m`. -/
+def foldContents {m : ℕ} (c : Fin (m + 3) → EndAlpha T Γ) : Fin (m + 1) → FAlpha T Γ :=
+  fun i => some (Sum.inr
+    (c ⟨i.val + 1, by have := i.isLt; omega⟩,
+     if i.val = 0 then some (c ⟨0, by omega⟩) else none,
+     if i.val = m then some (c ⟨m + 2, by omega⟩) else none))
+
+/-- The folded head position: `⊢`→cell `0`, interior cell `p`→cell `p-1`, `⊣`→cell `m`. -/
+def foldHead {m : ℕ} (p : Fin (m + 3)) : Fin (m + 1) :=
+  if h0 : p.val = 0 then ⟨0, by omega⟩
+  else if h2 : p.val = m + 2 then ⟨m, by omega⟩
+  else ⟨p.val - 1, by have := p.isLt; omega⟩
+
+/-- The head mode determined by where `M'`'s head sits. -/
+def foldMode {m : ℕ} (p : Fin (m + 3)) : FMode :=
+  if p.val = 0 then FMode.onLeft else if p.val = m + 2 then FMode.onRight else FMode.mid
+
+/-- Encode an `M'`-configuration (on `m+2` dim, `m+3` cells) as the corresponding `flagMachine`
+configuration (on `m` dim, `m+1` cells) in the simulation phase. -/
+def fold {m : ℕ} (cfg : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2)) :
+    DLBA.Cfg (FAlpha T Γ) (FState Λ) m :=
+  ⟨FState.sim cfg.state (foldMode cfg.tape.head),
+   ⟨foldContents cfg.tape.contents, foldHead cfg.tape.head⟩⟩
+
+@[simp] theorem cellCur_foldContents {m : ℕ} (c : Fin (m + 3) → EndAlpha T Γ) (i : Fin (m + 1)) :
+    cellCur (foldContents c i) = c ⟨i.val + 1, by have := i.isLt; omega⟩ := rfl
+
+@[simp] theorem cellLeft_foldContents {m : ℕ} (c : Fin (m + 3) → EndAlpha T Γ) (i : Fin (m + 1)) :
+    cellLeft (foldContents c i) = if i.val = 0 then some (c ⟨0, by omega⟩) else none := rfl
+
+@[simp] theorem cellRight_foldContents {m : ℕ} (c : Fin (m + 3) → EndAlpha T Γ) (i : Fin (m + 1)) :
+    cellRight (foldContents c i) = if i.val = m then some (c ⟨m + 2, by omega⟩) else none := rfl
+
 end LBA
