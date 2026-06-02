@@ -22,18 +22,14 @@ machine-checked and free of `sorry`.
 
 ## In Lean
 
-The headline equality is [`CS_eq_LBA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/EndmarkerToFlag.lean) — `(CS : Set (Language T)) = LBA` — for the canonical **endmarker** LBA (`is_LBA`/`LBA`, defined in `Automata/LinearBounded/Definition.lean`).
+In `Automata/LinearBounded/Equivalence/ContextSensitive.lean`:
 
-Its two halves are proved against an internal marker-free *flag* model `LBA_flag`
-(`Automata/LinearBounded/FlagModel.lean`), which is then shown equal to the endmarker model. In
-`Automata/LinearBounded/Equivalence/ContextSensitive.lean`:
+- [`CS_eq_LBA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — the headline class equality `(CS : Set (Language T)) = LBA` for the canonical **endmarker** LBA (`is_LBA`/`LBA`, `Automata/LinearBounded/Definition.lean`).
+- [`CS_subset_LBA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) / [`LBA_subset_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — the Kuroda and Myhill directions.
+- [`is_LBA_pos_iff`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — `is_LBA_pos L ↔ is_CS L ∧ [] ∉ L`: the genuinely space-bounded core. The marker-free `|w|`-cell model `is_LBA_pos` (`Automata/LinearBounded/Positive.lean`) recognizes exactly the **ε-free** context-sensitive languages.
+- [`myhill_language_eq`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — the core LBA → CS bisimulation: the Myhill grammar generates exactly the bounded-tape machine's (non-empty) language.
 
-- [`CS_eq_LBA_flag`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — `(CS : Set (Language T)) = LBA_flag`.
-- [`CS_subset_LBA_flag`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — Kuroda's direction: every context-sensitive language is recognized by an LBA.
-- [`LBA_flag_subset_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — Myhill's direction: every LBA language is context-sensitive.
-- [`myhill_language_eq`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — the core LBA → CS bisimulation: the Myhill grammar generates exactly the LBA's (non-empty) language.
-
-The equivalence of the two models is [`LBA_eq_LBA_flag`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/EndmarkerToFlag.lean) (`LBA = LBA_flag`), from the two simulations in `Equivalence/EndmarkerTape.lean` (flag ⊆ endmarker) and `Equivalence/EndmarkerToFlag.lean` (endmarker ⊆ flag).
+The endmarker's two simulations live in `Equivalence/EndmarkerTape.lean` (`simMachine`/`language_simMachine_eq` — run a bounded-tape machine on `⊢ w ⊣`) and `Equivalence/EndmarkerToFlag.lean` (`flagMachine`/`language_flagMachine_eq` — fold the markers away onto `|w|` cells).
 
 The two construction halves live in their own directories, each split into a machine/grammar
 construction plus completeness and soundness arguments, mirroring the `TM = RE` and `PDA = CFG`
@@ -55,11 +51,13 @@ other input: it accepts `ε` exactly when its transitions accept with the two ma
 the machine itself decides `ε` — no external flag is needed, and `CS = LBA` holds on the nose
 (rather than merely "up to `ε`").
 
-Internally the two halves of the theorem are first proved against a marker-free **flag** model
-(exactly `|w|` cells over `Option (T ⊕ Γ)`, with a Boolean `acceptEmpty` deciding `ε` in the role
-of a grammar's optional `S → ε` rule), then transferred to the endmarker model via the
-`LBA = LBA_flag` equivalence. The flag model is an internal convenience and never appears in the
-final statement.
+The genuinely space-bounded content is isolated in the marker-free `|w|`-cell model `is_LBA_pos`
+(`Automata/LinearBounded/Positive.lean`): a tape of exactly `|w|` cells over `Option (T ⊕ Γ)`,
+which (having no cell to run on for `ε`) recognizes precisely the **ε-free** context-sensitive
+languages — `is_LBA_pos L ↔ is_CS L ∧ [] ∉ L`. The endmarker model is this plus the `ε` case, run
+natively on `⊢⊣`; that single extra cell is exactly what upgrades "ε-free CSL" to all of `CS`. So
+there is no empty-word *flag* anywhere — the only place `ε` is decided is the machine's behaviour on
+the two-cell tape `⊢⊣`.
 
 ## Proof idea
 
@@ -81,10 +79,9 @@ never leaves the input region, intermediate forms stay bounded and the rules nev
 construction is structurally context-sensitive; `myhill_language_eq` proves it generates exactly
 the automaton's non-empty language.
 
-The empty-word bookkeeping (the optional `S → ε` rule, mirrored internally by the flag model's
-`acceptEmpty`) and the reduction between the non-contracting core and Langlib's canonical class
-`is_CS` glue the two halves into `CS_eq_LBA_flag`; transferring along `LBA = LBA_flag` gives the
-headline endmarker-model equality `CS_eq_LBA`.
+The reduction between the non-contracting core and Langlib's canonical class `is_CS` gives the
+ε-free characterization `is_LBA_pos_iff`; running the bounded-tape machine on `⊢ w ⊣` and deciding
+`ε` on `⊢⊣` (the two `language_*_eq` simulations) then upgrades it to the headline `CS_eq_LBA`.
 
 ## Related
 

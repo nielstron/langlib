@@ -61,9 +61,10 @@ ones (`CS = LBA`, see `Equivalence/EndmarkerToFlag.lean`).
 
 The shared machine/configuration vocabulary (`Machine`, `Step`, `Reaches`, `Accepts`) and the
 plain list-loading helpers (`loadList`, `initCfgList`, `LanguageViaEmbed`) live here too; they
-are reused by the internal marker-free *flag* model (`Automata/LinearBounded/FlagModel.lean`),
-which the `CS = LBA` development uses as a convenient intermediary and which is proved equal to
-the canonical model in `Equivalence/EndmarkerTape.lean` and `Equivalence/EndmarkerToFlag.lean`.
+are reused by the internal marker-free bounded-tape model (`Automata/LinearBounded/Positive.lean`,
+`is_LBA_pos`), which the `CS = LBA` development uses as the genuinely space-bounded core (it
+recognizes exactly the ε-free context-sensitive languages); the empty word is supplied here by the
+endmarker model running on `⊢⊣`.
 
 This is a separate automaton class from deterministic DLBAs. It reuses the bounded tape and
 configuration types from `Langlib.Automata.DeterministicLinearBounded.Definition`.
@@ -121,6 +122,16 @@ public noncomputable def LanguageViaEmbed {T Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (embed : T → Γ) : Language T :=
   fun w => ∃ (hw : w.map embed ≠ []),
     Accepts M (initCfgList M (w.map embed) hw)
+
+/-- An internal helper: the language `LanguageViaEmbed M embed` together with an explicit decision
+`b` for the empty word. The `|w|`-cell tape cannot run on `ε`, so this combinator is used only to
+*state* the recognized languages of the endmarker simulators (`Equivalence/EndmarkerTape.lean`,
+`Equivalence/EndmarkerToFlag.lean`), where `b` is always the *derived* value `decide (ε ∈ L)` — it
+is never a free parameter of any automaton model. -/
+@[expose]
+public noncomputable def LanguageRecognized {T Γ : Type*} {Λ : Type*}
+    (M : Machine Γ Λ) (embed : T → Γ) (b : Bool) : Language T :=
+  fun w => (b = true ∧ w = []) ∨ LanguageViaEmbed M embed w
 
 /-! ### The canonical endmarker model
 
