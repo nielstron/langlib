@@ -55,10 +55,13 @@
 
 ### Automata
 
-- [Pushdown automata](src/Langlib/Automata/Pushdown/Definition.lean)
+- [Finite-state automata](src/Langlib/Automata/FiniteState/Definition.lean)
 - [Deterministic pushdown automata](src/Langlib/Automata/DeterministicPushdown/Definition.lean)
-- [Linear bounded automata](src/Langlib/Automata/LinearBounded/Definition.lean) — endmarker model (input bracketed `⊢ w ⊣`; the machine itself decides `ε`)
+- [Pushdown automata](src/Langlib/Automata/Pushdown/Definition.lean)
 - [Deterministic linear bounded automata](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean)
+- [Linear bounded automata](src/Langlib/Automata/LinearBounded/Definition.lean)
+- [Turing machines with a decider (always halting)](src/Langlib/Classes/Recursive/Definition.lean)
+- [Turing machines](src/Langlib/Automata/Turing/Definition.lean)
 
 ### Examples
 
