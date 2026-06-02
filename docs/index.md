@@ -15,7 +15,7 @@ This page is a catalog of the library's results.
 
 - [Deterministic context-free languages are closed under complement](results/dcfl-closed-under-complement.html)
 - [DPDA totalization: every DPDA has an equivalent always-halting deciding DPDA](results/dpda-totalization.html)
-- [Every context-sensitive language is recursive (CS ⊆ Recursive)](results/context-sensitive-is-recursive.html)
+- [Every context-sensitive language is recursive — and strictly so (CS ⊊ Recursive)](results/context-sensitive-strict-subset-recursive.html)
 - [Membership in context-sensitive languages is computable](results/context-sensitive-membership-computable.html)
 - [Post's theorem (RE ∩ co-RE = recursive)](results/posts-theorem.html)
 - [Tape vs. state acceptance for recursive languages](results/tape-vs-state-acceptance-recursive.html)
@@ -35,7 +35,8 @@ This page is a catalog of the library's results.
 
 ## Hierarchy: strict inclusions
 
-- [The Chomsky hierarchy is strict](results/chomsky-hierarchy-strict-inclusions.html): Regular ⊊ DCFL ⊊ CFL ⊊ Indexed, Regular ⊊ Linear ⊊ CFL, CF ⊆ CS, Recursive ⊊ RE.
+- [The Chomsky hierarchy is strict](results/chomsky-hierarchy-strict-inclusions.html): Regular ⊊ DCFL ⊊ CFL ⊊ Indexed, Regular ⊊ Linear ⊊ CFL, CF ⊆ CS ⊊ Recursive ⊊ RE.
+- [CS ⊊ Recursive: context-sensitive languages are a strict subset of the recursive languages](results/context-sensitive-strict-subset-recursive.html) — by diagonalization (no closure shortcut exists).
 - [{aⁿbⁿcⁿ} is indexed and context-sensitive but not context-free](results/anbncn-not-context-free.html) — the classic separating example.
 
 ## Regular languages
@@ -77,7 +78,7 @@ This page is a catalog of the library's results.
 
 ## Context-sensitive languages (CSL)
 
-- [Every context-sensitive language is recursive (CS ⊆ Recursive)](results/context-sensitive-is-recursive.html).
+- [Every context-sensitive language is recursive, strictly (CS ⊊ Recursive)](results/context-sensitive-strict-subset-recursive.html) — recursive via bounded derivations, and strictly so by diagonalization.
 - [Membership in context-sensitive languages is computable](results/context-sensitive-membership-computable.html).
 - [Non-contracting and non-erasing context-sensitive grammars](results/noncontracting-equals-context-sensitive.html) — Langlib defines CS as non-contracting; the equivalence with the non-erasing form is only partially formalized.
 - [CSL = LBA: context-sensitive grammars and linear bounded automata recognize the same languages](results/lba-context-sensitive.html) (the Myhill–Kuroda theorem).
@@ -119,7 +120,7 @@ Results proved with the strong `ComputablePred` (genuine computability), not mer
 
 - [Regular membership is computable](results/regular-membership-computable.html).
 - [Context-free membership (CYK) and emptiness are decidable](results/cfl-decidability.html).
-- [Context-sensitive membership is computable](results/context-sensitive-membership-computable.html) (and [every CSL is recursive](results/context-sensitive-is-recursive.html)).
+- [Context-sensitive membership is computable](results/context-sensitive-membership-computable.html) (and [every CSL is recursive — strictly](results/context-sensitive-strict-subset-recursive.html)).
 - [Post's theorem](results/posts-theorem.html) underpins the recursive/RE decidability results.
 
 ---

@@ -88,7 +88,7 @@ The reduction between the non-contracting core and Langlib's canonical class `is
 Every LBA language is also Turing-recognizable —
 [`Automata/LinearBounded/Inclusion/TuringMachine.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)
 shows **NLBA languages ⊆ Turing-machine languages** via BFS determinization. Combined with
-[CS ⊆ recursive](context-sensitive-is-recursive.html) this places the context-sensitive
+[CS ⊆ recursive](context-sensitive-strict-subset-recursive.html) this places the context-sensitive
 languages inside the recursive (hence recursively enumerable) ones. The non-contracting form of
 context-sensitive grammar used in the Kuroda direction is bridged to Langlib's canonical class in
 [non-contracting = context-sensitive](noncontracting-equals-context-sensitive.html).

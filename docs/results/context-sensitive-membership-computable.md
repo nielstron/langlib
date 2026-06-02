@@ -32,6 +32,10 @@ grammar-closed complement certificates witnesses that `w` cannot be derived.
 [Post's theorem](posts-theorem.html) then upgrades "RE and co-RE" to a genuine
 `ComputablePred` decider.
 
+A *uniform* version of this bounded search — computable jointly in an encoded grammar and the
+input word — is the engine behind the diagonalization in
+[CS ⊊ Recursive](context-sensitive-strict-subset-recursive.html).
+
 ## Keywords / also known as
 
 context-sensitive membership decidable, CSL membership computable, ComputablePred
