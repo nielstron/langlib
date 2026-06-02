@@ -26,13 +26,13 @@ law would force closure under intersection — a contradiction.
 
 ## In Lean
 
-Non-closure under intersection, in `Classes/ContextFree/Closure/Intersection.lean`:
+Non-closure under intersection:
 
 - [`CF_notClosedUnderIntersection`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Intersection.lean) — the class is not closed under intersection.
 - [`CF_notClosedUnderIntersection_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Intersection.lean) — over any alphabet with enough symbols.
 - [`notCF_lang_eq_eq`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Intersection.lean) — the intersection witness language is not context-free (the pumping-lemma step).
 
-Non-closure under complement (the corollary), in `Classes/ContextFree/Closure/Complement.lean`:
+Non-closure under complement (the corollary):
 
 - [`CF_notClosedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Complement.lean) / [`CF_notClosedUnderComplement_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Complement.lean).
 

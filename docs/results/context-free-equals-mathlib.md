@@ -17,8 +17,8 @@ grammars.
 
 ## In Lean
 
-- Equivalence with Mathlib: [`is_CF_iff_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/ContextFree/EquivMathlibCFG.lean) in `Grammars/ContextFree/EquivMathlibCFG.lean`.
-- Chomsky normal form: [`ChomskyNormalFormGrammar`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean) and its `language` / `mem_language_iff` in `Classes/ContextFree/NormalForms/ChomskyNormalForm.lean`.
+- Equivalence with Mathlib: [`is_CF_iff_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/ContextFree/EquivMathlibCFG.lean).
+- Chomsky normal form: [`ChomskyNormalFormGrammar`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean) and its `language` / `mem_language_iff`.
 
 ## Proof idea
 

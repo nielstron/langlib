@@ -16,14 +16,11 @@ Mathlib's abstract `Decidable` instance.
 
 ## In Lean
 
-In `Classes/Regular/Decidability/Membership.lean`:
-
 - [`dfa_membership_computablePred`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Decidability/Membership.lean) — `ComputablePred (· ∈ M.accepts)` for a DFA `M`.
 
-Related weaker (`Decidable`-only) results for emptiness, universality and
-equivalence of regular languages live in the same
-[`Decidability/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Decidability)
-directory.
+Related weaker (`Decidable`-only) results cover emptiness
+(`regular_emptiness_decidable`), universality (`regular_universality_decidable`) and
+equivalence (`regular_equivalence_decidable`) of regular languages.
 
 ## Proof idea
 

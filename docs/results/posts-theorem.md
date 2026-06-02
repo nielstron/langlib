@@ -16,8 +16,6 @@ complement `Lᶜ` are **recursively enumerable** (semi-decidable). Equivalently,
 
 ## In Lean
 
-In `Classes/Recursive/Basics/Post.lean`:
-
 - [`is_Recursive_of_isRE_of_isRE_compl`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Basics/Post.lean) — recursive form: `is_RE L → is_RE Lᶜ → is_Recursive L`.
 - [`computablePred_of_isRE_of_isRE_compl`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Basics/Post.lean) — computability form: yields an explicit `ComputablePred` decider.
 - [`REPred_mem_of_is_RE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Basics/Post.lean) — bridges the language-level RE predicate to a computability-theoretic `RePred`.

@@ -21,18 +21,18 @@ nonterminal grows the word symmetrically from the middle) but not regular.
 
 ## In Lean
 
-Definitions, in `Classes/Linear/Definition.lean`:
+Definitions:
 
 - [`grammar_linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Definition.lean) — predicate that a grammar is linear, via [`linear_output`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Definition.lean) (a sentential form has at most one nonterminal).
 - [`is_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Definition.lean) / [`Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Definition.lean) — the linear-language predicate and class.
 
 Inclusions:
 
-- [`RG_subclass_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/Linear.lean) / [`is_Linear_of_is_RG`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/Linear.lean) — every regular language is linear (`Classes/Regular/Inclusion/Linear.lean`).
-- [`RG_strict_subclass_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) — regular is a **strict** subclass of linear (`Classes/Regular/Inclusion/StrictLinear.lean`).
-- [`Linear_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/ContextFree.lean) — every linear language is context-free (`Classes/Linear/Inclusion/ContextFree.lean`).
+- [`RG_subclass_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/Linear.lean) / [`is_Linear_of_is_RG`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/Linear.lean) — every regular language is linear.
+- [`RG_strict_subclass_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) — regular is a **strict** subclass of linear.
+- [`Linear_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/ContextFree.lean) — every linear language is context-free.
 
-Example, in `Classes/Linear/Examples/AnBn.lean`:
+Example:
 
 - [`anbn_is_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Examples/AnBn.lean) — `{aⁿbⁿ}` is linear, via the explicit [`linear_grammar_anbn`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Examples/AnBn.lean).
 

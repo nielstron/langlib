@@ -21,8 +21,8 @@ undecidable.)
 
 ## In Lean
 
-- Membership: [`cf_membership_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Membership.lean) in `Classes/ContextFree/Decidability/Membership.lean` — a bitvector CYK implementation packaged as a `ComputablePred`.
-- Emptiness: [`encoded_cf_emptiness_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) and [`encoded_cf_emptiness_decidable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) in `Classes/ContextFree/Decidability/Emptiness.lean` — a least-fixpoint computation of the productive nonterminals.
+- Membership: [`cf_membership_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Membership.lean) — a bitvector CYK implementation packaged as a `ComputablePred`.
+- Emptiness: [`encoded_cf_emptiness_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) and [`encoded_cf_emptiness_decidable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) — a least-fixpoint computation of the productive nonterminals.
 
 ## Proof idea
 

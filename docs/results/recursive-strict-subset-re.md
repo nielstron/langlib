@@ -16,8 +16,6 @@ semi-decidable but not decidable.
 
 ## In Lean
 
-In `Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean`:
-
 - [`haltingUnaryLanguage_not_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) — a concrete RE language that is not recursive.
 - [`Recursive_strict_subclass_RE_unit`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) — strict inclusion over the unary alphabet.
 - [`Recursive_strict_subclass_RE_of_nonempty`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) — strict inclusion over any nonempty finite alphabet.
@@ -27,7 +25,7 @@ In `Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean`:
 
 Inclusion `Recursive ⊆ RE` is `Recursive_subset_RE`. Strictness is **not** a
 diagonalization; it is a closure-asymmetry argument run through the generic lemma
-`strict_subset_of_subset_different_property` (in `Utilities/ClosurePredicates.lean`):
+`strict_subset_of_subset_different_property`:
 if `P ⊆ Q`, the class predicate `X = ClosedUnderComplement` holds of `P` but not of
 `Q`, and `X` transports across pointwise class equivalence, then `P ⊂ Q`. Instantiated
 with `P = is_Recursive`, `Q = is_RE`:
@@ -37,7 +35,7 @@ with `P = is_Recursive`, `Q = is_RE`:
 - `RE_notClosedUnderComplement` (resp. `..._of_nonempty`) supplies `¬ X Q`.
 
 The non-closure of RE is witnessed concretely by the unary halting language
-`haltingUnaryLanguage` (`Classes/RecursivelyEnumerable/Closure/Complement.lean`): a word
+`haltingUnaryLanguage`: a word
 is accepted iff its length decodes (via `Nat.Partrec.Code.ofNatCode`) to a code that
 halts on `0`. It is RE (`haltingUnaryLanguage_RE`) because `haltingUnaryTest` is a
 computable bounded-evaluation search (`Nat.Partrec.Code.evaln`), but its complement is

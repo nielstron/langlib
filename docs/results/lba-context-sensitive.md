@@ -16,27 +16,23 @@ says that LBAs and context-sensitive grammars characterize the same class of lan
 
 Langlib formalizes this as a full class equality
 
-$$\mathrm{CS} = \mathrm{LBA},$$
-
-machine-checked and free of `sorry`.
+$$\mathrm{CS} = \mathrm{LBA}.$$
 
 ## In Lean
 
-In `Automata/LinearBounded/Equivalence/ContextSensitive.lean`:
-
-- [`CS_eq_LBA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — the headline class equality `(CS : Set (Language T)) = LBA` for the canonical **endmarker** LBA (`is_LBA`/`LBA`, `Automata/LinearBounded/Definition.lean`).
+- [`CS_eq_LBA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — the headline class equality `(CS : Set (Language T)) = LBA` for the canonical **endmarker** LBA (`is_LBA`/`LBA`).
 - [`CS_subset_LBA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) / [`LBA_subset_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — the Kuroda and Myhill directions.
-- [`is_LBA_pos_iff`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — `is_LBA_pos L ↔ is_CS L ∧ [] ∉ L`: the genuinely space-bounded core. The marker-free `|w|`-cell model `is_LBA_pos` (`Automata/LinearBounded/Positive.lean`) recognizes exactly the **ε-free** context-sensitive languages.
+- [`is_LBA_pos_iff`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — `is_LBA_pos L ↔ is_CS L ∧ [] ∉ L`: the genuinely space-bounded core. The marker-free `|w|`-cell model `is_LBA_pos` recognizes exactly the **ε-free** context-sensitive languages.
 - [`myhill_language_eq`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) — the core LBA → CS bisimulation: the Myhill grammar generates exactly the bounded-tape machine's (non-empty) language.
 
-The endmarker's two simulations live in `Equivalence/EndmarkerTape.lean` (`simMachine`/`language_simMachine_eq` — run a bounded-tape machine on `⊢ w ⊣`) and `Equivalence/EndmarkerToFlag.lean` (`flagMachine`/`language_flagMachine_eq` — fold the markers away onto `|w|` cells).
+The endmarker's two simulations are `simMachine`/`language_simMachine_eq` — run a bounded-tape machine on `⊢ w ⊣` — and `flagMachine`/`language_flagMachine_eq` — fold the markers away onto `|w|` cells.
 
-The two construction halves live in their own directories, each split into a machine/grammar
+The two construction halves are each split into a machine/grammar
 construction plus completeness and soundness arguments, mirroring the `TM = RE` and `PDA = CFG`
 developments:
 
-- **LBA → CS (Myhill)** — [`Equivalence/LBAToCSG.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/LBAToCSG.lean) (the grammar `myhillGrammar`), with [`LBAToCSG/Completeness.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/LBAToCSG/Completeness.lean) and [`LBAToCSG/Soundness.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/LBAToCSG/Soundness.lean).
-- **CS → LBA (Kuroda)** — [`Equivalence/CSGToLBA.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/CSGToLBA.lean) (the simulator `kMachine`, capstone `noncontracting_finite_to_LBA`), with [`CSGToLBA/Construction.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/CSGToLBA/Construction.lean), [`CSGToLBA/Completeness.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/CSGToLBA/Completeness.lean) (`kMachine_complete`) and [`CSGToLBA/Soundness.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Equivalence/CSGToLBA/Soundness.lean) (`kMachine_sound`).
+- **LBA → CS (Myhill)** — the grammar `myhillGrammar`, with completeness and soundness arguments establishing `myhill_language_eq`.
+- **CS → LBA (Kuroda)** — the simulator `kMachine` and capstone `noncontracting_finite_to_LBA`, with `kMachine_complete` and `kMachine_sound`.
 
 ## The LBA model and the empty word
 
@@ -51,8 +47,8 @@ other input: it accepts `ε` exactly when its transitions accept with the two ma
 the machine itself decides `ε` — no external flag is needed, and `CS = LBA` holds on the nose
 (rather than merely "up to `ε`").
 
-The genuinely space-bounded content is isolated in the marker-free `|w|`-cell model `is_LBA_pos`
-(`Automata/LinearBounded/Positive.lean`): a tape of exactly `|w|` cells over `Option (T ⊕ Γ)`,
+The genuinely space-bounded content is isolated in the marker-free `|w|`-cell model `is_LBA_pos`:
+a tape of exactly `|w|` cells over `Option (T ⊕ Γ)`,
 which (having no cell to run on for `ε`) recognizes precisely the **ε-free** context-sensitive
 languages — `is_LBA_pos L ↔ is_CS L ∧ [] ∉ L`. The endmarker model is this plus the `ε` case, run
 natively on `⊢⊣`; that single extra cell is exactly what upgrades "ε-free CSL" to all of `CS`. So
@@ -86,7 +82,7 @@ The reduction between the non-contracting core and Langlib's canonical class `is
 ## Related
 
 Every LBA language is also Turing-recognizable —
-[`Automata/LinearBounded/Inclusion/TuringMachine.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)
+[`lba_language_subset_tm0_language`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)
 shows **NLBA languages ⊆ Turing-machine languages** via BFS determinization. Combined with
 [CS ⊆ recursive](context-sensitive-strict-subset-recursive.html) this places the context-sensitive
 languages inside the recursive (hence recursively enumerable) ones. The non-contracting form of

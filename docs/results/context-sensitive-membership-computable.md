@@ -17,8 +17,7 @@ abstract `Decidable` instance.
 
 ## In Lean
 
-In `Classes/ContextSensitive/Decidability/Membership.lean`, mirroring the structure of
-`contextFree_computableMembership` for context-free grammars:
+Mirroring the structure of `contextFree_computableMembership` for context-free grammars:
 
 - [`contextSensitive_computableMembership`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) — the headline **uniform** result: membership is computable *jointly* in an encoded grammar `c` and the word `w`, i.e. `ComputablePred (fun p : Code T × List T => p.2 ∈ contextSensitiveLanguageOf p.1)`.
 - [`computablePred_mem_of_is_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) — the per-language corollary: for any `is_CS L`, `ComputablePred (fun w => w ∈ L)`.

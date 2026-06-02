@@ -21,21 +21,15 @@ is total, you can complement it by flipping its accepting states.
 
 ## In Lean
 
-The target normal form is [`is_DCF_decider`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Definition.lean)
-(`Totalization/Definition.lean`): a final-state DPDA presentation `M` of `L` with
+The target normal form is [`is_DCF_decider`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Definition.lean):
+a final-state DPDA presentation `M` of `L` with
 `M.DecidesEveryInput` — for every input `w`, `M` reaches some empty-input
 configuration (totality), and all empty-input configurations reachable on `w` agree
-on final-state membership (acceptance consistency). The construction lives in
-`Automata/DeterministicPushdown/Totalization/`. Key declarations:
+on final-state membership (acceptance consistency). Key declarations:
 
-- [`totalizer_is_DCF_decider`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Presentation.lean) — from a `RegularEpsilonAnalysis A` of `M`, the `totalizer A` is a deciding DPDA presentation of `M.acceptsByFinalState`; combines `totalizer_decides` and `totalizer_acceptsByFinalState_eq_original` (in `Totalization/Construction.lean`).
+- [`totalizer_is_DCF_decider`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Presentation.lean) — from a `RegularEpsilonAnalysis A` of `M`, the `totalizer A` is a deciding DPDA presentation of `M.acceptsByFinalState`; combines `totalizer_decides` and `totalizer_acceptsByFinalState_eq_original`.
 - [`everyDPDAHasRegularEpsilonAnalysis`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Presentation.lean) — every finite DPDA admits a regular epsilon analysis, via the saturation construction `hasRegularEpsilonAnalysis`.
 - [`everyDCFHasDeciderPresentation`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Presentation.lean) — consequently, every deterministic context-free language has a deciding DPDA presentation.
-
-The supporting modules — `EpsilonPhase`, `Saturation`, `RegularAnalysis`,
-`StackSummary`, `AnnotatedStack`, `Construction` — build up the construction piece
-by piece. See the umbrella file
-[`Totalization.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization.lean).
 
 ## Proof idea
 
@@ -49,15 +43,15 @@ never consumes input and so must be treated as a halting decision point.
 
 **Regular epsilon analysis.** The totalizer needs to answer two questions about the
 phase from a configuration `(q, γ)` using only finite, stack-regular lookahead,
-packaged as a `RegularEpsilonAnalysis` (`RegularAnalysis.lean`): a per-state DFA
+packaged as a `RegularEpsilonAnalysis`: a per-state DFA
 `stopDFA` deciding whether the phase reaches a stable configuration
 (`stop_correct`), and a per-state DFA `acceptDFA` deciding whether the phase passes
 through a final state (`accept_correct`). Existence
 (`regularEpsilonAnalysisOfSaturation`) comes from a P-automaton **saturation**
-construction over the finite state set `PAutState Q = Q ⊕ Unit` (`Saturation.lean`).
+construction over the finite state set `PAutState Q = Q ⊕ Unit`.
 Both DFA queries are evaluated incrementally against the stack by storing, with each
 stack symbol, the DFA transition summary `σ → σ` of the suffix below it
-(`DFA.stackSummary`, `AnnotatedStack.lean`); since the DFA state type is finite, the
+(`DFA.stackSummary`); since the DFA state type is finite, the
 summary type is finite, so the totalizer's stack alphabet stays finite.
 
 **The totalizer.** `totalizer A` has finite control `TotalState Q` with three

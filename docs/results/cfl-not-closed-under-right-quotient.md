@@ -73,14 +73,14 @@ Hence CFLs are not closed under right quotient. The hard part — the bulk of th
 
 ## In Lean
 
-Closure result and counterexample, in `Classes/ContextFree/Closure/Quotient.lean`:
+Closure result and counterexample:
 
 - [`CF_notClosedUnderRightQuotient`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — `is_CF` is not closed under right quotient.
 - [`notCF_quotient`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the specific quotient `N / D` is not context-free.
 - [`quotient_slice_eq_unaryPow2`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the identity `(N / D) ∩ {a}* = unaryPow2`.
 - [`CF_closedUnderRightQuotientWithRegular`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Quotient.lean) — the contrasting *positive* result (quotient with a regular language is CF).
 
-The witness languages (definitions in `Examples/`, context-freeness in `Classes/ContextFree/Examples/`):
+The witness languages:
 
 - [`quotientNumerator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/A2nBnPosStar.lean) `= (quotientLeftBlock)*`, with [`quotientLeftBlock = { a²ᵐbᵐ : m ≥ 1 }`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/A2nBnPos.lean) — context-free by [`CF_quotientNumerator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/A2nBnPosStar.lean).
 - [`quotientDenominator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/BnAnPosStarB.lean) `= (quotientRightBlock)* · {b}`, with [`quotientRightBlock = { bᵐaᵐ : m ≥ 1 }`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Examples/BnAnPos.lean) — context-free by [`CF_quotientDenominator`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/BnAnPosStarB.lean).

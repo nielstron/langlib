@@ -15,23 +15,19 @@ model (PDAs) define one and the same language class.
 
 ## In Lean
 
-In `Automata/Pushdown/Equivalence/ContextFree.lean`:
-
 - [`is_PDA_iff_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) — pointwise: `is_PDA L ↔ L.IsContextFree`.
 - [`CF_eq_PDA_Class`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) — class equality `(CF : Set (Language T)) = PDA.Class`.
 - [`is_PDA_of_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) and [`is_CF_of_is_PDA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) — the two inclusions.
 
 A related result, that **PDA acceptance by final state equals acceptance by empty
-stack**, is proved in
-[`FinalStateEmptyStackEquiv.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)
-(`PDA_FS_subset_ES` and `PDA_ES_subset_FS`).
+stack**, is given by `PDA_FS_subset_ES` and `PDA_ES_subset_FS`.
 
 ## Proof idea
 
 Both directions use **acceptance by empty stack**, which is then bridged to
 final-state acceptance.
 
-**CFG → PDA** (`CFGToPDA.lean`, `CFG_to_PDA.M`). Given a grammar `G`, build a PDA
+**CFG → PDA** (`CFG_to_PDA.M`). Given a grammar `G`, build a PDA
 with a single state `Q.loop`, stack alphabet `Symbol T G.NT`, and start symbol
 `nonterminal G.initial`. Its transitions implement a leftmost-derivation simulation:
 an ε-move replaces a nonterminal `N` on top of the stack by `α` for each rule
@@ -40,7 +36,7 @@ the stack when it matches the next input symbol (`M_consumes_terminal`). The two
 inclusions `M_reaches_off_G_derives` and `G_derives_of_M_reaches` (the latter by
 induction on the number of PDA steps) give `pda_of_cfg : G.language = (M G).acceptsByEmptyStack`.
 
-**PDA → CFG** (`PDAToCFG.lean`, `PDA_to_CFG.G`). From a PDA `M`, build a grammar
+**PDA → CFG** (`PDA_to_CFG.G`). From a PDA `M`, build a grammar
 whose nonterminals (`N`) are the triples `N.single q Z p` and the bounded lists
 `N.list q α p`, plus a start symbol `N.start`. A triple `q Z p` derives exactly the
 input strings along which `M` goes from state `q` to state `p` while net-popping the

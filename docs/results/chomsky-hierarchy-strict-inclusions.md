@@ -18,10 +18,10 @@ Langlib already formalizes the following strict inclusions:
 ## In Lean
 
 - Regular ⊊ DCFL: [`RG_strict_subclass_DCF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean).
-- Regular ⊊ Linear: [`Classes/Regular/Inclusion/StrictLinear.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean); Linear ⊊ CF: [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean), separated by `{0ⁿ1ⁿ2ᵐ3ᵐ}` via the [linear pumping lemma](linear-pumping-lemma.html).
-- DCFL ⊊ CFL: [`is_CF_of_is_DCF` / `DCF_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Inclusion/ContextFree.lean) (strictness via [`Inclusion/StrictPushdown.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Inclusion/StrictPushdown.lean)).
+- Regular ⊊ Linear: `RG_strict_subclass_Linear`; Linear ⊊ CF: [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean), separated by `{0ⁿ1ⁿ2ᵐ3ᵐ}` via the [linear pumping lemma](linear-pumping-lemma.html).
+- DCFL ⊊ CFL: `is_CF_of_is_DCF` / `DCF_subclass_CF` (strictness via `DPDA_strict_subclass_PDA`).
 - CFL ⊊ Indexed: [`CF_strict_subclass_Indexed`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) and [`CF_subclass_Indexed_and_exists_strict`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean).
-- CF ⊆ CS: [`Classes/ContextFree/Inclusion/ContextSensitive.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/ContextSensitive.lean).
+- CF ⊆ CS: `CF_subclass_CS`.
 - CS ⊊ Recursive: [`CS_strict_subclass_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — by diagonalization; see the [dedicated page](context-sensitive-strict-subset-recursive.html).
 - Recursive ⊊ RE: see the [dedicated page](recursive-strict-subset-re.html).
 

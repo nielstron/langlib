@@ -21,10 +21,9 @@ context-free languages: ordinary (nondeterministic) context-free languages are
 ## In Lean
 
 The headline theorem is
-[`DCF_closedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean)
-in `Classes/DeterministicContextFree/Closure/Complement.lean`.
+[`DCF_closedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean).
 
-Supporting theorems in the same file:
+Supporting theorems:
 
 - [`is_DCF_decider_complement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) — complementation at the level of *deciding* DPDA presentations: `is_DCF_decider L → is_DCF_decider Lᶜ`.
 - [`DCF_decider_closedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) — the same, packaged as a `ClosedUnderComplement` statement.

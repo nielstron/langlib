@@ -16,15 +16,10 @@ For every context-free language `L` there is a constant `n` such that any word
 
 ## In Lean
 
-In `Classes/ContextFree/Basics/Pumping.lean`:
-
-- [`CF_pumping`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Basics/Pumping.lean) — the pumping lemma for `is_CF` languages.
+The pumping lemma for `is_CF` languages is `CF_pumping`.
 
 A stronger refinement, **Ogden's lemma** (which lets you *mark* distinguished
-positions that must be pumped), is in
-[`Classes/ContextFree/Basics/Ogden.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Basics/Ogden.lean).
-The detailed parse-tree machinery lives under
-[`Classes/ContextFree/Pumping/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Pumping).
+positions that must be pumped), is `CF_ogdens_lemma`.
 
 ## Proof idea
 

@@ -16,9 +16,9 @@ lemma). Likewise `{aⁿbⁿ}` is **linear** (hence context-free) but not regular
 
 ## In Lean
 
-- `{aⁿbⁿcⁿ}` is indexed: [`Classes/Indexed/Examples/AnBnCn.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Indexed/Examples/AnBnCn.lean).
-- `{aⁿbⁿcⁿ}` is recursively enumerable: [`Classes/RecursivelyEnumerable/Examples/AnBnCn.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Examples/AnBnCn.lean).
-- `{aⁿbⁿ}` is linear/context-free: [`Classes/ContextFree/Examples/AnBn.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Examples/AnBn.lean).
+- `{aⁿbⁿcⁿ}` is indexed: `is_Indexed_lang_eq_eq`.
+- `{aⁿbⁿcⁿ}` is recursively enumerable: `lang_eq_eq_is_RE`.
+- `{aⁿbⁿ}` is linear/context-free: `anbn_is_CF`.
 
 These examples supply the separating witnesses behind the
 [strict Chomsky-hierarchy inclusions](chomsky-hierarchy-strict-inclusions.html).
@@ -26,8 +26,7 @@ These examples supply the separating witnesses behind the
 ## Proof idea
 
 `{aⁿbⁿcⁿ}` is given by an explicit indexed grammar (and an unrestricted grammar for
-the RE version). It is not context-free (`notCF_lang_eq_eq`, in
-`Classes/ContextFree/Closure/Intersection.lean`): apply `CF_pumping` to
+the RE version). It is not context-free (`notCF_lang_eq_eq`): apply `CF_pumping` to
 `aⁿ⁺¹bⁿ⁺¹cⁿ⁺¹` to get a decomposition `u v x y z` with `|vy| > 0` and `|vxy| ≤ n`.
 The length bound forces the pumped factor `vy` to omit at least one of the three
 letters. Pumping to `u v² x y² z` then keeps the omitted letter's count fixed at

@@ -15,16 +15,12 @@ TM-recognizable languages equals the class of recursively enumerable languages.
 
 ## In Lean
 
-In `Automata/Turing/Equivalence/TMEqualsRE.lean`:
-
 - [`TM_eq_RE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/Equivalence/TMEqualsRE.lean) — class equality `(TM : Set (Language T)) = RE`.
 - [`is_TM_iff_is_RE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/Equivalence/TMEqualsRE.lean) — pointwise `is_TM L ↔ is_RE L`.
 
-The two inclusions `TM_subset_RE` and `RE_subset_TM` are assembled in the same file.
-The grammar-to-machine translation infrastructure lives under
-[`Automata/Turing/Equivalence/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/Equivalence)
-(`GrammarToTM`, `TMToGrammar`) and the DSL in
-[`Automata/Turing/DSL.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/DSL.lean).
+The two inclusions `TM_subset_RE` and `RE_subset_TM` assemble these. The
+grammar-to-machine translation is powered by the `GrammarToTM` and `TMToGrammar`
+constructions and the composable search-procedure DSL.
 
 ## The `RE ⊆ TM` engine: compiling searches to machines
 

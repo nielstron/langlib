@@ -32,12 +32,12 @@ over a thousand lines.
 
 ## In Lean
 
-Positive results (`Classes/DeterministicContextFree/Closure/`):
+Positive results:
 
 - [`DCF_closedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) — closed under complement (see the [dedicated page](dcfl-closed-under-complement.html)).
-- [`DCF_closedUnderIntersectionWithRegular`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/IntersectionRegular.lean) — closed under intersection with a regular language (and likewise union with a regular language, in `Closure/UnionRegular.lean`).
+- [`DCF_closedUnderIntersectionWithRegular`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/IntersectionRegular.lean) — closed under intersection with a regular language (and likewise union with a regular language, `DCF_union_regular`).
 
-Non-closure results (same directory):
+Non-closure results:
 
 - [`DCF_notClosedUnderConcatenation`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Concatenation.lean) — **not** closed under concatenation (~1550-line proof).
 - [`DCF_notClosedUnderHomomorphism`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Homomorphism.lean) / [`DCF_notClosedUnderEpsFreeHomomorphism`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Homomorphism.lean) — **not** closed under (ε-free) homomorphism (~1150-line proof).

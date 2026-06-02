@@ -28,8 +28,6 @@ ambiguity** of context-free languages.
 
 ## In Lean
 
-In [`Classes/ContextFree/Basics/Ogden.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Basics/Ogden.lean):
-
 - [`CF_ogdens_lemma`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Basics/Ogden.lean) — Ogden's lemma for `is_CF` languages (project formulation).
 - [`Language.IsContextFree.ogdens_lemma`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Basics/Ogden.lean) — the same result for Mathlib's `Language.IsContextFree`.
 

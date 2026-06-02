@@ -16,8 +16,6 @@ is *not* true for recursively enumerable languages — see
 
 ## In Lean
 
-In `Classes/Recursive/Closure/Complement.lean`:
-
 - [`is_Recursive_complement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Closure/Complement.lean) — `is_Recursive L → is_Recursive Lᶜ`.
 - [`Recursive_closedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Closure/Complement.lean) — packaged `ClosedUnderComplement` instance.
 
