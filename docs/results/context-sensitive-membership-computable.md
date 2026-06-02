@@ -17,23 +17,25 @@ abstract `Decidable` instance.
 
 ## In Lean
 
-In `Classes/ContextSensitive/Decidability/Computability.lean`:
+In `Classes/ContextSensitive/Decidability/Membership.lean`, mirroring the structure of
+`contextFree_computableMembership` for context-free grammars:
 
-- [`CS_membership_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Computability.lean) — `ComputablePred (fun w => w ∈ CS_language g)`.
-- [`computablePred_mem_of_noncontracting`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Computability.lean) — the same for any non-contracting grammar.
-- [`CS_isRE_and_compl_isRE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Computability.lean) — both the language and its complement are recursively enumerable.
+- [`contextSensitive_computableMembership`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) — the headline **uniform** result: membership is computable *jointly* in an encoded grammar `c` and the word `w`, i.e. `ComputablePred (fun p : Code T × List T => p.2 ∈ contextSensitiveLanguageOf p.1)`.
+- [`computablePred_mem_of_is_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) — the per-language corollary: for any `is_CS L`, `ComputablePred (fun w => w ∈ L)`.
+- [`decidable_mem_of_is_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) — the weaker `Decidable (w ∈ L)`, derived from the same engine.
 
 ## Proof idea
 
-Both membership and non-membership are recursively enumerable. Membership: search
-all bounded derivations of the non-contracting grammar (length never exceeds the
-target word). Non-membership: a computable *certificate search* over
-grammar-closed complement certificates witnesses that `w` cannot be derived.
-[Post's theorem](posts-theorem.html) then upgrades "RE and co-RE" to a genuine
-`ComputablePred` decider.
+The decider `memCode c w` runs a **bounded derivation-sequence search**: a non-contracting
+grammar can never shorten a sentential form, so any derivation of `w` uses forms of length
+`≤ |w|`, drawn from a finite alphabet — there are only finitely many, bounding both the length
+and the breadth of the search. The search enumerates candidate rule-application sequences up to
+that bound and checks whether any reaches `w` (`memCode_sound` / `memCode_complete`).
 
-A *uniform* version of this bounded search — computable jointly in an encoded grammar and the
-input word — is the engine behind the diagonalization in
+The whole search is **primitive recursive** in the encoded grammar and the word together
+(`memCode_primrec`, built on the uniform `primrec_applyRuleSeq_uniform`), which directly yields
+the uniform `ComputablePred`; the per-language and `Decidable` forms are immediate corollaries.
+This uniform computability is also the engine behind the diagonalization in
 [CS ⊊ Recursive](context-sensitive-strict-subset-recursive.html).
 
 ## Keywords / also known as

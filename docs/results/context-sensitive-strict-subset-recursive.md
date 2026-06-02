@@ -23,13 +23,13 @@ two languages and both classes coincide.
 
 A context-sensitive grammar is **non-contracting**: every rule has a right-hand side at least as
 long as its left-hand side, so a derivation can never shrink. Therefore a word of length `n` can
-only be derived through sentential forms of length `≤ n`, of which there are finitely many.
+only be derived through sentential forms of length `≤ n`, drawn from a finite alphabet — finitely
+many in all, bounding both how long and how many derivation sequences need to be examined.
 
-Hence membership is **recursively enumerable** — search all bounded derivations — and so is
-non-membership, encoded as a *certificate search* over the ε-eliminated non-contracting grammar.
-Having both `L` and its complement recursively enumerable,
-[Post's theorem](posts-theorem.html) concludes that `L` is recursive. This is exactly what makes
-the diagonal language below *recursive*.
+So membership is decided by a terminating **bounded derivation-sequence search**, which is in fact
+primitive recursive in the word, giving a genuine
+[computable membership predicate](context-sensitive-membership-computable.html); a computable
+decider is recursive. This is exactly what makes the diagonal language below *recursive*.
 
 ## In Lean
 
@@ -37,15 +37,14 @@ The inclusion `CS ⊆ Recursive`, in `Classes/ContextSensitive/Inclusion/Recursi
 
 - [`is_Recursive_of_is_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/Recursive.lean) — pointwise: `is_CS L → is_Recursive L`.
 - [`CS_subset_Recursive_class`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/Recursive.lean) — class-level: `(CS : Set (Language T)) ⊆ Recursive`.
-- A grammar-first packaging is [`CS_subset_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Computability.lean) (`Classes/ContextSensitive/Decidability/Computability.lean`).
+- Both are immediate from the computable membership decider [`computablePred_mem_of_is_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) (`Classes/ContextSensitive/Decidability/Membership.lean`), which is the constructive heart of the inclusion — see [membership is computable](context-sensitive-membership-computable.html).
 
 The strictness `CS ⊊ Recursive`, in `Classes/ContextSensitive/Inclusion/StrictRecursive.lean`:
 
 - [`CS_strict_subclass_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the headline `(CS : Set (Language T)) ⊂ Recursive`, for a nonempty finite alphabet `T`.
 - [`diagonal_strict`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the abstract diagonalization core.
 - [`exists_cs_enumeration`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the effective enumeration of context-sensitive languages with a uniformly computable membership oracle.
-- [`memOracle_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) / [`memCode_sound`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) / [`memCode_complete`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the membership decider's computability, soundness, and (bounded) completeness.
-- [`code_of_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — every context-sensitive language is one of the enumerated ones.
+- [`memOracle_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the membership oracle's joint computability, built on the uniform decider [`memCode`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) (`memCode_sound` / `memCode_complete` / `code_of_CS`, in `Classes/ContextSensitive/Decidability/Membership.lean`).
 
 The proof uses only the standard axioms `propext`, `Classical.choice`, `Quot.sound`.
 
