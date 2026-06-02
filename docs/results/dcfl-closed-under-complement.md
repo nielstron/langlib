@@ -26,19 +26,33 @@ in `Classes/DeterministicContextFree/Closure/Complement.lean`.
 
 Supporting theorems in the same file:
 
-- [`DCF_decider_closedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) — complementation at the level of *deciding* DPDA presentations.
-- [`DCF_closedUnderComplement_of_decider_presentations`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) — the bridge from decider presentations to the language class.
+- [`is_DCF_decider_complement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) — complementation at the level of *deciding* DPDA presentations: `is_DCF_decider L → is_DCF_decider Lᶜ`.
+- [`DCF_decider_closedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) — the same, packaged as a `ClosedUnderComplement` statement.
+- [`DCF_closedUnderComplement_of_decider_presentations`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) — the bridge: given `EveryDCFHasDeciderPresentation T`, the DCF class is closed under complement.
 
 ## Proof idea
 
-A raw DPDA can loop forever (in epsilon moves) or get stuck, so you cannot
-complement it just by flipping accepting and non-accepting states. The proof
-first **totalizes** the DPDA into an equivalent *deciding* DPDA that always halts
-and reads its entire input — see the companion page on
-[DPDA totalization](dpda-totalization.html). Once you have a total, always-halting
-DPDA presentation, the complement is obtained by complementing the set of
-accepting final states, and totalization guarantees this still recognizes exactly
-`Lᶜ`.
+A raw DPDA can diverge in forced epsilon moves or get stuck before reading the whole
+input, so flipping accepting and non-accepting states does not complement the
+language. The construction is the syntactic
+[`DPDA.complement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/ClosureProperties/Complement.lean):
+keep `initial_state`, `start_symbol`, `transition`, `epsilon_transition`, and
+`no_mixed`, and replace `final_states` by `final_statesᶜ`. Since reachability
+depends only on the transitions, the complement DPDA has exactly the same runs
+(`complement_toPDA_reaches`).
+
+This complement is correct precisely when the DPDA **decides every input**
+(`M.DecidesEveryInput`). `complement_acceptsByFinalState` shows that under totality
+and acceptance consistency, `M.complement` accepts `(M.acceptsByFinalState)ᶜ`: a
+word is rejected by `M` iff *no* reachable empty-input state is final, iff by
+totality there is a reachable empty-input state and by consistency it is non-final,
+iff `M.complement` accepts. `is_DCF_decider_complement` packages this, reusing the
+same state and stack types and rechecking `DecidesEveryInput` for the complement.
+
+To reach an arbitrary DCFL, `DCF_closedUnderComplement` first totalizes: every DCF
+language has an equivalent deciding-DPDA presentation
+([`everyDCFHasDeciderPresentation`](dpda-totalization.html)), to which the complement
+construction then applies.
 
 ## Keywords / also known as
 

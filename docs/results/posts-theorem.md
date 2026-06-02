@@ -24,10 +24,29 @@ In `Classes/Recursive/Basics/Post.lean`:
 
 ## Proof idea
 
-Run the two semi-deciders for `L` and `Lᶜ` in parallel ("dovetailing"). For any
-word, exactly one of them halts and accepts. The first to accept tells you the
-verdict, so the combined procedure always halts — giving a total decider and hence
-a `ComputablePred`.
+The argument reduces to Mathlib's computability-theoretic version of Post's theorem,
+`ComputablePred.computable_iff_re_compl_re'`: a predicate is computable iff both it and
+its negation are `RePred` (recursively enumerable).
+
+1. **Membership is an `RePred` for any RE language** (`REPred_mem_of_is_RE`). Given a
+   grammar `g` generating `L`, `grammar_equivalent_finiteNT` replaces it by an
+   equivalent grammar `g'` with finitely many nonterminals (made `Primcodable`).
+   Membership of `w` is then the semi-decidable search `∃ seq, grammarTest g' seq w =
+   true` over candidate derivation sequences. This is exposed as a domain of `Nat.rfind`
+   — decoding each natural to a sequence via `Encodable.decode` and testing it with the
+   computable `grammarTest g'` (`grammarTest_computable₂`) — so it is `Partrec`; its
+   domain is the `RePred`. Soundness/completeness of the search
+   (`grammarTest_sound` / `grammarTest_complete`) identify this domain with `w ∈ L`.
+
+2. **From RE ∩ co-RE to computable membership** (`computablePred_of_isRE_of_isRE_compl`).
+   Apply step 1 to `L` and to `Lᶜ` (rewriting `RePred` of the complement through
+   `Set.mem_compl_iff`), then feed both `RePred` facts to
+   `ComputablePred.computable_iff_re_compl_re'` to get a `ComputablePred`.
+
+3. **From computable membership to recursive** (`is_Recursive_of_isRE_of_isRE_compl`).
+   `ComputablePred.computable_iff` extracts a total computable decider `f`, which
+   `is_Recursive_of_computable_decide` compiles into an always-halting `Turing.TM0`
+   decider, i.e. `is_Recursive L`.
 
 ## Keywords / also known as
 

@@ -25,10 +25,29 @@ In `Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean`:
 
 ## Proof idea
 
-The halting language is recursively enumerable: enumerate computations and accept
-the moment one halts. If it were recursive, its complement would also be recursive,
-hence RE; by [Post's theorem](posts-theorem.html) that would decide halting, a
-contradiction. So the halting language witnesses `Recursive ⊊ RE`.
+Inclusion `Recursive ⊆ RE` is `Recursive_subset_RE`. Strictness is **not** a
+diagonalization; it is a closure-asymmetry argument run through the generic lemma
+`strict_subset_of_subset_different_property` (in `Utilities/ClosurePredicates.lean`):
+if `P ⊆ Q`, the class predicate `X = ClosedUnderComplement` holds of `P` but not of
+`Q`, and `X` transports across pointwise class equivalence, then `P ⊂ Q`. Instantiated
+with `P = is_Recursive`, `Q = is_RE`:
+
+- `Recursive_closedUnderComplement` supplies `X P` (see
+  [Recursive closed under complement](recursive-closed-under-complement.html));
+- `RE_notClosedUnderComplement` (resp. `..._of_nonempty`) supplies `¬ X Q`.
+
+The non-closure of RE is witnessed concretely by the unary halting language
+`haltingUnaryLanguage` (`Classes/RecursivelyEnumerable/Closure/Complement.lean`): a word
+is accepted iff its length decodes (via `Nat.Partrec.Code.ofNatCode`) to a code that
+halts on `0`. It is RE (`haltingUnaryLanguage_RE`) because `haltingUnaryTest` is a
+computable bounded-evaluation search (`Nat.Partrec.Code.evaln`), but its complement is
+not RE (`haltingUnary_complement_not_RE`), which reduces to Mathlib's
+`ComputablePred.halting_problem_not_re`.
+
+`haltingUnaryLanguage_not_Recursive` makes the same asymmetry explicit at the language
+level: if the halting language were recursive then its complement would be recursive
+(complement closure), hence RE (`Recursive_subset_RE`), contradicting
+`haltingUnary_complement_not_RE`.
 
 ## Keywords / also known as
 

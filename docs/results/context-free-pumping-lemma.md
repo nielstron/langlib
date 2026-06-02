@@ -28,11 +28,22 @@ The detailed parse-tree machinery lives under
 
 ## Proof idea
 
-Put the grammar in Chomsky normal form. A sufficiently long word has a parse tree
-deep enough that some nonterminal repeats on a root-to-leaf path. The subtree
-between the two occurrences can be excised or duplicated arbitrarily, which yields
-exactly the `u vⁱ w xⁱ y` pumping family; the depth bound gives `|vwx| ≤ n` and the
-binary branching of CNF gives `vx ≠ ε`.
+Put the grammar in Chomsky normal form (`toCNF`); the pumping length is
+`n = 2 ^ g.generators.card`, where `generators` is the set of nonterminals appearing
+on rule left-hand sides. `CF_pumping` transports the result from Mathlib's
+`Language.IsContextFree.pumping` along `is_CF_iff_isContextFree`.
+
+A word `w ∈ g.language` of length `≥ n` has a parse tree (`Derives.yield`). Since a
+CNF tree of height `h` yields at most `2 ^ h` terminals, height `> generators.card`
+is forced, so by pigeonhole (`pidgeonhole`, applied in
+`subtree_repeat_root_height`) some nonterminal `n'` repeats on a root-to-leaf path:
+two subtrees `p₁`, `p₂` of root label `n'` with `p₂` a strict subtree of `p₁` and
+`p₁.height ≤ generators.card + 1`. Decomposing the outer tree (`subtree_decomposition`,
+`strict_subtree_decomposition`) writes `w = u v x y z` with `x` the yield of `p₂`.
+Because `p₂` is a *strict* subtree, `vy ≠ ε`; the height bound on `p₁` gives
+`|vxy| ≤ n`. `pumping_string` iterates the derivation
+`n' ⇒* v · n' · y` to obtain `n' ⇒* vⁱ · n' · yⁱ` for every `i`, yielding the family
+`u vⁱ x yⁱ z ∈ g.language`.
 
 ## Keywords / also known as
 

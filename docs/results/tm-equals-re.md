@@ -39,12 +39,21 @@ computable test.
 
 ## Proof idea
 
-`RE ⊆ TM`: membership in a grammar is the search "∃ a derivation sequence deriving the
-input"; this computable search is compiled to a partial-recursive `Code` and then to a
-`TM0` machine (the [search-to-machine bridge](search-procedures-to-turing-machines.html)).
-`TM ⊆ RE`: an unrestricted grammar simulates the machine's configurations as sentential
-forms, with rules mirroring the transition function, so the grammar generates exactly
-the words the machine accepts.
+`RE ⊆ TM` (`re_implies_tm`): given a grammar for `L`, `grammar_equivalent_finiteNT`
+first restricts it to finitely many nonterminals; membership is then the search "∃ a
+derivation sequence `seq` with `grammarTest g' seq w`" (sound and complete by
+`grammarTest_sound` / `grammarTest_complete`). `search_is_partrec` turns this
+`Computable₂` test into a partial-recursive `ToPartrec.Code`, which
+`code_implies_isTM_direct` compiles to a `TM0` machine (the
+[search-to-machine bridge](search-procedures-to-turing-machines.html)).
+
+`TM ⊆ RE` (`tm_recognizable_implies_re`): the machine has tape alphabet `T ⊕ Γ` (input
+symbols plus an existential finite work alphabet). The construction `tmToGrammar` builds
+an unrestricted grammar whose sentential forms encode the machine's configurations, with
+rules mirroring the transition function, sound and complete via `tmToGrammar_halts_of_generates`
+/ `tmToGrammar_generates_of_halts`. `pullbackGrammar` then restricts this grammar along
+the fixed inclusion `Sum.inl : T → T ⊕ Γ`, so the result generates exactly the input
+words the machine accepts.
 
 ## Keywords / also known as
 

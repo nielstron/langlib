@@ -26,10 +26,15 @@ These examples supply the separating witnesses behind the
 ## Proof idea
 
 `{aⁿbⁿcⁿ}` is given by an explicit indexed grammar (and an unrestricted grammar for
-the RE version). It is not context-free because any context-free pumping
-decomposition `uvwxy` can pump at most two of the three letters in lockstep,
-breaking the equal-count condition — exactly the [pumping lemma](context-free-pumping-lemma.html)
-argument.
+the RE version). It is not context-free (`notCF_lang_eq_eq`, in
+`Classes/ContextFree/Closure/Intersection.lean`): apply `CF_pumping` to
+`aⁿ⁺¹bⁿ⁺¹cⁿ⁺¹` to get a decomposition `u v x y z` with `|vy| > 0` and `|vxy| ≤ n`.
+The length bound forces the pumped factor `vy` to omit at least one of the three
+letters. Pumping to `u v² x y² z` then keeps the omitted letter's count fixed at
+`n+1` while `vy` contains at least one of the other two letters, raising its count
+above `n+1` — contradicting the equal-count condition of `{aⁿbⁿcⁿ}`. The three
+cases (whichever letter `vy` omits) are symmetric. See the
+[pumping lemma for context-free languages](context-free-pumping-lemma.html).
 
 ## Keywords / also known as
 

@@ -35,12 +35,17 @@ Connection to finite automata (`Automata/FiniteState/Equivalence/RegularDFAEquiv
 
 ## Proof idea
 
-To turn a left-regular grammar into a right-regular one (and back), reverse every
-rule: `A → Ba` becomes `A → aB`. Reversing the rules reverses every generated word,
-so a left-regular grammar for `L` becomes a right-regular grammar for the reversal
-`Lᴿ`; combining this with closure of the regular languages under reversal gives that
-the two forms describe the same class. The tie to automata reads the nonterminals as
-states and the rules `A → aB` as transitions.
+`RG_of_LG` turns a left-regular grammar into a right-regular one (and `LG_of_RG`
+back) by reversing each rule's output: `A → Ba` becomes `A → aB`, while `A → a` and
+`A → ε` are unchanged. One transformation step on a grammar is exactly one step on
+the reversed sentential form of its converted grammar
+(`RG_transforms_reverse_of_LG_transforms` and its inverse), so induction on the
+derivation gives `LG_language g = (RG_language (RG_of_LG g))ᴿ`
+(`LG_language_eq_RG_language_reverse`). Because the regular languages are closed
+under reversal (Mathlib's `Language.isRegular_reverse_iff`, via `is_RG_iff_isRegular`),
+a left-regular `L` is right-regular and vice versa — `is_LG_iff_is_RG`, hence
+`LG_eq_RG`. The tie to automata is `is_RG_iff_isRegular`, proved by the NFA/DFA
+constructions described under [regular grammars = DFA languages](regular-equals-dfa.html).
 
 ## Keywords / also known as
 

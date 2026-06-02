@@ -28,9 +28,33 @@ Langlib already formalizes the following strict inclusions:
 ## Proof idea
 
 Each strict inclusion combines an *inclusion* (every grammar/automaton of the lower
-class is one of the upper class) with a *separating witness* language that lives in
-the upper class but provably not the lower one — e.g. a non-regular DCFL such as
-`{aⁿbⁿ}`, and the indexed-but-not-context-free `{aⁿbⁿcⁿ}`.
+class is one of the upper class) with strictness witnessed in one of two ways — a
+*separating language* in the upper class but provably not the lower, or a *closure
+mismatch* where the two classes differ on a closure operation.
+
+- **Regular ⊊ DCFL** (`RG_strict_subclass_DCF`) and **Regular ⊊ Linear**
+  (`RG_strict_subclass_Linear`): the separating language is `{aⁿbⁿ}` (`anbn`), which
+  is deterministic context-free (`anbn_is_DCF`) and linear but not regular
+  (`anbn_not_isRegular`, via the regular pumping lemma); transported to a nontrivial
+  alphabet by an injective letter map.
+- **DCFL ⊊ CFL** (`DCF_strict_subclass_CF`): a *closure mismatch*, not a witness
+  language. Over `Fin 3` the DCF languages are closed under complement
+  (`DCF_closedUnderComplement`) but the CF languages are not
+  (`CF_notClosedUnderComplement`); `strict_subset_of_subset_different_property` turns
+  this differing closure property into proper containment.
+  `DPDA_strict_subclass_PDA` transfers this to the automaton classes.
+- **Linear ⊊ CFL** (`Linear_strict_subclass_CF`): the separating language is
+  `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` (`L4`), context-free (`L4_is_CF`, a concatenation of two
+  `{aⁿbⁿ}` blocks) but not linear (`L4_not_is_Linear`, via the
+  [linear pumping lemma](linear-pumping-lemma.html)).
+- **CFL ⊊ Indexed** (`CF_strict_subclass_Indexed`): the separating language is
+  `{aⁿbⁿcⁿ}`, indexed (an indexed grammar with a stack-bottom marker forcing each
+  nonterminal to consume exactly as many flags as were pushed) but not context-free.
+- **CS ⊊ Recursive** (`CS_strict_subclass_Recursive`): by diagonalization over an
+  effective enumeration of context-sensitive grammars; see the
+  [dedicated page](context-sensitive-strict-subset-recursive.html).
+- **Recursive ⊊ RE**: a closure mismatch — recursive languages are closed under
+  complement, RE languages are not; see the [dedicated page](recursive-strict-subset-re.html).
 
 ## Keywords / also known as
 

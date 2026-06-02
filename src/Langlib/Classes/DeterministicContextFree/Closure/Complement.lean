@@ -43,9 +43,12 @@ public section
 /-! # Deterministic Context-Free Closure Under Complement
 
 This file lifts the DPDA complement construction to the deterministic context-free
-language level.  The totalization construction first replaces an arbitrary
-final-state DPDA by an equivalent DPDA that decides every input, and the
-automaton-level complement construction is then applied to that deciding DPDA.
+language level.  The automaton-level `DPDA.complement` (replace `final_states` by its
+complement, keeping all transitions) recognizes the complement language exactly when
+the DPDA satisfies `DecidesEveryInput`.  `is_DCF_decider_complement` records this for
+deciding presentations; the headline `DCF_closedUnderComplement` first totalizes an
+arbitrary final-state DPDA into an equivalent deciding presentation
+(`everyDCFHasDeciderPresentation`) and then applies the complement construction.
 -/
 
 open PDA

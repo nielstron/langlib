@@ -49,15 +49,30 @@ Non-closure results (same directory):
 
 ## Proof idea
 
-Closure under **complement** comes from totalizing the DPDA so that it always halts
-and then flipping accepting/non-accepting states (see
-[DPDA totalization](dpda-totalization.html)). The **non-closures** exhibit explicit
-witnesses: deterministic languages whose union/concatenation/image forces a
-non-deterministic choice a single DPDA cannot make. Non-closure under **union** is the
-seed — given that, non-closure under **intersection** is immediate from closure under
-complement and De Morgan; concatenation, star, homomorphism, and substitution each
-require their own witness languages and the (lengthy) verification that the result has
-no deterministic pushdown recognizer.
+Closure under **complement** comes from totalizing the DPDA to a deciding
+presentation and complementing its final states (see
+[DPDA totalization](dpda-totalization.html)). The **non-closures** form a reduction
+chain seeded by intersection, all anchored on the context-free pumping fact that
+`lang_eq_eq = {aⁿbⁿcⁿ}` is not even context-free.
+
+- **Intersection** is the seed (`DCF_notClosedUnderIntersection`): the CFL
+  counterexample languages `lang_eq_any = {aⁿbⁿcᵐ}` and `lang_any_eq = {aᵐbⁿcⁿ}` are
+  exhibited as deterministic context-free, and their intersection is `lang_eq_eq`,
+  which is not context-free, hence not DCF.
+- **Union** (`DCF_notClosedUnderUnion`) then follows from complement closure by De
+  Morgan: `L₁ ∩ L₂ = (L₁ᶜ ∪ L₂ᶜ)ᶜ`, so union closure would force intersection
+  closure.
+- **Substitution** (`DCF_notClosedUnderSubstitution`) reduces directly to union:
+  substituting the two singleton Boolean words by arbitrary DCFLs produces their
+  union. **Concatenation** and **homomorphism** (`DCF_notClosedUnderConcatenation`,
+  ~1550 lines; `DCF_notClosedUnderHomomorphism`, ~1150 lines) each likewise reduce a
+  hypothetical closure to union closure — concatenation via a fresh marker plus an
+  intersection and left quotient, homomorphism by erasing a prefix marker on a
+  disjoint union — and **Kleene star** (`DCF_notClosedUnderKleeneStar`) uses the same
+  union witnesses restricted to strictly positive `a⁺b⁺c⁺` blocks.
+- **Right quotient** (`DCF_notClosedUnderRightQuotient`) is an independent reduction
+  to the CFL right-quotient counterexample: both witness languages are DCF, but their
+  quotient is the non-context-free language used in the CFL pumping argument.
 
 ## Keywords / also known as
 
