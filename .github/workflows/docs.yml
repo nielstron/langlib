@@ -1,20 +1,21 @@
 name: Documentation
 
-# Builds the prose documentation (docs/, Jekyll) and the API reference
-# (doc-gen4, under /api/) and deploys both to GitHub Pages.
+# Builds the prose documentation (docs/, Jekyll) and deploys it to GitHub Pages,
+# attaching the most recently built API reference (doc-gen4, under /api).
 #
-# One-time setup: in the repository settings, set Pages → Build and deployment →
+# The API reference is expensive to build (doc-gen4 builds HTML for all of Mathlib,
+# ~30-60 min), so it is NOT built here. The separate `api-docs.yml` workflow builds it
+# on a schedule / on demand and stores it as a tarball on the `api-docs` release; this
+# workflow just downloads the latest stored copy. Every push therefore deploys quickly
+# and still ships the latest available /api.
+#
+# One-time setup: in the repository settings, set Pages -> Build and deployment ->
 # Source = "GitHub Actions".
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
-    inputs:
-      build_api:
-        description: "Also build the Lean/doc-gen4 API reference (SLOW — builds docs for all of Mathlib, ~30-60 min)"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -31,35 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # --- Lean / API reference (doc-gen4) -------------------------------------
-      # Opt-in only: doc-gen4 builds HTML docs for ALL of Mathlib (~30-60 min),
-      # so these steps run only on a manual dispatch with `build_api = true`.
-      # Non-blocking: if the heavy API build fails, the prose site still ships.
-      - name: Install elan (Lean toolchain manager)
-        if: ${{ inputs.build_api }}
-        continue-on-error: true
-        run: |
-          curl -sSfL https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain none
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-
-      - name: Resolve doc-gen4 and fetch Mathlib cache
-        if: ${{ inputs.build_api }}
-        continue-on-error: true
-        run: |
-          lake -Kdoc=on update doc-gen4
-          lake exe cache get || true
-
-      - name: Build library
-        if: ${{ inputs.build_api }}
-        continue-on-error: true
-        run: lake build
-
-      - name: Build API documentation (doc-gen4)
-        id: apidocs
-        if: ${{ inputs.build_api }}
-        continue-on-error: true
-        run: lake -Kdoc=on build Langlib:docs
 
       # --- Prose site (Jekyll + just-the-docs) ---------------------------------
       # Built with our own Gemfile (not actions/jekyll-build-pages, which only
@@ -83,13 +55,21 @@ jobs:
           JEKYLL_ENV: production
         run: bundle exec jekyll build --source _linked --destination "$GITHUB_WORKSPACE/_site"
 
-      - name: Attach API reference under /api
+      # --- API reference (fetched, not built) ----------------------------------
+      # Pull the latest doc-gen4 output stored by api-docs.yml on the `api-docs`
+      # release and attach it under /api. Non-blocking: if none exists yet, the prose
+      # site still ships (without /api).
+      - name: Attach latest API reference under /api
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -d .lake/build/doc ]; then
+          if gh release download api-docs --repo "$GITHUB_REPOSITORY" \
+               --pattern api-docs.tar.gz --dir "$RUNNER_TEMP" 2>/dev/null; then
             mkdir -p _site/api
-            cp -r .lake/build/doc/. _site/api/
+            tar -xzf "$RUNNER_TEMP/api-docs.tar.gz" -C _site/api
+            echo "Attached API reference from the api-docs release."
           else
-            echo "::warning::doc-gen4 output not found; deploying prose site without /api."
+            echo "::warning::No stored API docs (api-docs release) found; deploying without /api."
           fi
 
       - name: Upload Pages artifact
