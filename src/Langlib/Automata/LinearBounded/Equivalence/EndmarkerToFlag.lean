@@ -513,6 +513,14 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
           · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch]
             apply Fin.ext; rw [foldHead_val]
             simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all <;> omega
+/-- The simulation extends to whole `M'`-computations. -/
+theorem fold_reaches (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
+    {cfg cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2)} (h : Reaches M' cfg cfg') :
+    Reaches (flagMachine M') (fold cfg) (fold cfg') := by
+  induction h with
+  | refl => exact Relation.ReflTransGen.refl
+  | tail _ hbc ih => exact ih.tail (fold_step M' hbc)
+
 end LBA
 
 
