@@ -71,6 +71,7 @@ public import Langlib.Classes.ContextSensitive.Decidability.Membership
 public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
+public import Langlib.Classes.ContextSensitive.Inclusion.StrictRecursive
 public import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 public import Langlib.Classes.DeterministicContextFree.Closure.Complement
 public import Langlib.Classes.DeterministicContextFree.Closure.Concatenation
