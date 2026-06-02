@@ -57,7 +57,7 @@
 
 - [Pushdown automata](src/Langlib/Automata/Pushdown/Definition.lean)
 - [Deterministic pushdown automata](src/Langlib/Automata/DeterministicPushdown/Definition.lean)
-- [Linear bounded automata](src/Langlib/Automata/LinearBounded/Definition.lean)
+- [Linear bounded automata](src/Langlib/Automata/LinearBounded/Definition.lean) — endmarker model (input bracketed `⊢ w ⊣`; the machine itself decides `ε`)
 - [Deterministic linear bounded automata](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean)
 
 ### Examples
@@ -82,7 +82,7 @@
 | ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊆ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/ContextSensitive.lean))|  | ⊊ |
 | Indexed languages | ⇔ | Nested Stack Automata |
 | ⊊ |  | ⊊ |
-| Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ | LBA languages (LBA ⇔? DLBA) |
+| Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ [🔗](src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) | LBA languages (LBA ⇔? DLBA) |
 | ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/Recursive.lean)) |  | ⊊ (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
 | Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
 | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean)  |

@@ -89,25 +89,25 @@ inductive MyhillNT (T Γ Λ : Type) where
   | start : MyhillNT T Γ Λ
   | startAux : MyhillNT T Γ Λ
   | cell (lb rb : Bool) (q : Option Λ) (a : Γ) (t : T) : MyhillNT T Γ Λ
-  | cellPending (lb rb : Bool) (q' : Λ) (a : Γ) (t : T) : MyhillNT T Γ Λ
+  | cellPending (lb rb dir : Bool) (q' : Λ) (a : Γ) (t : T) : MyhillNT T Γ Λ
   deriving DecidableEq
 
 instance [Fintype T] [Fintype Γ] [Fintype Λ] : Fintype (MyhillNT T Γ Λ) := by
   have : Fintype (Bool × Bool × Option Λ × Γ × T) := inferInstance
-  have : Fintype (Bool × Bool × Λ × Γ × T) := inferInstance
+  have : Fintype (Bool × Bool × Bool × Λ × Γ × T) := inferInstance
   exact Fintype.ofEquiv
-    (Unit ⊕ Unit ⊕ (Bool × Bool × Option Λ × Γ × T) ⊕ (Bool × Bool × Λ × Γ × T))
+    (Unit ⊕ Unit ⊕ (Bool × Bool × Option Λ × Γ × T) ⊕ (Bool × Bool × Bool × Λ × Γ × T))
     { toFun := fun
         | .inl () => .start
         | .inr (.inl ()) => .startAux
         | .inr (.inr (.inl (lb, rb, q, a, t))) => .cell lb rb q a t
-        | .inr (.inr (.inr (lb, rb, q', a, t))) => .cellPending lb rb q' a t
+        | .inr (.inr (.inr (lb, rb, dir, q', a, t))) => .cellPending lb rb dir q' a t
       invFun := fun
         | .start => .inl ()
         | .startAux => .inr (.inl ())
         | .cell lb rb q a t => .inr (.inr (.inl (lb, rb, q, a, t)))
-        | .cellPending lb rb q' a t => .inr (.inr (.inr (lb, rb, q', a, t)))
-      left_inv := by rintro (_ | _ | ⟨_, _, _, _, _⟩ | ⟨_, _, _, _, _⟩) <;> rfl
+        | .cellPending lb rb dir q' a t => .inr (.inr (.inr (lb, rb, dir, q', a, t)))
+      left_inv := by rintro (_ | _ | ⟨_, _, _, _, _⟩ | ⟨_, _, _, _, _, _⟩) <;> rfl
       right_inv := by intro x; cases x <;> rfl }
 
 /-- Abbreviation for a cell nonterminal as a grammar symbol. -/
@@ -115,10 +115,13 @@ abbrev cellSym (lb rb : Bool) (q : Option Λ) (a : Γ) (t : T) :
     symbol T (MyhillNT T Γ Λ) :=
   symbol.nonterminal (MyhillNT.cell lb rb q a t)
 
-/-- Abbreviation for a cellPending nonterminal as a grammar symbol. -/
-abbrev cellPendingSym (lb rb : Bool) (q' : Λ) (a : Γ) (t : T) :
+/-- Abbreviation for a cellPending nonterminal as a grammar symbol. The `dir` flag records the
+move direction (`true` = right move, `false` = left move) so that only the matching `step2`
+rule can consume the pending — without it, an interior pending `(false, false)` would be
+accepted by both step2 rules, letting a right move's state land on the wrong (left) neighbour. -/
+abbrev cellPendingSym (lb rb dir : Bool) (q' : Λ) (a : Γ) (t : T) :
     symbol T (MyhillNT T Γ Λ) :=
-  symbol.nonterminal (MyhillNT.cellPending lb rb q' a t)
+  symbol.nonterminal (MyhillNT.cellPending lb rb dir q' a t)
 
 variable (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
 
@@ -128,15 +131,15 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
     ⟨[], .start, [], [cellSym true true (some M.initial) (embed t) t]⟩)
   ++
   (Finset.univ.toList : List T).map (fun t =>
-    ⟨[], .start, [], [cellSym true false (some M.initial) (embed t) t,
-                       symbol.nonterminal .startAux]⟩)
+    ⟨[], .start, [], [symbol.nonterminal .startAux,
+                       cellSym false true none (embed t) t]⟩)
   ++
   (Finset.univ.toList : List T).map (fun t =>
-    ⟨[], .startAux, [], [cellSym false false none (embed t) t,
-                          symbol.nonterminal .startAux]⟩)
+    ⟨[], .startAux, [], [symbol.nonterminal .startAux,
+                          cellSym false false none (embed t) t]⟩)
   ++
   (Finset.univ.toList : List T).map (fun t =>
-    ⟨[], .startAux, [], [cellSym false true none (embed t) t]⟩)
+    ⟨[], .startAux, [], [cellSym true false (some M.initial) (embed t) t]⟩)
   ++
   (do let q ← (Finset.univ.toList : List Λ)
       let a ← (Finset.univ.toList : List Γ)
@@ -168,23 +171,39 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
         let t₂ ← (Finset.univ.toList : List T)
         let hi ← (Finset.univ.toList : List (Option Λ))
         let b ← (Finset.univ.toList : List Γ)
-        let lb₁ ← [true, false]
         let rb₂ ← [true, false]
-        pure ⟨[], MyhillNT.cell lb₁ false (some q) a t₁,
+        pure ⟨[], MyhillNT.cell true false (some q) a t₁,
               [cellSym false rb₂ hi b t₂],
-              [cellPendingSym lb₁ false q' a' t₁]⟩
+              [cellPendingSym true false true q' a' t₁]⟩
+      else [])
+  ++
+  (do let q ← (Finset.univ.toList : List Λ)
+      let a ← (Finset.univ.toList : List Γ)
+      let q' ← (Finset.univ.toList : List Λ)
+      let a' ← (Finset.univ.toList : List Γ)
+      if h : (q', a', DLBA.Dir.right) ∈ M.transition q a then
+        let t₁ ← (Finset.univ.toList : List T)
+        let t₂ ← (Finset.univ.toList : List T)
+        let hi ← (Finset.univ.toList : List (Option Λ))
+        let b ← (Finset.univ.toList : List Γ)
+        let rb₂ ← [true, false]
+        let lb₀ ← [true, false]
+        let a₀ ← (Finset.univ.toList : List Γ)
+        let t₀ ← (Finset.univ.toList : List T)
+        pure ⟨[cellSym lb₀ false none a₀ t₀], MyhillNT.cell false false (some q) a t₁,
+              [cellSym false rb₂ hi b t₂],
+              [cellPendingSym false false true q' a' t₁]⟩
       else [])
   ++
   (do let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
       let t₁ ← (Finset.univ.toList : List T)
       let t₂ ← (Finset.univ.toList : List T)
-      let hi ← (Finset.univ.toList : List (Option Λ))
       let b ← (Finset.univ.toList : List Γ)
       let lb₁ ← [true, false]
       let rb₂ ← [true, false]
-      pure ⟨[cellPendingSym lb₁ false q' a' t₁],
-            MyhillNT.cell false rb₂ hi b t₂, [],
+      pure ⟨[cellPendingSym lb₁ false true q' a' t₁],
+            MyhillNT.cell false rb₂ none b t₂, [],
             [cellSym false rb₂ (some q') b t₂]⟩)
   ++
   (do let q ← (Finset.univ.toList : List Λ)
@@ -197,22 +216,38 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
         let hi ← (Finset.univ.toList : List (Option Λ))
         let b ← (Finset.univ.toList : List Γ)
         let lb₁ ← [true, false]
-        let rb₂ ← [true, false]
         pure ⟨[cellSym lb₁ false hi b t₁],
-              MyhillNT.cell false rb₂ (some q) a t₂, [],
-              [cellPendingSym false rb₂ q' a' t₂]⟩
+              MyhillNT.cell false true (some q) a t₂, [],
+              [cellPendingSym false true false q' a' t₂]⟩
+      else [])
+  ++
+  (do let q ← (Finset.univ.toList : List Λ)
+      let a ← (Finset.univ.toList : List Γ)
+      let q' ← (Finset.univ.toList : List Λ)
+      let a' ← (Finset.univ.toList : List Γ)
+      if h : (q', a', DLBA.Dir.left) ∈ M.transition q a then
+        let t₁ ← (Finset.univ.toList : List T)
+        let t₂ ← (Finset.univ.toList : List T)
+        let hi ← (Finset.univ.toList : List (Option Λ))
+        let b ← (Finset.univ.toList : List Γ)
+        let lb₁ ← [true, false]
+        let rb₀ ← [true, false]
+        let a₀ ← (Finset.univ.toList : List Γ)
+        let t₀ ← (Finset.univ.toList : List T)
+        pure ⟨[cellSym lb₁ false hi b t₁],
+              MyhillNT.cell false false (some q) a t₂, [cellSym false rb₀ none a₀ t₀],
+              [cellPendingSym false false false q' a' t₂]⟩
       else [])
   ++
   (do let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
       let t₁ ← (Finset.univ.toList : List T)
       let t₂ ← (Finset.univ.toList : List T)
-      let hi ← (Finset.univ.toList : List (Option Λ))
       let b ← (Finset.univ.toList : List Γ)
       let lb₁ ← [true, false]
       let rb₂ ← [true, false]
-      pure ⟨[], MyhillNT.cell lb₁ false hi b t₁,
-            [cellPendingSym false rb₂ q' a' t₂],
+      pure ⟨[], MyhillNT.cell lb₁ false none b t₁,
+            [cellPendingSym false rb₂ false q' a' t₂],
             [cellSym lb₁ false (some q') b t₁]⟩)
   ++
   (do let q' ← (Finset.univ.toList : List Λ)
@@ -220,7 +255,8 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let t ← (Finset.univ.toList : List T)
       let lb ← [true, false]
       let rb ← [true, false]
-      pure ⟨[], MyhillNT.cellPending lb rb q' a' t, [],
+      let dir ← [true, false]
+      pure ⟨[], MyhillNT.cellPending lb rb dir q' a' t, [],
             [cellSym lb rb none a' t]⟩)
   ++
   (do let q ← (Finset.univ.toList : List Λ)
@@ -251,6 +287,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
             [symbol.terminal t₂],
             [symbol.terminal t₁]⟩)
 
+set_option maxHeartbeats 1000000 in
 /-- Every rule in the Myhill construction has non-empty output string. -/
 theorem myhillAllRules_output_nonempty :
     ∀ r ∈ myhillAllRules M embed, r.output_string ≠ [] := by
@@ -264,35 +301,38 @@ def myhillGrammar : CS_grammar T where
   rules := myhillAllRules M embed
   output_nonempty := myhillAllRules_output_nonempty M embed
 
-private lemma single_cell_init_rule_mem (t : T) :
+public lemma single_cell_init_rule_mem (t : T) :
     (⟨[], MyhillNT.start, [], [cellSym true true (some M.initial) (embed t) t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   simp [myhillAllRules]
 
-private lemma first_cell_init_rule_mem (t : T) :
+/-- Rightmost initial cell (laid first, with `startAux` on its left). -/
+public lemma right_cell_init_rule_mem (t : T) :
     (⟨[], MyhillNT.start, [],
-      [cellSym true false (some M.initial) (embed t) t,
-       symbol.nonterminal .startAux]⟩ :
+      [symbol.nonterminal .startAux,
+       cellSym false true none (embed t) t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   unfold myhillAllRules
   simp +decide [List.mem_append]
 
-private lemma middle_cell_init_rule_mem (t : T) :
+/-- A middle initial cell, inserted just to the right of `startAux`. -/
+public lemma middle_cell_init_rule_mem (t : T) :
     (⟨[], MyhillNT.startAux, [],
-      [cellSym false false none (embed t) t,
-       symbol.nonterminal .startAux]⟩ :
+      [symbol.nonterminal .startAux,
+       cellSym false false none (embed t) t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   unfold myhillAllRules
   simp +decide
 
-private lemma last_cell_init_rule_mem (t : T) :
+/-- Leftmost initial cell carrying the start state (laid last, removing `startAux`). -/
+public lemma left_cell_init_rule_mem (t : T) :
     (⟨[], MyhillNT.startAux, [],
-      [cellSym false true none (embed t) t]⟩ :
+      [cellSym true false (some M.initial) (embed t) t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   unfold myhillAllRules
   aesop
 
-private lemma accept_rule_mem (q : Λ) (hq : M.accept q = true) (a : Γ) (t : T)
+public lemma accept_rule_mem (q : Λ) (hq : M.accept q = true) (a : Γ) (t : T)
     (lb rb : Bool) :
     (⟨[], MyhillNT.cell lb rb (some q) a t, [],
       [symbol.terminal t]⟩ :
@@ -301,7 +341,7 @@ private lemma accept_rule_mem (q : Λ) (hq : M.accept q = true) (a : Γ) (t : T)
   simp +decide [List.mem_append, List.mem_flatMap, List.mem_map]
   grind +extAll
 
-private lemma left_propagation_rule_mem (t₁ : T) (a : Γ) (t₂ : T)
+public lemma left_propagation_rule_mem (t₁ : T) (a : Γ) (t₂ : T)
     (lb rb : Bool) :
     (⟨[symbol.terminal t₁],
       MyhillNT.cell lb rb none a t₂, [],
@@ -311,7 +351,7 @@ private lemma left_propagation_rule_mem (t₁ : T) (a : Γ) (t₂ : T)
   simp +decide
   grind +ring
 
-private lemma right_propagation_rule_mem (a : Γ) (t₁ t₂ : T)
+public lemma right_propagation_rule_mem (a : Γ) (t₁ t₂ : T)
     (lb rb : Bool) :
     (⟨[], MyhillNT.cell lb rb none a t₁,
       [symbol.terminal t₂],
@@ -323,7 +363,7 @@ private lemma right_propagation_rule_mem (a : Γ) (t₁ t₂ : T)
 
 /-! ### Simulation rule membership lemmas -/
 
-private lemma sim_stay_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb rb : Bool)
+public lemma sim_stay_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb rb : Bool)
     (h : (q', a', DLBA.Dir.stay) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell lb rb (some q) a t, [],
       [cellSym lb rb (some q') a' t]⟩ :
@@ -333,7 +373,7 @@ private lemma sim_stay_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb rb : Bool)
   use q, a, q', a'
   cases lb <;> cases rb <;> simp +decide [*]
 
-private lemma sim_right_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb : Bool)
+public lemma sim_right_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb : Bool)
     (h : (q', a', DLBA.Dir.right) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell lb true (some q) a t, [],
       [cellSym lb true (some q') a' t]⟩ :
@@ -342,7 +382,7 @@ private lemma sim_right_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb : 
   simp_all +decide [Finset.mem_toList]
   grind
 
-private lemma sim_left_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (rb : Bool)
+public lemma sim_left_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (rb : Bool)
     (h : (q', a', DLBA.Dir.left) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell true rb (some q) a t, [],
       [cellSym true rb (some q') a' t]⟩ :
@@ -350,53 +390,101 @@ private lemma sim_left_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (rb : B
   simp [myhillAllRules, h]
   grind
 
-private lemma sim_right_interior_step1_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
-    (lb₁ : Bool) (rb₂ : Bool) (hi : Option Λ) (b : Γ)
+set_option maxHeartbeats 1000000 in
+public lemma sim_right_interior_step1_boundary_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
+    (rb₂ : Bool) (hi : Option Λ) (b : Γ)
     (h : (q', a', DLBA.Dir.right) ∈ M.transition q a) :
-    (⟨[], MyhillNT.cell lb₁ false (some q) a t₁,
+    (⟨[], MyhillNT.cell true false (some q) a t₁,
       [cellSym false rb₂ hi b t₂],
-      [cellPendingSym lb₁ false q' a' t₁]⟩ :
+      [cellPendingSym true false true q' a' t₁]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
-  convert List.mem_append.mpr _ using 1
-  simp +zetaDelta at *
-  exact ⟨q, a, q', a', h, t₁, t₂, hi, b, by cases lb₁ <;> cases rb₂ <;> aesop⟩
+  unfold myhillAllRules
+  simp only [List.mem_append]
+  iterate 9 apply Or.inl
+  apply Or.inr
+  simp +decide only [List.mem_flatMap, Finset.mem_toList, Finset.mem_univ, true_and,
+    List.bind_eq_flatMap, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
+    List.pure_def, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false]
+  exact ⟨q, a, q', a', h, t₁, t₂, hi, b, rb₂, by cases rb₂ <;> simp, rfl⟩
 
-private lemma sim_right_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
-    (lb₁ : Bool) (rb₂ : Bool) (hi : Option Λ) (b : Γ) :
-    (⟨[cellPendingSym lb₁ false q' a' t₁],
-      MyhillNT.cell false rb₂ hi b t₂, [],
+set_option maxHeartbeats 1000000 in
+public lemma sim_right_interior_step1_interior_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
+    (rb₂ : Bool) (hi : Option Λ) (b : Γ) (lb₀ : Bool) (a₀ : Γ) (t₀ : T)
+    (h : (q', a', DLBA.Dir.right) ∈ M.transition q a) :
+    (⟨[cellSym lb₀ false none a₀ t₀], MyhillNT.cell false false (some q) a t₁,
+      [cellSym false rb₂ hi b t₂],
+      [cellPendingSym false false true q' a' t₁]⟩ :
+      csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
+  unfold myhillAllRules
+  simp only [List.mem_append]
+  iterate 8 apply Or.inl
+  apply Or.inr
+  simp +decide only [List.mem_flatMap, Finset.mem_toList, Finset.mem_univ, true_and,
+    List.bind_eq_flatMap, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
+    List.pure_def, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false]
+  exact ⟨q, a, q', a', h, t₁, t₂, hi, b, rb₂, by cases rb₂ <;> simp, lb₀,
+    by cases lb₀ <;> simp, a₀, t₀, rfl⟩
+
+public lemma sim_right_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
+    (lb₁ : Bool) (rb₂ : Bool) (b : Γ) :
+    (⟨[cellPendingSym lb₁ false true q' a' t₁],
+      MyhillNT.cell false rb₂ none b t₂, [],
       [cellSym false rb₂ (some q') b t₂]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   unfold myhillAllRules
   simp +decide [List.mem_append, List.mem_map]
   cases lb₁ <;> cases rb₂ <;> aesop
 
-private lemma sim_left_interior_step1_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
-    (lb₁ : Bool) (rb₂ : Bool) (hi : Option Λ) (b : Γ)
+set_option maxHeartbeats 1000000 in
+public lemma sim_left_interior_step1_boundary_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
+    (lb₁ : Bool) (hi : Option Λ) (b : Γ)
     (h : (q', a', DLBA.Dir.left) ∈ M.transition q a) :
     (⟨[cellSym lb₁ false hi b t₁],
-      MyhillNT.cell false rb₂ (some q) a t₂, [],
-      [cellPendingSym false rb₂ q' a' t₂]⟩ :
+      MyhillNT.cell false true (some q) a t₂, [],
+      [cellPendingSym false true false q' a' t₂]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   unfold myhillAllRules
-  simp +decide [h]
-  exact ⟨q, a, q', a', h, t₁, t₂, hi, b, by cases lb₁ <;> cases rb₂ <;> aesop⟩
+  simp only [List.mem_append]
+  iterate 6 apply Or.inl
+  apply Or.inr
+  simp +decide only [List.mem_flatMap, Finset.mem_toList, Finset.mem_univ, true_and,
+    List.bind_eq_flatMap, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
+    List.pure_def, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false]
+  exact ⟨q, a, q', a', h, t₁, t₂, hi, b, lb₁, by cases lb₁ <;> simp, rfl⟩
 
-private lemma sim_left_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
-    (lb₁ : Bool) (rb₂ : Bool) (hi : Option Λ) (b : Γ) :
-    (⟨[], MyhillNT.cell lb₁ false hi b t₁,
-      [cellPendingSym false rb₂ q' a' t₂],
+set_option maxHeartbeats 1000000 in
+public lemma sim_left_interior_step1_interior_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
+    (lb₁ : Bool) (hi : Option Λ) (b : Γ) (rb₀ : Bool) (a₀ : Γ) (t₀ : T)
+    (h : (q', a', DLBA.Dir.left) ∈ M.transition q a) :
+    (⟨[cellSym lb₁ false hi b t₁],
+      MyhillNT.cell false false (some q) a t₂, [cellSym false rb₀ none a₀ t₀],
+      [cellPendingSym false false false q' a' t₂]⟩ :
+      csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
+  unfold myhillAllRules
+  simp only [List.mem_append]
+  iterate 5 apply Or.inl
+  apply Or.inr
+  simp +decide only [List.mem_flatMap, Finset.mem_toList, Finset.mem_univ, true_and,
+    List.bind_eq_flatMap, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
+    List.pure_def, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false]
+  exact ⟨q, a, q', a', h, t₁, t₂, hi, b, lb₁, by cases lb₁ <;> simp, rb₀,
+    by cases rb₀ <;> simp, a₀, t₀, rfl⟩
+
+public lemma sim_left_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
+    (lb₁ : Bool) (rb₂ : Bool) (b : Γ) :
+    (⟨[], MyhillNT.cell lb₁ false none b t₁,
+      [cellPendingSym false rb₂ false q' a' t₂],
       [cellSym lb₁ false (some q') b t₁]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
-  revert q' a' t₁ t₂ lb₁ rb₂ hi b
+  revert q' a' t₁ t₂ lb₁ rb₂ b
   simp [myhillAllRules]
 
-private lemma pending_resolution_rule_mem (q' : Λ) (a' : Γ) (t : T) (lb rb : Bool) :
-    (⟨[], MyhillNT.cellPending lb rb q' a' t, [],
+public lemma pending_resolution_rule_mem (q' : Λ) (a' : Γ) (t : T) (lb rb dir : Bool) :
+    (⟨[], MyhillNT.cellPending lb rb dir q' a' t, [],
       [cellSym lb rb none a' t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   unfold myhillAllRules
   simp +decide [List.mem_append, List.mem_map]
-  exact ⟨q', a', t, by cases lb <;> cases rb <;> aesop⟩
+  exact ⟨q', a', t, by cases lb <;> cases rb <;> cases dir <;> aesop⟩
 
 end MyhillConstruction
