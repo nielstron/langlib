@@ -46,18 +46,6 @@ The strictness `CS ⊊ Recursive`:
 - [`exists_cs_enumeration`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the effective enumeration of context-sensitive languages with a uniformly computable membership oracle.
 - [`memOracle_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the membership oracle's joint computability, built on the uniform decider [`memCode`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) (`memCode_sound` / `memCode_complete` / `code_of_CS`).
 
-## Why a closure argument does not work
-
-For [Recursive ⊊ RE](recursive-strict-subset-re.html) there is a shortcut: recursive
-languages are closed under complement while RE languages are not, so the two classes
-cannot coincide. **No such shortcut exists here.** By Immerman–Szelepcsényi the
-context-sensitive languages (`= NSPACE(n)`) are closed under complement, exactly like the
-recursive languages; in fact the two classes agree on *every* standard closure operation —
-union, intersection, complement, concatenation, Kleene star, reverse, ε-free homomorphism,
-inverse homomorphism, ε-free substitution — and both fail the erasing operations. So no
-closure property separates them, and strictness must be witnessed by a genuine
-**diagonalization**.
-
 ## Proof idea
 
 The argument is the classical diagonal construction, made effective.
@@ -71,12 +59,13 @@ sequences of rule applications from the start symbol and check whether one yield
 target word, searching all sequences up to a length/position bound that is large enough for
 non-contracting grammars.
 
-**2. The oracle is uniformly computable.** The key technical step (`memOracle_computable`) is
-that membership in `enumLang u` is computable **jointly** in the grammar code `u` and the input
-word — not merely for each fixed grammar. This rests on `primrec_applyRuleSeq_uniform`, a
-re-derivation of the project's
-[membership search](context-sensitive-membership-computable.html) that is primitive recursive
-in the rule list treated as runtime data.
+**2. The oracle is computable.** `memOracle u v` — decode `u` to a grammar, then run the
+bounded search of step 1 — is computable as a function of both arguments
+(`memOracle_computable`): the search is primitive recursive in the rule list treated as runtime
+data (`primrec_applyRuleSeq_uniform`, the project's
+[membership search](context-sensitive-membership-computable.html)), and decoding the index word
+is primitive recursive. The diagonal applies the oracle to the pair `(v, v)`, so computability
+in the code and the word together is exactly what the construction consumes.
 
 **3. The bounded search is correct.** It is sound (`memCode_sound`: a found sequence is a real
 derivation) and complete within the bound (`memCode_complete`). Completeness is the heart of the
