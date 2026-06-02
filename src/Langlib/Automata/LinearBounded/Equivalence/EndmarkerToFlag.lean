@@ -521,6 +521,238 @@ theorem fold_reaches (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
   | refl => exact Relation.ReflTransGen.refl
   | tail _ hbc ih => exact ih.tail (fold_step M' hbc)
 
+/-! ### Init phase: the flag machine sets up the folded tape.
+
+From the input tape `c`, `M` converts each cell to its folded form (`foldedTape`), marking cell `0`
+with `⊢` and the last cell with `⊣`, then rewinds to cell `0` and enters the simulation. -/
+
+/-- The fully folded tape obtained from an input tape `c`: each cell carries its interior content
+`cellCur (c i)` plus the boundary marks at cells `0` and `m`. -/
+def foldedTape {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) : Fin (m + 1) → FAlpha T Γ :=
+  fun i => some (Sum.inr (cellCur (c i),
+    (if i.val = 0 then some leftMark else none), (if i.val = m then some rightMark else none)))
+
+/-- The tape with cells `< k` folded and cells `≥ k` still raw input. -/
+def partialTape {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) (k : ℕ) : Fin (m + 1) → FAlpha T Γ :=
+  fun i => if i.val < k then foldedTape c i else c i
+
+/-- One `scan` step converts the cell at an interior position `k` and moves right. -/
+theorem scan_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (k : ℕ) (hk1 : 1 ≤ k) (hk2 : k < m) :
+    Step (flagMachine M')
+      ⟨FState.scan, ⟨partialTape c k, ⟨k, by omega⟩⟩⟩
+      ⟨FState.scan, ⟨partialTape c (k + 1), ⟨k + 1, by omega⟩⟩⟩ := by
+  have hr : (partialTape c k) ⟨k, by omega⟩ = c ⟨k, by omega⟩ := by simp [partialTape]
+  refine ⟨FState.scan, some (Sum.inr (cellCur ((partialTape c k) ⟨k, by omega⟩), none, none)),
+    DLBA.Dir.right, ?_, ?_⟩
+  · show _ ∈ flagTransition M' FState.scan ((partialTape c k) ⟨k, by omega⟩)
+    left; rfl
+  · apply cfg_ext'
+    · rfl
+    · -- contents
+      show partialTape c (k + 1)
+        = Function.update (partialTape c k) ⟨k, by omega⟩
+          (some (Sum.inr (cellCur ((partialTape c k) ⟨k, by omega⟩), none, none)))
+      rw [hr]
+      funext j
+      rw [Function.update_apply]
+      by_cases hj : j = (⟨k, by omega⟩ : Fin (m + 1))
+      · subst hj
+        rw [if_pos rfl]
+        simp only [partialTape, foldedTape, Fin.val_mk]
+        rw [if_pos (show k < k + 1 by omega), if_neg (show ¬ k = 0 by omega),
+          if_neg (show ¬ k = m by omega)]
+      · rw [if_neg hj]
+        have hjk : j.val ≠ k := fun h => hj (Fin.ext h)
+        simp only [partialTape]
+        by_cases hjlt : j.val < k
+        · rw [if_pos hjlt, if_pos (by omega)]
+        · rw [if_neg hjlt, if_neg (by omega)]
+    · -- head
+      apply Fin.ext
+      simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+      rw [dif_pos (show k < m by omega)]
+
+theorem partialTape_full {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) :
+    partialTape c (m + 1) = foldedTape c := by
+  funext j; simp only [partialTape]; rw [if_pos (by have := j.isLt; omega)]
+
+/-- The `scan` phase: from cell `1` to the last cell `m`, converting each interior cell. -/
+theorem scan_reach (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (j : ℕ) (hj : 1 ≤ j) (hjm : j ≤ m) :
+    Reaches (flagMachine M')
+      ⟨FState.scan, ⟨partialTape c 1, ⟨1, by omega⟩⟩⟩
+      ⟨FState.scan, ⟨partialTape c j, ⟨j, by omega⟩⟩⟩ := by
+  induction j, hj using Nat.le_induction with
+  | base => exact Relation.ReflTransGen.refl
+  | succ j hj ih => exact (ih (by omega)).tail (scan_step M' c j hj (by omega))
+
+/-- `setup`: mark cell `0` with `⊢` and step right (case `m ≥ 1`, so cell `0` is not the last). -/
+theorem setup_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (hm : 1 ≤ m) :
+    Step (flagMachine M')
+      ⟨FState.setup, ⟨c, ⟨0, by omega⟩⟩⟩
+      ⟨FState.scan, ⟨partialTape c 1, ⟨1, by omega⟩⟩⟩ := by
+  refine ⟨FState.scan, some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, none)),
+    DLBA.Dir.right, ?_, ?_⟩
+  · show _ ∈ flagTransition M' FState.setup (c ⟨0, by omega⟩)
+    left; rfl
+  · apply cfg_ext'
+    · rfl
+    · show partialTape c 1 = Function.update c ⟨0, by omega⟩
+        (some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, none)))
+      funext j
+      rw [Function.update_apply]
+      by_cases hj : j = (⟨0, by omega⟩ : Fin (m + 1))
+      · subst hj
+        rw [if_pos rfl]
+        simp [partialTape, foldedTape, show ¬ (0 : ℕ) = m from by omega]
+      · rw [if_neg hj]; simp only [partialTape]
+        rw [if_neg (show ¬ j.val < 1 by have : j.val ≠ 0 := fun h => hj (Fin.ext h); omega)]
+    · apply Fin.ext
+      simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+      rw [dif_pos (show (0 : ℕ) < m by omega)]
+
+/-- The last `scan` step (at cell `m`): mark it `⊣` and clamp, entering `verify`. -/
+theorem lastscan_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (hm : 1 ≤ m) :
+    Step (flagMachine M')
+      ⟨FState.scan, ⟨partialTape c m, ⟨m, by omega⟩⟩⟩
+      ⟨FState.verify, ⟨foldedTape c, ⟨m, by omega⟩⟩⟩ := by
+  have hr : (partialTape c m) ⟨m, by omega⟩ = c ⟨m, by omega⟩ := by simp [partialTape]
+  refine ⟨FState.verify, some (Sum.inr (cellCur ((partialTape c m) ⟨m, by omega⟩), none, some rightMark)),
+    DLBA.Dir.right, ?_, ?_⟩
+  · show _ ∈ flagTransition M' FState.scan ((partialTape c m) ⟨m, by omega⟩)
+    right; rfl
+  · apply cfg_ext'
+    · rfl
+    · show foldedTape c = Function.update (partialTape c m) ⟨m, by omega⟩
+        (some (Sum.inr (cellCur ((partialTape c m) ⟨m, by omega⟩), none, some rightMark)))
+      rw [hr]
+      funext j
+      rw [Function.update_apply]
+      by_cases hj : j = (⟨m, by omega⟩ : Fin (m + 1))
+      · subst hj
+        rw [if_pos rfl]
+        simp [foldedTape, show ¬ m = 0 from by omega]
+      · rw [if_neg hj]; simp only [partialTape, foldedTape]
+        have hjk : j.val ≠ m := fun h => hj (Fin.ext h)
+        have := j.isLt
+        rw [if_pos (show j.val < m by omega)]
+    · apply Fin.ext
+      simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+      rw [dif_neg (show ¬ m < m by omega)]
+
+/-- `verify` confirms the guess (the right move clamped back onto the `⊣`-marked cell). -/
+theorem verify_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (hm : 1 ≤ m) :
+    Step (flagMachine M')
+      ⟨FState.verify, ⟨foldedTape c, ⟨m, by omega⟩⟩⟩
+      ⟨FState.rewind, ⟨foldedTape c, ⟨m - 1, by omega⟩⟩⟩ := by
+  have hrt : (cellRight (foldedTape c ⟨m, by omega⟩)).isSome = true := by
+    simp [foldedTape, cellRight]
+  refine ⟨FState.rewind, foldedTape c ⟨m, by omega⟩, DLBA.Dir.left, ?_, ?_⟩
+  · show _ ∈ flagTransition M' FState.verify (foldedTape c ⟨m, by omega⟩)
+    simp only [flagTransition, hrt, if_true]; rfl
+  · apply cfg_ext'
+    · rfl
+    · show foldedTape c = Function.update (foldedTape c) ⟨m, by omega⟩ (foldedTape c ⟨m, by omega⟩)
+      rw [Function.update_eq_self]
+    · apply Fin.ext
+      simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+      rw [dif_pos (show 0 < m by omega)]
+
+/-- One `rewind` step at an interior cell `k ≥ 1` (no left marker): move left. -/
+theorem rewind_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (k : ℕ) (hk1 : 1 ≤ k) (hkm : k ≤ m) :
+    Step (flagMachine M')
+      ⟨FState.rewind, ⟨foldedTape c, ⟨k, by omega⟩⟩⟩
+      ⟨FState.rewind, ⟨foldedTape c, ⟨k - 1, by omega⟩⟩⟩ := by
+  have hlf : (cellLeft (foldedTape c ⟨k, by omega⟩)).isSome = false := by
+    simp [foldedTape, cellLeft]; omega
+  refine ⟨FState.rewind, foldedTape c ⟨k, by omega⟩, DLBA.Dir.left, ?_, ?_⟩
+  · show _ ∈ flagTransition M' FState.rewind (foldedTape c ⟨k, by omega⟩)
+    simp only [flagTransition, hlf, Bool.false_eq_true, if_false]; rfl
+  · apply cfg_ext'
+    · rfl
+    · show foldedTape c = Function.update (foldedTape c) ⟨k, by omega⟩ (foldedTape c ⟨k, by omega⟩)
+      rw [Function.update_eq_self]
+    · apply Fin.ext
+      simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+      rw [dif_pos (show 0 < k by omega)]
+
+/-- The `rewind` phase: from cell `j` back down to cell `0`. -/
+theorem rewind_reach (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ)
+    (j : ℕ) (hjm : j ≤ m) :
+    Reaches (flagMachine M')
+      ⟨FState.rewind, ⟨foldedTape c, ⟨j, by omega⟩⟩⟩
+      ⟨FState.rewind, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
+  induction j with
+  | zero => exact Relation.ReflTransGen.refl
+  | succ j ih =>
+      exact Relation.ReflTransGen.head (rewind_step M' c (j + 1) (by omega) (by omega)) (ih (by omega))
+
+/-- The final `rewind` step at cell `0`: the `⊢` mark is found, entering the simulation. -/
+theorem rewind0_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) :
+    Step (flagMachine M')
+      ⟨FState.rewind, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩
+      ⟨FState.sim M'.initial FMode.onLeft, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
+  have hls : (cellLeft (foldedTape c ⟨0, by omega⟩)).isSome = true := by simp [foldedTape, cellLeft]
+  refine ⟨FState.sim M'.initial FMode.onLeft, foldedTape c ⟨0, by omega⟩, DLBA.Dir.stay, ?_, ?_⟩
+  · show _ ∈ flagTransition M' FState.rewind (foldedTape c ⟨0, by omega⟩)
+    simp only [flagTransition, hls, if_true]; rfl
+  · apply cfg_ext'
+    · rfl
+    · show foldedTape c = Function.update (foldedTape c) ⟨0, by omega⟩ (foldedTape c ⟨0, by omega⟩)
+      rw [Function.update_eq_self]
+    · apply Fin.ext; simp [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+
+/-- The whole init phase: from the input tape `c`, reach the simulation start at `M'.initial`
+on the head (`⊢`), with the tape fully folded. -/
+theorem init_reach (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) :
+    Reaches (flagMachine M')
+      ⟨FState.setup, ⟨c, ⟨0, by omega⟩⟩⟩
+      ⟨FState.sim M'.initial FMode.onLeft, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
+  by_cases hm0 : m = 0
+  · subst hm0
+    have h1 : Step (flagMachine M') ⟨FState.setup, ⟨c, ⟨0, by omega⟩⟩⟩
+        ⟨FState.verify, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
+      refine ⟨FState.verify,
+        some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, some rightMark)),
+        DLBA.Dir.right, ?_, ?_⟩
+      · show _ ∈ flagTransition M' FState.setup (c ⟨0, by omega⟩); right; rfl
+      · apply cfg_ext'
+        · rfl
+        · show foldedTape c = Function.update c ⟨0, by omega⟩
+            (some (Sum.inr (cellCur (c ⟨0, by omega⟩), some leftMark, some rightMark)))
+          funext j
+          have hj0 : j = (⟨0, by omega⟩ : Fin (0 + 1)) := Fin.ext (by have := j.isLt; omega)
+          subst hj0; rw [Function.update_apply, if_pos rfl]; simp [foldedTape]
+        · apply Fin.ext; simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+          rw [dif_neg (show ¬ (0 : ℕ) < 0 by omega)]
+    have h2 : Step (flagMachine M') ⟨FState.verify, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩
+        ⟨FState.rewind, ⟨foldedTape c, ⟨0, by omega⟩⟩⟩ := by
+      have hrt : (cellRight (foldedTape c ⟨0, by omega⟩)).isSome = true := by
+        simp [foldedTape, cellRight]
+      refine ⟨FState.rewind, foldedTape c ⟨0, by omega⟩, DLBA.Dir.left, ?_, ?_⟩
+      · show _ ∈ flagTransition M' FState.verify (foldedTape c ⟨0, by omega⟩)
+        simp only [flagTransition, hrt, if_true]; rfl
+      · apply cfg_ext'
+        · rfl
+        · show foldedTape c = Function.update (foldedTape c) ⟨0, by omega⟩ (foldedTape c ⟨0, by omega⟩)
+          rw [Function.update_eq_self]
+        · apply Fin.ext; simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+          rw [dif_neg (show ¬ (0 : ℕ) < 0 by omega)]
+    exact Relation.ReflTransGen.head h1
+      (Relation.ReflTransGen.head h2 (Relation.ReflTransGen.single (rewind0_step M' c)))
+  · have hm : 1 ≤ m := by omega
+    refine Relation.ReflTransGen.head (setup_step M' c hm)
+      ((scan_reach M' c m hm le_rfl).trans
+        (Relation.ReflTransGen.head (lastscan_step M' c hm)
+          (Relation.ReflTransGen.head (verify_step M' c hm)
+            ((rewind_reach M' c (m - 1) (by omega)).trans
+              (Relation.ReflTransGen.single (rewind0_step M' c))))))
+
 end LBA
 
 
