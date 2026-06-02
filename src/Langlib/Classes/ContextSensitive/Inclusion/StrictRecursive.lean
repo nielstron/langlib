@@ -11,17 +11,21 @@ public section
 
 Context-sensitive languages form a *strict* subclass of the recursive languages.
 
-Unlike `Recursive ⊊ RE` (which follows from a closure asymmetry — Recursive is closed under
-complement, RE is not), there is **no** standard closure property separating CS from Recursive:
-both are closed under union, intersection, complement, concatenation, star, reverse, ε-free
-homomorphism, … and both fail erasing homomorphism. So strictness here requires a genuine
-**diagonalization**.
+The proof is based on **diagonalization**.
 
 The uniform computable membership oracle for context-sensitive grammars
 (`memCode` / `contextSensitive_computableMembership`, in
-`Classes/ContextSensitive/Decidability/Membership.lean`) is the engine of the construction: we
-enumerate context-sensitive languages by their coded grammars, decide membership uniformly, and
-diagonalize against the enumeration.
+`Classes/ContextSensitive/Decidability/Membership.lean`) supplies a surjective enumeration
+`e : List T → Language T` of all context-sensitive languages and a total computable
+`mem : List T → List T → Bool` with `mem u v = true ↔ v ∈ e u`. Define `D = {v | v ∉ e v}`. Then
+`D` is recursive, since its characteristic predicate `v ↦ mem v v` is computable. And `D` is not
+context-sensitive: if `e u = D` for some `u`, instantiating the definition of `D` at `v = u` and
+substituting `e u = D` gives `u ∈ D ↔ u ∉ e u ↔ u ∉ D`, a contradiction; hence `D` is not in the
+range of `e`. Therefore `D` is recursive but not context-sensitive, so `CS ⊊ Recursive`.
+
+The argument requires `mem` to be total and computable, which holds for CS but not for Recursive
+(the recursive languages are not recursively enumerable), so it separates CS from Recursive but
+does not extend to separating Recursive from RE.
 -/
 
 open Language

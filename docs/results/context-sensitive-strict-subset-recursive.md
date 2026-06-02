@@ -95,11 +95,40 @@ form, so that rule can fire at most once and never enlarges the workspace.
 (preserving the language and context-sensitivity), then surjectivity of the word-to-code map
 finds an index.
 
-**5. Diagonalize.** With the enumeration `e` (covering all context-sensitive languages) and the
-total computable oracle `mem`, define the diagonal language
-`D = { v | mem v v = false }`. Then `D` is recursive — its characteristic function is
-computable — but it is **not** context-sensitive: if `D = e u`, then `u ∈ D` iff `u ∉ e u = D`,
-a contradiction. So `D` witnesses `CS ⊊ Recursive`.
+**5. Diagonalize.** Let `e : List T → Language T` be the enumeration of step 4 (every
+context-sensitive language equals `e u` for some `u`) and let `mem : List T → List T → Bool` be
+the total computable oracle of step 2, satisfying `mem u v = true ↔ v ∈ e u`. Indexing languages
+by words allows the index `u` and the candidate word `v` to range over the same set, so the
+diagonal is well-typed. Define
+
+$$D = \{\, v \mid v \notin e\,v \,\} \qquad (\text{in Lean: } f\,v := \texttt{cond (mem v v) false true},\ D = \{v \mid f\,v = \texttt{true}\}).$$
+
+*`D` is recursive.* The map `v ↦ mem v v` is computable as the composition of `mem` with
+`v ↦ (v, v)`, and Boolean negation is computable, so `f` is computable. Hence the characteristic
+predicate of `D` is computable, which is the definition of `is_Recursive D`.
+
+*`D` is not context-sensitive.* Assume for contradiction that `D` is context-sensitive. By
+coverage (step 4) there exists `u` with `e u = D`. Then
+
+$$u \in D \iff u \notin e\,u \iff u \notin D,$$
+
+where the first equivalence is the definition of `D` instantiated at `v = u` and the second
+substitutes `e u = D`. The resulting equivalence `u ∈ D ↔ u ∉ D` is contradictory. Therefore no
+`u` satisfies `e u = D`, so `D` is not in the range of `e`, i.e. `D` is not context-sensitive.
+
+Thus `D` is recursive but not context-sensitive, so the inclusion `CS ⊆ Recursive` is proper:
+`CS ⊊ Recursive`.
+
+**Why the argument does not extend to Recursive.** The construction requires `mem` to be total
+and computable. This holds for the context-sensitive languages because each has a decidable
+membership problem and the deciders are uniformly computable from the (finite, enumerable) grammar
+codes. The analogous step for Recursive would require a computable enumeration of all recursive
+languages together with a uniform total membership oracle. No such enumeration exists: the
+recursive languages are not recursively enumerable, since the set of Turing machines that halt on
+every input is not recursively enumerable. The diagonal set defined from a partial oracle is still
+well-defined, but its characteristic function is not computable, so it is not recursive. This
+asymmetry — a uniform total decider exists for CS but not for Recursive — is why the diagonal
+construction separates CS from Recursive but cannot separate Recursive from RE.
 
 ## Keywords / also known as
 
