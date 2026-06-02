@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Automata.LinearBounded.Endmarker
+public import Langlib.Automata.LinearBounded.Equivalence.ContextSensitive
 public import Mathlib.Data.Fintype.Sum
 public import Mathlib.Data.Fintype.Option
 import Mathlib.Tactic
@@ -604,7 +605,7 @@ theorem accepts_empty :
           rw [← εc0, Function.update_eq_self]
         · apply Fin.ext
           simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, List.length_nil]
-          split_ifs <;> simp_all [List.length_nil] <;> omega
+          split_ifs <;> simp_all [loadEnd] <;> omega
     have hstep2 : Step (simMachine M b) ⟨SimState.entry, ⟨t0.contents, ⟨1, by omega⟩⟩⟩
         ⟨SimState.acc, ⟨t0.contents, ⟨1, by omega⟩⟩⟩ := by
       refine ⟨SimState.acc, rightMark, DLBA.Dir.stay, ?_, ?_⟩
@@ -621,4 +622,109 @@ theorem accepts_empty :
     refine ⟨⟨SimState.acc, ⟨t0.contents, ⟨1, by omega⟩⟩⟩,
       Relation.ReflTransGen.head hstep1 (Relation.ReflTransGen.single hstep2), rfl⟩
 
+/-! ### Assembling the language equivalence.
+
+Connecting the dimension-clean `sim_accepts_iff` to the canonical `loadEnd`/`initCfgList`
+configurations requires one transport across `(w.map embed).length = w.length` (`List.length_map`),
+handled here once via `HEq`. -/
+
+/-- `Accepts` transports across a dimension equality and a heterogeneous configuration equality. -/
+theorem accepts_heq {Γ' Λ' : Type*} {n n' : ℕ} (Mx : Machine Γ' Λ')
+    {cfg : DLBA.Cfg Γ' Λ' n} {cfg' : DLBA.Cfg Γ' Λ' n'}
+    (hn : n = n') (hcfg : HEq cfg cfg') : Accepts Mx cfg ↔ Accepts Mx cfg' := by
+  subst hn; rw [eq_of_heq hcfg]
+
+/-- Heterogeneous tape equality from a dimension equality, heterogeneous contents and equal head. -/
+theorem boundedtape_heq {Γ' : Type*} {n n' : ℕ} (hn : n = n')
+    {t : DLBA.BoundedTape Γ' n} {t' : DLBA.BoundedTape Γ' n'}
+    (hc : HEq t.contents t'.contents) (hh : t.head.val = t'.head.val) : HEq t t' := by
+  subst hn
+  obtain ⟨tc, th⟩ := t; obtain ⟨tc', th'⟩ := t'
+  apply heq_of_eq
+  simp only [DLBA.BoundedTape.mk.injEq]
+  exact ⟨eq_of_heq hc, Fin.ext hh⟩
+
+/-- Heterogeneous configuration equality from a dimension equality, equal state and tape `HEq`. -/
+theorem cfg_heq {Γ' Λ' : Type*} {n n' : ℕ} (hn : n = n')
+    {c : DLBA.Cfg Γ' Λ' n} {c' : DLBA.Cfg Γ' Λ' n'}
+    (hs : c.state = c'.state) (ht : HEq c.tape c'.tape) : HEq c c' := by
+  subst hn
+  obtain ⟨cs, ct⟩ := c; obtain ⟨cs', ct'⟩ := c'
+  apply heq_of_eq
+  simp only [DLBA.Cfg.mk.injEq]
+  exact ⟨hs, eq_of_heq ht⟩
+
+/-- On a non-empty input, the endmarker simulator on `⊢ w ⊣` accepts iff the flag machine `M`
+accepts on the canonically loaded `w` — connecting `sim_accepts_iff` to the canonical tapes. -/
+theorem sim_accepts_input (w : List T)
+    (hv : w.map (fun t => some (Sum.inl t)) ≠ []) :
+    Accepts (simMachine M b) ⟨SimState.start, loadEnd w⟩
+      ↔ Accepts M (initCfgList M (w.map (fun t => some (Sum.inl t))) hv) := by
+  set embed : T → Option (T ⊕ Γ) := fun t => some (Sum.inl t) with hembed
+  have hlen : (w.map embed).length = w.length := by simp
+  have hwne : w ≠ [] := by rintro rfl; simp [hembed] at hv
+  have hpos : 0 < w.length := List.length_pos_of_ne_nil hwne
+  set c₀ := (loadList (w.map embed) hv).contents with hc₀
+  have key : Accepts (simMachine M b)
+      (⟨SimState.start, ⟨enc c₀, ⟨0, by omega⟩⟩⟩ :
+        DLBA.Cfg (EndAlpha T Γ) (SimState Λ) ((w.map embed).length - 1 + 2))
+      ↔ Accepts M (initCfgList M (w.map embed) hv) := sim_accepts_iff M b c₀
+  rw [← key]
+  refine accepts_heq (simMachine M b) (by rw [hlen]; omega) ?_
+  refine cfg_heq (by rw [hlen]; omega) rfl ?_
+  refine boundedtape_heq (by rw [hlen]; omega) ?_ ?_
+  · -- contents agree cellwise
+    refine (Fin.heq_fun_iff (by rw [hlen]; omega)).mpr (fun i => ?_)
+    have hi := i.isLt
+    simp only [loadEnd, enc, Fin.coe_cast]
+    by_cases h0 : i.val = 0
+    · rw [if_pos h0, dif_pos h0]
+    · rw [if_neg h0, dif_neg h0]
+      by_cases hlast : i.val - 1 < w.length
+      · rw [dif_pos hlast, dif_neg (by rw [hlen]; omega)]
+        rw [hc₀]
+        simp only [loadList, List.get_eq_getElem, List.getElem_map, hembed]
+      · rw [dif_neg hlast, dif_pos (by rw [hlen]; omega)]
+  · -- heads agree (both at cell 0)
+    simp [loadEnd]
+
+theorem language_simMachine_eq :
+    LanguageEnd (simMachine M b) = LanguageRecognized M (fun t => some (Sum.inl t)) b := by
+  funext w
+  apply propext
+  show Accepts (simMachine M b) (initCfgEnd (simMachine M b) w)
+    ↔ (b = true ∧ w = []) ∨ LanguageViaEmbed M (fun t => some (Sum.inl t)) w
+  rcases w with _ | ⟨x, xs⟩
+  · -- empty word
+    rw [accepts_empty]
+    constructor
+    · intro hb; exact Or.inl ⟨hb, rfl⟩
+    · rintro (⟨hb, _⟩ | ⟨hw, _⟩)
+      · exact hb
+      · exact absurd rfl hw
+  · -- non-empty word
+    rw [show initCfgEnd (simMachine M b) (x :: xs) = ⟨SimState.start, loadEnd (x :: xs)⟩ from rfl,
+        sim_accepts_input M b (x :: xs) (by simp)]
+    constructor
+    · intro h; exact Or.inr ⟨by simp, h⟩
+    · rintro (⟨_, hcon⟩ | ⟨_, h⟩)
+      · exact absurd hcon (by simp)
+      · exact h
+
 end LBA
+
+/-- Every flag-model LBA language is recognized by the canonical endmarker model. -/
+theorem is_LBA_subset_is_LBA_end {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
+    (h : is_LBA L) : is_LBA_end L := by
+  obtain ⟨Γ, Λ, _, _, _, _, acceptEmpty, M, hM⟩ := h
+  exact ⟨Γ, LBA.SimState Λ, inferInstance, inferInstance, inferInstance,
+    inferInstance, LBA.simMachine M acceptEmpty, by rw [LBA.language_simMachine_eq]; exact hM⟩
+
+theorem LBA_subset_LBA_end {T : Type} [Fintype T] [DecidableEq T] :
+    (LBA : Set (Language T)) ⊆ LBA_end := fun _ h => is_LBA_subset_is_LBA_end h
+
+/-- Every context-sensitive language is recognized by the canonical endmarker LBA model
+(`CS ⊆ LBA_end`), via `CS = LBA` and the flag→endmarker simulation. -/
+theorem CS_subset_LBA_end {T : Type} [Fintype T] [DecidableEq T] :
+    (CS : Set (Language T)) ⊆ LBA_end :=
+  fun _ hL => LBA_subset_LBA_end (by rw [← CS_eq_LBA]; exact hL)
