@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/nielstron/langlib/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/langlib/actions/workflows/build.yml)
 
-`Langlib` is a Lean 4 library of formalized results about grammars, language classes, and automata across the Chomsky hierarchy.
+`Langlib` is a Lean 4 library of formalized results from formal language theory, defining and relating various grammars, language classes, and automata across the Chomsky hierarchy and beyond.
 
 📖 **Documentation:** [results overview & explanations](https://nielstron.github.io/langlib/) · [API reference](https://nielstron.github.io/langlib/api/)
 
