@@ -25,8 +25,9 @@ where `encode` reifies an LBA configuration as a list of `cell` nonterminals (de
 and `CS_derives_of_reaches` (proved here) lifts the single-step simulation over an entire
 reachable run by induction on `Relation.ReflTransGen`.
 
-The three content lemmas `start_setup`, `step_sim`, `cleanup` (and the soundness direction)
-are the remaining work; this file pins down the encoding and the glue they plug into.
+This file pins down the encoding and the glue, and proves the three content lemmas
+`start_setup`, `step_sim`, `cleanup` that assemble into completeness (the soundness direction is
+in `LBAToCSG/Soundness.lean`).
 -/
 
 namespace MyhillConstruction

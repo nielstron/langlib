@@ -7,7 +7,7 @@ nav_order: 1
 
 # Langlib: formal-language theory in Lean 4
 
-**Langlib** is a [Lean 4](https://leanprover.github.io/) + [Mathlib](https://leanprover-community.github.io/) library of fully machine-checked results about grammars, automata, and language classes across the **Chomsky hierarchy** — regular, deterministic context-free, context-free, indexed, context-sensitive, recursive (decidable) and recursively enumerable languages. It formalizes the standard hierarchy theorems (PDA = CFG, TM = RE), closure properties (including the hard result that **deterministic context-free languages are closed under complement**), and decidability/computability results (including **every context-sensitive language is recursive** and **Post's theorem**). Source and build instructions are on [GitHub](https://github.com/nielstron/langlib).
+**Langlib** is a [Lean 4](https://leanprover.github.io/) + [Mathlib](https://leanprover-community.github.io/) library of fully machine-checked results about grammars, automata, and language classes across the **Chomsky hierarchy** — regular, deterministic context-free, context-free, indexed, context-sensitive, recursive (decidable) and recursively enumerable languages. It formalizes the standard hierarchy theorems (PDA = CFG, CSG = LBA, TM = RE), closure properties (including the hard result that **deterministic context-free languages are closed under complement**), and decidability/computability results (including **every context-sensitive language is recursive** and **Post's theorem**). Source and build instructions are on [GitHub](https://github.com/nielstron/langlib).
 
 This page is a catalog of the library's results.
 
@@ -21,7 +21,7 @@ This page is a catalog of the library's results.
 - [Tape vs. state acceptance for recursive languages](results/tape-vs-state-acceptance-recursive.html)
 - [PDA = CFG: pushdown automata recognize exactly the context-free languages](results/pda-equals-cfg.html)
 - [TM = RE: Turing machines recognize exactly the recursively enumerable languages](results/tm-equals-re.html)
-- [Linear bounded automata and context-sensitive grammars](results/lba-context-sensitive.html) (Myhill construction — partial)
+- [CSL = LBA: context-sensitive languages are exactly the linear-bounded-automaton languages](results/lba-context-sensitive.html)
 - [The pumping lemma for context-free languages](results/context-free-pumping-lemma.html)
 - [Recursive ⊊ RE: recursive is a strict subset of recursively enumerable](results/recursive-strict-subset-re.html)
 
@@ -29,7 +29,7 @@ This page is a catalog of the library's results.
 
 - [Regular grammars = DFA languages](results/regular-equals-dfa.html) — and left-regular ⇔ right-regular grammars.
 - [PDA = CFG](results/pda-equals-cfg.html) — pushdown automata recognize exactly the context-free languages; final-state vs. empty-stack acceptance agree.
-- [Linear bounded automata → context-sensitive grammars](results/lba-context-sensitive.html) — the Myhill grammar construction (full LBA ⇔ CSG equivalence not yet formalized); plus NLBA languages ⊆ Turing-machine languages.
+- [CSL = LBA](results/lba-context-sensitive.html) — context-sensitive grammars and linear bounded automata recognize exactly the same languages (the Myhill–Kuroda theorem); plus NLBA languages ⊆ Turing-machine languages.
 - [TM = RE](results/tm-equals-re.html) — Turing machines recognize exactly the recursively enumerable (unrestricted-grammar) languages.
 - [Langlib's `is_CF` = Mathlib's `IsContextFree`](results/context-free-equals-mathlib.html) — plus a verified Chomsky normal form.
 
@@ -80,7 +80,7 @@ This page is a catalog of the library's results.
 - [Every context-sensitive language is recursive (CS ⊆ Recursive)](results/context-sensitive-is-recursive.html).
 - [Membership in context-sensitive languages is computable](results/context-sensitive-membership-computable.html).
 - [Non-contracting and non-erasing context-sensitive grammars](results/noncontracting-equals-context-sensitive.html) — Langlib defines CS as non-contracting; the equivalence with the non-erasing form is only partially formalized.
-- [Linear bounded automata and context-sensitive grammars](results/lba-context-sensitive.html) (Myhill construction — partial).
+- [CSL = LBA: context-sensitive grammars and linear bounded automata recognize the same languages](results/lba-context-sensitive.html) (the Myhill–Kuroda theorem).
 - CF ⊆ CS: [`ContextFree/Inclusion/ContextSensitive.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/ContextSensitive.lean).
 - Closure: ε-free homomorphism — [`Closure/EpsFreeHomomorphism.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Closure/EpsFreeHomomorphism.lean); reverse — [`Closure/Reverse.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Closure/Reverse.lean); terminal bijections — [`Closure/Bijection.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Closure/Bijection.lean).
 

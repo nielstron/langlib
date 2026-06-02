@@ -28,10 +28,11 @@ class of languages recognised by a nondeterministic linearly bounded automaton (
 The proof is the conjunction of two inclusions:
 
 * `LBA_subset_CS` — Myhill's construction: a CS grammar simulates the LBA's bounded
-  computation (`Automata/LinearBounded/Equivalence/LBAToCSG.lean` builds the grammar and
-  proves rule membership; the remaining work is the language equality).
+  computation (`Automata/LinearBounded/Equivalence/LBAToCSG.lean` builds the grammar; its
+  language equality with the automaton is `myhill_language_eq`).
 * `CS_subset_LBA` — Kuroda's construction: an LBA nondeterministically simulates a
-  derivation of the grammar within the linear space provided by the input.
+  derivation of the grammar within the linear space provided by the input
+  (`Automata/LinearBounded/Equivalence/CSGToLBA.lean`).
 
 ## On the empty word
 
@@ -58,9 +59,9 @@ variable {T : Type}
 /-- **Myhill's construction (core).** The context-sensitive grammar built from an LBA in
 `LBAToCSG.lean` generates exactly the non-empty language recognised by the automaton.
 
-This is the genuine content of the LBA → CS direction. The grammar and all of its rule
-membership lemmas are already established in `LBAToCSG.lean`; what remains is the
-bisimulation between cell-sentential-forms and LBA configurations:
+This is the genuine content of the LBA → CS direction: the bisimulation between
+cell-sentential-forms and LBA configurations (the grammar and its rule membership lemmas are
+established in `LBAToCSG.lean`):
 
 * **completeness** (`⊇`): an accepting LBA run on `w` is mirrored by a derivation
   `start ⇒* map terminal w` — the start rules lay down one `cell` per input symbol, the

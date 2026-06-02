@@ -40,8 +40,7 @@ an all-terminal form requires the accept rule to have fired, which is gated on
 `M.accept q = true` for a reachable state `q`; that is precisely `Accepts M (initCfg worig)`,
 hence `LanguageViaEmbed M embed w`.
 
-This is the genuine content of the soundness direction and the remaining open work of the
-LBA ⊆ CS inclusion.
+This is the genuine content of the soundness direction of the LBA ⊆ CS inclusion.
 -/
 
 namespace MyhillConstruction
