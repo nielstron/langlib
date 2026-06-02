@@ -194,4 +194,46 @@ def fold {m : ℕ} (cfg : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2)) :
 @[simp] theorem cellRight_foldContents {m : ℕ} (c : Fin (m + 3) → EndAlpha T Γ) (i : Fin (m + 1)) :
     cellRight (foldContents c i) = if i.val = m then some (c ⟨m + 2, by omega⟩) else none := rfl
 
+theorem cfg_ext' {Γ' Λ' : Type*} {N : ℕ} {X Y : DLBA.Cfg Γ' Λ' N}
+    (hs : X.state = Y.state) (hc : X.tape.contents = Y.tape.contents)
+    (hh : X.tape.head = Y.tape.head) : X = Y := by
+  obtain ⟨xs, xc, xh⟩ := X; obtain ⟨ys, yc, yh⟩ := Y; simp_all
+
+/-- Writing `M'`'s symbol at its head cell `p` only changes the folded cell at `foldHead p`; every
+other folded cell is unaffected (its `cur`/`leftEnd`/`rightEnd` all read `c` away from `p`). -/
+theorem foldHead_val {m : ℕ} (p : Fin (m + 3)) :
+    (foldHead p).val = (if p.val = 0 then 0 else if p.val = m + 2 then m else p.val - 1) := by
+  simp only [foldHead]; split_ifs <;> rfl
+
+theorem foldContents_off {m : ℕ} (c : Fin (m + 3) → EndAlpha T Γ) (p : Fin (m + 3))
+    (a' : EndAlpha T Γ) (j : Fin (m + 1)) (hj : j ≠ foldHead p) :
+    foldContents (Function.update c p a') j = foldContents c j := by
+  have hjlt := j.isLt
+  have hplt := p.isLt
+  have hjv : j.val ≠ (if p.val = 0 then 0 else if p.val = m + 2 then m else p.val - 1) := by
+    rw [← foldHead_val]; exact fun h => hj (Fin.ext h)
+  have c1 : ¬ (j.val + 1 = p.val) := by split_ifs at hjv <;> omega
+  have c2 : j.val = 0 → ¬ (0 = p.val) := by intro h; split_ifs at hjv <;> omega
+  have c3 : j.val = m → ¬ (m + 2 = p.val) := by intro h; split_ifs at hjv <;> omega
+  simp only [foldContents, Function.update_apply, Fin.ext_iff]
+  by_cases h0 : j.val = 0 <;> by_cases hm : j.val = m <;> simp_all
+
+/-- Writing at the head cell only affects the folded cell at `foldHead p`. -/
+theorem foldContents_update {m : ℕ} (c : Fin (m + 3) → EndAlpha T Γ) (p : Fin (m + 3))
+    (a' : EndAlpha T Γ) :
+    Function.update (foldContents c) (foldHead p) (foldContents (Function.update c p a') (foldHead p))
+      = foldContents (Function.update c p a') := by
+  funext j
+  by_cases hj : j = foldHead p
+  · subst hj; rw [Function.update_self]
+  · rw [Function.update_of_ne hj]; exact (foldContents_off c p a' j hj).symm
+
+@[simp] theorem foldMode_zero {m : ℕ} {p : Fin (m + 3)} (h : p.val = 0) :
+    foldMode p = FMode.onLeft := by simp [foldMode, h]
+@[simp] theorem foldMode_last {m : ℕ} {p : Fin (m + 3)} (h : p.val = m + 2) :
+    foldMode p = FMode.onRight := by simp [foldMode, h]
+theorem foldMode_mid {m : ℕ} {p : Fin (m + 3)} (h0 : p.val ≠ 0) (h2 : p.val ≠ m + 2) :
+    foldMode p = FMode.mid := by simp [foldMode, h0, h2]
+
+
 end LBA
