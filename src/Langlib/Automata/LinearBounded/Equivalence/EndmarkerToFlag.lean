@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Automata.LinearBounded.Endmarker
+public import Langlib.Automata.LinearBounded.Equivalence.EndmarkerTape
 public import Mathlib.Data.Fintype.Sum
 public import Mathlib.Data.Fintype.Option
 import Mathlib.Tactic
@@ -1385,6 +1386,139 @@ theorem goodF_reaches (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
   | refl => exact goodF_init M' e₀ c₀
   | tail _ hbc ih => exact goodF_step M' e₀ c₀ hbridge hrawL hrawR ih hbc
 
+/-! ### Assembly: the flag machine recognizes the same language. -/
+
+/-- The endmarker tape `⊢ (interior of `c`) ⊣` that the flag input `c` decodes to. -/
+def expand {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) : Fin (m + 3) → EndAlpha T Γ :=
+  fun k => if k.val = 0 then leftMark
+           else if h : k.val - 1 < m + 1 then cellCur (c ⟨k.val - 1, h⟩)
+           else rightMark
+
+/-- The folded input tape equals the fold of its endmarker expansion — so `init_reach` lands
+exactly on `fold` of the `M'`-start configuration on `⊢ w ⊣`. -/
+theorem foldedTape_eq_foldContents_expand {m : ℕ} (c : Fin (m + 1) → FAlpha T Γ) :
+    foldedTape c = foldContents (expand c) := by
+  funext i
+  have hi := i.isLt
+  have hcur : cellCur (c i) = expand c ⟨i.val + 1, by omega⟩ := by
+    simp only [expand]
+    rw [if_neg (by omega), dif_pos (show i.val + 1 - 1 < m + 1 by omega),
+      show (⟨i.val + 1 - 1, by omega⟩ : Fin (m + 1)) = i from
+        Fin.ext (by show i.val + 1 - 1 = i.val; omega)]
+  have hleft : (expand c ⟨0, by omega⟩ : EndAlpha T Γ) = leftMark := by simp [expand]
+  have hright : (expand c ⟨m + 2, by omega⟩ : EndAlpha T Γ) = rightMark := by
+    simp [expand]
+  simp only [foldedTape, foldContents, hcur, hleft, hright]
+
+/-- **Bisimulation (abstract).** On the raw input tape `c₀`, the flag machine accepts iff `M'`
+accepts on the endmarker expansion `⊢ c₀ ⊣`. -/
+theorem flag_accepts_iff (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
+    (c₀ : Fin (m + 1) → FAlpha T Γ)
+    (hrawL : ∀ i : Fin (m + 1), cellLeft (c₀ i) = none)
+    (hrawR : ∀ i : Fin (m + 1), cellRight (c₀ i) = none) :
+    Accepts (flagMachine M') ⟨FState.setup, ⟨c₀, ⟨0, by omega⟩⟩⟩
+      ↔ Accepts M' ⟨M'.initial, ⟨expand c₀, ⟨0, by omega⟩⟩⟩ := by
+  have hbridge : foldedTape c₀ = foldContents (expand c₀) := foldedTape_eq_foldContents_expand c₀
+  constructor
+  · rintro ⟨X, hreach, hacc⟩
+    exact goodF_accepts M' (expand c₀) c₀
+      (goodF_reaches M' (expand c₀) c₀ hbridge hrawL hrawR hreach) hacc
+  · rintro ⟨cfg, hreach, hacc⟩
+    refine ⟨fold cfg, ?_, ?_⟩
+    · refine (init_reach M' c₀ hrawL).trans ?_
+      rw [hbridge]
+      exact fold_reaches M' hreach
+    · rw [show (fold cfg).state = FState.sim cfg.state (foldMode cfg.tape.head) from rfl,
+        flagMachine_accept_sim]
+      exact hacc
+
+/-- **Bisimulation (canonical).** On a non-empty input `w`, the flag machine on the canonically
+loaded `w` accepts iff `M'` accepts on `⊢ w ⊣`. -/
+theorem flag_accepts_input (M' : Machine (EndAlpha T Γ) Λ) (w : List T)
+    (hv : w.map (fun t => (some (Sum.inl t) : FAlpha T Γ)) ≠ []) :
+    Accepts (flagMachine M')
+        (initCfgList (flagMachine M') (w.map (fun t => (some (Sum.inl t) : FAlpha T Γ))) hv)
+      ↔ Accepts M' (initCfgEnd M' w) := by
+  set embed : T → FAlpha T Γ := fun t => some (Sum.inl t) with hembed
+  have hwne : w ≠ [] := by rintro rfl; simp [hembed] at hv
+  have hpos : 0 < w.length := List.length_pos_of_ne_nil hwne
+  have hlen : (w.map embed).length = w.length := by simp
+  set c₀ := (loadList (w.map embed) hv).contents with hc₀
+  have hraw0 : ∀ i, c₀ i = some (Sum.inl (w.get ⟨i.val, by have := i.isLt; omega⟩)) := by
+    intro i; rw [hc₀]
+    show (w.map embed).get _ = _
+    simp only [List.get_eq_getElem, List.getElem_map, hembed]
+  have hrawL : ∀ i, cellLeft (c₀ i) = none := by intro i; rw [hraw0 i]; rfl
+  have hrawR : ∀ i, cellRight (c₀ i) = none := by intro i; rw [hraw0 i]; rfl
+  rw [show initCfgList (flagMachine M') (w.map embed) hv
+        = (⟨FState.setup, ⟨c₀, ⟨0, by omega⟩⟩⟩ : DLBA.Cfg (FAlpha T Γ) (FState Λ)
+            ((w.map embed).length - 1)) from rfl]
+  rw [flag_accepts_iff M' c₀ hrawL hrawR]
+  refine accepts_heq M' (by rw [hlen]; omega) ?_
+  refine cfg_heq (by rw [hlen]; omega) rfl ?_
+  refine boundedtape_heq (by rw [hlen]; omega) ?_ ?_
+  · refine (Fin.heq_fun_iff (by rw [hlen]; omega)).mpr (fun i => ?_)
+    have hi := i.isLt
+    have hmp : 0 < (w.map embed).length := by rw [hlen]; exact hpos
+    show expand c₀ i = (loadEnd w).contents _
+    simp only [loadEnd, expand, Fin.coe_cast]
+    by_cases h0 : i.val = 0
+    · rw [if_pos h0, if_pos h0]
+    · rw [if_neg h0, if_neg h0]
+      by_cases hlast : i.val - 1 < w.length
+      · rw [dif_pos (show i.val - 1 < (w.map embed).length - 1 + 1 by omega),
+          dif_pos hlast, hc₀]
+        simp only [loadList, List.get_eq_getElem, List.getElem_map, hembed]
+        rfl
+      · rw [dif_neg (show ¬ i.val - 1 < (w.map embed).length - 1 + 1 by omega),
+          dif_neg hlast]
+  · rfl
+
+/-- The flag machine `flagMachine M'` (with empty-word flag `b`) recognizes exactly `LanguageEnd M'`,
+provided `b` decides membership of `ε`. -/
+theorem language_flagMachine_eq (M' : Machine (EndAlpha T Γ) Λ) (b : Bool)
+    (hb : b = true ↔ Accepts M' (initCfgEnd M' [])) :
+    LanguageRecognized (flagMachine M') (fun t => some (Sum.inl t)) b = LanguageEnd M' := by
+  funext w
+  apply propext
+  show (b = true ∧ w = []) ∨ LanguageViaEmbed (flagMachine M') (fun t => some (Sum.inl t)) w
+    ↔ Accepts M' (initCfgEnd M' w)
+  rcases w with _ | ⟨x, xs⟩
+  · constructor
+    · rintro (⟨hbt, _⟩ | ⟨hv, _⟩)
+      · exact hb.mp hbt
+      · exact absurd (by simp : ([] : List T).map (fun t => (some (Sum.inl t) : FAlpha T Γ)) = []) hv
+    · intro h; exact Or.inl ⟨hb.mpr h, rfl⟩
+  · constructor
+    · rintro (⟨_, hcon⟩ | ⟨hv, h⟩)
+      · exact absurd hcon (by simp)
+      · exact (flag_accepts_input M' (x :: xs) hv).mp h
+    · intro h
+      exact Or.inr ⟨by simp, (flag_accepts_input M' (x :: xs) (by simp)).mpr h⟩
+
 end LBA
 
+/-- Every endmarker-LBA language is recognized by the marker-free flag model: `is_LBA_end → is_LBA`.
+The empty-word flag is set classically to decide `ε ∈ LanguageEnd M'`. -/
+theorem is_LBA_end_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
+    (h : is_LBA_end L) : is_LBA L := by
+  obtain ⟨Γ, Λ, _, _, _, _, M', hM'⟩ := h
+  classical
+  refine ⟨LBA.FoldCell T Γ, LBA.FState Λ, inferInstance, inferInstance, inferInstance, inferInstance,
+    decide (LBA.Accepts M' (LBA.initCfgEnd M' [])), LBA.flagMachine M', ?_⟩
+  rw [LBA.language_flagMachine_eq M' _ (by simp)]
+  exact hM'
 
+/-- **`LBA_end ⊆ LBA`.** The endmarker LBA class is contained in the marker-free flag LBA class. -/
+theorem LBA_end_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
+    (LBA_end : Set (Language T)) ⊆ LBA := fun _ h => is_LBA_end_subset_is_LBA h
+
+/-- The two LBA presentations coincide: `LBA_end = LBA`. -/
+theorem LBA_eq_LBA_end {T : Type} [Fintype T] [DecidableEq T] :
+    (LBA_end : Set (Language T)) = LBA :=
+  Set.Subset.antisymm LBA_end_subset_LBA LBA_subset_LBA_end
+
+/-- Context-sensitive languages are exactly the endmarker-LBA languages: `CS = LBA_end`. -/
+theorem CS_eq_LBA_end {T : Type} [Fintype T] [DecidableEq T] :
+    (CS : Set (Language T)) = LBA_end :=
+  CS_eq_LBA.trans LBA_eq_LBA_end.symm
