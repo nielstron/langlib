@@ -52,7 +52,7 @@ semi-decide by dovetailed search.
 
 ## Not closed under complement
 
-[`RE_notClosedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Closure/Complement.lean) — the one operation that fails. The halting problem is encoded as a unary RE language; if its complement were also RE, then by [Post's theorem](posts-theorem.html) (RE ∩ co-RE = recursive) the halting problem would be recursive — contradicting its undecidability (Mathlib's `ComputablePred.halting_problem_not_re`). Equivalently, closure under complement would collapse RE to the recursive languages, contradicting [Recursive ⊊ RE](recursive-strict-subset-re.html).
+[`RE_notClosedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Closure/Complement.lean) — the one operation that fails. `Nat.Partrec.Code` is encoded as unary words (`codeUnaryWord`); the halting set is the RE language `haltingUnaryLanguage`. The crux is [`haltingUnary_complement_not_RE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Closure/Complement.lean): if its complement were RE, then `REPred_codeUnaryWord_preimage` pulls grammar-membership semi-decision back along `codeUnaryWord` to make non-halting an `REPred`, contradicting Mathlib's `ComputablePred.halting_problem_not_re`. `RE_notClosedUnderComplement` packages this (and `RE_notClosedUnderComplement_of_nonempty` transports it to any nonempty alphabet). Equivalently, by [Post's theorem](posts-theorem.html) (RE ∩ co-RE = recursive) closure under complement would collapse RE to the recursive languages, contradicting [Recursive ⊊ RE](recursive-strict-subset-re.html).
 
 ## Keywords / also known as
 

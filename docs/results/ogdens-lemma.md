@@ -28,8 +28,6 @@ ambiguity** of context-free languages.
 
 ## In Lean
 
-In [`Classes/ContextFree/Basics/Ogden.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Basics/Ogden.lean):
-
 - [`CF_ogdens_lemma`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Basics/Ogden.lean) — Ogden's lemma for `is_CF` languages (project formulation).
 - [`Language.IsContextFree.ogdens_lemma`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Basics/Ogden.lean) — the same result for Mathlib's `Language.IsContextFree`.
 
@@ -40,14 +38,26 @@ conclusion precise.
 
 ## Proof idea
 
-Put the grammar in Chomsky normal form and look at the parse tree of `w`. Follow a
-root-to-leaf path that always descends toward the subtree containing the most marked
-positions (the *marked* path). If enough positions are marked, this path is long
-enough that some nonterminal repeats on it. Excising or duplicating the subtree
-between the two occurrences produces the family `u vⁱ x yⁱ z`; because the path was
-chosen along the marks, the repeated nonterminal brackets at least one marked
-position, giving the "marked position inside `v` or `y`" guarantee that the
-unmarked pumping lemma lacks.
+Put the grammar in Chomsky normal form (`toCNF`); the pumping constant is
+`p = 2 ^ g.generators.card`. `CF_ogdens_lemma` and `Language.IsContextFree.ogdens_lemma`
+both reduce to `ogdens_cnf` on CNF parse trees.
+
+Instead of plain height, the argument uses the **marked branching height**
+`markedHeight`: the maximum number of *branching* nodes — `node` rules where both
+children have a marked descendant — on any root-to-leaf path. The marked count of a
+subtree satisfies `mc ≤ 2 ^ markedHeight` (`mc_le_pow_markedHeight`), so a yield with
+`≥ p` marked positions forces `markedHeight ≥ generators.card`.
+
+`ogdens_restrict_mh` navigates down the marked path to a subtree of marked height
+exactly `generators.card`. On that subtree `ogdens_marked_path_decomp` runs the core
+pigeonhole: descending toward the more-marked child and recording branching
+nonterminals in a finite set `s ⊆ g.generators`, once `generators.card` branching
+nodes accumulate some nonterminal `n'` must repeat. Excising or duplicating the
+subtree between the two occurrences of `n'` (`pumping_string`, via the
+`ogden_pump_from_left` / `ogden_pump_from_right` cases) produces the family
+`u vⁱ x yⁱ z ∈ g.language`. Because each step was taken along a *branching* node, the
+repeated nonterminal brackets at least one marked position in `v` or `y`; the bounded
+marked height caps the marked positions of `vxy` by `p`.
 
 ## Keywords / also known as
 

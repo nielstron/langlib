@@ -15,16 +15,12 @@ TM-recognizable languages equals the class of recursively enumerable languages.
 
 ## In Lean
 
-In `Automata/Turing/Equivalence/TMEqualsRE.lean`:
-
 - [`TM_eq_RE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/Equivalence/TMEqualsRE.lean) — class equality `(TM : Set (Language T)) = RE`.
 - [`is_TM_iff_is_RE`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/Equivalence/TMEqualsRE.lean) — pointwise `is_TM L ↔ is_RE L`.
 
-The two inclusions `TM_subset_RE` and `RE_subset_TM` are assembled in the same file.
-The grammar-to-machine translation infrastructure lives under
-[`Automata/Turing/Equivalence/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/Equivalence)
-(`GrammarToTM`, `TMToGrammar`) and the DSL in
-[`Automata/Turing/DSL.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/DSL.lean).
+The two inclusions `TM_subset_RE` and `RE_subset_TM` assemble these. The
+grammar-to-machine translation is powered by the `GrammarToTM` and `TMToGrammar`
+constructions and the composable search-procedure DSL.
 
 ## The `RE ⊆ TM` engine: compiling searches to machines
 
@@ -39,12 +35,21 @@ computable test.
 
 ## Proof idea
 
-`RE ⊆ TM`: membership in a grammar is the search "∃ a derivation sequence deriving the
-input"; this computable search is compiled to a partial-recursive `Code` and then to a
-`TM0` machine (the [search-to-machine bridge](search-procedures-to-turing-machines.html)).
-`TM ⊆ RE`: an unrestricted grammar simulates the machine's configurations as sentential
-forms, with rules mirroring the transition function, so the grammar generates exactly
-the words the machine accepts.
+`RE ⊆ TM` (`re_implies_tm`): given a grammar for `L`, `grammar_equivalent_finiteNT`
+first restricts it to finitely many nonterminals; membership is then the search "∃ a
+derivation sequence `seq` with `grammarTest g' seq w`" (sound and complete by
+`grammarTest_sound` / `grammarTest_complete`). `search_is_partrec` turns this
+`Computable₂` test into a partial-recursive `ToPartrec.Code`, which
+`code_implies_isTM_direct` compiles to a `TM0` machine (the
+[search-to-machine bridge](search-procedures-to-turing-machines.html)).
+
+`TM ⊆ RE` (`tm_recognizable_implies_re`): the machine has tape alphabet `T ⊕ Γ` (input
+symbols plus an existential finite work alphabet). The construction `tmToGrammar` builds
+an unrestricted grammar whose sentential forms encode the machine's configurations, with
+rules mirroring the transition function, sound and complete via `tmToGrammar_halts_of_generates`
+/ `tmToGrammar_generates_of_halts`. `pullbackGrammar` then restricts this grammar along
+the fixed inclusion `Sum.inl : T → T ⊕ Γ`, so the result generates exactly the input
+words the machine accepts.
 
 ## Keywords / also known as
 

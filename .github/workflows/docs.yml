@@ -71,11 +71,17 @@ jobs:
           bundler-cache: true
           working-directory: ./docs
 
+      # Resolve every `theorem` mention in the docs to a commit-pinned GitHub source
+      # permalink, rendering a linked copy under docs/_linked (gitignored). Fails the
+      # build if a page references a source file instead of a theorem.
+      - name: Render theorem links
+        run: python3 scripts/link_theorems.py --out docs/_linked
+
       - name: Build prose site
         working-directory: ./docs
         env:
           JEKYLL_ENV: production
-        run: bundle exec jekyll build --destination "$GITHUB_WORKSPACE/_site"
+        run: bundle exec jekyll build --source _linked --destination "$GITHUB_WORKSPACE/_site"
 
       - name: Attach API reference under /api
         run: |

@@ -45,9 +45,21 @@ public section
 
 /-! # Totalization Construction
 
-This file defines the analyzed DPDA totalizer and proves that it is an equivalent
-deciding presentation for the original final-state DPDA.  The stack annotation
-infrastructure lives in `Totalization.AnnotatedStack`.
+This file defines the analyzed DPDA `totalizer A` from a `RegularEpsilonAnalysis A`
+of `M` and proves it is an equivalent deciding presentation of the original
+final-state DPDA.
+
+The totalizer has finite control `TotalState Q` (`init`, `sim q b`, `drain`), where
+the boolean `b` records whether `M` would accept if the input ended at the current
+stack, recomputed from the stored stack summaries (`AnnotatedStack`).  On each input
+symbol it follows `M`'s input transition where one exists; at a stack top whose
+forced epsilon phase diverges (`stopsFromSummary` false) or where `M` has no move it
+goes to the rejecting `drain` state and consumes the rest of the input.  Its epsilon
+transitions replay only *stopping* epsilon phases of `M`.
+
+The two correctness results are `totalizer_decides` (`totalizer_total` for totality
+and `totalizer_final_consistent` for acceptance consistency) and
+`totalizer_acceptsByFinalState_eq_original` (same language).
 -/
 
 open PDA

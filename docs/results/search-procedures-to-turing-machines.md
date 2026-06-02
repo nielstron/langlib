@@ -30,8 +30,7 @@ The basic constructor [`searchNat`](https://github.com/nielstron/langlib/blob/ma
 
 ## The bridge
 
-Three steps take a *computable* test all the way to a Turing machine (every step is
-`sorry`-free):
+Three steps take a *computable* test all the way to a Turing machine:
 
 1. [`search_is_partrec`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/DSL/SearchProcToTM0.lean) — the µ-search over a computable `test` is **partial recursive**: it produces a Mathlib `ToPartrec.Code` `c` with `(∃ a, test a w) ↔ (c.eval [encode w]).Dom`.
 2. [`code_implies_isTM_direct`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Turing/DSL/CodeToTMDirect.lean) — that `Code` is compiled **directly to a `TM0` machine** realizing it (the bulk of the DSL: laying the partrec evaluator out as tape operations, via the block-realizability files).

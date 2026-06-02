@@ -52,14 +52,28 @@ open Relation Classical
 noncomputable section
 
 variable {T : Type}
-/-! # Regular Language Inclusions
+/-! # Right-regular grammars = Mathlib-regular languages
 
-This file relates right-regular grammars (Type-3) to:
-1. **Mathlib's `Language.IsRegular`** — proved equivalent via DFA ↔ RG conversions.
+This file proves that right-regular grammars (Type-3) generate exactly Mathlib's
+`Language.IsRegular` languages, via explicit conversions in both directions.
+
+## Proof outline
+
+- **RG → IsRegular.** `NFA_of_RG g` is an NFA over the finite state set
+  `Option g.FinNT` (the nonterminals occurring in `g`, plus a sink `none` marking a
+  completed word): `A → aB` gives `A —a→ B`, `A → a` gives `A —a→ none`, and the
+  accepting states are `none` together with the nonterminals having an `A → ε` rule.
+  Forward/backward simulation against `RG_derives` yields
+  `NFA_of_RG_accepts : (NFA_of_RG g).accepts = RG_language g`; Mathlib's `NFA.toDFA`
+  then gives `isRegular_of_is_RG`.
+- **IsRegular → RG.** `RG_of_DFA M` reads a DFA's transitions as rules
+  `q → a (M.step q a)` and adds `q → ε` for accepting states; the invariant
+  `RG_of_DFA_derives_inv` gives `RG_of_DFA_language`, hence `is_RG_of_isRegular`.
 
 ## Main results
 
 - `is_RG_iff_isRegular` — The Mathlib regular languages are equivalent to the right-regular languages.
+- `RG_eq_DFA` — equality of the two language classes (over a finite alphabet).
 
 ## References
 

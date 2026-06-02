@@ -59,7 +59,11 @@ public section
 
 This file proves that context-free languages are not closed under intersection.
 
-It shows that the intersection of the two CF languages `{aⁿbⁿ | n ∈ ℕ}` and `{bⁿcⁿ | n ∈ ℕ}` is `{aⁿbⁿcⁿ | n ∈ ℕ}`, which is not context-free.
+The witnesses are `lang_eq_any = {aⁿbⁿcᵐ | n,m ∈ ℕ}` and `lang_any_eq = {aⁿbᵐcᵐ | n,m ∈ ℕ}`,
+each context-free as a concatenation of context-free factors. Their intersection is
+`lang_eq_eq = {aⁿbⁿcⁿ | n ∈ ℕ}`, which the pumping lemma (`CF_pumping`) shows is not
+context-free: any pumping decomposition `u v x y z` of `aⁿ⁺¹bⁿ⁺¹cⁿ⁺¹` has `vy` omitting some
+letter, so pumping unbalances the counts of the other two.
 
 ## Main declarations
 

@@ -16,21 +16,24 @@ Mathlib's abstract `Decidable` instance.
 
 ## In Lean
 
-In `Classes/Regular/Decidability/Membership.lean`:
-
 - [`dfa_membership_computablePred`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Decidability/Membership.lean) — `ComputablePred (· ∈ M.accepts)` for a DFA `M`.
 
-Related weaker (`Decidable`-only) results for emptiness, universality and
-equivalence of regular languages live in the same
-[`Decidability/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Decidability)
-directory.
+Related weaker (`Decidable`-only) results cover emptiness
+(`regular_emptiness_decidable`), universality (`regular_universality_decidable`) and
+equivalence (`regular_equivalence_decidable`) of regular languages.
 
 ## Proof idea
 
-A DFA evaluates a word by folding its transition function over the input — a
-primitive-recursive computation — and then checks membership in the (finite,
-decidable) set of accepting states. Both pieces are computable, so the whole
-acceptance predicate is a `ComputablePred`.
+`dfa_membership_computablePred` rewrites `w ∈ M.accepts` as `M.eval w ∈ M.accept`
+and exhibits the decision function as a composition of two computable maps. First,
+`M.eval = List.foldl M.step M.start` is primitive recursive by `Primrec.list_foldl`:
+the step `M.step` is a function out of the finite domain `σ × α`, hence primitive
+recursive via `Primrec.dom_finite`. Second, the accept-state test
+`s ↦ decide (s ∈ M.accept)` is primitive recursive, again by `Primrec.dom_finite`
+over the finite `σ`. Composing the two gives `ComputablePred (· ∈ M.accepts)`.
+`regular_membership_computablePred` then unfolds `L.IsRegular` to a concrete DFA `M`,
+equips its state type with a `Primcodable` instance via `Fin (Fintype.card σ)`, and
+applies the DFA result.
 
 ## Keywords / also known as
 

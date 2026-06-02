@@ -16,16 +16,18 @@ is *not* true for recursively enumerable languages — see
 
 ## In Lean
 
-In `Classes/Recursive/Closure/Complement.lean`:
-
 - [`is_Recursive_complement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Closure/Complement.lean) — `is_Recursive L → is_Recursive Lᶜ`.
 - [`Recursive_closedUnderComplement`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Closure/Complement.lean) — packaged `ClosedUnderComplement` instance.
 
 ## Proof idea
 
-A decider for `L` always halts with a yes/no answer; negate that answer to obtain a
-decider for `Lᶜ`. Flipping a total computable predicate stays computable, so `Lᶜ`
-is recursive.
+`is_Recursive L` provides an always-halting `Turing.TM0` machine `M` together with a
+Boolean state predicate `accept` deciding membership. `is_Recursive_complement` reuses
+the *same* machine `M` — identical work alphabet, states, and halting behaviour — and
+only negates the acceptance predicate to `fun q => !accept q`. Since the run on each
+input is unchanged, the halting witness carries over and `w ∈ Lᶜ ↔ !accept q = true`
+holds, discharged by `grind`. `Recursive_closedUnderComplement` packages this as the
+`ClosedUnderComplement` instance.
 
 ## Keywords / also known as
 

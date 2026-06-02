@@ -44,14 +44,14 @@ This page is a catalog of the library's results.
 - [Regular grammars = DFA languages](results/regular-equals-dfa.html).
 - [Right-regular and left-regular grammars](results/regular-grammars.html) — both generate exactly the regular languages.
 - [Regular language membership is computable](results/regular-membership-computable.html).
-- Top and Bottom are regular: [`Classes/Regular/Examples/TopBot.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Examples/TopBot.lean).
+- Top and Bottom are regular: `isRegular_top` and `isRegular_bot`.
 - Closure: union, intersection, complement, concatenation, Kleene star, homomorphism, substitution, inverse homomorphism, reverse, quotient — all **Yes** (see the [closure table](#closure-properties)).
 
 ## Deterministic context-free languages (DCFL)
 
 - [DCFL is closed under complement](results/dcfl-closed-under-complement.html) — the marquee result.
 - [DPDA totalization](results/dpda-totalization.html) — the always-halting deciding-DPDA construction that powers it.
-- DCFL ⊊ CFL: [`DeterministicContextFree/Inclusion/ContextFree.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Inclusion/ContextFree.lean).
+- DCFL ⊊ CFL: `DCF_subclass_CF`.
 - [Closure properties (full picture)](results/dcfl-closure-properties.html) — closed under complement (and ∩/∪ with a regular language), but **not** under union, intersection, concatenation, star, homomorphism, substitution, or quotient.
 
 ## Context-free languages (CFL)
@@ -72,8 +72,8 @@ This page is a catalog of the library's results.
 
 ## Indexed languages
 
-- `{aⁿbⁿcⁿ}` is indexed: [`Classes/Indexed/Examples/AnBnCn.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Indexed/Examples/AnBnCn.lean) (see [the separating-example page](results/anbncn-not-context-free.html)).
-- CFL ⊊ Indexed: [`ContextFree/Inclusion/StrictIndexed.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean).
+- `{aⁿbⁿcⁿ}` is indexed: `is_Indexed_lang_eq_eq` (see [the separating-example page](results/anbncn-not-context-free.html)).
+- CFL ⊊ Indexed: `CF_strict_subclass_Indexed`.
 - Closure: union, concatenation, homomorphism, inverse homomorphism, reverse — **Yes** (see the [closure table](#closure-properties)).
 
 ## Context-sensitive languages (CSL)
@@ -82,8 +82,8 @@ This page is a catalog of the library's results.
 - [Membership in context-sensitive languages is computable](results/context-sensitive-membership-computable.html).
 - [Non-contracting and non-erasing context-sensitive grammars](results/noncontracting-equals-context-sensitive.html) — Langlib defines CS as non-contracting; the equivalence with the non-erasing form is only partially formalized.
 - [CSL = LBA: context-sensitive grammars and linear bounded automata recognize the same languages](results/lba-context-sensitive.html) (the Myhill–Kuroda theorem).
-- CF ⊆ CS: [`ContextFree/Inclusion/ContextSensitive.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/ContextSensitive.lean).
-- Closure: ε-free homomorphism — [`Closure/EpsFreeHomomorphism.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Closure/EpsFreeHomomorphism.lean); reverse — [`Closure/Reverse.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Closure/Reverse.lean); terminal bijections — [`Closure/Bijection.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Closure/Bijection.lean).
+- CF ⊆ CS: `CF_subclass_CS`.
+- Closure: ε-free homomorphism — `CS_closedUnderEpsFreeHomomorphism`; reverse — `CS_closedUnderReverse`; terminal bijections — `CS_bijemap_iff_CS`.
 
 ## Recursive (decidable) languages
 
@@ -91,23 +91,22 @@ This page is a catalog of the library's results.
 - [Recursive languages are closed under complement](results/recursive-closed-under-complement.html).
 - [Tape vs. state acceptance for recursive languages](results/tape-vs-state-acceptance-recursive.html).
 - [Recursive ⊊ RE](results/recursive-strict-subset-re.html).
-- Closure: reverse — [`Closure/Reverse.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Closure/Reverse.lean).
+- Closure: reverse — `Recursive_closedUnderReverse`.
 
 ## Recursively enumerable languages (RE)
 
 - [TM = RE](results/tm-equals-re.html).
 - [Compiling search procedures to Turing machines](results/search-procedures-to-turing-machines.html) — the reusable semi-decision → TM bridge behind TM = RE and the RE closures.
 - [Closure properties (grammar & TM constructions)](results/re-closure-properties.html) — closed under union, intersection, concatenation, star, homomorphism, inverse homomorphism, reverse, quotient and substitution; **not** complement.
-- `{aⁿbⁿcⁿ}` is RE: [`Classes/RecursivelyEnumerable/Examples/AnBnCn.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Examples/AnBnCn.lean).
-- Membership, emptiness, universality and equivalence are all **undecidable**: [`RecursivelyEnumerable/Decidability/`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/RecursivelyEnumerable/Decidability).
+- `{aⁿbⁿcⁿ}` is RE: `lang_eq_eq_is_RE`.
+- Membership, emptiness, universality and equivalence are all **undecidable**: `RE_membership_undecidable`, `RE_emptiness_undecidable`, `RE_universality_undecidable`, `RE_equivalence_undecidable`.
 
 ## Closure properties
 
 A machine-checked closure table across all seven classes is in the project
 [README](https://github.com/nielstron/langlib#closure). Abstract closure predicates
-(`ClosedUnderUnion`, `ClosedUnderHomomorphism`, …) are defined in
-[`Utilities/ClosurePredicates.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Utilities/ClosurePredicates.lean).
-Highlights:
+(`ClosedUnderUnion`, `ClosedUnderHomomorphism`, …) are defined as standalone
+predicates. Highlights:
 
 - [DCFL closure profile](results/dcfl-closure-properties.html) — closed under complement, but not union/intersection/concatenation/star/homomorphism.
 - [CFL closed under substitution](results/cf-closed-under-substitution.html) (and its corollaries); **not** closed under [intersection](results/cfl-not-closed-under-intersection.html) or [right quotient](results/cfl-not-closed-under-right-quotient.html) (nor complement).

@@ -21,17 +21,25 @@ undecidable.)
 
 ## In Lean
 
-- Membership: [`cf_membership_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Membership.lean) in `Classes/ContextFree/Decidability/Membership.lean` — a bitvector CYK implementation packaged as a `ComputablePred`.
-- Emptiness: [`encoded_cf_emptiness_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) and [`encoded_cf_emptiness_decidable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) in `Classes/ContextFree/Decidability/Emptiness.lean` — a least-fixpoint computation of the productive nonterminals.
+- Membership: [`cf_membership_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Membership.lean) — a bitvector CYK implementation packaged as a `ComputablePred`.
+- Emptiness: [`encoded_cf_emptiness_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) and [`encoded_cf_emptiness_decidable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) — a least-fixpoint computation of the productive nonterminals.
 
 ## Proof idea
 
-Membership: convert to Chomsky normal form and run **CYK** — a dynamic-programming
-table over all substrings recording which nonterminals derive each substring; the
-word is accepted iff the start symbol covers the whole word. The implementation
-encodes nonterminal sets as bitvectors so the whole thing is primitive recursive,
-hence a `ComputablePred`. Emptiness: iterate the "productive nonterminal" operator
-to a fixpoint; the language is nonempty iff the start symbol is productive.
+Membership: convert the grammar to Chomsky normal form (`mathlib_cfg_of_cfg g |>.toCNF`)
+and run **CYK** — a dynamic-programming table (`cykBuildTable`) over all substrings
+recording which nonterminals derive each substring, with the final check
+(`cykMemCheck`) asking whether the start symbol derives the whole word. Nonterminals
+are first injected into `ℕ` and nonterminal *sets* are encoded as bitvectors
+(`Nat.testBit`), so every table operation is shown `Primrec`; `cf_membership_computable`
+packages the result as a `ComputablePred`.
+
+Emptiness: compute the productive nonterminals by iterating the monotone
+`productiveStep` operator `g.rules.card` times from `productiveInit`
+(`productiveNTs`) — enough iterations to reach the fixpoint — and report nonempty iff
+the start symbol is productive. `encoded_cf_emptiness_decidable` is the `Decidable`
+instance and `encoded_cf_emptiness_computable` the `ComputablePred`, both uniform in
+the encoded grammar.
 
 ## Keywords / also known as
 

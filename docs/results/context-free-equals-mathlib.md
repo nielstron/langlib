@@ -17,16 +17,28 @@ grammars.
 
 ## In Lean
 
-- Equivalence with Mathlib: [`is_CF_iff_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/ContextFree/EquivMathlibCFG.lean) in `Grammars/ContextFree/EquivMathlibCFG.lean`.
-- Chomsky normal form: [`ChomskyNormalFormGrammar`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean) and its `language` / `mem_language_iff` in `Classes/ContextFree/NormalForms/ChomskyNormalForm.lean`.
+- Equivalence with Mathlib: [`is_CF_iff_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/ContextFree/EquivMathlibCFG.lean).
+- Chomsky normal form: [`ChomskyNormalFormGrammar`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean) and its `language` / `mem_language_iff`.
 
 ## Proof idea
 
-Both definitions describe derivations of a context-free grammar; the proof
-translates grammars in each direction, matching their generated languages.
-Chomsky normal form is obtained by the standard pipeline — eliminate ε-rules, unit
-rules, and long/terminal-mixing right-hand sides — each step shown to preserve the
-language (minus the empty word).
+Both definitions describe terminal-yielding derivations of a context-free grammar;
+they differ only in how a grammar is packaged (Langlib's `CF_grammar` carries a rule
+*list*, Mathlib's `ContextFreeGrammar` a rule *finset* over `Symbol`). The proof
+gives translations `mathlib_cfg_of_cfg` and `cfg_of_mathlib_cfg` between the two,
+mapping rules symbol-by-symbol via `Symbol_of_symbol` / `symbol_of_Symbol`.
+`CF_language_eq_mathlib_language` shows the generated languages agree, by induction
+on the derivation relation in each direction (`CF_derives` vs.
+`ContextFreeGrammar.Derives`), matching single rewrite steps via
+`ContextFreeRule.Rewrites.exists_parts`. `is_CF_iff_isContextFree` combines this with
+the round-trip identity `mathlib_cfg_of_cfg_of_mathlib_cfg`.
+
+Chomsky normal form is obtained by the pipeline `toCNF =
+eliminateEmpty.eliminateUnitRules.restrictTerminals.restrictLength`: eliminate
+ε-rules, eliminate unit rules, replace terminals in mixed right-hand sides by fresh
+nonterminals, then split long right-hand sides into binary ones. `toCNF_correct`
+proves `g.language \ {[]} = g.toCNF.language` — each stage preserves the language up
+to the empty word.
 
 ## Keywords / also known as
 

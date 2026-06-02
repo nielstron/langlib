@@ -26,12 +26,9 @@ repackaged as state-based recursive languages.
 
 ## In Lean
 
-In `Automata/Recursive/Equivalence/TapeCharacterization.lean`:
-
 - [`is_Recursive_of_byTape`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Recursive/Equivalence/TapeCharacterization.lean) — `is_Recursive_byTape L → is_Recursive L`.
 
-The tape-acceptance predicate `is_Recursive_byTape` itself is defined in
-[`Automata/Recursive/Basic/TapeCharacterization`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Recursive/Basic/TapeCharacterization.lean).
+The tape-acceptance predicate `is_Recursive_byTape` is defined separately.
 The reverse implication (`is_Recursive L → is_Recursive_byTape L`) is not currently
 in the library.
 

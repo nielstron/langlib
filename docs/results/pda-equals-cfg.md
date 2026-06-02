@@ -15,25 +15,40 @@ model (PDAs) define one and the same language class.
 
 ## In Lean
 
-In `Automata/Pushdown/Equivalence/ContextFree.lean`:
-
 - [`is_PDA_iff_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) — pointwise: `is_PDA L ↔ L.IsContextFree`.
 - [`CF_eq_PDA_Class`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) — class equality `(CF : Set (Language T)) = PDA.Class`.
 - [`is_PDA_of_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) and [`is_CF_of_is_PDA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) — the two inclusions.
 
 A related result, that **PDA acceptance by final state equals acceptance by empty
-stack**, is proved in
-[`FinalStateEmptyStackEquiv.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)
-(`PDA_FS_subset_ES` and `PDA_ES_subset_FS`).
+stack**, is given by `PDA_FS_subset_ES` and `PDA_ES_subset_FS`.
 
 ## Proof idea
 
-From a CFG, build a one-state PDA that simulates leftmost derivations on its stack
-(expand nonterminals, match terminals against the input). Conversely, from a PDA,
-construct a grammar whose nonterminals are "triples" tracking the PDA's state
-before and after popping a stack symbol; its derivations mirror accepting PDA runs.
-Final-state and empty-stack acceptance are shown interconvertible, so either
-acceptance mode characterizes the context-free languages.
+Both directions use **acceptance by empty stack**, which is then bridged to
+final-state acceptance.
+
+**CFG → PDA** (`CFG_to_PDA.M`). Given a grammar `G`, build a PDA
+with a single state `Q.loop`, stack alphabet `Symbol T G.NT`, and start symbol
+`nonterminal G.initial`. Its transitions implement a leftmost-derivation simulation:
+an ε-move replaces a nonterminal `N` on top of the stack by `α` for each rule
+`⟨N, α⟩ ∈ G.rules` (`M_consumes_nonterminal`), and an input-move pops a terminal off
+the stack when it matches the next input symbol (`M_consumes_terminal`). The two
+inclusions `M_reaches_off_G_derives` and `G_derives_of_M_reaches` (the latter by
+induction on the number of PDA steps) give `pda_of_cfg : G.language = (M G).acceptsByEmptyStack`.
+
+**PDA → CFG** (`PDA_to_CFG.G`). From a PDA `M`, build a grammar
+whose nonterminals (`N`) are the triples `N.single q Z p` and the bounded lists
+`N.list q α p`, plus a start symbol `N.start`. A triple `q Z p` derives exactly the
+input strings along which `M` goes from state `q` to state `p` while net-popping the
+single stack symbol `Z`. The rule families (`compute_rule`/`compute_rule'`,
+`split_rule`, `epsilon_rule`, `start_rule`) are shown finite via the bound
+`max_push M` on stack pushes. Correctness is `cfg_of_pda : (G M).language = M.acceptsByEmptyStack`,
+proved through `derives_of_reachesIn` and `reachesIn_of_derivesLeftmostIn` (both by
+strong induction on step count).
+
+**Acceptance modes.** `PDA_FS_subset_ES` and `PDA_ES_subset_FS` convert between
+final-state and empty-stack acceptance (each augments the PDA with two bookkeeping
+states `Fin 2`), so the two acceptance modes define the same class.
 
 ## Keywords / also known as
 

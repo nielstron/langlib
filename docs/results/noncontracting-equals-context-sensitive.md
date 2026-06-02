@@ -28,7 +28,7 @@ side when `S → ε` is present).
 
 ## In Lean
 
-The definition (`Classes/ContextSensitive/Definition.lean`):
+The definition:
 
 - [`is_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Definition.lean) via [`grammar_context_sensitive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Definition.lean) and [`grule_noncontracting`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Definition.lean) — the **non-contracting** definition.
 - The non-erasing form is a separate notion: [`csrule`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/ContextSensitive/Definition.lean) / [`CS_grammar`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/ContextSensitive/Definition.lean) (with `output_nonempty`), surfaced as [`is_CS_via_csg`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Definition.lean).
@@ -38,7 +38,7 @@ The definition (`Classes/ContextSensitive/Definition.lean`):
 - ✅ **Non-erasing ⇒ non-contracting:** [`CS_is_noncontracting`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean) — every `CS_grammar` induces a non-contracting grammar with the same language.
 - ✅ **Non-contracting ⇒ `is_CS`:** [`is_CS_of_is_noncontracting`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Definition.lean) — but this is essentially **by definition**, since `is_CS` already *means* non-contracting (the proof is a one-liner).
 - ◑ **Non-contracting ⇒ non-erasing (the hard direction):** the "lock" construction builds a non-erasing `CS_grammar` from a non-contracting grammar, and **one** language inclusion is proven unconditionally ([`grammar_language_subset_csg_of_noncontracting`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean)).
-- ⬜ **The reverse inclusion is not yet established:** the full correctness of the construction (and hence a genuine non-erasing ⇔ non-contracting equivalence) is currently **conditional on an unproven property**, [`NC_locked_dirty_interval_macro_property`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean), which appears only as a hypothesis and is never discharged. (There are no `sorry`s — the gap is parked behind that assumption.)
+- ⬜ **The reverse inclusion is not yet established:** the full correctness of the construction (and hence a genuine non-erasing ⇔ non-contracting equivalence) is currently **conditional on an unproven property**, [`NC_locked_dirty_interval_macro_property`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean), which appears only as a hypothesis and is never discharged.
 
 So Langlib **uses** the non-contracting definition, fully proves that non-erasing
 grammars are a special case of it, and has built — but not yet completely verified —

@@ -21,8 +21,7 @@ development.
 
 ## In Lean
 
-The core result (`Classes/ContextFree/Closure/Substitution/`), a ~1200-line proof
-with **no `sorry`s**:
+The core result:
 
 - [`CF_of_subst_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Substitution.lean) — `is_CF L → (∀ a, is_CF (f a)) → is_CF (L.subst f)`.
 - [`Language.IsContextFree.subst`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Substitution/Core.lean) — the same statement for Mathlib's `Language.IsContextFree`; the grammar construction `ContextFreeGrammar.subst` and its correctness `ContextFreeGrammar.subst_language_eq` live here too.
@@ -35,7 +34,7 @@ with **no `sorry`s**:
 - [`CF_of_star_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Star.lean) — **Kleene star**, via the substitution-based [`Language.IsContextFree.kstar`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Closure/Substitution/Core.lean).
 
 (Direct, substitution-free constructions for union and concatenation are also given as
-"bonus" grammars in `Closure/UnionBonus.lean` and `Closure/ConcatenationBonus.lean`.)
+"bonus" grammars, `bonus_CF_of_CF_u_CF` and `bonus_CF_of_CF_c_CF`.)
 
 ## Proof idea
 
