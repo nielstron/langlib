@@ -120,7 +120,7 @@ def flagTransition (M' : Machine (EndAlpha T Γ) Λ) :
       { (FState.scan, some (Sum.inr (cellCur r, some leftMark, none)), DLBA.Dir.right),
         (FState.verify, some (Sum.inr (cellCur r, some leftMark, some rightMark)), DLBA.Dir.right) }
   | .scan =>
-      { (FState.scan, r, DLBA.Dir.right),
+      { (FState.scan, some (Sum.inr (cellCur r, none, none)), DLBA.Dir.right),
         (FState.verify, some (Sum.inr (cellCur r, none, some rightMark)), DLBA.Dir.right) }
   | .verify =>
       if (cellRight r).isSome then {(FState.rewind, r, DLBA.Dir.left)} else ∅
