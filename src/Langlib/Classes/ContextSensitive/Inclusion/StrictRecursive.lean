@@ -233,7 +233,6 @@ noncomputable def memOracle [DecidableEq T] [Primcodable T] (u v : List T) : Boo
 noncomputable def enumLang [DecidableEq T] [Primcodable T] (u : List T) : Language T :=
   {v | memOracle u v = true}
 
-set_option maxHeartbeats 1000000 in
 /-- `testData` is primrec jointly in the code, sequence, and word (uses the uniform
 `applyRuleSeq` primrec). -/
 private theorem testData_primrec [DecidableEq T] [Primcodable T] :
@@ -278,7 +277,6 @@ private theorem listsOfLen_primrec :
   refine (Primrec.nat_rec' Primrec.snd (Primrec.const [[]]) hstep).of_eq fun x => ?_
   exact (listsOfLen_eq x.1 x.2).symm
 
-set_option maxHeartbeats 1000000 in
 /-- `seqAlphabet` is primrec. -/
 private theorem seqAlphabet_primrec [DecidableEq T] [Primcodable T] :
     Primrec (fun p : Code T × List T => seqAlphabet p.1 p.2) := by
@@ -295,7 +293,6 @@ private theorem seqAlphabet_primrec [DecidableEq T] [Primcodable T] :
     · exact Primrec₂.mk (Primrec.pair (Primrec.snd.comp Primrec.fst) Primrec.snd)
   exact h.of_eq fun p => rfl
 
-set_option maxHeartbeats 1000000 in
 /-- `seqBound` is primrec. -/
 private theorem seqBound_primrec [DecidableEq T] [Primcodable T] :
     Primrec (fun p : Code T × List T => seqBound p.1 p.2) := by
@@ -324,7 +321,6 @@ private theorem seqBound_primrec [DecidableEq T] [Primcodable T] :
     Primrec.nat_add.comp hvlen (Primrec.const 2)
   exact hpow.comp hbase hexp
 
-set_option maxHeartbeats 1000000 in
 /-- `candidateSeqs` is primrec. -/
 private theorem candidateSeqs_primrec [DecidableEq T] [Primcodable T] :
     Primrec (fun p : Code T × List T => candidateSeqs p.1 p.2) := by
@@ -336,7 +332,6 @@ private theorem candidateSeqs_primrec [DecidableEq T] [Primcodable T] :
       (Primrec.pair (seqAlphabet_primrec.comp Primrec.fst) Primrec.snd)
   exact h.of_eq fun p => rfl
 
-set_option maxHeartbeats 1000000 in
 /-- `memCode` is primrec jointly in the code and the word. -/
 private theorem memCode_primrec [DecidableEq T] [Primcodable T] :
     Primrec (fun p : Code T × List T => memCode p.1 p.2) := by
