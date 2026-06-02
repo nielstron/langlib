@@ -571,7 +571,7 @@ variable {T : Type}
 /-- A language over a finite alphabet `T` is `DLBA`-recognizable if it is accepted by some
 finite deterministic linearly bounded automaton over the tape alphabet `Option (T ⊕ Γ)`
 (arbitrary finite work alphabet `Γ`), with the input written canonically via `some ∘ Sum.inl`
-and an explicit decision `acceptEmpty` for the empty word — the same convention as `is_LBA`
+and an explicit decision `acceptEmpty` for the empty word — the same convention as `is_LBA_flag`
 and the Turing-machine/recursive definitions. -/
 @[expose]
 public def is_DLBA [Fintype T] [DecidableEq T] (L : Language T) : Prop :=

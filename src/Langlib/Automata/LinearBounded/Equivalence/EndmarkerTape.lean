@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Automata.LinearBounded.Endmarker
+public import Langlib.Automata.LinearBounded.FlagModel
 public import Langlib.Automata.LinearBounded.Equivalence.ContextSensitive
 public import Mathlib.Data.Fintype.Sum
 public import Mathlib.Data.Fintype.Option
@@ -9,26 +9,22 @@ import Mathlib.Tactic
 public section
 
 /-!
-# Endmarker LBAs recognize exactly the marker-free LBA languages (`LBA_end = LBA`)
+# The internal flag model is contained in the canonical endmarker model (`LBA_flag ⊆ LBA`)
 
 The canonical automaton model for the context-sensitive languages is the **endmarker** LBA
-(`is_LBA_end`, `Automata/LinearBounded/Endmarker.lean`), which decides the empty word with the
-machine itself (running on `⊢⊣`) rather than via an external flag. This file proves it recognizes
-exactly the same class as the marker-free, accept-empty-flag model `is_LBA` used internally by the
-`CS = LBA` development, so the two are interchangeable and `CS = LBA_end`.
+(`is_LBA`, `Automata/LinearBounded/Definition.lean`), which decides the empty word with the
+machine itself (running on `⊢⊣`) rather than via an external flag. This file proves the internal
+marker-free, accept-empty-flag model `is_LBA_flag` (`Automata/LinearBounded/FlagModel.lean`, used
+inside the `CS = LBA_flag` development) is contained in it. The reverse containment is in
+`Equivalence/EndmarkerToFlag.lean`; together they give `LBA = LBA_flag` and `CS = LBA`.
 
 ## Strategy
 
-Two simulations between LBAs over the same `|w|`-bounded resources:
-
-* **`is_LBA → is_LBA_end`** (this much is the `simMachine` below): a flag machine `M` on `|w|`
-  cells is simulated by an endmarker machine on `⊢ w ⊣`. The simulator runs `M` on the interior
-  cells `1 … |w|`; when a simulated move would step onto an endmarker it *bounces* back, exactly
-  reproducing `M`'s boundary clamping. The empty word is decided on `⊢⊣` directly using `M`'s
-  flag, so no flag is needed on the endmarker side.
-* **`is_LBA_end → is_LBA`**: conversely, the two read-only marker cells are folded away (a flag
-  machine marks its own boundary cells and detects "reading `⊢`/`⊣`" there), with `ε` recorded in
-  the flag.
+The simulation here (`is_LBA_flag → is_LBA`) is the `simMachine` below: a flag machine `M` on
+`|w|` cells is simulated by an endmarker machine on `⊢ w ⊣`. The simulator runs `M` on the
+interior cells `1 … |w|`; when a simulated move would step onto an endmarker it *bounces* back,
+exactly reproducing `M`'s boundary clamping. The empty word is decided on `⊢⊣` directly using
+`M`'s flag, so no flag is needed on the endmarker side.
 -/
 
 namespace LBA
@@ -713,18 +709,18 @@ theorem language_simMachine_eq :
 
 end LBA
 
-/-- Every flag-model LBA language is recognized by the canonical endmarker model. -/
-theorem is_LBA_subset_is_LBA_end {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
-    (h : is_LBA L) : is_LBA_end L := by
+/-- Every internal flag-model LBA language is recognized by the canonical endmarker model. -/
+theorem is_LBA_flag_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
+    (h : is_LBA_flag L) : is_LBA L := by
   obtain ⟨Γ, Λ, _, _, _, _, acceptEmpty, M, hM⟩ := h
   exact ⟨Γ, LBA.SimState Λ, inferInstance, inferInstance, inferInstance,
     inferInstance, LBA.simMachine M acceptEmpty, by rw [LBA.language_simMachine_eq]; exact hM⟩
 
-theorem LBA_subset_LBA_end {T : Type} [Fintype T] [DecidableEq T] :
-    (LBA : Set (Language T)) ⊆ LBA_end := fun _ h => is_LBA_subset_is_LBA_end h
+theorem LBA_flag_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
+    (LBA_flag : Set (Language T)) ⊆ LBA := fun _ h => is_LBA_flag_subset_is_LBA h
 
 /-- Every context-sensitive language is recognized by the canonical endmarker LBA model
-(`CS ⊆ LBA_end`), via `CS = LBA` and the flag→endmarker simulation. -/
-theorem CS_subset_LBA_end {T : Type} [Fintype T] [DecidableEq T] :
-    (CS : Set (Language T)) ⊆ LBA_end :=
-  fun _ hL => LBA_subset_LBA_end (by rw [← CS_eq_LBA]; exact hL)
+(`CS ⊆ LBA`), via `CS = LBA_flag` and the flag→endmarker simulation. -/
+theorem CS_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
+    (CS : Set (Language T)) ⊆ LBA :=
+  fun _ hL => LBA_flag_subset_LBA (by rw [← CS_eq_LBA_flag]; exact hL)

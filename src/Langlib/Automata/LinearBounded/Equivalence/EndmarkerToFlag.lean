@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Automata.LinearBounded.Endmarker
+public import Langlib.Automata.LinearBounded.FlagModel
 public import Langlib.Automata.LinearBounded.Equivalence.EndmarkerTape
 public import Mathlib.Data.Fintype.Sum
 public import Mathlib.Data.Fintype.Option
@@ -9,13 +9,13 @@ import Mathlib.Tactic
 public section
 
 /-!
-# The endmarker LBA class is contained in the marker-free flag LBA class (`LBA_end ⊆ LBA`)
+# The canonical endmarker LBA class is contained in the internal flag class (`LBA ⊆ LBA_flag`)
 
 This is the converse simulation to `Equivalence/EndmarkerTape.lean`: an endmarker LBA `M'` on the
 `|w|+2`-cell bracketed tape `⊢ w ⊣` is simulated by a marker-free flag LBA `M` on the `|w|` input
-cells. Combined with `LBA ⊆ LBA_end` it gives `LBA_end = LBA`, and with `CS = LBA` it gives
-`CS = LBA_end`, making the endmarker model the canonical automaton model for the
-context-sensitive languages.
+cells. Combined with `LBA_flag ⊆ LBA` it gives `LBA = LBA_flag` (`LBA_eq_LBA_flag`), and with the
+internal `CS = LBA_flag` it gives the headline `CS = LBA` (`CS_eq_LBA`) for the canonical endmarker
+model.
 
 ## Construction (the "fold")
 
@@ -1498,10 +1498,10 @@ theorem language_flagMachine_eq (M' : Machine (EndAlpha T Γ) Λ) (b : Bool)
 
 end LBA
 
-/-- Every endmarker-LBA language is recognized by the marker-free flag model: `is_LBA_end → is_LBA`.
-The empty-word flag is set classically to decide `ε ∈ LanguageEnd M'`. -/
-theorem is_LBA_end_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
-    (h : is_LBA_end L) : is_LBA L := by
+/-- Every canonical endmarker-LBA language is recognized by the internal flag model:
+`is_LBA → is_LBA_flag`. The empty-word flag is set classically to decide `ε ∈ LanguageEnd M'`. -/
+theorem is_LBA_subset_is_LBA_flag {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
+    (h : is_LBA L) : is_LBA_flag L := by
   obtain ⟨Γ, Λ, _, _, _, _, M', hM'⟩ := h
   classical
   refine ⟨LBA.FoldCell T Γ, LBA.FState Λ, inferInstance, inferInstance, inferInstance, inferInstance,
@@ -1509,16 +1509,17 @@ theorem is_LBA_end_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : Lan
   rw [LBA.language_flagMachine_eq M' _ (by simp)]
   exact hM'
 
-/-- **`LBA_end ⊆ LBA`.** The endmarker LBA class is contained in the marker-free flag LBA class. -/
-theorem LBA_end_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
-    (LBA_end : Set (Language T)) ⊆ LBA := fun _ h => is_LBA_end_subset_is_LBA h
+/-- **`LBA ⊆ LBA_flag`.** The canonical endmarker LBA class is contained in the internal flag class. -/
+theorem LBA_subset_LBA_flag {T : Type} [Fintype T] [DecidableEq T] :
+    (LBA : Set (Language T)) ⊆ LBA_flag := fun _ h => is_LBA_subset_is_LBA_flag h
 
-/-- The two LBA presentations coincide: `LBA_end = LBA`. -/
-theorem LBA_eq_LBA_end {T : Type} [Fintype T] [DecidableEq T] :
-    (LBA_end : Set (Language T)) = LBA :=
-  Set.Subset.antisymm LBA_end_subset_LBA LBA_subset_LBA_end
+/-- The canonical endmarker model and the internal flag model coincide: `LBA = LBA_flag`. -/
+theorem LBA_eq_LBA_flag {T : Type} [Fintype T] [DecidableEq T] :
+    (LBA : Set (Language T)) = LBA_flag :=
+  Set.Subset.antisymm LBA_subset_LBA_flag LBA_flag_subset_LBA
 
-/-- Context-sensitive languages are exactly the endmarker-LBA languages: `CS = LBA_end`. -/
-theorem CS_eq_LBA_end {T : Type} [Fintype T] [DecidableEq T] :
-    (CS : Set (Language T)) = LBA_end :=
-  CS_eq_LBA.trans LBA_eq_LBA_end.symm
+/-- **Context-sensitive languages are exactly the LBA languages: `CS = LBA`** (canonical endmarker
+model). The headline form of the Myhill–Landweber–Kuroda theorem. -/
+theorem CS_eq_LBA {T : Type} [Fintype T] [DecidableEq T] :
+    (CS : Set (Language T)) = LBA :=
+  CS_eq_LBA_flag.trans LBA_eq_LBA_flag.symm

@@ -44,18 +44,26 @@ A **linearly bounded automaton** (LBA) is a nondeterministic Turing machine whos
 head is confined to a region of the tape whose length is bounded by a *linear function of
 the input length*.
 
-We adopt the same tape convention as the Turing-machine and recursive-language definitions
-(`Langlib.Automata.Recursive`, `is_Recursive`): the tape alphabet is `Option (T ⊕ Γ)`, where
-`none` is the blank, `some (Sum.inl t)` is an input symbol, and `some (Sum.inr γ)` is a
-*work* symbol drawn from an arbitrary finite work alphabet `Γ`. The input `w : List T` is
-written canonically as `w.map (fun t => some (Sum.inl t))` — there is no opaque embedding of
-the input alphabet that could hide computation.
+The canonical model used here is the **endmarker** presentation `is_LBA`/`LBA` (below): the
+input `w` is written bracketed between a left endmarker `⊢` and a right endmarker `⊣`, so the
+tape is `⊢ w ⊣` (with `|w| + 2` cells). The empty word gets the genuine two-cell tape `⊢⊣`, on
+which the machine runs like any other input — so the machine itself decides `ε`, with no
+external flag. The head is confined to the bracketed region by the usual boundary clamping.
 
-The head is confined to exactly the `|w|` input cells, but those cells may be freely
-overwritten with work symbols `some (Sum.inr γ)`. Because `Γ` is an arbitrary finite type,
-this provides `|w| · log|Γ| = Θ(|w|)` bits of read/write working space — i.e. genuine linear
-space (a constant number of "tracks"). This is the standard Kuroda/Hopcroft–Ullman LBA model,
-for which the recognised languages are exactly the context-sensitive languages.
+The tape alphabet is `EndAlpha T Γ = Option (T ⊕ Γ) ⊕ Bool`: the `Sum.inl` part is the
+marker-free interior alphabet (`none` = blank, `some (Sum.inl t)` = input symbol,
+`some (Sum.inr γ)` = a *work* symbol over an arbitrary finite work alphabet `Γ`), and
+`Sum.inr false`/`Sum.inr true` are the endmarkers `⊢`/`⊣`. The input is written canonically, so
+the recognizer cannot do hidden preprocessing. Because `Γ` is an arbitrary finite type, the
+interior provides `Θ(|w|)` bits of read/write working space — genuine linear space, the standard
+Kuroda/Hopcroft–Ullman LBA, for which the recognised languages are exactly the context-sensitive
+ones (`CS = LBA`, see `Equivalence/EndmarkerToFlag.lean`).
+
+The shared machine/configuration vocabulary (`Machine`, `Step`, `Reaches`, `Accepts`) and the
+plain list-loading helpers (`loadList`, `initCfgList`, `LanguageViaEmbed`) live here too; they
+are reused by the internal marker-free *flag* model (`Automata/LinearBounded/FlagModel.lean`),
+which the `CS = LBA` development uses as a convenient intermediary and which is proved equal to
+the canonical model in `Equivalence/EndmarkerTape.lean` and `Equivalence/EndmarkerToFlag.lean`.
 
 This is a separate automaton class from deterministic DLBAs. It reuses the bounded tape and
 configuration types from `Langlib.Automata.DeterministicLinearBounded.Definition`.
@@ -114,43 +122,58 @@ public noncomputable def LanguageViaEmbed {T Γ : Type*} {Λ : Type*}
   fun w => ∃ (hw : w.map embed ≠ []),
     Accepts M (initCfgList M (w.map embed) hw)
 
-/-- Recognition with an explicit decision for the empty word.
+/-! ### The canonical endmarker model
 
-The bounded tape requires at least one cell, so an LBA cannot run on the empty
-input the way a Turing machine can.  We therefore pair the machine with a Boolean
-`acceptEmpty` that decides membership of `ε` directly.  This mirrors the standard
-context-sensitive-grammar convention, where the optional distinguished rule `S → ε`
-decides membership of `ε` independently of the (non-contracting) core of the grammar.
+The input is bracketed `⊢ w ⊣` (`|w| + 2` cells); the empty word gets the two-cell tape `⊢⊣`,
+so the machine decides `ε` itself. -/
 
-On non-empty words this coincides with `LanguageViaEmbed`. -/
+variable {T Γ : Type*}
+
+/-- Canonical tape alphabet of an endmarker LBA over input alphabet `T` and work alphabet `Γ`.
+The `Sum.inl` part is the marker-free interior alphabet `Option (T ⊕ Γ)` (blank / input / work);
+`Sum.inr false` is the left endmarker `⊢` and `Sum.inr true` the right endmarker `⊣`. -/
+abbrev EndAlpha (T Γ : Type*) : Type _ := Option (T ⊕ Γ) ⊕ Bool
+
+/-- The left endmarker `⊢`. -/
+abbrev leftMark : EndAlpha T Γ := Sum.inr false
+
+/-- The right endmarker `⊣`. -/
+abbrev rightMark : EndAlpha T Γ := Sum.inr true
+
+/-- The bracketed input tape `⊢ w ⊣`: `|w| + 2` cells, with the head at the left endmarker.
+Even the empty word gets the genuine two-cell tape `⊢⊣`, so no separate empty-word flag is
+needed. -/
 @[expose]
-public noncomputable def LanguageRecognized {T Γ : Type*} {Λ : Type*}
-    (M : Machine Γ Λ) (embed : T → Γ) (acceptEmpty : Bool) : Language T :=
-  fun w => (acceptEmpty = true ∧ w = []) ∨ LanguageViaEmbed M embed w
+public noncomputable def loadEnd (w : List T) : DLBA.BoundedTape (EndAlpha T Γ) (w.length + 1) :=
+  ⟨fun k => if k.val = 0 then leftMark
+            else if h : k.val - 1 < w.length then
+              Sum.inl (some (Sum.inl (w.get ⟨k.val - 1, h⟩)))
+            else rightMark,
+   ⟨0, Nat.succ_pos _⟩⟩
+
+/-- The initial configuration of an endmarker LBA on input `w`: start state, head on `⊢`. -/
+@[expose]
+public noncomputable def initCfgEnd {Λ : Type*} (M : Machine (EndAlpha T Γ) Λ) (w : List T) :
+    DLBA.Cfg (EndAlpha T Γ) Λ (w.length + 1) :=
+  ⟨M.initial, loadEnd w⟩
+
+/-- The language recognized by an endmarker LBA: the input is bracketed `⊢ w ⊣` and the machine
+accepts by an ordinary accepting run (it can accept `ε` by inspecting the adjacent `⊢⊣`). -/
+@[expose]
+public noncomputable def LanguageEnd {Λ : Type*} (M : Machine (EndAlpha T Γ) Λ) : Language T :=
+  fun w => Accepts M (initCfgEnd M w)
 
 end LBA
 
-/-- A language over a finite alphabet `T` is `LBA`-recognizable if it is accepted by some
-finite nondeterministic linearly bounded automaton over the tape alphabet `Option (T ⊕ Γ)`
-(for an arbitrary finite work alphabet `Γ`), with the input written canonically via
-`some ∘ Sum.inl`, together with an explicit decision `acceptEmpty` for the empty word.
-
-Using the fixed canonical input map `some ∘ Sum.inl` (rather than an arbitrary embedding
-`T ↪ Γ`) ensures the recognizer cannot do hidden preprocessing of the input; the only
-working power is the finite work alphabet `Γ`, which supplies linear working space.
-
-The `acceptEmpty` flag plays exactly the role of the optional `S → ε` rule in the
-definition of a context-sensitive grammar: it decides membership of `ε` and is otherwise
-irrelevant to the (genuinely space-bounded) computation on non-empty inputs.  Without it
-no LBA language could contain `ε`, whereas `{ε}` is context-sensitive — so the flag is
-exactly what is needed for `CS = LBA` to hold. -/
+/-- A language over a finite alphabet `T` is **LBA**-recognizable if some finite nondeterministic
+linearly bounded automaton over the canonical endmarker alphabet `Option (T ⊕ Γ) ⊕ Bool`
+recognizes it with its input bracketed by endmarkers (`⊢ w ⊣`). The empty word is handled by the
+machine itself (it runs on the two-cell tape `⊢⊣`), with no external accept-empty flag. -/
 @[expose]
 public def is_LBA {T : Type} [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
-  ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
-    (_ : DecidableEq Γ) (_ : DecidableEq Λ)
-    (acceptEmpty : Bool)
-    (M : LBA.Machine (Option (T ⊕ Γ)) Λ),
-    LBA.LanguageRecognized M (fun t => some (Sum.inl t)) acceptEmpty = L
+  ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ) (_ : DecidableEq Γ) (_ : DecidableEq Λ)
+    (M : LBA.Machine (LBA.EndAlpha T Γ) Λ),
+    LBA.LanguageEnd M = L
 
 @[expose]
-public def LBA [Fintype T] [DecidableEq T] : Set (Language T) := setOf is_LBA
+public def LBA {T : Type} [Fintype T] [DecidableEq T] : Set (Language T) := setOf is_LBA

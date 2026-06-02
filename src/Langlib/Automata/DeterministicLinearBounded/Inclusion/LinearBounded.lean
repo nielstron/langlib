@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Automata.LinearBounded.Definition
+public import Langlib.Automata.LinearBounded.FlagModel
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -57,7 +58,7 @@ if and only if the DLBA accepts (halts in an accepting state).
 
 ## Main Results
 
-* `is_DLBA_subset_is_LBA` — Every DLBA language is an LBA language
+* `is_DLBA_subset_is_LBA_flag` — Every DLBA language is a (flag-model) LBA language
 -/
 
 namespace DLBA
@@ -262,8 +263,8 @@ theorem dlba_language_eq_lba_language {T Γ : Type*} {Λ : Type*} [DecidableEq �
 /-
 **Main theorem**: Every deterministic LBA language is also an LBA language.
 -/
-theorem is_DLBA_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : _root_.Language T}
-    (h : is_DLBA L) : is_LBA L := by
+theorem is_DLBA_subset_is_LBA_flag {T : Type} [Fintype T] [DecidableEq T] {L : _root_.Language T}
+    (h : is_DLBA L) : is_LBA_flag L := by
   obtain ⟨ Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, acceptEmpty, M, hM ⟩ := h
   haveI := hΓ; haveI := hΛ; haveI := hdecΓ; haveI := hdecΛ
   refine ⟨ Γ, Option Λ, hΓ, inferInstance, hdecΓ, inferInstance, acceptEmpty,
@@ -276,8 +277,8 @@ theorem is_DLBA_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : _root_
   funext w
   simp only [DLBA.LanguageRecognized, LBA.LanguageRecognized, key]
 
-theorem DLBA_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
-    (DLBA : Set (Language T)) ⊆ LBA := by
+theorem DLBA_subset_LBA_flag {T : Type} [Fintype T] [DecidableEq T] :
+    (DLBA : Set (Language T)) ⊆ LBA_flag := by
   intro L hL
   simp [DLBA] at hL
-  exact is_DLBA_subset_is_LBA hL
+  exact is_DLBA_subset_is_LBA_flag hL
