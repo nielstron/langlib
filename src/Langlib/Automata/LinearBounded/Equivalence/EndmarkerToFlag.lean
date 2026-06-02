@@ -317,7 +317,7 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
               show cfg'.state = q' from rfl, hch,
               foldMode_mid (by simp only [Fin.val_mk]; omega) (by simp only [Fin.val_mk]; omega)]
         · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hprodhead]
-          apply Fin.ext; rw [foldHead_val]; simp only [Fin.val_mk]; split_ifs <;> omega
+          apply Fin.ext; rw [foldHead_val]; simp only [Fin.val_mk]; split_ifs <;> simp_all <;> omega
     · -- stay
       have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
       refine ⟨FState.sim q' FMode.onLeft, wcell, DLBA.Dir.stay, ?_, ?_⟩
@@ -368,7 +368,7 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
                 show cfg'.state = q' from rfl, hch,
                 foldMode_mid (by simp only [Fin.val_mk]; omega) (by simp only [Fin.val_mk]; omega)]
           · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hprodhead]
-            apply Fin.ext; rw [foldHead_val]; simp only [Fin.val_mk]; split_ifs <;> omega
+            apply Fin.ext; rw [foldHead_val]; simp only [Fin.val_mk]; split_ifs <;> simp_all <;> omega
       · -- right: clamp keeps head at cell m+2
         have hch : cfg'.tape.head = cfg.tape.head := by
           rw [hcfg']; simp only [moveHead_right_head, write_head,
@@ -519,6 +519,310 @@ theorem fold_reaches (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
   induction h with
   | refl => exact Relation.ReflTransGen.refl
   | tail _ hbc ih => exact ih.tail (fold_step M' hbc)
+
+set_option maxRecDepth 4000 in
+/-- **Backward simulation.** Every `flagMachine` step out of a folded configuration `fold cfg`
+decodes to a genuine `M'`-step: it lands on `fold cfg'` for some `cfg'` with `Step M' cfg cfg'`. -/
+theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
+    {cfg : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2)} {X : DLBA.Cfg (FAlpha T Γ) (FState Λ) m}
+    (h : Step (flagMachine M') (fold cfg) X) :
+    ∃ cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2), Step M' cfg cfg' ∧ X = fold cfg' := by
+  obtain ⟨s', a'flag, d'flag, hmem, hX⟩ := h
+  rw [show (fold cfg).state = FState.sim cfg.state (foldMode cfg.tape.head) from rfl,
+     show (fold cfg).tape.read = foldContents cfg.tape.contents (foldHead cfg.tape.head)
+       from rfl] at hmem
+  by_cases hp0 : cfg.tape.head.val = 0
+  · -- `M'` head on `⊢`: mode `onLeft`.
+    have hmode : foldMode cfg.tape.head = FMode.onLeft := foldMode_zero hp0
+    have hhd : foldHead cfg.tape.head = (⟨0, by omega⟩ : Fin (m + 1)) := by
+      apply Fin.ext; rw [foldHead_val]; simp [hp0]
+    have hrd : (cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head))).getD leftMark
+        = cfg.tape.contents cfg.tape.head := by
+      rw [hhd]; simp only [cellLeft_foldContents, if_true, Option.getD_some]
+      congr 1; exact Fin.ext hp0.symm
+    have hprodhead : ∀ (s2 : FState Λ) (w2 : FAlpha T Γ),
+        (⟨s2, ((fold cfg).tape.write w2).moveHead DLBA.Dir.stay⟩
+          : DLBA.Cfg (FAlpha T Γ) (FState Λ) m).tape.head = (⟨0, by omega⟩ : Fin (m + 1)) := by
+      intro s2 w2; simp only [moveHead_stay_head, write_head]
+      rw [show (fold cfg).tape.head = foldHead cfg.tape.head from rfl, hhd]
+    rw [hmode] at hmem
+    simp only [flagMachine, flagTransition, Set.mem_setOf_eq] at hmem
+    obtain ⟨⟨q', a', d'⟩, hp, hpeq⟩ := hmem
+    rw [hrd] at hp
+    set wcell : FAlpha T Γ :=
+      some (Sum.inr (cellCur (foldContents cfg.tape.contents (foldHead cfg.tape.head)), some a',
+        cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head)))) with hwcell
+    have hcontGen : foldContents (Function.update cfg.tape.contents cfg.tape.head a')
+        = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell := by
+      rw [hwcell, show (some (Sum.inr (cellCur (foldContents cfg.tape.contents (foldHead cfg.tape.head)),
+          some a', cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head)))) : FAlpha T Γ)
+            = foldContents (Function.update cfg.tape.contents cfg.tape.head a') (foldHead cfg.tape.head)
+          from by rw [hhd]; simp [foldContents, cellCur, cellRight, Function.update_apply,
+            Fin.ext_iff, hp0]]
+      exact (foldContents_update cfg.tape.contents cfg.tape.head a').symm
+    rcases d' with _ | _ | _
+    · -- left: clamp keeps `M'` head at `⊢`
+      refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩, ⟨q', a', DLBA.Dir.left, hp, rfl⟩, ?_⟩
+      set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+        ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩ with hcfg'
+      have hch : cfg'.tape.head = cfg.tape.head := by
+        rw [hcfg']; simp only [moveHead_left_head, write_head,
+          dif_neg (show ¬ 0 < cfg.tape.head.val by omega)]
+      have hcont : (fold cfg').tape.contents
+          = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+        hcontGen
+      clear hcontGen hp
+      simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+      subst hX; symm
+      refine cfg_ext' ?_ hcont ?_
+      · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+            show cfg'.state = q' from rfl, hch, hmode]
+      · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hhd, hprodhead]
+    · -- right: head → interior cell `1`
+      refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩, ⟨q', a', DLBA.Dir.right, hp, rfl⟩, ?_⟩
+      set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+        ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩ with hcfg'
+      have hch : cfg'.tape.head = (⟨cfg.tape.head.val + 1, by omega⟩ : Fin (m + 3)) := by
+        rw [hcfg']; simp only [moveHead_right_head, write_head,
+          dif_pos (show cfg.tape.head.val < m + 2 by omega)]
+      have hcont : (fold cfg').tape.contents
+          = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+        hcontGen
+      clear hcontGen hp
+      simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+      subst hX; symm
+      refine cfg_ext' ?_ hcont ?_
+      · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+            show cfg'.state = q' from rfl, hch,
+            foldMode_mid (by simp only [Fin.val_mk]; omega) (by simp only [Fin.val_mk]; omega)]
+      · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hprodhead]
+        apply Fin.ext; rw [foldHead_val]; simp only [Fin.val_mk]; split_ifs <;> simp_all <;> omega
+    · -- stay
+      refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩, ⟨q', a', DLBA.Dir.stay, hp, rfl⟩, ?_⟩
+      set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+        ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩ with hcfg'
+      have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+      have hcont : (fold cfg').tape.contents
+          = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+        hcontGen
+      clear hcontGen hp
+      simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+      subst hX; symm
+      refine cfg_ext' ?_ hcont ?_
+      · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+            show cfg'.state = q' from rfl, hch, hmode]
+      · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hhd, hprodhead]
+  · by_cases hpL : cfg.tape.head.val = m + 2
+    · -- `M'` head on `⊣`: mode `onRight`.
+      have hmode : foldMode cfg.tape.head = FMode.onRight := foldMode_last hpL
+      have hhd : foldHead cfg.tape.head = (⟨m, by omega⟩ : Fin (m + 1)) := by
+        apply Fin.ext; rw [foldHead_val]; simp [hpL]
+      have hrd : (cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head))).getD rightMark
+          = cfg.tape.contents cfg.tape.head := by
+        rw [hhd]; simp only [cellRight_foldContents, if_true, Option.getD_some]
+        congr 1; exact Fin.ext hpL.symm
+      have hprodhead : ∀ (s2 : FState Λ) (w2 : FAlpha T Γ),
+          (⟨s2, ((fold cfg).tape.write w2).moveHead DLBA.Dir.stay⟩
+            : DLBA.Cfg (FAlpha T Γ) (FState Λ) m).tape.head = (⟨m, by omega⟩ : Fin (m + 1)) := by
+        intro s2 w2; simp only [moveHead_stay_head, write_head]
+        rw [show (fold cfg).tape.head = foldHead cfg.tape.head from rfl, hhd]
+      rw [hmode] at hmem
+      simp only [flagMachine, flagTransition, Set.mem_setOf_eq] at hmem
+      obtain ⟨⟨q', a', d'⟩, hp, hpeq⟩ := hmem
+      rw [hrd] at hp
+      set wcell : FAlpha T Γ :=
+        some (Sum.inr (cellCur (foldContents cfg.tape.contents (foldHead cfg.tape.head)),
+          cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head)), some a')) with hwcell
+      have hcontGen : foldContents (Function.update cfg.tape.contents cfg.tape.head a')
+          = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell := by
+        rw [hwcell, show (some (Sum.inr (cellCur (foldContents cfg.tape.contents (foldHead cfg.tape.head)),
+            cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head)), some a')) : FAlpha T Γ)
+              = foldContents (Function.update cfg.tape.contents cfg.tape.head a') (foldHead cfg.tape.head)
+            from by rw [hhd]; simp [foldContents, cellCur, cellLeft, Function.update_apply,
+              Fin.ext_iff, hpL]]
+        exact (foldContents_update cfg.tape.contents cfg.tape.head a').symm
+      rcases d' with _ | _ | _
+      · -- left: head → interior cell `m+1`
+        refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩, ⟨q', a', DLBA.Dir.left, hp, rfl⟩, ?_⟩
+        set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+          ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩ with hcfg'
+        have hch : cfg'.tape.head = (⟨cfg.tape.head.val - 1, by omega⟩ : Fin (m + 3)) := by
+          rw [hcfg']; simp only [moveHead_left_head, write_head,
+            dif_pos (show 0 < cfg.tape.head.val by omega)]
+        have hcont : (fold cfg').tape.contents
+            = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+          hcontGen
+        clear hcontGen hp
+        simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+        subst hX; symm
+        refine cfg_ext' ?_ hcont ?_
+        · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+              show cfg'.state = q' from rfl, hch,
+              foldMode_mid (by simp only [Fin.val_mk]; omega) (by simp only [Fin.val_mk]; omega)]
+        · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hprodhead]
+          apply Fin.ext; rw [foldHead_val]; simp only [Fin.val_mk]; split_ifs <;> simp_all <;> omega
+      · -- right: clamp keeps `M'` head at `⊣`
+        refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩, ⟨q', a', DLBA.Dir.right, hp, rfl⟩, ?_⟩
+        set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+          ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩ with hcfg'
+        have hch : cfg'.tape.head = cfg.tape.head := by
+          rw [hcfg']; simp only [moveHead_right_head, write_head,
+            dif_neg (show ¬ cfg.tape.head.val < m + 2 by omega)]
+        have hcont : (fold cfg').tape.contents
+            = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+          hcontGen
+        clear hcontGen hp
+        simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+        subst hX; symm
+        refine cfg_ext' ?_ hcont ?_
+        · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+              show cfg'.state = q' from rfl, hch, hmode]
+        · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hhd, hprodhead]
+      · -- stay
+        refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩, ⟨q', a', DLBA.Dir.stay, hp, rfl⟩, ?_⟩
+        set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+          ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩ with hcfg'
+        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+        have hcont : (fold cfg').tape.contents
+            = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+          hcontGen
+        clear hcontGen hp
+        simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+        subst hX; symm
+        refine cfg_ext' ?_ hcont ?_
+        · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+              show cfg'.state = q' from rfl, hch, hmode]
+        · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hhd, hprodhead]
+    · -- interior: mode `mid`.
+      have hmode : foldMode cfg.tape.head = FMode.mid := foldMode_mid hp0 hpL
+      have hcl := cfg.tape.head.isLt
+      have hhd : foldHead cfg.tape.head = (⟨cfg.tape.head.val - 1, by omega⟩ : Fin (m + 1)) := by
+        apply Fin.ext; rw [foldHead_val]; simp [hp0, hpL]
+      have hLval : (foldHead cfg.tape.head).val = cfg.tape.head.val - 1 := by rw [hhd]
+      have hfh : (fold cfg).tape.head.val = cfg.tape.head.val - 1 := hLval
+      have hrd : cellCur (foldContents cfg.tape.contents (foldHead cfg.tape.head))
+          = cfg.tape.contents cfg.tape.head := by
+        rw [cellCur_foldContents]; congr 1; apply Fin.ext; simp only [Fin.val_mk]; rw [hLval]; omega
+      have hLsome : (cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head))).isSome
+          = decide (cfg.tape.head.val = 1) := by
+        rw [cellLeft_foldContents, hLval]
+        by_cases h : cfg.tape.head.val = 1
+        · simp [h]
+        · rw [if_neg (show cfg.tape.head.val - 1 ≠ 0 by omega)]; simp [h]
+      have hRsome : (cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head))).isSome
+          = decide (cfg.tape.head.val = m + 1) := by
+        rw [cellRight_foldContents, hLval]
+        by_cases h : cfg.tape.head.val = m + 1
+        · simp [h]
+        · rw [if_neg (show cfg.tape.head.val - 1 ≠ m by omega)]; simp [h]
+      rw [hmode] at hmem
+      simp only [flagMachine, flagTransition, Set.mem_setOf_eq] at hmem
+      obtain ⟨⟨q', a', d'⟩, hp, hpeq⟩ := hmem
+      rw [hrd] at hp
+      set wcell : FAlpha T Γ :=
+        some (Sum.inr (a', cellLeft (foldContents cfg.tape.contents (foldHead cfg.tape.head)),
+          cellRight (foldContents cfg.tape.contents (foldHead cfg.tape.head)))) with hwcell
+      have hwc : wcell = foldContents (Function.update cfg.tape.contents cfg.tape.head a')
+          (foldHead cfg.tape.head) := by
+        rw [hwcell]
+        simp only [foldContents, cellLeft, cellRight, Function.update_apply,
+          if_pos (show (⟨(foldHead cfg.tape.head).val + 1, by have := cfg.tape.head.isLt; omega⟩
+            : Fin (m + 3)) = cfg.tape.head from by apply Fin.ext; simp only [Fin.val_mk]; rw [hLval]; omega),
+          if_neg (show ¬ (⟨0, by omega⟩ : Fin (m + 3)) = cfg.tape.head from by
+            simp only [Fin.ext_iff, Fin.val_mk]; omega),
+          if_neg (show ¬ (⟨m + 2, by omega⟩ : Fin (m + 3)) = cfg.tape.head from by
+            simp only [Fin.ext_iff, Fin.val_mk]; omega)]
+      have hcontGen : foldContents (Function.update cfg.tape.contents cfg.tape.head a')
+          = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell := by
+        rw [hwc]; exact (foldContents_update cfg.tape.contents cfg.tape.head a').symm
+      rcases d' with _ | _ | _
+      · -- left
+        refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩, ⟨q', a', DLBA.Dir.left, hp, rfl⟩, ?_⟩
+        set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+          ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩ with hcfg'
+        have hch : cfg'.tape.head = (⟨cfg.tape.head.val - 1, by omega⟩ : Fin (m + 3)) := by
+          rw [hcfg']; simp only [moveHead_left_head, write_head,
+            dif_pos (show 0 < cfg.tape.head.val by omega)]
+        have hcont : (fold cfg').tape.contents
+            = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+          hcontGen
+        clear hcontGen hp
+        simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+        subst hX; symm
+        refine cfg_ext' ?_ hcont ?_
+        · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+              show cfg'.state = q' from rfl, hch, hLsome]
+          by_cases hb : cfg.tape.head.val = 1
+          · rw [foldMode_zero (by simp only [Fin.val_mk]; omega),
+              show (if decide (cfg.tape.head.val = 1) then FMode.onLeft else FMode.mid)
+                = FMode.onLeft from by simp [hb]]
+          · rw [foldMode_mid (by simp only [Fin.val_mk]; omega) (by simp only [Fin.val_mk]; omega),
+              show (if decide (cfg.tape.head.val = 1) then FMode.onLeft else FMode.mid)
+                = FMode.mid from by simp [hb]]
+        · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hLsome]
+          by_cases hb : cfg.tape.head.val = 1
+          · rw [show (if decide (cfg.tape.head.val = 1) then DLBA.Dir.stay else DLBA.Dir.left)
+                = DLBA.Dir.stay from by simp [hb]]
+            apply Fin.ext; rw [foldHead_val]
+            simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all <;> omega
+          · rw [show (if decide (cfg.tape.head.val = 1) then DLBA.Dir.stay else DLBA.Dir.left)
+                = DLBA.Dir.left from by simp [hb]]
+            apply Fin.ext; rw [foldHead_val]
+            simp only [moveHead_left_head_val, write_head, hfh]; split_ifs <;> simp_all <;> omega
+      · -- right
+        refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩, ⟨q', a', DLBA.Dir.right, hp, rfl⟩, ?_⟩
+        set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+          ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩ with hcfg'
+        have hch : cfg'.tape.head = (⟨cfg.tape.head.val + 1, by omega⟩ : Fin (m + 3)) := by
+          rw [hcfg']; simp only [moveHead_right_head, write_head,
+            dif_pos (show cfg.tape.head.val < m + 2 by omega)]
+        have hcont : (fold cfg').tape.contents
+            = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+          hcontGen
+        clear hcontGen hp
+        simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+        subst hX; symm
+        refine cfg_ext' ?_ hcont ?_
+        · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+              show cfg'.state = q' from rfl, hch, hRsome]
+          by_cases hb : cfg.tape.head.val = m + 1
+          · rw [foldMode_last (by simp only [Fin.val_mk]; omega),
+              show (if decide (cfg.tape.head.val = m + 1) then FMode.onRight else FMode.mid)
+                = FMode.onRight from by simp [hb]]
+          · rw [foldMode_mid (by simp only [Fin.val_mk]; omega) (by simp only [Fin.val_mk]; omega),
+              show (if decide (cfg.tape.head.val = m + 1) then FMode.onRight else FMode.mid)
+                = FMode.mid from by simp [hb]]
+        · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hRsome]
+          by_cases hb : cfg.tape.head.val = m + 1
+          · rw [show (if decide (cfg.tape.head.val = m + 1) then DLBA.Dir.stay else DLBA.Dir.right)
+                = DLBA.Dir.stay from by simp [hb]]
+            apply Fin.ext; rw [foldHead_val]
+            simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all <;> omega
+          · rw [show (if decide (cfg.tape.head.val = m + 1) then DLBA.Dir.stay else DLBA.Dir.right)
+                = DLBA.Dir.right from by simp [hb]]
+            apply Fin.ext; rw [foldHead_val]
+            show (if cfg.tape.head.val + 1 = 0 then 0
+              else if cfg.tape.head.val + 1 = m + 2 then m else cfg.tape.head.val + 1 - 1) = _
+            simp only [moveHead_right_head_val, write_head, hfh]
+            rw [if_pos (show cfg.tape.head.val - 1 < m by omega)]
+            split_ifs <;> omega
+      · -- stay
+        refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩, ⟨q', a', DLBA.Dir.stay, hp, rfl⟩, ?_⟩
+        set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
+          ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩ with hcfg'
+        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+        have hcont : (fold cfg').tape.contents
+            = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
+          hcontGen
+        clear hcontGen hp
+        simp only [Prod.mk.injEq] at hpeq; obtain ⟨rfl, rfl, rfl⟩ := hpeq
+        subst hX; symm
+        refine cfg_ext' ?_ hcont ?_
+        · rw [show (fold cfg').state = FState.sim cfg'.state (foldMode cfg'.tape.head) from rfl,
+              show cfg'.state = q' from rfl, hch, hmode]
+        · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch]
+          apply Fin.ext; rw [foldHead_val]
+          simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all <;> omega
 
 /-! ### Init phase: the flag machine sets up the folded tape.
 
