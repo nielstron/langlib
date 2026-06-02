@@ -18,6 +18,8 @@ This is the classic separating property between deterministic and general
 context-free languages: ordinary (nondeterministic) context-free languages are
 **not** closed under complement, while DCFLs are.
 
+The proof goes through **totalization**: a raw DPDA need not halt on every input, so the construction first turns it into an equivalent always-halting decider — see [DPDA totalization](dpda-totalization.html) — and only then flips its accepting states.
+
 ## In Lean
 
 The headline theorem is

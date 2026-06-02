@@ -69,8 +69,7 @@ The non-closure then follows from a *positive* closure property used as a lever:
 2. So if `N / D` were context-free, `(N / D) ∩ {a}*` would be context-free too.
 3. But that intersection is `unaryPow2`, which is not — contradiction.
 
-Hence CFLs are not closed under right quotient. The hard part — the bulk of the
-~700-line file — is proving that the slice equals the powers of two *exactly*.
+Hence CFLs are not closed under right quotient. The hard part is proving that the slice equals the powers of two *exactly*.
 
 ## In Lean
 

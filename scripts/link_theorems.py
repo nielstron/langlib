@@ -78,30 +78,62 @@ def head_sha() -> str:
     ).strip()
 
 
+BLOCK_RE = re.compile(rf"^(\s*)(?:@\[[^\]]*\]\s*)*{MODS}(structure|inductive|class)\s+([A-Za-z_][A-Za-z0-9_'.]*)")
+CTOR_RE = re.compile(r"\|\s*([A-Za-z_][A-Za-z0-9_']*)")
+FIELD_RE = re.compile(r"^(\s+)([A-Za-z_][A-Za-z0-9_']*)\s*:(?!=)")
+
+
 def build_index() -> dict[str, list[tuple[str, int]]]:
-    """name -> sorted unique list of (relpath, line) where it is declared."""
+    """name -> sorted unique list of (relpath, line) where it is declared.
+
+    Captures top-level declarations (def/theorem/lemma/...), and — so that docs can also
+    link them — the constructors of inductive types and the fields of structures/classes,
+    under both their short name and their fully-qualified `Type.member` name."""
     index: dict[str, set[tuple[str, int]]] = defaultdict(set)
     for path in sorted(SRC.rglob("*.lean")):
         rel = path.relative_to(REPO).as_posix()
         stack: list[tuple[str, str | None]] = []
+        block: tuple[str, str, int] | None = None  # (kind, full type name, header indent)
+
+        def add(name: str, owner: str | None, lineno: int):
+            index[name].add((rel, lineno))
+            if owner:
+                index[f"{owner}.{name}"].add((rel, lineno))
+
         for lineno, line in enumerate(path.read_text().splitlines(), start=1):
+            stripped = line.strip()
+            if block and stripped and (len(line) - len(line.lstrip())) <= block[2]:
+                block = None  # dedent ends the structure/inductive body
             if NS_RE.match(line):
                 stack.append(("ns", NS_RE.match(line).group(1)))
                 continue
             if END_RE.match(line):
                 if stack:
                     stack.pop()
+                block = None
                 continue
             if SEC_RE.match(line):
                 stack.append(("sec", SEC_RE.match(line).group(1)))
                 continue
-            if (m := DECL_RE.match(line)):
-                name = m.group(1)
-                prefix = ".".join(n for k, n in stack if k == "ns" and n)
+            if block:  # inside a structure/inductive body: capture members
+                if block[0] == "inductive":
+                    for c in CTOR_RE.findall(line):
+                        add(c, block[1], lineno)
+                elif (fm := FIELD_RE.match(line)):
+                    add(fm.group(2), block[1], lineno)
+                continue
+            prefix = ".".join(n for k, n in stack if k == "ns" and n)
+            if (m := BLOCK_RE.match(line)):
+                name = m.group(3)
                 full = f"{prefix}.{name}" if prefix else name
-                index[name].add((rel, lineno))
-                if full != name:
-                    index[full].add((rel, lineno))
+                add(name, prefix or None, lineno)
+                if m.group(2) == "inductive":  # constructors on the header line itself
+                    for c in CTOR_RE.findall(line[m.end():]):
+                        add(c, full, lineno)
+                block = (m.group(2), full, len(m.group(1)))
+                continue
+            if (m := DECL_RE.match(line)):
+                add(m.group(1), prefix or None, lineno)
     return {k: sorted(v) for k, v in index.items()}
 
 
@@ -193,8 +225,15 @@ def link_span(content: str, index, base, ref):
     <code> element with each known declaration wrapped in an anchor, so every mentioned
     theorem links to its definition. Intra-word underscores in identifiers are not
     Markdown emphasis, so this is safe inside kramdown."""
-    toks = [(m.start(), m.end(), m.group(0)) for m in IDENT_RE.finditer(content)]
-    toks = [(s, e, t) for s, e, t in toks if linkable(t, index)]
+    toks = []
+    for m in IDENT_RE.finditer(content):
+        s, e, t = m.start(), m.end(), m.group(0)
+        if linkable(t, index):
+            toks.append((s, e, t))
+        elif "." in t:  # dotted projection like `M.DecidesEveryInput`: link the member
+            comp = t.rsplit(".", 1)[-1]
+            if linkable(comp, index):
+                toks.append((e - len(comp), e, comp))
     if not toks:
         return None
     stripped = content.strip()

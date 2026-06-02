@@ -17,8 +17,7 @@ this is extended to a language `L.subst f`. The theorem is that if `L` is contex
 
 Substitution is the **master closure operation** for context-free languages: union,
 concatenation, homomorphism, and Kleene star all fall out of it as one-line
-corollaries (below), which is why Langlib proves it as a standalone ~1200-line
-development.
+corollaries (below), which is why Langlib proves it as a standalone development.
 
 ## In Lean
 

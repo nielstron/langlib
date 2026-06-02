@@ -27,9 +27,6 @@ of the operations the context-free languages enjoy:
 | Right quotient | ❌ no | ✅ yes |
 | ∩ / ∪ with regular | ✅ yes | ✅ yes |
 
-The two hardest non-closure proofs — concatenation and homomorphism — are each
-over a thousand lines.
-
 ## In Lean
 
 Positive results:
@@ -39,8 +36,8 @@ Positive results:
 
 Non-closure results:
 
-- [`DCF_notClosedUnderConcatenation`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Concatenation.lean) — **not** closed under concatenation (~1550-line proof).
-- [`DCF_notClosedUnderHomomorphism`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Homomorphism.lean) / [`DCF_notClosedUnderEpsFreeHomomorphism`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Homomorphism.lean) — **not** closed under (ε-free) homomorphism (~1150-line proof).
+- [`DCF_notClosedUnderConcatenation`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Concatenation.lean) — **not** closed under concatenation.
+- [`DCF_notClosedUnderHomomorphism`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Homomorphism.lean) / [`DCF_notClosedUnderEpsFreeHomomorphism`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Homomorphism.lean) — **not** closed under (ε-free) homomorphism.
 - [`DCF_notClosedUnderUnion`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Union.lean) — not closed under union.
 - [`DCF_notClosedUnderIntersection`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Intersection.lean) — not closed under intersection.
 - [`DCF_notClosedUnderKleeneStar`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Closure/Star.lean) — not closed under Kleene star.
@@ -65,7 +62,7 @@ chain seeded by intersection, all anchored on the context-free pumping fact that
 - **Substitution** (`DCF_notClosedUnderSubstitution`) reduces directly to union:
   substituting the two singleton Boolean words by arbitrary DCFLs produces their
   union. **Concatenation** and **homomorphism** (`DCF_notClosedUnderConcatenation`,
-  ~1550 lines; `DCF_notClosedUnderHomomorphism`, ~1150 lines) each likewise reduce a
+  `DCF_notClosedUnderHomomorphism`) each likewise reduce a
   hypothetical closure to union closure — concatenation via a fresh marker plus an
   intersection and left quotient, homomorphism by erasing a prefix marker on a
   disjoint union — and **Kleene star** (`DCF_notClosedUnderKleeneStar`) uses the same

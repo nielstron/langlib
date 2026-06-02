@@ -20,8 +20,8 @@ model (PDAs) define one and the same language class.
 - [`CF_eq_PDA_Class`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) — class equality `(CF : Set (Language T)) = PDA.Class`.
 - [`is_PDA_of_isContextFree`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) and [`is_CF_of_is_PDA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) — the two inclusions.
 
-A related result, that **PDA acceptance by final state equals acceptance by empty
-stack**, is given by `PDA_FS_subset_ES` and `PDA_ES_subset_FS`.
+PDA acceptance by final state and by empty stack define the same class — see
+[Acceptance modes](pda-acceptance-modes.html).
 
 ## Proof idea
 
@@ -47,9 +47,8 @@ single stack symbol `Z`. The rule families (`compute_rule`/`compute_rule'`,
 proved through `derives_of_reachesIn` and `reachesIn_of_derivesLeftmostIn` (both by
 strong induction on step count).
 
-**Acceptance modes.** `PDA_FS_subset_ES` and `PDA_ES_subset_FS` convert between
-final-state and empty-stack acceptance (each augments the PDA with two bookkeeping
-states `Fin 2`), so the two acceptance modes define the same class.
+Both constructions use empty-stack acceptance; that it agrees with final-state acceptance
+is the separate [Acceptance modes](pda-acceptance-modes.html) result.
 
 ## Keywords / also known as
 
