@@ -57,7 +57,7 @@ variable {T : Type}
 theory-of-computation statement: from an always-halting decider we obtain a `ComputablePred`,
 via Post's theorem applied to `L` and its (recursive, hence recognizable) complement.
 
-This mirrors `CS_membership_computable` for context-sensitive languages. -/
+This mirrors `computablePred_mem_of_is_CS` for context-sensitive languages. -/
 public theorem Recursive_membership_computable
     [DecidableEq T] [Fintype T] [Primcodable T]
     {L : Language T} (hL : is_Recursive L) :
