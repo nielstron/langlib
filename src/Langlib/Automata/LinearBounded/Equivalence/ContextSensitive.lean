@@ -3,8 +3,10 @@ module
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Completeness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Soundness
+public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA
 public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
+public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 import Mathlib.Tactic
 @[expose]
@@ -137,7 +139,39 @@ accepts when track 2 equals track 1. Non-contraction guarantees that every sente
 of a derivation of `w` has length `≤ n`, so the bounded tape suffices, giving both
 directions of the language equality. The empty word is decided by `acceptEmpty`. -/
 theorem CS_subset_LBA : (CS : Set (Language T)) ⊆ LBA := by
-  sorry
+  classical
+  rintro L ⟨g, hg, rfl⟩
+  -- Restrict to the ε-free non-contracting finite-NT core `g₀` (Myhill–Kuroda normalisation):
+  -- `grammar_language g₀ = grammar_language g \ {[]}`.
+  obtain ⟨g₀, hfin, hnc, hlang⟩ := exists_noncontracting_offEmpty_of_CS g hg
+  -- Build the simulating LBA for the (ε-free) core language.
+  obtain ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M, hM⟩ :=
+    KurodaConstruction.noncontracting_finite_to_LBA g₀ hfin hnc
+  -- `LanguageViaEmbed M = grammar_language g₀ = grammar_language g \ {[]}`.
+  rw [hlang] at hM
+  -- Decide `ε` with the flag; non-empty words are handled by the bounded computation.
+  refine ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, decide ([] ∈ grammar_language g), M, ?_⟩
+  funext w
+  apply propext
+  simp only [LBA.LanguageRecognized]
+  rcases eq_or_ne w [] with rfl | hw
+  · -- `w = []`: the bounded tape cannot run, so only the flag decides membership.
+    constructor
+    · rintro (⟨hb, _⟩ | hv)
+      · exact of_decide_eq_true hb
+      · obtain ⟨hne, _⟩ := hv; simp at hne
+    · intro hmem
+      exact Or.inl ⟨by simpa using hmem, rfl⟩
+  · -- `w ≠ []`: membership is exactly `LanguageViaEmbed M = grammar_language g \ {[]}`.
+    constructor
+    · rintro (⟨_, h0⟩ | hv)
+      · exact absurd h0 hw
+      · have hd := (congrFun hM w) ▸ hv
+        exact hd.1
+    · intro hmem
+      refine Or.inr ?_
+      rw [congrFun hM w]
+      exact ⟨hmem, by simpa using hw⟩
 
 /-! ## The theorem -/
 

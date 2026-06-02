@@ -376,6 +376,15 @@ theorem set_at_length {α : Type} (u : List α) (x y : α) (v : List α) :
   | nil => rfl
   | cons a u' ih => simp only [List.cons_append, List.length_cons, List.set_cons_succ, ih]
 
+/-- Setting at index `u.length + 1` of `u ++ p :: x :: v` replaces the second cons head `x`,
+keeping the first (`p`). Used to express a `step2` rewrite (the pending stays, its neighbour
+becomes the new head cell) at the absolute index `head + 1`. -/
+theorem set_at_succ_length {α : Type} (u : List α) (p x y : α) (v : List α) :
+    (u ++ p :: x :: v).set (u.length + 1) y = u ++ p :: y :: v := by
+  induction u with
+  | nil => rfl
+  | cons a u' ih => simp only [List.cons_append, List.length_cons, List.set_cons_succ, ih]
+
 /-- Every symbol of an `encode`d configuration is a `cell` nonterminal. -/
 theorem mem_encode (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n)
     {x : symbol T (MyhillNT T Γ Λ)} (hx : x ∈ encode worig cfg) :
@@ -850,6 +859,7 @@ theorem soundInv_step_stuck (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     obtain ⟨a, t1, t2, lb, rb, rfl⟩ := h
     obtain ⟨_, _, _, _, hh⟩ := hb (symbol.terminal t2) (by rw [hb2]; simp); simp [cellSym] at hh
 
+set_option maxHeartbeats 2000000 in
 /-- **Closure, pending phase.** From a `SP_pending` form (P1 / GEN / CLEANUP), one rule step keeps
 the soundness invariant. In **P1** only resolution (→ `SP_stuck`) and the matching `step2`
 (→ GEN) fire; in **GEN** the pinned head can stay/clamp (→ GEN), accept (→ CLEANUP), or have the
@@ -902,14 +912,127 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
       simp [cellPendingSym, cellSym] at hin
     · obtain ⟨q, q'', a, a'', t1, t2, rb2, hi, bb, lb0, a0, t0, _, rfl⟩ := h
       simp [cellPendingSym, cellSym] at hin
-    · -- r-interior step2 (matching dir → GEN)
-      sorry
+    · -- r-interior step2 (matching dir → GEN): hands the new state to the right neighbour
+      obtain ⟨q'2, a'2, t1, t2, lb1, rb2, bb, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, encode_length]
+      have hpe : cellPendingSym lb1 false true q'2 a'2 t1
+          = cellPendingSym (decide (cfg.tape.head.val = 0)) (decide (cfg.tape.head.val = m))
+              dir q' a' (worig cfg.tape.head) := by
+        rcases hbel (cellPendingSym lb1 false true q'2 a'2 t1) (by rw [hb2]; simp) with
+          hp | ⟨_, _, _, _, hs⟩
+        · exact hp
+        · simp [cellPendingSym, cellSym] at hs
+      simp only [cellPendingSym, symbol.nonterminal.injEq, MyhillNT.cellPending.injEq] at hpe
+      obtain ⟨hlb1, hrbm, hdir, hq2, ha2, ht1⟩ := hpe
+      subst q'2; subst a'2; subst dir
+      have hlt : cfg.tape.head.val < m := by
+        have h2 := cfg.tape.head.isLt
+        have hne : cfg.tape.head.val ≠ m := by intro he; rw [he] at hrbm; simp at hrbm
+        omega
+      have hul_lt : u.length < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hul : u.length = cfg.tape.head.val := by
+        by_contra hne
+        have h1 : b[u.length]? = some (cellPendingSym lb1 false true q' a' t1) := by rw [hb2]; simp
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hne),
+          List.getElem?_eq_getElem (by rw [encode_length]; exact hul_lt),
+          encode_getElem worig cfg u.length hul_lt] at h1
+        simp [cellPendingSym, cellSym] at h1
+      have hnb_lt : cfg.tape.head.val + 1 < m + 1 := by omega
+      have hnbeq : cellSym false rb2 (none : Option Λ) bb t2
+          = cellSym (decide (cfg.tape.head.val + 1 = 0)) (decide (cfg.tape.head.val + 1 = m)) none
+              (cfg.tape.contents ⟨cfg.tape.head.val + 1, hnb_lt⟩)
+              (worig ⟨cfg.tape.head.val + 1, hnb_lt⟩) := by
+        have h2 : b[cfg.tape.head.val + 1]? = some (cellSym false rb2 none bb t2) := by
+          rw [hb2, ← hul]; simp
+        rw [hbeq, List.getElem?_set, if_neg (by omega),
+          List.getElem?_eq_getElem (by rw [encode_length]; exact hnb_lt),
+          encode_getElem worig cfg (cfg.tape.head.val + 1) hnb_lt,
+          if_neg (by simp only [Fin.ext_iff]; omega)] at h2
+        exact (Option.some.inj h2).symm
+      simp only [cellSym, symbol.nonterminal.injEq, MyhillNT.cell.injEq] at hnbeq
+      obtain ⟨_, hrb2, _, hbb, ht2⟩ := hnbeq
+      have hreach' : LBA.Reaches M ⟨M.initial, ⟨fun i => embed (worig i), ⟨0, Nat.succ_pos m⟩⟩⟩
+          ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩ :=
+        hreach.tail ⟨q', a', DLBA.Dir.right, by simpa using htrans, rfl⟩
+      refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inl
+        ⟨m, worig, ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩, cfg.tape.head, q', true,
+          hreach', Or.inl ⟨rfl, ?_⟩, ?_⟩)))))
+      · exact moveHead_right_head_lt (cfg.tape.write a') hlt
+      · have hccon : ((cfg.tape.write a').moveHead DLBA.Dir.right).contents cfg.tape.head = a' := by
+          rw [moveHead_contents]; simp [DLBA.BoundedTape.write]
+        rw [hccon]
+        have e1 : c = b.set (cfg.tape.head.val + 1) (cellSym false rb2 (some q') bb t2) := by
+          rw [hc, hb2, ← hul]; exact (set_at_succ_length _ _ _ _ _).symm
+        rw [e1, hbeq, hrb2, hbb, ht2, encode_right_interior worig cfg q' a' hlt,
+          List.set_comm _ _ (by omega : cfg.tape.head.val + 1 ≠ cfg.tape.head.val), List.set_set]
     · obtain ⟨q, q'', a, a'', t1, t2, lb1, hi, bb, _, rfl⟩ := h
       simp [cellPendingSym, cellSym] at hin
     · obtain ⟨q, q'', a, a'', t1, t2, lb1, hi, bb, rb0, a0, t0, _, rfl⟩ := h
       simp [cellPendingSym, cellSym] at hin
-    · -- l-interior step2 (matching dir → GEN)
-      sorry
+    · -- l-interior step2 (matching dir → GEN): hands the new state to the left neighbour
+      obtain ⟨q'2, a'2, t1, t2, lb1, rb2, bb, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, encode_length]
+      have hpe : cellPendingSym false rb2 false q'2 a'2 t2
+          = cellPendingSym (decide (cfg.tape.head.val = 0)) (decide (cfg.tape.head.val = m))
+              dir q' a' (worig cfg.tape.head) := by
+        rcases hbel (cellPendingSym false rb2 false q'2 a'2 t2) (by rw [hb2]; simp) with
+          hp | ⟨_, _, _, _, hs⟩
+        · exact hp
+        · simp [cellPendingSym, cellSym] at hs
+      simp only [cellPendingSym, symbol.nonterminal.injEq, MyhillNT.cellPending.injEq] at hpe
+      obtain ⟨hlb0, hrbm, hdir, hq2, ha2, ht2⟩ := hpe
+      subst q'2; subst a'2; subst dir
+      have hpos : 0 < cfg.tape.head.val := by
+        rcases Nat.eq_zero_or_pos cfg.tape.head.val with h0 | h0
+        · rw [h0] at hlb0; simp at hlb0
+        · exact h0
+      obtain ⟨mm, hmm⟩ : ∃ mm, cfg.tape.head.val = mm + 1 := ⟨cfg.tape.head.val - 1, by omega⟩
+      have hul2_lt : u.length + 1 < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hul2 : u.length + 1 = cfg.tape.head.val := by
+        by_contra hne
+        have h1 : b[u.length + 1]? = some (cellPendingSym false rb2 false q' a' t2) := by
+          rw [hb2]; simp
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hne),
+          List.getElem?_eq_getElem (by rw [encode_length]; exact hul2_lt),
+          encode_getElem worig cfg (u.length + 1) hul2_lt] at h1
+        simp [cellPendingSym, cellSym] at h1
+      have hul : u.length = mm := by omega
+      have hinpeq : cellSym lb1 false (none : Option Λ) bb t1
+          = cellSym (decide (mm = 0)) (decide (mm = m)) none
+              (cfg.tape.contents ⟨mm, by omega⟩) (worig ⟨mm, by omega⟩) := by
+        have h2 : b[mm]? = some (cellSym lb1 false none bb t1) := by rw [hb2, ← hul]; simp
+        rw [hbeq, List.getElem?_set, if_neg (by omega),
+          List.getElem?_eq_getElem (by rw [encode_length]; omega),
+          encode_getElem worig cfg mm (by omega),
+          if_neg (by simp only [Fin.ext_iff]; omega)] at h2
+        exact (Option.some.inj h2).symm
+      simp only [cellSym, symbol.nonterminal.injEq, MyhillNT.cell.injEq] at hinpeq
+      obtain ⟨hlb1, _, _, hbb, ht1⟩ := hinpeq
+      have hreach' : LBA.Reaches M ⟨M.initial, ⟨fun i => embed (worig i), ⟨0, Nat.succ_pos m⟩⟩⟩
+          ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩ :=
+        hreach.tail ⟨q', a', DLBA.Dir.left, by simpa using htrans, rfl⟩
+      refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inl
+        ⟨m, worig, ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩, cfg.tape.head, q', false,
+          hreach', Or.inr ⟨rfl, ?_⟩, ?_⟩)))))
+      · rw [moveHead_left_head_pos (cfg.tape.write a') hpos]
+        have hwh : (cfg.tape.write a').head.val = cfg.tape.head.val := rfl
+        omega
+      · have hccon : ((cfg.tape.write a').moveHead DLBA.Dir.left).contents cfg.tape.head = a' := by
+          rw [moveHead_contents]; simp [DLBA.BoundedTape.write]
+        rw [hccon]
+        have e1 : c = b.set mm (cellSym lb1 false (some q') bb t1) := by
+          rw [hc, hb2, ← hul]; exact (set_at_length _ _ _ _).symm
+        rw [e1, hbeq, hlb1, hbb, ht1,
+          encode_left_interior worig cfg q' a' mm hmm, ← hmm,
+          List.set_comm _ _ (by omega : mm ≠ cfg.tape.head.val), List.set_set]
     · -- resolution → dead phase (SP_stuck)
       obtain ⟨q'2, a'2, t, lb, rb, dir2, rfl⟩ := h
       simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
@@ -951,10 +1074,573 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
       obtain ⟨a, t1, t2, lb, rb, rfl⟩ := h
       have hc2 := hbel (symbol.terminal t2) (by rw [hb2]; simp)
       simp [cellPendingSym, cellSym] at hc2
-  · -- **GEN.** remaining work
-    sorry
-  · -- **CLEANUP.** remaining work
-    sorry
+  · -- **GEN.** `b = (encode cur).set k pend` with the head pinned at the neighbour `cur.head = k±1`
+    obtain ⟨m, worig, cur, k, q'g, dir, hreach, hrel, hbeq⟩ := hGEN
+    have hknb : k.val ≠ cur.tape.head.val := by rcases hrel with ⟨_, hr⟩ | ⟨_, hr⟩ <;> omega
+    have hbel : ∀ x ∈ b, x = cellPendingSym (decide (k.val = 0)) (decide (k.val = m)) dir q'g
+          (cur.tape.contents k) (worig k)
+        ∨ ∃ lb rb st a t, x = symbol.nonterminal (MyhillNT.cell lb rb st a t) := by
+      intro x hx
+      obtain ⟨i, hi0, hbi⟩ := List.getElem_of_mem hx
+      have hi : i < m + 1 := by rw [hbeq, List.length_set, encode_length] at hi0; exact hi0
+      have hbi' : b[i]? = some x := by rw [List.getElem?_eq_getElem hi0, hbi]
+      rw [hbeq, List.getElem?_set] at hbi'
+      by_cases hik : k.val = i
+      · left
+        rw [if_pos hik, if_pos (by rw [encode_length]; exact k.isLt)] at hbi'
+        exact (Option.some.inj hbi').symm
+      · right
+        rw [if_neg hik, List.getElem?_eq_getElem (by rw [encode_length]; exact hi),
+          encode_getElem worig cur i hi] at hbi'
+        exact ⟨_, _, _, _, _, (Option.some.inj hbi').symm⟩
+    have hin := hbel (symbol.nonterminal r.input_nonterminal) (by rw [hb2]; simp)
+    have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, encode_length]
+    -- the unique head-state cell of `b` sits at `cur.head` and reveals `cur`'s data
+    have hhead : ∀ (uu : List (symbol T (MyhillNT T Γ Λ))) (lb rb : Bool) (q : Λ) (aa : Γ) (tt : T)
+        (vv : List (symbol T (MyhillNT T Γ Λ))),
+        b = uu ++ symbol.nonterminal (MyhillNT.cell lb rb (some q) aa tt) :: vv →
+        uu.length = cur.tape.head.val ∧ lb = decide (cur.tape.head.val = 0) ∧
+          rb = decide (cur.tape.head.val = m) ∧ q = cur.state ∧ aa = cur.tape.read ∧
+          tt = worig cur.tape.head := by
+      intro uu lb rb q aa tt vv hbd
+      have huu_lt : uu.length < m + 1 := by
+        have hh := congrArg List.length hbd
+        rw [hblen, List.length_append, List.length_cons] at hh; omega
+      have h1 : b[uu.length]? = some (cellSym lb rb (some q) aa tt) := by rw [hbd]; simp
+      rw [hbeq, List.getElem?_set] at h1
+      by_cases hku : k.val = uu.length
+      · rw [if_pos hku, if_pos (by rw [encode_length]; exact k.isLt)] at h1
+        simp [cellPendingSym, cellSym] at h1
+      · rw [if_neg hku, List.getElem?_eq_getElem (by rw [encode_length]; exact huu_lt),
+          encode_getElem worig cur uu.length huu_lt] at h1
+        by_cases hh2 : (⟨uu.length, huu_lt⟩ : Fin (m + 1)) = cur.tape.head
+        · rw [if_pos hh2, hh2] at h1
+          have hue : uu.length = cur.tape.head.val := congrArg Fin.val hh2
+          simp only [Option.some.injEq, cellSym, symbol.nonterminal.injEq, MyhillNT.cell.injEq] at h1
+          obtain ⟨e1, e2, e3, e4, e5⟩ := h1
+          exact ⟨hue, by rw [← e1, hue], by rw [← e2, hue], e3.symm, e4.symm, e5.symm⟩
+        · rw [if_neg hh2] at h1; simp [cellSym] at h1
+    rcases myhill_rule_inv M embed r hr with
+      h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h
+    · obtain ⟨t, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨t, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨t, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨t, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · -- sim stay → GEN (cur advances, pending stays)
+      obtain ⟨q, q', aa, a', t, lb, rb, htrans, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      obtain ⟨hhd, hlb, hrb, hq, ha, ht⟩ := hhead u lb rb q aa t v hb2
+      refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inl
+        ⟨m, worig, ⟨q', (cur.tape.write a').moveHead DLBA.Dir.stay⟩, k, q'g, dir, ?_, ?_, ?_⟩)))))
+      · refine hreach.tail ⟨q', a', DLBA.Dir.stay, ?_, rfl⟩
+        rw [hq, ha] at htrans; exact htrans
+      · have hh : ((cur.tape.write a').moveHead DLBA.Dir.stay).head.val = cur.tape.head.val := by
+          simp [moveHead_stay, DLBA.BoundedTape.write]
+        rw [hh]; exact hrel
+      · have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
+        have hcck : ((cur.tape.write a').moveHead DLBA.Dir.stay).contents k
+            = cur.tape.contents k := by
+          rw [moveHead_contents]; simp [DLBA.BoundedTape.write, Function.update_of_ne hkne]
+        rw [hcck]
+        have hcset : c = b.set cur.tape.head.val (cellSym lb rb (some q') a' t) := by
+          rw [hc, hb2, ← hhd]; exact (set_at_length _ _ _ _).symm
+        rw [hcset, hbeq, hlb, hrb, ht, List.set_comm _ _ hknb,
+          encode_set_head worig cur q' a']
+    · -- sim right-boundary → GEN (head clamped at m)
+      obtain ⟨q, q', aa, a', t, lb, htrans, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      obtain ⟨hhd, hlb, hrb, hq, ha, ht⟩ := hhead u lb true q aa t v hb2
+      have hchm : cur.tape.head.val = m := of_decide_eq_true hrb.symm
+      have hmr : (cur.tape.write a').moveHead DLBA.Dir.right = cur.tape.write a' :=
+        moveHead_right_at_right _ hchm
+      refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inl
+        ⟨m, worig, ⟨q', (cur.tape.write a').moveHead DLBA.Dir.right⟩, k, q'g, dir, ?_, ?_, ?_⟩)))))
+      · refine hreach.tail ⟨q', a', DLBA.Dir.right, ?_, rfl⟩
+        rw [hq, ha] at htrans; exact htrans
+      · have hcheq : ((cur.tape.write a').moveHead DLBA.Dir.right).head.val = cur.tape.head.val := by
+          rw [hmr]; rfl
+        rw [hcheq]; exact hrel
+      · have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
+        have hcck : ((cur.tape.write a').moveHead DLBA.Dir.right).contents k = cur.tape.contents k := by
+          rw [hmr]; simp [DLBA.BoundedTape.write, Function.update_of_ne hkne]
+        rw [hcck]
+        have houtcell : cellSym lb true (some q') a' t = cellSym (decide (cur.tape.head.val = 0))
+            (decide (cur.tape.head.val = m)) (some q') a' (worig cur.tape.head) := by
+          rw [hlb, hrb, ht]
+        have hcset : c = b.set cur.tape.head.val (cellSym lb true (some q') a' t) := by
+          rw [hc, hb2, ← hhd]; exact (set_at_length _ _ _ _).symm
+        rw [hcset, houtcell, hbeq, List.set_comm _ _ hknb,
+          show (cur.tape.write a').moveHead DLBA.Dir.right
+            = (cur.tape.write a').moveHead DLBA.Dir.stay from by rw [hmr, moveHead_stay],
+          encode_set_head worig cur q' a']
+    · -- sim left-boundary → GEN (head clamped at 0)
+      obtain ⟨q, q', aa, a', t, rb, htrans, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      obtain ⟨hhd, hlb, hrb, hq, ha, ht⟩ := hhead u true rb q aa t v hb2
+      have hch0 : cur.tape.head.val = 0 := of_decide_eq_true hlb.symm
+      have hml : (cur.tape.write a').moveHead DLBA.Dir.left = cur.tape.write a' :=
+        moveHead_left_at_left _ hch0
+      refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inl
+        ⟨m, worig, ⟨q', (cur.tape.write a').moveHead DLBA.Dir.left⟩, k, q'g, dir, ?_, ?_, ?_⟩)))))
+      · refine hreach.tail ⟨q', a', DLBA.Dir.left, ?_, rfl⟩
+        rw [hq, ha] at htrans; exact htrans
+      · have hcheq : ((cur.tape.write a').moveHead DLBA.Dir.left).head.val = cur.tape.head.val := by
+          rw [hml]; rfl
+        rw [hcheq]; exact hrel
+      · have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
+        have hcck : ((cur.tape.write a').moveHead DLBA.Dir.left).contents k = cur.tape.contents k := by
+          rw [hml]; simp [DLBA.BoundedTape.write, Function.update_of_ne hkne]
+        rw [hcck]
+        have houtcell : cellSym true rb (some q') a' t = cellSym (decide (cur.tape.head.val = 0))
+            (decide (cur.tape.head.val = m)) (some q') a' (worig cur.tape.head) := by
+          rw [hlb, hrb, ht]
+        have hcset : c = b.set cur.tape.head.val (cellSym true rb (some q') a' t) := by
+          rw [hc, hb2, ← hhd]; exact (set_at_length _ _ _ _).symm
+        rw [hcset, houtcell, hbeq, List.set_comm _ _ hknb,
+          show (cur.tape.write a').moveHead DLBA.Dir.left
+            = (cur.tape.write a').moveHead DLBA.Dir.stay from by rw [hml, moveHead_stay],
+          encode_set_head worig cur q' a']
+    · -- r-interior step1 boundary: blocked (head would be at 0, or the right neighbour is the pending)
+      obtain ⟨q, q', aa, a', t1, t2, rb2, hi, bb, htrans, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      exfalso
+      obtain ⟨hhd, hlb, _, _, _, _⟩ :=
+        hhead u true false q aa t1 (cellSym false rb2 hi bb t2 :: v) hb2
+      have hch0 : cur.tape.head.val = 0 := of_decide_eq_true hlb.symm
+      rcases hrel with ⟨_, hr⟩ | ⟨_, hr⟩
+      · omega
+      · have h2 : b[u.length + 1]? = some (cellSym false rb2 hi bb t2) := by rw [hb2]; simp
+        rw [show u.length + 1 = k.val from by omega, hbeq, List.getElem?_set, if_pos rfl,
+          if_pos (by rw [encode_length]; exact k.isLt)] at h2
+        simp [cellPendingSym, cellSym] at h2
+    · -- r-interior step1 interior: blocked (the left/right neighbour on the move side is the pending)
+      obtain ⟨q, q', aa, a', t1, t2, rb2, hi, bb, lb0, a0, t0, htrans, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      exfalso
+      have hb2' := hb2.trans (List.append_cons u (cellSym lb0 false (none : Option Λ) a0 t0)
+        (cellSym false false (some q) aa t1 :: cellSym false rb2 hi bb t2 :: v))
+      obtain ⟨hhd, _, _, _, _, _⟩ := hhead _ _ _ _ _ _ _ hb2'
+      rw [List.length_append, List.length_singleton] at hhd
+      rcases hrel with ⟨_, hr⟩ | ⟨_, hr⟩
+      · have h2 : b[u.length]? = some (cellSym lb0 false none a0 t0) := by rw [hb2]; simp
+        rw [show u.length = k.val from by omega, hbeq, List.getElem?_set, if_pos rfl,
+          if_pos (by rw [encode_length]; exact k.isLt)] at h2
+        simp [cellPendingSym, cellSym] at h2
+      · have h2 : b[u.length + 2]? = some (cellSym false rb2 hi bb t2) := by rw [hb2]; simp
+        rw [show u.length + 2 = k.val from by omega, hbeq, List.getElem?_set, if_pos rfl,
+          if_pos (by rw [encode_length]; exact k.isLt)] at h2
+        simp [cellPendingSym, cellSym] at h2
+    · -- r-interior step2: blocked — the cell `step2` would consume is the head cell, not stateless
+      obtain ⟨q'2, a'2, t1, t2, lb1, rb2, bb, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      exfalso
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, encode_length]
+      have hpe : cellPendingSym lb1 false true q'2 a'2 t1
+          = cellPendingSym (decide (k.val = 0)) (decide (k.val = m)) dir q'g
+              (cur.tape.contents k) (worig k) := by
+        rcases hbel (cellPendingSym lb1 false true q'2 a'2 t1) (by rw [hb2]; simp) with
+          hp | ⟨_, _, _, _, _, hs⟩
+        · exact hp
+        · simp [cellPendingSym, cellSym] at hs
+      simp only [cellPendingSym, symbol.nonterminal.injEq, MyhillNT.cellPending.injEq] at hpe
+      obtain ⟨_, _, hdir, _, _, _⟩ := hpe
+      subst dir
+      have hch : cur.tape.head.val = k.val + 1 := by
+        rcases hrel with ⟨_, hr⟩ | ⟨hf, _⟩
+        · exact hr
+        · simp at hf
+      have hul_lt : u.length + 1 < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hul : u.length = k.val := by
+        by_contra hne
+        have h1 : b[u.length]? = some (cellPendingSym lb1 false true q'2 a'2 t1) := by rw [hb2]; simp
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hne),
+          List.getElem?_eq_getElem (by rw [encode_length]; omega),
+          encode_getElem worig cur u.length (by omega)] at h1
+        simp [cellPendingSym, cellSym] at h1
+      have h2 : b[u.length + 1]? = some (cellSym false rb2 none bb t2) := by rw [hb2]; simp
+      rw [hbeq, List.getElem?_set, if_neg (by omega : ¬ k.val = u.length + 1),
+        List.getElem?_eq_getElem (by rw [encode_length]; exact hul_lt),
+        encode_getElem worig cur (u.length + 1) hul_lt,
+        if_pos (by simp only [Fin.ext_iff]; omega)] at h2
+      simp [cellSym] at h2
+    · -- l-interior step1 boundary: blocked (head at m forces k = m+1, or left neighbour is pending)
+      obtain ⟨q, q', aa, a', t1, t2, lb1, hi, bb, htrans, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      exfalso
+      have hb2' := hb2.trans (List.append_cons u (cellSym lb1 false hi bb t1)
+        (cellSym false true (some q) aa t2 :: v))
+      obtain ⟨hhd, _, hrb, _, _, _⟩ := hhead _ _ _ _ _ _ _ hb2'
+      rw [List.length_append, List.length_singleton] at hhd
+      have hchm : cur.tape.head.val = m := of_decide_eq_true hrb.symm
+      rcases hrel with ⟨_, hr⟩ | ⟨_, hr⟩
+      · have h2 : b[u.length]? = some (cellSym lb1 false hi bb t1) := by rw [hb2]; simp
+        rw [show u.length = k.val from by omega, hbeq, List.getElem?_set, if_pos rfl,
+          if_pos (by rw [encode_length]; exact k.isLt)] at h2
+        simp [cellPendingSym, cellSym] at h2
+      · have := k.isLt; omega
+    · -- l-interior step1 interior: blocked (the left/right neighbour on the move side is the pending)
+      obtain ⟨q, q', aa, a', t1, t2, lb1, hi, bb, rb0, a0, t0, htrans, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      exfalso
+      have hb2' := hb2.trans (List.append_cons u (cellSym lb1 false hi bb t1)
+        (cellSym false false (some q) aa t2 :: cellSym false rb0 (none : Option Λ) a0 t0 :: v))
+      obtain ⟨hhd, _, _, _, _, _⟩ := hhead _ _ _ _ _ _ _ hb2'
+      rw [List.length_append, List.length_singleton] at hhd
+      rcases hrel with ⟨_, hr⟩ | ⟨_, hr⟩
+      · have h2 : b[u.length]? = some (cellSym lb1 false hi bb t1) := by rw [hb2]; simp
+        rw [show u.length = k.val from by omega, hbeq, List.getElem?_set, if_pos rfl,
+          if_pos (by rw [encode_length]; exact k.isLt)] at h2
+        simp [cellPendingSym, cellSym] at h2
+      · have h2 : b[u.length + 2]? = some (cellSym false rb0 none a0 t0) := by rw [hb2]; simp
+        rw [show u.length + 2 = k.val from by omega, hbeq, List.getElem?_set, if_pos rfl,
+          if_pos (by rw [encode_length]; exact k.isLt)] at h2
+        simp [cellPendingSym, cellSym] at h2
+    · -- l-interior step2: blocked — the cell `step2` would consume is the head cell, not stateless
+      obtain ⟨q'2, a'2, t1, t2, lb1, rb2, bb, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      exfalso
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, encode_length]
+      have hpe : cellPendingSym false rb2 false q'2 a'2 t2
+          = cellPendingSym (decide (k.val = 0)) (decide (k.val = m)) dir q'g
+              (cur.tape.contents k) (worig k) := by
+        rcases hbel (cellPendingSym false rb2 false q'2 a'2 t2) (by rw [hb2]; simp) with
+          hp | ⟨_, _, _, _, _, hs⟩
+        · exact hp
+        · simp [cellPendingSym, cellSym] at hs
+      simp only [cellPendingSym, symbol.nonterminal.injEq, MyhillNT.cellPending.injEq] at hpe
+      obtain ⟨_, _, hdir, _, _, _⟩ := hpe
+      subst dir
+      have hch : k.val = cur.tape.head.val + 1 := by
+        rcases hrel with ⟨hf, _⟩ | ⟨_, hr⟩
+        · simp at hf
+        · exact hr
+      have hul_lt : u.length + 1 < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hul : u.length + 1 = k.val := by
+        by_contra hne
+        have h1 : b[u.length + 1]? = some (cellPendingSym false rb2 false q'2 a'2 t2) := by
+          rw [hb2]; simp
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hne),
+          List.getElem?_eq_getElem (by rw [encode_length]; exact hul_lt),
+          encode_getElem worig cur (u.length + 1) hul_lt] at h1
+        simp [cellPendingSym, cellSym] at h1
+      have h2 : b[u.length]? = some (cellSym lb1 false none bb t1) := by rw [hb2]; simp
+      rw [hbeq, List.getElem?_set, if_neg (by omega : ¬ k.val = u.length),
+        List.getElem?_eq_getElem (by rw [encode_length]; omega),
+        encode_getElem worig cur u.length (by omega),
+        if_pos (by simp only [Fin.ext_iff]; omega)] at h2
+      simp [cellSym] at h2
+    · -- resolution → simulation phase (`encode cur`)
+      obtain ⟨q'2, a'2, t, lb, rb, dir2, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, encode_length]
+      have hpe : cellPendingSym lb rb dir2 q'2 a'2 t
+          = cellPendingSym (decide (k.val = 0)) (decide (k.val = m)) dir q'g
+              (cur.tape.contents k) (worig k) := by
+        rcases hbel (cellPendingSym lb rb dir2 q'2 a'2 t) (by rw [hb2]; simp) with
+          hp | ⟨_, _, _, _, _, hs⟩
+        · exact hp
+        · simp [cellPendingSym, cellSym] at hs
+      have hul_lt : u.length < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hul : u.length = k.val := by
+        by_contra hne
+        have h1 : b[u.length]? = some (cellPendingSym lb rb dir2 q'2 a'2 t) := by rw [hb2]; simp
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hne),
+          List.getElem?_eq_getElem (by rw [encode_length]; exact hul_lt),
+          encode_getElem worig cur u.length hul_lt] at h1
+        simp [cellPendingSym, cellSym] at h1
+      simp only [cellPendingSym, symbol.nonterminal.injEq, MyhillNT.cellPending.injEq] at hpe
+      obtain ⟨hlb, hrb, _, _, ha2, ht⟩ := hpe
+      refine Or.inr (Or.inr (Or.inl ⟨m, worig, cur, hreach, ?_⟩))
+      have hcset : c = b.set u.length (cellSym lb rb none a'2 t) := by
+        rw [hc, hb2]; exact (set_at_length _ _ _ _).symm
+      have hek : (encode worig cur)[k.val]'(by rw [encode_length]; exact k.isLt)
+          = cellSym (decide (k.val = 0)) (decide (k.val = m)) none (cur.tape.contents k) (worig k) := by
+        rw [encode_getElem worig cur k.val k.isLt, if_neg (by simp only [Fin.ext_iff]; exact hknb)]
+      rw [hcset, hbeq, hul, List.set_set, hlb, hrb, ha2, ht, ← hek, List.set_getElem_self]
+    · -- accept → CLEANUP (head cell becomes a terminal; pending lingers, M accepts cur)
+      obtain ⟨q, aa, t, lb, rb, hacc, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      obtain ⟨hhd, hlb, hrb, hq, ha, ht⟩ := hhead u lb rb q aa t v hb2
+      have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
+      have hcset : c = b.set cur.tape.head.val (symbol.terminal (worig cur.tape.head)) := by
+        rw [hc, ht, hb2, ← hhd]; exact (set_at_length _ _ _ _).symm
+      refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inr
+        ⟨m, worig, (encode worig cur).set cur.tape.head.val (symbol.terminal (worig cur.tape.head)),
+          k, cur.tape.head, q'g, cur.tape.contents k, dir,
+          ⟨cur, hreach, by rw [← hq]; exact hacc⟩, by rw [List.length_set, encode_length],
+          ?_, ?_, hrel, ⟨worig cur.tape.head, ?_⟩, ?_⟩)))))
+      · -- cleanup structure
+        intro i
+        rw [List.getElem?_set]
+        by_cases hih : cur.tape.head.val = i.val
+        · left; rw [if_pos hih, if_pos (by rw [encode_length]; exact cur.tape.head.isLt)]
+          congr 2; exact congrArg worig (Fin.ext hih)
+        · right; rw [if_neg hih, List.getElem?_eq_getElem (by rw [encode_length]; exact i.isLt),
+            encode_getElem worig cur i.val i.isLt, if_neg (fun he => hih (congrArg Fin.val he).symm)]
+          exact ⟨_, _, _, rfl⟩
+      · -- base[k] is the stateless cell at k
+        rw [List.getElem?_set, if_neg (Ne.symm hknb),
+          List.getElem?_eq_getElem (by rw [encode_length]; exact k.isLt),
+          encode_getElem worig cur k.val k.isLt,
+          if_neg (by simp only [Fin.ext_iff]; exact hknb)]
+      · -- base[nb] = terminal
+        rw [List.getElem?_set_self (by rw [encode_length]; exact cur.tape.head.isLt)]
+      · -- s = base.set k pend
+        rw [hcset, hbeq, List.set_comm _ _ hknb]
+    · -- left propagation: blocked (no terminal context)
+      obtain ⟨t1, a, t2, lb, rb, rfl⟩ := h
+      have hc2 := hbel (symbol.terminal t1) (by rw [hb2]; simp)
+      simp [cellPendingSym, cellSym] at hc2
+    · -- right propagation: blocked
+      obtain ⟨a, t1, t2, lb, rb, rfl⟩ := h
+      have hc2 := hbel (symbol.terminal t2) (by rw [hb2]; simp)
+      simp [cellPendingSym, cellSym] at hc2
+  · -- **CLEANUP.** `b = base.set k pend` where `base` is a cleanup row (M accepts), `nb` a terminal
+    obtain ⟨m, worig, base, k, nb, q', a', dir, hAcc, hbl, hstruct, hbk, hrelk, hnb, hbeq⟩ := hCLEAN
+    have hbel : ∀ x ∈ b, x = cellPendingSym (decide (k.val = 0)) (decide (k.val = m)) dir q' a'
+          (worig k) ∨ (∃ t, x = symbol.terminal t)
+        ∨ (∃ lb rb aa t, x = cellSym lb rb none aa t) := by
+      intro x hx
+      obtain ⟨i, hi0, hbi⟩ := List.getElem_of_mem hx
+      have hi : i < m + 1 := by rw [hbeq, List.length_set, hbl] at hi0; exact hi0
+      have hbi' : b[i]? = some x := by rw [List.getElem?_eq_getElem hi0, hbi]
+      rw [hbeq, List.getElem?_set] at hbi'
+      by_cases hik : k.val = i
+      · left; rw [if_pos hik, if_pos (by rw [hbl]; exact k.isLt)] at hbi'
+        exact (Option.some.inj hbi').symm
+      · rw [if_neg hik] at hbi'
+        rcases hstruct ⟨i, hi⟩ with ht | ⟨lb, rb, aa, hst⟩
+        · right; left; exact ⟨_, Option.some.inj (hbi'.symm.trans ht)⟩
+        · right; right; exact ⟨_, _, _, _, Option.some.inj (hbi'.symm.trans hst)⟩
+    have hin := hbel (symbol.nonterminal r.input_nonterminal) (by rw [hb2]; simp)
+    rcases myhill_rule_inv M embed r hr with
+      h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h
+    · obtain ⟨t, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨t, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨t, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨t, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨q, q'', a, a'', t, lb, rb, _, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨q, q'', a, a'', t, lb, _, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨q, q'', a, a'', t, rb, _, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨q, q'', a, a'', t1, t2, rb2, hi, bb, _, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨q, q'', a, a'', t1, t2, rb2, hi, bb, lb0, a0, t0, _, rfl⟩ := h
+      simp [cellPendingSym, cellSym] at hin
+    · -- r-interior step2: blocked — the move-side neighbour `nb` is a terminal, not stateless
+      obtain ⟨q'2, a'2, t1, t2, lb1, rb2, bb, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      exfalso
+      have hpe : cellPendingSym lb1 false true q'2 a'2 t1
+          = cellPendingSym (decide (k.val = 0)) (decide (k.val = m)) dir q' a' (worig k) := by
+        rcases hbel (cellPendingSym lb1 false true q'2 a'2 t1) (by rw [hb2]; simp) with
+          hp | (⟨_, hs⟩ | ⟨_, _, _, _, hs⟩)
+        · exact hp
+        · simp [cellPendingSym] at hs
+        · simp [cellPendingSym, cellSym] at hs
+      simp only [cellPendingSym, symbol.nonterminal.injEq, MyhillNT.cellPending.injEq] at hpe
+      obtain ⟨_, _, hdir, _, _, _⟩ := hpe
+      subst dir
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, hbl]
+      have hnbk : nb.val = k.val + 1 := by
+        rcases hrelk with ⟨_, hr⟩ | ⟨hf, _⟩
+        · exact hr
+        · simp at hf
+      have hul_lt : u.length + 1 < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hul : u.length = k.val := by
+        by_contra hne
+        have h1 : b[u.length]? = some (cellPendingSym lb1 false true q'2 a'2 t1) := by
+          rw [hb2]; simp
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hne)] at h1
+        rcases hstruct ⟨u.length, by omega⟩ with hts | ⟨_, _, _, hts⟩
+        · exact absurd (h1.symm.trans hts) (by simp [cellPendingSym])
+        · exact absurd (h1.symm.trans hts) (by simp [cellPendingSym, cellSym])
+      obtain ⟨tnb, htnb⟩ := hnb
+      have h2 : b[u.length + 1]? = some (cellSym false rb2 none bb t2) := by rw [hb2]; simp
+      rw [hbeq, List.getElem?_set, if_neg (by omega : ¬ k.val = u.length + 1),
+        show u.length + 1 = nb.val from by omega] at h2
+      rw [htnb] at h2; simp [cellSym] at h2
+    · obtain ⟨q, q'', a, a'', t1, t2, lb1, hi, bb, _, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · obtain ⟨q, q'', a, a'', t1, t2, lb1, hi, bb, rb0, a0, t0, _, rfl⟩ := h
+      simp [cellPendingSym, cellSym] at hin
+    · -- l-interior step2: blocked — the move-side neighbour `nb` is a terminal, not stateless
+      obtain ⟨q'2, a'2, t1, t2, lb1, rb2, bb, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      exfalso
+      have hpe : cellPendingSym false rb2 false q'2 a'2 t2
+          = cellPendingSym (decide (k.val = 0)) (decide (k.val = m)) dir q' a' (worig k) := by
+        rcases hbel (cellPendingSym false rb2 false q'2 a'2 t2) (by rw [hb2]; simp) with
+          hp | (⟨_, hs⟩ | ⟨_, _, _, _, hs⟩)
+        · exact hp
+        · simp [cellPendingSym] at hs
+        · simp [cellPendingSym, cellSym] at hs
+      simp only [cellPendingSym, symbol.nonterminal.injEq, MyhillNT.cellPending.injEq] at hpe
+      obtain ⟨_, _, hdir, _, _, _⟩ := hpe
+      subst dir
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, hbl]
+      have hnbk : k.val = nb.val + 1 := by
+        rcases hrelk with ⟨hf, _⟩ | ⟨_, hr⟩
+        · simp at hf
+        · exact hr
+      have hul_lt : u.length + 1 < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hul : u.length + 1 = k.val := by
+        by_contra hne
+        have h1 : b[u.length + 1]? = some (cellPendingSym false rb2 false q'2 a'2 t2) := by
+          rw [hb2]; simp
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hne)] at h1
+        rcases hstruct ⟨u.length + 1, by omega⟩ with hts | ⟨_, _, _, hts⟩
+        · exact absurd (h1.symm.trans hts) (by simp [cellPendingSym])
+        · exact absurd (h1.symm.trans hts) (by simp [cellPendingSym, cellSym])
+      obtain ⟨tnb, htnb⟩ := hnb
+      have h2 : b[u.length]? = some (cellSym lb1 false none bb t1) := by rw [hb2]; simp
+      rw [hbeq, List.getElem?_set, if_neg (by omega : ¬ k.val = u.length),
+        show u.length = nb.val from by omega] at h2
+      rw [htnb] at h2; simp [cellSym] at h2
+    · -- resolution → SP_cleanup (the pending dissolves, recovering the cleanup row `base`)
+      obtain ⟨q'2, a'2, t, lb, rb, dir2, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc, List.singleton_append]
+        at hb2 hc
+      have hpe : cellPendingSym lb rb dir2 q'2 a'2 t
+          = cellPendingSym (decide (k.val = 0)) (decide (k.val = m)) dir q' a' (worig k) := by
+        rcases hbel (cellPendingSym lb rb dir2 q'2 a'2 t) (by rw [hb2]; simp) with
+          hp | (⟨_, hs⟩ | ⟨_, _, _, _, hs⟩)
+        · exact hp
+        · simp [cellPendingSym] at hs
+        · simp [cellPendingSym, cellSym] at hs
+      have hbl_lt : u.length < m + 1 := by
+        have hh := congrArg List.length hb2
+        rw [hbeq, List.length_set, hbl, List.length_append, List.length_cons] at hh; omega
+      have hul : u.length = k.val := by
+        by_contra hne
+        have h1 : b[u.length]? = some (cellPendingSym lb rb dir2 q'2 a'2 t) := by rw [hb2]; simp
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hne)] at h1
+        rcases hstruct ⟨u.length, hbl_lt⟩ with hts | ⟨_, _, _, hts⟩
+        · rw [h1] at hts; simp [cellPendingSym] at hts
+        · rw [h1] at hts; simp [cellPendingSym, cellSym] at hts
+      simp only [cellPendingSym, symbol.nonterminal.injEq, MyhillNT.cellPending.injEq] at hpe
+      obtain ⟨hlb, hrb, _, _, ha2, ht⟩ := hpe
+      have hceq : c = base := by
+        have e1 : c = b.set k.val (cellSym lb rb none a'2 t) := by
+          rw [hc, hb2, ← hul]; exact (set_at_length _ _ _ _).symm
+        rw [e1, hbeq, List.set_set, hlb, hrb, ha2, ht]
+        have hbk' := hbk
+        rw [List.getElem?_eq_getElem (by rw [hbl]; exact k.isLt)] at hbk'
+        rw [← (Option.some.inj hbk'), List.set_getElem_self]
+      exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
+        ⟨m, worig, hAcc, by rw [hceq]; exact hbl, by rw [hceq]; exact hstruct⟩))))
+    · obtain ⟨q, a, t, lb, rb, _, rfl⟩ := h; simp [cellPendingSym, cellSym] at hin
+    · -- left propagation → CLEANUP (a stateless cell adjacent to a terminal becomes its terminal;
+      -- the pending lingers at `k`, so the cleanup row `base` grows one more terminal)
+      obtain ⟨t1, a, t2, lb, rb, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc] at hb2 hc
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, hbl]
+      have hk : u.length + 1 < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hcellk : b[u.length + 1]? = some (cellSym lb rb none a t2) := by
+        rw [hb2]; simp [List.getElem?_append_right]
+      have hbk_pend : b[k.val]? = some (cellPendingSym (decide (k.val = 0)) (decide (k.val = m))
+          dir q' a' (worig k)) := by
+        rw [hbeq, List.getElem?_set_self (by rw [hbl]; exact k.isLt)]
+      have hpk : u.length + 1 ≠ k.val := by
+        intro he; rw [he, hbk_pend] at hcellk; simp [cellPendingSym, cellSym] at hcellk
+      have hnbk_ne : nb.val ≠ k.val := by
+        rcases hrelk with ⟨_, hr⟩ | ⟨_, hr⟩ <;> omega
+      obtain ⟨tnb, htnb⟩ := hnb
+      have hbnb : b[nb.val]? = some (symbol.terminal tnb) := by
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hnbk_ne)]; exact htnb
+      have hpnb : u.length + 1 ≠ nb.val := by
+        intro he; rw [he, hbnb] at hcellk; simp [cellSym] at hcellk
+      have hbase_p : base[u.length + 1]? = some (cellSym lb rb none a t2) := by
+        have hcp := hcellk
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hpk)] at hcp; exact hcp
+      have ht2 : t2 = worig ⟨u.length + 1, hk⟩ := by
+        rcases hstruct ⟨u.length + 1, hk⟩ with h2 | ⟨lb', rb', a', h2⟩
+        · exact absurd (hbase_p.symm.trans h2) (by simp [cellSym])
+        · have h3 := hbase_p.symm.trans h2
+          simp only [Option.some.injEq, cellSym, symbol.nonterminal.injEq, MyhillNT.cell.injEq] at h3
+          tauto
+      have hcset : c = b.set (u.length + 1) (symbol.terminal t2) := by
+        rw [hc, hb2]; simp [List.set_append_right]
+      refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inr
+        ⟨m, worig, base.set (u.length + 1) (symbol.terminal t2), k, nb, q', a', dir,
+          hAcc, ?_, ?_, ?_, hrelk, ⟨tnb, ?_⟩, ?_⟩)))))
+      · rw [List.length_set]; exact hbl
+      · intro i
+        rw [List.getElem?_set]
+        by_cases hip : u.length + 1 = i.val
+        · left; rw [if_pos hip, if_pos (by rw [hbl]; omega), ht2]
+          exact congrArg (fun j => some (symbol.terminal (worig j))) (Fin.ext hip)
+        · rw [if_neg hip]; exact hstruct i
+      · rw [List.getElem?_set, if_neg hpk]; exact hbk
+      · rw [List.getElem?_set, if_neg hpnb]; exact htnb
+      · rw [hcset, hbeq, List.set_comm _ _ (Ne.symm hpk)]
+    · -- right propagation → CLEANUP (symmetric)
+      obtain ⟨a, t1, t2, lb, rb, rfl⟩ := h
+      simp only [List.nil_append, List.append_nil, List.append_assoc] at hb2 hc
+      have hblen : b.length = m + 1 := by rw [hbeq, List.length_set, hbl]
+      have hk : u.length < m + 1 := by
+        have hh := congrArg List.length hb2
+        simp only [hblen, List.length_append, List.length_cons] at hh; omega
+      have hcellk : b[u.length]? = some (cellSym lb rb none a t1) := by
+        rw [hb2]; simp [List.getElem?_append_right]
+      have hbk_pend : b[k.val]? = some (cellPendingSym (decide (k.val = 0)) (decide (k.val = m))
+          dir q' a' (worig k)) := by
+        rw [hbeq, List.getElem?_set_self (by rw [hbl]; exact k.isLt)]
+      have hpk : u.length ≠ k.val := by
+        intro he; rw [he, hbk_pend] at hcellk; simp [cellPendingSym, cellSym] at hcellk
+      have hnbk_ne : nb.val ≠ k.val := by
+        rcases hrelk with ⟨_, hr⟩ | ⟨_, hr⟩ <;> omega
+      obtain ⟨tnb, htnb⟩ := hnb
+      have hbnb : b[nb.val]? = some (symbol.terminal tnb) := by
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hnbk_ne)]; exact htnb
+      have hpnb : u.length ≠ nb.val := by
+        intro he; rw [he, hbnb] at hcellk; simp [cellSym] at hcellk
+      have hbase_p : base[u.length]? = some (cellSym lb rb none a t1) := by
+        have hcp := hcellk
+        rw [hbeq, List.getElem?_set, if_neg (Ne.symm hpk)] at hcp; exact hcp
+      have ht1 : t1 = worig ⟨u.length, hk⟩ := by
+        rcases hstruct ⟨u.length, hk⟩ with h2 | ⟨lb', rb', a', h2⟩
+        · exact absurd (hbase_p.symm.trans h2) (by simp [cellSym])
+        · have h3 := hbase_p.symm.trans h2
+          simp only [Option.some.injEq, cellSym, symbol.nonterminal.injEq, MyhillNT.cell.injEq] at h3
+          tauto
+      have hcset : c = b.set u.length (symbol.terminal t1) := by
+        rw [hc, hb2]; simp [List.set_append_right]
+      refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inr
+        ⟨m, worig, base.set u.length (symbol.terminal t1), k, nb, q', a', dir,
+          hAcc, ?_, ?_, ?_, hrelk, ⟨tnb, ?_⟩, ?_⟩)))))
+      · rw [List.length_set]; exact hbl
+      · intro i
+        rw [List.getElem?_set]
+        by_cases hip : u.length = i.val
+        · left; rw [if_pos hip, if_pos (by rw [hbl]; omega), ht1]
+          exact congrArg (fun j => some (symbol.terminal (worig j))) (Fin.ext hip)
+        · rw [if_neg hip]; exact hstruct i
+      · rw [List.getElem?_set, if_neg hpk]; exact hbk
+      · rw [List.getElem?_set, if_neg hpnb]; exact htnb
+      · rw [hcset, hbeq, List.set_comm _ _ (Ne.symm hpk)]
 
 /-- **Soundness.** Every terminal word derived by the Myhill grammar is accepted by the LBA.
 
