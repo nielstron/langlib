@@ -24,7 +24,7 @@ is context-sensitive:
 This file:
 - proves the shape predicate `grammar_context_sensitive ∘ ofCode` is a `PrimrecPred`
   (so the subtype is `Primcodable`);
-- packages `ComputableMembership is_CS contextSensitiveLanguageOf'`, where
+- packages `ComputableMembership CS contextSensitiveLanguageOf'`, where
   `contextSensitiveLanguageOf'` is the restriction to `CSCode`.
 -/
 
@@ -242,10 +242,11 @@ theorem csLang_eq {c : Code T} (hcs : grammar_context_sensitive (ofCode c)) :
   exact ⟨fun hv => memCode_sound c v hv, fun hv => memCode_complete c v hcs hv⟩
 
 /-- The CS code presentation is adequate: it denotes exactly the context-sensitive
-languages. -/
-theorem characterizes_is_CS :
-    Characterizes is_CS (contextSensitiveLanguageOf' : CSCode T → Language T) := by
+languages (the library's class `CS`). -/
+theorem characterizes_CS :
+    Characterizes CS (contextSensitiveLanguageOf' : CSCode T → Language T) := by
   intro L
+  rw [show (L ∈ CS) = is_CS L from rfl]
   constructor
   · intro hL
     obtain ⟨c, hcs, hlang⟩ := code_of_CS hL
@@ -264,11 +265,11 @@ theorem contextSensitive_membership_computablePred' :
     exact congrFun hfeq (p.1.val, p.2)
 
 /-- **Context-sensitive membership is uniformly computable** as a statement about the
-class `is_CS`: the context-sensitive codes form an adequate, effective presentation with
+class `CS`: the context-sensitive codes form an adequate, effective presentation with
 uniformly decidable membership. -/
 public theorem contextSensitive_computableMembership :
-    ComputableMembership is_CS (contextSensitiveLanguageOf' : CSCode T → Language T) :=
-  ⟨characterizes_is_CS, contextSensitive_membership_computablePred'.to_re,
+    ComputableMembership CS (contextSensitiveLanguageOf' : CSCode T → Language T) :=
+  ⟨characterizes_CS, contextSensitive_membership_computablePred'.to_re,
     contextSensitive_membership_computablePred'⟩
 
 end Bundle
