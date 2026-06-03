@@ -9,8 +9,7 @@ nav_order: 4
 
 ## Statement
 
-For context-free languages, two basic problems are **computable** (in the strong
-`ComputablePred` sense, not merely abstractly decidable):
+For context-free languages, two basic problems are **computable**:
 
 - **Membership** — does a given word belong to the language? Decided by the CYK
   algorithm.
@@ -19,10 +18,28 @@ For context-free languages, two basic problems are **computable** (in the strong
 (Universality and equivalence of context-free languages are, by contrast,
 undecidable.)
 
+Both are stated as the **uniform computability predicate** for the context-free
+class `CF`: a single algorithm, uniform in the encoded grammar, that decides the problem
+across the whole class. `ComputableMembership CF` / `ComputableEmptiness CF` each bundle
+three obligations about the encoding `contextFreeLanguageOf`:
+
+1. **Adequacy** — `Characterizes CF contextFreeLanguageOf`: the encoding's range is
+   *exactly* `CF` (every code denotes a context-free language, and every context-free
+   language is denoted by some code).
+2. **Effectivity** — `MembershipSemiDecidable contextFreeLanguageOf`: the relation
+   `w ∈ contextFreeLanguageOf c` is recursively enumerable jointly in `(c, w)`, so the
+   encoding cannot smuggle the answer into the code.
+3. The relevant decision is computable.
+
+Without (1)–(2) a positive or negative result could be made vacuous by an adversarial
+encoding; together they make the statement a genuine fact about the *class*.
+
 ## In Lean
 
-- Membership: [`cf_membership_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Membership.lean) — a bitvector CYK implementation packaged as a `ComputablePred`.
-- Emptiness: [`encoded_cf_emptiness_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) and [`encoded_cf_emptiness_decidable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) — a least-fixpoint computation of the productive nonterminals.
+- Membership: `contextFree_computableMembership` — `ComputableMembership CF contextFreeLanguageOf`.
+- Emptiness: `contextFree_computableEmptiness` — `ComputableEmptiness CF contextFreeLanguageOf`.
+
+Adequacy is `contextFreeLanguageOf_characterizes`; the membership and emptiness deciders are a bitvector CYK table and a least-fixpoint computation of the productive nonterminals, respectively.
 
 ## Proof idea
 
@@ -40,6 +57,18 @@ Emptiness: compute the productive nonterminals by iterating the monotone
 the start symbol is productive. `encoded_cf_emptiness_decidable` is the `Decidable`
 instance and `encoded_cf_emptiness_computable` the `ComputablePred`, both uniform in
 the encoded grammar.
+
+Adequacy (`contextFreeLanguageOf_characterizes`): *soundness* is immediate — an
+`EncodedCFG` decodes to a `CF_grammar` (`toCFGrammar`), so its language is context-free.
+*Completeness* takes any context-free language, extracts a grammar with finitely many
+nonterminals (`exists_fintype_nt`), reindexes those nonterminals to `Fin (n+1)`, and
+reads the grammar off as an `EncodedCFG`. The key lemma is that reindexing the
+nonterminals along an equivalence preserves the language (`cf_language_eq_of_rename`):
+a derivation pushes forward along the equivalence and pulls back along its inverse via
+the lifting machinery (`lift_deri` / `sink_deri`), and since a generated word is
+terminal-only the renaming is invisible on the language. Effectivity
+(`MembershipSemiDecidable`) is the CYK decider weakened to `REPred` via
+`ComputablePred.to_re`.
 
 ## Keywords / also known as
 

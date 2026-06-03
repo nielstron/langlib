@@ -114,8 +114,12 @@ predicates. Highlights:
 
 ## Decidability and computability
 
-Results proved with the strong `ComputablePred` (genuine computability), not merely
-`Decidable`:
+Membership, emptiness, universality and equivalence are stated as **uniform**
+class-level predicates (`ComputableMembership`, `ComputableEmptiness`, …): each bundles
+that the encoding is **adequate** (`Characterizes C` — its range is exactly the class),
+**effective** (`MembershipSemiDecidable`), and that the relevant decision is computable.
+This makes both the positive and negative results genuine statements about the class,
+not artefacts of the encoding.
 
 - [Regular membership is computable](results/regular-membership-computable.html).
 - [Context-free membership (CYK) and emptiness are decidable](results/cfl-decidability.html).

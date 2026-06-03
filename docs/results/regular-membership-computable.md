@@ -9,18 +9,17 @@ nav_order: 3
 
 ## Statement
 
-Membership in a regular language is **computable** in the strong `ComputablePred`
-sense: there is an algorithm that runs a DFA on a word and always halts with the
-correct accept/reject verdict. This is the strongest decidability guarantee, beyond
-Mathlib's abstract `Decidable` instance.
+Membership in a regular language is **computable**: there is an algorithm that runs a
+DFA on a word and always halts with the correct accept/reject verdict.
+
+This is packaged as the uniform class-level predicate `ComputableMembership RG` (and
+emptiness as `ComputableEmptiness RG`), uniform in the encoded right-regular grammar.
 
 ## In Lean
 
-- [`dfa_membership_computablePred`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Decidability/Membership.lean) — `ComputablePred (· ∈ M.accepts)` for a DFA `M`.
-
-Related weaker (`Decidable`-only) results cover emptiness
-(`regular_emptiness_decidable`), universality (`regular_universality_decidable`) and
-equivalence (`regular_equivalence_decidable`) of regular languages.
+- `regular_computableMembership` — `ComputableMembership RG regularLanguageOf`, the uniform class-level statement.
+- `regular_computableEmptiness` — `ComputableEmptiness RG regularLanguageOf`.
+- `dfa_membership_computablePred` — the underlying `ComputablePred (· ∈ M.accepts)` for a DFA `M`.
 
 ## Proof idea
 
