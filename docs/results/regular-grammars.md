@@ -31,7 +31,7 @@ Equivalence of the two grammar forms:
 - [`LG_eq_RG`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Grammars/LeftRegular/Equivalence/LGEquivRG.lean) — the left-regular and right-regular language classes are equal.
 
 Connection to finite automata:
-[`is_RG_iff_isRegular`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean) and [`RG_eq_DFA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean) — right-regular grammars generate exactly the DFA-recognizable (Mathlib-regular) languages.
+[`is_RG_iff_isRegular`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/FiniteState/Equivalence/Regular.lean) and [`RG_eq_DFA`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/FiniteState/Equivalence/Regular.lean) — right-regular grammars generate exactly the DFA-recognizable (Mathlib-regular) languages.
 
 ## Proof idea
 

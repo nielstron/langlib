@@ -81,7 +81,7 @@ by
 
 /-- The class of context-free languages is closed under union.
     This theorem is proved by translation from general grammars.
-    Compare to `classes.context_free.closure_properties.union.lean`
+    Compare to `Classes.ContextFree.Closure.UnionBonus`
     which uses a direct proof for context-free grammars. -/
 private theorem bonus_CF_of_CF_u_CF (L₁ : Language T) (L₂ : Language T) :
   is_CF L₁  ∧  is_CF L₂   →   is_CF (L₁ + L₂)   :=
