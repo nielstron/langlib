@@ -64,6 +64,7 @@ public import Langlib.Classes.ContextFree.Pumping.Utils
 public import Langlib.Classes.ContextFree.Pumping.toMathlib
 public import Langlib.Classes.ContextSensitive.Basics.NonContracting
 public import Langlib.Classes.ContextSensitive.Closure.Bijection
+public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
@@ -129,7 +130,6 @@ public import Langlib.Classes.RecursivelyEnumerable.Closure.Star.Helpers
 public import Langlib.Classes.RecursivelyEnumerable.Closure.Star
 public import Langlib.Classes.RecursivelyEnumerable.Closure.Substitution
 public import Langlib.Classes.RecursivelyEnumerable.Closure.Union
-public import Langlib.Classes.RecursivelyEnumerable.Closure.UnionBonus
 public import Langlib.Classes.RecursivelyEnumerable.Decidability.Emptiness
 public import Langlib.Classes.RecursivelyEnumerable.Decidability.Equivalence
 public import Langlib.Classes.RecursivelyEnumerable.Decidability.Helper
