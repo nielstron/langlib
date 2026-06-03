@@ -3,6 +3,7 @@ module
 public import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
 public import Langlib.Classes.ContextFree.Pumping.ParseTree
 public import Langlib.Classes.ContextFree.Decidability.Helper
+public import Langlib.Classes.ContextFree.Decidability.Characterization
 public import Mathlib.CategoryTheory.Category.Basic
 public import Mathlib.Data.Matrix.Mul
 import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep
@@ -1039,10 +1040,12 @@ theorem cf_membership_computable
   constructor <;> intro h <;> rw [ ComputablePred ] at * <;> aesop
 
 /-
-Context-free membership is uniformly computable for encoded CFGs.
+Context-free membership is uniformly computable for encoded CFGs (raw `ComputablePred`
+decider; the packaged `ComputableMembership` statement over the CF class lives in
+`ContextFree/Decidability/Characterization.lean`).
 -/
-theorem contextFree_computableMembership [Primcodable T] :
-    ComputableMembership (contextFreeLanguageOf : EncodedCFG T → Language T) := by
+theorem contextFree_membership_computablePred [Primcodable T] :
+    ComputablePred (fun p : EncodedCFG T × List T => p.2 ∈ contextFreeLanguageOf p.1) := by
   constructor;
   convert checkMembershipEncoded_computable' using 1;
   all_goals try infer_instance;
@@ -1050,5 +1053,14 @@ theorem contextFree_computableMembership [Primcodable T] :
   rw [ eq_comm ];
   grind +suggestions;
   exact Classical.decPred _
+
+/-- **Membership is uniformly computable** for the context-free languages: encoded
+context-free grammars are an adequate, effective presentation
+(`contextFreeLanguageOf_characterizes`) with uniformly decidable membership
+(`ComputableMembership`). -/
+public theorem contextFree_computableMembership [Primcodable T] :
+    ComputableMembership CF (contextFreeLanguageOf : EncodedCFG T → Language T) :=
+  ⟨ContextFree.EncodedCFG.contextFreeLanguageOf_characterizes,
+    contextFree_membership_computablePred.to_re, contextFree_membership_computablePred⟩
 
 end CFComputablePred

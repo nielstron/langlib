@@ -80,13 +80,12 @@ theorem RE_membership_undecidable :
 
 /-- Membership for RE codes is not uniformly computable. -/
 theorem recursivelyEnumerable_computableMembership_undecidable :
-    ¬ComputableMembership partrecCodeDomainLanguageOf := by
+    ¬ComputableMembership RE partrecCodeDomainLanguageOf := by
   intro h
   apply RE_membership_undecidable'.2
   have h_nil : ComputablePred
       (fun c : Code => ([] : List Unit) ∈ partrecCodeDomainLanguageOf c) := by
-    unfold ComputableMembership at h
-    rcases h with ⟨dec, hcomp⟩
+    obtain ⟨-, -, dec, hcomp⟩ := h
     letI : DecidablePred
         (fun c : Code => ([] : List Unit) ∈ partrecCodeDomainLanguageOf c) :=
       fun c => dec (c, ([] : List Unit))

@@ -67,6 +67,7 @@ public import Langlib.Classes.ContextSensitive.Closure.Bijection
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
+public import Langlib.Classes.ContextSensitive.Decidability.Characterization
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
 public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
@@ -153,8 +154,10 @@ public import Langlib.Classes.Regular.Closure.Star
 public import Langlib.Classes.Regular.Closure.Substitution
 public import Langlib.Classes.Regular.Closure.Suffix
 public import Langlib.Classes.Regular.Closure.Union
+public import Langlib.Classes.Regular.Decidability.Characterization
 public import Langlib.Classes.Regular.Decidability.Emptiness
 public import Langlib.Classes.Regular.Decidability.Equivalence
+public import Langlib.Classes.Regular.Decidability.Helper
 public import Langlib.Classes.Regular.Decidability.Membership
 public import Langlib.Classes.Regular.Decidability.Universality
 public import Langlib.Classes.Regular.Definition
