@@ -947,4 +947,13 @@ theorem contextFree_emptiness_computablePred :
   unfold contextFreeLanguageOf
   exact encoded_cf_emptiness_computable
 
+/-- **Emptiness is uniformly computable** for the context-free languages: encoded
+context-free grammars are an adequate, effective presentation
+(`contextFreeLanguageOf_characterizes`) with uniformly decidable emptiness
+(`ComputableEmptiness`). -/
+public theorem contextFree_computableEmptiness :
+    ComputableEmptiness CF (contextFreeLanguageOf : EncodedCFG T → Language T) :=
+  ⟨ContextFree.EncodedCFG.contextFreeLanguageOf_characterizes,
+    contextFree_membership_computablePred.to_re, contextFree_emptiness_computablePred⟩
+
 end ContextFree
