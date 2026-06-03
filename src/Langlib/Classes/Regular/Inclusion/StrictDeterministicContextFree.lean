@@ -6,7 +6,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Classes.Regular.Definition
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 import Langlib.Classes.Regular.Basics.NonRegular

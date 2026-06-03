@@ -1,7 +1,7 @@
 module
 
 public import Langlib.Classes.DeterministicContextFree.Closure.Union
-public import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+public import Langlib.Automata.FiniteState.Equivalence.Regular
 public import Langlib.Classes.Regular.Closure.Homomorphism
 public import Langlib.Classes.Regular.Closure.Union
 public import Langlib.Classes.Regular.Inclusion.DeterministicContextFree

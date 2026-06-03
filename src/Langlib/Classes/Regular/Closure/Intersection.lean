@@ -2,7 +2,7 @@ module
 
 public import Langlib.Utilities.ClosurePredicates
 public import Langlib.Classes.Regular.Definition
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.Regular.Examples.TopBot
 import Mathlib.Algebra.Order.Floor.Extended

@@ -4,7 +4,7 @@ public import Langlib.Utilities.LanguageOperations
 public import Langlib.Utilities.ClosurePredicates
 public import Langlib.Classes.Regular.Definition
 public import Mathlib.Computability.EpsilonNFA
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

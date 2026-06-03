@@ -21,10 +21,12 @@ search:
   tokenizer_separator: /[\s/]+/
 
 heading_anchors: true
-color_scheme: light
+color_scheme: light_blue
 
 # Top-right auxiliary link.
 aux_links:
+  "API Docs":
+    - "https://nielstron.github.io/langlib/api/Langlib.html"
   "GitHub":
     - "https://github.com/nielstron/langlib"
 aux_links_new_tab: true

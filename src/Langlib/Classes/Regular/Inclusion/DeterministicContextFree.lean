@@ -7,7 +7,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 public import Langlib.Classes.Regular.Definition
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Mathlib.Computability.DFA
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

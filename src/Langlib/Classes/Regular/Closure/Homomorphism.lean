@@ -3,7 +3,7 @@ module
 public import Langlib.Classes.Regular.Definition
 public import Langlib.Utilities.ClosurePredicates
 public import Mathlib.Computability.NFA
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Classes.Regular.Closure.Concatenation
 import Langlib.Classes.Regular.Closure.Substitution
 import Mathlib.Algebra.Order.Floor.Extended

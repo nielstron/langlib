@@ -6,7 +6,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 public import Langlib.Grammars.LeftRegular.Definition
 public import Langlib.Classes.Regular.Definition
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
