@@ -140,15 +140,18 @@ Additional context-sensitive closure results formalized here:
 
 ### Decidability
 
-Results marked ✓ use `ComputablePred` (the strongest form). Results marked ✓ᴰ use only Mathlib's `Decidable` instance (weaker — does not establish computability).
+Each column refers to the corresponding uniform computability predicate
+(`ComputableMembership`, `ComputableEmptiness`, `ComputableUniversality`,
+`ComputableEquivalence`) defined in
+[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean).
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
-| Regular | ✓ ([🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean)) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
-| Deterministic context-free | ✓ᴰ | ✓ᴰ | ✓ᴰ | ✓ᴰ |
+| Regular | ✓ | ✓ | ✓ | ✓ |
+| Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
-| Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Computability.lean) | ✗ | ✗ | ✗ |
-| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
+| Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
+| Recursive | ✓ | ✗ | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
 ## How To Use The Library
