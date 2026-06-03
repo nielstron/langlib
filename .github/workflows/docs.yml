@@ -43,11 +43,36 @@ jobs:
           bundler-cache: true
           working-directory: ./docs
 
-      # Resolve every `theorem` mention in the docs to a commit-pinned GitHub source
-      # permalink, rendering a linked copy under docs/_linked (gitignored). Fails the
-      # build if a page references a source file instead of a theorem.
+      # --- API reference (fetched, not built) ----------------------------------
+      # Pull the latest doc-gen4 output stored by api-docs.yml on the `api-docs` release
+      # into a temp dir. Fetched BEFORE link rendering so the linker can verify anchors
+      # against it; attached under /api further below. Non-blocking: if none exists yet,
+      # the prose site still ships (without /api, links fall back to GitHub source).
+      - name: Fetch latest API reference
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download api-docs --repo "$GITHUB_REPOSITORY" \
+               --pattern api-docs.tar.gz --dir "$RUNNER_TEMP" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/api"
+            tar -xzf "$RUNNER_TEMP/api-docs.tar.gz" -C "$RUNNER_TEMP/api"
+            # Fold the doc-gen4 navbar so our Langlib module sits on top and the
+            # ~12 dependency trees (Mathlib, Lean core, …) collapse into a spoiler.
+            python3 scripts/spoiler_api_nav.py "$RUNNER_TEMP/api"
+            echo "Fetched API reference from the api-docs release."
+          else
+            echo "::warning::No stored API docs (api-docs release) found; deploying without /api."
+          fi
+
+      # Resolve every `theorem` mention in the docs to its API-reference page, rendering a
+      # linked copy under docs/_linked (gitignored). Mentions the API tree does not carry
+      # (private, or an outdated tree missing a new module) fall back to commit-pinned
+      # GitHub source. Fails the build if a page references a source file instead of a theorem.
       - name: Render theorem links
-        run: python3 scripts/link_theorems.py --out docs/_linked
+        run: |
+          args=""
+          [ -d "$RUNNER_TEMP/api" ] && args="--api-dir $RUNNER_TEMP/api"
+          python3 scripts/link_theorems.py --out docs/_linked $args
 
       - name: Build prose site
         working-directory: ./docs
@@ -55,21 +80,12 @@ jobs:
           JEKYLL_ENV: production
         run: bundle exec jekyll build --source _linked --destination "$GITHUB_WORKSPACE/_site"
 
-      # --- API reference (fetched, not built) ----------------------------------
-      # Pull the latest doc-gen4 output stored by api-docs.yml on the `api-docs`
-      # release and attach it under /api. Non-blocking: if none exists yet, the prose
-      # site still ships (without /api).
-      - name: Attach latest API reference under /api
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Attach API reference under /api
         run: |
-          if gh release download api-docs --repo "$GITHUB_REPOSITORY" \
-               --pattern api-docs.tar.gz --dir "$RUNNER_TEMP" 2>/dev/null; then
+          if [ -d "$RUNNER_TEMP/api" ]; then
             mkdir -p _site/api
-            tar -xzf "$RUNNER_TEMP/api-docs.tar.gz" -C _site/api
-            echo "Attached API reference from the api-docs release."
-          else
-            echo "::warning::No stored API docs (api-docs release) found; deploying without /api."
+            cp -a "$RUNNER_TEMP/api/." _site/api/
+            echo "Attached API reference under /api."
           fi
 
       - name: Upload Pages artifact
