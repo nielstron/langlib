@@ -850,9 +850,13 @@ public def contextSensitiveLanguageOf [DecidableEq T] (c : Code T) : Language T 
   {v | memCode c v = true}
 
 /-- **Uniform computability of context-sensitive membership.** Membership is decided by a single
-algorithm taking the encoded grammar and the word jointly. -/
-public theorem contextSensitive_computableMembership [DecidableEq T] [Primcodable T] :
-    ComputableMembership (contextSensitiveLanguageOf : Code T → Language T) := by
+algorithm taking the encoded grammar and the word jointly.
+
+This is the raw `ComputablePred` decider; the packaged uniform statement
+`ComputableMembership is_CS contextSensitiveLanguageOf'` (over the noncontracting-code
+subtype) is assembled in `ContextSensitive/Decidability/Characterization.lean`. -/
+public theorem contextSensitive_membership_computablePred [DecidableEq T] [Primcodable T] :
+    ComputablePred (fun p : Code T × List T => p.2 ∈ contextSensitiveLanguageOf p.1) := by
   show ComputablePred (fun p : Code T × List T => memCode p.1 p.2 = true)
   exact ComputablePred.computable_iff.mpr ⟨fun p => memCode p.1 p.2, memCode_primrec.to_comp, rfl⟩
 

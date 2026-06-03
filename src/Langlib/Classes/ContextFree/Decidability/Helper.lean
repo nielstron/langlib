@@ -50,6 +50,8 @@ provided to the predicate. -/
 def contextFreeMembershipPredicate (p : EncodedCFG T × List T) : Prop :=
   p.2 ∈ contextFreeLanguageOf p.1
 
-/-- Uniform computability of membership for encoded context-free grammars. -/
-abbrev ContextFreeComputableMembership (T : Type) [Primcodable T] : Prop :=
-  ComputableMembership (contextFreeLanguageOf : EncodedCFG T → Language T)
+/-- Uniform computability of membership for encoded context-free grammars,
+relative to the language class `C`. -/
+abbrev ContextFreeComputableMembership (T : Type) [Primcodable T]
+    (C : Set (Language T)) : Prop :=
+  ComputableMembership C (contextFreeLanguageOf : EncodedCFG T → Language T)

@@ -1039,10 +1039,12 @@ theorem cf_membership_computable
   constructor <;> intro h <;> rw [ ComputablePred ] at * <;> aesop
 
 /-
-Context-free membership is uniformly computable for encoded CFGs.
+Context-free membership is uniformly computable for encoded CFGs (raw `ComputablePred`
+decider; the packaged `ComputableMembership` statement over the CF class lives in
+`ContextFree/Decidability/Characterization.lean`).
 -/
-theorem contextFree_computableMembership [Primcodable T] :
-    ComputableMembership (contextFreeLanguageOf : EncodedCFG T → Language T) := by
+theorem contextFree_membership_computablePred [Primcodable T] :
+    ComputablePred (fun p : EncodedCFG T × List T => p.2 ∈ contextFreeLanguageOf p.1) := by
   constructor;
   convert checkMembershipEncoded_computable' using 1;
   all_goals try infer_instance;

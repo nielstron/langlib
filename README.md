@@ -143,14 +143,24 @@ Additional context-sensitive closure results formalized here:
 Each column refers to the corresponding uniform computability predicate
 (`ComputableMembership`, `ComputableEmptiness`, `ComputableUniversality`,
 `ComputableEquivalence`) defined in
-[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean).
+[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean). Each such predicate is a
+statement about a *language class* `C` and an encoding `languageOf`, bundling three
+obligations: the encoding is **adequate** (`Characterizes C languageOf` — its range is
+exactly `C`), it is **effective** (`MembershipSemiDecidable` — membership is uniformly
+r.e.), and the relevant decision predicate is `ComputablePred`.
+
+Regular (membership/emptiness), context-sensitive (membership), and the
+recursively-enumerable negatives are packaged in this full bundled form. Context-free
+membership/emptiness are linked here as their raw uniform `ComputablePred` deciders
+(`contextFree_membership_computablePred` / `contextFree_emptiness_computablePred`); the
+class-level bundling is the same once a context-free encoding-adequacy lemma is added.
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
-| Regular | ✓ | ✓ | ✓ | ✓ |
+| Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ | ✓ |
 | Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
-| Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
+| Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
 | Recursive | ✓ | ✗ | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
