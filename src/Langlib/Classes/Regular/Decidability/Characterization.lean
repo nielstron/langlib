@@ -140,11 +140,11 @@ public theorem regularLanguageOf_complete [Fintype T] (L : Language T)
   refine ⟨encodeDFA M', ?_⟩
   rw [← rgLanguage_toRG, toRG_encodeDFA, RG_of_DFA_language, DFA.accepts_reindex]
 
-/-- **`EncodedRG` characterizes the regular languages.** -/
+/-- **`EncodedRG` characterizes the regular languages** (the library's class `RG`). -/
 public theorem regularLanguageOf_characterizes [Fintype T] :
-    Characterizes {L : Language T | L.IsRegular}
-      (regularLanguageOf : EncodedRG T → Language T) := by
+    Characterizes RG (regularLanguageOf : EncodedRG T → Language T) := by
   intro L
+  rw [show (L ∈ RG) = is_RG L from rfl, is_RG_iff_isRegular]
   exact ⟨fun hL => regularLanguageOf_complete L hL,
     fun ⟨c, hc⟩ => hc ▸ regularLanguageOf_isRegular c⟩
 

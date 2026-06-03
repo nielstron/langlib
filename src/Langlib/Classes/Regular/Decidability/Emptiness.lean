@@ -196,8 +196,7 @@ public theorem regular_emptiness_computablePred [Fintype T] [DecidableEq T] [Pri
 right-regular grammars are an adequate, effective presentation
 (`regularLanguageOf_characterizes`) with uniformly decidable emptiness. -/
 public theorem regular_computableEmptiness [Fintype T] [DecidableEq T] [Primcodable T] :
-    ComputableEmptiness {L : Language T | L.IsRegular}
-      (regularLanguageOf : EncodedRG T → Language T) :=
+    ComputableEmptiness RG (regularLanguageOf : EncodedRG T → Language T) :=
   ⟨regularLanguageOf_characterizes, regular_membership_computablePred.to_re,
     regular_emptiness_computablePred⟩
 
