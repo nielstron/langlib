@@ -113,6 +113,8 @@ public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition
 public import Langlib.Classes.Indexed.Examples.AnBnCn
 public import Langlib.Classes.Indexed.Examples.SingletonWord
+public import Langlib.Classes.LR.Closure.Bijection
+public import Langlib.Classes.LR.Examples.AnBn
 public import Langlib.Classes.Linear.Basics.Map
 public import Langlib.Classes.Linear.Closure.Concatenation
 public import Langlib.Classes.Linear.Definition
@@ -191,6 +193,7 @@ public import Langlib.Classes.Regular.Inclusion.Linear
 public import Langlib.Classes.Regular.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Regular.Inclusion.StrictContextFree
 public import Langlib.Classes.Regular.Inclusion.StrictDeterministicContextFree
+public import Langlib.Classes.Regular.Inclusion.StrictLR
 public import Langlib.Classes.Regular.Inclusion.StrictLinear
 import Mathlib.Data.EReal.Operations
 import Mathlib.Data.Sym.Sym2.Init
