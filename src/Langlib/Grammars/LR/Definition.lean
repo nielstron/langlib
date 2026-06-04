@@ -1,15 +1,15 @@
 module
 
-public import Langlib.Grammars.ContextFree.EquivMathlibCFG
-public import Mathlib.Computability.ContextFreeGrammar
+public import Langlib.Grammars.ContextFree.Definition
 
 /-!
 # LR(k) Grammars
 
 This file defines the grammar-side deterministic context-free notion used in
-parser theory.  The key definition is `ContextFreeGrammar.IsLRk`: after a
-rightmost derivation step, the reducible handle is uniquely determined by the
-already-built sentential prefix and by `k` terminal lookahead symbols.
+parser theory, as a restriction of the repository's own context-free grammars
+(`CF_grammar`).  The key definition is `CF_grammar.IsLRk`: after a rightmost
+derivation step, the reducible handle is uniquely determined by the already-built
+sentential prefix and by `k` terminal lookahead symbols.
 
 This is the grammar-side class intended to match DPDAs.  The full equivalence
 with `is_DCF` requires the two standard constructions:
@@ -18,38 +18,43 @@ with `is_DCF` requires the two standard constructions:
 * a deterministic grammar construction from a DPDA, proving `is_DCF → is_LR`.
 
 Those constructions are not encoded here yet.
+
+A context-free rule is, in this development, a pair `r : g.nt × List (symbol T g.nt)`
+whose first component `r.1` is the left-hand nonterminal and whose second component
+`r.2` is the right-hand output string.
 -/
 
 open Language
 
-namespace ContextFreeRule
+namespace CF_grammar
 
-variable {T N : Type} (r : ContextFreeRule T N)
+variable {T : Type}
 
-/-- A rightmost use of a context-free rule.
+/-- A rightmost use of a context-free rule `r = (input, output)`.
 
-The rule rewrites an occurrence of `r.input` whose suffix contains terminals only. -/
-public def RewritesRightmost (u v : List (Symbol T N)) : Prop :=
-  ∃ (p : List (Symbol T N)) (lookahead : List T),
-    u = p ++ [Symbol.nonterminal r.input] ++ lookahead.map Symbol.terminal ∧
-      v = p ++ r.output ++ lookahead.map Symbol.terminal
+The rule rewrites an occurrence of `r.1` whose suffix contains terminals only. -/
+@[expose]
+public def RewritesRightmost {N : Type} (r : N × List (symbol T N))
+    (u v : List (symbol T N)) : Prop :=
+  ∃ (p : List (symbol T N)) (lookahead : List T),
+    u = p ++ [symbol.nonterminal r.1] ++ lookahead.map symbol.terminal ∧
+      v = p ++ r.2 ++ lookahead.map symbol.terminal
 
-end ContextFreeRule
-
-namespace ContextFreeGrammar
-
-variable {T : Type} (g : ContextFreeGrammar T)
+variable (g : CF_grammar T)
 
 /-- A single rightmost derivation step in a context-free grammar. -/
-public def ProducesRightmost (u v : List (Symbol T g.NT)) : Prop :=
-  ∃ r ∈ g.rules, ContextFreeRule.RewritesRightmost r u v
+@[expose]
+public def ProducesRightmost (u v : List (symbol T g.nt)) : Prop :=
+  ∃ r ∈ g.rules, RewritesRightmost r u v
 
 /-- Rightmost derivation: reflexive-transitive closure of rightmost production. -/
+@[expose]
 public abbrev DerivesRightmost :
-    List (Symbol T g.NT) → List (Symbol T g.NT) → Prop :=
+    List (symbol T g.nt) → List (symbol T g.nt) → Prop :=
   Relation.ReflTransGen g.ProducesRightmost
 
 /-- The `k` terminal symbols visible as LR lookahead. -/
+@[expose]
 public def lrLookahead (k : ℕ) (w : List T) : List T :=
   w.take k
 
@@ -60,32 +65,33 @@ creates the same sentential prefix, and their remaining terminal suffixes have
 the same `k`-symbol lookahead, then the reducible handle and rule are identical.
 The terminal suffixes themselves need not be equal beyond the visible lookahead.
 -/
+@[expose]
 public def IsLRk (k : ℕ) : Prop :=
-  ∀ (r₁ r₂ : ContextFreeRule T g.NT), r₁ ∈ g.rules → r₂ ∈ g.rules →
-    ∀ (p₁ p₂ core : List (Symbol T g.NT)) (s₁ s₂ : List T),
-      g.DerivesRightmost [Symbol.nonterminal g.initial]
-        (p₁ ++ [Symbol.nonterminal r₁.input] ++ s₁.map Symbol.terminal) →
-      g.DerivesRightmost [Symbol.nonterminal g.initial]
-        (p₂ ++ [Symbol.nonterminal r₂.input] ++ s₂.map Symbol.terminal) →
-      p₁ ++ r₁.output = core →
-      p₂ ++ r₂.output = core →
+  ∀ (r₁ r₂ : g.nt × List (symbol T g.nt)), r₁ ∈ g.rules → r₂ ∈ g.rules →
+    ∀ (p₁ p₂ core : List (symbol T g.nt)) (s₁ s₂ : List T),
+      g.DerivesRightmost [symbol.nonterminal g.initial]
+        (p₁ ++ [symbol.nonterminal r₁.1] ++ s₁.map symbol.terminal) →
+      g.DerivesRightmost [symbol.nonterminal g.initial]
+        (p₂ ++ [symbol.nonterminal r₂.1] ++ s₂.map symbol.terminal) →
+      p₁ ++ r₁.2 = core →
+      p₂ ++ r₂.2 = core →
       lrLookahead k s₁ = lrLookahead k s₂ →
       p₁ = p₂ ∧ r₁ = r₂
 
-/-- LR lookahead is monotone: a grammar that is LR(k) is also LR(l) for any `l >= k`. -/
+/-- LR lookahead is monotone: a grammar that is LR(k) is also LR(l) for any `l ≥ k`. -/
 public theorem IsLRk.mono {k l : ℕ} (hkl : k ≤ l) (hg : g.IsLRk k) : g.IsLRk l := by
   intro r₁ r₂ hr₁ hr₂ p₁ p₂ core s₁ s₂ hd₁ hd₂ hc₁ hc₂ hlook
   exact hg r₁ r₂ hr₁ hr₂ p₁ p₂ core s₁ s₂ hd₁ hd₂ hc₁ hc₂ <| by
     simpa [lrLookahead, List.take_take, Nat.min_eq_left hkl] using congrArg (List.take k) hlook
 
-end ContextFreeGrammar
+end CF_grammar
 
 variable {T : Type}
 
 /-- Language class generated by an LR(k) grammar. -/
 @[expose]
 public def is_LRk (k : ℕ) (L : Language T) : Prop :=
-  ∃ g : ContextFreeGrammar T, g.IsLRk k ∧ g.language = L
+  ∃ g : CF_grammar T, g.IsLRk k ∧ CF_language g = L
 
 /-- Language class generated by an LR(k) grammar for some finite `k`. -/
 @[expose]
@@ -105,4 +111,4 @@ public theorem is_LR_of_is_LRk {k : ℕ} {L : Language T} (h : is_LRk k L) : is_
 public theorem is_LRk_mono {k l : ℕ} (hkl : k ≤ l) {L : Language T}
     (h : is_LRk k L) : is_LRk l L := by
   rcases h with ⟨g, hg, hL⟩
-  exact ⟨g, ContextFreeGrammar.IsLRk.mono g hkl hg, hL⟩
+  exact ⟨g, CF_grammar.IsLRk.mono g hkl hg, hL⟩

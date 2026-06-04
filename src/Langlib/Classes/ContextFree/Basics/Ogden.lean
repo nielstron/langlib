@@ -4,7 +4,7 @@ public import Langlib.Classes.ContextFree.Definition
 public import Langlib.Classes.ContextFree.Pumping.Pumping
 public import Mathlib.CategoryTheory.Category.Basic
 import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Langlib.Utilities.ListUtils
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield

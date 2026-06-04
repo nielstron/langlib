@@ -37,7 +37,7 @@ public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.LinearBounded.Positive
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
-public import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStackEquiv
+public import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStack
 public import Langlib.Automata.Pushdown.Basics.Leftmost
 public import Langlib.Automata.Pushdown.Definition
 public import Langlib.Automata.Pushdown.Equivalence.ContextFree.CFGToPDA
@@ -70,7 +70,7 @@ public import Langlib.Automata.Turing.Definition
 public import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipComputability
 public import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipTest
 public import Langlib.Automata.Turing.Equivalence.GrammarToTM
-public import Langlib.Automata.Turing.Equivalence.TMEqualsRE
+public import Langlib.Automata.Turing.Equivalence.RecursivelyEnumerable
 public import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
 public import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
 public import Langlib.Automata.Turing.Equivalence.TMToGrammar.Soundness

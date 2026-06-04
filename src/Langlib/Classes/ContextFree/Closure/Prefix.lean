@@ -6,7 +6,7 @@ public import Langlib.Automata.Pushdown.Definition
 public import Mathlib.Computability.ContextFreeGrammar
 public import Mathlib.Order.BourbakiWitt
 import Langlib.Automata.Pushdown.Equivalence.ContextFree
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

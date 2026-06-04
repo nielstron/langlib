@@ -5,7 +5,7 @@ public import Langlib.Classes.RecursivelyEnumerable.Definition
 public import Mathlib.Computability.Halting
 import Langlib.Automata.Turing.DSL.CodeToTMDirect
 import Langlib.Automata.Turing.DSL.SearchProcToTM0
-import Langlib.Automata.Turing.Equivalence.TMEqualsRE
+import Langlib.Automata.Turing.Equivalence.RecursivelyEnumerable
 @[expose]
 public section
 

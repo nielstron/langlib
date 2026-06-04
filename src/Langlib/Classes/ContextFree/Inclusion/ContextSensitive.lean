@@ -2,7 +2,7 @@ module
 
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
-public import Langlib.Grammars.ContextFree.EquivMathlibCFG
+public import Langlib.Grammars.ContextFree.MathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Classes.ContextFree.Pumping.EpsilonElimination

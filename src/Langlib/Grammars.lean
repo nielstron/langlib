@@ -4,7 +4,7 @@ module -- shake: keep-all
 --  Run `scripts/generate_import_hub.py --hub grammars` to regenerate.
 
 public import Langlib.Grammars.ContextFree.Definition
-public import Langlib.Grammars.ContextFree.EquivMathlibCFG
+public import Langlib.Grammars.ContextFree.MathlibCFG
 public import Langlib.Grammars.ContextFree.Toolbox
 public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 public import Langlib.Grammars.ContextSensitive.Basic.FiniteNT
@@ -17,7 +17,7 @@ public import Langlib.Grammars.LR.Definition
 public import Langlib.Grammars.LR.Inclusion.ContextFree
 public import Langlib.Grammars.LR.Parser
 public import Langlib.Grammars.LeftRegular.Definition
-public import Langlib.Grammars.LeftRegular.Equivalence.LGEquivRG
+public import Langlib.Grammars.LeftRegular.Equivalence.RightRegular
 public import Langlib.Grammars.NonContracting.Definition
 public import Langlib.Grammars.NonContracting.Equivalence.ContextSensitive
 public import Langlib.Grammars.RightRegular.Definition

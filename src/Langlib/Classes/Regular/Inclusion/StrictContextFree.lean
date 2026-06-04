@@ -9,7 +9,7 @@ import Langlib.Classes.ContextFree.Examples.AnBn
 import Langlib.Classes.Regular.Examples.AnBn
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Inclusion.ContextFree
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

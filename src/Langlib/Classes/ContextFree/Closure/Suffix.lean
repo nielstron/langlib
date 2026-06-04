@@ -5,7 +5,7 @@ public import Langlib.Utilities.LanguageOperations
 public import Mathlib.Computability.ContextFreeGrammar
 import Langlib.Classes.ContextFree.Closure.Prefix
 import Langlib.Classes.ContextFree.Closure.Reverse
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

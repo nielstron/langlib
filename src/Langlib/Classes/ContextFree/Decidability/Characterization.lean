@@ -9,7 +9,7 @@ public import Langlib.Classes.ContextFree.Basics.Lifting
 public import Langlib.Classes.ContextFree.Basics.EncodedCFG
 public import Langlib.Classes.ContextFree.Basics.FiniteNT
 public import Langlib.Classes.ContextFree.Definition
-public import Langlib.Grammars.ContextFree.EquivMathlibCFG
+public import Langlib.Grammars.ContextFree.MathlibCFG
 public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 @[expose]
 public section

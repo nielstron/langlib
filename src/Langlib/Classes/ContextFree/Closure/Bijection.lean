@@ -5,7 +5,7 @@ public import Langlib.Classes.ContextFree.Definition
 public import Mathlib.Algebra.Group.End
 import Langlib.Classes.ContextFree.Basics.Elementary
 import Langlib.Classes.ContextFree.Closure.Substitution
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield

@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.ContextFree.EquivMathlibCFG
+public import Langlib.Grammars.ContextFree.MathlibCFG
 public import Langlib.Classes.ContextFree.Decidability.Membership
 import Langlib.Grammars.ContextFree.Toolbox
 import Mathlib.Algebra.Order.Floor.Extended

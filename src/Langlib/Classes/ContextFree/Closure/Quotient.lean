@@ -15,7 +15,7 @@ import Langlib.Classes.ContextFree.Examples.BnAnPosStarB
 import Langlib.Classes.ContextFree.Examples.UnaryA2PowSucc
 import Langlib.Classes.Regular.Closure.Homomorphism
 import Langlib.Classes.Regular.Closure.Star
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Langlib.Utilities.ListUtils
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield

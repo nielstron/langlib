@@ -7,7 +7,7 @@ public import Langlib.Classes.ContextFree.Decidability.Characterization
 public import Mathlib.CategoryTheory.Category.Basic
 public import Mathlib.Data.Matrix.Mul
 import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Langlib.Utilities.ListUtils
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield

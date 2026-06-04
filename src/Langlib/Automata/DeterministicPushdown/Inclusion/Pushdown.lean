@@ -5,7 +5,7 @@ Copyright (c) 2025 Harmonic. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 public import Langlib.Automata.DeterministicPushdown.Definition
-import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStackEquiv
+import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStack
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

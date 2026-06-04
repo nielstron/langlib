@@ -3,7 +3,7 @@ module
 public import Langlib.Classes.ContextFree.Definition
 public import Langlib.Utilities.ClosurePredicates
 import Langlib.Classes.ContextFree.Closure.Substitution
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

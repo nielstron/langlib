@@ -12,6 +12,10 @@ LR(k) predicate.
 The definitions here are the parser object that the LR(k)-to-DPDA direction will
 use: a deterministic action/goto table, stack configurations, and the induced
 one-step parser transition.
+
+As elsewhere in this development, a context-free rule is a pair
+`rule : N × List (symbol T N)` whose first component `rule.1` is the left-hand
+nonterminal and whose second component `rule.2` is the right-hand output string.
 -/
 
 open Language
@@ -25,10 +29,9 @@ variable {T N State : Type}
 The lookahead will be `none` exactly at end-of-input. -/
 public inductive Action (T N State : Type) where
   | shift (next : State)
-  | reduce (rule : ContextFreeRule T N)
+  | reduce (rule : N × List (symbol T N))
   | accept
   | error
-deriving DecidableEq, Repr
 
 /-- A deterministic LR parsing table.
 
@@ -46,13 +49,12 @@ variable (p : Parser T N State)
 /-- A parser stack entry stores the grammar symbol and the state reached after
 placing that symbol on the stack.  The top of the stack is the head of the list. -/
 public abbrev StackEntry (T N State : Type) :=
-  Symbol T N × State
+  symbol T N × State
 
 /-- LR parser configurations. -/
 public structure Config (T N State : Type) where
   input : List T
   stack : List (StackEntry T N State)
-deriving Repr
 
 /-- Initial parser configuration on an input word. -/
 public def initialConfig (w : List T) : Config T N State where
@@ -67,20 +69,20 @@ public def stateOfStack (stack : List (StackEntry T N State)) : State :=
   | (_, q) :: _ => q
 
 /-- The grammar symbols stored in the top `n` parser-stack entries. -/
-public def topSymbols (n : ℕ) (stack : List (StackEntry T N State)) : List (Symbol T N) :=
+public def topSymbols (n : ℕ) (stack : List (StackEntry T N State)) : List (symbol T N) :=
   (stack.take n).map Prod.fst
 
 variable [DecidableEq T] [DecidableEq N]
 
 /-- Perform a reduce action, if the top stack symbols match the rule's right-hand side
 and the goto table is defined. -/
-public def reduce? (rule : ContextFreeRule T N) (input : List T)
+public def reduce? (rule : N × List (symbol T N)) (input : List T)
     (stack : List (StackEntry T N State)) : Option (Config T N State) :=
-  if topSymbols rule.output.length stack = rule.output.reverse then
-    let rest := stack.drop rule.output.length
-    match p.goto (p.stateOfStack rest) rule.input with
+  if topSymbols rule.2.length stack = rule.2.reverse then
+    let rest := stack.drop rule.2.length
+    match p.goto (p.stateOfStack rest) rule.1 with
     | some next =>
-        some { input := input, stack := (Symbol.nonterminal rule.input, next) :: rest }
+        some { input := input, stack := (symbol.nonterminal rule.1, next) :: rest }
     | none => none
   else
     none
@@ -92,7 +94,7 @@ public def step? (c : Config T N State) : Option (Config T N State) :=
   | a :: rest =>
       match p.action q (some a) with
       | Action.shift next =>
-          some { input := rest, stack := (Symbol.terminal a, next) :: c.stack }
+          some { input := rest, stack := (symbol.terminal a, next) :: c.stack }
       | Action.reduce rule => p.reduce? rule c.input c.stack
       | Action.accept => none
       | Action.error => none

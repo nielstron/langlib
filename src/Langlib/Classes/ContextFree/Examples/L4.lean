@@ -6,7 +6,7 @@ public import Langlib.Examples.AnBn
 import Langlib.Classes.ContextFree.Examples.AnBn
 import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Classes.ContextFree.Closure.Substitution
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
+import Langlib.Grammars.ContextFree.MathlibCFG
 import Mathlib.Logic.Embedding.Basic
 @[expose]
 public section
