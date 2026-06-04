@@ -55,6 +55,7 @@ public import Langlib.Classes.ContextFree.Examples.SingletonWord
 public import Langlib.Classes.ContextFree.Examples.UnaryA2PowSucc
 public import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.Indexed
+public import Langlib.Classes.ContextFree.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.ContextFree.Inclusion.StrictIndexed
 public import Langlib.Classes.ContextFree.Inclusion.StrictRecursivelyEnumerable
 public import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
@@ -119,6 +120,7 @@ public import Langlib.Classes.Linear.Examples.AnBn
 public import Langlib.Classes.Linear.Examples.L4
 public import Langlib.Classes.Linear.Examples.SingletonWord
 public import Langlib.Classes.Linear.Inclusion.ContextFree
+public import Langlib.Classes.Linear.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Linear.Inclusion.StrictContextFree
 public import Langlib.Classes.Linear.Pumping.Pumping
 public import Langlib.Classes.Linear.Pumping.Spine
