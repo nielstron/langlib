@@ -7,73 +7,18 @@
 
 `Langlib` is a Lean 4 library of formalized results from formal language theory, defining and relating various grammars, language classes, and automata across the Chomsky hierarchy and beyond.
 
-📖 **Documentation:** [results overview & explanations](https://nielstron.github.io/langlib/) · [API reference](https://nielstron.github.io/langlib/api/)
+📖 **Documentation:** [overview](https://nielstron.github.io/langlib/) · [API reference](https://nielstron.github.io/langlib/api/)
 
-### Regular Languages
-
-- [Right-regular grammars](src/Langlib/Grammars/RightRegular/Definition.lean)
-- [Left-regular grammars](src/Langlib/Grammars/LeftRegular/Definition.lean)
-- [Top and Bottom are Regular](src/Langlib/Classes/Regular/Examples/TopBot.lean)
-
-### Linear and DCF Languages
-
-- [Linear Languages](src/Langlib/Classes/Linear/Definition.lean)
-- [Deterministic Context-Free Languages](src/Langlib/Classes/DeterministicContextFree/Definition.lean)
-- [`{aⁿbⁿ}` is Linear](src/Langlib/Classes/ContextFree/Examples/AnBn.lean)
-- [Pumping lemma for linear languages](src/Langlib/Classes/Linear/Pumping/Pumping.lean)
-- [`{0ⁿ1ⁿ2ᵐ3ᵐ}` is context-free but not linear](src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean)
-- [Totalization of DPDAs](src/Langlib/Automata/DeterministicPushdown/Totalization.lean)
-
-### Context-Free Languages
-
-- [Definition](src/Langlib/Classes/ContextFree/Definition.lean)
-- [Context-free grammars](src/Langlib/Grammars/ContextFree/Definition.lean)
-- [Pumping lemma](src/Langlib/Classes/ContextFree/Basics/Pumping.lean)
-- [Ogdens Lemma](src/Langlib/Classes/ContextFree/Basics/Ogden.lean)
-- [Chomsky normal form](src/Langlib/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
-
-### Indexed Languages
-
-- [Indexed grammars](src/Langlib/Grammars/Indexed/Definition.lean)
-- [`{aⁿbⁿcⁿ}` is Indexed](src/Langlib/Classes/Indexed/Examples/AnBnCn.lean)
-
-### Context-Sensitive Languages
-
-- [Context-sensitive grammars](src/Langlib/Grammars/ContextSensitive/Definition.lean)
-- [Noncontracting grammars](src/Langlib/Grammars/NonContracting/Definition.lean)
-
-### Recursive Languages
-
-- [Recursive Languages](src/Langlib/Classes/Recursive/Definition.lean)
-- [Post's theorem](src/Langlib/Classes/Recursive/Basics/Post.lean)
-
-### Recursively Enumerable Languages
-
-- [Unrestricted grammars](src/Langlib/Grammars/Unrestricted/Definition.lean)
-- [Translating Languages to Turing Machines](src/Langlib/Automata/Turing/DSL.lean)
-- [`{aⁿbⁿcⁿ}` is RE](src/Langlib/Classes/RecursivelyEnumerable/Examples/AnBnCn.lean)
-
-### Automata
-
-- [Finite-state automata](src/Langlib/Automata/FiniteState/Definition.lean)
-- [Deterministic pushdown automata](src/Langlib/Automata/DeterministicPushdown/Definition.lean)
-- [Pushdown automata](src/Langlib/Automata/Pushdown/Definition.lean)
-- [Deterministic linear bounded automata](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean)
-- [Linear bounded automata](src/Langlib/Automata/LinearBounded/Definition.lean)
-- [Turing machines with a decider (always halting)](src/Langlib/Classes/Recursive/Definition.lean)
-- [Turing machines](src/Langlib/Automata/Turing/Definition.lean)
-
-### Examples
-
-- [Context-free example grammar](test/LanglibTest/DemoContextFree.lean)
-- [Context-sensitive example grammars](test/LanglibTest/DemoContextSensitive.lean)
-- [Unrestricted example grammar](test/LanglibTest/DemoUnrestricted.lean)
 
 ## Proof overview
-
-`🔗` indicates that this repository contains a corresponding proof file.
+The goal of this library is to encapsulate some core results of the (extended) Chomsky hierarchy: inclusions, closures and decidability.
+The following gives a rough overview over the contents in highly condensed form.
+The tables contain generally what is accepted as the correct relationship/answer, `🔗` indicates that this repository contains a corresponding proof file (possibly to a weaker variant of the statement, e.g. ⊊  vs. ⊆  and ⇔ vs. ⇒)
+A more detailed overview over results can be found in the [documentation](https://nielstron.github.io/langlib/), which also outlines key developments needed to obtain these results (e.g., Pumping lemmas, Totalizations).
 
 ### Hierarchy And Equivalences
+
+Each class of the (extended) hierarchy is charaterized as grammar or automaton (or both, and variants thereof). We show (strict) inclusions of the classes and equivalences between different characterizations.
 
 | Grammar side | Relation | Automaton side |
 | --- | --- | --- |
@@ -96,11 +41,9 @@
 - Context Free Languages ⇔ [🔗](src/Langlib/Grammars/ContextFree/EquivMathlibCFG.lean) Mathlib's `IsContextFree`.
 - Regular ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) Linear ⊊ [🔗](src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) Context-free.
 
-
-
 ### Closure
 
-Abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.) are defined in [🔗](src/Langlib/Utilities/ClosurePredicates.lean).
+We define abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.) for uniform proofs in [🔗](src/Langlib/Utilities/ClosurePredicates.lean).
 
 | Operation | Regular | DCFL | CFL | IND | CSL | Recursive | RE |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -118,23 +61,19 @@ Abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.
 | Right quotient | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Quotient.lean) | No [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) | No | No | No | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Quotient.lean) |
 | Right quotient with a regular language | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) | Yes | Yes | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Quotient.lean) |
 
-**Notes on the table above:**
 
-For CSL, entries without `🔗` are standard statements that are not yet formalized
-in this repository.
-
-Additional deterministic context-free closure results formalized here:
+Additional DCFL results:
 
 - [Union with a regular language](src/Langlib/Classes/DeterministicContextFree/Closure/UnionRegular.lean)
 
-Additional context-free closure results formalized here:
+Additional CFL results:
 
 - [Terminal bijections](src/Langlib/Classes/ContextFree/Closure/Bijection.lean)
 - [Terminal permutations](src/Langlib/Classes/ContextFree/Closure/Permutation.lean)
 - [Prefix](src/Langlib/Classes/ContextFree/Closure/Prefix.lean)
 - [Suffix](src/Langlib/Classes/ContextFree/Closure/Suffix.lean)
 
-Additional context-sensitive closure results formalized here:
+Additional CSL results:
 
 - [Terminal bijections](src/Langlib/Classes/ContextSensitive/Closure/Bijection.lean)
 
@@ -202,4 +141,4 @@ This repository started as a Lean 4 port of
 [madvorak/grammars](https://github.com/madvorak/grammars).
 It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_cfg](https://github.com/AlexLoitzl/pumping_cfg/) and the equivalence proof between CFGs and PDAs from [shetzl/autth](https://github.com/shetzl/autth/tree/PDA).
 
-> A large part of this repository was created with the help of [Aristotle](https://aristotle.harmonic.fun). It's an amazing tool for ambitious proofs. Special thanks to the developers to provide this tool to the community!
+> A part of this repository was created with the help of [Aristotle](https://aristotle.harmonic.fun). It's an amazing tool for ambitious proofs. Special thanks to the developers to provide this tool to the community!
