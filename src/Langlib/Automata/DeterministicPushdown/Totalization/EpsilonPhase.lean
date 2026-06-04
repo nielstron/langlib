@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Automata.DeterministicPushdown.Definition
+public import Langlib.Automata.DeterministicPushdown.Basics.Total
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

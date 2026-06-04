@@ -11,4 +11,5 @@ proper subclass of the context-free languages closed under complement.
 
 - **Automata.** *Deterministic pushdown automata* (DPDA): a pushdown automaton with at
   most one applicable move in every configuration. The normal form used here is the
-  always-halting deciding DPDA `is_DCF_decider`.
+  always-halting *total* DPDA (`DPDA.IsTotal`), with language-level presentation
+  `is_DCF_total`.

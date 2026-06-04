@@ -55,8 +55,8 @@ variable {M : DPDA Q T S}
 noncomputable section
 
 /-- The analyzed totalizer is a deciding DPDA presentation of the same language. -/
-public theorem totalizer_is_DCF_decider (A : M.RegularEpsilonAnalysis) :
-    is_DCF_decider (M.acceptsByFinalState : Language T) := by
+public theorem totalizer_is_DCF_total (A : M.RegularEpsilonAnalysis) :
+    is_DCF_total (M.acceptsByFinalState : Language T) := by
   refine
     ⟨TotalState Q, TotalStackSymbol A, inferInstance, inferInstance, totalizer A,
       totalizer_decides A, ?_⟩
@@ -89,7 +89,7 @@ public theorem everyDCFHasDeciderPresentation_of_regularEpsilonAnalysis
   obtain ⟨Q, S, hQ, hS, M, hM⟩ := hL
   obtain ⟨A⟩ := @hanalysis Q S hQ hS M
   rw [← hM]
-  exact DPDA.totalizer_is_DCF_decider A
+  exact DPDA.totalizer_is_DCF_total A
 
 /-- Every DCF has an equivalent deciding-DPDA presentation. -/
 public theorem everyDCFHasDeciderPresentation :

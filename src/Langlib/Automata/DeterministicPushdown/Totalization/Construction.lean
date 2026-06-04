@@ -1593,7 +1593,7 @@ public theorem totalizer_final_consistent (w : List T) (st₁ st₂ : TotalState
       (totalizer_reachesIn_prefix_of_le (A := A) hle' hn₂ hn₁)).symm
 
 public theorem totalizer_decides :
-    (totalizer A).DecidesEveryInput := by
+    (totalizer A).IsTotal := by
   constructor
   · exact totalizer_total A
   · intro w st₁ st₂ stack₁ stack₂ h₁ h₂

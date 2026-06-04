@@ -21,15 +21,16 @@ is total, you can complement it by flipping its accepting states.
 
 ## In Lean
 
-The target normal form is [`is_DCF_decider`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Definition.lean):
-a final-state DPDA presentation `M` of `L` with
-`M.DecidesEveryInput` — for every input `w`, `M` reaches some empty-input
-configuration (totality), and all empty-input configurations reachable on `w` agree
-on final-state membership (acceptance consistency). Key declarations:
+The headline theorem is `DPDA.exists_equivalent_total`: every DPDA has an equivalent
+total DPDA. A DPDA `M` is **total** (`DPDA.IsTotal`) when, for every input `w`, `M`
+reaches some empty-input configuration (totality) and all empty-input configurations
+reachable on `w` agree on final-state membership (acceptance consistency); the
+language-level normal form is `is_DCF_total`. Key declarations:
 
-- [`totalizer_is_DCF_decider`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Presentation.lean) — from a `RegularEpsilonAnalysis A` of `M`, the `totalizer A` is a deciding DPDA presentation of `M.acceptsByFinalState`; combines `totalizer_decides` and `totalizer_acceptsByFinalState_eq_original`.
-- [`everyDPDAHasRegularEpsilonAnalysis`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Presentation.lean) — every finite DPDA admits a regular epsilon analysis, via the saturation construction `hasRegularEpsilonAnalysis`.
-- [`everyDCFHasDeciderPresentation`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/DeterministicPushdown/Totalization/Presentation.lean) — consequently, every deterministic context-free language has a deciding DPDA presentation.
+- `exists_equivalent_total` — every DPDA has an equivalent total DPDA; assembled from the declarations below.
+- `totalizer_is_DCF_total` — from a `RegularEpsilonAnalysis A` of `M`, the `totalizer A` is a total DPDA presentation of `M.acceptsByFinalState`; combines `totalizer_decides` and `totalizer_acceptsByFinalState_eq_original`.
+- `everyDPDAHasRegularEpsilonAnalysis` — every finite DPDA admits a regular epsilon analysis, via the saturation construction `hasRegularEpsilonAnalysis`.
+- `everyDCFHasDeciderPresentation` — consequently, every deterministic context-free language has a total DPDA presentation.
 
 ## Proof idea
 
