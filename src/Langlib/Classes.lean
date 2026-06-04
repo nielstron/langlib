@@ -32,6 +32,7 @@ public import Langlib.Classes.ContextFree.Closure.Suffix
 public import Langlib.Classes.ContextFree.Closure.Union
 public import Langlib.Classes.ContextFree.Closure.UnionBonus
 public import Langlib.Classes.ContextFree.Closure.UnionBonus2
+public import Langlib.Classes.ContextFree.Decidability.Characterization
 public import Langlib.Classes.ContextFree.Decidability.Emptiness
 public import Langlib.Classes.ContextFree.Decidability.Helper
 public import Langlib.Classes.ContextFree.Decidability.Membership
@@ -139,6 +140,8 @@ public import Langlib.Classes.RecursivelyEnumerable.Decidability.Universality
 public import Langlib.Classes.RecursivelyEnumerable.Definition
 public import Langlib.Classes.RecursivelyEnumerable.Examples.AnBnCn
 public import Langlib.Classes.RecursivelyEnumerable.Examples.EmptyWord
+public import Langlib.Classes.RecursivelyEnumerable.Examples.Halting
+public import Langlib.Classes.RecursivelyEnumerable.Examples.NonHalting
 public import Langlib.Classes.RecursivelyEnumerable.NormalForms.Kuroda
 public import Langlib.Classes.Regular.Basics.NonRegular
 public import Langlib.Classes.Regular.Closure.Bijection

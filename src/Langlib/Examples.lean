@@ -16,6 +16,8 @@ public import Langlib.Examples.BnAn
 public import Langlib.Examples.BnAnPos
 public import Langlib.Examples.BnAnPosStarB
 public import Langlib.Examples.EmptyWord
+public import Langlib.Examples.Halting
+public import Langlib.Examples.NonHalting
 public import Langlib.Examples.UnaryA2PowSucc
 import Mathlib.Tactic.Bound.Init
 @[expose]
