@@ -2,8 +2,11 @@ module
 
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+public import Langlib.Grammars.ContextFree.EquivMathlibCFG
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextSensitive.Toolbox
+import Langlib.Classes.ContextFree.Pumping.EpsilonElimination
+import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -46,8 +49,7 @@ This file relates the project's context-free grammars to context-sensitive, unre
 
 ## Main declarations
 
-- `CF_subclass_CS`
-- `CF_subclass_RE`
+- `is_CS_of_is_CF` / `CF_subclass_CS`
 - `is_CF_iff_isContextFree`
 -/
 
@@ -138,18 +140,55 @@ by
         · simpa [List.append_assoc] using aft
     exact indu (List.map symbol.terminal w)
 
-/-- Context-free languages without ε-productions are context-sensitive.
+/-- Context-free languages are context-sensitive.
 
-Note: the standard inclusion CF ⊆ CS requires that the context-free grammar has no
-ε-productions, since context-sensitive grammars require non-empty output strings. -/
-theorem CF_subclass_CS {L : Language T}
-    (hne : ∃ g : CF_grammar T, CF_no_epsilon' g ∧ CF_language g = L) :
-    is_CS L := by
-  obtain ⟨g, hg, rfl⟩ := hne
-  exact is_CS_via_csg_implies_is_CS ⟨csg_of_cfg g hg, (CF_language_eq_CS_language g hg).symm⟩
+Context-sensitive grammars require non-empty rule outputs, so the ε-productions of the
+context-free grammar are first removed (`ContextFreeGrammar.eliminateEmpty`), yielding a
+non-contracting grammar for `L \ {ε}`. The empty word is re-adjoined when `ε ∈ L` using
+`is_CS_insert_empty_of_CS_grammar`. -/
+theorem is_CS_of_is_CF {L : Language T} (h : is_CF L) : is_CS L := by
+  classical
+  rw [is_CF_iff_isContextFree] at h
+  obtain ⟨g, rfl⟩ := h
+  -- An ε-free context-free grammar for `g.language \ {[]}`, as a Langlib `CF_grammar`.
+  have heps : CF_no_epsilon' (cfg_of_mathlib_cfg g.eliminateEmpty) := by
+    intro r hr
+    simp only [cfg_of_mathlib_cfg, ContextFreeGrammar.eliminateEmpty, List.mem_map,
+      Finset.mem_toList] at hr
+    obtain ⟨r', hr', rfl⟩ := hr
+    have hne : r'.output ≠ [] := ContextFreeGrammar.output_mem_removeNullables hr'
+    simpa [lssymbol_of_lsSymbol] using hne
+  set csg := csg_of_cfg (cfg_of_mathlib_cfg g.eliminateEmpty) heps with hcsg
+  have hcsg_lang : CS_language csg = g.language \ {[]} := by
+    rw [hcsg, ← CF_language_eq_CS_language, ← mathlib_language_eq_CF_language,
+      ContextFreeGrammar.eliminateEmpty_correct]
+  have hmem : ∀ w, CS_language csg w ↔ (g.language w ∧ w ≠ []) := by
+    intro w
+    have hw := Set.ext_iff.mp hcsg_lang w
+    simpa [Set.mem_diff, Set.mem_singleton_iff] using hw
+  by_cases hε : ([] : List T) ∈ g.language
+  · -- `g.language = (g.language \ {[]}) ∪ {ε}`
+    have hins := is_CS_insert_empty_of_CS_grammar csg
+    have hEq : (fun w => w = [] ∨ CS_language csg w) = g.language := by
+      funext w
+      apply propext
+      rw [hmem w]
+      constructor
+      · rintro (rfl | ⟨hw, _⟩)
+        · exact hε
+        · exact hw
+      · intro hw
+        by_cases hwe : w = []
+        · exact Or.inl hwe
+        · exact Or.inr ⟨hw, hwe⟩
+    rwa [hEq] at hins
+  · -- `ε ∉ L`, so `g.language = g.language \ {[]}` is presented directly by the CS grammar.
+    refine is_CS_via_csg_implies_is_CS ⟨csg, ?_⟩
+    funext w
+    apply propext
+    rw [hmem w]
+    exact ⟨fun hw => hw.1, fun hw => ⟨hw, fun hwe => hε (hwe ▸ hw)⟩⟩
 
-public theorem CF_subclass_RE {L : Language T} :
-  is_CF L → is_RE L := by
-  intro h
-  obtain ⟨g, eq_L⟩ := is_CF_implies_is_CF_via_cfg h
-  exact ⟨grammar_of_cfg g, by rw [← eq_L, CF_language_eq_grammar_language]⟩
+/-- Context-free languages form a subclass of the context-sensitive languages. -/
+theorem CF_subclass_CS : (CF : Set (Language T)) ⊆ (CS : Set (Language T)) :=
+  fun _ h => is_CS_of_is_CF h

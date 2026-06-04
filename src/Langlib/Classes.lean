@@ -51,6 +51,7 @@ public import Langlib.Classes.ContextFree.Examples.BnAn
 public import Langlib.Classes.ContextFree.Examples.BnAnPos
 public import Langlib.Classes.ContextFree.Examples.BnAnPosStarB
 public import Langlib.Classes.ContextFree.Examples.L4
+public import Langlib.Classes.ContextFree.Examples.SingletonWord
 public import Langlib.Classes.ContextFree.Examples.UnaryA2PowSucc
 public import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.Indexed
@@ -76,6 +77,7 @@ public import Langlib.Classes.ContextSensitive.Closure.Reverse
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
 public import Langlib.Classes.ContextSensitive.Definition
+public import Langlib.Classes.ContextSensitive.Examples.SingletonWord
 public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.ContextSensitive.Inclusion.StrictRecursive
@@ -99,6 +101,7 @@ public import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCm
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCn
 public import Langlib.Classes.DeterministicContextFree.Examples.BnAnPosStarB
+public import Langlib.Classes.DeterministicContextFree.Examples.SingletonWord
 public import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 public import Langlib.Classes.DeterministicContextFree.Inclusion.StrictContextFree
 public import Langlib.Classes.Indexed.Closure.Concatenation
@@ -108,11 +111,13 @@ public import Langlib.Classes.Indexed.Closure.Reverse
 public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition
 public import Langlib.Classes.Indexed.Examples.AnBnCn
+public import Langlib.Classes.Indexed.Examples.SingletonWord
 public import Langlib.Classes.Linear.Basics.Map
 public import Langlib.Classes.Linear.Closure.Concatenation
 public import Langlib.Classes.Linear.Definition
 public import Langlib.Classes.Linear.Examples.AnBn
 public import Langlib.Classes.Linear.Examples.L4
+public import Langlib.Classes.Linear.Examples.SingletonWord
 public import Langlib.Classes.Linear.Inclusion.ContextFree
 public import Langlib.Classes.Linear.Inclusion.StrictContextFree
 public import Langlib.Classes.Linear.Pumping.Pumping
@@ -123,9 +128,9 @@ public import Langlib.Classes.Recursive.Closure.Complement
 public import Langlib.Classes.Recursive.Closure.Reverse
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Definition
+public import Langlib.Classes.Recursive.Examples.SingletonWord
 public import Langlib.Classes.Recursive.Inclusion.ByTapeFromComputable
 public import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
-public import Langlib.Classes.Recursive.Inclusion.Regular
 public import Langlib.Classes.Recursive.Inclusion.StrictRecursivelyEnumerable
 public import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 public import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
@@ -150,6 +155,7 @@ public import Langlib.Classes.RecursivelyEnumerable.Examples.AnBnCn
 public import Langlib.Classes.RecursivelyEnumerable.Examples.EmptyWord
 public import Langlib.Classes.RecursivelyEnumerable.Examples.Halting
 public import Langlib.Classes.RecursivelyEnumerable.Examples.NonHalting
+public import Langlib.Classes.RecursivelyEnumerable.Examples.SingletonWord
 public import Langlib.Classes.RecursivelyEnumerable.NormalForms.Kuroda
 public import Langlib.Classes.Regular.Basics.NonRegular
 public import Langlib.Classes.Regular.Closure.Bijection
@@ -173,10 +179,12 @@ public import Langlib.Classes.Regular.Decidability.Membership
 public import Langlib.Classes.Regular.Decidability.Universality
 public import Langlib.Classes.Regular.Definition
 public import Langlib.Classes.Regular.Examples.EmptyWord
+public import Langlib.Classes.Regular.Examples.SingletonWord
 public import Langlib.Classes.Regular.Examples.TopBot
 public import Langlib.Classes.Regular.Inclusion.ContextFree
 public import Langlib.Classes.Regular.Inclusion.DeterministicContextFree
 public import Langlib.Classes.Regular.Inclusion.Linear
+public import Langlib.Classes.Regular.Inclusion.Recursive
 public import Langlib.Classes.Regular.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Regular.Inclusion.StrictContextFree
 public import Langlib.Classes.Regular.Inclusion.StrictDeterministicContextFree

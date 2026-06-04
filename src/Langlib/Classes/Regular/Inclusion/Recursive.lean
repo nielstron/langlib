@@ -85,8 +85,3 @@ public theorem is_Recursive_of_isRegular {L : Language α}
     (hL : L.IsRegular) : is_Recursive L := by
   obtain ⟨σ, _hσ, M, rfl⟩ := hL
   exact RecursiveRegular.is_Recursive_of_dfa M
-
-/-- Every singleton word language is recursive. -/
-public theorem is_Recursive_singleton_word (w : List α) :
-    is_Recursive ({w} : Language α) :=
-  is_Recursive_of_isRegular (Language.isRegular_singleton_word w)
