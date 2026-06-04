@@ -66,7 +66,7 @@ private lemma eq_map_terminal_append_nt {N : Type} {l₁ l₂ : List (symbol T N
     simp only [List.map_nil, List.nil_append] at h
     cases l₁ with
     | nil =>
-      simp only [List.nil_append, List.cons_append, List.append_assoc, List.cons.injEq,
+      simp only [List.nil_append, List.cons_append, List.cons.injEq,
         symbol.nonterminal.injEq] at h
       exact ⟨h.2, rfl, h.1⟩
     | cons c l₁' => simp at h
@@ -162,35 +162,44 @@ private theorem lrGrammar_isLR0 : (lrGrammar M).IsLRk 0 := by
   rcases rule_shape M hr₁ with ⟨a₁, hrule₁⟩ | ⟨hacc₁, hrule₁⟩ <;>
     rcases rule_shape M hr₂ with ⟨a₂, hrule₂⟩ | ⟨hacc₂, hrule₂⟩
   · -- shift / shift
-    rw [hrule₁, hrule₂] at hcore
-    have hlen : (w₁.map symbol.terminal).length = (w₂.map symbol.terminal).length := by
-      have := congrArg List.length hcore; simpa using this
-    obtain ⟨hw, hsuf⟩ := List.append_inj hcore hlen
+    have ho1 : r₁.2 = [symbol.terminal a₁, symbol.nonterminal (M.step r₁.1 a₁)] :=
+      congrArg Prod.snd hrule₁
+    have ho2 : r₂.2 = [symbol.terminal a₂, symbol.nonterminal (M.step r₂.1 a₂)] :=
+      congrArg Prod.snd hrule₂
+    have hlen : w₁.length = w₂.length := by
+      have := congrArg List.length hcore
+      simp only [List.length_append, List.length_map, List.length_cons, List.length_nil,
+        ho1, ho2] at this
+      omega
+    obtain ⟨hw, hsuf⟩ := List.append_inj hcore (by simp [hlen])
     have hww : w₁ = w₂ := map_terminal_inj hw
     have h1 : r₁.1 = r₂.1 := by rw [hin₁, hin₂, hww]
-    simp only [List.cons.injEq] at hsuf
-    have ha : a₁ = a₂ := by simpa using hsuf.1
-    exact ⟨by rw [hrule₁, hrule₂, h1, ha], hww⟩
+    exact ⟨Prod.ext_iff.mpr ⟨h1, hsuf⟩, hww⟩
   · -- shift / eps : contradiction (handle ends in a nonterminal, target is all terminals)
     exfalso
-    rw [hrule₁, hrule₂] at hcore
-    simp only [List.append_nil] at hcore
+    have ho1 : r₁.2 = [symbol.terminal a₁, symbol.nonterminal (M.step r₁.1 a₁)] :=
+      congrArg Prod.snd hrule₁
+    have ho2 : r₂.2 = [] := congrArg Prod.snd hrule₂
+    rw [ho1, ho2, List.append_nil] at hcore
     have hmem : symbol.nonterminal (M.step r₁.1 a₁) ∈ w₂.map symbol.terminal := by
       rw [← hcore]; simp
     exact nonterminal_not_mem_map_terminal hmem
   · -- eps / shift : symmetric contradiction
     exfalso
-    rw [hrule₁, hrule₂] at hcore
-    simp only [List.append_nil] at hcore
+    have ho1 : r₁.2 = [] := congrArg Prod.snd hrule₁
+    have ho2 : r₂.2 = [symbol.terminal a₂, symbol.nonterminal (M.step r₂.1 a₂)] :=
+      congrArg Prod.snd hrule₂
+    rw [ho1, ho2, List.append_nil] at hcore
     have hmem : symbol.nonterminal (M.step r₂.1 a₂) ∈ w₁.map symbol.terminal := by
       rw [hcore]; simp
     exact nonterminal_not_mem_map_terminal hmem
   · -- eps / eps
-    rw [hrule₁, hrule₂] at hcore
-    simp only [List.append_nil] at hcore
+    have ho1 : r₁.2 = [] := congrArg Prod.snd hrule₁
+    have ho2 : r₂.2 = [] := congrArg Prod.snd hrule₂
+    rw [ho1, ho2, List.append_nil, List.append_nil] at hcore
     have hww : w₁ = w₂ := map_terminal_inj hcore
     have h1 : r₁.1 = r₂.1 := by rw [hin₁, hin₂, hww]
-    exact ⟨by rw [hrule₁, hrule₂, h1], hww⟩
+    exact ⟨Prod.ext_iff.mpr ⟨h1, ho1.trans ho2.symm⟩, hww⟩
 
 /-- The language of the DFA-derived grammar is the DFA's language. -/
 private lemma lrGrammar_language : CF_language (lrGrammar M) = M.accepts := by

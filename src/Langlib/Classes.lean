@@ -186,6 +186,7 @@ public import Langlib.Classes.Regular.Examples.SingletonWord
 public import Langlib.Classes.Regular.Examples.TopBot
 public import Langlib.Classes.Regular.Inclusion.ContextFree
 public import Langlib.Classes.Regular.Inclusion.DeterministicContextFree
+public import Langlib.Classes.Regular.Inclusion.LR
 public import Langlib.Classes.Regular.Inclusion.Linear
 public import Langlib.Classes.Regular.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Regular.Inclusion.StrictContextFree
