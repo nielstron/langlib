@@ -59,4 +59,27 @@ The implementation is split into:
 * `AnnotatedStack`: annotated totalizer stack symbols and lookahead queries;
 * `Construction`: the analyzed totalized DPDA and its correctness;
 * `Presentation`: the language-level totalization theorem.
+
+The headline result, assembled here from those pieces, is `DPDA.exists_equivalent_total`:
+every DPDA has an equivalent total DPDA.
 -/
+
+namespace DPDA
+
+variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
+
+/-- **DPDA totalization.** Every DPDA has an equivalent *total* DPDA: a DPDA that
+    decides every input (`DPDA.IsTotal`) and recognizes the same language by
+    final-state acceptance.
+
+    The witness is the analyzed `totalizer` of a regular epsilon analysis, which every
+    finite DPDA admits (`DPDA.hasRegularEpsilonAnalysis`); `totalizer_decides` gives
+    totality and `totalizer_acceptsByFinalState_eq_original` gives language equality. -/
+public theorem exists_equivalent_total (M : DPDA Q T S) :
+    ∃ (Q' S' : Type) (_ : Fintype Q') (_ : Fintype S') (M' : DPDA Q' T S'),
+      M'.IsTotal ∧ M'.acceptsByFinalState = M.acceptsByFinalState := by
+  obtain ⟨A⟩ := DPDA.hasRegularEpsilonAnalysis M
+  exact ⟨_, _, inferInstance, inferInstance, totalizer A,
+    totalizer_decides A, totalizer_acceptsByFinalState_eq_original A⟩
+
+end DPDA

@@ -2,6 +2,7 @@ module
 
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Examples.AnBnCm
+public import Langlib.Classes.DeterministicContextFree.Examples.AbcStack
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -58,10 +59,6 @@ public inductive EqAnyState where
   | onlyC
   deriving DecidableEq, Fintype
 
-public inductive ABCStack where
-  | bottom
-  | mark
-  deriving DecidableEq, Fintype
 
 open EqAnyState ABCStack
 

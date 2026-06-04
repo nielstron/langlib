@@ -4,7 +4,7 @@ public import Langlib.Classes.ContextFree.Definition
 public import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Classes.ContextFree.Closure.Intersection
-import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
+import Langlib.Classes.ContextFree.Inclusion.RecursivelyEnumerable
 import Langlib.Classes.RecursivelyEnumerable.Examples.AnBnCn
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
@@ -66,7 +66,7 @@ open Language List
 theorem is_RE_of_is_CF_strict :
     (∀ (T : Type) (L : Language T), is_CF L → is_RE L) ∧
     (∃ (T : Type) (L : Language T), is_RE L ∧ ¬ is_CF L) :=
-  ⟨fun _ _ => CF_subclass_RE, ⟨Fin 3, lang_eq_eq, lang_eq_eq_is_RE, notCF_lang_eq_eq⟩⟩
+  ⟨fun _ _ h => is_RE_of_is_CF h, ⟨Fin 3, lang_eq_eq, lang_eq_eq_is_RE, notCF_lang_eq_eq⟩⟩
 
 /-- A class-level formulation of `CF_strictSubclass_RE`:
     for every alphabet, `CF ⊆ RE`, and for some alphabet the inclusion is strict. -/
@@ -92,7 +92,7 @@ theorem CF_strict_subclass_RE {T : Type} [Fintype T]
   let e : Fin 3 ↪ T := (Fin.castLEEmb hT).trans π.symm.toEmbedding
   refine ⟨?_, ?_⟩
   · intro L hL
-    exact CF_subclass_RE hL
+    exact is_RE_of_is_CF hL
   · intro hREsubsetCF
     have hRE : is_RE (Language.map e lang_eq_eq) :=
       RE_of_map_injective_RE e.injective lang_eq_eq lang_eq_eq_is_RE

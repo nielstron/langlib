@@ -46,9 +46,10 @@ halts, and it accepts exactly the words in the language.
 
 ## Main definitions
 
-- `is_Recursive` — a language is recursive if there exists a TM₀ machine that always
-  halts together with a Boolean acceptance predicate on states, such that `w ∈ L` iff
-  the machine halts in a state `q` with `accept q = true`.
+- `is_Recursive` — a language is recursive if there exists a TM₀ machine, with the
+  same input/work alphabet convention as `is_TM`, that always halts together with a
+  Boolean acceptance predicate on states, such that `w ∈ L` iff the machine halts in
+  a state `q` with `accept q = true`.
 - `Recursive` — the class of all recursive languages.
 -/
 
@@ -57,23 +58,30 @@ open Turing
 variable {T : Type}
 
 /-- A language `L` over alphabet `T` is **recursive** (decidable) if there exists a
-finite-state Turing machine (in Mathlib's `Turing.TM0` model) that **always halts**,
+finite-work-alphabet, finite-state Turing machine (in Mathlib's `Turing.TM0` model)
+that **always halts**,
 together with a Boolean predicate `accept` on states, such that `w ∈ L` iff the
 machine halts in a state `q` with `accept q = true`.
 
-The machine uses `Option T` as the tape alphabet (`none` = blank) and encodes the
-input word `w : List T` as `w.map some` on the tape. -/
+The machine uses the same tape convention as `is_TM`: `Option (T ⊕ Γ)`, where
+`none` is blank, `some (Sum.inl t)` is an input symbol, and `some (Sum.inr γ)` is
+a work symbol. The input word `w : List T` is written as
+`w.map (fun t => some (Sum.inl t))`. -/
 @[expose]
 public def is_Recursive {T : Type} (L : Language T) : Prop :=
-  ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
-    (M : TM0.Machine (Option T) Λ) (accept : Λ → Bool),
+  ∃ (Γ : Type) (_ : Fintype Γ)
+    (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
+    (M : TM0.Machine (Option (T ⊕ Γ)) Λ) (accept : Λ → Bool),
     (∀ w : List T,
-      (Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).Dom) ∧
+      (Turing.eval (TM0.step M)
+        (TM0.init (w.map fun t => some (Sum.inl t)))).Dom) ∧
     (∀ w : List T,
-      ∀ h : (Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).Dom,
+      ∀ h : (Turing.eval (TM0.step M)
+          (TM0.init (w.map fun t => some (Sum.inl t)))).Dom,
         w ∈ L ↔
           accept
-            ((Turing.eval (TM0.step M) (TM0.init (w.map Option.some))).get h).q = true)
+            ((Turing.eval (TM0.step M)
+              (TM0.init (w.map fun t => some (Sum.inl t)))).get h).q = true)
 
 /-- The class of recursive (decidable) languages. -/
 @[expose]

@@ -2,6 +2,9 @@ module
 
 public import Mathlib.Computability.DFA
 public import Mathlib.Computability.Halting
+public import Langlib.Classes.Regular.Decidability.Helper
+public import Langlib.Classes.Regular.Decidability.Characterization
+public import Langlib.Classes.ContextFree.Decidability.Membership
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -47,6 +50,8 @@ regular languages, using `ComputablePred` rather than the weaker `Decidable`.
 
 - `dfa_membership_computablePred` – membership in a DFA's language is a computable predicate
 - `regular_membership_computablePred` – membership in a regular language is a computable predicate
+- `regular_computableMembership` – membership is *uniformly* computable for encoded
+  right-regular grammars (`ComputableMembership`)
 -/
 
 open List Relation
@@ -93,3 +98,32 @@ noncomputable def regular_membership_computablePred
   exact dfa_membership_computablePred M
 
 end Regular
+
+/-! ## Part 2: Uniform computability over encoded right-regular grammars -/
+
+namespace Regular.EncodedRG
+
+/-- The raw uniform membership decider for encoded right-regular grammars, obtained by
+composing the context-free membership decider with the primitive-recursive translation
+`toCFG : EncodedRG T → EncodedCFG T`. -/
+public theorem regular_membership_computablePred [Fintype T] [DecidableEq T] [Primcodable T] :
+    ComputablePred (fun p : EncodedRG T × List T => p.2 ∈ regularLanguageOf p.1) := by
+  obtain ⟨f, hf_comp, hf_eq⟩ :=
+    ComputablePred.computable_iff.mp (contextFree_membership_computablePred (T := T))
+  rw [ComputablePred.computable_iff]
+  refine ⟨fun p => f (toCFG p.1, p.2), ?_, ?_⟩
+  · exact hf_comp.comp
+      (Primrec.to_comp (Primrec.pair (toCFG_primrec.comp Primrec.fst) Primrec.snd))
+  · funext p
+    have h := congrFun hf_eq (toCFG p.1, p.2)
+    simpa [regularLanguageOf] using h
+
+/-- **Membership is uniformly computable** for the regular languages: encoded
+right-regular grammars are an adequate, effective presentation
+(`regularLanguageOf_characterizes`) with uniformly decidable membership. -/
+public theorem regular_computableMembership [Fintype T] [DecidableEq T] [Primcodable T] :
+    ComputableMembership RG (regularLanguageOf : EncodedRG T → Language T) :=
+  ⟨regularLanguageOf_characterizes, regular_membership_computablePred.to_re,
+    regular_membership_computablePred⟩
+
+end Regular.EncodedRG

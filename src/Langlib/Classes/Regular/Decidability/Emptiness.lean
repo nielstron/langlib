@@ -1,6 +1,10 @@
 module
 
 public import Mathlib.Computability.DFA
+public import Langlib.Classes.Regular.Decidability.Helper
+public import Langlib.Classes.Regular.Decidability.Characterization
+public import Langlib.Classes.Regular.Decidability.Membership
+public import Langlib.Classes.ContextFree.Decidability.Emptiness
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -51,6 +55,8 @@ regular languages.
 ## Main results
 
 - `regular_emptiness_decidable` – emptiness of a regular language is decidable
+- `regular_computableEmptiness` – emptiness is *uniformly* computable for encoded
+  right-regular grammars (`ComputableEmptiness`)
 -/
 
 open List Relation
@@ -168,3 +174,30 @@ public noncomputable def regular_emptiness_decidable
   exact dfa_emptiness_decidable M
 
 end Regular
+
+/-! ## Part 2: Uniform computability over encoded right-regular grammars -/
+
+namespace Regular.EncodedRG
+
+/-- The raw uniform emptiness decider for encoded right-regular grammars, obtained by
+composing the context-free emptiness decider with the primitive-recursive translation
+`toCFG : EncodedRG T → EncodedCFG T`. -/
+public theorem regular_emptiness_computablePred [Fintype T] [DecidableEq T] [Primcodable T] :
+    ComputablePred (fun c : EncodedRG T => regularLanguageOf c = (∅ : Set (List T))) := by
+  obtain ⟨f, hf_comp, hf_eq⟩ :=
+    ComputablePred.computable_iff.mp (contextFree_emptiness_computablePred (T := T))
+  rw [ComputablePred.computable_iff]
+  refine ⟨fun c => f (toCFG c), hf_comp.comp (Primrec.to_comp toCFG_primrec), ?_⟩
+  funext c
+  have h := congrFun hf_eq (toCFG c)
+  simpa [regularLanguageOf] using h
+
+/-- **Emptiness is uniformly computable** for the regular languages: encoded
+right-regular grammars are an adequate, effective presentation
+(`regularLanguageOf_characterizes`) with uniformly decidable emptiness. -/
+public theorem regular_computableEmptiness [Fintype T] [DecidableEq T] [Primcodable T] :
+    ComputableEmptiness RG (regularLanguageOf : EncodedRG T → Language T) :=
+  ⟨regularLanguageOf_characterizes, regular_membership_computablePred.to_re,
+    regular_emptiness_computablePred⟩
+
+end Regular.EncodedRG

@@ -98,8 +98,7 @@ theorem RE_equivalence_undecidable :
 
 /-- Equivalence for RE codes is not uniformly computable. -/
 theorem recursivelyEnumerable_computableEquivalence_undecidable :
-    ¬ComputableEquivalence partrecCodeGraphLanguageOf := by
+    ¬ComputableEquivalence RE partrecCodeGraphLanguageOf := by
   intro h
   apply RE_equivalence_undecidable
-  unfold ComputableEquivalence at h
-  exact h.of_eq fun p => partrecCodeGraphLanguage_eq_iff p
+  exact h.2.2.of_eq fun p => partrecCodeGraphLanguage_eq_iff p

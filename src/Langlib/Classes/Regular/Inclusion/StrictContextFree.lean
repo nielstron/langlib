@@ -3,7 +3,7 @@ module
 public import Langlib.Classes.ContextFree.Definition
 public import Langlib.Classes.Regular.Definition
 public import Mathlib.Computability.DFA
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Examples.AnBn
 import Langlib.Classes.Regular.Basics.NonRegular

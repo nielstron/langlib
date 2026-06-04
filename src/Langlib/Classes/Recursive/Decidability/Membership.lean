@@ -1,6 +1,10 @@
 module
 
 public import Langlib.Classes.Recursive.Definition
+public import Langlib.Classes.Recursive.Basics.Post
+public import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
+public import Langlib.Classes.Recursive.Closure.Complement
+public import Mathlib.Computability.Halting
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -37,25 +41,27 @@ public section
 
 
 
-/-! # Decidability of Membership
+/-! # Computability of Membership
 
-This file proves that membership in a recursive language is decidable.
+This file proves that membership in a recursive language is computable.
 
 ## Main results
 
-- `Recursive_membership_decidable` — membership in a recursive language is decidable.
+- `Recursive_membership_computable` — membership in a recursive language is a
+  `ComputablePred` (genuine computability in the theory-of-computation sense).
 -/
 
 variable {T : Type}
 
-/-- Membership in a recursive language is decidable.
+/-- **Membership in a recursive language is computable.** This is the genuine
+theory-of-computation statement: from an always-halting decider we obtain a `ComputablePred`,
+via Post's theorem applied to `L` and its (recursive, hence recognizable) complement.
 
-The TM that decides `L` always halts, and tells us whether `w ∈ L` via its
-acceptance predicate. Since `is_Recursive` is an existential proposition the
-witness is extracted using `Classical.choice`, making this definition
-`noncomputable`. -/
-noncomputable def Recursive_membership_decidable
-    {L : Language T} (_hL : is_Recursive L) (w : List T) :
-    Decidable (w ∈ L) :=
-  letI := Classical.dec
-  inferInstance
+This mirrors `computablePred_mem_of_is_CS` for context-sensitive languages. -/
+public theorem Recursive_membership_computable
+    [DecidableEq T] [Fintype T] [Primcodable T]
+    {L : Language T} (hL : is_Recursive L) :
+    ComputablePred (fun w : List T => w ∈ L) :=
+  computablePred_of_isRE_of_isRE_compl
+    (is_Recursive_implies_is_RE hL)
+    (is_Recursive_implies_is_RE (is_Recursive_complement hL))

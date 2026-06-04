@@ -9,6 +9,8 @@ import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Classes.ContextFree.Closure.Intersection
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Examples.AnBmCm
+import Langlib.Classes.DeterministicContextFree.Examples.AnBnCm
+import Langlib.Classes.DeterministicContextFree.Examples.AnBnCn
 import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
@@ -54,11 +56,6 @@ This file transfers the existing CFL intersection counterexample to DCFLs by giv
 deterministic presentations of the two witness languages.
 -/
 
-
-/-- `{aⁿbⁿcⁿ | n ≥ 0}` is not deterministic context-free. -/
-theorem notDCF_lang_eq_eq : ¬ is_DCF lang_eq_eq := by
-  intro h
-  exact notCF_lang_eq_eq (is_CF_of_is_DCF h)
 
 /-- The existing CFL intersection witnesses also disprove DCFL intersection closure
 once they are shown deterministic context-free. -/

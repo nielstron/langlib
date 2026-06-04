@@ -11,7 +11,7 @@ public import Langlib.Classes.Regular.Closure.Star
 public import Langlib.Classes.Regular.Closure.Union
 public import Langlib.Classes.Regular.Examples.TopBot
 public import Langlib.Classes.Regular.Inclusion.DeterministicContextFree
-public import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+public import Langlib.Automata.FiniteState.Equivalence.Regular
 public import Langlib.Utilities.ClosurePredicates
 
 /-!

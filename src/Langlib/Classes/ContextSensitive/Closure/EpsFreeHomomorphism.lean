@@ -1,67 +1,96 @@
 module
 
-public import Langlib.Utilities.ClosurePredicates
 public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.RecursivelyEnumerable.Closure.Homomorphism
-import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
+public import Langlib.Utilities.ClosurePredicates
+
+@[expose]
+public section
 
 /-! # Context-Sensitive Closure Under ε-Free Homomorphism
 
-This file proves that context-sensitive languages, with the current non-contracting
-definition, are closed under string homomorphisms that do not erase symbols.
-
-Proof idea: reuse the unrestricted homomorphism grammar, but build it as a
-context-sensitive grammar. Original CS rules are lifted unchanged, and each
-terminal marker for `a` expands to the nonempty word `h a`; the ε-free hypothesis
-is exactly what keeps these expansion rules non-contracting.
+This file proves that context-sensitive languages are closed under string
+homomorphisms that do not erase symbols.
 -/
 
 variable {α β : Type}
 
-private def epsfreeHomLiftCSRule {N : Type} (r : csrule α N) : csrule β (N ⊕ α) :=
-  csrule.mk (homLiftStr r.context_left) (Sum.inl r.input_nonterminal)
-    (homLiftStr r.context_right) (homLiftStr r.output_string)
+private theorem homLiftRule_context_sensitive (h : α → List β) {g : grammar α}
+    {r : grule α g.nt}
+    (hr : initial_epsilon_rule g r ∨ grule_noncontracting r) :
+    initial_epsilon_rule (hom_grammar g h) (@homLiftRule α β g.nt r) ∨
+      @grule_noncontracting β (g.nt ⊕ α) (@homLiftRule α β g.nt r) := by
+  rcases hr with hε | hnc
+  · left
+    rcases hε with ⟨hL, hN, hR, hO⟩
+    simp [initial_epsilon_rule, hom_grammar, homLiftRule, homLiftStr, hL, hN, hR, hO]
+  · right
+    simpa [grule_noncontracting, homLiftRule, homLiftStr]
+      using hnc
 
-private def epsfreeHomExpandCSRule {N : Type} (h : α → List β) (a : α) :
-    csrule β (N ⊕ α) :=
-  csrule.mk [] (Sum.inr a) [] ((h a).map symbol.terminal)
+private theorem homExpandRule_noncontracting (h : α → List β)
+    (heps : IsEpsFreeHomomorphism h) (a : α) {N : Type} :
+    grule_noncontracting (@homExpandRule α β N h a) := by
+  simp [grule_noncontracting, homExpandRule]
+  exact List.length_pos_iff.mpr (heps a)
 
-private def epsfreeHomCSGrammar (g : CS_grammar α) (h : α → List β)
-    (heps : IsEpsFreeHomomorphism h) : CS_grammar β where
-  nt := g.nt ⊕ α
-  initial := Sum.inl g.initial
-  rules :=
-    g.rules.map epsfreeHomLiftCSRule ++
-      (all_used_terminals (grammar_of_csg g)).map (epsfreeHomExpandCSRule h)
-  output_nonempty := by
-    intro r hr
-    rw [List.mem_append] at hr
-    rcases hr with hr | hr
-    · obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
-      simp [epsfreeHomLiftCSRule, homLiftStr]
-      exact g.output_nonempty r₀ hr₀
-    · obtain ⟨a, _ha, rfl⟩ := List.mem_map.mp hr
-      simp [epsfreeHomExpandCSRule]
-      exact heps a
-
-private theorem grammar_of_csg_epsfreeHom_comm (g : CS_grammar α) (h : α → List β)
-    (heps : IsEpsFreeHomomorphism h) :
-    grammar_of_csg (epsfreeHomCSGrammar g h heps) = hom_grammar (grammar_of_csg g) h := by
-  unfold grammar_of_csg epsfreeHomCSGrammar hom_grammar epsfreeHomLiftCSRule
-    epsfreeHomExpandCSRule homLiftRule homExpandRule homLiftStr
-  simp [grammar_of_csg, List.map_map, List.map_append, List.append_assoc, Function.comp_def]
-
-private theorem epsfreeHomCSGrammar_language (g : CS_grammar α) (h : α → List β)
-    (heps : IsEpsFreeHomomorphism h) :
-    CS_language (epsfreeHomCSGrammar g h heps) =
-      (CS_language g).homomorphicImage h := by
-  rw [CS_language_eq_grammar_language, grammar_of_csg_epsfreeHom_comm,
-    hom_grammar_language_epsfree (grammar_of_csg g) h heps, CS_language_eq_grammar_language]
+private theorem hom_grammar_context_sensitive (g : grammar α) (h : α → List β)
+    (heps : IsEpsFreeHomomorphism h) (hg : grammar_context_sensitive g) :
+    grammar_context_sensitive (hom_grammar g h) := by
+  refine ⟨fun r hr => ?_, ?_⟩
+  · change r ∈
+      (g.rules.map (@homLiftRule α β g.nt) ++
+        (all_used_terminals g).map (@homExpandRule α β g.nt h)) at hr
+    simp only [List.mem_append, List.mem_map] at hr
+    rcases hr with ⟨r₀, hr₀, rfl⟩ | ⟨a, _ha, rfl⟩
+    · exact homLiftRule_context_sensitive h (hg.1 r₀ hr₀)
+    · exact Or.inr (homExpandRule_noncontracting h heps a)
+  · -- The ε-rule on `hom_grammar` must be a lifted ε-rule of `g`.
+    rintro ⟨r, hr, hε⟩
+    change r ∈
+      (g.rules.map (@homLiftRule α β g.nt) ++
+        (all_used_terminals g).map (@homExpandRule α β g.nt h)) at hr
+    simp only [List.mem_append, List.mem_map] at hr
+    rcases hr with ⟨r₀, hr₀, rfl⟩ | ⟨a, _ha, rfl⟩
+    · -- A lifted rule is the ε-rule iff `r₀` is the ε-rule of `g`.
+      have hε₀ : initial_epsilon_rule g r₀ := by
+        rcases hε with ⟨hL, hN, hR, hO⟩
+        refine ⟨?_, ?_, ?_, ?_⟩
+        · simpa [homLiftRule, homLiftStr] using hL
+        · have : Sum.inl r₀.input_N = (Sum.inl g.initial : g.nt ⊕ α) := by
+            simpa [hom_grammar, homLiftRule] using hN
+          exact Sum.inl.inj this
+        · simpa [homLiftRule, homLiftStr] using hR
+        · simpa [homLiftRule, homLiftStr] using hO
+      have hrhs := hg.2 ⟨r₀, hr₀, hε₀⟩
+      -- Push `initial_not_on_rhs` forward along the lift.
+      intro r' hr'
+      change r' ∈
+        (g.rules.map (@homLiftRule α β g.nt) ++
+          (all_used_terminals g).map (@homExpandRule α β g.nt h)) at hr'
+      simp only [List.mem_append, List.mem_map] at hr'
+      rcases hr' with ⟨r₀', hr₀', rfl⟩ | ⟨a, _ha, rfl⟩
+      · -- Lifted rule: `S = inl g.initial` in output iff `g.initial` in `r₀'`'s output.
+        have := hrhs r₀' hr₀'
+        simp only [hom_grammar, homLiftRule, homLiftStr]
+        intro hmem
+        rw [List.mem_map] at hmem
+        obtain ⟨s, hs, hseq⟩ := hmem
+        cases s with
+        | terminal a => simp [homLiftSym] at hseq
+        | nonterminal n =>
+            simp only [homLiftSym, symbol.nonterminal.injEq, Sum.inl.injEq] at hseq
+            exact this (hseq ▸ hs)
+      · -- Expand rule: output is all terminals, no nonterminal `S`.
+        simp [hom_grammar, homExpandRule]
+    · -- An expand rule has `input_N = Sum.inr a ≠ Sum.inl g.initial`, never the ε-rule.
+      rcases hε with ⟨_, hN, _, _⟩
+      simp [hom_grammar, homExpandRule] at hN
 
 /-- Context-sensitive languages are closed under ε-free string homomorphism. -/
 public theorem CS_closedUnderEpsFreeHomomorphism :
     ClosedUnderEpsFreeHomomorphism is_CS := by
   intro α β _ _ L h heps hL
-  obtain ⟨g, hgL⟩ := is_CS_implies_is_CS_via_csg hL
-  exact is_CS_via_csg_implies_is_CS
-    ⟨epsfreeHomCSGrammar g h heps, by rw [epsfreeHomCSGrammar_language, hgL]⟩
+  obtain ⟨g, hcs, hgL⟩ := hL
+  exact ⟨hom_grammar g h, hom_grammar_context_sensitive g h heps hcs,
+    by rw [hom_grammar_language_epsfree g h heps, hgL]⟩

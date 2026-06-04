@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCm
+public import Langlib.Classes.DeterministicContextFree.Examples.AbcStack
 public import Langlib.Examples.AnBmCm
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield

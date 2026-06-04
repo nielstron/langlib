@@ -42,7 +42,12 @@ public section
 
 /-! # Context-Free Definition Equivalence with Mathlib's ContextFreeGrammar
 
-This file relates the project's context-free grammars to context-sensitive, unrestricted, and mathlib formulations.
+This file proves that the project's context-free predicate `is_CF` coincides with
+Mathlib's `Language.IsContextFree`. It defines translations `mathlib_cfg_of_cfg` and
+`cfg_of_mathlib_cfg` between the project's `CF_grammar` and Mathlib's
+`ContextFreeGrammar`, shows the generated languages agree
+(`CF_language_eq_mathlib_language`, by induction on the derivation relation in each
+direction), and concludes `is_CF_iff_isContextFree`.
 
 ## Main declarations
 

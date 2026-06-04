@@ -47,7 +47,7 @@ public section
 
 /-! # Context-Free Concatenation Bonus Construction
 
-This file records the older direct grammar construction for context-free closure under
+This file records a direct grammar construction for context-free closure under
 concatenation.
 
 ## Main declarations

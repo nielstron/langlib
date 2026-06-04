@@ -52,7 +52,7 @@ public section
 /-! # RE Closure Under String Homomorphism
 
 This file proves that the class of recursively enumerable languages is closed under
-string homomorphism.  It also keeps the older grammar construction for the ε-free
+string homomorphism.  It also provides a grammar construction for the ε-free
 case, where no symbol is erased.
 
 Proof idea for arbitrary finite-alphabet homomorphisms: a word `w` is in the

@@ -41,7 +41,10 @@ public section
 
 /-! # Elementary Pumping Lemmas
 
-This file proves the project's original pumping-lemma machinery for context-free languages.
+This file states the context-free pumping lemma for the project's `is_CF` predicate.
+`CF_pumping` transports `Language.IsContextFree.pumping` (proved in
+`Pumping/Pumping.lean` via Chomsky-normal-form parse trees) across
+`is_CF_iff_isContextFree`.
 
 ## Main declarations
 

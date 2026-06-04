@@ -1,150 +1,73 @@
 module
 
-public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
+public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
-import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
-import Mathlib.Algebra.Order.Floor.Extended
-import Mathlib.Algebra.Order.Floor.Semifield
-import Mathlib.Algebra.Order.Interval.Basic
-import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
-import Mathlib.Analysis.SpecialFunctions.Bernstein
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
-import Mathlib.CategoryTheory.Category.Init
-import Mathlib.Combinatorics.Enumerative.DyckWord
-import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
-import Mathlib.Data.NNRat.Floor
-import Mathlib.Data.Nat.Factorial.DoubleFactorial
-import Mathlib.Geometry.Euclidean.Altitude
-import Mathlib.NumberTheory.Height.Basic
-import Mathlib.NumberTheory.LucasLehmer
-import Mathlib.NumberTheory.SelbergSieve
-import Mathlib.Tactic.ENatToNat
-import Mathlib.Tactic.NormNum.BigOperators
-import Mathlib.Tactic.NormNum.Irrational
-import Mathlib.Tactic.NormNum.IsCoprime
-import Mathlib.Tactic.NormNum.IsSquare
-import Mathlib.Tactic.NormNum.LegendreSymbol
-import Mathlib.Tactic.NormNum.ModEq
-import Mathlib.Tactic.NormNum.NatFactorial
-import Mathlib.Tactic.NormNum.NatFib
-import Mathlib.Tactic.NormNum.NatLog
-import Mathlib.Tactic.NormNum.NatSqrt
-import Mathlib.Tactic.NormNum.Ordinal
-import Mathlib.Tactic.NormNum.Parity
-import Mathlib.Tactic.NormNum.Prime
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Topology.Sheaves.Init
+public import Langlib.Utilities.ClosurePredicates
+
 @[expose]
 public section
-
-
 
 /-! # Context-Sensitive Closure Under Reversal
 
 This file proves that context-sensitive languages are closed under word reversal.
-
-## Strategy
-
-We reuse `grammar_language_reversal_grammar` (the unrestricted result) together with
-a commutation lemma showing that reversing a CS grammar and embedding it as an
-unrestricted grammar gives the same result as embedding first and then reversing.
-
-## Main declarations
-
-- `reversal_csrule`     — reverse a single CS rule
-- `reversal_CS_grammar` — reverse every rule of a CS grammar
-- `grammar_of_csg_reversal_comm` — commutation with the CS→unrestricted embedding
-- `CS_of_reverse_CS`
-- `CS_of_reverse_CS_rev`
-- `CS_reverse_iff_CS`
 -/
 
 variable {T : Type}
 
-section reversal_defs
+private theorem reversal_grule_context_sensitive {g : grammar T} {r : grule T g.nt}
+    (hr : initial_epsilon_rule g r ∨ grule_noncontracting r) :
+    initial_epsilon_rule (reversal_grammar g) (reversal_grule r) ∨
+      grule_noncontracting (reversal_grule r) := by
+  rcases hr with hε | hnc
+  · left
+    rcases hε with ⟨hL, hN, hR, hO⟩
+    simp [initial_epsilon_rule, reversal_grammar, reversal_grule, hL, hN, hR, hO]
+  · right
+    simpa [grule_noncontracting, reversal_grule, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
+      using hnc
 
-/-- Reverse a single context-sensitive rule: swap and reverse the contexts, reverse the
-output string. -/
-def reversal_csrule {N : Type} (r : csrule T N) : csrule T N :=
-  csrule.mk r.context_right.reverse r.input_nonterminal r.context_left.reverse r.output_string.reverse
-
-private lemma dual_of_reversal_csrule {N : Type} (r : csrule T N) :
-    reversal_csrule (reversal_csrule r) = r := by
-  cases r
-  unfold reversal_csrule
-  simp [List.reverse_reverse]
-
-private lemma reversal_csrule_reversal_csrule {N : Type} :
-    @reversal_csrule T N ∘ @reversal_csrule T N = id := by
-  ext; apply dual_of_reversal_csrule
-
-/-- Reverse every rule of a context-sensitive grammar. -/
-def reversal_CS_grammar (g : CS_grammar T) : CS_grammar T :=
-  CS_grammar.mk g.nt g.initial (List.map reversal_csrule g.rules)
-  ( by
-  intros r rh
-  have x := g.output_nonempty
-  simp only [List.mem_map] at rh
-  rcases rh with ⟨a, ha_rules, ha_eq⟩
-  unfold reversal_csrule at ha_eq
-  simp only [ha_eq.symm, ne_eq, List.reverse_eq_nil_iff]
-  exact g.output_nonempty a ha_rules
-  )
-
-private lemma dual_of_reversal_CS_grammar (g : CS_grammar T) :
-    reversal_CS_grammar (reversal_CS_grammar g) = g := by
-  cases g
-  unfold reversal_CS_grammar
-  simp [List.map_map, reversal_csrule_reversal_csrule]
-
-end reversal_defs
-
-section commutation
-
-/-- Reversing a CS grammar and then embedding it as an unrestricted grammar gives the
-same grammar as embedding first and then applying the unrestricted reversal. -/
-theorem grammar_of_csg_reversal_comm (g : CS_grammar T) :
-    grammar_of_csg (reversal_CS_grammar g) = reversal_grammar (grammar_of_csg g) := by
-  cases g with
-  | mk nt initial rules =>
-    simp only [reversal_CS_grammar, grammar_of_csg, reversal_grammar]
-    congr 1
-    rw [List.map_map, List.map_map]
-    congr 1
-    ext r
-    simp [reversal_grule, reversal_csrule, List.reverse_append]
-
-end commutation
-
-section closure
+private theorem reversal_grammar_context_sensitive (g : grammar T)
+    (hg : grammar_context_sensitive g) :
+    grammar_context_sensitive (reversal_grammar g) := by
+  refine ⟨fun r hr => ?_, ?_⟩
+  · obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
+    exact reversal_grule_context_sensitive (hg.1 r₀ hr₀)
+  · -- The ε-rule on the reversed grammar comes from an ε-rule on `g`.
+    rintro ⟨r, hr, hε⟩
+    obtain ⟨r₀, hr₀, rfl⟩ := List.mem_map.mp hr
+    have hε₀ : initial_epsilon_rule g r₀ := by
+      rcases hε with ⟨hL, hN, hR, hO⟩
+      simp only [reversal_grule, reversal_grammar, List.reverse_eq_nil_iff] at hL hN hR hO
+      exact ⟨hR, hN, hL, by simpa [List.reverse_eq_nil_iff] using hO⟩
+    have hrhs := hg.2 ⟨r₀, hr₀, hε₀⟩
+    intro r' hr'
+    obtain ⟨r₀', hr₀', rfl⟩ := List.mem_map.mp hr'
+    have := hrhs r₀' hr₀'
+    -- `S ∈ out.reverse ↔ S ∈ out`.
+    simpa [reversal_grammar, reversal_grule, List.mem_reverse] using this
 
 /-- The class of context-sensitive languages is closed under reversal. -/
-theorem CS_of_reverse_CS (L : Language T) :
+public theorem CS_of_reverse_CS (L : Language T) :
     is_CS L → is_CS (L.reverse) := by
-  intro h
-  obtain ⟨g, hgL⟩ := is_CS_implies_is_CS_via_csg h
-  apply is_CS_via_csg_implies_is_CS
-  refine ⟨reversal_CS_grammar g, ?_⟩
-  rw [CS_language_eq_grammar_language, grammar_of_csg_reversal_comm,
-      grammar_language_reversal_grammar, ← CS_language_eq_grammar_language, hgL]
+  rintro ⟨g, hcs, hgL⟩
+  exact ⟨reversal_grammar g, reversal_grammar_context_sensitive g hcs,
+    by rw [grammar_language_reversal_grammar, hgL]⟩
 
-/-- The converse direction: if the reversal is CS then so is the original. -/
-theorem CS_of_reverse_CS_rev (L : Language T) :
+/-- The converse direction: if the reversal is context-sensitive then so is the original. -/
+public theorem CS_of_reverse_CS_rev (L : Language T) :
     is_CS (L.reverse) → is_CS L := by
   intro h
   have h' := CS_of_reverse_CS L.reverse h
   simpa using h'
 
 /-- A language is context-sensitive iff its reversal is. -/
-@[simp] theorem CS_reverse_iff_CS (L : Language T) :
+@[simp] public theorem CS_reverse_iff_CS (L : Language T) :
     is_CS (L.reverse) ↔ is_CS L := by
   constructor
   · exact CS_of_reverse_CS_rev L
   · exact CS_of_reverse_CS L
 
-end closure
-
 /-- The class of context-sensitive languages is closed under reversal. -/
-theorem CS_closedUnderReverse : ClosedUnderReverse (α := T) is_CS :=
+public theorem CS_closedUnderReverse : ClosedUnderReverse (α := T) is_CS :=
   fun L hL => CS_of_reverse_CS L hL
+

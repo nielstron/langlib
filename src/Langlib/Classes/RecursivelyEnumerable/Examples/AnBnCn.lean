@@ -4,6 +4,7 @@ public import Langlib.Examples.AnBnCnPos
 public import Langlib.Classes.RecursivelyEnumerable.Definition
 public import Langlib.Examples.AnBnCn
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
+import Langlib.Classes.RecursivelyEnumerable.Examples.EmptyWord
 import Langlib.Grammars.Unrestricted.Toolbox
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
@@ -535,39 +536,8 @@ public theorem grammar_anbncn_language : grammar_language grammar_anbncn = lang_
   ext w
   exact ⟨grammar_anbncn_sub_lang_eq_eq w, fun ⟨n, hw⟩ => hw ▸ anbncn_derivable n⟩
 
-private def grammar_epsilon : grammar (Fin 3) where
-  nt := Unit
-  initial := ()
-  rules := [⟨[], (), [], []⟩]
-
-private lemma grammar_epsilon_language : grammar_language grammar_epsilon = lang_abc_epsilon := by
-  ext w
-  constructor
-  · intro hw
-    change grammar_generates grammar_epsilon w at hw
-    have h := grammar_tran_or_id_of_deri hw
-    rcases h with h | ⟨v, hv, hd⟩
-    · cases w <;> simp at h
-    · rcases hv with ⟨r, hr, u, v', hw₁, hw₂⟩
-      simp [grammar_epsilon] at hr
-      rcases hr with rfl
-      cases u <;> cases v' <;> simp at hw₁ hw₂
-      subst v
-      have h' := grammar_tran_or_id_of_deri hd
-      rcases h' with h' | ⟨v'', hv'', _⟩
-      · simpa [lang_abc_epsilon] using h'
-      · rcases hv'' with ⟨r, hr, u, v', hw₁, _⟩
-        simp [grammar_epsilon] at hr
-        rcases hr with rfl
-        simp at hw₁
-  · intro hw
-    change grammar_generates grammar_epsilon w
-    unfold lang_abc_epsilon at hw
-    subst w
-    exact grammar_deri_of_tran (by
-      refine ⟨⟨[], grammar_epsilon.initial, [], []⟩, by simp [grammar_epsilon], [], [], ?_, ?_⟩ <;> simp)
-
-private lemma lang_eq_eq_pos_union_epsilon : lang_eq_eq_pos + lang_abc_epsilon = lang_eq_eq := by
+private lemma lang_eq_eq_pos_union_epsilon :
+    lang_eq_eq_pos + emptyWordLanguage (Fin 3) = lang_eq_eq := by
   ext w
   constructor
   · intro hw
@@ -575,7 +545,8 @@ private lemma lang_eq_eq_pos_union_epsilon : lang_eq_eq_pos + lang_abc_epsilon =
     rcases hw with hw | hw
     · rcases hw with ⟨n, rfl⟩
       exact ⟨n + 1, by simp [a_, b_, c_, List.replicate_add, List.append_assoc]⟩
-    · cases hw
+    · have hwe : w = [] := hw
+      subst hwe
       exact ⟨0, by simp [a_, b_, c_]⟩
   · intro hw
     rw [Language.mem_add]
@@ -591,6 +562,6 @@ private lemma lang_eq_eq_pos_union_epsilon : lang_eq_eq_pos + lang_abc_epsilon =
 /-- The language `{aⁿbⁿcⁿ}` is recursively enumerable. -/
 public theorem lang_eq_eq_is_RE : is_RE lang_eq_eq := by
   have hpos : is_RE lang_eq_eq_pos := ⟨grammar_anbncn, grammar_anbncn_language⟩
-  have heps : is_RE lang_abc_epsilon := ⟨grammar_epsilon, grammar_epsilon_language⟩
+  have heps : is_RE (emptyWordLanguage (Fin 3)) := emptyWordLanguage_isRE
   rw [← lang_eq_eq_pos_union_epsilon]
   exact RE_of_RE_u_RE _ _ ⟨hpos, heps⟩

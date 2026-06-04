@@ -6,6 +6,7 @@ module -- shake: keep-all
 public import Langlib.Examples.A2nBn
 public import Langlib.Examples.A2nBnPos
 public import Langlib.Examples.A2nBnPosStar
+public import Langlib.Examples.AbcPositive
 public import Langlib.Examples.AlphabetABC
 public import Langlib.Examples.AnBmCm
 public import Langlib.Examples.AnBn
@@ -15,6 +16,11 @@ public import Langlib.Examples.AnBnCnPos
 public import Langlib.Examples.BnAn
 public import Langlib.Examples.BnAnPos
 public import Langlib.Examples.BnAnPosStarB
+public import Langlib.Examples.EmptyWord
+public import Langlib.Examples.Halting
+public import Langlib.Examples.L4
+public import Langlib.Examples.NonHalting
+public import Langlib.Examples.SingletonWord
 public import Langlib.Examples.UnaryA2PowSucc
 import Mathlib.Tactic.Bound.Init
 @[expose]

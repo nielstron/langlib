@@ -100,22 +100,6 @@ theorem DCF_strict_subclass_CF_of_closedUnderComplement_of_card {T : Type} [Fint
     hDCFcomp
     (CF_notClosedUnderComplement_of_card hT)
 
-/-- The closure-mismatch strictness result specialized to the DPDA totalization
-principle. -/
-theorem DCF_strict_subclass_CF_of_decider_presentations
-    (htotal : EveryDCFHasDeciderPresentation (Fin 3)) :
-    (DCF : Set (Language (Fin 3))) ⊂ (CF : Set (Language (Fin 3))) :=
-  DCF_strict_subclass_CF_of_closedUnderComplement
-    (DCF_closedUnderComplement_of_decider_presentations htotal)
-
-/-- The closure-mismatch strictness result specialized to the DPDA totalization principle
-over any finite alphabet with at least three symbols. -/
-theorem DCF_strict_subclass_CF_of_decider_presentations_of_card {T : Type} [Fintype T]
-    (hT : 3 ≤ Fintype.card T) (htotal : EveryDCFHasDeciderPresentation T) :
-    (DCF : Set (Language T)) ⊂ (CF : Set (Language T)) :=
-  DCF_strict_subclass_CF_of_closedUnderComplement_of_card hT
-    (DCF_closedUnderComplement_of_decider_presentations htotal)
-
 /-- Deterministic context-free languages are a strict subclass of context-free
 languages over a three-symbol alphabet. -/
 public theorem DCF_strict_subclass_CF :

@@ -1,0 +1,13 @@
+# Pre-commit hooks for langlib. Install with: pre-commit install
+repos:
+  - repo: local
+    hooks:
+      # Docs must reference theorems, not source files. The docs build resolves
+      # `theorem` mentions to GitHub permalinks automatically (scripts/link_theorems.py),
+      # so a bare file path / file-link in a doc page is an error.
+      - id: docs-no-file-references
+        name: docs reference theorems, not files
+        entry: python3 scripts/link_theorems.py --check
+        language: system
+        files: ^docs/.*\.md$
+        pass_filenames: false

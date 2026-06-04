@@ -92,8 +92,7 @@ theorem RE_emptiness_undecidable :
 
 /-- Emptiness for RE codes is not uniformly computable. -/
 theorem recursivelyEnumerable_computableEmptiness_undecidable :
-    ¬ComputableEmptiness partrecCodeDomainLanguageOf := by
+    ¬ComputableEmptiness RE partrecCodeDomainLanguageOf := by
   intro h
   apply RE_emptiness_undecidable
-  unfold ComputableEmptiness at h
-  exact h.of_eq fun c => partrecCodeDomainLanguage_empty_iff c
+  exact h.2.2.of_eq fun c => partrecCodeDomainLanguage_empty_iff c
