@@ -13,8 +13,9 @@
 ## Proof overview
 The goal of this library is to encapsulate some core results of the (extended) Chomsky hierarchy: inclusions, closures and decidability.
 The following gives a rough overview over the contents in highly condensed form.
-The tables contain generally what is accepted as the correct relationship/answer, `🔗` indicates that this repository contains a corresponding proof file (possibly to a weaker variant of the statement, e.g. ⊊  vs. ⊆  and ⇔ vs. ⇒)
-A more detailed overview over results can be found in the [documentation](https://nielstron.github.io/langlib/), which also outlines key developments needed to obtain these results (e.g., Pumping lemmas, Totalizations).
+
+The tables contain standard results, `🔗` indicates that this repository contains a corresponding proof file (possibly to a weaker variant of the result, e.g. ⊊  vs. ⊆  and ⇔ vs. ⇒)
+More detailed results and developed tooling (e.g., Pumping lemmas, Totalizations) can be found in the [documentation](https://nielstron.github.io/langlib/).
 
 ### Hierarchy And Equivalences
 
