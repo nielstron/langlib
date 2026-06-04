@@ -1,5 +1,9 @@
 module
 
+public import Langlib.Classes.DeterministicContextFree.Definition
+public import Langlib.Examples.AnBnCn
+import Langlib.Classes.ContextFree.Examples.AnBnCn
+import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -36,8 +40,13 @@ public section
 
 
 
-/-! # Class-specific facts for `{a^n b^n c^n}`
+/-! # `{aⁿbⁿcⁿ}` is not deterministic context-free
 
-This module imports the shared language definition. Class-specific proofs about
-this language live in the appropriate hierarchy modules.
+Since `{aⁿbⁿcⁿ}` is not context-free (`notCF_lang_eq_eq`) and every deterministic
+context-free language is context-free, it is not deterministic context-free either.
 -/
+
+/-- `{aⁿbⁿcⁿ | n ≥ 0}` is not deterministic context-free. -/
+public theorem notDCF_lang_eq_eq : ¬ is_DCF lang_eq_eq := by
+  intro h
+  exact notCF_lang_eq_eq (is_CF_of_is_DCF h)

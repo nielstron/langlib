@@ -42,10 +42,15 @@ public import Langlib.Classes.ContextFree.Definition
 public import Langlib.Classes.ContextFree.Examples.A2nBn
 public import Langlib.Classes.ContextFree.Examples.A2nBnPos
 public import Langlib.Classes.ContextFree.Examples.A2nBnPosStar
+public import Langlib.Classes.ContextFree.Examples.AnBmCm
 public import Langlib.Classes.ContextFree.Examples.AnBn
+public import Langlib.Classes.ContextFree.Examples.AnBnCm
+public import Langlib.Classes.ContextFree.Examples.AnBnCn
+public import Langlib.Classes.ContextFree.Examples.AnBnCnPos
 public import Langlib.Classes.ContextFree.Examples.BnAn
 public import Langlib.Classes.ContextFree.Examples.BnAnPos
 public import Langlib.Classes.ContextFree.Examples.BnAnPosStarB
+public import Langlib.Classes.ContextFree.Examples.L4
 public import Langlib.Classes.ContextFree.Examples.UnaryA2PowSucc
 public import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.Indexed
@@ -87,6 +92,8 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Union
 public import Langlib.Classes.DeterministicContextFree.Closure.UnionRegular
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Classes.DeterministicContextFree.Examples.A2nBnPosStar
+public import Langlib.Classes.DeterministicContextFree.Examples.AbcPositive
+public import Langlib.Classes.DeterministicContextFree.Examples.AbcStack
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBmCm
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCm
@@ -105,6 +112,7 @@ public import Langlib.Classes.Linear.Basics.Map
 public import Langlib.Classes.Linear.Closure.Concatenation
 public import Langlib.Classes.Linear.Definition
 public import Langlib.Classes.Linear.Examples.AnBn
+public import Langlib.Classes.Linear.Examples.L4
 public import Langlib.Classes.Linear.Inclusion.ContextFree
 public import Langlib.Classes.Linear.Inclusion.StrictContextFree
 public import Langlib.Classes.Linear.Pumping.Pumping
