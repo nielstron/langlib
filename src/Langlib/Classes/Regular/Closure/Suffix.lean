@@ -1,7 +1,7 @@
 module
 
 public import Langlib.Utilities.LanguageOperations
-import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Classes.Regular.Examples.AnBn
 import Langlib.Classes.Regular.Closure.Complement
 import Langlib.Classes.Regular.Closure.Prefix
 import Langlib.Classes.Regular.Examples.TopBot

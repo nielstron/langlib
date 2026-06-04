@@ -14,6 +14,7 @@ public import Langlib.Grammars.Indexed.Basics.Higman
 public import Langlib.Grammars.Indexed.Definition
 public import Langlib.Grammars.Indexed.NormalForm.NormalForm
 public import Langlib.Grammars.LR.Definition
+public import Langlib.Grammars.LR.Inclusion.ContextFree
 public import Langlib.Grammars.LR.Parser
 public import Langlib.Grammars.LeftRegular.Definition
 public import Langlib.Grammars.LeftRegular.Equivalence.LGEquivRG

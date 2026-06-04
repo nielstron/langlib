@@ -9,7 +9,7 @@ public import Langlib.Classes.Regular.Definition
 import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 import Langlib.Classes.DeterministicContextFree.Examples.AnBn
-import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Classes.Regular.Examples.AnBn
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Inclusion.DeterministicContextFree
 import Mathlib.Algebra.Order.Floor.Extended

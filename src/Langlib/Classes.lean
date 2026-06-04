@@ -180,6 +180,7 @@ public import Langlib.Classes.Regular.Decidability.Helper
 public import Langlib.Classes.Regular.Decidability.Membership
 public import Langlib.Classes.Regular.Decidability.Universality
 public import Langlib.Classes.Regular.Definition
+public import Langlib.Classes.Regular.Examples.AnBn
 public import Langlib.Classes.Regular.Examples.EmptyWord
 public import Langlib.Classes.Regular.Examples.SingletonWord
 public import Langlib.Classes.Regular.Examples.TopBot

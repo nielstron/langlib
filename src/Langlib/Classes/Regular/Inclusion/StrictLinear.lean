@@ -5,7 +5,7 @@ public import Langlib.Classes.Regular.Definition
 public import Mathlib.Computability.DFA
 import Langlib.Automata.FiniteState.Equivalence.Regular
 public import Langlib.Classes.Linear.Examples.AnBn
-import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Classes.Regular.Examples.AnBn
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Inclusion.Linear
 import Langlib.Utilities.Tactics

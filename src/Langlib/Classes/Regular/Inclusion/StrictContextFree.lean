@@ -6,7 +6,7 @@ public import Mathlib.Computability.DFA
 import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Examples.AnBn
-import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Classes.Regular.Examples.AnBn
 import Langlib.Classes.Regular.Closure.Bijection
 import Langlib.Classes.Regular.Inclusion.ContextFree
 import Langlib.Grammars.ContextFree.EquivMathlibCFG
