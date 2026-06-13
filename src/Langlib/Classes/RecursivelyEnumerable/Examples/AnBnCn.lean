@@ -139,7 +139,7 @@ private lemma anbncn_sort (n : ℕ) :
     grammar_derives grammar_anbncn
       ((List.replicate n [gB, gc]).flatten)
       (List.replicate n gB ++ List.replicate n gc) := by
-        simp +decide [ List.replicate_add ];
+        simp +decide;
         have h_swap : ∀ m : ℕ, ∀ s₁ s₂ : List (symbol (Fin 3) grammar_anbncn.nt), grammar_derives grammar_anbncn (s₁ ++ [gc] ++ List.replicate m gB ++ s₂) (s₁ ++ List.replicate m gB ++ [gc] ++ s₂) := by
           intro m s₁ s₂; induction' m with m ih generalizing s₁ s₂ <;> simp_all +decide [ List.replicate ] ;
           · constructor;
@@ -186,7 +186,7 @@ private lemma anbncn_convert_chain
     have h2 : u ++ [trigger] ++ replicate (n + 1) gb ++ v =
         (u ++ [trigger]) ++ [gb] ++ replicate n gb ++ v := by simp [List.replicate_succ]
     rw [h1, h2]
-    exact grammar_deri_of_tran_deri step1 (by convert step2 using 1 <;> simp)
+    exact grammar_deri_of_tran_deri step1 (by convert step2 using 1 ; simp)
 
 /-- Convert all B's in `a^n B^n c^n` to b's. -/
 private lemma anbncn_convert_Bs (n : ℕ) :
@@ -215,7 +215,7 @@ private lemma anbncn_derivable (n : ℕ) :
     convert hsort0 using 1 <;> simp [List.replicate_succ, List.append_assoc, key]
   apply grammar_deri_of_deri_deri hsort
   have hconv := anbncn_convert_Bs n
-  convert hconv using 1 <;> simp [List.map_replicate]
+  convert hconv using 1 ; simp [List.map_replicate]
 
 /- Forward direction: counting invariants -/
 private lemma count_a_eq_Bb_step
@@ -233,7 +233,7 @@ private lemma count_a_eq_c_step
     (hinv : w₁.count ga = w₁.count gc) :
     w₂.count ga = w₂.count gc := by
       obtain ⟨ u, v, p, r, h, hw₁, hw₂ ⟩ := ht;
-      unfold grammar_anbncn at v; simp_all +decide [ Fin.forall_fin_succ ] ;
+      unfold grammar_anbncn at v; simp_all +decide [  ] ;
       rcases v with ( rfl | rfl | rfl | rfl | rfl ) <;> simp_all +decide <;> omega
 
 private lemma count_a_eq_Bb_of_derives
@@ -298,7 +298,7 @@ private lemma grammar_inv_initial : grammar_inv [gS] := by
   constructor
   · simp [wa, gS, ga]
   constructor
-  · simp [wb, gS, ga]
+  · simp [wb, gS]
   constructor
   · simp [gS, gb]
   · intro u v h
@@ -320,14 +320,14 @@ private lemma grammar_inv_step_base (u v : List (symbol (Fin 3) grammar_anbncn.n
           intro h₁ h₂ h₃ h₄
           use u ++ [gS]
           simp_all +decide [List.pairwise_append]
-          exact absurd (h₁.2.1.1 _ hx) (by simp +decide [wa])
+          exact absurd (h₁.2.1.1 _ hx) (by simp +decide)
         have h_not_gS : x ≠ gS := by
           have := hinv.2.2.2
           simp_all +decide [grammar_inv]
           contrapose! this
           use u ++ [gS] ++ List.takeWhile (fun y => y ≠ gS) v,
             List.dropWhile (fun y => y ≠ gS) v |> List.tail!
-          simp_all +decide [List.takeWhile, List.dropWhile]
+          simp_all +decide []
           have h_take_drop : ∀ {l : List (symbol (Fin 3) grammar_anbncn.nt)}, gS ∈ l →
               l = takeWhile (fun y => !decide (y = gS)) l ++
                 gS :: (dropWhile (fun y => !decide (y = gS)) l).tail! := by
@@ -378,11 +378,11 @@ private lemma grammar_inv_step_expand (u v : List (symbol (Fin 3) grammar_anbncn
         have h_not_ga : x ≠ ga := by
           contrapose! hinv; simp_all +decide [ grammar_inv ] ;
           intro h₁ h₂ h₃ h₄; use u ++ [gS]; simp_all +decide [ List.pairwise_append ] ;
-          exact absurd ( h₁.2.1.1 _ hx ) ( by simp +decide [ wa ] )
+          exact absurd ( h₁.2.1.1 _ hx ) ( by simp +decide )
         have h_not_gS : x ≠ gS := by
           have := hinv.2.2.2; simp_all +decide [ grammar_inv ] ;
           contrapose! this;
-          use u ++ [gS] ++ List.takeWhile (fun y => y ≠ gS) v, List.dropWhile (fun y => y ≠ gS) v |> List.tail!; simp_all +decide [ List.takeWhile, List.dropWhile ] ;
+          use u ++ [gS] ++ List.takeWhile (fun y => y ≠ gS) v, List.dropWhile (fun y => y ≠ gS) v |> List.tail!; simp_all +decide [  ] ;
           have h_take_drop : ∀ {l : List (symbol (Fin 3) grammar_anbncn.nt)}, gS ∈ l → l = takeWhile (fun y => !decide (y = gS)) l ++ gS :: (dropWhile (fun y => !decide (y = gS)) l).tail! := by
             intros l hl; induction' l with hd tl ih <;> simp_all +decide [ List.takeWhile, List.dropWhile ] ;
             by_cases h : hd = gS <;> simp +decide [ h ] at hl ⊢ ; tauto;
@@ -404,8 +404,8 @@ private lemma grammar_inv_step_expand (u v : List (symbol (Fin 3) grammar_anbncn
       · intro u_1 v_1 huv_1 x hx; have := huv_1; simp_all +decide [ List.append_assoc ] ;
         rw [ List.append_eq_append_iff ] at this;
         rcases this with ( ⟨ as, rfl, h ⟩ | ⟨ bs, rfl, h ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-        · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-          rcases as with ( _ | ⟨ b, as ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+        · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [  ];
+          rcases as with ( _ | ⟨ b, as ⟩ ) <;> simp_all +decide [  ];
           · grind;
           · grind;
         · cases bs <;> aesop
@@ -419,12 +419,12 @@ private lemma grammar_inv_step_swap (u v : List (symbol (Fin 3) grammar_anbncn.n
       contrapose! hinv;
       intro h1 h2 h3;
       rcases List.append_eq_append_iff.mp huv with ( ⟨ u', hu' ⟩ | ⟨ u', hu' ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-      · rcases u' with ( _ | ⟨ x, u' ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-        rcases u' with ( _ | ⟨ y, u' ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+      · rcases u' with ( _ | ⟨ x, u' ⟩ ) <;> simp_all +decide [  ];
+        rcases u' with ( _ | ⟨ y, u' ⟩ ) <;> simp_all +decide [  ];
         use u ++ [y, x] ++ u';
         exact ⟨ ⟨ v_1, by simp +decide [ List.append_assoc ] ⟩, y, by simp +decide [ List.append_assoc ], by aesop ⟩;
       · rcases u' with ( _ | ⟨ a, u' ⟩ ) <;> simp_all +decide [ List.map ];
-        exact ⟨ u_1, ⟨ u' ++ gc :: gB :: v, by simp +decide [ List.append_assoc ] ⟩, x, hx, hinv ⟩
+        exact ⟨ u_1, ⟨ u' ++ gc :: gB :: v, by simp +decide ⟩, x, hx, hinv ⟩
 
 set_option maxHeartbeats 800000 in
 private lemma grammar_inv_step_conv_a (u v : List (symbol (Fin 3) grammar_anbncn.nt))
@@ -450,7 +450,7 @@ private lemma grammar_inv_step_conv_b (u v : List (symbol (Fin 3) grammar_anbncn
       · simp_all +decide [ List.pairwise_append ];
       · contrapose! h₄;
         obtain ⟨ u, v, h₁, x, hx, hx' ⟩ := h₄; use u, v; simp_all +decide [ List.map ] ;
-        replace h₁ := congr_arg ( fun z => z.count gS ) h₁ ; simp_all +decide [ List.count_cons ];
+        replace h₁ := congr_arg ( fun z => z.count gS ) h₁ ; simp_all +decide [  ];
         simp_all +decide [ List.count_eq_zero_of_not_mem ];
         omega
 
@@ -462,16 +462,16 @@ private lemma grammar_inv_step
   obtain ⟨r, hr, u, v, rfl, rfl⟩ := ht
   simp [grammar_anbncn] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl <;>
-    (try { show grammar_inv _; convert grammar_inv_step_base u v (by convert hinv using 2 <;> simp)
+    (try { show grammar_inv _; convert grammar_inv_step_base u v (by convert hinv using 2 ; simp)
            using 2 <;> simp; done }) <;>
-    (try { show grammar_inv _; convert grammar_inv_step_expand u v (by convert hinv using 2 <;> simp)
+    (try { show grammar_inv _; convert grammar_inv_step_expand u v (by convert hinv using 2 ; simp)
            using 2 <;> simp; done }) <;>
-    (try { show grammar_inv _; convert grammar_inv_step_swap u v (by convert hinv using 2 <;> simp)
+    (try { show grammar_inv _; convert grammar_inv_step_swap u v (by convert hinv using 2 ; simp)
            using 2 <;> simp; done }) <;>
-    (try { show grammar_inv _; convert grammar_inv_step_conv_a u v (by convert hinv using 2 <;> simp)
-           using 2 <;> simp; done }) <;>
-    (try { show grammar_inv _; convert grammar_inv_step_conv_b u v (by convert hinv using 2 <;> simp)
-           using 2 <;> simp; done })
+    (try { show grammar_inv _; convert grammar_inv_step_conv_a u v (by convert hinv using 2 ; simp)
+           using 2 <;> simp; done }) ;
+    (try { show grammar_inv _; convert grammar_inv_step_conv_b u v (by convert hinv using 2 ; simp)
+           using 2})
 
 private lemma grammar_inv_of_derives
     (w : List (symbol (Fin 3) grammar_anbncn.nt))
