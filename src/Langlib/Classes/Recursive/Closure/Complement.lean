@@ -80,4 +80,4 @@ theorem Recursive_complement_iff {L : Language T} :
   · exact is_Recursive_complement
 /-- The class of recursive languages is closed under complement. -/
 public theorem Recursive_closedUnderComplement : ClosedUnderComplement (α := T) is_Recursive :=
-  fun L hL => is_Recursive_complement hL
+  fun _L hL => is_Recursive_complement hL
