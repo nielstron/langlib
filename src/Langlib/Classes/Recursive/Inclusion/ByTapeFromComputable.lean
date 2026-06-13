@@ -36,10 +36,12 @@ variable {T : Type} [DecidableEq T] [Fintype T] [Primcodable T]
 noncomputable def bitFn (f : List T → Bool) : ℕ → ℕ :=
   fun n => if ((Encodable.decode (α := List T) n).map f).getD false then 1 else 0
 
+omit [DecidableEq T] [Fintype T] in
 theorem bitFn_encode (f : List T → Bool) (w : List T) :
     bitFn f (Encodable.encode w) = if f w then 1 else 0 := by
   simp [bitFn, Encodable.encodek]
 
+omit [DecidableEq T] [Fintype T] in
 theorem computable_bitFn (f : List T → Bool) (hf : Computable f) :
     Computable (bitFn f) := by
   have hdec : Computable (fun n : ℕ => (Encodable.decode (α := List T) n).map f) :=
@@ -51,6 +53,7 @@ theorem computable_bitFn (f : List T → Bool) (hf : Computable f) :
   unfold bitFn
   cases ((Encodable.decode (α := List T) n).map f).getD false <;> simp
 
+omit [DecidableEq T] [Fintype T] in
 theorem partrec_bitFn (f : List T → Bool) (hf : Computable f) :
     Nat.Partrec' (fun v : List.Vector ℕ 1 => (↑(bitFn f) : ℕ →. ℕ) v.head) := by
   rw [Nat.Partrec'.part_iff₁]
@@ -60,6 +63,7 @@ theorem partrec_bitFn (f : List T → Bool) (hf : Computable f) :
 noncomputable def bitCode₀ (f : List T → Bool) (hf : Computable f) : Code :=
   (Code.exists_code (partrec_bitFn f hf)).choose
 
+omit [DecidableEq T] [Fintype T] in
 theorem bitCode₀_eval (f : List T → Bool) (hf : Computable f) (n : ℕ) :
     (bitCode₀ f hf).eval [n] = Part.some [bitFn f n] := by
   have hspec := (Code.exists_code (partrec_bitFn f hf)).choose_spec
@@ -75,6 +79,7 @@ Composed with `bitCode₀`, the full code outputs `[]` exactly when `f w = true`
 noncomputable def deciderCode (f : List T → Bool) (hf : Computable f) : Code :=
   Code.comp (Code.case Code.zero Code.nil) (bitCode₀ f hf)
 
+omit [DecidableEq T] [Fintype T] in
 theorem deciderCode_eval (f : List T → Bool) (hf : Computable f) (w : List T) :
     (deciderCode f hf).eval [Encodable.encode w] =
       Part.some (if f w then [] else [0]) := by
@@ -84,6 +89,7 @@ theorem deciderCode_eval (f : List T → Bool) (hf : Computable f) (w : List T) 
   rw [bitCode₀_eval, bitFn_encode]
   by_cases h : f w <;> simp [h, Code.case_eval, Code.zero_eval, Code.nil_eval]
 
+omit [DecidableEq T] [Fintype T] in
 theorem deciderCode_eval_dom (f : List T → Bool) (hf : Computable f) (w : List T) :
     ((deciderCode f hf).eval [Encodable.encode w]).Dom := by
   rw [deciderCode_eval]; exact trivial
@@ -97,6 +103,7 @@ output of the code. -/
 noncomputable def outWord (f : List T → Bool) (w : List T) : List ℕ :=
   if f w then [] else [0]
 
+omit [DecidableEq T] [Fintype T] in
 /-- The composed code (with list-encoding prefix) on `shiftedEncoding w`
 evaluates to `outWord f w`. -/
 theorem composedCode_outWord (f : List T → Bool) (hf : Computable f) (w : List T) :
@@ -108,12 +115,13 @@ theorem composedCode_outWord (f : List T → Bool) (hf : Computable f) (w : List
   rw [h, ← list_encode_eq, deciderCode_eval]
   rfl
 
+omit [DecidableEq T] [Fintype T] in
 theorem tm2_eval_halt_composed (f : List T → Bool) (hf : Computable f) (w : List T) :
     PartrecToTM2.halt (outWord f w) ∈
       Turing.eval (TM2.step PartrecToTM2.tr)
         (PartrecToTM2.init (composedCode (deciderCode f hf)) (shiftedEncoding w)) := by
   rw [PartrecToTM2.tr_eval, composedCode_outWord]
-  simp [Part.mem_map_iff]
+  simp
 
 /-! ## Generic chain tape descent (TM2 `halt v` → TM0 tape)
 
@@ -276,6 +284,7 @@ theorem trCfg_halt_head_reject
   rw [trCfg_halt_head [0] cfg₁ htr]
   simp [PartrecToTM2.K'.elim, PartrecToTM2.trList, PartrecToTM2.trNat]
 
+omit [DecidableEq T] [Fintype T] [Primcodable T] in
 /-- `directBlankEmb` is injective (it has the left inverse `directBlankInv`). -/
 theorem directBlankEmb_injective :
     Function.Injective (directBlankEmb (T := T) (Γ₀ := ChainΓ)) := by
@@ -287,6 +296,7 @@ theorem directBlankEmb_injective :
 noncomputable def acceptSym : Option (T ⊕ ChainΓ) :=
   directBlankEmb (T := T) ((true, fun _ => none) : ChainΓ)
 
+omit [DecidableEq T] [Fintype T] [Primcodable T] in
 /-- A reject head (whose `main` component is `some cons`) embeds to something
 different from `acceptSym`. -/
 theorem reject_head_ne_acceptSym (h : ChainΓ)
