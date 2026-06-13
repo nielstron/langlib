@@ -201,7 +201,7 @@ theorem restrictWord_append (g : ContextFreeGrammar T)
     (u v : List (Symbol T g.NT)) (hu : g.AllUsed u) (hv : g.AllUsed v)
     (huv : g.AllUsed (u ++ v)) :
     g.restrictWord (u ++ v) huv = g.restrictWord u hu ++ g.restrictWord v hv := by
-  unfold restrictWord; simp +decide [ List.mem_append ] ;
+  unfold restrictWord; simp +decide ;
   congr! 1;
   · exact?;
   · exact?
