@@ -2,7 +2,7 @@ module
 
 public import Langlib.Classes.ContextSensitive.Examples.SingletonWord
 public import Langlib.Classes.Recursive.Definition
-public import Mathlib.Computability.Primrec
+public import Mathlib.Computability.Primrec.List
 import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 @[expose]
 public section
