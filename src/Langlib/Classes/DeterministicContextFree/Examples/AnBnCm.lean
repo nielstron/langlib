@@ -240,8 +240,7 @@ private lemma dpda_eq_any_complete (n m : ℕ) :
               replicate (n + 1) mark ++ [bottom]⟩
             ⟨EqAnyState.seenB, replicate n b_ ++ restC, replicate n mark ++ [bottom]⟩ := by
         convert Relation.ReflTransGen.single
-          (eq_any_step_read_b_from_a (replicate n b_ ++ restC) (replicate n mark ++ [bottom])) using 1 <;>
-          simp +decide [List.replicate]
+          (eq_any_step_read_b_from_a (replicate n b_ ++ restC) (replicate n mark ++ [bottom])) using 1
       have h_bs :
           @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
             ⟨EqAnyState.seenB, replicate n b_ ++ restC, replicate n mark ++ [bottom]⟩
@@ -329,8 +328,8 @@ private lemma eq_any_inv_step_state_seenB (w : List (Fin 3)) (na nb : ℕ)
       have hnb_eq : nb = na := by omega
       rcases input with _ | ⟨x, rest⟩ <;>
         simp_all +decide [PDA.Reaches₁, PDA.step, dpda_eq_any, DPDA.toPDA]
-      · exact ⟨na, na, 0, by simpa [hnb_eq] using hw, by aesop⟩
-      · exact ⟨na, na, 0, by simpa [hnb_eq] using hw, by aesop⟩
+      · exact ⟨na, na, 0, by simp, by aesop⟩
+      · exact ⟨na, na, 0, by simp, by aesop⟩
   | succ k =>
       rcases input with _ | ⟨x, rest⟩
       · exfalso
