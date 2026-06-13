@@ -137,7 +137,7 @@ def blockLangDFA {σ : Type*} (D : DFA T σ) : DFA (T ⊕ T) (Option (Bool × σ
     match s, x with
     | some (false, q), Sum.inl _ => some (false, q)
     | some (false, q), Sum.inr a => some (true, D.step q a)
-    | some (true, q), Sum.inl _ => none
+    | some (true, _q), Sum.inl _ => none
     | some (true, q), Sum.inr a => some (true, D.step q a)
     | none, _ => none
   start := some (false, D.start)
@@ -199,7 +199,7 @@ Correctness: the block-language DFA accepts exactly `blockLang D.accepts`.
 theorem blockLangDFA_accepts :
     (blockLangDFA D).accepts = blockLang D.accepts := by
   ext w
-  simp only [DFA.mem_accepts, DFA.eval, blockLang, Set.mem_setOf_eq]
+  simp only [DFA.mem_accepts, DFA.eval, blockLang]
   constructor
   · -- (→) accepted ⟹ in blockLang
     intro hacc
@@ -283,7 +283,7 @@ The composition of tag-substitution, block-language intersection, and erasure
 theorem subst_inter_block_subst_eq_rightQuotient (L : Language T) (R : Language T) :
     ((L.subst tagSubst) ⊓ blockLang R).subst eraseInr = L / R := by
   ext w
-  simp only [Language.subst, Set.mem_setOf_eq, Set.mem_inter_iff, mem_rightQuotient,
+  simp only [Language.subst, 
     blockLang]
   constructor
   · -- (→) in LHS ⟹ in rightQuotient
@@ -292,8 +292,8 @@ theorem subst_inter_block_subst_eq_rightQuotient (L : Language T) (R : Language 
     have hpq_eq_u : p ++ q = u := by
       have hpq_eq_u : ∀ {u : List T} {p q : List T}, (List.map Sum.inl p ++ List.map Sum.inr q) ∈ (List.map tagSubst u).prod → p ++ q = u := by
         intros u p q hpq_eq_u; induction' u with u_head u_tail ih generalizing p q <;> simp_all +decide [ tagSubst ] ;
-        cases' hpq_eq_u with hpq_eq_u hpq_eq_u ; simp_all +decide [ Set.mem_mul ];
-        rcases hpq_eq_u with ⟨ hpq_eq_u₁, b, hb₁, hb₂ ⟩ ; rcases hpq_eq_u₁ with ( rfl | rfl ) <;> simp_all +decide [ List.map ] ;
+        cases' hpq_eq_u with hpq_eq_u hpq_eq_u ; simp_all +decide [  ];
+        rcases hpq_eq_u with ⟨ hpq_eq_u₁, b, hb₁, hb₂ ⟩ ; rcases hpq_eq_u₁ with ( rfl | rfl ) <;> simp_all +decide [  ] ;
         · cases p <;> cases q <;> simp_all +decide [ List.map ];
           specialize @ih ‹_› [ ] ; aesop;
         · cases p <;> cases q <;> simp_all +decide [ List.map ];
@@ -373,7 +373,7 @@ theorem is_CF_prefixLang' {L : Language T} (hL : is_CF L) :
 /-- The class of context-free languages is closed under right quotient with regular languages. -/
 theorem CF_closedUnderRightQuotientWithRegular :
     ClosedUnderRightQuotientWithRegular (α := T) is_CF :=
-  fun L hL R hR => is_CF_rightQuotient_regular hL hR
+  fun _L hL _R hR => is_CF_rightQuotient_regular hL hR
 
 /-! ## Standard CFL/CFL quotient witnesses
 
