@@ -116,7 +116,7 @@ private lemma derives_symbols_in_image (g : grammar T₁) (f : T₁ → T₂) :
       rcases step with ⟨r, hr, u', v', hsrc, htgt⟩
       obtain ⟨r', hr', rfl⟩ := List.mem_map.mp hr
       rw [htgt] at hs
-      simp only [List.mem_append, List.mem_map, exists_or, or_assoc] at hs
+      simp only [List.mem_append, List.mem_map, or_assoc] at hs
       rcases hs with hs | hs | hs
       · exact ih hu _ (by rw [hsrc]; simp [hs])
       · rcases hs with ⟨s', hs', rfl⟩
@@ -142,7 +142,7 @@ public theorem bijection_grammar_language (g : grammar T₁) (π : T₁ ≃ T₂
         use r';
         simp_all +decide [ bijection_grule ];
         use List.map (map_symbol_inv π) u', List.map (map_symbol_inv π) v';
-        simp +decide [ Function.comp, map_symbol_inv_map_symbol ];
+        simp +decide;
         exact ⟨ by congr <;> ext <;> aesop, by ext; aesop ⟩;
     -- Apply the hypothesis `h_derives` to the derivation from the initial symbol to `w` in the bijection grammar.
     intro h_deriv
@@ -163,7 +163,7 @@ public theorem bijection_grammar_language (g : grammar T₁) (π : T₁ ≃ T₂
         use bijection_grule π r;
         unfold bijection_grammar bijection_grule; aesop;
     convert h_bijection _ hw using 1;
-    simp +decide [ map_symbol, List.map_map ];
+    simp +decide [ List.map_map ];
     rw [ show ( map_symbol π ∘ symbol.terminal ∘ ⇑π.symm ) = symbol.terminal from funext fun x => by simp +decide [ map_symbol ] ] ; aesop
 
 /-- If `g` is a left inverse of `f`, mapping an unrestricted grammar along `f`
@@ -217,7 +217,7 @@ public theorem map_grammar_language_of_leftInverse (g : grammar T₁) {f : T₁ 
         intro a ha
         rcases himage a ha with ⟨b, hb⟩
         calc
-          f (g' a) = f (g' (f b)) := by simpa [hb]
+          f (g' a) = f (g' (f b)) := by simp [hb]
           _ = f b := by simp [hfg b]
           _ = a := hb
       have aux : ∀ w : List T₂, (∀ a ∈ w, f (g' a) = a) → List.map f (List.map g' w) = w := by
