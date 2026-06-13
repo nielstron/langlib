@@ -66,21 +66,26 @@ def dropFromLastSep (sep : Γ) : List Γ → List Γ
     else if c = sep then rest
     else c :: rest
 
+omit [Inhabited Γ] in
 theorem dropFromLastSep_nil (sep : Γ) : dropFromLastSep sep ([] : List Γ) = [] :=
  by rfl
 
+omit [Inhabited Γ] in
 theorem dropFromLastSep_cons_mem (sep : Γ) (c : Γ) (rest : List Γ) (h : sep ∈ rest) :
     dropFromLastSep sep (c :: rest) = dropFromLastSep sep rest := by
   simp [dropFromLastSep, h]
 
+omit [Inhabited Γ] in
 theorem dropFromLastSep_cons_sep_not_mem (sep : Γ) (rest : List Γ) (h : sep ∉ rest) :
     dropFromLastSep sep (sep :: rest) = rest := by
   simp [dropFromLastSep, h]
 
+omit [Inhabited Γ] in
 theorem dropFromLastSep_cons_ne_not_mem (sep c : Γ) (rest : List Γ) (hc : c ≠ sep) (h : sep ∉ rest) :
     dropFromLastSep sep (c :: rest) = c :: rest := by
   simp [dropFromLastSep, h, hc]
 
+omit [Inhabited Γ] in
 /-- When `sep ∉ l`, `dropFromLastSep` is the identity. -/
 theorem dropFromLastSep_not_mem (sep : Γ) (l : List Γ) (h : sep ∉ l) :
     dropFromLastSep sep l = l := by
