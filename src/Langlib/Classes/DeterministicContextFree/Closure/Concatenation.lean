@@ -105,13 +105,13 @@ private def optionalMarkedUnion (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S�
       · exact False.elim (hε rfl)
       · rename_i q' γ hε₁
         have hnone := M₁.no_mixed q₁ Z₁ (by simp [hε₁]) t
-        simpa [optTransitionLeft, hnone]
+        simp [hnone]
     · rename_i q₂ Z₂ t
       split at hε
       · exact False.elim (hε rfl)
       · rename_i q' γ hε₂
         have hnone := M₂.no_mixed q₂ Z₂ (by simp [hε₂]) t
-        simpa [optTransitionRight, hnone]
+        simp [hnone]
 
 private def leftConf (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂) :
     PDA.conf M₁.toPDA → PDA.conf (optionalMarkedUnion M₁ M₂).toPDA
@@ -866,13 +866,13 @@ private def optionalMarkedUnionQuot (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ 
       · exact False.elim (hε rfl)
       · rename_i q' γ hε₁
         have hnone := M₁.no_mixed q₁ Z₁ (by simp [hε₁]) t
-        simpa [optQuotTransitionLeft, hnone]
+        simp [hnone]
     · rename_i mark q₂ Z₂ t
       split at hε
       · exact False.elim (hε rfl)
       · rename_i q' γ hε₂
         have hnone := (quotientM M₂ mark).no_mixed q₂ Z₂ (by simp [hε₂]) t
-        simpa [optQuotTransitionRight, hnone]
+        simp [hnone]
 
 private def quotLeftConf (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂) :
     PDA.conf M₁.toPDA → PDA.conf (optionalMarkedUnionQuot M₁ M₂).toPDA
@@ -1481,7 +1481,7 @@ private lemma marker_payload_mem_concat_iff
             have hbmem : b ∈ w.map Sum.inr := by
               rw [← hpq]
               simp
-            exact False.elim (marker_not_mem_payload w (by simpa [hb] using hbmem))
+            exact False.elim (marker_not_mem_payload w (by simp [hb] at hbmem))
   · intro h
     rw [Language.mem_mul]
     rcases h with h | h
