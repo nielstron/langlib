@@ -250,7 +250,7 @@ private def DenInv (w : List Bool)
 private lemma DenInv.initial (w : List Bool) :
     DenInv w ⟨dpda_quotientDenominator.toPDA.initial_state, w,
       [dpda_quotientDenominator.toPDA.start_symbol]⟩ := by
-  refine ⟨rfl, [], ?_, by simp [DPDA.toPDA, dpda_quotientDenominator]⟩
+  refine ⟨rfl, [], ?_, by simp⟩
   exact Language.nil_mem_kstar quotientRightBlock
 
 private lemma DenInv.step {w : List Bool}
@@ -271,7 +271,7 @@ private lemma DenInv.step {w : List Bool}
         · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
           rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
           refine ⟨rfl, p, hp, ?_⟩
-          simpa [hw, List.append_assoc]
+          simp [hw]
   · rcases hinv with ⟨rfl, p, hp, hw⟩
     cases input with
     | nil =>
@@ -281,11 +281,11 @@ private lemma DenInv.step {w : List Bool}
         · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
           rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
           refine ⟨p, 1, 0, by omega, hp, ?_, by simp⟩
-          simpa [hw, List.append_assoc]
+          simp [hw]
         · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
           rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
           refine ⟨p, 2, by omega, hp, ?_, by simp⟩
-          simpa [hw, List.append_assoc]
+          simp [hw]
   · rcases hinv with ⟨p, m, hm, hp, hw, hstack⟩
     subst stack
     cases input with
@@ -310,13 +310,13 @@ private lemma DenInv.step {w : List Bool}
                     epsilon, List.replicate_succ] at hstep
                   rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
                   refine ⟨p, m + 2, m + 1, by omega, hp, ?_, by simp [List.replicate_succ]⟩
-                  simpa [hw, List.replicate_succ, List.append_assoc]
+                  simp [hw, List.replicate_succ]
                 · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition,
                     epsilon, List.replicate_succ] at hstep
                   rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
                   refine ⟨p, m + 3, by omega, hp, ?_, ?_⟩
-                  · simpa [hw, replicate_succ_true_append, List.append_assoc]
-                  · simp [List.replicate_succ, List.append_assoc]
+                  · simp [hw, replicate_succ_true_append, List.append_assoc]
+                  · simp [List.replicate_succ]
   · rcases hinv with ⟨p, m, r, hr, hp, hw, hstack⟩
     subst stack
     cases r with
@@ -327,7 +327,7 @@ private lemma DenInv.step {w : List Bool}
           rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
           refine ⟨rfl, p ++ (List.replicate m true ++ List.replicate m false), ?_, ?_⟩
           · exact denominatorStar_append_right_block hp (right_block_of_pos m (by omega))
-          · simpa [hw, List.append_assoc]
+          · simp [hw, List.append_assoc]
     | succ r =>
         cases input with
         | nil =>
@@ -341,7 +341,7 @@ private lemma DenInv.step {w : List Bool}
               refine ⟨p, m, r, by omega, hp, ?_, by simp⟩
               have hsub : m - r = (m - Nat.succ r) + 1 := by omega
               rw [hsub]
-              simpa [hw, List.replicate_add, List.append_assoc]
+              simp [hw, List.replicate_add, List.append_assoc]
             · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition,
                 epsilon, List.replicate_succ] at hstep
 
