@@ -65,7 +65,7 @@ namespace Language
 public theorem IsRegular.preimage {α β : Type*} {L : Language α} (h : L.IsRegular) (f : β → α) :
     Language.IsRegular (((List.map f) ⁻¹' L : Set (List β))) := by
   rcases h with ⟨σ, hσ, M, hM⟩
-  exact ⟨σ, hσ, M.comap f, by simpa [hM] using (DFA.accepts_comap (M := M) f)⟩
+  exact ⟨σ, hσ, M.comap f, by simp [hM]⟩
 
 /-- Injective alphabet maps reflect regularity. -/
 public theorem IsRegular.of_map_injective {α β : Type*} {L : Language α} {f : α → β}
