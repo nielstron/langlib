@@ -213,7 +213,7 @@ lemma nc_simRules_output_nonempty (g : grammar T) (hg : grammar_noncontracting g
   split_ifs at hr <;> simp_all +decide [List.mem_append, List.mem_map]
   · have := hg grule hgrule; aesop
   · rcases hr with (⟨a, ha, rfl⟩ | rfl | ⟨a, ha, rfl⟩) <;>
-      simp +decide [List.length_pos_iff] at *
+      simp +decide at *
     linarith [hg grule hgrule]
 
 /-- Construct a context-sensitive grammar equivalent to a given non-contracting grammar. -/
@@ -608,7 +608,7 @@ lemma nc_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
         · convert CS_deri_of_deri_deri ( ih ( Nat.le_of_succ_le hk ) ) ( CS_deri_of_tran ( h_phase1 k ( Nat.lt_of_succ_le hk ) ) ) using 1;
           rw [show List.drop (k + 1) pattern =
               [pattern.getD (k + 1) (symbol.nonterminal r.input_N)] ++ List.drop (k + 1 + 1) pattern from ?_]
-          · simp +decide [List.map_append]
+          · simp +decide
           · rw [List.drop_eq_getElem_cons]
             · rw [List.getD_eq_getElem]
               · simp
@@ -620,8 +620,8 @@ lemma nc_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
       apply_rules [ CS_deri_of_tran ];
       have h_phase2_0 : ∃ cr ∈ nc_simRules ri r, cr.context_left = (List.range (n - 1)).map (nc_aux ri) ∧ cr.input_nonterminal = nc_symToNT (pattern.getD (n - 1) (symbol.nonterminal r.input_N)) ∧ cr.context_right = [] ∧ cr.output_string = (out.drop (n - 1)).map nc_liftSym := by
         simp +zetaDelta at *;
-        unfold nc_simRules; simp +decide [ List.range_succ ] ;
-        split_ifs <;> simp_all +decide [ List.range_succ ];
+        unfold nc_simRules; simp +decide ;
+        split_ifs <;> simp_all +decide [  ];
         · linarith;
         · exact ⟨ _, Or.inr <| Or.inl rfl, rfl, rfl, rfl, rfl ⟩;
       obtain ⟨ cr, hcr₁, hcr₂, hcr₃, hcr₄, hcr₅ ⟩ := h_phase2_0;
@@ -671,7 +671,7 @@ lemma nc_sim_one_transform (g : grammar T) (hg : grammar_noncontracting g)
   have hsim := nc_sim_pattern g hg ri_val r hri_lt hri_eq
   have hctx := CS_deri_with_context (u.map nc_liftSym) (v.map nc_liftSym) hsim
   simp only [List.map_append, List.map_cons, List.map_nil] at hctx ⊢
-  convert hctx using 1 <;> simp [List.append_assoc]
+  convert hctx using 1 ; simp [List.append_assoc]
 
 /-
 PROBLEM
@@ -719,7 +719,7 @@ lemma nc_derived_terminal_in_grammarTerminals (g : grammar T)
     intros w₁ w₂ h_deriv h_terminals_in_w₁
     induction' h_deriv with w₁ w₂ h_deriv h_terminals_in_w₁ ih;
     · assumption;
-    · rcases h_terminals_in_w₁ with ⟨ r, hr, u, v, hw₁, hw₂ ⟩ ; simp_all +decide [ List.map_append, List.map_cons ] ;
+    · rcases h_terminals_in_w₁ with ⟨ r, hr, u, v, hw₁, hw₂ ⟩ ; simp_all +decide [  ] ;
       rintro s ( hs | hs | hs ) t rfl <;> [ exact ih _ ( Or.inl hs ) _ rfl; exact terminal_in_output_mem_grammarTerminals g r hr _ ( by aesop ) ; exact ih _ ( Or.inr <| Or.inr <| Or.inr <| Or.inr hs ) _ rfl ] ;
   specialize @h_ind [ symbol.nonterminal g.initial ] ( List.map symbol.terminal w ) hw ; aesop
 
@@ -1004,7 +1004,7 @@ lemma nc_locked_outputSuffix_cons (g : grammar T)
   have hsub : out.length - k = (out.length - (k + 1)) + 1 := by
     omega
   rw [hsub, List.range_succ_eq_map]
-  simp [Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
+  simp [Nat.add_comm, Nat.add_left_comm]
 
 lemma nc_locked_outputFrom_eq_suffix (g : grammar T)
     (ri : ℕ) (out : List (symbol T g.nt)) (dflt : symbol T g.nt) (k : ℕ)
@@ -1071,7 +1071,7 @@ lemma nc_locked_take_succ_map (g : grammar T)
         [nc_locked_liftSym (out.getD k dflt)] := by
   rw [List.map_take, List.map_take]
   rw [List.take_add_one]
-  simp [List.getElem?_eq_getElem (by simpa using hk), List.getD_eq_getElem]
+  simp [List.getElem?_eq_getElem (by simpa using hk)]
 
 lemma nc_locked_cleanup_suffix (g : grammar T) (hg : grammar_noncontracting g)
     (ri : ℕ) (r : grule T g.nt) (hri : ri < g.rules.length)
@@ -1168,11 +1168,11 @@ lemma nc_locked_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
         context_right := (pattern.drop (k + 1)).map nc_locked_liftSym,
         output_string := [nc_locked_mark ri k] }
     have hcr : cr ∈ nc_locked_simRules ri r := by
-      simp [cr, nc_locked_simRules, pattern, n, dflt]
+      simp [cr, nc_locked_simRules, pattern, dflt]
       refine Or.inl ⟨k, ?_, ?_⟩
       · simp [n, pattern, List.length_append] at hk
         omega
-      · simp [cr, pattern, dflt]
+      · simp
     refine ⟨cr, [], [], nc_locked_simRule_mem g hg ri r hri hr cr hcr, ?_, ?_⟩
     · simp [cr, nc_locked_liftSym]
     · simp [cr, nc_locked_mark, List.range_succ, List.append_assoc]
@@ -1229,7 +1229,7 @@ lemma nc_locked_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
       simp [nc_locked_mark]
     · dsimp [cr]
       rw [nc_locked_outputFrom_eq_suffix g ri out dflt (n - 1) hlast]
-      simp [List.append_assoc]
+      simp
   have h_emit_rest_step : ∀ k : ℕ, k < n - 1 →
       CS_transforms (locked_csg_of_noncontracting g hg)
         ((List.range (k + 1)).map (nc_locked_mark ri) ++
@@ -1247,11 +1247,11 @@ lemma nc_locked_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
       have hk' : k < r.input_L.length + r.input_R.length := by
         simp [n, pattern, List.length_append] at hk
         omega
-      simp [cr, nc_locked_simRules, pattern, n, out, dflt, hk']
+      simp [cr, nc_locked_simRules, out, dflt, hk']
     refine ⟨cr, [], [], nc_locked_simRule_mem g hg ri r hri hr cr hcr, ?_, ?_⟩
     · simp [cr, nc_locked_mark, List.range_succ, List.append_assoc]
     · rw [nc_locked_outputSuffix_cons g ri out dflt k hkout]
-      simp [cr, nc_locked_mark, List.append_assoc]
+      simp [cr, List.append_assoc]
   have h_emit_rest_seq : ∀ k : ℕ, k ≤ n - 1 →
       CS_derives (locked_csg_of_noncontracting g hg)
         ((List.range (n - 1)).map (nc_locked_mark ri) ++
@@ -1289,7 +1289,7 @@ lemma nc_locked_sim_one_transform (g : grammar T) (hg : grammar_noncontracting g
   have hctx := CS_deri_with_context
     (u.map nc_locked_liftSym) (v.map nc_locked_liftSym) hsim
   simp only [List.map_append, List.map_cons, List.map_nil] at hctx ⊢
-  convert hctx using 1 <;> simp [List.append_assoc]
+  convert hctx using 1 ; simp [List.append_assoc]
 
 lemma nc_locked_sim_derives (g : grammar T) (hg : grammar_noncontracting g)
     {w₁ w₂ : List (symbol T g.nt)} (h : grammar_derives g w₁ w₂) :
@@ -1310,7 +1310,7 @@ lemma nc_locked_forward (g : grammar T) (hg : grammar_noncontracting g)
   have hmap : CS_derives (locked_csg_of_noncontracting g hg)
       [symbol.nonterminal (NC_LockedNT.orig g.initial)]
       (w.map (fun t => symbol.nonterminal (NC_LockedNT.term t))) := by
-    convert nc_locked_sim_derives g hg hderive using 1 <;>
+    convert nc_locked_sim_derives g hg hderive using 1 ;
       simp [nc_locked_liftSym, nc_locked_symToNT, List.map_map]
   have hunlift : CS_derives (locked_csg_of_noncontracting g hg)
       (w.map (fun t => symbol.nonterminal (NC_LockedNT.term t)))
@@ -1749,7 +1749,7 @@ lemma nc_locked_rule_mem_cases (g : grammar T) (hg : grammar_noncontracting g)
       simp [List.length_append]
     · obtain ⟨k, hk, rfl⟩ := hemitRest
       refine Or.inr (Or.inr (Or.inl ⟨k, by simpa [List.length_append] using hk, ?_⟩))
-      simp [List.length_append]
+      simp
     · obtain ⟨k, hk, rfl⟩ := hcleanup
       exact Or.inr (Or.inr (Or.inr ⟨k, by simpa using hk, rfl⟩))
 
@@ -1813,7 +1813,7 @@ lemma nc_locked_rule_input_mark_shape (g : grammar T)
       dsimp only
       exact Or.inr ⟨by simpa [List.length_append] using hj, rfl⟩
     · obtain ⟨j, _hj, rfl⟩ := hcleanup
-      simp [nc_locked_out] at hinput
+      simp at hinput
 
 lemma nc_locked_rule_input_out_shape (g : grammar T)
     (hg : grammar_noncontracting g)
@@ -1853,7 +1853,7 @@ lemma nc_locked_rule_input_out_shape (g : grammar T)
     · subst hemitLast
       simp at hinput
     · obtain ⟨j, _hj, rfl⟩ := hemitRest
-      simp [nc_locked_out] at hinput
+      simp at hinput
     · obtain ⟨j, hj, rfl⟩ := hcleanup
       simp at hinput
       rcases hinput with ⟨hri, hjk, ha⟩
@@ -2412,7 +2412,7 @@ private lemma nc_locked_transform_added_next_mark_exact
           [nc_locked_liftSym (pattern.getD (k + 1) dflt)] ++
           (pattern.drop (k + 2)).map (nc_locked_liftSym (g := g)) ++ stepV := by
     rw [hs_src, hcrshape]
-    simp [pattern, dflt, pref, nc_locked_mark, nc_locked_liftSym, List.append_assoc]
+    simp [pattern, dflt, pref, nc_locked_liftSym, List.append_assoc]
   have hs_tgt' :
       smid =
         stepU ++ pref ++
@@ -5984,7 +5984,7 @@ lemma nc_locked_dirty_interval_first_step_macro_or_base_one_or_fresh_zero
     intro targetRi targetK htgt hsrc
     obtain ⟨grule, hpair', hk0, hk⟩ := hfresh targetRi targetK htgt hsrc
     subst targetK
-    exact ⟨rfl, grule, hpair', by simpa using hk⟩
+    exact ⟨rfl, grule, hpair', by simp⟩
 
 /-- Strengthened retained-branch trichotomy: if the first dirty step neither
 completes the boundary macro nor advances it to phase `1`, then every fresh
@@ -6274,7 +6274,7 @@ lemma nc_rule_output_aux_is_phase1 (g : grammar T) (hg : grammar_noncontracting 
       rcases hsim with hphase1 | hphase2_0 | hphase2_rest
       · obtain ⟨phaseK, hphaseK, rfl⟩ := hphase1
         refine ⟨simRi, grule, phaseK, hpair, by simpa using hphaseK, ?_⟩
-        simp [List.map_append, List.map_drop]
+        simp
       · subst hphase2_0
         have hfull : nc_aux (g := g) ri k ∈ grule.output_string.map nc_liftSym :=
           List.mem_of_mem_drop haux
@@ -6513,7 +6513,7 @@ lemma nc_dirty_step_clean_phase2_zero_shape (g : grammar T)
   · rw [hs₁, hcrshape]
     simp [nc_aux]
   · rw [hs₂, hcrshape]
-    simp [nc_aux]
+    simp
 
 /-- In the boundary dirty form produced by a clean-to-dirty step, the surrounding
 context is clean and the only auxiliary is the freshly introduced `phase 0` marker. -/
