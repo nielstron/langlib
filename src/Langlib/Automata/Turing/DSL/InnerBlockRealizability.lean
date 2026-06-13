@@ -316,7 +316,7 @@ public theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq 
           Tape.mk']
         exact listBlank_mk_append_default []
       convert h_write.trans (h_left.trans (h_rewind.trans h_done)) using 1
-      simp [Tape.move, Tape.mk₁, Tape.mk₂, Tape.mk']
+      simp [Tape.mk₁, Tape.mk₂, Tape.mk']
   | cons a block ih =>
       have ha_default : a ≠ (default : Γ) := hblock_default a (by simp)
       have ha_target : a ≠ target := hblock_target a (by simp)
