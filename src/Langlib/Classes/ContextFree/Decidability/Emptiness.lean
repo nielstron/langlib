@@ -291,6 +291,7 @@ theorem mem_productiveNTs_iff (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT
     nt ∈ g.productiveNTs ↔ ∃ w : List T, canDerive g nt w := by
   exact ⟨productiveNTs_sound g nt, fun ⟨w, hw⟩ => productiveNTs_complete g nt w hw⟩
 
+omit [DecidableEq T] in
 theorem language_eq_empty_iff (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT] :
     g.language = (∅ : Set (List T)) ↔ g.initial ∉ g.productiveNTs := by
   constructor <;> intro h;
