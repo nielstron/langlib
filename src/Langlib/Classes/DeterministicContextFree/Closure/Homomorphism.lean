@@ -89,7 +89,7 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
                 cases hpq
                 cases hβ
                 exact Relation.ReflTransGen.single
-                  (Set.mem_union_right _ ⟨eps.1, eps.2, by simpa [DPDA.toPDA, hε], rfl⟩)
+                  (Set.mem_union_right _ ⟨eps.1, eps.2, by simp [DPDA.toPDA, hε], rfl⟩)
               · simp [hε] at hbad
           | none =>
               cases ht : M.transition q a Z with
@@ -98,7 +98,7 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
                   simp [hε, ht] at hstep
                   rcases hstep with ⟨β, rfl, rfl⟩
                   exact Relation.ReflTransGen.single
-                    (Set.mem_union_left _ ⟨tr.1, tr.2, by simpa [DPDA.toPDA, ht], rfl⟩)
+                    (Set.mem_union_left _ ⟨tr.1, tr.2, by simp [DPDA.toPDA, ht], rfl⟩)
         | cons x xs =>
           simp [PDA.Reaches₁, PDA.step, leftQuotientSingleton, DPDA.toPDA] at hstep
           cases hε : M.epsilon_transition q Z with
@@ -112,7 +112,7 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
                 cases hpq
                 cases hβ
                 exact Relation.ReflTransGen.single
-                  (Set.mem_union_right _ ⟨eps.1, eps.2, by simpa [DPDA.toPDA, hε], rfl⟩)
+                  (Set.mem_union_right _ ⟨eps.1, eps.2, by simp [DPDA.toPDA, hε], rfl⟩)
               · simp [hε] at hbad
           | none =>
               cases ht : M.transition q a Z with
@@ -121,7 +121,7 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
                   simp [hε, ht] at hstep
                   rcases hstep with ⟨β, rfl, rfl⟩
                   exact Relation.ReflTransGen.single
-                    (Set.mem_union_left _ ⟨tr.1, tr.2, by simpa [DPDA.toPDA, ht], rfl⟩)
+                    (Set.mem_union_left _ ⟨tr.1, tr.2, by simp [DPDA.toPDA, ht], rfl⟩)
       · cases input with
         | nil =>
             simp [PDA.Reaches₁, PDA.step, leftQuotientSingleton, DPDA.toPDA] at hstep
@@ -131,7 +131,7 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
                 simp [hε] at hstep
                 rcases hstep with ⟨β, rfl, rfl⟩
                 exact Relation.ReflTransGen.single
-                  ⟨eps.1, eps.2, by simpa [DPDA.toPDA, hε], rfl⟩
+                  ⟨eps.1, eps.2, by simp [DPDA.toPDA, hε], rfl⟩
         | cons x xs =>
             simp [PDA.Reaches₁, PDA.step, leftQuotientSingleton, DPDA.toPDA] at hstep
             rcases hstep with hstep | hstep
@@ -141,14 +141,14 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
                   simp [ht] at hstep
                   rcases hstep with ⟨β, rfl, rfl⟩
                   exact Relation.ReflTransGen.single
-                    (Set.mem_union_left _ ⟨tr.1, tr.2, by simpa [DPDA.toPDA, ht], rfl⟩)
+                    (Set.mem_union_left _ ⟨tr.1, tr.2, by simp [DPDA.toPDA, ht], rfl⟩)
             · cases hε : M.epsilon_transition q Z with
               | none => simp [hε] at hstep
               | some eps =>
                   simp [hε] at hstep
                   rcases hstep with ⟨β, rfl, rfl⟩
                   exact Relation.ReflTransGen.single
-                    (Set.mem_union_right _ ⟨eps.1, eps.2, by simpa [DPDA.toPDA, hε], rfl⟩)
+                    (Set.mem_union_right _ ⟨eps.1, eps.2, by simp [DPDA.toPDA, hε], rfl⟩)
 
 private lemma leftQuotient_reaches_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fintype S]
     (M : DPDA Q A S) (a : A)
@@ -179,7 +179,7 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
             · rcases hstep with ⟨p, β, hp, rfl⟩
               cases hε : M.epsilon_transition q Z with
               | some eps =>
-                  have hnone := M.no_mixed q Z (by simpa [hε]) a
+                  have hnone := M.no_mixed q Z (by simp [hε]) a
                   simp [hnone] at hp
               | none =>
                   cases ht : M.transition q a Z with
@@ -211,7 +211,7 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
             · rcases hstep with ⟨p, β, hp, rfl⟩
               cases hε : M.epsilon_transition q Z with
               | some eps =>
-                  have hnone := M.no_mixed q Z (by simpa [hε]) a
+                  have hnone := M.no_mixed q Z (by simp [hε]) a
                   simp [hnone] at hp
               | none =>
                   cases ht : M.transition q a Z with
@@ -408,13 +408,13 @@ private def markedUnion (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂) :
       · exact False.elim (hε rfl)
       · rename_i q' γ hε₁
         have hnone := M₁.no_mixed q₁ Z₁ (by simp [hε₁]) t
-        simpa [markTransitionLeft, hnone]
+        simp [hnone]
     · rename_i q₂ Z₂ t
       split at hε
       · exact False.elim (hε rfl)
       · rename_i q' γ hε₁
         have hnone := M₂.no_mixed q₂ Z₂ (by simp [hε₁]) t
-        simpa [markTransitionRight, hnone]
+        simp [hnone]
 
 private def leftConf (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂) :
     PDA.conf M₁.toPDA → PDA.conf (markedUnion M₁ M₂).toPDA
