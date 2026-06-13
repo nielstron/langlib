@@ -103,7 +103,7 @@ public theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α 
         have := h;
         convert this using 1;
         rw [reachesIn_iff_split_first];
-      rcases w with ( _ | ⟨ a, w ⟩ ) <;> rcases α with ( _ | ⟨ Z, α ⟩ ) <;> simp_all +decide [ PDA.step ];
+      rcases w with ( _ | ⟨ a, w ⟩ ) <;> rcases α with ( _ | ⟨ Z, α ⟩ ) <;> simp_all +decide [  ];
       · rcases hc with ⟨ hc₁, hc₂ ⟩;
         obtain ⟨ q', α, hq', rfl ⟩ := hc₁;
         rename_i r₂ hr₁ hr₂;
@@ -113,7 +113,7 @@ public theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α 
           have := hc.1;
           rw [reachesIn_one] at this;
           unfold step at this; aesop;
-        · by_cases hw : w = [] <;> simp_all +decide [ PDA.ReachesIn ];
+        · by_cases hw : w = [] <;> simp_all +decide [  ];
           · use q₁, β ++ α;
             exact ⟨ ⟨ 1, by
               constructor;
@@ -126,7 +126,7 @@ public theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α 
             exact PDA.reachesIn_of_one_n ( by exact PDA.reachesIn_one.mpr <| by exact Set.mem_union_left _ <| Set.mem_setOf.mpr ⟨ q₁, β, hβ, rfl ⟩ ) hx;
         · contrapose! ih;
           use q₁, p, a :: w, v, β ++ α, δ;
-          simp_all +decide [ List.append_assoc ];
+          simp_all +decide [  ];
           intro q' γ x hx y hy; exact ih q' γ ( x + 1 ) ( by
             apply PDA.reachesIn_of_one_n;
             convert PDA.reachesIn_one.mpr _;
@@ -229,7 +229,7 @@ private theorem switch_step {q : Q} {w : List T} {Z : S} {β : List S} :
   cases' w with a w' <;> simp +decide [ *, Reaches₁ ];
   · simp +decide [ step ];
     unfold prefixPDA; aesop;
-  · simp +decide [ step, M.finite', M.finite ];
+  · simp +decide [ step ];
     unfold prefixPDA; aesop;
 
 /-
@@ -341,7 +341,7 @@ private theorem inr_input_invariant {n : ℕ} {q : Q} {w : List T}
         intro c hc; induction' hc with c₁ c₂ hc₁ hc₂ ih; aesop;
         obtain ⟨ q', hq' ⟩ := ih; rcases c₁ with ⟨ s₁, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ s₂, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ] ;
         cases γ₁ <;> simp_all +decide [ step ];
-        cases w₁ <;> simp_all +decide [ Reaches₁ ];
+        cases w₁ <;> simp_all +decide [  ];
         · unfold prefixPDA at hc₂; aesop;
         · unfold prefixPDA at hc₂; aesop;
       apply h_last_step;
@@ -370,7 +370,7 @@ private theorem inl_step_cases {c : (prefixPDA M).conf}
   cases w <;> cases α <;> simp_all +decide [ Reaches₁ ];
   · unfold step at h; aesop;
   · unfold step at h;
-    unfold prefixPDA at h; simp_all +decide [ Set.mem_union, Set.mem_setOf_eq ] ;
+    unfold prefixPDA at h; simp_all +decide [ Set.mem_setOf_eq ] ;
     unfold step; aesop;
   · unfold step at h; aesop;
   · cases h <;> simp_all +decide [ step ];
@@ -420,7 +420,7 @@ private theorem M_reaches_of_verify_reachesIn {n : ℕ}
     · cases h ; aesop;
     · obtain ⟨c, hc⟩ : ∃ c : (prefixPDA M).conf, (prefixPDA M).ReachesIn 1 ⟨Sum.inr q, [], γ⟩ c ∧ (prefixPDA M).ReachesIn n c ⟨Sum.inr p, [], []⟩ := by
         exact?;
-      rcases γ with ( _ | ⟨ Z, β ⟩ ) <;> simp_all +decide [ ReachesIn ];
+      rcases γ with ( _ | ⟨ Z, β ⟩ ) <;> simp_all +decide [  ];
       · rcases hc with ⟨ ⟨ c, hc₁, hc₂ ⟩, hc₃ ⟩;
         rename_i r₂ hr₂ hr₃;
         rcases hr₂ with ⟨ ⟩;
