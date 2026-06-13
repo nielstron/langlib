@@ -246,7 +246,7 @@ before it halts. This is where we check acceptance. -/
 noncomputable def haltingCfg {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) (h : Halts M cfg) : Cfg Γ Λ n :=
   let k := Nat.find h
-  match hk : iterateStep M cfg (k - 1) with
+  match _hk : iterateStep M cfg (k - 1) with
   | some c => c
   | none => cfg  -- fallback (k = 0 case)
 
@@ -381,10 +381,10 @@ theorem not_accepts_and_rejects {Γ : Type*} {Λ : Type*} {n : ℕ}
   obtain ⟨k₂, cfg₂, hk₂⟩ := h.right;
   -- If `k₁ < k₂`, then `iterateStep M cfg (k₁ + 1) = none` implies `iterateStep M cfg (k₂ + 1) = none` by monotonicity.
   by_cases h_cases : k₁ < k₂;
-  · have := iterateStep_none_mono M cfg cfg₁ ( k₂ - ( k₁ + 1 ) ) ; simp_all +decide [ Nat.sub_sub ] ;
+  · have := iterateStep_none_mono M cfg cfg₁ ( k₂ - ( k₁ + 1 ) ) ; simp_all +decide [  ] ;
   · -- If `k₂ < k₁`, then `iterateStep M cfg (k₂ + 1) = none` implies `iterateStep M cfg (k₁ + 1) = none` by monotonicity.
     by_cases h_cases' : k₂ < k₁;
-    · have := iterateStep_none_mono M cfg cfg₂ ( k₁ - ( k₂ + 1 ) ) ; simp_all +decide [ Nat.add_sub_of_le h_cases'.le ] ;
+    · have := iterateStep_none_mono M cfg cfg₂ ( k₁ - ( k₂ + 1 ) ) ; simp_all +decide [  ] ;
     · grind
 
 theorem complement_language {Γ : Type*} {Λ : Type*} {n : ℕ}
@@ -414,6 +414,7 @@ section Decidability
 variable {Γ : Type*} {Λ : Type*} {n : ℕ}
   [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
 
+omit [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ] in
 theorem not_halts_of_iterate_eq (M : Machine Γ Λ) (cfg : Cfg Γ Λ n)
     {i j : ℕ} (hij : i < j)
     (hi : iterateStep M cfg i = iterateStep M cfg j)
