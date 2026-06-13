@@ -146,7 +146,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
       let d ← [DLBA.Dir.stay, DLBA.Dir.left, DLBA.Dir.right]
-      if h : (q', a', d) ∈ M.transition q a then
+      if _h : (q', a', d) ∈ M.transition q a then
         let t ← (Finset.univ.toList : List T)
         let lb ← [true, false]
         let rb ← [true, false]
@@ -166,7 +166,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let a ← (Finset.univ.toList : List Γ)
       let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
-      if h : (q', a', DLBA.Dir.right) ∈ M.transition q a then
+      if _h : (q', a', DLBA.Dir.right) ∈ M.transition q a then
         let t₁ ← (Finset.univ.toList : List T)
         let t₂ ← (Finset.univ.toList : List T)
         let hi ← (Finset.univ.toList : List (Option Λ))
@@ -181,7 +181,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let a ← (Finset.univ.toList : List Γ)
       let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
-      if h : (q', a', DLBA.Dir.right) ∈ M.transition q a then
+      if _h : (q', a', DLBA.Dir.right) ∈ M.transition q a then
         let t₁ ← (Finset.univ.toList : List T)
         let t₂ ← (Finset.univ.toList : List T)
         let hi ← (Finset.univ.toList : List (Option Λ))
@@ -210,7 +210,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let a ← (Finset.univ.toList : List Γ)
       let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
-      if h : (q', a', DLBA.Dir.left) ∈ M.transition q a then
+      if _h : (q', a', DLBA.Dir.left) ∈ M.transition q a then
         let t₁ ← (Finset.univ.toList : List T)
         let t₂ ← (Finset.univ.toList : List T)
         let hi ← (Finset.univ.toList : List (Option Λ))
@@ -225,7 +225,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
       let a ← (Finset.univ.toList : List Γ)
       let q' ← (Finset.univ.toList : List Λ)
       let a' ← (Finset.univ.toList : List Γ)
-      if h : (q', a', DLBA.Dir.left) ∈ M.transition q a then
+      if _h : (q', a', DLBA.Dir.left) ∈ M.transition q a then
         let t₁ ← (Finset.univ.toList : List T)
         let t₂ ← (Finset.univ.toList : List T)
         let hi ← (Finset.univ.toList : List (Option Λ))
@@ -288,6 +288,7 @@ def myhillAllRules : List (csrule T (MyhillNT T Γ Λ)) :=
             [symbol.terminal t₁]⟩)
 
 set_option maxHeartbeats 1000000 in
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- Every rule in the Myhill construction has non-empty output string. -/
 theorem myhillAllRules_output_nonempty :
     ∀ r ∈ myhillAllRules M embed, r.output_string ≠ [] := by
@@ -301,11 +302,13 @@ def myhillGrammar : CS_grammar T where
   rules := myhillAllRules M embed
   output_nonempty := myhillAllRules_output_nonempty M embed
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma single_cell_init_rule_mem (t : T) :
     (⟨[], MyhillNT.start, [], [cellSym true true (some M.initial) (embed t) t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   simp [myhillAllRules]
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- Rightmost initial cell (laid first, with `startAux` on its left). -/
 public lemma right_cell_init_rule_mem (t : T) :
     (⟨[], MyhillNT.start, [],
@@ -315,6 +318,7 @@ public lemma right_cell_init_rule_mem (t : T) :
   unfold myhillAllRules
   simp +decide [List.mem_append]
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- A middle initial cell, inserted just to the right of `startAux`. -/
 public lemma middle_cell_init_rule_mem (t : T) :
     (⟨[], MyhillNT.startAux, [],
@@ -324,6 +328,7 @@ public lemma middle_cell_init_rule_mem (t : T) :
   unfold myhillAllRules
   simp +decide
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- Leftmost initial cell carrying the start state (laid last, removing `startAux`). -/
 public lemma left_cell_init_rule_mem (t : T) :
     (⟨[], MyhillNT.startAux, [],
@@ -332,6 +337,7 @@ public lemma left_cell_init_rule_mem (t : T) :
   unfold myhillAllRules
   aesop
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma accept_rule_mem (q : Λ) (hq : M.accept q = true) (a : Γ) (t : T)
     (lb rb : Bool) :
     (⟨[], MyhillNT.cell lb rb (some q) a t, [],
@@ -341,6 +347,7 @@ public lemma accept_rule_mem (q : Λ) (hq : M.accept q = true) (a : Γ) (t : T)
   simp +decide [List.mem_append, List.mem_flatMap, List.mem_map]
   grind +extAll
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma left_propagation_rule_mem (t₁ : T) (a : Γ) (t₂ : T)
     (lb rb : Bool) :
     (⟨[symbol.terminal t₁],
@@ -351,6 +358,7 @@ public lemma left_propagation_rule_mem (t₁ : T) (a : Γ) (t₂ : T)
   simp +decide
   grind +ring
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma right_propagation_rule_mem (a : Γ) (t₁ t₂ : T)
     (lb rb : Bool) :
     (⟨[], MyhillNT.cell lb rb none a t₁,
@@ -363,16 +371,18 @@ public lemma right_propagation_rule_mem (a : Γ) (t₁ t₂ : T)
 
 /-! ### Simulation rule membership lemmas -/
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_stay_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb rb : Bool)
     (h : (q', a', DLBA.Dir.stay) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell lb rb (some q) a t, [],
       [cellSym lb rb (some q') a' t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
   unfold myhillAllRules
-  simp +decide [h]
+  simp +decide
   use q, a, q', a'
   cases lb <;> cases rb <;> simp +decide [*]
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_right_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb : Bool)
     (h : (q', a', DLBA.Dir.right) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell lb true (some q) a t, [],
@@ -382,15 +392,17 @@ public lemma sim_right_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (lb : B
   simp_all +decide [Finset.mem_toList]
   grind
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_left_boundary_rule_mem (q q' : Λ) (a a' : Γ) (t : T) (rb : Bool)
     (h : (q', a', DLBA.Dir.left) ∈ M.transition q a) :
     (⟨[], MyhillNT.cell true rb (some q) a t, [],
       [cellSym true rb (some q') a' t]⟩ :
       csrule T (MyhillNT T Γ Λ)) ∈ myhillAllRules M embed := by
-  simp [myhillAllRules, h]
+  simp [myhillAllRules]
   grind
 
 set_option maxHeartbeats 1000000 in
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_right_interior_step1_boundary_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
     (rb₂ : Bool) (hi : Option Λ) (b : Γ)
     (h : (q', a', DLBA.Dir.right) ∈ M.transition q a) :
@@ -403,11 +415,12 @@ public lemma sim_right_interior_step1_boundary_mem (q q' : Λ) (a a' : Γ) (t₁
   iterate 9 apply Or.inl
   apply Or.inr
   simp +decide only [List.mem_flatMap, Finset.mem_toList, Finset.mem_univ, true_and,
-    List.bind_eq_flatMap, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
-    List.pure_def, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false]
+    bind, List.mem_dite_nil_right,
+    List.pure_def, List.mem_cons, List.not_mem_nil, or_false]
   exact ⟨q, a, q', a', h, t₁, t₂, hi, b, rb₂, by cases rb₂ <;> simp, rfl⟩
 
 set_option maxHeartbeats 1000000 in
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_right_interior_step1_interior_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
     (rb₂ : Bool) (hi : Option Λ) (b : Γ) (lb₀ : Bool) (a₀ : Γ) (t₀ : T)
     (h : (q', a', DLBA.Dir.right) ∈ M.transition q a) :
@@ -420,11 +433,12 @@ public lemma sim_right_interior_step1_interior_mem (q q' : Λ) (a a' : Γ) (t₁
   iterate 8 apply Or.inl
   apply Or.inr
   simp +decide only [List.mem_flatMap, Finset.mem_toList, Finset.mem_univ, true_and,
-    List.bind_eq_flatMap, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
-    List.pure_def, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false]
+    bind, List.mem_dite_nil_right,
+    List.pure_def, List.mem_cons, List.not_mem_nil, or_false]
   exact ⟨q, a, q', a', h, t₁, t₂, hi, b, rb₂, by cases rb₂ <;> simp, lb₀,
     by cases lb₀ <;> simp, a₀, t₀, rfl⟩
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_right_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
     (lb₁ : Bool) (rb₂ : Bool) (b : Γ) :
     (⟨[cellPendingSym lb₁ false true q' a' t₁],
@@ -436,6 +450,7 @@ public lemma sim_right_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
   cases lb₁ <;> cases rb₂ <;> aesop
 
 set_option maxHeartbeats 1000000 in
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_left_interior_step1_boundary_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
     (lb₁ : Bool) (hi : Option Λ) (b : Γ)
     (h : (q', a', DLBA.Dir.left) ∈ M.transition q a) :
@@ -448,11 +463,12 @@ public lemma sim_left_interior_step1_boundary_mem (q q' : Λ) (a a' : Γ) (t₁ 
   iterate 6 apply Or.inl
   apply Or.inr
   simp +decide only [List.mem_flatMap, Finset.mem_toList, Finset.mem_univ, true_and,
-    List.bind_eq_flatMap, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
-    List.pure_def, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false]
+    bind, List.mem_dite_nil_right,
+    List.pure_def, List.mem_cons, List.not_mem_nil, or_false]
   exact ⟨q, a, q', a', h, t₁, t₂, hi, b, lb₁, by cases lb₁ <;> simp, rfl⟩
 
 set_option maxHeartbeats 1000000 in
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_left_interior_step1_interior_mem (q q' : Λ) (a a' : Γ) (t₁ t₂ : T)
     (lb₁ : Bool) (hi : Option Λ) (b : Γ) (rb₀ : Bool) (a₀ : Γ) (t₀ : T)
     (h : (q', a', DLBA.Dir.left) ∈ M.transition q a) :
@@ -465,11 +481,12 @@ public lemma sim_left_interior_step1_interior_mem (q q' : Λ) (a a' : Γ) (t₁ 
   iterate 5 apply Or.inl
   apply Or.inr
   simp +decide only [List.mem_flatMap, Finset.mem_toList, Finset.mem_univ, true_and,
-    List.bind_eq_flatMap, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
-    List.pure_def, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false]
+    bind, List.mem_dite_nil_right,
+    List.pure_def, List.mem_cons, List.not_mem_nil, or_false]
   exact ⟨q, a, q', a', h, t₁, t₂, hi, b, lb₁, by cases lb₁ <;> simp, rb₀,
     by cases rb₀ <;> simp, a₀, t₀, rfl⟩
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma sim_left_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
     (lb₁ : Bool) (rb₂ : Bool) (b : Γ) :
     (⟨[], MyhillNT.cell lb₁ false none b t₁,
@@ -479,6 +496,7 @@ public lemma sim_left_interior_step2_mem (q' : Λ) (a' : Γ) (t₁ t₂ : T)
   revert q' a' t₁ t₂ lb₁ rb₂ b
   simp [myhillAllRules]
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 public lemma pending_resolution_rule_mem (q' : Λ) (a' : Γ) (t : T) (lb rb dir : Bool) :
     (⟨[], MyhillNT.cellPending lb rb dir q' a' t, [],
       [cellSym lb rb none a' t]⟩ :
