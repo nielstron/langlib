@@ -424,7 +424,7 @@ private lemma terminal_derives_in {g : CF_grammar T} {t : T} {n : ℕ} {w : List
     n = 0 ∧ w = [t] := by
       rcases n with ( _ | n ) <;> simp_all +decide [ CF_derives_in ];
       · cases w <;> aesop;
-      · rcases h with ⟨ w₂, hw₂₁, hw₂₂ ⟩ ; rcases hw₂₁ with ⟨ r, u, v, hr₁, hr₂, hr₃ ⟩ ; simp_all +decide [ CF_transforms ] ;
+      · rcases h with ⟨ w₂, hw₂₁, hw₂₂ ⟩ ; rcases hw₂₁ with ⟨ r, u, v, hr₁, hr₂, hr₃ ⟩ ; simp_all +decide [  ] ;
         cases u <;> cases v <;> aesop ( simp_config := { decide := true } ) ;
 
 /-- Full lifting for a list of symbols. -/
@@ -480,10 +480,10 @@ private lemma find_prefix_cut {g : CF_grammar T} {n : ℕ}
       w = u ++ v →
       CF_derives (prefixGrammar g)
         [symbol.nonterminal (true, A)] (List.map symbol.terminal u))
-    : ∀ (ss : List (symbol T g.nt)) {k : ℕ} (hk : k < n)
+    : ∀ (ss : List (symbol T g.nt)) {k : ℕ} (_hk : k < n)
     {w u v : List T}
-    (hw : CF_derives_in g k ss (List.map symbol.terminal w))
-    (huv : w = u ++ v) (hu : u ≠ []),
+    (_hw : CF_derives_in g k ss (List.map symbol.terminal w))
+    (_huv : w = u ++ v) (_hu : u ≠ []),
     ∃ (j : Fin ss.length) (w_before u_at : List T),
       u = w_before ++ u_at ∧
       CF_derives (prefixGrammar g) ((ss.take j.val).map liftFull) (List.map symbol.terminal w_before) ∧
@@ -502,14 +502,14 @@ private lemma find_prefix_cut {g : CF_grammar T} {n : ℕ}
                 use [], [t]; simp +decide [ CF_derives ] ;
                 exact ⟨ by rfl, by rfl ⟩;
               · rcases hu_part with ⟨ w₂, hw₂₁, hw₂₂ ⟩ ; rcases w₂ with ( _ | ⟨ t₂, w₂ ⟩ ) <;> simp_all +decide [ CF_transforms ] ;
-                rcases hw₂₁ with ⟨ a, b, hab, x, y, hx, hy ⟩ ; rcases x with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ] ;
+                rcases hw₂₁ with ⟨ a, b, hab, x, y, hx, hy ⟩ ; rcases x with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide [  ] ;
             · rename_i A; specialize ‹∀ m < n, ∀ ( A : g.nt ) ( w u v : List T ), CF_derives_in g m [ symbol.nonterminal A ] ( List.map symbol.terminal w ) → w = u ++ v → CF_derives ( prefixGrammar g ) [ symbol.nonterminal ( true, A ) ] ( List.map symbol.terminal u ) › n₁ ( by linarith ) A ( u ++ a ) u a; simp_all +decide ;
               use ⟨ 0, by aesop ⟩ ; simp_all +decide [ List.take ] ;
               exact ⟨ [ ], u, by simp +decide, by exact CF_deri_self, ih ⟩;
           · rcases huv with ⟨ as, rfl, rfl ⟩ ; simp_all +decide [ List.append_assoc ] ;
-            have := @ih ( n₂ ) ( by linarith ) ( as ++ v ) as v ; simp_all +decide [ List.append_assoc ] ;
+            have := @ih ( n₂ ) ( by linarith ) ( as ++ v ) as v ; simp_all +decide [  ] ;
             obtain ⟨ j, w_before, u_at, rfl, hw_before, hw_at ⟩ := this; use ⟨ j.val + 1, by
-              exact Nat.succ_lt_succ j.2 ⟩ ; use w_head ++ w_before, u_at; simp_all +decide [ List.take_append ] ; (
+              exact Nat.succ_lt_succ j.2 ⟩ ; use w_head ++ w_before, u_at; simp_all +decide [  ] ; (
             have h_liftFull_s : CF_derives (prefixGrammar g) [liftFull s] (List.map symbol.terminal w_head) := by
               -- Apply the liftFull_list_derives lemma to the derivation from s to w_head.
               have h_liftFull_s : CF_derives (prefixGrammar g) (List.map liftFull [s]) (List.map symbol.terminal w_head) := by
@@ -607,7 +607,7 @@ private lemma unlift_full_transform {g : CF_grammar T}
     (h : CF_transforms (prefixGrammar g) (ss.map liftFull) ss') :
     ∃ ss'' : List (symbol T g.nt), ss' = ss''.map liftFull ∧ CF_transforms g ss ss'' := by
       obtain ⟨ r, hr ⟩ := h;
-      rcases hr with ⟨ u, v, hr, h₁, h₂ ⟩ ; rcases r with ⟨ ⟨ b, B ⟩, l ⟩ ; rcases b with ( _ | _ ) <;> simp_all +decide [ List.mem_append, List.mem_cons ] ;
+      rcases hr with ⟨ u, v, hr, h₁, h₂ ⟩ ; rcases r with ⟨ ⟨ b, B ⟩, l ⟩ ; rcases b with ( _ | _ ) <;> simp_all +decide [  ] ;
       · -- By definition of `prefixGrammar`, we know that `l` is the map of some rule in `g.rules`.
         obtain ⟨ r, hr ⟩ : ∃ r ∈ g.rules, l = r.2.map liftFull ∧ r.1 = B := by
           grind +locals;
@@ -615,7 +615,7 @@ private lemma unlift_full_transform {g : CF_grammar T}
         obtain ⟨ u', v', hu', hv', hss'' ⟩ : ∃ u' v' : List (symbol T g.nt), u = u'.map liftFull ∧ v = v'.map liftFull ∧ ss = u' ++ [symbol.nonterminal B] ++ v' := by
           have h_split : ∀ {l : List (symbol T g.nt)} {u v : List (symbol T (Bool × g.nt))}, List.map liftFull l = u ++ symbol.nonterminal (false, B) :: v → ∃ u' v' : List (symbol T g.nt), u = u'.map liftFull ∧ v = v'.map liftFull ∧ l = u' ++ [symbol.nonterminal B] ++ v' := by
             intros l u v h; induction' l with l ih generalizing u v <;> simp_all +decide [ List.map ] ;
-            rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide [ List.map ];
+            rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide [  ];
             · unfold liftFull at h; aesop;
             · grind;
           exact h_split h₁;
@@ -661,7 +661,7 @@ private lemma productive_has_rule {g : CF_grammar T} {B : g.nt}
         exact?;
       induction' n with n ih generalizing B w <;> simp_all +decide [ CF_derives_in ];
       · cases w <;> aesop;
-      · rcases hn with ⟨ w₂, hw₂, hw₂' ⟩ ; rcases hw₂ with ⟨ r, u, v, hr, hu, hv ⟩ ; simp_all +decide [ List.length_append ] ;
+      · rcases hn with ⟨ w₂, hw₂, hw₂' ⟩ ; rcases hw₂ with ⟨ r, u, v, hr, hu, hv ⟩ ; simp_all +decide [  ] ;
         cases u <;> aesop
 
 /-
@@ -672,7 +672,7 @@ private lemma list_productive_derives {g : CF_grammar T}
     (ss : List (symbol T g.nt))
     (hprod : ∀ B, symbol.nonterminal B ∈ ss → productive g B) :
     ∃ w : List T, CF_derives g ss (List.map symbol.terminal w) := by
-      induction ss <;> simp_all +decide [ List.foldr ];
+      induction ss <;> simp_all +decide [  ];
       · exact ⟨ [ ], by tauto ⟩;
       · rename_i h t ih
         obtain ⟨w_s, hw_s⟩ : ∃ w_s : List T, CF_derives g [h] (List.map symbol.terminal w_s) := by
@@ -780,8 +780,8 @@ private lemma true_mode_soundness {g : CF_grammar T}
           -- Byclassify_true_rule, we know that there exists a rule (A, rhs) in g such that w₂ is either the empty list or a prefix cut of rhs.
           obtain ⟨rhs, hr, hw₂⟩ : ∃ rhs : List (symbol T g.nt), (A, rhs) ∈ g.rules ∧ (w₂ = [] ∨ ∃ i : Fin rhs.length, w₂ = (rhs.take i.val).map liftFull ++ [liftPrefix (rhs.get ⟨i.val, i.isLt⟩)]) := by
             obtain ⟨r, hr⟩ : ∃ r : (Bool × g.nt) × List (symbol T (prefixGrammar g).nt), r ∈ (prefixGrammar g).rules ∧ r.1 = (true, A) ∧ r.2 = w₂ := by
-              obtain ⟨ u, v, h ⟩ := hw₂; simp_all +decide [ CF_transforms ] ;
-              rcases h with ⟨ hu, x, hx, rfl ⟩ ; rcases v with ( _ | ⟨ _, _ | v ⟩ ) <;> simp_all +decide [ List.append_assoc ] ;
+              obtain ⟨ u, v, h ⟩ := hw₂; simp_all +decide [  ] ;
+              rcases h with ⟨ hu, x, hx, rfl ⟩ ; rcases v with ( _ | ⟨ _, _ | v ⟩ ) <;> simp_all +decide [  ] ;
             generalize_proofs at *; (
             grind +locals)
           generalize_proofs at *; (
