@@ -234,8 +234,8 @@ theorem encodeInput_getI {Γ : Type*} {n : ℕ} (w : Fin (n + 1) → Γ)
     (k : ℕ) (hk : k < n + 1) :
     (encodeInput w).getI k = some (w ⟨k, hk⟩) := by
   convert list_getI_eq_get _ _ _ using 1;
-  unfold encodeInput; simp +decide [ List.get ] ;
-  rcases k with ( _ | k ) <;> simp_all +decide [ List.get ];
+  unfold encodeInput; simp +decide ;
+  rcases k with ( _ | k ) <;> simp_all +decide [  ];
   exact hk.trans_le ( by simp +decide [ encodeInput_length ] )
 
 /-
@@ -315,7 +315,7 @@ theorem reading_phase_complete {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq 
       convert tape_mk1_move_right_head _ _ using 1;
       exact?;
     convert reading_to_simulating M ( List.ofFn w ) _ _ _;
-    all_goals simp_all +decide [ List.get_ofFn ];
+    all_goals simp_all +decide [  ];
     rename_i i; induction i using Fin.inductionOn <;> simp +decide [ * ] ;
   exact ⟨ _, h_reaches.tail h_reaches_sim.choose_spec ⟩
 
