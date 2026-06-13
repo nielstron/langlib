@@ -268,7 +268,7 @@ public theorem shiftedFoldBody
     have hpref_nd : ∀ g ∈ pref t, g ≠ (default : Γ) := by
       intro g hg
       rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-      simp [pref, hetAccEmb]
+      simp [hetAccEmb]
     have hpref_nsep : ∀ g ∈ pref t, g ≠ sep := by
       intro g hg
       rcases List.mem_map.mp hg with ⟨a, ha, rfl⟩
@@ -295,7 +295,7 @@ public theorem shiftedFoldBody
   have hpfx_nd : ∀ g ∈ pfx, g ≠ (default : Γ) := by
     intro g hg
     rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-    simp [pfx, hetTagEmb]
+    simp [hetTagEmb]
   have hpfx_nsep : ∀ g ∈ pfx, g ≠ sep := by
     intro g hg
     rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
@@ -305,7 +305,7 @@ public theorem shiftedFoldBody
   have hinner_nd : ∀ g ∈ inner, g ≠ (default : Γ) := by
     intro g hg
     rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-    simp [inner, hetAccEmb]
+    simp [hetAccEmb]
   have hinner_nsep : ∀ g ∈ inner, g ≠ sep := by
     intro g hg
     rcases List.mem_map.mp hg with ⟨a, ha, rfl⟩
@@ -319,7 +319,7 @@ public theorem shiftedFoldBody
     simp [List.mem_append] at hg
     rcases hg with hg | hg
     · rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-      simp [pref, hetAccEmb]
+      simp [hetAccEmb]
     · exact hinner_nd g hg
   have hout_nsep : ∀ g ∈ pref t ++ inner, g ≠ sep := by
     intro g hg
@@ -407,7 +407,7 @@ public theorem shiftedFinishBlock_realizes
       (tm0RealizesBlockAnySuffix_of_sep_default happ_sep)
   have hcons : TM0RealizesBlock Γ
       (fun block : List Γ => some (Sum.inr chainConsBottom) :: block) :=
-    tm0_cons_block (some (Sum.inr chainConsBottom)) (by simp [Γ])
+    tm0_cons_block (some (Sum.inr chainConsBottom)) (by simp)
   have happ_nd :
       ∀ block : List Γ, (∀ g ∈ block, g ≠ default) →
         ∀ g ∈ block ++ [some (Sum.inr directChainCons)], g ≠ default := by
@@ -476,7 +476,7 @@ public theorem shifted_converter_exists
   have hmid_nd : ∀ g ∈ mid, g ≠ (default : Option (T ⊕ ChainΓ)) := by
     intro g hg
     rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
-    simp [mid]
+    simp
   have hfinish_eq : shiftedFinishBlock (T := T) mid = out := by
     simpa [mid, out] using shiftedFinishBlock_on_payload (T := T) w
   have h2_spec := hM₂ mid [] hmid_nd (by simp) (by
