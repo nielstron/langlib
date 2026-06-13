@@ -72,11 +72,11 @@ theorem takeWhile_eq_rev_dropFromLastSep_rev' {Γ : Type} [Inhabited Γ] [Decida
       intro l;
       induction' l with x l ih;
       · rfl;
-      · by_cases hx : x = sep <;> simp_all +decide [ List.takeWhile_cons ];
+      · by_cases hx : x = sep <;> simp_all +decide [  ];
         · induction' l.reverse <;> simp_all +decide [ dropFromLastSep ];
         · have h_split : ∀ (l : List Γ) (x : Γ), x ≠ sep → dropFromLastSep sep (l ++ [x]) = dropFromLastSep sep l ++ [x] := by
             intros l x hx; induction' l with y l ih generalizing x <;> simp_all +decide [ dropFromLastSep ] ;
-            split_ifs <;> simp_all +decide [ List.append_assoc ];
+            split_ifs <;> simp_all +decide [  ];
           rw [ h_split _ _ hx, ih ];
     exact h_dropFromLastSep_rev l;
   grind +splitIndPred
@@ -236,7 +236,7 @@ theorem tape_move_left_right_mk₁ {Γ : Type} [Inhabited Γ] (l : List Γ) :
 Scan right loop: scan moves right through non-sep, non-default cells.
 -/
 theorem dfl_scan_right {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
-    (sep : Γ) (hsep : sep ≠ default)
+    (sep : Γ) (_hsep : sep ≠ default)
     (L : List Γ) (pfx rest : List Γ)
     (hpfx_nsep : ∀ g ∈ pfx, g ≠ sep)
     (hpfx_nd : ∀ g ∈ pfx, g ≠ default) :
@@ -246,8 +246,8 @@ theorem dfl_scan_right {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
   induction' pfx with c pfx ih generalizing L;
   · constructor;
   · have h_step : TM0.step (dflMachine sep) ⟨DFLState.scan, Tape.mk₂ L (c :: pfx ++ rest)⟩ = some ⟨DFLState.scan, Tape.mk₂ (c :: L) (pfx ++ rest)⟩ := by
-      unfold dflMachine; simp +decide [ RevBlock.mk₂_head, RevBlock.mk₂_move_right ] ;
-      unfold TM0.step; simp +decide [ RevBlock.mk₂_head, RevBlock.mk₂_move_right ] ;
+      unfold dflMachine; simp +decide ;
+      unfold TM0.step; simp +decide [ RevBlock.mk₂_head ] ;
       exact ⟨ TM0.Stmt.move Dir.right, by aesop, by exact RevBlock.mk₂_move_right _ _ _ ⟩;
     have h_reach : Reaches (TM0.step (dflMachine sep)) ⟨DFLState.scan, Tape.mk₂ (c :: L) (pfx ++ rest)⟩ ⟨DFLState.scan, Tape.mk₂ (pfx.reverse ++ (c :: L)) rest⟩ := by
       exact ih _ ( fun g hg => hpfx_nsep g ( List.mem_cons_of_mem _ hg ) ) ( fun g hg => hpfx_nd g ( List.mem_cons_of_mem _ hg ) );
@@ -280,7 +280,7 @@ theorem dfl_goBack_after_left {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
 Erase loop: erases all pfx cells and sep, reaching scan at rest.
 -/
 theorem dfl_erase_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
-    (sep : Γ) (hsep : sep ≠ default)
+    (sep : Γ) (_hsep : sep ≠ default)
     (pfx rest : List Γ)
     (hpfx_nsep : ∀ g ∈ pfx, g ≠ sep)
     (hpfx_nd : ∀ g ∈ pfx, g ≠ default) :
@@ -293,19 +293,19 @@ theorem dfl_erase_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     rotate_right;
     exact ⟨ .wOther, Tape.write default ( Tape.mk₁ ( c :: rest ) ) ⟩;
     · apply_rules [ Relation.ReflTransGen.single ];
-      unfold dflMachine; simp +decide [ hc, hc' ] ;
-      unfold TM0.step; simp +decide [ hc, hc' ] ;
+      unfold dflMachine; simp +decide ;
+      unfold TM0.step; simp +decide ;
       exact ⟨ _, if_neg ( by unfold Tape.mk₁; aesop ) |> fun h => h.trans ( if_neg ( by unfold Tape.mk₁; aesop ) ), rfl ⟩;
     · unfold TM0.step;
-      unfold dflMachine; simp +decide [ hc, hc' ] ;
+      unfold dflMachine; simp +decide ;
       exact?;
   induction' pfx with c pfx ih;
   · constructor;
     rotate_right;
     exact ⟨ DFLState.wSep, Tape.write default ( Tape.mk₁ ( sep :: rest ) ) ⟩;
     · apply_rules [ Relation.ReflTransGen.single ];
-      unfold dflMachine; simp +decide [ hsep ] ;
-      unfold TM0.step; simp +decide [ hsep ] ;
+      unfold dflMachine; simp +decide ;
+      unfold TM0.step; simp +decide ;
       exact ⟨ _, if_pos rfl, rfl ⟩;
     · unfold TM0.step; simp +decide [ dflMachine ] ;
       exact?;
@@ -364,7 +364,7 @@ theorem dfl_one_cycle {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
       apply Relation.ReflTransGen.single;
       simp +decide [ TM0.step, dflMachine ];
       use TM0.Stmt.move Dir.left;
-      simp +decide [ Tape.mk₂, Tape.head ];
+      simp +decide [ Tape.mk₂ ];
     convert h_goBack.trans _;
     convert dfl_goBack_after_left sep pfx.reverse ( sep :: rest ++ default :: suffix ) _ using 1;
     · simp +decide [ List.reverse_reverse ];
@@ -420,7 +420,7 @@ Full machine correctness.
 theorem dfl_full_reaches {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (sep : Γ) (hsep : sep ≠ default)
     (block suffix : List Γ)
-    (hblock : ∀ g ∈ block, g ≠ default) (hsuffix : ∀ g ∈ suffix, g ≠ default) :
+    (hblock : ∀ g ∈ block, g ≠ default) (_hsuffix : ∀ g ∈ suffix, g ≠ default) :
     Reaches (TM0.step (dflMachine sep))
       (TM0.init (block ++ default :: suffix))
       ⟨DFLState.done, Tape.mk₁ (dropFromLastSep sep block ++ default :: suffix)⟩ := by
