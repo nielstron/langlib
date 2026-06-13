@@ -137,7 +137,7 @@ One indexed step (with empty stacks) gives a CF step on decoded forms.
 private lemma indexed_tran_decode (g : CF_grammar T)
     {w₁ w₂ : List ((indexed_of_cfg g).ISym)}
     (ht : (indexed_of_cfg g).Transforms w₁ w₂)
-    (hempty : ∀ s ∈ w₁, match s with
+    (_hempty : ∀ s ∈ w₁, match s with
       | IndexedGrammar.ISym.terminal _ => True
       | IndexedGrammar.ISym.indexed _ σ => σ = []) :
     CF_transforms g (w₁.map (decode g)) (w₂.map (decode g)) := by
@@ -183,7 +183,7 @@ public theorem indexed_of_cfg_language (g : CF_grammar T) :
     rwa [decode_terminal_map] at this
   · intro h
     have hd := cf_deri_to_indexed_deri g h
-    convert hd using 1 <;> simp [cf_to_isym, List.map_map, Function.comp_def, indexed_of_cfg]
+    convert hd using 1 ; simp [cf_to_isym, List.map_map, Function.comp_def, indexed_of_cfg]
 
 
 /-- Every context-free language is an indexed language. -/
