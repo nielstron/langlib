@@ -225,7 +225,7 @@ private lemma dpda_any_eq_complete (n m : ℕ) :
           (Relation.ReflTransGen.trans h_b0
             (Relation.ReflTransGen.trans h_bs
               (Relation.ReflTransGen.trans h_c0
-                (Relation.ReflTransGen.trans h_cs h_eps)))) using 1 <;>
+                (Relation.ReflTransGen.trans h_cs h_eps)))) using 1 ;
         simp +decide [List.append_assoc, restC]
 
 private def AnyEqInv (w : List (Fin 3))
@@ -252,7 +252,7 @@ private lemma any_eq_inv_step_state_start (w input : List (Fin 3))
     simp_all +decide [dpda_any_eq, DPDA.toPDA]
   · fin_cases x <;> simp_all +decide [PDA.Reaches₁, PDA.step, dpda_any_eq, DPDA.toPDA]
     · refine ⟨na + 1, 0, 0, ?_, ?_⟩
-      · simp +decide [a_, List.append_assoc]
+      · simp +decide [a_]
         simpa [a_] using replicate_append_cons_eq na a_ rest
       · left
         simp

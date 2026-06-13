@@ -261,7 +261,7 @@ private lemma dpda_eq_any_complete (n m : ℕ) :
         Relation.ReflTransGen.trans h_as
           (Relation.ReflTransGen.trans h_b0
             (Relation.ReflTransGen.trans h_bs
-              (Relation.ReflTransGen.trans h_eps h_cs))) using 1 <;>
+              (Relation.ReflTransGen.trans h_eps h_cs))) using 1 ;
         simp +decide [List.replicate, List.append_assoc, restC]
 
 private def EqAnyInv (w : List (Fin 3))
@@ -302,14 +302,14 @@ private lemma eq_any_inv_step_state_seenA (w : List (Fin 3)) (na : ℕ) (input :
   · exfalso
     cases hstep
     rename_i p hp
-    simp_all +decide [PDA.step, dpda_eq_any, DPDA.toPDA]
+    simp_all +decide [dpda_eq_any, DPDA.toPDA]
   · fin_cases x <;> simp_all +decide [PDA.Reaches₁, PDA.step, dpda_eq_any, DPDA.toPDA, List.replicate]
     · refine ⟨na + 2, 0, 0, ?_, ?_⟩
-      · simp +decide [a_, List.append_assoc]
+      · simp +decide [a_]
         simpa [a_, List.replicate, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
           using replicate_append_cons_eq (na + 1) a_ rest
       · right; left
-        simp +decide [List.replicate, Nat.succ_eq_add_one]
+        simp +decide [List.replicate]
     · refine ⟨na + 1, 1, 0, ?_, ?_⟩
       · simp +decide [a_, b_, List.replicate, List.append_assoc]
       · right; right; left
@@ -354,7 +354,7 @@ private lemma eq_any_inv_step_state_trailC (w : List (Fin 3)) (na nc : ℕ)
       ⟨trailC, input, [bottom]⟩ c') :
     EqAnyInv w c' := by
   rcases input with _ | ⟨x, rest⟩ <;> simp_all +decide [PDA.Reaches₁, PDA.step, dpda_eq_any, DPDA.toPDA]
-  fin_cases x <;> simp_all +decide [dpda_eq_any, DPDA.toPDA]
+  fin_cases x <;> simp_all +decide []
   · refine ⟨na, na, nc + 1, ?_, ?_⟩
     · simp +decide [c_, List.append_assoc]
       simpa [c_] using replicate_append_cons_eq nc c_ rest
@@ -364,15 +364,15 @@ private lemma eq_any_inv_step_state_trailC (w : List (Fin 3)) (na nc : ℕ)
 private lemma eq_any_inv_step_state_onlyC (w : List (Fin 3)) (nc : ℕ)
     (input : List (Fin 3))
     (c' : @PDA.conf EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA)
-    (hnc : 1 ≤ nc)
+    (_hnc : 1 ≤ nc)
     (hw : w = replicate nc c_ ++ input)
     (hstep : @PDA.Reaches₁ EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
       ⟨onlyC, input, [bottom]⟩ c') :
     EqAnyInv w c' := by
   rcases input with _ | ⟨x, rest⟩ <;> simp_all +decide [PDA.Reaches₁, PDA.step, dpda_eq_any, DPDA.toPDA]
-  fin_cases x <;> simp_all +decide [dpda_eq_any, DPDA.toPDA]
+  fin_cases x <;> simp_all +decide []
   · refine ⟨0, 0, nc + 1, ?_, ?_⟩
-    · simp +decide [c_, List.append_assoc]
+    · simp +decide [c_]
       simpa [c_] using replicate_append_cons_eq nc c_ rest
     · right; right; right; right
       simp +arith
