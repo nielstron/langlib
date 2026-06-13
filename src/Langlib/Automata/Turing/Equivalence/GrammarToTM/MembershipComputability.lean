@@ -93,6 +93,7 @@ public noncomputable instance grulePrimcodable {T N : Type}
 
 /-! ### Symbol constructors are primrec -/
 
+omit [DecidableEq T] in
 public theorem primrec_symbol_nonterminal {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (symbol.nonterminal : N → symbol T N) := by
   convert Primrec.of_eq _ _
@@ -100,6 +101,7 @@ public theorem primrec_symbol_nonterminal {N : Type} [Primcodable T] [Primcodabl
   · exact Primrec.of_equiv_symm.comp Primrec.sumInr
   · aesop
 
+omit [DecidableEq T] in
 theorem primrec_symbol_terminal {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (symbol.terminal : T → symbol T N) := by
   convert Primrec.of_eq _ _
@@ -107,6 +109,7 @@ theorem primrec_symbol_terminal {N : Type} [Primcodable T] [Primcodable N] :
   · exact Primrec.of_equiv_symm.comp Primrec.sumInl
   · aesop
 
+omit [DecidableEq T] in
 /-- Case analysis on `symbol` is primrec. -/
 public theorem primrec_symbol_casesOn {N σ : Type} [Primcodable T] [Primcodable N] [Primcodable σ]
     {α : Type} [Primcodable α]
@@ -120,18 +123,22 @@ public theorem primrec_symbol_casesOn {N σ : Type} [Primcodable T] [Primcodable
 
 /-! ### grule field projections are primrec -/
 
+omit [DecidableEq T] in
 public theorem primrec_grule_inputL {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (fun (r : grule T N) => r.input_L) :=
   Primrec.fst.comp Primrec.of_equiv
 
+omit [DecidableEq T] in
 public theorem primrec_grule_inputN {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (fun (r : grule T N) => r.input_N) :=
   (Primrec.fst.comp Primrec.snd).comp Primrec.of_equiv
 
+omit [DecidableEq T] in
 public theorem primrec_grule_inputR {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (fun (r : grule T N) => r.input_R) :=
   (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)).comp Primrec.of_equiv
 
+omit [DecidableEq T] in
 public theorem primrec_grule_outputString {N : Type} [Primcodable T] [Primcodable N] :
     Primrec (fun (r : grule T N) => r.output_string) :=
   (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)).comp Primrec.of_equiv
@@ -147,8 +154,6 @@ public theorem primrec_applyRuleAt {N : Type} [DecidableEq N]
             have h_conj : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) => (args.1.input_L ++ [symbol.nonterminal args.1.input_N] ++ args.1.input_R).length) := by
               simp +zetaDelta at *;
               convert Primrec.nat_add.comp ( Primrec.list_length.comp ( primrec_grule_inputL.comp ( Primrec.fst ) ) ) ( Primrec.nat_add.comp ( Primrec.list_length.comp ( primrec_grule_inputR.comp ( Primrec.fst ) ) ) ( Primrec.const 1 ) ) using 1;
-              · infer_instance;
-              · infer_instance;
             have h_conj : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) => List.drop args.2.2 args.2.1) := by
               convert primrec₂_list_drop.comp _ _ using 1;
               · exact Primrec.snd.comp ( Primrec.snd );
@@ -162,25 +167,18 @@ public theorem primrec_applyRuleAt {N : Type} [DecidableEq N]
           rotate_left;
           exact fun args => args.1.input_L ++ [ symbol.nonterminal args.1.input_N ] ++ args.1.input_R;
           · convert Primrec.list_append.comp ( Primrec.list_append.comp ( primrec_grule_inputL.comp ( Primrec.fst ) ) ( Primrec.list_cons.comp ( primrec_symbol_nonterminal.comp ( primrec_grule_inputN.comp ( Primrec.fst ) ) ) ( Primrec.const [ ] ) ) ) ( primrec_grule_inputR.comp ( Primrec.fst ) ) using 1;
-            · infer_instance;
-            · infer_instance;
-            · infer_instance;
-            · infer_instance;
           · grind;
         · convert Primrec.option_some.comp _ using 1;
           convert Primrec.list_append.comp _ _ using 1;
           · exact Primrec.list_append.comp ( primrec₂_list_take.comp ( Primrec.snd.comp Primrec.snd ) ( Primrec.fst.comp Primrec.snd ) ) ( primrec_grule_outputString.comp Primrec.fst );
           · convert primrec₂_list_drop.comp _ _ using 1;
             · convert Primrec.comp ( Primrec.list_length ) ( Primrec.list_append.comp ( Primrec.list_append.comp ( primrec_grule_inputL.comp ( Primrec.fst ) ) ( Primrec.list_cons.comp ( primrec_symbol_nonterminal.comp ( primrec_grule_inputN.comp ( Primrec.fst ) ) ) ( Primrec.const [] ) ) ) ( primrec_grule_inputR.comp ( Primrec.fst ) ) ) using 1;
-              · infer_instance;
-              · infer_instance;
-              · infer_instance;
-              · infer_instance;
             · exact primrec₂_list_drop.comp ( Primrec.snd.comp ( Primrec.snd ) ) ( Primrec.fst.comp ( Primrec.snd ) );
         · exact Primrec.const none
 
 /-! ### extractTerminals is computable -/
 
+omit [DecidableEq T] in
 public theorem computable_extractTerminals {N : Type}
     [Primcodable T] [Primcodable N] :
     Computable (extractTerminals (T := T) (N := N)) := by
@@ -220,7 +218,7 @@ private theorem step_eq_bind {N : Type} [DecidableEq N]
     p.1.bind (fun sf => (rules[p.2.1]?).bind (fun r => applyRuleAt r sf p.2.2)) := by
   cases p.1 <;> simp [Option.bind]
   rename_i sf
-  cases rules[p.2.1]? <;> simp [Option.bind]
+  cases rules[p.2.1]? <;> simp
 
 public theorem primrec_applyRuleSeq_step {N : Type} [DecidableEq N]
     [Primcodable T] [Primcodable N]
