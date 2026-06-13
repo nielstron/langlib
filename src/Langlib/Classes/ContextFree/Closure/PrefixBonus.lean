@@ -329,11 +329,7 @@ public lemma head_tail_split_in {g : CF_grammar T} (n : ℕ) (s : symbol T g.nt)
       CF_derives_in g n₁ [s] u ∧ CF_derives_in g n₂ ss v ∧ u ++ v = x := by
         -- Define the step-bounded derivation relation `CF_derives_in` for `g` and prove the required properties.
         have step_bounded_derivation : ∀ n : ℕ, ∀ s₁ s₂ x, CF_derives_in g n (s₁ ++ s₂) x → ∃ n₁ n₂, n₁ + n₂ ≤ n ∧ ∃ u v, CF_derives_in g n₁ s₁ u ∧ CF_derives_in g n₂ s₂ v ∧ u ++ v = x := by
-          intro n
-          intro s₁
-          intro s₂
-          intro x
-          intro h
+          intro n s₁ s₂ x h
           induction' n with n ih generalizing s₁ s₂ x;
           · cases h ; aesop;
           · obtain ⟨ w₂, hw₂ ⟩ := h;
