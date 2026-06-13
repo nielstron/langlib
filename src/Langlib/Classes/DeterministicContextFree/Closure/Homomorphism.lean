@@ -183,10 +183,10 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
                   simp [hnone] at hp
               | none =>
                   cases ht : M.transition q a Z with
-                  | none => simp [DPDA.toPDA, ht] at hp
+                  | none => simp [ht] at hp
                   | some pβ =>
                       rcases pβ with ⟨p', β'⟩
-                      simp [DPDA.toPDA, ht] at hp
+                      simp [ht] at hp
                       rcases hp with ⟨rfl, rfl⟩
                       refine ⟨⟨(true, p), [], β ++ γ⟩, ?_, rfl⟩
                       exact Relation.ReflTransGen.single (by
@@ -195,10 +195,10 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
                         simp [leftQuotientSingleton, DPDA.toPDA, hε, ht])
             · rcases hstep with ⟨p, β, hp, rfl⟩
               cases hε : M.epsilon_transition q Z with
-              | none => simp [DPDA.toPDA, hε] at hp
+              | none => simp [hε] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, hε] at hp
+                  simp [hε] at hp
                   rcases hp with ⟨rfl, rfl⟩
                   refine ⟨⟨(false, p), [], β ++ γ⟩, ?_, rfl⟩
                   exact Relation.ReflTransGen.single (by
@@ -215,10 +215,10 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
                   simp [hnone] at hp
               | none =>
                   cases ht : M.transition q a Z with
-                  | none => simp [DPDA.toPDA, ht] at hp
+                  | none => simp [ht] at hp
                   | some pβ =>
                       rcases pβ with ⟨p', β'⟩
-                      simp [DPDA.toPDA, ht] at hp
+                      simp [ht] at hp
                       rcases hp with ⟨rfl, rfl⟩
                       refine ⟨⟨(true, p), x :: xs, β ++ γ⟩, ?_, rfl⟩
                       exact Relation.ReflTransGen.single (by
@@ -228,10 +228,10 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
                         simp [leftQuotientSingleton, DPDA.toPDA, hε, ht])
             · rcases hstep with ⟨p, β, hp, rfl⟩
               cases hε : M.epsilon_transition q Z with
-              | none => simp [DPDA.toPDA, hε] at hp
+              | none => simp [hε] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, hε] at hp
+                  simp [hε] at hp
                   rcases hp with ⟨rfl, rfl⟩
                   refine ⟨⟨(false, p), x :: xs, β ++ γ⟩, ?_, rfl⟩
                   exact Relation.ReflTransGen.single (by
@@ -244,10 +244,10 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
             simp [PDA.Reaches₁, PDA.step, leftQuotientConf, DPDA.toPDA] at hstep
             rcases hstep with ⟨p, β, hp, rfl⟩
             cases hε : M.epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, hε] at hp
+            | none => simp [hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, hε] at hp
+                simp [hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨(true, p), [], β ++ γ⟩, ?_, rfl⟩
                 exact Relation.ReflTransGen.single (by
@@ -259,10 +259,10 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
             rcases hstep with hstep | hstep
             · rcases hstep with ⟨p, β, hp, rfl⟩
               cases ht : M.transition q x Z with
-              | none => simp [DPDA.toPDA, ht] at hp
+              | none => simp [ht] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, ht] at hp
+                  simp [ht] at hp
                   rcases hp with ⟨rfl, rfl⟩
                   refine ⟨⟨(true, p), xs, β ++ γ⟩, ?_, rfl⟩
                   exact Relation.ReflTransGen.single (by
@@ -272,10 +272,10 @@ private lemma leftQuotient_step_complete {Q A S : Type} [Fintype Q] [Fintype A] 
                     simp [leftQuotientSingleton, DPDA.toPDA, ht])
             · rcases hstep with ⟨p, β, hp, rfl⟩
               cases hε : M.epsilon_transition q Z with
-              | none => simp [DPDA.toPDA, hε] at hp
+              | none => simp [hε] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, hε] at hp
+                  simp [hε] at hp
                   rcases hp with ⟨rfl, rfl⟩
                   refine ⟨⟨(true, p), x :: xs, β ++ γ⟩, ?_, rfl⟩
                   exact Relation.ReflTransGen.single (by
@@ -573,7 +573,7 @@ private lemma left_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ 
           | none => simp [DPDA.toPDA, markedUnion, markEpsilonLeft, hε] at hp
           | some pβ =>
               rcases pβ with ⟨p', β'⟩
-              simp [leftConf, DPDA.toPDA, markedUnion, markEpsilonLeft, hε] at hp
+              simp [DPDA.toPDA, markedUnion, markEpsilonLeft, hε] at hp
               rcases hp with ⟨rfl, rfl⟩
               refine ⟨⟨p', [], β' ++ γ⟩, ?_, ?_⟩
               · simpa [leftConf, List.map_append] using hcfg
@@ -587,7 +587,7 @@ private lemma left_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ 
             | none => simp [DPDA.toPDA, markedUnion, markTransitionLeft, ht] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [leftConf, DPDA.toPDA, markedUnion, markTransitionLeft, ht] at hp
+                simp [DPDA.toPDA, markedUnion, markTransitionLeft, ht] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [leftConf, List.map_append] using hcfg
@@ -599,7 +599,7 @@ private lemma left_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ 
             | none => simp [DPDA.toPDA, markedUnion, markEpsilonLeft, hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [leftConf, DPDA.toPDA, markedUnion, markEpsilonLeft, hε] at hp
+                simp [DPDA.toPDA, markedUnion, markEpsilonLeft, hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', a :: w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [leftConf, List.map_append] using hcfg
@@ -643,7 +643,7 @@ private lemma right_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
           | none => simp [DPDA.toPDA, markedUnion, markEpsilonRight, hε] at hp
           | some pβ =>
               rcases pβ with ⟨p', β'⟩
-              simp [rightConf, DPDA.toPDA, markedUnion, markEpsilonRight, hε] at hp
+              simp [DPDA.toPDA, markedUnion, markEpsilonRight, hε] at hp
               rcases hp with ⟨rfl, rfl⟩
               refine ⟨⟨p', [], β' ++ γ⟩, ?_, ?_⟩
               · simpa [rightConf, List.map_append] using hcfg
@@ -657,7 +657,7 @@ private lemma right_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
             | none => simp [DPDA.toPDA, markedUnion, markTransitionRight, ht] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [rightConf, DPDA.toPDA, markedUnion, markTransitionRight, ht] at hp
+                simp [DPDA.toPDA, markedUnion, markTransitionRight, ht] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [rightConf, List.map_append] using hcfg
@@ -669,7 +669,7 @@ private lemma right_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
             | none => simp [DPDA.toPDA, markedUnion, markEpsilonRight, hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [rightConf, DPDA.toPDA, markedUnion, markEpsilonRight, hε] at hp
+                simp [DPDA.toPDA, markedUnion, markEpsilonRight, hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', a :: w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [rightConf, List.map_append] using hcfg
