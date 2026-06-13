@@ -1334,7 +1334,7 @@ public theorem tm0Het_fold_blockRealizable'
   let output : List Γ := dropUntilFirstSep sep folded
 
   have hinput_nd : ∀ g ∈ input, g ≠ (default : Γ) := by
-    simpa [input, Γ] using (map_inl_ne_default (T := T) (Γ₀ := Γ₀) w)
+    simp [input, Γ]
   have hmid_eq : mid =
       (w.map (some ∘ @Sum.inl T Γ₀)).reverse ++
         [hetSep (T := T) (Γ₀ := Γ₀)] := by
