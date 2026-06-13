@@ -97,14 +97,17 @@ def ruleInputs (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT] : Finset g.NT
 
 /-! ## Part 2: Monotonicity -/
 
+omit [DecidableEq T] in
 lemma productiveStep_subset_self (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (S : Finset g.NT) : S ⊆ g.productiveStep S := by
   exact fun x hx => Finset.mem_union_left _ hx
 
+omit [DecidableEq T] in
 private lemma productiveStep_mono (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     {S₁ S₂ : Finset g.NT} (h : S₁ ⊆ S₂) : g.productiveStep S₁ ⊆ g.productiveStep S₂ := by
   grind +locals
 
+omit [DecidableEq T] in
 lemma iterate_productiveStep_mono (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     {n m : ℕ} (h : n ≤ m) :
     (g.productiveStep)^[n] g.productiveInit ⊆ (g.productiveStep)^[m] g.productiveInit := by
@@ -113,6 +116,7 @@ lemma iterate_productiveStep_mono (g : ChomskyNormalFormGrammar T) [DecidableEq 
 
 /-! ## Part 3: Range bound – productive nonterminals are rule inputs -/
 
+omit [DecidableEq T] in
 lemma productiveInit_subset_ruleInputs (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT] :
     g.productiveInit ⊆ g.ruleInputs := by
   intro n hn;
@@ -120,6 +124,7 @@ lemma productiveInit_subset_ruleInputs (g : ChomskyNormalFormGrammar T) [Decidab
   rcases hn with ⟨ r, hr, hn ⟩ ; rcases r with ( _ | _ ) <;> simp_all +decide [ ChomskyNormalFormGrammar.ruleInputs ];
   exact ⟨ _, hr, rfl ⟩
 
+omit [DecidableEq T] in
 lemma productiveStep_subset_ruleInputs (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     {S : Finset g.NT} (hS : S ⊆ g.ruleInputs) :
     g.productiveStep S ⊆ g.ruleInputs := by
@@ -129,6 +134,7 @@ lemma productiveStep_subset_ruleInputs (g : ChomskyNormalFormGrammar T) [Decidab
     split_ifs at hx <;> simp_all +decide [ ChomskyNormalFormGrammar.ruleInputs ];
     exact ⟨ _, ha, rfl ⟩
 
+omit [DecidableEq T] in
 lemma iterate_productiveStep_subset_ruleInputs (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : ℕ) :
     (g.productiveStep)^[n] g.productiveInit ⊆ g.ruleInputs := by
@@ -139,6 +145,7 @@ lemma iterate_productiveStep_subset_ruleInputs (g : ChomskyNormalFormGrammar T) 
 
 /-! ## Part 4: Fixpoint property -/
 
+omit [DecidableEq T] in
 /-
 The fixpoint stabilizes: `productiveStep` applied to `productiveNTs` is `productiveNTs`.
 -/
@@ -171,6 +178,7 @@ lemma productiveNTs_is_fixpoint (g : ChomskyNormalFormGrammar T) [DecidableEq g.
 
 /-! ## Part 5: Soundness -/
 
+omit [DecidableEq T] in
 /-
 `canDerive g nt w` implies `w ≠ []`.
 -/
@@ -180,6 +188,7 @@ private lemma canDerive_ne_nil (g : ChomskyNormalFormGrammar T) [DecidableEq g.N
   unfold ChomskyNormalFormGrammar.canDerive;
   aesop
 
+omit [DecidableEq T] in
 /-
 Composition lemma for `canDerive`: if `c1` derives `w1` and `c2` derives `w2`,
     and `node n c1 c2 ∈ g.rules`, then `n` derives `w1 ++ w2`.
@@ -200,9 +209,10 @@ lemma canDerive_node (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
       simp +arith +decide ⟩
     generalize_proofs at *;
     use ChomskyNormalFormRule.node n c1 c2;
-    simp_all +decide [ List.take_append, List.drop_append ];
+    simp_all +decide [  ];
   · refine' ⟨ ⟨ w1.length + 1, _ ⟩, ChomskyNormalFormRule.node n c1 c2, hrule, _, _, _ ⟩ <;> simp_all +decide [ List.take, List.drop ]
 
+omit [DecidableEq T] in
 lemma productiveInit_sound (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (nt : g.NT) (h : nt ∈ g.productiveInit) :
     ∃ w : List T, canDerive g nt w := by
@@ -215,9 +225,10 @@ lemma productiveInit_sound (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
   rcases r with ( _ | _ ) <;> simp_all +decide;
   -- By definition of canDerive, if (ChomskyNormalFormRule.leaf n t) ∈ g.rules, then canDerive g n [t].
   use [‹T›]
-  simp [ChomskyNormalFormGrammar.canDerive, hr];
+  simp [ChomskyNormalFormGrammar.canDerive];
   grind
 
+omit [DecidableEq T] in
 lemma productiveStep_sound (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (S : Finset g.NT) (hS : ∀ nt ∈ S, ∃ w : List T, canDerive g nt w)
     (nt : g.NT) (h : nt ∈ g.productiveStep S) :
@@ -231,6 +242,7 @@ lemma productiveStep_sound (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     rename_i h₁ h₂;
     obtain ⟨ w₁, hw₁ ⟩ := hS _ h₂.1; obtain ⟨ w₂, hw₂ ⟩ := hS _ h₂.2; exact ⟨ w₁ ++ w₂, canDerive_node _ _ _ _ _ _ hr hw₁ hw₂ ⟩ ;
 
+omit [DecidableEq T] in
 lemma productiveNTs_sound (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (nt : g.NT) (h : nt ∈ g.productiveNTs) :
     ∃ w : List T, canDerive g nt w := by
@@ -245,6 +257,7 @@ lemma productiveNTs_sound (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
 
 /-! ## Part 6: Completeness -/
 
+omit [DecidableEq T] in
 /-
 At the fixpoint, every productive nonterminal is captured.
 -/
@@ -262,15 +275,17 @@ lemma productive_mem_fixpoint (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT
     specialize h_fix _ hr;
     grind
 
+omit [DecidableEq T] in
 lemma productiveNTs_complete (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (nt : g.NT) (w : List T) (h : canDerive g nt w) :
     nt ∈ g.productiveNTs := by
-  convert @productive_mem_fixpoint T ‹_› g _ g.productiveNTs _ _ nt w h;
+  convert @productive_mem_fixpoint T g _ g.productiveNTs _ _ nt w h;
   · convert iterate_productiveStep_mono g ( Nat.zero_le _ ) using 1;
   · exact productiveNTs_is_fixpoint g
 
 /-! ## Part 7: Main Correctness -/
 
+omit [DecidableEq T] in
 theorem mem_productiveNTs_iff (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (nt : g.NT) :
     nt ∈ g.productiveNTs ↔ ∃ w : List T, canDerive g nt w := by
@@ -394,11 +409,13 @@ def checkCFGEmpty (G : EncodedCFG T) : Bool :=
 def IsProductive (g : CF_grammar T) (nt : g.nt) : Prop :=
   ∃ w : List T, CF_derives g [symbol.nonterminal nt] (w.map symbol.terminal)
 
+omit [Fintype T] [DecidableEq T] in
 lemma CF_language_eq_empty_iff_not_productive (g : CF_grammar T) :
     CF_language g = (∅ : Set (List T)) ↔ ¬IsProductive g g.initial := by
   unfold IsProductive; rw [Set.ext_iff]; unfold CF_language; aesop
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 lemma mem_prodStepN_of_mem (nc : ℕ)
     (rules : List (ℕ × List (ℕ ⊕ T))) (S : List ℕ) (x : ℕ) (hx : x ∈ S) :
     x ∈ prodStepN nc rules S := by
@@ -410,19 +427,21 @@ lemma mem_prodStepN_of_mem (nc : ℕ)
     apply ih; split_ifs <;> simp_all [List.mem_append]
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 private lemma prodStepN_mono (nc : ℕ)
     (rules : List (ℕ × List (ℕ ⊕ T))) {S₁ S₂ : List ℕ}
     (h : ∀ x ∈ S₁, x ∈ S₂) :
     ∀ x ∈ prodStepN nc rules S₁, x ∈ prodStepN nc rules S₂ := by
   revert h;
   induction' rules using List.reverseRecOn with rules ih <;> simp_all +decide [ prodStepN ];
-  split_ifs <;> simp_all +decide [ List.mem_append, List.mem_singleton ];
+  split_ifs <;> simp_all +decide [ List.mem_append ];
   · grind;
   · grind;
   · rename_i h₁ h₂ h₃;
     grind +locals
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 private lemma allNTsInListN_mono (nc : ℕ) {rhs : List (ℕ ⊕ T)} {S₁ S₂ : List ℕ}
     (hsub : ∀ x ∈ S₁, x ∈ S₂) (h : allNTsInListN nc rhs S₁ = true) :
     allNTsInListN nc rhs S₂ = true := by
@@ -430,6 +449,7 @@ private lemma allNTsInListN_mono (nc : ℕ) {rhs : List (ℕ ⊕ T)} {S₁ S₂ 
   grind
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 private lemma iterate_prodStepN_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T)))
     {n m : ℕ} (h : n ≤ m) :
     ∀ x ∈ (prodStepN nc rules)^[n] [],
@@ -438,6 +458,7 @@ private lemma iterate_prodStepN_mono (nc : ℕ) (rules : List (ℕ × List (ℕ 
   · exact?;
   · exact fun x hx => by simpa only [ Function.iterate_succ_apply' ] using mem_prodStepN_of_mem _ _ _ _ ( by tauto ) ;
 
+omit [Fintype T] [DecidableEq T] in
 lemma productive_sentential_form (g : CF_grammar T)
     (syms : List (symbol T g.nt))
     (h : ∀ s ∈ syms, match s with
@@ -461,6 +482,7 @@ lemma productive_sentential_form (g : CF_grammar T)
         exact?;
       exact ⟨ w ++ w', by simpa using Relation.ReflTransGen.trans ‹CF_derives g ( symbol.nonterminal _ :: syms ) ( map symbol.terminal w ++ syms ) › h_concat ⟩
 
+omit [Fintype T] [DecidableEq T] in
 lemma productive_from_rule (G : EncodedCFG T)
     (lhs : ℕ) (rhs : List (ℕ ⊕ T))
     (hrule : (lhs, rhs) ∈ G.rawRules)
@@ -477,6 +499,7 @@ lemma productive_from_rule (G : EncodedCFG T)
     aesop;
   exact .single h_transform |> Relation.ReflTransGen.trans <| hw
 
+omit [Fintype T] [DecidableEq T] in
 lemma prodStepN_sound_step (G : EncodedCFG T)
     (S : List ℕ)
     (hS : ∀ k ∈ S, IsProductive G.toCFGrammar (G.toNT k)) :
@@ -492,8 +515,8 @@ lemma prodStepN_sound_step (G : EncodedCFG T)
       intros rules S hS h_rules k hk hk_not_prod
       induction' rules with rule rules ih generalizing S;
       · exact?;
-      · unfold prodStepN; simp +decide [ hk ] ;
-        split_ifs <;> simp_all +decide [ List.foldl ];
+      · unfold prodStepN; simp +decide ;
+        split_ifs <;> simp_all +decide [  ];
         · convert ih _ _ _ using 1;
           rotate_left;
           exact S;
@@ -505,21 +528,22 @@ lemma prodStepN_sound_step (G : EncodedCFG T)
           · simp_all +decide [ allNTsInListN ];
             rintro k ( hk | rfl ) <;> [ exact hS k hk; exact h_rules.1 fun a ha => hS _ ( by solve_by_elim ) ];
             convert h_rules.1 _ using 1;
-            · unfold EncodedCFG.toNT; simp +decide [ Nat.mod_eq_of_lt ] ;
+            · unfold EncodedCFG.toNT; simp +decide ;
             · exact fun k hk => hS _ ( by solve_by_elim ) |> fun h => by simpa [ EncodedCFG.toNT ] using h;
-          · simp_all +decide [ List.mem_append, List.mem_singleton ];
+          · simp_all +decide [ List.mem_append ];
             rintro rfl;
             apply hk_not_prod;
             convert h_rules.1 _ using 1;
-            · unfold EncodedCFG.toNT; simp +decide [ Nat.mod_eq_of_lt ] ;
+            · unfold EncodedCFG.toNT; simp +decide ;
             · intro k hk; exact (by
               convert hS ( k % G.ntCount ) _ using 1;
-              · unfold EncodedCFG.toNT; simp +decide [ Nat.mod_eq_of_lt ] ;
+              · unfold EncodedCFG.toNT; simp +decide ;
               · unfold allNTsInListN at *; aesop;);
         · convert ih S hS hk using 1;
           unfold prodStepN; aesop;
     exact h_not_in_prodStepN _ _ hS ( fun rule hr hprod => productive_from_rule _ _ _ hr hprod ) _ h hk
 
+omit [Fintype T] [DecidableEq T] in
 lemma prodNTsN_sound (G : EncodedCFG T)
     (k : ℕ) (hk : k ∈ prodNTsN G.ntCount G.rawRules) :
     IsProductive G.toCFGrammar (G.toNT k) := by
@@ -531,6 +555,7 @@ lemma prodNTsN_sound (G : EncodedCFG T)
   | succ n ih => rw [Function.iterate_succ_apply']; exact prodStepN_sound_step G _ ih
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 lemma mem_prodStepN_of_rule (nc : ℕ)
     (rules : List (ℕ × List (ℕ ⊕ T))) (S : List ℕ)
     (lhs : ℕ) (rhs : List (ℕ ⊕ T))
@@ -539,7 +564,7 @@ lemma mem_prodStepN_of_rule (nc : ℕ)
     lhs % nc ∈ prodStepN nc rules S := by
   induction rules generalizing S <;> simp_all +decide [ prodStepN ];
   rename_i k hk;
-  cases hrule <;> simp_all +decide [ List.foldl_append ];
+  cases hrule <;> simp_all +decide [  ];
   · convert mem_prodStepN_of_mem nc k _ _ _ using 1;
     rotate_left;
     exact if allNTsInListN nc rhs S = true then if lhs % nc ∈ S then S else S ++ [ lhs % nc ] else S;
@@ -548,6 +573,7 @@ lemma mem_prodStepN_of_rule (nc : ℕ)
   · split_ifs <;> simp_all +decide [ allNTsInListN ]
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 private lemma CF_derives_first_step (g : CF_grammar T) (nt : g.nt)
     (w : List (symbol T g.nt))
     (hd : CF_derives g [symbol.nonterminal nt] w)
@@ -563,6 +589,7 @@ private lemma CF_derives_first_step (g : CF_grammar T) (nt : g.nt)
   rcases hr with ( _ | ⟨ a, hr ⟩ ) <;> rcases u with ( _ | ⟨ b, u ⟩ ) <;> simp +decide at hu ⊢;
   grind
 
+omit [Fintype T] [DecidableEq T] in
 private lemma CF_derives_each_nt_productive (g : CF_grammar T)
     (syms : List (symbol T g.nt)) (w : List T)
     (hd : CF_derives g syms (w.map symbol.terminal)) :
@@ -593,6 +620,7 @@ private lemma CF_derives_each_nt_productive (g : CF_grammar T)
   specialize h_ind hd ⟨ s, hs, h_nonprod ⟩ ; simp +decide at h_ind;
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 private lemma prodStepN_eq_self_iff (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (S : List ℕ) :
     prodStepN nc rules S = S ↔
       ∀ rule ∈ rules, allNTsInListN nc rule.2 S = true → rule.1 % nc ∈ S := by
@@ -607,12 +635,14 @@ private lemma prodStepN_eq_self_iff (nc : ℕ) (rules : List (ℕ × List (ℕ �
       · exact fun rule hrule hrule' => h rule ( List.mem_cons_of_mem _ hrule ) hrule'
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 private lemma prodStepN_iterate_stable (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T)))
     (S : List ℕ) (hstab : prodStepN nc rules S = S) :
     ∀ m, (prodStepN nc rules)^[m] S = S := by
   exact fun m => Function.iterate_fixed hstab m
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 private lemma iterate_subset_rule_lhs (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (n : ℕ) :
     ∀ x ∈ (prodStepN nc rules)^[n] [],
       ∃ rule ∈ rules, x = rule.1 % nc := by
@@ -626,17 +656,19 @@ private lemma iterate_subset_rule_lhs (nc : ℕ) (rules : List (ℕ × List (ℕ
   exact h_foldl _ _ ‹_› fun rule hrule => hx _ _ hrule
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 lemma iterate_nodup (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (n : ℕ) :
     ((prodStepN nc rules)^[n] []).Nodup := by
   induction' n with n ih;
   · exact List.nodup_nil;
   · simp +decide only [Function.iterate_succ'] at *;
     have h_foldl_nodup : ∀ (l : List (ℕ × List (ℕ ⊕ T))) (acc : List ℕ), List.Nodup acc → List.Nodup (List.foldl (fun (acc : List ℕ) (rule : ℕ × List (ℕ ⊕ T)) => if allNTsInListN nc rule.2 acc = true then if decide (rule.1 % nc ∈ acc) = true then acc else acc ++ [rule.1 % nc] else acc) acc l) := by
-      intros l acc hacc; induction' l using List.reverseRecOn with l ih <;> simp_all +decide [ Function.iterate_succ_apply' ] ;
+      intros l acc hacc; induction' l using List.reverseRecOn with l ih <;> simp_all +decide [  ] ;
       grind;
     exact h_foldl_nodup _ _ ih
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 lemma prodNTsN_fixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) :
     ∀ x, x ∈ prodStepN nc rules (prodNTsN nc rules) ↔
       x ∈ prodNTsN nc rules := by
@@ -645,9 +677,9 @@ lemma prodNTsN_fixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) :
   have h_inductive_step : ∀ k ≤ rules.length, (prodStepN nc rules)^[k + 1] [] = (prodStepN nc rules)^[k] [] ∨ List.length ((prodStepN nc rules)^[k + 1] []) > List.length ((prodStepN nc rules)^[k] []) := by
     intro k hk
     simp [Function.iterate_succ_apply', prodStepN];
-    by_cases h : foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) ((prodStepN nc rules)^[k] []) rules = (prodStepN nc rules)^[k] [] <;> simp_all +decide [ Function.iterate_succ_apply' ];
+    by_cases h : foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) ((prodStepN nc rules)^[k] []) rules = (prodStepN nc rules)^[k] [] <;> simp_all +decide [  ];
     have h_inductive_step : ∀ (acc : List ℕ) (rules : List (ℕ × List (ℕ ⊕ T))), foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) acc rules ≠ acc → List.length (foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) acc rules) > List.length acc := by
-      intros acc rules h; induction' rules using List.reverseRecOn with rules ih <;> simp_all +decide [ Function.iterate_succ_apply' ] ;
+      intros acc rules h; induction' rules using List.reverseRecOn with rules ih <;> simp_all +decide [  ] ;
       split_ifs at h ⊢ <;> simp_all +decide [ List.length_append ];
       grind;
     exact h_inductive_step _ _ h;
@@ -658,7 +690,7 @@ lemma prodNTsN_fixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) :
         exact?;
       have h_subset : List.toFinset ((prodStepN nc rules)^[k] []) ⊆ List.toFinset (List.map (fun rule => rule.1 % nc) rules) := by
         intro x hx; specialize h_subset x; aesop;
-      have := Finset.card_le_card h_subset; simp_all +decide [ List.toFinset_card_of_nodup ] ;
+      have := Finset.card_le_card h_subset; simp_all +decide [  ] ;
       exact le_trans ( by rw [ List.toFinset_card_of_nodup ( iterate_nodup nc rules k ) ] ) ( this.trans ( List.toFinset_card_le _ ) |> le_trans <| by simp +decide [ List.length_map ] );
     exact h_limit _;
   -- By contradiction, assume that the length of the list after `rules.length + 1` steps is greater than the length after `rules.length` steps.
@@ -675,6 +707,8 @@ lemma prodNTsN_fixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) :
   cases h_inductive_step rules.length le_rfl <;> simp_all +decide [ Function.iterate_succ_apply' ];
   linarith [ h_length_increasing rules.length le_rfl ]
 
+omit [Fintype T] in
+omit [DecidableEq T] in
 /-
 If S is a fixpoint and a rule (nt, rhs) is in the grammar with all
     nonterminals in the RHS having their values in S, then nt.val ∈ S.
@@ -694,6 +728,8 @@ lemma fixpoint_rule_closed (G : EncodedCFG T)
       simp_all +decide [ allNTsInListN ];
       intro a ha; specialize hall ( G.toNT a ) ; aesop;
 
+omit [Fintype T] in
+omit [DecidableEq T] in
 /-
 If S is a fixpoint and syms derives a terminal string, then
     every nonterminal in syms has its value in S.
@@ -714,6 +750,8 @@ lemma all_nts_in_S_of_derives (G : EncodedCFG T)
           grind +ring;
       specialize h_ind _ _ hd ; aesop
 
+omit [Fintype T] in
+omit [DecidableEq T] in
 /-- For a fixpoint S, if all nonterminals in a sentential form that derives
     some terminal string have their indices in S, and a rule (nt, rhs) with
     rhs = that form is in the grammar, then nt's index is in S. -/
@@ -726,6 +764,8 @@ lemma fixpoint_captures_productive (G : EncodedCFG T)
   obtain ⟨w, hw⟩ := h
   exact all_nts_in_S_of_derives G S hfix [symbol.nonterminal nt] w hw nt (List.mem_singleton_self _)
 
+omit [Fintype T] in
+omit [DecidableEq T] in
 lemma complete_of_fixpoint (G : EncodedCFG T)
     (S : List ℕ)
     (hfix : ∀ x, x ∈ prodStepN G.ntCount G.rawRules S ↔ x ∈ S)
@@ -734,16 +774,21 @@ lemma complete_of_fixpoint (G : EncodedCFG T)
   have := fixpoint_captures_productive G S hfix (G.toNT k) hk
   simpa [EncodedCFG.toNT] using this
 
+omit [Fintype T] in
+omit [DecidableEq T] in
 lemma prodNTsN_complete (G : EncodedCFG T)
     (k : ℕ) (hk : IsProductive G.toCFGrammar (G.toNT k)) :
     k % G.ntCount ∈ prodNTsN G.ntCount G.rawRules :=
   complete_of_fixpoint G _ (prodNTsN_fixpoint G.ntCount G.rawRules) k hk
 
 omit [Fintype T] in
+omit [DecidableEq T] in
 private lemma toNT_mod (G : EncodedCFG T) (k : ℕ) :
     G.toNT (k % G.ntCount) = G.toNT k := by
   simp [EncodedCFG.toNT, EncodedCFG.ntCount, EncodedCFG.numNT, Nat.mod_mod_of_dvd]
 
+omit [Fintype T] in
+omit [DecidableEq T] in
 theorem checkCFGEmpty_iff (G : EncodedCFG T) :
     checkCFGEmpty G = true ↔ CF_language G.toCFGrammar = (∅ : Set (List T)) := by
   unfold checkCFGEmpty
@@ -793,6 +838,7 @@ private lemma nat_list_mem_primrec :
       (Primrec.const true) (Primrec.snd.comp Primrec.snd)
   exact Primrec.list_foldr Primrec.snd (Primrec.const false) h_step
 
+omit [Fintype T] [DecidableEq T] in
 /-- Per-element check for allNTsInListN is primitive recursive.
     Given (nc, S) and an element s : ℕ ⊕ T, checks whether s is a terminal (true)
     or a nonterminal whose index mod nc is in S. -/
@@ -809,6 +855,7 @@ private lemma per_elem_primrec :
       (Primrec₂.const true)
   exact h.of_eq (by intro ⟨_, s⟩; cases s <;> rfl)
 
+omit [Fintype T] [DecidableEq T] in
 /-- `allNTsInListN` is primitive recursive in its arguments. -/
 private lemma allNTsInListN_primrec :
     Primrec (fun (p : (ℕ × List ℕ) × List (ℕ ⊕ T)) =>
@@ -838,6 +885,7 @@ private lemma allNTsInListN_primrec :
   exact @Primrec.list_foldr ((ℕ × List ℕ) × List (ℕ ⊕ T)) (ℕ ⊕ T) Bool _ _ _ _ _ _
     Primrec.snd (Primrec.const true) hstep
 
+omit [Fintype T] [DecidableEq T] in
 /-
 One step of the productive-nonterminals fixpoint is primitive recursive.
 -/
@@ -880,6 +928,7 @@ private lemma prodStepN_primrec :
           · rfl;
         convert prodStepN_foldl_primrec.comp ( Primrec.id ) using 1
 
+omit [Fintype T] [DecidableEq T] in
 /-
 The productive-nonterminals fixpoint is primitive recursive.
 -/
@@ -917,6 +966,7 @@ private lemma prodNTsN_primrec :
         convert h_iterate.comp ( show Primrec fun p : ℕ × List ( ℕ × List ( ℕ ⊕ T ) ) => ( ( p.1, p.2 ), p.2.length ) from ?_ ) using 1;
         exact Primrec.pair ( Primrec.pair ( Primrec.fst ) ( Primrec.snd ) ) ( Primrec.list_length.comp ( Primrec.snd ) )
 
+omit [Fintype T] [DecidableEq T] in
 theorem checkCFGEmpty_computable :
     Computable (checkCFGEmpty : EncodedCFG T → Bool) := by
       unfold checkCFGEmpty;
@@ -932,6 +982,8 @@ theorem checkCFGEmpty_computable :
         convert Primrec.comp ( nat_list_mem_primrec ) ( Primrec.pair h_mod h_prodNTsN ) using 1;
       convert Primrec.to_comp ( Primrec.cond h_comp ( Primrec.const Bool.false ) ( Primrec.const Bool.true ) ) using 1
 
+omit [Fintype T] in
+omit [DecidableEq T] in
 theorem encoded_cf_emptiness_computable :
     ComputablePred (fun G : EncodedCFG T =>
       CF_language G.toCFGrammar = (∅ : Set (List T))) := by
@@ -939,6 +991,8 @@ theorem encoded_cf_emptiness_computable :
   exact ⟨checkCFGEmpty, checkCFGEmpty_computable,
     funext (fun G => propext (checkCFGEmpty_iff G).symm)⟩
 
+omit [Fintype T] in
+omit [DecidableEq T] in
 /-- Context-free emptiness is uniformly computable for encoded CFGs (raw `ComputablePred`
 decider; the packaged `ComputableEmptiness` over the CF class lives in
 `ContextFree/Decidability/Characterization.lean`). -/
