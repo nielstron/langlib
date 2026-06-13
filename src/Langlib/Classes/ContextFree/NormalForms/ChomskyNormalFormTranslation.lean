@@ -88,7 +88,7 @@ lemma Generates.toCFG_match {u : List (Symbol T g.NT)} (hu : g.Generates u) : g.
 lemma Produces.match_toCFG {u v : List (Symbol T g.NT)} (huv : g.toCFG.Produces u v) :
     g.Produces u v := by
   rcases huv with ⟨r, hrg, huv⟩
-  simp only [toCFG, List.mem_map] at hrg
+  simp only [toCFG] at hrg
   rw [List.mem_toFinset] at hrg
   obtain ⟨r', hrg', rfl⟩ := List.mem_map.1 hrg
   exact ⟨r', Finset.mem_toList.1 hrg', ChomskyNormalFormRule.Rewrites.match_toCFGRule huv⟩
