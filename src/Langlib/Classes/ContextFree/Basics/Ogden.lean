@@ -141,7 +141,7 @@ lemma mc_node (P : ℕ → Prop) [DecidablePred P] (offset : ℕ)
 noncomputable def markedHeight (P : ℕ → Prop) [DecidablePred P] (offset : ℕ)
     {n : g.NT} : parseTree n → ℕ
   | leaf _ _ => 0
-  | @node _ _ _ c₁ c₂ t₁ t₂ _ =>
+  | @node _ _ _ _c₁ _c₂ t₁ t₂ _ =>
     let mc₁ := t₁.mc P offset
     let mc₂ := t₂.mc P (offset + t₁.yield.length)
     if mc₁ > 0 ∧ mc₂ > 0 then
@@ -202,6 +202,7 @@ variable [DecidableEq g.NT] [DecidableEq (Σ _n : g.NT, parseTree _n)]
 
 /-! ## Derivation helper lemmas -/
 
+omit [DecidableEq g.NT] [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-- From a derivation of the left child, build a derivation of the node. -/
 lemma node_derives_left {n c₁ c₂ : g.NT} {t₂ : parseTree c₂}
     (hnc : (ChomskyNormalFormRule.node n c₁ c₂) ∈ g.rules)
@@ -218,6 +219,7 @@ lemma node_derives_left {n c₁ c₂ : g.NT} {t₂ : parseTree c₂}
     t₂.yield_derives.append_left _
   exact h1.trans (h2.trans h3)
 
+omit [DecidableEq g.NT] [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-- From a derivation of the right child, build a derivation of the node. -/
 lemma node_derives_right {n c₁ c₂ : g.NT} {t₁ : parseTree c₁}
     (hnc : (ChomskyNormalFormRule.node n c₁ c₂) ∈ g.rules)
@@ -236,6 +238,7 @@ lemma node_derives_right {n c₁ c₂ : g.NT} {t₁ : parseTree c₁}
 
 /-! ## Helper lemmas for extending Ogden results through nodes -/
 
+omit [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-
 Extend a Left Ogden result from the left child through a node.
 -/
@@ -267,6 +270,7 @@ lemma ogden_extend_left_via_left {n c₁ c₂ : g.NT}
     convert ChomskyNormalFormGrammar.parseTree.node_derives_left hnc hpump using 1 ; simp +decide [ List.append_assoc ];
     convert rfl using 1)
 
+omit [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-
 Extend a Left Ogden result from the right child through a node.
 -/
@@ -297,6 +301,7 @@ lemma ogden_extend_left_via_right {n c₁ c₂ : g.NT}
   · intro i;
     convert node_derives_right hnc ( hpump i ) using 1
 
+omit [DecidableEq g.NT] [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-
 Extend a Right Ogden result from the left child through a node.
 -/
@@ -322,6 +327,7 @@ lemma ogden_extend_right_via_left {n c₁ c₂ : g.NT}
   · convert node_derives_left hnc hderiv using 1 ; simp +decide [ *, List.map_append ];
     congr! 1
 
+omit [DecidableEq g.NT] [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-
 Extend a Right Ogden result from the right child through a node.
 -/
@@ -348,6 +354,7 @@ lemma ogden_extend_right_via_right {n c₁ c₂ : g.NT}
   · convert node_derives_right hnc hderiv using 1 ; simp +decide [ *, List.map_append ];
     congr! 1
 
+omit [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-
 Construct an Ogden Left result from a collision with n in the left child,
     when both children have marked positions (branching node).
@@ -360,7 +367,7 @@ lemma ogden_pump_from_left {n c₁ c₂ : g.NT}
     (hmc_bound : (parseTree.node t₁ t₂ hnc).mc P offset ≤ 2 ^ g.generators.card)
     {p' : parseTree n} {u₁ z₁ : List T}
     (hyield₁ : t₁.yield = u₁ ++ p'.yield ++ z₁)
-    (hmc' : 0 < p'.mc P (offset + u₁.length))
+    (_hmc' : 0 < p'.mc P (offset + u₁.length))
     (hderiv₁ : g.Derives [Symbol.nonterminal c₁]
         (u₁.map Symbol.terminal ++ [Symbol.nonterminal n] ++ z₁.map Symbol.terminal)) :
     ∃ u v x y z : List T,
@@ -371,7 +378,7 @@ lemma ogden_pump_from_left {n c₁ c₂ : g.NT}
           2 ^ g.generators.card ∧
       ∀ i : ℕ, g.Derives [Symbol.nonterminal n]
         ((u ++ v ^+^ i ++ x ++ y ^+^ i ++ z).map Symbol.terminal) := by
-  refine' ⟨ [ ], u₁, p'.yield, z₁ ++ t₂.yield, [ ], _, _, _, _ ⟩ <;> simp_all +decide [ Finset.card_range ];
+  refine' ⟨ [ ], u₁, p'.yield, z₁ ++ t₂.yield, [ ], _, _, _, _ ⟩ <;> simp_all +decide [  ];
   · simp [parseTree.yield, hyield₁];
   · contrapose! hmc₂; simp_all +decide [ add_assoc, countMarkedIn_add ] ;
     exact hmc₂.2.2;
@@ -384,11 +391,12 @@ lemma ogden_pump_from_left {n c₁ c₂ : g.NT}
       exact u₁.map Symbol.terminal
       exact ( z₁ ++ t₂.yield ).map Symbol.terminal
       generalize_proofs at *; (
-      convert node_derives_left hnc hderiv₁ using 1 ; simp +decide [ hyield₁ ];
+      convert node_derives_left hnc hderiv₁ using 1 ; simp +decide;
       congr! 1);
       exact congr_arg₂ _ ( congr_arg₂ _ ( by exact? ) rfl ) ( by exact? );
     grind +suggestions
 
+omit [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-
 Construct an Ogden Left result from a collision with n in the right child,
     when both children have marked positions (branching node).
@@ -401,7 +409,7 @@ lemma ogden_pump_from_right {n c₁ c₂ : g.NT}
     (hmc_bound : (parseTree.node t₁ t₂ hnc).mc P offset ≤ 2 ^ g.generators.card)
     {p' : parseTree n} {u₁ z₁ : List T}
     (hyield₂ : t₂.yield = u₁ ++ p'.yield ++ z₁)
-    (hmc' : 0 < p'.mc P (offset + t₁.yield.length + u₁.length))
+    (_hmc' : 0 < p'.mc P (offset + t₁.yield.length + u₁.length))
     (hderiv₂ : g.Derives [Symbol.nonterminal c₂]
         (u₁.map Symbol.terminal ++ [Symbol.nonterminal n] ++ z₁.map Symbol.terminal)) :
     ∃ u v x y z : List T,
@@ -419,7 +427,7 @@ lemma ogden_pump_from_right {n c₁ c₂ : g.NT}
     apply_rules [ countMarkedIn_mono_len ] ; simp +decide [ * ] ;
   · convert hmc_bound using 1;
     unfold mc; simp +decide [ *, add_assoc ] ;
-    rw [ show ( t₁.node t₂ hnc ).yield = t₁.yield ++ t₂.yield from rfl, hyield₂ ] ; simp +decide [ add_assoc ] ;
+    rw [ show ( t₁.node t₂ hnc ).yield = t₁.yield ++ t₂.yield from rfl, hyield₂ ] ; simp +decide ;
   · intro i
     have h_pump : g.Derives [Symbol.nonterminal n] ((t₁.yield ++ u₁).map Symbol.terminal ^+^ i ++ [Symbol.nonterminal n] ++ (z₁.map Symbol.terminal) ^+^ i) := by
       have h_deriv : g.Derives [Symbol.nonterminal n] ((t₁.yield ++ u₁).map Symbol.terminal ++ [Symbol.nonterminal n] ++ (z₁.map Symbol.terminal)) := by
@@ -436,6 +444,7 @@ lemma ogden_pump_from_right {n c₁ c₂ : g.NT}
 
 /-! ## Core Ogden marked-path pigeonhole -/
 
+omit [DecidableEq ((_n : g.NT) × parseTree _n)] in
 lemma ogdens_marked_path_decomp {n : g.NT} (p : parseTree n)
     (P : ℕ → Prop) [DecidablePred P] (offset : ℕ)
     (s : Finset g.NT) (hs_sub : s ⊆ g.generators)
@@ -545,6 +554,7 @@ lemma ogdens_marked_path_decomp {n : g.NT} (p : parseTree n)
 
 /-! ## Navigation to bounded-markedHeight subtree -/
 
+omit [DecidableEq g.NT] [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-
 Navigate along the marked path to find a subtree with `markedHeight = k`.
 -/
@@ -559,7 +569,7 @@ lemma ogdens_restrict_mh {n : g.NT} (p : parseTree n)
         (u₀.map Symbol.terminal ++ [Symbol.nonterminal n'] ++ z₀.map Symbol.terminal) := by
   by_contra! h_contra;
   induction' p with _ _ _ _ ih generalizing offset k;
-  · unfold markedHeight at *; simp_all +decide [ List.length ] ;
+  · unfold markedHeight at *; simp_all +decide [  ] ;
     specialize h_contra _ ( leaf ‹_› ‹_› ) [ ] [ ] ; simp_all +decide [ List.length ];
     exact h_contra ( Relation.ReflTransGen.refl );
   · rename_i t₁ t₂ hnc ih₁ ih₂;
@@ -588,10 +598,10 @@ lemma ogdens_restrict_mh {n : g.NT} (p : parseTree n)
       · simp +decide [ h₁, parseTree.yield ];
       · exact h₂;
       · exact h₃;
-      · convert ChomskyNormalFormGrammar.parseTree.node_derives_left hnc h₄ using 1 ; simp +decide [ h₁, List.map_append ];
+      · convert ChomskyNormalFormGrammar.parseTree.node_derives_left hnc h₄ using 1 ; simp +decide [ List.map_append ];
         all_goals tauto;
     · specialize ih₂ ( offset + t₁.yield.length ) k hmh h₂;
-      contrapose! ih₂; simp_all +decide [ markedHeight ] ;
+      contrapose! ih₂; simp_all +decide [  ] ;
       intro n' q u₀ z₀ h₁ h₂ h₃ h₄; specialize h_contra n' q ( t₁.yield ++ u₀ ) z₀; simp_all +decide [ parseTree.yield ] ;
       simp_all +decide [ add_assoc ];
       exact h_contra ( by simpa [ ← List.append_assoc ] using node_derives_right hnc h₄ );
@@ -599,6 +609,7 @@ lemma ogdens_restrict_mh {n : g.NT} (p : parseTree n)
 
 /-! ## Ogden's lemma for CNF grammars -/
 
+omit [DecidableEq ((_n : g.NT) × parseTree _n)] in
 /-
 Ogden's lemma for CNF grammars. The pumping constant is `2 ^ g.generators.card`.
 -/
