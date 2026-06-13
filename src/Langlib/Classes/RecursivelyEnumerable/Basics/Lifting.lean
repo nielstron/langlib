@@ -162,7 +162,7 @@ by
 
 @[expose]
 public def good_letter_ {lg : lifted_grammar_ T} : symbol T lg.g.nt → Prop
-| (symbol.terminal t)    => True
+| (symbol.terminal _t)    => True
 | (symbol.nonterminal n) => (∃ n₀ : lg.g₀.nt, lg.sink_nt n = some n₀)
 
 @[expose]
