@@ -146,20 +146,20 @@ private lemma anbn_sentential_step (w w' : List (symbol Bool Unit))
         rcases hr with ( ⟨ rfl, rfl, rfl, rfl ⟩ | ⟨ rfl, rfl, rfl, rfl ⟩ ) <;> simp_all +decide [ anbn_sentential ];
         · rw [ List.append_eq_append_iff ] at hw₁;
           rcases hw₁ with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h₁, h₂ ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-          · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.replicate ];
+          · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [  ];
             · refine' Or.inl ⟨ n + 1, Or.inl ⟨ [ symbol.terminal false ], _, _ ⟩ ⟩ <;> simp +decide [ *, List.replicate ];
               exact Nat.recOn n ( by trivial ) fun n ih => by simp +decide [ List.replicate ] at * ; aesop;
             · replace h := congr_arg List.toFinset h.2; rw [ Finset.ext_iff ] at h; specialize h ( symbol.nonterminal () ) ; aesop;
-          · rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [ List.replicate ];
+          · rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [  ];
             · refine Or.inl ⟨ n + 1, ?_ ⟩ ; simp_all +decide [ List.replicate ];
               exact Or.inl ⟨ [ symbol.terminal false ], by rw [ ← h₁ ] ; exact Nat.recOn n ( by simp +decide ) fun n ihn => by simp +decide [ List.replicate ] at * ; aesop ⟩;
             · no_nonterminal (a) at h₁
         · rw [ List.append_eq_append_iff ] at hw₁;
           rcases hw₁ with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h₁, h₂ ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-          · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.replicate ];
+          · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [  ];
             · exact Or.inr ⟨ n, Or.inl ⟨ [ ], by simp +decide [ h.symm ] ⟩ ⟩;
             · replace h := congr_arg List.toFinset h.2; rw [ Finset.ext_iff ] at h; specialize h ( symbol.nonterminal () ) ; aesop;
-          · rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+          · rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [  ];
             · exact Or.inr ⟨ n, Or.inl ⟨ [ ], by aesop ⟩ ⟩;
             · no_nonterminal (a) at h₁
       · no_nonterminal (symbol.nonterminal r.input_N) at hw₁
