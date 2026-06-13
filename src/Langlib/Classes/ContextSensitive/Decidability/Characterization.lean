@@ -160,6 +160,7 @@ theorem isCSCode_iff [DecidableEq T] (c : Code T) :
 section Primrec
 variable [DecidableEq T] [Primcodable T]
 
+omit [DecidableEq T] in
 private theorem primrec_isEps : Primrec₂ (isEps : ℕ → grule T ℕ → Bool) := by
   have lenL : Primrec (fun x : ℕ × grule T ℕ => x.2.input_L.length) :=
     Primrec.list_length.comp (primrec_grule_inputL.comp Primrec.snd)
@@ -175,6 +176,7 @@ private theorem primrec_isEps : Primrec₂ (isEps : ℕ → grule T ℕ → Bool
     (Primrec.and.comp (Primrec.eq.comp lenR (Primrec.const 0)).decide
       (Primrec.eq.comp lenO (Primrec.const 0)).decide)
 
+omit [DecidableEq T] in
 private theorem primrec_epsOrNc : Primrec₂ (epsOrNc : ℕ → grule T ℕ → Bool) := by
   have lenL : Primrec (fun x : ℕ × grule T ℕ => x.2.input_L.length) :=
     Primrec.list_length.comp (primrec_grule_inputL.comp Primrec.snd)
