@@ -172,7 +172,7 @@ public noncomputable def tm0RestrictReroot {Γ : Type*} {Λ : Type*}
     (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S)
     (q₀ : Λ) (hq₀ : q₀ ∈ S) :
     let S' := S.map (rootedEmbFn (q₀ := q₀))
-    let hS' := tm0Reroot_supports M S hS q₀ hq₀
+    let _hS' := tm0Reroot_supports M S hS q₀ hq₀
     @TM0.Machine Γ { q : Rooted Λ q₀ // q ∈ S' } ⟨⟨⟨q₀⟩, by
       show ⟨q₀⟩ ∈ S.map rootedEmbFn
       rw [Finset.mem_map]; exact ⟨q₀, hq₀, rfl⟩⟩⟩ :=
