@@ -99,6 +99,7 @@ omit [Fintype σ] in
 @[simp] lemma inverseHomDFA_accept :
     (inverseHomDFA M h).accept = M.accept := rfl
 
+omit [Fintype σ] in
 /-
 The inverse-homomorphism DFA accepts exactly the preimage of `M.accepts` under
     the string homomorphism.
