@@ -82,7 +82,7 @@ public lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l
       · rfl;
     exact Primrec.snd.comp h_foldl;
   have h_take_eq : ∀ n l, (l.foldl (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (n, [])).2 = take n l := by
-    intro n l; induction' l using List.reverseRecOn with x l ih generalizing n <;> simp_all +decide [ List.take ] ;
+    intro n l; induction' l using List.reverseRecOn with x l ih generalizing n <;> simp_all +decide [  ] ;
     split_ifs <;> simp_all +decide [ List.take_append ];
     · have h_foldl_zero : ∀ (l : List α) (n : ℕ), (List.foldl (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (n, []) l).1 = n - l.length := by
         intro l n; induction' l using List.reverseRecOn with x l ih generalizing n <;> simp_all +decide [ List.length ] ;
@@ -90,7 +90,7 @@ public lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l
       rw [ ← h_foldl_zero, ‹ ( foldl ( fun s x => if s.1 = 0 then ( 0, s.2 ) else ( s.1 - 1, s.2 ++ [ x ] ) ) ( n, [] ) x ).1 = 0 › ];
     · -- By definition of `foldl`, if the first component of the result is not zero, then `n` must be greater than the length of `x`.
       have h_foldl : ∀ (n : ℕ) (x : List α), (foldl (fun s x => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (n, []) x).1 = n - x.length := by
-        intro n x; induction' x using List.reverseRecOn with x l ih <;> simp_all +decide [ List.take ] ;
+        intro n x; induction' x using List.reverseRecOn with x l ih <;> simp_all +decide [  ] ;
         lia;
       exact h_foldl n x ▸ Nat.pos_of_ne_zero ‹_›;
   simpa only [ ← h_take_eq ] using h_take.comp ( Primrec.fst.pair Primrec.snd )
@@ -115,14 +115,14 @@ public lemma primrec₂_list_drop : Primrec₂ (fun (n : ℕ) (l : List α) => l
   · exact Primrec.comp ( h_ind 1 ) ( Primrec.snd.comp ( Primrec.snd ) );
   · constructor <;> intro h <;> simp_all +decide [ Primrec₂ ];
     · convert h.comp ( show Primrec ( fun p : List α × ℕ => ( p.2, p.1 ) ) from ?_ ) using 1;
-      · exact funext fun p => by induction p.2 <;> simp +decide [ *, Nat.rec ] ;
+      · exact funext fun p => by induction p.2 <;> simp +decide [ * ] ;
       · exact Primrec.pair ( Primrec.snd ) ( Primrec.fst );
     · convert h.comp ( show Primrec ( fun p : ℕ × List α => ( p.2, p.1 ) ) from ?_ ) using 1;
       · ext ⟨ n, l ⟩ ; induction n <;> simp +decide [ *, List.drop ] ;
         rename_i k hk;
         rw [ show ( Nat.rec l ( fun n IH => IH.tail ) k : List α ) = l.drop k from ?_ ];
         · grind;
-        · exact Nat.recOn k rfl fun n IH => by simp +decide [ IH, List.drop ] ;
+        · exact Nat.recOn k rfl fun n IH => by simp +decide [ IH ] ;
       · exact Primrec.pair ( Primrec.snd ) ( Primrec.fst )
 
 end PrimrecListOps
