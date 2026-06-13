@@ -66,7 +66,7 @@ by
         rcases h with ⟨v, hstep, _⟩
         rcases hstep with ⟨r, u, v', rin, _, _⟩
         cases rin
-    simpa using this
+    simp at this
   ·
     intro hw
     cases hw
@@ -239,4 +239,4 @@ by
     ·
       rw [List.append_nil]
     ·
-      simpa [List.append_nil, List.map_replicate]
+      simp [List.append_nil, List.map_replicate]
