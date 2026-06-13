@@ -60,7 +60,7 @@ private theorem applyRuleSeq_step_eq_bind {N : Type} [DecidableEq T] [DecidableE
     q.2.1.bind (fun sf => (q.1.1[q.2.2.1]?).bind (fun r => applyRuleAt r sf q.2.2.2)) := by
   cases q.2.1 <;> simp [Option.bind]
   rename_i sf
-  cases q.1.1[q.2.2.1]? <;> simp [Option.bind]
+  cases q.1.1[q.2.2.1]? <;> simp
 
 /-- `applyRuleSeq` is primitive recursive uniformly in the rule list, initial form, and
 derivation sequence. -/
@@ -500,7 +500,7 @@ private theorem reachable_noS [DecidableEq T] (c : Code T)
           applyRuleAt_correct r [symbol.nonterminal c.2] mid a.2 hm
         have hulen : u = [] ∧ r.input_R = [] ∧ w = [] := by
           have hl := congrArg List.length hbef
-          simp only [List.length_append, List.length_cons, List.length_singleton,
+          simp only [List.length_append, List.length_cons, 
             List.length_nil] at hl
           refine ⟨?_, ?_, ?_⟩ <;> (apply List.eq_nil_of_length_eq_zero; omega)
         rw [haft, hulen.1, hulen.2.2]

@@ -225,7 +225,7 @@ abbrev NSimCfg (Γ : Type*) (Λ : Type*) (n : ℕ) :=
 /-- The initial TM0 configuration for a given encoded input. -/
 noncomputable def ntm0Init {Γ : Type*} {Λ : Type*} {n : ℕ}
     [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
-    (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) : NSimCfg Γ Λ n :=
+    (_M : Machine Γ Λ) (w : Fin (n + 1) → Γ) : NSimCfg Γ Λ n :=
   @Turing.TM0.init _ _ ⟨NSimState.reading ([] : List Γ)⟩ ⟨none⟩ (encodeInput w)
 
 /-! ### Tape Helper Lemmas -/
