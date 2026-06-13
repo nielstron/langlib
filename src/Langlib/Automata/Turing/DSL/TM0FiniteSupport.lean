@@ -83,7 +83,7 @@ theorem restrict_respects (M : Machine Γ Λ) (S : Finset Λ)
       (@step Γ Λ _ _ M)
       (@step Γ _ ⟨⟨default, hS.1⟩⟩ _ (restrict M S hS))
       (fun c₁ c₂ => restrictRel S c₂ c₁) := by
-  intro c₁ c₂ h; rcases c₁ with ⟨ q₁, T₁ ⟩ ; rcases c₂ with ⟨ ⟨ q₂, hq₂ ⟩, T₂ ⟩ ; simp_all +decide [ Respects ] ;
+  intro c₁ c₂ h; rcases c₁ with ⟨ q₁, T₁ ⟩ ; rcases c₂ with ⟨ ⟨ q₂, hq₂ ⟩, T₂ ⟩ ; simp_all +decide [  ] ;
   unfold step; rcases h with ⟨ rfl, rfl ⟩ ;
   rcases h : M q₁ T₁.head with ( _ | ⟨ q', a ⟩ ) <;> simp +decide [ *, Reaches₁ ] at *;
   · unfold restrict; aesop;
@@ -113,7 +113,7 @@ public theorem restrict_eval_dom_iff (M : Machine Γ Λ) (S : Finset Λ)
     (hS : Supports M ↑S) (l : List Γ) :
     (@eval Γ Λ _ _ M l).Dom ↔
     (@eval Γ _ ⟨⟨default, hS.1⟩⟩ _ (restrict M S hS) l).Dom := by
-  simp only [eval, Eq.to_iff rfl]
+  simp only [eval]
   exact (Turing.tr_eval_dom (restrict_respects M S hS) (restrict_init_rel M S hS l)).symm
 
 end Turing.TM0
