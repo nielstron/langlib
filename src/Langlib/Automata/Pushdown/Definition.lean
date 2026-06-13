@@ -308,7 +308,7 @@ public theorem unconsumed_input_N {n : ℕ} (x : List T) :
       set c' : conf pda := ⟨c.state,w++r₂.input,c.stack⟩ with def_c'
       have : c'.appendInput x = c := by
         rcases c with ⟨q,l,β⟩
-        simp [def_c',h',conf.appendInput,conf] at *
+        simp [def_c',conf.appendInput] at *
         exact h'.symm
       rw [←this] at h
       use c'
@@ -420,7 +420,7 @@ public theorem Reaches₁.append_stack {x y : List T}{α β : List S}{q p : Q}(�
   rw [reaches_iff_reachesIn]
   rcases α  with _ | ⟨Z, α'⟩
   · use 0
-    obtain ⟨rfl, rfl, rfl⟩ : p = q ∧ y = x ∧ β = [] :=  by simpa [step] using h
+    obtain ⟨rfl, rfl, rfl⟩ : p = q ∧ y = x ∧ β = [] :=  by simp [step] at h
     rfl
   · rcases x with _ | ⟨a, x'⟩
     · use 1
@@ -436,10 +436,11 @@ public theorem Reaches₁.append_stack {x y : List T}{α β : List S}{q p : Q}(�
       rcases h with h|h
       case' h.inl => left
       case' h.inr => right
-      all_goals obtain ⟨p', β', h⟩ := h <;>
-      use p', β' <;>
-      use h.1, h.2.1, h.2.2.1 <;>
-      simp [h]
+      all_goals
+        obtain ⟨p', β', h⟩ := h
+        use p', β'
+        use h.1, h.2.1, h.2.2.1
+        simp [h]
 
 public theorem Reaches.append_stack {x y : List T}{α β: List S}{q p : Q}
     (h : pda.Reaches ⟨q, x, α⟩ ⟨p, y, β⟩)(γ : List S):
