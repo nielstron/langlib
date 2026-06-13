@@ -74,7 +74,7 @@ public theorem rgLanguage_toRG (c : EncodedRG T) :
     RG_language (toRG c) = regularLanguageOf c := by
   have h : RG_language (toRG c) = CF_language (CF_grammar_of_RG (toRG c)) := by
     ext w
-    simp only [CF_language, RG_language, Set.mem_setOf_eq]
+    simp only [CF_language, RG_language]
     exact RG_derives_iff_CF_derives (toRG c) _ _
   rw [h, cfGrammarOf_toRG]
   rfl
