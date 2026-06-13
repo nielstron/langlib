@@ -355,6 +355,7 @@ theorem gen_form_no_start_head_halt (ts : List T)
     s = symbol.nonterminal rightBound := by
   grind
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Invariant preserved from generating state.
 -/
@@ -863,6 +864,7 @@ theorem tm_step_some_of_corresponds
   have := hcorr.state_eq; have := hcorr.head_eq; aesop;
 
 set_option maxHeartbeats 1600000 in
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- Invariant preserved from simulating state. -/
 public theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tmCfg : Turing.TM0.Cfg (Option T) Λ)
@@ -1030,6 +1032,7 @@ public theorem GI_preserved_done (M : Turing.TM0.Machine (Option T) Λ)
   exfalso
   exact no_transform_terminal (tmToGrammar T Λ M) w sf' htrans
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- The invariant is preserved by grammar transforms. -/
 public theorem GI_preserved (M : Turing.TM0.Machine (Option T) Λ)
     (sf sf' : List (symbol T (TMtoGrammarNT T Λ)))
@@ -1044,6 +1047,7 @@ public theorem GI_preserved (M : Turing.TM0.Machine (Option T) Λ)
     exact GI_preserved_cleanup M _ sf' w hhalt hcontent hhas_nt hns hng hhc htrans
   | done w hhalt => exact GI_preserved_done M w hhalt sf' htrans
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- Every reachable form satisfies the invariant. -/
 public theorem GI_reachable (M : Turing.TM0.Machine (Option T) Λ)
     (sf : List (symbol T (TMtoGrammarNT T Λ)))
@@ -1055,6 +1059,7 @@ public theorem GI_reachable (M : Turing.TM0.Machine (Option T) Λ)
 
 /-! ### Main soundness theorem -/
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- **Soundness**: If the grammar generates `w`, then TM halts on `w`. -/
 public theorem tmToGrammar_halts_of_generates
     (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
@@ -1062,6 +1067,7 @@ public theorem tmToGrammar_halts_of_generates
     (Turing.TM0.eval M (w.map Option.some)).Dom :=
   GI_terminal_halts M w (GI_reachable M _ h)
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- The grammar constructed from a TM generates exactly the TM's language. -/
 theorem tmToGrammar_correct (M : Turing.TM0.Machine (Option T) Λ) (w : List T) :
     w ∈ grammar_language (tmToGrammar T Λ M) ↔
