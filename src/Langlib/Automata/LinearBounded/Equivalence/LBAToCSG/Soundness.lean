@@ -348,6 +348,7 @@ theorem soundInv_extract (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (w : List T)
     obtain ⟨lb, rb, a', t, hc⟩ := h (symbol.terminal a) (by simp)
     simp [cellSym] at hc
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- Every cell produced in the start phase (`auxCells`) is stateless with `lb = false`. -/
 theorem mem_auxCells (embed : T → Γ) {x : symbol T (MyhillNT T Γ Λ)} {tl : List T}
     (hx : x ∈ auxCells embed tl) : ∃ rb a t, x = cellSym false rb none a t := by
@@ -463,6 +464,7 @@ theorem encode_head_cell (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n)
   obtain ⟨e1, e2, e3, e4, e5⟩ := hidx
   exact ⟨hpos, e1.symm, e2.symm, (Option.some.inj e3).symm, e4.symm, e5.symm⟩
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Closure, start phase.** From a start-phase form, only the middle-cell and head-cell rules
 apply: the former stays in the start phase, the latter completes the row to the (reachable)
 initial configuration, entering the simulation phase. All other rules are vacuous because their
@@ -535,6 +537,7 @@ theorem soundInv_step_start (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     rcases key (symbol.terminal t2) (by rw [hb2]; simp) with h' | ⟨rb', a', t', h'⟩ <;>
       simp [cellSym] at h'
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Closure, simulation phase.** A rule applied to `encode worig cfg` must act on the unique
 head-state cell (all others are stateless `none` cells, and no `start`/`startAux`/`cellPending`/
 terminal symbols occur). The head-stationary moves give the next `encode` (simulation), the
@@ -721,6 +724,7 @@ theorem soundInv_step_sim (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     simp at he
 
 set_option maxHeartbeats 1200000 in
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Closure, cleanup phase.** From a cleanup row only the propagation rules apply (all
 symbols are terminals or stateless cells, so no `start`/`startAux`/`cellPending`/head-state
 cell occurs). Each propagation turns a stateless cell into its frozen terminal, keeping the
@@ -822,6 +826,7 @@ theorem soundInv_step_cleanup (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
         exact congrArg (fun j => some (symbol.terminal (worig j))) (Fin.ext hik)
       · rw [if_neg hik]; exact hcells i
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **No rule fires on a dead (all-stateless) row.** If every symbol of `b` is a stateless
 `cell … none …`, then no grammar rule applies: every rule needs a head-state cell, a
 `cellPending`, a terminal, or a `start`/`startAux` symbol as its input or context, none of which
@@ -872,6 +877,7 @@ theorem soundInv_step_stuck (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     obtain ⟨_, _, _, _, hh⟩ := hb (symbol.terminal t2) (by rw [hb2]; simp); simp [cellSym] at hh
 
 set_option maxHeartbeats 2000000 in
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Closure, pending phase.** From a `SP_pending` form (P1 / GEN / CLEANUP), one rule step keeps
 the soundness invariant. In **P1** only resolution (→ `SP_stuck`) and the matching `step2`
 (→ GEN) fire; in **GEN** the pinned head can stay/clamp (→ GEN), accept (→ CLEANUP), or have the
@@ -1654,6 +1660,7 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
       · rw [List.getElem?_set, if_neg hpnb]; exact htnb
       · rw [hcset, hbeq, List.set_comm _ _ (Ne.symm hpk)]
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Soundness.** Every terminal word derived by the Myhill grammar is accepted by the LBA.
 
 The converse of `myhill_complete`; together they give `myhill_language_eq`. The proof is an
