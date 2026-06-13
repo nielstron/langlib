@@ -649,7 +649,7 @@ public theorem memCode_complete [DecidableEq T] (c : Code T) (v : List T)
     obtain ⟨k, hk, rfl⟩ := List.mem_iff_getElem.mp he
     have hstep : applyRuleSeq c.1 (pform k) [seq[k]] = some (pform (k + 1)) := by
       have h1 := hsome (k + 1) (by omega)
-      rw [List.take_succ, List.getElem?_eq_getElem hk, Option.toList_some,
+      rw [List.take_add_one, List.getElem?_eq_getElem hk, Option.toList_some,
         applyRuleSeq_append, hsome k (by omega)] at h1
       simpa using h1
     simp only [applyRuleSeq, List.foldl_cons, List.foldl_nil] at hstep
