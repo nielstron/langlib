@@ -136,7 +136,7 @@ by
 
 @[expose]
 public def good_letter {lg : lifted_grammar T} : symbol T lg.g.nt → Prop
-| (symbol.terminal t)    => True
+| (symbol.terminal _t)    => True
 | (symbol.nonterminal n) => (∃ n₀ : lg.g₀.nt, lg.sink_nt n = some n₀)
 
 @[expose]
@@ -157,7 +157,7 @@ by
       rw [bef] at ok_input
       have good_matched_nonterminal : good_letter (symbol.nonterminal r.fst) := by
         apply ok_input
-        simp [List.mem_append, List.mem_singleton]
+        simp [List.mem_append]
       rcases good_matched_nonterminal with ⟨n₀, hn₀⟩
       refine ⟨n₀, ?_⟩
       have almost := congrArg (Option.map lg.lift_nt) hn₀
