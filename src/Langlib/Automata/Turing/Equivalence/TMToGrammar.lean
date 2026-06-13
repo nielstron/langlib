@@ -81,7 +81,7 @@ public theorem tm_recognizable_implies_re
   refine ⟨g', ?_⟩
   ext w
   rw [GrammarPullback.pullbackGrammar_language]
-  simp only [grammar_language, Set.mem_setOf_eq, grammar_generates, g]
+  simp only [grammar_language, g]
   constructor
   · intro h
     have := tmToGrammar_halts_of_generates M (w.map inputSym) h
