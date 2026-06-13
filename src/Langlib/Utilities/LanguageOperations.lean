@@ -392,7 +392,7 @@ theorem leftQuotient_mono {L₁ L₂ : Language α} (h : L₁ ≤ L₂) (x : Lis
 
 @[simp] theorem nil_leftQuotient (L : Language α) :
     ([] : List α) \\ L = L := by
-  simpa using Language.leftQuotient_nil L
+  simp
 
 @[simp] theorem cons_leftQuotient (a : α) (x : List α) (L : Language α) :
     (a :: x) \\ L = x \\ ([a] \\ L) := by
