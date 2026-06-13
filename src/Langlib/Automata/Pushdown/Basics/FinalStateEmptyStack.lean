@@ -161,7 +161,7 @@ public lemma PDA_FS_to_ES_forward {Q S : Type} [Fintype Q] [Fintype S]
       induction' γ with Z γ ih generalizing q <;> simp_all +decide [Reaches]
       · apply_rules [Relation.ReflTransGen.single]
         simp [Reaches₁, PDA_FS_to_ES_pda]
-        simp +decide [step, hq]
+        simp +decide [step]
         unfold PDA_FS_to_ES_eps
         aesop
       · have h_step : PDA.Reaches₁
@@ -185,7 +185,7 @@ lemma reverse_simulation_step {Q S : Type} [Fintype Q] [Fintype S]
     @PDA.Reaches₁ Q T S _ _ _ M ⟨q₁, w₁, γ₁⟩ ⟨q₂, w₂, γ₂⟩ := by
   unfold Reaches₁ at *
   unfold PDA.step at *
-  rcases w₁ with (_ | ⟨a, w₁⟩) <;> simp_all +decide [Set.ext_iff]
+  rcases w₁ with (_ | ⟨a, w₁⟩) <;> simp_all +decide []
   · rcases γ₁ with (_ | ⟨Z, γ₁⟩) <;> simp_all +decide [PDA_FS_to_ES_pda]
     rcases h with ⟨β, hβ, rfl, hβ'⟩
     simp_all +decide [PDA_FS_to_ES_eps]
@@ -197,7 +197,7 @@ lemma reverse_simulation_step {Q S : Type} [Fintype Q] [Fintype S]
     exact ⟨_, hβ.choose_spec.1, List.map_injective_iff.mpr h_inj h_eq⟩
   · rcases γ₁ with (_ | ⟨Z, α⟩) <;> simp_all +decide [PDA_FS_to_ES_pda, PDA_FS_to_ES_eps, PDA_FS_to_ES_trans]
     rcases h with (⟨β, h₁, rfl, h₂⟩ | ⟨β, h₁, rfl, h₂⟩) <;> [left; right] <;>
-      use β <;> simp_all +decide [List.map_append]
+      use β <;> simp_all +decide []
     · exact List.map_injective_iff.mpr (Option.some_injective _) <| by simpa using h₂
     · exact List.map_injective_iff.mpr (Option.some_injective _) <| by simpa using h₂
 
@@ -289,7 +289,7 @@ public lemma FSES_Inv_terminal {Q S : Type} [Fintype Q] [Fintype S]
     (q : Q ⊕ Fin 2)
     (h_inv : FSES_Inv M w ⟨q, [], []⟩) :
     w ∈ M.acceptsByFinalState := by
-  rcases h_inv with ( ⟨ ⟩ | ⟨ q, w', γ, h₁, h₂ ⟩ | ⟨ hq, h ⟩ ) <;> simp_all +decide [ FSES_Inv ];
+  rcases h_inv with ( ⟨ ⟩ | ⟨ q, w', γ, h₁, h₂ ⟩ | ⟨ hq, h ⟩ ) <;> simp_all +decide [  ];
   exact ⟨ _, h.choose_spec.1, _, h.choose_spec.2.choose_spec ⟩
 
 /-- Backward direction of `PDA_FS_subset_ES`. -/
@@ -475,7 +475,7 @@ lemma ESFS_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
             · obtain ⟨ b, hb₁, hb₂ ⟩ := h₁; use b ++ γ; simp_all +decide [ List.map_append ] ;
               exact h.tail ( by exact Set.mem_union_right _ <| Set.mem_setOf.mpr ⟨ p, b, hb₁, rfl ⟩ );
       · contrapose! h_step;
-        simp +decide [ Reaches₁, PDA_ES_to_FS_trans, PDA_ES_to_FS_eps ];
+        simp +decide [ Reaches₁ ];
         unfold step; aesop;
 
 lemma ESFS_Inv_reaches {Q S : Type} [Fintype Q] [Fintype S]
