@@ -109,14 +109,14 @@ private lemma comap_reaches₁_complete (M : DPDA Q T₂ S) (f : T₁ → T₂)
   | cons Z γ =>
       cases w with
       | nil =>
-          simp [PDA.Reaches₁, PDA.step, comapConf, DPDA.comapInput, DPDA.toPDA] at h
+          simp [PDA.Reaches₁, PDA.step, comapConf, DPDA.toPDA] at h
           rcases h with ⟨β, hp, hw, hγ⟩
           subst hw
           subst hγ
           exact ⟨⟨q', [], β ++ γ⟩, by
             simp [PDA.Reaches₁, PDA.step, DPDA.comapInput, DPDA.toPDA, hp], rfl⟩
       | cons a w =>
-          simp [PDA.Reaches₁, PDA.step, comapConf, DPDA.comapInput, DPDA.toPDA] at h
+          simp [PDA.Reaches₁, PDA.step, comapConf, DPDA.toPDA] at h
           rcases h with h | h
           · rcases h with ⟨β, hp, hw, hγ⟩
             subst hw
@@ -164,7 +164,7 @@ public theorem comap_acceptsByFinalState (M : DPDA Q T₂ S) (f : T₁ → T₂)
         (c := ⟨(M.comapInput f).initial_state, w, [(M.comapInput f).start_symbol]⟩)
         (d' := ⟨q, [], γ⟩) hreach with ⟨c, hc, hmap⟩
     rcases c with ⟨q', input, stack⟩
-    simp [comapConf, DPDA.comapInput] at hmap
+    simp [comapConf] at hmap
     rcases hmap with ⟨rfl, hinput, rfl⟩
     have hnil : input = [] := by
       cases input <;> simp at hinput ⊢
