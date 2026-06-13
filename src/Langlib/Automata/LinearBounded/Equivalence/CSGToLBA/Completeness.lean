@@ -40,12 +40,14 @@ lemma le_foldr_max (L : List ℕ) (x : ℕ) (hx : x ∈ L) : x ≤ L.foldr max 0
       · subst h; exact le_max_left _ _
       · exact le_trans (ih h) (le_max_right _ _)
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- Each rule's output length is within `ruleBound`. -/
 lemma output_length_le_ruleBound (ri : Fin g₀.rules.length) :
     (g₀.rules[ri]).output_string.length ≤ ruleBound g₀ := by
   apply le_foldr_max
   exact List.mem_map.mpr ⟨g₀.rules[ri], List.getElem_mem _, rfl⟩
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- From `sim`, begin applying rule `ri` at the current cell (echo, stay). -/
 lemma kStep_sim_applyRule {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (n + 1))
     (ri : Fin g₀.rules.length) (l r : Bool) (ws : KWork g₀) (hc : c i = some (Sum.inr (l, r, ws))) :
@@ -55,6 +57,7 @@ lemma kStep_sim_applyRule {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (n
   simp only [kTransition, Set.mem_union, Set.mem_setOf_eq]
   exact Or.inr ⟨ri, rfl⟩
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- Skip a blank during the rule-application pass (echo, move right, keep the match position). -/
 lemma kStep_applyRule_blank {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (n + 1))
     (ri : Fin g₀.rules.length) (k : Fin (ruleBound g₀ + 1)) (l r : Bool) (hlt : i.val < n)
@@ -65,6 +68,7 @@ lemma kStep_applyRule_blank {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin 
   refine kStep_echo_right g₀ hlt (st' := KState.applyRule ri k) ?_
   rw [hc]; simp [kTransition]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- Match the `k`-th output symbol and write the replacement, continuing the pass (`k+1 < |out|`). -/
 lemma kStep_applyRule_continue {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (n + 1))
     (ri : Fin g₀.rules.length) (k : Fin (ruleBound g₀ + 1)) (l r : Bool) (s : symbol T g₀.nt)
@@ -83,6 +87,7 @@ lemma kStep_applyRule_continue {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : F
     rw [hc]; simp only [kTransition]; rw [if_pos hm, if_pos hk]; simp
   · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hlt]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- Match the last output symbol (`k+1 = |out|`); the replacement is written and the pass ends
 (return to `sim`). -/
 lemma kStep_applyRule_last {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (n + 1))
@@ -102,6 +107,7 @@ lemma kStep_applyRule_last {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (
     rw [hc]; simp only [kTransition]; rw [if_pos hm, if_neg hk', if_pos hk]; rfl
   · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hlt]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- Match the last output symbol when the cell is the rightmost (`i.val = n`); moving right
 clamps, so the head stays at `n`. -/
 lemma kStep_applyRule_last_clamp {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (n + 1))
@@ -121,6 +127,7 @@ lemma kStep_applyRule_last_clamp {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i :
     rw [hc]; simp only [kTransition]; rw [if_pos hm, if_neg hk', if_pos hk]; rfl
   · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_neg hmv]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- **The rule-application pass** (contiguous window). From `applyRule ri k` at cell `start+k`,
 where the window holds `output_string[k..]`, scan to the end writing the replacement, reaching
 `sim` with the work function updated on `[start+k, start+q)` to `patList[·]?`. -/
@@ -250,7 +257,7 @@ scan right (skipping blanks, matching each output symbol and writing the replace
 lemma applyRule_pass_gen {n : ℕ} (ri : Fin g₀.rules.length) (v : List (symbol T g₀.nt))
     (hpat : (patList g₀ g₀.rules[ri]).length ≤ (g₀.rules[ri]).output_string.length) :
     ∀ d : ℕ, ∀ (W : Fin (n + 1) → KWork g₀) (pos : ℕ) (hpn : pos < n + 1)
-      (k : Fin (ruleBound g₀ + 1)) (hk : k.val < (g₀.rules[ri]).output_string.length)
+      (k : Fin (ruleBound g₀ + 1)) (_hk : k.val < (g₀.rules[ri]).output_string.length)
       (_ : n - pos = d)
       (_ : ((List.ofFn W).drop pos).filterMap id
             = (g₀.rules[ri]).output_string.drop k.val ++ v),
@@ -417,6 +424,7 @@ section Complete
 
 variable [Fintype T] [DecidableEq T] (g₀ : grammar T) [Fintype g₀.nt] [DecidableEq g₀.nt]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- In `sim`, the head may move one cell right (the tape is unchanged). -/
 lemma kStep_sim_right {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i : Fin (n + 1)) (hlt : i.val < n) :
     LBA.Step (kMachine g₀) ⟨KState.sim, ⟨fun k => mkCell g₀ k (W k), i⟩⟩
@@ -424,6 +432,7 @@ lemma kStep_sim_right {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i : Fin (n + 1
   refine kStep_echo_right g₀ hlt (st' := KState.sim) ?_
   simp only [mkCell]; simp [kTransition]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- In `sim`, the head may move one cell left (the tape is unchanged). -/
 lemma kStep_sim_left {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i : Fin (n + 1)) (hpos : 0 < i.val) :
     LBA.Step (kMachine g₀) ⟨KState.sim, ⟨fun k => mkCell g₀ k (W k), i⟩⟩
@@ -431,6 +440,7 @@ lemma kStep_sim_left {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i : Fin (n + 1)
   refine kStep_echo_left g₀ hpos (st' := KState.sim) ?_
   simp only [mkCell]; simp [kTransition]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- From `sim` at any cell, reach `sim` at the left end (cell 0). -/
 lemma sim_reaches_zero {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i : Fin (n + 1)) :
     LBA.Reaches (kMachine g₀) ⟨KState.sim, ⟨fun k => mkCell g₀ k (W k), i⟩⟩
@@ -447,6 +457,7 @@ lemma sim_reaches_zero {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i : Fin (n + 
       exact Relation.ReflTransGen.head (kStep_sim_left g₀ W i hpos)
         (ih ⟨i.val - 1, by omega⟩ (by show i.val - 1 = k; omega))
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- From `sim` at the left end, reach `sim` at any cell `j` (sweep right). -/
 lemma sim_zero_reaches {n : ℕ} (W : Fin (n + 1) → KWork g₀) (j : Fin (n + 1)) :
     LBA.Reaches (kMachine g₀) ⟨KState.sim, ⟨fun k => mkCell g₀ k (W k), 0⟩⟩
@@ -466,6 +477,7 @@ lemma sim_zero_reaches {n : ℕ} (W : Fin (n + 1) → KWork g₀) (j : Fin (n + 
       rw [hjeq]
       exact (ih ⟨k, by omega⟩ rfl).tail (kStep_sim_right g₀ W ⟨k, by omega⟩ hkn)
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- From `sim`, the head may be repositioned to any cell. -/
 lemma sim_reaches {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i j : Fin (n + 1)) :
     LBA.Reaches (kMachine g₀) ⟨KState.sim, ⟨fun k => mkCell g₀ k (W k), i⟩⟩
@@ -483,22 +495,22 @@ lemma list_split_filterMap {α : Type*} (L : List (Option α)) (u z : List α)
   | cons a t ih =>
       rcases ha : a with _ | x
       · -- blank head: recurse on the tail, shift the split right by one
-        rw [ha] at h; simp only [List.filterMap_cons, id, ha] at h
+        rw [ha] at h; simp only [List.filterMap_cons, id] at h
         obtain ⟨p, hp, ht, hd⟩ := ih u h
         refine ⟨p + 1, by simp only [List.length_cons]; omega, ?_, ?_⟩
-        · simp only [List.take_succ_cons, List.filterMap_cons, id, ha]; exact ht
+        · simp only [List.take_succ_cons, List.filterMap_cons, id]; exact ht
         · simp only [List.drop_succ_cons]; exact hd
       · -- symbol head: either it is the first symbol of `z` (`u = []`) or of `u`
-        rw [ha] at h; simp only [List.filterMap_cons, id, ha] at h
+        rw [ha] at h; simp only [List.filterMap_cons, id] at h
         cases u with
         | nil =>
             refine ⟨0, by simp only [List.length_cons]; omega, by simp, ?_⟩
-            simp only [List.drop_zero, List.filterMap_cons, id, ha]; simpa using h
+            simp only [List.drop_zero, List.filterMap_cons, id]; simpa using h
         | cons b u' =>
-            simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+            simp only [List.cons_append, List.cons.injEq] at h
             obtain ⟨p, hp, ht, hd⟩ := ih u' h.2
             refine ⟨p + 1, by simp only [List.length_cons]; omega, ?_, ?_⟩
-            · simp only [List.take_succ_cons, List.filterMap_cons, id, ha, h.1]; rw [ht]
+            · simp only [List.take_succ_cons, List.filterMap_cons, id, h.1]; rw [ht]
             · simp only [List.drop_succ_cons]; exact hd
 
 /-- **One backward derivation step.** If the work track decodes to `u ++ output ++ v` for some
@@ -587,7 +599,7 @@ lemma filterMap_ofFn_singleton {α : Type*} {n : ℕ} (W : Fin (n + 1) → Optio
       have hof : List.ofFn W = W 0 :: List.ofFn (fun i => W i.succ) := by rw [List.ofFn_succ]
       rw [hof] at h
       rcases hw : W 0 with _ | x
-      · rw [hw] at h; simp only [List.filterMap_cons, id, List.filterMap_nil] at h
+      · rw [hw] at h; simp only [List.filterMap_cons, id] at h
         obtain ⟨j', hj', hoth'⟩ := ih (fun i => W i.succ) h
         refine ⟨j'.succ, hj', ?_⟩
         intro k hk
@@ -661,7 +673,7 @@ theorem kMachine_complete [Fintype T] [DecidableEq T] (g₀ : grammar T)
   have hbridge : LBA.initCfgList (kMachine g₀) L hmapne
       = (⟨KState.init0, ⟨cAt g₀ input 0, ⟨0, by omega⟩⟩⟩ : DLBA.Cfg (KCell g₀) (KState g₀) n) := by
     refine cfg_eq g₀ rfl htape (Fin.ext ?_)
-    simp [LBA.loadList]
+    simp
   rw [hbridge]
   exact (hinit.trans hderiv).trans hreach_acc
 end
