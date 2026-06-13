@@ -702,7 +702,7 @@ public theorem cfg_of_pda (M : PDA Q T S) : (G M).language  = M.acceptsByEmptySt
         right
         rw [Set.mem_iUnion]
         use p
-        simpa [r, start_rule]
+        simp [r, start_rule]
       use r, hr
       apply ContextFreeRule.Rewrites.head
     rw [language, Set.mem_setOf]
