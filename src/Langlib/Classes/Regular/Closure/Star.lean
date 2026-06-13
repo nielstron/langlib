@@ -90,6 +90,7 @@ public noncomputable def starεNFA (M : DFA α σ) : εNFA α (σ ⊕ Unit) wher
 
 variable (M : DFA α σ)
 
+omit [Fintype σ] in
 /-
 ε-closure of `{Sum.inr ()}` includes `Sum.inl M.start`.
 -/
@@ -111,12 +112,13 @@ private lemma εClosure_fresh :
         · constructor;
           aesop
 
+omit [Fintype σ] in
 /-
 ε-closure of `{Sum.inl q}` when `q ∉ M.accept`.
 -/
 private lemma εClosure_inl_not_accept (q : σ) (hq : q ∉ M.accept) :
     (starεNFA M).εClosure {Sum.inl q} = {Sum.inl q} := by
-      ext; simp [starεNFA, hq];
+      ext; simp [starεNFA];
       constructor <;> intro h;
       · induction h;
         · aesop;
@@ -124,6 +126,7 @@ private lemma εClosure_inl_not_accept (q : σ) (hq : q ∉ M.accept) :
       · constructor;
         aesop
 
+omit [Fintype σ] in
 /-
 ε-closure of `{Sum.inl q}` when `q ∈ M.accept`.
 -/
@@ -147,16 +150,18 @@ private lemma εClosure_inl_accept (q : σ) (hq : q ∈ M.accept) :
             · grind;
             · exact?
 
+omit [Fintype σ] in
 /-
 `Sum.inl (M.evalFrom M.start w)` is always reachable from `{Sum.inl M.start}`.
 -/
 private lemma evalFrom_inl_contains (w : List α) :
     Sum.inl (M.evalFrom M.start w) ∈ (starεNFA M).evalFrom {Sum.inl M.start} w := by
-      induction' w using List.reverseRecOn with w a ih <;> simp +decide [ *, List.foldl_append ];
+      induction' w using List.reverseRecOn with w a ih <;> simp +decide [ * ];
       · exact εNFA.εClosure.base _ ( by simp +decide );
       · refine' Or.inl ⟨ _, ih, _ ⟩;
         exact εNFA.εClosure.base _ ( by simp +decide [ starεNFA ] )
 
+omit [Fintype σ] in
 /-
 evalFrom distributes over append for the star εNFA.
 -/
@@ -188,10 +193,11 @@ private lemma evalFrom_append (S : Set (σ ⊕ Unit)) (u v : List α) :
                 exact εNFA.εClosure.step _ _ ( by simp +decide [ h₁ ] ) ha₂;
               · obtain ⟨ a, ha₁, ha₂ ⟩ := h₃;
                 exact ⟨ a, ha₁, by
-                  exact εNFA.εClosure.step _ _ ( by simp +decide [ starεNFA ] ) ha₂ ⟩;
+                  exact εNFA.εClosure.step _ _ ( by simp +decide ) ha₂ ⟩;
           · exact fun x hx => by rcases Set.mem_iUnion₂.1 hx with ⟨ s, hs, hx ⟩ ; exact Set.mem_of_mem_of_subset hx ( Set.Subset.trans ( by aesop_cat ) ( εNFA.subset_εClosure _ _ ) ) ;
         rw [ h_eps_closure_union ]
 
+omit [Fintype σ] in
 /-
 evalFrom is monotone in the start set.
 -/
@@ -205,6 +211,7 @@ private lemma evalFrom_mono (S T : Set (σ ⊕ Unit)) (w : List α) (h : S ⊆ T
       · rename_i h';
         exact Set.biUnion_mono ( h' S T h ) fun _ _ => by tauto;
 
+omit [Fintype σ] in
 /-
 If `q ∈ M.accept` and `Sum.inl q` is reachable from S, then
 `Sum.inr ()` is also reachable from S.
@@ -232,6 +239,7 @@ private lemma fresh_reachable_of_accept (S : Set (σ ⊕ Unit)) (q : σ) (w : Li
           exact h_closure ‹_›;
         · cases b ; simp_all +decide [ starεNFA ]
 
+omit [Fintype σ] in
 /-
 stepSet distributes over union.
 -/
@@ -240,6 +248,7 @@ private lemma stepSet_union (S T : Set (σ ⊕ Unit)) (a : α) :
   simp only [εNFA.stepSet]
   rw [Set.biUnion_union]
 
+omit [Fintype σ] in
 /-
 foldl stepSet distributes over union.
 -/
@@ -252,6 +261,7 @@ private lemma foldl_stepSet_union (S T : Set (σ ⊕ Unit)) (w : List α) :
     simp only [List.foldl_cons]
     rw [stepSet_union, ih]
 
+omit [Fintype σ] in
 /-
 foldl stepSet is monotone in the start set.
 -/
@@ -264,6 +274,7 @@ private lemma foldl_stepSet_mono (S T : Set (σ ⊕ Unit)) (w : List α) (h : S 
     apply ih
     exact Set.biUnion_mono h fun _ _ => le_refl _
 
+omit [Fintype σ] in
 /-
 If q ∉ M.accept, evalFrom {Sum.inl q} (a :: w) = evalFrom {Sum.inl (M.step q a)} w.
 -/
@@ -277,6 +288,7 @@ private lemma evalFrom_inl_cons_not_accept (q : σ) (hq : q ∉ M.accept) (a : �
       simp +decide [ h_εClosure, εNFA.stepSet ];
       congr
 
+omit [Fintype σ] in
 /-
 If q ∈ M.accept, evalFrom {Sum.inl q} (a :: w) =
   evalFrom {Sum.inl (M.step q a)} w ∪ evalFrom {Sum.inl (M.step M.start a)} w.
@@ -292,6 +304,7 @@ private lemma evalFrom_inl_cons_accept (q : σ) (hq : q ∈ M.accept) (a : α) (
         exact?;
       rw [ ← h_foldl_union ] ; congr ; ext ; simp +decide [ starεNFA ] ;
 
+omit [Fintype σ] in
 /-
 evalFrom {Sum.inr ()} (a :: w) = evalFrom {Sum.inl (M.step M.start a)} w.
 -/
@@ -302,6 +315,7 @@ private lemma evalFrom_fresh_cons (a : α) (w : List α) :
       simp +decide [ εClosure_fresh, εNFA.stepSet ];
       unfold starεNFA at *; aesop;
 
+omit [Fintype σ] in
 /-
 Backward: `KStar.kstar M.accepts ⊆ (starεNFA M).accepts`.
 -/
@@ -311,7 +325,7 @@ private lemma star_backward {w : List α}
       unfold KStar.kstar at hw
       generalize_proofs at *;
       have h_ind : ∀ L : List (List α), (∀ y ∈ L, y ∈ M.accepts) → Sum.inr () ∈ (starεNFA M).evalFrom {Sum.inr ()} L.flatten := by
-        intro L hL; induction' L with y L ih <;> simp_all +decide [ Set.subset_def ] ;
+        intro L hL; induction' L with y L ih <;> simp_all +decide [  ] ;
         · exact Set.mem_setOf.mpr ( by tauto );
         · have h_eval_y : Sum.inl (M.evalFrom M.start y) ∈ (starεNFA M).evalFrom {Sum.inr ()} y := by
             have h_eval_y : Sum.inl (M.evalFrom M.start y) ∈ (starεNFA M).evalFrom {Sum.inl M.start} y := by
@@ -328,9 +342,9 @@ private lemma star_backward {w : List α}
             simp +decide [ εNFA.evalFrom ];
             rw [ εClosure_fresh ];
             rw [ show ( starεNFA M ).εClosure { Sum.inr (), Sum.inl M.start } = { Sum.inr (), Sum.inl M.start } from ?_ ];
-            refine' Set.Subset.antisymm _ _ <;> simp +decide [ Set.subset_def, εNFA.εClosure ];
-            · intro a ha; contrapose! ha; simp_all +decide [ εNFA.εClosure ] ;
-              intro h; have := h; simp_all +decide [ εNFA.εClosure ] ;
+            refine' Set.Subset.antisymm _ _ <;> simp +decide [ Set.subset_def ];
+            · intro a ha; contrapose! ha; simp_all +decide [  ] ;
+              intro h; have := h; simp_all +decide [  ] ;
               have h_eval_y : ∀ s ∈ (starεNFA M).εClosure {Sum.inr (), Sum.inl M.start}, s = Sum.inr () ∨ s = Sum.inl M.start := by
                 intro s hs; induction hs; aesop;
                 unfold starεNFA at *; aesop;
@@ -347,6 +361,7 @@ private lemma star_backward {w : List α}
       use Sum.inr ();
       aesop
 
+omit [Fintype σ] in
 /-
 If `Sum.inr ()` is reachable from `{Sum.inl q}` after processing `w`,
 then some prefix of `w` takes `M` from `q` to an accepting state.
@@ -370,6 +385,7 @@ private lemma inl_to_fresh_split (q : σ) (w : List α)
               exact?;
             rcases ih _ ( h_eval ▸ h ) with ⟨ u, v, rfl, hu, hv ⟩ ; exact ⟨ a :: u, v, by simp +decide, by simpa [ DFA.evalFrom ] using hu, hv ⟩
 
+omit [Fintype σ] in
 /-
 Forward: `(starεNFA M).accepts ⊆ KStar.kstar M.accepts`.
 -/
@@ -402,6 +418,7 @@ private lemma star_forward {w : List α}
           grind
         exact hw_kstar
 
+omit [Fintype σ] in
 /-- The Kleene star ε-NFA accepts exactly the Kleene star of the DFA language. -/
 public theorem starεNFA_correct :
     (starεNFA M).accepts = KStar.kstar M.accepts :=
