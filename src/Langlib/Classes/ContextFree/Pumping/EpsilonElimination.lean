@@ -559,7 +559,7 @@ public lemma addIfNullable_monotone {r : ContextFreeRule T g.NT} {p₁ p₂ : Fi
         exact Finset.mem_insert_of_mem (hpp hv)
     · cases hv with
       | inl =>
-        simp only [symbolIsNullable, decide_false, decide_eq_true_eq, not_forall, Classical.not_imp,
+        simp only [symbolIsNullable, decide_false, decide_eq_true_eq, not_forall, 
           Bool.not_eq_true] at hsr' hsr
         obtain ⟨s, hsin, hs⟩ := hsr'
         specialize hsr s
