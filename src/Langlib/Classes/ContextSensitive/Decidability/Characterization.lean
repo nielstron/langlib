@@ -235,6 +235,7 @@ noncomputable instance : Primcodable (CSCode T) := Primcodable.subtype primrecPr
 public def contextSensitiveLanguageOf' (sc : CSCode T) : Language T :=
   contextSensitiveLanguageOf sc.val
 
+omit [Primcodable T] in
 /-- On a context-sensitive code, the bounded-search language is the grammar language. -/
 theorem csLang_eq {c : Code T} (hcs : grammar_context_sensitive (ofCode c)) :
     contextSensitiveLanguageOf c = grammar_language (ofCode c) := by
