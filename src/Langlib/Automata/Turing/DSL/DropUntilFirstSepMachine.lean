@@ -114,14 +114,14 @@ public theorem dufs_reaches_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     use DUFSState.erase;
     constructor;
     · constructor;
-    · simp +decide [ Tape.mk₂, Tape.head ];
+    · simp +decide [ Tape.mk₂ ];
       unfold dropUntilFirstSep; aesop;
   · by_cases hc : c = sep <;> simp_all +decide [ dropUntilFirstSep ];
     · refine' ⟨ DUFSState.done, _, _ ⟩;
       · refine' Relation.ReflTransGen.head _ _;
         exact ⟨ DUFSState.wSep, Tape.write default ( Tape.mk₁ ( sep :: ( block ++ default :: suffix ) ) ) ⟩;
         · unfold TM0.step;
-          unfold dufsM; simp +decide [ hblock ] ;
+          unfold dufsM; simp +decide ;
           exact ⟨ TM0.Stmt.write default, by unfold TM0.init; aesop ⟩;
         · refine' Relation.ReflTransGen.head _ _;
           exact ⟨ DUFSState.done, Tape.move Dir.right ( Tape.write default ( Tape.mk₁ ( sep :: ( block ++ default :: suffix ) ) ) ) ⟩;
@@ -131,7 +131,7 @@ public theorem dufs_reaches_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
       · exact?;
     · obtain ⟨ q, hq₁, hq₂ ⟩ := ih suffix; use q; simp_all +decide [ Reaches ] ;
       have h_step : TM0.step (dufsM sep) ⟨.erase, Tape.mk₁ (c :: (block ++ default :: suffix))⟩ = some ⟨.wOther, Tape.write default (Tape.mk₁ (c :: (block ++ default :: suffix)))⟩ := by
-        unfold TM0.step; simp +decide [ hc, hblock ] ;
+        unfold TM0.step; simp +decide ;
         exact ⟨ _, if_neg hc |> fun h => h.trans ( if_neg hblock.1 ), rfl ⟩;
       have h_step : TM0.step (dufsM sep) ⟨.wOther, Tape.write default (Tape.mk₁ (c :: (block ++ default :: suffix)))⟩ = some ⟨.erase, Tape.move Dir.right (Tape.write default (Tape.mk₁ (c :: (block ++ default :: suffix))))⟩ := by
         unfold TM0.step; simp +decide [ dufsM ] ;
