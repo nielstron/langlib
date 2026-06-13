@@ -170,7 +170,7 @@ lemma is_CF_sLang [Fintype α] : is_CF (sLang α β) := by
       use ⟨Unit, (), []⟩;
       simp +decide [ grammar_context_free, grammar_language ];
       ext w; simp [setOf];
-      unfold grammar_generates; simp +decide [ Relation.ReflTransGen ] ;
+      unfold grammar_generates; simp +decide ;
       constructor <;> intro h <;> cases w <;> simp_all +decide [ grammar_derives ];
       · cases h;
         cases ‹_› ; aesop;
@@ -178,7 +178,7 @@ lemma is_CF_sLang [Fintype α] : is_CF (sLang α β) := by
         cases ‹grammar_transforms _ _ _› ; aesop;
       · contradiction;
       · contradiction;
-    · simp_all +decide [ Finset.set_biUnion_insert ];
+    · simp_all +decide [  ];
       have h_cfl_union : is_CF ({[Sum.inl a]} : Language (α ⊕ β)) ∧ is_CF (⋃ a ∈ s, {[Sum.inl a]} : Language (α ⊕ β)) := by
         aesop;
       convert Language.IsContextFree.add _ _ using 1;
@@ -268,7 +268,7 @@ lemma decompose_sum_list (v : List (α ⊕ β)) :
               · use [ [ Sum.inl x ] ++ s ] ; aesop;
               · refine' ⟨ ( Sum.inl x :: s ) :: t :: ss, _, _, _ ⟩ <;> simp_all +decide [ fHom ];
                 cases bs <;> aesop;
-            · refine' ⟨ [ [] ] ++ ss, _, _, _ ⟩ <;> simp_all +decide [ List.dropLast ];
+            · refine' ⟨ [ [] ] ++ ss, _, _, _ ⟩ <;> simp_all +decide [  ];
               · exact?;
               · cases ss <;> aesop;
         exact Exists.imp ( by tauto ) ( h_ind v )
@@ -359,10 +359,10 @@ lemma dStep_embedWord (h : α → List β) (a : α) :
     (embedWord h a).foldl (dStep h) (some none) = some none := by
       -- By induction on the length of `h a`, we can show that processing the list of `Sum.inr` elements brings us back to `some none`.
       have h_ind : ∀ (k : ℕ) (hk : k ≤ (h a).length), List.foldl (dStep h) (if hl : 0 < (h a).length then if hl : k < (h a).length then some (some ⟨a, ⟨k, hl⟩⟩) else some none else some none) (List.map Sum.inr (List.drop k (h a))) = some none := by
-        intro k hk; induction' m : ( h a ).length - k with m ih generalizing k <;> simp_all +decide [ Nat.sub_succ ] ;
+        intro k hk; induction' m : ( h a ).length - k with m ih generalizing k <;> simp_all +decide [  ] ;
         · cases eq_or_lt_of_le hk <;> simp_all +decide [ Nat.sub_eq_iff_eq_add ];
           simp +decide [ List.drop_eq_nil_of_le ];
-        · rcases eq_or_lt_of_le hk <;> simp_all +decide [ Nat.sub_succ ];
+        · rcases eq_or_lt_of_le hk <;> simp_all +decide [  ];
           rw [ show List.drop k ( List.map Sum.inr ( h a ) ) = Sum.inr ( ( h a ).get ⟨ k, by linarith ⟩ ) :: List.drop ( k + 1 ) ( List.map Sum.inr ( h a ) ) from ?_ ];
           · split_ifs <;> simp_all +decide [ dStep ];
             grind;
@@ -425,7 +425,7 @@ lemma dLang_of_dfa_accepts (h : α → List β) (v : List (α ⊕ β))
       · constructor;
         swap;
         exacts [ [ ], by simp +decide ];
-      · rcases x with ( a | b ) <;> simp_all +decide [ dStep ];
+      · rcases x with ( a | b ) <;> simp_all +decide [  ];
         · split_ifs at hv <;> simp_all +decide [ dLang ];
           · obtain ⟨ rest, hrest₁, hrest₂ ⟩ := dfa_mid_consume h a ⟨ 0, by linarith ⟩ v hv;
             specialize ih ( List.length rest ) ( by simp +arith +decide [ hrest₁ ] at *; linarith ) rest hrest₂ rfl ; simp_all +decide [ KStar.kstar ] ;
@@ -440,7 +440,7 @@ lemma dLang_of_dfa_accepts (h : α → List β) (v : List (α ⊕ β))
 lemma invHomDFA_correct (h : α → List β) :
     (invHomDFA h).accepts = dLang h := by
   ext v
-  simp [DFA.accepts, invHomDFA, DFA.eval]
+  simp [DFA.accepts, invHomDFA]
   exact ⟨dLang_of_dfa_accepts h v, dfa_accepts_of_dLang h v⟩
 
 /-- `D` is a regular language when `α` is finite. -/
@@ -506,7 +506,7 @@ lemma inverseHomomorphicImage_eq (L : Language β) (h : α → List β) :
               aesop;
             exact hv₃;
           have hw'_eq : ∀ {w' : List (List (α ⊕ β))}, List.Forall₂ (fun w s => ∃ a : α, w = embedWord h a) w' (List.replicate (List.length w') ()) → ∃ w'' : List α, w' = List.map (fun a => embedWord h a) w'' := by
-            intros w' hw'; induction' w' with w' ih <;> simp_all +decide [ List.Forall₂ ] ;
+            intros w' hw'; induction' w' with w' ih <;> simp_all +decide [  ] ;
             simp_all +decide [ List.replicate ];
             rcases hw'.1 with ⟨ a, rfl ⟩ ; rcases ‹∃ w'', ih = List.map ( fun a => embedWord h a ) w''› with ⟨ w'', rfl ⟩ ; exact ⟨ a :: w'', by simp +decide ⟩ ;
           obtain ⟨ w'', rfl ⟩ := hw'_eq hw'.2; use w''; aesop;
