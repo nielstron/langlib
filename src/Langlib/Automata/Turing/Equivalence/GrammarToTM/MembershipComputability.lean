@@ -160,7 +160,7 @@ public theorem primrec_applyRuleAt {N : Type} [DecidableEq N]
               · exact Primrec.fst.comp ( Primrec.snd );
             convert Primrec₂.comp _ _ _ using 1;
             all_goals try infer_instance;
-            · exact?;
+            · exact primrec₂_list_take;
             · assumption;
             · exact h_conj;
           convert Primrec.eq.comp h_conj _ using 1;
@@ -186,7 +186,7 @@ public theorem computable_extractTerminals {N : Type}
       convert Primrec.list_foldr _ _ _ using 1;
       rotate_left;
       exact symbol T N;
-      exact?;
+      exact symbolPrimcodable;
       exact fun l => l;
       exact fun _ => some [];
       exact fun l p => match p.1 with | .terminal t => Option.map ( t :: · ) p.2 | .nonterminal _ => none;
@@ -196,7 +196,7 @@ public theorem computable_extractTerminals {N : Type}
         all_goals try infer_instance;
         · exact Primrec.fst.comp ( Primrec.snd );
         · convert Primrec.option_map _ _ using 1;
-          exact?;
+          exact Primcodable.list;
           · exact Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) );
           · exact Primrec.list_cons.comp ( Primrec.snd.comp Primrec.fst ) Primrec.snd;
         · exact Primrec.const none;
@@ -248,7 +248,7 @@ public theorem primrec_applyRuleSeq_step {N : Type} [DecidableEq N]
                 all_goals try infer_instance;
                 · grind;
                 · convert h_step.comp ( Primrec.fst.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd ) using 1;
-              exact?
+              exact Primrec₂.mk h_step
           convert hbind using 1
           funext p
           exact step_eq_bind rules p
@@ -262,7 +262,7 @@ public theorem computable_applyRuleSeq {N : Type} [DecidableEq N]
       exact fun seq => List.foldl ( fun acc step => match acc with | none => none | some sf => match rules[step.1]? with | none => none | some r => applyRuleAt r sf step.2 ) ( some init ) seq;
       · convert Primrec.list_foldl _ _ _;
         rotate_left;
-        exact?;
+        exact Primcodable.prod;
         exact fun _ p => match p.1 with | none => none | some sf => match rules[p.2.1]? with | none => none | some r => applyRuleAt r sf p.2.2;
         · exact Primrec.id;
         · exact Primrec.const _;
@@ -291,7 +291,7 @@ public theorem grammarTest_computable₂ (g : grammar T)
               convert Primrec.eq;
               rotate_left;
               exact Option ( List T );
-              exact?;
+              exact Primcodable.option;
               constructor <;> intro h <;> simp_all +decide [ PrimrecRel ];
               · use inferInstance;
                 grind;

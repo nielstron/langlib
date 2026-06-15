@@ -160,7 +160,7 @@ public lemma primrec_list_any {f : α → List β} {p : α → β → Bool}
   -- Use the given `Primrec₂` hypothesis plus `Primrec.fst` and `Primrec.snd` to make a `Primrec` function from `α × β × Bool` to `Bool`.
   have hp_step : Primrec (fun (ab : α × (β × Bool)) => p ab.1 ab.2.1 || ab.2.2) := by
     have hp_step : Primrec (fun (ab : α × β) => p ab.1 ab.2) := by
-      exact?;
+      exact Primrec₂.curry.mp hp;
     convert Primrec.cond ?_ ?_ ?_ using 1;
     · exact hp_step.comp ( Primrec.fst.pair ( Primrec.fst.comp Primrec.snd ) );
     · exact Primrec.const Bool.true;

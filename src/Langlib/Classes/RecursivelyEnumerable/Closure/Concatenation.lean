@@ -496,7 +496,7 @@ by
       rfl;
     · rename_i n hn;
       rcases hn with ( _ | _ | _ ) <;> simp_all +decide [ wrap_symbol₁ ];
-      exact?;
+      exact Option.mem_def.mp rfl;
     · cases ‹T ⊕ T› <;> tauto
 
 lemma unwrap_eq_some_of_corresponding_symbols₂ {N₁ N₂ : Type} {s₂ : symbol T N₂} {s : nst T N₁ N₂}
@@ -525,7 +525,7 @@ public lemma map_unwrap_eq_map_some_of_corresponding_strings₁ {N₁ N₂ : Typ
   · cases ass;
   · cases ass;
   · cases ass;
-    exact ⟨ by exact? , ih ‹_› ⟩
+    exact ⟨ by (expose_names; exact unwrap_eq_some_of_corresponding_symbols₁ h) , ih ‹_› ⟩
 
 public lemma map_unwrap_eq_map_some_of_corresponding_strings₂ {N₁ N₂ : Type} :
   ∀ {v : List (symbol T N₂)}, ∀ {w : List (nst T N₁ N₂)},
@@ -591,14 +591,14 @@ lemma filterMap_unwrap₁_map_wrap₂ (w : List (symbol T N₂)) :
         intro s hs
         obtain ⟨s', hs', rfl⟩ := List.mem_map.mp hs
         exact (by
-        exact?);
+        exact unwrap₁_of_wrap₂_eq_none s');
       rw [ List.filterMap_eq_nil_iff ] ; aesop
 
 lemma filterMap_unwrap₂_map_wrap₁ (w : List (symbol T N₁)) :
     List.filterMap (@unwrap_symbol₂ T N₁ N₂) (List.map (wrap_symbol₁ N₂) w) = [] := by
       -- By the induction hypothesis, the filterMap of the map of wrap_symbol₁ N₂ over w is empty.
       simp [*];
-      exact?
+      exact fun a a_1 => unwrap₂_of_wrap₁_eq_none a
 
 /-
 Splitting Forall₂ at an append boundary

@@ -234,9 +234,9 @@ private lemma concat_backward {w : List α} (hw : w ∈ M₁.accepts * M₂.acce
           apply Set.singleton_subset_iff.mpr;
           apply inr_start_reachable_of_inl_accept;
           exact hu;
-          exact?;
+          exact evalFrom_inl_contains M₁ M₂ M₁.start u;
         have h_eval_from : (concatεNFA M₁ M₂).evalFrom {Sum.inr M₂.start} v ⊆ (concatεNFA M₁ M₂).evalFrom ((concatεNFA M₁ M₂).evalFrom {Sum.inl M₁.start} u) v := by
-          exact?;
+          exact evalFrom_mono M₁ M₂ {Sum.inr M₂.start} ((concatεNFA M₁ M₂).evalFrom {Sum.inl M₁.start} u) v h_eval_from;
         exact h_eval_from ( by rw [ evalFrom_inr ] ; simp +decide );
       exact ⟨ _, Set.mem_image_of_mem _ hv, h_eval_from ⟩
 
@@ -257,7 +257,7 @@ private lemma inr_reachable_split (q : σ₁) (w : List α) (q₂ : σ₂)
           · simp_all +decide [ εNFA.evalFrom_append_singleton ];
             rcases hw with ( ⟨ q₁, hq₁, hq₂ ⟩ | ⟨ q₂, hq₁, hq₂ ⟩ );
             · have h_step : (concatεNFA M₁ M₂).step (Sum.inl q₁) (some a) = {Sum.inl (M₁.step q₁ a)} := by
-                exact?;
+                exact Eq.symm (Set.Subset.antisymm (fun ⦃a_1⦄ => congrArg fun ⦃a⦄ => a) fun ⦃a_1⦄ => congrArg fun ⦃a⦄ => a);
               have h_eps_closure : ∀ s : σ₁ ⊕ σ₂, (concatεNFA M₁ M₂).εClosure {s} = if s ∈ Set.range Sum.inl then if s ∈ Set.image Sum.inl M₁.accept then {s, Sum.inr M₂.start} else {s} else if s ∈ Set.range Sum.inr then {s} else ∅ := by
                 intro s; rcases s with ( s | s ) <;> simp +decide [ εClosure_inr ] ;
                 split_ifs with hs <;> simp +decide [ hs, εClosure_inl_not_accept, εClosure_inl_accept ];
@@ -265,7 +265,7 @@ private lemma inr_reachable_split (q : σ₁) (w : List α) (q₂ : σ₂)
             · -- Since the ε-closure of {Sum.inr (M₂.step q₂ a)} is just {Sum.inr (M₂.step q₂ a)}, we have Sum.inl q₁ = Sum.inr (M₂.step q₂ a), which is a contradiction.
               have h_contra : Sum.inl q₁ = Sum.inr (M₂.step q₂ a) := by
                 have h_contra : (concatεNFA M₁ M₂).εClosure {Sum.inr (M₂.step q₂ a)} = {Sum.inr (M₂.step q₂ a)} := by
-                  exact?;
+                  exact εClosure_inr M₁ M₂ (M₂.step q₂ a);
                 exact h_contra.subset hq₂;
               cases h_contra;
         induction' w using List.reverseRecOn with w a ih generalizing q q₂;
@@ -280,7 +280,7 @@ private lemma inr_reachable_split (q : σ₁) (w : List α) (q₂ : σ₂)
                 specialize h ( w ++ [ a ] ) [ ] ; simp_all +decide;
                 exact h ( by rw [ ← h_path _ _ hx ] ; assumption );
               · split_ifs with h;
-                · exact?;
+                · exact εClosure_inl_accept M₁ M₂ (M₁.step x a) h;
                 · exact εClosure_inl_not_accept M₁ M₂ _ h;
             · grind;
           · intro x hx;

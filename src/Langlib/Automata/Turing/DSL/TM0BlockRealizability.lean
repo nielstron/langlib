@@ -471,9 +471,9 @@ public theorem consSimpleMachine_halts {Γ : Type} [Inhabited Γ] [DecidableEq �
   exact ⟨ 2, Tape.write c ( Tape.move Dir.left ( Tape.mk₁ l ) ) ⟩
   · refine' Relation.ReflTransGen.head _ _
     exact ⟨ 1, Tape.move Dir.left ( Tape.mk₁ l ) ⟩
-    · exact?
+    · exact Option.mem_def.mpr rfl
     · exact .single ( by tauto )
-  · exact?
+  · exact Option.isNone_iff_eq_none.mp rfl
 
 /-- Writing c after moving left from `Tape.mk₁ l` gives `Tape.mk₁ (c :: l)`. -/
 public theorem tape_write_move_left_mk₁ {Γ : Type} [Inhabited Γ]
@@ -495,7 +495,7 @@ public theorem consSimpleMachine_eval_eq {Γ : Type} [Inhabited Γ] [DecidableEq
   rotate_right
   exact ⟨ 1, Tape.move Dir.left ( Tape.mk₁ l ) ⟩
   · apply_rules [ Relation.ReflTransGen.single ]
-  · exact?
+  · exact Option.mem_def.mpr rfl
 
 public theorem consSimpleMachine_tape {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (c : Γ) (l : List Γ)

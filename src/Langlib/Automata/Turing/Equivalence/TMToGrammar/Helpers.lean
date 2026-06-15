@@ -383,8 +383,8 @@ public theorem sim_move_right_boundary
   · apply sim_rule_mem;
     unfold simulationRules; simp +decide ;
     use q, by
-      exact?, γ, by
-      exact?
+      exact mem_allΛ q, γ, by
+      exact mem_allOptT γ
     generalize_proofs at *;
     rw [ hM ] ; simp +decide [ allOptT ] ;
     cases orig <;> aesop;
@@ -493,7 +493,7 @@ theorem simulation_multi_step
       (encodeTwoTrack cfg)
       (encodeTwoTrack cfg') := by
   induction' n with n ih generalizing cfg cfg' <;> simp_all +decide [ Function.iterate_succ_apply' ];
-  · exact?;
+  · exact grammar_deri_self;
   · cases h' : ( fun c : Option ( TwoTrackConfig ) => c.bind ( stepTwoTrack M ) ) ^[ n ] ( some cfg ) <;> simp_all +decide [  ];
     exact grammar_deri_of_deri_deri ( ih _ _ h' ) ( simulation_one_step _ _ _ hsteps )
 

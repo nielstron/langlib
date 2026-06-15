@@ -162,7 +162,7 @@ def sLang (α β : Type) : Language (α ⊕ β) :=
 lemma is_CF_sLang [Fintype α] : is_CF (sLang α β) := by
   by_contra! h_contra;
   have h_cfl_singleton : ∀ a : α, is_CF ({[Sum.inl a]} : Language (α ⊕ β)) := by
-    exact?;
+    exact fun a => is_CF_singleton [Sum.inl a];
   have h_cfl_union : ∀ (s : Finset α), is_CF (⋃ a ∈ s, {[Sum.inl a]} : Language (α ⊕ β)) := by
     intro s
     induction' s using Finset.induction with a s ih;
@@ -183,7 +183,7 @@ lemma is_CF_sLang [Fintype α] : is_CF (sLang α β) := by
         aesop;
       convert Language.IsContextFree.add _ _ using 1;
       · ext;
-        exact?;
+        exact is_CF_iff_isContextFree;
       · convert isContextFree_singleton [ Sum.inl a ] using 1;
       · convert h_cfl_union.2 using 1;
         ext; simp [is_CF_iff_isContextFree];
@@ -233,7 +233,7 @@ lemma flatMap_fHom_kstar_sLang (v : List (α ⊕ β)) (hv : v ∈ KStar.kstar (s
       cases isEmpty_or_nonempty α <;> cases isEmpty_or_nonempty β <;> simp_all +decide [ KStar.kstar ];
       · obtain ⟨ L, rfl, hL ⟩ := hv; induction L <;> simp_all +decide [ sLang ] ;
         tauto;
-      · exact?;
+      · exact fun a a_1 => Eq.symm ((fun {α} {xs} => List.nil_eq.mpr) rfl);
       · obtain ⟨ L, rfl, hL ⟩ := hv;
         constructor <;> intro x hx <;> contrapose! hx <;> simp_all +decide [ sLang ];
         · cases hx rfl;
@@ -269,7 +269,7 @@ lemma decompose_sum_list (v : List (α ⊕ β)) :
               · refine' ⟨ ( Sum.inl x :: s ) :: t :: ss, _, _, _ ⟩ <;> simp_all +decide [ fHom ];
                 cases bs <;> aesop;
             · refine' ⟨ [ [] ] ++ ss, _, _, _ ⟩ <;> simp_all +decide [  ];
-              · exact?;
+              · exact Nat.add_comm bs.length 1;
               · cases ss <;> aesop;
         exact Exists.imp ( by tauto ) ( h_ind v )
 
@@ -305,7 +305,7 @@ lemma fInv_eq (L : Language β) :
             have := flatMap_fHom_substFn v₁ b hv₁; aesop;
           exact hv_flatMap hv';
         have h_flatMap_w : List.flatMap fHom w = [] := by
-          exact?;
+          exact flatMap_fHom_kstar_sLang w hw;
         grind +locals
 
 /-- `f⁻¹(L)` is CFL when `L` is CFL and `α` is finite. -/

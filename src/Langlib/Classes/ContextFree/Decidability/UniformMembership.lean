@@ -512,7 +512,7 @@ public lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
   · obtain ⟨n₁, n₂, hn₁₂, u, v, hu, hv, huv⟩ : ∃ n₁ n₂, n₁ + n₂ ≤ nder ∧ ∃ u v, CF_derives_in G.toCFGrammar n₁ [G.toSymbol sym] u ∧ CF_derives_in G.toCFGrammar n₂ (rhs.map G.toSymbol) v ∧ u ++ v = List.map symbol.terminal (List.take (endPos - startPos) (List.drop startPos w)) := by
       convert head_tail_split_in _ _ _ _ hder using 1;
     obtain ⟨w₁, w₂, hw₁₂, hw₁, hw₂⟩ : ∃ w₁ w₂, (take (endPos - startPos) (drop startPos w)) = w₁ ++ w₂ ∧ u = w₁.map symbol.terminal ∧ v = w₂.map symbol.terminal := by
-      exact?;
+      exact terminal_concat_split huv;
     rcases sym with ( k | t ) <;> simp_all +decide [ matchRHS_cons ];
     · obtain ⟨bound₁, hbound₁⟩ : ∃ bound₁, (k % G.ntCount, startPos, startPos + w₁.length) ∈ satFixpoint G.ntCount G.rawRules w bound₁ := by
         convert ih_outer n₁ ( by linarith ) ( G.toNT k ) startPos ( startPos + w₁.length ) _ _ _ using 1;
@@ -722,7 +722,7 @@ public lemma satFixpoint_converges (nc : ℕ) (rules : List (ℕ × List (ℕ �
   intro ht
   obtain ⟨n, hn⟩ := ht
   by_cases h : n ≤ nc * (w.length + 1) * (w.length + 1) + 1;
-  · exact?;
+  · exact satFixpoint_mono nc rules w n (nc * (w.length + 1) * (w.length + 1) + 1) h t hn;
   · -- By the stabilization argument, there exists some $k \leq B$ such that $satFixpoint k = satFixpoint (k + 1)$.
     obtain ⟨k, hk⟩ : ∃ k ≤ nc * (w.length + 1) * (w.length + 1), satFixpoint nc rules w k = satFixpoint nc rules w (k + 1) := by
       by_contra h_contra; push_neg at h_contra; (

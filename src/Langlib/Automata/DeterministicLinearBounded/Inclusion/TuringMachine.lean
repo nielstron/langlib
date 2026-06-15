@@ -313,7 +313,7 @@ theorem reading_phase_complete {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq 
   have h_reaches_sim : ∃ T', Turing.TM0.step (toTM0 M n) (⟨.reading (List.ofFn w), (Turing.Tape.move Turing.Dir.right)^[n + 1] (Turing.Tape.mk₁ (encodeInput w))⟩ : SimCfg Γ Λ n) = some (⟨.simulating (initCfg M w), T'⟩ : SimCfg Γ Λ n) := by
     have h_head : ((Turing.Tape.move Turing.Dir.right)^[n + 1] (Turing.Tape.mk₁ (encodeInput w))).head = none := by
       convert tape_mk1_move_right_head _ _ using 1;
-      exact?;
+      exact Eq.symm (encodeInput_getI_end w);
     convert reading_to_simulating M ( List.ofFn w ) _ _ _;
     all_goals simp_all +decide [  ];
     rename_i i; induction i using Fin.inductionOn <;> simp +decide [ * ] ;

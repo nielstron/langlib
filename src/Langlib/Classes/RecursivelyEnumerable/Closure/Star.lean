@@ -217,7 +217,7 @@ private lemma scan_word {g : grammar T} {word : List T}
     grammar_derives (star_grammar g) ([R] ++ List.map symbol.terminal word ++ sfx) (List.map symbol.terminal word ++ [R] ++ sfx) := by
       intros word sfx hw
       induction' word with t word ih generalizing sfx;
-      · exact?;
+      · exact grammar_deri_self;
       · have h_scan : grammar_transforms (star_grammar g) ([R] ++ List.map symbol.terminal (t :: word) ++ sfx) ([symbol.terminal t] ++ [R] ++ List.map symbol.terminal word ++ sfx) := by
           use grule.mk [] (Sum.inr 2) [symbol.terminal t] [symbol.terminal t, R];
           simp +zetaDelta at *;
@@ -285,7 +285,7 @@ private lemma in_star_grammar_of_in_star {g : grammar T} {w : List T}
   -- Use short_induction to get: grammar_derives [Z] (Z :: (map (· ++ [H]) (map (map terminal) L)).flatten)
   have h1 : grammar_derives (star_grammar g) [Z] (Z :: (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) := by
     convert short_induction _;
-    exact?;
+    exact List.reverse_eq_iff.mp rfl;
     aesop;
   -- Apply step_Z_to_RH (Z → R H) with postfix = rest of the string.
   have h2 : grammar_derives (star_grammar g) (Z :: (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) ([R, H] ++ (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) := by
@@ -300,7 +300,7 @@ private lemma in_star_grammar_of_in_star {g : grammar T} {w : List T}
   -- Apply terminal_scan to derive: [R] ++ (map (fun v => [H] ++ map terminal v) L).flatten ++ [H] →* map terminal L.flatten ++ [R, H]
   have h3 : grammar_derives (star_grammar g) ([R] ++ (List.map (fun v => [H] ++ List.map symbol.terminal v) L).flatten ++ [H]) (List.map symbol.terminal L.flatten ++ [R, H]) := by
     apply terminal_scan;
-    exact?;
+    exact fun v a t a_1 => terminal_in_all_used (hL v a) a_1;
   -- Apply step_RH_delete (R H → ε) at the end.
   have h4 : grammar_derives (star_grammar g) (List.map symbol.terminal L.flatten ++ [R, H]) (List.map symbol.terminal L.flatten) := by
     apply grammar_deri_of_tran_deri;
@@ -311,7 +311,7 @@ private lemma in_star_grammar_of_in_star {g : grammar T} {w : List T}
       exact grule.mk [] ( Sum.inr 2 ) [ symbol.nonterminal ( Sum.inr 1 ) ] [ ];
       simp +decide [ star_grammar ];
       exact ⟨ Or.inl rfl, ( List.map ( List.map symbol.terminal ) L ).flatten, [ ], by simp +decide [ H, R ] ⟩;
-    · exact?;
+    · exact grammar_deri_self;
   -- Reorganize the separator structure:
   have h5 : grammar_derives (star_grammar g) ([R, H] ++ (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) ([R] ++ (List.map (fun v => [H] ++ List.map symbol.terminal v) L).flatten ++ [H]) := by
     have h5 : grammar_derives (star_grammar g) ([R, H] ++ (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) ([R] ++ [H] ++ (List.map (fun v => List.map symbol.terminal v ++ [H]) L).flatten) := by
@@ -1189,7 +1189,7 @@ private lemma star_case_6 {g : grammar T} {α' : List (ns T g.nt)}
         · cases this;
         · grind +suggestions;
       · simp_all +decide [ ← hr'.2.2.2 ];
-        exact?;
+        exact fun x a => wrap_sym_ne_Z x;
       · grind +suggestions;
     · unfold rules_that_scan_terminals at hr; aesop;
   · fin_cases N <;> simp_all +decide [  ];
