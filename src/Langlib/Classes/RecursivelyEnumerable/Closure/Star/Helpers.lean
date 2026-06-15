@@ -96,11 +96,11 @@ public lemma inr_not_in_blocks {N : Type} {x : List (List (symbol T N))} {i : Fi
 
 public lemma Z_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
     @Z T N ∉ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten :=
-  inr_not_in_blocks (by simp [Z, H])
+  inr_not_in_blocks (by simp [H])
 
 public lemma R_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
     @R T N ∉ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten :=
-  inr_not_in_blocks (by simp [R, H])
+  inr_not_in_blocks (by simp [H])
 
 /-
 H does not appear in the input pattern of a wrapped rule.
@@ -137,7 +137,7 @@ public lemma match_in_block {N : Type} {r₀ : grule T N}
     have h_split : ∀ {a b u mid v : List (ns T N)} {sep : ns T N}, sep ∉ mid → a ++ [sep] ++ b = u ++ mid ++ v → (∃ u' : List (ns T N), a = u ++ mid ++ u' ∧ v = u' ++ [sep] ++ b) ∨ (∃ v' : List (ns T N), u = a ++ [sep] ++ v' ∧ b = v' ++ mid ++ v) := by
       exact?
     generalize_proofs at *; (
-    specialize @h_split ( List.map wrap_sym x₁ ) ( List.map ( ( fun x => x ++ [ H ] ) ∘ List.map wrap_sym ) x |> List.flatten ) u ( List.map wrap_sym r₀.input_L ++ symbol.nonterminal ( Sum.inl r₀.input_N ) :: List.map wrap_sym r₀.input_R ) v H ; simp_all +decide [ List.map_append, List.map_map ] ;
+    specialize @h_split ( List.map wrap_sym x₁ ) ( List.map ( ( fun x => x ++ [ H ] ) ∘ List.map wrap_sym ) x |> List.flatten ) u ( List.map wrap_sym r₀.input_L ++ symbol.nonterminal ( Sum.inl r₀.input_N ) :: List.map wrap_sym r₀.input_R ) v H ; simp_all +decide [  ] ;
     contrapose! h_split; simp_all +decide [ wrap_sym ] ;
     refine' ⟨ _, _, _, _ ⟩;
     · intro x hx; cases x <;> simp +decide [ H ] ;
@@ -154,14 +154,14 @@ public lemma match_in_block {N : Type} {r₀ : grule T N}
       grind +qlia
     obtain ⟨v₁, hv₁⟩ : ∃ v₁ : List (symbol T N), u' = List.map wrap_sym v₁ := by
       have h_inj : ∀ {l : List (ns T N)}, (∀ s ∈ l, ∃ s' : symbol T N, wrap_sym s' = s) → ∃ l' : List (symbol T N), l = List.map wrap_sym l' := by
-        intros l hl; induction' l with s l ih <;> simp_all +decide [ List.map ] ;
+        intros l hl; induction' l with s l ih <;> simp_all +decide [  ] ;
         rcases hl.1 with ⟨ s', rfl ⟩ ; rcases ih with ⟨ l', rfl ⟩ ; exact ⟨ s' :: l', by simp +decide ⟩ ;
       apply h_inj;
       intro s hs; replace hu' := congr_arg ( fun l => s ∈ l ) hu'; simp_all +decide [ List.mem_append, List.mem_map ] ;
       exact hu'.imp fun x hx => hx.2;
-    use [], x, u₁, v₁; simp_all +decide [ List.map_append, List.flatten ] ;
+    use [], x, u₁, v₁; simp_all +decide [  ] ;
     exact List.map_injective_iff.mpr ( wrap_sym_injective ) <| by simpa using hu';
-  · by_cases hx : x = [] <;> simp_all +decide [ List.flatten ];
+  · by_cases hx : x = [] <;> simp_all +decide [  ];
     grind
 
 /-

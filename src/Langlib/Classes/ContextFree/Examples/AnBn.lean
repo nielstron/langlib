@@ -75,28 +75,28 @@ private lemma sentential_form_step (w w' : List (symbol Bool Unit))
   · rcases ht with (⟨x, y, hxy, rfl⟩ | ⟨x, y, hxy, rfl⟩) <;> simp_all +decide [sentential_form]
     · rw [List.append_eq_append_iff] at hxy
       rcases hxy with (⟨as, rfl, h⟩ | ⟨bs, h, h'⟩) <;> simp_all +decide [List.append_eq_append_iff]
-      · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide [List.replicate]
+      · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide []
         · refine Or.inl ⟨n + 1, Or.inl ⟨[symbol.terminal false], ?_, ?_⟩⟩
           · rw [List.replicate_succ']
-          · simpa [h, List.replicate_succ]
+          · simp [h, List.replicate_succ]
         · replace h := congr_arg List.toFinset h.2
           rw [Finset.ext_iff] at h
           specialize h (symbol.nonterminal ())
           aesop
-      · rcases bs with _ | ⟨b, bs⟩ <;> simp_all +decide [List.append_eq_append_iff]
+      · rcases bs with _ | ⟨b, bs⟩ <;> simp_all +decide []
         · refine Or.inl ⟨n + 1, ?_⟩
           simp_all +decide [List.replicate]
           exact Or.inl ⟨[symbol.terminal false], by rw [← h]; exact Nat.recOn n (by simp +decide) fun n ihn => by simp +decide [List.replicate] at ihn ⊢; aesop⟩
         · no_nonterminal (symbol.nonterminal ()) at h
     · rw [List.append_eq_append_iff] at hxy
       rcases hxy with (⟨as, rfl, h⟩ | ⟨bs, h, h'⟩) <;> simp_all +decide [List.append_eq_append_iff]
-      · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide [List.replicate]
+      · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide []
         · exact Or.inr ⟨n, Or.inl ⟨[], by aesop⟩⟩
         · replace h := congr_arg List.toFinset h.2
           rw [Finset.ext_iff] at h
           specialize h (symbol.nonterminal ())
           aesop
-      · rcases bs with _ | ⟨a, bs⟩ <;> simp_all +decide [List.append_assoc]
+      · rcases bs with _ | ⟨a, bs⟩ <;> simp_all +decide []
         · exact Or.inr ⟨n, Or.inl ⟨[], by aesop⟩⟩
         · no_nonterminal (a) at h
   · rcases ht with (⟨x, y, hxy, rfl⟩ | ⟨x, y, hxy, rfl⟩)

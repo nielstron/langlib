@@ -179,7 +179,7 @@ public theorem is_RG_via_rg_implies_is_RG {L : Language T} (h : is_RG_via_rg L) 
     Uses the right-regular output property to determine the rule form. -/
 @[expose]
 public noncomputable def RG_rule_of_grule {N : Type} (r : grule T N)
-    (hr : right_regular_output r.output_string) : RG_rule T N :=
+    (_hr : right_regular_output r.output_string) : RG_rule T N :=
   if h₁ : ∃ a : T, ∃ B : N, r.output_string = [symbol.terminal a, symbol.nonterminal B] then
     RG_rule.cons r.input_N h₁.choose h₁.choose_spec.choose
   else if h₂ : ∃ a : T, r.output_string = [symbol.terminal a] then

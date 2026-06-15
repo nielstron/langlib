@@ -139,7 +139,7 @@ by
     convert notall'
     ·
       have ht : L.take r = L := (List.take_eq_self_iff L).2 hr
-      simpa [ht]
+      simp [ht]
   obtain ⟨hm₁, hm₂⟩ := nat_get_max_spec ⟨0, hP0⟩ ⟨X, hPX⟩
   rw [hm] at hm₁ hm₂
   have hm₃ : ¬P m.succ := hm₂ _ (Nat.lt_succ_self m)
@@ -166,7 +166,7 @@ by
         simpa using (take_add_aux (l := L) (m := m) (n := 1))
       have h2 : (L.drop m).take 1 = [L.get ⟨m, mlt⟩] := by
         simpa using (take_one_drop_eq_of_lt_length' (l := L) (n := m) mlt)
-      simpa [Nat.succ_eq_add_one, h2] using h1
+      simp [Nat.succ_eq_add_one]
     have hlen : (List.flatten (L.take m.succ)).length =
         (List.flatten (L.take m)).length + (L.get ⟨m, mlt⟩).length := by
       rw [htake]
@@ -177,17 +177,17 @@ by
     have hm₃' :
         (L.get ⟨m, mlt⟩).length + k' + (List.flatten (L.take m)).length <
           (List.flatten (L.take m)).length + (L.get ⟨m, mlt⟩).length := by
-      simpa [hk'', hlen, add_comm, add_left_comm, add_assoc] using hm₃
+      simp [hk'', hlen, add_comm, add_left_comm] at hm₃
     have hm₃'' :
         (List.flatten (L.take m)).length + ((L.get ⟨m, mlt⟩).length + k') <
           (List.flatten (L.take m)).length + (L.get ⟨m, mlt⟩).length := by
-      simpa [add_comm, add_left_comm, add_assoc] using hm₃'
+      simp [add_comm, add_left_comm] at hm₃'
     have hm₃''' : (L.get ⟨m, mlt⟩).length + k' < (L.get ⟨m, mlt⟩).length := by
       exact lt_of_add_lt_add_left hm₃''
     have hm₃'''' : k' < 0 := by
       have hm₃'''' :
           (L.get ⟨m, mlt⟩).length + k' < (L.get ⟨m, mlt⟩).length + 0 := by
-        simpa using hm₃'''
+        simp at hm₃'''
       exact lt_of_add_lt_add_left hm₃''''
     exact (Nat.not_lt_zero _ hm₃'''')
   ·
@@ -214,7 +214,7 @@ by
         simpa using (take_add_aux (l := L) (m := m) (n := 1))
       have h2 : (L.drop m).take 1 = [L.get ⟨m, mlt⟩] := by
         simpa using (take_one_drop_eq_of_lt_length' (l := L) (n := m) mlt)
-      simpa [Nat.succ_eq_add_one, h2] using h1
+      simp [Nat.succ_eq_add_one]
     have hflatten_msucc :
         List.flatten (L.take m.succ) =
           List.flatten (L.take m) ++ (L.get ⟨m, mlt⟩) := by

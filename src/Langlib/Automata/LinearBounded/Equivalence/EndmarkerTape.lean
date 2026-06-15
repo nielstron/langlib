@@ -214,14 +214,14 @@ theorem forward_step {n : ℕ} {cfg cfg' : DLBA.Cfg (Option (T ⊕ Γ)) Λ n}
       have hh : Y1.tape.head = (φ cfg').tape.head := by
         apply Fin.ext
         simp only [hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead]
-        split_ifs <;> simp_all <;> omega
+        split_ifs <;> simp_all ; omega
       exact (cfg_ext (X := Y1) (Y := φ cfg') rfl hcont hh) ▸ Relation.ReflTransGen.single hstep1
     · -- bounce off `⊢`
       have hpos0 : cfg.tape.head.val = 0 := by omega
       have hY1head : Y1.tape.head = ⟨0, by omega⟩ := by
         apply Fin.ext
         simp only [hY1, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, φ, encHead]
-        split_ifs <;> simp_all <;> omega
+        split_ifs <;> simp_all
       have h0 : Y1.tape.contents ⟨0, by omega⟩ = leftMark := by
         rw [hcont]; exact enc_zero cfg'.tape.contents (by omega)
       have hY1read : Y1.tape.read = leftMark := by
@@ -242,9 +242,9 @@ theorem forward_step {n : ℕ} {cfg cfg' : DLBA.Cfg (Option (T ⊕ Γ)) Λ n}
         · show Function.update Y1.tape.contents Y1.tape.head leftMark = (φ cfg').tape.contents
           rw [hY1head, ← h0, Function.update_eq_self, hcont]
         · apply Fin.ext
-          simp only [hZ, hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead,
-            hY1head]
-          split_ifs <;> simp_all <;> omega
+          simp only [hZ, hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead
+            ]
+          split_ifs <;> simp_all ; omega
       exact Relation.ReflTransGen.head hstep1 (hZeq ▸ Relation.ReflTransGen.single hstep2)
   · -- `Dir.right`
     by_cases hb : cfg.tape.head.val < n
@@ -252,14 +252,14 @@ theorem forward_step {n : ℕ} {cfg cfg' : DLBA.Cfg (Option (T ⊕ Γ)) Λ n}
       have hh : Y1.tape.head = (φ cfg').tape.head := by
         apply Fin.ext
         simp only [hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead]
-        split_ifs <;> simp_all <;> omega
+        split_ifs <;> simp_all
       exact (cfg_ext (X := Y1) (Y := φ cfg') rfl hcont hh) ▸ Relation.ReflTransGen.single hstep1
     · -- bounce off `⊣`
       have hposn : cfg.tape.head.val = n := by omega
       have hY1head : Y1.tape.head = ⟨n + 2, by omega⟩ := by
         apply Fin.ext
         simp only [hY1, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, φ, encHead]
-        split_ifs <;> simp_all <;> omega
+        split_ifs <;> simp_all
       have h0 : Y1.tape.contents ⟨n + 2, by omega⟩ = rightMark := by
         rw [hcont]; exact enc_last cfg'.tape.contents (by omega)
       have hY1read : Y1.tape.read = rightMark := by
@@ -280,9 +280,9 @@ theorem forward_step {n : ℕ} {cfg cfg' : DLBA.Cfg (Option (T ⊕ Γ)) Λ n}
         · show Function.update Y1.tape.contents Y1.tape.head rightMark = (φ cfg').tape.contents
           rw [hY1head, ← h0, Function.update_eq_self, hcont]
         · apply Fin.ext
-          simp only [hZ, hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead,
-            hY1head]
-          split_ifs <;> simp_all <;> omega
+          simp only [hZ, hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead
+            ]
+          split_ifs <;> simp_all ; omega
       exact Relation.ReflTransGen.head hstep1 (hZeq ▸ Relation.ReflTransGen.single hstep2)
   · -- `Dir.stay`
     have hh : Y1.tape.head = (φ cfg').tape.head := by
@@ -348,7 +348,7 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
     · show Function.update s.tape.contents s.tape.head leftMark = enc c₀
       rw [hcont, hh0, ← enc_zero c₀ (by omega), Function.update_eq_self]
     · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hh0]
-      split_ifs <;> simp_all <;> omega
+      split_ifs <;> simp_all
   · -- `s` is the `entry` setup state: read interior cell 1, enter the run phase at `M.initial`.
     have hh1 : s.tape.head = (⟨1, by omega⟩ : Fin (m + 3)) := Fin.ext hhead
     have henc1 : enc c₀ (⟨1, by omega⟩ : Fin (m + 3)) = Sum.inl (c₀ ⟨0, Nat.succ_pos m⟩) :=
@@ -395,24 +395,24 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
         by_cases hb : 0 < Mcfg.tape.head.val
         · left; apply Fin.ext
           simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
-          split_ifs <;> simp_all <;> omega
+          split_ifs <;> simp_all ; omega
         · right; left
           refine ⟨?_, ?_⟩
           · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
-            split_ifs <;> simp_all <;> omega
+            split_ifs <;> simp_all
           · simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
-            split_ifs <;> simp_all <;> omega
+            split_ifs ; simp_all
       · -- right
         by_cases hb : Mcfg.tape.head.val < m
         · left; apply Fin.ext
           simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
-          split_ifs <;> simp_all <;> omega
+          split_ifs <;> simp_all
         · right; right
           refine ⟨?_, ?_⟩
           · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
-            split_ifs <;> simp_all <;> omega
+            split_ifs <;> simp_all ; omega
           · simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
-            split_ifs <;> simp_all <;> omega
+            split_ifs ; simp_all ; omega
       · -- stay
         left; apply Fin.ext
         simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
@@ -430,7 +430,7 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
       · apply Fin.ext
         have hmh0' : Mcfg.tape.head = (⟨0, Nat.succ_pos m⟩ : Fin (m + 1)) := Fin.ext hmh0
         simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hh0, encHead, hmh0']
-        split_ifs <;> simp_all <;> omega
+        split_ifs <;> simp_all
     · -- head on `⊣` mid-bounce: read `⊣`, bounce left back to the interior (same `Mcfg`).
       have hhn : s.tape.head = (⟨m + 2, by omega⟩ : Fin (m + 3)) := Fin.ext hshn
       have hread : s.tape.read = rightMark := by
@@ -445,7 +445,7 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
       · apply Fin.ext
         have hmhn' : Mcfg.tape.head = (⟨m, by omega⟩ : Fin (m + 1)) := Fin.ext hmhn
         simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hhn, encHead, hmhn']
-        split_ifs <;> simp_all <;> omega
+        split_ifs <;> simp_all
 
 /-- Every simulator configuration reachable from the start on `⊢ c₀ ⊣` satisfies the invariant. -/
 theorem good_reaches {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
@@ -479,7 +479,7 @@ theorem setup_reaches {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ)) :
         rw [← hzero, Function.update_eq_self]
       · apply Fin.ext
         simp only [hS0, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
-        split_ifs <;> simp_all <;> omega
+        split_ifs <;> simp_all
   have hstep2 : Step (simMachine M b) S1 (φ ⟨M.initial, ⟨c₀, ⟨0, Nat.succ_pos m⟩⟩⟩) := by
     refine ⟨SimState.run M.initial, Sum.inl (c₀ ⟨0, Nat.succ_pos m⟩), DLBA.Dir.stay, ?_, ?_⟩
     · show (SimState.run M.initial, Sum.inl (c₀ ⟨0, Nat.succ_pos m⟩), DLBA.Dir.stay)
@@ -546,7 +546,7 @@ theorem εGood_step {cfg cfg' : DLBA.Cfg (EndAlpha T Γ) (SimState Λ) 1}
     · show Function.update cfg.tape.contents cfg.tape.head leftMark = (loadEnd ([] : List T)).contents
       rw [hcont, hh0, ← εc0, Function.update_eq_self]
     · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hh0]
-      split_ifs <;> simp_all <;> omega
+      split_ifs <;> simp_all
   · -- entry, head 1
     have hh1 : cfg.tape.head = (⟨1, by omega⟩ : Fin 2) := Fin.ext hh
     have hread : cfg.tape.read = rightMark := by
@@ -600,7 +600,7 @@ theorem accepts_empty :
           rw [← εc0, Function.update_eq_self]
         · apply Fin.ext
           simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, List.length_nil]
-          split_ifs <;> simp_all [loadEnd] <;> omega
+          split_ifs <;> simp_all [loadEnd]
     have hstep2 : Step (simMachine M b) ⟨SimState.entry, ⟨t0.contents, ⟨1, by omega⟩⟩⟩
         ⟨SimState.acc, ⟨t0.contents, ⟨1, by omega⟩⟩⟩ := by
       refine ⟨SimState.acc, rightMark, DLBA.Dir.stay, ?_, ?_⟩
@@ -671,7 +671,7 @@ theorem sim_accepts_input (w : List T)
   · -- contents agree cellwise
     refine (Fin.heq_fun_iff (by rw [hlen]; omega)).mpr (fun i => ?_)
     have hi := i.isLt
-    simp only [loadEnd, enc, Fin.coe_cast]
+    simp only [loadEnd, enc]
     by_cases h0 : i.val = 0
     · rw [if_pos h0, dif_pos h0]
     · rw [if_neg h0, dif_neg h0]

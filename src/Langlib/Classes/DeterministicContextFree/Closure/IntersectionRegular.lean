@@ -116,10 +116,10 @@ theorem productDFA_step_projects (M : DPDA Q T S) (D : DFA T σ)
   rcases c₁ with ⟨ ⟨ q₁, s₁ ⟩, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ ⟨ q₂, s₂ ⟩, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ];
   cases w₁ <;> cases γ₁ <;> simp_all +decide [ step ];
   · obtain ⟨ β, hβ, rfl, rfl ⟩ := h;
-    cases hβ' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ DPDA.toPDA, PDA.transition_fun' ];
+    cases hβ' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ DPDA.toPDA ];
     · unfold DPDA.productDFA at hβ; aesop;
     · unfold DPDA.productDFA at hβ; aesop;
-  · unfold DPDA.toPDA at *; simp_all +decide [ PDA.transition_fun, PDA.transition_fun' ] ;
+  · unfold DPDA.toPDA at *; simp_all +decide [  ] ;
     unfold DPDA.productDFA at *;
     cases h' : M.transition q₁ ‹_› ‹_› <;> cases h'' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ Set.mem_singleton_iff ];
     have := M.no_mixed q₁ ‹_›; aesop;
@@ -145,11 +145,11 @@ public theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
   · cases h;
     · unfold DPDA.toPDA at *;
       unfold DPDA.productDFA at *;
-      cases h : M.transition q₁ a Z <;> simp_all +decide [ Set.mem_setOf_eq ];
+      cases h : M.transition q₁ a Z <;> simp_all +decide [  ];
       exact ⟨ [ a ], rfl, rfl ⟩;
     · unfold DPDA.productDFA at *;
       unfold DPDA.toPDA at *;
-      cases h : M.epsilon_transition q₁ Z <;> simp_all +decide [ Set.mem_setOf_eq ]
+      cases h : M.epsilon_transition q₁ Z <;> simp_all +decide [  ]
 
 /-
 One step in the DPDA lifts to one step in the product.
@@ -164,9 +164,9 @@ public theorem productDFA_step_lift (M : DPDA Q T S) (D : DFA T σ)
   cases w <;> cases γ <;> simp_all +decide [ step ];
   · unfold DPDA.toPDA at *;
     unfold DPDA.productDFA at *;
-    cases h : M.epsilon_transition q ‹_› <;> simp_all +decide [ Set.mem_setOf_eq ];
+    cases h : M.epsilon_transition q ‹_› <;> simp_all +decide [  ];
     grind;
-  · simp_all +decide [ DPDA.toPDA, PDA.transition_fun, PDA.transition_fun' ];
+  · simp_all +decide [ DPDA.toPDA ];
     unfold DPDA.productDFA at *;
     cases h : M.transition q ‹_› ‹_› <;> cases h' : M.epsilon_transition q ‹_› <;> simp_all +decide;
     · grind;

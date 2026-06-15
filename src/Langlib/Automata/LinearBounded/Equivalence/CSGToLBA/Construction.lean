@@ -313,11 +313,13 @@ section Step
 
 variable [Fintype T] [DecidableEq T] (g₀ : grammar T) [Fintype g₀.nt] [DecidableEq g₀.nt]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- The only accepting state is `accept`. -/
 @[simp] lemma kMachine_accept_iff (s : KState g₀) :
     (kMachine g₀).accept s = true ↔ s = KState.accept := by
   simp [kMachine]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- Build one `Step` of `kMachine` from a transition membership. -/
 lemma kStep_mk {n : ℕ} {cfg : DLBA.Cfg (KCell g₀) (KState g₀) n} {q' : KState g₀}
     {a : KCell g₀} {d : DLBA.Dir}
@@ -325,12 +327,14 @@ lemma kStep_mk {n : ℕ} {cfg : DLBA.Cfg (KCell g₀) (KState g₀) n} {q' : KSt
     LBA.Step (kMachine g₀) cfg ⟨q', (cfg.tape.write a).moveHead d⟩ :=
   ⟨q', a, d, hmem, rfl⟩
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- Reaching an `accept`-state configuration witnesses acceptance. -/
 lemma kAccepts_of_reaches {n : ℕ} {cfg cfg' : DLBA.Cfg (KCell g₀) (KState g₀) n}
     (h : LBA.Reaches (kMachine g₀) cfg cfg') (hacc : cfg'.state = KState.accept) :
     LBA.Accepts (kMachine g₀) cfg :=
   ⟨cfg', h, by simp [kMachine, hacc]⟩
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- An *echo* step that moves the head left by one, leaving the tape contents unchanged
 (the transition rewrites the current cell to its own value). -/
 lemma kStep_echo_left {n : ℕ} {c : Fin (n + 1) → KCell g₀} {i : Fin (n + 1)}
@@ -341,6 +345,7 @@ lemma kStep_echo_left {n : ℕ} {c : Fin (n + 1) → KCell g₀} {i : Fin (n + 1
   simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, Function.update_eq_self,
     dif_pos hpos]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- An *echo* step that moves the head right by one, leaving the tape contents unchanged. -/
 lemma kStep_echo_right {n : ℕ} {c : Fin (n + 1) → KCell g₀} {i : Fin (n + 1)}
     {st st' : KState g₀} (hlt : i.val < n)
@@ -350,6 +355,7 @@ lemma kStep_echo_right {n : ℕ} {c : Fin (n + 1) → KCell g₀} {i : Fin (n + 
   simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, Function.update_eq_self,
     dif_pos hlt]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- An *echo* step that keeps the head in place, leaving the tape contents unchanged. -/
 lemma kStep_echo_stay {n : ℕ} {c : Fin (n + 1) → KCell g₀} {i : Fin (n + 1)}
     {st st' : KState g₀} (hmem : (st', c i, DLBA.Dir.stay) ∈ kTransition g₀ st (c i)) :
@@ -363,6 +369,7 @@ def Marked {n : ℕ} (c : Fin (n + 1) → KCell g₀) : Prop :=
   ∀ k : Fin (n + 1), ∃ ws : KWork g₀,
     c k = some (Sum.inr (decide (k.val = 0), decide (k.val = n), ws))
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- The `gotoLeft` sweep: from any head position, echo-move left to the marked left end (cell 0)
 and enter the accept check. -/
 lemma gotoLeft_reaches {n : ℕ} {c : Fin (n + 1) → KCell g₀} (hmark : Marked g₀ c)
@@ -396,10 +403,12 @@ lemma gotoLeft_reaches {n : ℕ} {c : Fin (n + 1) → KCell g₀} (hmark : Marke
 def mkCell {n : ℕ} (k : Fin (n + 1)) (ws : KWork g₀) : KCell g₀ :=
   some (Sum.inr (decide (k.val = 0), decide (k.val = n), ws))
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- The canonical tape built from a work-symbol function is `Marked`. -/
 lemma marked_mkTape {n : ℕ} (W : Fin (n + 1) → KWork g₀) :
     Marked g₀ (fun k => mkCell g₀ k (W k)) := fun k => ⟨W k, rfl⟩
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- Updating one cell of a canonical tape with `mkCell i x` corresponds to updating the work
 function at `i`. -/
 lemma update_mkCell {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i : Fin (n + 1)) (x : KWork g₀) :
@@ -410,6 +419,7 @@ lemma update_mkCell {n : ℕ} (W : Fin (n + 1) → KWork g₀) (i : Fin (n + 1))
   · subst hk; simp only [Function.update_self]
   · rw [Function.update_of_ne hk, Function.update_of_ne hk]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- The accept-check sweep: if the work track spells exactly `[S]` (one cell `j` holds the start
 symbol, all others blank), the check started at any cell `i` (with the `seen` flag tracking
 whether `j` is behind `i`) reaches the accepting state. -/
@@ -433,9 +443,9 @@ lemma check_sweep {n : ℕ} (W : Fin (n + 1) → KWork g₀) (j : Fin (n + 1))
       apply kStep_echo_stay
       by_cases hij : (Fin.last n) = j
       · rw [← hij]
-        simp only [mkCell, hij.symm ▸ hj, Fin.val_last, decide_eq_true_eq]
+        simp only [mkCell, hij.symm ▸ hj, Fin.val_last]
         have : ¬ (j.val < n) := by rw [← hij]; simp
-        simp [kTransition, this]
+        simp [kTransition]
       · have hwn : W (Fin.last n) = none := hother _ hij
         have hjlt : j.val < n := by
           have := j.isLt; rcases lt_or_eq_of_le (Nat.lt_succ_iff.mp j.isLt) with h | h
@@ -467,6 +477,7 @@ lemma check_sweep {n : ℕ} (W : Fin (n + 1) → KWork g₀) (j : Fin (n + 1))
           (heq ▸ ih ⟨i.val + 1, by omega⟩ he)
         simp only [mkCell, hwi, hr]; simp [kTransition]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- If the work track spells exactly `[S]`, the simulator accepts (from any head position):
 roam to the left end and run the accept-check sweep. -/
 lemma accept_from_S {n : ℕ} (W : Fin (n + 1) → KWork g₀) (j : Fin (n + 1))
@@ -497,6 +508,7 @@ def tmpCell {n : ℕ} (input : Fin (n + 1) → T) (k : Fin (n + 1)) : KCell g₀
 def cAt {n : ℕ} (input : Fin (n + 1) → T) (i : ℕ) (k : Fin (n + 1)) : KCell g₀ :=
   if k.val < i then tmpCell g₀ input k else some (Sum.inl (input k))
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- Converting cell `i` updates `cAt … i` to `cAt … (i+1)`. -/
 lemma cAt_update {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1)) :
     Function.update (cAt g₀ input i.val) i (tmpCell g₀ input i) = cAt g₀ input (i.val + 1) := by
@@ -511,6 +523,7 @@ lemma cAt_update {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1)) :
     · rw [if_pos hki, if_pos (by omega)]
     · rw [if_neg hki, if_neg (by omega)]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- The transition-membership for converting an input cell `i ≠ 0`. -/
 lemma kConvert_mem {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1))
     (hd0 : decide (i.val = 0) = false) (d : DLBA.Dir) :
@@ -521,6 +534,7 @@ lemma kConvert_mem {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1))
   simp only [tmpCell, hd0]
   simp [kTransition]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- One conversion step (interior cell `i ≠ 0`, `i < n`): convert and move right. -/
 lemma kStep_convert_right {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1))
     (hd0 : decide (i.val = 0) = false) (hlt : i.val < n) :
@@ -530,6 +544,7 @@ lemma kStep_convert_right {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1)
     (kConvert_mem g₀ input i hd0 _).2 rfl, ?_⟩
   simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hlt, cAt_update]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- The last conversion step (cell `n`): convert; moving right clamps, staying at `n`. -/
 lemma kStep_convert_last {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1))
     (hd0 : decide (i.val = 0) = false) (hin : i.val = n) :
@@ -540,6 +555,7 @@ lemma kStep_convert_last {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1))
     (kConvert_mem g₀ input i hd0 _).2 rfl, ?_⟩
   simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_neg hmv, cAt_update]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- The conversion sweep: from cell `i ≥ 1` (with cells `< i` converted), convert the rest of the
 input left-to-right, ending (after the right-end clamp) at the fully-converted tape on cell `n`. -/
 lemma convert_sweep {n : ℕ} (input : Fin (n + 1) → T) :
@@ -571,17 +587,20 @@ lemma convert_sweep {n : ℕ} (input : Fin (n + 1) → T) :
       exact Relation.ReflTransGen.head (kStep_convert_right g₀ input i hd0 hlt)
         (ih ⟨i.val + 1, by omega⟩ h1 he)
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- After converting all cells, `cAt … (n+1)` is the fully-converted tape. -/
 lemma cAt_full {n : ℕ} (input : Fin (n + 1) → T) :
     cAt g₀ input (n + 1) = tmpCell g₀ input := by
   funext k; simp only [cAt]; rw [if_pos k.isLt]
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- Configuration equality from component equalities (no `@[ext]` on `Cfg`/`BoundedTape`). -/
 lemma cfg_eq {n : ℕ} {s s' : KState g₀} {c c' : Fin (n + 1) → KCell g₀} {h h' : Fin (n + 1)}
     (hs : s = s') (hc : c = c') (hh : h = h') :
     (⟨s, ⟨c, h⟩⟩ : DLBA.Cfg (KCell g₀) (KState g₀) n) = ⟨s', ⟨c', h'⟩⟩ := by
   subst hs; subst hc; subst hh; rfl
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- The init phase up to the right-end clamp: from the raw input tape (state `init0`, head 0),
 reach the fully-converted (`isRightEnd = false`) tape at cell `n`. -/
 lemma init_to_tmpCell {n : ℕ} (input : Fin (n + 1) → T) :
@@ -611,6 +630,7 @@ lemma init_to_tmpCell {n : ℕ} (input : Fin (n + 1) → T) :
       have hcv := convert_sweep g₀ input ⟨1, by omega⟩ h1
       rwa [cAt_full] at hcv
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- The full init phase: from the raw input tape, reach the canonical marked work tape (state
 `sim`), whose work track holds `terminal (input k)` at every cell (so `formOf = input.map`). -/
 lemma init_reaches {n : ℕ} (input : Fin (n + 1) → T) :

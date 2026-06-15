@@ -155,6 +155,7 @@ public def extractTerminals {N : Type} (sf : List (symbol T N)) : Option (List T
       | _, _ => none)
     (some [])
 
+omit [DecidableEq T] in
 /-
 `extractTerminals` returns `some w` iff `sf = w.map symbol.terminal`.
 -/

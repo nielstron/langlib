@@ -335,7 +335,7 @@ private lemma aux_BC_sort (n : ℕ) :
       apply grammar_deri_of_deri_deri;
       convert grammar_deri_with_postfix _ ih using 1;
       convert grammar_deri_with_prefix _ ( aux_CB_bubble 1 ) using 1 ; simp +decide [ List.replicate ];
-  induction n <;> simp_all +decide [ ← List.append_assoc, List.n_times ];
+  induction n <;> simp_all +decide [ List.n_times ];
   · constructor;
   · rename_i n ih;
     -- By the induction hypothesis, we can derive $B^n ++ C^n$ from $[B, C]^n$.
@@ -373,7 +373,7 @@ private lemma aux_quadratic_core (m n : ℕ) :
     grammar_derives gr_mul
       (List.replicate m X ++ List.replicate n B)
       (List.replicate n B ++ List.replicate (m * n) C ++ List.replicate m X) := by
-  induction' m with m ih generalizing n <;> simp_all +decide [ Nat.succ_mul, add_assoc ];
+  induction' m with m ih generalizing n <;> simp_all +decide [ Nat.succ_mul ];
   · exact Relation.ReflTransGen.refl;
   · -- Apply the induction hypothesis to the first part of the list.
     have h_ind : grammar_derives gr_mul ([X] ++ List.replicate m X ++ List.replicate n B) ([X] ++ List.replicate n B ++ List.replicate (m * n) C ++ List.replicate m X) := by
@@ -451,7 +451,7 @@ private lemma steps_MB_bM (m n : ℕ) :
       use MB_bM
       generalize_proofs at *;
       unfold gr_mul; simp +decide [ MB_bM ] ;
-      refine' ⟨ List.replicate m a ++ List.replicate k b, List.replicate ( n - ( k + 1 ) ) B ++ List.replicate ( m * n ) C ++ [ E ], _, _ ⟩ <;> simp +decide [ ← List.append_assoc, Nat.sub_sub ] ; ring!; (
+      refine' ⟨ List.replicate m a ++ List.replicate k b, List.replicate ( n - ( k + 1 ) ) B ++ List.replicate ( m * n ) C ++ [ E ], _, _ ⟩ <;> simp +decide [ ← List.append_assoc ] ; ring!; (
       rw [ show n - k = 1 + ( n - ( 1 + k ) ) by omega, List.replicate_add ] ; aesop;);
       grind +suggestions
     generalize_proofs at *;

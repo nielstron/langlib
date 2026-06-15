@@ -87,6 +87,7 @@ noncomputable def mapNFA (M : DFA α σ) (f : α → β) : NFA β σ where
 
 variable (M : DFA α σ) (f : α → β)
 
+omit [Fintype σ] in
 /-
 The map-NFA evaluates singleton sets correctly: from `{q}` on word `List.map f v`,
     the result contains `M.evalFrom q v`.
@@ -96,6 +97,7 @@ private lemma mapNFA_evalFrom_map (q : σ) (v : List α) :
       induction' v using List.reverseRecOn with v a ih generalizing q <;> simp_all +decide [ NFA.evalFrom_append ];
       exact Set.mem_biUnion ( ih q ) ⟨ a, rfl, rfl ⟩
 
+omit [Fintype σ] in
 /-
 If `q'` is in the NFA evaluation from `{q}` on `w`, then there exists a word `v`
     with `List.map f v = w` and `M.evalFrom q v = q'`.
@@ -111,11 +113,12 @@ private lemma mapNFA_evalFrom_inv (q q' : σ) (w : List β)
           contrapose! h;
           have h_foldl_stepSet : ∀ (S : Set σ) (w : List β), (mapNFA M f).evalFrom S w = ⋃ q'' ∈ S, (mapNFA M f).evalFrom {q''} w := by
             intro S w; induction' w using List.reverseRecOn with w ih <;> simp +decide [ *, NFA.evalFrom_cons ] ;
-            simp +decide [ Set.ext_iff, NFA.stepSet ];
+            simp +decide [ NFA.stepSet ];
           rw [ h_foldl_stepSet ] ; simp +contextual [ h ];
         obtain ⟨ v, hv₁, hv₂ ⟩ := ih q'' q' hq';
         obtain ⟨ a, ha₁, ha₂ ⟩ := hq''; use a :: v; aesop;
 
+omit [Fintype σ] in
 /-
 The map-NFA accepts exactly the image of the DFA language under `List.map f`.
 -/

@@ -199,12 +199,12 @@ private lemma inv_step_state1 (w : List Bool) (na : ℕ) (input : List Bool)
     cases' a with a a <;> simp_all +decide [Reaches₁]
     · unfold step at hstep
       unfold dpda_anbn at hstep
-      simp_all +decide [PDA.transition_fun, PDA.transition_fun']
+      simp_all +decide []
       unfold DPDA.toPDA at hstep
-      simp_all +decide [List.replicate]
+      simp_all +decide []
       use na + 2, 0
       exact Nat.recOn na (by simp +decide) fun n ihn => by simp +decide [List.replicate] at ihn ⊢; aesop
-    · cases' hstep with h h <;> simp_all +decide [step]
+    · cases' hstep with h h <;> simp_all +decide []
       · unfold DPDA.toPDA at h
         simp_all +decide [dpda_anbn]
         use na + 1, 1
@@ -223,12 +223,12 @@ private lemma inv_step_state2 (w : List Bool) (na nb : ℕ) (input : List Bool)
   unfold PDA.step at hstep
   cases input <;> cases h : na - nb <;> simp_all +decide [dpda_anbn]
   · unfold DPDA.toPDA at hstep
-    simp_all +decide [dpda_anbn]
+    simp_all +decide []
     use nb, nb
     rw [Nat.sub_eq_iff_eq_add] at h <;> aesop
-  · cases hstep <;> simp_all +decide [dpda_anbn]
+  · cases hstep ; simp_all +decide []
     unfold DPDA.toPDA at *
-    simp_all +decide [PDA.transition_fun']
+    simp_all +decide []
   · unfold DPDA.toPDA at *
     exact ⟨na, na, by rw [Nat.sub_eq_iff_eq_add] at h <;> aesop⟩
   · unfold DPDA.toPDA at hstep

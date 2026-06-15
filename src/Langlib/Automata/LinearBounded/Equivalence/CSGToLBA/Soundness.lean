@@ -43,17 +43,21 @@ def decodeCell : KCell g₀ → KWork g₀
 def decodeForm {n : ℕ} (c : Fin (n + 1) → KCell g₀) : List (symbol T g₀.nt) :=
   (List.ofFn (fun k => decodeCell g₀ (c k))).filterMap id
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 @[simp] lemma decodeCell_mkCell {n : ℕ} (k : Fin (n + 1)) (ws : KWork g₀) :
     decodeCell g₀ (mkCell g₀ k ws) = ws := rfl
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- The decoded form of a canonical work tape is its `formW`. -/
 lemma decodeForm_mkCell {n : ℕ} (W : Fin (n + 1) → KWork g₀) :
     decodeForm g₀ (fun k => mkCell g₀ k (W k)) = formW g₀ W := by
   simp only [decodeForm, decodeCell_mkCell, formW]
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 @[simp] lemma decodeCell_inl (t : T) :
     decodeCell g₀ (some (Sum.inl t)) = some (symbol.terminal t) := rfl
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- During the init sweep the decoded form is constant: every raw or converted cell of
 `cAt input i` decodes to `terminal (input k)`. -/
 lemma decodeForm_cAt {n : ℕ} (input : Fin (n + 1) → T) (i : ℕ) :
@@ -69,6 +73,7 @@ lemma decodeForm_cAt {n : ℕ} (input : Fin (n + 1) → T) (i : ℕ) :
   rw [← formW]
   exact formW_of_forall_some g₀ _ (fun k => symbol.terminal (input k)) (fun _ => rfl)
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- `take (i+1)` peels the `i`-th cell off the decoded prefix. -/
 lemma take_succ_filterMap {n : ℕ} (W : Fin (n + 1) → KWork g₀) (head : Fin (n + 1)) :
     ((List.ofFn W).take (head.val + 1)).filterMap id
@@ -76,6 +81,7 @@ lemma take_succ_filterMap {n : ℕ} (W : Fin (n + 1) → KWork g₀) (head : Fin
   rw [← List.take_concat_get' (List.ofFn W) head.val (by rw [List.length_ofFn]; exact head.isLt),
     List.filterMap_append, List.getElem_ofFn, Fin.eta]
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- The decoded form splits at the head into prefix, head cell, and suffix. -/
 lemma decodeForm_split_head {n : ℕ} (W : Fin (n + 1) → KWork g₀) (head : Fin (n + 1))
     (pre : List (symbol T g₀.nt))
@@ -90,6 +96,7 @@ lemma decodeForm_split_head {n : ℕ} (W : Fin (n + 1) → KWork g₀) (head : F
   conv_lhs => rw [formW, ← List.take_append_drop head.val (List.ofFn W), List.filterMap_append]
   rw [hp, hdc, ← List.append_assoc]
 
+omit [Fintype T] [DecidableEq T] [Fintype g₀.nt] [DecidableEq g₀.nt] in
 /-- The head-moved tape after an *echo* write at `head` (cell value re-written) with `head.val < n`
 is the same canonical tape with the head advanced one cell. -/
 lemma echo_moveHead_right {n : ℕ} (W : Fin (n + 1) → KWork g₀) (head : Fin (n + 1))
@@ -100,6 +107,7 @@ lemma echo_moveHead_right {n : ℕ} (W : Fin (n + 1) → KWork g₀) (head : Fin
   simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hlt, ha,
     Function.update_eq_self]
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- **Soundness of the accept check** (reverse of `check_sweep`): if a `check` sweep whose verified
 prefix spells `[S]` iff `seen` reaches an accepting configuration, the whole track spells `[S]`. -/
 lemma check_sound {n : ℕ} {cfgacc : DLBA.Cfg (KCell g₀) (KState g₀) n}
@@ -170,6 +178,7 @@ lemma check_sound {n : ℕ} {cfgacc : DLBA.Cfg (KCell g₀) (KState g₀) n}
                   rw [take_succ_filterMap g₀, hpre, hwh]; simp
                 · simp only [mkCell, hwh, kTransition] at hmem; simp [hN] at hmem
 
+omit [Fintype T] [Fintype g₀.nt] in
 /-- **Soundness of the `gotoLeft` + accept-check phase.** If `gotoLeft` (from any head) reaches an
 accepting configuration, the work track spells `[S]`. -/
 lemma gotoLeft_check_sound {n : ℕ} {cfgacc : DLBA.Cfg (KCell g₀) (KState g₀) n}
@@ -261,6 +270,7 @@ def SoundClaim {n : ℕ} (g₀ : grammar T) [Fintype g₀.nt] [DecidableEq g₀.
     cfg.state = KState.accept ∧ formW g₀ W = [symbol.nonterminal g₀.initial] ∧
     grammar_derives g₀ (formW g₀ W) (List.ofFn (fun k => symbol.terminal (input k))))
 
+omit [Fintype T] in
 /-- **Forward soundness invariant.** Every configuration reachable from the initial one satisfies
 `SoundClaim`. -/
 lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin (n + 1) → T)
@@ -371,9 +381,9 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
             ⟨W, W, ri, 0, ((List.ofFn W).take b.tape.head.val).filterMap id,
               hcon _, rfl, Nat.zero_le _, hpatlen, fun p _ => rfl, ?_, ?_, hder⟩)))))
           · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, Fin.val_zero,
-              List.take_zero, List.filterMap_nil, List.append_nil]
+              List.take_zero, List.append_nil]
           · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, Fin.val_zero,
-              List.take_zero, List.filterMap_nil, List.append_nil]
+              List.take_zero, List.append_nil]
       · -- b = gotoLeft
         rw [hst] at hmem
         simp only [DLBA.BoundedTape.read, hcW] at hmem
@@ -443,7 +453,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
             simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hmem
             obtain ⟨rfl, rfl, rfl⟩ := hmem
             refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨W, seen, ?_, rfl, hder, ?_⟩))))
-            · simp only [DLBA.BoundedTape.moveHead, dif_pos hlt]
+            · simp only [DLBA.BoundedTape.moveHead]
               exact hcon none (by rw [hwh])
             · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
               rw [dif_pos (show b.tape.head.val < n from hlt)]
@@ -474,7 +484,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
                 simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hmem
                 obtain ⟨rfl, rfl, rfl⟩ := hmem
                 refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨W, true, ?_, rfl, hder, ?_⟩))))
-                · simp only [DLBA.BoundedTape.moveHead, dif_pos hlt]
+                · simp only [DLBA.BoundedTape.moveHead]
                   exact hcon _ (by rw [hwh])
                 · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
                   rw [dif_pos (show b.tape.head.val < n from hlt)]
@@ -659,7 +669,7 @@ theorem kMachine_sound [Fintype T] [DecidableEq T] (g₀ : grammar T)
   have hbridge : LBA.initCfgList (kMachine g₀) L hne
       = (⟨KState.init0, ⟨cAt g₀ input 0, ⟨0, by omega⟩⟩⟩ : DLBA.Cfg (KCell g₀) (KState g₀) n) := by
     refine cfg_eq g₀ rfl htape (Fin.ext ?_)
-    simp [LBA.loadList]
+    simp
   obtain ⟨cfgacc, hreach, hacc⟩ := hAcc
   rw [hbridge] at hreach
   have hSC := sound_invariant g₀ hnc input cfgacc hreach

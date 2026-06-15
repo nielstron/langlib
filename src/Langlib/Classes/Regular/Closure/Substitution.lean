@@ -94,12 +94,14 @@ variable {M τ N}
 
 /-! ### General εClosure / evalFrom helpers -/
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma εClosure_mono {S T : Set (σ ⊕ (σ × (Σ a : α, τ a)))} (h : S ⊆ T) :
     (substεNFA M τ N).εClosure S ⊆ (substεNFA M τ N).εClosure T := by
   intro x hx; induction hx with
   | base s hs => exact εNFA.εClosure.base _ (h hs)
   | step s t ht _ ih => exact εNFA.εClosure.step _ _ ht ih
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma εClosure_idempotent (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) :
     (substεNFA M τ N).εClosure ((substεNFA M τ N).εClosure S) =
     (substεNFA M τ N).εClosure S := by
@@ -109,6 +111,7 @@ private lemma εClosure_idempotent (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) 
     | step s t ht _ ih => exact εNFA.εClosure.step _ _ ht ih
   · exact fun hx => εNFA.εClosure.base _ hx
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma evalFrom_mono {S T : Set (σ ⊕ (σ × (Σ a : α, τ a)))} (w : List β)
     (h : S ⊆ T) :
     (substεNFA M τ N).evalFrom S w ⊆ (substεNFA M τ N).evalFrom T w := by
@@ -117,11 +120,13 @@ private lemma evalFrom_mono {S T : Set (σ ⊕ (σ × (Σ a : α, τ a)))} (w : 
   · apply_rules [ Set.iUnion₂_subset ];
     grind +suggestions
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma evalFrom_εClosure (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (w : List β) :
     (substεNFA M τ N).evalFrom ((substεNFA M τ N).εClosure S) w =
     (substεNFA M τ N).evalFrom S w := by
   unfold εNFA.evalFrom; rw [εClosure_idempotent]
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma stepSet_εClosed (T : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (a : β) :
     (substεNFA M τ N).εClosure ((substεNFA M τ N).stepSet T a) =
     (substεNFA M τ N).stepSet T a := by
@@ -133,6 +138,7 @@ private lemma stepSet_εClosed (T : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (a :
     apply_rules [ εNFA.εClosure.step ];
   · exact εNFA.subset_εClosure _ _
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma evalFrom_εClosed_set (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (w : List β) :
     (substεNFA M τ N).εClosure ((substεNFA M τ N).evalFrom S w) =
     (substεNFA M τ N).evalFrom S w := by
@@ -141,6 +147,7 @@ private lemma evalFrom_εClosed_set (S : Set (σ ⊕ (σ × (Σ a : α, τ a))))
   · rw [ εNFA.evalFrom_append_singleton ];
     exact?
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma evalFrom_append (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (u v : List β) :
     (substεNFA M τ N).evalFrom S (u ++ v) =
     (substεNFA M τ N).evalFrom ((substεNFA M τ N).evalFrom S u) v := by
@@ -152,6 +159,7 @@ private lemma evalFrom_append (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (u v 
   -- Apply the εClosure_idempotent lemma to conclude the proof.
   apply evalFrom_εClosed_set
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma evalFrom_εClosed (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (w : List β)
     (x y : σ ⊕ (σ × (Σ a : α, τ a)))
     (hx : x ∈ (substεNFA M τ N).evalFrom S w)
@@ -167,6 +175,7 @@ private lemma evalFrom_εClosed (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (w 
 
 /-! ### evalFrom for Sum.inr states -/
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma evalFrom_inr_contains (q : σ) (a : α) (s : τ a) (v : List β) :
     Sum.inr (q, ⟨a, (N a).evalFrom s v⟩) ∈
       (substεNFA M τ N).evalFrom {Sum.inr (q, (⟨a, s⟩ : Σ a, τ a))} v := by
@@ -177,6 +186,7 @@ private lemma evalFrom_inr_contains (q : σ) (a : α) (s : τ a) (v : List β) :
 
 /-! ### Backward direction -/
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma backward_one_step (q : σ) (a : α) (u : List β)
     (hu : u ∈ (N a).accepts) :
     Sum.inl (M.step q a) ∈ (substεNFA M τ N).evalFrom {Sum.inl q} u := by
@@ -186,7 +196,7 @@ private lemma backward_one_step (q : σ) (a : α) (u : List β)
       rotate_right;
       exact Sum.inl q;
       · exact Set.mem_range_self a;
-      · apply εNFA.εClosure.base; simp +decide [ substεNFA ];
+      · apply εNFA.εClosure.base; simp +decide;
     have h_step : Sum.inr (q, ⟨a, (N a).evalFrom (N a).start u⟩) ∈ (substεNFA M τ N).evalFrom {Sum.inr (q, ⟨a, (N a).start⟩)} u := by
       exact?;
     have h_step : (substεNFA M τ N).evalFrom {Sum.inr (q, ⟨a, (N a).start⟩)} u ⊆ (substεNFA M τ N).evalFrom ((substεNFA M τ N).εClosure {Sum.inl q}) u := by
@@ -197,6 +207,7 @@ private lemma backward_one_step (q : σ) (a : α) (u : List β)
   apply_rules [ evalFrom_εClosed ];
   unfold substεNFA; aesop;
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma backward_eval (q : σ) (w : List α) (u : List β)
     (hu : u ∈ (w.map (fun a => (N a).accepts)).prod) :
     Sum.inl (M.evalFrom q w) ∈ (substεNFA M τ N).evalFrom {Sum.inl q} u := by
@@ -213,6 +224,7 @@ private lemma backward_eval (q : σ) (w : List α) (u : List β)
       exact?;
     grind +suggestions
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma subst_backward {u : List β}
     (hu : u ∈ M.accepts.subst (fun a => (N a).accepts)) :
     u ∈ (substεNFA M τ N).accepts := by
@@ -223,6 +235,7 @@ private lemma subst_backward {u : List β}
 
 /-! ### Forward direction -/
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma εClosure_inl_inv (q : σ) (x : σ ⊕ (σ × (Σ a : α, τ a)))
     (hx : x ∈ (substεNFA M τ N).εClosure {Sum.inl q}) :
     (∀ q' : σ, x = Sum.inl q' →
@@ -238,7 +251,7 @@ private lemma εClosure_inl_inv (q : σ) (x : σ ⊕ (σ × (Σ a : α, τ a)))
     use []
     simp;
   · rename_i h₁ h₂ h₃;
-    unfold substεNFA at h₁; simp_all +decide [ Set.mem_range ] ;
+    unfold substεNFA at h₁; simp_all +decide [  ] ;
     cases ih <;> simp_all +decide [ Set.mem_range ];
     · grind;
     · rcases h₃ _ _ _ rfl with ⟨ w, hw₁, hw₂, hw₃ ⟩ ; use w ++ [ ‹σ × ( a : α ) × τ a›.2.fst ] ; simp_all +decide [ DFA.evalFrom ] ;
@@ -293,6 +306,7 @@ private lemma step_prod_mem (f : α → Language β) (w₀ : List α) (a₀ : α
   · exact prod_append_mem f w₀ [ a₀ ] v₁ v₂b hv₁ ( by simpa using hv₂b );
   · assumption
 
+omit [Fintype α] [Fintype σ] inst_fin in
 /-
 The step case helper: given that s₀ = Sum.inr (q₀, ⟨a₀, t₀⟩) ∈ evalFrom v'
     satisfies the inr invariant, any state x in εClosure (step s₀ (some b))
@@ -345,6 +359,7 @@ private lemma forward_step_analysis (q : σ) (v' : List β) (b : β)
           · exact hw₂;
         grind
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma forward_inv (q : σ) (v : List β) :
     (∀ q' : σ, Sum.inl q' ∈ (substεNFA M τ N).evalFrom {Sum.inl q} v →
       ∃ w : List α, M.evalFrom q w = q' ∧
@@ -392,6 +407,7 @@ private lemma forward_inv (q : σ) (v : List β) :
       exact (forward_step_analysis q v' b q₀ a₀ t₀ w₀ v₁ v₂
         hv_split hq₀ hv₁_prod ht₀ _ hx_cl).2 q' a s rfl
 
+omit [Fintype α] [Fintype σ] inst_fin in
 private lemma subst_forward {u : List β}
     (hu : u ∈ (substεNFA M τ N).accepts) :
     u ∈ M.accepts.subst (fun a => (N a).accepts) := by
@@ -401,6 +417,7 @@ private lemma subst_forward {u : List β}
   have := forward_inv ( M := M ) ( τ := τ ) ( N := N ) M.start u;
   exact Exists.elim ( this.1 q' hq'.1 ) fun w hw => ⟨ w, by aesop ⟩
 
+omit [Fintype α] [Fintype σ] inst_fin in
 /-- The substitution ε-NFA accepts exactly the substitution of the DFA language. -/
 public theorem substεNFA_correct :
     (substεNFA M τ N).accepts = M.accepts.subst (fun a => (N a).accepts) :=

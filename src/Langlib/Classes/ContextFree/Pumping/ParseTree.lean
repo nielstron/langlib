@@ -196,7 +196,7 @@ public lemma IsSubtreeOf.trans {n₁ n₂ n₃ : g.NT} {p₁ : parseTree n₁} {
 public lemma subtree_height {n₁ n₂ : g.NT} {p₁ : parseTree n₁} {p₂ : parseTree n₂} (hpp : p₁.IsSubtreeOf p₂) :
     p₁.height ≤ p₂.height := by
     induction hpp with
-    | eq => simp [height]
+    | eq => simp
     | left_sub _ _ _ _ _ ht | right_sub _ _ _ _ _ ht =>
       apply ht.trans
       simp only [height]

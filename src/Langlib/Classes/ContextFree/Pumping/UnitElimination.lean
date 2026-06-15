@@ -84,7 +84,7 @@ public lemma DerivesIn.unitPair_prefix {u : List T} {v : List (Symbol T g.NT)} {
   induction hvu using DerivesIn.head_induction_on generalizing n with
   | refl =>
     cases u <;> simp only
-      [List.map_nil, List.map_cons, List.cons.injEq, reduceCtorEq, List.map_eq_nil_iff, false_and]
+      [List.map_nil, List.map_cons, List.cons.injEq, reduceCtorEq, false_and]
         at hv
   | @head m v w hvw hwu ih =>
     by_cases hw : NonUnit w
@@ -186,7 +186,7 @@ public lemma collectUnitPairs_unitPair_rec {nᵢ nₒ : g.NT} {p : g.NT × g.NT}
     left
     exact hp
   | cons a l ih =>
-    simp only [addUnitPair, List.foldr_cons, List.mem_cons] at hp
+    simp only [addUnitPair, List.foldr_cons] at hp
     split at hp <;> rename_i ha
     · simp only [Finset.mem_insert] at hp
       cases hp with
@@ -488,7 +488,7 @@ public lemma nonUnit_rules_mem {p : g.NT × g.NT} {r : ContextFreeRule T g.NT}
     (hrp : r ∈ computeUnitPairRules p) :
     r.input = p.1 ∧ ∃ r' ∈ g.rules, r.output = r'.output ∧ r'.input = p.2 := by
   simp only [List.mem_filterMap, Finset.mem_toList, Option.ite_none_right_eq_some,
-    forall_exists_index, and_imp, computeUnitPairRules] at hrp
+    computeUnitPairRules] at hrp
   obtain ⟨r', hrg, hrp, hrr⟩ := hrp
   split at hrr
   · contradiction

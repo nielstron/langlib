@@ -253,7 +253,7 @@ private def NumInv (w : List Bool)
 private lemma NumInv.initial (w : List Bool) :
     NumInv w ⟨dpda_quotientNumerator.toPDA.initial_state, w,
       [dpda_quotientNumerator.toPDA.start_symbol]⟩ := by
-  refine ⟨rfl, [], ?_, by simp [DPDA.toPDA, dpda_quotientNumerator]⟩
+  refine ⟨rfl, [], ?_, by simp⟩
   rw [quotientNumerator]
   exact Language.nil_mem_kstar quotientLeftBlock
 
@@ -272,8 +272,8 @@ private lemma no_step_boundary_nil
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.boundary, [], [.bottom]⟩ c') : False := by
   rcases c' with ⟨q', input', stack'⟩
-  simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon]
-    using hstep
+  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon]
+    at hstep
 
 private lemma no_step_odd_nil (m : ℕ)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -281,9 +281,9 @@ private lemma no_step_odd_nil (m : ℕ)
       ⟨.oddA, [], List.replicate m .pair ++ [.bottom]⟩ c') : False := by
   rcases c' with ⟨q', input', stack'⟩
   cases m <;>
-    simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
+    simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
       List.replicate_succ]
-      using hstep
+      at hstep
 
 private lemma odd_false_inv (m : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -301,18 +301,18 @@ private lemma no_step_odd_true (m : ℕ) (rest : List Bool)
       ⟨.oddA, true :: rest, List.replicate m .pair ++ [.bottom]⟩ c') : False := by
   rcases c' with ⟨q', input', stack'⟩
   cases m <;>
-    simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
+    simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
       List.replicate_succ]
-      using hstep
+      at hstep
 
 private lemma no_step_even_nil (m : ℕ)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.evenA, [], List.replicate (m + 1) .pair ++ [.bottom]⟩ c') : False := by
   rcases c' with ⟨q', input', stack'⟩
-  simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
+  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
     List.replicate_succ]
-    using hstep
+    at hstep
 
 private lemma even_false_inv (m : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -349,18 +349,18 @@ private lemma no_step_readB_pair_nil (r : ℕ)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.readB, [], List.replicate (r + 1) .pair ++ [.bottom]⟩ c') : False := by
   rcases c' with ⟨q', input', stack'⟩
-  simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
+  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
     List.replicate_succ]
-    using hstep
+    at hstep
 
 private lemma no_step_readB_pair_false (r : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.readB, false :: rest, List.replicate (r + 1) .pair ++ [.bottom]⟩ c') : False := by
   rcases c' with ⟨q', input', stack'⟩
-  simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
+  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
     List.replicate_succ]
-    using hstep
+    at hstep
 
 private lemma readB_true_pair_inv (r : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -389,10 +389,10 @@ private lemma NumInv.step {w : List Bool}
         · have hc' := boundary_false_inv rest c' hstep
           subst c'
           refine ⟨p, hp, 0, ?_, by simp⟩
-          simpa [hw, List.append_assoc]
+          simp [hw]
         · rcases c' with ⟨q', input', stack'⟩
-          simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator,
-            DPDA.toPDA, transition, epsilon] using hstep
+          simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator,
+            DPDA.toPDA, transition, epsilon] at hstep
   · rcases hinv with ⟨p, hp, m, hw, hstack⟩
     subst stack
     cases input with
@@ -403,7 +403,7 @@ private lemma NumInv.step {w : List Bool}
         · have hc' := odd_false_inv m rest c' hstep
           subst c'
           refine ⟨p, m + 1, by omega, hp, ?_, by simp⟩
-          simpa [hw, replicate_two_mul_succ_false_append, List.append_assoc]
+          simp [hw, replicate_two_mul_succ_false_append, List.append_assoc]
         · exact False.elim (no_step_odd_true m rest c' hstep)
   · rcases hinv with ⟨p, m, hm, hp, hw, hstack⟩
     subst stack
@@ -418,11 +418,11 @@ private lemma NumInv.step {w : List Bool}
         · have hc' := even_false_inv m rest c' hstep
           subst c'
           refine ⟨p, hp, m + 1, ?_, by simp⟩
-          simpa [hw, replicate_succ_false_append, List.append_assoc]
+          simp [hw, replicate_succ_false_append, List.append_assoc]
         · have hc' := even_true_inv m rest c' hstep
           subst c'
           refine ⟨p, m + 1, m, by omega, hp, ?_, by simp⟩
-          simpa [hw, List.replicate_succ, List.append_assoc]
+          simp [hw, List.replicate_succ]
   · rcases hinv with ⟨p, m, r, hr, hp, hw, hstack⟩
     subst stack
     cases r with
@@ -431,7 +431,7 @@ private lemma NumInv.step {w : List Bool}
         subst c'
         refine ⟨rfl, p ++ (List.replicate (2 * m) false ++ List.replicate m true), ?_, ?_⟩
         · exact quotientNumerator_append_left_block hp (left_block_of_pos m (by omega))
-        · simpa [hw, List.append_assoc]
+        · simp [hw, List.append_assoc]
     | succ r =>
         cases input with
         | nil =>
@@ -444,7 +444,7 @@ private lemma NumInv.step {w : List Bool}
               refine ⟨p, m, r, by omega, hp, ?_, by simp⟩
               have hsub : m - r = (m - Nat.succ r) + 1 := by omega
               rw [hsub]
-              simpa [hw, List.replicate_add, List.append_assoc]
+              simp [hw, List.replicate_add, List.append_assoc]
 
 private lemma NumInv.reaches {w : List Bool}
     {c c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA}

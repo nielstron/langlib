@@ -78,7 +78,7 @@ public noncomputable def embPM (emb : Γ₁ → Γ₂) (hemb_default : emb defau
 /-- The relation between Γ₁ configs and Γ₂ configs under the alphabet lift. -/
 @[expose]
 public def liftRel (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
-    (hemb : ∀ a, inv (emb a) = a)
+    (_hemb : ∀ a, inv (emb a) = a)
     (hemb_default : emb default = default) :
     TM0.Cfg Γ₁ Λ → TM0.Cfg Γ₂ Λ → Prop :=
   fun c₁ c₂ => c₁.q = c₂.q ∧ c₂.Tape = c₁.Tape.map (embPM emb hemb_default)
@@ -185,6 +185,7 @@ public def liftInvRel (inv : Γ₂ → Γ₁) (hinv_default : inv default = defa
     TM0.Cfg Γ₁ Λ → TM0.Cfg Γ₂ Λ → Prop :=
   fun c₁ c₂ => c₁.q = c₂.q ∧ c₁.Tape = c₂.Tape.map (invPM inv hinv_default)
 
+omit [Inhabited Γ₂] in
 public theorem inv_liftWritePreserveDefaultFiber
     [DecidableEq Γ₁]
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
@@ -247,11 +248,11 @@ public theorem lift_preserveDefaultFiber_respects
       cases stmt with
       | move d =>
           refine ⟨q'', TM0.Stmt.move d, ?_, rfl⟩
-          simp [hhead, h]
+          simp [h]
       | write a =>
           refine ⟨q'', TM0.Stmt.write
             (liftWritePreserveDefaultFiber emb inv T'.head a), ?_, rfl⟩
-          simp [hhead, h]
+          simp [h]
 
 public theorem liftInv_init_rel
     (inv : Γ₂ → Γ₁) (hinv_default : inv default = default)
@@ -261,7 +262,7 @@ public theorem liftInv_init_rel
       (@TM0.init Γ₂ Λ _ _ l) := by
   constructor
   · rfl
-  · simp [liftInvRel, TM0.init, Tape.map_mk₁, invPM]
+  · simp [TM0.init, Tape.map_mk₁, invPM]
 
 /-- Evaluation preserves Dom for the inverse-default-fiber-preserving lift. -/
 public theorem lift_preserveDefaultFiber_eval_dom

@@ -217,7 +217,7 @@ public lemma restrictTerminalsRules_left {n : g.NT} {r' : ContextFreeRule T (g.N
     (hrg : r' ∈ restrictTerminalRules g.rules.toList) (hrn : r'.input = Sum.inl n) :
     ∃ r ∈ g.rules, r.input = n ∧ r.output = projectString r'.output := by
   unfold restrictTerminalRules at hrg
-  simp only [restrictTerminalRules, List.mem_toFinset, List.mem_flatten, List.mem_map,
+  simp only [List.mem_toFinset, List.mem_flatten, List.mem_map,
     Finset.mem_toList, exists_exists_and_eq_and] at hrg
   obtain ⟨r, hrg, hrr⟩ := hrg
   exact ⟨r, hrg, restrictTerminalRule_left hrr hrn⟩
@@ -276,7 +276,7 @@ public lemma restrictTerminals_derives_rightEmbedString_embedString {u : List (S
         constructor
         · apply List.subset_def.1; swap
           · exact terminal_mem_newTerminalRules htr
-          · simp only [restrictTerminals, restrictTerminalRules, restrictTerminalRule]
+          · simp only [restrictTerminals, restrictTerminalRules]
             intro r' hrr
             simp only [List.mem_dedup, List.mem_flatten, List.mem_map, Finset.mem_toList,
               exists_exists_and_eq_and]

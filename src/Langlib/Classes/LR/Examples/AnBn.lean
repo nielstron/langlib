@@ -51,20 +51,20 @@ private lemma anbn_rm_form_step {u v : List (symbol Bool Unit)}
       rcases hu with ( ⟨ n, rfl ⟩ | ⟨ n, rfl ⟩ );
       · rcases hstep with ⟨ r, hr, p, lookahead, hp, hv ⟩ ; simp_all +decide [ cfg_anbn ] ;
         rcases hr with ( rfl | rfl ) <;> simp +decide [ List.append_eq_append_iff ] at hp ⊢;
-        · rcases hp with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h₁, h₂ ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
+        · rcases hp with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h₁, h₂ ⟩ ) <;> simp_all +decide [  ];
           · cases as <;> simp_all +decide [ anbn_rm_form ];
             · left; use n + 1; simp_all +decide [ List.replicate ] ;
               exact Nat.recOn n ( by simp +decide ) fun n ihn => by simp +decide [ List.replicate ] at ihn ⊢ ; aesop;
             · replace h := congr_arg List.toFinset h.2; rw [ Finset.ext_iff ] at h; specialize h ( symbol.nonterminal () ) ; aesop;
-          · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
+          · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [  ];
             · refine' Or.inl ⟨ n + 1, _ ⟩ ; simp +decide [ ← h₁, List.replicate_add ];
               exact Nat.recOn n rfl fun n ih => by simp +decide [ List.replicate ] at * ; aesop;
             · replace h₂ := congr_arg List.toFinset h₂.2; rw [ Finset.ext_iff ] at h₂; specialize h₂ ( symbol.nonterminal () ) ; aesop;
-        · rcases hp with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h, h' ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-          · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
+        · rcases hp with ( ⟨ as, rfl, h ⟩ | ⟨ bs, h, h' ⟩ ) <;> simp_all +decide [  ];
+          · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [  ];
             · exact Or.inr ⟨ n, by aesop ⟩;
             · replace h := congr_arg List.toFinset h.2; rw [ Finset.ext_iff ] at h; specialize h ( symbol.nonterminal () ) ; aesop;
-          · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
+          · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [  ];
             · exact Or.inr ⟨ n, by aesop ⟩;
             · replace h' := congr_arg List.toFinset h'.2; rw [ Finset.ext_iff ] at h'; specialize h' ( symbol.nonterminal () ) ; aesop;
       · rcases hstep with ⟨ r, hr, p, lookahead, hp, hv ⟩;
@@ -87,7 +87,7 @@ private lemma anbn_rm_config {p : List (symbol Bool Unit)} {s : List Bool}
                 rcases this with ( ⟨ n, hn ⟩ | ⟨ n, hn ⟩ ) <;> simp_all +decide [ List.append_assoc ];
                 · have := congr_arg List.reverse hn; norm_num [ List.reverse_append ] at this;
                   replace this := congr_arg ( fun x => x.takeWhile ( fun y => y ≠ symbol.nonterminal () ) ) this ; simp_all +decide [ List.takeWhile_append ];
-                  split_ifs at this <;> simp_all +decide [ List.takeWhile_eq_self_iff ];
+                  split_ifs at this <;> simp_all +decide [  ];
                   · replace this := congr_arg List.reverse this ; simp_all +decide [ List.reverse_replicate ];
                     exact List.map_injective_iff.mpr ( by aesop_cat ) ( this.trans ( by aesop_cat ) );
                   · replace this := congr_arg List.length this ; simp_all +decide [ List.length_replicate ];
@@ -98,10 +98,10 @@ private lemma anbn_rm_config {p : List (symbol Bool Unit)} {s : List Bool}
 public theorem cfg_anbn_isLRk_zero : cfg_anbn.IsLRk 0 := by
   intro r₁ r₂ hr₁ hr₂ p₁ p₂ core s₁ s₂ h₁ h₂ h₃ h₄ h₅; cases h₅;
   cases' anbn_rm_config h₁ with n₁ hn₁ ; cases' anbn_rm_config h₂ with n₂ hn₂ ; simp_all +decide [ cfg_anbn ];
-  cases hr₁ <;> cases hr₂ <;> simp_all +decide [ cfg_anbn ];
+  cases hr₁ <;> cases hr₂ <;> simp_all +decide [  ];
   · replace h₃ := congr_arg List.length h₃ ; replace h₄ := congr_arg List.length h₄ ; simp_all +decide;
     lia;
-  · replace h₄ := congr_arg List.reverse h₄ ; simp_all +decide [ List.reverse_append ];
+  · replace h₄ := congr_arg List.reverse h₄ ; simp_all +decide [  ];
     replace h₄ := congr_arg List.toFinset h₄ ; simp_all +decide [ Finset.ext_iff ];
     specialize h₄ ( symbol.nonterminal () ) ; aesop;
   · replace h₄ := congr_arg List.reverse h₄ ; simp_all +decide [ List.reverse_append ];

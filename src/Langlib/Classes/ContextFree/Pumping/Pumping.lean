@@ -59,7 +59,7 @@ public theorem pidgeonhole {α β : Type*} {A : Finset α} {B : Finset β} {f : 
       have haa' : f ⟨a₁, ha₁⟩ = f ⟨a₂, ha₂⟩ := by
         rw [Finset.mem_coe] at ha₁ ha₂
         simp only [f', ha₁, ha₂] at haa
-        exact Subtype.eq haa
+        exact Subtype.ext haa
       simpa using hf haa'
 
 universe uT uN
@@ -143,7 +143,7 @@ public lemma subtree_repeat_root_height_ind {n : g.NT} {p : parseTree n}
       simp only [hxt, Subtype.mk.injEq] at hxy
       cases hy with
       | inl hyt =>
-        apply Subtype.eq
+        apply Subtype.ext
         rw [hxt, hyt]
       | inr hys =>
         exfalso
@@ -157,7 +157,7 @@ public lemma subtree_repeat_root_height_ind {n : g.NT} {p : parseTree n}
         exact was_goal.right n (hxy ▸ x.val.snd) (parseTree.leaf t hnt) (by convert hxs <;> aesop)
           (parseTree.IsSubtreeOf.refl)
       | inr hys =>
-        exact Subtype.eq (hs x hxs y hys (by simp_all))
+        exact Subtype.ext (hs x hxs y hys (by simp_all))
   | @node n₀ _ _ t₁ t₂ hnc ih₁ ih₂ =>
     if hn₀ : ∃ t₀ : parseTree n₀, ⟨n₀, t₀⟩ ∈ s then
       right

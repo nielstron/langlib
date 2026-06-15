@@ -196,25 +196,25 @@ public lemma RG_derives_form {g : RG_grammar T} {A : g.nt}
           rcases r with ( _ | _ | _ ) <;> simp_all +decide [ List.append_assoc ];
           · rw [ List.append_eq_append_iff ] at hu;
             rcases hu with ( ⟨ as, rfl, hu ⟩ | ⟨ bs, hu, hv ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [  ];
               exact Or.inl ⟨ p ++ [ ‹_› ], ‹_›, by simp +decide [ RG_rule.output ] ⟩;
-            · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.map ];
+            · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [  ];
               · exact Or.inl ⟨ p ++ [ ‹_› ], ‹_›, by aesop ⟩;
               · no_nonterminal (b) at hu
           · rw [ List.append_eq_append_iff ] at hu;
             rcases hu with ( ⟨ as, rfl, hu ⟩ | ⟨ bs, hu, hv ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [  ];
               exact Or.inr ⟨ p ++ [ ‹_› ], by simp +decide [ RG_rule.output ] ⟩;
-            · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.map ];
+            · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [  ];
               · exact Or.inr ⟨ p ++ [ ‹_› ], by aesop ⟩;
               · no_nonterminal (b) at hu
           · rw [ List.append_eq_append_iff ] at hu;
             rcases hu with ( ⟨ as, rfl, hu ⟩ | ⟨ bs, hu, hv ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
+            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [  ];
               exact Or.inr ⟨ p, by simp +decide [ RG_rule.output ] ⟩;
             · rcases bs with ( _ | ⟨ b, bs ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
               · exact Or.inr ⟨ p, by aesop ⟩;
-              · cases b <;> simp_all +decide [ List.map ];
+              · cases b <;> simp_all +decide [  ];
                 no_nonterminal at hu
         · cases h₂;
           rename_i r hr;
@@ -235,9 +235,9 @@ public lemma RG_transforms_of_terminal_nt {g : RG_grammar T} {p : List T} {C : g
     (RG_rule.epsilon C ∈ g.rules ∧ s = List.map symbol.terminal p) := by
       unfold RG_transforms at h ; rcases h with ⟨ r, hr, u, v, huv ⟩ ; simp_all +decide [ List.append_eq_append_iff ] ;
       rcases huv with ⟨ huv | huv, rfl ⟩;
-      · rcases huv with ⟨ as, rfl, h ⟩ ; rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ] ;
+      · rcases huv with ⟨ as, rfl, h ⟩ ; rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [  ] ;
         rcases r with ( _ | _ | _ ) <;> aesop;
-      · rcases huv with ⟨ bs, h₁, h₂ ⟩ ; rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [ List.map ] ;
+      · rcases huv with ⟨ bs, h₁, h₂ ⟩ ; rcases bs with ( _ | ⟨ a, bs ⟩ ) <;> simp_all +decide [  ] ;
         · rcases r with ( _ | _ | _ ) <;> aesop;
         · no_nonterminal (a) at h₁
 
@@ -265,7 +265,7 @@ public lemma RG_derives_snoc {g : RG_grammar T} {A B : g.nt}
               induction huv <;> aesop;
             cases w <;> aesop;
           rcases RG_derives_form hs' with ( ⟨ p, C, rfl ⟩ | ⟨ p, rfl ⟩ ) <;> simp_all +decide [ List.map_append ];
-          · rcases RG_transforms_of_terminal_nt hs with ( ⟨ a, D, h₁, h₂ ⟩ | ⟨ a, h₁, h₂ ⟩ | h₁ ) <;> simp_all +decide [ List.map_append ];
+          · rcases RG_transforms_of_terminal_nt hs with ( ⟨ a, D, h₁, h₂ ⟩ | ⟨ a, h₁, h₂ ⟩ | h₁ ) <;> simp_all +decide [  ];
             · replace h₂ := congr_arg List.reverse h₂ ; simp_all +decide [ List.reverse_append ];
               grind;
             · replace h₂ := congr_arg List.reverse h₂ ; simp_all +decide [ List.reverse_append ];
@@ -297,7 +297,7 @@ public lemma NFA_of_RG_some_backward {g : RG_grammar T}
         · cases r <;> simp_all +decide [ RG_rule.output ];
           rename_i k hk;
           have := hk;
-          have := RG_derives_form this; simp_all +decide [ RG_rule.output ] ;
+          have := RG_derives_form this; simp_all +decide [  ] ;
           rcases this with ( ⟨ p, C, h ⟩ | ⟨ p, h ⟩ ) <;> rcases p with ( _ | ⟨ _, _ | p ⟩ ) <;> simp_all +decide [ List.map ];
       · have := RG_derives_snoc ( show w' ++ [ a ] ≠ [ ] from by aesop ) h; simp_all +decide [ List.map_append ] ;
         obtain ⟨ C, hC₁, hC₂ ⟩ := this; specialize ih A hA C ( g.rule_nt_mem hC₂ ( by simp +decide [ RG_rule.nonterminals ] ) ) hC₁; simp_all +decide [ NFA.stepSet ] ;
@@ -323,12 +323,12 @@ public lemma RG_generates_last_step {g : RG_grammar T} {A : g.nt} {w : List T}
           · contrapose! h;
             cases h ; tauto;
         rcases RG_derives_form hs'.left with ( ⟨ p, C, rfl ⟩ | ⟨ p, rfl ⟩ );
-        · rcases RG_transforms_of_terminal_nt hs'.2 with ( ⟨ a, D, hD, h ⟩ | ⟨ a, hD, h ⟩ | h ) <;> simp_all +decide [ List.map ];
+        · rcases RG_transforms_of_terminal_nt hs'.2 with ( ⟨ a, D, hD, h ⟩ | ⟨ a, hD, h ⟩ | h ) <;> simp_all +decide [  ];
           · no_nonterminal (symbol.nonterminal D)
           · refine Or.inr ⟨ C, p, hs'.1, a, hD, ?_ ⟩;
             exact List.map_injective_iff.mpr ( show Function.Injective symbol.terminal from fun x y hxy => by cases hxy; rfl ) <| by simpa using h;
           · exact Or.inl ⟨ C, hs'.1, h.1 ⟩;
-        · rcases hs'.2 with ⟨ r, hr, ⟨ u, v, hu, hv ⟩ ⟩ ; simp_all +decide [ List.map_eq_map_iff ];
+        · rcases hs'.2 with ⟨ r, hr, ⟨ u, v, hu, hv ⟩ ⟩ ; simp_all +decide [  ];
           no_nonterminal (symbol.nonterminal r.lhs)
 
 /-
@@ -470,21 +470,21 @@ public lemma RG_of_DFA_derives_inv {σ : Type} [Fintype σ] (M : DFA T σ)
       · exact Or.inl ⟨ [ ], rfl ⟩;
       · rcases ‹_› with ( ⟨ p, rfl ⟩ | ⟨ p, rfl, hp ⟩ ) <;> simp_all +decide [ RG_transforms ];
         · rcases ih with ⟨ r, hr, u, v, hu, rfl ⟩ ; rcases r with ( _ | _ | _ ) <;> simp_all +decide [ RG_rule.lhs, RG_rule.output ] ;
-          · rcases List.append_eq_append_iff.mp hu.symm with ( ⟨ x, hx ⟩ | ⟨ x, hx ⟩ ) <;> simp_all +decide [ List.map ];
-            · rcases x with ( _ | ⟨ y, x ⟩ ) <;> simp_all +decide [ List.map ];
-              · unfold RG_of_DFA at hr; simp_all +decide [ Finset.mem_product ] ;
+          · rcases List.append_eq_append_iff.mp hu.symm with ( ⟨ x, hx ⟩ | ⟨ x, hx ⟩ ) <;> simp_all +decide [  ];
+            · rcases x with ( _ | ⟨ y, x ⟩ ) <;> simp_all +decide [  ];
+              · unfold RG_of_DFA at hr; simp_all +decide [  ] ;
                 exact Or.inl ⟨ p ++ [ ‹_› ], by aesop ⟩;
-              · rcases y with ( _ | _ ) <;> simp_all +decide [ List.map ];
+              · rcases y with ( _ | _ ) <;> simp_all +decide [  ];
                 replace hx := congr_arg List.toFinset hx.1; rw [ Finset.ext_iff ] at hx; specialize hx ( symbol.nonterminal ‹_› ) ; aesop;
-            · rcases x with ( _ | ⟨ _, _ | x ⟩ ) <;> simp_all +decide [ List.map ];
-              refine' Or.inl ⟨ p ++ [ ‹_› ], _ ⟩ ; simp +decide [ hx, DFA.evalFrom ];
+            · rcases x with ( _ | ⟨ _, _ | x ⟩ ) <;> simp_all +decide [  ];
+              refine' Or.inl ⟨ p ++ [ ‹_› ], _ ⟩ ; simp +decide [ DFA.evalFrom ];
               unfold RG_of_DFA at hr; aesop;
           · exact absurd hr ( RG_of_DFA_no_single M _ _ );
           · rw [ List.append_eq_append_iff ] at hu;
             rcases hu with ( ⟨ as, rfl, hu ⟩ | ⟨ bs, hu, hv ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
+            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [  ];
               exact Or.inr ⟨ p, rfl, by simpa [ hu.1 ] using RG_of_DFA_epsilon_mem_iff M _ |>.1 hr ⟩;
-            · cases bs <;> simp_all +decide [ List.map ];
+            · cases bs <;> simp_all +decide [  ];
               · exact Or.inr ⟨ p, hu.symm, by simpa [ RG_of_DFA_epsilon_mem_iff ] using hr ⟩;
               · no_nonterminal (symbol.nonterminal ‹_›) at hu
         · obtain ⟨ r, hr, u, v, huv, rfl ⟩ := ih;

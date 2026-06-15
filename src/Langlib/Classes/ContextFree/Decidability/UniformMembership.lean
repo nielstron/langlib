@@ -172,13 +172,13 @@ public lemma matchRHS_sound (G : EncodedCFG T) (w : List T)
     · rename_i h;
       intro x hx hx';
       rcases hstart' : w[x]? with ( _ | c ) <;> simp +decide [ hstart' ] at hx' ⊢;
-      rcases h startPos x hstart hx with ⟨ hx₁, hx₂, hx₃ ⟩ ; simp +decide [ hx', hx₁, hx₂, hx₃ ];
+      rcases h startPos x hstart hx with ⟨ hx₁, hx₂, hx₃ ⟩ ; simp +decide [ hx' ];
       refine' ⟨ Nat.le_succ_of_le hx₁, lt_of_le_of_ne hx₂ _, _ ⟩;
       · rintro rfl; simp +decide at hstart';
       · convert CF_deri_with_postfix _ hx₃ using 1;
         rw [ Nat.sub_add_comm hx₁ ];
         rw [ List.take_add_one ];
-        simp +decide [ List.getElem?_eq_getElem, hx₁, hx₂, hstart' ];
+        simp +decide [ hx₁, hstart' ];
         exact hx'.1.symm ▸ rfl
 
 /-
@@ -285,7 +285,7 @@ public lemma matchRHS_cons (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ)
   -- By definition of `matchRHS`, we can unfold it to show that it applies the step function to each element in the list.
   have h_matchRHS_step : ∀ (l : List (ℕ ⊕ T)) (startPos : ℕ), matchRHS w nc S l startPos = l.foldl (fun positions sym => positions.flatMap (fun pos => matchOneSym w nc S sym pos)) [startPos] := by
     congr! 3;
-  induction' rest using List.reverseRecOn with rest ih generalizing startPos <;> simp_all +decide [ matchRHS_foldl_append ];
+  induction' rest using List.reverseRecOn with rest ih generalizing startPos <;> simp_all +decide [  ];
   · unfold matchRHS; aesop;
   · induction' ( matchOneSym w nc S sym startPos ) using List.reverseRecOn with l ih <;> simp_all +decide [ List.flatMap ]
 
@@ -343,7 +343,7 @@ private lemma matchRHS_complete (G : EncodedCFG T) (w : List T)
         simpa using h_take.symm;
       · convert hv using 1;
         rw [ show endPos - ( startPos + u.length ) = ( endPos - startPos ) - u.length by rw [ Nat.sub_sub ] ];
-        replace huv := congr_arg ( fun x => x.drop u.length ) huv ; simp_all +decide [ List.drop_append ];
+        replace huv := congr_arg ( fun x => x.drop u.length ) huv ; simp_all +decide [  ];
         rw [ List.drop_take ];
         rw [ List.drop_drop ];
     -- By definition of `matchOneSym`, we know that `midPos ∈ matchOneSym w G.ntCount S sym startPos`.
@@ -354,27 +354,27 @@ private lemma matchRHS_complete (G : EncodedCFG T) (w : List T)
         · cases h.eq_or_lt <;> first | linarith | simp_all +decide [ List.drop_eq_nil_of_le ] ;
           have := hmidPos.2.2.1;
           have := this.cases_head; simp_all +decide [ CF_transforms ] ;
-          rcases this with ⟨ a, b, x, y, h, h' ⟩ ; rcases x with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide [ List.append_assoc ] ;
+          rcases this with ⟨ a, b, x, y, h, h' ⟩ ; rcases x with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide [  ] ;
           cases h.2.1;
-        · rcases k : midPos - startPos with ( _ | _ | k ) <;> simp_all +decide [ List.take ];
-          · have := hmidPos.2.2.1; simp_all +decide [ CF_transforms ] ;
+        · rcases k : midPos - startPos with ( _ | _ | k ) <;> simp_all +decide [  ];
+          · have := hmidPos.2.2.1; simp_all +decide [  ] ;
             contrapose! this;
             intro h;
             have := h.cases_head; simp_all +decide [ CF_transforms ] ;
-            rcases this with ⟨ a, b, x, y, h, h' ⟩ ; rcases x with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide [ List.append_assoc ] ;
+            rcases this with ⟨ a, b, x, y, h, h' ⟩ ; rcases x with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide [  ] ;
             cases h.2.1;
           · rw [ Nat.sub_eq_iff_eq_add ] at k <;> try linarith;
             have := hmidPos.2.2.1;
             have := this.cases_head; simp_all +decide [ CF_transforms ] ;
             cases this <;> simp_all +decide [ add_comm, List.take_add_one ];
             · cases ‹_› ; aesop;
-            · rename_i h; rcases h with ⟨ a, b, x, y, h₁, h₂ ⟩ ; rcases x with ( _ | ⟨ x, x ⟩ ) <;> rcases y with ( _ | ⟨ y, y ⟩ ) <;> simp_all +decide [ List.append_assoc ] ;
+            · rename_i h; rcases h with ⟨ a, b, x, y, h₁, h₂ ⟩ ; rcases x with ( _ | ⟨ x, x ⟩ ) <;> rcases y with ( _ | ⟨ y, y ⟩ ) <;> simp_all +decide [  ] ;
               cases h₁.2;
           · have := hmidPos.2.2.1.cases_head; simp_all +decide [ CF_transforms ] ;
-            rcases this with ( h | ⟨ a, b, x, y, h, h' ⟩ ) <;> simp_all +decide [ List.take ];
+            rcases this with ( h | ⟨ a, b, x, y, h, h' ⟩ ) <;> simp_all +decide [  ];
             · replace h := congr_arg List.length h ; simp_all +arith +decide;
               omega;
-            · cases x <;> cases y <;> simp_all +decide [ List.append_assoc ];
+            · cases x <;> cases y <;> simp_all +decide [  ];
               cases h.2;
     rw [ matchRHS_cons ];
     simp +zetaDelta at *;
@@ -402,14 +402,14 @@ public lemma mem_satStep_of_matchRHS (nc : ℕ) (rules : List (ℕ × List (ℕ 
   revert hrule;
   induction' rules using List.reverseRecOn with rules' rule ih <;> simp_all +decide [ satStep ];
   intro h;
-  cases h <;> simp_all +decide [ List.foldl_append ];
+  cases h <;> simp_all +decide [  ];
   · apply foldl_append_mono;
     · intro S_1 a t ht; induction' ( matchRHS w nc S rule.2 a ) using List.reverseRecOn with endPos endPos' ih <;> aesop;
     · assumption;
   · have h_foldl_append : ∀ (l : List ℕ) (init : List (ℕ × ℕ × ℕ)), startPos ∈ l → (lhs % nc, startPos, endPos) ∈ List.foldl (fun S'' startPos => List.foldl (fun S''' endPos => if (lhs % nc, startPos, endPos) ∈ S''' then S''' else S''' ++ [(lhs % nc, startPos, endPos)]) S'' (matchRHS w nc S rhs startPos)) init l := by
       intros l init hstartPos
       induction' l using List.reverseRecOn with l' startPos ih generalizing init <;> simp_all +decide [ List.foldl_append ];
-      cases hstartPos <;> simp_all +decide [ List.foldl_append ];
+      cases hstartPos <;> simp_all +decide [  ];
       · induction' ( matchRHS w nc S rhs startPos ) using List.reverseRecOn with endPos endPos ih <;> simp_all +decide [ List.foldl_append ];
         grind;
       · have h_foldl_append : ∀ (l : List ℕ) (init : List (ℕ × ℕ × ℕ)), endPos ∈ l → (lhs % nc, startPos, endPos) ∈ List.foldl (fun S''' endPos => if (lhs % nc, startPos, endPos) ∈ S''' then S''' else S''' ++ [(lhs % nc, startPos, endPos)]) init l := by
@@ -437,6 +437,7 @@ public lemma matchRHS_mono (w : List T) (nc : ℕ) (S₁ S₂ : List (ℕ × ℕ
 
 /-! ## Additional splitting lemmas -/
 
+omit [DecidableEq T] in
 private lemma terminal_concat_split {N : Type} {u v : List (symbol T N)} {w : List T}
     (h : u ++ v = List.map symbol.terminal w) :
     ∃ w₁ w₂, w = w₁ ++ w₂ ∧ u = List.map symbol.terminal w₁ ∧ v = List.map symbol.terminal w₂ := by
@@ -445,6 +446,7 @@ private lemma terminal_concat_split {N : Type} {u v : List (symbol T N)} {w : Li
   · cases w <;> simp_all +decide [ List.map ];
     grind
 
+omit [DecidableEq T] in
 public lemma terminal_derives_in_self (g : CF_grammar T) (t : T) (n : ℕ) (w : List T)
     (h : CF_derives_in g n [symbol.terminal t] (List.map symbol.terminal w)) :
     n = 0 ∧ w = [t] := by
@@ -503,7 +505,7 @@ public lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
       ((w.drop startPos |>.take (endPos - startPos)).map symbol.terminal)) :
     ∃ bound, endPos ∈ matchRHS w G.ntCount (satFixpoint G.ntCount G.rawRules w bound) rhs startPos := by
   induction' rhs with sym rhs ih generalizing startPos endPos nder;
-  · unfold matchRHS; simp +decide [ hstart, hend ] ;
+  · unfold matchRHS; simp +decide ;
     cases nder <;> simp_all +decide [ CF_derives_in ];
     · omega;
     · obtain ⟨ w₂, hw₂₁, hw₂₂ ⟩ := hder; have := hw₂₁; simp_all +decide [ CF_transforms ] ;
@@ -519,10 +521,10 @@ public lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
           omega;
         · convert hu using 1;
           convert congr_arg ( map symbol.terminal ) ( congr_arg ( take w₁.length ) hw₁₂ ) using 1;
-          · simp +decide [ List.take_take, List.drop_take ];
+          · simp +decide [ List.take_take ];
             replace hw₁₂ := congr_arg List.length hw₁₂ ; simp_all +decide [ List.length_take, List.length_drop ];
             exact le_trans ( Nat.le_add_right _ _ ) ( hw₁₂ ▸ min_le_right _ _ );
-          · simp +decide [ List.take_append ];
+          · simp +decide;
       obtain ⟨bound₂, hbound₂⟩ : ∃ bound₂, endPos ∈ matchRHS w G.ntCount (satFixpoint G.ntCount G.rawRules w bound₂) rhs (startPos + w₁.length) := by
         apply ih (startPos + w₁.length) endPos (by
         replace hw₁₂ := congr_arg List.length hw₁₂ ; simp_all +decide [ List.length_append ] ; omega;) (by
@@ -534,18 +536,18 @@ public lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
         · convert congr_arg ( fun x => drop w₁.length x ) hw₁₂ using 1;
           · rw [ List.drop_take ];
             rw [ Nat.sub_sub, List.drop_drop ];
-          · simp +decide [ List.drop_append ]);
+          · simp +decide);
       use max bound₁ bound₂;
       refine' ⟨ startPos + w₁.length, _, _ ⟩;
-      · unfold matchOneSym; simp +decide [ hbound₁ ] ;
+      · unfold matchOneSym; simp +decide ;
         exact satFixpoint_mono _ _ _ _ _ ( Nat.le_max_left _ _ ) _ hbound₁;
       · exact matchRHS_mono _ _ _ _ ( fun t ht => satFixpoint_mono _ _ _ _ _ ( le_max_right _ _ ) _ ht ) _ _ _ hbound₂;
     · have := terminal_derives_in_self G.toCFGrammar t n₁ w₁ hu; simp_all +decide [ matchOneSym ] ;
       have h_substring : w[startPos]? = some t := by
-        replace hw₁₂ := congr_arg List.head? hw₁₂; simp_all +decide [ List.getElem?_eq_getElem ] ;
+        replace hw₁₂ := congr_arg List.head? hw₁₂; simp_all +decide [  ] ;
         rw [ List.head?_take ] at hw₁₂ ; aesop;
       obtain ⟨ bound, hbound ⟩ := ih ( startPos + 1 ) endPos ( by
-        cases hstart.eq_or_lt <;> simp_all +decide [ List.getElem?_eq_none ] ) ( by
+        cases hstart.eq_or_lt <;> simp_all +decide [  ] ) ( by
         linarith ) n₂ ( by linarith ) ( by
         convert hv using 1;
         convert congr_arg ( fun x => x.tail.map symbol.terminal ) hw₁₂ using 1;
@@ -595,7 +597,7 @@ public lemma satStep_prefix (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) 
   rw [ ← hk ];
   induction' ( range ( w.length + 1 ) ) using List.reverseRecOn with startPos ih <;> simp_all +decide [ List.range_succ ];
   · exact hk ▸ List.prefix_append _ _;
-  · induction' ( matchRHS w nc S ‹ℕ × List ( ℕ ⊕ T ) ›.2 ih ) using List.reverseRecOn with endPos ih <;> simp_all +decide [ List.range_succ ];
+  · induction' ( matchRHS w nc S ‹ℕ × List ( ℕ ⊕ T ) ›.2 ih ) using List.reverseRecOn with endPos ih <;> simp_all +decide [  ];
     grind
 
 /-
@@ -606,7 +608,7 @@ public lemma satStep_fst_bound (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T)
     (hnc : 0 < nc)
     (hS : ∀ nt' i' j', (nt', i', j') ∈ S → nt' < nc)
     (h : (nt, i, j) ∈ satStep nc rules w S) : nt < nc := by
-  have := mem_satStep_iff nc rules w S nt i j; simp_all +arith +decide [ Nat.mod_lt ] ;
+  have := mem_satStep_iff nc rules w S nt i j; simp_all +arith +decide [  ] ;
   rcases this with ( h | ⟨ a, b, h₁, h₂, rfl, h₃ ⟩ ) <;> [ exact hS _ _ _ h; exact Nat.mod_lt _ hnc ]
 
 /-

@@ -196,8 +196,7 @@ private lemma dpda_any_eq_complete (n m : ℕ) :
           @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
             ⟨AnyEqState.start, replicate (m + 1) b_ ++ restC, [bottom]⟩
             ⟨AnyEqState.seenB, replicate m b_ ++ restC, [mark, bottom]⟩ := by
-        convert Relation.ReflTransGen.single (any_eq_step_read_b_start (replicate m b_ ++ restC)) using 1 <;>
-          simp +decide [List.replicate]
+        convert Relation.ReflTransGen.single (any_eq_step_read_b_start (replicate m b_ ++ restC)) using 1
       have h_bs :
           @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
             ⟨AnyEqState.seenB, replicate m b_ ++ restC, [mark, bottom]⟩
@@ -225,7 +224,7 @@ private lemma dpda_any_eq_complete (n m : ℕ) :
           (Relation.ReflTransGen.trans h_b0
             (Relation.ReflTransGen.trans h_bs
               (Relation.ReflTransGen.trans h_c0
-                (Relation.ReflTransGen.trans h_cs h_eps)))) using 1 <;>
+                (Relation.ReflTransGen.trans h_cs h_eps)))) using 1 ;
         simp +decide [List.append_assoc, restC]
 
 private def AnyEqInv (w : List (Fin 3))
@@ -252,7 +251,7 @@ private lemma any_eq_inv_step_state_start (w input : List (Fin 3))
     simp_all +decide [dpda_any_eq, DPDA.toPDA]
   · fin_cases x <;> simp_all +decide [PDA.Reaches₁, PDA.step, dpda_any_eq, DPDA.toPDA]
     · refine ⟨na + 1, 0, 0, ?_, ?_⟩
-      · simp +decide [a_, List.append_assoc]
+      · simp +decide [a_]
         simpa [a_] using replicate_append_cons_eq na a_ rest
       · left
         simp
@@ -301,8 +300,8 @@ private lemma any_eq_inv_step_state_seenC (w : List (Fin 3)) (na nb nc : ℕ)
       have hnc_eq : nc = nb := by omega
       rcases input with _ | ⟨x, rest⟩ <;>
         simp_all +decide [PDA.Reaches₁, PDA.step, dpda_any_eq, DPDA.toPDA]
-      · exact ⟨na, nb, nb, by simpa [hnc_eq] using hw, by aesop⟩
-      · exact ⟨na, nb, nb, by simpa [hnc_eq] using hw, by aesop⟩
+      · exact ⟨na, nb, nb, by simp, by aesop⟩
+      · exact ⟨na, nb, nb, by simp, by aesop⟩
   | succ k =>
       rcases input with _ | ⟨x, rest⟩
       · exfalso

@@ -296,9 +296,7 @@ by
             (List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u ++
               lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) v) =
             List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u := by
-        simp [List.take_left
-            (l₁ := List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u)
-            (l₂ := lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) v)]
+        simp
       rw [List.length_map] at takenl
       exact takenl.symm
     have nth_equ := congr_fun (congr_arg List.nth ass) n
@@ -354,7 +352,7 @@ by
           have : symbol.nonterminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt))
               (some (Sum.inl (β := g₂.nt) a)) =
               symbol.terminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt)) (w.nthLe n n_lt_wl') := by
-            simpa [sTN_of_sTN₁, h_u, h_u_eq, h_w_eq] using nth_equ
+            simp [sTN_of_sTN₁, h_u, h_w_eq] at nth_equ
           cases this
     have nth_eq : u.nth n = (List.map (@symbol.terminal T g₁.nt) w).nth n := by
       calc
@@ -484,7 +482,7 @@ by
           calc
             v.nth n = some (v.nthLe n h) := List.nthLe_nth (h := h)
             _ = some (symbol.terminal (w.nthLe (u.length + n) hunltw)) := by
-              simpa [sTN_of_sTN₂, h_v, ha] using nth_equ_simplified''
+              simp [h_v, ha]
             _ = (List.drop u.length (List.map (@symbol.terminal T g₂.nt) w)).nth n := by
               rw [List.nth_drop]
               simp [nth_map_eq]
@@ -500,7 +498,7 @@ by
         have : symbol.nonterminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt))
             (some (Sum.inr (α := g₁.nt) a)) =
             symbol.terminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt)) (w.nthLe (u.length + n) hunltw) := by
-          simpa [sTN_of_sTN₂, h_v] using nth_equ_simplified''
+          simp [sTN_of_sTN₂, h_v] at nth_equ_simplified''
         cases this
   ·
     have h' : v.length ≤ n := by

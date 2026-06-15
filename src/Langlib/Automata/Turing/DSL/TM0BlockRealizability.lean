@@ -321,7 +321,7 @@ theorem tm0RealizesBlockSep_iterate {Γ : Type} [Inhabited Γ]
   · refine' ⟨Fin 2, inferInstance, inferInstance, fun _ _ => none, ?_⟩
     intro block suffix hblock_nd hblock_nsep hsuffix_nd hfblock_nd hfblock_nsep
     unfold TM0Seq.evalCfg
-    simp +decide [TM0Seq.evalCfg]
+    simp +decide
     unfold eval
     simp +decide [TM0.step]
     unfold PFun.fix
@@ -343,7 +343,7 @@ theorem tm0RealizesBlockSepAnySuffix_iterate {Γ : Type} [Inhabited Γ]
       refine ⟨Fin 2, inferInstance, inferInstance, fun _ _ => none, ?_⟩
       intro block suffix _hblock_nd _hblock_nsep _hfblock_nd _hfblock_nsep
       unfold TM0Seq.evalCfg
-      simp +decide [TM0Seq.evalCfg]
+      simp +decide
       unfold eval
       simp +decide [TM0.step]
       unfold PFun.fix
@@ -365,7 +365,7 @@ theorem tm0RealizesBlock_iterate {Γ : Type} [Inhabited Γ]
     exact inferInstance;
     exact fun _ _ => none;
     intro block suffix hblock_nd hsuffix_nd hfblock_nd
-    unfold TM0Seq.evalCfg; simp +decide [ TM0Seq.evalCfg ] ;
+    unfold TM0Seq.evalCfg; simp +decide ;
     unfold eval; simp +decide [ TM0.step ] ;
     unfold PFun.fix; simp +decide [ TM0.init ] ;
     grind +suggestions;
@@ -479,7 +479,7 @@ public theorem consSimpleMachine_halts {Γ : Type} [Inhabited Γ] [DecidableEq �
 public theorem tape_write_move_left_mk₁ {Γ : Type} [Inhabited Γ]
     (c : Γ) (l : List Γ) :
     Tape.write c (Tape.move Dir.left (Tape.mk₁ l)) = Tape.mk₁ (c :: l) := by
-  cases l <;> simp [Tape.mk₁, ListBlank.mk, Tape.move, Tape.write];
+  cases l <;> simp [Tape.mk₁, Tape.move, Tape.write];
   · unfold Tape.mk₂;
     unfold Tape.mk'; simp +decide [ ListBlank.mk ] ;
     exact ⟨ rfl, rfl, rfl ⟩;
@@ -546,7 +546,7 @@ public theorem tm0_id_blockSep_anySuffix {Γ : Type} [Inhabited Γ]
   refine ⟨Fin 2, inferInstance, inferInstance, fun _ _ => none, ?_⟩
   intro block suffix _hblock_nd _hblock_nsep _hfblock_nd _hfblock_nsep
   unfold TM0Seq.evalCfg
-  simp +decide [TM0Seq.evalCfg]
+  simp +decide
   unfold eval
   simp +decide [TM0.step]
   unfold PFun.fix

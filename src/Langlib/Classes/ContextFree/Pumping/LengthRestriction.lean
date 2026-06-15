@@ -290,7 +290,7 @@ public lemma left_not_mem_computeRulesRec {n : g.NT} {r : ContextFreeRule T g.NT
   | zero =>
     unfold computeRulesRec
     split
-    · simp only [List.mem_singleton, ne_eq]
+    · simp only [List.mem_singleton]
       intro hr'
       rw [hr'] at hrn
       simp at hrn
@@ -298,7 +298,7 @@ public lemma left_not_mem_computeRulesRec {n : g.NT} {r : ContextFreeRule T g.NT
   | succ _ ih =>
     unfold computeRulesRec
     split
-    · simp only [List.mem_cons, not_or, ne_eq]
+    · simp only [List.mem_cons, not_or]
       constructor
       · intro h
         rw [h] at hrn
@@ -466,7 +466,7 @@ public lemma computeRulesRec_derives [DecidableEq T] [DecidableEq g.NT] {r : Con
         exact ih _ hx₂
     · rename_i hn
       obtain ⟨n₁, hn₁⟩ := hr.mem_nonterminal ⟨r.output.length - 2 - (n + 1), by omega⟩ (by omega)
-      simp only [Fin.getElem_fin, List.map_drop] at hn₁
+      simp only [Fin.getElem_fin] at hn₁
       exfalso
       apply hn _ hn₁
 

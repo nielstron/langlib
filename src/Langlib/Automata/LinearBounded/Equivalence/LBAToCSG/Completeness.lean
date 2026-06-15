@@ -102,10 +102,10 @@ theorem CS_transforms_of_set (g : CS_grammar T) (L : List (symbol T g.nt)) (k : 
     (hrule : (⟨[], A, [], [out]⟩ : csrule T g.nt) ∈ g.rules) :
     CS_transforms g L (L.set k out) := by
   refine ⟨⟨[], A, [], [out]⟩, L.take k, L.drop (k + 1), hrule, ?_, ?_⟩
-  · simp only [List.nil_append, List.append_nil]
+  · simp only [List.append_nil]
     conv_lhs => rw [← List.take_append_drop k L, ← List.cons_getElem_drop_succ (h := hk)]
     rw [hLk]; simp
-  · simp only [List.nil_append, List.append_nil]
+  · simp only [List.append_nil]
     rw [List.set_eq_take_cons_drop out hk]; simp
 
 /-- Split a list around two adjacent positions `k`, `k+1`. -/
@@ -141,10 +141,10 @@ theorem CS_transforms_of_set_ctxL (g : CS_grammar T) (L : List (symbol T g.nt)) 
     CS_transforms g L (L.set (k + 1) out) := by
   refine ⟨⟨[L[k]'(by omega)], A, [], [out]⟩, L.take k, L.drop (k + 2), hrule, ?_, ?_⟩
   · conv_lhs => rw [list_two_split L k hk, hLk1]
-    simp only [List.singleton_append, List.nil_append, List.append_nil, List.append_assoc,
+    simp only [List.nil_append, List.append_nil, List.append_assoc,
       List.cons_append]
   · rw [List.set_eq_take_cons_drop out hk, ← List.take_concat_get' L k (by omega)]
-    simp only [List.singleton_append, List.nil_append, List.append_nil, List.append_assoc,
+    simp only [List.nil_append, List.append_nil, List.append_assoc,
       List.cons_append]
 
 /-- Two-sided context rewrite at position `j+1` (`= L.set (j+1) out`). -/
@@ -157,13 +157,13 @@ theorem CS_transforms_of_set_ctxLR (g : CS_grammar T) (L : List (symbol T g.nt))
   · conv_lhs => rw [list_two_split L j (by omega),
       show L.drop (j + 2) = L[j + 2] :: L.drop (j + 3) from
         (List.cons_getElem_drop_succ (n := j + 2) (h := hj)).symm, hLk]
-    simp only [List.singleton_append, List.nil_append, List.append_nil, List.append_assoc,
+    simp only [List.nil_append, List.append_assoc,
       List.cons_append]
   · rw [List.set_eq_take_cons_drop out (by omega : j + 1 < L.length),
       ← List.take_concat_get' L j (by omega),
       show L.drop (j + 2) = L[j + 2] :: L.drop (j + 3) from
         (List.cons_getElem_drop_succ (n := j + 2) (h := hj)).symm]
-    simp only [List.singleton_append, List.nil_append, List.append_nil, List.append_assoc,
+    simp only [List.nil_append, List.append_assoc,
       List.cons_append]
 
 /-- Two-sided context rewrite at position `k ≥ 1` (`= L.set k out`); avoids `j+1` mismatch. -/
@@ -212,6 +212,7 @@ def auxCells (embed : T → Γ) : List T → List (symbol T (MyhillNT T Γ Λ))
   | [t] => [cellSym false true none (embed t) t]
   | t :: t' :: rest => cellSym false false none (embed t) t :: auxCells embed (t' :: rest)
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 @[simp]
 theorem auxCells_length (embed : T → Γ) (ts : List T) :
     (auxCells (Λ := Λ) embed ts).length = ts.length := by
@@ -222,6 +223,7 @@ theorem auxCells_length (embed : T → Γ) (ts : List T) :
       | nil => rfl
       | cons t' rest' => simp [auxCells, ih]
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- Unfolding `auxCells` on a cons whose tail is non-empty (`a :: l` matches clause 3). -/
 theorem auxCells_cons (embed : T → Γ) (a : T) (l : List T) (hl : l ≠ []) :
     auxCells (Λ := Λ) embed (a :: l) = cellSym false false none (embed a) a :: auxCells embed l := by
@@ -229,6 +231,7 @@ theorem auxCells_cons (embed : T → Γ) (a : T) (l : List T) (hl : l ≠ []) :
   | nil => exact absurd rfl hl
   | cons t' rest => rfl
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- `auxCells` of an `ofFn` list is the positional `ofFn` of the corresponding cells:
 `lb = false`, `q = none`, `rb = (i = m)`. -/
 theorem auxCells_ofFn (embed : T → Γ) :
@@ -250,6 +253,7 @@ theorem auxCells_ofFn (embed : T → Γ) :
           rw [Fin.val_succ]; exact decide_eq_decide.mpr (by omega)
         rw [h]
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Right-to-left middle build.** Starting from `startAux :: tail`, repeatedly applying the
 middle-cell rule (`startAux → [startAux, cell]`) lays the `none` cells for `mids` immediately to
 the right of `startAux`, in order. Applying the inductive hypothesis *first* (building `ts` to
@@ -269,6 +273,7 @@ theorem preRow (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (mids : List T)
         [], ts.map (fun t => cellSym false false none (embed t) t) ++ tail,
         middle_cell_init_rule_mem M embed t, by simp, by simp⟩
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- `auxCells` splits as the `none`-cells for all but the last input, followed by the single
 `rb = true` cell for the last input. This is the shape produced by the right-to-left build:
 the rightmost cell comes from the `start` rule, the middles from `preRow`. -/
@@ -294,6 +299,7 @@ def startCells (M : LBA.Machine Γ Λ) (embed : T → Γ) :
   | t :: t' :: rest =>
       cellSym true false (some M.initial) (embed t) t :: auxCells embed (t' :: rest)
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 @[simp]
 theorem startCells_length (M : LBA.Machine Γ Λ) (embed : T → Γ) (ts : List T) :
     (startCells M embed ts).length = ts.length := by
@@ -304,6 +310,7 @@ theorem startCells_length (M : LBA.Machine Γ Λ) (embed : T → Γ) (ts : List 
       | nil => rfl
       | cons t' rest' => simp [startCells, auxCells_length]
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Start phase.** `start ⇒* startCells ts` for any non-empty input list `ts`; this is the
 initial sentential form encoding the LBA's initial configuration on `ts`. -/
 theorem start_phase (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (ts : List T) (h : ts ≠ []) :
@@ -340,9 +347,10 @@ theorem start_phase (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (ts : List T) (h 
                 ++ [cellSym false true none (embed last) last],
             left_cell_init_rule_mem M embed t, by simp, ?_⟩
           -- the result equals `startCells (t :: t' :: rest')`
-          simp only [startCells, List.nil_append, List.singleton_append, List.cons_append]
+          simp only [startCells, List.nil_append, List.cons_append]
           rw [auxCells_split (Λ := Λ) embed (t' :: rest') htlne, ← hlastdef]
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- Unfolding `startCells` on a cons whose tail is non-empty (`a :: l` matches clause 3). -/
 theorem startCells_cons (M : LBA.Machine Γ Λ) (embed : T → Γ) (a : T) (l : List T)
     (hl : l ≠ []) :
@@ -352,6 +360,7 @@ theorem startCells_cons (M : LBA.Machine Γ Λ) (embed : T → Γ) (a : T) (l : 
   | nil => exact absurd rfl hl
   | cons t' rest => rfl
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Start-phase bridge.** The cons-list `startCells` equals the positional `encode` of the
 initial configuration (head at `0`, state `M.initial`, tape `embed ∘ worig`). This connects
 `start_phase` to the `encode`-based run simulation. -/
@@ -387,6 +396,7 @@ theorem startCells_eq_encode (M : LBA.Machine Γ Λ) (embed : T → Γ) {m : ℕ
 
 /-! ### Step simulation: the `stay` case -/
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **`step_sim`, stay case.** A `stay` transition of the LBA is mirrored by a single
 context-sensitive derivation step on the encodings (rewrite the head cell in place). -/
 theorem step_sim_stay (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : Fin (n + 1) → T)
@@ -410,35 +420,43 @@ theorem step_sim_stay (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : Fin (n
     _ _ hLk (sim_stay_rule_mem M embed cfg.state q' cfg.tape.read a' (worig cfg.tape.head)
       (decide (cfg.tape.head.val = 0)) (decide (cfg.tape.head.val = n)) htrans)
 
+omit [Fintype Γ] [DecidableEq Γ] in
 /-- Moving right at the right boundary is clamped (no movement). -/
 theorem moveHead_right_at_right (t : DLBA.BoundedTape Γ n) (hb : t.head.val = n) :
     t.moveHead DLBA.Dir.right = t := by
   simp [DLBA.BoundedTape.moveHead, hb]
 
+omit [Fintype Γ] [DecidableEq Γ] in
 /-- Moving left at the left boundary is clamped (no movement). -/
 theorem moveHead_left_at_left (t : DLBA.BoundedTape Γ n) (hb : t.head.val = 0) :
     t.moveHead DLBA.Dir.left = t := by
   simp [DLBA.BoundedTape.moveHead, hb]
 
+omit [Fintype Γ] [DecidableEq Γ] in
 /-- A `stay` move leaves the tape unchanged. -/
 theorem moveHead_stay (t : DLBA.BoundedTape Γ n) : t.moveHead DLBA.Dir.stay = t := by
   simp [DLBA.BoundedTape.moveHead]
 
+omit [Fintype Γ] [DecidableEq Γ] in
 /-- `moveHead` never changes the tape contents. -/
 theorem moveHead_contents (t : DLBA.BoundedTape Γ n) (d : DLBA.Dir) :
     (t.moveHead d).contents = t.contents := by
   cases d <;> rfl
 
+omit [Fintype Γ] [DecidableEq Γ] in
 /-- An interior `right` move increments the head position. -/
 theorem moveHead_right_head_lt (t : DLBA.BoundedTape Γ n) (h : t.head.val < n) :
     (t.moveHead DLBA.Dir.right).head.val = t.head.val + 1 := by
   simp [DLBA.BoundedTape.moveHead, h]
 
+omit [Fintype Γ] [DecidableEq Γ] in
 /-- An interior `left` move decrements the head position. -/
 theorem moveHead_left_head_pos (t : DLBA.BoundedTape Γ n) (h : 0 < t.head.val) :
     (t.moveHead DLBA.Dir.left).head.val = t.head.val - 1 := by
   simp [DLBA.BoundedTape.moveHead, h]
 
+omit [Fintype T] [Fintype Λ] [DecidableEq T] [DecidableEq Λ] in
+omit [Fintype Γ] [DecidableEq Γ] in
 /-- An interior `right` step changes exactly the head cell (head leaves, symbol `a'` written)
 and its right neighbour (head arrives with state `q'`). -/
 theorem encode_right_interior (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n) (q' : Λ) (a' : Γ)
@@ -466,12 +484,14 @@ theorem encode_right_interior (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ 
       encode_getElem worig cfg i hin, hheadeq, hcont, Function.update_apply]
     simp only [Fin.ext_iff]
     rcases eq_or_ne i (cfg.tape.head.val + 1) with rfl | e1
-    · simp [show cfg.tape.head.val + 1 ≠ cfg.tape.head.val from by omega]
+    · simp
     · rcases eq_or_ne i cfg.tape.head.val with rfl | e2
-      · simp [show cfg.tape.head.val ≠ cfg.tape.head.val + 1 from by omega,
+      · simp [
           show ¬ cfg.tape.head.val = n from by omega]
       · simp [e1, e2, Ne.symm e1, Ne.symm e2]
 
+omit [Fintype T] [Fintype Λ] [DecidableEq T] [DecidableEq Λ] in
+omit [Fintype Γ] [DecidableEq Γ] in
 /-- An interior `left` step changes exactly the head cell (at `m+1`; head leaves, symbol `a'`
 written) and its left neighbour (at `m`; head arrives with state `q'`). Stated with
 `head = m + 1` so the indices `m`, `m+1` match the three-step assembly. -/
@@ -501,12 +521,14 @@ theorem encode_left_interior (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n
       encode_getElem worig cfg i hin, hheadeq, hcont, Function.update_apply]
     simp only [Fin.ext_iff, hm]
     by_cases h1 : i = m
-    · simp [h1, show m ≠ m + 1 from by omega, show ¬ m = n from by omega]
+    · simp [h1, show ¬ m = n from by omega]
     · by_cases h2 : i = m + 1
-      · simp [h2, show m + 1 ≠ m from by omega,
+      · simp [h2, 
           show (⟨m + 1, by omega⟩ : Fin (n + 1)) = cfg.tape.head from Fin.ext (by simp [hm])]
       · simp [h1, h2, Ne.symm h1, Ne.symm h2]
 
+omit [DecidableEq T] [DecidableEq Λ] in
+omit [DecidableEq Γ] in
 /-- **`step_sim`, right-interior case.** An interior `right` transition is mirrored by the
 three-step `cellPending` protocol: park the head as a `cellPending`, place the new state on
 the right neighbour, then resolve the pending cell. -/
@@ -639,6 +661,8 @@ theorem step_sim_right_interior (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (wori
   exact CS_deri_of_deri_deri (CS_deri_of_tran step1)
     (CS_deri_of_deri_deri (CS_deri_of_tran step2) (CS_deri_of_tran step3))
 
+omit [DecidableEq T] [DecidableEq Λ] in
+omit [DecidableEq Γ] in
 /-- **`step_sim`, left-interior case.** Mirror of the right-interior case. -/
 theorem step_sim_left_interior (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : Fin (n + 1) → T)
     (cfg : DLBA.Cfg Γ Λ n) (q' : Λ) (a' : Γ) (hpos : 0 < cfg.tape.head.val)
@@ -757,6 +781,8 @@ theorem step_sim_left_interior (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig
   exact CS_deri_of_deri_deri (CS_deri_of_tran step1)
     (CS_deri_of_deri_deri (CS_deri_of_tran step2) (CS_deri_of_tran step3))
 
+omit [DecidableEq T] [DecidableEq Λ] in
+omit [DecidableEq Γ] in
 /-- **`step_sim`, right-boundary case.** A `right` transition with the head at the right end
 is clamped, so it is mirrored by a single in-place rewrite (using the boundary rule). -/
 theorem step_sim_right_boundary (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : Fin (n + 1) → T)
@@ -788,6 +814,8 @@ theorem step_sim_right_boundary (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (wori
   exact CS_transforms_of_set (myhillGrammar M embed) (encode worig cfg) cfg.tape.head.val hk
     _ _ hLk hrule
 
+omit [DecidableEq T] [DecidableEq Λ] in
+omit [DecidableEq Γ] in
 /-- **`step_sim`, left-boundary case.** A `left` transition with the head at the left end is
 clamped, so it is mirrored by a single in-place rewrite (using the boundary rule). -/
 theorem step_sim_left_boundary (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : Fin (n + 1) → T)
@@ -819,6 +847,8 @@ theorem step_sim_left_boundary (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig
   exact CS_transforms_of_set (myhillGrammar M embed) (encode worig cfg) cfg.tape.head.val hk
     _ _ hLk hrule
 
+omit [DecidableEq T] [DecidableEq Λ] in
+omit [DecidableEq Γ] in
 /-- **Step simulation.** Every single LBA step is mirrored by a context-sensitive derivation
 of the cell encodings — combining the stay, boundary, and interior cases. -/
 theorem step_sim (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : Fin (n + 1) → T)
@@ -847,6 +877,7 @@ def cleanupCells (cs : List (Bool × Bool × Γ × T)) : List (symbol T (MyhillN
 def cleanupTerms (cs : List (Bool × Bool × Γ × T)) : List (symbol T (MyhillNT T Γ Λ)) :=
   cs.map fun c => symbol.terminal c.2.2.2
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Rightward propagation.** A terminal followed by head-free cells derives to all
 terminals (each cell is converted by the left-propagation rule using the terminal on its
 left). -/
@@ -866,6 +897,7 @@ theorem cleanup_right (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (t₀ : T)
       · have hp := CS_deri_with_prefix (p := [symbol.terminal t₀]) (ih c.2.2.2)
         simpa [cleanupTerms, cleanupCells] using hp
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Leftward propagation.** Head-free cells followed by a terminal derive to all terminals
 (each cell is converted by the right-propagation rule using the terminal on its right). -/
 theorem cleanup_left (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (t₀ : T)
@@ -897,6 +929,7 @@ theorem cleanup_left (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (t₀ : T)
           right_propagation_rule_mem M embed c.2.2.1 c.2.2.2 t₂ c.1 c.2.1, by simp, by simp⟩
       exact CS_deri_of_deri_deri h1 h2
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Two-sided propagation.** A terminal flanked by head-free cells derives to all
 terminals. -/
 theorem cleanup_mid (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
@@ -913,6 +946,7 @@ theorem cleanup_mid (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
         = (cleanupTerms before ++ [symbol.terminal t₀]) ++ cleanupTerms after from by simp]
   exact h2
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Cleanup (list form).** A list of head-free cells with one accepting `(some q)` cell at
 position `k` derives to the list of terminals. -/
 theorem cleanup_full (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
@@ -950,15 +984,18 @@ theorem cleanup_full (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
 def dataOf (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n) : List (Bool × Bool × Γ × T) :=
   List.ofFn fun i => (decide (i.val = 0), decide (i.val = n), cfg.tape.contents i, worig i)
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 @[simp]
 theorem dataOf_length (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n) :
     (dataOf worig cfg).length = n + 1 := by simp [dataOf]
 
+omit [Fintype T] [Fintype Γ] [Fintype Λ] [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 theorem dataOf_getElem (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n) (i : ℕ) (hi : i < n + 1) :
     (dataOf worig cfg)[i]'(by simpa using hi)
       = (decide (i = 0), decide (i = n), cfg.tape.contents ⟨i, hi⟩, worig ⟨i, hi⟩) := by
   simp only [dataOf, List.getElem_ofFn]
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Cleanup.** The encoding of an accepting configuration derives the terminal word. -/
 theorem cleanup (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : Fin (n + 1) → T)
     (cfg' : DLBA.Cfg Γ Λ n) (hq : M.accept cfg'.state = true) :
@@ -998,6 +1035,7 @@ theorem cleanup (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : Fin (n + 1) 
   rw [dataOf_getElem worig cfg' cfg'.tape.head.val cfg'.tape.head.isLt] at hfull
   exact hfull
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Completeness (Fin-indexed).** If the LBA, started on the configuration encoding `worig`,
 reaches an accepting configuration, then the Myhill grammar derives the terminal word
 `map terminal worig`. Assembles the start phase, the run simulation, and the cleanup. -/
@@ -1015,6 +1053,7 @@ theorem myhill_complete_fin (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig : 
   have h3 := cleanup M embed worig cfg' hacc
   exact CS_deri_of_deri_deri h1 (CS_deri_of_deri_deri h2 h3)
 
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
 /-- **Completeness.** Every word accepted by the LBA is generated by the Myhill grammar. -/
 theorem myhill_complete (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (w : List T)
     (h : LBA.LanguageViaEmbed M embed w) :

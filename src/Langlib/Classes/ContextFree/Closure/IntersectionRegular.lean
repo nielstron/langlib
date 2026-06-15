@@ -249,7 +249,7 @@ private lemma threadSymbols_nonempty (M : DFA T σ) {N : Type}
     (syms : List (symbol T N)) (p : σ) :
     (threadSymbols M syms p).length > 0 := by
   induction' syms with sym syms ih generalizing p <;> simp_all +decide;
-  cases sym <;> simp +decide [ *, List.length ];
+  cases sym <;> simp +decide [ * ];
   exact Finset.sum_pos ( fun _ _ => ih _ ) ⟨ p, Finset.mem_univ _ ⟩
 
 /-
@@ -377,7 +377,7 @@ public lemma forward_key {M : DFA T σ} (n : ℕ) (p : σ) (A : g.nt) (q : σ) (
   revert hder;
   induction' n using Nat.strong_induction_on with n ih generalizing p A q w;
   rcases n with ( _ | n );
-  · cases w <;> simp +decide [ CF_derivesIn ];
+  · cases w <;> simp +decide;
     · rintro ⟨ ⟩;
     · rintro ⟨ ⟩;
   · intro h;
@@ -392,6 +392,7 @@ public lemma forward_key {M : DFA T σ} (n : ℕ) (p : σ) (A : g.nt) (q : σ) (
     exact ⟨ by simpa using CF_deri_of_deri_deri ( CF_deri_of_tran ( show CF_transforms g [ symbol.nonterminal A ] rhs from by
                                                                       exact ⟨ ⟨ A, rhs ⟩, [ ], [ ], hrhs.1, by simp +decide, by simp +decide ⟩ ) ) ( this ( fun k hk p' A' q' w' hw' => ih k ( Nat.le_of_lt_succ hk ) p' A' q' w' hw' ) |>.1 ), this ( fun k hk p' A' q' w' hw' => ih k ( Nat.le_of_lt_succ hk ) p' A' q' w' hw' ) |>.2 ⟩
 
+omit [Fintype σ] in
 /-
 ============================================================================
 Backward Direction
@@ -399,7 +400,7 @@ Backward Direction
 
 backward_thread base case: empty symbol list.
 -/
-lemma backward_thread_nil {M : DFA T σ} (w : List T) (p : σ) (n : ℕ)
+lemma backward_thread_nil {_M : DFA T σ} (w : List T) (p : σ) (n : ℕ)
     (hder : CF_derivesIn g n [] (w.map symbol.terminal)) :
     w = [] ∧ n = 0 := by
   induction' n with n ih generalizing w p;
@@ -428,10 +429,10 @@ lemma backward_thread {M : DFA T σ} (N_bound : ℕ)
       CF_derives (productGrammar g M) out (w.map symbol.terminal) := by
   -- By induction on the length of syms, we can construct the required out and q.
   induction' syms with sym syms ih generalizing p w n;
-  · have := @backward_thread_nil T g σ _ M w p n hder;
+  · have := @backward_thread_nil T g σ M w p n hder;
     use [], p; simp_all +decide [ threadSymbols ] ;
     constructor;
-  · rcases sym with ( a | B ) <;> simp_all +decide [ CF_derivesIn_append_split ];
+  · rcases sym with ( a | B ) <;> simp_all +decide [  ];
     · -- By definition of CF_derivesIn, we can split the derivation into two parts: one for the terminal symbol and one for the rest of the symbols.
       obtain ⟨w₁, w₂, hw₁, hw₂, hw⟩ : ∃ w₁ w₂ : List T, w = w₁ ++ w₂ ∧ CF_derivesIn g 0 [symbol.terminal a] (w₁.map symbol.terminal) ∧ CF_derivesIn g n syms (w₂.map symbol.terminal) := by
         have h_split : ∃ w₁ w₂ : List T, w = w₁ ++ w₂ ∧ CF_derivesIn g 0 [symbol.terminal a] (w₁.map symbol.terminal) ∧ CF_derivesIn g n syms (w₂.map symbol.terminal) := by
@@ -439,8 +440,8 @@ lemma backward_thread {M : DFA T σ} (N_bound : ℕ)
           obtain ⟨w₁, w₂, hw₁, hw₂, hw⟩ : ∃ w₁ w₂ : List T, w = w₁ ++ w₂ ∧ CF_derivesIn g 0 [symbol.terminal a] (w₁.map symbol.terminal) ∧ CF_derivesIn g n syms (w₂.map symbol.terminal) := by
             have h_split : ∃ x y n₁ n₂, w.map symbol.terminal = x ++ y ∧ CF_derivesIn g n₁ [symbol.terminal a] x ∧ CF_derivesIn g n₂ syms y ∧ n = n₁ + n₂ := by
               exact CF_derivesIn_append_split h_split |> fun ⟨ x, y, n₁, n₂, hxy, hx, hy, hn ⟩ => ⟨ x, y, n₁, n₂, hxy, hx, hy, hn ⟩
-            obtain ⟨ x, y, n₁, n₂, h₁, h₂, h₃, rfl ⟩ := h_split; rcases n₁ with ( _ | n₁ ) <;> simp_all +decide [ CF_derivesIn_terminal_zero ] ;
-            · rcases x with ( _ | ⟨ _, _ | x ⟩ ) <;> simp_all +decide [ CF_derivesIn_terminal_zero ] ; (
+            obtain ⟨ x, y, n₁, n₂, h₁, h₂, h₃, rfl ⟩ := h_split; rcases n₁ with ( _ | n₁ ) <;> simp_all +decide [  ] ;
+            · rcases x with ( _ | ⟨ _, _ | x ⟩ ) <;> simp_all +decide [  ] ; (
               grind +splitIndPred);
               · rcases w with ( _ | ⟨ a, w ⟩ ) <;> simp_all +decide [ List.map ] ; (
                 use [a], w; aesop;);
@@ -508,7 +509,7 @@ private lemma backward_key {M : DFA T σ} (n : ℕ) (A : g.nt) (w : List T) (p q
     CF_derives (productGrammar g M)
       [symbol.nonterminal (some (p, A, q))] (w.map symbol.terminal) := by
   induction' n using Nat.strong_induction_on with n ih generalizing A w p q;
-  rcases n with ( _ | n ) <;> simp_all +decide [ CF_derivesIn ];
+  rcases n with ( _ | n ) <;> simp_all +decide [  ];
   · cases w <;> cases hder;
   · -- By definition of CF_derivesIn, there exists some w₂ such that CF_transforms g [symbol.nonterminal A] w₂ and CF_derivesIn g n w₂ (w.map symbol.terminal).
     obtain ⟨w₂, hw₂⟩ : ∃ w₂, CF_transforms g [symbol.nonterminal A] w₂ ∧ CF_derivesIn g n w₂ (w.map symbol.terminal) := by
@@ -544,11 +545,11 @@ public theorem productGrammar_language (g : CF_grammar T) (M : DFA T σ) :
   have h_forward : ∃ f ∈ M.accept, CF_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal) ∧ DFA.evalFrom M M.start w = f := by
     -- By definition of product grammar, if there's a derivation from [symbol.nonterminal none] to w.map symbol.terminal, then there must be a start rule that transforms none into [symbol.nonterminal (some (M.start, g.initial, f))] for some f in M.accept.
     obtain ⟨f, hf⟩ : ∃ f ∈ M.accept, CF_derivesIn (productGrammar g M) (n - 1) [symbol.nonterminal (some (M.start, g.initial, f))] (w.map symbol.terminal) := by
-      rcases n with ( _ | n ) <;> simp_all +decide [ CF_derivesIn ];
+      rcases n with ( _ | n ) <;> simp_all +decide [  ];
       · cases w <;> cases hn;
       · obtain ⟨ u, hu ⟩ := CF_derivesIn_head hn;
         rcases hu with ⟨ ⟨ r, u, v, hr, hu, hv ⟩, hu' ⟩ ; simp_all +decide [ productGrammar ] ;
-        rcases hr with ( ⟨ f, hf, rfl ⟩ | ⟨ a, b, hab, a', b', c', hc', rfl ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ] ;
+        rcases hr with ( ⟨ f, hf, rfl ⟩ | ⟨ a, b, hab, a', b', c', hc', rfl ⟩ ) <;> simp_all +decide [  ] ;
         · cases u <;> aesop;
         · cases u <;> cases v <;> aesop ( simp_config := { decide := true } ) ;
     exact ⟨ f, hf.1, forward_key _ _ _ _ _ hf.2 |>.1, forward_key _ _ _ _ _ hf.2 |>.2 ⟩
@@ -585,6 +586,6 @@ public theorem CF_of_CF_inter_regular {L₁ L₂ : Language T}
 /-- The class of context-free languages is closed under intersection with regular languages. -/
 theorem CF_closedUnderIntersectionWithRegular :
     ClosedUnderIntersectionWithRegular (α := T) is_CF :=
-  fun L hL R hR => CF_of_CF_inter_regular hL hR
+  fun _L hL _R hR => CF_of_CF_inter_regular hL hR
 
 end

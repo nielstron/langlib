@@ -291,7 +291,7 @@ Forward direction: a transform in `g` lifts to `restrictGrammar g` when all
     nonterminals in the source are used.
 -/
 public lemma transforms_restrict {g : grammar T} {u v : List (symbol T g.nt)}
-    (ht : grammar_transforms g u v) (hu : allNTsUsed g u) :
+    (ht : grammar_transforms g u v) (_hu : allNTsUsed g u) :
     grammar_transforms (restrictGrammar g)
       (u.map (restrictSym g)) (v.map (restrictSym g)) := by
   obtain ⟨ r, hr, u_prefix, v_suffix, hu_eq, hv_eq ⟩ := ht;

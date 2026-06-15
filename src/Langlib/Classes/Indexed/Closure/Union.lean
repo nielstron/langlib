@@ -255,14 +255,14 @@ lemma unlift1_tran (g₁ g₂ : IndexedGrammar T)
               rcases r₁consume : r₁.consume with ( _ | _ ) <;> simp_all +decide [ List.map_eq_append_iff ];
               · obtain ⟨ l₁, l₂, rfl, rfl, hl₂ ⟩ := hw₁;
                 cases l₂ <;> simp_all +decide [ liftISym1 ];
-                cases ‹g₁.ISym› <;> simp_all +decide [ liftISym1 ];
+                cases ‹g₁.ISym› <;> simp_all +decide [  ];
                 aesop;
               · obtain ⟨ l₁, l₂, rfl, rfl, hl₂ ⟩ := hw₁;
                 cases l₂ <;> simp_all +decide [ liftISym1 ];
-                cases ‹g₁.ISym› <;> simp_all +decide [ liftISym1 ];
+                cases ‹g₁.ISym› <;> simp_all +decide [  ];
                 grind +splitImp;
             have hσ' : ∀ {l : List (UnionFlag g₁.flag g₂.flag)}, (∀ f ∈ l, ∃ f' : g₁.flag, f = UnionFlag.inl f') → ∃ l' : List g₁.flag, l = l'.map UnionFlag.inl := by
-              intros l hl; induction' l with f l ih <;> simp_all +decide [ List.map ] ;
+              intros l hl; induction' l with f l ih <;> simp_all +decide [  ] ;
               rcases hl.1 with ⟨ f', rfl ⟩ ; obtain ⟨ l', rfl ⟩ := ih; exact ⟨ f' :: l', by simp +decide ⟩ ;
             exact hσ' hσ;
           -- Since $u$ and $v$ are lists of symbols, we can decompose them into $u'$ and $v'$ such that $u = u'.map liftISym1$ and $v = v'.map liftISym1$.
@@ -308,7 +308,7 @@ lemma unlift1_tran (g₁ g₂ : IndexedGrammar T)
             rcases consume with ( _ | f ) <;> simp_all +decide [ List.map_eq_append_iff ];
             · rcases hw₁ with ⟨ l₁, l₂, rfl, rfl, hl₂ ⟩ ; rcases l₂ with ( _ | ⟨ x, l₂ ⟩ ) <;> simp_all +decide [ List.map ] ;
               cases x <;> cases hl₂.1;
-            · obtain ⟨ l₁, l₂, rfl, rfl, hl₂ ⟩ := hw₁; rcases l₂ with ( _ | ⟨ x, l₂ ⟩ ) <;> simp_all +decide [ List.map_eq_cons_iff ] ;
+            · obtain ⟨ l₁, l₂, rfl, rfl, hl₂ ⟩ := hw₁; rcases l₂ with ( _ | ⟨ x, l₂ ⟩ ) <;> simp_all +decide [  ] ;
               cases x <;> cases hl₂.1;
           · unfold indexed_union at hr; simp_all +decide [ List.mem_append ] ;
             rcases hr with ( rfl | rfl ) <;> simp_all +decide [ List.map_eq_append_iff ];
@@ -366,13 +366,13 @@ lemma unlift2_tran (g₁ g₂ : IndexedGrammar T)
             rfl;
           · rcases h : r.consume with ( _ | f ) <;> simp_all +decide [ liftRule2 ];
             · use r₂, u', v', σ';
-              rcases r₂consume : r₂.consume with ( _ | f ) <;> simp_all +decide [ liftISym2 ];
+              rcases r₂consume : r₂.consume with ( _ | f ) <;> simp_all +decide [  ];
               · have h_inj : Function.Injective (liftISym2 g₁ g₂) := by
                   intro x y hxy; cases x <;> cases y <;> simp_all +decide [ liftISym2 ] ;
                   exact ⟨ by injection hxy.1, by simpa using List.map_injective_iff.mpr ( show Function.Injective ( UnionFlag.inr : g₂.flag → ( indexed_union g₁ g₂ ).flag ) from by rintro x y; aesop ) hxy.2 ⟩;
                 exact List.map_injective_iff.mpr h_inj <| by aesop;
               · lia;
-            · cases h' : r₂.consume <;> simp_all +decide [ liftRule2 ];
+            · cases h' : r₂.consume <;> simp_all +decide [  ];
               · grind;
               · use r₂, u', v', σ';
                 simp_all +decide [ List.append_assoc ];

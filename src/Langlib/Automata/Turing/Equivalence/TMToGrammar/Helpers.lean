@@ -101,6 +101,7 @@ The grammar derives the encoding of the initial configuration from [start]:
 3. genMore → headCell(q₀, t₁) (or headCell(q₀, none, none) for empty input)
 -/
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 The grammar can derive the encoding of the initial configuration from [start].
 -/
@@ -125,7 +126,7 @@ public theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : Li
       induction' ts with t ts ih
       generalize_proofs at *; (
       apply Relation.ReflTransGen.single
-      simp [generationRules];
+      simp;
       use ⟨[], start, [], [symbol.nonterminal leftBound, symbol.nonterminal genMore, symbol.nonterminal rightBound]⟩
       simp [tmToGrammar, generationRules];
       exact ⟨ [ ], [ ], rfl, rfl ⟩);
@@ -156,6 +157,7 @@ public def encodeHalted (originals : List (Option T)) :
 public def extractInput (originals : List (Option T)) : List T :=
   originals.filterMap id
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 From a halted encoding, the grammar can derive the original input terminals.
 
@@ -168,7 +170,7 @@ public theorem haltCells_to_terminals (M : Turing.TM0.Machine (Option T) Λ)
       ((originals.filterMap id).map symbol.terminal) := by
   induction' originals with orig originals ih;
   · constructor;
-  · cases' orig with t t <;> simp_all +decide [ List.filterMap_cons ];
+  · cases' orig with t t <;> simp_all +decide [  ];
     · -- Apply the rule for `haltCell none` to remove the nonterminal.
       have h_halt_none : grammar_transforms (tmToGrammar T Λ M) (symbol.nonterminal (haltCell none) :: List.map (fun orig => symbol.nonterminal (haltCell orig)) originals) (List.map (fun orig => symbol.nonterminal (haltCell orig)) originals) := by
         use ⟨[], haltCell none, [], []⟩;
@@ -183,6 +185,7 @@ public theorem haltCells_to_terminals (M : Turing.TM0.Machine (Option T) Λ)
         unfold cleanupRules; aesop;
       · convert grammar_deri_with_prefix _ ih using 1
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Remove LB from [LB] ++ haltCells ++ [RB], producing haltCells ++ [RB] (non-empty case)
     or [] (empty case).
@@ -197,7 +200,7 @@ public theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
   · -- Apply the rule that removes the leftBound and rightBound.
     apply Relation.ReflTransGen.single
     use ⟨[], leftBound, [.nonterminal rightBound], []⟩
-    simp [cleanupRules];
+    simp;
     unfold tmToGrammar; simp +decide [ cleanupRules ] ;
   · have h_transform : grammar_transforms (tmToGrammar T Λ M) ([symbol.nonterminal leftBound] ++ [symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest ++ [symbol.nonterminal rightBound]) ([symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest ++ [symbol.nonterminal rightBound]) := by
       -- Apply the rule that removes the left bound.
@@ -217,6 +220,7 @@ public theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
         · exact ⟨ [ symbol.nonterminal ( haltCell orig ) ] ++ List.map ( fun orig => symbol.nonterminal ( haltCell orig ) ) ‹_›, [ ], by simp +decide ⟩;
     exact Relation.ReflTransGen.single ‹_› |> Relation.ReflTransGen.trans <| Relation.ReflTransGen.single ‹_›
 
+omit [DecidableEq T] [DecidableEq Λ] in
 public theorem cleanup_derives (M : Turing.TM0.Machine (Option T) Λ)
     (originals : List (Option T)) :
     grammar_derives (tmToGrammar T Λ M)
@@ -226,6 +230,7 @@ public theorem cleanup_derives (M : Turing.TM0.Machine (Option T) Λ)
 
 /-! ### Rule membership helpers -/
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- A rule from the generation rules is in the grammar. -/
 
 theorem gen_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
@@ -234,6 +239,7 @@ theorem gen_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
   simp only [tmToGrammar]
   exact List.mem_append_left _ (List.mem_append_left _ hr)
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- A rule from the simulation rules is in the grammar. -/
 
 public theorem sim_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
@@ -242,6 +248,7 @@ public theorem sim_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
   simp only [tmToGrammar]
   exact List.mem_append_left _ (List.mem_append_right _ hr)
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- A rule from the cleanup rules is in the grammar. -/
 
 theorem cleanup_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
@@ -281,6 +288,7 @@ public noncomputable def stepTwoTrack
       some ⟨rest.reverse, q', lo, lc,
             (cfg.headOrig, cfg.headCur) :: cfg.rightCells⟩
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 The original input (modulo blank extension) is preserved by `stepTwoTrack`.
 -/
@@ -299,18 +307,21 @@ public theorem stepTwoTrack_preserves_extractInput
     · cases ‹Option T × Option T› ; aesop;
   · unfold twoTrackOriginals; aesop;
 
+omit [DecidableEq T] in
 /-
 Any element of `Option T` is in `allOptT`.
 -/
 public theorem mem_allOptT (x : Option T) : x ∈ allOptT T := by
   unfold allOptT; cases x <;> simp +decide [ * ] ;
 
+omit [Inhabited Λ] [DecidableEq Λ] in
 /-
 Any element of `Λ` is in `allΛ`.
 -/
 public theorem mem_allΛ (q : Λ) : q ∈ allΛ Λ := by
   convert Finset.mem_toList.mpr ( Finset.mem_univ q ) using 1
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Simulation: write case.
 -/
@@ -333,6 +344,7 @@ public theorem sim_write
       exact List.mem_map.mpr ⟨ orig, mem_allOptT orig, rfl ⟩;
   · grind
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Simulation: move right with neighbor.
 -/
@@ -349,11 +361,12 @@ public theorem sim_move_right
   apply sim_rule_mem;
   convert List.mem_flatMap.mpr _;
   exact ⟨ [ ], headCell q orig γ, [ symbol.nonterminal ( cell orig' γ' ) ], [ symbol.nonterminal ( cell orig γ ), symbol.nonterminal ( headCell q' orig' γ' ) ] ⟩;
-  · refine' ⟨ q, _, _ ⟩ <;> simp +decide [ hM, allΛ ];
+  · refine' ⟨ q, _, _ ⟩ <;> simp +decide [ allΛ ];
     use γ; simp [hM];
     exact ⟨ mem_allOptT γ, mem_allOptT orig, mem_allOptT orig', mem_allOptT γ' ⟩;
   · grind
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Simulation: move right at right boundary.
 -/
@@ -368,7 +381,7 @@ public theorem sim_move_right_boundary
   use (⟨[], headCell q orig γ, [symbol.nonterminal rightBound], [symbol.nonterminal (cell orig γ), symbol.nonterminal (headCell q' none none), symbol.nonterminal rightBound]⟩);
   constructor;
   · apply sim_rule_mem;
-    unfold simulationRules; simp +decide [ hM ] ;
+    unfold simulationRules; simp +decide ;
     use q, by
       exact?, γ, by
       exact?
@@ -377,6 +390,7 @@ public theorem sim_move_right_boundary
     cases orig <;> aesop;
   · grind
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Simulation: move left with neighbor.
 -/
@@ -397,6 +411,7 @@ public theorem sim_move_left
   exact ⟨ orig, mem_allOptT orig, orig'', mem_allOptT orig'', γ'', mem_allOptT γ'', by tauto ⟩;
   exacts [ prefix_, ⟨ suffix_, rfl, rfl ⟩ ]
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Simulation: move left at left boundary.
 -/
@@ -413,12 +428,13 @@ public theorem sim_move_left_boundary
   any_goals exact prefix_;
   · apply sim_rule_mem;
     unfold simulationRules;
-    simp +decide [ List.mem_flatMap, List.mem_append, List.mem_map, hM ];
+    simp +decide [ List.mem_flatMap ];
     refine' ⟨ q, _, γ, _, _ ⟩ <;> simp +decide [ hM, allΛ, allOptT ];
     · cases γ <;> tauto;
     · cases orig <;> aesop;
   · grind +revert
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 One step of `stepTwoTrack` can be simulated by the grammar.
 -/
@@ -463,6 +479,7 @@ public theorem simulation_one_step
     · simp +decide [ List.append_assoc ];
     · grind
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Multiple steps of `stepTwoTrack` can be simulated by the grammar.
 -/
@@ -477,13 +494,14 @@ theorem simulation_multi_step
       (encodeTwoTrack cfg') := by
   induction' n with n ih generalizing cfg cfg' <;> simp_all +decide [ Function.iterate_succ_apply' ];
   · exact?;
-  · cases h' : ( fun c : Option ( TwoTrackConfig ) => c.bind ( stepTwoTrack M ) ) ^[ n ] ( some cfg ) <;> simp_all +decide [ Function.iterate_succ_apply' ];
+  · cases h' : ( fun c : Option ( TwoTrackConfig ) => c.bind ( stepTwoTrack M ) ) ^[ n ] ( some cfg ) <;> simp_all +decide [  ];
     exact grammar_deri_of_deri_deri ( ih _ _ h' ) ( simulation_one_step _ _ _ hsteps )
 
 /-! ### Phase 2.5: Halt conversion
 
 When the TM halts, convert the two-track encoding to the halted encoding. -/
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Step 1 of halt-to-halted: convert headCell to haltCell when TM halts.
 -/
@@ -498,7 +516,7 @@ public theorem halt_headCell_to_haltCell
   refine' ⟨ _, _, prefix_, suffix_, _, _ ⟩ <;> norm_num [ h_halts ];
   exact ⟨ [ ], headCell q orig cur, [ ], [ symbol.nonterminal ( haltCell orig ) ] ⟩
   all_goals generalize_proofs at *; simp_all +decide [ tmToGrammar ] ;
-  unfold cleanupRules; simp +decide [ h_halts ] ;
+  unfold cleanupRules; simp +decide ;
   refine' Or.inr ( Or.inr ⟨ q, _, cur, _, _ ⟩ );
   · exact Finset.mem_toList.mpr ( Finset.mem_univ q );
   · cases cur <;> [ exact List.mem_cons_self; exact List.mem_cons_of_mem _ ( List.mem_map.mpr ⟨ _, Finset.mem_toList.mpr ( Finset.mem_univ _ ), rfl ⟩ ) ] ;
@@ -506,6 +524,7 @@ public theorem halt_headCell_to_haltCell
     · exact List.mem_cons_self;
     · exact List.mem_cons_of_mem _ ( List.mem_map.mpr ⟨ _, Finset.mem_toList.mpr ( Finset.mem_univ _ ), rfl ⟩ )
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Step 2: propagate halt to right cells.
 -/
@@ -533,9 +552,10 @@ public theorem propagate_halt_right
           · exact List.mem_cons_of_mem _ ( List.mem_map.mpr ⟨ t, Finset.mem_toList.mpr ( Finset.mem_univ _ ), rfl ⟩ );
         · exact List.mem_cons.mpr ( by cases cells_head.2 <;> simp +decide );
       · exact ⟨ prefix_, List.map ( fun x => symbol.nonterminal ( cell x.1 x.2 ) ) cells_tail ++ suffix_, rfl, rfl ⟩;
-    specialize ih cells_head.1 ( prefix_ ++ [ symbol.nonterminal ( haltCell orig ) ] ) suffix_ ; simp_all +decide [ Relation.ReflTransGen ] ; (
+    specialize ih cells_head.1 ( prefix_ ++ [ symbol.nonterminal ( haltCell orig ) ] ) suffix_ ; simp_all +decide [  ] ; (
     exact Relation.ReflTransGen.trans ( Relation.ReflTransGen.single h_replace ) ih;)
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Single left-propagation step: convert one cell immediately left of a haltCell.
 -/
@@ -556,6 +576,7 @@ theorem propagate_halt_left_one_step
     rintro ( _ | x ) <;> simp +decide;
   exact ⟨ h_allOptT anchor_orig, h_allOptT o, h_allOptT c ⟩
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Step 3: propagate halt to left cells, using a haltCell anchor on the right.
 
@@ -584,6 +605,7 @@ public theorem propagate_halt_left
     specialize h_transforms ih.1 ih.2 anchor_orig ( prefix_ ++ List.map ( fun x => match x with | ( o, c ) => symbol.nonterminal ( cell o c ) ) cells ) ( suffix_ ) ; simp_all +decide [ List.map_append ] ;
     exact Relation.ReflTransGen.trans ( Relation.ReflTransGen.single h_transforms ) ( h _ _ _ ) |> fun h => by simpa [ List.append_assoc ] using h;
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 From a halting two-track config, the grammar derives the halted encoding.
 
@@ -618,6 +640,7 @@ public theorem halt_to_halted
 
 /-! ### Composing all phases -/
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 The original input stored in the initial two-track config for word `w` is exactly `w.map some`.
 That is, `extractInput (twoTrackOriginals (initTwoTrack w)) = w`.
@@ -640,6 +663,7 @@ public structure TMCorresponds
   right_match : ∀ i,
     (tc.rightCells.map Prod.snd).getI i = tmCfg.Tape.right.nth i
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 The initial TwoTrackConfig corresponds to the initial TM0 config.
 -/
@@ -653,6 +677,7 @@ public theorem initCorresponds (w : List T) :
   · cases w <;> aesop;
   · unfold initTwoTrack TM0.init; aesop;
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 If tc corresponds to tmCfg and the TM halts, then stepTwoTrack also returns none.
 -/
@@ -664,12 +689,13 @@ theorem corresponds_step_none
     (hhalt : Turing.TM0.step M tmCfg = none) :
     stepTwoTrack M tc = none := by
   -- By definition of `stepTwoTrack`, we know that if `M tc.headState tc.headCur = none`, then `stepTwoTrack M tc = none`.
-  simp [stepTwoTrack, hhalt];
+  simp [stepTwoTrack];
   rw [ show M tc.headState tc.headCur = none from ?_ ];
   rw [ hcorr.state_eq, hcorr.head_eq ];
   convert hhalt using 1;
   unfold TM0.step; aesop;
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 If tc corresponds to tmCfg and the TM steps to tmCfg', then stepTwoTrack
 produces a tc' that corresponds to tmCfg'.
@@ -685,18 +711,18 @@ public theorem corresponds_step_some
   rcases hcorr with ⟨ hq, hhead, hleft, hright ⟩;
   obtain ⟨q', a, hq', ha⟩ : ∃ q' a, M tc.headState tc.headCur = some (q', a) ∧ tmCfg' = (match a with | TM0.Stmt.move d => { q := q', Tape := Tape.move d tmCfg.Tape } | TM0.Stmt.write a => { q := q', Tape := Tape.write a tmCfg.Tape }) := by
                                                                                                                                                                                                 cases h : M tc.headState tc.headCur <;> aesop;
-  rcases a with ( _ | _ ) <;> simp_all +decide [ TMCorresponds ];
-  · rename_i d; unfold stepTwoTrack; rcases d with ( _ | _ ) <;> simp_all +decide [ TMCorresponds ] ;
-    · rcases h : tc.leftCells.reverse with ( _ | ⟨ ⟨ lo, lc ⟩, rest ⟩ ) <;> simp_all +decide [ TMCorresponds ];
-      · constructor <;> simp_all +decide [ TMCorresponds ];
+  rcases a with ( _ | _ ) <;> simp_all +decide [  ];
+  · rename_i d; unfold stepTwoTrack; rcases d with ( _ | _ ) <;> simp_all +decide [  ] ;
+    · rcases h : tc.leftCells.reverse with ( _ | ⟨ ⟨ lo, lc ⟩, rest ⟩ ) <;> simp_all +decide [  ];
+      · constructor <;> simp_all +decide [  ];
         · specialize hleft 0 ; aesop;
         · intro i; specialize hleft ( i + 1 ) ; aesop;
         · intro i; rcases i with ( _ | i ) <;> simp_all +decide [ Tape.move ] ;
-      · constructor <;> simp_all +decide [ TMCorresponds ];
+      · constructor <;> simp_all +decide [  ];
         · specialize hleft 0 ; aesop;
         · intro i; specialize hleft ( i + 1 ) ; aesop;
         · intro i; rcases i with ( _ | i ) <;> simp_all +decide [ Tape.move ] ;
-    · rcases tc with ⟨ leftCells, headState, headOrig, headCur, rightCells ⟩ ; rcases rightCells with ( _ | ⟨ ro, rc ⟩ ) <;> simp_all +decide [ TMCorresponds ] ;
+    · rcases tc with ⟨ leftCells, headState, headOrig, headCur, rightCells ⟩ ; rcases rightCells with ( _ | ⟨ ro, rc ⟩ ) <;> simp_all +decide [  ] ;
       · constructor <;> simp +decide [ *, Tape.move ];
         · specialize hright 0 ; aesop;
         · intro i; rcases i with ( _ | i ) <;> simp_all +decide [ List.getI ] ;
@@ -706,11 +732,12 @@ public theorem corresponds_step_some
         · intro i; rcases i with ( _ | i ) <;> simp_all +decide [ List.getI ] ;
         · intro i; specialize hright ( i + 1 ) ; aesop;
   · unfold stepTwoTrack;
-    simp_all +decide [ TMCorresponds ];
+    simp_all +decide [  ];
     constructor <;> aesop
 
 /-! ### Main Correctness Theorems -/
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 If tc corresponds to tmCfg, and the TM reaches a halting config from tmCfg,
 then the grammar can derive from tc's encoding to some halting tc_final's encoding,
@@ -742,6 +769,7 @@ public theorem sim_reaches_halts
   convert hhalt using 1;
   simp +decide [ TM0.step, htc_final.2.1.state_eq, htc_final.2.1.head_eq ]
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 If the TM halts on input `w`, then the grammar derives `w`.
 -/

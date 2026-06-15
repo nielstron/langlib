@@ -50,7 +50,7 @@ This file records an alternate union proof for context-free languages via unrest
 - `bonus_CF_of_CF_u_CF`
 -/
 
-variables {T : Type}
+variable {_T : Type}
 
 private def lift_CF_rule₁ {N₁ : Type} (N₂ : Type) (r : (N₁ × List (symbol T N₁))) :
   (Option (N₁ ⊕ N₂)) × List (symbol T (Option (N₁ ⊕ N₂))) :=
@@ -77,7 +77,7 @@ by
   congr
   repeat
     rw [List.map_append]
-  congr 1 <;> simp only [List.map_map] <;> (apply List.map_congr_left; intro r _; simp [lift_CF_rule₁, lift_CF_rule₂, lift_rule_, lift_string_, lift_symbol_])
+  congr 1 <;> simp only [List.map_map] <;> (apply List.map_congr_left; intro r _; simp [lift_CF_rule₁, lift_CF_rule₂, lift_rule_, lift_string_])
 
 /-- The class of context-free languages is closed under union.
     This theorem is proved by translation from general grammars.
