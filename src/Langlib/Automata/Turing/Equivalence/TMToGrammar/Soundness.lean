@@ -394,7 +394,7 @@ public theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
         rotate_left;
         exact inferInstance;
         exact Turing.TM0.init ( List.map some ( t :: ts ) );
-        · exact?;
+        · exact initCorresponds (t :: ts);
         · convert Relation.ReflTransGen.refl using 1;
           rotate_left;
           exact Turing.TM0.Cfg ( Option T ) Λ;
@@ -502,7 +502,7 @@ public theorem no_rightBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T
     False := by
   -- By no_rightBound_rule_cell_context, if r.input_N = rightBound then r.input_L = [nonterminal (haltCell orig)] for some orig.
   obtain ⟨orig, horig⟩ : ∃ orig, r.input_L = [symbol.nonterminal (haltCell orig)] := by
-    exact?;
+    exact no_rightBound_rule_cell_context M r hr hN;
   have := encodeTwoTrack_mem_classification tc ( symbol.nonterminal ( haltCell orig ) ) ; simp_all +decide ;
 
 omit [DecidableEq T] [DecidableEq Λ] in
@@ -910,7 +910,7 @@ public theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
           · rfl;
           · rfl;
           · rfl;
-          · exact?))
+          · exact List.toList_toArray))
         apply_rules [ GI.cleanup ];
         · exact tm_eval_dom_of_reaches_halt M _ _ hreach ( tm_step_of_corresponds M tc tmCfg hcorr h_Mqc );
         · exact ⟨ symbol.nonterminal ( haltCell tc.headOrig ), by simp +decide, by simp +decide [ isNonterminal ] ⟩;
@@ -935,7 +935,7 @@ public theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
       rw [hsf]
       -- Use tm_step_some_of_corresponds to get ⟨tmCfg', h_tm_step⟩.
       obtain ⟨tmCfg', h_tm_step⟩ : ∃ tmCfg', Turing.TM0.step M tmCfg = some tmCfg' := by
-        exact?;
+        exact tm_step_some_of_corresponds M tc tmCfg hcorr q' action h_Mqc;
       -- Apply the GI.simulating constructor with the given parameters.
       apply GI.simulating tc' tmCfg' (by
       have := corresponds_step_some M tc tmCfg tmCfg' hcorr h_tm_step; aesop;) (by

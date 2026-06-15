@@ -187,7 +187,7 @@ public theorem productDFA_reaches_projects (M : DPDA Q T S) (D : DFA T σ)
       ⟨(q, s), w, γ⟩ ⟨(q', s'), w', γ'⟩) :
     @PDA.Reaches Q T S _ _ _ M.toPDA ⟨q, w, γ⟩ ⟨q', w', γ'⟩ := by
   have h_proj : ∀ {c₁ c₂ : @PDA.conf (Q × σ) T S _ _ _ (M.productDFA D).toPDA}, @PDA.Reaches₁ (Q × σ) T S _ _ _ (M.productDFA D).toPDA c₁ c₂ → @PDA.Reaches₁ Q T S _ _ _ M.toPDA ⟨c₁.state.1, c₁.input, c₁.stack⟩ ⟨c₂.state.1, c₂.input, c₂.stack⟩ := by
-    exact?;
+    exact fun {c₁ c₂} a => productDFA_step_projects M D a;
   have h_proj : ∀ {c₁ c₂ : @PDA.conf (Q × σ) T S _ _ _ (M.productDFA D).toPDA}, @PDA.Reaches (Q × σ) T S _ _ _ (M.productDFA D).toPDA c₁ c₂ → @PDA.Reaches Q T S _ _ _ M.toPDA ⟨c₁.state.1, c₁.input, c₁.stack⟩ ⟨c₂.state.1, c₂.input, c₂.stack⟩ := by
     intros c₁ c₂ h; induction h; aesop;
     exact Relation.ReflTransGen.tail ‹_› ( h_proj ‹_› );
@@ -209,7 +209,7 @@ public theorem productDFA_reaches_dfa_state (M : DPDA Q T S) (D : DFA T σ)
   · rcases hn with ⟨ c, hc ⟩;
     rename_i c hc₁ hc₂;
     obtain ⟨ consumed₁, hconsumed₁, hconsumed₂ ⟩ := ih q s w γ c.state.1 c.state.2 c.input c.stack ( by
-      exact? ) hc₁;
+      exact reaches_of_reachesIn hc₁ ) hc₁;
     obtain ⟨ consumed₂, hconsumed₃, hconsumed₄ ⟩ := productDFA_step_dfa M D hc₂;
     grind +splitIndPred
 

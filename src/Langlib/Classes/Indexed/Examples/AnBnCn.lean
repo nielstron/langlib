@@ -178,7 +178,7 @@ private lemma consume_C (n : ℕ) :
         constructor;
         exists ⟨ .C, some .bottom, [ ] ⟩, [ ], [ ], [ ];
         simp +decide [ G ];
-        exact?;
+        exact mem_of_getLast? rfl;
       · -- Apply the transformation from iC (stk (n + 1)) to ic :: iC (stk n).
         have h_transform : G.Transforms [iC (stk (n + 1))] (ic :: iC (stk n) :: []) := by
           use ⟨.C, some .count, [IRhsSymbol.terminal 2, IRhsSymbol.nonterminal .C none]⟩;

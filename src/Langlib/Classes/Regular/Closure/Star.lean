@@ -148,7 +148,7 @@ private lemma εClosure_inl_accept (q : σ) (hq : q ∈ M.accept) :
           · refine' εNFA.εClosure.step _ _ _ _;
             exact Sum.inl q;
             · grind;
-            · exact?
+            · exact εNFA.εClosure.base (Sum.inl q) rfl
 
 omit [Fintype σ] in
 /-
@@ -284,7 +284,7 @@ private lemma evalFrom_inl_cons_not_accept (q : σ) (hq : q ∉ M.accept) (a : �
       unfold εNFA.evalFrom;
       -- Since q ∉ M.accept, the ε-closure of {Sum.inl q} is {Sum.inl q} itself.
       have h_εClosure : (starεNFA M).εClosure {Sum.inl q} = {Sum.inl q} := by
-        exact?;
+        exact εClosure_inl_not_accept M q hq;
       simp +decide [ h_εClosure, εNFA.stepSet ];
       congr
 
@@ -301,7 +301,7 @@ private lemma evalFrom_inl_cons_accept (q : σ) (hq : q ∈ M.accept) (a : α) (
       rw [ εClosure_inl_accept M q hq ];
       -- Apply the foldl_stepSet_union lemma to split the foldl into the union of two foldls, each starting from a different ε-closure.
       have h_foldl_union : ∀ (S T : Set (σ ⊕ Unit)) (w : List α), List.foldl (starεNFA M).stepSet (S ∪ T) w = List.foldl (starεNFA M).stepSet S w ∪ List.foldl (starεNFA M).stepSet T w := by
-        exact?;
+        exact fun S T w => foldl_stepSet_union M S T w;
       rw [ ← h_foldl_union ] ; congr ; ext ; simp +decide [ starεNFA ] ;
 
 omit [Fintype σ] in
@@ -335,7 +335,7 @@ private lemma star_backward {w : List α}
               simp +decide [ εClosure_fresh ]
             generalize_proofs at *; (
             have h_eval_y : (starεNFA M).evalFrom {Sum.inl M.start} y ⊆ (starεNFA M).evalFrom ((starεNFA M).evalFrom {Sum.inr ()} []) y := by
-              exact?
+              exact evalFrom_mono M {Sum.inl M.start} ((starεNFA M).evalFrom {Sum.inr ()} []) y h_eval_y
             generalize_proofs at *; (
             convert h_eval_y ‹_› using 1
             generalize_proofs at *; (
@@ -382,7 +382,7 @@ private lemma inl_to_fresh_split (q : σ) (w : List α)
             · exact hq;
           · -- By definition of `evalFrom`, we have:
             have h_eval : (starεNFA M).evalFrom {Sum.inl q} (a :: w) = (starεNFA M).evalFrom {Sum.inl (M.step q a)} w := by
-              exact?;
+              exact evalFrom_inl_cons_not_accept M q hq a w;
             rcases ih _ ( h_eval ▸ h ) with ⟨ u, v, rfl, hu, hv ⟩ ; exact ⟨ a :: u, v, by simp +decide, by simpa [ DFA.evalFrom ] using hu, hv ⟩
 
 omit [Fintype σ] in
@@ -400,7 +400,7 @@ private lemma star_forward {w : List α}
         obtain ⟨u, v, hw_eq, hu_accept, hv_accept⟩ : ∃ u v, w = u ++ v ∧ M.evalFrom (M.step M.start a) u ∈ M.accept ∧ Sum.inr () ∈ (starεNFA M).evalFrom {Sum.inr ()} v := by
           apply inl_to_fresh_split;
           have h_eval : Sum.inr () ∈ (starεNFA M).evalFrom {Sum.inr ()} (a :: w) := by
-            exact?;
+            exact Set.singleton_inter_nonempty.mp hw;
           rw [ evalFrom_fresh_cons ] at h_eval ; aesop;
         -- Let p = a :: u. Then:
         set p : List α := a :: u

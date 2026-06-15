@@ -88,7 +88,7 @@ private lemma nonterminal_match_primrec :
         exact Primrec.pair ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.fst.comp ( Primrec.fst.comp ( Primrec.fst ) ) );
       have h_primrec : Primrec (fun (p : ℕ × ℕ) => (p.1 == p.2)) := by
         convert Primrec.eq.comp ( Primrec.fst ) ( Primrec.snd ) using 1;
-        exact?;
+        exact Iff.symm primrecPred_iff_primrec_decide;
       convert h_primrec.comp ‹Primrec fun p : ((ℕ × ℕ) × List (ℕ × ℕ × ℕ) × ℕ) × (ℕ × ℕ × ℕ) => (p.2.1, p.1.1.1)› using 1;
     convert Primrec.and.comp ( h_primrec ) ( show Primrec ( fun p : ( ( ℕ × ℕ ) × List ( ℕ × ℕ × ℕ ) × ℕ ) × ( ℕ × ℕ × ℕ ) => p.2.2.1 == p.1.2.2 ) from ?_ ) using 1;
     convert Primrec.beq.comp ( show Primrec ( fun p : ( ( ℕ × ℕ ) × List ( ℕ × ℕ × ℕ ) × ℕ ) × ( ℕ × ℕ × ℕ ) => p.2.2.1 ) from ?_ ) ( show Primrec ( fun p : ( ( ℕ × ℕ ) × List ( ℕ × ℕ × ℕ ) × ℕ ) × ( ℕ × ℕ × ℕ ) => p.1.2.2 ) from ?_ ) using 1;
@@ -134,7 +134,7 @@ private lemma terminal_match_primrec :
       rotate_left;
       exact fun p => p.1 = some p.2.1;
       · convert Primrec.eq.comp ( Primrec.fst ) ( Primrec.option_some.comp ( Primrec.fst.comp ( Primrec.snd ) ) ) using 1;
-        exact?;
+        exact Iff.symm primrecPred_iff_primrec_decide;
       · exact Primrec.list_cons.comp ( Primrec.succ.comp ( Primrec.snd.comp ( Primrec.snd ) ) ) ( Primrec.const [] );
       · exact Primrec.const [];
       · grind;
@@ -191,7 +191,7 @@ private lemma matchRHS_primrec_bundled :
     have h_foldl : Primrec (fun (p : (ℕ × List T × List (ℕ × ℕ × ℕ)) × List (ℕ ⊕ T) × List ℕ) => List.foldl (fun (positions : List ℕ) (sym : ℕ ⊕ T) => List.flatMap (fun (pos : ℕ) => matchOneSym p.1.2.1 p.1.1 p.1.2.2 sym pos) positions) p.2.2 p.2.1) := by
       have h_step : Primrec (fun (p : (ℕ × List T × List (ℕ × ℕ × ℕ)) × List ℕ × (ℕ ⊕ T)) => List.flatMap (fun (pos : ℕ) => matchOneSym p.1.2.1 p.1.1 p.1.2.2 p.2.2 pos) p.2.1) := by
         have h_step : Primrec (fun (p : (ℕ × List T × List (ℕ × ℕ × ℕ)) × (ℕ ⊕ T) × ℕ) => matchOneSym p.1.2.1 p.1.1 p.1.2.2 p.2.1 p.2.2) := by
-          exact?;
+          exact matchOneSym_primrec_bundled;
         have h_flatMap : Primrec (fun (p : (ℕ × List T × List (ℕ × ℕ × ℕ)) × List ℕ × (ℕ ⊕ T)) => List.flatMap (fun (pos : ℕ) => matchOneSym p.1.2.1 p.1.1 p.1.2.2 p.2.2 pos) p.2.1) := by
           have h_flatMap : Primrec (fun (p : List ℕ × (ℕ × List T × List (ℕ × ℕ × ℕ)) × (ℕ ⊕ T)) => List.flatMap (fun (pos : ℕ) => matchOneSym p.2.1.2.1 p.2.1.1 p.2.1.2.2 p.2.2 pos) p.1) := by
             convert Primrec.list_flatMap _ _ using 1;
@@ -217,7 +217,7 @@ private lemma matchRHS_primrec_bundled :
   rotate_left;
   exact fun p => ⟨ p.1, p.2.1, [ p.2.2 ] ⟩;
   · exact Primrec.pair ( Primrec.fst ) ( Primrec.pair ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.list_cons.comp ( Primrec.snd.comp ( Primrec.snd ) ) ( Primrec.const [ ] ) ) );
-  · exact?
+  · exact map_inj.mp rfl
 
 /-! ## satStep is Primrec -/
 
@@ -253,10 +253,10 @@ private lemma innerFoldl_primrec :
   have h_condAppend_primrec : Primrec₂ (fun (ctx : ℕ × ℕ) (pair : List (ℕ × ℕ × ℕ) × ℕ) =>
     let triple := (ctx.1, ctx.2, pair.2)
     if decide (triple ∈ pair.1) then pair.1 else pair.1 ++ [triple]) := by
-      exact?;
+      exact condAppend_primrec;
   convert Primrec.list_foldl _ _ _;
   rotate_left;
-  exact?;
+  exact Primcodable.ofDenumerable ℕ;
   exact fun p q => if decide ( ( p.1.1, p.1.2, q.2 ) ∈ q.1 ) = true then q.1 else q.1 ++ [ ( p.1.1, p.1.2, q.2 ) ];
   · exact Primrec.fst.comp ( Primrec.snd );
   · exact Primrec.snd.comp ( Primrec.snd );

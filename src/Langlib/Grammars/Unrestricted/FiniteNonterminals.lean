@@ -264,7 +264,7 @@ lemma allNTsUsed_preserved_by_derives {g : grammar T} {u v : List (symbol T g.nt
     (hd : grammar_derives g u v) (hu : allNTsUsed g u) : allNTsUsed g v := by
   induction hd;
   · assumption;
-  · exact?
+  · (expose_names; exact allNTsUsed_preserved_by_transform h_1 a_ih)
 
 /-! ## Rule membership in the restricted grammar -/
 
@@ -308,7 +308,7 @@ public lemma derives_restrict {g : grammar T} {u v : List (symbol T g.nt)}
   induction' hd with u v hd ih;
   · constructor;
   · apply_rules [ Relation.ReflTransGen.tail, transforms_restrict ];
-    exact?
+    exact allNTsUsed_preserved_by_derives hd hu
 
 /-
 Backward direction: a transform in `restrictGrammar g` embeds into `g`.

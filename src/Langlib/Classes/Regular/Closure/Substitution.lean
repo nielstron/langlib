@@ -116,7 +116,7 @@ private lemma evalFrom_mono {S T : Set (σ ⊕ (σ × (Σ a : α, τ a)))} (w : 
     (h : S ⊆ T) :
     (substεNFA M τ N).evalFrom S w ⊆ (substεNFA M τ N).evalFrom T w := by
   induction' w using List.reverseRecOn with w ih generalizing S T <;> simp_all +decide [ εNFA.evalFrom ];
-  · exact?;
+  · exact εClosure_mono h;
   · apply_rules [ Set.iUnion₂_subset ];
     grind +suggestions
 
@@ -145,7 +145,7 @@ private lemma evalFrom_εClosed_set (S : Set (σ ⊕ (σ × (Σ a : α, τ a))))
   induction' w using List.reverseRecOn with w' a ih generalizing S;
   · rw [ εNFA.evalFrom_nil, εClosure_idempotent ];
   · rw [ εNFA.evalFrom_append_singleton ];
-    exact?
+    exact stepSet_εClosed ((substεNFA M τ N).evalFrom S w') a
 
 omit [Fintype α] [Fintype σ] inst_fin in
 private lemma evalFrom_append (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (u v : List β) :
@@ -198,12 +198,12 @@ private lemma backward_one_step (q : σ) (a : α) (u : List β)
       · exact Set.mem_range_self a;
       · apply εNFA.εClosure.base; simp +decide;
     have h_step : Sum.inr (q, ⟨a, (N a).evalFrom (N a).start u⟩) ∈ (substεNFA M τ N).evalFrom {Sum.inr (q, ⟨a, (N a).start⟩)} u := by
-      exact?;
+      exact evalFrom_inr_contains q a (N a).start u;
     have h_step : (substεNFA M τ N).evalFrom {Sum.inr (q, ⟨a, (N a).start⟩)} u ⊆ (substεNFA M τ N).evalFrom ((substεNFA M τ N).εClosure {Sum.inl q}) u := by
       apply evalFrom_mono;
       grind;
     convert h_step ‹_› using 1;
-    exact?;
+    exact Eq.symm (evalFrom_εClosure {Sum.inl q} u);
   apply_rules [ evalFrom_εClosed ];
   unfold substεNFA; aesop;
 
@@ -221,7 +221,7 @@ private lemma backward_eval (q : σ) (w : List α) (u : List β)
       convert mem_list_prod_iff_forall2 _ _ |>.2 ⟨ W, rfl, _ ⟩;
       rw [ List.forall₂_map_right_iff ] ; aesop;
     have h_step : Sum.inl (M.step q a) ∈ (substεNFA M τ N).evalFrom {Sum.inl q} u₁ := by
-      exact?;
+      exact backward_one_step q a u₁ hu₁;
     grind +suggestions
 
 omit [Fintype α] [Fintype σ] inst_fin in

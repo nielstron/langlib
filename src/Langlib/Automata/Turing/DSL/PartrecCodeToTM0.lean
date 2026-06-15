@@ -87,7 +87,7 @@ public theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
       erw [ Quotient.eq'' ];
       simp +decide [ BlankRel.setoid ];
       induction ( trList v ) <;> simp_all +decide [ BlankRel ];
-      · exact?;
+      · exact BlankExtends.refl [];
       · simp_all +decide [ BlankExtends ];
         rcases ‹_› with ( rfl | ⟨ n, hn ⟩ ) <;> [ exact ⟨ 1, by simp +decide ⟩ ; exact ⟨ n + 1, by simp +decide [ hn, List.replicate_add ] ⟩ ];
     · simp +decide [ ListBlank.liftOn ];

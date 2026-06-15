@@ -150,7 +150,7 @@ theorem dropFromLastSep_eq_of_dropUntilFirstSep {Γ : Type} [Inhabited Γ] [Deci
   · contradiction;
   · by_cases h : sep ∈ rest <;> simp_all +decide [ dropFromLastSep, dropUntilFirstSep ];
     · grind;
-    · exact?
+    · exact Eq.symm (dropFromLastSep_not_mem c rest h)
 
 /-
 Block decomposition at first `sep`.
@@ -221,7 +221,7 @@ public theorem tape_erase_step {Γ : Type} [Inhabited Γ]
   unfold Tape.mk₂;
   unfold Tape.mk';
   congr;
-  exact?
+  exact TM0BB.listBlank_cons_default_nil
 
 /-
 Moving left then right from `Tape.mk₁ l` is the identity.
@@ -298,7 +298,7 @@ theorem dfl_erase_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
       exact ⟨ _, if_neg ( by unfold Tape.mk₁; aesop ) |> fun h => h.trans ( if_neg ( by unfold Tape.mk₁; aesop ) ), rfl ⟩;
     · unfold TM0.step;
       unfold dflMachine; simp +decide ;
-      exact?;
+      exact tape_erase_step c rest;
   induction' pfx with c pfx ih;
   · constructor;
     rotate_right;
@@ -308,7 +308,7 @@ theorem dfl_erase_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
       unfold TM0.step; simp +decide ;
       exact ⟨ _, if_pos rfl, rfl ⟩;
     · unfold TM0.step; simp +decide [ dflMachine ] ;
-      exact?;
+      exact tape_erase_step sep rest;
   · have := h_erase c ( pfx ++ sep :: rest ) ( hpfx_nsep c ( by simp +decide ) ) ( hpfx_nd c ( by simp +decide ) );
     simpa only [ List.cons_append ] using this.trans ( ih ( fun g hg => hpfx_nsep g ( List.mem_cons_of_mem _ hg ) ) ( fun g hg => hpfx_nd g ( List.mem_cons_of_mem _ hg ) ) )
 
@@ -356,7 +356,7 @@ theorem dfl_one_cycle {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
   obtain ⟨ pfx, rest, h₁, h₂, h₃ ⟩ := block_first_sep_decomp sep block' hmem;
   have h_scan : Reaches (TM0.step (dflMachine sep)) ⟨DFLState.scan, Tape.mk₁ ((pfx ++ sep :: rest) ++ default :: suffix)⟩ ⟨DFLState.scan, Tape.mk₂ pfx.reverse (sep :: rest ++ default :: suffix)⟩ := by
     convert dfl_scan_right sep hsep [] pfx ( sep :: rest ++ default :: suffix ) _ _ using 1 <;> simp +decide [ * ];
-    · exact?;
+    · exact Eq.symm (RevBlock.mk₂_nil_eq_mk₁ (pfx ++ sep :: (rest ++ default :: suffix)));
     · assumption;
     · exact fun g hg => hblock g <| h₁.symm ▸ List.mem_append_left _ hg;
   have h_goBack : Reaches (TM0.step (dflMachine sep)) ⟨DFLState.scan, Tape.mk₂ pfx.reverse (sep :: rest ++ default :: suffix)⟩ ⟨DFLState.erase, Tape.mk₁ (pfx ++ sep :: rest ++ default :: suffix)⟩ := by
@@ -399,7 +399,7 @@ theorem dfl_no_sep_cycle {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     unfold dflMachine; simp +decide [ *, TM0.step ] ;
     rw [ if_neg, if_pos ];
     · exact ⟨ _, rfl, rfl ⟩;
-    · exact?;
+    · exact RevBlock.mk₂_head block'.reverse default suffix;
     · unfold Tape.mk₂; aesop;
   have h_rewind : Reaches (TM0.step (dflMachine sep)) ⟨.rewind, Tape.move Dir.left (Tape.mk₂ block'.reverse (default :: suffix))⟩ ⟨.done, Tape.mk₁ (block'.reverse.reverse ++ default :: suffix)⟩ := by
     apply dfl_rewind_after_left;
@@ -429,7 +429,7 @@ theorem dfl_full_reaches {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
   · have h_ind : Reaches (TM0.step (dflMachine sep)) (⟨.scan, Tape.mk₁ (dropUntilFirstSep sep block ++ default :: suffix)⟩) ⟨.done, Tape.mk₁ (dropFromLastSep sep (dropUntilFirstSep sep block) ++ default :: suffix)⟩ := by
       convert ih _ _ _ _ rfl using 1;
       · exact n ▸ dropUntilFirstSep_length_lt sep block h;
-      · exact?;
+      · exact fun g a => dropUntilFirstSep_ne_default sep block hblock g a;
     convert dfl_one_cycle sep hsep block suffix hblock h |> fun h => h.trans h_ind using 1;
     rw [ dropFromLastSep_eq_of_dropUntilFirstSep sep block h ];
   · rw [ dropFromLastSep_not_mem _ _ h ];

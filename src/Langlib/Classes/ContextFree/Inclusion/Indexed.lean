@@ -106,7 +106,7 @@ private lemma cf_tran_to_indexed_tran (g : CF_grammar T)
       · unfold indexed_of_cfg; aesop;
       · aesop;
       · rw [ hw₂, map_append, map_append ];
-        exact congr_arg₂ _ ( congr_arg₂ _ rfl ( by exact? ) ) rfl
+        exact congr_arg₂ _ ( congr_arg₂ _ rfl ( by exact Eq.symm (expandRhs_map_eq g r.2) ) ) rfl
 
 private lemma cf_deri_to_indexed_deri (g : CF_grammar T)
     {w₁ w₂ : List (symbol T g.nt)}
@@ -149,7 +149,7 @@ private lemma indexed_tran_decode (g : CF_grammar T)
       rcases σ with ⟨ ⟨ ⟩ ⟩;
       · have h_expand : (indexed_of_cfg g).expandRhs r.rhs [] = r₀.2.map (cf_to_isym g) := by
           rw [ hr₀.2 ];
-          exact?;
+          exact expandRhs_map_eq g r₀.2;
         simp_all +decide [ List.map_append ];
         exact ⟨ rfl, by rw [ show decode g ∘ cf_to_isym g = id from funext fun x => by cases x <;> rfl ] ; simp +decide ⟩;
       · cases ‹ ( indexed_of_cfg g ).flag ›

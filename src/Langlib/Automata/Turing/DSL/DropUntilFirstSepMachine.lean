@@ -127,8 +127,8 @@ public theorem dufs_reaches_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
           exact ⟨ DUFSState.done, Tape.move Dir.right ( Tape.write default ( Tape.mk₁ ( sep :: ( block ++ default :: suffix ) ) ) ) ⟩;
           · unfold dufsM; aesop;
           · convert Relation.ReflTransGen.refl using 1;
-            exact congr_arg _ ( by exact? );
-      · exact?;
+            exact congr_arg _ ( by exact Eq.symm (tape_erase_step sep (block ++ default :: suffix)) );
+      · exact Option.isNone_iff_eq_none.mp rfl;
     · obtain ⟨ q, hq₁, hq₂ ⟩ := ih suffix; use q; simp_all +decide [ Reaches ] ;
       have h_step : TM0.step (dufsM sep) ⟨.erase, Tape.mk₁ (c :: (block ++ default :: suffix))⟩ = some ⟨.wOther, Tape.write default (Tape.mk₁ (c :: (block ++ default :: suffix)))⟩ := by
         unfold TM0.step; simp +decide ;
