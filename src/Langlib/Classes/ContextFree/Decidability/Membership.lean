@@ -114,14 +114,14 @@ def cykDecideAux {NT : Type} [DecidableEq NT]
   | h₁ :: h₂ :: rest =>
     let w' := h₁ :: h₂ :: rest
     (List.finRange (w'.length - 1)).any fun ⟨i, hi⟩ =>
-      have hi' : i < rest.length + 1 := by simp [w'] at hi; omega
+      have hi' : i < rest.length + 1 := by simp only [length_cons, add_tsub_cancel_right, Order.lt_add_one_iff, w'] at hi; omega
       rulesList.any fun r =>
         match r with
         | ChomskyNormalFormRule.node nᵢ c₁ c₂ =>
           have htake : (w'.take (i + 1)).length < w'.length := by
-            simp [List.length_take]; omega
+            simp only [length_take, inf_lt_right, not_le]; omega
           have hdrop : (w'.drop (i + 1)).length < w'.length := by
-            simp [List.length_drop]; omega
+            simp only [length_drop, tsub_lt_self_iff, Order.lt_add_one_iff, zero_le, and_true]; omega
           decide (nᵢ = n) && cykDecideAux rulesList c₁ (w'.take (i + 1)) &&
             cykDecideAux rulesList c₂ (w'.drop (i + 1))
         | _ => false
@@ -256,16 +256,16 @@ def ntSetBit (bv : ℕ) (idx : ℕ) : ℕ := bv ||| (1 <<< idx)
 
 lemma ntInSet_ntSetBit_self (bv : ℕ) (idx : ℕ) :
     ntInSet (ntSetBit bv idx) idx = true := by
-  simp [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft]
+  simp only [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft, ge_iff_le, le_refl, decide_true, tsub_self, Nat.testBit_zero, Nat.mod_succ, Bool.and_self, Bool.or_true]
 
 lemma ntInSet_ntSetBit_of_true (bv : ℕ) (idx idx' : ℕ)
     (h : ntInSet bv idx = true) :
     ntInSet (ntSetBit bv idx') idx = true := by
-  simp [ntInSet, ntSetBit, Nat.testBit_or] at *
+  simp only [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft, ge_iff_le, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at *
   exact Or.inl h
 
 private lemma ntInSet_zero (idx : ℕ) : ntInSet 0 idx = false := by
-  simp [ntInSet]
+  simp only [ntInSet, Nat.zero_testBit]
 
 end BitvectorOps
 
@@ -294,7 +294,7 @@ lemma primrec₂_ntInSet : Primrec₂ (fun bv idx => ntInSet bv idx) := by
     convert Primrec.eq using 1;
     exact Iff.symm primrecRel_iff_primrec_decide;
   convert h_eq.comp₂ h_mod ( Primrec₂.const 1 ) using 1;
-  ext; simp [ntInSet];
+  ext; simp only [ntInSet];
   exact Nat.testBit_eq_decide_div_mod_eq
 
 lemma primrec₂_ntSetBit : Primrec₂ (fun bv idx => ntSetBit bv idx) := by
@@ -604,8 +604,8 @@ lemma cykMemCheck_eq (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)) (si 
     ntInSet ((cykBuildTable ld nd w (w.length - 1)).getD
       ((w.length - 1) * w.length) 0) si := by
   cases w with
-  | nil => simp [cykMemCheck, cykBuildTable, ntInSet]
-  | cons h t => simp [cykMemCheck]
+  | nil => simp only [cykMemCheck, ntInSet, length_nil, zero_tsub, cykBuildTable, map_nil, mul_zero, getD_eq_getElem?_getD, lt_self_iff_false, not_false_eq_true, getElem?_neg, Option.getD_none, Nat.zero_testBit]
+  | cons h t => simp only [cykMemCheck, length_cons, add_tsub_cancel_right, getD_eq_getElem?_getD]
 
 /-- The full membership check is Primrec. -/
 lemma primrec_cykMemCheck (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)) (si : ℕ) :
@@ -659,7 +659,7 @@ lemma cykBuildTable_length (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)
     (w : List T) (k : ℕ) :
     (cykBuildTable ld nd w k).length = (k + 1) * w.length := by
   induction' k with k ih generalizing w;
-  · simp [cykBuildTable];
+  · simp only [cykBuildTable, length_map, zero_add, one_mul];
   · unfold cykBuildTable;
     grind
 
@@ -1054,7 +1054,7 @@ theorem contextFree_membership_computablePred [Primcodable T] :
   constructor;
   convert checkMembershipEncoded_computable' using 1;
   all_goals try infer_instance;
-  ext ⟨G, w⟩; simp;
+  ext ⟨G, w⟩; simp only;
   rw [ eq_comm ];
   grind +suggestions;
   exact Classical.decPred _

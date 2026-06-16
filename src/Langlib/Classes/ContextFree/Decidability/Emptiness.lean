@@ -225,7 +225,7 @@ lemma productiveInit_sound (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
   rcases r with ( _ | _ ) <;> simp_all +decide;
   -- By definition of canDerive, if (ChomskyNormalFormRule.leaf n t) ∈ g.rules, then canDerive g n [t].
   use [‹T›]
-  simp [ChomskyNormalFormGrammar.canDerive];
+  simp only [canDerive];
   grind
 
 omit [DecidableEq T] in
@@ -552,7 +552,7 @@ lemma prodNTsN_sound (G : EncodedCFG T)
   suffices h : ∀ n, ∀ k ∈ (prodStepN G.ntCount G.rawRules)^[n] [],
       IsProductive G.toCFGrammar (G.toNT k) from h _ _ hk
   intro n; induction n with
-  | zero => simp
+  | zero => simp only [Function.iterate_zero, id_eq, not_mem_nil, IsEmpty.forall_iff, implies_true]
   | succ n ih => rw [Function.iterate_succ_apply']; exact prodStepN_sound_step G _ ih
 
 omit [Fintype T] in
@@ -677,7 +677,7 @@ lemma prodNTsN_fixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) :
   -- We'll use induction to prove that the size of the list increases by at least one in each step until it reaches the limit.
   have h_inductive_step : ∀ k ≤ rules.length, (prodStepN nc rules)^[k + 1] [] = (prodStepN nc rules)^[k] [] ∨ List.length ((prodStepN nc rules)^[k + 1] []) > List.length ((prodStepN nc rules)^[k] []) := by
     intro k hk
-    simp [Function.iterate_succ_apply', prodStepN];
+    simp only [Function.iterate_succ_apply', prodStepN, decide_eq_true_eq, gt_iff_lt];
     by_cases h : foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) ((prodStepN nc rules)^[k] []) rules = (prodStepN nc rules)^[k] [] <;> simp_all +decide [  ];
     have h_inductive_step : ∀ (acc : List ℕ) (rules : List (ℕ × List (ℕ ⊕ T))), foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) acc rules ≠ acc → List.length (foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) acc rules) > List.length acc := by
       intros acc rules h; induction' rules using List.reverseRecOn with rules ih <;> simp_all +decide [  ] ;
@@ -786,7 +786,7 @@ omit [Fintype T] in
 omit [DecidableEq T] in
 private lemma toNT_mod (G : EncodedCFG T) (k : ℕ) :
     G.toNT (k % G.ntCount) = G.toNT k := by
-  simp [EncodedCFG.toNT, EncodedCFG.ntCount, EncodedCFG.numNT, Nat.mod_mod_of_dvd]
+  simp only [EncodedCFG.ntCount, EncodedCFG.numNT, EncodedCFG.toNT, dvd_refl, Nat.mod_mod_of_dvd]
 
 omit [Fintype T] in
 omit [DecidableEq T] in
@@ -825,14 +825,14 @@ private lemma nat_list_mem_primrec :
   have hmem : (fun (x : ℕ) (l : List ℕ) => (decide (x ∈ l) : Bool)) =
     (fun (x : ℕ) (l : List ℕ) => l.foldr (fun y r => decide (x = y) || r) false) := by
     ext x l; induction l with
-    | nil => simp
-    | cons h t ih => simp [List.foldr, List.mem_cons, ih]
+    | nil => simp only [not_mem_nil, decide_false, foldr_nil]
+    | cons h t ih => simp only [mem_cons, Bool.decide_or, ih, foldr]
   rw [hmem]
   have h_step : Primrec₂ (fun (a : ℕ × List ℕ) (b : ℕ × Bool) => decide (a.1 = b.1) || b.2) := by
     show Primrec (fun q : (ℕ × List ℕ) × (ℕ × Bool) => decide (q.1.1 = q.2.1) || q.2.2)
     have heq : (fun q : (ℕ × List ℕ) × (ℕ × Bool) => decide (q.1.1 = q.2.1) || q.2.2) =
       (fun q : (ℕ × List ℕ) × (ℕ × Bool) => bif (q.1.1 == q.2.1) then true else q.2.2) := by
-      ext q; simp [BEq.beq]
+      ext q; simp only [BEq.beq, Bool.cond_true_left]
     rw [heq]
     exact Primrec.cond
       (Primrec.beq.comp (Primrec.fst.comp Primrec.fst) (Primrec.fst.comp Primrec.snd))
@@ -864,10 +864,10 @@ private lemma allNTsInListN_primrec :
   have heq : (fun (p : (ℕ × List ℕ) × List (ℕ ⊕ T)) => allNTsInListN p.1.1 p.2 p.1.2) =
     (fun (p : (ℕ × List ℕ) × List (ℕ ⊕ T)) => p.2.foldr
       (fun s acc => (match s with | .inl k => (decide (k % p.1.1 ∈ p.1.2) : Bool) | .inr _ => true) && acc) true) := by
-    ext ⟨⟨nc, S⟩, rhs⟩; simp [allNTsInListN]
+    ext ⟨⟨nc, S⟩, rhs⟩; simp only [allNTsInListN]
     induction rhs with
-    | nil => simp
-    | cons h t ih => simp [List.all, List.foldr, ih]
+    | nil => simp only [all_nil, foldr_nil]
+    | cons h t ih => simp only [all, ih, foldr]
   rw [heq]
   have hstep : Primrec₂ (fun (ctx : (ℕ × List ℕ) × List (ℕ ⊕ T)) (sa : (ℕ ⊕ T) × Bool) =>
     (match sa.1 with | .inl k => (decide (k % ctx.1.1 ∈ ctx.1.2) : Bool) | .inr _ => true) && sa.2) := by

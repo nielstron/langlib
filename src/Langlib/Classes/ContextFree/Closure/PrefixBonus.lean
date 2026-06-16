@@ -133,13 +133,13 @@ private lemma productiveGrammar_initial (g : CF_grammar T) :
 private lemma productiveGrammar_rules_subset {g : CF_grammar T} {r} :
     r ∈ (productiveGrammar g).rules → r ∈ g.rules := by
   intro h
-  simp [productiveGrammar] at h
+  simp only [productiveGrammar, List.mem_filter, decide_eq_true_eq] at h
   exact h.1
 
 lemma productiveGrammar_rules_productive {g : CF_grammar T} {r}
     (hr : r ∈ (productiveGrammar g).rules) :
     fullyProductiveRule g r := by
-  simp [productiveGrammar] at hr
+  simp only [productiveGrammar, List.mem_filter, decide_eq_true_eq] at hr
   exact hr.2
 
 /-
@@ -591,7 +591,9 @@ section Soundness
 
 /-- If `liftFull` is injective on symbols. -/
 private lemma liftFull_injective {N : Type} : Function.Injective (@liftFull T N) := by
-  intros a b h; cases a <;> cases b <;> simp_all [liftFull]
+  intros a b h; cases a <;> cases b <;>
+    simp_all only [liftFull, reduceCtorEq, symbol.terminal.injEq, symbol.nonterminal.injEq,
+      Prod.mk.injEq, true_and]
 
 /-
 A transform step on a list of `liftFull` images in the prefix grammar
