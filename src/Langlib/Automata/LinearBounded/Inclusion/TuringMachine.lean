@@ -233,8 +233,8 @@ noncomputable def ntm0Init {Γ : Type*} {Λ : Type*} {n : ℕ}
 theorem tape_iter_move_right_nth {α : Type*} [Inhabited α]
     (T : Turing.Tape α) (k : ℕ) (i : ℤ) :
     ((Turing.Tape.move Turing.Dir.right)^[k] T).nth i = T.nth (i + k) := by
-  induction' k with k ih generalizing i <;> simp_all +decide [ Function.iterate_succ_apply' ];
-  ring
+  induction' k with k ih generalizing i <;> simp_all +decide [ Function.iterate_succ_apply' ]
+  ring_nf
 
 theorem tape_mk1_move_right_head {α : Type*} [Inhabited α]
     (l : List α) (k : ℕ) :

@@ -2,7 +2,6 @@ module
 
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
-import Langlib.Utilities.WrittenByOthers.PrintSorries
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -108,6 +107,3 @@ by
     | inr case_2 =>
         rw [←eq_L₂] at case_2
         exact in_union_of_in_L₂ case_2
-
-#check            bonus_CF_of_CF_u_CF
-#print_sorries_in bonus_CF_of_CF_u_CF

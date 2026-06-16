@@ -383,7 +383,7 @@ lemma ogden_pump_from_left {n c₁ c₂ : g.NT}
   · contrapose! hmc₂; simp_all +decide [ add_assoc, countMarkedIn_add ] ;
     exact hmc₂.2.2;
   · unfold mc at hmc_bound; simp_all +decide [ countMarkedIn ] ;
-    convert hmc_bound using 3 ; simp +decide [ *, ChomskyNormalFormGrammar.parseTree.yield ] ; ring!;
+    convert hmc_bound using 3 ; simp +decide [ *, ChomskyNormalFormGrammar.parseTree.yield ] ; ring_nf!;
   · intro i
     have h_deriv : g.Derives [Symbol.nonterminal n] (map Symbol.terminal (u₁ ^+^ i) ++ [Symbol.nonterminal n] ++ map Symbol.terminal ((z₁ ++ t₂.yield) ^+^ i)) := by
       convert pumping_string _ i using 1;

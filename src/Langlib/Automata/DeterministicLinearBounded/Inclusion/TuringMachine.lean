@@ -189,8 +189,8 @@ The `k`-th element of a tape obtained by moving right `k` times.
 theorem tape_iter_move_right_nth {Γ : Type*} [Inhabited Γ]
     (T : Turing.Tape Γ) (k : ℕ) (i : ℤ) :
     ((Turing.Tape.move Turing.Dir.right)^[k] T).nth i = T.nth (i + k) := by
-  induction' k with k ih generalizing i <;> simp_all +decide [ Function.iterate_succ_apply' ];
-  ring
+  induction' k with k ih generalizing i <;> simp_all +decide [ Function.iterate_succ_apply' ]
+  ring_nf
 
 /-
 After moving right `k` times from `Tape.mk₁ l`, the head is `l.getI k`.

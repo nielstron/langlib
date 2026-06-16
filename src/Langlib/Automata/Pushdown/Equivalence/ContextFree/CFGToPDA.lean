@@ -89,7 +89,7 @@ public abbrev M (G : ContextFreeGrammar T) [Fintype G.NT] : PDA' G:= {
     rintro q (⟨x⟩|⟨N⟩)
     · exact Set.finite_empty
     · let R  := {r | r ∈ G.rules}
-      have hR : R.Finite := by simp? [R]
+      have hR : R.Finite := by simp only [SetLike.setOf_mem_eq, Finset.finite_toSet, R]
       let S  := (λ ⟨N, α⟩ ↦ (Q.loop, α)) ''  R
       have hS : S.Finite := by apply Set.Finite.image; exact hR
       let A := (transition_fun' G q (nonterminal N))

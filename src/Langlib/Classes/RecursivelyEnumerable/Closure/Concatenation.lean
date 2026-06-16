@@ -709,7 +709,7 @@ public lemma take_of_append_five {α : Type} {u L : List α} {n : α} {R v : Lis
     (h_le : u.length + L.length + 1 + R.length ≤ m) :
     List.take m (u ++ L ++ [n] ++ R ++ v) =
       u ++ L ++ [n] ++ R ++ List.take (m - (u.length + L.length + 1 + R.length)) v := by
-        rw [ List.take_append, List.take_append, List.take_append, List.take_append ] ; simp +arith +decide [ * ] ; ring;
+        rw [ List.take_append, List.take_append, List.take_append, List.take_append ] ; simp +arith +decide [ * ] ; ring_nf;
         rw [ List.take_of_length_le, List.take_of_length_le, List.take_of_length_le ] <;> norm_num <;> omega;
 
 lemma drop_of_append_five {α : Type} {u L : List α} {n : α} {R v : List α} {m : ℕ}
@@ -717,7 +717,7 @@ lemma drop_of_append_five {α : Type} {u L : List α} {n : α} {R v : List α} {
     (_h_le2 : m ≤ u.length + L.length + 1 + R.length + v.length) :
     List.drop m (u ++ L ++ [n] ++ R ++ v) =
       List.drop (m - (u.length + L.length + 1 + R.length)) v := by
-        rw [ show m = 1 + u.length + L.length + R.length + ( m - ( 1 + u.length + L.length + R.length ) ) by rw [ add_tsub_cancel_of_le ] ; linarith ] ; simp +decide [ List.drop_append, add_comm, add_left_comm, add_assoc ] ; ring;
+        rw [ show m = 1 + u.length + L.length + R.length + ( m - ( 1 + u.length + L.length + R.length ) ) by rw [ add_tsub_cancel_of_le ] ; linarith ] ; simp +decide [ List.drop_append, add_comm, add_left_comm, add_assoc ] ; ring_nf;
         rw [ List.drop_eq_nil_of_le, List.drop_eq_nil_of_le ] <;> simp +arith +decide
 
 end helpers_for_induction_steps
@@ -799,9 +799,9 @@ by
       have h_new_corr'' : corresponding_strings (List.map (wrap_symbol₁ g₂.nt) r₁.output_string) (wrap_grule₁ g₂.nt r₁).output_string := by
         exact corresponding_strings_self
       exact corresponding_strings_append (corresponding_strings_append h_new_corr h_new_corr'') h_new_corr' |> fun h => by simpa [List.map_append] using h;
-    convert corresponding_strings_append h_new_corr ( h_drop_corr ) using 1 ; simp +decide [  ] ; ring!;
-    rw [ aft, h_drop ] ; simp +decide [ List.append_assoc ] ; ring!;
-    rw [ show x.length - ( 1 + u.length + r₁.input_L.length + r₁.input_R.length ) = x.length - ( u.length + r₁.input_L.length + 1 + r₁.input_R.length ) by ring, List.take_append_drop ];
+    convert corresponding_strings_append h_new_corr ( h_drop_corr ) using 1 ; simp +decide [  ] ; ring_nf!;
+    rw [ aft, h_drop ] ; simp +decide [ List.append_assoc ] ; ring_nf!;
+    rw [ show x.length - ( 1 + u.length + r₁.input_L.length + r₁.input_R.length ) = x.length - ( u.length + r₁.input_L.length + 1 + r₁.input_R.length ) by ring_nf, List.take_append_drop ];
   refine h_contra' ⟨ List.filterMap unwrap_symbol₁ u ++ r₁.output_string ++ List.filterMap unwrap_symbol₁ v₁, ?_, ih_y, h_new_corr ⟩;
   have h_x_eq : x = List.filterMap (@unwrap_symbol₁ T g₁.nt g₂.nt) u ++ r₁.input_L ++ [symbol.nonterminal r₁.input_N] ++ r₁.input_R ++ List.filterMap (@unwrap_symbol₁ T g₁.nt g₂.nt) v₁ := by
     have h_x_eq : List.filterMap (@unwrap_symbol₁ T g₁.nt g₂.nt) (List.take x.length a) = x := by

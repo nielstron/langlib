@@ -435,7 +435,7 @@ private lemma goodForm_step_on_B {n ja jb jc : ℕ} {doneA doneC : Bool}
           · rcases x with ( _ | _ | x ) <;> simp_all +decide [ grammar_anbncn_indexed ];
           · unfold grammar_anbncn_indexed at hr; simp_all +decide ;
             unfold grammar_anbncn_indexed; simp +decide [ IndexedGrammar.expandRhs ] ;
-            convert GoodForm.withABC n ja ( jb + 1 ) jc doneA false doneC ( by linarith ) ( by omega ) ( by omega ) ( by aesop ) ( by aesop ) using 1 ; simp +decide [ List.replicate_add ] ; ring;
+            convert GoodForm.withABC n ja ( jb + 1 ) jc doneA false doneC ( by linarith ) ( by omega ) ( by omega ) ( by aesop ) ( by aesop ) using 1 ; simp +decide [ List.replicate_add ] ; ring_nf;
             rw [ show n - ( 1 + jb ) = n - jb - 1 by rw [ Nat.sub_sub, add_comm ] ] ; simp +decide [ n' ] ; aesop;
       · replace heq := congr_arg List.length heq.2 ; simp_all +arith +decide [ List.length_append ] ;
       · replace heq := congr_arg List.length heq.2 ; simp_all +arith +decide;
