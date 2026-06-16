@@ -393,7 +393,7 @@ lemma ogden_pump_from_left {n c₁ c₂ : g.NT}
       generalize_proofs at *; (
       convert node_derives_left hnc hderiv₁ using 1 ; simp +decide;
       congr! 1);
-      exact congr_arg₂ _ ( congr_arg₂ _ ( by exact? ) rfl ) ( by exact? );
+      exact congr_arg₂ _ ( congr_arg₂ _ ( by exact Eq.symm nTimes_map ) rfl ) ( by exact Eq.symm nTimes_map );
     grind +suggestions
 
 omit [DecidableEq ((_n : g.NT) × parseTree _n)] in
@@ -436,7 +436,7 @@ lemma ogden_pump_from_right {n c₁ c₂ : g.NT}
       have h_pump : ∀ i : ℕ, g.Derives [Symbol.nonterminal n] ((t₁.yield ++ u₁).map Symbol.terminal ^+^ i ++ [Symbol.nonterminal n] ++ (z₁.map Symbol.terminal) ^+^ i) := by
         intro i
         have := h_deriv
-        exact?
+        exact pumping_string h_deriv i
       generalize_proofs at *;
       exact h_pump i
     generalize_proofs at *;

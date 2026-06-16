@@ -163,7 +163,7 @@ theorem return_loop (carry h : Γ) (elems L_orig R : List Γ)
     · unfold TM0.step MSep; simp +decide ;
       rw [ if_neg ];
       · exact ⟨ _, rfl, mk₂_move_left _ _ _ ⟩;
-      · exact?;
+      · exact Ne.symm (id (Ne.symm hh));
     · convert ih e L_orig ( h :: R ) ( helems e ( by simp +decide ) ) ( fun y hy => helems y ( by simp +decide [ hy ] ) ) using 1;
       simp +decide [ List.reverse_cons ]
 
@@ -222,7 +222,7 @@ public theorem shift_to_grab (carry : Γ) (rest shifted L_orig suffix : List Γ)
          (shifted.reverse ++ (carry :: rest).dropLast ++ sep :: suffix)⟩ := by
   induction' rest with r rest ih generalizing carry shifted; simp_all +decide [ List.getLast, List.dropLast ] ;
   · cases shifted <;> simp_all +decide [  ];
-    · exact?;
+    · exact shift_to_grab_nil_nil sep carry L_orig suffix;
     · exact shift_to_grab_nil_cons _ _ _ _ _ _ hshifted.1 hshifted.2;
   · have h1 : Reaches (TM0.step (MSep Γ sep)) ⟨Sum.inl (carry, .shifting), Tape.mk₂ (shifted ++ sep :: L_orig) (r :: rest ++ sep :: suffix)⟩ ⟨Sum.inl (r, .carryRight), Tape.mk₂ (shifted ++ sep :: L_orig) (carry :: rest ++ sep :: suffix)⟩ := by
       constructor;

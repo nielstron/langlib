@@ -96,7 +96,7 @@ private lemma CF_derives_of_derivesIn {n : ℕ} {w₁ w₂ : List (symbol T g.nt
     (h : CF_derivesIn g n w₁ w₂) : CF_derives g w₁ w₂ := by
   induction' h with n w₁ w₂ h ih;
   · constructor;
-  · exact?
+  · (expose_names; exact CF_deri_of_deri_tran a_ih h_2)
 
 private lemma CF_derivesIn_trans {n m : ℕ} {w₁ w₂ w₃ : List (symbol T g.nt)}
     (h₁ : CF_derivesIn g n w₁ w₂) (h₂ : CF_derivesIn g m w₂ w₃) :
@@ -335,7 +335,7 @@ public lemma forward_thread {M : DFA T σ} (N_bound : ℕ)
       obtain ⟨w', hw', hw''⟩ : ∃ w', w = a :: w' ∧ CF_derivesIn (productGrammar g M) n out' (List.map symbol.terminal w') := by
         obtain ⟨w', hw'⟩ : ∃ w', w = a :: w' ∧ CF_derivesIn (productGrammar g M) n out' (List.map symbol.terminal w') := by
           have h_split : ∃ x y n₁ n₂, List.map symbol.terminal w = x ++ y ∧ CF_derivesIn (productGrammar g M) n₁ [symbol.terminal a] x ∧ CF_derivesIn (productGrammar g M) n₂ out' y ∧ n = n₁ + n₂ := by
-            exact?
+            exact CF_derivesIn_append_split hder
           obtain ⟨ x, y, n₁, n₂, h₁, h₂, h₃, rfl ⟩ := h_split;
           have := CF_derivesIn_terminal_zero h₂;
           rcases w with ( _ | ⟨ a', w ⟩ ) <;> simp_all +decide [ List.map ];
@@ -382,7 +382,7 @@ public lemma forward_key {M : DFA T σ} (n : ℕ) (p : σ) (A : g.nt) (q : σ) (
     · rintro ⟨ ⟩;
   · intro h;
     obtain ⟨w₂, hw₂⟩ : ∃ w₂, CF_transforms (productGrammar g M) [symbol.nonterminal (some (p, A, q))] w₂ ∧ CF_derivesIn (productGrammar g M) n w₂ (w.map symbol.terminal) := by
-      exact?;
+      exact CF_derivesIn_head h;
     rcases hw₂ with ⟨ ⟨ r, u, v, hr, hu, hv ⟩, hw₂ ⟩;
     rcases u with ( _ | ⟨ _, _ ⟩ ) <;> rcases v with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide;
     -- By definition of `productGrammar`, we know that `r.2` is a valid derivation in `g`.
@@ -513,7 +513,7 @@ private lemma backward_key {M : DFA T σ} (n : ℕ) (A : g.nt) (w : List T) (p q
   · cases w <;> cases hder;
   · -- By definition of CF_derivesIn, there exists some w₂ such that CF_transforms g [symbol.nonterminal A] w₂ and CF_derivesIn g n w₂ (w.map symbol.terminal).
     obtain ⟨w₂, hw₂⟩ : ∃ w₂, CF_transforms g [symbol.nonterminal A] w₂ ∧ CF_derivesIn g n w₂ (w.map symbol.terminal) := by
-      exact?;
+      exact CF_derivesIn_head hder;
     -- Since $w₂$ is derived from $A$ in $g$, we have $w₂ = rhs$ for some $rhs$ such that $(A, rhs) \in g.rules$.
     obtain ⟨rhs, hrhs⟩ : ∃ rhs : List (symbol T g.nt), (A, rhs) ∈ g.rules ∧ w₂ = rhs := by
       obtain ⟨ r, u, v, hr, hu, hv ⟩ := hw₂.1;
@@ -560,7 +560,7 @@ public theorem productGrammar_language (g : CF_grammar T) (M : DFA T σ) :
   obtain ⟨hw1, hw2⟩ := hw
   obtain ⟨n, hn⟩ := CF_derivesIn_of_derives hw1
   have h_backward : CF_derives (productGrammar g M) [symbol.nonterminal (some (M.start, g.initial, DFA.evalFrom M M.start w))] (w.map symbol.terminal) := by
-    exact?
+    exact backward_key n g.initial w M.start (M.evalFrom M.start w) hn rfl
   have h_start : CF_derives (productGrammar g M) [symbol.nonterminal none] (w.map symbol.terminal) := by
     convert CF_deri_of_deri_deri _ _ using 1;
     exact [ symbol.nonterminal ( some ( M.start, g.initial, M.evalFrom M.start w ) ) ];

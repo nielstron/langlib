@@ -225,7 +225,7 @@ lemma productiveInit_sound (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
   rcases r with ( _ | _ ) <;> simp_all +decide;
   -- By definition of canDerive, if (ChomskyNormalFormRule.leaf n t) ∈ g.rules, then canDerive g n [t].
   use [‹T›]
-  simp [ChomskyNormalFormGrammar.canDerive];
+  simp only [canDerive];
   grind
 
 omit [DecidableEq T] in
@@ -456,7 +456,7 @@ private lemma iterate_prodStepN_mono (nc : ℕ) (rules : List (ℕ × List (ℕ 
     ∀ x ∈ (prodStepN nc rules)^[n] [],
       x ∈ (prodStepN nc rules)^[m] [] := by
   induction' h with k hk;
-  · exact?;
+  · exact fun x a => (fun {α} {a} {l} => Multiset.mem_coe.mp) a;
   · exact fun x hx => by simpa only [ Function.iterate_succ_apply' ] using mem_prodStepN_of_mem _ _ _ _ ( by tauto ) ;
 
 omit [Fintype T] [DecidableEq T] in
@@ -471,16 +471,16 @@ lemma productive_sentential_form (g : CF_grammar T)
   · rcases s with ( _ | _ ) <;> simp_all +decide;
     · obtain ⟨ w, hw ⟩ := ih; use ‹_› :: w; exact (by
       have h_append : ∀ (u v : List (symbol T g.nt)), CF_derives g u v → ∀ (w : List (symbol T g.nt)), CF_derives g (w ++ u) (w ++ v) := by
-        exact?;
+        exact fun u v a w => CF_deri_with_prefix w a;
       exact h_append _ _ hw [ symbol.terminal _ ]);
     · obtain ⟨ w, hw ⟩ := h.1;
       obtain ⟨ w', hw' ⟩ := ih;
       have h_concat : CF_derives g (symbol.nonterminal ‹_› :: syms) (List.map symbol.terminal w ++ syms) := by
         have h_concat : ∀ {α β : List (symbol T g.nt)}, CF_derives g α β → ∀ {γ : List (symbol T g.nt)}, CF_derives g (α ++ γ) (β ++ γ) := by
-          exact?;
+          exact fun {α β} a {γ} => CF_deri_with_postfix γ a;
         exact h_concat hw;
       have h_concat : CF_derives g (List.map symbol.terminal w ++ syms) (List.map symbol.terminal w ++ List.map symbol.terminal w') := by
-        exact?;
+        exact CF_deri_with_prefix (map symbol.terminal w) hw';
       exact ⟨ w ++ w', by simpa using Relation.ReflTransGen.trans ‹CF_derives g ( symbol.nonterminal _ :: syms ) ( map symbol.terminal w ++ syms ) › h_concat ⟩
 
 omit [Fintype T] [DecidableEq T] in
@@ -515,7 +515,7 @@ lemma prodStepN_sound_step (G : EncodedCFG T)
     have h_not_in_prodStepN : ∀ (rules : List (ℕ × List (ℕ ⊕ T))) (S : List ℕ), (∀ k ∈ S, IsProductive G.toCFGrammar (G.toNT k)) → (∀ (rule : ℕ × List (ℕ ⊕ T)), rule ∈ rules → (∀ k, Sum.inl k ∈ rule.2 → IsProductive G.toCFGrammar (G.toNT k)) → IsProductive G.toCFGrammar (G.toNT rule.1)) → ∀ k, k ∉ S → ¬IsProductive G.toCFGrammar (G.toNT k) → k ∉ prodStepN G.ntCount rules S := by
       intros rules S hS h_rules k hk hk_not_prod
       induction' rules with rule rules ih generalizing S;
-      · exact?;
+      · exact Not.intro hk;
       · unfold prodStepN; simp +decide ;
         split_ifs <;> simp_all +decide [  ];
         · convert ih _ _ _ using 1;
@@ -552,7 +552,7 @@ lemma prodNTsN_sound (G : EncodedCFG T)
   suffices h : ∀ n, ∀ k ∈ (prodStepN G.ntCount G.rawRules)^[n] [],
       IsProductive G.toCFGrammar (G.toNT k) from h _ _ hk
   intro n; induction n with
-  | zero => simp
+  | zero => simp only [Function.iterate_zero, id_eq, not_mem_nil, IsEmpty.forall_iff, implies_true]
   | succ n ih => rw [Function.iterate_succ_apply']; exact prodStepN_sound_step G _ ih
 
 omit [Fintype T] in
@@ -677,7 +677,7 @@ lemma prodNTsN_fixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) :
   -- We'll use induction to prove that the size of the list increases by at least one in each step until it reaches the limit.
   have h_inductive_step : ∀ k ≤ rules.length, (prodStepN nc rules)^[k + 1] [] = (prodStepN nc rules)^[k] [] ∨ List.length ((prodStepN nc rules)^[k + 1] []) > List.length ((prodStepN nc rules)^[k] []) := by
     intro k hk
-    simp [Function.iterate_succ_apply', prodStepN];
+    simp only [Function.iterate_succ_apply', prodStepN, decide_eq_true_eq, gt_iff_lt];
     by_cases h : foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) ((prodStepN nc rules)^[k] []) rules = (prodStepN nc rules)^[k] [] <;> simp_all +decide [  ];
     have h_inductive_step : ∀ (acc : List ℕ) (rules : List (ℕ × List (ℕ ⊕ T))), foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) acc rules ≠ acc → List.length (foldl (fun acc rule => if allNTsInListN nc rule.2 acc = true then if rule.1 % nc ∈ acc then acc else acc ++ [rule.1 % nc] else acc) acc rules) > List.length acc := by
       intros acc rules h; induction' rules using List.reverseRecOn with rules ih <;> simp_all +decide [  ] ;
@@ -688,7 +688,7 @@ lemma prodNTsN_fixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) :
     have h_limit : ∀ k, List.length ((prodStepN nc rules)^[k] []) ≤ rules.length := by
       intro k
       have h_subset : ∀ x ∈ (prodStepN nc rules)^[k] [], ∃ rule ∈ rules, x = rule.1 % nc := by
-        exact?;
+        exact fun x a => iterate_subset_rule_lhs nc rules k x a;
       have h_subset : List.toFinset ((prodStepN nc rules)^[k] []) ⊆ List.toFinset (List.map (fun rule => rule.1 % nc) rules) := by
         intro x hx; specialize h_subset x; aesop;
       have := Finset.card_le_card h_subset; simp_all +decide [  ] ;
@@ -786,7 +786,7 @@ omit [Fintype T] in
 omit [DecidableEq T] in
 private lemma toNT_mod (G : EncodedCFG T) (k : ℕ) :
     G.toNT (k % G.ntCount) = G.toNT k := by
-  simp [EncodedCFG.toNT, EncodedCFG.ntCount, EncodedCFG.numNT, Nat.mod_mod_of_dvd]
+  simp only [EncodedCFG.ntCount, EncodedCFG.numNT, EncodedCFG.toNT, dvd_refl, Nat.mod_mod_of_dvd]
 
 omit [Fintype T] in
 omit [DecidableEq T] in
@@ -825,14 +825,14 @@ private lemma nat_list_mem_primrec :
   have hmem : (fun (x : ℕ) (l : List ℕ) => (decide (x ∈ l) : Bool)) =
     (fun (x : ℕ) (l : List ℕ) => l.foldr (fun y r => decide (x = y) || r) false) := by
     ext x l; induction l with
-    | nil => simp
-    | cons h t ih => simp [List.foldr, List.mem_cons, ih]
+    | nil => simp only [not_mem_nil, decide_false, foldr_nil]
+    | cons h t ih => simp only [mem_cons, Bool.decide_or, ih, foldr]
   rw [hmem]
   have h_step : Primrec₂ (fun (a : ℕ × List ℕ) (b : ℕ × Bool) => decide (a.1 = b.1) || b.2) := by
     show Primrec (fun q : (ℕ × List ℕ) × (ℕ × Bool) => decide (q.1.1 = q.2.1) || q.2.2)
     have heq : (fun q : (ℕ × List ℕ) × (ℕ × Bool) => decide (q.1.1 = q.2.1) || q.2.2) =
       (fun q : (ℕ × List ℕ) × (ℕ × Bool) => bif (q.1.1 == q.2.1) then true else q.2.2) := by
-      ext q; simp [BEq.beq]
+      ext q; simp only [BEq.beq, Bool.cond_true_left]
     rw [heq]
     exact Primrec.cond
       (Primrec.beq.comp (Primrec.fst.comp Primrec.fst) (Primrec.fst.comp Primrec.snd))
@@ -864,10 +864,10 @@ private lemma allNTsInListN_primrec :
   have heq : (fun (p : (ℕ × List ℕ) × List (ℕ ⊕ T)) => allNTsInListN p.1.1 p.2 p.1.2) =
     (fun (p : (ℕ × List ℕ) × List (ℕ ⊕ T)) => p.2.foldr
       (fun s acc => (match s with | .inl k => (decide (k % p.1.1 ∈ p.1.2) : Bool) | .inr _ => true) && acc) true) := by
-    ext ⟨⟨nc, S⟩, rhs⟩; simp [allNTsInListN]
+    ext ⟨⟨nc, S⟩, rhs⟩; simp only [allNTsInListN]
     induction rhs with
-    | nil => simp
-    | cons h t ih => simp [List.all, List.foldr, ih]
+    | nil => simp only [all_nil, foldr_nil]
+    | cons h t ih => simp only [all, ih, foldr]
   rw [heq]
   have hstep : Primrec₂ (fun (ctx : (ℕ × List ℕ) × List (ℕ ⊕ T)) (sa : (ℕ ⊕ T) × Bool) =>
     (match sa.1 with | .inl k => (decide (k % ctx.1.1 ∈ ctx.1.2) : Bool) | .inr _ => true) && sa.2) := by
@@ -896,7 +896,7 @@ private lemma prodStepN_primrec :
         have prodStepN_foldl_primrec : Primrec (fun (p : (ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) => (p.1.2.foldl (fun acc rule => if allNTsInListN p.1.1 rule.2 acc then let lhs := rule.1 % p.1.1; if (decide (lhs ∈ acc) : Bool) then acc else acc ++ [lhs] else acc) p.2)) := by
           convert list_foldl_primrec _ _ _;
           rotate_left;
-          exact?;
+          exact Primcodable.prod;
           exact fun p q => if allNTsInListN p.1.1 q.2.2 q.1 then let lhs := q.2.1 % p.1.1; if (decide (lhs ∈ q.1) : Bool) then q.1 else q.1 ++ [lhs] else q.1;
           · exact Primrec.snd.comp ( Primrec.fst );
           · exact Primrec.snd;
@@ -911,7 +911,7 @@ private lemma prodStepN_primrec :
                 all_goals try infer_instance;
                 exact fun p => ( ( p.1.1.1, p.2.1 ), p.2.2.2 );
                 · exact Primrec.pair ( Primrec.pair ( Primrec.fst.comp ( Primrec.fst.comp ( Primrec.fst ) ) ) ( Primrec.fst.comp ( Primrec.snd ) ) ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd ) ) );
-                · exact?;
+                · exact map_inj.mp rfl;
               · convert Primrec.cond _ _ _ using 1;
                 rotate_left;
                 exact fun p => decide ( p.2.2.1 % p.1.1.1 ∈ p.2.1 );
@@ -954,7 +954,7 @@ private lemma prodNTsN_primrec :
           exact ( ℕ × List ( ℕ × List ( ℕ ⊕ T ) ) );
           exact List ℕ;
           exact inferInstance;
-          exact?;
+          exact Primcodable.list;
           exact fun p => [];
           exact fun p q => prodStepN p.1 p.2 q.2;
           · exact Primrec.const [];

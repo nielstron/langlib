@@ -203,8 +203,8 @@ theorem restrictWord_append (g : ContextFreeGrammar T)
     g.restrictWord (u ++ v) huv = g.restrictWord u hu ++ g.restrictWord v hv := by
   unfold restrictWord; simp +decide ;
   congr! 1;
-  · exact?;
-  · exact?
+  · exact List.pmap_congr_left u fun a a_1 h₁ => congrFun rfl;
+  · exact List.pmap_congr_left v fun a a_1 h₁ => congrFun rfl
 
 theorem restrictWord_initial (g : ContextFreeGrammar T) :
     g.restrictWord [.nonterminal g.initial] g.allUsed_initial =
@@ -276,7 +276,7 @@ theorem liftWord_derives (g : ContextFreeGrammar T)
     g.Derives (g.liftWord u) (g.liftWord v) := by
   induction h;
   · constructor;
-  · exact .trans ‹_› ( .single <| by exact? )
+  · exact .trans ‹_› ( .single <| by (expose_names; exact liftWord_produces g h_1) )
 
 /-! ## Direction 2: original derives from initial → toFiniteNT derives -/
 
@@ -309,8 +309,8 @@ theorem restrictWord_derives (g : ContextFreeGrammar T)
   · grind;
   · rename_i h';
     convert Relation.ReflTransGen.tail ( h' ( show g.AllUsed u from ?_ ) ) ( restrictWord_produces g ih ( show g.AllUsed u from ?_ ) ( show g.AllUsed v from hv ) ) using 1;
-    · exact?;
-    · exact?
+    · exact allUsed_derives g h hu;
+    · exact allUsed_derives g h hu
 
 /-! ## Main theorem -/
 

@@ -114,14 +114,14 @@ def cykDecideAux {NT : Type} [DecidableEq NT]
   | h₁ :: h₂ :: rest =>
     let w' := h₁ :: h₂ :: rest
     (List.finRange (w'.length - 1)).any fun ⟨i, hi⟩ =>
-      have hi' : i < rest.length + 1 := by simp [w'] at hi; omega
+      have hi' : i < rest.length + 1 := by simp only [length_cons, add_tsub_cancel_right, Order.lt_add_one_iff, w'] at hi; omega
       rulesList.any fun r =>
         match r with
         | ChomskyNormalFormRule.node nᵢ c₁ c₂ =>
           have htake : (w'.take (i + 1)).length < w'.length := by
-            simp [List.length_take]; omega
+            simp only [length_take, inf_lt_right, not_le]; omega
           have hdrop : (w'.drop (i + 1)).length < w'.length := by
-            simp [List.length_drop]; omega
+            simp only [length_drop, tsub_lt_self_iff, Order.lt_add_one_iff, zero_le, and_true]; omega
           decide (nᵢ = n) && cykDecideAux rulesList c₁ (w'.take (i + 1)) &&
             cykDecideAux rulesList c₂ (w'.drop (i + 1))
         | _ => false
@@ -256,16 +256,16 @@ def ntSetBit (bv : ℕ) (idx : ℕ) : ℕ := bv ||| (1 <<< idx)
 
 lemma ntInSet_ntSetBit_self (bv : ℕ) (idx : ℕ) :
     ntInSet (ntSetBit bv idx) idx = true := by
-  simp [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft]
+  simp only [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft, ge_iff_le, le_refl, decide_true, tsub_self, Nat.testBit_zero, Nat.mod_succ, Bool.and_self, Bool.or_true]
 
 lemma ntInSet_ntSetBit_of_true (bv : ℕ) (idx idx' : ℕ)
     (h : ntInSet bv idx = true) :
     ntInSet (ntSetBit bv idx') idx = true := by
-  simp [ntInSet, ntSetBit, Nat.testBit_or] at *
+  simp only [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft, ge_iff_le, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at *
   exact Or.inl h
 
 private lemma ntInSet_zero (idx : ℕ) : ntInSet 0 idx = false := by
-  simp [ntInSet]
+  simp only [ntInSet, Nat.zero_testBit]
 
 end BitvectorOps
 
@@ -282,20 +282,20 @@ lemma primrec₂_ntInSet : Primrec₂ (fun bv idx => ntInSet bv idx) := by
           have h_pow : Primrec₂ (fun (n : ℕ) (ih : ℕ) => 2 * ih) := by
             exact Primrec.nat_mul.comp ( Primrec.const 2 ) ( Primrec.snd );
           field_simp;
-          exact?;
+          exact Primrec.nat_rec₁ 1 h_pow;
         exact h_exp.comp ( Primrec.fst )
       exact Primrec.nat_div.comp ( Primrec.fst ) ( h_exp.comp ( Primrec.snd ) ( Primrec.fst ) );
     exact h_div;
   have h_mod : Primrec₂ (fun (n : ℕ) (m : ℕ) => n % m) := by
-    exact?;
+    exact Primrec.nat_mod;
   have h_mod : Primrec₂ (fun (bv : ℕ) (idx : ℕ) => (bv / 2 ^ idx) % 2) := by
     exact h_mod.comp₂ h_div ( Primrec₂.const 2 );
   have h_eq : Primrec₂ (fun (n : ℕ) (m : ℕ) => decide (n = m)) := by
     convert Primrec.eq using 1;
-    exact?;
+    exact Iff.symm primrecRel_iff_primrec_decide;
   convert h_eq.comp₂ h_mod ( Primrec₂.const 1 ) using 1;
-  ext; simp [ntInSet];
-  exact?
+  ext; simp only [ntInSet];
+  exact Nat.testBit_eq_decide_div_mod_eq
 
 lemma primrec₂_ntSetBit : Primrec₂ (fun bv idx => ntSetBit bv idx) := by
   unfold ntSetBit;
@@ -450,7 +450,7 @@ lemma primrec₂_ruleStep (ntR lR rR : ℕ) :
     have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => if ntInSet (ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) lR && ntInSet (ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) rR then true else false) := by
       have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => ntInSet (ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) lR) := by
         have h_cond : Primrec₂ (fun (x : ℕ) (y : ℕ) => ntInSet x y) := by
-          exact?;
+          exact primrec₂_ntInSet;
         convert h_cond.comp ( ‹Primrec fun ctx : List ℕ × ℕ × ℕ × ℕ × ℕ => ctx.1.getD ( ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1 ) 0›.comp ( Primrec.fst ) ) ( Primrec.const lR ) using 1;
       have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => ntInSet (ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) rR) := by
         convert Primrec₂.comp ( primrec₂_ntInSet ) ( h_primrec.comp ( Primrec.fst ) ) ( Primrec.const rR ) using 1;
@@ -499,7 +499,7 @@ lemma primrec_splitFold (nd : List (ℕ × ℕ × ℕ)) :
           convert Primrec.list_foldl _ _ _ using 1;
           rotate_left;
           exact ℕ;
-          exact?;
+          exact Primcodable.ofDenumerable ℕ;
           exact fun p => List.range ( p.1.2.2.2 + 1 );
           exact fun p => p.2;
           exact fun p q => foldl ( fun bv' r => if ( ntInSet ( p.1.1.getD ( p.1.2.2.1 + q.2 * p.1.2.1 ) 0 ) r.2.1 && ntInSet ( p.1.1.getD ( p.1.2.2.1 + q.2 + 1 + ( p.1.2.2.2 - q.2 ) * p.1.2.1 ) 0 ) r.2.2 ) = true then ntSetBit bv' r.1 else bv' ) q.1 nd;
@@ -535,7 +535,7 @@ lemma primrec₂_cellValue (nd : List (ℕ × ℕ × ℕ)) :
   · refine' ⟨ _, _ ⟩;
     infer_instance;
     convert Primrec.nat_lt.comp _ _ using 1;
-    exact?;
+    exact Iff.symm primrecPred_iff_primrec_decide;
     · exact Primrec.fst.comp ( Primrec.snd.comp ( Primrec.fst ) );
     · exact Primrec.nat_add.comp ( Primrec.nat_add.comp ( Primrec.snd ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) ) ( Primrec.const 2 );
   · exact Primrec.const 0;
@@ -561,7 +561,7 @@ lemma primrec₂_cykStep (nd : List (ℕ × ℕ × ℕ)) :
         ) 0) := by
   apply_rules [ Primrec₂.comp, Primrec₂.pair, Primrec₂.const ];
   all_goals try apply_rules [ Primrec.fst, Primrec.snd, Primrec.list_map ];
-  · exact?;
+  · exact Primrec.list_append;
   · exact Primrec.snd.comp ( Primrec.snd );
   · exact Primrec.list_range.comp ( Primrec.list_length.comp ( Primrec.fst ) );
   · convert primrec₂_cellValue nd using 1;
@@ -577,7 +577,7 @@ lemma primrec_cykBuildTable (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ
       cykBuildTable ld nd w (w.length - 1)) := by
   have h_primrec : Primrec (fun w : List T => w.map (cykLeafBV ld)) := by
     have h_primrec : Primrec (fun t : T => cykLeafBV ld t) := by
-      exact?;
+      exact primrec_cykLeafBV ld;
     convert Primrec.list_map _ _;
     all_goals try infer_instance;
     · exact Primrec.id;
@@ -590,7 +590,7 @@ lemma primrec_cykBuildTable (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ
            ntInSet (p.2.getD ((p.1 - j) * w.length + (i + j + 1)) 0) r.2.2
         then ntSetBit bv' r.1 else bv') bv
     ) 0) := by
-      exact?;
+      exact primrec₂_cykStep nd;
   have := @Primrec.nat_rec;
   convert this h_primrec ( h_primrec_step ) |> Primrec.comp <| Primrec.pair ( Primrec.id ) ( Primrec.nat_sub.comp ( Primrec.list_length ) ( Primrec.const 1 ) ) using 1;
   funext w; exact (by
@@ -604,8 +604,8 @@ lemma cykMemCheck_eq (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)) (si 
     ntInSet ((cykBuildTable ld nd w (w.length - 1)).getD
       ((w.length - 1) * w.length) 0) si := by
   cases w with
-  | nil => simp [cykMemCheck, cykBuildTable, ntInSet]
-  | cons h t => simp [cykMemCheck]
+  | nil => simp only [cykMemCheck, ntInSet, length_nil, zero_tsub, cykBuildTable, map_nil, mul_zero, getD_eq_getElem?_getD, lt_self_iff_false, not_false_eq_true, getElem?_neg, Option.getD_none, Nat.zero_testBit]
+  | cons h t => simp only [cykMemCheck, length_cons, add_tsub_cancel_right, getD_eq_getElem?_getD]
 
 /-- The full membership check is Primrec. -/
 lemma primrec_cykMemCheck (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)) (si : ℕ) :
@@ -659,7 +659,7 @@ lemma cykBuildTable_length (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)
     (w : List T) (k : ℕ) :
     (cykBuildTable ld nd w k).length = (k + 1) * w.length := by
   induction' k with k ih generalizing w;
-  · simp [cykBuildTable];
+  · simp only [cykBuildTable, length_map, zero_add, one_mul];
   · unfold cykBuildTable;
     grind
 
@@ -726,7 +726,7 @@ lemma foldl_splits_ntInSet (nd : List (ℕ × ℕ × ℕ)) (table : List ℕ)
     -- By induction on the range, we can show that the bit at `idx` is not set after each step of the fold.
     have h_ind : ∀ (j : ℕ) (hj : j ≤ k + 1), ntInSet (List.foldl (fun bv j => List.foldl (fun bv' r => if ntInSet (table[j * n + i]?.getD 0) r.2.1 = true ∧ ntInSet (table[(k - j) * n + (i + j + 1)]?.getD 0) r.2.2 = true then ntSetBit bv' r.1 else bv') bv nd) 0 (List.range j)) idx = false := by
       intro j hj; induction' j with j ih <;> simp_all +decide [ List.range_succ ] ;
-      · exact?;
+      · exact ntInSet_zero idx;
       · convert foldl_rules_ntInSet nd _ _ _ _ using 1;
         rotate_left;
         exact table[j * n + i]?.getD 0;
@@ -1040,7 +1040,7 @@ theorem cf_membership_computable
       convert cykMemCheck_correct_cnf ( mathlib_cfg_of_cfg g |> ContextFreeGrammar.toCNF ) enc enc_inj leafData h_leaf nodeData h_node h_node_range h_leaf_range w hw |> Iff.symm using 1;
       · rw [ ← ContextFreeGrammar.toCNF_correct ];
         grind;
-      · exact?;
+      · exact Classical.typeDecidableEq (mathlib_cfg_of_cfg g).toCNF.NT;
   convert hf.1 using 1;
   constructor <;> intro h <;> rw [ ComputablePred ] at * <;> aesop
 
@@ -1054,7 +1054,7 @@ theorem contextFree_membership_computablePred [Primcodable T] :
   constructor;
   convert checkMembershipEncoded_computable' using 1;
   all_goals try infer_instance;
-  ext ⟨G, w⟩; simp;
+  ext ⟨G, w⟩; simp only;
   rw [ eq_comm ];
   grind +suggestions;
   exact Classical.decPred _

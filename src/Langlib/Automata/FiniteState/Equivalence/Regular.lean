@@ -173,7 +173,7 @@ public lemma NFA_of_RG_none_forward {g : RG_grammar T}
         have h_single : RG_rule.single C a ∈ g.rules := by
           unfold NFA_of_RG at hC₃; aesop;
         have h_derive : RG_derives g [symbol.nonterminal A] (List.map symbol.terminal w' ++ [symbol.nonterminal C]) := by
-          exact?;
+          exact NFA_of_RG_some_forward A hA C hC₁ w' hC₂;
         convert h_derive.trans _ using 1;
         convert ReflTransGen.single _ using 1;
         use RG_rule.single C a, h_single, List.map symbol.terminal w', [] ; aesop

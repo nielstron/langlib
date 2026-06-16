@@ -127,17 +127,17 @@ public theorem applyRuleSeq_derives (g : grammar T) [DecidableEq g.nt]
     rcases h' : g.rules[seq_data.1]? with ( _ | r ) <;> simp_all +decide [ List.foldl ];
     · contrapose! h;
       rw [ show List.foldl _ _ _ = none from _ ];
-      · exact?;
-      · exact?;
+      · exact Ne.symm (Option.some_ne_none sf');
+      · exact List.foldl_fixed' (congrFun rfl) seq_tails;
     · obtain ⟨sf_mid, h_mid⟩ : ∃ sf_mid, applyRuleAt r init seq_data.2 = some sf_mid ∧ grammar_derives g init sf_mid := by
         by_cases h'' : applyRuleAt r init seq_data.2 = none;
         · rw [ show List.foldl _ _ _ = none from _ ] at h ; aesop;
           rw [ h'' ];
-          exact?;
+          exact List.foldl_fixed' (congrFun rfl) seq_tails;
         · obtain ⟨sf_mid, h_mid⟩ : ∃ sf_mid, applyRuleAt r init seq_data.2 = some sf_mid := by
             exact Option.ne_none_iff_exists'.mp h'';
           exact ⟨ sf_mid, h_mid, Relation.ReflTransGen.single <| by obtain ⟨ u, v, hu, hv ⟩ := applyRuleAt_correct r init sf_mid seq_data.2 h_mid; exact ⟨ r, by
-            exact?, u, v, hu, hv ⟩ ⟩;
+            exact List.mem_of_getElem? h', u, v, hu, hv ⟩ ⟩;
       convert Relation.ReflTransGen.trans h_mid.2 ( ‹∀ ( init sf' : List ( symbol T g.nt ) ), applyRuleSeq g.rules init seq_tails = some sf' → grammar_derives g init sf'› _ _ _ ) using 1;
       convert h using 1;
       exact h_mid.1.symm ▸ rfl
@@ -230,4 +230,4 @@ public theorem grammarTest_complete (g : grammar T) [DecidableEq g.nt]
   obtain ⟨sf, hsf₁, hsf₂⟩ := hseq
   use seq
   simp [hsf₁, hsf₂];
-  exact?
+  exact (extractTerminals_eq_map_iff (List.map symbol.terminal w) w).mpr rfl

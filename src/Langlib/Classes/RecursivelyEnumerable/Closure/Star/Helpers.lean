@@ -135,7 +135,7 @@ public lemma match_in_block {N : Type} {r₀ : grule T N}
   -- Apply the split_at_separator lemma with the separator being H and the middle part being the rule pattern.
   have h_split : ∃ u' : List (ns T N), List.map wrap_sym x₁ = u ++ (List.map wrap_sym r₀.input_L ++ symbol.nonterminal (Sum.inl r₀.input_N) :: (List.map wrap_sym r₀.input_R ++ u')) ∨ ∃ v' : List (ns T N), u = List.map wrap_sym x₁ ++ H :: v' ∧ (List.map ((fun x => x ++ [H]) ∘ List.map wrap_sym) x).flatten = v' ++ (List.map wrap_sym r₀.input_L ++ symbol.nonterminal (Sum.inl r₀.input_N) :: (List.map wrap_sym r₀.input_R ++ v)) := by
     have h_split : ∀ {a b u mid v : List (ns T N)} {sep : ns T N}, sep ∉ mid → a ++ [sep] ++ b = u ++ mid ++ v → (∃ u' : List (ns T N), a = u ++ mid ++ u' ∧ v = u' ++ [sep] ++ b) ∨ (∃ v' : List (ns T N), u = a ++ [sep] ++ v' ∧ b = v' ++ mid ++ v) := by
-      exact?
+      exact fun {a b u mid v} {sep} a_1 a_2 => split_at_separator a_1 a_2
     generalize_proofs at *; (
     specialize @h_split ( List.map wrap_sym x₁ ) ( List.map ( ( fun x => x ++ [ H ] ) ∘ List.map wrap_sym ) x |> List.flatten ) u ( List.map wrap_sym r₀.input_L ++ symbol.nonterminal ( Sum.inl r₀.input_N ) :: List.map wrap_sym r₀.input_R ) v H ; simp_all +decide [  ] ;
     contrapose! h_split; simp_all +decide [ wrap_sym ] ;

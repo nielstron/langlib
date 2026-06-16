@@ -219,7 +219,7 @@ private theorem inl_reaches_of_M_reaches (c₁ c₂ : M.conf) (h : M.Reaches c�
       ⟨Sum.inl c₂.state, c₂.input, c₂.stack⟩ := by
   induction h <;> simp_all +decide [ Reaches ];
   · rfl;
-  · exact Relation.ReflTransGen.tail ‹_› ( by exact? )
+  · exact Relation.ReflTransGen.tail ‹_› ( by (expose_names; exact inl_step_of_M_step b c h_1) )
 
 /-
 Switching from normal mode to verification mode (ε-step, stack unchanged).
@@ -279,7 +279,7 @@ public theorem prefixPDA_supset (M : PDA Q T S) :
       apply switch_step;
     -- By verify_reaches_of_M_reaches, we have that (prefixPDA M).Reaches ⟨Sum.inr q', [], Z :: β⟩ ⟨Sum.inr q, [], []⟩.
     have h_verify : (prefixPDA M).Reaches ⟨Sum.inr q', [], Z :: β⟩ ⟨Sum.inr q, [], []⟩ := by
-      exact?;
+      exact verify_reaches_of_M_reaches hγ;
     use Sum.inr q;
     exact h_inl.trans ( Relation.ReflTransGen.single h_switch ) |> Relation.ReflTransGen.trans <| h_verify
 
@@ -334,7 +334,7 @@ private theorem inr_input_invariant {n : ℕ} {q : Q} {w : List T}
   · obtain ⟨c', hc₁, hc₂⟩ : ∃ c', ReachesIn n ⟨Sum.inr q, w, γ⟩ c' ∧ ReachesIn 1 c' c := by
       obtain ⟨c', hc'⟩ : ∃ c' : (prefixPDA M).conf, ReachesIn n ⟨Sum.inr q, w, γ⟩ c' ∧ ReachesIn 1 c' c := by
         have := h
-        exact?;
+        exact reachesIn_iff_split_last.mpr h;
       use c';
     obtain ⟨q', hq'⟩ : ∃ q' : Q, c'.state = Sum.inr q' := by
       have h_last_step : ∀ {c : (prefixPDA M).conf}, (prefixPDA M).Reaches ⟨Sum.inr q, w, γ⟩ c → ∃ q' : Q, c.state = Sum.inr q' := by
@@ -345,7 +345,7 @@ private theorem inr_input_invariant {n : ℕ} {q : Q} {w : List T}
         · unfold prefixPDA at hc₂; aesop;
         · unfold prefixPDA at hc₂; aesop;
       apply h_last_step;
-      exact?;
+      exact reaches_of_reachesIn hc₁;
     obtain ⟨c'', hc₃, hc₄⟩ : ∃ c'', ReachesIn 1 ⟨Sum.inr q', w, c'.stack⟩ c'' ∧ c'' = c := by
       have h_eq : c'.input = w := by
         exact ih hc₁;
@@ -419,7 +419,7 @@ private theorem M_reaches_of_verify_reachesIn {n : ℕ}
     induction' n with n ih generalizing q p γ;
     · cases h ; aesop;
     · obtain ⟨c, hc⟩ : ∃ c : (prefixPDA M).conf, (prefixPDA M).ReachesIn 1 ⟨Sum.inr q, [], γ⟩ c ∧ (prefixPDA M).ReachesIn n c ⟨Sum.inr p, [], []⟩ := by
-        exact?;
+        exact reachesIn_iff_split_first.mpr h;
       rcases γ with ( _ | ⟨ Z, β ⟩ ) <;> simp_all +decide [  ];
       · rcases hc with ⟨ ⟨ c, hc₁, hc₂ ⟩, hc₃ ⟩;
         rename_i r₂ hr₂ hr₃;
@@ -433,12 +433,12 @@ private theorem M_reaches_of_verify_reachesIn {n : ℕ}
         cases' hc₂ with hc₂ hc₂;
         · use v₁;
           have h_eps_step : M.Reaches₁ ⟨q, v₁, Z :: β⟩ ⟨q₁, v₁, δ ++ β⟩ := by
-            exact?;
+            exact M_eps_step hc₂;
           exact Relation.ReflTransGen.head h_eps_step hv₁;
         · obtain ⟨ a, ha ⟩ := hc₂;
           use a :: v₁;
           have h_step : M.Reaches₁ ⟨q, a :: v₁, Z :: β⟩ ⟨q₁, v₁, δ ++ β⟩ := by
-            exact?;
+            exact M_read_step ha;
           exact Relation.ReflTransGen.head h_step hv₁;
   exact h_contra <| h_ind n q p γ h
 
@@ -468,12 +468,12 @@ private theorem inl_computation_to_M {n : ℕ} {q : Q} {w : List T} {α : List S
   induction' n with n ih generalizing q w α s;
   · cases h ; aesop;
   · obtain ⟨c, hc⟩ : ∃ c : (prefixPDA M).conf, ReachesIn 1 ⟨Sum.inl q, w, α⟩ c ∧ ReachesIn n c ⟨s, [], []⟩ := by
-      exact?;
+      exact reachesIn_iff_split_first.mpr h;
     rcases hc with ⟨hc₁, hc₂⟩
     obtain ⟨q', w', α', hc₃⟩ : ∃ q' : Q, ∃ w' : List T, ∃ α' : List S, c = ⟨Sum.inl q', w', α'⟩ ∧ M.Reaches₁ ⟨q, w, α⟩ ⟨q', w', α'⟩ ∨ c = ⟨Sum.inr q, w, α⟩ := by
       obtain ⟨q', w', α', hc₃⟩ : ∃ q' : Q, ∃ w' : List T, ∃ α' : List S, c = ⟨Sum.inl q', w', α'⟩ ∧ M.Reaches₁ ⟨q, w, α⟩ ⟨q', w', α'⟩ ∨ c = ⟨Sum.inr q, w, α⟩ := by
         have := inl_step_cases (by
-        exact? : (prefixPDA M).Reaches₁ ⟨Sum.inl q, w, α⟩ c)
+        exact reaches₁_iff_reachesIn_one.mpr hc₁ : (prefixPDA M).Reaches₁ ⟨Sum.inl q, w, α⟩ c)
         rcases this with ( ⟨ q', w', α', rfl, h ⟩ | rfl ) <;> [ exact ⟨ q', w', α', Or.inl ⟨ rfl, h ⟩ ⟩ ; exact ⟨ q, w, α, Or.inr rfl ⟩ ]
       generalize_proofs at *;
       use q', w', α';
@@ -486,7 +486,7 @@ private theorem inl_computation_to_M {n : ℕ} {q : Q} {w : List T} {α : List S
       exact ⟨ v, q'', h_lift.trans hv ⟩;
     · have hw : w = [] := by
         have hw : ∀ {n : ℕ} {q : Q} {w : List T} {γ : List S} {c : (prefixPDA M).conf}, (prefixPDA M).ReachesIn n ⟨Sum.inr q, w, γ⟩ c → c.input = w := by
-          exact?
+          exact fun {n} {q} {w} {γ} {c} a => inr_input_invariant a
         generalize_proofs at *; (
         specialize @hw n q w α ⟨ s, [], [] ⟩ ; aesop;)
       have hs : ∃ p : Q, s = Sum.inr p := by
@@ -514,7 +514,7 @@ public theorem prefixPDA_subset (M : PDA Q T S) :
   intro w hw
   obtain ⟨s, hs⟩ := hw
   obtain ⟨n, hn⟩ : ∃ n, (prefixPDA M).ReachesIn n ⟨Sum.inl M.initial_state, w, [M.start_symbol]⟩ ⟨s, [], []⟩ := by
-    exact?
+    exact reaches_iff_reachesIn.mp hs
   obtain ⟨v, q', hv⟩ := inl_computation_to_M hn;
   exact ⟨ v, by tauto ⟩
 

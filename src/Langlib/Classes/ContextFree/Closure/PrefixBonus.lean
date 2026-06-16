@@ -133,13 +133,13 @@ private lemma productiveGrammar_initial (g : CF_grammar T) :
 private lemma productiveGrammar_rules_subset {g : CF_grammar T} {r} :
     r ∈ (productiveGrammar g).rules → r ∈ g.rules := by
   intro h
-  simp [productiveGrammar] at h
+  simp only [productiveGrammar, List.mem_filter, decide_eq_true_eq] at h
   exact h.1
 
 lemma productiveGrammar_rules_productive {g : CF_grammar T} {r}
     (hr : r ∈ (productiveGrammar g).rules) :
     fullyProductiveRule g r := by
-  simp [productiveGrammar] at hr
+  simp only [productiveGrammar, List.mem_filter, decide_eq_true_eq] at hr
   exact hr.2
 
 /-
@@ -190,7 +190,7 @@ lemma productive_iff_productiveGrammar {g : CF_grammar T} {A : g.nt} :
           induction' h_deriv with s₁ s₂ h_deriv ih generalizing w;
           · constructor;
           · have h_step : CF_transforms (productiveGrammar g) s₁ s₂ := by
-              exact?;
+              exact derives_to_terminal_uses_productive ih hw_deriv;
             grind +suggestions;
         exact h_ind _ _ hw _ ( by tauto );
       · -- Apply the CF_derives_mono lemma to conclude that the derivation from A to w in the productive grammar implies a derivation in the original grammar.
@@ -213,7 +213,7 @@ lemma productiveGrammar_language (g : CF_grammar T) :
           · constructor;
           · exact Relation.ReflTransGen.trans ( ih <| by
               exact Relation.ReflTransGen.trans ( Relation.ReflTransGen.single ‹_› ) h₂ ) ( by
-              exact .single ( by exact? ) );
+              exact .single ( by (expose_names; exact derives_to_terminal_uses_productive h₂_1 h₂) ) );
         exact h_ind h ( by tauto )
 
 /-- All rules in the productive grammar are fully productive
@@ -591,7 +591,9 @@ section Soundness
 
 /-- If `liftFull` is injective on symbols. -/
 private lemma liftFull_injective {N : Type} : Function.Injective (@liftFull T N) := by
-  intros a b h; cases a <;> cases b <;> simp_all [liftFull]
+  intros a b h; cases a <;> cases b <;>
+    simp_all only [liftFull, reduceCtorEq, symbol.terminal.injEq, symbol.nonterminal.injEq,
+      Prod.mk.injEq, true_and]
 
 /-
 A transform step on a list of `liftFull` images in the prefix grammar
@@ -637,12 +639,12 @@ private lemma unlift_full_derives {g : CF_grammar T}
         induction' n with n ih generalizing ss w;
         · -- Since liftFull is injective, if the maps are equal, then the original lists must be equal.
           have h_inj : Function.Injective (liftFull : symbol T g.nt → symbol T (Bool × g.nt)) := by
-            exact?;
+            exact liftFull_injective;
           exact List.map_injective_iff.mpr h_inj <| by aesop;
         · obtain ⟨ mid, hmid₁, hmid₂ ⟩ := h;
           obtain ⟨ ss', hss', hss'' ⟩ := unlift_full_transform hmid₁;
           exact ⟨ ss', hss'', ih _ _ <| by simpa [ hss' ] using hmid₂ ⟩;
-      obtain ⟨ n, hn ⟩ := derives_in_of_derives h; exact h_ind n ss w hn |> fun h => by exact?;
+      obtain ⟨ n, hn ⟩ := derives_in_of_derives h; exact h_ind n ss w hn |> fun h => by exact derives_of_derives_in (h_ind n ss w hn);
 
 /-
 If `B` is productive, then there exists a rule `(B, rhs) ∈ g.rules`.
@@ -654,7 +656,7 @@ private lemma productive_has_rule {g : CF_grammar T} {B : g.nt}
       have := hw;
       -- By definition of `CF_derives`, this means there exists a sequence of transformations from `[symbol.nonterminal B]` to `List.map symbol.terminal w`.
       obtain ⟨n, hn⟩ : ∃ n, CF_derives_in g n [symbol.nonterminal B] (List.map symbol.terminal w) := by
-        exact?;
+        exact derives_in_of_derives hw;
       induction' n with n ih generalizing B w <;> simp_all +decide [ CF_derives_in ];
       · cases w <;> aesop;
       · rcases hn with ⟨ w₂, hw₂, hw₂' ⟩ ; rcases hw₂ with ⟨ r, u, v, hr, hu, hv ⟩ ; simp_all +decide [  ] ;
@@ -771,7 +773,7 @@ private lemma true_mode_soundness {g : CF_grammar T}
         · cases w <;> cases hw;
         · -- Extract the first step of the derivation.
           obtain ⟨w₂, hw₂, hw₁⟩ : ∃ w₂, CF_transforms (prefixGrammar g) [symbol.nonterminal (true, A)] w₂ ∧ CF_derives_in (prefixGrammar g) n w₂ (List.map symbol.terminal w) := by
-            exact?
+            exact Set.inter_nonempty.mp hw
           generalize_proofs at *; (
           -- Byclassify_true_rule, we know that there exists a rule (A, rhs) in g such that w₂ is either the empty list or a prefix cut of rhs.
           obtain ⟨rhs, hr, hw₂⟩ : ∃ rhs : List (symbol T g.nt), (A, rhs) ∈ g.rules ∧ (w₂ = [] ∨ ∃ i : Fin rhs.length, w₂ = (rhs.take i.val).map liftFull ++ [liftPrefix (rhs.get ⟨i.val, i.isLt⟩)]) := by
@@ -859,7 +861,7 @@ private lemma prefix_soundness {g : CF_grammar T}
     w ∈ CF_language (prefixGrammar g) → w ∈ prefixLang (CF_language g) := by
       intro hw
       obtain ⟨n, hn⟩ : ∃ n, CF_derives_in (prefixGrammar g) n [symbol.nonterminal (true, g.initial)] (List.map symbol.terminal w) := by
-        exact?;
+        exact derives_in_of_derives hw;
       obtain ⟨ v, hv ⟩ := true_mode_soundness hprod n g.initial w hn;
       exact ⟨ v, hv ⟩
 
