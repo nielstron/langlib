@@ -108,7 +108,7 @@ theorem myhill_rule_inv (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
   unfold myhillAllRules at hr
   simp only [List.mem_append, List.mem_flatMap, List.mem_map, Finset.mem_toList,
     Finset.mem_univ, true_and, bind, List.mem_ite_nil_right, List.mem_dite_nil_right,
-    List.mem_cons, List.not_mem_nil, or_false, List.mem_singleton, List.mem_pure,
+    List.mem_cons, List.not_mem_nil, or_false, List.mem_pure,
     exists_prop, or_assoc] at hr
   aesop
 
@@ -1602,7 +1602,8 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
         · exact absurd (hbase_p.symm.trans h2) (by simp [cellSym])
         · have h3 := hbase_p.symm.trans h2
           simp only [Option.some.injEq, cellSym, symbol.nonterminal.injEq, MyhillNT.cell.injEq] at h3
-          tauto
+          -- `tauto` here costs ~780k heartbeats; the cleanup cell's last field is exactly the goal.
+          exact h3.2.2.2.2
       have hcset : c = b.set (u.length + 1) (symbol.terminal t2) := by
         rw [hc, hb2]; simp [List.set_append_right]
       refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inr
@@ -1647,7 +1648,8 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
         · exact absurd (hbase_p.symm.trans h2) (by simp [cellSym])
         · have h3 := hbase_p.symm.trans h2
           simp only [Option.some.injEq, cellSym, symbol.nonterminal.injEq, MyhillNT.cell.injEq] at h3
-          tauto
+          -- `tauto` here costs ~780k heartbeats; the cleanup cell's last field is exactly the goal.
+          exact h3.2.2.2.2
       have hcset : c = b.set u.length (symbol.terminal t1) := by
         rw [hc, hb2]; simp [List.set_append_right]
       refine Or.inr (Or.inr (Or.inr (Or.inl (Or.inr (Or.inr
