@@ -56,6 +56,7 @@ public import Langlib.Classes.ContextFree.Examples.UnaryA2PowSucc
 public import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.Indexed
 public import Langlib.Classes.ContextFree.Inclusion.RecursivelyEnumerable
+public import Langlib.Classes.ContextFree.Inclusion.StrictContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.StrictIndexed
 public import Langlib.Classes.ContextFree.Inclusion.StrictRecursivelyEnumerable
 public import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
@@ -78,6 +79,7 @@ public import Langlib.Classes.ContextSensitive.Closure.Reverse
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
 public import Langlib.Classes.ContextSensitive.Definition
+public import Langlib.Classes.ContextSensitive.Examples.AnBnCn
 public import Langlib.Classes.ContextSensitive.Examples.SingletonWord
 public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
