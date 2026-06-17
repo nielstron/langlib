@@ -148,6 +148,44 @@ theorem deri_with_suffix {g : IndexedGrammar T} (s : List (ISym g))
 def NoEpsilon' (g : IndexedGrammar T) : Prop :=
   ∀ r ∈ g.rules, r.rhs ≠ []
 
+theorem transforms_length_le_of_noEpsilon {g : IndexedGrammar T}
+    (hne : g.NoEpsilon')
+    {w₁ w₂ : List (ISym g)}
+    (h : g.Transforms w₁ w₂) : w₁.length ≤ w₂.length := by
+  rcases h with ⟨r, u, v, σ, hr, hlhs, hrhs⟩
+  have hexpand : 1 ≤ (g.expandRhs r.rhs σ).length := by
+    unfold expandRhs
+    rw [List.length_map]
+    exact Nat.succ_le_of_lt (List.length_pos_of_ne_nil (hne r hr))
+  subst w₂
+  cases hc : r.consume with
+  | none =>
+      rw [hc] at hlhs
+      subst w₁
+      simp [List.length_append]
+      omega
+  | some f =>
+      rw [hc] at hlhs
+      subst w₁
+      simp [List.length_append]
+      omega
+
+theorem derives_length_le_of_noEpsilon {g : IndexedGrammar T}
+    (hne : g.NoEpsilon')
+    {w₁ w₂ : List (ISym g)}
+    (h : g.Derives w₁ w₂) : w₁.length ≤ w₂.length := by
+  induction h with
+  | refl => exact le_rfl
+  | tail _ hstep ih =>
+      exact le_trans ih (transforms_length_le_of_noEpsilon hne hstep)
+
+theorem not_generates_nil_of_noEpsilon (g : IndexedGrammar T)
+    (hne : g.NoEpsilon') : ¬ g.Generates [] := by
+  intro h
+  unfold Generates at h
+  have hlen := derives_length_le_of_noEpsilon hne h
+  simp at hlen
+
 /-- A grammar has terminals isolated: each rule's RHS either is a single terminal,
 or consists entirely of nonterminals (with optional flag annotations). -/
 def TerminalsIsolated (g : IndexedGrammar T) : Prop :=
@@ -191,5 +229,154 @@ def IRule.IsNF [DecidableEq N] (r : IRule T N F) (s : N) : Prop :=
 with respect to the start symbol. -/
 def IsNormalForm (g : IndexedGrammar T) [DecidableEq g.nt] : Prop :=
   ∀ r ∈ g.rules, IRule.IsNF r g.initial
+
+theorem IRule.rhs_ne_nil_of_isNF {N F : Type} [DecidableEq N]
+    {r : IRule T N F} {start : N} (h : IRule.IsNF r start) :
+    r.rhs ≠ [] := by
+  rcases h with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨_, B, C, hrhs, _, _⟩
+    rw [hrhs]
+    simp
+  · rcases hpop with ⟨_, _, B, hrhs, _⟩
+    rw [hrhs]
+    simp
+  · rcases hpush with ⟨_, B, f, hrhs, _⟩
+    rw [hrhs]
+    simp
+  · rcases hterm with ⟨_, a, hrhs⟩
+    rw [hrhs]
+    simp
+
+theorem IRule.terminalsIsolated_of_isNF {N F : Type} [DecidableEq N]
+    {r : IRule T N F} {start : N} (h : IRule.IsNF r start) :
+    (∃ a : T, r.rhs = [IRhsSymbol.terminal a]) ∨
+      (∀ s ∈ r.rhs, ∃ n f, s = IRhsSymbol.nonterminal n f) := by
+  rcases h with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨_, B, C, hrhs, _, _⟩
+    right
+    intro s hs
+    rw [hrhs] at hs
+    simp at hs
+    rcases hs with rfl | rfl
+    · exact ⟨B, none, rfl⟩
+    · exact ⟨C, none, rfl⟩
+  · rcases hpop with ⟨_, _, B, hrhs, _⟩
+    right
+    intro s hs
+    rw [hrhs] at hs
+    simp at hs
+    subst s
+    exact ⟨B, none, rfl⟩
+  · rcases hpush with ⟨_, B, f, hrhs, _⟩
+    right
+    intro s hs
+    rw [hrhs] at hs
+    simp at hs
+    subst s
+    exact ⟨B, some f, rfl⟩
+  · rcases hterm with ⟨_, a, hrhs⟩
+    left
+    exact ⟨a, hrhs⟩
+
+theorem IRule.flagsSeparated_of_isNF {N F : Type} [DecidableEq N]
+    {r : IRule T N F} {start : N} (h : IRule.IsNF r start) :
+    IRule.FlagsSeparated r := by
+  rcases h with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨hc, B, C, hrhs, _, _⟩
+    constructor
+    · intro hsome
+      rw [hc] at hsome
+      simp at hsome
+    · intro _
+      left
+      intro s hs
+      rw [hrhs] at hs
+      simp at hs
+      rcases hs with rfl | rfl
+      · exact ⟨B, rfl⟩
+      · exact ⟨C, rfl⟩
+  · rcases hpop with ⟨_, hc, B, hrhs, _⟩
+    constructor
+    · intro _
+      exact ⟨B, hrhs⟩
+    · intro hnone
+      rw [hc] at hnone
+      simp at hnone
+  · rcases hpush with ⟨hc, B, f, hrhs, _⟩
+    constructor
+    · intro hsome
+      rw [hc] at hsome
+      simp at hsome
+    · intro _
+      right
+      left
+      exact ⟨B, f, hrhs⟩
+  · rcases hterm with ⟨hc, a, hrhs⟩
+    constructor
+    · intro hsome
+      rw [hc] at hsome
+      simp at hsome
+    · intro _
+      right
+      right
+      exact ⟨a, hrhs⟩
+
+theorem IRule.startNotOnRhs_of_isNF {N F : Type} [DecidableEq N]
+    {r : IRule T N F} {start : N} (h : IRule.IsNF r start) :
+    ∀ s ∈ r.rhs,
+      match s with
+      | IRhsSymbol.nonterminal n _ => n ≠ start
+      | IRhsSymbol.terminal _ => True := by
+  intro s hs
+  rcases h with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨_, B, C, hrhs, hB, hC⟩
+    rw [hrhs] at hs
+    simp at hs
+    rcases hs with rfl | rfl
+    · exact hB
+    · exact hC
+  · rcases hpop with ⟨_, _, B, hrhs, hB⟩
+    rw [hrhs] at hs
+    simp at hs
+    subst s
+    exact hB
+  · rcases hpush with ⟨_, B, _, hrhs, hB⟩
+    rw [hrhs] at hs
+    simp at hs
+    subst s
+    exact hB
+  · rcases hterm with ⟨_, a, hrhs⟩
+    rw [hrhs] at hs
+    simp at hs
+    subst s
+    trivial
+
+theorem noEpsilon_of_isNormalForm (g : IndexedGrammar T)
+    [DecidableEq g.nt] (h : g.IsNormalForm) : g.NoEpsilon' := by
+  intro r hr
+  exact IRule.rhs_ne_nil_of_isNF
+    (T := T) (N := g.nt) (F := g.flag) (r := r) (start := g.initial) (h r hr)
+
+theorem terminalsIsolated_of_isNormalForm (g : IndexedGrammar T)
+    [DecidableEq g.nt] (h : g.IsNormalForm) : g.TerminalsIsolated := by
+  intro r hr
+  exact IRule.terminalsIsolated_of_isNF
+    (T := T) (N := g.nt) (F := g.flag) (r := r) (start := g.initial) (h r hr)
+
+theorem flagsSeparated_of_isNormalForm (g : IndexedGrammar T)
+    [DecidableEq g.nt] (h : g.IsNormalForm) : g.FlagsSeparated := by
+  intro r hr
+  exact IRule.flagsSeparated_of_isNF
+    (T := T) (N := g.nt) (F := g.flag) (r := r) (start := g.initial) (h r hr)
+
+theorem startNotOnRhs_of_isNormalForm (g : IndexedGrammar T)
+    [DecidableEq g.nt] (h : g.IsNormalForm) : g.StartNotOnRhs' := by
+  intro r hr s hs
+  cases s with
+  | terminal t => trivial
+  | nonterminal n f =>
+      exact IRule.startNotOnRhs_of_isNF
+        (T := T) (N := g.nt) (F := g.flag) (r := r) (start := g.initial)
+        (h r hr) (IRhsSymbol.nonterminal n f) hs
 
 end IndexedGrammar

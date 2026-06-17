@@ -1,7 +1,6 @@
 import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
-import Langlib.Utilities.WrittenByOthers.PrintSorries
 
 
 /-! # Auxiliary CFG-to-RE Union Construction
@@ -74,4 +73,3 @@ by
         exact in_union_of_in_L₂ case_2
 
 #check            bonus_CF_of_CF_u_CF
-#print_sorries_in bonus_CF_of_CF_u_CF
