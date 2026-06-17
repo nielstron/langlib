@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Classes.ContextSensitive.Definition
+public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Mathlib.Data.Finset.Basic
 @[expose]
 public section
@@ -491,6 +492,55 @@ public theorem is_CS_exists_finiteAlphabet_CS_image {L : Language T} (hL : is_CS
   obtain ⟨g, hg, hlang⟩ := hL
   obtain ⟨S, L', hCS, hS⟩ := grammar_language_finiteAlphabet_CS_image g hg
   exact ⟨S, L', hCS, hS.trans hlang⟩
+
+/-- Every context-sensitive language is equivalent to a context-sensitive language over
+some finite terminal alphabet. The finite alphabet is represented as a type carrying
+`Fintype` and `DecidableEq`, together with a terminal map into the original alphabet. -/
+public theorem is_CS_exists_fintype_alphabet_CS_image {L : Language T} (hL : is_CS L) :
+    ∃ (A : Type) (_ : Fintype A) (_ : DecidableEq A) (L' : Language A) (f : A → T),
+      is_CS L' ∧ Language.map f L' = L := by
+  classical
+  obtain ⟨S, L', hCS, hmap⟩ := is_CS_exists_finiteAlphabet_CS_image (L := L) hL
+  refine ⟨{t : T // t ∈ S}, ?_, ?_, L', (fun t => t.1), hCS, hmap⟩
+  · infer_instance
+  · infer_instance
+
+/-- The inclusion image of a context-sensitive language over a finite subtype is
+context-sensitive over the ambient alphabet. -/
+public theorem is_CS_of_finiteAlphabet_CS_image {S : Finset T}
+    {L' : Language {t : T // t ∈ S}} (hL' : is_CS L') :
+    is_CS (Language.map (fun t : {t : T // t ∈ S} => t.1) L') := by
+  have hCS : is_CS
+      (L'.homomorphicImage (fun t : {t : T // t ∈ S} => [t.1])) :=
+    is_CS_homomorphicImage_epsfree L' (fun t : {t : T // t ∈ S} => [t.1])
+      (fun _ => by simp) hL'
+  rwa [Language.homomorphicImage, Language.subst_singletons_eq_map] at hCS
+
+/-- A language is context-sensitive iff it is the inclusion image of a context-sensitive
+language over a finite terminal subtype. -/
+public theorem is_CS_iff_exists_finiteAlphabet_CS_image {L : Language T} :
+    is_CS L ↔
+      ∃ (S : Finset T) (L' : Language {t : T // t ∈ S}),
+        is_CS L' ∧ Language.map (fun t : {t : T // t ∈ S} => t.1) L' = L := by
+  constructor
+  · exact is_CS_exists_finiteAlphabet_CS_image
+  · rintro ⟨S, L', hCS, hmap⟩
+    rw [← hmap]
+    exact is_CS_of_finiteAlphabet_CS_image hCS
+
+/-- A language is context-sensitive iff it is the image of a context-sensitive language over
+some finite terminal alphabet. -/
+public theorem is_CS_iff_exists_fintype_alphabet_CS_image {L : Language T} :
+    is_CS L ↔
+      ∃ (A : Type) (_ : Fintype A) (_ : DecidableEq A) (L' : Language A) (f : A → T),
+        is_CS L' ∧ Language.map f L' = L := by
+  constructor
+  · exact is_CS_exists_fintype_alphabet_CS_image
+  · rintro ⟨A, _, _, L', f, hCS, hmap⟩
+    rw [← hmap]
+    have hImage : is_CS (L'.homomorphicImage fun a => [f a]) :=
+      is_CS_homomorphicImage_epsfree L' (fun a => [f a]) (fun _ => by simp) hCS
+    rwa [Language.homomorphicImage, Language.subst_singletons_eq_map] at hImage
 
 /-- Every context-sensitive language has finite terminal support. -/
 public theorem is_CS_finite_terminal_support {L : Language T} (hL : is_CS L) :

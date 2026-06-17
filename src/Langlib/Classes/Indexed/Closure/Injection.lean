@@ -67,6 +67,56 @@ public def mapISym (f : T₁ → T₂) (g : IndexedGrammar T₁) :
   | .terminal t => .terminal (f t)
   | .indexed n σ => .indexed n σ
 
+public theorem mapTerminals_noEpsilon (f : T₁ → T₂) (g : IndexedGrammar T₁)
+    (hne : g.NoEpsilon') :
+    (g.mapTerminals f).NoEpsilon' := by
+  intro r hr
+  obtain ⟨r₀, hr₀, hEq⟩ : ∃ r₀ ∈ g.rules,
+      { lhs := r₀.lhs, consume := r₀.consume, rhs := r₀.rhs.map (mapIRhsSymbol f) } = r := by
+    simpa [mapTerminals] using hr
+  subst r
+  intro hnil
+  exact hne r₀ hr₀ (List.map_eq_nil_iff.mp hnil)
+
+public theorem mapIRule_isNF (f : T₁ → T₂) {N F : Type} [DecidableEq N]
+    {r : IRule T₁ N F} {start : N} (hNF : IRule.IsNF r start) :
+    IRule.IsNF
+      ({ lhs := r.lhs, consume := r.consume, rhs := r.rhs.map (mapIRhsSymbol f) } :
+        IRule T₂ N F)
+      start := by
+  rcases hNF with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨hc, B, C, hrhs, hB, hC⟩
+    left
+    refine ⟨hc, B, C, ?_, hB, hC⟩
+    simp [hrhs, mapIRhsSymbol]
+  · rcases hpop with ⟨flag, hc, B, hrhs, hB⟩
+    right
+    left
+    refine ⟨flag, hc, B, ?_, hB⟩
+    simp [hrhs, mapIRhsSymbol]
+  · rcases hpush with ⟨hc, B, flag, hrhs, hB⟩
+    right
+    right
+    left
+    refine ⟨hc, B, flag, ?_, hB⟩
+    simp [hrhs, mapIRhsSymbol]
+  · rcases hterm with ⟨hc, a, hrhs⟩
+    right
+    right
+    right
+    refine ⟨hc, f a, ?_⟩
+    simp [hrhs, mapIRhsSymbol]
+
+public theorem mapTerminals_isNormalForm (f : T₁ → T₂) (g : IndexedGrammar T₁)
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) :
+    (g.mapTerminals f).IsNormalForm := by
+  intro r hr
+  obtain ⟨r₀, hr₀, hEq⟩ : ∃ r₀ ∈ g.rules,
+      { lhs := r₀.lhs, consume := r₀.consume, rhs := r₀.rhs.map (mapIRhsSymbol f) } = r := by
+    simpa [mapTerminals] using hr
+  subst r
+  exact mapIRule_isNF f (hNF r₀ hr₀)
+
 private noncomputable def invOfInjective [Nonempty T₁] (f : T₁ → T₂) (y : T₂) : T₁ := by
   classical
   exact if h : ∃ x, f x = y then Classical.choose h else Classical.ofNonempty

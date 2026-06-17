@@ -111,7 +111,9 @@ public import Langlib.Classes.DeterministicContextFree.Examples.BnAnPosStarB
 public import Langlib.Classes.DeterministicContextFree.Examples.SingletonWord
 public import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 public import Langlib.Classes.DeterministicContextFree.Inclusion.StrictContextFree
+public import Langlib.Classes.Indexed.Basics.Elementary
 public import Langlib.Classes.Indexed.Basics.FiniteAlphabet
+public import Langlib.Classes.Indexed.Basics.FiniteSupport
 public import Langlib.Classes.Indexed.Closure.Concatenation
 public import Langlib.Classes.Indexed.Closure.Homomorphism
 public import Langlib.Classes.Indexed.Closure.Injection
@@ -120,6 +122,7 @@ public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition
 public import Langlib.Classes.Indexed.Examples.AnBnCn
 public import Langlib.Classes.Indexed.Examples.SingletonWord
+public import Langlib.Classes.Indexed.Inclusion.ContextSensitive
 public import Langlib.Classes.LR.Closure.Bijection
 public import Langlib.Classes.LR.Examples.AnBn
 public import Langlib.Classes.Linear.Basics.Map

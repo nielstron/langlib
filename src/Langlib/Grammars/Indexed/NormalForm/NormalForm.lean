@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Grammars.Indexed.Definition
+public import Langlib.Grammars.Indexed.Basics.FiniteSupport
 import Langlib.Grammars.Indexed.NormalForm.FreshStart
 import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
 import Langlib.Grammars.Indexed.NormalForm.TerminalIsolation
@@ -84,5 +85,23 @@ theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) (hne : g.NoEpsilo
   exact ⟨g₅, hg₅_nf, fun w hw => by
     rw [hg₅_lang w hw, hg₄_lang w hw, hg₃_lang w hw, hg₂_lang w hw]
     exact hg₁_lang w⟩
+
+/-- Every ε-free indexed grammar has a finite-support normal-form grammar preserving all
+non-empty generated words. -/
+theorem exists_finiteSupport_normalForm [Inhabited T] (g : IndexedGrammar T)
+    (hne : g.NoEpsilon') :
+    ∃ g' : IndexedGrammar T, ∃ _ : Fintype g'.nt, ∃ _ : Fintype g'.flag,
+      ∃ _ : DecidableEq g'.nt, g'.IsNormalForm ∧
+        ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, ⟨hdec, hNF⟩, hlang⟩ := g.exists_normalForm hne
+  let g' := g₀.toFiniteSupport
+  haveI := hdec
+  have hdec' : DecidableEq g'.nt := Classical.decEq _
+  refine ⟨g', inferInstance, inferInstance, hdec', ?_, ?_⟩
+  · exact g₀.toFiniteSupport_isNormalForm hNF
+  · intro w hw
+    change w ∈ g₀.toFiniteSupport.Language ↔ w ∈ g.Language
+    rw [g₀.toFiniteSupport_language]
+    exact hlang w hw
 
 end IndexedGrammar

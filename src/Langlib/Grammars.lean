@@ -10,6 +10,7 @@ public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 public import Langlib.Grammars.ContextSensitive.Basic.FiniteNT
 public import Langlib.Grammars.ContextSensitive.Definition
 public import Langlib.Grammars.ContextSensitive.Toolbox
+public import Langlib.Grammars.Indexed.Basics.FiniteSupport
 public import Langlib.Grammars.Indexed.Basics.Higman
 public import Langlib.Grammars.Indexed.Definition
 public import Langlib.Grammars.Indexed.NormalForm.NormalForm

@@ -349,9 +349,11 @@ private theorem homIndexedGrammar_language_superset (g : IndexedGrammar α) (h :
     simpa [IndexedGrammar.Generates] using hs
   · exact (mem_prod_singletons_flatMap x h w).mpr hword.symm
 
-/-- Indexed languages are closed under string homomorphism. -/
-public theorem Indexed_closedUnderHomomorphism : ClosedUnderHomomorphism is_Indexed := by
-  intro α β _ _ L h hL
+/-- Indexed languages are closed under string homomorphism, without requiring the ambient
+terminal types themselves to be finite. -/
+public theorem is_Indexed_homomorphicImage (L : Language α) (h : α → List β)
+    (hL : is_Indexed L) :
+    is_Indexed (L.homomorphicImage h) := by
   obtain ⟨g, hg⟩ := hL
   refine ⟨homIndexedGrammar g h, ?_⟩
   apply Set.Subset.antisymm
@@ -360,6 +362,11 @@ public theorem Indexed_closedUnderHomomorphism : ClosedUnderHomomorphism is_Inde
   ·
     rw [← hg]
     exact homIndexedGrammar_language_subset g h
+
+/-- Indexed languages are closed under string homomorphism. -/
+public theorem Indexed_closedUnderHomomorphism : ClosedUnderHomomorphism is_Indexed := by
+  intro α β _ _ L h hL
+  exact is_Indexed_homomorphicImage L h hL
 
 /-- Indexed languages are closed under ε-free string homomorphism. -/
 public theorem Indexed_closedUnderEpsFreeHomomorphism :
