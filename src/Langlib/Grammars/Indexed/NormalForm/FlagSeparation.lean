@@ -502,7 +502,66 @@ theorem fsSingleRule_mem_flagSeparate {r : IRule T g.nt g.flag} {i : Nat}
     r' ∈ g.flagSeparate.rules := by
   unfold IndexedGrammar.flagSeparate; aesop;
 
+private theorem map_fsLiftRhsSym_zipIdx
+    (rhs : List (IRhsSymbol T g.nt g.flag)) (start : Nat) :
+    rhs.map g.fsLiftRhsSym =
+      (rhs.zipIdx start).map (fun x => g.fsLiftRhsSym x.1) := by
+  induction rhs generalizing start with
+  | nil => simp
+  | cons s rhs ih =>
+      rw [List.zipIdx_cons]
+      simp [ih (start + 1)]
+
 /-- Expanding with fsReplaceRhsSym derives to expanding with fsLiftRhsSym via push rules. -/
+private theorem resolveIntermediatesPairs
+    (l : List (IRhsSymbol T g.nt g.flag × Nat)) (i offset : Nat)
+    (hri : ∀ (s : IRhsSymbol T g.nt g.flag) (j : Nat),
+      (s, j) ∈ l → g.hasPush s →
+      ⟨Sum.inr (i, j + offset), (none : Option g.flag),
+        [match s with | .nonterminal n (some f) => IRhsSymbol.nonterminal (Sum.inl n) (some f)
+                      | _ => IRhsSymbol.nonterminal (Sum.inl g.initial) none]⟩ ∈ g.flagSeparate.rules)
+    (σ : List g.flag) :
+    g.flagSeparate.Derives
+      (expandRhs g.flagSeparate (l.map fun ⟨s, j⟩ => g.fsReplaceRhsSym i (j + offset) s) σ)
+      (expandRhs g.flagSeparate (l.map fun ⟨s, _⟩ => g.fsLiftRhsSym s) σ) := by
+  induction' l with x xs ih
+  · exact deri_self _ _
+  · rcases x with ⟨s, j⟩
+    have h_head :
+        g.flagSeparate.Derives
+          (expandRhs g.flagSeparate [g.fsReplaceRhsSym i (j + offset) s] σ)
+          (expandRhs g.flagSeparate [g.fsLiftRhsSym s] σ) := by
+      cases s with
+      | terminal t =>
+          exact deri_self _ _
+      | nonterminal n f =>
+          cases f with
+          | none =>
+              exact deri_self _ _
+          | some f =>
+              apply deri_of_tran
+              refine ⟨
+                ⟨Sum.inr (i, j + offset), none,
+                  [IRhsSymbol.nonterminal (Sum.inl n) (some f)]⟩,
+                [], [], σ, ?_, rfl, ?_⟩
+              · simpa [hasPush] using hri (.nonterminal n (some f)) j
+                  (by simp) (by simp [hasPush])
+              · simp [expandRhs, fsLiftRhsSym]
+    have h_tail :
+        g.flagSeparate.Derives
+          (expandRhs g.flagSeparate (xs.map fun ⟨s, j⟩ => g.fsReplaceRhsSym i (j + offset) s) σ)
+          (expandRhs g.flagSeparate (xs.map fun ⟨s, _⟩ => g.fsLiftRhsSym s) σ) := by
+      apply ih
+      intro s k hmem hpush
+      exact hri s k (by simp [hmem]) hpush
+    have h₁ := deri_with_suffix
+      (expandRhs g.flagSeparate (xs.map fun ⟨s, j⟩ => g.fsReplaceRhsSym i (j + offset) s) σ)
+      h_head
+    have h₂ := deri_with_prefix
+      (expandRhs g.flagSeparate [g.fsLiftRhsSym s] σ)
+      h_tail
+    convert h₁.trans h₂ using 1 <;> simp [expandRhs]
+
 theorem resolveIntermediates (rhs : List (IRhsSymbol T g.nt g.flag)) (i offset : Nat)
     (hri : ∀ (s : IRhsSymbol T g.nt g.flag) (j : Nat),
       (s, j) ∈ rhs.zipIdx → g.hasPush s →
@@ -513,14 +572,39 @@ theorem resolveIntermediates (rhs : List (IRhsSymbol T g.nt g.flag)) (i offset :
     g.flagSeparate.Derives
       (expandRhs g.flagSeparate (rhs.zipIdx.map fun ⟨s, j⟩ => g.fsReplaceRhsSym i (j + offset) s) σ)
       (expandRhs g.flagSeparate (rhs.map g.fsLiftRhsSym) σ) := by
-  sorry
+  have h := resolveIntermediatesPairs g rhs.zipIdx i offset hri σ
+  have hmap :
+      rhs.map g.fsLiftRhsSym =
+        rhs.zipIdx.map (fun x => g.fsLiftRhsSym x.1) := by
+    simpa using map_fsLiftRhsSym_zipIdx g rhs 0
+  simpa [hmap] using h
 
 /-- When hasPush is false, fsStripPushRhsSym agrees with fsLiftRhsSym on the list. -/
 theorem fsStripPushRhsSym_eq_fsLiftRhsSym_of_noPush
     (rhs : List (IRhsSymbol T g.nt g.flag))
     (hnp : rhs.any g.hasPush = false) :
     rhs.map g.fsStripPushRhsSym = rhs.map g.fsLiftRhsSym := by
-  sorry
+  induction' rhs with s rhs ih
+  · rfl
+  · simp only [List.any_cons] at hnp
+    have hs_false : g.hasPush s = false := by
+      cases hs : g.hasPush s <;> simp [hs] at hnp ⊢
+    have hrest_all : ∀ x ∈ rhs, g.hasPush x = false := by
+      cases hs : g.hasPush s
+      · simpa [hs] using hnp
+      · simp [hs] at hnp
+    have hrest : rhs.any g.hasPush = false := by
+      rw [List.any_eq_false]
+      intro x hx htrue
+      rw [hrest_all x hx] at htrue
+      contradiction
+    simp [ih hrest]
+    cases s with
+    | terminal t => simp [fsStripPushRhsSym, fsLiftRhsSym]
+    | nonterminal n f =>
+        cases f with
+        | none => simp [fsStripPushRhsSym, fsLiftRhsSym]
+        | some f => simp [hasPush] at hs_false
 
 /-- Simulation of a single rule: from the nonterminal with appropriate stack,
     flagSeparate can derive the lifted expansion. -/
@@ -530,7 +614,142 @@ theorem fsLift_rule_simulation (r : IRule T g.nt g.flag) (i : Nat)
       [ISym.indexed (g := g.flagSeparate) (Sum.inl r.lhs)
         (match r.consume with | none => σ | some f => f :: σ)]
       (expandRhs g.flagSeparate (r.rhs.map g.fsLiftRhsSym) σ) := by
-  sorry
+  rcases r with ⟨lhs, consume, rhs⟩
+  let rule_mem :
+      ∀ r' : IRule T (g.nt ⊕ (Nat × Nat)) g.flag,
+        r' ∈ g.fsSingleRule i ⟨lhs, consume, rhs⟩ → r' ∈ g.flagSeparate.rules :=
+    fun r' hr' => fsSingleRule_mem_flagSeparate g hri r' hr'
+  by_cases hc : consume.isSome
+  · rcases Option.isSome_iff_exists.mp hc with ⟨f, hconsume⟩
+    subst consume
+    by_cases hpushFalse : rhs.any g.hasPush = false
+    · have h₁ :
+          g.flagSeparate.Derives
+            [ISym.indexed (g := g.flagSeparate) (Sum.inl lhs) (f :: σ)]
+            [ISym.indexed (g := g.flagSeparate) (Sum.inr (i, 0)) σ] := by
+        apply deri_of_tran
+        refine ⟨⟨Sum.inl lhs, some f,
+            [IRhsSymbol.nonterminal (Sum.inr (i, 0)) none]⟩,
+          [], [], σ, ?_, rfl, ?_⟩
+        · apply rule_mem
+          unfold fsSingleRule
+          simp [hpushFalse]
+        · simp [expandRhs]
+      have h₂ :
+          g.flagSeparate.Derives
+            [ISym.indexed (g := g.flagSeparate) (Sum.inr (i, 0)) σ]
+            (expandRhs g.flagSeparate (rhs.map g.fsStripPushRhsSym) σ) := by
+        apply deri_of_tran
+        refine ⟨⟨Sum.inr (i, 0), none, rhs.map g.fsStripPushRhsSym⟩,
+          [], [], σ, ?_, rfl, ?_⟩
+        · apply rule_mem
+          unfold fsSingleRule
+          simp [hpushFalse]
+        · simp
+      have hstrip := fsStripPushRhsSym_eq_fsLiftRhsSym_of_noPush g rhs hpushFalse
+      simpa [hstrip] using h₁.trans h₂
+    · have hpushTrue : rhs.any g.hasPush = true := by
+        cases h : rhs.any g.hasPush <;> simp [h] at hpushFalse ⊢
+      have h₁ :
+          g.flagSeparate.Derives
+            [ISym.indexed (g := g.flagSeparate) (Sum.inl lhs) (f :: σ)]
+            [ISym.indexed (g := g.flagSeparate) (Sum.inr (i, 0)) σ] := by
+        apply deri_of_tran
+        refine ⟨⟨Sum.inl lhs, some f,
+            [IRhsSymbol.nonterminal (Sum.inr (i, 0)) none]⟩,
+          [], [], σ, ?_, rfl, ?_⟩
+        · apply rule_mem
+          unfold fsSingleRule
+          simp [hpushTrue]
+        · simp [expandRhs]
+      have h₂ :
+          g.flagSeparate.Derives
+            [ISym.indexed (g := g.flagSeparate) (Sum.inr (i, 0)) σ]
+            (expandRhs g.flagSeparate
+              (rhs.zipIdx.map fun ⟨s, j⟩ => g.fsReplaceRhsSym i (j + 1) s) σ) := by
+        apply deri_of_tran
+        refine ⟨⟨Sum.inr (i, 0), none,
+            rhs.zipIdx.map fun ⟨s, j⟩ => g.fsReplaceRhsSym i (j + 1) s⟩,
+          [], [], σ, ?_, rfl, ?_⟩
+        · apply rule_mem
+          unfold fsSingleRule
+          simp [hpushTrue]
+        · simp
+      have hpushRules :
+          ∀ (s : IRhsSymbol T g.nt g.flag) (j : Nat),
+            (s, j) ∈ rhs.zipIdx → g.hasPush s →
+            ⟨Sum.inr (i, j + 1), (none : Option g.flag),
+              [match s with
+                | .nonterminal n (some f) => IRhsSymbol.nonterminal (Sum.inl n) (some f)
+                | _ => IRhsSymbol.nonterminal (Sum.inl g.initial) none]⟩ ∈
+              g.flagSeparate.rules := by
+        intro s j hmem hpush
+        cases s with
+        | terminal t => simp [hasPush] at hpush
+        | nonterminal n fopt =>
+            cases fopt with
+            | none => simp [hasPush] at hpush
+            | some fp =>
+                apply rule_mem
+                unfold fsSingleRule
+                simp [hpushTrue]
+                right
+                exact ⟨IRhsSymbol.nonterminal n (some fp), j, hmem, rfl⟩
+      exact h₁.trans (h₂.trans (resolveIntermediates g rhs i 1 hpushRules σ))
+  · have hconsume : consume = none := by
+      cases consume <;> simp_all
+    subst consume
+    by_cases hpushFalse : rhs.any g.hasPush = false
+    · apply deri_of_tran
+      refine ⟨⟨Sum.inl lhs, none, rhs.map g.fsLiftRhsSym⟩,
+        [], [], σ, ?_, rfl, ?_⟩
+      · apply rule_mem
+        unfold fsSingleRule
+        simp [hpushFalse]
+      · simp
+    · have hpushTrue : rhs.any g.hasPush = true := by
+        cases h : rhs.any g.hasPush <;> simp [h] at hpushFalse ⊢
+      by_cases hlen : rhs.length == 1
+      · apply deri_of_tran
+        refine ⟨⟨Sum.inl lhs, none, rhs.map g.fsLiftRhsSym⟩,
+          [], [], σ, ?_, rfl, ?_⟩
+        · apply rule_mem
+          unfold fsSingleRule
+          simp [hpushTrue, hlen]
+        · simp
+      · have h₁ :
+            g.flagSeparate.Derives
+              [ISym.indexed (g := g.flagSeparate) (Sum.inl lhs) σ]
+              (expandRhs g.flagSeparate
+                (rhs.zipIdx.map fun ⟨s, j⟩ => g.fsReplaceRhsSym i j s) σ) := by
+          apply deri_of_tran
+          refine ⟨⟨Sum.inl lhs, none,
+              rhs.zipIdx.map fun ⟨s, j⟩ => g.fsReplaceRhsSym i j s⟩,
+            [], [], σ, ?_, rfl, ?_⟩
+          · apply rule_mem
+            unfold fsSingleRule
+            simp [hpushTrue, hlen]
+          · simp
+        have hpushRules :
+            ∀ (s : IRhsSymbol T g.nt g.flag) (j : Nat),
+              (s, j) ∈ rhs.zipIdx → g.hasPush s →
+              ⟨Sum.inr (i, j + 0), (none : Option g.flag),
+                [match s with
+                  | .nonterminal n (some f) => IRhsSymbol.nonterminal (Sum.inl n) (some f)
+                  | _ => IRhsSymbol.nonterminal (Sum.inl g.initial) none]⟩ ∈
+                g.flagSeparate.rules := by
+          intro s j hmem hpush
+          cases s with
+          | terminal t => simp [hasPush] at hpush
+          | nonterminal n fopt =>
+              cases fopt with
+              | none => simp [hasPush] at hpush
+              | some fp =>
+                  apply rule_mem
+                  unfold fsSingleRule
+                  simp [hpushTrue, hlen]
+                  exact ⟨IRhsSymbol.nonterminal n (some fp), j, hmem, rfl⟩
+        exact h₁.trans (resolveIntermediates g rhs i 0 hpushRules σ)
 
 /-
 Each single transform step in g can be simulated by one or more steps in flagSeparate.
