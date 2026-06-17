@@ -131,6 +131,7 @@ public import Langlib.Classes.Linear.Pumping.Spine
 public import Langlib.Classes.Recursive.Basics.Elementary
 public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Closure.Complement
+public import Langlib.Classes.Recursive.Closure.Concatenation
 public import Langlib.Classes.Recursive.Closure.Intersection
 public import Langlib.Classes.Recursive.Closure.InverseHomomorphism
 public import Langlib.Classes.Recursive.Closure.Reverse
