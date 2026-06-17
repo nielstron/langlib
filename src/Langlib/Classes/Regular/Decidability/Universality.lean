@@ -76,7 +76,7 @@ variable {T : Type}
 public def regularSearchBound (c : EncodedRG T) : ℕ :=
   2 ^ (c.1 + 2)
 
-private theorem subsetDFA_card_le_regularSearchBound (c : EncodedRG T) :
+public theorem subsetDFA_card_le_regularSearchBound (c : EncodedRG T) :
     Fintype.card (Set (Option (toRG c).FinNT)) ≤ regularSearchBound c := by
   classical
   have hsub : Fintype.card (toRG c).FinNT ≤ (toCFG c).ntCount := by
@@ -120,7 +120,7 @@ private theorem exists_short_regular_counterexample [Fintype T]
     rwa [← huEval]
   simpa [DFA.mem_accepts] using hwAcc
 
-private theorem regularSearchBound_primrec [Primcodable T] :
+public theorem regularSearchBound_primrec [Primcodable T] :
     Primrec (regularSearchBound : EncodedRG T → ℕ) := by
   have hpow : Primrec₂ (fun x y : ℕ => x ^ y) := Primrec₂.unpaired'.1 Nat.Primrec.pow
   exact hpow.comp (Primrec.const 2) (Primrec.succ.comp (Primrec.succ.comp Primrec.fst))
