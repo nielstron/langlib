@@ -73,6 +73,30 @@ theorem termIsolate_terminalsIsolated :
   · rcases hr with ( ⟨ a, ha, rfl ⟩ | ⟨ a, ha, rfl ⟩ ) <;> simp_all +decide [ IndexedGrammar.collectTerminals ];
     right; intro s hs; rcases s with ( _ | ⟨ n, f ⟩ ) <;> simp +decide [ IndexedGrammar.tiLiftRhsSym ] ;
 
+theorem termIsolate_startNotOnRhs (hfresh : g.StartNotOnRhs') :
+    (g.termIsolate).StartNotOnRhs' := by
+  unfold IndexedGrammar.StartNotOnRhs'
+  intro r hr s hs
+  unfold IndexedGrammar.termIsolate at hr
+  simp +decide at hr
+  rcases hr with ⟨r₀, hr₀, rfl⟩ | ⟨t, ht, rfl⟩
+  · rcases s with t | ⟨n, f⟩
+    · trivial
+    · simp +decide at hs
+      rcases hs with ⟨s₀, hs₀, hs_eq⟩
+      rcases s₀ with t₀ | ⟨n₀, f₀⟩
+      · simp [tiLiftRhsSym] at hs_eq
+        rcases hs_eq with ⟨hn, hf⟩
+        subst n
+        subst f
+        simp [termIsolate]
+      · simp [tiLiftRhsSym] at hs_eq
+        rcases hs_eq with ⟨hn, hf⟩
+        subst n
+        subst f
+        simpa [termIsolate] using hfresh r₀ hr₀ (.nonterminal n₀ f₀) hs₀
+  · rcases s with t | ⟨n, f⟩ <;> simp +decide at hs ⊢
+
 /-! ### Lifting/projection for sentential forms -/
 
 /-- Lift a sentential-form symbol from `g` to `termIsolate g`. -/
@@ -291,8 +315,10 @@ theorem termIsolate_language_backward {w : List T}
 theorem exists_terminalsIsolated' (g : IndexedGrammar T) (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T,
       g'.NoEpsilon' ∧ g'.TerminalsIsolated ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
       ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
   exact ⟨g.termIsolate, g.termIsolate_noEpsilon hne, g.termIsolate_terminalsIsolated,
+    g.termIsolate_startNotOnRhs,
     fun w _ => ⟨g.termIsolate_language_backward, g.termIsolate_language_forward⟩⟩
 
 end TerminalIsolation

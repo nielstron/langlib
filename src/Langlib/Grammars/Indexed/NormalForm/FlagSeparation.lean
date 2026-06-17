@@ -476,6 +476,115 @@ theorem flagSeparate_flagsSeparated (hti : g.TerminalsIsolated) :
   obtain ⟨ ⟨ r, i ⟩, hr₁, rfl ⟩ := hl₁;
   exact fsSingleRule_flagsSeparated g i r ( hti r ( by rw [ List.mem_iff_get ] at hr₁; aesop ) ) _ hl₂
 
+private theorem fst_mem_of_mem_zipIdx {α : Type} {x : α} {i k : Nat} {xs : List α}
+    (h : (x, i) ∈ xs.zipIdx k) : x ∈ xs := by
+  have hz := List.mem_zipIdx h
+  rcases hz with ⟨hk, hi, hx⟩
+  rw [hx]
+  exact List.getElem_mem (l := xs) (n := i - k) (by omega)
+
+private theorem fsLiftRhsSym_ne_start (r : IRule T g.nt g.flag)
+    (hfresh : ∀ s ∈ r.rhs,
+      match s with
+      | .nonterminal n _ => n ≠ g.initial
+      | .terminal _ => True)
+    {s : IRhsSymbol T g.nt g.flag} (hs : s ∈ r.rhs) (f : Option g.flag) :
+    g.fsLiftRhsSym s ≠ IRhsSymbol.nonterminal (Sum.inl g.initial) f := by
+  cases s with
+  | terminal t =>
+      intro h
+      simp [fsLiftRhsSym] at h
+  | nonterminal n f₀ =>
+      intro h
+      simp [fsLiftRhsSym] at h
+      exact hfresh (.nonterminal n f₀) hs h.1
+
+private theorem fsStripPushRhsSym_ne_start (r : IRule T g.nt g.flag)
+    (hfresh : ∀ s ∈ r.rhs,
+      match s with
+      | .nonterminal n _ => n ≠ g.initial
+      | .terminal _ => True)
+    {s : IRhsSymbol T g.nt g.flag} (hs : s ∈ r.rhs) (f : Option g.flag) :
+    g.fsStripPushRhsSym s ≠ IRhsSymbol.nonterminal (Sum.inl g.initial) f := by
+  cases s with
+  | terminal t =>
+      intro h
+      simp [fsStripPushRhsSym] at h
+  | nonterminal n f₀ =>
+      intro h
+      simp [fsStripPushRhsSym] at h
+      exact hfresh (.nonterminal n f₀) hs h.1
+
+private theorem fsReplaceRhsSym_ne_start (r : IRule T g.nt g.flag)
+    (hfresh : ∀ s ∈ r.rhs,
+      match s with
+      | .nonterminal n _ => n ≠ g.initial
+      | .terminal _ => True)
+    {s : IRhsSymbol T g.nt g.flag} (hs : s ∈ r.rhs) (i j : Nat) (f : Option g.flag) :
+    g.fsReplaceRhsSym i j s ≠ IRhsSymbol.nonterminal (Sum.inl g.initial) f := by
+  cases s with
+  | terminal t =>
+      intro h
+      simp [fsReplaceRhsSym] at h
+  | nonterminal n f₀ =>
+      cases f₀ with
+      | none =>
+          intro h
+          simp [fsReplaceRhsSym] at h
+          exact hfresh (.nonterminal n none) hs h.1
+      | some a =>
+          intro h
+          simp [fsReplaceRhsSym] at h
+
+private theorem start_nonterminal_not_mem_zipIdx (r : IRule T g.nt g.flag)
+    (hfresh : ∀ s ∈ r.rhs,
+      match s with
+      | .nonterminal n _ => n ≠ g.initial
+      | .terminal _ => True)
+    (f : Option g.flag) (j : Nat) :
+    (IRhsSymbol.nonterminal g.initial f, j) ∉ r.rhs.zipIdx := by
+  intro h
+  exact hfresh (.nonterminal g.initial f) (fst_mem_of_mem_zipIdx h) rfl
+
+set_option maxHeartbeats 800000 in
+theorem fsSingleRule_startNotOnRhs (i : Nat) (r : IRule T g.nt g.flag)
+    (hfresh : ∀ s ∈ r.rhs,
+      match s with
+      | .nonterminal n _ => n ≠ g.initial
+      | .terminal _ => True)
+    (r' : IRule T (g.nt ⊕ (Nat × Nat)) g.flag)
+    (hr' : r' ∈ g.fsSingleRule i r) :
+    ∀ s ∈ r'.rhs,
+      match s with
+      | .nonterminal n _ => n ≠ Sum.inl g.initial
+      | .terminal _ => True := by
+  have hzip_mem :
+      ∀ {s : IRhsSymbol T g.nt g.flag} {j : Nat},
+        (s, j) ∈ r.rhs.zipIdx → s ∈ r.rhs :=
+    fun {_} {_} h => fst_mem_of_mem_zipIdx h
+  unfold IndexedGrammar.fsSingleRule at hr'
+  aesop (add safe [fsLiftRhsSym_ne_start, fsStripPushRhsSym_ne_start,
+    fsReplaceRhsSym_ne_start, start_nonterminal_not_mem_zipIdx])
+  all_goals
+    solve_by_elim [fsLiftRhsSym_ne_start, fsStripPushRhsSym_ne_start,
+      fsReplaceRhsSym_ne_start, start_nonterminal_not_mem_zipIdx, hzip_mem]
+
+theorem flagSeparate_startNotOnRhs (hfresh : g.StartNotOnRhs') :
+    (g.flagSeparate).StartNotOnRhs' := by
+  unfold IndexedGrammar.StartNotOnRhs'
+  intro r' hr' s hs
+  unfold flagSeparate at hr'
+  rw [List.mem_flatten] at hr'
+  obtain ⟨l, hl₁, hl₂⟩ := hr'
+  rw [List.mem_map] at hl₁
+  obtain ⟨⟨r, i⟩, hri, rfl⟩ := hl₁
+  have hr_mem : r ∈ g.rules := fst_mem_of_mem_zipIdx hri
+  rcases s with t | ⟨n, f⟩
+  · trivial
+  · change n ≠ Sum.inl g.initial
+    exact fsSingleRule_startNotOnRhs g i r (hfresh r hr_mem) r' hl₂
+      (.nonterminal n f) hs
+
 /-
 Lifting expandRhs commutes with fsLiftISym.
 -/
@@ -777,10 +886,11 @@ theorem fsLift_derives {u v : List g.ISym}
     (h : g.Derives u v) :
     g.flagSeparate.Derives (u.map g.fsLiftISym) (v.map g.fsLiftISym) := by
   have h_lift_transform : ∀ {w₁ w₂ : List g.ISym}, g.Transforms w₁ w₂ → g.flagSeparate.Derives (w₁.map g.fsLiftISym) (w₂.map g.fsLiftISym) := by
-    exact?;
+    exact fun {w₁ w₂} a => fsLift_transforms g a
   induction h;
-  · exact?;
-  · exact?
+  · exact deri_self g.flagSeparate (map g.fsLiftISym u)
+  · rename_i h₁ h₂ ih
+    exact deri_of_deri_deri ih (h_lift_transform h₂)
 
 theorem flagSeparate_language_forward {w : List T}
     (h : g.Generates w) : (g.flagSeparate).Generates w := by
@@ -788,7 +898,7 @@ theorem flagSeparate_language_forward {w : List T}
   convert fsLift_derives _ _;
   case convert_3 => exact [ ISym.indexed g.initial [] ];
   all_goals norm_cast;
-  exact?
+  exact Eq.symm (fsLiftISym_map_terminal g w)
 
 theorem flagSeparate_language_backward {w : List T}
     (h : (g.flagSeparate).Generates w) : g.Generates w := by
@@ -798,9 +908,11 @@ theorem exists_flagsSeparated' (g : IndexedGrammar T)
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated) :
     ∃ g' : IndexedGrammar T,
       g'.NoEpsilon' ∧ g'.TerminalsIsolated ∧ g'.FlagsSeparated ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
       ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) :=
   ⟨g.flagSeparate, g.flagSeparate_noEpsilon hne, g.flagSeparate_terminalsIsolated hti,
    g.flagSeparate_flagsSeparated hti,
+   g.flagSeparate_startNotOnRhs,
    fun _ _ => ⟨g.flagSeparate_language_backward, g.flagSeparate_language_forward⟩⟩
 
 end FlagSeparation

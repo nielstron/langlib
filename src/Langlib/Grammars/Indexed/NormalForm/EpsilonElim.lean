@@ -60,6 +60,7 @@ by induction on the derivation length, showing that any ε-rule application can 
 theorem exists_noEpsilon (g : IndexedGrammar T) :
     ∃ g' : IndexedGrammar T,
       g'.NoEpsilon' ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
       ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
   sorry
 

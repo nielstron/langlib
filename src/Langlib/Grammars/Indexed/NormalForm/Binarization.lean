@@ -521,6 +521,19 @@ private lemma unbinarizeSym_chain_nonterminal
   · grind;
   · intro x hx; specialize hall x ( List.mem_of_mem_drop hx ) ; rcases hall with ⟨ n, rfl ⟩ ; rfl;
 
+private lemma unbinarizeSym_chain_expandRhs
+    (r : IRule T g.nt g.flag) (i j : Nat) (hi : g.rules[i]? = some r)
+    (hall : ∀ s ∈ r.rhs, ∃ n : g.nt, s = IRhsSymbol.nonterminal n none)
+    (σ : List (Option g.flag)) :
+    g.unbinarizeSym (.indexed (Sum.inr (i, j)) σ) =
+    expandRhs g (r.rhs.drop (j + 1)) (g.stripStack σ) := by
+  rw [unbinarizeSym_chain_nonterminal g r i j hi hall σ]
+  unfold IndexedGrammar.expandRhs
+  refine List.map_congr_left ?_
+  intro s hs
+  rcases hall s (List.mem_of_mem_drop hs) with ⟨n, rfl⟩
+  rfl
+
 /-
 For a chain step rule with LHS = Sum.inr(i,j), consuming nothing, and RHS having
     either two binLifted nonterminals (end case) or one binLifted plus one Sum.inr (intermediate),
@@ -567,6 +580,88 @@ private lemma mem_binarize_rules_origin
   unfold IndexedGrammar.binarize at hr';
   grind +suggestions
 
+private lemma derives_rule_expansion
+    (r : IRule T g.nt g.flag) (hr : r ∈ g.rules) (σ : List g.flag) :
+    g.Derives
+      (match r.consume with
+       | none => [ISym.indexed r.lhs σ]
+       | some f => [ISym.indexed r.lhs (f :: σ)])
+      (expandRhs g r.rhs σ) := by
+  apply deri_of_tran
+  refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+  · cases r.consume <;> rfl
+  · simp
+
+private lemma unbinarize_binarizeChain_tail_eq
+    (i j : Nat) (r : IRule T g.nt g.flag) (hi : g.rules[i]? = some r)
+    (hall : ∀ s ∈ r.rhs, ∃ n : g.nt, s = IRhsSymbol.nonterminal n none)
+    (σ : List (Option g.flag))
+    (syms : List (IRhsSymbol T g.nt g.flag))
+    (hsyms : syms = r.rhs.drop (j + 1))
+    (hlen : syms.length ≥ 2)
+    (r' : IRule T (g.nt ⊕ (Nat × Nat)) (Option g.flag))
+    (hr' : r' ∈ g.binarizeChain i (Sum.inr (i, j)) (syms.map g.binLiftRhsSym) (j + 1)) :
+    g.unbinarizeSym (match r'.consume with
+      | none => .indexed r'.lhs σ
+      | some f => .indexed r'.lhs (f :: σ)) =
+    g.unbinarizeSF (expandRhs g.binarize r'.rhs σ) := by
+  induction syms generalizing j r' with
+  | nil =>
+      simp at hlen
+  | cons s syms ih =>
+      rcases syms with _ | ⟨t, rest⟩
+      · simp at hlen
+      · rcases rest with _ | ⟨u, rest⟩
+        · simp +decide [IndexedGrammar.binarizeChain] at hr'
+          rcases hr' with rfl
+          have hs_mem : s ∈ r.rhs := by
+            apply List.mem_of_mem_drop
+            rw [← hsyms]
+            simp
+          have ht_mem : t ∈ r.rhs := by
+            apply List.mem_of_mem_drop
+            rw [← hsyms]
+            simp
+          rcases hall s hs_mem with ⟨ns, rfl⟩
+          rcases hall t ht_mem with ⟨nt, rfl⟩
+          have htail : r.rhs.drop (j + 2) = [IRhsSymbol.nonterminal nt none] := by
+            have ht : (r.rhs.drop (j + 1)).drop 1 =
+                [IRhsSymbol.nonterminal nt none] := by
+              rw [← hsyms]
+              simp
+            simpa [List.drop_drop, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ht
+          have hn : r.rhs.drop (j + 1) =
+              IRhsSymbol.nonterminal ns none :: r.rhs.drop (j + 2) := by
+            rw [← hsyms, htail]
+          simpa [IndexedGrammar.binLiftRhsSym] using
+            unbinarize_chain_step_eq g i j r hi hall ns hn σ
+              [g.binLiftRhsSym (IRhsSymbol.nonterminal nt none)]
+              (Or.inl (by simp [htail, IndexedGrammar.binLiftRhsSym]))
+        · simp +decide [IndexedGrammar.binarizeChain] at hr'
+          rcases hr' with rfl | hr'
+          · have hs_mem : s ∈ r.rhs := by
+              apply List.mem_of_mem_drop
+              rw [← hsyms]
+              simp
+            rcases hall s hs_mem with ⟨ns, rfl⟩
+            have htail : t :: u :: rest = r.rhs.drop (j + 2) := by
+              have ht : (r.rhs.drop (j + 1)).drop 1 = t :: u :: rest := by
+                rw [← hsyms]
+                simp
+              simpa [List.drop_drop, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ht.symm
+            have hn : r.rhs.drop (j + 1) =
+                IRhsSymbol.nonterminal ns none :: r.rhs.drop (j + 2) := by
+              rw [← hsyms, ← htail]
+            simpa [IndexedGrammar.binLiftRhsSym] using
+              unbinarize_chain_step_eq g i j r hi hall ns hn σ
+                [IRhsSymbol.nonterminal (Sum.inr (i, j + 1)) none] (Or.inr rfl)
+          · have htail : t :: u :: rest = r.rhs.drop ((j + 1) + 1) := by
+              have ht : (r.rhs.drop (j + 1)).drop 1 = t :: u :: rest := by
+                rw [← hsyms]
+                simp
+              simpa [List.drop_drop, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ht.symm
+            exact ih (j + 1) htail (by simp) r' hr'
+
 /-- unbinarize_rule_step for a specific binSingleRule output r' given original rule r. -/
 private lemma unbinarize_rule_step_of
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
@@ -580,7 +675,68 @@ private lemma unbinarize_rule_step_of
         | none => .indexed r'.lhs σ
         | some f => .indexed r'.lhs (f :: σ)))
       (g.unbinarizeSF (expandRhs g.binarize r'.rhs σ)) := by
-  sorry
+  have hr : r ∈ g.rules := List.mem_of_getElem? hi
+  obtain h | h | h | h | h := rule_classification g hne hti hfs r hr
+  · rcases h with ⟨a, hrhs, hc⟩
+    simp +decide [IndexedGrammar.binSingleRule, hrhs, hc] at hr'
+    rcases hr' with rfl
+    convert derives_rule_expansion g r hr (g.stripStack σ) using 1 <;>
+      simp +decide [hc, hrhs, IndexedGrammar.unbinarizeSym, IndexedGrammar.unbinarizeSF,
+        IndexedGrammar.expandRhs, IndexedGrammar.binLiftRhsSym]
+  · rcases h with ⟨f, B, hc, hrhs⟩
+    simp +decide [IndexedGrammar.binSingleRule, hrhs, hc] at hr'
+    rcases hr' with rfl
+    convert derives_rule_expansion g r hr (g.stripStack σ) using 1 <;>
+      simp +decide [hc, hrhs, IndexedGrammar.unbinarizeSym, IndexedGrammar.unbinarizeSF,
+        IndexedGrammar.expandRhs, IndexedGrammar.binLiftRhsSym, IndexedGrammar.stripStack]
+  · rcases h with ⟨f, B, hc, hrhs⟩
+    simp +decide [IndexedGrammar.binSingleRule, hrhs, hc] at hr'
+    rcases hr' with rfl
+    convert derives_rule_expansion g r hr (g.stripStack σ) using 1 <;>
+      simp +decide [hc, hrhs, IndexedGrammar.unbinarizeSym, IndexedGrammar.unbinarizeSF,
+        IndexedGrammar.expandRhs, IndexedGrammar.binLiftRhsSym, IndexedGrammar.stripStack]
+  · rcases h with ⟨B, hc, hrhs⟩
+    simp +decide [IndexedGrammar.binSingleRule, hrhs, hc] at hr'
+    rcases hr' with rfl | rfl
+    · convert derives_rule_expansion g r hr (g.stripStack σ) using 1 <;>
+        simp +decide [hc, hrhs, IndexedGrammar.unbinarizeSym, IndexedGrammar.unbinarizeSF,
+          IndexedGrammar.expandRhs, IndexedGrammar.binLiftRhsSym, IndexedGrammar.stripStack]
+    · simp +decide [IndexedGrammar.unbinarizeSym, IndexedGrammar.unbinarizeSF,
+        IndexedGrammar.expandRhs, IndexedGrammar.stripStack]
+      exact deri_self g [ISym.indexed B (g.stripStack σ)]
+  · rcases h with ⟨hc, hlen, hall⟩
+    rcases hrhs_eq : r.rhs with _ | ⟨x, _ | ⟨y, rest⟩⟩
+    · simp +decide [hrhs_eq] at hlen
+    · simp +decide [hrhs_eq] at hlen
+    · simp +decide [IndexedGrammar.binSingleRule, hc, hrhs_eq] at hr'
+      induction rest with
+      | nil =>
+          simp +decide [IndexedGrammar.binarizeChain] at hr'
+          rcases hr' with rfl
+          convert derives_rule_expansion g r hr (g.stripStack σ) using 1
+          · simp +decide [hc, hrhs_eq, IndexedGrammar.unbinarizeSym,
+              IndexedGrammar.stripStack]
+          · simpa +decide [hrhs_eq] using unbinarize_expandRhs_nonterminals g r hall σ
+      | cons z rest ih =>
+          simp +decide [IndexedGrammar.binarizeChain] at hr'
+          rcases hr' with rfl | hr'
+          · have hx_mem : x ∈ r.rhs := by
+              rw [hrhs_eq]
+              simp
+            rcases hall x hx_mem with ⟨nx, rfl⟩
+            convert derives_rule_expansion g r hr (g.stripStack σ) using 1
+            · simp +decide [hc, hrhs_eq, IndexedGrammar.unbinarizeSym,
+                IndexedGrammar.stripStack]
+            · have hchain := unbinarizeSym_chain_expandRhs g r i 0 hi hall σ
+              simp +decide [hrhs_eq, IndexedGrammar.unbinarizeSym,
+                IndexedGrammar.expandRhs, IndexedGrammar.stripStack, hi] at hchain
+              simp +decide [IndexedGrammar.unbinarizeSF, IndexedGrammar.expandRhs,
+                IndexedGrammar.binLiftRhsSym, IndexedGrammar.unbinarizeSym,
+                IndexedGrammar.stripStack, hi, hrhs_eq, hchain]
+          · have heq := unbinarize_binarizeChain_tail_eq g i 0 r hi hall σ
+              (y :: z :: rest) (by simp [hrhs_eq]) (by simp) r' hr'
+            rw [heq]
+            exact deri_self g _
 
 /-- For a rule from binSingleRule, unbinarizeSym of the LHS symbol gets derived to
     unbinarizeSF of the expandRhs of the RHS. -/

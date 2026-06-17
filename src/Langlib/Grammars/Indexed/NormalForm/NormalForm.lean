@@ -65,15 +65,19 @@ theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) :
   let g₁ := g.freshStart
   have hg₁_lang : ∀ w : List T, w ∈ g₁.Language ↔ w ∈ g.Language :=
     fun w => ⟨freshStart_language_backward g, freshStart_language_forward g⟩
+  have hg₁_fresh : g₁.StartNotOnRhs' := freshStart_startNotOnRhs g
   -- Step 2: ε-elimination
-  obtain ⟨g₂, hg₂_ne, hg₂_lang⟩ := exists_noEpsilon g₁
+  obtain ⟨g₂, hg₂_ne, hg₂_fresh_of, hg₂_lang⟩ := exists_noEpsilon g₁
+  have hg₂_fresh : g₂.StartNotOnRhs' := hg₂_fresh_of hg₁_fresh
   -- Step 3: Terminal isolation (fully proved)
-  obtain ⟨g₃, hg₃_ne, hg₃_ti, hg₃_lang⟩ := exists_terminalsIsolated' g₂ hg₂_ne
+  obtain ⟨g₃, hg₃_ne, hg₃_ti, hg₃_fresh_of, hg₃_lang⟩ :=
+    exists_terminalsIsolated' g₂ hg₂_ne
+  have hg₃_fresh : g₃.StartNotOnRhs' := hg₃_fresh_of hg₂_fresh
   -- Step 4: Flag separation
-  obtain ⟨g₄, hg₄_ne, hg₄_ti, hg₄_fs, hg₄_lang⟩ :=
+  obtain ⟨g₄, hg₄_ne, hg₄_ti, hg₄_fs, hg₄_fresh_of, hg₄_lang⟩ :=
     exists_flagsSeparated' g₃ hg₃_ne hg₃_ti
   -- Step 5: Binarization + final NF assembly
-  have hg₄_fresh : g₄.StartNotOnRhs' := by sorry
+  have hg₄_fresh : g₄.StartNotOnRhs' := hg₄_fresh_of hg₃_fresh
   obtain ⟨g₅, hg₅_nf, hg₅_lang⟩ :=
     exists_normalForm_from_separated' g₄ hg₄_ne hg₄_ti hg₄_fs hg₄_fresh
   exact ⟨g₅, hg₅_nf, fun w hw => by
