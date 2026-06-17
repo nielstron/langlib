@@ -74,6 +74,7 @@ public import Langlib.Classes.ContextFree.Pumping.Utils
 public import Langlib.Classes.ContextFree.Pumping.toMathlib
 public import Langlib.Classes.ContextSensitive.Basics.NonContracting
 public import Langlib.Classes.ContextSensitive.Closure.Bijection
+public import Langlib.Classes.ContextSensitive.Closure.Concatenation
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
