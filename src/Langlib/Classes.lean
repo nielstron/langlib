@@ -138,6 +138,7 @@ public import Langlib.Classes.Recursive.Closure.Homomorphism
 public import Langlib.Classes.Recursive.Closure.Intersection
 public import Langlib.Classes.Recursive.Closure.IntersectionRegular
 public import Langlib.Classes.Recursive.Closure.InverseHomomorphism
+public import Langlib.Classes.Recursive.Closure.Quotient
 public import Langlib.Classes.Recursive.Closure.QuotientRegular
 public import Langlib.Classes.Recursive.Closure.Reverse
 public import Langlib.Classes.Recursive.Closure.Star
