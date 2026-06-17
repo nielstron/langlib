@@ -134,6 +134,7 @@ public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Closure.Complement
 public import Langlib.Classes.Recursive.Closure.Concatenation
 public import Langlib.Classes.Recursive.Closure.EpsFreeHomomorphism
+public import Langlib.Classes.Recursive.Closure.Homomorphism
 public import Langlib.Classes.Recursive.Closure.Intersection
 public import Langlib.Classes.Recursive.Closure.IntersectionRegular
 public import Langlib.Classes.Recursive.Closure.InverseHomomorphism
