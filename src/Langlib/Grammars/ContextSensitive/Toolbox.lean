@@ -1,4 +1,10 @@
-import Langlib.Grammars.ContextSensitive.Definition
+module
+
+public import Langlib.Grammars.ContextSensitive.Definition
+@[expose]
+public section
+
+
 
 /-! # Context-Sensitive Derivation Toolbox
 
@@ -17,26 +23,26 @@ variable {T : Type} {g : CS_grammar T}
 
 
 /-- The Relation `CS_derives` is reflexive. -/
-lemma CS_deri_self {w : List (symbol T g.nt)} :
+public lemma CS_deri_self {w : List (symbol T g.nt)} :
   CS_derives g w w :=
 ReflTransGen.refl
 
-lemma CS_deri_of_tran {v w : List (symbol T g.nt)} :
+public lemma CS_deri_of_tran {v w : List (symbol T g.nt)} :
   CS_transforms g v w → CS_derives g v w :=
 ReflTransGen.single
 
 /-- The Relation `CS_derives` is transitive. -/
-lemma CS_deri_of_deri_deri {u v w : List (symbol T g.nt)}
+public lemma CS_deri_of_deri_deri {u v w : List (symbol T g.nt)}
     (huv : CS_derives g u v) (hvw : CS_derives g v w) :
   CS_derives g u w :=
 ReflTransGen.trans huv hvw
 
-lemma CS_deri_of_deri_tran {u v w : List (symbol T g.nt)}
+public lemma CS_deri_of_deri_tran {u v w : List (symbol T g.nt)}
     (huv : CS_derives g u v) (hvw : CS_transforms g v w) :
   CS_derives g u w :=
 CS_deri_of_deri_deri huv (CS_deri_of_tran hvw)
 
-lemma CS_deri_of_tran_deri {u v w : List (symbol T g.nt)}
+public lemma CS_deri_of_tran_deri {u v w : List (symbol T g.nt)}
     (huv : CS_transforms g u v) (hvw : CS_derives g v w) :
   CS_derives g u w :=
 CS_deri_of_deri_deri (CS_deri_of_tran huv) hvw

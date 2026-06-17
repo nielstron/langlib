@@ -1,7 +1,30 @@
-import Langlib.Grammars.ContextFree.Definition
-import Langlib.Grammars.ContextFree.Toolbox
-import Langlib.Utilities.ListUtils
-import Lean.Meta.Tactic.TryThis
+module
+
+public meta import Aesop.BuiltinRules
+public meta import Mathlib.Tactic.ToAdditive
+public meta import Mathlib.Tactic.ToDual
+public import Langlib.Grammars.ContextFree.Toolbox
+public import Langlib.Utilities.ListUtils
+import Langlib.Grammars.Unrestricted.Definition
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+@[expose]
+public section
+
+
 
 /-! # Custom Tactics for Langlib
 
@@ -33,7 +56,7 @@ aesop
 
 open Meta in
 /-- Collect all `symbol.nonterminal _` and `symbol.terminal _` subexpressions from an expression. -/
-private partial def collectSymbols (e : Expr) : Array Expr := Id.run do
+private meta partial def collectSymbols (e : Expr) : Array Expr := Id.run do
   let rec go (e : Expr) : StateM (Array Expr) Unit := do
     if e.isApp then
       let fn := e.getAppFn
@@ -55,7 +78,7 @@ private partial def collectSymbols (e : Expr) : Array Expr := Id.run do
 open Meta in
 /-- Collect all `symbol.nonterminal _` and `symbol.terminal _` from the local context and goal,
     with nonterminals prioritized first, deduplicated. -/
-private def collectContextSymbols : TacticM (List Expr) := do
+private meta def collectContextSymbols : TacticM (List Expr) := do
   let mvarId ← Tactic.getMainGoal
   mvarId.withContext do
     let lctx ← getLCtx
@@ -72,7 +95,7 @@ private def collectContextSymbols : TacticM (List Expr) := do
 
 open Meta in
 /-- Collect names of local hypotheses whose type is a `List` equality. -/
-private def collectListEqHyps : TacticM (Array Name) := do
+private meta def collectListEqHyps : TacticM (Array Name) := do
   let mvarId ← Tactic.getMainGoal
   mvarId.withContext do
     let lctx ← getLCtx
@@ -90,7 +113,7 @@ open Meta in
 /-- Core: try `congr_arg List.toFinset` + `ext_iff` + `specialize` on one (hyp, sym) pair.
     When `clearHyp` is true, clears the original hypothesis (matching `replace` pattern)
     and uses `aesop`; otherwise uses `simp +decide`. -/
-private def noNonterminalTryOne (hypName : Name) (symStx : Syntax.Term)
+private meta def noNonterminalTryOne (hypName : Name) (symStx : Syntax.Term)
     (clearHyp : Bool) : TacticM Unit := do
   if clearHyp then
     let hyp := mkIdent hypName
@@ -111,7 +134,7 @@ private def noNonterminalTryOne (hypName : Name) (symStx : Syntax.Term)
 open Meta in
 /-- Search over hypotheses and symbols, return the successful (symStx, hypName).
     Used by `no_nonterminal` and `no_nonterminal?`. -/
-private def noNonterminalFinsetSearch : TacticM (Syntax.Term × Name) := do
+private meta def noNonterminalFinsetSearch : TacticM (Syntax.Term × Name) := do
   try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
   let mvarId ← Tactic.getMainGoal
   let eqHypNames ← collectListEqHyps
@@ -127,7 +150,7 @@ private def noNonterminalFinsetSearch : TacticM (Syntax.Term × Name) := do
 
 open Meta in
 /-- Search symbols against a single hypothesis. Used by `no_nonterminal at hyp`. -/
-private def noNonterminalFinsetAt (hypName : Name) : TacticM Unit := do
+private meta def noNonterminalFinsetAt (hypName : Name) : TacticM Unit := do
   try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
   let mvarId ← Tactic.getMainGoal
   let syms ← collectContextSymbols
@@ -141,7 +164,7 @@ private def noNonterminalFinsetAt (hypName : Name) : TacticM Unit := do
 
 open Meta in
 /-- Fully explicit: specific symbol and hypothesis. Used by `no_nonterminal (sym) at hyp`. -/
-private def noNonterminalFinsetWithAt (symStx : Syntax.Term) (hypName : Name) :
+private meta def noNonterminalFinsetWithAt (symStx : Syntax.Term) (hypName : Name) :
     TacticM Unit := do
   try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
   -- Try simp +decide first, then clear + aesop as fallback
@@ -151,7 +174,7 @@ private def noNonterminalFinsetWithAt (symStx : Syntax.Term) (hypName : Name) :
 
 open Meta in
 /-- Explicit symbol, search hypotheses. Used by `no_nonterminal (sym)`. -/
-private def noNonterminalFinsetWith (symStx : Syntax.Term) : TacticM Unit := do
+private meta def noNonterminalFinsetWith (symStx : Syntax.Term) : TacticM Unit := do
   try Tactic.evalTactic (← `(tactic| exfalso)) catch _ => pure ()
   let eqHypNames ← collectListEqHyps
   for hypName in eqHypNames do
@@ -163,7 +186,7 @@ private def noNonterminalFinsetWith (symStx : Syntax.Term) : TacticM Unit := do
 
 open Meta in
 /-- Fallback strategies for `no_nonterminal` (membership simp and aesop). -/
-private def noNonterminalFallbacks : TacticM Unit := do
+private meta def noNonterminalFallbacks : TacticM Unit := do
   -- Strategy 2: Try exfalso + simp for membership contradictions
   try
     Elab.Tactic.evalTactic (← `(tactic| (

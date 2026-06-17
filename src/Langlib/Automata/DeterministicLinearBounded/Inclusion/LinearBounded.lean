@@ -1,6 +1,44 @@
-import Mathlib
-import Langlib.Automata.DeterministicLinearBounded.Definition
-import Langlib.Automata.LinearBounded.Definition
+module
+
+public import Langlib.Automata.LinearBounded.Definition
+public import Langlib.Automata.LinearBounded.Equivalence.EndmarkerTape
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-!
 # Deterministic LBA Languages ⊆ LBA Languages
@@ -20,7 +58,7 @@ if and only if the DLBA accepts (halts in an accepting state).
 
 ## Main Results
 
-* `is_DLBA_subset_is_LBA` — Every DLBA language is an LBA language
+* `is_DLBA_subset_is_LBA` — Every DLBA language is an (endmarker) LBA language
 -/
 
 namespace DLBA
@@ -225,14 +263,23 @@ theorem dlba_language_eq_lba_language {T Γ : Type*} {Λ : Type*} [DecidableEq �
 /-
 **Main theorem**: Every deterministic LBA language is also an LBA language.
 -/
-theorem is_DLBA_subset_is_LBA {T : Type} {L : _root_.Language T}
+theorem is_DLBA_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : _root_.Language T}
     (h : is_DLBA L) : is_LBA L := by
-  obtain ⟨ Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, embed, M, hM ⟩ := h;
-  use Γ, Option Λ;
-  use inferInstance, inferInstance, inferInstance, inferInstance;
-  exact ⟨ embed, DLBA.toLBA' M, dlba_language_eq_lba_language M embed ▸ hM ⟩
+  obtain ⟨ Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, acceptEmpty, M, hM ⟩ := h
+  haveI := hΓ; haveI := hΛ; haveI := hdecΓ; haveI := hdecΛ
+  -- Convert the DLBA to a bounded-tape LBA `toLBA' M`, then run it on `⊢ w ⊣` via `simMachine`,
+  -- carrying the DLBA's empty-word decision into the simulator's `ε`-bit.
+  refine ⟨ Γ, LBA.SimState (Option Λ), hΓ, inferInstance, hdecΓ, inferInstance,
+    LBA.simMachine (DLBA.toLBA' M) acceptEmpty, ?_ ⟩
+  rw [LBA.language_simMachine_eq, ← hM]
+  have key : DLBA.LanguageViaEmbed M (fun t => some (Sum.inl t))
+      = LBA.LanguageViaEmbed (DLBA.toLBA' M) (fun t => some (Sum.inl t)) :=
+    dlba_language_eq_lba_language M (fun t => some (Sum.inl t))
+  funext w
+  simp only [DLBA.LanguageRecognized, LBA.LanguageRecognized, key]
 
-theorem DLBA_subset_LBA {T : Type} : (DLBA : Set (Language T)) ⊆ LBA := by
+theorem DLBA_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
+    (DLBA : Set (Language T)) ⊆ LBA := by
   intro L hL
   simp [DLBA] at hL
   exact is_DLBA_subset_is_LBA hL

@@ -1,9 +1,30 @@
+module
+
 /-
 Copyright (c) 2024 Alexander Loitzl, Martin Dvorak. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl, Martin Dvorak
 -/
-import Langlib.Automata.Pushdown.Basics.Leftmost
+public import Langlib.Automata.Pushdown.Basics.Leftmost
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+@[expose]
+public section
+
+
 
 universe uT uN
 variable {T : Type uT}
@@ -13,12 +34,12 @@ open Symbol
 
 /-- Given a context-free grammar `g`, strings `u` and `v`, and number `n`
 `g.DerivesLeftmostIn u v n` means that `g` can transform `u` to `v` in `n` rewriting steps. -/
-inductive DerivesLeftmostIn (g : ContextFreeGrammar T) : List (Symbol T g.NT) → List (Symbol T g.NT) → ℕ → Prop
+public inductive DerivesLeftmostIn (g : ContextFreeGrammar T) : List (Symbol T g.NT) → List (Symbol T g.NT) → ℕ → Prop
   | refl (w : List (Symbol T g.NT)) : g.DerivesLeftmostIn w w 0
   | tail (u v w : List (Symbol T g.NT)) (n : ℕ) : g.DerivesLeftmostIn u v n → g.ProducesLeftmost v w → g.DerivesLeftmostIn u w n.succ
 
 
-lemma derivesLeftmost_iff_derivesLeftmostIn
+public lemma derivesLeftmost_iff_derivesLeftmostIn
     (g : ContextFreeGrammar T) (v w : List (Symbol T g.NT)) :
     g.DerivesLeftmost v w ↔ ∃ n : ℕ, g.DerivesLeftmostIn v w n := by
   constructor
@@ -38,20 +59,20 @@ lemma derivesLeftmost_iff_derivesLeftmostIn
     | refl => rfl
     | tail _ _ _ _ last ih => exact ih.trans_produces last
 
-lemma mem_language_iff_derivesLeftmostIn (g : ContextFreeGrammar T) (w : List T) :
+public lemma mem_language_iff_derivesLeftmostIn (g : ContextFreeGrammar T) (w : List T) :
     w ∈ g.language ↔ ∃ n, g.DerivesLeftmostIn [Symbol.nonterminal g.initial] (w.map Symbol.terminal) n := by
   rw [mem_language_iff, ←derives_leftmost_iff, derivesLeftmost_iff_derivesLeftmostIn]
 
 variable {g : ContextFreeGrammar T}
 
-lemma DerivesLeftmostIn.zero_steps (w : List (Symbol T g.NT)) : g.DerivesLeftmostIn w w 0 := by
+public lemma DerivesLeftmostIn.zero_steps (w : List (Symbol T g.NT)) : g.DerivesLeftmostIn w w 0 := by
   left
 
-lemma DerivesLeftmostIn.zero {w v: List (Symbol T g.NT)}(h : g.DerivesLeftmostIn w v 0) : v = w := by
+public lemma DerivesLeftmostIn.zero {w v: List (Symbol T g.NT)}(h : g.DerivesLeftmostIn w v 0) : v = w := by
   cases h
   · rfl
 
-lemma ProducesLeftmost.single_step {v w : List (Symbol T g.NT)} (hvw : g.ProducesLeftmost v w) :
+public lemma ProducesLeftmost.single_step {v w : List (Symbol T g.NT)} (hvw : g.ProducesLeftmost v w) :
     g.DerivesLeftmostIn v w 1 := by
   right
   left
@@ -59,7 +80,7 @@ lemma ProducesLeftmost.single_step {v w : List (Symbol T g.NT)} (hvw : g.Produce
 
 variable {n : ℕ}
 
-lemma DerivesLeftmostIn.trans_producesLeftmost {u v w : List (Symbol T g.NT)}
+public lemma DerivesLeftmostIn.trans_producesLeftmost {u v w : List (Symbol T g.NT)}
   (huv : g.DerivesLeftmostIn u v n) (hvw : g.ProducesLeftmost v w) :
     g.DerivesLeftmostIn u w n.succ :=
   DerivesLeftmostIn.tail u v w n huv hvw
@@ -84,7 +105,7 @@ lemma DerivesLeftmostIn.tail_of_succ {u w : List (Symbol T g.NT)}
   | tail v w n huv hvw =>
     use v
 
-lemma DerivesLeftmostIn.head_of_succ {u w : List (Symbol T g.NT)}
+public lemma DerivesLeftmostIn.head_of_succ {u w : List (Symbol T g.NT)}
     (huw : g.DerivesLeftmostIn u w n.succ) :
     ∃ v : List (Symbol T g.NT), g.ProducesLeftmost u v ∧ g.DerivesLeftmostIn v w n := by
   induction n generalizing w with
@@ -115,7 +136,7 @@ lemma DerivesLeftmostIn.append_right {v w : List (Symbol T g.NT)}
   | refl => left
   | tail _ _ _ _ last ih => exact ih.trans_producesLeftmost <| last.append_right p
 
-theorem DerivesLeftmostIn.empty {n : ℕ} {v : List (Symbol T g.NT)}
+public theorem DerivesLeftmostIn.empty {n : ℕ} {v : List (Symbol T g.NT)}
     (h : g.DerivesLeftmostIn [] v n) : v = [] := by
   rcases n with _ | ⟨n⟩
   · have := h.zero
@@ -125,7 +146,7 @@ theorem DerivesLeftmostIn.empty {n : ℕ} {v : List (Symbol T g.NT)}
     obtain ⟨r, hr, h₁⟩ := h₁
     cases h₁
 
-theorem DerivesLeftmostIn.terminal {n : ℕ} {v : List (Symbol T g.NT)}{x : List T}
+public theorem DerivesLeftmostIn.terminal {n : ℕ} {v : List (Symbol T g.NT)}{x : List T}
     (h : g.DerivesLeftmostIn (x.map terminal) v n) : v = x.map terminal := by
   rcases n with _ | ⟨n⟩
   · have := h.zero
@@ -134,7 +155,7 @@ theorem DerivesLeftmostIn.terminal {n : ℕ} {v : List (Symbol T g.NT)}{x : List
     exfalso
     exact hx.rewrite_terminal
 
-theorem derivesLeftmostIn_cons {n : ℕ}{x : Symbol T g.NT} {v u : List (Symbol T g.NT)}
+public theorem derivesLeftmostIn_cons {n : ℕ}{x : Symbol T g.NT} {v u : List (Symbol T g.NT)}
     (h : g.DerivesLeftmostIn (x :: v) u n) :
     (∃ (u' : List (Symbol T g.NT)), u = u' ++ v ∧ g.DerivesLeftmostIn [x] u' n) ∨
     (∃ (w₁ : List T) (u₂ : List (Symbol T g.NT))(m₁ m₂ : ℕ),m₁ ≤ n ∧ m₂ ≤ n ∧
@@ -166,7 +187,7 @@ theorem derivesLeftmostIn_cons {n : ℕ}{x : Symbol T g.NT} {v u : List (Symbol 
       · exact ⟨o₂, m₁, m₂+1, by linarith, by linarith, by simp_all, hu.2.1,
         hu.2.2.trans_producesLeftmost ⟨r,hr,ho.2.2⟩⟩
 
-theorem derivesLeftmostIn_cons' {n : ℕ}{x : Symbol T g.NT} {v : List (Symbol T g.NT)}{u : List T}
+public theorem derivesLeftmostIn_cons' {n : ℕ}{x : Symbol T g.NT} {v : List (Symbol T g.NT)}{u : List T}
     (h : g.DerivesLeftmostIn (x :: v) (u.map terminal) n) :
     (∃ (w₁ w₂: List T) (m₁ m₂ : ℕ),m₁ ≤ n ∧ m₂ ≤ n ∧
     u = w₁ ++ w₂ ∧ g.DerivesLeftmostIn [x] (w₁.map terminal) m₁ ∧

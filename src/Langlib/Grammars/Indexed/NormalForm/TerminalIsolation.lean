@@ -1,5 +1,9 @@
-import Mathlib
-import Langlib.Grammars.Indexed.Definition
+module
+
+public import Mathlib
+public import Langlib.Grammars.Indexed.Definition
+@[expose]
+public section
 
 /-! # Terminal Isolation for Indexed Grammars
 
@@ -190,7 +194,7 @@ theorem termIsolate_lift_transforms {w₁ w₂ : List g.ISym}
       rotate_left;
       exact map g.tiLiftISym n₂ ++ map g.tiLiftISym ( g.expandRhs n₁.rhs ht );
       · convert deri_with_prefix _ _ using 1;
-        exact?;
+        exact termIsolate_resolve_inr g n₁.rhs ht n₁ (by assumption) rfl;
       · rw [ List.append_assoc ]
 
 /-
@@ -283,10 +287,10 @@ theorem termIsolate_proj_derives {w₁ w₂ : List (g.termIsolate).ISym}
     (hd : (g.termIsolate).Derives w₁ w₂) :
     g.Derives (g.tiProjSF w₁) (g.tiProjSF w₂) := by
   induction hd;
-  · exact?;
+  · exact deri_self g (g.tiProjSF w₁);
   · rename_i h₁ h₂ h₃;
     apply deri_of_deri_deri h₃;
-    exact?
+    exact termIsolate_proj_transforms g h₂
 
 /-
 Projection of terminal list is terminal list.

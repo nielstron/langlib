@@ -1,13 +1,55 @@
-import Mathlib
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.ContextFree.Closure.Substitution
+module
+
+public import Langlib.Classes.ContextFree.Definition
+public import Langlib.Utilities.ClosurePredicates
+public import Mathlib.Data.Matrix.Mul
+import Langlib.Classes.ContextFree.Closure.Concatenation
 import Langlib.Classes.ContextFree.Closure.Homomorphism
 import Langlib.Classes.ContextFree.Closure.IntersectionRegular
 import Langlib.Classes.ContextFree.Closure.Star
-import Langlib.Classes.ContextFree.Closure.Concatenation
-import Langlib.Utilities.LanguageOperations
-import Langlib.Utilities.Homomorphism
-import Langlib.Utilities.ClosurePredicates
+import Langlib.Classes.ContextFree.Closure.Substitution
+import Langlib.Grammars.ContextFree.MathlibCFG
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
+
+
 
 /-! # Context-Free Closure Under Inverse String Homomorphism
 
@@ -43,7 +85,7 @@ noncomputable section
 variable {α β : Type}
 
 /-- Extend a homomorphism to words by concatenation. -/
-private def extendHom (h : α → List β) (w : List α) : List β :=
+def extendHom (h : α → List β) (w : List α) : List β :=
   (w.map h).flatten
 
 -- ============================================================================
@@ -77,7 +119,7 @@ def piHom : α ⊕ β → List α
 lemma embedWord_flatMap_fHom (h : α → List β) (a : α) :
     (embedWord h a).flatMap fHom = h a := by
       unfold embedWord
-      simp [fHom];
+      simp only [List.cons_append, List.nil_append, List.flatMap_cons, fHom];
       induction h a <;> aesop
 
 /-
@@ -93,17 +135,18 @@ lemma extendHom_eq_flatMap_embedWord_fHom (h : α → List β) (w : List α) :
 lemma embedWord_flatMap_piHom (h : α → List β) (a : α) :
     (embedWord h a).flatMap piHom = [a] := by
       -- By definition of `embedWord` and `piHom`, we can simplify the expression.
-      simp [embedWord, piHom]
+      simp only [embedWord, List.cons_append, List.nil_append, List.flatMap_cons, piHom, List.cons.injEq, List.flatMap_eq_nil_iff, List.mem_map, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂, implies_true, and_self]
 
 /-
 Composing `embedWord` then `piHom` is the identity.
 -/
 lemma extendHom_embedWord_piHom (h : α → List β) (w : List α) :
     (extendHom (embedWord h) w).flatMap piHom = w := by
-      convert embedWord_flatMap_piHom h using 1;
-      constructor <;> intro h <;> induction w <;> simp_all +decide [ extendHom ];
-      · exact?;
-      · exact?
+  induction w with
+  | nil => simp only [extendHom, List.map_nil, List.flatten_nil, List.flatMap_nil]
+  | cons a w ih =>
+      simp only [extendHom, List.map_cons, List.flatten_cons, List.flatMap_append, embedWord_flatMap_piHom, List.cons_append, List.nil_append, List.cons.injEq, true_and]
+      simpa [extendHom] using ih
 
 -- ============================================================================
 -- §3. The language S of single inl-symbol words
@@ -119,15 +162,15 @@ def sLang (α β : Type) : Language (α ⊕ β) :=
 lemma is_CF_sLang [Fintype α] : is_CF (sLang α β) := by
   by_contra! h_contra;
   have h_cfl_singleton : ∀ a : α, is_CF ({[Sum.inl a]} : Language (α ⊕ β)) := by
-    exact?;
+    exact fun a => is_CF_singleton [Sum.inl a];
   have h_cfl_union : ∀ (s : Finset α), is_CF (⋃ a ∈ s, {[Sum.inl a]} : Language (α ⊕ β)) := by
     intro s
     induction' s using Finset.induction with a s ih;
     · -- The empty language is context-free because it can be generated by a context-free grammar with no rules.
       use ⟨Unit, (), []⟩;
       simp +decide [ grammar_context_free, grammar_language ];
-      ext w; simp [setOf];
-      unfold grammar_generates; simp +decide [ Relation.ReflTransGen ] ;
+      ext w; simp only [setOf];
+      unfold grammar_generates; simp +decide ;
       constructor <;> intro h <;> cases w <;> simp_all +decide [ grammar_derives ];
       · cases h;
         cases ‹_› ; aesop;
@@ -135,18 +178,18 @@ lemma is_CF_sLang [Fintype α] : is_CF (sLang α β) := by
         cases ‹grammar_transforms _ _ _› ; aesop;
       · contradiction;
       · contradiction;
-    · simp_all +decide [ Finset.set_biUnion_insert ];
+    · simp_all +decide [  ];
       have h_cfl_union : is_CF ({[Sum.inl a]} : Language (α ⊕ β)) ∧ is_CF (⋃ a ∈ s, {[Sum.inl a]} : Language (α ⊕ β)) := by
         aesop;
       convert Language.IsContextFree.add _ _ using 1;
       · ext;
-        exact?;
+        exact is_CF_iff_isContextFree;
       · convert isContextFree_singleton [ Sum.inl a ] using 1;
       · convert h_cfl_union.2 using 1;
-        ext; simp [is_CF_iff_isContextFree];
+        ext; simp only [is_CF_iff_isContextFree];
   apply h_contra;
   convert h_cfl_union Finset.univ;
-  ext; simp [sLang];
+  ext; simp only [sLang, Finset.mem_univ, Set.iUnion_true, Set.iUnion_singleton_eq_range];
   exact ⟨ fun ⟨ a, ha ⟩ => ⟨ a, ha.symm ⟩, fun ⟨ a, ha ⟩ => ⟨ a, ha.symm ⟩ ⟩
 
 -- ============================================================================
@@ -178,7 +221,7 @@ lemma allInl_mem_kstar_sLang (v : List (α ⊕ β)) (hv : ∀ x ∈ v, x.isLeft)
 /-
 flatMap fHom over a list of all-inl symbols is [].
 -/
-lemma flatMap_fHom_allInl (v : List (α ⊕ β)) (hv : ∀ x ∈ v, x.isLeft) :
+private lemma flatMap_fHom_allInl (v : List (α ⊕ β)) (hv : ∀ x ∈ v, x.isLeft) :
     List.flatMap fHom v = [] := by
       induction v <;> aesop
 
@@ -190,7 +233,7 @@ lemma flatMap_fHom_kstar_sLang (v : List (α ⊕ β)) (hv : v ∈ KStar.kstar (s
       cases isEmpty_or_nonempty α <;> cases isEmpty_or_nonempty β <;> simp_all +decide [ KStar.kstar ];
       · obtain ⟨ L, rfl, hL ⟩ := hv; induction L <;> simp_all +decide [ sLang ] ;
         tauto;
-      · exact?;
+      · exact fun a a_1 => Eq.symm ((fun {α} {xs} => List.nil_eq.mpr) rfl);
       · obtain ⟨ L, rfl, hL ⟩ := hv;
         constructor <;> intro x hx <;> contrapose! hx <;> simp_all +decide [ sLang ];
         · cases hx rfl;
@@ -225,8 +268,8 @@ lemma decompose_sum_list (v : List (α ⊕ β)) :
               · use [ [ Sum.inl x ] ++ s ] ; aesop;
               · refine' ⟨ ( Sum.inl x :: s ) :: t :: ss, _, _, _ ⟩ <;> simp_all +decide [ fHom ];
                 cases bs <;> aesop;
-            · refine' ⟨ [ [] ] ++ ss, _, _, _ ⟩ <;> simp_all +decide [ List.dropLast ];
-              · exact?;
+            · refine' ⟨ [ [] ] ++ ss, _, _, _ ⟩ <;> simp_all +decide [  ];
+              · exact Nat.add_comm bs.length 1;
               · cases ss <;> aesop;
         exact Exists.imp ( by tauto ) ( h_ind v )
 
@@ -262,7 +305,7 @@ lemma fInv_eq (L : Language β) :
             have := flatMap_fHom_substFn v₁ b hv₁; aesop;
           exact hv_flatMap hv';
         have h_flatMap_w : List.flatMap fHom w = [] := by
-          exact?;
+          exact flatMap_fHom_kstar_sLang w hw;
         grind +locals
 
 /-- `f⁻¹(L)` is CFL when `L` is CFL and `α` is finite. -/
@@ -316,10 +359,10 @@ lemma dStep_embedWord (h : α → List β) (a : α) :
     (embedWord h a).foldl (dStep h) (some none) = some none := by
       -- By induction on the length of `h a`, we can show that processing the list of `Sum.inr` elements brings us back to `some none`.
       have h_ind : ∀ (k : ℕ) (hk : k ≤ (h a).length), List.foldl (dStep h) (if hl : 0 < (h a).length then if hl : k < (h a).length then some (some ⟨a, ⟨k, hl⟩⟩) else some none else some none) (List.map Sum.inr (List.drop k (h a))) = some none := by
-        intro k hk; induction' m : ( h a ).length - k with m ih generalizing k <;> simp_all +decide [ Nat.sub_succ ] ;
+        intro k hk; induction' m : ( h a ).length - k with m ih generalizing k <;> simp_all +decide [  ] ;
         · cases eq_or_lt_of_le hk <;> simp_all +decide [ Nat.sub_eq_iff_eq_add ];
           simp +decide [ List.drop_eq_nil_of_le ];
-        · rcases eq_or_lt_of_le hk <;> simp_all +decide [ Nat.sub_succ ];
+        · rcases eq_or_lt_of_le hk <;> simp_all +decide [  ];
           rw [ show List.drop k ( List.map Sum.inr ( h a ) ) = Sum.inr ( ( h a ).get ⟨ k, by linarith ⟩ ) :: List.drop ( k + 1 ) ( List.map Sum.inr ( h a ) ) from ?_ ];
           · split_ifs <;> simp_all +decide [ dStep ];
             grind;
@@ -327,7 +370,7 @@ lemma dStep_embedWord (h : α → List β) (a : α) :
       specialize h_ind 0 ; aesop
 
 /-- foldl dStep distributes over concatenation. -/
-lemma foldl_dStep_append (h : α → List β) (v w : List (α ⊕ β)) (s : DFAState α β h) :
+private lemma foldl_dStep_append (h : α → List β) (v w : List (α ⊕ β)) (s : DFAState α β h) :
     (v ++ w).foldl (dStep h) s = w.foldl (dStep h) (v.foldl (dStep h) s) := by
   exact List.foldl_append
 
@@ -382,7 +425,7 @@ lemma dLang_of_dfa_accepts (h : α → List β) (v : List (α ⊕ β))
       · constructor;
         swap;
         exacts [ [ ], by simp +decide ];
-      · rcases x with ( a | b ) <;> simp_all +decide [ dStep ];
+      · rcases x with ( a | b ) <;> simp_all +decide [  ];
         · split_ifs at hv <;> simp_all +decide [ dLang ];
           · obtain ⟨ rest, hrest₁, hrest₂ ⟩ := dfa_mid_consume h a ⟨ 0, by linarith ⟩ v hv;
             specialize ih ( List.length rest ) ( by simp +arith +decide [ hrest₁ ] at *; linarith ) rest hrest₂ rfl ; simp_all +decide [ KStar.kstar ] ;
@@ -397,7 +440,7 @@ lemma dLang_of_dfa_accepts (h : α → List β) (v : List (α ⊕ β))
 lemma invHomDFA_correct (h : α → List β) :
     (invHomDFA h).accepts = dLang h := by
   ext v
-  simp [DFA.accepts, invHomDFA, DFA.eval]
+  simp only [DFA.accepts, invHomDFA]
   exact ⟨dLang_of_dfa_accepts h v, dfa_accepts_of_dLang h v⟩
 
 /-- `D` is a regular language when `α` is finite. -/
@@ -417,7 +460,7 @@ lemma inverseHomomorphicImage_eq (L : Language β) (h : α → List β) :
     L.inverseHomomorphicImage h =
     ((fInv L ⊓ dLang h) : Language (α ⊕ β)).homomorphicImage piHom := by
       ext w
-      simp [Language.inverseHomomorphicImage, Language.homomorphicImage];
+      simp only [Language.inverseHomomorphicImage, Language.homomorphicImage];
       constructor;
       · intro hw
         use extendHom (embedWord h) w;
@@ -440,13 +483,13 @@ lemma inverseHomomorphicImage_eq (L : Language β) (h : α → List β) :
               induction ( h ‹_› ) <;> aesop;
           · rw [ List.flatMap_assoc ];
         · -- By definition of `dLang`, we need to show that `extendHom (embedWord h) w` is a concatenation of blocks from `dLang h`.
-          simp [dLang];
+          simp only [dLang];
           induction w <;> simp_all +decide [ KStar.kstar ];
           · exact ⟨ [ ], rfl, by tauto ⟩;
-          · use [embedWord h ‹_›] ++ List.map (fun a => embedWord h a) ‹List α›; simp [extendHom];
+          · use [embedWord h ‹_›] ++ List.map (fun a => embedWord h a) ‹List α›; simp only [extendHom, List.map_cons, List.flatten_cons, List.cons_append, List.nil_append, List.mem_cons, List.mem_map, forall_eq_or_imp, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂, true_and];
             exact ⟨ ⟨ _, rfl ⟩, fun a ha => ⟨ _, rfl ⟩ ⟩;
         · have h_flatMap : (extendHom (embedWord h) w).flatMap piHom = w := by
-            exact?;
+            exact extendHom_embedWord_piHom h w;
           rw [ ← h_flatMap, Language.mem_list_prod_iff_forall2 ];
           grind +suggestions;
       · rintro ⟨ v, hv₁, hv₂ ⟩;
@@ -463,7 +506,7 @@ lemma inverseHomomorphicImage_eq (L : Language β) (h : α → List β) :
               aesop;
             exact hv₃;
           have hw'_eq : ∀ {w' : List (List (α ⊕ β))}, List.Forall₂ (fun w s => ∃ a : α, w = embedWord h a) w' (List.replicate (List.length w') ()) → ∃ w'' : List α, w' = List.map (fun a => embedWord h a) w'' := by
-            intros w' hw'; induction' w' with w' ih <;> simp_all +decide [ List.Forall₂ ] ;
+            intros w' hw'; induction' w' with w' ih <;> simp_all +decide [  ] ;
             simp_all +decide [ List.replicate ];
             rcases hw'.1 with ⟨ a, rfl ⟩ ; rcases ‹∃ w'', ih = List.map ( fun a => embedWord h a ) w''› with ⟨ w'', rfl ⟩ ; exact ⟨ a :: w'', by simp +decide ⟩ ;
           obtain ⟨ w'', rfl ⟩ := hw'_eq hw'.2; use w''; aesop;
@@ -476,8 +519,13 @@ lemma inverseHomomorphicImage_eq (L : Language β) (h : α → List β) :
               refine' List.ext_get _ _ <;> aesop;
             aesop;
           rw [ ← h_w_eq_w', hw', extendHom_embedWord_piHom ];
-        have := hv₁.1; simp_all +decide [ fInv ] ;
-        grind +suggestions
+        rw [h_w_eq_w'] at *
+        have hvL : (extendHom (embedWord h) w').flatMap fHom ∈ L := by
+          rw [hw'] at hv₁
+          simpa [fInv] using hv₁.1
+        change extendHom h w' ∈ L
+        rw [extendHom_eq_flatMap_embedWord_fHom h w']
+        exact hvL
 
 -- ============================================================================
 -- §7. Main theorem
@@ -497,9 +545,9 @@ theorem CF_closed_under_inverse_homomorphism [Fintype α]
   · exact isRegular_dLang h
 
 /-- The class of context-free languages is closed under inverse string homomorphism. -/
-theorem CF_closedUnderInverseHomomorphism [Fintype α] :
+theorem CF_closedUnderInverseHomomorphism :
     ClosedUnderInverseHomomorphism is_CF := by
-  intro α β _ L h hL
+  intro α β _ _ L h hL
   simpa [Language.inverseHomomorphicImage] using
     CF_closed_under_inverse_homomorphism (α := α) (β := β) L h hL
 

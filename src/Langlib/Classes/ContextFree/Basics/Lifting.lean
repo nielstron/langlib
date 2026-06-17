@@ -1,5 +1,27 @@
+module
+
+public import Langlib.Grammars.ContextFree.Definition
+public import Mathlib.Tactic.Continuity
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Utilities.ListUtils
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+@[expose]
+public section
+
+
 
 
 /-! # Context-Free Lifting
@@ -16,27 +38,32 @@ This file lifts context-free grammars across embeddings of nonterminal types and
 
 variable {T : Type}
 
-def lift_symbol {N₀ N : Type} (lift_N : N₀ → N) : symbol T N₀ → symbol T N
+@[expose]
+public def lift_symbol {N₀ N : Type} (lift_N : N₀ → N) : symbol T N₀ → symbol T N
 | symbol.terminal t    => symbol.terminal t
 | symbol.nonterminal n => symbol.nonterminal (lift_N n)
 
-def sink_symbol {N₀ N : Type} (sink_N : N → Option N₀) : symbol T N → Option (symbol T N₀)
+@[expose]
+public def sink_symbol {N₀ N : Type} (sink_N : N → Option N₀) : symbol T N → Option (symbol T N₀)
 | symbol.terminal t    => some (symbol.terminal t)
 | symbol.nonterminal n => Option.map symbol.nonterminal (sink_N n)
 
-def lift_string {N₀ N : Type} (lift_N : N₀ → N) :
+@[expose]
+public def lift_string {N₀ N : Type} (lift_N : N₀ → N) :
   List (symbol T N₀) → List (symbol T N) :=
 List.map (lift_symbol lift_N)
 
-def sink_string {N₀ N : Type} (sink_N : N → Option N₀) :
+@[expose]
+public def sink_string {N₀ N : Type} (sink_N : N → Option N₀) :
   List (symbol T N) → List (symbol T N₀) :=
 List.filterMap (sink_symbol sink_N)
 
-def lift_rule {N₀ N : Type} (lift_N : N₀ → N) :
+@[expose]
+public def lift_rule {N₀ N : Type} (lift_N : N₀ → N) :
   N₀ × (List (symbol T N₀)) → N × (List (symbol T N)) :=
 fun r => (lift_N r.fst, lift_string lift_N r.snd)
 
-structure lifted_grammar (T : Type) where
+public structure lifted_grammar (T : Type) where
   g₀ : CF_grammar T
   g : CF_grammar T
   lift_nt : g₀.nt → g.nt
@@ -94,7 +121,7 @@ by
       rw [List.map_append_append] at lift_aft
       exact lift_aft
 
-lemma lift_deri {lg : lifted_grammar T} {w₁ w₂ : List (symbol T lg.g₀.nt)}
+public lemma lift_deri {lg : lifted_grammar T} {w₁ w₂ : List (symbol T lg.g₀.nt)}
     (hyp : CF_derives lg.g₀ w₁ w₂) :
   CF_derives lg.g (lift_string lg.lift_nt w₁) (lift_string lg.lift_nt w₂) :=
 by
@@ -107,11 +134,13 @@ by
       · exact lift_tran step
 
 
-def good_letter {lg : lifted_grammar T} : symbol T lg.g.nt → Prop
-| (symbol.terminal t)    => True
+@[expose]
+public def good_letter {lg : lifted_grammar T} : symbol T lg.g.nt → Prop
+| (symbol.terminal _t)    => True
 | (symbol.nonterminal n) => (∃ n₀ : lg.g₀.nt, lg.sink_nt n = some n₀)
 
-def good_string {lg : lifted_grammar T} (s : List (symbol T lg.g.nt)) :=
+@[expose]
+public def good_string {lg : lifted_grammar T} (s : List (symbol T lg.g.nt)) :=
 ∀ a ∈ s, good_letter a
 
 private lemma sink_tran {lg : lifted_grammar T} {w₁ w₂ : List (symbol T lg.g.nt)}
@@ -128,7 +157,7 @@ by
       rw [bef] at ok_input
       have good_matched_nonterminal : good_letter (symbol.nonterminal r.fst) := by
         apply ok_input
-        simp [List.mem_append, List.mem_singleton]
+        simp [List.mem_append]
       rcases good_matched_nonterminal with ⟨n₀, hn₀⟩
       refine ⟨n₀, ?_⟩
       have almost := congrArg (Option.map lg.lift_nt) hn₀
@@ -181,7 +210,7 @@ by
       unfold lift_string
       exact (filterMap_lift p.2).symm
 
-lemma sink_deri (lg : lifted_grammar T) (w₁ w₂ : List (symbol T lg.g.nt))
+public lemma sink_deri (lg : lifted_grammar T) (w₁ w₂ : List (symbol T lg.g.nt))
     (hyp : CF_derives lg.g w₁ w₂)
     (ok_input : good_string w₁) :
   CF_derives lg.g₀ (sink_string lg.sink_nt w₁) (sink_string lg.sink_nt w₂)
@@ -257,7 +286,7 @@ by
             exact Or.inr in_y
 
 /-- `lift_string` preserves terminal-only lists. -/
-lemma lift_string_map_terminal (lg : lifted_grammar T) (w : List T) :
+public lemma lift_string_map_terminal (lg : lifted_grammar T) (w : List T) :
     lift_string lg.lift_nt (List.map symbol.terminal w) = List.map symbol.terminal w := by
   simp [lift_string, List.map_map, Function.comp, lift_symbol]
 
@@ -272,7 +301,7 @@ lemma sink_string_map_terminal (lg : lifted_grammar T) (w : List T) :
 
 /-- If `lift_string f u` is all terminals, then `u` was already all terminals.
     Applies to any `lift_string` (or `List.map` of a `lift_symbol`). -/
-lemma lift_string_terminal_inv {N₀ N : Type} (f : N₀ → N)
+public lemma lift_string_terminal_inv {N₀ N : Type} (f : N₀ → N)
     (u : List (symbol T N₀)) (ts : List T)
     (h : lift_string f u = List.map symbol.terminal ts) :
     u = List.map symbol.terminal ts := by
@@ -305,61 +334,67 @@ macro "five_steps" : tactic =>
 variable {g₁ g₂ : CF_grammar T}
 
 /-- similar to `lift_symbol (Option.some ∘ sum.inl)` -/
-def sTN_of_sTN₁ : (symbol T g₁.nt) → (symbol T (Option (g₁.nt ⊕ g₂.nt)))
+@[expose]
+public def sTN_of_sTN₁ : (symbol T g₁.nt) → (symbol T (Option (g₁.nt ⊕ g₂.nt)))
 | (symbol.terminal st) => (symbol.terminal st)
 | (symbol.nonterminal snt) => (symbol.nonterminal (some (Sum.inl snt)))
 
 /-- similar to `lift_symbol (Option.some ∘ sum.inr)` -/
-def sTN_of_sTN₂ : (symbol T g₂.nt) → (symbol T (Option (g₁.nt ⊕ g₂.nt)))
+@[expose]
+public def sTN_of_sTN₂ : (symbol T g₂.nt) → (symbol T (Option (g₁.nt ⊕ g₂.nt)))
 | (symbol.terminal st) => (symbol.terminal st)
 | (symbol.nonterminal snt) => (symbol.nonterminal (some (Sum.inr snt)))
 
 /-- similar to `lift_string (Option.some ∘ sum.inl)` -/
-def lsTN_of_lsTN₁ : List (symbol T g₁.nt) → List (symbol T (Option (g₁.nt ⊕ g₂.nt))) :=
+@[expose]
+public def lsTN_of_lsTN₁ : List (symbol T g₁.nt) → List (symbol T (Option (g₁.nt ⊕ g₂.nt))) :=
 List.map sTN_of_sTN₁
 
 /-- similar to `lift_string (Option.some ∘ sum.inr)` -/
-def lsTN_of_lsTN₂ : List (symbol T g₂.nt) → List (symbol T (Option (g₁.nt ⊕ g₂.nt))) :=
+@[expose]
+public def lsTN_of_lsTN₂ : List (symbol T g₂.nt) → List (symbol T (Option (g₁.nt ⊕ g₂.nt))) :=
 List.map sTN_of_sTN₂
 
 /-- similar to `lift_rule (Option.some ∘ sum.inl)` -/
-def rule_of_rule₁ (r : g₁.nt × (List (symbol T g₁.nt))) :
+@[expose]
+public def rule_of_rule₁ (r : g₁.nt × (List (symbol T g₁.nt))) :
   ((Option (g₁.nt ⊕ g₂.nt)) × (List (symbol T (Option (g₁.nt ⊕ g₂.nt))))) :=
 (some (Sum.inl (Prod.fst r)), lsTN_of_lsTN₁ (Prod.snd r))
 
 /-- similar to `lift_rule (Option.some ∘ sum.inr)` -/
-def rule_of_rule₂ (r : g₂.nt × (List (symbol T g₂.nt))) :
+@[expose]
+public def rule_of_rule₂ (r : g₂.nt × (List (symbol T g₂.nt))) :
   ((Option (g₁.nt ⊕ g₂.nt)) × (List (symbol T (Option (g₁.nt ⊕ g₂.nt))))) :=
 (some (Sum.inr (Prod.fst r)), lsTN_of_lsTN₂ (Prod.snd r))
 
 /-- `lsTN_of_lsTN₁` agrees with `lift_string (some ∘ Sum.inl)` pointwise. -/
-lemma lsTN_of_lsTN₁_eq_lift_string (u : List (symbol T g₁.nt)) :
+public lemma lsTN_of_lsTN₁_eq_lift_string (u : List (symbol T g₁.nt)) :
     lsTN_of_lsTN₁ (g₂ := g₂) u = lift_string (some ∘ Sum.inl) u := by
   simp only [lsTN_of_lsTN₁, lift_string]
   congr 1; ext x; cases x <;> rfl
 
 /-- `lsTN_of_lsTN₂` agrees with `lift_string (some ∘ Sum.inr)` pointwise. -/
-lemma lsTN_of_lsTN₂_eq_lift_string (u : List (symbol T g₂.nt)) :
+public lemma lsTN_of_lsTN₂_eq_lift_string (u : List (symbol T g₂.nt)) :
     lsTN_of_lsTN₂ (g₁ := g₁) u = lift_string (some ∘ Sum.inr) u := by
   simp only [lsTN_of_lsTN₂, lift_string]
   congr 1; ext x; cases x <;> rfl
 
 /-- If `lsTN_of_lsTN₁ u = List.map symbol.terminal ts`, then `u` was all terminals. -/
-lemma lsTN_of_lsTN₁_terminal_inv (u : List (symbol T g₁.nt)) (ts : List T)
+public lemma lsTN_of_lsTN₁_terminal_inv (u : List (symbol T g₁.nt)) (ts : List T)
     (h : lsTN_of_lsTN₁ (g₂ := g₂) u = List.map symbol.terminal ts) :
     u = List.map symbol.terminal ts := by
   rw [lsTN_of_lsTN₁_eq_lift_string] at h
   exact lift_string_terminal_inv _ u ts h
 
 /-- If `lsTN_of_lsTN₂ v = List.map symbol.terminal ts`, then `v` was all terminals. -/
-lemma lsTN_of_lsTN₂_terminal_inv (v : List (symbol T g₂.nt)) (ts : List T)
+public lemma lsTN_of_lsTN₂_terminal_inv (v : List (symbol T g₂.nt)) (ts : List T)
     (h : lsTN_of_lsTN₂ (g₁ := g₁) v = List.map symbol.terminal ts) :
     v = List.map symbol.terminal ts := by
   rw [lsTN_of_lsTN₂_eq_lift_string] at h
   exact lift_string_terminal_inv _ v ts h
 
 /-- `lsTN_of_lsTN₁` preserves terminal-only lists. -/
-lemma lsTN_of_lsTN₁_map_terminal (w : List T) :
+public lemma lsTN_of_lsTN₁_map_terminal (w : List T) :
     @lsTN_of_lsTN₁ T g₁ g₂ (List.map symbol.terminal w) =
       List.map symbol.terminal w := by
   induction w with

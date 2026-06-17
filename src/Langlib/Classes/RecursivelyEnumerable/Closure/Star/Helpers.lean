@@ -1,39 +1,83 @@
-import Mathlib
+module
+
+public import Langlib.Grammars.Unrestricted.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
-import Langlib.Classes.RecursivelyEnumerable.Definition
-import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
 import Langlib.Utilities.ListUtils
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
+
+
 
 /-! # Helper lemmas for RE closure under Kleene star -/
 
 variable {T : Type}
 
+namespace StarHelpers
+
 section star_helpers
 
-private abbrev nn (N : Type) : Type := N ⊕ Fin 3
-private abbrev ns (T N : Type) : Type := symbol T (nn N)
+@[expose]
+public abbrev nn (N : Type) : Type := N ⊕ Fin 3
+@[expose]
+public abbrev ns (T N : Type) : Type := symbol T (nn N)
 
-private def Z {N : Type} : ns T N := symbol.nonterminal (Sum.inr 0)
-private def H {N : Type} : ns T N := symbol.nonterminal (Sum.inr 1)
-private def R {N : Type} : ns T N := symbol.nonterminal (Sum.inr 2)
+@[expose]
+public def Z {N : Type} : ns T N := symbol.nonterminal (Sum.inr 0)
+@[expose]
+public def H {N : Type} : ns T N := symbol.nonterminal (Sum.inr 1)
+@[expose]
+public def R {N : Type} : ns T N := symbol.nonterminal (Sum.inr 2)
 
-private def wrap_sym {N : Type} : symbol T N → ns T N
+@[expose]
+public def wrap_sym {N : Type} : symbol T N → ns T N
   | symbol.terminal t    => symbol.terminal t
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)
 
-private lemma wrap_sym_injective {N : Type} : Function.Injective (@wrap_sym T N) := by
+public lemma wrap_sym_injective {N : Type} : Function.Injective (@wrap_sym T N) := by
   intro a b h; cases a <;> cases b <;> simp [wrap_sym] at h <;> exact congrArg _ h
 
 /-- `symbol.nonterminal (Sum.inr i)` does not appear in `List.map wrap_sym l`. -/
-lemma inr_not_in_map_wrap {N : Type} {l : List (symbol T N)} {i : Fin 3} :
+public lemma inr_not_in_map_wrap {N : Type} {l : List (symbol T N)} {i : Fin 3} :
     symbol.nonterminal (Sum.inr i) ∉ List.map (@wrap_sym T N) l := by
   intro h; rw [List.mem_map] at h
   rcases h with ⟨a, _, ha⟩
   cases a <;> simp [wrap_sym] at ha
 
 /-- No `Sum.inr i` nonterminal (other than H) appears in the flattened block structure. -/
-lemma inr_not_in_blocks {N : Type} {x : List (List (symbol T N))} {i : Fin 3}
+public lemma inr_not_in_blocks {N : Type} {x : List (List (symbol T N))} {i : Fin 3}
     (hi : symbol.nonterminal (Sum.inr i) ≠ @H T N) :
     symbol.nonterminal (Sum.inr i) ∉
       (List.map (· ++ [H]) (List.map (List.map (@wrap_sym T N)) x)).flatten := by
@@ -50,18 +94,18 @@ lemma inr_not_in_blocks {N : Type} {x : List (List (symbol T N))} {i : Fin 3}
   · rw [List.mem_singleton] at h_in_H
     exact hi h_in_H
 
-lemma Z_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
+public lemma Z_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
     @Z T N ∉ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten :=
-  inr_not_in_blocks (by simp [Z, H])
+  inr_not_in_blocks (by simp [H])
 
-lemma R_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
+public lemma R_not_in_blocks {N : Type} {x : List (List (symbol T N))} :
     @R T N ∉ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten :=
-  inr_not_in_blocks (by simp [R, H])
+  inr_not_in_blocks (by simp [H])
 
 /-
 H does not appear in the input pattern of a wrapped rule.
 -/
-lemma H_not_in_wrapped_input {N : Type} {r₀ : grule T N} :
+public lemma H_not_in_wrapped_input {N : Type} {r₀ : grule T N} :
     @H T N ∉ List.map wrap_sym r₀.input_L ++
       [symbol.nonterminal (Sum.inl r₀.input_N)] ++
       List.map wrap_sym r₀.input_R := by
@@ -73,7 +117,7 @@ lemma H_not_in_wrapped_input {N : Type} {r₀ : grule T N} :
 Key decomposition: if a wrapped rule pattern matches in the flattened block structure,
     then the match occurs entirely within one block.
 -/
-lemma match_in_block {N : Type} {r₀ : grule T N}
+public lemma match_in_block {N : Type} {r₀ : grule T N}
     {x : List (List (symbol T N))} {u v : List (ns T N)} (xne : x ≠ [])
     (hyp : (List.map (· ++ [@H T N]) (List.map (List.map wrap_sym) x)).flatten =
       u ++ List.map wrap_sym r₀.input_L ++
@@ -91,9 +135,9 @@ lemma match_in_block {N : Type} {r₀ : grule T N}
   -- Apply the split_at_separator lemma with the separator being H and the middle part being the rule pattern.
   have h_split : ∃ u' : List (ns T N), List.map wrap_sym x₁ = u ++ (List.map wrap_sym r₀.input_L ++ symbol.nonterminal (Sum.inl r₀.input_N) :: (List.map wrap_sym r₀.input_R ++ u')) ∨ ∃ v' : List (ns T N), u = List.map wrap_sym x₁ ++ H :: v' ∧ (List.map ((fun x => x ++ [H]) ∘ List.map wrap_sym) x).flatten = v' ++ (List.map wrap_sym r₀.input_L ++ symbol.nonterminal (Sum.inl r₀.input_N) :: (List.map wrap_sym r₀.input_R ++ v)) := by
     have h_split : ∀ {a b u mid v : List (ns T N)} {sep : ns T N}, sep ∉ mid → a ++ [sep] ++ b = u ++ mid ++ v → (∃ u' : List (ns T N), a = u ++ mid ++ u' ∧ v = u' ++ [sep] ++ b) ∨ (∃ v' : List (ns T N), u = a ++ [sep] ++ v' ∧ b = v' ++ mid ++ v) := by
-      exact?
+      exact fun {a b u mid v} {sep} a_1 a_2 => split_at_separator a_1 a_2
     generalize_proofs at *; (
-    specialize @h_split ( List.map wrap_sym x₁ ) ( List.map ( ( fun x => x ++ [ H ] ) ∘ List.map wrap_sym ) x |> List.flatten ) u ( List.map wrap_sym r₀.input_L ++ symbol.nonterminal ( Sum.inl r₀.input_N ) :: List.map wrap_sym r₀.input_R ) v H ; simp_all +decide [ List.map_append, List.map_map ] ;
+    specialize @h_split ( List.map wrap_sym x₁ ) ( List.map ( ( fun x => x ++ [ H ] ) ∘ List.map wrap_sym ) x |> List.flatten ) u ( List.map wrap_sym r₀.input_L ++ symbol.nonterminal ( Sum.inl r₀.input_N ) :: List.map wrap_sym r₀.input_R ) v H ; simp_all +decide [  ] ;
     contrapose! h_split; simp_all +decide [ wrap_sym ] ;
     refine' ⟨ _, _, _, _ ⟩;
     · intro x hx; cases x <;> simp +decide [ H ] ;
@@ -110,21 +154,21 @@ lemma match_in_block {N : Type} {r₀ : grule T N}
       grind +qlia
     obtain ⟨v₁, hv₁⟩ : ∃ v₁ : List (symbol T N), u' = List.map wrap_sym v₁ := by
       have h_inj : ∀ {l : List (ns T N)}, (∀ s ∈ l, ∃ s' : symbol T N, wrap_sym s' = s) → ∃ l' : List (symbol T N), l = List.map wrap_sym l' := by
-        intros l hl; induction' l with s l ih <;> simp_all +decide [ List.map ] ;
+        intros l hl; induction' l with s l ih <;> simp_all +decide [  ] ;
         rcases hl.1 with ⟨ s', rfl ⟩ ; rcases ih with ⟨ l', rfl ⟩ ; exact ⟨ s' :: l', by simp +decide ⟩ ;
       apply h_inj;
       intro s hs; replace hu' := congr_arg ( fun l => s ∈ l ) hu'; simp_all +decide [ List.mem_append, List.mem_map ] ;
       exact hu'.imp fun x hx => hx.2;
-    use [], x, u₁, v₁; simp_all +decide [ List.map_append, List.flatten ] ;
+    use [], x, u₁, v₁; simp_all +decide [  ] ;
     exact List.map_injective_iff.mpr ( wrap_sym_injective ) <| by simpa using hu';
-  · by_cases hx : x = [] <;> simp_all +decide [ List.flatten ];
+  · by_cases hx : x = [] <;> simp_all +decide [  ];
     grind
 
 /-
 After applying a wrapped rule within a block, the result has the same block structure
     with the affected block updated.
 -/
-lemma update_block_in_flatten {N : Type}
+public lemma update_block_in_flatten {N : Type}
     {x₁ : List (List (symbol T N))} {x₂ : List (List (symbol T N))}
     {u₁ v₁ : List (symbol T N)}
     {r₀ : grule T N} :
@@ -139,7 +183,7 @@ lemma update_block_in_flatten {N : Type}
 /-
 Validity is preserved when updating a block.
 -/
-lemma valid_update_block
+public lemma valid_update_block
     {g : grammar T}
     {x₁ : List (List (symbol T g.nt))} {x₂ : List (List (symbol T g.nt))}
     {u₁ v₁ : List (symbol T g.nt)}
@@ -161,9 +205,11 @@ lemma valid_update_block
 /-
 R only appears at position 0 in [R, H] ++ blocks.
 -/
-lemma R_only_at_head {N : Type} {x : List (List (symbol T N))} :
+public lemma R_only_at_head {N : Type} {x : List (List (symbol T N))} :
     @R T N ∉ (@H T N :: (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten) := by
   simp [R, H];
   unfold wrap_sym; aesop;
 
 end star_helpers
+
+end StarHelpers

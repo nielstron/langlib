@@ -1,7 +1,49 @@
+module
+
+public import Langlib.Utilities.LanguageOperations
+public import Langlib.Classes.ContextFree.Definition
+public import Langlib.Automata.Pushdown.Definition
+public import Mathlib.Computability.ContextFreeGrammar
+public import Mathlib.Order.BourbakiWitt
 import Langlib.Automata.Pushdown.Equivalence.ContextFree
-import Langlib.Utilities.LanguageOperations
-import Mathlib
-import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.MathlibCFG
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Context-Free Closure Under Prefix
 
@@ -47,7 +89,7 @@ in `n` steps, then there is an intermediate configuration `⟨q', [], γ⟩`
 such that `M` reaches it from `⟨q, w, α⟩` and then reaches `⟨p, [], δ⟩`
 from `⟨q', v, γ⟩`.
 -/
-theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : List S}
+public theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : List S}
     (h : M.ReachesIn n ⟨q, w ++ v, α⟩ ⟨p, [], δ⟩) :
     ∃ q' : Q, ∃ γ : List S, ∃ n₁ n₂ : ℕ,
       M.ReachesIn n₁ ⟨q, w, α⟩ ⟨q', [], γ⟩ ∧
@@ -61,7 +103,7 @@ theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : Li
         have := h;
         convert this using 1;
         rw [reachesIn_iff_split_first];
-      rcases w with ( _ | ⟨ a, w ⟩ ) <;> rcases α with ( _ | ⟨ Z, α ⟩ ) <;> simp_all +decide [ PDA.step ];
+      rcases w with ( _ | ⟨ a, w ⟩ ) <;> rcases α with ( _ | ⟨ Z, α ⟩ ) <;> simp_all +decide [  ];
       · rcases hc with ⟨ hc₁, hc₂ ⟩;
         obtain ⟨ q', α, hq', rfl ⟩ := hc₁;
         rename_i r₂ hr₁ hr₂;
@@ -71,7 +113,7 @@ theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : Li
           have := hc.1;
           rw [reachesIn_one] at this;
           unfold step at this; aesop;
-        · by_cases hw : w = [] <;> simp_all +decide [ PDA.ReachesIn ];
+        · by_cases hw : w = [] <;> simp_all +decide [  ];
           · use q₁, β ++ α;
             exact ⟨ ⟨ 1, by
               constructor;
@@ -84,7 +126,7 @@ theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : Li
             exact PDA.reachesIn_of_one_n ( by exact PDA.reachesIn_one.mpr <| by exact Set.mem_union_left _ <| Set.mem_setOf.mpr ⟨ q₁, β, hβ, rfl ⟩ ) hx;
         · contrapose! ih;
           use q₁, p, a :: w, v, β ++ α, δ;
-          simp_all +decide [ List.append_assoc ];
+          simp_all +decide [  ];
           intro q' γ x hx y hy; exact ih q' γ ( x + 1 ) ( by
             apply PDA.reachesIn_of_one_n;
             convert PDA.reachesIn_one.mpr _;
@@ -93,7 +135,7 @@ theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α δ : Li
             · exact hx ) y hy;
 
 /-- **Input splitting** (`Reaches` version). -/
-theorem input_splitting {q p : Q} {w v : List T} {α δ : List S}
+public theorem input_splitting {q p : Q} {w v : List T} {α δ : List S}
     (h : M.Reaches ⟨q, w ++ v, α⟩ ⟨p, [], δ⟩) :
     ∃ q' : Q, ∃ γ : List S,
       M.Reaches ⟨q, w, α⟩ ⟨q', [], γ⟩ ∧ M.Reaches ⟨q', v, γ⟩ ⟨p, [], δ⟩ := by
@@ -115,7 +157,8 @@ variable {Q S : Type} [Fintype Q] [Fintype S]
 /-- The **prefix PDA**.
 States are `Q ⊕ Q` where `Sum.inl q` is *normal mode* and `Sum.inr q`
 is *verification mode*. -/
-noncomputable def prefixPDA (M : PDA Q T S) : PDA (Q ⊕ Q) T S where
+@[expose]
+public noncomputable def prefixPDA (M : PDA Q T S) : PDA (Q ⊕ Q) T S where
   initial_state := Sum.inl M.initial_state
   start_symbol  := M.start_symbol
   final_states  := ∅
@@ -176,7 +219,7 @@ private theorem inl_reaches_of_M_reaches (c₁ c₂ : M.conf) (h : M.Reaches c�
       ⟨Sum.inl c₂.state, c₂.input, c₂.stack⟩ := by
   induction h <;> simp_all +decide [ Reaches ];
   · rfl;
-  · exact Relation.ReflTransGen.tail ‹_› ( by exact? )
+  · exact Relation.ReflTransGen.tail ‹_› ( by (expose_names; exact inl_step_of_M_step b c h_1) )
 
 /-
 Switching from normal mode to verification mode (ε-step, stack unchanged).
@@ -186,7 +229,7 @@ private theorem switch_step {q : Q} {w : List T} {Z : S} {β : List S} :
   cases' w with a w' <;> simp +decide [ *, Reaches₁ ];
   · simp +decide [ step ];
     unfold prefixPDA; aesop;
-  · simp +decide [ step, M.finite', M.finite ];
+  · simp +decide [ step ];
     unfold prefixPDA; aesop;
 
 /-
@@ -218,7 +261,7 @@ private theorem verify_reaches_of_M_reaches
 **Forward direction**: every prefix of a word in `M.acceptsByEmptyStack`
 is accepted by the prefix PDA.
 -/
-theorem prefixPDA_supset (M : PDA Q T S) :
+public theorem prefixPDA_supset (M : PDA Q T S) :
     Language.prefixLang M.acceptsByEmptyStack ≤ (prefixPDA M).acceptsByEmptyStack := by
   intro w hw
   obtain ⟨v, hv⟩ := hw;
@@ -236,7 +279,7 @@ theorem prefixPDA_supset (M : PDA Q T S) :
       apply switch_step;
     -- By verify_reaches_of_M_reaches, we have that (prefixPDA M).Reaches ⟨Sum.inr q', [], Z :: β⟩ ⟨Sum.inr q, [], []⟩.
     have h_verify : (prefixPDA M).Reaches ⟨Sum.inr q', [], Z :: β⟩ ⟨Sum.inr q, [], []⟩ := by
-      exact?;
+      exact verify_reaches_of_M_reaches hγ;
     use Sum.inr q;
     exact h_inl.trans ( Relation.ReflTransGen.single h_switch ) |> Relation.ReflTransGen.trans <| h_verify
 
@@ -291,18 +334,18 @@ private theorem inr_input_invariant {n : ℕ} {q : Q} {w : List T}
   · obtain ⟨c', hc₁, hc₂⟩ : ∃ c', ReachesIn n ⟨Sum.inr q, w, γ⟩ c' ∧ ReachesIn 1 c' c := by
       obtain ⟨c', hc'⟩ : ∃ c' : (prefixPDA M).conf, ReachesIn n ⟨Sum.inr q, w, γ⟩ c' ∧ ReachesIn 1 c' c := by
         have := h
-        exact?;
+        exact reachesIn_iff_split_last.mpr h;
       use c';
     obtain ⟨q', hq'⟩ : ∃ q' : Q, c'.state = Sum.inr q' := by
       have h_last_step : ∀ {c : (prefixPDA M).conf}, (prefixPDA M).Reaches ⟨Sum.inr q, w, γ⟩ c → ∃ q' : Q, c.state = Sum.inr q' := by
         intro c hc; induction' hc with c₁ c₂ hc₁ hc₂ ih; aesop;
         obtain ⟨ q', hq' ⟩ := ih; rcases c₁ with ⟨ s₁, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ s₂, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ] ;
         cases γ₁ <;> simp_all +decide [ step ];
-        cases w₁ <;> simp_all +decide [ Reaches₁ ];
+        cases w₁ <;> simp_all +decide [  ];
         · unfold prefixPDA at hc₂; aesop;
         · unfold prefixPDA at hc₂; aesop;
       apply h_last_step;
-      exact?;
+      exact reaches_of_reachesIn hc₁;
     obtain ⟨c'', hc₃, hc₄⟩ : ∃ c'', ReachesIn 1 ⟨Sum.inr q', w, c'.stack⟩ c'' ∧ c'' = c := by
       have h_eq : c'.input = w := by
         exact ih hc₁;
@@ -327,7 +370,7 @@ private theorem inl_step_cases {c : (prefixPDA M).conf}
   cases w <;> cases α <;> simp_all +decide [ Reaches₁ ];
   · unfold step at h; aesop;
   · unfold step at h;
-    unfold prefixPDA at h; simp_all +decide [ Set.mem_union, Set.mem_setOf_eq ] ;
+    unfold prefixPDA at h; simp_all +decide [ Set.mem_setOf_eq ] ;
     unfold step; aesop;
   · unfold step at h; aesop;
   · cases h <;> simp_all +decide [ step ];
@@ -376,8 +419,8 @@ private theorem M_reaches_of_verify_reachesIn {n : ℕ}
     induction' n with n ih generalizing q p γ;
     · cases h ; aesop;
     · obtain ⟨c, hc⟩ : ∃ c : (prefixPDA M).conf, (prefixPDA M).ReachesIn 1 ⟨Sum.inr q, [], γ⟩ c ∧ (prefixPDA M).ReachesIn n c ⟨Sum.inr p, [], []⟩ := by
-        exact?;
-      rcases γ with ( _ | ⟨ Z, β ⟩ ) <;> simp_all +decide [ ReachesIn ];
+        exact reachesIn_iff_split_first.mpr h;
+      rcases γ with ( _ | ⟨ Z, β ⟩ ) <;> simp_all +decide [  ];
       · rcases hc with ⟨ ⟨ c, hc₁, hc₂ ⟩, hc₃ ⟩;
         rename_i r₂ hr₂ hr₃;
         rcases hr₂ with ⟨ ⟩;
@@ -390,12 +433,12 @@ private theorem M_reaches_of_verify_reachesIn {n : ℕ}
         cases' hc₂ with hc₂ hc₂;
         · use v₁;
           have h_eps_step : M.Reaches₁ ⟨q, v₁, Z :: β⟩ ⟨q₁, v₁, δ ++ β⟩ := by
-            exact?;
+            exact M_eps_step hc₂;
           exact Relation.ReflTransGen.head h_eps_step hv₁;
         · obtain ⟨ a, ha ⟩ := hc₂;
           use a :: v₁;
           have h_step : M.Reaches₁ ⟨q, a :: v₁, Z :: β⟩ ⟨q₁, v₁, δ ++ β⟩ := by
-            exact?;
+            exact M_read_step ha;
           exact Relation.ReflTransGen.head h_step hv₁;
   exact h_contra <| h_ind n q p γ h
 
@@ -425,12 +468,12 @@ private theorem inl_computation_to_M {n : ℕ} {q : Q} {w : List T} {α : List S
   induction' n with n ih generalizing q w α s;
   · cases h ; aesop;
   · obtain ⟨c, hc⟩ : ∃ c : (prefixPDA M).conf, ReachesIn 1 ⟨Sum.inl q, w, α⟩ c ∧ ReachesIn n c ⟨s, [], []⟩ := by
-      exact?;
+      exact reachesIn_iff_split_first.mpr h;
     rcases hc with ⟨hc₁, hc₂⟩
     obtain ⟨q', w', α', hc₃⟩ : ∃ q' : Q, ∃ w' : List T, ∃ α' : List S, c = ⟨Sum.inl q', w', α'⟩ ∧ M.Reaches₁ ⟨q, w, α⟩ ⟨q', w', α'⟩ ∨ c = ⟨Sum.inr q, w, α⟩ := by
       obtain ⟨q', w', α', hc₃⟩ : ∃ q' : Q, ∃ w' : List T, ∃ α' : List S, c = ⟨Sum.inl q', w', α'⟩ ∧ M.Reaches₁ ⟨q, w, α⟩ ⟨q', w', α'⟩ ∨ c = ⟨Sum.inr q, w, α⟩ := by
         have := inl_step_cases (by
-        exact? : (prefixPDA M).Reaches₁ ⟨Sum.inl q, w, α⟩ c)
+        exact reaches₁_iff_reachesIn_one.mpr hc₁ : (prefixPDA M).Reaches₁ ⟨Sum.inl q, w, α⟩ c)
         rcases this with ( ⟨ q', w', α', rfl, h ⟩ | rfl ) <;> [ exact ⟨ q', w', α', Or.inl ⟨ rfl, h ⟩ ⟩ ; exact ⟨ q, w, α, Or.inr rfl ⟩ ]
       generalize_proofs at *;
       use q', w', α';
@@ -443,7 +486,7 @@ private theorem inl_computation_to_M {n : ℕ} {q : Q} {w : List T} {α : List S
       exact ⟨ v, q'', h_lift.trans hv ⟩;
     · have hw : w = [] := by
         have hw : ∀ {n : ℕ} {q : Q} {w : List T} {γ : List S} {c : (prefixPDA M).conf}, (prefixPDA M).ReachesIn n ⟨Sum.inr q, w, γ⟩ c → c.input = w := by
-          exact?
+          exact fun {n} {q} {w} {γ} {c} a => inr_input_invariant a
         generalize_proofs at *; (
         specialize @hw n q w α ⟨ s, [], [] ⟩ ; aesop;)
       have hs : ∃ p : Q, s = Sum.inr p := by
@@ -466,12 +509,12 @@ private theorem inl_computation_to_M {n : ℕ} {q : Q} {w : List T} {α : List S
 **Backward direction**: every word accepted by the prefix PDA is a prefix
 of some word in `M.acceptsByEmptyStack`.
 -/
-theorem prefixPDA_subset (M : PDA Q T S) :
+public theorem prefixPDA_subset (M : PDA Q T S) :
     (prefixPDA M).acceptsByEmptyStack ≤ Language.prefixLang M.acceptsByEmptyStack := by
   intro w hw
   obtain ⟨s, hs⟩ := hw
   obtain ⟨n, hn⟩ : ∃ n, (prefixPDA M).ReachesIn n ⟨Sum.inl M.initial_state, w, [M.start_symbol]⟩ ⟨s, [], []⟩ := by
-    exact?
+    exact reaches_iff_reachesIn.mp hs
   obtain ⟨v, q', hv⟩ := inl_computation_to_M hn;
   exact ⟨ v, by tauto ⟩
 
@@ -484,7 +527,7 @@ end PrefixClosure
 -- ══════════════════════════════════════════════════════════════════
 
 /-- PDA-recognisable languages are closed under prefix. -/
-theorem is_PDA_prefixLang {L : Language T} (h : is_PDA L) :
+public theorem is_PDA_prefixLang {L : Language T} (h : is_PDA L) :
     is_PDA (Language.prefixLang L) := by
   obtain ⟨Q, S, _, _, M, rfl⟩ := h
   exact ⟨Q ⊕ Q, S, inferInstance, inferInstance, PrefixClosure.prefixPDA M,
@@ -492,7 +535,7 @@ theorem is_PDA_prefixLang {L : Language T} (h : is_PDA L) :
 
 /-- Context-free languages are closed under the prefix operation
 (proved via the PDA equivalence with the "all states accept" construction). -/
-theorem Language.IsContextFree.prefixLang {L : Language T}
+public theorem Language.IsContextFree.prefixLang {L : Language T}
     (h : L.IsContextFree) :
     (Language.prefixLang L).IsContextFree := by
   rw [← is_PDA_iff_isContextFree] at h ⊢
@@ -500,7 +543,7 @@ theorem Language.IsContextFree.prefixLang {L : Language T}
 
 /-- Context-free languages are closed under the prefix operation
 (project-level `is_CF` formulation). -/
-theorem is_CF_prefixLang {L : Language T} (h : is_CF L) :
+public theorem is_CF_prefixLang {L : Language T} (h : is_CF L) :
     is_CF (Language.prefixLang L) := by
   rw [is_CF_iff_isContextFree] at h ⊢
   exact h.prefixLang

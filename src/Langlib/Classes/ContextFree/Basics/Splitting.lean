@@ -1,4 +1,11 @@
+module
+
+public import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.Toolbox
+@[expose]
+public section
+
+
 
 
 /-! # Context-Free Splitting Lemmas
@@ -17,7 +24,7 @@ variable {T : Type}
 
 /-- If a list x is derived from a head symbol s followed by tail symbols ss,
     then x can be split into u (derived from s) and v (derived from ss). -/
-lemma head_tail_split {g : CF_grammar T}
+public lemma head_tail_split {g : CF_grammar T}
     (x : List (symbol T g.nt))
     (s : symbol T g.nt)
     (ss : List (symbol T g.nt))
@@ -149,7 +156,7 @@ for a similar pattern with two symbols.
 
 /-- Corollary: derivation from two symbols can be split.
     This is a direct application of the more general `head_tail_split` lemma. -/
-lemma concatenation_can_be_split {g: CF_grammar T} (x : List (symbol T g.nt)) (s: symbol T g.nt) (t: symbol T g.nt) (hyp: CF_derives g [s, t] x):
+public lemma concatenation_can_be_split {g: CF_grammar T} (x : List (symbol T g.nt)) (s: symbol T g.nt) (t: symbol T g.nt) (hyp: CF_derives g [s, t] x):
         ∃ u : List (symbol T g.nt), ∃ v : List (symbol T g.nt),
           CF_derives g [s] u ∧
             CF_derives g [t] v

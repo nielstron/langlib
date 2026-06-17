@@ -1,4 +1,10 @@
-import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
+module
+
+public import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
+@[expose]
+public section
+
+
 
 /-! # CNF Bridge Lemmas
 
@@ -13,7 +19,7 @@ This file adds small bridge lemmas connecting the project's Chomsky-normal-form 
 universe uT uN
 variable {T : Type uT}
 
-lemma ChomskyNormalFormRule.Rewrites.word {N : Type uN} {r : ChomskyNormalFormRule T N}
+public lemma ChomskyNormalFormRule.Rewrites.word {N : Type uN} {r : ChomskyNormalFormRule T N}
     {u : List T} {v : List (Symbol T N)}
     (hruv : r.Rewrites (u.map Symbol.terminal) v) :
     False := by
@@ -23,7 +29,7 @@ lemma ChomskyNormalFormRule.Rewrites.word {N : Type uN} {r : ChomskyNormalFormRu
     cases hruv with
     | cons _ _ hru => exact ih hru
 
-lemma ChomskyNormalFormGrammar.Produces.input_output
+public lemma ChomskyNormalFormGrammar.Produces.input_output
     {g : ChomskyNormalFormGrammar.{uN} T} {r : ChomskyNormalFormRule T g.NT}
     (hrg : r ∈ g.rules) :
     g.Produces [.nonterminal r.input] r.output :=

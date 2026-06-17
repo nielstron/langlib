@@ -1,15 +1,53 @@
-import Langlib.Classes.ContextFree.Basics.Lifting
+module
+
+public import Langlib.Classes.ContextFree.Basics.Lifting
+public import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Basics.Splitting
-import Langlib.Utilities.WrittenByOthers.TrimAssoc
-import Langlib.Utilities.ListUtils
-import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Langlib.Utilities.ListUtils
 import Langlib.Utilities.Tactics
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 
 /-! # Context-Free Concatenation Bonus Construction
 
-This file records the older direct grammar construction for context-free closure under
+This file records a direct grammar construction for context-free closure under
 concatenation.
 
 ## Main declarations
@@ -19,7 +57,7 @@ concatenation.
 
 variable {T : Type}
 
-private def combined_grammar (gₗ gᵣ : CF_grammar T) : CF_grammar T :=
+def combined_grammar (gₗ gᵣ : CF_grammar T) : CF_grammar T :=
 CF_grammar.mk
   (Option (gₗ.nt ⊕ gᵣ.nt))
   none
@@ -258,9 +296,7 @@ by
             (List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u ++
               lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) v) =
             List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u := by
-        simp [List.take_left
-            (l₁ := List.map (sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) u)
-            (l₂ := lsTN_of_lsTN₂ (g₁ := g₁) (g₂ := g₂) v)]
+        simp
       rw [List.length_map] at takenl
       exact takenl.symm
     have nth_equ := congr_fun (congr_arg List.nth ass) n
@@ -316,7 +352,7 @@ by
           have : symbol.nonterminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt))
               (some (Sum.inl (β := g₂.nt) a)) =
               symbol.terminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt)) (w.nthLe n n_lt_wl') := by
-            simpa [sTN_of_sTN₁, h_u, h_u_eq, h_w_eq] using nth_equ
+            simp [sTN_of_sTN₁, h_u, h_w_eq] at nth_equ
           cases this
     have nth_eq : u.nth n = (List.map (@symbol.terminal T g₁.nt) w).nth n := by
       calc
@@ -446,7 +482,7 @@ by
           calc
             v.nth n = some (v.nthLe n h) := List.nthLe_nth (h := h)
             _ = some (symbol.terminal (w.nthLe (u.length + n) hunltw)) := by
-              simpa [sTN_of_sTN₂, h_v, ha] using nth_equ_simplified''
+              simp [h_v, ha]
             _ = (List.drop u.length (List.map (@symbol.terminal T g₂.nt) w)).nth n := by
               rw [List.nth_drop]
               simp [nth_map_eq]
@@ -462,7 +498,7 @@ by
         have : symbol.nonterminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt))
             (some (Sum.inr (α := g₁.nt) a)) =
             symbol.terminal (T := T) (N := Option (g₁.nt ⊕ g₂.nt)) (w.nthLe (u.length + n) hunltw) := by
-          simpa [sTN_of_sTN₂, h_v] using nth_equ_simplified''
+          simp [sTN_of_sTN₂, h_v] at nth_equ_simplified''
         cases this
   ·
     have h' : v.length ≤ n := by

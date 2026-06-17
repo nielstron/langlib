@@ -1,9 +1,43 @@
-import Mathlib
-import Langlib.Grammars.Indexed.Definition
-import Langlib.Grammars.ContextFree.Definition
+module
+
+public import Langlib.Classes.Indexed.Definition
+public import Langlib.Classes.ContextFree.Definition
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
-import Langlib.Classes.Indexed.Definition
-import Langlib.Classes.ContextFree.Definition
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Indexed Language Inclusions
 
@@ -24,7 +58,8 @@ open List
 variable {T : Type}
 
 /-- Convert a context-free grammar to an indexed grammar (with no flags). -/
-def indexed_of_cfg (g : CF_grammar T) : IndexedGrammar T where
+@[expose]
+public def indexed_of_cfg (g : CF_grammar T) : IndexedGrammar T where
   nt := g.nt
   flag := Empty
   initial := g.initial
@@ -71,7 +106,7 @@ private lemma cf_tran_to_indexed_tran (g : CF_grammar T)
       · unfold indexed_of_cfg; aesop;
       · aesop;
       · rw [ hw₂, map_append, map_append ];
-        exact congr_arg₂ _ ( congr_arg₂ _ rfl ( by exact? ) ) rfl
+        exact congr_arg₂ _ ( congr_arg₂ _ rfl ( by exact Eq.symm (expandRhs_map_eq g r.2) ) ) rfl
 
 private lemma cf_deri_to_indexed_deri (g : CF_grammar T)
     {w₁ w₂ : List (symbol T g.nt)}
@@ -102,7 +137,7 @@ One indexed step (with empty stacks) gives a CF step on decoded forms.
 private lemma indexed_tran_decode (g : CF_grammar T)
     {w₁ w₂ : List ((indexed_of_cfg g).ISym)}
     (ht : (indexed_of_cfg g).Transforms w₁ w₂)
-    (hempty : ∀ s ∈ w₁, match s with
+    (_hempty : ∀ s ∈ w₁, match s with
       | IndexedGrammar.ISym.terminal _ => True
       | IndexedGrammar.ISym.indexed _ σ => σ = []) :
     CF_transforms g (w₁.map (decode g)) (w₂.map (decode g)) := by
@@ -114,7 +149,7 @@ private lemma indexed_tran_decode (g : CF_grammar T)
       rcases σ with ⟨ ⟨ ⟩ ⟩;
       · have h_expand : (indexed_of_cfg g).expandRhs r.rhs [] = r₀.2.map (cf_to_isym g) := by
           rw [ hr₀.2 ];
-          exact?;
+          exact expandRhs_map_eq g r₀.2;
         simp_all +decide [ List.map_append ];
         exact ⟨ rfl, by rw [ show decode g ∘ cf_to_isym g = id from funext fun x => by cases x <;> rfl ] ; simp +decide ⟩;
       · cases ‹ ( indexed_of_cfg g ).flag ›
@@ -137,7 +172,7 @@ private lemma cf_to_isym_terminal_map (g : CF_grammar T) (w : List T) :
   simp [cf_to_isym, Function.comp_def]
 
 /-- The language of `indexed_of_cfg g` equals `CF_language g`. -/
-theorem indexed_of_cfg_language (g : CF_grammar T) :
+public theorem indexed_of_cfg_language (g : CF_grammar T) :
     (indexed_of_cfg g).Language = CF_language g := by
   ext w
   change (indexed_of_cfg g).Generates w ↔ CF_generates g w
@@ -148,18 +183,18 @@ theorem indexed_of_cfg_language (g : CF_grammar T) :
     rwa [decode_terminal_map] at this
   · intro h
     have hd := cf_deri_to_indexed_deri g h
-    convert hd using 1 <;> simp [cf_to_isym, List.map_map, Function.comp_def, indexed_of_cfg]
+    convert hd using 1 ; simp [cf_to_isym, List.map_map, Function.comp_def, indexed_of_cfg]
 
 
 /-- Every context-free language is an indexed language. -/
-theorem is_Indexed_of_is_CF {L : Language T} :
+public theorem is_Indexed_of_is_CF {L : Language T} :
     is_CF L → is_Indexed L := by
   intro h
   obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h
   exact ⟨indexed_of_cfg g, indexed_of_cfg_language g⟩
 
 /-- Every context-free language is an indexed language. -/
-theorem CF_subclass_Indexed :
+public theorem CF_subclass_Indexed :
     (CF : Set (Language T)) ⊆ (Indexed : Set (Language T)) := by
   intro L h
   obtain ⟨g, rfl⟩ := is_CF_implies_is_CF_via_cfg h

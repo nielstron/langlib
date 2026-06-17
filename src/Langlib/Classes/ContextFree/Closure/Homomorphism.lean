@@ -1,9 +1,44 @@
-import Mathlib
-import Langlib.Classes.ContextFree.Definition
+module
+
+public import Langlib.Classes.ContextFree.Definition
+public import Langlib.Utilities.ClosurePredicates
 import Langlib.Classes.ContextFree.Closure.Substitution
-import Langlib.Utilities.LanguageOperations
-import Langlib.Utilities.Homomorphism
-import Langlib.Utilities.ClosurePredicates
+import Langlib.Grammars.ContextFree.MathlibCFG
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Context-Free Closure Under String Homomorphism
 
@@ -18,7 +53,7 @@ and epsilon-free string homomorphism.
 
 
 /-- Singleton word languages are context-free. -/
-lemma is_CF_singleton (w : List β) : is_CF ({w} : Language β) := by
+public lemma is_CF_singleton (w : List β) : is_CF ({w} : Language β) := by
   rw [is_CF_iff_isContextFree]
   exact isContextFree_singleton w
 
@@ -30,7 +65,7 @@ the image `{h(w) | w ∈ L}` is also context-free.
 **Proof sketch:** A string homomorphism is a special case of substitution where each symbol `a`
 is replaced by the singleton language `{h(a)}`. Since every singleton language is context-free
 and CFLs are closed under substitution (`CF_of_subst_CF`), the result follows. -/
-theorem CF_closed_under_homomorphism (L : Language α) (h : α → List β)
+public theorem CF_closed_under_homomorphism (L : Language α) (h : α → List β)
     (hL : is_CF L) : is_CF (L.homomorphicImage h) := by
   exact CF_of_subst_CF L (fun a => {h a}) hL (fun a => is_CF_singleton (h a))
 

@@ -1,5 +1,9 @@
-import Mathlib
-import Langlib.Grammars.Indexed.Definition
+module
+
+public import Mathlib
+public import Langlib.Grammars.Indexed.Definition
+@[expose]
+public section
 
 /-! # ε-Free Indexed Grammars
 

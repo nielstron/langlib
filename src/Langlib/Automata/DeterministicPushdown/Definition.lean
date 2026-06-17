@@ -1,9 +1,45 @@
+module
+
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import Mathlib
-import Langlib.Automata.Pushdown.Definition
+public import Langlib.Automata.Pushdown.Definition
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Deterministic Pushdown Automata (DPDAs)
 
@@ -11,6 +47,8 @@ This file introduces deterministic pushdown automata (DPDAs).
 
 The embedding of DPDAs into nondeterministic PDAs lives in
 `Langlib.Automata.DeterministicPushdown.Inclusion.Pushdown`.
+The notion of a **total** DPDA (`DPDA.IsTotal`) lives in
+`Langlib.Automata.DeterministicPushdown.Basics.Total`.
 Complement-closure results live in
 `Langlib.Automata.DeterministicPushdown.ClosureProperties.Complement`.
 -/
@@ -30,7 +68,7 @@ Complement-closure results live in
     - Otherwise, if `M.transition q a Z = some (p, β)`, the unique possible move is
       `(p, w, β ++ γ)`.
     - If neither transition is defined, the machine is stuck (halts). -/
-structure DPDA (Q T S : Type) [Fintype Q] [Fintype T] [Fintype S] where
+public structure DPDA (Q T S : Type) [Fintype Q] [Fintype T] [Fintype S] where
   /-- Initial state -/
   initial_state : Q
   /-- Initial stack symbol -/
@@ -55,7 +93,8 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- Embed a DPDA into the nondeterministic PDA framework by converting each `Option`
     transition to the corresponding singleton or empty set. -/
-noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
+@[expose]
+public noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol
   final_states := M.final_states
@@ -80,24 +119,10 @@ noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
     a word `w` is accepted iff the DPDA, starting from its initial configuration,
     can reach a configuration with empty input and an accepting state
     (with any remaining stack contents). -/
-def acceptsByFinalState (M : DPDA Q T S) : Language T :=
+@[expose]
+public def acceptsByFinalState (M : DPDA Q T S) : Language T :=
   M.toPDA.acceptsByFinalState
 
-
-/-- A DPDA **decides every input** if:
-    1. **Totality**: for each word `w`, the DPDA can reach some configuration with
-       empty input from the initial configuration.
-    2. **Acceptance consistency**: all reachable empty-input configurations for a
-       given word `w` agree on whether the state is accepting or not. -/
-def DecidesEveryInput (M : DPDA Q T S) : Prop :=
-  (∀ w : List T, ∃ q γ, @PDA.Reaches Q T S _ _ _ M.toPDA
-    ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, [], γ⟩) ∧
-  (∀ (w : List T) (q₁ q₂ : Q) (γ₁ γ₂ : List S),
-    @PDA.Reaches Q T S _ _ _ M.toPDA
-      ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q₁, [], γ₁⟩ →
-    @PDA.Reaches Q T S _ _ _ M.toPDA
-      ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q₂, [], γ₂⟩ →
-    (q₁ ∈ M.final_states ↔ q₂ ∈ M.final_states))
 
 end DPDA
 
@@ -105,10 +130,12 @@ variable {T : Type} [Fintype T]
 
 /-- A language over a finite terminal alphabet is accepted by some DPDA via final-state
 acceptance. -/
-def is_DPDA (L : Language T) : Prop :=
+@[expose]
+public def is_DPDA (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S) (M : DPDA Q T S),
     M.acceptsByFinalState = L
 
 /-- The class of DPDA-recognizable languages. -/
-def DPDA.Class : Set (Language T) :=
+@[expose]
+public def DPDA.Class : Set (Language T) :=
   setOf is_DPDA

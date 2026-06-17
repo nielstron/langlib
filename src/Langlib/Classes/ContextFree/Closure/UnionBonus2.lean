@@ -1,6 +1,40 @@
-import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
+module
+
 import Langlib.Classes.RecursivelyEnumerable.Closure.Union
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
 
 
 /-! # Auxiliary CFG-to-RE Union Construction
@@ -13,7 +47,7 @@ This file records an alternate union proof for context-free languages via unrest
 - `bonus_CF_of_CF_u_CF`
 -/
 
-variables {T : Type}
+variable {T : Type}
 
 private def lift_CF_rule₁ {N₁ : Type} (N₂ : Type) (r : (N₁ × List (symbol T N₁))) :
   (Option (N₁ ⊕ N₂)) × List (symbol T (Option (N₁ ⊕ N₂))) :=
@@ -40,11 +74,11 @@ by
   congr
   repeat
     rw [List.map_append]
-  congr 1 <;> simp only [List.map_map] <;> (apply List.map_congr_left; intro r _; simp [lift_CF_rule₁, lift_CF_rule₂, lift_rule_, lift_string_, lift_symbol_])
+  congr 1 <;> simp only [List.map_map] <;> (apply List.map_congr_left; intro r _; simp [lift_CF_rule₁, lift_CF_rule₂, lift_rule_, lift_string_])
 
 /-- The class of context-free languages is closed under union.
     This theorem is proved by translation from general grammars.
-    Compare to `classes.context_free.closure_properties.union.lean`
+    Compare to `Classes.ContextFree.Closure.UnionBonus`
     which uses a direct proof for context-free grammars. -/
 private theorem bonus_CF_of_CF_u_CF (L₁ : Language T) (L₂ : Language T) :
   is_CF L₁  ∧  is_CF L₂   →   is_CF (L₁ + L₂)   :=
@@ -71,5 +105,3 @@ by
     | inr case_2 =>
         rw [←eq_L₂] at case_2
         exact in_union_of_in_L₂ case_2
-
-#check            bonus_CF_of_CF_u_CF

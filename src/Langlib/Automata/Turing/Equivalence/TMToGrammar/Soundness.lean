@@ -1,8 +1,43 @@
-import Mathlib
-import Langlib.Classes.RecursivelyEnumerable.Definition
-import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Automata.Turing.Equivalence.TMToGrammar.Construction
-import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
+module
+
+public import Langlib.Automata.Turing.Equivalence.TMToGrammar.Helpers
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Soundness of the TM → Grammar Construction
 
@@ -36,7 +71,8 @@ variable {T : Type} [DecidableEq T] [Fintype T]
 /-- Extract the "original input character" from a grammar symbol.
 Terminals contribute their value. Nonterminals contribute their `orig` field (if `some`).
 Boundary markers, `start`, `genMore`, and `none`-orig nonterminals contribute nothing. -/
-def symbolOriginal : symbol T (TMtoGrammarNT T Λ) → Option T
+@[expose]
+public def symbolOriginal : symbol T (TMtoGrammarNT T Λ) → Option T
   | .terminal t => some t
   | .nonterminal (cell (some t) _) => some t
   | .nonterminal (headCell _ (some t) _) => some t
@@ -45,38 +81,44 @@ def symbolOriginal : symbol T (TMtoGrammarNT T Λ) → Option T
 
 /-- The "terminal content" of a sentential form: the list of original input characters.
 This is invariant under simulation and cleanup rules. -/
-def terminalContent (sf : List (symbol T (TMtoGrammarNT T Λ))) : List T :=
+@[expose]
+public def terminalContent (sf : List (symbol T (TMtoGrammarNT T Λ))) : List T :=
   sf.filterMap (symbolOriginal (Λ := Λ))
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 theorem terminalContent_nil : terminalContent (T := T) (Λ := Λ) [] = [] := by
-  simp [terminalContent]
+  simp only [terminalContent, List.filterMap_nil]
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 theorem terminalContent_cons (s : symbol T (TMtoGrammarNT T Λ))
     (sf : List (symbol T (TMtoGrammarNT T Λ))) :
     terminalContent (s :: sf) =
       (match symbolOriginal (Λ := Λ) s with | some t => [t] | none => []) ++
       terminalContent sf := by
-  simp [terminalContent, List.filterMap_cons]
-  cases symbolOriginal (Λ := Λ) s <;> simp
+  simp only [terminalContent, List.filterMap_cons]
+  cases symbolOriginal (Λ := Λ) s <;> simp only [List.cons_append, List.nil_append]
 
-theorem terminalContent_append (sf₁ sf₂ : List (symbol T (TMtoGrammarNT T Λ))) :
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
+public theorem terminalContent_append (sf₁ sf₂ : List (symbol T (TMtoGrammarNT T Λ))) :
     terminalContent (sf₁ ++ sf₂) = terminalContent sf₁ ++ terminalContent sf₂ := by
-  simp [terminalContent, List.filterMap_append]
+  simp only [terminalContent, List.filterMap_append]
 
-theorem terminalContent_terminal_map (w : List T) :
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
+public theorem terminalContent_terminal_map (w : List T) :
     terminalContent (Λ := Λ) (w.map symbol.terminal) = w := by
   induction w with
-  | nil => simp [terminalContent]
+  | nil => simp only [terminalContent, List.map_nil, List.filterMap_nil]
   | cons t ts ih =>
     simp only [terminalContent, List.map_cons, List.filterMap_cons, symbolOriginal]
     simp only [terminalContent] at ih
-    simp [ih]
+    simp only [ih]
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 `terminalContent` is preserved by every grammar rule whose `input_N` is
 not `start` or `genMore`.
 -/
-theorem terminalContent_rule_preserved
+public theorem terminalContent_rule_preserved
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
     (hns : r.input_N ≠ start)
@@ -98,17 +140,18 @@ theorem terminalContent_rule_preserved
       · rcases hr with ( ⟨ a, ha, b, hb, c, hc, rfl ⟩ | ⟨ a, ha, rfl ⟩ ) <;> simp_all +decide [ List.filterMap ];
         · cases a <;> cases b <;> cases c <;> rfl;
         · cases a <;> cases γ <;> rfl;
-    · rcases hr with ⟨ a, _, rfl ⟩ ; simp +decide [ symbolOriginal ] ;
+    · rcases hr with ⟨ a, _, rfl ⟩ ; simp +decide ;
       cases a <;> cases ‹Option T› <;> simp +decide [ symbolOriginal ] at *;
   · revert hr;
     unfold cleanupRules;
     simp +decide [ allOptT ] at * ; aesop ( simp_config := { decide := true } ) ;
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 If a sentential form has no `start` or `genMore` nonterminals,
 any grammar transform preserves `terminalContent`.
 -/
-theorem terminalContent_preserved
+public theorem terminalContent_preserved
     (sf sf' : List (symbol T (TMtoGrammarNT T Λ)))
     (htrans : grammar_transforms (tmToGrammar T Λ M) sf sf')
     (hns : ∀ s ∈ sf, s ≠ symbol.nonterminal start)
@@ -124,14 +167,16 @@ theorem terminalContent_preserved
 
 /-! ### Terminal-only forms can't be transformed -/
 
+omit [DecidableEq T] [Fintype T] in
 /-- Terminal-only forms can't be transformed. -/
-theorem no_transform_terminal (g : grammar T) (w : List T) :
+public theorem no_transform_terminal (g : grammar T) (w : List T) :
     ∀ sf', ¬grammar_transforms g (w.map symbol.terminal) sf' := by
   intro sf' ⟨r, _, u, v, heq, _⟩
   have : symbol.nonterminal r.input_N ∈ w.map symbol.terminal := by
-    rw [heq]; simp [List.mem_append]
-  simp [List.mem_map] at this
+    rw [heq]; simp only [List.append_assoc, List.cons_append, List.nil_append, List.mem_append, List.mem_cons, true_or, or_true]
+  simp only [List.mem_map, reduceCtorEq, and_false, exists_false] at this
 
+omit [DecidableEq T] [Fintype T] in
 /-- Derivation from terminal form is trivial. -/
 theorem derives_terminal_id (g : grammar T) (w : List T)
     (sf : List (symbol T g.nt))
@@ -142,8 +187,9 @@ theorem derives_terminal_id (g : grammar T) (w : List T)
   | tail _ htrans ih =>
     exfalso; exact no_transform_terminal g w _ (ih ▸ htrans)
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- No rule has `cell` as `input_N`. -/
-theorem no_cell_rule (M : Turing.TM0.Machine (Option T) Λ)
+public theorem no_cell_rule (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
     (orig cur : Option T) (hN : r.input_N = cell orig cur) : False := by
@@ -154,7 +200,8 @@ theorem no_cell_rule (M : Turing.TM0.Machine (Option T) Λ)
 /-! ### The corrected forward invariant -/
 
 /-- Whether a symbol is a nonterminal. -/
-def isNonterminal : symbol T N → Prop
+@[expose]
+public def isNonterminal : symbol T N → Prop
   | .terminal _ => False
   | .nonterminal _ => True
 
@@ -167,7 +214,7 @@ This invariant tracks five phases:
 4. **cleanup**: Post-halt phase. Tracks `terminalContent = w` where TM halts on `w`.
 5. **done**: Terminal-only form `w.map terminal` where TM halts on `w`.
 -/
-inductive GI (M : Turing.TM0.Machine (Option T) Λ) :
+public inductive GI (M : Turing.TM0.Machine (Option T) Λ) :
     List (symbol T (TMtoGrammarNT T Λ)) → Prop where
   | initial :
       GI M [symbol.nonterminal start]
@@ -195,10 +242,11 @@ inductive GI (M : Turing.TM0.Machine (Option T) Λ) :
 
 /-! ### Terminal halts -/
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 If a terminal-only form satisfies `GI`, then TM halts on that input.
 -/
-theorem GI_terminal_halts (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
+public theorem GI_terminal_halts (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
     (h : GI M (w.map symbol.terminal)) :
     (Turing.TM0.eval M (w.map Option.some)).Dom := by
   contrapose! h with h_contra
@@ -228,16 +276,17 @@ theorem GI_terminal_halts (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
 
 /-! ### Preservation lemmas -/
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Invariant preserved from initial state.
 -/
-theorem GI_preserved_initial (M : Turing.TM0.Machine (Option T) Λ)
+public theorem GI_preserved_initial (M : Turing.TM0.Machine (Option T) Λ)
     (sf' : List (symbol T (TMtoGrammarNT T Λ)))
     (htrans : grammar_transforms (tmToGrammar T Λ M) [symbol.nonterminal start] sf') :
     GI M sf' := by
   obtain ⟨ r, hr, u, v, h ⟩ := htrans;
   rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-  rcases r with ⟨ L, N, R, S ⟩ ; rcases L with ( _ | ⟨ a, L ⟩ ) <;> rcases R with ( _ | ⟨ b, R ⟩ ) <;> simp_all +decide [ List.append_assoc ] ;
+  rcases r with ⟨ L, N, R, S ⟩ ; rcases L with ( _ | ⟨ a, L ⟩ ) <;> rcases R with ( _ | ⟨ b, R ⟩ ) <;> simp_all +decide [  ] ;
   rcases h with ⟨ ⟨ rfl, rfl ⟩, rfl ⟩ ; simp_all +decide [ tmToGrammar ] ;
   rcases hr with ( hr | hr | hr );
   · unfold generationRules at hr; simp_all +decide [ List.append_assoc ] ;
@@ -245,10 +294,11 @@ theorem GI_preserved_initial (M : Turing.TM0.Machine (Option T) Λ)
   · unfold simulationRules at hr; aesop;
   · unfold cleanupRules at hr; aesop;
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 No rule with input_N = leftBound has empty input_L and input_R starting with genMore.
 -/
-theorem no_leftBound_rule_genMore_context (M : Turing.TM0.Machine (Option T) Λ)
+public theorem no_leftBound_rule_genMore_context (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
     (hN : r.input_N = leftBound) :
@@ -258,10 +308,11 @@ theorem no_leftBound_rule_genMore_context (M : Turing.TM0.Machine (Option T) Λ)
   unfold tmToGrammar at hr;
   unfold generationRules simulationRules cleanupRules at hr; aesop;
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 No rule with input_N = rightBound has input_L that is a cell or genMore.
 -/
-theorem no_rightBound_rule_cell_context (M : Turing.TM0.Machine (Option T) Λ)
+public theorem no_rightBound_rule_cell_context (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
     (hN : r.input_N = rightBound) :
@@ -269,10 +320,11 @@ theorem no_rightBound_rule_cell_context (M : Turing.TM0.Machine (Option T) Λ)
   unfold tmToGrammar at hr;
   unfold generationRules simulationRules cleanupRules at hr; aesop;
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 All rules with input_N = genMore.
 -/
-theorem genMore_rules_classification (M : Turing.TM0.Machine (Option T) Λ)
+public theorem genMore_rules_classification (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
     (hN : r.input_N = genMore) :
@@ -288,6 +340,7 @@ theorem genMore_rules_classification (M : Turing.TM0.Machine (Option T) Λ)
   unfold tmToGrammar at hr;
   unfold generationRules simulationRules cleanupRules at hr; aesop;
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
 No nonterminal from {start, headCell, haltCell} appears in the generating form.
 -/
@@ -302,10 +355,11 @@ theorem gen_form_no_start_head_halt (ts : List T)
     s = symbol.nonterminal rightBound := by
   grind
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Invariant preserved from generating state.
 -/
-theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
+public theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
     (ts : List T)
     (sf' : List (symbol T (TMtoGrammarNT T Λ)))
     (htrans : grammar_transforms (tmToGrammar T Λ M)
@@ -322,7 +376,13 @@ theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
   · have := no_leftBound_rule_genMore_context M r hr h; simp_all +decide ;
     rcases u with ( _ | ⟨ _, _ | u ⟩ ) <;> simp_all +decide;
     · grind;
-    · grind +suggestions;
+    · have hmem :
+          symbol.nonterminal leftBound ∈
+            (((List.map (fun t => symbol.nonterminal (cell (some t) (some t))) ts) ++
+              [symbol.nonterminal rightBound]) : List (symbol T (TMtoGrammarNT T Λ))) := by
+          rw [heq.2.2]
+          simp only [List.mem_append, List.mem_cons, true_or, or_true]
+      simp +decide at hmem
   · rcases u with ( _ | ⟨ a, _ | ⟨ b, u ⟩ ⟩ ) <;> simp_all +decide;
     · have := genMore_rules_classification M r hr ‹_›; aesop;
     · have h_genMore_rules : r.input_L = [] ∧ r.input_R = [] ∧ (∃ t : T, r.output_string = [symbol.nonterminal genMore, symbol.nonterminal (cell (some t) (some t))]) ∨ r.input_L = [] ∧ r.input_R = [] ∧ (∃ t : T, r.output_string = [symbol.nonterminal (headCell (default : Λ) (some t) (some t))]) ∨ r.input_L = [] ∧ r.input_R = [symbol.nonterminal rightBound] ∧ r.output_string = [symbol.nonterminal (headCell (default : Λ) none none), symbol.nonterminal rightBound] := by
@@ -334,14 +394,14 @@ theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
         rotate_left;
         exact inferInstance;
         exact Turing.TM0.init ( List.map some ( t :: ts ) );
-        · exact?;
+        · exact initCorresponds (t :: ts);
         · convert Relation.ReflTransGen.refl using 1;
           rotate_left;
           exact Turing.TM0.Cfg ( Option T ) Λ;
           exact fun _ _ => True;
           exact Turing.TM0.init ( List.map some ( t :: ts ) );
           simp +decide [ extractInput, twoTrackOriginals, initTwoTrack ];
-          simp +decide [ Function.comp_def, List.filterMap_eq_map ];
+          simp +decide [ Function.comp_def ];
           exact iff_of_true ( Relation.ReflTransGen.refl ) ( Relation.ReflTransGen.refl );
         · unfold encodeTwoTrack initTwoTrack; aesop;
       · rcases ts with ( _ | ⟨ t, ts ⟩ ) <;> simp_all +decide [ List.map ];
@@ -353,18 +413,31 @@ theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
         · constructor <;> aesop;
         · exact Relation.ReflTransGen.refl;
         · rfl;
-    · grind +suggestions;
+    · have hmem :
+          symbol.nonterminal genMore ∈
+            (((List.map (fun t => symbol.nonterminal (cell (some t) (some t))) ts) ++
+              [symbol.nonterminal rightBound]) : List (symbol T (TMtoGrammarNT T Λ))) := by
+          rw [heq.2.2]
+          simp only [List.mem_append, List.mem_cons, true_or, or_true]
+      simp +decide at hmem
   · have := no_cell_rule M r hr ( some t ) ( some t ) ; aesop;
   · -- By definition of `no_rightBound_rule_cell_context`, we know that `r.input_L = [symbol.nonterminal (haltCell orig)]` for some `orig`.
     obtain ⟨orig, horig⟩ : ∃ orig, r.input_L = [symbol.nonterminal (haltCell orig)] := by
       apply no_rightBound_rule_cell_context M r hr h;
     rcases u with ( _ | ⟨ a, _ | ⟨ b, u ⟩ ⟩ ) <;> simp_all +decide;
-    grind +suggestions
+    have hmem :
+        symbol.nonterminal (haltCell orig) ∈
+          (((List.map (fun t => symbol.nonterminal (cell (some t) (some t))) ts) ++
+            [symbol.nonterminal rightBound]) : List (symbol T (TMtoGrammarNT T Λ))) := by
+      rw [heq.2.2]
+      simp only [List.mem_append, List.mem_cons, symbol.nonterminal.injEq, reduceCtorEq, false_or, true_or, or_true]
+    simp +decide at hmem
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
 Every symbol in `encodeTwoTrack tc` is a nonterminal of type leftBound, cell, headCell, or rightBound.
 -/
-theorem encodeTwoTrack_mem_classification (tc : @TwoTrackConfig T Λ)
+public theorem encodeTwoTrack_mem_classification (tc : @TwoTrackConfig T Λ)
     (s : symbol T (TMtoGrammarNT T Λ))
     (hs : s ∈ encodeTwoTrack tc) :
     s = symbol.nonterminal leftBound ∨
@@ -374,19 +447,21 @@ theorem encodeTwoTrack_mem_classification (tc : @TwoTrackConfig T Λ)
   contrapose! hs;
   unfold encodeTwoTrack; aesop;
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
 In `encodeTwoTrack tc`, leftBound is the first symbol and is not followed by rightBound.
 -/
-theorem encodeTwoTrack_second_not_rightBound (tc : @TwoTrackConfig T Λ) :
+public theorem encodeTwoTrack_second_not_rightBound (tc : @TwoTrackConfig T Λ) :
     ¬ ∃ v, encodeTwoTrack tc =
       [symbol.nonterminal leftBound, symbol.nonterminal rightBound] ++ v := by
   unfold encodeTwoTrack;
   cases tc.leftCells <;> simp +decide
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 No leftBound rule can fire on encodeTwoTrack tc (the required contexts don't match).
 -/
-theorem no_leftBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
+public theorem no_leftBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
@@ -395,10 +470,10 @@ theorem no_leftBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
     (heq : encodeTwoTrack tc = u ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v) :
     False := by
   obtain ⟨hL, hR⟩ := no_leftBound_rule_genMore_context M r hr hN
-  simp [hL, hN] at heq
+  simp only [hL, List.append_nil, hN, List.append_assoc, List.cons_append, List.nil_append] at heq
   rcases hR with hR | ⟨orig, hR⟩
   · -- r.input_R = [rightBound]
-    simp [hR] at heq
+    simp only [hR, List.cons_append, List.nil_append] at heq
     rcases u with ( _ | ⟨ s, u ⟩ ) <;> simp_all +decide;
     · exact absurd heq ( by exact fun h => encodeTwoTrack_second_not_rightBound tc ⟨ v, h ⟩ );
     · have h_contradiction : ∀ s ∈ List.tail (encodeTwoTrack tc), s ≠ symbol.nonterminal leftBound := by
@@ -406,17 +481,18 @@ theorem no_leftBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
         rintro s ( ⟨ a, b, hab, rfl ⟩ | rfl | ⟨ a, b, hab, rfl ⟩ | rfl ) <;> simp +decide [ * ];
       aesop
   · -- r.input_R = [haltCell orig]
-    simp [hR] at heq
+    simp only [hR, List.cons_append, List.nil_append] at heq
     -- haltCell must appear in encodeTwoTrack tc, but it doesn't
     have : symbol.nonterminal (haltCell orig) ∈ encodeTwoTrack tc := by
-      rw [heq]; simp
+      rw [heq]; simp only [List.mem_append, List.mem_cons, symbol.nonterminal.injEq, reduceCtorEq, true_or, or_true]
     have := encodeTwoTrack_mem_classification tc _ this
     simp +decide at this
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 No rightBound rule can fire on encodeTwoTrack tc.
 -/
-theorem no_rightBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
+public theorem no_rightBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
@@ -426,16 +502,17 @@ theorem no_rightBound_on_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
     False := by
   -- By no_rightBound_rule_cell_context, if r.input_N = rightBound then r.input_L = [nonterminal (haltCell orig)] for some orig.
   obtain ⟨orig, horig⟩ : ∃ orig, r.input_L = [symbol.nonterminal (haltCell orig)] := by
-    exact?;
+    exact no_rightBound_rule_cell_context M r hr hN;
   have := encodeTwoTrack_mem_classification tc ( symbol.nonterminal ( haltCell orig ) ) ; simp_all +decide ;
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 All headCell rules in tmToGrammar are either simulation rules or cleanup rules.
 Specifically, if r.input_N = headCell q orig cur, then either:
 (a) M q cur = some (q', action) and the rule is a simulation rule, or
 (b) M q cur = none and the rule converts headCell to haltCell.
 -/
-theorem headCell_rule_classification (M : Turing.TM0.Machine (Option T) Λ)
+public theorem headCell_rule_classification (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
     (q : Λ) (orig cur : Option T)
@@ -443,16 +520,17 @@ theorem headCell_rule_classification (M : Turing.TM0.Machine (Option T) Λ)
     (∃ q' action, M q cur = some (q', action)) ∨
     (M q cur = none ∧ r.input_L = [] ∧ r.input_R = [] ∧
      r.output_string = [symbol.nonterminal (haltCell orig)]) := by
-  simp [tmToGrammar] at hr ⊢;
+  simp only [tmToGrammar, List.append_assoc, List.mem_append] at hr ⊢;
   rcases hr with ( hr | hr | hr );
   · unfold generationRules at hr; aesop;
   · unfold simulationRules at hr; aesop;
   · unfold cleanupRules at hr; aesop;
 
 set_option maxHeartbeats 800000 in
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- Detailed classification of simulation rules matching headCell q orig cur
 when M q cur = some (q', action). -/
-theorem sim_rule_detailed_classification (M : Turing.TM0.Machine (Option T) Λ)
+public theorem sim_rule_detailed_classification (M : Turing.TM0.Machine (Option T) Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
     (q : Λ) (orig cur : Option T)
@@ -490,7 +568,7 @@ theorem sim_rule_detailed_classification (M : Turing.TM0.Machine (Option T) Λ)
                          symbol.nonterminal (headCell q' none none),
                          symbol.nonterminal (cell orig cur)]) := by
   revert r;
-  simp [tmToGrammar];
+  simp only [tmToGrammar, List.append_assoc, List.mem_append, exists_and_left];
   intro r hr hN;
   rcases hr with ( hr | hr | hr );
   · unfold generationRules at hr;
@@ -498,10 +576,11 @@ theorem sim_rule_detailed_classification (M : Turing.TM0.Machine (Option T) Λ)
   · unfold simulationRules at hr; aesop;
   · unfold cleanupRules at hr; aesop;
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
 In encodeTwoTrack tc, no cell/leftBound/rightBound/haltCell symbol equals a headCell symbol.
 -/
-theorem encodeTwoTrack_no_headCell_outside_head (tc : @TwoTrackConfig T Λ)
+public theorem encodeTwoTrack_no_headCell_outside_head (tc : @TwoTrackConfig T Λ)
     (s : symbol T (TMtoGrammarNT T Λ))
     (hs : s ∈ [symbol.nonterminal leftBound] ++
           tc.leftCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ++
@@ -510,23 +589,43 @@ theorem encodeTwoTrack_no_headCell_outside_head (tc : @TwoTrackConfig T Λ)
     ∀ q orig cur, s ≠ symbol.nonterminal (headCell q orig cur) := by
   grind
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
 The headCell symbol appears exactly once in encodeTwoTrack tc,
 so the split u ++ [headCell] ++ v is unique.
 -/
-theorem encodeTwoTrack_unique_split (tc : @TwoTrackConfig T Λ)
+public theorem encodeTwoTrack_unique_split (tc : @TwoTrackConfig T Λ)
     (u v : List (symbol T (TMtoGrammarNT T Λ)))
     (heq : encodeTwoTrack tc = u ++ [symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur)] ++ v) :
     u = [symbol.nonterminal leftBound] ++ tc.leftCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ∧
     v = tc.rightCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ++ [symbol.nonterminal rightBound] := by
-  simp_all +decide [ encodeTwoTrack ];
-  rw [ eq_comm ] at heq;
-  rw [ List.append_eq_cons_iff ] at heq;
-  rcases heq with ( ⟨ rfl, heq ⟩ | ⟨ as', rfl, heq ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-  grind +suggestions
+  unfold encodeTwoTrack at heq
+  have heq' :
+      (([symbol.nonterminal leftBound] ++
+        tc.leftCells.map (fun p => symbol.nonterminal (cell p.1 p.2))) ++
+      symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur) ::
+        (tc.rightCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ++
+          [symbol.nonterminal rightBound])) =
+      u ++ symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur) :: v := by
+    simpa +decide [List.singleton_append, List.append_assoc] using heq
+  have hnot_left :
+      symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur) ∉
+        (([symbol.nonterminal leftBound] ++
+          tc.leftCells.map (fun p => symbol.nonterminal (cell p.1 p.2))) :
+          List (symbol T (TMtoGrammarNT T Λ))) := by
+    simp +decide
+  have hnot_right :
+      symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur) ∉
+        ((tc.rightCells.map (fun p => symbol.nonterminal (cell p.1 p.2)) ++
+          [symbol.nonterminal rightBound]) :
+          List (symbol T (TMtoGrammarNT T Λ))) := by
+    simp +decide
+  have hsplit := (List.append_cons_inj_of_notMem hnot_left hnot_right).mp heq'
+  exact ⟨hsplit.1.symm, hsplit.2.2.symm⟩
 
 set_option maxHeartbeats 800000 in
-theorem sim_rule_write_case (M : Turing.TM0.Machine (Option T) Λ)
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
+public theorem sim_rule_write_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
     (q' : Λ) (γ' : Option T)
     (hMqa : M tc.headState tc.headCur = some (q', Turing.TM0.Stmt.write γ'))
@@ -541,7 +640,8 @@ theorem sim_rule_write_case (M : Turing.TM0.Machine (Option T) Λ)
   unfold encodeTwoTrack; aesop;
 
 set_option maxHeartbeats 800000 in
-theorem sim_rule_move_right_case (M : Turing.TM0.Machine (Option T) Λ)
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
+public theorem sim_rule_move_right_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
     (q' : Λ) (o' c' : Option T)
     (hMqa : M tc.headState tc.headCur = some (q', Turing.TM0.Stmt.move Dir.right))
@@ -559,7 +659,8 @@ theorem sim_rule_move_right_case (M : Turing.TM0.Machine (Option T) Λ)
   grind
 
 set_option maxHeartbeats 800000 in
-theorem sim_rule_move_right_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
+public theorem sim_rule_move_right_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
     (q' : Λ)
     (hMqa : M tc.headState tc.headCur = some (q', Turing.TM0.Stmt.move Dir.right))
@@ -573,7 +674,8 @@ theorem sim_rule_move_right_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
   · grind
 
 set_option maxHeartbeats 800000 in
-theorem sim_rule_move_left_case (M : Turing.TM0.Machine (Option T) Λ)
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
+public theorem sim_rule_move_left_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
     (q' : Λ) (o'' c'' : Option T)
     (hMqa : M tc.headState tc.headCur = some (q', Turing.TM0.Stmt.move Dir.left))
@@ -584,13 +686,14 @@ theorem sim_rule_move_left_case (M : Turing.TM0.Machine (Option T) Λ)
   have := encodeTwoTrack_unique_split tc ( u ++ [ symbol.nonterminal ( cell o'' c'' ) ] ) v; simp_all +decide [ encodeTwoTrack ] ;
   rcases h : tc.leftCells.reverse with ( _ | ⟨ x, _ | ⟨ y, l ⟩ ⟩ ) <;> simp_all +decide [ stepTwoTrack ];
   · cases u <;> aesop;
-  · rcases u with ( _ | ⟨ _, _ | u ⟩ ) <;> simp_all +decide [ List.append_eq_cons_iff ];
+  · rcases u with ( _ | ⟨ _, _ | u ⟩ ) <;> simp_all +decide [  ];
     aesop;
-  · rw [ ← h_step ] ; simp +decide [ h ] ;
+  · rw [ ← h_step ] ; simp +decide ;
     replace this := congr_arg List.reverse this.1; simp_all +decide [ List.reverse_append ] ;
 
 set_option maxHeartbeats 800000 in
-theorem sim_rule_move_left_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
+public theorem sim_rule_move_left_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tc' : @TwoTrackConfig T Λ)
     (q' : Λ)
     (hMqa : M tc.headState tc.headCur = some (q', Turing.TM0.Stmt.move Dir.left))
@@ -605,9 +708,10 @@ theorem sim_rule_move_left_boundary_case (M : Turing.TM0.Machine (Option T) Λ)
   · cases h : tc.leftCells.reverse <;> aesop
 
 set_option maxHeartbeats 1600000 in
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- When a simulation rule fires on encodeTwoTrack tc, the result is encodeTwoTrack tc'
 for some tc' with stepTwoTrack M tc = some tc'. -/
-theorem sim_rule_gives_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
+public theorem sim_rule_gives_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
@@ -619,44 +723,46 @@ theorem sim_rule_gives_encodeTwoTrack (M : Turing.TM0.Machine (Option T) Λ)
            u ++ r.output_string ++ v = encodeTwoTrack tc' := by
   obtain ⟨q', action, hMqa⟩ := hM
   have h_step : ∃ tc', stepTwoTrack M tc = some tc' := by
-    unfold stepTwoTrack; simp [hMqa]
+    unfold stepTwoTrack; simp only [hMqa]
     rcases action with (_ | _)
     · rename_i d; rcases d with (_ | _)
-      · rcases tc.leftCells.reverse with (_ | _) <;> simp
-      · rcases tc.rightCells with (_ | _) <;> simp
-    · simp
+      · rcases tc.leftCells.reverse with (_ | _) <;> simp only [Option.some.injEq, exists_eq']
+      · rcases tc.rightCells with (_ | _) <;> simp only [Option.some.injEq, exists_eq']
+    · simp only [Option.some.injEq, exists_eq']
   obtain ⟨tc', h_step⟩ := h_step
   use tc', h_step
   have hclass := sim_rule_detailed_classification M r hr tc.headState tc.headOrig tc.headCur hN q' action hMqa
   rw [hN] at heq
   rcases hclass with ⟨γ', rfl, hL, hR, hout⟩ | ⟨rfl, o', c', hL, hR, hout⟩ | ⟨rfl, hL, hR, hout⟩ | ⟨rfl, o'', c'', hL, hR, hout⟩ | ⟨rfl, hL, hR, hout⟩
-  · simp only [hL, hR, hout]; exact sim_rule_write_case M tc tc' q' γ' hMqa h_step u v (by simpa [hL, hR] using heq)
-  · simp only [hL, hR, hout]; exact sim_rule_move_right_case M tc tc' q' o' c' hMqa h_step u v (by simpa [hL, hR] using heq)
-  · simp only [hL, hR, hout]; exact sim_rule_move_right_boundary_case M tc tc' q' hMqa h_step u v (by simpa [hL, hR] using heq)
-  · simp only [hL, hR, hout]; exact sim_rule_move_left_case M tc tc' q' o'' c'' hMqa h_step u v (by simpa [hL, hR] using heq)
-  · simp only [hL, hR, hout]; exact sim_rule_move_left_boundary_case M tc tc' q' hMqa h_step u v (by simpa [hL, hR] using heq)
+  · simp only [hout]; exact sim_rule_write_case M tc tc' q' γ' hMqa h_step u v (by simpa [hL, hR] using heq)
+  · simp only [hout]; exact sim_rule_move_right_case M tc tc' q' o' c' hMqa h_step u v (by simpa [hL, hR] using heq)
+  · simp only [hout]; exact sim_rule_move_right_boundary_case M tc tc' q' hMqa h_step u v (by simpa [hL, hR] using heq)
+  · simp only [hout]; exact sim_rule_move_left_case M tc tc' q' o'' c'' hMqa h_step u v (by simpa [hL, hR] using heq)
+  · simp only [hout]; exact sim_rule_move_left_boundary_case M tc tc' q' hMqa h_step u v (by simpa [hL, hR] using heq)
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 When the TM halts (M q γ = none), a transform on encodeTwoTrack tc
 produces a form satisfying the cleanup invariant.
 -/
-theorem halt_rule_gives_cleanup (M : Turing.TM0.Machine (Option T) Λ)
+public theorem halt_rule_gives_cleanup (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ)
     (r : grule T (TMtoGrammarNT T Λ))
     (hr : r ∈ (tmToGrammar T Λ M).rules)
     (hN : r.input_N = headCell tc.headState tc.headOrig tc.headCur)
     (hM : M tc.headState tc.headCur = none)
     (u v : List (symbol T (TMtoGrammarNT T Λ)))
-    (heq : encodeTwoTrack tc = u ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v) :
+    (_heq : encodeTwoTrack tc = u ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v) :
     r.input_L = [] ∧ r.input_R = [] ∧
     r.output_string = [symbol.nonterminal (haltCell tc.headOrig)] := by
   have := headCell_rule_classification M r hr tc.headState tc.headOrig tc.headCur hN;
   aesop
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 The TM0.eval halts when TM reaches a halting config.
 -/
-theorem tm_eval_dom_of_reaches_halt
+public theorem tm_eval_dom_of_reaches_halt
     (M : Turing.TM0.Machine (Option T) Λ)
     (l : List (Option T))
     (tmCfg : Turing.TM0.Cfg (Option T) Λ)
@@ -669,10 +775,11 @@ theorem tm_eval_dom_of_reaches_halt
   use tmCfg;
   grind +suggestions
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
 The terminalContent of encodeTwoTrack tc equals extractInput (twoTrackOriginals tc).
 -/
-theorem terminalContent_encodeTwoTrack (tc : @TwoTrackConfig T Λ) :
+public theorem terminalContent_encodeTwoTrack (tc : @TwoTrackConfig T Λ) :
     terminalContent (encodeTwoTrack tc) = extractInput (twoTrackOriginals tc) := by
   induction' tc with q t_notion l_notionCells l_notionCell r_notion cellea_r_numberCells pa_rnumberCells_one pa_rnumberCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two pa_rnumberOfCells_one pa_rnumberOfCells_two
   apply Eq.symm; exact (by
@@ -688,22 +795,25 @@ theorem terminalContent_encodeTwoTrack (tc : @TwoTrackConfig T Λ) :
     · convert ih t_notion l_notionCells l_notionCell using 1;
     · convert congr_arg ( fun x => ‹T› :: x ) ( ih t_notion l_notionCells l_notionCell ) using 1)
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
 Symbols from encodeTwoTrack tc are never start, genMore, or haltCell.
 -/
-theorem encodeTwoTrack_no_start (tc : @TwoTrackConfig T Λ) (s : symbol T (TMtoGrammarNT T Λ))
+public theorem encodeTwoTrack_no_start (tc : @TwoTrackConfig T Λ) (s : symbol T (TMtoGrammarNT T Λ))
     (hs : s ∈ encodeTwoTrack tc) : s ≠ symbol.nonterminal start := by
   contrapose! hs;
   unfold encodeTwoTrack; aesop;
 
-theorem encodeTwoTrack_no_genMore (tc : @TwoTrackConfig T Λ) (s : symbol T (TMtoGrammarNT T Λ))
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
+public theorem encodeTwoTrack_no_genMore (tc : @TwoTrackConfig T Λ) (s : symbol T (TMtoGrammarNT T Λ))
     (hs : s ∈ encodeTwoTrack tc) : s ≠ symbol.nonterminal genMore := by
   rcases s with ( _ | _ | _ | _ | _ | _ | _ | _ | _ ) <;> (unfold encodeTwoTrack at hs; simp_all +decide [ List.mem_cons ] ;)
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 TM0.step M tmCfg from TMCorresponds.
 -/
-theorem tm_step_of_corresponds
+public theorem tm_step_of_corresponds
     (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tmCfg : Turing.TM0.Cfg (Option T) Λ)
     (hcorr : TMCorresponds tc tmCfg)
@@ -713,40 +823,33 @@ theorem tm_step_of_corresponds
     exact ⟨ hcorr.state_eq.symm, hcorr.head_eq.symm ⟩;
   unfold TM0.step; aesop;
 
+omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
 In encodeTwoTrack tc, the only headCell is at a specific position. If we remove it,
 no headCell remains.
 -/
-theorem encodeTwoTrack_no_headCell_in_parts (tc : @TwoTrackConfig T Λ)
+public theorem encodeTwoTrack_no_headCell_in_parts (tc : @TwoTrackConfig T Λ)
     (u v : List (symbol T (TMtoGrammarNT T Λ)))
     (heq : encodeTwoTrack tc = u ++ [symbol.nonterminal (headCell tc.headState tc.headOrig tc.headCur)] ++ v)
     (s : symbol T (TMtoGrammarNT T Λ))
     (hs : s ∈ u ∨ s ∈ v)
     (q : Λ) (orig cur : Option T) :
     s ≠ symbol.nonterminal (headCell q orig cur) := by
-  contrapose! hs;
-  unfold encodeTwoTrack at heq; simp_all +decide [ List.append_assoc ] ;
-  rcases u with ( _ | ⟨ a, u ⟩ ) <;> rcases v with ( _ | ⟨ b, v ⟩ ) <;> simp_all +decide [ List.sublist_append_iff ];
-  · replace heq := congr_arg List.reverse heq.2 ; simp_all +decide [ List.reverse_append ];
-  · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-    · rcases tc with ⟨ ⟨ l₁, l₂ ⟩, q, o₁, o₂, ⟨ r₁, r₂ ⟩ ⟩ ; aesop;
-      · aesop;
-      · cases heq.2;
-      · aesop;
-    · rcases heq with ⟨ rfl, heq ⟩;
-      rcases tc with ⟨ leftCells, headState, headOrig, headCur, rightCells ⟩;
-      rcases leftCells with ( _ | ⟨ x, leftCells ⟩ ) <;> simp_all +decide [ List.map ];
-      · grind +suggestions;
-      · induction leftCells generalizing u <;> simp_all +decide [ List.map ];
-        · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.map ];
-          · grind +splitImp;
-          · rcases rightCells with ( _ | ⟨ x, rightCells ⟩ ) <;> simp_all +decide [ List.map ];
-            · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.map ];
-            · induction u generalizing b v <;> simp_all +decide [ List.map ];
-              grind;
-        · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.map ];
-          grind
+  obtain ⟨ hu, hv ⟩ := encodeTwoTrack_unique_split tc u v heq
+  subst u
+  subst v
+  apply encodeTwoTrack_no_headCell_outside_head tc s
+  cases hs with
+  | inl hs =>
+      simp +decide [List.mem_append] at hs ⊢
+      cases hs with
+      | inl hs => exact Or.inl hs
+      | inr hs => exact Or.inr (Or.inl hs)
+  | inr hs =>
+      simp +decide [List.mem_append] at hs ⊢
+      exact Or.inr (Or.inr hs)
 
+omit [DecidableEq T] [Fintype T] [DecidableEq Λ] [Fintype Λ] in
 /-
 TM0.step when M gives some action.
 -/
@@ -761,8 +864,9 @@ theorem tm_step_some_of_corresponds
   have := hcorr.state_eq; have := hcorr.head_eq; aesop;
 
 set_option maxHeartbeats 1600000 in
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- Invariant preserved from simulating state. -/
-theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
+public theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tmCfg : Turing.TM0.Cfg (Option T) Λ)
     (hcorr : TMCorresponds tc tmCfg)
     (hreach : Turing.Reaches (Turing.TM0.step M)
@@ -773,21 +877,21 @@ theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
   obtain ⟨r, hr, u, v, heq, rfl⟩ := htrans
   -- r.input_N must appear in encodeTwoTrack tc
   have h_in : symbol.nonterminal r.input_N ∈ encodeTwoTrack tc := by
-    rw [heq]; simp [List.mem_append]
+    rw [heq]; simp only [List.append_assoc, List.cons_append, List.nil_append, List.mem_append, List.mem_cons, true_or, or_true]
   -- Classify the nonterminal
   have h_class := encodeTwoTrack_mem_classification tc _ h_in
   rcases h_class with h_lb | ⟨orig, cur, h_cell⟩ | h_hc | h_rb
   · -- leftBound: contradiction
     have hN : r.input_N = leftBound := by
-      have := h_lb; simp [symbol.nonterminal.injEq] at this; exact this
+      have := h_lb; simp only [symbol.nonterminal.injEq] at this; exact this
     exact absurd (no_leftBound_on_encodeTwoTrack M tc r hr hN u v heq) id
   · -- cell: contradiction
     have hN : r.input_N = cell orig cur := by
-      have := h_cell; simp [symbol.nonterminal.injEq] at this; exact this
+      have := h_cell; simp only [symbol.nonterminal.injEq] at this; exact this
     exact absurd (no_cell_rule M r hr orig cur hN) id
   · -- headCell: main case
     have hN : r.input_N = headCell tc.headState tc.headOrig tc.headCur := by
-      have := h_hc; simp [symbol.nonterminal.injEq] at this; exact this
+      have := h_hc; simp only [symbol.nonterminal.injEq] at this; exact this
     rcases h_Mqc : M tc.headState tc.headCur with _ | ⟨q', action⟩
     · -- TM halts: cleanup
       have h_halt := halt_rule_gives_cleanup M tc r hr hN h_Mqc u v heq
@@ -806,11 +910,11 @@ theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
           · rfl;
           · rfl;
           · rfl;
-          · exact?))
+          · exact List.toList_toArray))
         apply_rules [ GI.cleanup ];
         · exact tm_eval_dom_of_reaches_halt M _ _ hreach ( tm_step_of_corresponds M tc tmCfg hcorr h_Mqc );
         · exact ⟨ symbol.nonterminal ( haltCell tc.headOrig ), by simp +decide, by simp +decide [ isNonterminal ] ⟩;
-        · intro s hs; contrapose! hs; simp_all +decide [ encodeTwoTrack_no_start ] ;
+        · intro s hs; contrapose! hs; simp_all +decide [  ] ;
           exact ⟨ fun h => by have := encodeTwoTrack_no_start tc ( symbol.nonterminal start ) ( heq.symm ▸ List.mem_append_left _ h ) ; contradiction, fun h => by have := encodeTwoTrack_no_start tc ( symbol.nonterminal start ) ( heq.symm ▸ List.mem_append_right _ ( List.mem_cons_of_mem _ h ) ) ; contradiction ⟩;
         · intro s hs; contrapose! hs; simp_all +decide [ encodeTwoTrack ] ;
           have h_no_genMore : ∀ s ∈ encodeTwoTrack tc, s ≠ symbol.nonterminal genMore := by
@@ -831,7 +935,7 @@ theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
       rw [hsf]
       -- Use tm_step_some_of_corresponds to get ⟨tmCfg', h_tm_step⟩.
       obtain ⟨tmCfg', h_tm_step⟩ : ∃ tmCfg', Turing.TM0.step M tmCfg = some tmCfg' := by
-        exact?;
+        exact tm_step_some_of_corresponds M tc tmCfg hcorr q' action h_Mqc;
       -- Apply the GI.simulating constructor with the given parameters.
       apply GI.simulating tc' tmCfg' (by
       have := corresponds_step_some M tc tmCfg tmCfg' hcorr h_tm_step; aesop;) (by
@@ -839,13 +943,14 @@ theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
       rw [ stepTwoTrack_preserves_extractInput M tc tc' hstep ])
   · -- rightBound: contradiction
     have hN : r.input_N = rightBound := by
-      have := h_rb; simp [symbol.nonterminal.injEq] at this; exact this
+      have := h_rb; simp only [symbol.nonterminal.injEq] at this; exact this
     exact absurd (no_rightBound_on_encodeTwoTrack M tc r hr hN u v heq) id
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-
 Invariant preserved from cleanup state.
 -/
-theorem GI_preserved_cleanup (M : Turing.TM0.Machine (Option T) Λ)
+public theorem GI_preserved_cleanup (M : Turing.TM0.Machine (Option T) Λ)
     (sf sf' : List (symbol T (TMtoGrammarNT T Λ)))
     (w : List T)
     (hhalt : (Turing.TM0.eval M (w.map Option.some)).Dom)
@@ -881,10 +986,10 @@ theorem GI_preserved_cleanup (M : Turing.TM0.Machine (Option T) Λ)
     have hr₅ : ∀ s ∈ r.output_string, s ≠ symbol.nonterminal start ∧ s ≠ symbol.nonterminal genMore ∧ ∀ q orig cur, s ≠ symbol.nonterminal (headCell q orig cur) := by
       unfold cleanupRules at hr₃; simp +decide at hr₃;
       rcases hr₃ with ( ⟨ a, ha, b, hb, hr₃ ⟩ | ⟨ a, ha, b, hb, c, hc, hr₃ ⟩ | ⟨ a, ha, b, hb, c, hc, hr₃ ⟩ | ⟨ a, hr₃ ⟩ | hr₃ | hr₃ | ⟨ a, ha, hr₃ ⟩ | ⟨ a, ha, hr₃ ⟩ ) <;> simp +decide [ hr₃ ] at hr₂ ⊢;
-      all_goals subst_vars; simp +decide [ TMtoGrammarNT.haltCell ] at hr₄ ⊢;
+      all_goals subst_vars; simp +decide at hr₄ ⊢;
       cases h : M a b <;> simp +decide [ h ] at hr₃ ⊢;
       grind +ring;
-    by_cases h : ∃ s ∈ u ++ r.output_string ++ v, isNonterminal s <;> simp_all +decide [ GI ];
+    by_cases h : ∃ s ∈ u ++ r.output_string ++ v, isNonterminal s <;> simp_all +decide [  ];
     · apply GI.cleanup;
       exact hhalt;
       · rw [ ← hcontent, terminalContent_append, terminalContent_append ];
@@ -915,18 +1020,21 @@ theorem GI_preserved_cleanup (M : Turing.TM0.Machine (Option T) Λ)
         rcases hl s ( by simp +decide ) with ⟨ t, rfl ⟩ ; simp +decide [ symbolOriginal ] ; exact ih fun s hs => hl s ( by simp +decide [ hs ] ) ;
       grind
 
+omit [DecidableEq Λ] in
+omit [DecidableEq T] in
 /-- Invariant preserved from done state (vacuously true). -/
-theorem GI_preserved_done (M : Turing.TM0.Machine (Option T) Λ)
+public theorem GI_preserved_done (M : Turing.TM0.Machine (Option T) Λ)
     (w : List T)
-    (hhalt : (Turing.TM0.eval M (w.map Option.some)).Dom)
+    (_hhalt : (Turing.TM0.eval M (w.map Option.some)).Dom)
     (sf' : List (symbol T (TMtoGrammarNT T Λ)))
     (htrans : grammar_transforms (tmToGrammar T Λ M) (w.map symbol.terminal) sf') :
     GI M sf' := by
   exfalso
   exact no_transform_terminal (tmToGrammar T Λ M) w sf' htrans
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- The invariant is preserved by grammar transforms. -/
-theorem GI_preserved (M : Turing.TM0.Machine (Option T) Λ)
+public theorem GI_preserved (M : Turing.TM0.Machine (Option T) Λ)
     (sf sf' : List (symbol T (TMtoGrammarNT T Λ)))
     (hinv : GI M sf) (htrans : grammar_transforms (tmToGrammar T Λ M) sf sf') :
     GI M sf' := by
@@ -939,8 +1047,9 @@ theorem GI_preserved (M : Turing.TM0.Machine (Option T) Λ)
     exact GI_preserved_cleanup M _ sf' w hhalt hcontent hhas_nt hns hng hhc htrans
   | done w hhalt => exact GI_preserved_done M w hhalt sf' htrans
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- Every reachable form satisfies the invariant. -/
-theorem GI_reachable (M : Turing.TM0.Machine (Option T) Λ)
+public theorem GI_reachable (M : Turing.TM0.Machine (Option T) Λ)
     (sf : List (symbol T (TMtoGrammarNT T Λ)))
     (h : grammar_derives (tmToGrammar T Λ M) [symbol.nonterminal start] sf) :
     GI M sf := by
@@ -950,13 +1059,15 @@ theorem GI_reachable (M : Turing.TM0.Machine (Option T) Λ)
 
 /-! ### Main soundness theorem -/
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- **Soundness**: If the grammar generates `w`, then TM halts on `w`. -/
-theorem tmToGrammar_halts_of_generates
+public theorem tmToGrammar_halts_of_generates
     (M : Turing.TM0.Machine (Option T) Λ) (w : List T)
     (h : grammar_generates (tmToGrammar T Λ M) w) :
     (Turing.TM0.eval M (w.map Option.some)).Dom :=
   GI_terminal_halts M w (GI_reachable M _ h)
 
+omit [DecidableEq T] [DecidableEq Λ] in
 /-- The grammar constructed from a TM generates exactly the TM's language. -/
 theorem tmToGrammar_correct (M : Turing.TM0.Machine (Option T) Λ) (w : List T) :
     w ∈ grammar_language (tmToGrammar T Λ M) ↔

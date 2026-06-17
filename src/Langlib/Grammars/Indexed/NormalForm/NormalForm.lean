@@ -1,10 +1,14 @@
-import Mathlib
-import Langlib.Grammars.Indexed.Definition
+module
+
+public import Langlib.Grammars.Indexed.Definition
 import Langlib.Grammars.Indexed.NormalForm.FreshStart
 import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
 import Langlib.Grammars.Indexed.NormalForm.TerminalIsolation
 import Langlib.Grammars.Indexed.NormalForm.FlagSeparation
 import Langlib.Grammars.Indexed.NormalForm.Binarization
+@[expose]
+public section
+
 
 /-! # Normal Form for Indexed Grammars
 

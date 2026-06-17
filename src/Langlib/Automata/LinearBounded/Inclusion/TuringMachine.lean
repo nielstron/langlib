@@ -1,5 +1,48 @@
-import Mathlib
-import Langlib.Automata.LinearBounded.Definition
+module
+
+public import Langlib.Automata.LinearBounded.Definition
+public import Mathlib.Computability.PostTuringMachine
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
+
+
 
 /-!
 # NLBA Languages ⊆ Turing Machine Languages
@@ -182,7 +225,7 @@ abbrev NSimCfg (Γ : Type*) (Λ : Type*) (n : ℕ) :=
 /-- The initial TM0 configuration for a given encoded input. -/
 noncomputable def ntm0Init {Γ : Type*} {Λ : Type*} {n : ℕ}
     [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
-    (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) : NSimCfg Γ Λ n :=
+    (_M : Machine Γ Λ) (w : Fin (n + 1) → Γ) : NSimCfg Γ Λ n :=
   @Turing.TM0.init _ _ ⟨NSimState.reading ([] : List Γ)⟩ ⟨none⟩ (encodeInput w)
 
 /-! ### Tape Helper Lemmas -/
@@ -190,8 +233,8 @@ noncomputable def ntm0Init {Γ : Type*} {Λ : Type*} {n : ℕ}
 theorem tape_iter_move_right_nth {α : Type*} [Inhabited α]
     (T : Turing.Tape α) (k : ℕ) (i : ℤ) :
     ((Turing.Tape.move Turing.Dir.right)^[k] T).nth i = T.nth (i + k) := by
-  induction' k with k ih generalizing i <;> simp_all +decide [ Function.iterate_succ_apply' ];
-  ring
+  induction' k with k ih generalizing i <;> simp_all +decide [ Function.iterate_succ_apply' ]
+  ring_nf
 
 theorem tape_mk1_move_right_head {α : Type*} [Inhabited α]
     (l : List α) (k : ℕ) :

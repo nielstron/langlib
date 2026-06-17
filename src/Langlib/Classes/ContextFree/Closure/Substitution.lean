@@ -1,12 +1,53 @@
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
-import Langlib.Classes.ContextFree.Closure.Substitution.Core
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Utilities.ClosurePredicates
+module
+
+public import Langlib.Classes.ContextFree.Closure.Substitution.Core
+public import Langlib.Classes.ContextFree.Definition
+public import Langlib.Utilities.ClosurePredicates
+import Langlib.Grammars.ContextFree.MathlibCFG
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Context-Free Closure Under Substitution
 
 This file imports mathlib's proof that context-free languages are closed under substitution and
 repackages it for this project's `is_CF` predicate.
+
+Proof idea: translate the assumptions from `is_CF` to mathlib's
+`Language.IsContextFree`, apply mathlib's substitution closure theorem, and
+translate the result back.
 
 ## Main declarations
 
@@ -16,7 +57,7 @@ repackages it for this project's `is_CF` predicate.
 variable {α β : Type}
 
 /-- The class of context-free languages is closed under substitution. -/
-theorem CF_of_subst_CF (L : Language α) (f : α → Language β) :
+public theorem CF_of_subst_CF (L : Language α) (f : α → Language β) :
     is_CF L → (∀ a, is_CF (f a)) → is_CF (L.subst f) := by
   intro hL hf
   rw [is_CF_iff_isContextFree]
@@ -27,5 +68,5 @@ theorem CF_of_subst_CF (L : Language α) (f : α → Language β) :
 /-- The class of context-free languages is closed under substitution. -/
 theorem CF_closedUnderSubstitution [Fintype α] :
     ClosedUnderSubstitution is_CF := by
-  intro α β _ L f hL hf
+  intro α β _ _ L f hL hf
   exact CF_of_subst_CF L f hL hf

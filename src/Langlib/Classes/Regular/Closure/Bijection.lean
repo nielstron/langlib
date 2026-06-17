@@ -1,5 +1,50 @@
-import Mathlib
-import Langlib.Utilities.LanguageOperations
+module
+
+public import Langlib.Utilities.LanguageOperations
+public import Mathlib.Algebra.Group.End
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Terminal Bijection
+
+Proof idea: a bijection of terminals is just a relabeling of the input alphabet.
+Transport the automaton transitions along the equivalence, and use the inverse
+map for the reverse direction.
+-/
+
+@[expose]
+public section
+
+
 
 /-! # Regular Closure Under Terminal Bijection
 
@@ -17,13 +62,13 @@ This file packages regular-language transport lemmas for renaming terminals.
 namespace Language
 
 /-- Regular languages are closed under preimage along `List.map`. -/
-theorem IsRegular.preimage {α β : Type} {L : Language α} (h : L.IsRegular) (f : β → α) :
+public theorem IsRegular.preimage {α β : Type*} {L : Language α} (h : L.IsRegular) (f : β → α) :
     Language.IsRegular (((List.map f) ⁻¹' L : Set (List β))) := by
   rcases h with ⟨σ, hσ, M, hM⟩
-  exact ⟨σ, hσ, M.comap f, by simpa [hM] using (DFA.accepts_comap (M := M) f)⟩
+  exact ⟨σ, hσ, M.comap f, by simp [hM]⟩
 
 /-- Injective alphabet maps reflect regularity. -/
-theorem IsRegular.of_map_injective {α β : Type} {L : Language α} {f : α → β}
+public theorem IsRegular.of_map_injective {α β : Type*} {L : Language α} {f : α → β}
     (hf : Function.Injective f) (h : (Language.map f L).IsRegular) : L.IsRegular := by
   have hpre : Language.IsRegular (((List.map f) ⁻¹' Language.map f L : Set (List α))) := h.preimage f
   have hEq : (List.map f) ⁻¹' Language.map f L = L := by
@@ -38,23 +83,23 @@ theorem IsRegular.of_map_injective {α β : Type} {L : Language α} {f : α → 
 
 end Language
 
-variable {T₁ T₂ : Type}
+variable {T₁ T₂ : Type*}
 
 /-- Regular languages are closed under bijections of the terminal alphabet. -/
-theorem isRegular_of_bijemap_isRegular (π : T₁ ≃ T₂) (L : Language T₁) :
+public theorem isRegular_of_bijemap_isRegular (π : T₁ ≃ T₂) (L : Language T₁) :
     L.IsRegular → (Language.bijemapLang L π).IsRegular := by
   intro h
   simpa [Language.bijemapLang] using h.preimage π.symm
 
 /-- Reverse direction of `isRegular_of_bijemap_isRegular`. -/
-theorem isRegular_of_bijemap_isRegular_rev (π : T₁ ≃ T₂) (L : Language T₁) :
+public theorem isRegular_of_bijemap_isRegular_rev (π : T₁ ≃ T₂) (L : Language T₁) :
     (Language.bijemapLang L π).IsRegular → L.IsRegular := by
   intro h
   simpa [Language.bijemapLang_symm_bijemapLang] using
     isRegular_of_bijemap_isRegular π.symm (Language.bijemapLang L π) h
 
 /-- A language is regular iff its image under a bijection of terminal alphabets is regular. -/
-@[simp] theorem isRegular_bijemap_iff_isRegular (π : T₁ ≃ T₂) (L : Language T₁) :
+@[simp] public theorem isRegular_bijemap_iff_isRegular (π : T₁ ≃ T₂) (L : Language T₁) :
     (Language.bijemapLang L π).IsRegular ↔ L.IsRegular := by
   constructor
   · exact isRegular_of_bijemap_isRegular_rev π L

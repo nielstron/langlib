@@ -1,5 +1,9 @@
-import Mathlib
-import Langlib.Grammars.Indexed.Definition
+module
+
+public import Mathlib
+public import Langlib.Grammars.Indexed.Definition
+@[expose]
+public section
 
 /-! # Fresh Start Symbol for Indexed Grammars
 
@@ -261,7 +265,7 @@ theorem unliftSF_terminal [Inhabited T] (w : List T) :
     w.map (ISym.terminal (g := g)) := by
   unfold unliftSF;
   simp +zetaDelta at *;
-  exact?
+  exact fun _ _ => rfl
 
 /-
 Backward language inclusion.

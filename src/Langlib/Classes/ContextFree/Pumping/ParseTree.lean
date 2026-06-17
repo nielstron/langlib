@@ -1,12 +1,17 @@
+module
+
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexander Loitzl
 -/
 
-import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalForm
-import Langlib.Classes.ContextFree.Pumping.ChomskyCountingSteps
+public import Langlib.Classes.ContextFree.Pumping.ChomskyCountingSteps
 import Langlib.Classes.ContextFree.Pumping.toMathlib
+@[expose]
+public section
+
+
 
 /-! # Parse Trees for Chomsky Grammars
 
@@ -34,7 +39,7 @@ section parseTree
 
 /-- A `parseTree n` encodes a `ChomskyNormalFormGrammar` derivation of a word from a nonterminal
 `n` -/
-inductive parseTree : g.NT → Type _ where
+public inductive parseTree : g.NT → Type _ where
   /-- Single rule application transforming a nonterminal into a terminal. -/
   | leaf {n : g.NT} (t : T)
       (hnt : (ChomskyNormalFormRule.leaf n t) ∈ g.rules) : parseTree n
@@ -45,19 +50,21 @@ inductive parseTree : g.NT → Type _ where
 namespace parseTree
 
 /-- The `yield` of a tree is the word the tree derives -/
-def yield {n : g.NT} (p : parseTree n) : List T :=
+@[expose]
+public def yield {n : g.NT} (p : parseTree n) : List T :=
   match p with
   | leaf t _ => [t]
   | node t₁ t₂ _ => yield t₁ ++ yield t₂
 
 /-- The `height` of a tree -/
-def height {n : g.NT} (p : parseTree n) : ℕ :=
+@[expose]
+public def height {n : g.NT} (p : parseTree n) : ℕ :=
   match p with
   | leaf _ _ => 1
   | node t₁ t₂ _ => max (height t₁) (height t₂) + 1
 
 /-- `IsSubTreeOf p₁ p₂` encodes that `p₁` is a subtree of `p₂` -/
-inductive IsSubtreeOf : {n₁ : g.NT} → {n₂ : g.NT} → parseTree n₁ → parseTree n₂ → Prop where
+public inductive IsSubtreeOf : {n₁ : g.NT} → {n₂ : g.NT} → parseTree n₁ → parseTree n₂ → Prop where
   /-- A parse tree is a subtree of itself -/
   | eq {n : g.NT} (p : parseTree n) : IsSubtreeOf p p
   /-- If `p₁` is a subtree of `p₂`, it is also a subtree of `node p₂ p₃` -/
@@ -71,7 +78,7 @@ inductive IsSubtreeOf : {n₁ : g.NT} → {n₂ : g.NT} → parseTree n₁ → p
 
 variable {n : g.NT} {p : parseTree n}
 
-lemma yield_derives : g.Derives [Symbol.nonterminal n] (p.yield.map Symbol.terminal) := by
+public lemma yield_derives : g.Derives [Symbol.nonterminal n] (p.yield.map Symbol.terminal) := by
   induction p with
   | leaf t hg =>
     exact Produces.single ⟨_, hg, ChomskyNormalFormRule.Rewrites.input_output⟩
@@ -81,9 +88,9 @@ lemma yield_derives : g.Derives [Symbol.nonterminal n] (p.yield.map Symbol.termi
     rw [ChomskyNormalFormRule.output, List.map_append, ← List.singleton_append]
     exact (ihr.append_left _).trans (ihl.append_right _)
 
-lemma height_pos : p.height > 0 := by cases p <;> simp [height]
+public lemma height_pos : p.height > 0 := by cases p <;> simp [height]
 
-lemma yield_length_le_two_pow_height : p.yield.length ≤ 2 ^ (p.height - 1) := by
+public lemma yield_length_le_two_pow_height : p.yield.length ≤ 2 ^ (p.height - 1) := by
   induction p with
   | leaf => simp [yield, height]
   | node t₁ t₂ hpg ih₁ ih₂=>
@@ -102,7 +109,7 @@ lemma yield_length_le_two_pow_height : p.yield.length ≤ 2 ^ (p.height - 1) := 
     nth_rewrite 3 [ht'']
     rw [Nat.two_pow_succ]
 
-lemma yield_length_pos : p.yield.length > 0 := by
+public lemma yield_length_pos : p.yield.length > 0 := by
   induction p with
   | leaf => simp [yield]
   | node =>
@@ -110,7 +117,7 @@ lemma yield_length_pos : p.yield.length > 0 := by
     omega
 
 
-lemma subtree_decomposition {n₁ n₂ : g.NT} {p₁ : parseTree n₁} {p₂ : parseTree n₂}
+public lemma subtree_decomposition {n₁ n₂ : g.NT} {p₁ : parseTree n₁} {p₂ : parseTree n₂}
     (hpp : IsSubtreeOf p₂ p₁) :
     ∃ u v, p₁.yield = u ++ p₂.yield ++ v ∧
       g.Derives [Symbol.nonterminal n₁]
@@ -139,7 +146,7 @@ lemma subtree_decomposition {n₁ n₂ : g.NT} {p₁ : parseTree n₁} {p₂ : p
     nth_rewrite 2 [← List.append_assoc]
     exact (hguv.append_left _).trans (Derives.append_right q₁.yield_derives _)
 
-lemma strict_subtree_decomposition {n : g.NT} {p₁ : parseTree n} {p₂ : parseTree n}
+public lemma strict_subtree_decomposition {n : g.NT} {p₁ : parseTree n} {p₂ : parseTree n}
     (hpp : IsSubtreeOf p₂ p₁) (hne : p₁ ≠ p₂) :
     ∃ u v, p₁.yield = u ++ p₂.yield ++ v ∧ (u ++ v).length > 0
       ∧ g.Derives [Symbol.nonterminal n]
@@ -177,19 +184,19 @@ lemma strict_subtree_decomposition {n : g.NT} {p₁ : parseTree n} {p₂ : parse
         exact (hguv.append_left _).trans (Derives.append_right q₁.yield_derives _)
 
 @[refl]
-lemma IsSubtreeOf.refl {n : g.NT} {p : parseTree n} : p.IsSubtreeOf p := IsSubtreeOf.eq p
+public lemma IsSubtreeOf.refl {n : g.NT} {p : parseTree n} : p.IsSubtreeOf p := IsSubtreeOf.eq p
 
-lemma IsSubtreeOf.trans {n₁ n₂ n₃ : g.NT} {p₁ : parseTree n₁} {p₂ : parseTree n₂}
+public lemma IsSubtreeOf.trans {n₁ n₂ n₃ : g.NT} {p₁ : parseTree n₁} {p₂ : parseTree n₂}
     {p₃ : parseTree n₃} (hp₁ : p₁.IsSubtreeOf p₂) (hp₂ : p₂.IsSubtreeOf p₃) : p₁.IsSubtreeOf p₃ := by
   induction hp₂ with
   | eq => exact hp₁
   | left_sub _ _ _ _ _ ih => exact left_sub _ _ _ _ (ih hp₁)
   | right_sub _ _ _ _ _ ih => exact right_sub _ _ _ _ (ih hp₁)
 
-lemma subtree_height {n₁ n₂ : g.NT} {p₁ : parseTree n₁} {p₂ : parseTree n₂} (hpp : p₁.IsSubtreeOf p₂) :
+public lemma subtree_height {n₁ n₂ : g.NT} {p₁ : parseTree n₁} {p₂ : parseTree n₂} (hpp : p₁.IsSubtreeOf p₂) :
     p₁.height ≤ p₂.height := by
     induction hpp with
-    | eq => simp [height]
+    | eq => simp
     | left_sub _ _ _ _ _ ht | right_sub _ _ _ _ _ ht =>
       apply ht.trans
       simp only [height]
@@ -252,7 +259,7 @@ private lemma DerivesIn.yield_rec {n : g.NT} {u : List T} {m : ℕ}
       unfold parseTree.yield
       rw [hp₁, hp₂, hu]
 
-lemma Derives.yield {n : g.NT} {u : List T}
+public lemma Derives.yield {n : g.NT} {u : List T}
     (hnu : g.Derives [Symbol.nonterminal n] (u.map Symbol.terminal)) :
     ∃ p : parseTree n, p.yield = u := by
   rw [derives_iff_derivesIn] at hnu

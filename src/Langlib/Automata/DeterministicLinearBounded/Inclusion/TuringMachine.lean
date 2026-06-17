@@ -1,5 +1,48 @@
-import Mathlib
-import Langlib.Automata.DeterministicLinearBounded.Definition
+module
+
+public import Langlib.Automata.DeterministicLinearBounded.Definition
+public import Mathlib.Computability.PostTuringMachine
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
+
+
 
 /-!
 # DLBA Languages ⊆ Turing Machine Languages
@@ -146,8 +189,8 @@ The `k`-th element of a tape obtained by moving right `k` times.
 theorem tape_iter_move_right_nth {Γ : Type*} [Inhabited Γ]
     (T : Turing.Tape Γ) (k : ℕ) (i : ℤ) :
     ((Turing.Tape.move Turing.Dir.right)^[k] T).nth i = T.nth (i + k) := by
-  induction' k with k ih generalizing i <;> simp_all +decide [ Function.iterate_succ_apply' ];
-  ring
+  induction' k with k ih generalizing i <;> simp_all +decide [ Function.iterate_succ_apply' ]
+  ring_nf
 
 /-
 After moving right `k` times from `Tape.mk₁ l`, the head is `l.getI k`.
@@ -191,8 +234,8 @@ theorem encodeInput_getI {Γ : Type*} {n : ℕ} (w : Fin (n + 1) → Γ)
     (k : ℕ) (hk : k < n + 1) :
     (encodeInput w).getI k = some (w ⟨k, hk⟩) := by
   convert list_getI_eq_get _ _ _ using 1;
-  unfold encodeInput; simp +decide [ List.get ] ;
-  rcases k with ( _ | k ) <;> simp_all +decide [ List.get ];
+  unfold encodeInput; simp +decide ;
+  rcases k with ( _ | k ) <;> simp_all +decide [  ];
   exact hk.trans_le ( by simp +decide [ encodeInput_length ] )
 
 /-
@@ -270,9 +313,9 @@ theorem reading_phase_complete {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq 
   have h_reaches_sim : ∃ T', Turing.TM0.step (toTM0 M n) (⟨.reading (List.ofFn w), (Turing.Tape.move Turing.Dir.right)^[n + 1] (Turing.Tape.mk₁ (encodeInput w))⟩ : SimCfg Γ Λ n) = some (⟨.simulating (initCfg M w), T'⟩ : SimCfg Γ Λ n) := by
     have h_head : ((Turing.Tape.move Turing.Dir.right)^[n + 1] (Turing.Tape.mk₁ (encodeInput w))).head = none := by
       convert tape_mk1_move_right_head _ _ using 1;
-      exact?;
+      exact Eq.symm (encodeInput_getI_end w);
     convert reading_to_simulating M ( List.ofFn w ) _ _ _;
-    all_goals simp_all +decide [ List.get_ofFn ];
+    all_goals simp_all +decide [  ];
     rename_i i; induction i using Fin.inductionOn <;> simp +decide [ * ] ;
   exact ⟨ _, h_reaches.tail h_reaches_sim.choose_spec ⟩
 

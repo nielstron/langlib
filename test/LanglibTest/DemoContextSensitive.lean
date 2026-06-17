@@ -1,6 +1,10 @@
-import Langlib.Grammars.ContextSensitive.Toolbox
-import Langlib.Utilities.ListUtils
+module
 
+public import Langlib.Grammars.ContextSensitive.Toolbox
+public import Langlib.Utilities.ListUtils
+
+
+@[expose] public section
 
 /-! # Context-Sensitive Examples
 

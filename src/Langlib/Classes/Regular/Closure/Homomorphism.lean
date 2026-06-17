@@ -1,8 +1,57 @@
-import Mathlib
-import Langlib.Utilities.Homomorphism
+module
+
+public import Langlib.Classes.Regular.Definition
+public import Langlib.Utilities.ClosurePredicates
+public import Mathlib.Computability.NFA
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Classes.Regular.Closure.Concatenation
-import Langlib.Classes.Regular.Closure.Star
 import Langlib.Classes.Regular.Closure.Substitution
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Homomorphism
+
+Proof idea: a homomorphism is implemented as regular substitution by replacing
+each input letter with the regular singleton language containing its image
+string. The epsilon-free variant is the same construction with the extra
+nonempty-image hypothesis carried through the closure predicate.
+-/
+
+@[expose]
+public section
+
+
 
 /-! # Regular Closure Under (String) Homomorphism
 
@@ -38,6 +87,7 @@ noncomputable def mapNFA (M : DFA α σ) (f : α → β) : NFA β σ where
 
 variable (M : DFA α σ) (f : α → β)
 
+omit [Fintype σ] in
 /-
 The map-NFA evaluates singleton sets correctly: from `{q}` on word `List.map f v`,
     the result contains `M.evalFrom q v`.
@@ -47,6 +97,7 @@ private lemma mapNFA_evalFrom_map (q : σ) (v : List α) :
       induction' v using List.reverseRecOn with v a ih generalizing q <;> simp_all +decide [ NFA.evalFrom_append ];
       exact Set.mem_biUnion ( ih q ) ⟨ a, rfl, rfl ⟩
 
+omit [Fintype σ] in
 /-
 If `q'` is in the NFA evaluation from `{q}` on `w`, then there exists a word `v`
     with `List.map f v = w` and `M.evalFrom q v = q'`.
@@ -62,11 +113,12 @@ private lemma mapNFA_evalFrom_inv (q q' : σ) (w : List β)
           contrapose! h;
           have h_foldl_stepSet : ∀ (S : Set σ) (w : List β), (mapNFA M f).evalFrom S w = ⋃ q'' ∈ S, (mapNFA M f).evalFrom {q''} w := by
             intro S w; induction' w using List.reverseRecOn with w ih <;> simp +decide [ *, NFA.evalFrom_cons ] ;
-            simp +decide [ Set.ext_iff, NFA.stepSet ];
+            simp +decide [ NFA.stepSet ];
           rw [ h_foldl_stepSet ] ; simp +contextual [ h ];
         obtain ⟨ v, hv₁, hv₂ ⟩ := ih q'' q' hq';
         obtain ⟨ a, ha₁, ha₂ ⟩ := hq''; use a :: v; aesop;
 
+omit [Fintype σ] in
 /-
 The map-NFA accepts exactly the image of the DFA language under `List.map f`.
 -/
@@ -98,7 +150,7 @@ variable {γ : Type}
 /-
 The language `{[]}` (containing only the empty word) is regular.
 -/
-theorem isRegular_epsilon : ({[]} : Language γ).IsRegular := by
+public theorem isRegular_epsilon : ({[]} : Language γ).IsRegular := by
   -- The DFA has two states: state 0 (start and accepting) and state 1 (sink). All transitions from state 0 go to state 1, and all transitions from state 1 go to state 1.
   use Fin 2;
   use inferInstance;
@@ -114,7 +166,7 @@ theorem isRegular_epsilon : ({[]} : Language γ).IsRegular := by
 /-
 The language `{[a]}` (containing only the single-letter word) is regular.
 -/
-theorem isRegular_singleton_letter (a : γ) : ({[a]} : Language γ).IsRegular := by
+public theorem isRegular_singleton_letter (a : γ) : ({[a]} : Language γ).IsRegular := by
   constructor;
   refine' ⟨ _, _, _ ⟩;
   case w => exact Fin 3;
@@ -142,7 +194,7 @@ private lemma singleton_cons_eq_mul (a : γ) (w : List γ) :
         cases v ; cases hv ; aesop
 
 /-- Any singleton word language is regular. -/
-theorem isRegular_singleton_word : ∀ (w : List γ), ({w} : Language γ).IsRegular
+public theorem isRegular_singleton_word : ∀ (w : List γ), ({w} : Language γ).IsRegular
   | [] => isRegular_epsilon
   | a :: w => by
       rw [singleton_cons_eq_mul a w]
@@ -163,6 +215,12 @@ theorem RG_closedUnderHomomorphism :
    ClosedUnderHomomorphism is_RG := by
   intro α γ _ _ L h hL
   exact is_RG_of_isRegular (IsRegular.homomorphicImage (isRegular_of_is_RG hL) h)
+
+/-- The class of regular languages is closed under ε-free homomorphism. -/
+theorem RG_closedUnderEpsFreeHomomorphism :
+   ClosedUnderEpsFreeHomomorphism is_RG := by
+  intro α γ _ _ L h _heps hL
+  exact RG_closedUnderHomomorphism L h hL
 
 
 end StringHomomorphism

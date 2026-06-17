@@ -1,4 +1,10 @@
-import Langlib.Grammars.ContextFree.Definition
+module
+
+public import Langlib.Grammars.ContextFree.Definition
+@[expose]
+public section
+
+
 
 /-! # Context-Free Derivation Toolbox
 
@@ -14,40 +20,40 @@ This file provides basic closure lemmas for the derivation relation of a context
 variable {T : Type} {g : CF_grammar T}
 
 
-lemma CF_deri_of_tran {v w : List (symbol T g.nt)} :
+public lemma CF_deri_of_tran {v w : List (symbol T g.nt)} :
   CF_transforms g v w → CF_derives g v w :=
 Relation.ReflTransGen.single
 
 /-- The Relation `CF_derives` is reflexive. -/
-lemma CF_deri_self {w : List (symbol T g.nt)} :
+public lemma CF_deri_self {w : List (symbol T g.nt)} :
   CF_derives g w w :=
 Relation.ReflTransGen.refl
 
 /-- The Relation `CF_derives` is transitive. -/
-lemma CF_deri_of_deri_deri {u v w : List (symbol T g.nt)}
+public lemma CF_deri_of_deri_deri {u v w : List (symbol T g.nt)}
     (huv : CF_derives g u v)
     (hvw : CF_derives g v w) :
   CF_derives g u w :=
 Relation.ReflTransGen.trans huv hvw
 
-lemma CF_deri_of_deri_tran {u v w : List (symbol T g.nt)}
+public lemma CF_deri_of_deri_tran {u v w : List (symbol T g.nt)}
     (huv : CF_derives g u v)
     (hvw : CF_transforms g v w) :
   CF_derives g u w :=
 CF_deri_of_deri_deri huv (CF_deri_of_tran hvw)
 
-lemma CF_deri_of_tran_deri {u v w : List (symbol T g.nt)}
+public lemma CF_deri_of_tran_deri {u v w : List (symbol T g.nt)}
     (huv : CF_transforms g u v)
     (hvw : CF_derives g v w) :
   CF_derives g u w :=
 CF_deri_of_deri_deri (CF_deri_of_tran huv) hvw
 
-lemma CF_tran_or_id_of_deri {u w : List (symbol T g.nt)} (ass : CF_derives g u w) :
+public lemma CF_tran_or_id_of_deri {u w : List (symbol T g.nt)} (ass : CF_derives g u w) :
   (u = w) ∨
   (∃ v : List (symbol T g.nt), (CF_transforms g u v) ∧ (CF_derives g v w)) :=
 Relation.ReflTransGen.cases_head ass
 
-lemma CF_deri_with_prefix {w₁ w₂ : List (symbol T g.nt)}
+public lemma CF_deri_with_prefix {w₁ w₂ : List (symbol T g.nt)}
     (pᵣ : List (symbol T g.nt))
     (ass : CF_derives g w₁ w₂) :
   CF_derives g (pᵣ ++ w₁) (pᵣ ++ w₂) := by
@@ -81,7 +87,7 @@ lemma CF_deri_with_prefix {w₁ w₂ : List (symbol T g.nt)}
 
 
 
-lemma CF_deri_with_postfix {w₁ w₂ : List (symbol T g.nt)}
+public lemma CF_deri_with_postfix {w₁ w₂ : List (symbol T g.nt)}
     (pₒ : List (symbol T g.nt))
     (ass : CF_derives g w₁ w₂) :
   CF_derives g (w₁ ++ pₒ) (w₂ ++ pₒ) := by
@@ -101,7 +107,7 @@ lemma CF_deri_with_postfix {w₁ w₂ : List (symbol T g.nt)}
     · simp [h_bef]
     · simp [h_aft]
 
-lemma CF_deri_with_prefix_and_postfix {w₁ w₂ : List (symbol T g.nt)}
+public lemma CF_deri_with_prefix_and_postfix {w₁ w₂ : List (symbol T g.nt)}
     (pᵣ pₒ : List (symbol T g.nt))
     (ass : CF_derives g w₁ w₂) :
   CF_derives g (pᵣ ++ w₁ ++ pₒ) (pᵣ ++ w₂ ++ pₒ) := by

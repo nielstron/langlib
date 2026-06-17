@@ -1,4 +1,43 @@
-import Mathlib
+module
+
+public import Mathlib.Computability.ContextFreeGrammar
+public import Mathlib.Data.Finset.Union
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-!
 # Every context-free grammar has an equivalent one with finite nonterminals
@@ -162,10 +201,10 @@ theorem restrictWord_append (g : ContextFreeGrammar T)
     (u v : List (Symbol T g.NT)) (hu : g.AllUsed u) (hv : g.AllUsed v)
     (huv : g.AllUsed (u ++ v)) :
     g.restrictWord (u ++ v) huv = g.restrictWord u hu ++ g.restrictWord v hv := by
-  unfold restrictWord; simp +decide [ List.mem_append ] ;
+  unfold restrictWord; simp +decide ;
   congr! 1;
-  · exact?;
-  · exact?
+  · exact List.pmap_congr_left u fun a a_1 h₁ => congrFun rfl;
+  · exact List.pmap_congr_left v fun a a_1 h₁ => congrFun rfl
 
 theorem restrictWord_initial (g : ContextFreeGrammar T) :
     g.restrictWord [.nonterminal g.initial] g.allUsed_initial =
@@ -237,7 +276,7 @@ theorem liftWord_derives (g : ContextFreeGrammar T)
     g.Derives (g.liftWord u) (g.liftWord v) := by
   induction h;
   · constructor;
-  · exact .trans ‹_› ( .single <| by exact? )
+  · exact .trans ‹_› ( .single <| by (expose_names; exact liftWord_produces g h_1) )
 
 /-! ## Direction 2: original derives from initial → toFiniteNT derives -/
 
@@ -270,8 +309,8 @@ theorem restrictWord_derives (g : ContextFreeGrammar T)
   · grind;
   · rename_i h';
     convert Relation.ReflTransGen.tail ( h' ( show g.AllUsed u from ?_ ) ) ( restrictWord_produces g ih ( show g.AllUsed u from ?_ ) ( show g.AllUsed v from hv ) ) using 1;
-    · exact?;
-    · exact?
+    · exact allUsed_derives g h hu;
+    · exact allUsed_derives g h hu
 
 /-! ## Main theorem -/
 
@@ -291,7 +330,7 @@ theorem toFiniteNT_language (g : ContextFreeGrammar T) :
     convert h_restrict_deriv.trans _;
     rw [ restrictWord_map_terminal ]
 
-theorem exists_fintype_nt (L : Language T) (hL : L.IsContextFree) :
+public theorem exists_fintype_nt (L : Language T) (hL : L.IsContextFree) :
     ∃ (g : ContextFreeGrammar T) (_ : Fintype g.NT), g.language = L := by
   obtain ⟨ g, hg ⟩ := hL;
   use g.toFiniteNT;

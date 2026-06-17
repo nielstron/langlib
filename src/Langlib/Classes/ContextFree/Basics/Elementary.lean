@@ -1,6 +1,28 @@
+module
+
+public import Langlib.Grammars.ContextFree.Definition
 import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Utilities.ListUtils
-import Langlib.Utilities.WrittenByOthers.TrimAssoc
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+@[expose]
+public section
+
+
 
 /-! # Elementary Context-Free Languages
 
@@ -17,11 +39,12 @@ variable {T : Type}
 
 
 /-- Context-free grammar for the empty Language (i.e., `∈` always gives `false`). -/
-def cfg_empty_lang : CF_grammar T :=
+@[expose]
+public def cfg_empty_lang : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 []
 
 /-- Characterization of the empty Language. -/
-lemma language_of_cfg_empty_lang :
+public lemma language_of_cfg_empty_lang :
   CF_language (@cfg_empty_lang T) = 0 :=
 by
   unfold CF_language
@@ -43,7 +66,7 @@ by
         rcases h with ⟨v, hstep, _⟩
         rcases hstep with ⟨r, u, v', rin, _, _⟩
         cases rin
-    simpa using this
+    simp at this
   ·
     intro hw
     cases hw
@@ -124,11 +147,12 @@ by
     · simp [hyp, cfg_empty_word]
 
 /-- Context-free grammar for a Language `{a}.star` where `a` is a given terminal symbol. -/
-def cfg_symbol_star (a : T) : CF_grammar T :=
+@[expose]
+public def cfg_symbol_star (a : T) : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 [(0, [symbol.terminal a, symbol.nonterminal 0]), (0, [])]
 
 /-- Characterization of the `{a}.star` Language. -/
-lemma language_of_cfg_symbol_star (a : T) :
+public lemma language_of_cfg_symbol_star (a : T) :
   CF_language (cfg_symbol_star a) = fun w => ∃ n : ℕ, w = List.replicate n a :=
 by
   ext w
@@ -215,4 +239,4 @@ by
     ·
       rw [List.append_nil]
     ·
-      simpa [List.append_nil, List.map_replicate]
+      simp [List.append_nil, List.map_replicate]

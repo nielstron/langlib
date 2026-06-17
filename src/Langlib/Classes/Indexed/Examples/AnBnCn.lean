@@ -1,9 +1,49 @@
-import Mathlib
-import Langlib.Grammars.Indexed.Definition
-import Langlib.Classes.Indexed.Definition
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.ContextFree.Closure.Intersection
-import Langlib.Classes.ContextFree.Inclusion.Indexed
+module
+
+public import Langlib.Classes.Indexed.Definition
+public import Langlib.Examples.AnBnCn
+import Langlib.Utilities.Tactics
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
+
+
 
 /-! # Strict Inclusion: CF ⊊ Indexed
 
@@ -78,7 +118,7 @@ private lemma stk_succ (n : ℕ) : stk (n + 1) = .count :: stk n := by
 private lemma step_S_to_T :
     G.Transforms [iS []] [iT [.bottom]] :=
   ⟨⟨.S, none, [.nonterminal .T (some .bottom)]⟩,
-    [], [], [], by simp [G, grammar_anbncn_indexed], rfl, rfl⟩
+    [], [], [], by simp [grammar_anbncn_indexed], rfl, rfl⟩
 
 private lemma push_counts (n : ℕ) :
     G.Derives [iT (stk 0)] [iT (stk n)] := by
@@ -87,13 +127,13 @@ private lemma push_counts (n : ℕ) :
   | succ n ih =>
     apply ih.tail
     refine ⟨⟨.T, none, [.nonterminal .T (some .count)]⟩, [], [], stk n,
-      by simp [G, grammar_anbncn_indexed], rfl, ?_⟩
+      by simp [grammar_anbncn_indexed], rfl, ?_⟩
     simp [IndexedGrammar.expandRhs, stk_succ]
 
 private lemma step_T_to_ABC (σ : List ANBNCN_Flag) :
     G.Transforms [iT σ] [iA σ, iB σ, iC σ] :=
   ⟨⟨.T, none, [.nonterminal .A none, .nonterminal .B none, .nonterminal .C none]⟩,
-    [], [], σ, by simp [G, grammar_anbncn_indexed], rfl, rfl⟩
+    [], [], σ, by simp [grammar_anbncn_indexed], rfl, rfl⟩
 
 private lemma consume_A (n : ℕ) (suffix : List G.ISym) :
     G.Derives ([iA (stk n)] ++ suffix) (replicate n ia ++ suffix) := by
@@ -138,7 +178,7 @@ private lemma consume_C (n : ℕ) :
         constructor;
         exists ⟨ .C, some .bottom, [ ] ⟩, [ ], [ ], [ ];
         simp +decide [ G ];
-        exact?;
+        exact mem_of_getLast? rfl;
       · -- Apply the transformation from iC (stk (n + 1)) to ic :: iC (stk n).
         have h_transform : G.Transforms [iC (stk (n + 1))] (ic :: iC (stk n) :: []) := by
           use ⟨.C, some .count, [IRhsSymbol.terminal 2, IRhsSymbol.nonterminal .C none]⟩;
@@ -191,7 +231,7 @@ private lemma goodForm_step_case1 {form' : List G.ISym}
       cases ht;
       rename_i r hr;
       obtain ⟨ u, v, σ, hr₁, hr₂, rfl ⟩ := hr;
-      rcases u with ( _ | ⟨ x, u ⟩ ) <;> rcases v with ( _ | ⟨ y, v ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
+      rcases u with ( _ | ⟨ x, u ⟩ ) <;> rcases v with ( _ | ⟨ y, v ⟩ ) <;> simp_all +decide [  ];
       · rcases r with ⟨ _ | _, _ | _, _ | _ ⟩ <;> simp_all +decide [ G ];
         · contradiction;
         · cases hr₁;
@@ -264,7 +304,7 @@ private lemma no_A_before_A (ja : ℕ) :
 /-
 No B-indexed symbol in the prefix before B in the form.
 -/
-private lemma no_B_before_B (ja : ℕ) (doneA : Bool) (n jb : ℕ) (hja : ja ≤ n) :
+private lemma no_B_before_B (ja : ℕ) (doneA : Bool) (n jb : ℕ) (_hja : ja ≤ n) :
     ∀ x ∈ replicate ja ia ++ (if doneA then [] else [iA (stk (n - ja))]) ++ replicate jb ib,
       ∀ σ, x ≠ IndexedGrammar.ISym.indexed ANBNCN_NT.B σ := by
         grind
@@ -273,7 +313,7 @@ private lemma no_B_before_B (ja : ℕ) (doneA : Bool) (n jb : ℕ) (hja : ja ≤
 No C-indexed symbol in the prefix before C in the form.
 -/
 private lemma no_C_before_C (ja : ℕ) (doneA : Bool) (n jb : ℕ) (doneB : Bool)
-    (jc : ℕ) (hja : ja ≤ n) (hjb : jb ≤ n) :
+    (jc : ℕ) (_hja : ja ≤ n) (_hjb : jb ≤ n) :
     ∀ x ∈ replicate ja ia ++ (if doneA then [] else [iA (stk (n - ja))])
           ++ replicate jb ib ++ (if doneB then [] else [iB (stk (n - jb))])
           ++ replicate jc ic,
@@ -284,7 +324,7 @@ private lemma no_C_before_C (ja : ℕ) (doneA : Bool) (n jb : ℕ) (doneB : Bool
 No S-indexed symbol in the ABC form.
 -/
 private lemma no_S_in_abc_form (ja jb jc : ℕ) (n : ℕ)
-    (doneA doneB doneC : Bool) (hja : ja ≤ n) (hjb : jb ≤ n) (hjc : jc ≤ n) :
+    (doneA doneB doneC : Bool) (_hja : ja ≤ n) (_hjb : jb ≤ n) (_hjc : jc ≤ n) :
     ∀ x ∈ replicate ja ia ++ (if doneA then [] else [iA (stk (n - ja))])
           ++ replicate jb ib ++ (if doneB then [] else [iB (stk (n - jb))])
           ++ replicate jc ic ++ (if doneC then [] else [iC (stk (n - jc))]),
@@ -295,7 +335,7 @@ private lemma no_S_in_abc_form (ja jb jc : ℕ) (n : ℕ)
 No T-indexed symbol in the ABC form.
 -/
 private lemma no_T_in_abc_form (ja jb jc : ℕ) (n : ℕ)
-    (doneA doneB doneC : Bool) (hja : ja ≤ n) (hjb : jb ≤ n) (hjc : jc ≤ n) :
+    (doneA doneB doneC : Bool) (_hja : ja ≤ n) (_hjb : jb ≤ n) (_hjc : jc ≤ n) :
     ∀ x ∈ replicate ja ia ++ (if doneA then [] else [iA (stk (n - ja))])
           ++ replicate jb ib ++ (if doneB then [] else [iB (stk (n - jb))])
           ++ replicate jc ic ++ (if doneC then [] else [iC (stk (n - jc))]),
@@ -325,7 +365,7 @@ private lemma goodForm_step_on_A {n ja jb jc : ℕ} {doneB doneC : Bool}
             grind;
           rw [ List.append_eq_append_iff ] at h_u;
           rcases h_u with ( ⟨ as, has₁, has₂ ⟩ | ⟨ bs, hbs₁, hbs₂ ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-          rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+          rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [  ];
           have h_contra : ∀ x ∈ replicate ja ia, x ≠ IndexedGrammar.ISym.indexed ANBNCN_NT.A (f :: σ) := by
             intro x hx; rw [ List.eq_of_mem_replicate hx ] ; exact terminal_ne_indexed _ _ _;
           grind;
@@ -338,7 +378,7 @@ private lemma goodForm_step_on_A {n ja jb jc : ℕ} {doneB doneC : Bool}
           grind +ring;
       -- Prove that $f :: σ = stk (n - ja)$.
       have hfs : f :: σ = stk (n - ja) := by
-        replace heq := congr_arg ( fun x => x.drop ja ) heq ; simp_all +decide [ List.drop_append ] ;
+        replace heq := congr_arg ( fun x => x.drop ja ) heq ; simp_all +decide [  ] ;
       rcases k : n - ja with ( _ | k ) <;> simp_all +decide [ stk_succ ];
       · unfold G at *; simp_all +decide [ grammar_anbncn_indexed ] ;
         cases hr <;> simp_all +decide [ stk ];
@@ -351,7 +391,7 @@ private lemma goodForm_step_on_A {n ja jb jc : ℕ} {doneB doneC : Bool}
       · unfold G at hr; simp_all +decide [ grammar_anbncn_indexed ] ;
         convert GoodForm.withABC n ( ja + 1 ) jb jc Bool.false doneB doneC _ _ _ _ _ _ using 1 <;> norm_num [ Nat.succ_eq_add_one, Nat.add_sub_add_right ];
         all_goals norm_cast;
-        · simp +decide [ ← k, List.replicate_add, IndexedGrammar.expandRhs ];
+        · simp +decide [ List.replicate_add, IndexedGrammar.expandRhs ];
           omega;
         · omega
 
@@ -376,16 +416,16 @@ private lemma goodForm_step_on_B {n ja jb jc : ℕ} {doneA doneC : Bool}
           simpa only [ List.append_assoc ] using heq;
         rw [ List.append_eq_append_iff ] at h_split;
         rcases h_split with ( ⟨ as, has₁, has₂ ⟩ | ⟨ bs, has₁, has₂ ⟩ ) <;> simp_all +decide [ List.append_assoc ];
-        · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+        · rcases as with ( _ | ⟨ a, as ⟩ ) <;> simp_all +decide [  ];
           have := no_B_before_B ja doneA n jb hja; simp_all +decide [ List.append_assoc ] ;
           exact this _ ( Or.inr <| Or.inl rfl ) _ has₂.1.symm;
-        · rcases bs with ( _ | ⟨ x, bs ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+        · rcases bs with ( _ | ⟨ x, bs ⟩ ) <;> simp_all +decide [  ];
           have h_split : ∀ x ∈ replicate jc ic ++ (if doneC then [] else [iC (stk (n - jc))]), ∀ σ, x ≠ IndexedGrammar.ISym.indexed ANBNCN_NT.B σ := by
             split_ifs <;> simp_all +decide [ List.mem_append, List.mem_replicate ];
-            rintro x ( ⟨ _, rfl ⟩ | rfl ) σ <;> simp +decide [ IndexedGrammar.ISym ];
+            rintro x ( ⟨ _, rfl ⟩ | rfl ) σ <;> simp +decide;
           grind;
       obtain ⟨ u', v', rfl, rfl ⟩ := h_split; simp_all +decide [ List.append_assoc ] ;
-      rcases u' with ( _ | ⟨ _, _ | u' ⟩ ) <;> simp_all +decide [ List.append_assoc ] ;
+      rcases u' with ( _ | ⟨ _, _ | u' ⟩ ) <;> simp_all +decide [  ] ;
       · rcases n' : n - jb with ( _ | n' ) <;> simp_all +decide [ stk_succ ];
         · unfold G at hr; simp_all +decide [ stk ] ;
           unfold grammar_anbncn_indexed at hr; simp_all +decide [ List.mem_cons ] ;
@@ -395,8 +435,8 @@ private lemma goodForm_step_on_B {n ja jb jc : ℕ} {doneA doneC : Bool}
           · rcases x with ( _ | _ | x ) <;> simp_all +decide [ grammar_anbncn_indexed ];
           · unfold grammar_anbncn_indexed at hr; simp_all +decide ;
             unfold grammar_anbncn_indexed; simp +decide [ IndexedGrammar.expandRhs ] ;
-            convert GoodForm.withABC n ja ( jb + 1 ) jc doneA false doneC ( by linarith ) ( by omega ) ( by omega ) ( by aesop ) ( by aesop ) using 1 ; simp +decide [ List.replicate_add ] ; ring;
-            rw [ show n - ( 1 + jb ) = n - jb - 1 by rw [ Nat.sub_sub, add_comm ] ] ; simp +decide [ n', heq ] ; aesop;
+            convert GoodForm.withABC n ja ( jb + 1 ) jc doneA false doneC ( by linarith ) ( by omega ) ( by omega ) ( by aesop ) ( by aesop ) using 1 ; simp +decide [ List.replicate_add ] ; ring_nf;
+            rw [ show n - ( 1 + jb ) = n - jb - 1 by rw [ Nat.sub_sub, add_comm ] ] ; simp +decide [ n' ] ; aesop;
       · replace heq := congr_arg List.length heq.2 ; simp_all +arith +decide [ List.length_append ] ;
       · replace heq := congr_arg List.length heq.2 ; simp_all +arith +decide;
 
@@ -433,14 +473,14 @@ private lemma goodForm_step_on_C {n ja jb jc : ℕ} {doneA doneB : Bool}
         · omega;
       · rcases k : n - jc with ( _ | _ | k ) <;> simp_all +decide [ stk ];
         · unfold grammar_anbncn_indexed at hr; simp_all +decide ;
-          split_ifs <;> simp_all +decide [ GoodForm ];
+          split_ifs <;> simp_all +decide [  ];
           · convert GoodForm.withABC n n n n Bool.true Bool.true Bool.true _ _ _ _ _ _ using 1 <;> simp +decide [ * ];
             rw [ Nat.sub_eq_iff_eq_add ] at k <;> aesop;
-          · convert GoodForm.withABC n n jb jc doneA doneB true _ _ _ _ _ _ using 1 <;> simp +decide [ *, Nat.sub_eq_iff_eq_add' hjc ];
+          · convert GoodForm.withABC n n jb jc doneA doneB true _ _ _ _ _ _ using 1 <;> simp +decide [ * ];
             omega;
-          · convert GoodForm.withABC n ja n jc doneA true true _ _ _ _ _ _ using 1 <;> simp +decide [ *, Nat.sub_eq_iff_eq_add ];
+          · convert GoodForm.withABC n ja n jc doneA true true _ _ _ _ _ _ using 1 <;> simp +decide [ * ];
             omega;
-          · convert GoodForm.withABC n ja jb jc doneA doneB true _ _ _ _ _ _ using 1 <;> simp +decide [ *, Nat.sub_eq_iff_eq_add ];
+          · convert GoodForm.withABC n ja jb jc doneA doneB true _ _ _ _ _ _ using 1 <;> simp +decide [ * ];
             omega;
         · cases heq.1
 
@@ -477,7 +517,7 @@ private lemma goodForm_step_case3 {n ja jb jc : ℕ} {doneA doneB doneC : Bool}
             · cases r ; aesop;
             · grind;
             · rw [ List.append_assoc ];
-        · rcases doneA with ( _ | _ | _ ) <;> simp_all +decide [ add_assoc ];
+        · rcases doneA with ( _ | _ | _ ) <;> simp_all +decide [  ];
           · apply goodForm_step_on_A hja hjb hjc hdB hdC;
             rotate_left;
             convert heq.symm using 1;
@@ -510,7 +550,7 @@ private lemma goodForm_step_case3 {n ja jb jc : ℕ} {doneA doneB doneC : Bool}
             · cases r_consume : r.consume <;> simp_all +decide;
               · unfold G at hr; simp_all +decide [ grammar_anbncn_indexed ] ;
                 rcases hr with ( rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl ) <;> simp_all +decide;
-              · have := no_C_before_C ja doneA n jb doneB jc hja hjb; simp_all +decide [ List.mem_append, List.mem_replicate ] ;
+              · have := no_C_before_C ja doneA n jb doneB jc hja hjb; simp_all +decide [ List.mem_append ] ;
                 exact False.elim <| this _ ( Or.inr <| Or.inl rfl ) _ rfl;
             · cases r_consume : r.consume <;> simp_all +decide [ G ];
               · unfold grammar_anbncn_indexed at hr; aesop;
@@ -522,12 +562,12 @@ private lemma goodForm_step_case3 {n ja jb jc : ℕ} {doneA doneB doneC : Bool}
                 cases r ; aesop;
           · rcases r with ⟨ lhs, consume, rhs ⟩;
             cases lhs <;> cases consume <;> simp_all +decide [ G ];
-            · have := no_S_in_abc_form ja jb jc n doneA doneB doneC hja hjb hjc; simp_all +decide [ List.mem_append, List.mem_replicate ] ;
+            · have := no_S_in_abc_form ja jb jc n doneA doneB doneC hja hjb hjc; simp_all +decide [ List.mem_append ] ;
               exact False.elim <| this _ ( Or.inr <| Or.inl rfl ) _ rfl;
             · cases hr;
               contradiction;
             · have := no_T_in_abc_form ja jb jc n doneA doneB doneC hja hjb hjc;
-              simp_all +decide [List.mem_append, List.mem_replicate];
+              simp_all +decide [List.mem_append];
               exact False.elim <| this _ (Or.inr <| Or.inl rfl) _ rfl;
             · cases hr;
               contradiction
@@ -569,7 +609,7 @@ private lemma goodForm_terminal {w : List (Fin 3)}
         exact ⟨ n, by simpa using List.map_injective_iff.mpr ( show Function.Injective ( fun t : Fin 3 => IndexedGrammar.ISym.terminal t ) from fun a b h => by cases a ; cases b ; cases h ; trivial ) hn ⟩;
       exact hg ⟨ n, hn ⟩
 
-theorem is_Indexed_lang_eq_eq : is_Indexed lang_eq_eq := by
+public theorem is_Indexed_lang_eq_eq : is_Indexed lang_eq_eq := by
   refine ⟨G, ?_⟩
   ext w; constructor
   · intro hw

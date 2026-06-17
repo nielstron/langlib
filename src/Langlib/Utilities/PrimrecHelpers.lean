@@ -1,4 +1,44 @@
-import Mathlib
+module
+
+public import Mathlib.Computability.Partrec
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Primitive Recursive Helpers
 
@@ -14,7 +54,7 @@ variable {α : Type} [Primcodable α]
 /-
 `List.take` is primitive recursive (as a function of both arguments).
 -/
-lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l.take n) := by
+public lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l.take n) := by
   -- We can show that `List.take` is primitive recursive using `Primrec.list_foldl.` The initial state `(n, [])` is primitive recursive.
   have h_take : Primrec (fun pl : ℕ × List α => (pl.2.foldl (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (pl.1, [])).2) := by
     have h_take : Primrec₂ (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) := by
@@ -42,7 +82,7 @@ lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l.take n
       · rfl;
     exact Primrec.snd.comp h_foldl;
   have h_take_eq : ∀ n l, (l.foldl (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (n, [])).2 = take n l := by
-    intro n l; induction' l using List.reverseRecOn with x l ih generalizing n <;> simp_all +decide [ List.take ] ;
+    intro n l; induction' l using List.reverseRecOn with x l ih generalizing n <;> simp_all +decide [  ] ;
     split_ifs <;> simp_all +decide [ List.take_append ];
     · have h_foldl_zero : ∀ (l : List α) (n : ℕ), (List.foldl (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (n, []) l).1 = n - l.length := by
         intro l n; induction' l using List.reverseRecOn with x l ih generalizing n <;> simp_all +decide [ List.length ] ;
@@ -50,7 +90,7 @@ lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l.take n
       rw [ ← h_foldl_zero, ‹ ( foldl ( fun s x => if s.1 = 0 then ( 0, s.2 ) else ( s.1 - 1, s.2 ++ [ x ] ) ) ( n, [] ) x ).1 = 0 › ];
     · -- By definition of `foldl`, if the first component of the result is not zero, then `n` must be greater than the length of `x`.
       have h_foldl : ∀ (n : ℕ) (x : List α), (foldl (fun s x => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (n, []) x).1 = n - x.length := by
-        intro n x; induction' x using List.reverseRecOn with x l ih <;> simp_all +decide [ List.take ] ;
+        intro n x; induction' x using List.reverseRecOn with x l ih <;> simp_all +decide [  ] ;
         lia;
       exact h_foldl n x ▸ Nat.pos_of_ne_zero ‹_›;
   simpa only [ ← h_take_eq ] using h_take.comp ( Primrec.fst.pair Primrec.snd )
@@ -58,7 +98,7 @@ lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l.take n
 /-
 `List.drop` is primitive recursive (as a function of both arguments).
 -/
-lemma primrec₂_list_drop : Primrec₂ (fun (n : ℕ) (l : List α) => l.drop n) := by
+public lemma primrec₂_list_drop : Primrec₂ (fun (n : ℕ) (l : List α) => l.drop n) := by
   -- We'll use induction on $n$ to prove that `drop` is primitive recursive.
   have h_ind : ∀ n : ℕ,
       Primrec (fun (l : List α) => drop n l) := by
@@ -75,17 +115,36 @@ lemma primrec₂_list_drop : Primrec₂ (fun (n : ℕ) (l : List α) => l.drop n
   · exact Primrec.comp ( h_ind 1 ) ( Primrec.snd.comp ( Primrec.snd ) );
   · constructor <;> intro h <;> simp_all +decide [ Primrec₂ ];
     · convert h.comp ( show Primrec ( fun p : List α × ℕ => ( p.2, p.1 ) ) from ?_ ) using 1;
-      · exact funext fun p => by induction p.2 <;> simp +decide [ *, Nat.rec ] ;
+      · exact funext fun p => by induction p.2 <;> simp +decide [ * ] ;
       · exact Primrec.pair ( Primrec.snd ) ( Primrec.fst );
     · convert h.comp ( show Primrec ( fun p : ℕ × List α => ( p.2, p.1 ) ) from ?_ ) using 1;
       · ext ⟨ n, l ⟩ ; induction n <;> simp +decide [ *, List.drop ] ;
         rename_i k hk;
         rw [ show ( Nat.rec l ( fun n IH => IH.tail ) k : List α ) = l.drop k from ?_ ];
         · grind;
-        · exact Nat.recOn k rfl fun n IH => by simp +decide [ IH, List.drop ] ;
+        · exact Nat.recOn k rfl fun n IH => by simp +decide [ IH ] ;
       · exact Primrec.pair ( Primrec.snd ) ( Primrec.fst )
 
 end PrimrecListOps
+
+section PrimrecFiniteHomomorphism
+
+/-- A fixed string homomorphism out of a finite alphabet is primitive recursive on words. -/
+theorem primrec_flatMap_finite {α β : Type} [Primcodable α] [Primcodable β] [Finite α]
+    (h : α → List β) : Primrec (fun w : List α => w.flatMap h) := by
+  exact Primrec.list_flatMap (f := fun w : List α => w) (g := fun _ a => h a)
+    Primrec.id ((Primrec.dom_finite h).comp Primrec.snd)
+
+/-- Equality against the image of a fixed finite-alphabet string homomorphism is computable. -/
+theorem computable₂_flatMap_eq_finite {α β : Type} [DecidableEq β]
+    [Primcodable α] [Primcodable β] [Finite α]
+    (h : α → List β) :
+    Computable₂ (fun w : List α => fun u : List β => decide (w.flatMap h = u)) := by
+  apply Computable₂.mk
+  simpa only [decide_eq_true_eq] using
+    (Primrec.beq.comp ((primrec_flatMap_finite h).comp Primrec.fst) Primrec.snd).to_comp
+
+end PrimrecFiniteHomomorphism
 
 section PrimrecListAny
 
@@ -94,14 +153,14 @@ variable {α : Type} [Primcodable α]
 /-
 `List.any` with a fixed predicate is primitive recursive.
 -/
-lemma primrec_list_any {f : α → List β} {p : α → β → Bool}
+public lemma primrec_list_any {f : α → List β} {p : α → β → Bool}
     [Primcodable β]
     (hf : Primrec f) (hp : Primrec₂ p) :
     Primrec (fun a => (f a).any (p a)) := by
   -- Use the given `Primrec₂` hypothesis plus `Primrec.fst` and `Primrec.snd` to make a `Primrec` function from `α × β × Bool` to `Bool`.
   have hp_step : Primrec (fun (ab : α × (β × Bool)) => p ab.1 ab.2.1 || ab.2.2) := by
     have hp_step : Primrec (fun (ab : α × β) => p ab.1 ab.2) := by
-      exact?;
+      exact Primrec₂.curry.mp hp;
     convert Primrec.cond ?_ ?_ ?_ using 1;
     · exact hp_step.comp ( Primrec.fst.pair ( Primrec.fst.comp Primrec.snd ) );
     · exact Primrec.const Bool.true;

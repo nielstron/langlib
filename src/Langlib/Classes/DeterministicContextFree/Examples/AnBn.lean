@@ -1,7 +1,45 @@
-import Mathlib
-import Langlib.Automata.DeterministicPushdown.Definition
-import Langlib.Classes.DeterministicContextFree.Definition
-import Langlib.Classes.Regular.Basics.NonRegular
+module
+
+public import Langlib.Classes.DeterministicContextFree.Definition
+public import Langlib.Examples.AnBn
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # `a^n b^n` as a DCF
 
@@ -12,7 +50,8 @@ This file constructs a deterministic pushdown automaton for the language
 open PDA List
 
 /-- DPDA recognizing `{aⁿbⁿ | n ≥ 0}` where `false = a` and `true = b`. -/
-def dpda_anbn : DPDA (Fin 4) Bool Bool where
+@[expose]
+public def dpda_anbn : DPDA (Fin 4) Bool Bool where
   initial_state := 0
   start_symbol := false
   final_states := {(0 : Fin 4), (3 : Fin 4)}
@@ -160,12 +199,12 @@ private lemma inv_step_state1 (w : List Bool) (na : ℕ) (input : List Bool)
     cases' a with a a <;> simp_all +decide [Reaches₁]
     · unfold step at hstep
       unfold dpda_anbn at hstep
-      simp_all +decide [PDA.transition_fun, PDA.transition_fun']
+      simp_all +decide []
       unfold DPDA.toPDA at hstep
-      simp_all +decide [List.replicate]
+      simp_all +decide []
       use na + 2, 0
       exact Nat.recOn na (by simp +decide) fun n ihn => by simp +decide [List.replicate] at ihn ⊢; aesop
-    · cases' hstep with h h <;> simp_all +decide [step]
+    · cases' hstep with h h <;> simp_all +decide []
       · unfold DPDA.toPDA at h
         simp_all +decide [dpda_anbn]
         use na + 1, 1
@@ -184,12 +223,12 @@ private lemma inv_step_state2 (w : List Bool) (na nb : ℕ) (input : List Bool)
   unfold PDA.step at hstep
   cases input <;> cases h : na - nb <;> simp_all +decide [dpda_anbn]
   · unfold DPDA.toPDA at hstep
-    simp_all +decide [dpda_anbn]
+    simp_all +decide []
     use nb, nb
     rw [Nat.sub_eq_iff_eq_add] at h <;> aesop
-  · cases hstep <;> simp_all +decide [dpda_anbn]
+  · cases hstep ; simp_all +decide []
     unfold DPDA.toPDA at *
-    simp_all +decide [PDA.transition_fun']
+    simp_all +decide []
   · unfold DPDA.toPDA at *
     exact ⟨na, na, by rw [Nat.sub_eq_iff_eq_add] at h <;> aesop⟩
   · unfold DPDA.toPDA at hstep
@@ -240,10 +279,10 @@ private lemma dpda_anbn_sound (w : List Bool)
   · exact ⟨na, rfl⟩
 
 /-- The DPDA `dpda_anbn` accepts exactly the language `{aⁿbⁿ}`. -/
-theorem dpda_anbn_accepts : dpda_anbn.acceptsByFinalState = anbn := by
+public theorem dpda_anbn_accepts : dpda_anbn.acceptsByFinalState = anbn := by
   ext w
   exact ⟨dpda_anbn_sound w, fun ⟨n, hw⟩ => hw ▸ dpda_anbn_complete n⟩
 
 /-- The language `{aⁿbⁿ}` is deterministic context-free. -/
-theorem anbn_is_DCF : is_DCF anbn :=
+public theorem anbn_is_DCF : is_DCF anbn :=
   ⟨Fin 4, Bool, inferInstance, inferInstance, dpda_anbn, dpda_anbn_accepts⟩

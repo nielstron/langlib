@@ -1,13 +1,58 @@
-import Mathlib
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
+module
+
+public import Langlib.Utilities.ClosurePredicates
+public import Langlib.Classes.Regular.Definition
+import Langlib.Automata.FiniteState.Equivalence.Regular
 import Langlib.Classes.Regular.Basics.NonRegular
 import Langlib.Classes.Regular.Examples.TopBot
-import Langlib.Utilities.ClosurePredicates
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Union
+
+Proof idea: run the two finite automata in product, updating both states on each
+input symbol and accepting when either component accepts. This recognizes the
+union because every input is processed by both automata in lockstep.
+-/
+
+@[expose]
+public section
+
+
 
 /-! # Regular Closure Under Union
 
 This file restates mathlib's closure of regular languages under union and shows
-that the converse fails.
+that the converse fails over any nontrivial alphabet.
 
 ## Main declarations
 
@@ -20,19 +65,20 @@ namespace Language
 variable {α : Type*}
 
 /-- Regular languages are closed under union. -/
-theorem IsRegular.add' {L₁ L₂ : Language α} (h₁ : L₁.IsRegular) (h₂ : L₂.IsRegular) :
+public theorem IsRegular.add' {L₁ L₂ : Language α} (h₁ : L₁.IsRegular) (h₂ : L₂.IsRegular) :
     (L₁ + L₂).IsRegular := by
   exact h₁.add h₂
 
-/-- The converse of union closure fails. -/
-theorem not_iff_regular_union :
-    ¬ (∀ (L₁ L₂ : Language Bool), (L₁ + L₂).IsRegular ↔ (L₁.IsRegular ∧ L₂.IsRegular)) := by
+/-- The converse of union closure fails over any nontrivial alphabet. -/
+theorem not_iff_regular_union [Nontrivial α] :
+    ¬ (∀ (L₁ L₂ : Language α), (L₁ + L₂).IsRegular ↔ (L₁.IsRegular ∧ L₂.IsRegular)) := by
   intro h
-  have hunion : (anbn + anbnᶜ).IsRegular := by
-    have : anbn + anbnᶜ = ⊤ := sup_compl_eq_top
+  obtain ⟨L, hL⟩ := exists_nonRegular_language_of_nontrivial (T := α)
+  have hunion : (L + Lᶜ).IsRegular := by
+    have : L + Lᶜ = ⊤ := sup_compl_eq_top
     rw [this]
     exact isRegular_top
-  exact anbn_not_isRegular ((h anbn anbnᶜ).mp hunion).1
+  exact hL ((h L Lᶜ).mp hunion).1
 
 end Language
 

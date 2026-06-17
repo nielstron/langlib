@@ -1,6 +1,56 @@
-import Mathlib
-import Langlib.Automata.FiniteState.Equivalence.RegularDFAEquiv
-import Langlib.Utilities.ClosurePredicates
+module
+
+public import Langlib.Utilities.ClosurePredicates
+public import Langlib.Classes.Regular.Definition
+public import Mathlib.Computability.EpsilonNFA
+import Langlib.Automata.FiniteState.Equivalence.Regular
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Order.BourbakiWitt
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+
+/-! # Regular Closure Under Concatenation
+
+Proof idea: build an epsilon-NFA with a copy of the automaton for `L₁` and a
+copy of the automaton for `L₂`. It starts in the `L₁` copy, follows `L₁` on a
+prefix, and may take an epsilon transition from an accepting `L₁` state into the
+`L₂` start state; acceptance then records a split `w = u ++ v`.
+-/
+
+@[expose]
+public section
+
+
 
 /-! # Regular Closure Under Concatenation
 
@@ -26,7 +76,8 @@ variable {σ₁ σ₂ : Type*} [Fintype σ₁] [Fintype σ₂]
 
 States are `σ₁ ⊕ σ₂`. On the left side we simulate `M₁`; on the right, `M₂`.
 Accepting states of `M₁` get an ε-transition to `M₂`'s start state. -/
-noncomputable def concatεNFA (M₁ : DFA α σ₁) (M₂ : DFA α σ₂) : εNFA α (σ₁ ⊕ σ₂) where
+@[expose]
+public noncomputable def concatεNFA (M₁ : DFA α σ₁) (M₂ : DFA α σ₂) : εNFA α (σ₁ ⊕ σ₂) where
   step := fun s c =>
     match s, c with
     | Sum.inl q, some a => {Sum.inl (M₁.step q a)}
@@ -38,6 +89,7 @@ noncomputable def concatεNFA (M₁ : DFA α σ₁) (M₂ : DFA α σ₂) : εNF
 
 variable (M₁ : DFA α σ₁) (M₂ : DFA α σ₂)
 
+omit [Fintype σ₁] [Fintype σ₂] in
 /-
 ε-closure of a right-side singleton: no ε-transitions from `Sum.inr`.
 -/
@@ -48,6 +100,7 @@ private lemma εClosure_inr (q : σ₂) :
         unfold concatεNFA at * ; aesop;
       · exact Set.singleton_subset_iff.mpr ( εNFA.εClosure.base _ ( by simp +decide ) )
 
+omit [Fintype σ₁] [Fintype σ₂] in
 /-
 Processing a word from a single `Sum.inr` state follows `M₂` exactly.
 -/
@@ -55,9 +108,10 @@ private lemma evalFrom_inr (q : σ₂) (w : List α) :
     (concatεNFA M₁ M₂).evalFrom {Sum.inr q} w = {Sum.inr (M₂.evalFrom q w)} := by
       induction' w using List.reverseRecOn with w a ih;
       · convert εClosure_inr M₁ M₂ q;
-      · simp_all +decide [ List.foldl_append, εNFA.stepSet ];
+      · simp_all +decide [ εNFA.stepSet ];
         convert εClosure_inr M₁ M₂ ( M₂.step ( M₂.evalFrom q w ) a ) using 1
 
+omit [Fintype σ₁] [Fintype σ₂] in
 /-
 ε-closure of a left-side singleton when the state is NOT accepting in `M₁`.
 -/
@@ -71,6 +125,7 @@ private lemma εClosure_inl_not_accept (q : σ₁) (hq : q ∉ M₁.accept) :
         · unfold concatεNFA at *; aesop;
       exact Set.eq_singleton_iff_unique_mem.mpr ⟨ by tauto, h_no_ε_transitions ⟩
 
+omit [Fintype σ₁] [Fintype σ₂] in
 /-
 ε-closure of a left-side singleton when the state IS accepting in `M₁`.
 -/
@@ -82,15 +137,16 @@ private lemma εClosure_inl_accept (q : σ₁) (hq : q ∈ M₁.accept) :
         · grind;
         · cases hxy <;> simp_all +decide [ concatεNFA ];
       · intro x hx;
-        induction x <;> simp_all +decide [ εNFA.εClosure ];
+        induction x <;> simp_all +decide [  ];
         · -- Since the ε-closure of a singleton set is the set itself, we have:
-          apply εNFA.εClosure.base; simp [hx];
+          apply εNFA.εClosure.base; simp;
         · apply εNFA.εClosure.step;
           any_goals exact Sum.inl q;
           · unfold concatεNFA; aesop;
           · apply εNFA.εClosure.base;
             simp +decide
 
+omit [Fintype σ₁] [Fintype σ₂] in
 /-
 The set of states reachable after processing `w` from `Sum.inl q` always
 includes `Sum.inl (M₁.evalFrom q w)`. It may also include `Sum.inr` states
@@ -104,6 +160,7 @@ private lemma evalFrom_inl_contains (q : σ₁) (w : List α) :
         refine' Or.inl ⟨ _, ‹∀ q : σ₁, Sum.inl ( M₁.evalFrom q w ) ∈ List.foldl ( concatεNFA M₁ M₂ ).stepSet ( ( concatεNFA M₁ M₂ ).εClosure { Sum.inl q } ) w› q, _ ⟩;
         exact εNFA.εClosure.base _ ( by simp +decide [ concatεNFA ] )
 
+omit [Fintype σ₁] [Fintype σ₂] in
 /-
 evalFrom is monotone in the starting set.
 -/
@@ -111,6 +168,7 @@ private lemma evalFrom_mono (S T : Set (σ₁ ⊕ σ₂)) (w : List α) (h : S �
     (concatεNFA M₁ M₂).evalFrom S w ⊆ (concatεNFA M₁ M₂).evalFrom T w := by
       grind +suggestions
 
+omit [Fintype σ₁] [Fintype σ₂] in
 /-
 If `Sum.inl q` is reachable, then `Sum.inr M₂.start` is reachable when `q ∈ M₁.accept`.
 -/
@@ -120,7 +178,7 @@ private lemma inr_start_reachable_of_inl_accept (q : σ₁) (w : List α)
     Sum.inr M₂.start ∈ (concatεNFA M₁ M₂).evalFrom {Sum.inl M₁.start} w := by
       contrapose! hreach;
       induction' w using List.reverseRecOn with w IH <;> simp_all +decide [ εNFA.evalFrom ];
-      · cases eq_or_ne q M₁.start <;> simp_all +decide [ εNFA.εClosure ];
+      · cases eq_or_ne q M₁.start <;> simp_all +decide [  ];
         · exact False.elim ( hreach ( by rw [ εClosure_inl_accept M₁ M₂ M₁.start hq ] ; simp +decide ) );
         · rintro ⟨ s, hs ⟩;
           · aesop;
@@ -134,8 +192,9 @@ private lemma inr_start_reachable_of_inl_accept (q : σ₁) (w : List α)
           have := hreach.1 x hx; simp_all +decide [ εClosure_inl_accept ] ;
         · intro h;
           convert εClosure_inr M₁ M₂ ( M₂.step x IH ) ▸ h using 1;
-          simp +decide [ Set.ext_iff ]
+          simp +decide
 
+omit [Fintype σ₂] in
 /-
 evalFrom distributes: `evalFrom S (u ++ v) = evalFrom (evalFrom S u) v`.
 -/
@@ -152,7 +211,7 @@ private lemma evalFrom_append (S : Set (σ₁ ⊕ σ₂)) (u v : List α) :
           · exact Or.inl hq;
           · unfold concatεNFA at * ; aesop;
         · intro q hq;
-          split_ifs at hq <;> simp_all +decide [ εNFA.εClosure ];
+          split_ifs at hq <;> simp_all +decide [  ];
           · rcases hq with ( rfl | hq );
             · grind +suggestions;
             · exact Set.mem_setOf_eq.mpr ( by tauto );
@@ -162,6 +221,7 @@ private lemma evalFrom_append (S : Set (σ₁ ⊕ σ₂)) (u v : List α) :
       · exact Or.inr ⟨ x, hx, hx' ⟩;
       · grind
 
+omit [Fintype σ₂] in
 /-
 Backward direction: `M₁.accepts * M₂.accepts ⊆ concatεNFA.accepts`.
 -/
@@ -174,9 +234,9 @@ private lemma concat_backward {w : List α} (hw : w ∈ M₁.accepts * M₂.acce
           apply Set.singleton_subset_iff.mpr;
           apply inr_start_reachable_of_inl_accept;
           exact hu;
-          exact?;
+          exact evalFrom_inl_contains M₁ M₂ M₁.start u;
         have h_eval_from : (concatεNFA M₁ M₂).evalFrom {Sum.inr M₂.start} v ⊆ (concatεNFA M₁ M₂).evalFrom ((concatεNFA M₁ M₂).evalFrom {Sum.inl M₁.start} u) v := by
-          exact?;
+          exact evalFrom_mono M₁ M₂ {Sum.inr M₂.start} ((concatεNFA M₁ M₂).evalFrom {Sum.inl M₁.start} u) v h_eval_from;
         exact h_eval_from ( by rw [ evalFrom_inr ] ; simp +decide );
       exact ⟨ _, Set.mem_image_of_mem _ hv, h_eval_from ⟩
 
@@ -197,15 +257,15 @@ private lemma inr_reachable_split (q : σ₁) (w : List α) (q₂ : σ₂)
           · simp_all +decide [ εNFA.evalFrom_append_singleton ];
             rcases hw with ( ⟨ q₁, hq₁, hq₂ ⟩ | ⟨ q₂, hq₁, hq₂ ⟩ );
             · have h_step : (concatεNFA M₁ M₂).step (Sum.inl q₁) (some a) = {Sum.inl (M₁.step q₁ a)} := by
-                exact?;
+                exact Eq.symm (Set.Subset.antisymm (fun ⦃a_1⦄ => congrArg fun ⦃a⦄ => a) fun ⦃a_1⦄ => congrArg fun ⦃a⦄ => a);
               have h_eps_closure : ∀ s : σ₁ ⊕ σ₂, (concatεNFA M₁ M₂).εClosure {s} = if s ∈ Set.range Sum.inl then if s ∈ Set.image Sum.inl M₁.accept then {s, Sum.inr M₂.start} else {s} else if s ∈ Set.range Sum.inr then {s} else ∅ := by
-                intro s; rcases s with ( s | s ) <;> simp +decide [ εClosure_inl_not_accept, εClosure_inl_accept, εClosure_inr ] ;
+                intro s; rcases s with ( s | s ) <;> simp +decide [ εClosure_inr ] ;
                 split_ifs with hs <;> simp +decide [ hs, εClosure_inl_not_accept, εClosure_inl_accept ];
               grind;
             · -- Since the ε-closure of {Sum.inr (M₂.step q₂ a)} is just {Sum.inr (M₂.step q₂ a)}, we have Sum.inl q₁ = Sum.inr (M₂.step q₂ a), which is a contradiction.
               have h_contra : Sum.inl q₁ = Sum.inr (M₂.step q₂ a) := by
                 have h_contra : (concatεNFA M₁ M₂).εClosure {Sum.inr (M₂.step q₂ a)} = {Sum.inr (M₂.step q₂ a)} := by
-                  exact?;
+                  exact εClosure_inr M₁ M₂ (M₂.step q₂ a);
                 exact h_contra.subset hq₂;
               cases h_contra;
         induction' w using List.reverseRecOn with w a ih generalizing q q₂;
@@ -216,11 +276,11 @@ private lemma inr_reachable_split (q : σ₁) (w : List α) (q₂ : σ₂)
           · intro x hx;
             rw [ show ( concatεNFA M₁ M₂ ).step ( Sum.inl x ) ( some a ) = { Sum.inl ( M₁.step x a ) } from ?_ ];
             · rw [ show ( concatεNFA M₁ M₂ ).εClosure { Sum.inl ( M₁.step x a ) } = if M₁.step x a ∈ M₁.accept then { Sum.inl ( M₁.step x a ), Sum.inr M₂.start } else { Sum.inl ( M₁.step x a ) } from ?_ ];
-              · split_ifs <;> simp +decide [ h ];
+              · split_ifs <;> simp +decide;
                 specialize h ( w ++ [ a ] ) [ ] ; simp_all +decide;
                 exact h ( by rw [ ← h_path _ _ hx ] ; assumption );
               · split_ifs with h;
-                · exact?;
+                · exact εClosure_inl_accept M₁ M₂ (M₁.step x a) h;
                 · exact εClosure_inl_not_accept M₁ M₂ _ h;
             · grind;
           · intro x hx;
@@ -240,7 +300,7 @@ private lemma concat_forward {w : List α} (hw : w ∈ (concatεNFA M₁ M₂).a
       · aesop
 
 /-- The concatenation ε-NFA accepts exactly the concatenation of the two DFA languages. -/
-theorem concatεNFA_correct :
+public theorem concatεNFA_correct :
     (concatεNFA M₁ M₂).accepts = M₁.accepts * M₂.accepts :=
   Set.eq_of_subset_of_subset
     (fun _ hw => concat_forward M₁ M₂ hw)
@@ -249,7 +309,7 @@ theorem concatεNFA_correct :
 end ConcatεNFA
 
 /-- Regular languages are closed under concatenation. -/
-theorem IsRegular.mul' {L₁ L₂ : Language α}
+public theorem IsRegular.mul' {L₁ L₂ : Language α}
     (h₁ : L₁.IsRegular) (h₂ : L₂.IsRegular) :
     (L₁ * L₂).IsRegular := by
   obtain ⟨σ₁, _, M₁, rfl⟩ := h₁

@@ -1,9 +1,48 @@
-import Mathlib
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+module
+
+public import Langlib.Classes.ContextFree.Definition
+public import Langlib.Examples.AnBn
 import Langlib.Grammars.ContextFree.Toolbox
-import Langlib.Classes.Regular.Basics.NonRegular
+import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Langlib.Utilities.Tactics
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Order.BourbakiWitt
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # `a^n b^n` as a CFL
 
@@ -14,7 +53,8 @@ language is context-free.
 open Language List
 
 /-- Context-free grammar for the language `{aⁿbⁿ | n ∈ ℕ}` over `Bool`. -/
-def cfg_anbn : CF_grammar Bool where
+@[expose]
+public def cfg_anbn : CF_grammar Bool where
   nt := Unit
   initial := ()
   rules := [
@@ -35,28 +75,28 @@ private lemma sentential_form_step (w w' : List (symbol Bool Unit))
   · rcases ht with (⟨x, y, hxy, rfl⟩ | ⟨x, y, hxy, rfl⟩) <;> simp_all +decide [sentential_form]
     · rw [List.append_eq_append_iff] at hxy
       rcases hxy with (⟨as, rfl, h⟩ | ⟨bs, h, h'⟩) <;> simp_all +decide [List.append_eq_append_iff]
-      · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide [List.replicate]
+      · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide []
         · refine Or.inl ⟨n + 1, Or.inl ⟨[symbol.terminal false], ?_, ?_⟩⟩
           · rw [List.replicate_succ']
-          · simpa [h, List.replicate_succ]
+          · simp [h, List.replicate_succ]
         · replace h := congr_arg List.toFinset h.2
           rw [Finset.ext_iff] at h
           specialize h (symbol.nonterminal ())
           aesop
-      · rcases bs with _ | ⟨b, bs⟩ <;> simp_all +decide [List.append_eq_append_iff]
+      · rcases bs with _ | ⟨b, bs⟩ <;> simp_all +decide []
         · refine Or.inl ⟨n + 1, ?_⟩
           simp_all +decide [List.replicate]
           exact Or.inl ⟨[symbol.terminal false], by rw [← h]; exact Nat.recOn n (by simp +decide) fun n ihn => by simp +decide [List.replicate] at ihn ⊢; aesop⟩
         · no_nonterminal (symbol.nonterminal ()) at h
     · rw [List.append_eq_append_iff] at hxy
       rcases hxy with (⟨as, rfl, h⟩ | ⟨bs, h, h'⟩) <;> simp_all +decide [List.append_eq_append_iff]
-      · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide [List.replicate]
+      · rcases as with _ | ⟨a, as⟩ <;> simp_all +decide []
         · exact Or.inr ⟨n, Or.inl ⟨[], by aesop⟩⟩
         · replace h := congr_arg List.toFinset h.2
           rw [Finset.ext_iff] at h
           specialize h (symbol.nonterminal ())
           aesop
-      · rcases bs with _ | ⟨a, bs⟩ <;> simp_all +decide [List.append_assoc]
+      · rcases bs with _ | ⟨a, bs⟩ <;> simp_all +decide []
         · exact Or.inr ⟨n, Or.inl ⟨[], by aesop⟩⟩
         · no_nonterminal (a) at h
   · rcases ht with (⟨x, y, hxy, rfl⟩ | ⟨x, y, hxy, rfl⟩)
@@ -119,10 +159,10 @@ private lemma anbn_sub_CF_language_cfg_anbn :
   aesop
 
 /-- The grammar `cfg_anbn` generates exactly `{aⁿbⁿ}`. -/
-theorem CF_language_cfg_anbn : CF_language cfg_anbn = anbn := by
+public theorem CF_language_cfg_anbn : CF_language cfg_anbn = anbn := by
   ext w
   exact ⟨CF_language_cfg_anbn_sub_anbn w, anbn_sub_CF_language_cfg_anbn w⟩
 
 /-- The language `{aⁿbⁿ}` is context-free. -/
-theorem anbn_is_CF : is_CF anbn :=
+public theorem anbn_is_CF : is_CF anbn :=
   is_CF_via_cfg_implies_is_CF ⟨cfg_anbn, CF_language_cfg_anbn⟩

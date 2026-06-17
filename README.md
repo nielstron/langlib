@@ -1,130 +1,99 @@
-# Langlib 
+<p align="center">
+  <img src="docs/logo.svg" alt="Langlib logo" width="160">
+  <h1>Langlib</h1>
+</p>
+
 [![CI](https://github.com/nielstron/langlib/actions/workflows/build.yml/badge.svg)](https://github.com/nielstron/langlib/actions/workflows/build.yml)
 
-`Langlib` is a Lean 4 library of formalized results about grammars, language classes, and automata across the Chomsky hierarchy.
+`Langlib` is a Lean 4 library of formalized results from formal language theory, defining and relating various grammars, language classes, and automata across the Chomsky hierarchy and beyond.
 
-### Regular Languages
+📖 **Documentation:** [overview](https://nielstron.github.io/langlib/) · [API reference](https://nielstron.github.io/langlib/api/)
 
-- [Right-regular grammars](src/Langlib/Grammars/RightRegular/Definition.lean)
-- [Left-regular grammars](src/Langlib/Grammars/LeftRegular/Definition.lean)
-- [Top and Bottom are Regular](src/Langlib/Classes/Regular/Examples/TopBot.lean)
-
-### Linear and DCF Languages
-
-- [Linear Languages](src/Langlib/Classes/Linear/Definition.lean)
-- [Deterministic Context-Free Languages](src/Langlib/Classes/DeterministicContextFree/Definition.lean)
-- [`{aⁿbⁿ}` is Linear](src/Langlib/Classes/ContextFree/Examples/AnBn.lean)
-
-### Context-Free Languages
-
-- [Definition](src/Langlib/Classes/ContextFree/Definition.lean)
-- [Context-free grammars](src/Langlib/Grammars/ContextFree/Definition.lean)
-- [Pumping lemma](src/Langlib/Classes/ContextFree/Basics/Pumping.lean)
-- [Ogdens Lemma](src/Langlib/Classes/ContextFree/Basics/Ogden.lean)
-- [Chomsky normal form](src/Langlib/Classes/ContextFree/NormalForms/ChomskyNormalForm.lean)
-
-### Indexed Languages
-
-- [Indexed grammars](src/Langlib/Grammars/Indexed/Definition.lean)
-- [`{aⁿbⁿcⁿ}` is Indexed](src/Langlib/Classes/Indexed/Examples/AnBnCn.lean)
-
-### Context-Sensitive Languages
-
-- [Context-sensitive grammars](src/Langlib/Grammars/ContextSensitive/Definition.lean)
-- [Noncontracting grammars](src/Langlib/Grammars/NonContracting/Definition.lean)
-
-### Recursive Languages
-
-- [Recursive Languages](src/Langlib/Classes/Recursive/Definition.lean)
-
-### Recursively Enumerable Languages
-
-- [Unrestricted grammars](src/Langlib/Grammars/Unrestricted/Definition.lean)
-- [Kuroda normal form](src/Langlib/Classes/RecursivelyEnumerable/NormalForms/Kuroda.lean)
-- [`{aⁿbⁿcⁿ}` is RE](src/Langlib/Classes/RecursivelyEnumerable/Examples/AnBnCn.lean)
-
-### Automata
-
-- [Pushdown automata](src/Langlib/Automata/Pushdown/Definition.lean)
-- [Deterministic pushdown automata](src/Langlib/Automata/DeterministicPushdown/Definition.lean)
-- [Linear bounded automata](src/Langlib/Automata/LinearBounded/Definition.lean)
-- [Deterministic linear bounded automata](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean)
-
-### Examples
-
-- [Context-free example grammar](test/LanglibTest/DemoContextFree.lean)
-- [Context-sensitive example grammars](test/LanglibTest/DemoContextSensitive.lean)
-- [Unrestricted example grammar](test/LanglibTest/DemoUnrestricted.lean)
 
 ## Proof overview
+The goal of this library is to encapsulate some core results of the (extended) Chomsky hierarchy: inclusions, closures and decidability.
+The following gives a rough overview over the contents in highly condensed form.
 
-`🔗` indicates that this repository contains a corresponding proof file.
+The tables contain standard results, `🔗` indicates that this repository contains a corresponding proof file (possibly to a weaker variant of the result, e.g. ⊊  vs. ⊆  and ⇔ vs. ⇒)
+More detailed results and developed tooling (e.g., Pumping lemmas, Totalizations) can be found in the [documentation](https://nielstron.github.io/langlib/).
 
 ### Hierarchy And Equivalences
 
+Each class of the (extended) hierarchy is charaterized as grammar or automaton (or both, and variants thereof). We show (strict) inclusions of the classes and equivalences between different characterizations.
+
 | Grammar side | Relation | Automaton side |
 | --- | --- | --- |
-| Regular languages (Left-regular ⇔[🔗](src/Langlib/Grammars/LeftRegular/Equivalence/LGEquivRG.lean) Right-regular) | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/RegularDFAEquiv.lean)| DFA languages (Mathlib) |
-| ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean) |
-| Deterministic context-free languages | ≝ [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) | DPDA final-state languages |
-| ⊊ (⊆ [🔗](src/Langlib/Classes/DeterministicContextFree/Inclusion/ContextFree.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Automata/DeterministicPushdown/Inclusion/Pushdown.lean)) |
-| Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStackEquiv.lean)) |
-| ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊆ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/ContextSensitive.lean))|  | ⊊ |
+| Regular languages (Left-regular ⇔[🔗](src/Langlib/Grammars/LeftRegular/Equivalence/RightRegular.lean) Right-regular) | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/Regular.lean)| DFA languages (Mathlib) |
+| ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLR.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean) |
+| LR(k) grammar languages [🔗](src/Langlib/Grammars/LR/Definition.lean) | ⇔ | DPDA final-state languages [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) |
+| ⊊ (⊆ [🔗](src/Langlib/Grammars/LR/Inclusion/ContextFree.lean)) |  | ⊊ [🔗](src/Langlib/Automata/DeterministicPushdown/Inclusion/StrictPushdown.lean) |
+| Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStack.lean)) |
+| ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊊ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictContextSensitive.lean))|  | ⊊ |
 | Indexed languages | ⇔ | Nested Stack Automata |
 | ⊊ |  | ⊊ |
-| Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ | LBA languages (LBA ⇔? DLBA) |
-| ⊊ (⊆ RE [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
+| Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ [🔗](src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) | LBA languages (DLBA ⊆ [🔗](src/Langlib/Automata/DeterministicLinearBounded/Inclusion/LinearBounded.lean) LBA, LBA ⊆? DLBA) |
+| ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) |  | ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
 | Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |
-| ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |  | ⊊ (⊆ [🔗](src/Langlib/Classes/Recursive/Inclusion/RecursivelyEnumerable.lean)) |
-| Recursively enumerable languages | ⇔ (⇐ [🔗](src/Langlib/Automata/Turing/Equivalence/TMToGrammar.lean)) | Turing-machine languages (Mathlib) |
+| ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean)  |
+| Recursively enumerable languages | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machine languages (Mathlib) |
 
 **Additional results**
 
-- Context Free Languages ⇔ [🔗](src/Langlib/Grammars/ContextFree/EquivMathlibCFG.lean) Mathlib's `IsContextFree`.
-- Regular ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) Linear ⊊ (⊆ [🔗](src/Langlib/Classes/Linear/Inclusion/ContextFree.lean)) Context-free.
-
-
+- Context Free Languages ⇔ [🔗](src/Langlib/Grammars/ContextFree/MathlibCFG.lean) Mathlib's `IsContextFree`.
+- Regular ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) Linear ⊊ [🔗](src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) Context-free.
+- Regular ⊆ [🔗](src/Langlib/Classes/Regular/Inclusion/Recursive.lean) Recursive.
+- Context-free ⊆ [🔗](src/Langlib/Classes/ContextFree/Inclusion/Recursive.lean) Recursive.
 
 ### Closure
 
-Abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.) are defined in [🔗](src/Langlib/Utilities/ClosurePredicates.lean).
+We define abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorphism`, etc.) for uniform proofs in [🔗](src/Langlib/Utilities/ClosurePredicates.lean).
 
 | Operation | Regular | DCFL | CFL | IND | CSL | Recursive | RE |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Union | Yes [🔗](src/Langlib/Classes/Regular/Closure/Union.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/Indexed/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Union.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Union.lean) |
-| Intersection | Yes [🔗](src/Langlib/Classes/Regular/Closure/Intersection.lean) | No | No [🔗](src/Langlib/Classes/ContextFree/Closure/Intersection.lean) | No | Yes | Yes | Yes |
-| Complement | Yes [🔗](src/Langlib/Classes/Regular/Closure/Complement.lean) | Yes [(🔗)](src/Langlib/Automata/DeterministicPushdown/ClosureProperties/Complement.lean) | No [🔗](src/Langlib/Classes/ContextFree/Closure/Complement.lean) | No | Yes | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Complement.lean) | No |
-| Concatenation | Yes [🔗](src/Langlib/Classes/Regular/Closure/Concatenation.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Concatenation.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Concatenation.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Concatenation.lean) |
-| Kleene star | Yes [🔗](src/Langlib/Classes/Regular/Closure/Star.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Star.lean) | Yes | Yes | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Star.lean) |
-| (String) homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | No | No | Yes |
-| `ε`-free (string) homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes | Yes | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Homomorphism.lean) |
-| Substitution | Yes [🔗](src/Langlib/Classes/Regular/Closure/Substitution.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Substitution.lean) | Yes | Yes | No | Yes |
-| Inverse homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/InverseHomomorphism.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/InverseHomomorphism.lean) | Yes | Yes | Yes | Yes |
-| Reverse | Yes [🔗](src/Langlib/Classes/Regular/Closure/Reverse.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Reverse.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Reverse.lean) | Yes | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Reverse.lean) |
-| Intersection with a regular language | Yes [🔗](src/Langlib/Classes/Regular/Closure/Intersection.lean) | Yes [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/IntersectionRegular.lean)| Yes [🔗](src/Langlib/Classes/ContextFree/Closure/IntersectionRegular.lean) | Yes | Yes | Yes | Yes |
-| Right quotient | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | No | No | No | No | No | Yes |
-| Right quotient with a regular language | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) | Yes | Yes | Yes | Yes |
+| Union | Yes [🔗](src/Langlib/Classes/Regular/Closure/Union.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/Indexed/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Union.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Union.lean) |
+| Intersection | Yes [🔗](src/Langlib/Classes/Regular/Closure/Intersection.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Intersection.lean) | No [🔗](src/Langlib/Classes/ContextFree/Closure/Intersection.lean) | No | Yes | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Intersection.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Intersection.lean) |
+| Complement | Yes [🔗](src/Langlib/Classes/Regular/Closure/Complement.lean) | Yes [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Complement.lean) | No [🔗](src/Langlib/Classes/ContextFree/Closure/Complement.lean) | No | Yes | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Complement.lean) | No [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Complement.lean) |
+| Concatenation | Yes [🔗](src/Langlib/Classes/Regular/Closure/Concatenation.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Concatenation.lean) | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Concatenation.lean) | Yes [🔗](src/Langlib/Classes/Indexed/Closure/Concatenation.lean) | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Concatenation.lean) | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Concatenation.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Concatenation.lean) |
+| Kleene star | Yes [🔗](src/Langlib/Classes/Regular/Closure/Star.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Star.lean) | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Star.lean) | Yes | Yes | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Star.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Star.lean) |
+| (String) homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Homomorphism.lean) | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes [🔗](src/Langlib/Classes/Indexed/Closure/Homomorphism.lean) | No | No [🔗](src/Langlib/Classes/Recursive/Closure/Homomorphism.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Homomorphism.lean) |
+| `ε`-free (string) homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/Homomorphism.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Homomorphism.lean) | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Homomorphism.lean) | Yes [🔗](src/Langlib/Classes/Indexed/Closure/Homomorphism.lean) | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/EpsFreeHomomorphism.lean) | Yes [🔗](src/Langlib/Classes/Recursive/Closure/EpsFreeHomomorphism.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Homomorphism.lean) |
+| Substitution | Yes [🔗](src/Langlib/Classes/Regular/Closure/Substitution.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Substitution.lean) | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Substitution.lean) | Yes | No | No [🔗](src/Langlib/Classes/Recursive/Closure/Substitution.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Substitution.lean) |
+| Inverse homomorphism | Yes [🔗](src/Langlib/Classes/Regular/Closure/InverseHomomorphism.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/InverseHomomorphism.lean) | Yes | Yes | Yes [🔗](src/Langlib/Classes/Recursive/Closure/InverseHomomorphism.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/InverseHomomorphism.lean) |
+| Reverse | Yes [🔗](src/Langlib/Classes/Regular/Closure/Reverse.lean) | No | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Reverse.lean) | Yes [🔗](src/Langlib/Classes/Indexed/Closure/Reverse.lean) | Yes [🔗](src/Langlib/Classes/ContextSensitive/Closure/Reverse.lean) | Yes [🔗](src/Langlib/Classes/Recursive/Closure/Reverse.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Reverse.lean) |
+| Intersection with a regular language | Yes [🔗](src/Langlib/Classes/Regular/Closure/Intersection.lean) | Yes [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/IntersectionRegular.lean)| Yes [🔗](src/Langlib/Classes/ContextFree/Closure/IntersectionRegular.lean) | Yes | Yes | Yes [🔗](src/Langlib/Classes/Recursive/Closure/IntersectionRegular.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Intersection.lean) |
+| Right quotient | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Quotient.lean) | No [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) | No | No | No [🔗](src/Langlib/Classes/Recursive/Closure/Quotient.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Quotient.lean) |
+| Right quotient with a regular language | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | Yes | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) | Yes | Yes | No [🔗](src/Langlib/Classes/Recursive/Closure/QuotientRegular.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Quotient.lean) |
 
-**Notes on the table above:**
 
-Additional context-free closure results formalized here:
+Additional DCFL results:
+
+- [Union with a regular language](src/Langlib/Classes/DeterministicContextFree/Closure/UnionRegular.lean)
+
+Additional CFL results:
 
 - [Terminal bijections](src/Langlib/Classes/ContextFree/Closure/Bijection.lean)
 - [Terminal permutations](src/Langlib/Classes/ContextFree/Closure/Permutation.lean)
 - [Prefix](src/Langlib/Classes/ContextFree/Closure/Prefix.lean)
 - [Suffix](src/Langlib/Classes/ContextFree/Closure/Suffix.lean)
 
+Additional CSL results:
+
+- [Terminal bijections](src/Langlib/Classes/ContextSensitive/Closure/Bijection.lean)
+
 ### Decidability
 
-Results marked ✓ use `ComputablePred` (the strongest form). Results marked ✓ᴰ use only Mathlib's `Decidable` instance (weaker — does not establish computability).
+Each column refers to the corresponding uniform computability predicate
+(`ComputableMembership`, `ComputableEmptiness`, `ComputableUniversality`,
+`ComputableEquivalence`) defined in
+[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean).
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
-| Regular | ✓ ([🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean)) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ᴰ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
-| Deterministic context-free | ✓ᴰ | ✓ᴰ | ✓ᴰ | ✓ᴰ |
-| Context-free | ✓ ([🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean)) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
-| Context-sensitive | ✓ᴰ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
-| Recursive | ✓ᴰ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
+| Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
+| Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
+| Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
+| Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
+| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
 ## How To Use The Library
@@ -175,4 +144,4 @@ This repository started as a Lean 4 port of
 [madvorak/grammars](https://github.com/madvorak/grammars).
 It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_cfg](https://github.com/AlexLoitzl/pumping_cfg/) and the equivalence proof between CFGs and PDAs from [shetzl/autth](https://github.com/shetzl/autth/tree/PDA).
 
-> A large part of this repository was created with the help of [Aristotle](https://aristotle.harmonic.fun). It's an amazing tool for ambitious proofs. Special thanks to the developers to provide this tool to the community!
+> A part of this repository was created with the help of [Aristotle](https://aristotle.harmonic.fun). It's an amazing tool for ambitious proofs. Special thanks to the developers to provide this tool to the community!

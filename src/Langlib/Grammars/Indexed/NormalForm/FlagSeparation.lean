@@ -1,5 +1,9 @@
-import Mathlib
-import Langlib.Grammars.Indexed.Definition
+module
+
+public import Mathlib
+public import Langlib.Grammars.Indexed.Definition
+@[expose]
+public section
 
 /-! # Flag Separation for Indexed Grammars
 
@@ -433,7 +437,7 @@ theorem fsSingleRule_flagsSeparated (i : Nat) (r : IRule T g.nt g.flag)
     · unfold IndexedGrammar.fsSingleRule at hr';
       simp [hc, hnp] at hr';
       rcases hr' with ( rfl | rfl | ⟨ a, b, hab, hr' ⟩ );
-      · exact?;
+      · exact fsSingleRule_fs_consumeRule g r i hc;
       · apply fsSingleRule_fs_intermediateRule;
         grind +locals;
       · cases a ; aesop;

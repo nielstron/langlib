@@ -1,15 +1,65 @@
-import Mathlib
-import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
-import Langlib.Classes.RecursivelyEnumerable.Definition
-import Langlib.Utilities.LanguageOperations
-import Langlib.Utilities.Homomorphism
-import Langlib.Utilities.ClosurePredicates
+module
+
+public import Langlib.Grammars.Unrestricted.Toolbox
+public import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipTest
+public import Langlib.Classes.RecursivelyEnumerable.Definition
+public import Langlib.Utilities.ClosurePredicates
+public import Mathlib.CategoryTheory.Category.Basic
+public import Mathlib.Computability.Partrec
+import Langlib.Automata.Turing.DSL.CodeToTMDirect
+import Langlib.Automata.Turing.DSL.SearchProcToTM0
+import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipComputability
+import Langlib.Automata.Turing.Equivalence.TMToGrammar
+import Langlib.Grammars.Unrestricted.FiniteNonterminals
+import Langlib.Utilities.PrimrecHelpers
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # RE Closure Under String Homomorphism
 
 This file proves that the class of recursively enumerable languages is closed under
-ε-free string homomorphism.
+string homomorphism.  It also provides a grammar construction for the ε-free
+case, where no symbol is erased.
+
+Proof idea for arbitrary finite-alphabet homomorphisms: a word `w` is in the
+homomorphic image iff there exists a source word `x` and a derivation witness for
+`x` in the original grammar such that `x.flatMap h = w`. This existential search
+is computable over finite alphabets, so the search-to-TM and TM-to-RE bridges
+produce the RE witness.
 
 Given an unrestricted grammar `g` over terminals `α` generating `L`, and an ε-free string
 homomorphism `h : α → List β`, we construct an unrestricted grammar `hom_grammar g h`
@@ -18,6 +68,8 @@ over terminals `β` whose language is `L.homomorphicImage h`.
 ## Main declarations
 
 - `hom_grammar`
+- `RE_closed_under_homomorphism`
+- `RE_closedUnderHomomorphism`
 - `RE_closed_under_epsfree_homomorphism`
 
 ## Note on erasing homomorphisms
@@ -34,6 +86,8 @@ open List
 
 variable {α β : Type}
 
+open Turing
+
 -- ============================================================================
 -- Grammar construction
 -- ============================================================================
@@ -41,28 +95,33 @@ variable {α β : Type}
 section construction
 
 /-- Map a symbol by replacing terminals with nonterminal placeholders. -/
-def homLiftSym {N : Type} : symbol α N → symbol β (N ⊕ α)
+@[expose]
+public def homLiftSym {N : Type} : symbol α N → symbol β (N ⊕ α)
   | symbol.terminal a    => symbol.nonterminal (Sum.inr a)
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)
 
 /-- Lift an entire string to placeholder form. -/
-def homLiftStr {N : Type} (s : List (symbol α N)) :
+@[expose]
+public def homLiftStr {N : Type} (s : List (symbol α N)) :
     List (symbol β (N ⊕ α)) :=
   s.map homLiftSym
 
 /-- Lift a rule to phase 1 form. -/
-def homLiftRule {N : Type} (r : grule α N) : grule β (N ⊕ α) :=
+@[expose]
+public def homLiftRule {N : Type} (r : grule α N) : grule β (N ⊕ α) :=
   ⟨homLiftStr r.input_L,
    Sum.inl r.input_N,
    homLiftStr r.input_R,
    homLiftStr r.output_string⟩
 
 /-- Create a phase 2 rule for terminal `a`. -/
-def homExpandRule {N : Type} (h : α → List β) (a : α) : grule β (N ⊕ α) :=
+@[expose]
+public def homExpandRule {N : Type} (h : α → List β) (a : α) : grule β (N ⊕ α) :=
   ⟨[], Sum.inr a, [], (h a).map symbol.terminal⟩
 
 /-- The two-phase grammar for the homomorphic image. -/
-def hom_grammar (g : grammar α) (h : α → List β) : grammar β :=
+@[expose]
+public def hom_grammar (g : grammar α) (h : α → List β) : grammar β :=
   ⟨g.nt ⊕ α,
    Sum.inl g.initial,
    (g.rules.map homLiftRule) ++ (all_used_terminals g).map (homExpandRule h)⟩
@@ -82,7 +141,7 @@ lemma homLiftStr_map_terminal (w : List α) :
       w.map (fun a => (symbol.nonterminal (Sum.inr a) : symbol β (g.nt ⊕ α))) := by
   simp [homLiftStr, homLiftSym, List.map_map]
 
-lemma mem_prod_singletons_iff_flatMap (w : List α) (h : α → List β) (u : List β) :
+public lemma mem_prod_singletons_iff_flatMap (w : List α) (h : α → List β) (u : List β) :
     u ∈ (w.map (fun a => ({h a} : Language β))).prod ↔ u = w.flatMap h := by
   induction w generalizing u with
   | nil => simp
@@ -253,7 +312,7 @@ Helper: splitting flatMap at a nonterminal (ε-free case)
 In the ε-free case, every nonterminal in `ds.flatMap (dToHom' h)` comes from a
     unique DSym element, and we can split ds at that element.
 -/
-private lemma dsym_flatMap_split_at_nonterminal (heps : ∀ a, h a ≠ [])
+private lemma dsym_flatMap_split_at_nonterminal (_heps : ∀ a, h a ≠ [])
     (ds : List (@DSym α g.nt))
     (u v : List (symbol β (g.nt ⊕ α))) (x : g.nt ⊕ α) :
     ds.flatMap (dToHom' h) = u ++ [symbol.nonterminal x] ++ v →
@@ -265,14 +324,14 @@ private lemma dsym_flatMap_split_at_nonterminal (heps : ∀ a, h a ≠ [])
   induction ds generalizing u v;
   · aesop;
   · rename_i d ds ih;
-    rcases d with ( _ | _ | _ ) <;> simp_all +decide [ List.append_assoc ];
-    · rcases u with ( _ | ⟨ y, u ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+    rcases d with ( _ | _ | _ ) <;> simp_all +decide;
+    · rcases u with ( _ | ⟨ y, u ⟩ ) <;> simp_all +decide;
       · intro h;
         cases h;
         exact ⟨ [ ], DSym.nt _, ds, rfl, rfl, by tauto ⟩;
       · grind +locals;
     · intro h;
-      rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+      rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide;
       · use [ ], DSym.unexpanded ‹_›, ds;
         cases h ; aesop;
       · grind +locals;
@@ -281,8 +340,8 @@ private lemma dsym_flatMap_split_at_nonterminal (heps : ∀ a, h a ≠ [])
         have h_prefix : (h ‹_›).map symbol.terminal ++ flatMap (dToHom' h) ds = u ++ symbol.nonterminal x :: v := by
           exact h_eq;
         have h_prefix : ∀ {l₁ l₂ l₃ : List (symbol β (g.nt ⊕ α))}, l₁ ++ l₂ = l₃ ++ symbol.nonterminal x :: v → (∀ y ∈ l₁, y ≠ symbol.nonterminal x) → ∃ u', l₃ = l₁ ++ u' := by
-          intros l₁ l₂ l₃ h_eq h_no_x; induction' l₁ with a l₁ ih generalizing l₃ <;> simp_all +decide [ List.append_assoc ] ;
-          rcases l₃ with ( _ | ⟨ b, l₃ ⟩ ) <;> simp_all +decide [ List.append_assoc ];
+          intros l₁ l₂ l₃ h_eq h_no_x; induction' l₁ with a l₁ ih generalizing l₃ <;> simp_all +decide;
+          rcases l₃ with ( _ | ⟨ b, l₃ ⟩ ) <;> simp_all +decide;
         grind;
       specialize ih u' v;
       simp_all +decide [ List.append_assoc ];
@@ -452,21 +511,102 @@ end backward_direction
 -- Main theorems
 -- ============================================================================
 
-/-- The class of RE languages is closed under ε-free string homomorphism. -/
-theorem RE_closed_under_epsfree_homomorphism (L : Language α) (h : α → List β)
-    (hL : is_RE L) (heps : IsEpsFreeHomomorphism h) :
-    is_RE (L.homomorphicImage h) := by
-  obtain ⟨g, rfl⟩ := hL
-  refine ⟨hom_grammar g h, ?_⟩
+/-- The ε-free homomorphic-image grammar generates exactly the homomorphic image. -/
+public theorem hom_grammar_language_epsfree (g : grammar α) (h : α → List β)
+    (heps : IsEpsFreeHomomorphism h) :
+    grammar_language (hom_grammar g h) = (grammar_language g).homomorphicImage h := by
   ext w
   simp only [Language.homomorphicImage, Language.subst, grammar_language]
   constructor
   · intro hd
-    obtain ⟨w', hw', rfl⟩ := backward_direction_epsfree heps hd
+    obtain ⟨w', hw', rfl⟩ := backward_direction_epsfree (g := g) (h := h) heps hd
     exact ⟨w', hw', (mem_prod_singletons_iff_flatMap w' h _).mpr rfl⟩
   · rintro ⟨w', hw', hu⟩
     rw [(mem_prod_singletons_iff_flatMap w' h w).mp hu]
-    exact in_hom_of_in_original hw'
+    exact in_hom_of_in_original (g := g) (h := h) hw'
+
+/-- Search test for the homomorphic image of a grammar language.
+
+The witness contains both a preimage word and a derivation sequence for that preimage. -/
+@[expose]
+public def reHomomorphismTest [DecidableEq α] [DecidableEq β]
+    (g : grammar α) [DecidableEq g.nt] (h : α → List β)
+    (p : List α × List (ℕ × ℕ)) (w : List β) : Bool :=
+  grammarTest g p.2 p.1 && decide (p.1.flatMap h = w)
+
+/-- The homomorphic-image search test is computable over finite source alphabets. -/
+public theorem reHomomorphismTest_computable₂ [DecidableEq α] [DecidableEq β]
+    [Primcodable α] [Primcodable β] [Finite α]
+    (g : grammar α) [DecidableEq g.nt] [Primcodable g.nt] (h : α → List β) :
+    Computable₂ (reHomomorphismTest g h) := by
+  apply Computable₂.mk
+  unfold reHomomorphismTest
+  have hmem : Computable (fun p : (List α × List (ℕ × ℕ)) × List β =>
+      grammarTest g p.1.2 p.1.1) :=
+    (grammarTest_computable₂ g).comp (Computable.snd.comp Computable.fst)
+      (Computable.fst.comp Computable.fst)
+  have heq : Computable (fun p : (List α × List (ℕ × ℕ)) × List β =>
+      decide (p.1.1.flatMap h = p.2)) :=
+    (computable₂_flatMap_eq_finite h).comp (Computable.fst.comp Computable.fst) Computable.snd
+  exact (Primrec.and.to_comp).comp hmem heq
+
+/-- The class of RE languages is closed under arbitrary finite-alphabet string homomorphism. -/
+public theorem RE_closed_under_homomorphism [Fintype α] [Fintype β]
+    (L : Language α) (h : α → List β) (hL : is_RE L) :
+    is_RE (L.homomorphicImage h) := by
+  haveI : DecidableEq α := Classical.decEq _
+  haveI : DecidableEq β := Classical.decEq _
+  obtain ⟨g, hg⟩ := hL
+  obtain ⟨g', _hfin, hlang⟩ := grammar_equivalent_finiteNT g
+  haveI : Fintype g'.nt := Fintype.ofFinite _
+  haveI : DecidableEq g'.nt := Classical.decEq _
+  haveI : Primcodable α :=
+    Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
+  haveI : Primcodable β :=
+    Primcodable.ofEquiv (Fin (Fintype.card β)) (Fintype.truncEquivFin β).out
+  haveI : Primcodable g'.nt :=
+    Primcodable.ofEquiv (Fin (Fintype.card g'.nt)) (Fintype.truncEquivFin g'.nt).out
+  let test := reHomomorphismTest g' h
+  have hcomp : Computable₂ test := reHomomorphismTest_computable₂ g' h
+  obtain ⟨c, hc⟩ := search_is_partrec test hcomp
+  have htm : is_TM (L.homomorphicImage h) :=
+    code_implies_isTM_direct (L.homomorphicImage h) c (fun w => by
+      constructor
+      · intro hw
+        rw [← hc]
+        simp only [Language.homomorphicImage, Language.subst] at hw
+        obtain ⟨x, hxL, hxprod⟩ := hw
+        have hxg : x ∈ grammar_language g' := by
+          rw [← hlang, hg]
+          exact hxL
+        have hxflat : x.flatMap h = w :=
+          ((mem_prod_singletons_iff_flatMap x h w).mp hxprod).symm
+        obtain ⟨seq, hseq⟩ := grammarTest_complete g' x hxg
+        exact ⟨(x, seq), by simp [test, reHomomorphismTest, hseq, hxflat]⟩
+      · intro hdom
+        rw [← hc] at hdom
+        obtain ⟨p, hp⟩ := hdom
+        have hboth : grammarTest g' p.2 p.1 = true ∧ (p.1.flatMap h == w) = true := by
+          simpa [test, reHomomorphismTest] using hp
+        have hxL : p.1 ∈ L := by
+          rw [← hg, hlang]
+          exact grammarTest_sound g' p.2 p.1 hboth.1
+        have hxflat : p.1.flatMap h = w := by
+          simpa using hboth.2
+        simp only [Language.homomorphicImage, Language.subst]
+        exact ⟨p.1, hxL, (mem_prod_singletons_iff_flatMap p.1 h w).mpr hxflat.symm⟩)
+  exact tm_recognizable_implies_re (L.homomorphicImage h) htm
+
+/-- The class of recursively enumerable languages is closed under string homomorphism. -/
+theorem RE_closedUnderHomomorphism : ClosedUnderHomomorphism is_RE :=
+  fun L h hL => RE_closed_under_homomorphism L h hL
+
+/-- The class of RE languages is closed under ε-free string homomorphism. -/
+public theorem RE_closed_under_epsfree_homomorphism (L : Language α) (h : α → List β)
+    (hL : is_RE L) (heps : IsEpsFreeHomomorphism h) :
+    is_RE (L.homomorphicImage h) := by
+  obtain ⟨g, rfl⟩ := hL
+  exact ⟨hom_grammar g h, hom_grammar_language_epsfree g h heps⟩
 
 /-- The class of recursively enumerable languages is closed under ε-free string homomorphism. -/
 theorem RE_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_RE :=

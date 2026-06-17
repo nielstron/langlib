@@ -1,11 +1,46 @@
+module
+
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import Mathlib
-import Langlib.Grammars.RightRegular.Definition
+public import Langlib.Classes.Regular.Definition
 import Langlib.Grammars.Unrestricted.Toolbox
-import Langlib.Classes.Regular.Definition
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Right-Regular Grammars as Unrestricted Grammars
 
@@ -24,14 +59,14 @@ A right-regular grammar is one where each rule is context-free (i.e., `input_L =
 - `[terminal a]` for some terminal `a`, or
 - `[]` (the empty string).
 
-This file proves that the unrestricted characterization agrees with the legacy
-definition via `RG_grammar`.
+This file proves that the unrestricted characterization agrees with the
+`RG_grammar` presentation.
 
 ## Main declarations
 
-- `is_RG_via_rg` — legacy language class induced by `RG_grammar`
+- `is_RG_via_rg` — language class induced by `RG_grammar`
 - `is_RG_via_rg_implies_is_RG` — conversion to the default unrestricted characterization
-- `is_RG_implies_is_RG_via_rg` — extraction of a legacy witness
+- `is_RG_implies_is_RG_via_rg` — extraction of an `RG_grammar` witness
 - `is_RG_iff_is_RG_via_rg` — equivalence of the two characterizations
 -/
 
@@ -42,21 +77,23 @@ variable {T : Type}
 /-! ## Forward direction: RG_grammar → right-regular unrestricted grammar -/
 
 /-- Convert an `RG_rule` into a `grule` (unrestricted grammar rule). -/
-def grule_of_RG_rule {N : Type} (r : RG_rule T N) : grule T N where
+@[expose]
+public def grule_of_RG_rule {N : Type} (r : RG_rule T N) : grule T N where
   input_L := []
   input_N := r.lhs
   input_R := []
   output_string := r.output
 
 /-- Build an unrestricted grammar from a right-regular grammar. -/
-def grammar_of_RG (g : RG_grammar T) : grammar T where
+@[expose]
+public def grammar_of_RG (g : RG_grammar T) : grammar T where
   nt := g.nt
   initial := g.initial
   rules := g.rules.map grule_of_RG_rule
 
 /-- The unrestricted grammar built from a right-regular grammar satisfies the
     right-regular property. -/
-theorem grammar_of_RG_right_regular (g : RG_grammar T) :
+public theorem grammar_of_RG_right_regular (g : RG_grammar T) :
     grammar_right_regular (grammar_of_RG g) := by
   intro r hr
   simp only [grammar_of_RG, List.mem_map] at hr
@@ -71,7 +108,7 @@ theorem grammar_of_RG_right_regular (g : RG_grammar T) :
 A single step in the original `RG_grammar` corresponds to a step in the
     constructed unrestricted grammar.
 -/
-lemma grammar_of_RG_transforms {g : RG_grammar T}
+public lemma grammar_of_RG_transforms {g : RG_grammar T}
     {w₁ w₂ : List (symbol T g.nt)}
     (h : RG_transforms g w₁ w₂) :
     grammar_transforms (grammar_of_RG g) w₁ w₂ := by
@@ -85,7 +122,7 @@ lemma grammar_of_RG_transforms {g : RG_grammar T}
 A single step in the constructed unrestricted grammar corresponds to a step in the
     original `RG_grammar`.
 -/
-lemma RG_transforms_of_grammar_of_RG {g : RG_grammar T}
+public lemma RG_transforms_of_grammar_of_RG {g : RG_grammar T}
     {w₁ w₂ : List (symbol T g.nt)}
     (h : grammar_transforms (grammar_of_RG g) w₁ w₂) :
     RG_transforms g w₁ w₂ := by
@@ -105,7 +142,7 @@ lemma RG_transforms_of_grammar_of_RG {g : RG_grammar T}
 
 /-- Derivation in the original `RG_grammar` coincides with derivation in the
     constructed unrestricted grammar. -/
-lemma grammar_of_RG_derives_iff (g : RG_grammar T)
+public lemma grammar_of_RG_derives_iff (g : RG_grammar T)
     (w₁ w₂ : List (symbol T g.nt)) :
     grammar_derives (grammar_of_RG g) w₁ w₂ ↔ RG_derives g w₁ w₂ := by
   constructor
@@ -122,15 +159,15 @@ lemma grammar_of_RG_derives_iff (g : RG_grammar T)
 
 /-- The language of the constructed unrestricted grammar equals that of the original
     right-regular grammar. -/
-theorem grammar_of_RG_language_eq (g : RG_grammar T) :
+public theorem grammar_of_RG_language_eq (g : RG_grammar T) :
     grammar_language (grammar_of_RG g) = RG_language g := by
   ext w
   simp only [grammar_language, RG_language]
   exact grammar_of_RG_derives_iff g _ _
 
-/-- Every language generated by a legacy right-regular grammar satisfies the default
+/-- Every language generated by an `RG_grammar` satisfies the default
     unrestricted characterization. -/
-theorem is_RG_via_rg_implies_is_RG {L : Language T} (h : is_RG_via_rg L) :
+public theorem is_RG_via_rg_implies_is_RG {L : Language T} (h : is_RG_via_rg L) :
     is_RG L := by
   obtain ⟨g, rfl⟩ := h
   exact ⟨grammar_of_RG g, grammar_of_RG_right_regular g,
@@ -140,8 +177,9 @@ theorem is_RG_via_rg_implies_is_RG {L : Language T} (h : is_RG_via_rg L) :
 
 /-- Convert an unrestricted grammar rule (from a right-regular grammar) to an `RG_rule`.
     Uses the right-regular output property to determine the rule form. -/
-noncomputable def RG_rule_of_grule {N : Type} (r : grule T N)
-    (hr : right_regular_output r.output_string) : RG_rule T N :=
+@[expose]
+public noncomputable def RG_rule_of_grule {N : Type} (r : grule T N)
+    (_hr : right_regular_output r.output_string) : RG_rule T N :=
   if h₁ : ∃ a : T, ∃ B : N, r.output_string = [symbol.terminal a, symbol.nonterminal B] then
     RG_rule.cons r.input_N h₁.choose h₁.choose_spec.choose
   else if h₂ : ∃ a : T, r.output_string = [symbol.terminal a] then
@@ -149,20 +187,21 @@ noncomputable def RG_rule_of_grule {N : Type} (r : grule T N)
   else
     RG_rule.epsilon r.input_N
 
-lemma RG_rule_of_grule_lhs {N : Type} (r : grule T N)
+public lemma RG_rule_of_grule_lhs {N : Type} (r : grule T N)
     (hr : right_regular_output r.output_string) :
     (RG_rule_of_grule r hr).lhs = r.input_N := by
       unfold RG_rule_of_grule;
       split_ifs <;> rfl
 
-lemma RG_rule_of_grule_output {N : Type} (r : grule T N)
+public lemma RG_rule_of_grule_output {N : Type} (r : grule T N)
     (hr : right_regular_output r.output_string) :
     (RG_rule_of_grule r hr).output = r.output_string := by
       unfold RG_rule_of_grule;
       cases hr <;> aesop
 
 /-- Construct an `RG_grammar` from a right-regular unrestricted grammar. -/
-noncomputable def RG_of_grammar (g : grammar T) (hg : grammar_right_regular g) :
+@[expose]
+public noncomputable def RG_of_grammar (g : grammar T) (hg : grammar_right_regular g) :
     RG_grammar T where
   nt := g.nt
   initial := g.initial
@@ -172,7 +211,7 @@ noncomputable def RG_of_grammar (g : grammar T) (hg : grammar_right_regular g) :
 A single step in the constructed `RG_grammar` corresponds to a step in the original
     unrestricted grammar, and vice versa.
 -/
-lemma RG_of_grammar_transforms_iff (g : grammar T) (hg : grammar_right_regular g)
+public lemma RG_of_grammar_transforms_iff (g : grammar T) (hg : grammar_right_regular g)
     (w₁ w₂ : List (symbol T g.nt)) :
     RG_transforms (RG_of_grammar g hg) w₁ w₂ ↔ grammar_transforms g w₁ w₂ := by
       unfold RG_transforms grammar_transforms;
@@ -186,7 +225,7 @@ lemma RG_of_grammar_transforms_iff (g : grammar T) (hg : grammar_right_regular g
 
 /-- Derivation in the constructed `RG_grammar` coincides with derivation in the original
     unrestricted grammar. -/
-lemma RG_of_grammar_derives_iff (g : grammar T) (hg : grammar_right_regular g)
+public lemma RG_of_grammar_derives_iff (g : grammar T) (hg : grammar_right_regular g)
     (w₁ w₂ : List (symbol T g.nt)) :
     RG_derives (RG_of_grammar g hg) w₁ w₂ ↔ grammar_derives g w₁ w₂ := by
   constructor
@@ -202,21 +241,21 @@ lemma RG_of_grammar_derives_iff (g : grammar T) (hg : grammar_right_regular g)
       exact RG_deri_of_deri_tran ih ((RG_of_grammar_transforms_iff g hg _ _).mpr step)
 
 /-- The language of the constructed `RG_grammar` equals that of the original grammar. -/
-theorem RG_of_grammar_language_eq (g : grammar T) (hg : grammar_right_regular g) :
+public theorem RG_of_grammar_language_eq (g : grammar T) (hg : grammar_right_regular g) :
     RG_language (RG_of_grammar g hg) = grammar_language g := by
   ext w
   exact RG_of_grammar_derives_iff g hg _ _
 
 /-- Every language satisfying the default unrestricted characterization is generated by
-    a legacy right-regular grammar. -/
-theorem is_RG_implies_is_RG_via_rg {L : Language T} (h : is_RG L) :
+    an `RG_grammar`. -/
+public theorem is_RG_implies_is_RG_via_rg {L : Language T} (h : is_RG L) :
     is_RG_via_rg L := by
   obtain ⟨g, hg, rfl⟩ := h
   exact ⟨RG_of_grammar g hg, RG_of_grammar_language_eq g hg⟩
 
 /-! ## Equivalence -/
 
-/-- The default unrestricted characterization of regularity agrees with the legacy
+/-- The default unrestricted characterization of regularity agrees with the
     `RG_grammar` characterization. -/
 theorem is_RG_iff_is_RG_via_rg {L : Language T} :
     is_RG L ↔ is_RG_via_rg L :=

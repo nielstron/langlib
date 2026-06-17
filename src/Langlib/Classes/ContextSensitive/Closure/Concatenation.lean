@@ -1,117 +1,224 @@
-import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
-import Langlib.Grammars.ContextSensitive.UnrestrictedCharacterization
-import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
-import Langlib.Utilities.ClosurePredicates
+module
 
-/-! # Context-Sensitive Concatenation Construction
+public import Langlib.Classes.ContextSensitive.Closure.Union
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
+public import Langlib.Utilities.ClosurePredicates
+import Mathlib.Tactic
 
-This file sketches a concatenation construction for context-sensitive languages by reusing the unrestricted one.
+/-! # Context-Sensitive Closure Under Concatenation
 
-## Main declarations
-
-- `bonus_CS_of_CS_c_CS`
+Context-sensitive grammars in this library may have the distinguished start rule
+`S -> epsilon`.  As in the union proof, we first replace each input language by a
+noncontracting grammar for its nonempty part.  The unrestricted concatenation grammar
+from the RE development preserves noncontracting rules, so it gives a noncontracting
+grammar for the product of the nonempty parts.  The nullable cases are then added back
+using context-sensitive union.
 -/
 
 variable {T : Type}
 
+namespace ContextSensitiveConcatenation
 
-private def wrap_CS_rule₁ {N₁ : Type} (N₂ : Type) (r : csrule T N₁) :
-  csrule T (nnn T N₁ N₂) :=
-csrule.mk
-  (List.map (wrap_symbol₁ N₂) r.context_left)
-  (Sum.inl (some (Sum.inl r.input_nonterminal)))
-  (List.map (wrap_symbol₁ N₂) r.context_right)
-  (List.map (wrap_symbol₁ N₂) r.output_string)
+private def nonemptyPart (L : Language T) : Language T :=
+  L \ ({[]} : Set (List T))
 
-private def wrap_CS_rule₂ {N₂ : Type} (N₁ : Type) (r : csrule T N₂) :
-  csrule T (nnn T N₁ N₂) :=
-csrule.mk
-  (List.map (wrap_symbol₂ N₁) r.context_left)
-  (Sum.inl (some (Sum.inr r.input_nonterminal)))
-  (List.map (wrap_symbol₂ N₁) r.context_right)
-  (List.map (wrap_symbol₂ N₁) r.output_string)
+private theorem big_grammar_noncontracting (g1 g2 : grammar T)
+    (h1 : grammar_noncontracting g1) (h2 : grammar_noncontracting g2) :
+    grammar_noncontracting (big_grammar g1 g2) := by
+  intro r hr
+  simp only [big_grammar, List.mem_cons, List.mem_append, List.mem_map] at hr
+  rcases hr with rfl | hrest
+  · simp
+  rcases hrest with hwrapped | hterm
+  · rcases hwrapped with hleft | hright
+    · rcases hleft with ⟨r1, hr1, rfl⟩
+      simpa [wrap_grule₁, List.length_map] using h1 r1 hr1
+    · rcases hright with ⟨r2, hr2, rfl⟩
+      simpa [wrap_grule₂, List.length_map] using h2 r2 hr2
+  · rcases hterm with hleft | hright
+    · simp only [rules_for_terminals₁, List.mem_map] at hleft
+      rcases hleft with ⟨t, _ht, rfl⟩
+      simp
+    · simp only [rules_for_terminals₂, List.mem_map] at hright
+      rcases hright with ⟨t, _ht, rfl⟩
+      simp
 
-private def CS_rules_for_terminals₁ (N₂ : Type) (g : CS_grammar T) :
-  List (csrule T (nnn T g.nt N₂)) :=
-List.map (fun t => csrule.mk [] (Sum.inr (Sum.inl t)) [] [symbol.terminal t])
-  (all_used_terminals (grammar_of_csg g))
+private theorem big_grammar_language (g1 g2 : grammar T) :
+    grammar_language (big_grammar g1 g2) = grammar_language g1 * grammar_language g2 := by
+  ext w
+  constructor
+  · exact in_concatenated_of_in_big
+  · exact in_big_of_in_concatenated
 
-private def CS_rules_for_terminals₂ (N₁ : Type) (g : CS_grammar T) :
-  List (csrule T (nnn T N₁ g.nt)) :=
-List.map (fun t => csrule.mk [] (Sum.inr (Sum.inr t)) [] [symbol.terminal t])
-  (all_used_terminals (grammar_of_csg g))
+private theorem concat_decompose_none {L1 L2 : Language T}
+    (h1 : [] ∉ L1) (h2 : [] ∉ L2) :
+    L1 * L2 = nonemptyPart L1 * nonemptyPart L2 := by
+  ext w
+  constructor
+  · intro hw
+    rw [Language.mem_mul] at hw
+    rcases hw with ⟨x, hx, y, hy, hxy⟩
+    rw [Language.mem_mul]
+    refine ⟨x, ?_, y, ?_, hxy⟩
+    · exact ⟨hx, by
+        intro hxempty
+        rw [Set.mem_singleton_iff] at hxempty
+        exact h1 (by simpa [hxempty] using hx)⟩
+    · exact ⟨hy, by
+        intro hyempty
+        rw [Set.mem_singleton_iff] at hyempty
+        exact h2 (by simpa [hyempty] using hy)⟩
+  · intro hw
+    rw [Language.mem_mul] at hw
+    rcases hw with ⟨x, hx, y, hy, hxy⟩
+    rw [Language.mem_mul]
+    exact ⟨x, hx.1, y, hy.1, hxy⟩
 
-private def big_CS_grammar (g₁ g₂ : CS_grammar T) : CS_grammar T where
-  nt := nnn T g₁.nt g₂.nt
-  initial := Sum.inl none
-  rules :=
-    (csrule.mk [] (Sum.inl none) [] [
-      symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))),
-      symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))]
-    ) :: (
-      (List.map (wrap_CS_rule₁ g₂.nt) g₁.rules ++ List.map (wrap_CS_rule₂ g₁.nt) g₂.rules) ++
-      (CS_rules_for_terminals₁ g₂.nt g₁ ++ CS_rules_for_terminals₂ g₁.nt g₂)
-    )
-  output_nonempty := by
-    intro r hr
-    simp [List.mem_cons] at hr
-    rcases hr with rfl | hr
-    · nofun
-    · rcases hr with ⟨r', hr', rfl⟩ | ⟨r', hr', rfl⟩ | hr | hr
-      · -- wrap_CS_rule₁
-        simp [wrap_CS_rule₁, csrule.output_string]
-        exact g₁.output_nonempty r' hr'
-      · -- wrap_CS_rule₂
-        simp [wrap_CS_rule₂, csrule.output_string]
-        exact g₂.output_nonempty r' hr'
-      · -- CS_rules_for_terminals₁
-        simp [CS_rules_for_terminals₁, List.mem_map] at hr
-        obtain ⟨t, _, rfl⟩ := hr
-        simp
-      · -- CS_rules_for_terminals₂
-        simp [CS_rules_for_terminals₂, List.mem_map] at hr
-        obtain ⟨t, _, rfl⟩ := hr
-        simp
+private theorem concat_decompose_left {L1 L2 : Language T}
+    (h1 : [] ∈ L1) (h2 : [] ∉ L2) :
+    L1 * L2 = nonemptyPart L1 * nonemptyPart L2 + L2 := by
+  ext w
+  constructor
+  · intro hw
+    rw [Language.mem_mul] at hw
+    rcases hw with ⟨x, hx, y, hy, hxy⟩
+    by_cases hxnil : x = []
+    · subst x
+      simp only [List.nil_append] at hxy
+      subst w
+      rw [Language.mem_add]
+      exact Or.inr hy
+    · rw [Language.mem_add]
+      left
+      rw [Language.mem_mul]
+      refine ⟨x, ?_, y, ?_, hxy⟩
+      · exact ⟨hx, by simpa [Set.mem_singleton_iff] using hxnil⟩
+      · exact ⟨hy, by
+          intro hyempty
+          rw [Set.mem_singleton_iff] at hyempty
+          exact h2 (by simpa [hyempty] using hy)⟩
+  · intro hw
+    rw [Language.mem_add] at hw
+    rcases hw with hcore | hright
+    · rw [Language.mem_mul] at hcore
+      rcases hcore with ⟨x, hx, y, hy, hxy⟩
+      rw [Language.mem_mul]
+      exact ⟨x, hx.1, y, hy.1, hxy⟩
+    · rw [Language.mem_mul]
+      exact ⟨[], h1, w, hright, rfl⟩
 
-private lemma big_CS_grammar_same_language (g₁ g₂ : CS_grammar T) :
-  CS_language (big_CS_grammar g₁ g₂) = grammar_language (big_grammar (grammar_of_csg g₁) (grammar_of_csg g₂)) :=
-by
-  convert CS_language_eq_grammar_language ( big_CS_grammar g₁ g₂ ) using 2;
-  unfold grammar_of_csg big_grammar big_CS_grammar;
-  unfold CS_rules_for_terminals₁ CS_rules_for_terminals₂; simp +decide [ List.map_append, List.map_map ] ;
-  congr! 2;
-  · ext; simp +decide [ wrap_CS_rule₁ ] ;
-    exact congr_arg₂ _ ( by aesop ) ( by aesop );
-  · unfold wrap_CS_rule₂; simp +decide [ List.map_append, List.map_map ] ;
-    intros; congr! 1;
-    rw [ ← List.map_append, ← List.map_append ];
-    rfl
+private theorem concat_decompose_right {L1 L2 : Language T}
+    (h1 : [] ∉ L1) (h2 : [] ∈ L2) :
+    L1 * L2 = nonemptyPart L1 * nonemptyPart L2 + L1 := by
+  ext w
+  constructor
+  · intro hw
+    rw [Language.mem_mul] at hw
+    rcases hw with ⟨x, hx, y, hy, hxy⟩
+    by_cases hynil : y = []
+    · subst y
+      simp only [List.append_nil] at hxy
+      subst w
+      rw [Language.mem_add]
+      exact Or.inr hx
+    · rw [Language.mem_add]
+      left
+      rw [Language.mem_mul]
+      refine ⟨x, ?_, y, ?_, hxy⟩
+      · exact ⟨hx, by
+          intro hxempty
+          rw [Set.mem_singleton_iff] at hxempty
+          exact h1 (by simpa [hxempty] using hx)⟩
+      · exact ⟨hy, by simpa [Set.mem_singleton_iff] using hynil⟩
+  · intro hw
+    rw [Language.mem_add] at hw
+    rcases hw with hcore | hright
+    · rw [Language.mem_mul] at hcore
+      rcases hcore with ⟨x, hx, y, hy, hxy⟩
+      rw [Language.mem_mul]
+      exact ⟨x, hx.1, y, hy.1, hxy⟩
+    · rw [Language.mem_mul]
+      exact ⟨w, hright, [], h2, by simp⟩
 
-theorem CS_of_CS_c_CS (L₁ : Language T) (L₂ : Language T) :
-  is_CS L₁  ∧  is_CS L₂   →   is_CS (L₁ * L₂)   :=
-by
-  rintro ⟨h₁, h₂⟩
-  obtain ⟨g₁, eq_L₁⟩ := is_CS_implies_is_CS_via_csg h₁
-  obtain ⟨g₂, eq_L₂⟩ := is_CS_implies_is_CS_via_csg h₂
-  rw [CS_language_eq_grammar_language g₁] at eq_L₁
-  rw [CS_language_eq_grammar_language g₂] at eq_L₂
+private theorem concat_decompose_both {L1 L2 : Language T}
+    (h1 : [] ∈ L1) (h2 : [] ∈ L2) :
+    L1 * L2 = (nonemptyPart L1 * nonemptyPart L2 + L1) + L2 := by
+  ext w
+  constructor
+  · intro hw
+    rw [Language.mem_mul] at hw
+    rcases hw with ⟨x, hx, y, hy, hxy⟩
+    by_cases hxnil : x = []
+    · subst x
+      simp only [List.nil_append] at hxy
+      subst w
+      rw [Language.mem_add]
+      exact Or.inr hy
+    · by_cases hynil : y = []
+      · subst y
+        simp only [List.append_nil] at hxy
+        subst w
+        rw [Language.mem_add]
+        left
+        rw [Language.mem_add]
+        exact Or.inr hx
+      · rw [Language.mem_add]
+        left
+        rw [Language.mem_add]
+        left
+        rw [Language.mem_mul]
+        refine ⟨x, ?_, y, ?_, hxy⟩
+        · exact ⟨hx, by simpa [Set.mem_singleton_iff] using hxnil⟩
+        · exact ⟨hy, by simpa [Set.mem_singleton_iff] using hynil⟩
+  · intro hw
+    rw [Language.mem_add] at hw
+    rcases hw with hleft | hright
+    · rw [Language.mem_add] at hleft
+      rcases hleft with hcore | hL1
+      · rw [Language.mem_mul] at hcore
+        rcases hcore with ⟨x, hx, y, hy, hxy⟩
+        rw [Language.mem_mul]
+        exact ⟨x, hx.1, y, hy.1, hxy⟩
+      · rw [Language.mem_mul]
+        exact ⟨w, hL1, [], h2, by simp⟩
+    · rw [Language.mem_mul]
+      exact ⟨[], h1, w, hright, rfl⟩
 
-  apply is_CS_via_csg_implies_is_CS
-  use big_CS_grammar g₁ g₂
-  rw [big_CS_grammar_same_language]
+private theorem is_CS_nonemptyPart_concat {L1 L2 : Language T}
+    (hL1 : is_CS L1) (hL2 : is_CS L2) :
+    is_CS (nonemptyPart L1 * nonemptyPart L2) := by
+  obtain ⟨g1, hg1, hlang1⟩ := hL1
+  obtain ⟨g2, hg2, hlang2⟩ := hL2
+  obtain ⟨g1', _hfin1, hnc1, hlang1'⟩ := exists_noncontracting_offEmpty_of_CS g1 hg1
+  obtain ⟨g2', _hfin2, hnc2, hlang2'⟩ := exists_noncontracting_offEmpty_of_CS g2 hg2
+  refine ⟨big_grammar g1' g2',
+    grammar_context_sensitive_of_noncontracting _
+      (big_grammar_noncontracting g1' g2' hnc1 hnc2), ?_⟩
+  rw [big_grammar_language, hlang1', hlang2', hlang1, hlang2]
+  rfl
 
-  apply Set.Subset.antisymm
-  ·
-    intros w hyp
-    rw [←eq_L₁]
-    rw [←eq_L₂]
-    exact in_concatenated_of_in_big hyp
-  ·
-    intros w hyp
-    rw [←eq_L₁] at hyp
-    rw [←eq_L₂] at hyp
-    exact in_big_of_in_concatenated hyp
+end ContextSensitiveConcatenation
 
-/-- The class of context-sensitive languages is closed under concatenation. -/
-theorem CS_closedUnderConcatenation : ClosedUnderConcatenation (α := T) is_CS :=
-  fun L₁ L₂ h₁ h₂ => CS_of_CS_c_CS L₁ L₂ ⟨h₁, h₂⟩
+open ContextSensitiveConcatenation
+
+/-- Context-sensitive languages are closed under concatenation. -/
+public theorem CS_closedUnderConcatenation :
+    ClosedUnderConcatenation (α := T) is_CS := by
+  intro L1 L2 hL1 hL2
+  by_cases hε1 : [] ∈ L1
+  · by_cases hε2 : [] ∈ L2
+    · rw [concat_decompose_both hε1 hε2]
+      exact CS_closedUnderUnion
+        (nonemptyPart L1 * nonemptyPart L2 + L1) L2
+        (CS_closedUnderUnion (nonemptyPart L1 * nonemptyPart L2) L1
+          (is_CS_nonemptyPart_concat hL1 hL2) hL1)
+        hL2
+    · rw [concat_decompose_left hε1 hε2]
+      exact CS_closedUnderUnion (nonemptyPart L1 * nonemptyPart L2) L2
+        (is_CS_nonemptyPart_concat hL1 hL2) hL2
+  · by_cases hε2 : [] ∈ L2
+    · rw [concat_decompose_right hε1 hε2]
+      exact CS_closedUnderUnion (nonemptyPart L1 * nonemptyPart L2) L1
+        (is_CS_nonemptyPart_concat hL1 hL2) hL1
+    · rw [concat_decompose_none hε1 hε2]
+      exact is_CS_nonemptyPart_concat hL1 hL2

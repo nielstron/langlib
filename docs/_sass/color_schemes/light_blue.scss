@@ -1,0 +1,10 @@
+// Custom color scheme: "light_blue".
+//
+// just-the-docs always imports the stock `light` scheme before this file, so
+// every variable already has its default value. We therefore override the
+// accent variables WITHOUT `!default` (otherwise the prior `light` definitions
+// would win) to swap the default lilac/purple accent for a light blue used by
+// links and primary buttons.
+
+$link-color: $blue-000;
+$btn-primary-color: $blue-100;

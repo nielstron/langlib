@@ -1,8 +1,57 @@
-import Mathlib
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
-import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
-import Langlib.Classes.ContextFree.Pumping.ParseTree
-import Langlib.Utilities.PrimrecHelpers
+module
+
+public import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
+public import Langlib.Classes.ContextFree.Pumping.ParseTree
+public import Langlib.Classes.ContextFree.Decidability.Helper
+public import Langlib.Classes.ContextFree.Decidability.Characterization
+public import Mathlib.CategoryTheory.Category.Basic
+public import Mathlib.Data.Matrix.Mul
+import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep
+import Langlib.Grammars.ContextFree.MathlibCFG
+import Langlib.Utilities.ListUtils
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Bool.AllAny
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Bitwise
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
+
+
 
 /-! # Decidability and Computability of Membership
 
@@ -32,7 +81,8 @@ open ChomskyNormalFormGrammar
 /-- CYK-style predicate: can nonterminal `n` derive word `w` in CNF grammar `g`?
     Quantifies over rules (a Finset) instead of nonterminals, so does NOT require
     `Fintype g.NT`. -/
-noncomputable def canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+@[expose]
+public noncomputable def canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : g.NT) : List T → Prop
   | [] => False
   | [t] => ChomskyNormalFormRule.leaf n t ∈ g.rules
@@ -64,14 +114,14 @@ def cykDecideAux {NT : Type} [DecidableEq NT]
   | h₁ :: h₂ :: rest =>
     let w' := h₁ :: h₂ :: rest
     (List.finRange (w'.length - 1)).any fun ⟨i, hi⟩ =>
-      have hi' : i < rest.length + 1 := by simp [w'] at hi; omega
+      have hi' : i < rest.length + 1 := by simp only [length_cons, add_tsub_cancel_right, Order.lt_add_one_iff, w'] at hi; omega
       rulesList.any fun r =>
         match r with
         | ChomskyNormalFormRule.node nᵢ c₁ c₂ =>
           have htake : (w'.take (i + 1)).length < w'.length := by
-            simp [List.length_take]; omega
+            simp only [length_take, inf_lt_right, not_le]; omega
           have hdrop : (w'.drop (i + 1)).length < w'.length := by
-            simp [List.length_drop]; omega
+            simp only [length_drop, tsub_lt_self_iff, Order.lt_add_one_iff, zero_le, and_true]; omega
           decide (nᵢ = n) && cykDecideAux rulesList c₁ (w'.take (i + 1)) &&
             cykDecideAux rulesList c₂ (w'.drop (i + 1))
         | _ => false
@@ -89,12 +139,12 @@ lemma cykDecideAux_iff_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g
   apply Iff.intro;
   · intro h;
     induction' k : w.length using Nat.strong_induction_on with k ih generalizing n w;
-    rcases w with ( _ | ⟨ t, _ | ⟨ t', w ⟩ ⟩ ) <;> simp_all +decide [ List.finRange ];
+    rcases w with ( _ | ⟨ t, _ | ⟨ t', w ⟩ ⟩ ) <;> simp_all +decide [  ];
     · unfold cykDecideAux at h; aesop;
     · unfold cykDecideAux at h;
       rw [ List.any_eq_true ] at h;
       obtain ⟨ r, hr₁, hr₂ ⟩ := h;
-      cases r <;> simp_all +decide [ hrules ];
+      cases r <;> simp_all +decide [  ];
       unfold ChomskyNormalFormGrammar.canDerive; aesop;
     · unfold cykDecideAux at h;
       rw [ List.any_eq_true ] at h;
@@ -124,7 +174,8 @@ lemma cykDecideAux_iff_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g
       refine' ⟨ _, ChomskyNormalFormRule.node n c₁ c₂, _, _ ⟩ <;> simp_all +decide;
       grind
 
-lemma parseTree_of_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+omit [DecidableEq T] in
+public lemma parseTree_of_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : g.NT) (w : List T) (h : canDerive g n w) :
     ∃ p : @parseTree _ g n, p.yield = w := by
   induction' k : w.length using Nat.strong_induction_on with k ih generalizing n w;
@@ -144,7 +195,8 @@ lemma parseTree_of_canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     simp_all +decide [ ChomskyNormalFormGrammar.parseTree.yield ]
 
 
-lemma canDerive_of_parseTree (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+omit [DecidableEq T] in
+public lemma canDerive_of_parseTree (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     {n : g.NT} (p : @parseTree _ g n) :
     canDerive g n p.yield := by
   induction' p with n t hnt p₁ p₂ h₁ h₂ h₃ h₄ h₅ h₆ h₇ h₈ h₉ h₁₀ h₁₁ h₁₂ h₁₃ h₁₄ h₁₅ h₁₆ h₁₇ h₁₈ h₁₉ h₂₀ v hv₁ hv₂ hv₃ hv₄ hv₅ hv₆ hv₇ hv₈ hv₉ hv₁₀ hv₁₁ hv₁₂ hv₁₃ hv₁₄ hv₁₅ hv₁₆ hv₁₇ hv₁₈ hv₁₉ hv₂₀ hv₂₁ hv₂₂ hv₂₃ hv₂₄ hv₂₅ hv₂₆ hv₂₇ hv₂₈ hv₂₉ hv₃₀ hv₃₁ hv₃₂ hv₃₃ hv₃₄ hv₃₅ hv₃₆ hv₃₇ hv₃₈ hv₃₉ hv₄₀ hv₄₁ hv₄₂ hv₄₃ hv₄₄ hv₄₅ hv₄₆ hv₄₇ hv₄₈ hv₄₉ hv₅₀ h₁ₚ h₂ₚ h₃ₚ h₄ₚ h₅ₚ h₆ₚ h₇ₚ h₈ₚ h₉ₚ h₁₀ₚ h₁₁ₚ h₁₂ₚ h₁₃ₚ h₁₄ₚ h₁₅ₚ h₁₆ₚ h₁₇ₚ h₁₈ₚ h₁₉ₚ h₂₀ₚ h₂₁ₚ h₂₂ₚ h₂₃ₚ h₂₄ₚ h₂₅ₚ h₂₆ₚ h₂₇ₚ h₂₈ₚ hi₁ hi₂ hi₃ hi₄ hi₅ hi₆ hi₇ hi₈ hi₉ hi₁₀;
@@ -152,9 +204,9 @@ lemma canDerive_of_parseTree (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     unfold ChomskyNormalFormGrammar.canDerive; aesop;
   · have h_split : (h₂.node h₃ h₄).yield = h₂.yield ++ h₃.yield := by
       rfl;
-    rcases h₂_yld : h₂.yield with ( _ | ⟨ t₁, _ | ⟨ t₂, rest ⟩ ⟩ ) <;> simp_all +decide [ List.length ];
+    rcases h₂_yld : h₂.yield with ( _ | ⟨ t₁, _ | ⟨ t₂, rest ⟩ ⟩ ) <;> simp_all +decide [  ];
     · exact absurd h₅ ( by unfold ChomskyNormalFormGrammar.canDerive; aesop );
-    · rcases h₃_yld : h₃.yield with ( _ | ⟨ t₂, _ | ⟨ t₃, rest ⟩ ⟩ ) <;> simp_all +decide [ List.length ];
+    · rcases h₃_yld : h₃.yield with ( _ | ⟨ t₂, _ | ⟨ t₃, rest ⟩ ⟩ ) <;> simp_all +decide [  ];
       · exact absurd h₆ ( by unfold ChomskyNormalFormGrammar.canDerive; simp +decide );
       · have h_node : g.canDerive p₁ ([t₁] ++ [t₂]) := by
           have h_node_rule : ChomskyNormalFormRule.node p₁ p₂ h₁ ∈ g.rules := h₄
@@ -173,8 +225,9 @@ lemma canDerive_of_parseTree (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
       refine' ⟨ ⟨ t₂ :: rest |> List.length, _ ⟩, ChomskyNormalFormRule.node p₁ p₂ h₁, h₄, _ ⟩ <;> simp +decide [ * ];
       exact h₃.yield_length_pos
 
+omit [DecidableEq T] in
 /-- `canDerive` is equivalent to `Derives` (derivation in the CNF grammar). -/
-lemma canDerive_iff_derives (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
+public lemma canDerive_iff_derives (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : g.NT) (w : List T) :
     canDerive g n w ↔ g.Derives [Symbol.nonterminal n] (w.map Symbol.terminal) := by
   constructor
@@ -203,16 +256,16 @@ def ntSetBit (bv : ℕ) (idx : ℕ) : ℕ := bv ||| (1 <<< idx)
 
 lemma ntInSet_ntSetBit_self (bv : ℕ) (idx : ℕ) :
     ntInSet (ntSetBit bv idx) idx = true := by
-  simp [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft]
+  simp only [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft, ge_iff_le, le_refl, decide_true, tsub_self, Nat.testBit_zero, Nat.mod_succ, Bool.and_self, Bool.or_true]
 
 lemma ntInSet_ntSetBit_of_true (bv : ℕ) (idx idx' : ℕ)
     (h : ntInSet bv idx = true) :
     ntInSet (ntSetBit bv idx') idx = true := by
-  simp [ntInSet, ntSetBit, Nat.testBit_or] at *
+  simp only [ntInSet, ntSetBit, Nat.testBit_or, Nat.testBit_shiftLeft, ge_iff_le, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at *
   exact Or.inl h
 
-lemma ntInSet_zero (idx : ℕ) : ntInSet 0 idx = false := by
-  simp [ntInSet]
+private lemma ntInSet_zero (idx : ℕ) : ntInSet 0 idx = false := by
+  simp only [ntInSet, Nat.zero_testBit]
 
 end BitvectorOps
 
@@ -229,20 +282,20 @@ lemma primrec₂_ntInSet : Primrec₂ (fun bv idx => ntInSet bv idx) := by
           have h_pow : Primrec₂ (fun (n : ℕ) (ih : ℕ) => 2 * ih) := by
             exact Primrec.nat_mul.comp ( Primrec.const 2 ) ( Primrec.snd );
           field_simp;
-          exact?;
+          exact Primrec.nat_rec₁ 1 h_pow;
         exact h_exp.comp ( Primrec.fst )
       exact Primrec.nat_div.comp ( Primrec.fst ) ( h_exp.comp ( Primrec.snd ) ( Primrec.fst ) );
     exact h_div;
   have h_mod : Primrec₂ (fun (n : ℕ) (m : ℕ) => n % m) := by
-    exact?;
+    exact Primrec.nat_mod;
   have h_mod : Primrec₂ (fun (bv : ℕ) (idx : ℕ) => (bv / 2 ^ idx) % 2) := by
     exact h_mod.comp₂ h_div ( Primrec₂.const 2 );
   have h_eq : Primrec₂ (fun (n : ℕ) (m : ℕ) => decide (n = m)) := by
     convert Primrec.eq using 1;
-    exact?;
+    exact Iff.symm primrecRel_iff_primrec_decide;
   convert h_eq.comp₂ h_mod ( Primrec₂.const 1 ) using 1;
-  ext; simp [ntInSet];
-  exact?
+  ext; simp only [ntInSet];
+  exact Nat.testBit_eq_decide_div_mod_eq
 
 lemma primrec₂_ntSetBit : Primrec₂ (fun bv idx => ntSetBit bv idx) := by
   unfold ntSetBit;
@@ -272,7 +325,7 @@ lemma primrec₂_ntSetBit : Primrec₂ (fun bv idx => ntSetBit bv idx) := by
       · aesop;
     · -- Since $n.1$ and $2^n.2$ have no overlapping 1s in their binary representations, their bitwise OR is equal to their sum.
       have h_no_overlap : ∀ (m n : ℕ), (m &&& n = 0) → (m ||| n = m + n) := by
-        intro m n h; induction' m using Nat.binaryRec with m ih generalizing n <;> induction' n using Nat.binaryRec with n ih' <;> simp_all +decide [ Nat.shiftLeft, Nat.shiftRight ] ;
+        intro m n h; induction' m using Nat.binaryRec with m ih generalizing n <;> induction' n using Nat.binaryRec with n ih' <;> simp_all +decide [  ] ;
         cases m <;> cases n <;> simp_all +decide [ Nat.bit ];
         · ring;
         · ring;
@@ -357,7 +410,7 @@ variable {T : Type} [DecidableEq T] [Primcodable T]
 /-
 `cykLeafBV` with fixed leaf data is Primrec.
 -/
-lemma primrec_cykLeafBV (ld : List (ℕ × T)) :
+private lemma primrec_cykLeafBV (ld : List (ℕ × T)) :
     Primrec (fun t : T => cykLeafBV ld t) := by
   have h_foldl : ∀ (l : List (ℕ × T)), Primrec (fun t => List.foldl (fun bv p => if p.2 == t then ntSetBit bv p.1 else bv) 0 l) := by
     intro l
@@ -397,7 +450,7 @@ lemma primrec₂_ruleStep (ntR lR rR : ℕ) :
     have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => if ntInSet (ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) lR && ntInSet (ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) rR then true else false) := by
       have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => ntInSet (ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) lR) := by
         have h_cond : Primrec₂ (fun (x : ℕ) (y : ℕ) => ntInSet x y) := by
-          exact?;
+          exact primrec₂_ntInSet;
         convert h_cond.comp ( ‹Primrec fun ctx : List ℕ × ℕ × ℕ × ℕ × ℕ => ctx.1.getD ( ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1 ) 0›.comp ( Primrec.fst ) ) ( Primrec.const lR ) using 1;
       have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => ntInSet (ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) rR) := by
         convert Primrec₂.comp ( primrec₂_ntInSet ) ( h_primrec.comp ( Primrec.fst ) ) ( Primrec.const rR ) using 1;
@@ -446,7 +499,7 @@ lemma primrec_splitFold (nd : List (ℕ × ℕ × ℕ)) :
           convert Primrec.list_foldl _ _ _ using 1;
           rotate_left;
           exact ℕ;
-          exact?;
+          exact Primcodable.ofDenumerable ℕ;
           exact fun p => List.range ( p.1.2.2.2 + 1 );
           exact fun p => p.2;
           exact fun p q => foldl ( fun bv' r => if ( ntInSet ( p.1.1.getD ( p.1.2.2.1 + q.2 * p.1.2.1 ) 0 ) r.2.1 && ntInSet ( p.1.1.getD ( p.1.2.2.1 + q.2 + 1 + ( p.1.2.2.2 - q.2 ) * p.1.2.1 ) 0 ) r.2.2 ) = true then ntSetBit bv' r.1 else bv' ) q.1 nd;
@@ -482,7 +535,7 @@ lemma primrec₂_cellValue (nd : List (ℕ × ℕ × ℕ)) :
   · refine' ⟨ _, _ ⟩;
     infer_instance;
     convert Primrec.nat_lt.comp _ _ using 1;
-    exact?;
+    exact Iff.symm primrecPred_iff_primrec_decide;
     · exact Primrec.fst.comp ( Primrec.snd.comp ( Primrec.fst ) );
     · exact Primrec.nat_add.comp ( Primrec.nat_add.comp ( Primrec.snd ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) ) ( Primrec.const 2 );
   · exact Primrec.const 0;
@@ -492,6 +545,7 @@ lemma primrec₂_cellValue (nd : List (ℕ × ℕ × ℕ)) :
     · exact Primrec.pair ( Primrec.fst.comp ( Primrec.fst ) ) ( Primrec.pair ( Primrec.fst.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) ( Primrec.pair ( Primrec.snd ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) ) );
     · grind +revert
 
+omit [DecidableEq T] in
 /-
 The step function for Nat.rec is Primrec₂.
 -/
@@ -507,7 +561,7 @@ lemma primrec₂_cykStep (nd : List (ℕ × ℕ × ℕ)) :
         ) 0) := by
   apply_rules [ Primrec₂.comp, Primrec₂.pair, Primrec₂.const ];
   all_goals try apply_rules [ Primrec.fst, Primrec.snd, Primrec.list_map ];
-  · exact?;
+  · exact Primrec.list_append;
   · exact Primrec.snd.comp ( Primrec.snd );
   · exact Primrec.list_range.comp ( Primrec.list_length.comp ( Primrec.fst ) );
   · convert primrec₂_cellValue nd using 1;
@@ -523,7 +577,7 @@ lemma primrec_cykBuildTable (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ
       cykBuildTable ld nd w (w.length - 1)) := by
   have h_primrec : Primrec (fun w : List T => w.map (cykLeafBV ld)) := by
     have h_primrec : Primrec (fun t : T => cykLeafBV ld t) := by
-      exact?;
+      exact primrec_cykLeafBV ld;
     convert Primrec.list_map _ _;
     all_goals try infer_instance;
     · exact Primrec.id;
@@ -536,12 +590,13 @@ lemma primrec_cykBuildTable (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ
            ntInSet (p.2.getD ((p.1 - j) * w.length + (i + j + 1)) 0) r.2.2
         then ntSetBit bv' r.1 else bv') bv
     ) 0) := by
-      exact?;
+      exact primrec₂_cykStep nd;
   have := @Primrec.nat_rec;
   convert this h_primrec ( h_primrec_step ) |> Primrec.comp <| Primrec.pair ( Primrec.id ) ( Primrec.nat_sub.comp ( Primrec.list_length ) ( Primrec.const 1 ) ) using 1;
   funext w; exact (by
   induction' w.length - 1 with k ih generalizing w <;> simp +decide [ *, cykBuildTable ])
 
+omit [Primcodable T] in
 /-- The full membership check is Primrec. -/
 lemma cykMemCheck_eq (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)) (si : ℕ)
     (w : List T) :
@@ -549,8 +604,8 @@ lemma cykMemCheck_eq (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)) (si 
     ntInSet ((cykBuildTable ld nd w (w.length - 1)).getD
       ((w.length - 1) * w.length) 0) si := by
   cases w with
-  | nil => simp [cykMemCheck, cykBuildTable, ntInSet]
-  | cons h t => simp [cykMemCheck]
+  | nil => simp only [cykMemCheck, ntInSet, length_nil, zero_tsub, cykBuildTable, map_nil, mul_zero, getD_eq_getElem?_getD, lt_self_iff_false, not_false_eq_true, getElem?_neg, Option.getD_none, Nat.zero_testBit]
+  | cons h t => simp only [cykMemCheck, length_cons, add_tsub_cancel_right, getD_eq_getElem?_getD]
 
 /-- The full membership check is Primrec. -/
 lemma primrec_cykMemCheck (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)) (si : ℕ) :
@@ -592,7 +647,7 @@ lemma cykLeafBV_correct (leafData : List (ℕ × T)) (t : T) (idx : ℕ) :
   induction' leafData using List.reverseRecOn with leafData p ih generalizing idx;
   · simp +decide [ cykLeafBV, ntInSet ];
   · by_cases h : p.2 = t <;> simp_all +decide [ cykLeafBV ];
-    · by_cases h' : idx = p.1 <;> simp_all +decide [ ntInSet_ntSetBit_self, ntInSet_ntSetBit_of_true, ntInSet_ntSetBit_ne ];
+    · by_cases h' : idx = p.1 <;> simp_all +decide [ ntInSet_ntSetBit_self, ntInSet_ntSetBit_ne ];
       · lia;
       · grind;
     · aesop
@@ -604,7 +659,7 @@ lemma cykBuildTable_length (ld : List (ℕ × T)) (nd : List (ℕ × ℕ × ℕ)
     (w : List T) (k : ℕ) :
     (cykBuildTable ld nd w k).length = (k + 1) * w.length := by
   induction' k with k ih generalizing w;
-  · simp [cykBuildTable];
+  · simp only [cykBuildTable, length_map, zero_add, one_mul];
   · unfold cykBuildTable;
     grind
 
@@ -644,7 +699,7 @@ lemma foldl_rules_ntInSet (nd : List (ℕ × ℕ × ℕ)) (left_bv right_bv init
   induction' nd using List.reverseRecOn with nd hd ih generalizing init;
   · aesop;
   · by_cases h : ntInSet left_bv hd.2.1 && ntInSet right_bv hd.2.2 <;> simp_all +decide [ List.foldl_append ];
-    · by_cases h' : idx = hd.1 <;> simp_all +decide [ ntInSet_ntSetBit_self, ntInSet_ntSetBit_of_true, ntInSet_ntSetBit_ne ];
+    · by_cases h' : idx = hd.1 <;> simp_all +decide [ ntInSet_ntSetBit_self, ntInSet_ntSetBit_ne ];
       · exact Or.inr ⟨ _, _, Or.inr rfl, h ⟩;
       · grind;
     · grind
@@ -665,13 +720,13 @@ lemma foldl_splits_ntInSet (nd : List (ℕ × ℕ × ℕ)) (table : List ℕ)
       r.1 = idx ∧
       ntInSet (table.getD (j * n + i) 0) r.2.1 = true ∧
       ntInSet (table.getD ((k - j) * n + (i + j + 1)) 0) r.2.2 = true := by
-  simp +decide [ foldl_rules_ntInSet ];
+  simp +decide;
   constructor <;> intro h;
   · contrapose! h;
     -- By induction on the range, we can show that the bit at `idx` is not set after each step of the fold.
     have h_ind : ∀ (j : ℕ) (hj : j ≤ k + 1), ntInSet (List.foldl (fun bv j => List.foldl (fun bv' r => if ntInSet (table[j * n + i]?.getD 0) r.2.1 = true ∧ ntInSet (table[(k - j) * n + (i + j + 1)]?.getD 0) r.2.2 = true then ntSetBit bv' r.1 else bv') bv nd) 0 (List.range j)) idx = false := by
       intro j hj; induction' j with j ih <;> simp_all +decide [ List.range_succ ] ;
-      · exact?;
+      · exact ntInSet_zero idx;
       · convert foldl_rules_ntInSet nd _ _ _ _ using 1;
         rotate_left;
         exact table[j * n + i]?.getD 0;
@@ -683,10 +738,10 @@ lemma foldl_splits_ntInSet (nd : List (ℕ × ℕ × ℕ)) (table : List ℕ)
   · -- By definition of `foldl`, if there exists a `j` in the range such that the condition holds, then the bit at `idx` will be set to `true` after processing all `j`'s.
     have h_foldl : ∀ (l : List ℕ) (j : ℕ) (hj : j ∈ l), (∃ r ∈ nd, r.1 = idx ∧ ntInSet (table[j * n + i]?.getD 0) r.2.1 ∧ ntInSet (table[(k - j) * n + (i + j + 1)]?.getD 0) r.2.2) → ntInSet (List.foldl (fun bv j => List.foldl (fun bv' r => if ntInSet (table[j * n + i]?.getD 0) r.2.1 ∧ ntInSet (table[(k - j) * n + (i + j + 1)]?.getD 0) r.2.2 then ntSetBit bv' r.1 else bv') bv nd) 0 l) idx := by
       intro l j hj h; induction' l using List.reverseRecOn with l ih <;> simp_all +decide [ List.foldl_append ] ;
-      by_cases h : j ∈ l <;> simp_all +decide [ foldl_rules_ntInSet ];
+      by_cases h : j ∈ l <;> simp_all +decide [  ];
       · have h_foldl_rules : ∀ (bv : ℕ) (idx : ℕ), ntInSet bv idx = true → ∀ (nd : List (ℕ × ℕ × ℕ)), ntInSet (List.foldl (fun bv' r => if ntInSet (table[ih * n + i]?.getD 0) r.2.1 ∧ ntInSet (table[(k - ih) * n + (i + ih + 1)]?.getD 0) r.2.2 then ntSetBit bv' r.1 else bv') bv nd) idx = true := by
           intros bv idx hbv nd; induction' nd using List.reverseRecOn with nd ih <;> simp_all +decide [ List.foldl_append ] ;
-          split_ifs <;> simp_all +decide [ ntInSet_ntSetBit_self, ntInSet_ntSetBit_of_true ];
+          split_ifs <;> simp_all +decide [ ntInSet_ntSetBit_of_true ];
         exact h_foldl_rules _ _ ‹_› _;
       · rename_i h₁ h₂;
         obtain ⟨ a, b, h₁, h₂, h₃ ⟩ := h₂;
@@ -704,22 +759,22 @@ open ChomskyNormalFormGrammar in
 /-- Base case of CYK correctness: single characters. -/
 lemma cykBuildTable_correct_base
     (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
-    (enc : g.NT → ℕ) (enc_inj : Function.Injective enc)
+    (enc : g.NT → ℕ) (_enc_inj : Function.Injective enc)
     (leafData : List (ℕ × T))
     (h_leaf : ∀ nt t, (enc nt, t) ∈ leafData ↔
         ChomskyNormalFormRule.leaf nt t ∈ g.rules)
     (nodeData : List (ℕ × ℕ × ℕ))
-    (w : List T) (hw : w ≠ [])
+    (w : List T) (_hw : w ≠ [])
     (i : ℕ) (hi : i < w.length)
     (nt : g.NT) :
     ntInSet ((cykBuildTable leafData nodeData w 0).getD i 0) (enc nt) =
     cykDecideAux (g.rules.toList) nt (w.drop i |>.take 1) := by
   convert cykLeafBV_correct leafData ( w[i] ) ( enc nt ) using 1;
-  rw [ show cykBuildTable leafData nodeData w 0 = w.map ( cykLeafBV leafData ) from rfl ] ; simp +decide [ List.getElem?_map, hi ] ;
+  rw [ show cykBuildTable leafData nodeData w 0 = w.map ( cykLeafBV leafData ) from rfl ] ; simp +decide [ hi ] ;
   rw [ show drop i w = w[i] :: drop ( i + 1 ) w from ?_, List.take ] <;> norm_num [ hi ];
   rw [ cykDecideAux ];
   rw [ List.any_eq ];
-  by_cases h : ( enc nt, w[i] ) ∈ leafData <;> simp +decide [ h, h_leaf ];
+  by_cases h : ( enc nt, w[i] ) ∈ leafData <;> simp +decide [ h ];
   · rw [ decide_eq_true ];
     exact ⟨ ChomskyNormalFormRule.leaf nt ( w[i] ), h_leaf nt ( w[i] ) |>.1 h, by simp +decide ⟩;
   · rw [ decide_eq_false ];
@@ -750,7 +805,7 @@ lemma cykDecideAux_long {NT : Type} [DecidableEq NT]
     (rules : List (ChomskyNormalFormRule T NT))
     (nt : NT) (w : List T) (hw : w.length ≥ 2) :
     cykDecideAux rules nt w =
-    (List.finRange (w.length - 1)).any fun ⟨j, hj⟩ =>
+    (List.finRange (w.length - 1)).any fun ⟨j, _hj⟩ =>
       rules.any fun r =>
         match r with
         | ChomskyNormalFormRule.node n' c₁ c₂ =>
@@ -797,7 +852,7 @@ lemma cykBuildTable_correct_step
     · obtain ⟨ j, hj, r, hr, hr', hr'', hr''' ⟩ := h_LHS.mp h;
       obtain ⟨ nt', l', r', rfl ⟩ := h_node_range r hr; simp_all +decide [ enc_inj.eq_iff ] ;
       use j, hj, l', r';
-      have := ih j hj i ( by linarith ) l'; have := ih ( l - j ) ( Nat.sub_le _ _ ) ( i + j + 1 ) ( by omega ) r'; simp_all +decide [ Nat.sub_add_comm hj ] ;
+      have := ih j hj i ( by linarith ) l'; have := ih ( l - j ) ( Nat.sub_le _ _ ) ( i + j + 1 ) ( by omega ) r'; simp_all +decide [  ] ;
       have h_stable : ∀ (k k' : ℕ) (hk : k ≤ k') (idx : ℕ) (h : idx < (k + 1) * w.length), (cykBuildTable leafData nodeData w k').getD idx 0 = (cykBuildTable leafData nodeData w k).getD idx 0 :=
         fun k k' hk idx hidx => cykBuildTable_getD_stable leafData nodeData w k k' hk idx hidx;
       have := h_stable j l hj ( j * w.length + i ) ( by nlinarith ) ; have := h_stable ( l - j ) l ( Nat.sub_le _ _ ) ( ( l - j ) * w.length + ( i + j + 1 ) ) ( by nlinarith [ Nat.sub_add_cancel hj ] ) ; aesop;
@@ -844,7 +899,7 @@ lemma cykBuildTable_correct_step
   · congr! 1;
     congr! 1;
     convert cykBuildTable_entry_step leafData nodeData w l i ( by linarith ) using 1;
-  · simp +decide [ List.mem_range, Nat.lt_succ_iff ]
+  · simp +decide [ List.mem_range ]
 
 open ChomskyNormalFormGrammar in
 /-- Key correctness lemma: CYK bitvector table entries correspond to `cykDecideAux`.
@@ -945,7 +1000,7 @@ theorem cf_membership_computable
       refine' ⟨ _, _, _, _, _, _ ⟩;
       exact (mathlib_cfg_of_cfg g).toCNF.rules.toList.filterMap (fun r => match r with | ChomskyNormalFormRule.leaf nt t => some (enc nt, t) | _ => none);
       exact (mathlib_cfg_of_cfg g).toCNF.rules.toList.filterMap (fun r => match r with | ChomskyNormalFormRule.node nt l r => some (enc nt, enc l, enc r) | _ => none);
-      · intro nt t; simp +decide [ ChomskyNormalFormRule.leaf ] ;
+      · intro nt t; simp +decide ;
         constructor <;> intro h;
         · obtain ⟨ a, ha, ha' ⟩ := h; rcases a with ( _ | _ | a ) <;> simp_all +decide ;
           grind;
@@ -985,8 +1040,32 @@ theorem cf_membership_computable
       convert cykMemCheck_correct_cnf ( mathlib_cfg_of_cfg g |> ContextFreeGrammar.toCNF ) enc enc_inj leafData h_leaf nodeData h_node h_node_range h_leaf_range w hw |> Iff.symm using 1;
       · rw [ ← ContextFreeGrammar.toCNF_correct ];
         grind;
-      · exact?;
+      · exact Classical.typeDecidableEq (mathlib_cfg_of_cfg g).toCNF.NT;
   convert hf.1 using 1;
   constructor <;> intro h <;> rw [ ComputablePred ] at * <;> aesop
+
+/-
+Context-free membership is uniformly computable for encoded CFGs (raw `ComputablePred`
+decider; the packaged `ComputableMembership` statement over the CF class lives in
+`ContextFree/Decidability/Characterization.lean`).
+-/
+theorem contextFree_membership_computablePred [Primcodable T] :
+    ComputablePred (fun p : EncodedCFG T × List T => p.2 ∈ contextFreeLanguageOf p.1) := by
+  constructor;
+  convert checkMembershipEncoded_computable' using 1;
+  all_goals try infer_instance;
+  ext ⟨G, w⟩; simp only;
+  rw [ eq_comm ];
+  grind +suggestions;
+  exact Classical.decPred _
+
+/-- **Membership is uniformly computable** for the context-free languages: encoded
+context-free grammars are an adequate, effective presentation
+(`contextFreeLanguageOf_characterizes`) with uniformly decidable membership
+(`ComputableMembership`). -/
+public theorem contextFree_computableMembership [Primcodable T] :
+    ComputableMembership CF (contextFreeLanguageOf : EncodedCFG T → Language T) :=
+  ⟨ContextFree.EncodedCFG.contextFreeLanguageOf_characterizes,
+    contextFree_membership_computablePred.to_re, contextFree_membership_computablePred⟩
 
 end CFComputablePred

@@ -1,10 +1,48 @@
+module
+
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import Mathlib
-import Langlib.Classes.DeterministicContextFree.Definition
-import Langlib.Utilities.ClosurePredicates
+public import Langlib.Classes.DeterministicContextFree.Definition
+public import Langlib.Utilities.ClosurePredicates
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # DCF Closure Under Intersection with a Regular Language
 
@@ -41,7 +79,8 @@ variable {Q T S σ : Type} [Fintype Q] [Fintype T] [Fintype S] [Fintype σ]
 namespace DPDA
 
 /-- The **product DPDA×DFA**: runs a DPDA and a DFA in parallel. -/
-def productDFA (M : DPDA Q T S) (D : DFA T σ) : DPDA (Q × σ) T S where
+@[expose]
+public def productDFA (M : DPDA Q T S) (D : DFA T σ) : DPDA (Q × σ) T S where
   initial_state := (M.initial_state, D.start)
   start_symbol := M.start_symbol
   final_states := {p | p.1 ∈ M.final_states ∧ p.2 ∈ D.accept}
@@ -77,10 +116,10 @@ theorem productDFA_step_projects (M : DPDA Q T S) (D : DFA T σ)
   rcases c₁ with ⟨ ⟨ q₁, s₁ ⟩, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ ⟨ q₂, s₂ ⟩, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ];
   cases w₁ <;> cases γ₁ <;> simp_all +decide [ step ];
   · obtain ⟨ β, hβ, rfl, rfl ⟩ := h;
-    cases hβ' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ DPDA.toPDA, PDA.transition_fun' ];
+    cases hβ' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ DPDA.toPDA ];
     · unfold DPDA.productDFA at hβ; aesop;
     · unfold DPDA.productDFA at hβ; aesop;
-  · unfold DPDA.toPDA at *; simp_all +decide [ PDA.transition_fun, PDA.transition_fun' ] ;
+  · unfold DPDA.toPDA at *; simp_all +decide [  ] ;
     unfold DPDA.productDFA at *;
     cases h' : M.transition q₁ ‹_› ‹_› <;> cases h'' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ Set.mem_singleton_iff ];
     have := M.no_mixed q₁ ‹_›; aesop;
@@ -88,7 +127,7 @@ theorem productDFA_step_projects (M : DPDA Q T S) (D : DFA T σ)
 /-
 One step in the product: the DFA state is updated by the consumed input.
 -/
-theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
     {c₁ c₂ : @PDA.conf (Q × σ) T S _ _ _ (M.productDFA D).toPDA}
     (h : @PDA.Reaches₁ (Q × σ) T S _ _ _ (M.productDFA D).toPDA c₁ c₂) :
     ∃ consumed : List T, c₁.input = consumed ++ c₂.input ∧
@@ -106,16 +145,16 @@ theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
   · cases h;
     · unfold DPDA.toPDA at *;
       unfold DPDA.productDFA at *;
-      cases h : M.transition q₁ a Z <;> simp_all +decide [ Set.mem_setOf_eq ];
+      cases h : M.transition q₁ a Z <;> simp_all +decide [  ];
       exact ⟨ [ a ], rfl, rfl ⟩;
     · unfold DPDA.productDFA at *;
       unfold DPDA.toPDA at *;
-      cases h : M.epsilon_transition q₁ Z <;> simp_all +decide [ Set.mem_setOf_eq ]
+      cases h : M.epsilon_transition q₁ Z <;> simp_all +decide [  ]
 
 /-
 One step in the DPDA lifts to one step in the product.
 -/
-theorem productDFA_step_lift (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_step_lift (M : DPDA Q T S) (D : DFA T σ)
     (q : Q) (s : σ) (w : List T) (γ : List S)
     (q' : Q) (w' : List T) (γ' : List S)
     (hstep : @PDA.Reaches₁ Q T S _ _ _ M.toPDA ⟨q, w, γ⟩ ⟨q', w', γ'⟩) :
@@ -125,9 +164,9 @@ theorem productDFA_step_lift (M : DPDA Q T S) (D : DFA T σ)
   cases w <;> cases γ <;> simp_all +decide [ step ];
   · unfold DPDA.toPDA at *;
     unfold DPDA.productDFA at *;
-    cases h : M.epsilon_transition q ‹_› <;> simp_all +decide [ Set.mem_setOf_eq ];
+    cases h : M.epsilon_transition q ‹_› <;> simp_all +decide [  ];
     grind;
-  · simp_all +decide [ DPDA.toPDA, PDA.transition_fun, PDA.transition_fun' ];
+  · simp_all +decide [ DPDA.toPDA ];
     unfold DPDA.productDFA at *;
     cases h : M.transition q ‹_› ‹_› <;> cases h' : M.epsilon_transition q ‹_› <;> simp_all +decide;
     · grind;
@@ -141,14 +180,14 @@ Multi-step projection lemmas
 
 Multi-step reachability in the product projects to multi-step reachability in the DPDA.
 -/
-theorem productDFA_reaches_projects (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_reaches_projects (M : DPDA Q T S) (D : DFA T σ)
     (q : Q) (s : σ) (w : List T) (γ : List S)
     (q' : Q) (s' : σ) (w' : List T) (γ' : List S)
     (h : @PDA.Reaches (Q × σ) T S _ _ _ (M.productDFA D).toPDA
       ⟨(q, s), w, γ⟩ ⟨(q', s'), w', γ'⟩) :
     @PDA.Reaches Q T S _ _ _ M.toPDA ⟨q, w, γ⟩ ⟨q', w', γ'⟩ := by
   have h_proj : ∀ {c₁ c₂ : @PDA.conf (Q × σ) T S _ _ _ (M.productDFA D).toPDA}, @PDA.Reaches₁ (Q × σ) T S _ _ _ (M.productDFA D).toPDA c₁ c₂ → @PDA.Reaches₁ Q T S _ _ _ M.toPDA ⟨c₁.state.1, c₁.input, c₁.stack⟩ ⟨c₂.state.1, c₂.input, c₂.stack⟩ := by
-    exact?;
+    exact fun {c₁ c₂} a => productDFA_step_projects M D a;
   have h_proj : ∀ {c₁ c₂ : @PDA.conf (Q × σ) T S _ _ _ (M.productDFA D).toPDA}, @PDA.Reaches (Q × σ) T S _ _ _ (M.productDFA D).toPDA c₁ c₂ → @PDA.Reaches Q T S _ _ _ M.toPDA ⟨c₁.state.1, c₁.input, c₁.stack⟩ ⟨c₂.state.1, c₂.input, c₂.stack⟩ := by
     intros c₁ c₂ h; induction h; aesop;
     exact Relation.ReflTransGen.tail ‹_› ( h_proj ‹_› );
@@ -157,7 +196,7 @@ theorem productDFA_reaches_projects (M : DPDA Q T S) (D : DFA T σ)
 /-
 Multi-step reachability in the product tracks the DFA state correctly.
 -/
-theorem productDFA_reaches_dfa_state (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_reaches_dfa_state (M : DPDA Q T S) (D : DFA T σ)
     (q : Q) (s : σ) (w : List T) (γ : List S)
     (q' : Q) (s' : σ) (w' : List T) (γ' : List S)
     (h : @PDA.Reaches (Q × σ) T S _ _ _ (M.productDFA D).toPDA
@@ -170,14 +209,14 @@ theorem productDFA_reaches_dfa_state (M : DPDA Q T S) (D : DFA T σ)
   · rcases hn with ⟨ c, hc ⟩;
     rename_i c hc₁ hc₂;
     obtain ⟨ consumed₁, hconsumed₁, hconsumed₂ ⟩ := ih q s w γ c.state.1 c.state.2 c.input c.stack ( by
-      exact? ) hc₁;
+      exact reaches_of_reachesIn hc₁ ) hc₁;
     obtain ⟨ consumed₂, hconsumed₃, hconsumed₄ ⟩ := productDFA_step_dfa M D hc₂;
     grind +splitIndPred
 
 /-
 Multi-step: DPDA reachability lifts to product reachability.
 -/
-theorem productDFA_reaches_lift (M : DPDA Q T S) (D : DFA T σ)
+public theorem productDFA_reaches_lift (M : DPDA Q T S) (D : DFA T σ)
     (q : Q) (s : σ) (w : List T) (γ : List S)
     (q' : Q) (w' : List T) (γ' : List S)
     (hreach : @PDA.Reaches Q T S _ _ _ M.toPDA ⟨q, w, γ⟩ ⟨q', w', γ'⟩) :
@@ -197,7 +236,7 @@ theorem productDFA_reaches_lift (M : DPDA Q T S) (D : DFA T σ)
 The product DPDA accepts exactly the intersection of the DPDA language
     and the DFA language.
 -/
-theorem productDFA_correct (M : DPDA Q T S) (D : DFA T σ) :
+public theorem productDFA_correct (M : DPDA Q T S) (D : DFA T σ) :
     (M.productDFA D).acceptsByFinalState = M.acceptsByFinalState ⊓ D.accepts := by
   ext w;
   constructor;
@@ -218,7 +257,7 @@ end DPDA
 
 /-- The class of deterministic context-free languages is closed under intersection
     with regular languages. -/
-theorem DCF_inter_regular {T : Type} [Fintype T]
+public theorem DCF_inter_regular {T : Type} [Fintype T]
     (L₁ : Language T) (L₂ : Language T)
     (h₁ : is_DCF L₁) (h₂ : L₂.IsRegular) :
     is_DCF (L₁ ⊓ L₂) := by

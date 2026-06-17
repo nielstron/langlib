@@ -1,7 +1,51 @@
-import Mathlib
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
-import Langlib.Classes.ContextFree.NormalForms.ChomskyNormalFormTranslation
-import Langlib.Classes.ContextFree.Pumping.ParseTree
+module
+
+public import Mathlib.Computability.DFA
+public import Langlib.Classes.Regular.Decidability.Helper
+public import Langlib.Classes.Regular.Decidability.Characterization
+public import Langlib.Classes.Regular.Decidability.Membership
+public import Langlib.Classes.ContextFree.Decidability.Emptiness
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
+
+
 
 /-! # Decidability of Emptiness
 
@@ -11,6 +55,8 @@ regular languages.
 ## Main results
 
 - `regular_emptiness_decidable` – emptiness of a regular language is decidable
+- `regular_computableEmptiness` – emptiness is *uniformly* computable for encoded
+  right-regular grammars (`ComputableEmptiness`)
 -/
 
 open List Relation
@@ -93,7 +139,7 @@ lemma DFA.mem_reachableSet_iff [Fintype α] [Fintype σ] [DecidableEq σ]
     exact hw'_eq ▸ h_ind _ le_rfl _ hw'
 
 /-- Emptiness of a DFA's accepted language is decidable. -/
-private noncomputable def dfa_emptiness_decidable
+noncomputable def dfa_emptiness_decidable
     [Fintype α] [Fintype σ] [DecidableEq α] [DecidableEq σ]
     (M : DFA α σ) [DecidablePred (· ∈ M.accept)] :
     Decidable (M.accepts = (∅ : Set (List α))) := by
@@ -113,7 +159,8 @@ private noncomputable def dfa_emptiness_decidable
   infer_instance
 
 /-- Emptiness of a regular language is decidable. -/
-noncomputable def regular_emptiness_decidable
+@[expose]
+public noncomputable def regular_emptiness_decidable
     [Fintype α] [DecidableEq α] (L : Language α) (hL : L.IsRegular) :
     Decidable (L = (∅ : Set (List α))) := by
   classical
@@ -127,3 +174,30 @@ noncomputable def regular_emptiness_decidable
   exact dfa_emptiness_decidable M
 
 end Regular
+
+/-! ## Part 2: Uniform computability over encoded right-regular grammars -/
+
+namespace Regular.EncodedRG
+
+/-- The raw uniform emptiness decider for encoded right-regular grammars, obtained by
+composing the context-free emptiness decider with the primitive-recursive translation
+`toCFG : EncodedRG T → EncodedCFG T`. -/
+public theorem regular_emptiness_computablePred [Fintype T] [DecidableEq T] [Primcodable T] :
+    ComputablePred (fun c : EncodedRG T => regularLanguageOf c = (∅ : Set (List T))) := by
+  obtain ⟨f, hf_comp, hf_eq⟩ :=
+    ComputablePred.computable_iff.mp (contextFree_emptiness_computablePred (T := T))
+  rw [ComputablePred.computable_iff]
+  refine ⟨fun c => f (toCFG c), hf_comp.comp (Primrec.to_comp toCFG_primrec), ?_⟩
+  funext c
+  have h := congrFun hf_eq (toCFG c)
+  simpa [regularLanguageOf] using h
+
+/-- **Emptiness is uniformly computable** for the regular languages: encoded
+right-regular grammars are an adequate, effective presentation
+(`regularLanguageOf_characterizes`) with uniformly decidable emptiness. -/
+public theorem regular_computableEmptiness [Fintype T] [DecidableEq T] [Primcodable T] :
+    ComputableEmptiness RG (regularLanguageOf : EncodedRG T → Language T) :=
+  ⟨regularLanguageOf_characterizes, regular_membership_computablePred.to_re,
+    regular_emptiness_computablePred⟩
+
+end Regular.EncodedRG

@@ -1,6 +1,10 @@
-import Mathlib.Computability.ContextFreeGrammar
-import Mathlib.Algebra.Group.Pointwise.Set.ListOfFn
-import Mathlib.Data.List.Lemmas
+module
+
+public import Mathlib.Computability.ContextFreeGrammar
+@[expose]
+public section
+
+
 
 namespace List
 
@@ -28,7 +32,7 @@ namespace ContextFreeRule
 
 namespace Rewrites
 
-theorem map {T N T' N'} (f : Symbol T N → Symbol T' N')
+public theorem map {T N T' N'} (f : Symbol T N → Symbol T' N')
     (r : ContextFreeRule T N) (r' : ContextFreeRule T' N')
     (u v : List (Symbol T N)) (h : r.Rewrites u v)
     (h_input : f (Symbol.nonterminal r.input) = Symbol.nonterminal r'.input)
@@ -42,7 +46,7 @@ theorem map {T N T' N'} (f : Symbol T N → Symbol T' N')
       simp only [List.map_cons]
       exact ContextFreeRule.Rewrites.cons (f x) (ih f r' h_input h_output)
 
-lemma map_inv {T N T' N'} (f : Symbol T N → Symbol T' N')
+public lemma map_inv {T N T' N'} (f : Symbol T N → Symbol T' N')
     (hf : Function.Injective f)
     (r : ContextFreeRule T N) (r' : ContextFreeRule T' N')
     (u : List (Symbol T N)) (v' : List (Symbol T' N'))
@@ -85,7 +89,7 @@ lemma map_inv {T N T' N'} (f : Symbol T N → Symbol T' N')
   use x ++ r.output ++ y
   exact ⟨by simp, by rw [hx]; exact rewrites_of_exists_parts r x y⟩
 
-lemma mem_terminal_of_mem_target {T N : Type} (r : ContextFreeRule T N)
+public lemma mem_terminal_of_mem_target {T N : Type} (r : ContextFreeRule T N)
     (u v : List (Symbol T N)) (h : r.Rewrites u v) (a : T) (ha : Symbol.terminal a ∈ v) :
     Symbol.terminal a ∈ u ∨ Symbol.terminal a ∈ r.output := by
   have h_rewrite : ∃ x y : List (Symbol T N),
@@ -122,7 +126,7 @@ lemma commute_of_not_mem_output {T N : Type}
       p2 ++ r2.output ++ z, q1,
       by simp [List.append_assoc], by simp [List.append_assoc]⟩
 
-lemma split_append {T N : Type} (r : ContextFreeRule T N)
+public lemma split_append {T N : Type} (r : ContextFreeRule T N)
     (u v w : List (Symbol T N))
     (h : r.Rewrites (u ++ v) w) :
     (∃ u', r.Rewrites u u' ∧ w = u' ++ v) ∨ (∃ v', r.Rewrites v v' ∧ w = u ++ v') := by
@@ -167,7 +171,7 @@ end ContextFreeRule
 
 namespace ContextFreeGrammar
 
-theorem Derives.distrib_prod {T : Type} {g : ContextFreeGrammar T}
+public theorem Derives.distrib_prod {T : Type} {g : ContextFreeGrammar T}
     (S : List (Symbol T g.NT)) (W : List (List (Symbol T g.NT)))
     (h : List.Forall₂ (fun s w => g.Derives [s] w) S W) :
     g.Derives S W.flatten := by
@@ -252,7 +256,7 @@ lemma no_produces_of_all_terminal {T : Type} (g : ContextFreeGrammar T)
   rintro ⟨r, _, hr⟩
   exact no_rewrites_of_all_terminal r w v hr
 
-lemma derives_of_all_terminal {T : Type} (g : ContextFreeGrammar T)
+public lemma derives_of_all_terminal {T : Type} (g : ContextFreeGrammar T)
     (w : List T) (v : List (Symbol T g.NT)) :
     g.Derives (w.map Symbol.terminal) v → v = w.map Symbol.terminal := by
   intro h
@@ -281,7 +285,7 @@ private lemma produces_commute_derives_of_not_mem_output {T N : Type}
           (h r₁' hr₁' r₂ hr₂)
       exact ⟨x, hv''₁.tail ⟨r₂, hr₂, hrew₂'⟩, r₁', hr₁', hrew₁''⟩
 
-theorem derives_commute_of_not_mem_output {T N : Type}
+public theorem derives_commute_of_not_mem_output {T N : Type}
     {R₁ R₂ : Finset (ContextFreeRule T N)}
     (h : ∀ r₁ ∈ R₁, ∀ r₂ ∈ R₂, Symbol.nonterminal r₂.input ∉ r₁.output)
     {u v w : List (Symbol T N)}

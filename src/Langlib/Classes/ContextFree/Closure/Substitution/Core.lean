@@ -1,14 +1,19 @@
+module
+
 /-
 Copyright (c) 2026 Niels Mündler. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Niels Mündler
 -/
-import Mathlib.Computability.ContextFreeGrammar
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Tactic.Linarith
-import Mathlib.Algebra.Group.Pointwise.Set.ListOfFn
+public import Mathlib.Computability.ContextFreeGrammar
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Langlib.Utilities.LanguageOperations
 import Langlib.Classes.ContextFree.Closure.Substitution.Support
-import Langlib.Utilities.LanguageOperations
+import Mathlib.Tactic.Linarith.Frontend
+@[expose]
+public section
+
+
 
 /-!
 # Context-Free Language Closure Properties
@@ -45,7 +50,8 @@ namespace ContextFreeGrammar
 The set of terminals used in a context-free grammar `g` is the set of all terminals appearing in the
 right-hand side of any rule in `g`.
 -/
-def usedTerminals {α : Type} [DecidableEq α] (g : ContextFreeGrammar α) :
+@[expose]
+public def usedTerminals {α : Type} [DecidableEq α] (g : ContextFreeGrammar α) :
   Finset α :=
   g.rules.sup fun r =>
     (r.output.filterMap fun | .terminal a => some a | _ => none).toFinset
@@ -54,7 +60,8 @@ def usedTerminals {α : Type} [DecidableEq α] (g : ContextFreeGrammar α) :
 The rules from the substituting grammars `f a` are lifted to the combined non-terminal type
 `g.NT ⊕ (Σ a, (f a).NT)`. We only include rules for terminals `a` that are actually used in `g`.
 -/
-def subst_rules_f {α β : Type} [DecidableEq α] [DecidableEq β]
+@[expose]
+public def subst_rules_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT] :
     Finset (ContextFreeRule β (g.NT ⊕ (Σ a, (f a).NT))) :=
@@ -77,7 +84,8 @@ The rules of the original grammar `g` are transformed. Non-terminals `n` become 
 terminals `a` are replaced by the start symbol of the substituting grammar `f a`, which is
 `Sum.inr ⟨a, (f a).initial⟩`.
 -/
-def subst_rules_g {α β : Type}
+@[expose]
+public def subst_rules_g {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β) :
     Finset (ContextFreeRule β (g.NT ⊕ (Σ a, (f a).NT))) :=
@@ -98,7 +106,8 @@ def subst_rules_g {α β : Type}
 The substitution grammar is constructed by taking the disjoint union of non-terminals and the union
 of the transformed rules from `g` and the lifted rules from `f`.
 -/
-def subst {α β : Type} [DecidableEq α] [DecidableEq β]
+@[expose]
+public def subst {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT] :
     ContextFreeGrammar β :=
@@ -110,7 +119,8 @@ def subst {α β : Type} [DecidableEq α] [DecidableEq β]
 the left component of the sum, and terminals are mapped to the start symbol of the corresponding
 substituting grammar.
 -/
-def liftSymbolG {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
+@[expose]
+public def liftSymbolG {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
     (s : Symbol α g.NT) : Symbol β (g.NT ⊕ (Σ a, (f a).NT)) :=
   match s with
   | Symbol.nonterminal n => Symbol.nonterminal (Sum.inl n)
@@ -120,7 +130,8 @@ def liftSymbolG {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFr
 `liftSymbolF` maps symbols from `f a` to the substitution grammar. Non-terminals are mapped to
 the right component of the sum, and terminals are kept as terminals.
 -/
-def liftSymbolF {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
+@[expose]
+public def liftSymbolF {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
     (a : α) (s : Symbol β (f a).NT) : Symbol β (g.NT ⊕ (Σ a, (f a).NT)) :=
   match s with
   | Symbol.nonterminal n => Symbol.nonterminal (Sum.inr ⟨a, n⟩)
@@ -130,7 +141,7 @@ def liftSymbolF {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFr
 If `r` is in `g.rules`, then the lifted rule (non-terminals to `Sum.inl`, terminals to the start
 symbol of `f a`) is in the rules of `g.subst f`.
 -/
-theorem rule_mem_subst {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem rule_mem_subst {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (r : ContextFreeRule α g.NT) (hr : r ∈ g.rules) :
@@ -143,7 +154,7 @@ theorem rule_mem_subst {α β : Type} [DecidableEq α] [DecidableEq β]
 If `g` produces `v` from `u` in one step, then `g.subst f` produces the lifted version of `v`
 from the lifted version of `u`.
 -/
-theorem produces_lift_g {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem produces_lift_g {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     {u v : List (Symbol α g.NT)} (h : g.Produces u v) :
@@ -175,7 +186,7 @@ theorem produces_lift_g {α β : Type} [DecidableEq α] [DecidableEq β]
 If `g` derives `v` from `u`, then `g.subst f` derives the lifted version of `v` from the
 lifted version of `u`.
 -/
-theorem derives_lift_g {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem derives_lift_g {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     {u v : List (Symbol α g.NT)} (h : g.Derives u v) :
@@ -188,7 +199,7 @@ theorem derives_lift_g {α β : Type} [DecidableEq α] [DecidableEq β]
 If `a` is a used terminal in `g` and `r` is a rule in `f a`, then the lifted rule (where
 non-terminals are tagged with `a`) is in the substitution grammar.
 -/
-theorem rule_mem_subst_f {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem rule_mem_subst_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (ha : a ∈ g.usedTerminals) (r : ContextFreeRule β (f a).NT) (hr : r ∈ (f a).rules) :
@@ -202,7 +213,7 @@ theorem rule_mem_subst_f {α β : Type} [DecidableEq α] [DecidableEq β]
 If a substituting grammar `f a` produces `v` from `u`, then the substitution grammar `g.subst f`
 produces the lifted version of `v` from the lifted version of `u`.
 -/
-theorem produces_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem produces_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (ha : a ∈ g.usedTerminals)
@@ -218,7 +229,7 @@ theorem produces_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
 If a substituting grammar `f a` derives `v` from `u`, then the substitution grammar `g.subst f`
 derives the lifted version of `v` from the lifted version of `u`.
 -/
-theorem derives_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem derives_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (ha : a ∈ g.usedTerminals)
@@ -232,7 +243,7 @@ theorem derives_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
 If each `W[i]` is in `(f u[i]).language`, then `g.subst f` derives the concatenation of `W`
 from the lifted terminals of `u`.
 -/
-lemma subst_derives_prod {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma subst_derives_prod {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u : List α) (W : List (List β))
@@ -260,7 +271,7 @@ lemma subst_derives_prod {α β : Type} [DecidableEq α] [DecidableEq β]
 /--
 If a terminal appears in the output of a rule in the grammar, it is in the set of used terminals.
 -/
-lemma mem_usedTerminals_of_rule_output {α : Type} [DecidableEq α]
+public lemma mem_usedTerminals_of_rule_output {α : Type} [DecidableEq α]
     (g : ContextFreeGrammar α)
     (r : ContextFreeRule α g.NT) (hr : r ∈ g.rules) (a : α) (ha : Symbol.terminal a ∈ r.output) :
     a ∈ g.usedTerminals := by
@@ -272,7 +283,7 @@ lemma mem_usedTerminals_of_rule_output {α : Type} [DecidableEq α]
 If `g` produces `v` from `u`, then any terminal in `v` is either in `u` or is a used terminal
 of `g`.
 -/
-lemma terminals_of_produces {α : Type} [DecidableEq α]
+public lemma terminals_of_produces {α : Type} [DecidableEq α]
     (g : ContextFreeGrammar α) {u v : List (Symbol α g.NT)} (h : g.Produces u v) :
     ∀ a, Symbol.terminal a ∈ v → Symbol.terminal a ∈ u ∨ a ∈ g.usedTerminals := by
       intro a ha
@@ -287,7 +298,7 @@ lemma terminals_of_produces {α : Type} [DecidableEq α]
 If `g` derives `v` from `u`, then any terminal in `v` is either in `u` or is a used terminal
 of `g`.
 -/
-lemma terminals_of_derives {α : Type} [DecidableEq α]
+public lemma terminals_of_derives {α : Type} [DecidableEq α]
     (g : ContextFreeGrammar α) {u v : List (Symbol α g.NT)} (h : g.Derives u v) :
     ∀ a, Symbol.terminal a ∈ v → Symbol.terminal a ∈ u ∨ a ∈ g.usedTerminals := by
       intro a ha
@@ -300,7 +311,7 @@ lemma terminals_of_derives {α : Type} [DecidableEq α]
 /--
 Any terminal in a string in the language of `g` must be a used terminal of `g`.
 -/
-lemma usedTerminals_of_mem_language {α : Type} [DecidableEq α]
+public lemma usedTerminals_of_mem_language {α : Type} [DecidableEq α]
     (g : ContextFreeGrammar α) (w : List α) (hw : w ∈ g.language) :
     ∀ a ∈ w, a ∈ g.usedTerminals := by
       have h_deriv : g.Derives [Symbol.nonterminal g.initial] (w.map Symbol.terminal) := by
@@ -315,7 +326,7 @@ lemma usedTerminals_of_mem_language {α : Type} [DecidableEq α]
 /--
 The substitution of the languages is a subset of the language of the substitution grammar.
 -/
-theorem subst_language_subset_1 {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem subst_language_subset_1 {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT] :
     ∀ w, w ∈ g.language.subst (fun a => (f a).language) → w ∈ (g.subst f).language := by
@@ -343,7 +354,7 @@ theorem subst_language_subset_1 {α β : Type} [DecidableEq α] [DecidableEq β]
 If a non-terminal symbol appears in a string lifted from `f a`, it must be of the form `Sum.inr ⟨a,
 n⟩`.
 -/
-lemma mem_liftSymbolF_nonterminal_iff {α β : Type}
+public lemma mem_liftSymbolF_nonterminal_iff {α β : Type}
     (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
     (a : α) (u : List (Symbol β (f a).NT)) (x : g.NT ⊕ (Σ a, (f a).NT)) :
     Symbol.nonterminal x ∈ u.map (g.liftSymbolF f a) → ∃ n, x = Sum.inr ⟨a, n⟩ := by
@@ -376,7 +387,7 @@ def is_F_rule {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFree
 /--
 If a rule rewrites a string lifted from `f a`, its input must be of the form `Sum.inr ⟨a, n⟩`.
 -/
-lemma input_eq_of_rewrites_lifted {α β : Type}
+public lemma input_eq_of_rewrites_lifted {α β : Type}
     (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
     (a : α) (u : List (Symbol β (f a).NT))
     (r : ContextFreeRule β (g.NT ⊕ (Σ a, (f a).NT)))
@@ -403,7 +414,7 @@ lemma input_eq_of_rewrites_lifted {α β : Type}
 /--
 If a rule in `g.subst f` has input `Sum.inr ⟨a, n⟩`, it must be a lifted rule from `f a`.
 -/
-lemma rule_of_input_inr {α β : Type} [DecidableEq α] [DecidableEq β]
+private lemma rule_of_input_inr {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (r : ContextFreeRule β (g.NT ⊕ (Σ a, (f a).NT))) (hr : r ∈ (g.subst f).rules)
@@ -418,7 +429,7 @@ lemma rule_of_input_inr {α β : Type} [DecidableEq α] [DecidableEq β]
 /--
 The function `liftSymbolF` is injective.
 -/
-lemma liftSymbolF_injective {α β : Type}
+public lemma liftSymbolF_injective {α β : Type}
     (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β) (a : α) :
     Function.Injective (g.liftSymbolF f a) := by
       intro x y hxy
@@ -429,7 +440,7 @@ lemma liftSymbolF_injective {α β : Type}
 If `g.subst f` produces `v'` from a lifted string of `f a` symbols, then `v'` is a lifting of
 some `v` produced by `f a`.
 -/
-lemma produces_lift_f_inv {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma produces_lift_f_inv {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α)
@@ -470,7 +481,7 @@ lemma produces_lift_f_inv {α β : Type} [DecidableEq α] [DecidableEq β]
 If the substitution grammar derives one lifted string from another (for component `f a`),
 then `f a` derives the corresponding unlifted string.
 -/
-lemma derives_of_subst_derives_f {α β : Type} [DecidableEq α] [DecidableEq β]
+private lemma derives_of_subst_derives_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (u v : List (Symbol β (f a).NT)) :
@@ -496,7 +507,8 @@ lemma derives_of_subst_derives_f {α β : Type} [DecidableEq α] [DecidableEq β
 /--
 `ProducesG` is the relation of single-step productions using only G-rules.
 -/
-def ProducesG {α β : Type}
+@[expose]
+public def ProducesG {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β)
     (u v : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT)))) : Prop :=
@@ -505,7 +517,8 @@ def ProducesG {α β : Type}
 /--
 `ProducesF` is the relation of single-step productions using only F-rules.
 -/
-def ProducesF {α β : Type} [DecidableEq α] [DecidableEq β]
+@[expose]
+public def ProducesF {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u v : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT)))) : Prop :=
@@ -514,7 +527,7 @@ def ProducesF {α β : Type} [DecidableEq α] [DecidableEq β]
 /--
 The output of an F-rule does not contain any non-terminals from G (i.e., `Sum.inl` symbols).
 -/
-lemma is_F_rule_output_no_inl {α β : Type} [DecidableEq α] [DecidableEq β]
+private lemma is_F_rule_output_no_inl {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (r : ContextFreeRule β (g.NT ⊕ (Σ a, (f a).NT))) (hr : r ∈ (g.subst f).rules) :
@@ -534,7 +547,8 @@ lemma is_F_rule_output_no_inl {α β : Type} [DecidableEq α] [DecidableEq β]
 /--
 `DerivesG` is the relation of derivations using only G-rules.
 -/
-def DerivesG {α β : Type}
+@[expose]
+public def DerivesG {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β)
     (u v : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT)))) : Prop :=
@@ -543,7 +557,8 @@ def DerivesG {α β : Type}
 /--
 `DerivesF` is the relation of derivations using only F-rules.
 -/
-def DerivesF {α β : Type} [DecidableEq α] [DecidableEq β]
+@[expose]
+public def DerivesF {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u v : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT)))) : Prop :=
@@ -555,7 +570,7 @@ F-productions to the end. This is a corollary of `derives_commute_of_not_mem_out
 F-rules output only `Sum.inr` nonterminals, so they never introduce the `Sum.inl` inputs that
 G-rules target.
 -/
-lemma derivesF_derivesG_commute {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma derivesF_derivesG_commute {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u v w : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -574,7 +589,7 @@ lemma derivesF_derivesG_commute {α β : Type} [DecidableEq α] [DecidableEq β]
 /--
 A production in the substitution grammar is either a G-production or an F-production.
 -/
-lemma produces_subst_iff {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma produces_subst_iff {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u v : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT)))) :
@@ -594,7 +609,7 @@ lemma produces_subst_iff {α β : Type} [DecidableEq α] [DecidableEq β]
 Any derivation in the substitution grammar can be rearranged into a sequence of G-rules followed by
 a sequence of F-rules.
 -/
-lemma derives_split_G_F {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma derives_split_G_F {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u w : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -621,7 +636,7 @@ lemma derives_split_G_F {α β : Type} [DecidableEq α] [DecidableEq β]
 If `g` derives `v` from `u`, then `g.subst f` derives the lifted `v` from the lifted `u` using
 only G-rules.
 -/
-lemma derivesG_of_derives {α β : Type}
+private lemma derivesG_of_derives {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β)
     {u v : List (Symbol α g.NT)} (h : g.Derives u v) :
@@ -659,7 +674,7 @@ lemma producesF_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
 If `f a` derives `v` from `u`, then the substitution grammar derives the lifted version of `v`
 from the lifted version of `u` using only F-rules.
 -/
-lemma derivesF_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
+private lemma derivesF_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (ha : a ∈ g.usedTerminals)
@@ -673,7 +688,7 @@ lemma derivesF_lift_f {α β : Type} [DecidableEq α] [DecidableEq β]
 If `g.subst f` produces `v'` from a lifted `u` via a G-rule, then `v'` is a lifting of some `v`
 produced by `g` from `u`.
 -/
-lemma producesG_unlift {α β : Type}
+public lemma producesG_unlift {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β)
     (u : List (Symbol α g.NT)) (v' : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -694,7 +709,7 @@ lemma producesG_unlift {α β : Type}
 If `g.subst f` derives `v'` from a lifted `u` using only G-rules, then `v'` is a lifting of some
 `v` derived by `g` from `u`.
 -/
-lemma derivesG_unlift {α β : Type}
+public lemma derivesG_unlift {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β)
     (u : List (Symbol α g.NT)) (v' : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -711,7 +726,7 @@ lemma derivesG_unlift {α β : Type}
 If the lifted string has no `Sum.inl` non-terminals, then the original string consists only of
 terminals.
 -/
-lemma is_terminal_of_lift_no_inl {α β : Type}
+public lemma is_terminal_of_lift_no_inl {α β : Type}
     (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
     (u : List (Symbol α g.NT))
     (h : ∀ s ∈ u.map (g.liftSymbolG f), ∀ n, s ≠ Symbol.nonterminal (Sum.inl n)) :
@@ -724,7 +739,7 @@ lemma is_terminal_of_lift_no_inl {α β : Type}
 If `g.subst f` produces `v'` from a lifted `u` (from component `a`) via an F-rule, then `v'` is
 a lifting of some `v` produced by `f a` from `u`.
 -/
-lemma producesF_unlift {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma producesF_unlift {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (u : List (Symbol β (f a).NT)) (v' : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -739,7 +754,7 @@ lemma producesF_unlift {α β : Type} [DecidableEq α] [DecidableEq β]
 If `g.subst f` derives `v'` from a lifted `u` (from component `a`) using only F-rules, then `v'`
 is a lifting of some `v` derived by `f a` from `u`.
 -/
-lemma derivesF_unlift {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma derivesF_unlift {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (u : List (Symbol β (f a).NT)) (v' : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -758,7 +773,7 @@ lemma derivesF_unlift {α β : Type} [DecidableEq α] [DecidableEq β]
 If an F-production results in a string with no `Sum.inl` non-terminals, then the input string
 also had no `Sum.inl` non-terminals.
 -/
-lemma not_mem_inl_of_producesF {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma not_mem_inl_of_producesF {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u v : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -787,7 +802,7 @@ theorem subst_language_subset_1' {α β : Type} [DecidableEq α] [DecidableEq β
 If an F-derivation results in a string with no `Sum.inl` non-terminals, then the input string also
 had no `Sum.inl` non-terminals.
 -/
-lemma not_mem_inl_of_derivesF {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma not_mem_inl_of_derivesF {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u v : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -802,7 +817,7 @@ lemma not_mem_inl_of_derivesF {α β : Type} [DecidableEq α] [DecidableEq β]
 If `ProducesF` transforms `u ++ v` to `w`, then the transformation occurs entirely within `u`
 or entirely within `v`.
 -/
-lemma ProducesF.split_append {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma ProducesF.split_append {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u v w : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -838,7 +853,7 @@ lemma DerivesF.split_append {α β : Type} [DecidableEq α] [DecidableEq β]
 If `u` derives `w` using F-rules, then `w` can be split into parts corresponding to each symbol
 in `u`.
 -/
-lemma DerivesF_distrib {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma DerivesF_distrib {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT)))) (w : List (Symbol β (g.NT ⊕ (Σ a, (f a).NT))))
@@ -872,7 +887,7 @@ lemma DerivesF_distrib {α β : Type} [DecidableEq α] [DecidableEq β]
 If the lifted start symbol of `f a` F-derives a lifted terminal string `w`,
 then `w ∈ (f a).language`.
 -/
-lemma DerivesF_terminal_of_lift {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma DerivesF_terminal_of_lift {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (a : α) (w : List β)
@@ -902,7 +917,7 @@ lemma DerivesF_terminal_of_lift {α β : Type} [DecidableEq α] [DecidableEq β]
 If lifted start symbols of `u` F-derive a terminal string `w`, then `w` is in the product of the
 languages `(f a).language` for each `a ∈ u`.
 -/
-lemma mem_subst_of_derivesF {α β : Type} [DecidableEq α] [DecidableEq β]
+public lemma mem_subst_of_derivesF {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
     (u : List α) (w : List β)
@@ -962,7 +977,7 @@ lemma mem_subst_of_derivesF {α β : Type} [DecidableEq α] [DecidableEq β]
 /--
 The language of the substitution grammar is a subset of the substitution of the languages.
 -/
-theorem subst_language_subset_2 {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem subst_language_subset_2 {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT] :
     ∀ w, w ∈ (g.subst f).language → w ∈ g.language.subst (fun a => (f a).language) := by
@@ -999,7 +1014,7 @@ theorem subst_language_subset_2 {α β : Type} [DecidableEq α] [DecidableEq β]
 The language of the substitution grammar is exactly the substitution of the languages of the
 component grammars. This proves that context-free languages are closed under substitution.
 -/
-theorem subst_language_eq {α β : Type} [DecidableEq α] [DecidableEq β]
+public theorem subst_language_eq {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT] :
     (g.subst f).language = g.language.subst (fun a => (f a).language) := by
@@ -1011,7 +1026,7 @@ theorem subst_language_eq {α β : Type} [DecidableEq α] [DecidableEq β]
 end ContextFreeGrammar
 
 /-- Context-free languages are closed under substitution. -/
-theorem Language.IsContextFree.subst {α β : Type}
+public theorem Language.IsContextFree.subst {α β : Type}
     (L : Language α) (f : α → Language β)
     (hL : L.IsContextFree) (hf : ∀ a, (f a).IsContextFree) :
     (L.subst f).IsContextFree := by
@@ -1022,7 +1037,7 @@ theorem Language.IsContextFree.subst {α β : Type}
 
 /-! ### Main corollaries: Closure under concatenation, union, and Kleene star -/
 /-- Singleton language is context-free -/
-theorem isContextFree_singleton {α : Type} (w : List α) :
+public theorem isContextFree_singleton {α : Type} (w : List α) :
     ({w} : Language α).IsContextFree := by
   use ContextFreeGrammar.mk Unit () ({ContextFreeRule.mk () (w.map Symbol.terminal)})
   ext u
@@ -1051,7 +1066,7 @@ theorem isContextFree_singleton {α : Type} (w : List α) :
            (r := ContextFreeRule.mk () (u.map Symbol.terminal)) [] using 1; simp⟩
 
 /-- Finite language {[false], [true]} is context-free -/
-theorem isContextFree_pair_bool :
+public theorem isContextFree_pair_bool :
     ({[false], [true]} : Language Bool).IsContextFree := by
   use ContextFreeGrammar.mk Unit () ({ContextFreeRule.mk () [Symbol.terminal false],
     ContextFreeRule.mk () [Symbol.terminal true]})
@@ -1094,7 +1109,7 @@ theorem isContextFree_pair_bool :
         ContextFreeRule.Rewrites.head []⟩
 
 /-- The universal language over Unit is context-free -/
-theorem isContextFree_univ_unit : Language.IsContextFree (Set.univ : Language Unit) := by
+public theorem isContextFree_univ_unit : Language.IsContextFree (Set.univ : Language Unit) := by
   use ⟨Unit, (), {⟨(), []⟩, ⟨(), [Symbol.terminal (), Symbol.nonterminal ()]⟩}⟩
   refine Set.eq_univ_of_forall ?_
   intro x
@@ -1151,7 +1166,7 @@ theorem Language.IsContextFree.mul {α : Type} {L₁ L₂ : Language α}
         Language.subst_pair_eq_mul ( fun b => if b = true then L₂ else L₁ ) )
 
 /-- Context free languages are closed under addition / union -/
-theorem Language.IsContextFree.add {α : Type} {L₁ L₂ : Language α}
+public theorem Language.IsContextFree.add {α : Type} {L₁ L₂ : Language α}
     (h₁ : L₁.IsContextFree) (h₂ : L₂.IsContextFree) :
     (L₁ + L₂).IsContextFree := by
       classical
@@ -1171,7 +1186,7 @@ theorem Language.IsContextFree.add {α : Type} {L₁ L₂ : Language α}
       )
 
 /-- Context free languages are closed under the Kleene Star operation -/
-theorem Language.IsContextFree.kstar {α : Type} {L : Language α}
+public theorem Language.IsContextFree.kstar {α : Type} {L : Language α}
     (h : L.IsContextFree) :
     (KStar.kstar L).IsContextFree := by
       classical

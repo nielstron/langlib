@@ -1,12 +1,57 @@
-import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
-import Langlib.Classes.RecursivelyEnumerable.Definition
+module
+
+public import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
+public import Langlib.Classes.RecursivelyEnumerable.Definition
+public import Langlib.Utilities.ClosurePredicates
+public import Mathlib.Tactic.Continuity
+import Langlib.Grammars.Unrestricted.Toolbox
 import Langlib.Utilities.ListUtils
-import Langlib.Utilities.ClosurePredicates
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 
 /-! # RE Closure Under Union
 
 This file constructs an unrestricted grammar for the union of two recursively enumerable languages.
+
+Proof idea: build a grammar with a fresh start symbol that chooses either the
+left or right grammar, then run the chosen grammar with all its nonterminals
+tagged. The soundness and completeness lemmas project derivations through the
+tags, showing the combined grammar generates exactly `L₁ + L₂`.
 
 ## Main declarations
 
@@ -19,7 +64,8 @@ This file constructs an unrestricted grammar for the union of two recursively en
 
 variable {T : Type}
 
-def union_grammar (g₁ g₂ : grammar T) : grammar T :=
+@[expose]
+public def union_grammar (g₁ g₂ : grammar T) : grammar T :=
 grammar.mk (Option (g₁.nt ⊕ g₂.nt)) none (
   ⟨ [], none, [], [symbol.nonterminal (some (Sum.inl (g₁.initial)))] ⟩ :: (
   ⟨ [], none, [], [symbol.nonterminal (some (Sum.inr (g₂.initial)))] ⟩ :: (
@@ -108,7 +154,7 @@ lifted_grammar_.mk g₂ (union_grammar g₁ g₂) (Option.some ∘ Sum.inr) oN�
     · exact let ⟨r₂, r₂_in, r₂_lift⟩ := List.mem_map.1 rin; ⟨r₂, r₂_in, r₂_lift⟩)
 
 
-lemma in_L₁_or_L₂_of_in_union {w : List T} (ass : w ∈ grammar_language (union_grammar g₁ g₂)) :
+public lemma in_L₁_or_L₂_of_in_union {w : List T} (ass : w ∈ grammar_language (union_grammar g₁ g₂)) :
   w ∈ grammar_language g₁  ∨  w ∈ grammar_language g₂  :=
 by
   unfold grammar_language at ass ⊢
@@ -162,7 +208,7 @@ by
         }
 
 
-lemma in_union_of_in_L₁ {w : List T} (ass : w ∈ grammar_language g₁) :
+public lemma in_union_of_in_L₁ {w : List T} (ass : w ∈ grammar_language g₁) :
   w ∈ grammar_language (union_grammar g₁ g₂) :=
 by
   unfold grammar_language at ass ⊢
@@ -179,7 +225,7 @@ by
     have lifted := lift_deri_ (@lg₁ _ _ g₂) ass
     rwa [lift_string_map_terminal_] at lifted
 
-lemma in_union_of_in_L₂ {w : List T} (ass : w ∈ grammar_language g₂) :
+public lemma in_union_of_in_L₂ {w : List T} (ass : w ∈ grammar_language g₂) :
   w ∈ grammar_language (union_grammar g₁ g₂) :=
 by
   unfold grammar_language at ass ⊢
@@ -198,7 +244,7 @@ by
 
 
 /-- The class of recursively-enumerable languages is closed under union. -/
-theorem RE_of_RE_u_RE (L₁ : Language T) (L₂ : Language T) :
+public theorem RE_of_RE_u_RE (L₁ : Language T) (L₂ : Language T) :
   is_RE L₁  ∧  is_RE L₂   →   is_RE (L₁ + L₂)   :=
 by
   rintro ⟨⟨g₁, eq_L₁⟩, ⟨g₂, eq_L₂⟩⟩

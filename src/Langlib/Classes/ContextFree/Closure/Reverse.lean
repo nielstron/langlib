@@ -1,12 +1,42 @@
-import Langlib.Grammars.ContextFree.Toolbox
-import Langlib.Grammars.ContextFree.EquivMathlibCFG
-import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
-import Langlib.Utilities.LanguageOperations
-import Langlib.Utilities.ListUtils
-import Langlib.Classes.ContextFree.Definition
-import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
-import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
-import Langlib.Utilities.ClosurePredicates
+module
+
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Reverse
+public import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Context-Free Closure Under Reversal
 
@@ -33,7 +63,8 @@ variable {T : Type}
 section reversal_defs
 
 /-- Reverse the right-hand side of every rule in a context-free grammar. -/
-def reversal_CF_grammar (g : CF_grammar T) : CF_grammar T :=
+@[expose]
+public def reversal_CF_grammar (g : CF_grammar T) : CF_grammar T :=
   CF_grammar.mk g.nt g.initial (List.map (
       fun r : g.nt × List (symbol T g.nt) => (r.fst, List.reverse r.snd)
     ) g.rules)
@@ -46,7 +77,7 @@ private lemma map_reverse_reverse_comp {nt : Type} (rules : List (nt × List (sy
     cases h
     simp [Function.comp, List.reverse_reverse, ih]
 
-lemma dual_of_reversal_CF_grammar (g : CF_grammar T) :
+private lemma dual_of_reversal_CF_grammar (g : CF_grammar T) :
     reversal_CF_grammar (reversal_CF_grammar g) = g := by
   cases g with
   | mk nt initial rules =>
@@ -58,7 +89,7 @@ section commutation
 
 /-- Reversing a CF grammar and then embedding it as an unrestricted grammar gives the
 same grammar as embedding first and then applying the unrestricted reversal. -/
-theorem grammar_of_cfg_reversal_comm (g : CF_grammar T) :
+public theorem grammar_of_cfg_reversal_comm (g : CF_grammar T) :
     grammar_of_cfg (reversal_CF_grammar g) = reversal_grammar (grammar_of_cfg g) := by
   cases g with
   | mk nt initial rules =>
@@ -72,7 +103,7 @@ end commutation
 section closure
 
 /-- The class of context-free languages is closed under reversal. -/
-theorem CF_of_reverse_CF (L : Language T) :
+public theorem CF_of_reverse_CF (L : Language T) :
     is_CF L → is_CF (L.reverse) := by
   intro h
   obtain ⟨g, hgL⟩ := is_CF_implies_is_CF_via_cfg h

@@ -1,11 +1,52 @@
-import Mathlib
-import Langlib.Grammars.Unrestricted.Toolbox
+module
+
+public import Langlib.Grammars.Unrestricted.Toolbox
+public import Langlib.Classes.RecursivelyEnumerable.Definition
+public import Langlib.Utilities.ClosurePredicates
+public import Langlib.Classes.RecursivelyEnumerable.Closure.Star.Helpers
 import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
-import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Classes.RecursivelyEnumerable.Closure.Concatenation
-import Langlib.Utilities.ClosurePredicates
-import Langlib.Utilities.ListUtils
-import Langlib.Classes.RecursivelyEnumerable.Closure.Star.Helpers
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+@[expose]
+public section
+
+
 
 /-! # RE Closure Under Kleene Star
 
@@ -176,7 +217,7 @@ private lemma scan_word {g : grammar T} {word : List T}
     grammar_derives (star_grammar g) ([R] ++ List.map symbol.terminal word ++ sfx) (List.map symbol.terminal word ++ [R] ++ sfx) := by
       intros word sfx hw
       induction' word with t word ih generalizing sfx;
-      · exact?;
+      · exact grammar_deri_self;
       · have h_scan : grammar_transforms (star_grammar g) ([R] ++ List.map symbol.terminal (t :: word) ++ sfx) ([symbol.terminal t] ++ [R] ++ List.map symbol.terminal word ++ sfx) := by
           use grule.mk [] (Sum.inr 2) [symbol.terminal t] [symbol.terminal t, R];
           simp +zetaDelta at *;
@@ -218,7 +259,7 @@ private lemma short_induction {g : grammar T} {w : List (List T)}
     (Z :: (List.map (· ++ [H]) (List.map (List.map symbol.terminal) w.reverse)).flatten) := by
   induction' w using List.reverseRecOn with w ih;
   · constructor;
-  · rename_i h; specialize h ( fun wᵢ hwᵢ => ass wᵢ <| by simp +decide [ hwᵢ ] ) ; simp_all +decide [ List.map_append, List.flatten_append ] ;
+  · rename_i h; specialize h ( fun wᵢ hwᵢ => ass wᵢ <| by simp +decide [ hwᵢ ] ) ; simp_all +decide [  ] ;
     -- Apply the step_Z_expand rule to get [Z, S₀, H] ++ ih.
     have h_expand : grammar_derives (star_grammar g) [Z] ([Z, S₀, H] ++ (List.map ((fun x => x ++ [H]) ∘ List.map symbol.terminal) w).reverse.flatten) := by
       convert grammar_deri_of_deri_deri h ( grammar_deri_of_tran _ ) using 1;
@@ -244,7 +285,7 @@ private lemma in_star_grammar_of_in_star {g : grammar T} {w : List T}
   -- Use short_induction to get: grammar_derives [Z] (Z :: (map (· ++ [H]) (map (map terminal) L)).flatten)
   have h1 : grammar_derives (star_grammar g) [Z] (Z :: (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) := by
     convert short_induction _;
-    exact?;
+    exact List.reverse_eq_iff.mp rfl;
     aesop;
   -- Apply step_Z_to_RH (Z → R H) with postfix = rest of the string.
   have h2 : grammar_derives (star_grammar g) (Z :: (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) ([R, H] ++ (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) := by
@@ -259,7 +300,7 @@ private lemma in_star_grammar_of_in_star {g : grammar T} {w : List T}
   -- Apply terminal_scan to derive: [R] ++ (map (fun v => [H] ++ map terminal v) L).flatten ++ [H] →* map terminal L.flatten ++ [R, H]
   have h3 : grammar_derives (star_grammar g) ([R] ++ (List.map (fun v => [H] ++ List.map symbol.terminal v) L).flatten ++ [H]) (List.map symbol.terminal L.flatten ++ [R, H]) := by
     apply terminal_scan;
-    exact?;
+    exact fun v a t a_1 => terminal_in_all_used (hL v a) a_1;
   -- Apply step_RH_delete (R H → ε) at the end.
   have h4 : grammar_derives (star_grammar g) (List.map symbol.terminal L.flatten ++ [R, H]) (List.map symbol.terminal L.flatten) := by
     apply grammar_deri_of_tran_deri;
@@ -270,7 +311,7 @@ private lemma in_star_grammar_of_in_star {g : grammar T} {w : List T}
       exact grule.mk [] ( Sum.inr 2 ) [ symbol.nonterminal ( Sum.inr 1 ) ] [ ];
       simp +decide [ star_grammar ];
       exact ⟨ Or.inl rfl, ( List.map ( List.map symbol.terminal ) L ).flatten, [ ], by simp +decide [ H, R ] ⟩;
-    · exact?;
+    · exact grammar_deri_self;
   -- Reorganize the separator structure:
   have h5 : grammar_derives (star_grammar g) ([R, H] ++ (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) ([R] ++ (List.map (fun v => [H] ++ List.map symbol.terminal v) L).flatten ++ [H]) := by
     have h5 : grammar_derives (star_grammar g) ([R, H] ++ (List.map (· ++ [H]) (List.map (List.map symbol.terminal) L)).flatten) ([R] ++ [H] ++ (List.map (fun v => List.map symbol.terminal v ++ [H]) L).flatten) := by
@@ -362,34 +403,34 @@ private lemma star_case_1 {g : grammar T} {α' : List (ns T g.nt)}
       · grind +suggestions;
       · aesop;
     · have h_contradiction : symbol.nonterminal (Sum.inr 0) ∉ (List.map (fun x => x ++ [H]) (List.map (List.map wrap_sym) x)).flatten := by
-        convert Z_not_in_blocks using 1;
+        convert StarHelpers.Z_not_in_blocks using 1;
       aesop;
   · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ Z ];
     · exact Or.inr <| Or.inl ⟨ x, hx, by aesop ⟩;
     · have h_contradiction : symbol.nonterminal (Sum.inr 0) ∈ (List.map ((fun x => x ++ [H]) ∘ List.map wrap_sym) x).flatten := by
         aesop;
-      exact absurd h_contradiction ( by simpa using Z_not_in_blocks );
+      exact absurd h_contradiction ( by simpa using StarHelpers.Z_not_in_blocks );
   · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ Z ];
     have h_contra : symbol.nonterminal (Sum.inr 2) ∈ (List.map ((fun x => x ++ [H]) ∘ List.map wrap_sym) x).flatten := by
       aesop;
-    exact absurd h_contra ( by simpa using R_not_in_blocks );
+    exact absurd h_contra ( by simpa using StarHelpers.R_not_in_blocks );
   · rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ Z ];
     have h_contradiction : symbol.nonterminal (Sum.inr 2) ∈ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten := by
       aesop;
-    exact absurd h_contradiction ( by simpa using R_not_in_blocks );
+    exact absurd h_contradiction ( by simpa using StarHelpers.R_not_in_blocks );
   · rcases ha with ( ⟨ r, hr, rfl ⟩ | ha );
     · rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide [ wrap_gr ];
       · replace huv := congr_arg List.head? huv ; simp_all +decide [ Z ];
         cases h : r.input_L.head? <;> simp_all +decide [ wrap_sym ];
         cases ‹symbol T g.nt› <;> cases huv;
-      · -- Apply the match_in_block lemma to find the block in x that contains the nonterminal.
+      · -- Apply the StarHelpers.match_in_block lemma to find the block in x that contains the nonterminal.
         obtain ⟨x₁, xₘ, x₂, u₁, v₁, hx₁, hx₂, hu₁, hv₁⟩ : ∃ x₁ xₘ x₂ u₁ v₁, x = x₁ ++ [xₘ] ++ x₂ ∧ xₘ = u₁ ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v₁ ∧ u = (List.map (· ++ [H]) (List.map (List.map wrap_sym) x₁)).flatten ++ List.map wrap_sym u₁ ∧ v = List.map wrap_sym v₁ ++ [H] ++ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x₂)).flatten := by
-          apply match_in_block;
-          · rintro rfl; simp_all +decide [ List.flatten ];
+          apply StarHelpers.match_in_block;
+          · rintro rfl; simp_all +decide [  ];
           · aesop;
-        -- Apply the valid_update_block lemma to show that the new block is valid.
+        -- Apply the StarHelpers.valid_update_block lemma to show that the new block is valid.
         have h_valid_update : ∀ xᵢ ∈ x₁ ++ [u₁ ++ r.output_string ++ v₁] ++ x₂, grammar_derives g [symbol.nonterminal g.initial] xᵢ := by
-          apply valid_update_block;
+          apply StarHelpers.valid_update_block;
           · grind;
           · assumption;
         exact Or.inl ⟨ x₁ ++ [ u₁ ++ r.output_string ++ v₁ ] ++ x₂, h_valid_update, by aesop ⟩;
@@ -397,7 +438,7 @@ private lemma star_case_1 {g : grammar T} {α' : List (ns T g.nt)}
       rcases ha with ⟨ t, ht, rfl ⟩;
       rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide [ Z ];
       have h_contradiction : symbol.nonterminal (Sum.inr 2) ∉ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten := by
-        convert R_not_in_blocks using 1;
+        convert StarHelpers.R_not_in_blocks using 1;
       aesop
 
 /-
@@ -406,7 +447,7 @@ The blocks structure ends with [H] when x ≠ [].
 private lemma blocks_end_with_H {N : Type} {x : List (List (symbol T N))} (hne : x ≠ []) :
     ∃ ω : List (ns T N), (List.map (· ++ [@H T N]) (List.map (List.map wrap_sym) x)).flatten = ω ++ [H] := by
   induction' x using List.reverseRecOn with x xs ih <;> simp_all +decide [ List.map ];
-  by_cases hx : x = [] <;> simp_all +decide [ Function.comp ];
+  by_cases hx : x = [] <;> simp_all +decide [  ];
   exact ⟨ _, by rw [ ih.choose_spec, ← List.append_assoc ] ⟩
 
 /-
@@ -422,7 +463,7 @@ private lemma R_at_head_means_u_nil {g : grammar T}
   -- Apply the lemma head_unique_elem with the given hypotheses.
   have := head_unique_elem (by
   rfl : R :: H :: (List.map (· ++ [@H T g.nt]) (List.map (List.map wrap_sym) x)).flatten = @R T g.nt :: (R :: H :: (List.map (· ++ [@H T g.nt]) (List.map (List.map wrap_sym) x)).flatten).tail) (by
-  convert R_only_at_head using 1 : @R T g.nt ∉ (R :: H :: (List.map (· ++ [@H T g.nt]) (List.map (List.map wrap_sym) x)).flatten).tail) hbef; aesop
+  convert StarHelpers.R_only_at_head using 1 : @R T g.nt ∉ (R :: H :: (List.map (· ++ [@H T g.nt]) (List.map (List.map wrap_sym) x)).flatten).tail) hbef; aesop
 
 /-
 Case 2 wrapped rule sub-case
@@ -438,19 +479,19 @@ private lemma star_case_2_wrapped {g : grammar T}
         [symbol.nonterminal (Sum.inl r₀.input_N)] ++
         List.map wrap_sym r₀.input_R ++ v) :
   StarInvariant g (u ++ List.map wrap_sym r₀.output_string ++ v) := by
-  rcases u with ( _ | ⟨ u, _ | ⟨ u, u ⟩ ⟩ ) <;> simp_all +decide [ List.map ];
+  rcases u with ( _ | ⟨ u, _ | ⟨ u, u ⟩ ⟩ ) <;> simp_all +decide [  ];
   · replace hbef := congr_arg List.head? hbef ; simp_all +decide;
     cases h : r₀.input_L <;> simp_all +decide [ R ];
     cases ‹symbol T g.nt› <;> cases hbef;
   · rcases hbef with ⟨ rfl, hbef ⟩;
-    cases h : r₀.input_L <;> simp_all +decide [ Function.comp ];
+    cases h : r₀.input_L <;> simp_all +decide [  ];
     · cases hbef.1;
     · cases ‹symbol T g.nt› <;> cases hbef.1;
   · rcases hbef with ⟨ rfl, rfl, h ⟩;
-    have := @match_in_block;
-    specialize @this T g.nt r₀ x u v ; simp_all +decide [ List.map ];
-    by_cases hx : x = [] <;> simp_all +decide [ List.map ];
-    obtain ⟨ x₁, x₂, u₁, v₁, rfl, rfl, rfl ⟩ := this h; ( have := @valid_update_block; simp_all +decide [ List.map ] ; );
+    have := @StarHelpers.match_in_block;
+    specialize @this T g.nt r₀ x u v ; simp_all +decide [  ];
+    by_cases hx : x = [] <;> simp_all +decide [  ];
+    obtain ⟨ x₁, x₂, u₁, v₁, rfl, rfl, rfl ⟩ := this h; ( have := @StarHelpers.valid_update_block; simp_all +decide [ List.map ] ; );
     refine' Or.inr <| Or.inl ⟨ x₁ ++ [ u₁ ++ ( r₀.output_string ++ v₁ ) ] ++ x₂, _, _ ⟩ <;> simp_all +decide [ List.map ];
     · exact this hx hr₀;
     · congr! 2
@@ -515,20 +556,20 @@ Sub-case: R·H→ε in case 2. Result is blocks(x).
 -/
 private lemma star_case_2_RH_to_eps {g : grammar T}
     {x : List (List (symbol T g.nt))}
-    (hx : ∀ xᵢ ∈ x, grammar_derives g [symbol.nonterminal g.initial] xᵢ) :
+    (_hx : ∀ xᵢ ∈ x, grammar_derives g [symbol.nonterminal g.initial] xᵢ) :
     StarInvariant g ((List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten) := by
   by_cases hx_empty : x = [];
   · exact Or.inr <| Or.inr <| Or.inr <| Or.inl ⟨ [ ],Language.nil_mem_kstar _, by simp +decide [ hx_empty ] ⟩;
   · obtain ⟨ω, hω⟩ := blocks_end_with_H hx_empty;
-    refine' Or.inr ( Or.inr ( Or.inr ( Or.inr ( Or.inr ⟨ ⟨ ω, by aesop ⟩, _, _ ⟩ ) ) ) ) <;> simp_all +decide [ List.map_append, List.map_map ];
+    refine' Or.inr ( Or.inr ( Or.inr ( Or.inr ( Or.inr ⟨ ⟨ ω, by aesop ⟩, _, _ ⟩ ) ) ) ) <;> simp_all +decide [ List.map_map ];
     · refine' ⟨ _, _ ⟩;
       · intro hZω
         have hZω' : Z ∈ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten := by
           grind
-        exact Z_not_in_blocks hZω';
+        exact StarHelpers.Z_not_in_blocks hZω';
       · rintro ⟨ ⟩;
     · have hR_not_in_blocks : R ∉ (List.map (· ++ [@H T g.nt]) (List.map (List.map wrap_sym) x)).flatten := by
-        convert R_not_in_blocks using 1;
+        convert StarHelpers.R_not_in_blocks using 1;
       aesop
 
 /-
@@ -553,7 +594,7 @@ private lemma star_case_2 {g : grammar T} {α' : List (ns T g.nt)}
         rotate_left;
         exact x;
         exact r.input_R ++ v;
-        rcases hr with ( rfl | rfl | rfl | rfl | ⟨ a, ha, rfl ⟩ | hr ) <;> simp_all +decide [ Function.comp ];
+        rcases hr with ( rfl | rfl | rfl | rfl | ⟨ a, ha, rfl ⟩ | hr ) <;> simp_all +decide [  ];
         · rfl;
         · rfl;
         · cases hi;
@@ -659,9 +700,9 @@ private lemma star_case_3_wrapped_in_blocks {g : grammar T}
        List.map wrap_sym γ ++ [H] ++
        (List.map (· ++ [H]) (List.map (List.map wrap_sym)
          (x₁ ++ [u₁ ++ r₀.output_string ++ v₁] ++ x₂))).flatten) := by
-  -- Apply the valid_update_block lemma to conclude the proof.
+  -- Apply the StarHelpers.valid_update_block lemma to conclude the proof.
   have h_valid_update : ∀ xᵢ ∈ x₁ ++ [u₁ ++ r₀.output_string ++ v₁] ++ x₂, grammar_derives g [symbol.nonterminal g.initial] xᵢ := by
-    apply_rules [ valid_update_block ];
+    apply_rules [ StarHelpers.valid_update_block ];
     aesop;
   apply Or.inr;
   refine Or.inr <| Or.inl ⟨ w, β, γ, x₁ ++ [ u₁ ++ r₀.output_string ++ v₁ ] ++ x₂, hw, hβγ, h_valid_update, ?_ ⟩;
@@ -739,7 +780,7 @@ private lemma H_not_in_wrapped_input_local {g : grammar T} {r₀ : grule T g.nt}
       [symbol.nonterminal (Sum.inl r₀.input_N)] ++
       List.map wrap_sym r₀.input_R := by
   simp +decide [ H, wrap_sym ];
-  constructor <;> intros x hx <;> cases x <;> simp +decide [ Sum.inl.injEq, Sum.inr.injEq ] at hx ⊢
+  constructor <;> intros x hx <;> cases x <;> simp +decide at hx ⊢
 
 /-
 Local version of split_at_separator for H
@@ -796,7 +837,7 @@ private lemma case3_wrapped_gamma {g : grammar T}
         grind;
       rw [ List.mem_map ] at ha_gamma; obtain ⟨ b, hb, rfl ⟩ := ha_gamma; exact ⟨ b, rfl ⟩ ;
     have hu''_in_range : ∀ {l : List (ns T g.nt)}, (∀ a ∈ l, ∃ b : symbol T g.nt, a = wrap_sym b) → ∃ γ_R : List (symbol T g.nt), l = List.map wrap_sym γ_R := by
-      intros l hl; induction' l with a l ih <;> simp_all +decide [ List.map ] ;
+      intros l hl; induction' l with a l ih <;> simp_all +decide [  ] ;
       rcases hl.1 with ⟨ b, rfl ⟩ ; rcases ih with ⟨ γ_R, rfl ⟩ ; exact ⟨ b :: γ_R, by simp +decide ⟩ ;
     exact hu''_in_range ‹_›;
   obtain ⟨ γ_L, rfl ⟩ := hu'_in_range; obtain ⟨ γ_R, rfl ⟩ := hu''_in_range;
@@ -831,7 +872,7 @@ private lemma case3_wrapped_blocks {g : grammar T}
        v' ++ List.map wrap_sym r₀.output_string ++ v) := by
   by_contra h_contra;
   obtain ⟨x₁, xₘ, x₂, u₁, v₁, hx_eq, hxₘ_eq⟩ : ∃ x₁ : List (List (symbol T g.nt)), ∃ xₘ : List (symbol T g.nt), ∃ x₂ : List (List (symbol T g.nt)), ∃ u₁ : List (symbol T g.nt), ∃ v₁ : List (symbol T g.nt), x = x₁ ++ [xₘ] ++ x₂ ∧ xₘ = u₁ ++ r₀.input_L ++ [symbol.nonterminal r₀.input_N] ++ r₀.input_R ++ v₁ ∧ v' = (List.map (· ++ [H]) (List.map (List.map wrap_sym) x₁)).flatten ++ List.map wrap_sym u₁ ∧ v = List.map wrap_sym v₁ ++ [H] ++ (List.map (· ++ [H]) (List.map (List.map wrap_sym) x₂)).flatten := by
-    have := @match_in_block T g.nt r₀ x v' v;
+    have := @StarHelpers.match_in_block T g.nt r₀ x v' v;
     by_cases hx' : x = [] <;> simp_all +decide;
     convert this _;
     convert h_blocks using 1;
@@ -912,7 +953,7 @@ private lemma star_case_3_RH_to_eps {g : grammar T}
     {x : List (List (symbol T g.nt))}
     (hw : ∀ wᵢ ∈ w, grammar_generates g wᵢ)
     (hβ : grammar_generates g β)
-    (hx : ∀ xᵢ ∈ x, grammar_derives g [symbol.nonterminal g.initial] xᵢ) :
+    (_hx : ∀ xᵢ ∈ x, grammar_derives g [symbol.nonterminal g.initial] xᵢ) :
     StarInvariant g
       (List.map symbol.terminal (w.flatten ++ β) ++
        (List.map (· ++ [H]) (List.map (List.map wrap_sym) x)).flatten) := by
@@ -971,7 +1012,7 @@ private lemma star_case_3 {g : grammar T} {α' : List (ns T g.nt)}
   obtain ⟨ r, hr, u, v, hbef, rfl ⟩ := h_step;
   by_cases h : ∃ i : Fin 3, r.input_N = Sum.inr i;
   · rcases h with ⟨ i, hi ⟩ ; fin_cases i <;> simp_all +decide [ star_grammar ] ;
-    · replace hbef := congr_arg ( fun l => Z ∈ l ) hbef ; simp_all +decide [ Z_not_in_case3_string ] ;
+    · replace hbef := congr_arg ( fun l => Z ∈ l ) hbef ; simp_all +decide [  ] ;
       contrapose! hbef; simp_all +decide [ Z, R, H ] ;
       exact ⟨ fun a ha => wrap_sym_ne_Z a, fun a ha b hb => wrap_sym_ne_Z b ⟩;
     · exact False.elim <| no_H_rule ( by
@@ -985,7 +1026,7 @@ private lemma star_case_3 {g : grammar T} {α' : List (ns T g.nt)}
         exact γ;
         exact x;
         exact r.input_R ++ v;
-        · simp +decide [ List.map_flatMap, List.flatten ];
+        · simp +decide;
         · rcases hr with ( rfl | rfl | rfl | rfl | ⟨ a, ha, rfl ⟩ | hr ) <;> simp_all +decide [ wrap_gr ];
           · rfl;
           · rfl;
@@ -1004,11 +1045,11 @@ private lemma star_case_3 {g : grammar T} {α' : List (ns T g.nt)}
           rotate_left;
           exact β;
           · convert hβγ using 1;
-          · simp +decide [ ← hbef.2, List.map_append, List.flatten_append ];
+          · simp +decide [ ← hbef.2, List.map_append ];
         · cases ‹symbol T g.nt› <;> simp_all +decide [ H ];
       · unfold wrap_gr at hi; aesop;
       · unfold rules_that_scan_terminals at hr_scan; simp_all +decide [ List.mem_map ] ;
-        rcases hr_scan with ⟨ a, ha, rfl ⟩ ; simp_all +decide [ List.map ] ;
+        rcases hr_scan with ⟨ a, ha, rfl ⟩ ; simp_all +decide [  ] ;
         cases γ <;> simp_all +decide [ List.map ];
         · cases hbef.2.1;
         · cases ‹symbol T g.nt› <;> simp_all +decide [ wrap_sym ];
@@ -1031,23 +1072,23 @@ private lemma no_inr_rule_on_wrap_R {g : grammar T} {σ : List (symbol T g.nt)}
   False := by
   rcases hinr with ⟨ i, hi ⟩ ; rcases i with ( _ | _ | _ | i ) <;> simp_all +decide [ star_grammar ];
   · replace hbef := congr_arg List.reverse hbef ; simp_all +decide [ List.reverse_append ];
-    cases v : v.reverse <;> simp_all +decide [ List.reverse_singleton ];
+    cases v : v.reverse <;> simp_all +decide [  ];
     · grind +locals;
     · have h_contra : ∀ x ∈ List.map wrap_sym σ, x ≠ symbol.nonterminal (Sum.inr 0) := by
         simp +zetaDelta at *;
         intro a ha; cases a <;> simp +decide [ wrap_sym ] ;
       grind;
-  · rcases hr with ( rfl | rfl | rfl | rfl | ⟨ a, ha, rfl ⟩ | hr ) <;> simp_all +decide [ List.append_assoc ];
+  · rcases hr with ( rfl | rfl | rfl | rfl | ⟨ a, ha, rfl ⟩ | hr ) <;> simp_all +decide [  ];
     · cases hi;
     · unfold rules_that_scan_terminals at hr; aesop;
-  · rcases hr with ( rfl | rfl | rfl | rfl | ⟨ a, ha, rfl ⟩ | hr ) <;> simp_all +decide [ List.append_assoc ];
+  · rcases hr with ( rfl | rfl | rfl | rfl | ⟨ a, ha, rfl ⟩ | hr ) <;> simp_all +decide [  ];
     · replace hbef := congr_arg ( fun x => x.dropLast ) hbef ; simp_all +decide [ List.dropLast ] ;
       induction σ generalizing u v <;> simp_all +decide [ List.map ];
-      cases u <;> simp_all +decide [ List.dropLast ];
+      cases u <;> simp_all +decide [  ];
       cases ‹symbol T g.nt› <;> simp_all +decide [ wrap_sym ];
     · replace hbef := congr_arg ( fun x => x.dropLast ) hbef ; simp_all +decide [ List.dropLast ] ;
       induction σ generalizing u v <;> simp_all +decide [ List.map ];
-      cases u <;> simp_all +decide [ List.dropLast ];
+      cases u <;> simp_all +decide [  ];
       cases ‹symbol T g.nt› <;> simp_all +decide [ wrap_sym ];
     · cases hi;
     · replace hbef := congr_arg List.reverse hbef ; simp_all +decide [ List.reverse_append ];
@@ -1084,10 +1125,10 @@ private lemma star_case_5 {g : grammar T} {α' : List (ns T g.nt)}
       replace hbef := congr_arg List.reverse hbef ; simp_all +decide [ List.reverse_append ] ;
       replace hbef := congr_arg List.head? hbef ; simp_all +decide;
       cases v <;> simp_all +decide [ List.getLast? ];
-      cases h : ( wrap_gr r₀ ).input_R <;> simp_all +decide [ List.getLast ];
+      cases h : ( wrap_gr r₀ ).input_R <;> simp_all +decide [  ];
       · cases h : ( wrap_gr r₀ ).input_N <;> simp_all +decide [ R ];
         tauto;
-      · unfold wrap_gr at h; simp_all +decide [ List.getLast ] ;
+      · unfold wrap_gr at h; simp_all +decide [  ] ;
         grind +suggestions;
     -- Since R is the last element of v, we can write v as v' ++ [R] for some v'.
     obtain ⟨v', hv'⟩ : ∃ v', v = v' ++ [R] := by
@@ -1095,7 +1136,7 @@ private lemma star_case_5 {g : grammar T} {α' : List (ns T g.nt)}
         intro hv_last
         induction' v with v ih;
         · contradiction;
-        · induction' ih using List.reverseRecOn with ih ih ih <;> simp_all +decide [ List.map ];
+        · induction' ih using List.reverseRecOn with ih ih ih <;> simp_all +decide [  ];
           replace hbef := congr_arg List.reverse hbef ; simp_all +decide [ List.reverse_append ];
           cases ih <;> simp_all +decide [ wrap_gr ];
           · cases hbef.1;
@@ -1116,7 +1157,7 @@ private lemma star_case_5 {g : grammar T} {α' : List (ns T g.nt)}
           replace hbef := congr_arg List.reverse hbef; simp_all +decide [ List.reverse_append ] ;
         exact List.mem_map.mp hx_in_map |> Exists.imp fun y hy => hy.2;
       have hv₀ : ∀ {l : List (ns T g.nt)}, (∀ x ∈ l, ∃ y : symbol T g.nt, wrap_sym y = x) → ∃ v₀ : List (symbol T g.nt), List.map wrap_sym v₀ = l := by
-        intros l hl; induction' l with x l ih <;> simp_all +decide [ List.map ] ;
+        intros l hl; induction' l with x l ih <;> simp_all +decide [  ] ;
         rcases hl.1 with ⟨ y, rfl ⟩ ; obtain ⟨ v₀, hv₀ ⟩ := ih; exact ⟨ y :: v₀, by simp +decide [ hv₀ ] ⟩ ;
       exact hv₀ ‹_›;
     refine Or.inr <| Or.inr <| Or.inr <| Or.inr <| ⟨ u₀ ++ r₀.output_string ++ v₀, ?_ ⟩ ; aesop
@@ -1136,7 +1177,7 @@ private lemma star_case_6 {g : grammar T} {α' : List (ns T g.nt)}
   rcases r with ⟨ L, N, R, S ⟩;
   rcases N with ( N | N ) <;> simp_all +decide [ star_grammar ];
   · rcases h₁ with ( ⟨ r, hr, hr' ⟩ | hr );
-    · unfold wrap_gr at hr'; simp_all +decide [ List.map_append ] ;
+    · unfold wrap_gr at hr'; simp_all +decide [  ] ;
       refine Or.inr <| Or.inr <| Or.inr <| Or.inr <| Or.inr ⟨ ?_, ?_, ?_ ⟩;
       · use h₂ ++ S ++ h₃.dropLast;
         simp_all +decide [ List.append_assoc ];
@@ -1144,14 +1185,14 @@ private lemma star_case_6 {g : grammar T} {α' : List (ns T g.nt)}
         replace := congr_arg List.reverse ‹_›; norm_num [ List.reverse_append ] at this;
         replace this := congr_arg List.head? this; simp_all +decide ;
         cases h₃ <;> simp_all +decide [ List.getLast? ];
-        cases R <;> simp_all +decide [ List.getLast ];
+        cases R <;> simp_all +decide [  ];
         · cases this;
         · grind +suggestions;
       · simp_all +decide [ ← hr'.2.2.2 ];
-        exact?;
+        exact fun x a => wrap_sym_ne_Z x;
       · grind +suggestions;
     · unfold rules_that_scan_terminals at hr; aesop;
-  · fin_cases N <;> simp_all +decide [ star_grammar ];
+  · fin_cases N <;> simp_all +decide [  ];
     · tauto;
     · rcases h₁ with ( ⟨ r, hr, hr' ⟩ | hr ) <;> simp_all +decide [ wrap_gr, rules_that_scan_terminals ];
     · unfold _root_.R at * ; tauto
@@ -1217,7 +1258,7 @@ private lemma in_star_of_in_star_grammar {g : grammar T} {w : List T}
 end hard_direction
 
 /-- The class of recursively enumerable languages is closed under the Kleene star. -/
-theorem RE_of_star_RE (L : Language T) :
+public theorem RE_of_star_RE (L : Language T) :
     is_RE L → is_RE (KStar.kstar L) := by
   rintro ⟨g, hg⟩
   use star_grammar g

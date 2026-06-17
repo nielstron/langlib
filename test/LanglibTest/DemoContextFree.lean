@@ -1,7 +1,11 @@
-import Langlib.Grammars.ContextFree.Toolbox
-import Langlib.Utilities.ListUtils
-import Langlib.Utilities.WrittenByOthers.TrimAssoc
+module
 
+public import Langlib.Grammars.ContextFree.Toolbox
+public import Langlib.Utilities.ListUtils
+public import Langlib.Utilities.WrittenByOthers.TrimAssoc
+
+
+@[expose] public section
 
 /-! # Context-Free Examples
 

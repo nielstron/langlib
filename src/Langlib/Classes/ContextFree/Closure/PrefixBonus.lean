@@ -1,11 +1,51 @@
-import Langlib.Grammars.ContextFree.Toolbox
+module
+
+public import Langlib.Utilities.LanguageOperations
+public import Langlib.Classes.ContextFree.Definition
 import Langlib.Classes.ContextFree.Basics.Splitting
-import Langlib.Classes.ContextFree.Closure.Reverse
-import Langlib.Utilities.LanguageOperations
-import Langlib.Utilities.ListUtils
-import Mathlib
-import Langlib.Classes.ContextFree.Definition
+import Langlib.Grammars.ContextFree.Toolbox
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Floor.Semifield
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.CategoryTheory.Category.Init
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Int.Star
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Factorial.DoubleFactorial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.NormNum.BigOperators
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFactorial
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+@[expose]
+public section
+
+
 
 /-! # Context-Free Closure Under Prefix and Suffix
 
@@ -84,22 +124,22 @@ open Classical in
 noncomputable def productiveGrammar (g : CF_grammar T) : CF_grammar T :=
   { g with rules := g.rules.filter (fun r => decide (fullyProductiveRule g r)) }
 
-lemma productiveGrammar_nt (g : CF_grammar T) :
+private lemma productiveGrammar_nt (g : CF_grammar T) :
     (productiveGrammar g).nt = g.nt := rfl
 
-lemma productiveGrammar_initial (g : CF_grammar T) :
+private lemma productiveGrammar_initial (g : CF_grammar T) :
     (productiveGrammar g).initial = g.initial := rfl
 
-lemma productiveGrammar_rules_subset {g : CF_grammar T} {r} :
+private lemma productiveGrammar_rules_subset {g : CF_grammar T} {r} :
     r ∈ (productiveGrammar g).rules → r ∈ g.rules := by
   intro h
-  simp [productiveGrammar] at h
+  simp only [productiveGrammar, List.mem_filter, decide_eq_true_eq] at h
   exact h.1
 
 lemma productiveGrammar_rules_productive {g : CF_grammar T} {r}
     (hr : r ∈ (productiveGrammar g).rules) :
     fullyProductiveRule g r := by
-  simp [productiveGrammar] at hr
+  simp only [productiveGrammar, List.mem_filter, decide_eq_true_eq] at hr
   exact hr.2
 
 /-
@@ -119,7 +159,7 @@ lemma CF_derives_mono {g : CF_grammar T} {rules₁ rules₂ : List (g.nt × List
 /-
 Every derivation step in g that eventually leads to a terminal string uses a fully productive rule.
 -/
-lemma derives_to_terminal_uses_productive {g : CF_grammar T}
+private lemma derives_to_terminal_uses_productive {g : CF_grammar T}
     {s₁ s₂ : List (symbol T g.nt)} {w : List T}
     (ht : CF_transforms g s₁ s₂)
     (hd : CF_derives g s₂ (List.map symbol.terminal w)) :
@@ -150,7 +190,7 @@ lemma productive_iff_productiveGrammar {g : CF_grammar T} {A : g.nt} :
           induction' h_deriv with s₁ s₂ h_deriv ih generalizing w;
           · constructor;
           · have h_step : CF_transforms (productiveGrammar g) s₁ s₂ := by
-              exact?;
+              exact derives_to_terminal_uses_productive ih hw_deriv;
             grind +suggestions;
         exact h_ind _ _ hw _ ( by tauto );
       · -- Apply the CF_derives_mono lemma to conclude that the derivation from A to w in the productive grammar implies a derivation in the original grammar.
@@ -173,7 +213,7 @@ lemma productiveGrammar_language (g : CF_grammar T) :
           · constructor;
           · exact Relation.ReflTransGen.trans ( ih <| by
               exact Relation.ReflTransGen.trans ( Relation.ReflTransGen.single ‹_› ) h₂ ) ( by
-              exact .single ( by exact? ) );
+              exact .single ( by (expose_names; exact derives_to_terminal_uses_productive h₂_1 h₂) ) );
         exact h_ind h ( by tauto )
 
 /-- All rules in the productive grammar are fully productive
@@ -229,7 +269,8 @@ end PrefixGrammar
 section SteppedDerivation
 
 /-- Derivation in exactly `n` steps. -/
-def CF_derives_in (g : CF_grammar T) : ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
+@[expose]
+public def CF_derives_in (g : CF_grammar T) : ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
   | 0, w₁, w₂ => w₁ = w₂
   | n + 1, w₁, w₃ => ∃ w₂, CF_transforms g w₁ w₂ ∧ CF_derives_in g n w₂ w₃
 
@@ -239,7 +280,7 @@ lemma derives_of_derives_in {g : CF_grammar T} {n : ℕ} {w₁ w₂ : List (symb
       · exact fun h => by rw [ h ] ; exact CF_deri_self;
       · rintro ⟨ w₃, h₁, h₂ ⟩ ; exact CF_deri_of_deri_deri ( CF_deri_of_tran h₁ ) ( ih h₂ ) ;
 
-lemma derives_in_of_derives {g : CF_grammar T} {w₁ w₂ : List (symbol T g.nt)} :
+public lemma derives_in_of_derives {g : CF_grammar T} {w₁ w₂ : List (symbol T g.nt)} :
     CF_derives g w₁ w₂ → ∃ n, CF_derives_in g n w₁ w₂ := by
       have h_ind : ∀ {w₁ w₂ : List (symbol T g.nt)}, CF_derives g w₁ w₂ → ∃ n, CF_derives_in g n w₁ w₂ := by
         intro w₁ w₂ h;
@@ -258,7 +299,7 @@ lemma derives_in_of_derives {g : CF_grammar T} {w₁ w₂ : List (symbol T g.nt)
 /-
 A CF_transforms on a concatenation either acts in the left part or the right part.
 -/
-lemma transform_in_append {g : CF_grammar T} {s₁ s₂ w : List (symbol T g.nt)}
+public lemma transform_in_append {g : CF_grammar T} {s₁ s₂ w : List (symbol T g.nt)}
     (h : CF_transforms g (s₁ ++ s₂) w) :
     (∃ s₁', CF_transforms g s₁ s₁' ∧ w = s₁' ++ s₂) ∨
     (∃ s₂', CF_transforms g s₂ s₂' ∧ w = s₁ ++ s₂') := by
@@ -281,18 +322,14 @@ lemma transform_in_append {g : CF_grammar T} {s₁ s₂ w : List (symbol T g.nt)
 /-
 Splitting lemma with step counts.
 -/
-lemma head_tail_split_in {g : CF_grammar T} (n : ℕ) (s : symbol T g.nt)
+public lemma head_tail_split_in {g : CF_grammar T} (n : ℕ) (s : symbol T g.nt)
     (ss : List (symbol T g.nt)) (x : List (symbol T g.nt))
     (h : CF_derives_in g n (s :: ss) x) :
     ∃ n₁ n₂, n₁ + n₂ ≤ n ∧ ∃ u v,
       CF_derives_in g n₁ [s] u ∧ CF_derives_in g n₂ ss v ∧ u ++ v = x := by
         -- Define the step-bounded derivation relation `CF_derives_in` for `g` and prove the required properties.
         have step_bounded_derivation : ∀ n : ℕ, ∀ s₁ s₂ x, CF_derives_in g n (s₁ ++ s₂) x → ∃ n₁ n₂, n₁ + n₂ ≤ n ∧ ∃ u v, CF_derives_in g n₁ s₁ u ∧ CF_derives_in g n₂ s₂ v ∧ u ++ v = x := by
-          intro n
-          intro s₁
-          intro s₂
-          intro x
-          intro h
+          intro n s₁ s₂ x h
           induction' n with n ih generalizing s₁ s₂ x;
           · cases h ; aesop;
           · obtain ⟨ w₂, hw₂ ⟩ := h;
@@ -383,7 +420,7 @@ private lemma terminal_derives_in {g : CF_grammar T} {t : T} {n : ℕ} {w : List
     n = 0 ∧ w = [t] := by
       rcases n with ( _ | n ) <;> simp_all +decide [ CF_derives_in ];
       · cases w <;> aesop;
-      · rcases h with ⟨ w₂, hw₂₁, hw₂₂ ⟩ ; rcases hw₂₁ with ⟨ r, u, v, hr₁, hr₂, hr₃ ⟩ ; simp_all +decide [ CF_transforms ] ;
+      · rcases h with ⟨ w₂, hw₂₁, hw₂₂ ⟩ ; rcases hw₂₁ with ⟨ r, u, v, hr₁, hr₂, hr₃ ⟩ ; simp_all +decide [  ] ;
         cases u <;> cases v <;> aesop ( simp_config := { decide := true } ) ;
 
 /-- Full lifting for a list of symbols. -/
@@ -439,10 +476,10 @@ private lemma find_prefix_cut {g : CF_grammar T} {n : ℕ}
       w = u ++ v →
       CF_derives (prefixGrammar g)
         [symbol.nonterminal (true, A)] (List.map symbol.terminal u))
-    : ∀ (ss : List (symbol T g.nt)) {k : ℕ} (hk : k < n)
+    : ∀ (ss : List (symbol T g.nt)) {k : ℕ} (_hk : k < n)
     {w u v : List T}
-    (hw : CF_derives_in g k ss (List.map symbol.terminal w))
-    (huv : w = u ++ v) (hu : u ≠ []),
+    (_hw : CF_derives_in g k ss (List.map symbol.terminal w))
+    (_huv : w = u ++ v) (_hu : u ≠ []),
     ∃ (j : Fin ss.length) (w_before u_at : List T),
       u = w_before ++ u_at ∧
       CF_derives (prefixGrammar g) ((ss.take j.val).map liftFull) (List.map symbol.terminal w_before) ∧
@@ -461,14 +498,14 @@ private lemma find_prefix_cut {g : CF_grammar T} {n : ℕ}
                 use [], [t]; simp +decide [ CF_derives ] ;
                 exact ⟨ by rfl, by rfl ⟩;
               · rcases hu_part with ⟨ w₂, hw₂₁, hw₂₂ ⟩ ; rcases w₂ with ( _ | ⟨ t₂, w₂ ⟩ ) <;> simp_all +decide [ CF_transforms ] ;
-                rcases hw₂₁ with ⟨ a, b, hab, x, y, hx, hy ⟩ ; rcases x with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ] ;
+                rcases hw₂₁ with ⟨ a, b, hab, x, y, hx, hy ⟩ ; rcases x with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide [  ] ;
             · rename_i A; specialize ‹∀ m < n, ∀ ( A : g.nt ) ( w u v : List T ), CF_derives_in g m [ symbol.nonterminal A ] ( List.map symbol.terminal w ) → w = u ++ v → CF_derives ( prefixGrammar g ) [ symbol.nonterminal ( true, A ) ] ( List.map symbol.terminal u ) › n₁ ( by linarith ) A ( u ++ a ) u a; simp_all +decide ;
               use ⟨ 0, by aesop ⟩ ; simp_all +decide [ List.take ] ;
               exact ⟨ [ ], u, by simp +decide, by exact CF_deri_self, ih ⟩;
           · rcases huv with ⟨ as, rfl, rfl ⟩ ; simp_all +decide [ List.append_assoc ] ;
-            have := @ih ( n₂ ) ( by linarith ) ( as ++ v ) as v ; simp_all +decide [ List.append_assoc ] ;
+            have := @ih ( n₂ ) ( by linarith ) ( as ++ v ) as v ; simp_all +decide [  ] ;
             obtain ⟨ j, w_before, u_at, rfl, hw_before, hw_at ⟩ := this; use ⟨ j.val + 1, by
-              exact Nat.succ_lt_succ j.2 ⟩ ; use w_head ++ w_before, u_at; simp_all +decide [ List.take_append ] ; (
+              exact Nat.succ_lt_succ j.2 ⟩ ; use w_head ++ w_before, u_at; simp_all +decide [  ] ; (
             have h_liftFull_s : CF_derives (prefixGrammar g) [liftFull s] (List.map symbol.terminal w_head) := by
               -- Apply the liftFull_list_derives lemma to the derivation from s to w_head.
               have h_liftFull_s : CF_derives (prefixGrammar g) (List.map liftFull [s]) (List.map symbol.terminal w_head) := by
@@ -554,7 +591,9 @@ section Soundness
 
 /-- If `liftFull` is injective on symbols. -/
 private lemma liftFull_injective {N : Type} : Function.Injective (@liftFull T N) := by
-  intros a b h; cases a <;> cases b <;> simp_all [liftFull]
+  intros a b h; cases a <;> cases b <;>
+    simp_all only [liftFull, reduceCtorEq, symbol.terminal.injEq, symbol.nonterminal.injEq,
+      Prod.mk.injEq, true_and]
 
 /-
 A transform step on a list of `liftFull` images in the prefix grammar
@@ -566,7 +605,7 @@ private lemma unlift_full_transform {g : CF_grammar T}
     (h : CF_transforms (prefixGrammar g) (ss.map liftFull) ss') :
     ∃ ss'' : List (symbol T g.nt), ss' = ss''.map liftFull ∧ CF_transforms g ss ss'' := by
       obtain ⟨ r, hr ⟩ := h;
-      rcases hr with ⟨ u, v, hr, h₁, h₂ ⟩ ; rcases r with ⟨ ⟨ b, B ⟩, l ⟩ ; rcases b with ( _ | _ ) <;> simp_all +decide [ List.mem_append, List.mem_cons ] ;
+      rcases hr with ⟨ u, v, hr, h₁, h₂ ⟩ ; rcases r with ⟨ ⟨ b, B ⟩, l ⟩ ; rcases b with ( _ | _ ) <;> simp_all +decide [  ] ;
       · -- By definition of `prefixGrammar`, we know that `l` is the map of some rule in `g.rules`.
         obtain ⟨ r, hr ⟩ : ∃ r ∈ g.rules, l = r.2.map liftFull ∧ r.1 = B := by
           grind +locals;
@@ -574,7 +613,7 @@ private lemma unlift_full_transform {g : CF_grammar T}
         obtain ⟨ u', v', hu', hv', hss'' ⟩ : ∃ u' v' : List (symbol T g.nt), u = u'.map liftFull ∧ v = v'.map liftFull ∧ ss = u' ++ [symbol.nonterminal B] ++ v' := by
           have h_split : ∀ {l : List (symbol T g.nt)} {u v : List (symbol T (Bool × g.nt))}, List.map liftFull l = u ++ symbol.nonterminal (false, B) :: v → ∃ u' v' : List (symbol T g.nt), u = u'.map liftFull ∧ v = v'.map liftFull ∧ l = u' ++ [symbol.nonterminal B] ++ v' := by
             intros l u v h; induction' l with l ih generalizing u v <;> simp_all +decide [ List.map ] ;
-            rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide [ List.map ];
+            rcases u with ( _ | ⟨ u, u ⟩ ) <;> simp_all +decide [  ];
             · unfold liftFull at h; aesop;
             · grind;
           exact h_split h₁;
@@ -600,12 +639,12 @@ private lemma unlift_full_derives {g : CF_grammar T}
         induction' n with n ih generalizing ss w;
         · -- Since liftFull is injective, if the maps are equal, then the original lists must be equal.
           have h_inj : Function.Injective (liftFull : symbol T g.nt → symbol T (Bool × g.nt)) := by
-            exact?;
+            exact liftFull_injective;
           exact List.map_injective_iff.mpr h_inj <| by aesop;
         · obtain ⟨ mid, hmid₁, hmid₂ ⟩ := h;
           obtain ⟨ ss', hss', hss'' ⟩ := unlift_full_transform hmid₁;
           exact ⟨ ss', hss'', ih _ _ <| by simpa [ hss' ] using hmid₂ ⟩;
-      obtain ⟨ n, hn ⟩ := derives_in_of_derives h; exact h_ind n ss w hn |> fun h => by exact?;
+      obtain ⟨ n, hn ⟩ := derives_in_of_derives h; exact h_ind n ss w hn |> fun h => by exact derives_of_derives_in (h_ind n ss w hn);
 
 /-
 If `B` is productive, then there exists a rule `(B, rhs) ∈ g.rules`.
@@ -617,10 +656,10 @@ private lemma productive_has_rule {g : CF_grammar T} {B : g.nt}
       have := hw;
       -- By definition of `CF_derives`, this means there exists a sequence of transformations from `[symbol.nonterminal B]` to `List.map symbol.terminal w`.
       obtain ⟨n, hn⟩ : ∃ n, CF_derives_in g n [symbol.nonterminal B] (List.map symbol.terminal w) := by
-        exact?;
+        exact derives_in_of_derives hw;
       induction' n with n ih generalizing B w <;> simp_all +decide [ CF_derives_in ];
       · cases w <;> aesop;
-      · rcases hn with ⟨ w₂, hw₂, hw₂' ⟩ ; rcases hw₂ with ⟨ r, u, v, hr, hu, hv ⟩ ; simp_all +decide [ List.length_append ] ;
+      · rcases hn with ⟨ w₂, hw₂, hw₂' ⟩ ; rcases hw₂ with ⟨ r, u, v, hr, hu, hv ⟩ ; simp_all +decide [  ] ;
         cases u <;> aesop
 
 /-
@@ -631,7 +670,7 @@ private lemma list_productive_derives {g : CF_grammar T}
     (ss : List (symbol T g.nt))
     (hprod : ∀ B, symbol.nonterminal B ∈ ss → productive g B) :
     ∃ w : List T, CF_derives g ss (List.map symbol.terminal w) := by
-      induction ss <;> simp_all +decide [ List.foldr ];
+      induction ss <;> simp_all +decide [  ];
       · exact ⟨ [ ], by tauto ⟩;
       · rename_i h t ih
         obtain ⟨w_s, hw_s⟩ : ∃ w_s : List T, CF_derives g [h] (List.map symbol.terminal w_s) := by
@@ -734,13 +773,13 @@ private lemma true_mode_soundness {g : CF_grammar T}
         · cases w <;> cases hw;
         · -- Extract the first step of the derivation.
           obtain ⟨w₂, hw₂, hw₁⟩ : ∃ w₂, CF_transforms (prefixGrammar g) [symbol.nonterminal (true, A)] w₂ ∧ CF_derives_in (prefixGrammar g) n w₂ (List.map symbol.terminal w) := by
-            exact?
+            exact Set.inter_nonempty.mp hw
           generalize_proofs at *; (
           -- Byclassify_true_rule, we know that there exists a rule (A, rhs) in g such that w₂ is either the empty list or a prefix cut of rhs.
           obtain ⟨rhs, hr, hw₂⟩ : ∃ rhs : List (symbol T g.nt), (A, rhs) ∈ g.rules ∧ (w₂ = [] ∨ ∃ i : Fin rhs.length, w₂ = (rhs.take i.val).map liftFull ++ [liftPrefix (rhs.get ⟨i.val, i.isLt⟩)]) := by
             obtain ⟨r, hr⟩ : ∃ r : (Bool × g.nt) × List (symbol T (prefixGrammar g).nt), r ∈ (prefixGrammar g).rules ∧ r.1 = (true, A) ∧ r.2 = w₂ := by
-              obtain ⟨ u, v, h ⟩ := hw₂; simp_all +decide [ CF_transforms ] ;
-              rcases h with ⟨ hu, x, hx, rfl ⟩ ; rcases v with ( _ | ⟨ _, _ | v ⟩ ) <;> simp_all +decide [ List.append_assoc ] ;
+              obtain ⟨ u, v, h ⟩ := hw₂; simp_all +decide [  ] ;
+              rcases h with ⟨ hu, x, hx, rfl ⟩ ; rcases v with ( _ | ⟨ _, _ | v ⟩ ) <;> simp_all +decide [  ] ;
             generalize_proofs at *; (
             grind +locals)
           generalize_proofs at *; (
@@ -822,7 +861,7 @@ private lemma prefix_soundness {g : CF_grammar T}
     w ∈ CF_language (prefixGrammar g) → w ∈ prefixLang (CF_language g) := by
       intro hw
       obtain ⟨n, hn⟩ : ∃ n, CF_derives_in (prefixGrammar g) n [symbol.nonterminal (true, g.initial)] (List.map symbol.terminal w) := by
-        exact?;
+        exact derives_in_of_derives hw;
       obtain ⟨ v, hv ⟩ := true_mode_soundness hprod n g.initial w hn;
       exact ⟨ v, hv ⟩
 
