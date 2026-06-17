@@ -89,7 +89,7 @@ Each column refers to the corresponding uniform computability predicate
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
-| Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ | ✓ | ✓ |
+| Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ |
 | Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
