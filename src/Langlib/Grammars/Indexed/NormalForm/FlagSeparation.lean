@@ -483,6 +483,15 @@ private theorem fst_mem_of_mem_zipIdx {α : Type} {x : α} {i k : Nat} {xs : Lis
   rw [hx]
   exact List.getElem_mem (l := xs) (n := i - k) (by omega)
 
+private theorem getElem?_of_mem_zipIdx {α : Type} {x : α} {i : Nat} {xs : List α}
+    (h : (x, i) ∈ xs.zipIdx) : xs[i]? = some x := by
+  have hz := List.mem_zipIdx h
+  rcases hz with ⟨hk, hi, hx⟩
+  have hi' : i < xs.length := by omega
+  rw [List.getElem?_eq_getElem hi']
+  rw [hx]
+  rfl
+
 private theorem fsLiftRhsSym_ne_start (r : IRule T g.nt g.flag)
     (hfresh : ∀ s ∈ r.rhs,
       match s with
@@ -900,9 +909,296 @@ theorem flagSeparate_language_forward {w : List T}
   all_goals norm_cast;
   exact Eq.symm (fsLiftISym_map_terminal g w)
 
+noncomputable def fsUnsepIntermediate (idx : Nat × Nat) (σ : List g.flag) : List g.ISym :=
+  match g.rules[idx.1]? with
+  | none => []
+  | some r =>
+      if r.consume.isSome ∧ idx.2 = 0 then
+        expandRhs g r.rhs σ
+      else
+        let pos := if r.consume.isSome then idx.2 - 1 else idx.2
+        match r.rhs[pos]? with
+        | none => []
+        | some (.terminal t) => [.terminal t]
+        | some (.nonterminal n none) => [.indexed n σ]
+        | some (.nonterminal n (some f)) => [.indexed n (f :: σ)]
+
+noncomputable def fsUnsepSym : (g.flagSeparate).ISym → List g.ISym
+  | .terminal t => [.terminal t]
+  | .indexed (Sum.inl n) σ => [.indexed n σ]
+  | .indexed (Sum.inr idx) σ => g.fsUnsepIntermediate idx σ
+
+noncomputable def fsUnsepSF (w : List (g.flagSeparate).ISym) : List g.ISym :=
+  w.flatMap g.fsUnsepSym
+
+private theorem fsUnsepSF_append (u v : List (g.flagSeparate).ISym) :
+    g.fsUnsepSF (u ++ v) = g.fsUnsepSF u ++ g.fsUnsepSF v := by
+  unfold fsUnsepSF
+  simp [List.flatMap_append]
+
+private theorem fsUnsepSF_terminal (w : List T) :
+    g.fsUnsepSF (w.map (ISym.terminal (g := g.flagSeparate))) =
+      w.map (ISym.terminal (g := g)) := by
+  induction w with
+  | nil => rfl
+  | cons t w ih =>
+      simp [fsUnsepSF, fsUnsepSym] at ih ⊢
+      exact ih
+
+private theorem fsUnsep_original_step (r : IRule T g.nt g.flag)
+    (hr : r ∈ g.rules) (σ : List g.flag) :
+    g.Derives
+      (match r.consume with
+       | none => [ISym.indexed r.lhs σ]
+       | some f => [ISym.indexed r.lhs (f :: σ)])
+      (expandRhs g r.rhs σ) := by
+  apply deri_of_tran
+  refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+  · cases r.consume <;> rfl
+  · simp
+
+private theorem flagSeparate_rule_origin
+    (r' : IRule T (g.nt ⊕ (Nat × Nat)) g.flag)
+    (hr' : r' ∈ g.flagSeparate.rules) :
+    ∃ (i : Nat) (r : IRule T g.nt g.flag),
+      (r, i) ∈ g.rules.zipIdx ∧ r' ∈ g.fsSingleRule i r := by
+  unfold flagSeparate at hr'
+  rw [List.mem_flatten] at hr'
+  obtain ⟨l, hl₁, hl₂⟩ := hr'
+  rw [List.mem_map] at hl₁
+  obtain ⟨⟨r, i⟩, hri, rfl⟩ := hl₁
+  exact ⟨i, r, hri, hl₂⟩
+
+private theorem fsUnsepSF_expand_lift
+    (rhs : List (IRhsSymbol T g.nt g.flag)) (σ : List g.flag) :
+    g.fsUnsepSF (expandRhs g.flagSeparate (rhs.map g.fsLiftRhsSym) σ) =
+      expandRhs g rhs σ := by
+  induction rhs with
+  | nil => rfl
+  | cons s rhs ih =>
+      cases s with
+      | terminal t =>
+          simp [fsUnsepSF, fsUnsepSym, fsLiftRhsSym, expandRhs] at ih ⊢
+          exact ih
+      | nonterminal n f =>
+          cases f <;> simp [fsUnsepSF, fsUnsepSym, fsLiftRhsSym, expandRhs] at ih ⊢
+          · exact ih
+          · exact ih
+
+private theorem fsUnsepSym_inr_zero (i : Nat) (r : IRule T g.nt g.flag)
+    (hri : (r, i) ∈ g.rules.zipIdx) (hc : r.consume.isSome = true)
+    (σ : List g.flag) :
+    g.fsUnsepSym (.indexed (Sum.inr (i, 0)) σ) = expandRhs g r.rhs σ := by
+  have hi := getElem?_of_mem_zipIdx hri
+  simp [fsUnsepSym, fsUnsepIntermediate, hi, hc]
+
+private theorem fsUnsepSym_inr_push_consume
+    (i j : Nat) (r : IRule T g.nt g.flag) (hri : (r, i) ∈ g.rules.zipIdx)
+    (hc : r.consume.isSome = true) (n : g.nt) (f : g.flag)
+    (hmem : (IRhsSymbol.nonterminal n (some f), j) ∈ r.rhs.zipIdx)
+    (σ : List g.flag) :
+    g.fsUnsepSym (.indexed (Sum.inr (i, j + 1)) σ) = [ISym.indexed n (f :: σ)] := by
+  have hi := getElem?_of_mem_zipIdx hri
+  have hs := getElem?_of_mem_zipIdx hmem
+  simp [fsUnsepSym, fsUnsepIntermediate, hi, hc, hs, Nat.add_sub_cancel]
+
+private theorem fsUnsepSym_inr_push_noConsume
+    (i j : Nat) (r : IRule T g.nt g.flag) (hri : (r, i) ∈ g.rules.zipIdx)
+    (hc : r.consume = none) (n : g.nt) (f : g.flag)
+    (hmem : (IRhsSymbol.nonterminal n (some f), j) ∈ r.rhs.zipIdx)
+    (σ : List g.flag) :
+    g.fsUnsepSym (.indexed (Sum.inr (i, j)) σ) = [ISym.indexed n (f :: σ)] := by
+  have hi := getElem?_of_mem_zipIdx hri
+  have hs := getElem?_of_mem_zipIdx hmem
+  simp [fsUnsepSym, fsUnsepIntermediate, hi, hc, hs]
+
+private theorem fsUnsepSF_expand_strip_noPush
+    (rhs : List (IRhsSymbol T g.nt g.flag))
+    (hnp : ∀ x ∈ rhs, g.hasPush x = false) (σ : List g.flag) :
+    g.fsUnsepSF (expandRhs g.flagSeparate (rhs.map g.fsStripPushRhsSym) σ) =
+      expandRhs g rhs σ := by
+  induction rhs with
+  | nil => rfl
+  | cons s rhs ih =>
+      have hs : g.hasPush s = false := hnp s (by simp)
+      have hrest : ∀ x ∈ rhs, g.hasPush x = false := by
+        intro x hx
+        exact hnp x (by simp [hx])
+      cases s with
+      | terminal t =>
+          simp [fsUnsepSF, fsUnsepSym, fsStripPushRhsSym, expandRhs] at ih ⊢
+          exact ih hrest
+      | nonterminal n f =>
+          cases f with
+          | none =>
+              simp [fsUnsepSF, fsUnsepSym, fsStripPushRhsSym, expandRhs] at ih ⊢
+              exact ih hrest
+          | some f =>
+              simp [hasPush] at hs
+
+private theorem fsUnsepSF_expand_replace_consume
+    (i start : Nat) (r : IRule T g.nt g.flag)
+    (hi : g.rules[i]? = some r) (hc : r.consume.isSome = true)
+    (rhs : List (IRhsSymbol T g.nt g.flag))
+    (hget : ∀ s j, (s, j) ∈ rhs.zipIdx start → r.rhs[j]? = some s)
+    (σ : List g.flag) :
+    g.fsUnsepSF
+        (expandRhs g.flagSeparate
+          ((rhs.zipIdx start).map fun ⟨s, j⟩ => g.fsReplaceRhsSym i (j + 1) s) σ) =
+      expandRhs g rhs σ := by
+  induction rhs generalizing start with
+  | nil => rfl
+  | cons s rhs ih =>
+      have hhead : r.rhs[start]? = some s := by
+        apply hget
+        simp [List.zipIdx_cons]
+      have htail :
+          ∀ s j, (s, j) ∈ rhs.zipIdx (start + 1) → r.rhs[j]? = some s := by
+        intro s j hmem
+        exact hget s j (by simp [List.zipIdx_cons, hmem])
+      have iht := ih (start + 1) htail
+      simp [fsUnsepSF, expandRhs] at iht
+      cases s with
+      | terminal t =>
+          simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
+            fsUnsepIntermediate, expandRhs, hi, hc]
+          exact iht
+      | nonterminal n f =>
+          cases f with
+          | none =>
+              simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
+                fsUnsepIntermediate, expandRhs, hi, hc]
+              exact iht
+          | some f =>
+              simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
+                fsUnsepIntermediate, expandRhs, hi, hc, hhead,
+                Nat.add_sub_cancel]
+              exact iht
+
+private theorem fsUnsepSF_expand_replace_noConsume
+    (i start : Nat) (r : IRule T g.nt g.flag)
+    (hi : g.rules[i]? = some r) (hc : r.consume = none)
+    (rhs : List (IRhsSymbol T g.nt g.flag))
+    (hget : ∀ s j, (s, j) ∈ rhs.zipIdx start → r.rhs[j]? = some s)
+    (σ : List g.flag) :
+    g.fsUnsepSF
+        (expandRhs g.flagSeparate
+          ((rhs.zipIdx start).map fun ⟨s, j⟩ => g.fsReplaceRhsSym i j s) σ) =
+      expandRhs g rhs σ := by
+  induction rhs generalizing start with
+  | nil => rfl
+  | cons s rhs ih =>
+      have hhead : r.rhs[start]? = some s := by
+        apply hget
+        simp [List.zipIdx_cons]
+      have htail :
+          ∀ s j, (s, j) ∈ rhs.zipIdx (start + 1) → r.rhs[j]? = some s := by
+        intro s j hmem
+        exact hget s j (by simp [List.zipIdx_cons, hmem])
+      have iht := ih (start + 1) htail
+      simp [fsUnsepSF, expandRhs] at iht
+      cases s with
+      | terminal t =>
+          simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
+            fsUnsepIntermediate, expandRhs, hi, hc]
+          exact iht
+      | nonterminal n f =>
+          cases f with
+          | none =>
+              simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
+                fsUnsepIntermediate, expandRhs, hi, hc]
+              exact iht
+          | some f =>
+              simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
+                fsUnsepIntermediate, expandRhs, hi, hc, hhead]
+              exact iht
+
+set_option maxHeartbeats 800000 in
+private theorem fsUnsep_rule_step_of
+    (i : Nat) (r : IRule T g.nt g.flag) (hri : (r, i) ∈ g.rules.zipIdx)
+    (r' : IRule T (g.nt ⊕ (Nat × Nat)) g.flag)
+    (hr' : r' ∈ g.fsSingleRule i r) (σ : List g.flag) :
+    g.Derives
+      (g.fsUnsepSym (match r'.consume with
+        | none => .indexed r'.lhs σ
+        | some f => .indexed r'.lhs (f :: σ)))
+      (g.fsUnsepSF (expandRhs g.flagSeparate r'.rhs σ)) := by
+  have hr_mem : r ∈ g.rules := fst_mem_of_mem_zipIdx hri
+  unfold IndexedGrammar.fsSingleRule at hr'
+  aesop
+  all_goals
+    first
+    | have hi := getElem?_of_mem_zipIdx hri
+      have hright := fsUnsepSF_expand_replace_consume g i 0 r hi h r.rhs
+        (by intro s j hmem; exact getElem?_of_mem_zipIdx hmem) σ
+      have hleft := fsUnsepSym_inr_zero g i r hri h σ
+      rw [hleft, hright]
+      exact deri_self g _
+    | have hleft := fsUnsepSym_inr_zero g i r hri h σ
+      have hright := fsUnsepSF_expand_strip_noPush g r.rhs h_1 σ
+      rw [hleft, hright]
+      exact deri_self g _
+    | rw [fsUnsepSF_expand_lift]
+      simpa [fsUnsepSym, h] using fsUnsep_original_step g r hr_mem σ
+    | have hi := getElem?_of_mem_zipIdx hri
+      have hright := fsUnsepSF_expand_replace_noConsume g i 0 r hi h r.rhs
+        (by intro s j hmem; exact getElem?_of_mem_zipIdx hmem) σ
+      rw [hright]
+      simpa [fsUnsepSym, h] using fsUnsep_original_step g r hr_mem σ
+    | have hleft := fsUnsepSym_inr_push_consume g i w_2 r hri h a val left_1 σ
+      rw [hleft]
+      simp [fsUnsepSF, fsUnsepSym, expandRhs]
+      exact deri_self g _
+    | have hleft := fsUnsepSym_inr_push_noConsume g i w_2 r hri h a val left_1 σ
+      rw [hleft]
+      simp [fsUnsepSF, fsUnsepSym, expandRhs]
+      exact deri_self g _
+    | have hc : r.consume.isSome = true := by simp [heq]
+      have hright := fsUnsepSym_inr_zero g i r hri hc σ
+      simp [fsUnsepSF, expandRhs]
+      rw [hright]
+      simpa [fsUnsepSym, heq] using fsUnsep_original_step g r hr_mem σ
+
+private theorem fsUnsep_transforms {u v : List (g.flagSeparate).ISym}
+    (h : g.flagSeparate.Transforms u v) :
+    g.Derives (g.fsUnsepSF u) (g.fsUnsepSF v) := by
+  obtain ⟨r', u₀, v₀, σ, hr', hu, hv⟩ := h
+  obtain ⟨i, r, hri, hr_single⟩ := flagSeparate_rule_origin g r' hr'
+  have key := fsUnsep_rule_step_of g i r hri r' hr_single σ
+  have hsingle : ∀ s : (g.flagSeparate).ISym,
+      g.fsUnsepSF [s] = g.fsUnsepSym s := by
+    intro s
+    simp [fsUnsepSF]
+  cases hc : r'.consume with
+  | none =>
+      rw [hc] at hu key
+      simp only at hu key
+      rw [hu, hv]
+      simp only [fsUnsepSF_append]
+      rw [hsingle (.indexed r'.lhs σ)]
+      exact deri_with_suffix _ (deri_with_prefix _ key)
+  | some f =>
+      rw [hc] at hu key
+      simp only at hu key
+      rw [hu, hv]
+      simp only [fsUnsepSF_append]
+      rw [hsingle (.indexed r'.lhs (f :: σ))]
+      exact deri_with_suffix _ (deri_with_prefix _ key)
+
+private theorem fsUnsep_derives {u v : List (g.flagSeparate).ISym}
+    (h : g.flagSeparate.Derives u v) :
+    g.Derives (g.fsUnsepSF u) (g.fsUnsepSF v) := by
+  induction h with
+  | refl => exact deri_self g _
+  | tail _ ht ih =>
+      exact ih.trans (fsUnsep_transforms g ht)
+
 theorem flagSeparate_language_backward {w : List T}
     (h : (g.flagSeparate).Generates w) : g.Generates w := by
-  sorry
+  unfold IndexedGrammar.Generates at *
+  have hd := fsUnsep_derives g h
+  rw [fsUnsepSF_terminal g w] at hd
+  simpa [fsUnsepSF, fsUnsepSym, flagSeparate] using hd
 
 theorem exists_flagsSeparated' (g : IndexedGrammar T)
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated) :

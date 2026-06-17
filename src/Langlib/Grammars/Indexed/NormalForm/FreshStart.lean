@@ -297,6 +297,19 @@ theorem freshStart_startNotOnRhs : (g.freshStart).StartNotOnRhs' := by
   simp [ IndexedGrammar.freshStart, IndexedGrammar.liftRule ];
   intro r hr s hs; cases s <;> simp +decide [ IndexedGrammar.liftRhsSym ] ;
 
+/-- Adding a fresh start symbol preserves the absence of ε-productions. -/
+theorem freshStart_noEpsilon (hne : g.NoEpsilon') : (g.freshStart).NoEpsilon' := by
+  unfold IndexedGrammar.NoEpsilon'
+  intro r hr
+  unfold IndexedGrammar.freshStart at hr
+  simp only [List.mem_cons, List.mem_map] at hr
+  rcases hr with hr | ⟨r₀, hr₀, rfl⟩
+  · subst r
+    simp
+  · unfold IndexedGrammar.liftRule
+    intro hnil
+    exact hne r₀ hr₀ (List.map_eq_nil_iff.mp hnil)
+
 end FreshStart
 
 end IndexedGrammar

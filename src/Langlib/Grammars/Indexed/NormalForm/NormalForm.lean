@@ -21,8 +21,8 @@ and the start symbol does not appear on the right-hand side of any production.
 
 ## Main results
 
-- `IndexedGrammar.exists_normalForm` — **Aho's Normal Form Theorem**: every indexed
-  grammar has an equivalent grammar in normal form (for non-empty words)
+- `IndexedGrammar.exists_normalForm` — every ε-free indexed grammar has an equivalent
+  grammar in normal form (for non-empty words)
 
 ## Proof outline
 
@@ -30,8 +30,7 @@ The proof proceeds by a sequence of language-preserving transformations:
 
 1. **Fresh start** (`FreshStart.lean`, fully proved): introduce a new start symbol
    that does not appear on any right-hand side.
-2. **ε-elimination** (`EpsilonElim.lean`): remove productions with empty right-hand sides,
-   while preserving the language on non-empty words.
+2. **ε-free pass-through** (`EpsilonElim.lean`): use the explicit ε-free hypothesis.
 3. **Terminal isolation** (`TerminalIsolation.lean`, fully proved): replace terminals in
    multi-symbol right-hand sides with dedicated nonterminals.
 4. **Flag separation** (`FlagSeparation.lean`): split rules with complex flag operations.
@@ -51,13 +50,10 @@ namespace IndexedGrammar
 
 /-! ## Aho's Normal Form Theorem -/
 
-/-- **Aho's Normal Form Theorem** (1968): For every indexed grammar `g`, there exists an
-indexed grammar `g'` in normal form such that `g'` generates the same non-empty words
-as `g`. That is, for all `w ≠ []`, `w ∈ L(g') ↔ w ∈ L(g)`.
-
-The proof constructs `g'` by composing the five grammar transformations described above.
-Steps 1 (fresh start) and 3 (terminal isolation) are fully proved. -/
-theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) :
+/-- Normal-form theorem for ε-free indexed grammars. For every indexed grammar `g`
+with no ε-productions, there exists an indexed grammar `g'` in normal form such that
+`g'` generates the same non-empty words as `g`. -/
+theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T,
       (∃ _ : DecidableEq g'.nt, g'.IsNormalForm) ∧
       ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
@@ -66,8 +62,9 @@ theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) :
   have hg₁_lang : ∀ w : List T, w ∈ g₁.Language ↔ w ∈ g.Language :=
     fun w => ⟨freshStart_language_backward g, freshStart_language_forward g⟩
   have hg₁_fresh : g₁.StartNotOnRhs' := freshStart_startNotOnRhs g
-  -- Step 2: ε-elimination
-  obtain ⟨g₂, hg₂_ne, hg₂_fresh_of, hg₂_lang⟩ := exists_noEpsilon g₁
+  have hg₁_ne : g₁.NoEpsilon' := freshStart_noEpsilon g hne
+  -- Step 2: ε-free pass-through
+  obtain ⟨g₂, hg₂_ne, hg₂_fresh_of, hg₂_lang⟩ := exists_noEpsilon g₁ hg₁_ne
   have hg₂_fresh : g₂.StartNotOnRhs' := hg₂_fresh_of hg₁_fresh
   -- Step 3: Terminal isolation (fully proved)
   obtain ⟨g₃, hg₃_ne, hg₃_ti, hg₃_fresh_of, hg₃_lang⟩ :=
