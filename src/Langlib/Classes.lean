@@ -132,6 +132,7 @@ public import Langlib.Classes.Recursive.Basics.Elementary
 public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Closure.Complement
 public import Langlib.Classes.Recursive.Closure.Reverse
+public import Langlib.Classes.Recursive.Closure.Union
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Definition
 public import Langlib.Classes.Recursive.Examples.SingletonWord
