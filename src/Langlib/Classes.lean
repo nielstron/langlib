@@ -55,6 +55,7 @@ public import Langlib.Classes.ContextFree.Examples.SingletonWord
 public import Langlib.Classes.ContextFree.Examples.UnaryA2PowSucc
 public import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.Indexed
+public import Langlib.Classes.ContextFree.Inclusion.Recursive
 public import Langlib.Classes.ContextFree.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.ContextFree.Inclusion.StrictContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.StrictIndexed
