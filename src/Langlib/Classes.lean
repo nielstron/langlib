@@ -55,6 +55,7 @@ public import Langlib.Classes.ContextFree.Examples.SingletonWord
 public import Langlib.Classes.ContextFree.Examples.UnaryA2PowSucc
 public import Langlib.Classes.ContextFree.Inclusion.ContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.Indexed
+public import Langlib.Classes.ContextFree.Inclusion.Recursive
 public import Langlib.Classes.ContextFree.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.ContextFree.Inclusion.StrictContextSensitive
 public import Langlib.Classes.ContextFree.Inclusion.StrictIndexed
@@ -73,9 +74,11 @@ public import Langlib.Classes.ContextFree.Pumping.Utils
 public import Langlib.Classes.ContextFree.Pumping.toMathlib
 public import Langlib.Classes.ContextSensitive.Basics.NonContracting
 public import Langlib.Classes.ContextSensitive.Closure.Bijection
+public import Langlib.Classes.ContextSensitive.Closure.Concatenation
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
+public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
 public import Langlib.Classes.ContextSensitive.Definition
@@ -131,7 +134,18 @@ public import Langlib.Classes.Linear.Pumping.Spine
 public import Langlib.Classes.Recursive.Basics.Elementary
 public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Closure.Complement
+public import Langlib.Classes.Recursive.Closure.Concatenation
+public import Langlib.Classes.Recursive.Closure.EpsFreeHomomorphism
+public import Langlib.Classes.Recursive.Closure.Homomorphism
+public import Langlib.Classes.Recursive.Closure.Intersection
+public import Langlib.Classes.Recursive.Closure.IntersectionRegular
+public import Langlib.Classes.Recursive.Closure.InverseHomomorphism
+public import Langlib.Classes.Recursive.Closure.Quotient
+public import Langlib.Classes.Recursive.Closure.QuotientRegular
 public import Langlib.Classes.Recursive.Closure.Reverse
+public import Langlib.Classes.Recursive.Closure.Star
+public import Langlib.Classes.Recursive.Closure.Substitution
+public import Langlib.Classes.Recursive.Closure.Union
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Definition
 public import Langlib.Classes.Recursive.Examples.SingletonWord
@@ -192,6 +206,7 @@ public import Langlib.Classes.Regular.Inclusion.ContextFree
 public import Langlib.Classes.Regular.Inclusion.DeterministicContextFree
 public import Langlib.Classes.Regular.Inclusion.LR
 public import Langlib.Classes.Regular.Inclusion.Linear
+public import Langlib.Classes.Regular.Inclusion.Recursive
 public import Langlib.Classes.Regular.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Regular.Inclusion.StrictContextFree
 public import Langlib.Classes.Regular.Inclusion.StrictDeterministicContextFree
