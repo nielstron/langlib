@@ -13,6 +13,7 @@ public import Langlib.Grammars.ContextSensitive.Toolbox
 public import Langlib.Grammars.Indexed.Basics.FiniteSupport
 public import Langlib.Grammars.Indexed.Basics.Higman
 public import Langlib.Grammars.Indexed.Definition
+public import Langlib.Grammars.Indexed.NormalForm.Bounds
 public import Langlib.Grammars.Indexed.NormalForm.NormalForm
 public import Langlib.Grammars.LR.Definition
 public import Langlib.Grammars.LR.Inclusion.ContextFree

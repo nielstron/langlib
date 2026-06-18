@@ -1,5 +1,6 @@
 module
 
+public import Langlib.Automata.LinearBounded.Equivalence.ContextSensitive
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.Indexed.Basics.FiniteSupport
 @[expose]
@@ -20,6 +21,20 @@ public def IndexedFiniteNormalFormSubsetCS : Prop :=
     (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
     g.IsNormalForm → is_CS g.Language
 
+/-- The automata-level finite normal-form core: every finite-support normal-form indexed
+grammar over a finite inhabited alphabet is recognized by the ε-free bounded-tape LBA model. -/
+public def IndexedFiniteNormalFormSubsetLBA : Prop :=
+  ∀ {A : Type} [Fintype A] [DecidableEq A] [Inhabited A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
+    g.IsNormalForm → is_LBA_pos g.Language
+
+/-- The LBA finite-normal-form core implies the context-sensitive finite-normal-form core. -/
+public theorem finite_normalForm_CS_core_of_LBA_core
+    (hcore : IndexedFiniteNormalFormSubsetLBA) :
+    IndexedFiniteNormalFormSubsetCS := by
+  intro A _ _ _ g _ _ _ hNF
+  exact is_LBA_pos_imp_isCS (hcore g hNF)
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]
@@ -39,3 +54,10 @@ public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabite
   rw [Language.homomorphicImage, Language.subst_singletons_eq_map] at hImage
   rwa [hmap] at hImage
 
+/-- If the finite normal-form indexed grammars are recognized by bounded-tape LBAs, then every
+ε-free indexed language is context-sensitive. -/
+public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_LBA_core [Inhabited T]
+    (hcore : IndexedFiniteNormalFormSubsetLBA) {L : Language T}
+    (hL : is_Indexed_noEpsilon L) : is_CS L :=
+  is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core
+    (finite_normalForm_CS_core_of_LBA_core hcore) hL
