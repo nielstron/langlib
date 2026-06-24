@@ -279,6 +279,16 @@ theorem decodeFlatSententialAux_encodeSentential_add {g : IndexedGrammar T}
   simpa [decodeFlatSentential, encodeSentential_length, Nat.add_assoc, Nat.add_comm,
     Nat.add_left_comm] using h
 
+@[simp] theorem decodeFlatSentential_map_terminal {g : IndexedGrammar T}
+    (w : List T) :
+    decodeFlatSentential (g := g)
+        (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) =
+      some (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have h :=
+    decodeFlatSentential_encodeSentential
+      (g := g) (w.map fun a => (ISym.terminal a : g.ISym))
+  simpa using h
+
 theorem encodeSentential_injective {g : IndexedGrammar T} :
     Function.Injective (encodeSentential (g := g)) := by
   intro u v h
@@ -349,6 +359,28 @@ theorem flatDerives_encodeSentential_iff {g : IndexedGrammar T}
   · intro h
     exact derives_of_flatDerives_encode_to_decoded h (by simp)
   · exact flatDerives_encode_of_derives
+
+theorem flatDerives_initial_terminal_iff_generates {g : IndexedGrammar T}
+    {w : List T} :
+    FlatDerives g (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+        (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ↔
+      g.Generates w := by
+  rw [← encodeSentential_map_terminal (g := g) w]
+  exact flatDerives_encodeSentential_iff
+
+theorem flatDerives_initial_terminal_of_generates {g : IndexedGrammar T}
+    {w : List T} (h : g.Generates w) :
+    FlatDerives g (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+      (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) :=
+  flatDerives_initial_terminal_iff_generates.mpr h
+
+theorem generates_of_flatDerives_initial_terminal {g : IndexedGrammar T}
+    {w : List T}
+    (h : FlatDerives g
+      (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+      (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a))) :
+    g.Generates w :=
+  flatDerives_initial_terminal_iff_generates.mp h
 
 @[simp] theorem ISym.isIndexed_terminal {g : IndexedGrammar T} (a : T) :
     ISym.isIndexed (g := g) (ISym.terminal a) = false := rfl
@@ -2523,6 +2555,26 @@ theorem derivesIn_iff_exists_isDerivationTrace {g : IndexedGrammar T} {n : ℕ}
   · exact exists_isDerivationTrace_of_derivesIn
   · rintro ⟨trace, htrace, hlen, hhead, hlast⟩
     exact derivesIn_of_isDerivationTrace htrace hlen hhead hlast
+
+theorem flatDerives_encode_of_isDerivationTrace_head_last {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {w₁ w₂ : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some w₁)
+    (hlast : trace.getLast? = some w₂) :
+    FlatDerives g (encodeSentential w₁) (encodeSentential w₂) := by
+  let n := trace.length - 1
+  have hlen_pos : 0 < trace.length := by
+    cases trace with
+    | nil =>
+        simp at hhead
+    | cons _ _ =>
+        simp
+  have hlen : trace.length = n + 1 := by
+    dsimp [n]
+    omega
+  exact flatDerives_encode_of_derives
+    (derives_of_derivesIn
+      (derivesIn_of_isDerivationTrace (g := g) htrace hlen hhead hlast))
 
 /-- Adjacent entries in a derivation trace are related by one grammar step. -/
 theorem isDerivationTrace_get_transform {g : IndexedGrammar T}
