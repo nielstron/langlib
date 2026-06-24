@@ -2759,6 +2759,54 @@ theorem tracePopStepCountUpTo_le_tracePopStepCount
               simpa using Nat.add_le_add_left (ih (w₂ :: rest))
                 (if TransformIsObservablePop w₁ w₂ then 1 else 0)
 
+theorem tracePopStepCount_drop_le
+    {g : IndexedGrammar T} (i : ℕ) (trace : List (List g.ISym)) :
+    tracePopStepCount (trace.drop i) ≤ tracePopStepCount trace := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ trace =>
+          cases trace with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              have htail := ih (w₂ :: rest)
+              by_cases hpop : TransformIsObservablePop w₁ w₂
+              · simp [tracePopStepCount, hpop]
+                omega
+              · simp [tracePopStepCount, hpop]
+                omega
+
+theorem tracePopStepCount_le_length_sub_one
+    {g : IndexedGrammar T} (trace : List (List g.ISym)) :
+    tracePopStepCount trace ≤ trace.length - 1 := by
+  induction trace with
+  | nil =>
+      simp
+  | cons w₁ trace ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₂ rest =>
+          have htail : tracePopStepCount (w₂ :: rest) ≤ rest.length := by
+            simpa using ih
+          by_cases hpop : TransformIsObservablePop w₁ w₂
+          · simp [tracePopStepCount, hpop]
+            omega
+          · simp [tracePopStepCount, hpop]
+            omega
+
+theorem tracePopStepCount_le_steps_of_length_eq
+    {g : IndexedGrammar T} {trace : List (List g.ISym)} {n : ℕ}
+    (hlen : trace.length = n + 1) :
+    tracePopStepCount trace ≤ n := by
+  have h := tracePopStepCount_le_length_sub_one (g := g) trace
+  omega
+
 theorem tracePushStepCount_le_traceStackHeightIncrease
     {g : IndexedGrammar T} (trace : List (List g.ISym)) :
     tracePushStepCount trace ≤ traceStackHeightIncrease trace := by
@@ -6803,6 +6851,58 @@ theorem accepting_derivationTrace_get_encodeSentential_length_le_future_pop_add_
       (g := g) hNF htrace hlast hbound hi
   omega
 
+theorem accepting_derivationTrace_get_encodeSentential_length_le_popBudget_add_target_mul_stackBound_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B P : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hpop : tracePopStepCount trace ≤ P)
+    {i : ℕ} (hi : i < trace.length) :
+    (encodeSentential (trace.get ⟨i, hi⟩)).length ≤
+      w.length + w.length + (P + w.length * B) := by
+  have hfuture :=
+    accepting_derivationTrace_get_encodeSentential_length_le_future_pop_add_target_mul_stackBound_of_isNormalForm
+      (g := g) hNF htrace hlast hbound hi
+  have hdrop := tracePopStepCount_drop_le (g := g) i trace
+  omega
+
+theorem accepting_derivationTrace_get_encodeSentential_length_le_popBudget_stackBound_lengthBound_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B L P : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hpop : tracePopStepCount trace ≤ P)
+    {i : ℕ} (hi : i < trace.length) :
+    (encodeSentential (trace.get ⟨i, hi⟩)).length ≤
+      L + L + (P + L * B) := by
+  have hbase :=
+    accepting_derivationTrace_get_encodeSentential_length_le_popBudget_add_target_mul_stackBound_of_isNormalForm
+      (g := g) hNF htrace hlast hbound hpop hi
+  have hmul : w.length * B ≤ L * B := Nat.mul_le_mul_right B hwlen
+  omega
+
+theorem accepting_derivationTrace_get_encodeSentential_length_le_stepBudget_stackBound_lengthBound_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B L n N : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hnN : n ≤ N)
+    {i : ℕ} (hi : i < trace.length) :
+    (encodeSentential (trace.get ⟨i, hi⟩)).length ≤
+      L + L + (N + L * B) := by
+  have hpop : tracePopStepCount trace ≤ N :=
+    le_trans (tracePopStepCount_le_steps_of_length_eq (g := g) hlen) hnN
+  exact
+    accepting_derivationTrace_get_encodeSentential_length_le_popBudget_stackBound_lengthBound_of_isNormalForm
+      (g := g) (B := B) (L := L) (P := N)
+      hNF htrace hlast hwlen hbound hpop hi
+
 theorem derivationTrace_suffix_nonterminal_balance_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {trace : List (List g.ISym)} {last : List g.ISym}
@@ -7176,6 +7276,41 @@ theorem accepting_flatTrace_get_mem_boundedFlatForms_of_isNormalForm_stackBound_
   exact
     accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm_stackBound_lengthBound
       hNF htrace hlast hwlen hstack hi
+
+theorem accepting_flatTrace_get_mem_boundedFlatForms_of_isNormalForm_popBudget_stackBound_lengthBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B L P : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hpop : tracePopStepCount trace ≤ P)
+    (i : Fin (flatTrace trace).length) :
+    (flatTrace trace).get i ∈ boundedFlatForms g (L + L + (P + L * B)) := by
+  have hi : i.1 < trace.length := by
+    simpa using i.2
+  rw [flatTrace_get trace hi]
+  exact
+    accepting_derivationTrace_get_encodeSentential_length_le_popBudget_stackBound_lengthBound_of_isNormalForm
+      hNF htrace hlast hwlen hbound hpop hi
+
+theorem accepting_flatTrace_get_mem_boundedFlatForms_of_isNormalForm_stepBudget_stackBound_lengthBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B L n N : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hnN : n ≤ N)
+    (i : Fin (flatTrace trace).length) :
+    (flatTrace trace).get i ∈ boundedFlatForms g (L + L + (N + L * B)) := by
+  have hi : i.1 < trace.length := by
+    simpa using i.2
+  rw [flatTrace_get trace hi]
+  exact
+    accepting_derivationTrace_get_encodeSentential_length_le_stepBudget_stackBound_lengthBound_of_isNormalForm
+      hNF htrace hlen hlast hwlen hbound hnN hi
 
 theorem accepting_derivationTrace_get_maxStackHeight_le_index_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
@@ -7679,6 +7814,123 @@ theorem minimal_accepting_derivationTrace_length_le_boundedFlatForms_card_of_sta
   have hnodup := minimal_derivationTrace_nodup htrace hlen hhead hlast hmin
   exact accepting_derivationTrace_length_le_boundedFlatForms_card_of_stackBound_lengthBound
     hNF htrace hlast hnodup hwlen hstack
+
+theorem accepting_flatTrace_length_le_boundedFlatForms_card_of_popBudget_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {L B P : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hnodup : trace.Nodup)
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hpop : tracePopStepCount trace ≤ P) :
+    (flatTrace trace).length ≤
+      (Set.Finite.toFinset
+        (boundedFlatForms_finite g (L + L + (P + L * B)))).card := by
+  have hflatNodup : (flatTrace trace).Nodup := by
+    simpa [flatTrace] using hnodup.map encodeSentential_injective
+  exact List.Nodup.length_le_finite_set_card_of_get_mem hflatNodup
+    (boundedFlatForms g (L + L + (P + L * B)))
+    (boundedFlatForms_finite g (L + L + (P + L * B)))
+    (accepting_flatTrace_get_mem_boundedFlatForms_of_isNormalForm_popBudget_stackBound_lengthBound
+      hNF htrace hlast hwlen hbound hpop)
+
+theorem accepting_derivationTrace_length_le_boundedFlatForms_card_of_popBudget_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {L B P : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hnodup : trace.Nodup)
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hpop : tracePopStepCount trace ≤ P) :
+    trace.length ≤
+      (Set.Finite.toFinset
+        (boundedFlatForms_finite g (L + L + (P + L * B)))).card := by
+  simpa [flatTrace_length] using
+    accepting_flatTrace_length_le_boundedFlatForms_card_of_popBudget_stackBound_lengthBound
+      hNF htrace hlast hnodup hwlen hbound hpop
+
+theorem minimal_accepting_derivationTrace_length_le_boundedFlatForms_card_of_popBudget_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T} {L B P : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hpop : tracePopStepCount trace ≤ P) :
+    trace.length ≤
+      (Set.Finite.toFinset
+        (boundedFlatForms_finite g (L + L + (P + L * B)))).card := by
+  have hnodup := minimal_derivationTrace_nodup htrace hlen hhead hlast hmin
+  exact accepting_derivationTrace_length_le_boundedFlatForms_card_of_popBudget_stackBound_lengthBound
+    hNF htrace hlast hnodup hwlen hbound hpop
+
+theorem accepting_flatTrace_length_le_boundedFlatForms_card_of_stepBudget_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T} {L B N : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hnodup : trace.Nodup)
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hnN : n ≤ N) :
+    (flatTrace trace).length ≤
+      (Set.Finite.toFinset
+        (boundedFlatForms_finite g (L + L + (N + L * B)))).card := by
+  have hpop : tracePopStepCount trace ≤ N :=
+    le_trans (tracePopStepCount_le_steps_of_length_eq (g := g) hlen) hnN
+  exact
+    accepting_flatTrace_length_le_boundedFlatForms_card_of_popBudget_stackBound_lengthBound
+      (g := g) (L := L) (B := B) (P := N)
+      hNF htrace hlast hnodup hwlen hbound hpop
+
+theorem accepting_derivationTrace_length_le_boundedFlatForms_card_of_stepBudget_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T} {L B N : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hnodup : trace.Nodup)
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hnN : n ≤ N) :
+    trace.length ≤
+      (Set.Finite.toFinset
+        (boundedFlatForms_finite g (L + L + (N + L * B)))).card := by
+  simpa [flatTrace_length] using
+    accepting_flatTrace_length_le_boundedFlatForms_card_of_stepBudget_stackBound_lengthBound
+      hNF htrace hlen hlast hnodup hwlen hbound hnN
+
+theorem minimal_accepting_derivationTrace_length_le_boundedFlatForms_card_of_stepBudget_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T} {L B N : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    (hwlen : w.length ≤ L)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    (hnN : n ≤ N) :
+    trace.length ≤
+      (Set.Finite.toFinset
+        (boundedFlatForms_finite g (L + L + (N + L * B)))).card := by
+  have hnodup := minimal_derivationTrace_nodup htrace hlen hhead hlast hmin
+  exact accepting_derivationTrace_length_le_boundedFlatForms_card_of_stepBudget_stackBound_lengthBound
+    hNF htrace hlen hlast hnodup hwlen hbound hnN
 
 /-- Length-uniform version of the bounded-surface pigeonhole bound. If the accepted word has
 length at most `L`, then a shortest stack-bounded accepting trace is bounded by the finite
