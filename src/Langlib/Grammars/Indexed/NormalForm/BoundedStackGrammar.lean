@@ -5799,6 +5799,47 @@ theorem boundedStackGrammar_derives_of_stackBoundedDerivesIn
       subst cw
       exact ⟨bw₁, bw₂, hbw₁, hbw₂, hder.tail htran⟩
 
+/-- Counted version of `boundedStackGrammar_derives_of_stackBoundedDerivesIn` for fixed
+successful encodings of the endpoints. -/
+theorem boundedStackGrammar_derivesIn_of_stackBoundedDerivesIn_of_boundedSentential
+    {g : IndexedGrammar T} [Fintype g.flag] {B n : ℕ}
+    {w₁ w₂ : List g.ISym}
+    {bw₁ bw₂ : List (symbol T (BoundedStackNT g B))}
+    (hbw₁ : boundedSentential? (g := g) B w₁ = some bw₁)
+    (hbw₂ : boundedSentential? (g := g) B w₂ = some bw₂)
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    grammar_derivesIn (boundedStackGrammar g B) n bw₁ bw₂ := by
+  induction n generalizing w₁ w₂ bw₁ bw₂ with
+  | zero =>
+      rcases h with ⟨rfl, _hw₁⟩
+      have hbw : bw₁ = bw₂ := by
+        apply Option.some.inj
+        rw [← hbw₁, hbw₂]
+      subst bw₂
+      exact rfl
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep, hw₂⟩
+      have hw : sententialMaxStackHeight w ≤ B :=
+        StackBoundedDerivesIn.final_maxStackHeight_le hprev
+      obtain ⟨bw, hbw⟩ :=
+        exists_boundedSentential?_of_sententialMaxStackHeight_le
+          (g := g) (B := B) hw
+      have hprevDer :
+          grammar_derivesIn (boundedStackGrammar g B) n bw₁ bw :=
+        ih hbw₁ hbw hprev
+      obtain ⟨cw, dw, hcw, hdw, htran⟩ :=
+        boundedStackGrammar_transforms_of_indexed_transforms
+          (g := g) (B := B) hstep hw hw₂
+      have hcwEq : bw = cw := by
+        apply Option.some.inj
+        rw [← hbw, hcw]
+      subst cw
+      have hdwEq : dw = bw₂ := by
+        apply Option.some.inj
+        rw [← hdw, hbw₂]
+      subst dw
+      exact ⟨bw, hprevDer, htran⟩
+
 /-- Sentential-form bridge between the finite bounded-stack grammar and stack-bounded
 indexed derivations, for any fixed successful bounded encodings of the endpoints. -/
 theorem boundedStackGrammar_derives_iff_exists_stackBoundedDerivesIn_of_boundedSentential
@@ -6024,6 +6065,37 @@ theorem stepReachable_boundedSentential_image_mem_of_boundedSurface_boundedSente
         Set (List (symbol T (BoundedStackNT g B)))) :=
   ⟨boundedSentential_mem_boundedSentential_image_of_boundedSurface_boundedSentential?
     (g := g) hsurface hbw, hreach⟩
+
+/-- A stack-bounded indexed prefix witness gives membership in the finite step-reachable
+full-context frontier for any successful bounded encoding of the reached sentential form. -/
+theorem stepReachable_boundedSentential_image_mem_of_stackBoundedDerivesIn
+    {g : IndexedGrammar T} [Fintype g.flag] {P B L N p : ℕ}
+    {ys : List g.ISym} {bw : List (symbol T (BoundedStackNT g B))}
+    (hsurface : surfaceOfTruncatedForm P ys ∈ boundedSurfaceForms g L P)
+    (hbw : boundedSentential? (g := g) B ys = some bw)
+    (hp : p ≤ N)
+    (hpre : StackBoundedDerivesIn g B p [ISym.indexed g.initial []] ys) :
+    bw ∈
+      ({bw : List (symbol T (BoundedStackNT g B)) |
+        (∃ ys : List g.ISym,
+          ys ∈ boundedSententialForms g L B ∧
+            boundedSentential? (g := g) B ys = some bw) ∧
+          ∃ p : ℕ, p ≤ N ∧
+            grammar_derivesIn (boundedStackGrammar g B) p
+              [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+        Set (List (symbol T (BoundedStackNT g B)))) := by
+  have hstart :
+      boundedSentential? (g := g) B [ISym.indexed g.initial []] =
+        some [symbol.nonterminal (boundedStackGrammar g B).initial] := by
+    simp [boundedStackGrammar, boundedSentential?, boundedSymbol?]
+  have hder :
+      grammar_derivesIn (boundedStackGrammar g B) p
+        [symbol.nonterminal (boundedStackGrammar g B).initial] bw :=
+    boundedStackGrammar_derivesIn_of_stackBoundedDerivesIn_of_boundedSentential
+      (g := g) (B := B) hstart hbw hpre
+  exact
+    stepReachable_boundedSentential_image_mem_of_boundedSurface_boundedSentential?_derivesIn
+      (g := g) hsurface hbw ⟨p, hp, hder⟩
 
 /-- A counted reachable member of the finite full-context bounded-sentential frontier gives
 the exact stack-bounded indexed prefix witness for the corresponding decoded sentential
