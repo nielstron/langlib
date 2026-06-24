@@ -4,6 +4,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.ContextSensitive
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.Indexed.Basics.FiniteSupport
+public import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
 public import Langlib.Grammars.Indexed.NormalForm.BoundedStackGrammar
 public import Langlib.Grammars.Indexed.NormalForm.Shrinking
 @[expose]
@@ -98,6 +99,65 @@ public theorem is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_L
     (hpart : is_Indexed_noEpsilon (L \ ({[]} : Set (List T)))) : is_CS L :=
   is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_core
     (finite_normalForm_CS_core_of_LBA_core hcore) hpart
+
+/-- Epsilon elimination for indexed languages: the nonempty part of every indexed language has
+an ε-free indexed grammar witness. -/
+public theorem is_Indexed_noEpsilon_diff_empty {L : Language T}
+    (hL : is_Indexed L) :
+    is_Indexed_noEpsilon (L \ ({[]} : Set (List T))) := by
+  obtain ⟨g, hg_lang⟩ := hL
+  obtain ⟨g₀, _hg₀_ti, hg₀_fs, _hg₀_fresh_of, hg₀_lang⟩ :=
+    g.exists_terminalIsolated_flagsSeparated_all
+  let gf := g₀.toFiniteSupport
+  haveI : Fintype gf.nt := by
+    dsimp [gf]
+    infer_instance
+  have hgf_fs : gf.FlagsSeparated := by
+    simpa [gf] using g₀.toFiniteSupport_flagsSeparated hg₀_fs
+  obtain ⟨g', hne', hlang'⟩ :=
+    IndexedGrammar.exists_noEpsilon_of_fintype_flagsSeparated (g := gf) hgf_fs
+  refine ⟨g', hne', ?_⟩
+  ext w
+  by_cases hw : w = []
+  · subst w
+    constructor
+    · intro hgen
+      exact False.elim (g'.not_generates_nil_of_noEpsilon hne' hgen)
+    · intro hwL
+      exact False.elim (hwL.2 (by simp))
+  · have hgf_lang : gf.Language = g₀.Language := by
+      simpa [gf] using IndexedGrammar.toFiniteSupport_language g₀
+    have hgf_gen : gf.Generates w ↔ g₀.Generates w := by
+      change w ∈ gf.Language ↔ w ∈ g₀.Language
+      rw [hgf_lang]
+    change g'.Generates w ↔ w ∈ L ∧ w ∉ ({[]} : Set (List T))
+    rw [hlang' w hw, hgf_gen, hg₀_lang w]
+    change w ∈ g.Language ↔ w ∈ L ∧ w ∉ ({[]} : Set (List T))
+    rw [hg_lang]
+    constructor
+    · intro hgen
+      exact ⟨hgen, by simpa [Set.mem_singleton_iff] using hw⟩
+    · intro hmem
+      exact hmem.1
+
+/-- With epsilon elimination discharged, the remaining class-level indexed-to-CS reduction only
+needs the finite normal-form core. -/
+public theorem is_CS_of_is_Indexed_of_finite_normalForm_core [Inhabited T]
+    (hcore : ∀ {A : Type} [Fintype A] [DecidableEq A] [Inhabited A]
+      (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
+      g.IsNormalForm → is_CS g.Language) {L : Language T}
+    (hL : is_Indexed L) : is_CS L :=
+  is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_core
+    hcore (is_Indexed_noEpsilon_diff_empty hL)
+
+/-- LBA-core variant of `is_CS_of_is_Indexed_of_finite_normalForm_core`. -/
+public theorem is_CS_of_is_Indexed_of_finite_normalForm_LBA_core [Inhabited T]
+    (hcore : ∀ {A : Type} [Fintype A] [DecidableEq A] [Inhabited A]
+      (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
+      g.IsNormalForm → is_LBA_pos g.Language) {L : Language T}
+    (hL : is_Indexed L) : is_CS L :=
+  is_CS_of_is_Indexed_of_finite_normalForm_core
+    (finite_normalForm_CS_core_of_LBA_core hcore) hL
 
 /-- If ε-elimination is proved for terminal-isolated, flag-separated grammars, then every
 indexed language has an ε-free indexed witness for its nonempty part. -/

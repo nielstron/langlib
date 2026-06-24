@@ -1963,6 +1963,134 @@ theorem exists_approxNullableRhsSublist_of_nullableRhsSublist_flagsSeparated
       · exact nullableApprox_mono g (Nat.le_max_left m n) hm
       · exact hn.mono (Nat.le_max_right m n)
 
+/-! ## Relative nullable summaries -/
+
+/-- Nullability above an abstract suffix whose nullable nonterminals are given by `base`.
+`RelativeNullable g base α A` means that `A` is nullable on `α ++ σ` for every suffix
+`σ` whose nullable set is `base`. -/
+inductive RelativeNullable (g : IndexedGrammar T) (base : Set g.nt) :
+    List g.flag → g.nt → Prop
+  | base {A : g.nt} (hA : A ∈ base) :
+      RelativeNullable g base [] A
+  | empty_rule {A : g.nt} {α : List g.flag} {r : IRule T g.nt g.flag}
+      (hr : r ∈ g.rules) (hlhs : r.lhs = A)
+      (hconsume : r.consume = none) (hrhs : r.rhs = []) :
+      RelativeNullable g base α A
+  | all_rule {A : g.nt} {α : List g.flag} {r : IRule T g.nt g.flag}
+      (hr : r ∈ g.rules) (hlhs : r.lhs = A)
+      (hconsume : r.consume = none) (hrhs_ne : r.rhs ≠ [])
+      (hterminal : ∀ t : T, IRhsSymbol.terminal t ∉ r.rhs)
+      (hall : ∀ B : g.nt, ∀ push : Option g.flag,
+        IRhsSymbol.nonterminal B push ∈ r.rhs →
+          RelativeNullable g base
+            (match push with | none => α | some f => f :: α) B) :
+      RelativeNullable g base α A
+  | pop_rule {A B : g.nt} {f : g.flag} {α : List g.flag}
+      {r : IRule T g.nt g.flag}
+      (hr : r ∈ g.rules) (hlhs : r.lhs = A)
+      (hconsume : r.consume = some f)
+      (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
+      (hB : RelativeNullable g base α B) :
+      RelativeNullable g base (f :: α) A
+
+theorem RelativeNullable.sound {g : IndexedGrammar T} {base : Set g.nt}
+    {σ α : List g.flag} {A : g.nt}
+    (hbase : ∀ B : g.nt, B ∈ base → g.IsNullable B σ)
+    (h : RelativeNullable g base α A) :
+    g.IsNullable A (α ++ σ) := by
+  induction h with
+  | base hA =>
+      simpa using hbase _ hA
+  | empty_rule hr hlhs hconsume hrhs =>
+      exact isNullable_of_empty_rule_none hr hlhs hconsume hrhs _
+  | all_rule hr hlhs hconsume _hrhs_ne hterminal hall ih =>
+      apply isNullable_of_rule_all_nullable_none hr hlhs hconsume
+      intro s hs
+      cases s with
+      | terminal t =>
+          exact False.elim (hterminal t hs)
+      | nonterminal B push =>
+          cases push with
+          | none =>
+              exact ⟨B, none, rfl, by simpa using ih B none hs⟩
+          | some f =>
+              exact ⟨B, some f, rfl, by
+                simpa [List.cons_append] using ih B (some f) hs⟩
+  | pop_rule hr hlhs hconsume hrhs hB ih =>
+      simpa [List.cons_append] using
+        isNullable_of_pop_rule_nullable_child hr hlhs hconsume hrhs ih
+
+theorem relativeNullable_complete_of_nullableApprox
+    {g : IndexedGrammar T} {base : Set g.nt}
+    {σ : List g.flag}
+    (hbase : ∀ B : g.nt, g.IsNullable B σ → B ∈ base) :
+    ∀ n : ℕ, ∀ α : List g.flag, ∀ A : g.nt,
+      (A, α ++ σ) ∈ g.NullableApprox n → RelativeNullable g base α A := by
+  intro n
+  induction n with
+  | zero =>
+      intro α A hmem
+      simp [NullableApprox] at hmem
+  | succ n ih =>
+      intro α A hmem
+      cases α with
+      | nil =>
+          exact RelativeNullable.base
+            (hbase A (by
+              have hnull := nullableApprox_sound g (n + 1) hmem
+              simpa [NullableSet] using hnull))
+      | cons f ρ =>
+          change (A, f :: (ρ ++ σ)) ∈ g.NullableStep (g.NullableApprox n) at hmem
+          rcases hmem with hnone_empty | hnone_nonempty | hsome
+          · rcases hnone_empty with ⟨r, hr, hlhs, hconsume, hrhs⟩
+            exact RelativeNullable.empty_rule hr hlhs hconsume hrhs
+          · rcases hnone_nonempty with
+              ⟨r, hr, hlhs, hconsume, hrhs_ne, hall⟩
+            exact RelativeNullable.all_rule hr hlhs hconsume hrhs_ne
+              (by
+                intro t ht
+                rcases hall (IRhsSymbol.terminal t) ht with ⟨B, push, hsym, _hchild⟩
+                cases hsym)
+              (by
+                intro B push hmem
+                rcases hall (IRhsSymbol.nonterminal B push) hmem with
+                  ⟨B', push', hsym, hchild⟩
+                cases hsym
+                cases push with
+                | none =>
+                    exact ih (f :: ρ) B (by simpa using hchild)
+                | some f' =>
+                    exact ih (f' :: f :: ρ) B
+                      (by simpa [List.cons_append] using hchild))
+          · rcases hsome with
+              ⟨f', ρ', r, B, hstack, hr, hlhs, hconsume, hrhs, hchild⟩
+            cases hstack
+            exact RelativeNullable.pop_rule hr hlhs hconsume hrhs
+              (ih ρ B (by simpa using hchild))
+
+theorem RelativeNullable.complete_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) {base : Set g.nt} {σ α : List g.flag}
+    {A : g.nt}
+    (hbase : ∀ B : g.nt, g.IsNullable B σ → B ∈ base)
+    (hnullable : g.IsNullable A (α ++ σ)) :
+    RelativeNullable g base α A := by
+  rcases (isNullable_iff_exists_nullableApprox_flagsSeparated
+      (g := g) hfs (A := A) (σ := α ++ σ)).mp hnullable with
+    ⟨n, hn⟩
+  exact relativeNullable_complete_of_nullableApprox
+    (g := g) hbase n α A hn
+
+theorem relativeNullable_iff_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) {base : Set g.nt} {σ α : List g.flag}
+    {A : g.nt}
+    (hbase : ∀ B : g.nt, B ∈ base ↔ g.IsNullable B σ) :
+    RelativeNullable g base α A ↔ g.IsNullable A (α ++ σ) := by
+  constructor
+  · exact RelativeNullable.sound (g := g) (σ := σ)
+      (fun B hB => (hbase B).mp hB)
+  · exact RelativeNullable.complete_flagsSeparated
+      (g := g) hfs (fun B hB => (hbase B).mpr hB)
+
 /-! ## Finite-summary ε-elimination skeleton -/
 
 /-- Evaluate a finite stack summary.  The transition `step q f` is the summary after
@@ -2692,6 +2820,74 @@ theorem exists_noEpsilon_of_nullableStackSummary {g : IndexedGrammar T}
   intro w hw
   rw [epsilonElimSummary_generates_iff S hsound hcomplete]
   exact ⟨fun h => h.1, fun h => ⟨h, hw⟩⟩
+
+noncomputable def nullableSetAt (g : IndexedGrammar T) (σ : List g.flag) : Set g.nt :=
+  {A | g.IsNullable A σ}
+
+def relativeNullableStepSet (g : IndexedGrammar T) (base : Set g.nt)
+    (f : g.flag) : Set g.nt :=
+  {A | RelativeNullable g base [f] A}
+
+noncomputable def nullableStackSummaryOfFinite (g : IndexedGrammar T) [Fintype g.nt] :
+    NullableStackSummary g where
+  state := Set g.nt
+  instFintype := by
+    classical
+    infer_instance
+  init := nullableSetAt g []
+  step q f := relativeNullableStepSet g q f
+  nullable A q := A ∈ q
+  nullableDecidable := by
+    classical
+    intro A q
+    infer_instance
+
+theorem nullableStackSummaryOfFinite_eval_iff {g : IndexedGrammar T}
+    [Fintype g.nt] (hfs : g.FlagsSeparated) :
+    ∀ σ : List g.flag, ∀ A : g.nt,
+      (nullableStackSummaryOfFinite g).nullable A
+        ((nullableStackSummaryOfFinite g).eval σ) ↔ g.IsNullable A σ := by
+  intro σ
+  induction σ with
+  | nil =>
+      intro A
+      change A ∈ nullableSetAt g [] ↔ g.IsNullable A []
+      simp [nullableSetAt]
+  | cons f σ ih =>
+      intro A
+      change RelativeNullable g ((nullableStackSummaryOfFinite g).eval σ) [f] A ↔
+        g.IsNullable A (f :: σ)
+      simpa using
+        (relativeNullable_iff_flagsSeparated (g := g) hfs
+          (base := (nullableStackSummaryOfFinite g).eval σ) (σ := σ)
+          (α := [f]) (A := A) ih)
+
+theorem nullableStackSummaryOfFinite_sound {g : IndexedGrammar T}
+    [Fintype g.nt] (hfs : g.FlagsSeparated) :
+    ∀ A : g.nt, ∀ σ : List g.flag,
+      (nullableStackSummaryOfFinite g).nullable A
+        ((nullableStackSummaryOfFinite g).eval σ) → g.IsNullable A σ := by
+  intro A σ hA
+  exact ((nullableStackSummaryOfFinite_eval_iff (g := g) hfs σ A).mp hA)
+
+theorem nullableStackSummaryOfFinite_complete {g : IndexedGrammar T}
+    [Fintype g.nt] (hfs : g.FlagsSeparated) :
+    ∀ A : g.nt, ∀ σ : List g.flag,
+      g.IsNullable A σ →
+        (nullableStackSummaryOfFinite g).nullable A
+          ((nullableStackSummaryOfFinite g).eval σ) := by
+  intro A σ hA
+  exact ((nullableStackSummaryOfFinite_eval_iff (g := g) hfs σ A).mpr hA)
+
+theorem exists_noEpsilon_of_fintype_flagsSeparated {g : IndexedGrammar T}
+    [Fintype g.nt] (hfs : g.FlagsSeparated) :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧
+        ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  exact exists_noEpsilon_of_nullableStackSummary
+    (S := nullableStackSummaryOfFinite g)
+    (nullableStackSummaryOfFinite_sound (g := g) hfs)
+    (nullableStackSummaryOfFinite_complete (g := g) hfs)
 
 /-- A grammar is ε-free exactly when no stacked nonterminal is nullable. -/
 theorem noEpsilon_iff_no_isNullable {g : IndexedGrammar T} :

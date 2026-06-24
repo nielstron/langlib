@@ -276,6 +276,69 @@ lemma mem_toFiniteSupport_rules (g : IndexedGrammar T)
   obtain ⟨r, _hr, rfl⟩ := List.mem_map.mp hr'
   exact ⟨r.1, r.2, rfl⟩
 
+lemma restrictRule_flagsSeparated (g : IndexedGrammar T)
+    {r : IRule T g.nt g.flag} (hr : r ∈ g.rules)
+    (hsep : IRule.FlagsSeparated r) :
+    IRule.FlagsSeparated (restrictRule g r hr) := by
+  constructor
+  · intro hsome
+    have hsomeOrig : r.consume.isSome := by
+      cases hc : r.consume with
+      | none =>
+          simp [restrictRule, restrictConsume, hc] at hsome
+      | some f =>
+          simp
+    rcases hsep.1 hsomeOrig with ⟨B, hrhs⟩
+    have hBmem : IRhsSymbol.nonterminal B none ∈ r.rhs := by simp [hrhs]
+    refine ⟨⟨B, rule_rhs_nt_mem_usedNTs hr hBmem⟩, ?_⟩
+    change restrictRhs g r hr =
+      [IRhsSymbol.nonterminal ⟨B, rule_rhs_nt_mem_usedNTs hr hBmem⟩ none]
+    apply List.map_injective_iff.mpr (embedRhsSymbol_injective g)
+    simp [embed_restrictRhs, embedRhsSymbol, hrhs]
+  · intro hnone
+    have hnoneOrig : r.consume.isNone := by
+      cases hc : r.consume with
+      | none =>
+          simp
+      | some f =>
+          simp [restrictRule, restrictConsume, hc] at hnone
+    rcases hsep.2 hnoneOrig with hall | hpush | hterm
+    · left
+      intro s hs
+      change s ∈ restrictRhs g r hr at hs
+      unfold restrictRhs at hs
+      rcases List.mem_map.mp hs with ⟨s₀, _hs₀_mem, hs_eq⟩
+      subst s
+      rcases s₀ with ⟨sym, hsym⟩
+      rcases hall sym hsym with ⟨n, hsym_eq⟩
+      subst sym
+      exact ⟨⟨n, rule_rhs_nt_mem_usedNTs hr hsym⟩, rfl⟩
+    · rcases hpush with ⟨B, f, hrhs⟩
+      right
+      left
+      have hBmem : IRhsSymbol.nonterminal B (some f) ∈ r.rhs := by simp [hrhs]
+      refine ⟨⟨B, rule_rhs_nt_mem_usedNTs hr hBmem⟩,
+        ⟨f, rule_rhs_push_mem_usedFlags hr hBmem⟩, ?_⟩
+      change restrictRhs g r hr =
+        [IRhsSymbol.nonterminal ⟨B, rule_rhs_nt_mem_usedNTs hr hBmem⟩
+          (some ⟨f, rule_rhs_push_mem_usedFlags hr hBmem⟩)]
+      apply List.map_injective_iff.mpr (embedRhsSymbol_injective g)
+      simp [embed_restrictRhs, embedRhsSymbol, hrhs]
+    · rcases hterm with ⟨a, hrhs⟩
+      right
+      right
+      refine ⟨a, ?_⟩
+      change restrictRhs g r hr = [IRhsSymbol.terminal a]
+      apply List.map_injective_iff.mpr (embedRhsSymbol_injective g)
+      simp [embed_restrictRhs, embedRhsSymbol, hrhs]
+
+theorem toFiniteSupport_flagsSeparated (g : IndexedGrammar T)
+    (hfs : g.FlagsSeparated) :
+    g.toFiniteSupport.FlagsSeparated := by
+  intro r' hr'
+  rcases mem_toFiniteSupport_rules g hr' with ⟨r, hr, rfl⟩
+  exact restrictRule_flagsSeparated g hr (hfs r hr)
+
 /-! ## Finite-support sentential forms -/
 
 def stackSupported (g : IndexedGrammar T) (σ : List g.flag) : Prop :=
