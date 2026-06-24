@@ -1792,6 +1792,89 @@ theorem exists_minimal_stackBound_le_of_targetCompatible_surface_repeat_interval
       hminLength hminBound hpreSurface hsuffix hsteps
   exact ⟨i, j, hij, hai, hjm, hB⟩
 
+/-- If the least stack bound of the chosen shortest accepting trace is larger than `K + N`,
+then every `K`-bounded interval whose positions all have suffix budget at most `N` has length
+bounded by the finite target-compatible surface frontier. Otherwise the interval-local
+pigeonhole/splicing lemma would build an accepting trace with stack bound at most `K + N`,
+contradicting minimality of `B`. -/
+theorem targetCompatible_surface_interval_length_le_card_of_minimal_stack_gt_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {K N a m n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (ham : a ≤ m)
+    (hm : m < trace.length)
+    (hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ m → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ K)
+    (hsuffixBudget : ∀ i : Fin trace.length,
+      a ≤ i.1 → trace.length - 1 - i.1 ≤ N)
+    (hgt : K + N < B) :
+    m + 1 - a ≤
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g target K)).card := by
+  apply le_of_not_gt
+  intro hcard
+  obtain ⟨i, _j, _hij, hai, _hjm, hB⟩ :=
+    exists_minimal_stackBound_le_of_targetCompatible_surface_repeat_interval_bound
+      (g := g) hNF htrace hlen hhead hlast hminLength hminBound
+      ham hm hcard hprefixBound
+  have hB_le :
+      B ≤ K + N := by
+    exact le_trans hB (Nat.add_le_add_left (hsuffixBudget i hai) K)
+  exact (not_lt_of_ge hB_le) hgt
+
+/-- Late-window specialization of
+`targetCompatible_surface_interval_length_le_card_of_minimal_stack_gt_bound`. Starting the
+interval at `trace.length - 1 - N` makes the suffix budget automatic for every position in
+the interval. -/
+theorem targetCompatible_late_surface_interval_length_le_card_of_minimal_stack_gt_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {K N m n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (ha : trace.length - 1 - N ≤ m)
+    (hm : m < trace.length)
+    (hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ m → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ K)
+    (hgt : K + N < B) :
+    m + 1 - (trace.length - 1 - N) ≤
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g target K)).card := by
+  exact targetCompatible_surface_interval_length_le_card_of_minimal_stack_gt_bound
+    (g := g) hNF htrace hlen hhead hlast hminLength hminBound
+    (a := trace.length - 1 - N) (m := m) ha hm hprefixBound
+    (fun i hi => by omega) hgt
+
 /-- A positionwise terminal-preserving substack replacement preserves sentential-form length. -/
 theorem length_eq_of_forall₂_symbol_substack_bound
     {g : IndexedGrammar T} {K : ℕ} {xs ys : List g.ISym}
