@@ -3800,6 +3800,69 @@ theorem boundedStackGrammar_derives_of_stackBoundedDerivesIn
       subst cw
       exact ⟨bw₁, bw₂, hbw₁, hbw₂, hder.tail htran⟩
 
+/-- Sentential-form bridge between the finite bounded-stack grammar and stack-bounded
+indexed derivations, for any fixed successful bounded encodings of the endpoints. -/
+theorem boundedStackGrammar_derives_iff_exists_stackBoundedDerivesIn_of_boundedSentential
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
+    {w₁ w₂ : List g.ISym}
+    {bw₁ bw₂ : List (symbol T (BoundedStackNT g B))}
+    (hbw₁ : boundedSentential? (g := g) B w₁ = some bw₁)
+    (hbw₂ : boundedSentential? (g := g) B w₂ = some bw₂) :
+    grammar_derives (boundedStackGrammar g B) bw₁ bw₂ ↔
+      ∃ n, StackBoundedDerivesIn g B n w₁ w₂ := by
+  constructor
+  · intro hder
+    obtain ⟨n, hbounded⟩ :=
+      exists_stackBoundedDerivesIn_of_boundedStackGrammar_derives
+        (g := g) (B := B) hder
+    have herase₁ := eraseBoundedSentential_of_boundedSentential? hbw₁
+    have herase₂ := eraseBoundedSentential_of_boundedSentential? hbw₂
+    exact ⟨n, by simpa [herase₁, herase₂] using hbounded⟩
+  · rintro ⟨n, hbounded⟩
+    obtain ⟨cw₁, cw₂, hcw₁, hcw₂, hder⟩ :=
+      boundedStackGrammar_derives_of_stackBoundedDerivesIn
+        (g := g) (B := B) hbounded
+    have hcw₁eq : cw₁ = bw₁ := by
+      apply Option.some.inj
+      rw [← hcw₁, hbw₁]
+    have hcw₂eq : cw₂ = bw₂ := by
+      apply Option.some.inj
+      rw [← hcw₂, hbw₂]
+    subst cw₁
+    subst cw₂
+    exact hder
+
+/-- Initial-form specialization of
+`boundedStackGrammar_derives_iff_exists_stackBoundedDerivesIn_of_boundedSentential`. -/
+theorem boundedStackGrammar_derives_from_initial_iff_exists_stackBoundedDerivesIn
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
+    {w : List g.ISym} {bw : List (symbol T (BoundedStackNT g B))}
+    (hbw : boundedSentential? (g := g) B w = some bw) :
+    grammar_derives (boundedStackGrammar g B)
+        [symbol.nonterminal (boundedStackGrammar g B).initial] bw ↔
+      ∃ n, StackBoundedDerivesIn g B n [ISym.indexed g.initial []] w := by
+  have hstart :
+      boundedSentential? (g := g) B [ISym.indexed g.initial []] =
+        some [symbol.nonterminal (boundedStackGrammar g B).initial] := by
+    simp [boundedStackGrammar, boundedSentential?, boundedSymbol?]
+  exact
+    boundedStackGrammar_derives_iff_exists_stackBoundedDerivesIn_of_boundedSentential
+      (g := g) (B := B) hstart hbw
+
+/-- A reachable bounded encoding of an erased finite surface gives a stack-bounded indexed
+prefix derivation to that erased surface. -/
+theorem exists_stackBoundedDerivesIn_eraseSurfaceForm_of_boundedStackGrammar_reachable
+    {g : IndexedGrammar T} [Fintype g.flag] {K B : ℕ}
+    {surface : SurfaceForm g K} {bw : List (symbol T (BoundedStackNT g B))}
+    (hbw : boundedSentential? (g := g) B (eraseSurfaceForm surface) = some bw)
+    (hder : grammar_derives (boundedStackGrammar g B)
+      [symbol.nonterminal (boundedStackGrammar g B).initial] bw) :
+    ∃ n, StackBoundedDerivesIn g B n [ISym.indexed g.initial []]
+      (eraseSurfaceForm surface) := by
+  exact
+    (boundedStackGrammar_derives_from_initial_iff_exists_stackBoundedDerivesIn
+      (g := g) (B := B) hbw).mp hder
+
 /-- Erasing a finite surface whose visible stacks are bounded by `K` can be translated into
 any bounded-stack grammar whose stack bound is at least `K`. -/
 theorem exists_boundedSentential?_eraseSurfaceForm_of_le
@@ -3856,6 +3919,98 @@ theorem finite_boundedSentential_image_of_targetCompatibleBoundedSurfaceForms_at
   intro bw hbw
   rcases hbw with ⟨surface, hsurface, henc⟩
   exact ⟨surface, hsurface, by simp [encodeSurface, henc]⟩
+
+/-- The reachable part of the length-bounded finite surface frontier is finite in any fixed
+bounded-stack grammar. This is the prefix side of the finite saturation argument. -/
+theorem finite_reachable_boundedSentential_image_of_boundedSurfaceForms_at_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K B L : ℕ} :
+    ({bw : List (symbol T (BoundedStackNT g B)) |
+      (∃ surface : SurfaceForm g K,
+        surface ∈ boundedSurfaceForms g L K ∧
+          boundedSentential? (g := g) B (eraseSurfaceForm surface) = some bw) ∧
+        grammar_derives (boundedStackGrammar g B)
+          [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+        Set (List (symbol T (BoundedStackNT g B)))).Finite := by
+  exact
+    finite_boundedSentential_image_of_boundedSurfaceForms_at_bound
+      (g := g) (K := K) (B := B) (L := L) |>.subset
+        (by
+          intro bw hbw
+          exact hbw.1)
+
+/-- The reachable part of the target-compatible finite surface frontier is finite in any
+fixed bounded-stack grammar. -/
+theorem finite_reachable_boundedSentential_image_of_targetCompatibleBoundedSurfaceForms_at_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K B : ℕ} (target : List T) :
+    ({bw : List (symbol T (BoundedStackNT g B)) |
+      (∃ surface : SurfaceForm g K,
+        surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+          boundedSentential? (g := g) B (eraseSurfaceForm surface) = some bw) ∧
+        grammar_derives (boundedStackGrammar g B)
+          [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+        Set (List (symbol T (BoundedStackNT g B)))).Finite := by
+  exact
+    finite_boundedSentential_image_of_targetCompatibleBoundedSurfaceForms_at_bound
+      (g := g) (K := K) (B := B) target |>.subset
+        (by
+          intro bw hbw
+          exact hbw.1)
+
+/-- Compose a bounded-stack prefix derivation from the initial form with a suffix derivation
+from the same frontier representative. -/
+theorem boundedStackGrammar_generates_of_prefix_suffix_derives
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
+    {target : List T} {bw : List (symbol T (BoundedStackNT g B))}
+    (hprefix : grammar_derives (boundedStackGrammar g B)
+      [symbol.nonterminal (boundedStackGrammar g B).initial] bw)
+    (hsuffix : grammar_derives (boundedStackGrammar g B) bw
+      (target.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B)))) :
+    target ∈ grammar_language (boundedStackGrammar g B) := by
+  simpa [grammar_language, grammar_generates] using hprefix.trans hsuffix
+
+/-- If a suffix representative belongs to the reachable length-bounded frontier, then any
+bounded-stack suffix derivation from it generates the target. -/
+theorem boundedStackGrammar_generates_of_reachable_boundedSurface_frontier_suffix_at_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K B L : ℕ} {target : List T}
+    {bw : List (symbol T (BoundedStackNT g B))}
+    (hbw :
+      bw ∈
+        ({bw : List (symbol T (BoundedStackNT g B)) |
+          (∃ surface : SurfaceForm g K,
+            surface ∈ boundedSurfaceForms g L K ∧
+              boundedSentential? (g := g) B (eraseSurfaceForm surface) = some bw) ∧
+            grammar_derives (boundedStackGrammar g B)
+              [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+          Set (List (symbol T (BoundedStackNT g B)))))
+    (hsuffix : grammar_derives (boundedStackGrammar g B) bw
+      (target.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B)))) :
+    target ∈ grammar_language (boundedStackGrammar g B) :=
+  boundedStackGrammar_generates_of_prefix_suffix_derives
+    (g := g) (B := B) hbw.2 hsuffix
+
+/-- Target-compatible variant of
+`boundedStackGrammar_generates_of_reachable_boundedSurface_frontier_suffix_at_bound`. -/
+theorem boundedStackGrammar_generates_of_reachable_targetCompatible_frontier_suffix_at_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K B : ℕ} {target : List T}
+    {bw : List (symbol T (BoundedStackNT g B))}
+    (hbw :
+      bw ∈
+        ({bw : List (symbol T (BoundedStackNT g B)) |
+          (∃ surface : SurfaceForm g K,
+            surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+              boundedSentential? (g := g) B (eraseSurfaceForm surface) = some bw) ∧
+            grammar_derives (boundedStackGrammar g B)
+              [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+          Set (List (symbol T (BoundedStackNT g B)))))
+    (hsuffix : grammar_derives (boundedStackGrammar g B) bw
+      (target.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B)))) :
+    target ∈ grammar_language (boundedStackGrammar g B) :=
+  boundedStackGrammar_generates_of_prefix_suffix_derives
+    (g := g) (B := B) hbw.2 hsuffix
 
 /-- The bounded-grammar sentential forms obtained by erasing length-bounded finite surfaces
 and translating them into the larger stack bound `K + N` form a finite set. This frontier is
