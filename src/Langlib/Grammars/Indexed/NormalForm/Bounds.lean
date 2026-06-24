@@ -432,6 +432,47 @@ theorem sententialTerminalCount_add_nonterminalCount {g : IndexedGrammar T}
   | cons a w ih =>
       simpa using ih
 
+/-- A bounded-stack sentential form has a flat encoding whose size is linear in the number of
+indexed symbols and terminals. Each terminal takes one cell; each indexed symbol contributes
+one nonterminal cell, at most `B` flag cells, and one stack-boundary cell. -/
+theorem encodeSentential_length_le_of_maxStackHeight_le {g : IndexedGrammar T}
+    {B : ℕ} {w : List g.ISym}
+    (hmax : sententialMaxStackHeight w ≤ B) :
+    (encodeSentential w).length ≤ w.length * (B + 2) := by
+  induction w with
+  | nil =>
+      simp
+  | cons s w ih =>
+      cases s with
+      | terminal a =>
+          have htail : sententialMaxStackHeight w ≤ B := by
+            simpa using hmax
+          have htailLen := ih htail
+          calc
+            (encodeSentential (ISym.terminal a :: w)).length
+                = 1 + (encodeSentential w).length := by
+                  rw [encodeSentential_cons, List.length_append, encodeISym_length_terminal]
+            _ ≤ 1 + w.length * (B + 2) := by omega
+            _ ≤ (ISym.terminal a :: w).length * (B + 2) := by
+              rw [List.length_cons, Nat.add_mul, Nat.one_mul]
+              omega
+      | indexed A σ =>
+          have hσ : σ.length ≤ B := by
+            simpa [sententialMaxStackHeight_cons_indexed] using
+              (le_trans (Nat.le_max_left σ.length (sententialMaxStackHeight w)) hmax)
+          have htail : sententialMaxStackHeight w ≤ B := by
+            simpa [sententialMaxStackHeight_cons_indexed] using
+              (le_trans (Nat.le_max_right σ.length (sententialMaxStackHeight w)) hmax)
+          have htailLen := ih htail
+          calc
+            (encodeSentential (ISym.indexed A σ :: w)).length
+                = (σ.length + 2) + (encodeSentential w).length := by
+                  rw [encodeSentential_cons, List.length_append, encodeISym_length_indexed]
+            _ ≤ (B + 2) + w.length * (B + 2) := by omega
+            _ = (ISym.indexed A σ :: w).length * (B + 2) := by
+              rw [List.length_cons, Nat.add_mul, Nat.one_mul]
+              omega
+
 theorem length_take_append_sublist_drop_le {α : Type} {η τ : List α} {P : ℕ}
     (hτ : τ.Sublist (η.drop P)) :
     (η.take P ++ τ).length ≤ η.length := by
