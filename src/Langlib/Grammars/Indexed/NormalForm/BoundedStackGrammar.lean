@@ -1141,6 +1141,36 @@ theorem stackBoundedDerivesIn_trans {g : IndexedGrammar T}
       rw [Nat.add_succ]
       exact ⟨w, ih hprev, hstep, hw₃⟩
 
+/-- Split a bounded derivation at a fixed step count. -/
+theorem stackBoundedDerivesIn_split {g : IndexedGrammar T}
+    {B m n : ℕ} {w₁ w₃ : List g.ISym}
+    (h : StackBoundedDerivesIn g B (m + n) w₁ w₃) :
+    ∃ w₂ : List g.ISym,
+      StackBoundedDerivesIn g B m w₁ w₂ ∧
+        StackBoundedDerivesIn g B n w₂ w₃ := by
+  induction n generalizing w₃ with
+  | zero =>
+      refine ⟨w₃, ?_, ?_⟩
+      · simpa using h
+      · exact ⟨rfl, StackBoundedDerivesIn.final_maxStackHeight_le h⟩
+  | succ n ih =>
+      have h' : StackBoundedDerivesIn g B ((m + n) + 1) w₁ w₃ := by
+        simpa [Nat.add_assoc] using h
+      rcases h' with ⟨y, hprev, hstep, hw₃⟩
+      rcases ih hprev with ⟨w₂, hpre, hsuf⟩
+      exact ⟨w₂, hpre, hsuf.tail_of_transforms hstep hw₃⟩
+
+theorem stackBoundedDerivesIn_split_at {g : IndexedGrammar T}
+    {B n i : ℕ} {w₁ w₃ : List g.ISym}
+    (hi : i ≤ n)
+    (h : StackBoundedDerivesIn g B n w₁ w₃) :
+    ∃ w₂ : List g.ISym,
+      StackBoundedDerivesIn g B i w₁ w₂ ∧
+        StackBoundedDerivesIn g B (n - i) w₂ w₃ := by
+  have hn : i + (n - i) = n := Nat.add_sub_of_le hi
+  rw [← hn] at h
+  exact stackBoundedDerivesIn_split (g := g) h
+
 theorem stackBoundedDerivesIn_of_bounded_isDerivationTrace
     {g : IndexedGrammar T} {B n : ℕ} {trace : List (List g.ISym)}
     {w₁ w₂ : List g.ISym}
@@ -1609,6 +1639,220 @@ theorem stackBoundedDerivesIn_pair_to_terminals_of_stackBoundedDerivesIn
       (g := g) (u := [ISym.indexed A σ]) (v := [ISym.indexed C τ])
       hleft hright
 
+/-- A bounded derivation from an appended sentential form factors into bounded derivations from
+the two sides of the append, preserving the same stack bound. -/
+theorem stackBoundedDerivesIn_append_split {g : IndexedGrammar T} {B n : ℕ}
+    {u v x : List g.ISym}
+    (hder : StackBoundedDerivesIn g B n (u ++ v) x) :
+    ∃ m k : ℕ, ∃ u' v' : List g.ISym,
+      m + k = n ∧
+        x = u' ++ v' ∧
+        StackBoundedDerivesIn g B m u u' ∧
+        StackBoundedDerivesIn g B k v v' := by
+  induction n generalizing x with
+  | zero =>
+      rcases hder with ⟨hx, hbound⟩
+      subst x
+      exact ⟨0, 0, u, v, rfl, rfl,
+        ⟨rfl, sententialMaxStackHeight_le_of_append_left_le hbound⟩,
+        ⟨rfl, sententialMaxStackHeight_le_of_append_right_le hbound⟩⟩
+  | succ n ih =>
+      rcases hder with ⟨y, hprev, hstep, hxbound⟩
+      rcases ih hprev with ⟨m, k, u', v', hmk, hy, hu, hv⟩
+      subst y
+      rcases transforms_append_cases_of_append hstep with hleft | hright
+      · rcases hleft with ⟨u'', hstepLeft, hx⟩
+        have hu''bound : sententialMaxStackHeight u'' ≤ B :=
+          sententialMaxStackHeight_le_of_append_left_le (by simpa [hx] using hxbound)
+        refine ⟨m + 1, k, u'', v', ?_, hx, ?_, hv⟩
+        · omega
+        · exact hu.tail_of_transforms hstepLeft hu''bound
+      · rcases hright with ⟨v'', hstepRight, hx⟩
+        have hv''bound : sententialMaxStackHeight v'' ≤ B :=
+          sententialMaxStackHeight_le_of_append_right_le (by simpa [hx] using hxbound)
+        refine ⟨m, k + 1, u', v'', ?_, hx, hu, ?_⟩
+        · omega
+        · exact hv.tail_of_transforms hstepRight hv''bound
+
+/-- Bounded counted split of an appended terminal derivation. -/
+theorem stackBoundedDerivesIn_append_to_terminals_split {g : IndexedGrammar T}
+    {B n : ℕ} {u v : List g.ISym} {w : List T}
+    (hder : StackBoundedDerivesIn g B n (u ++ v)
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ m k : ℕ, ∃ wu wv : List T,
+      m + k = n ∧
+        w = wu ++ wv ∧
+        StackBoundedDerivesIn g B m u
+          (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        StackBoundedDerivesIn g B k v
+          (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases stackBoundedDerivesIn_append_split (g := g) hder with
+    ⟨m, k, u', v', hmk, hx, hu, hv⟩
+  rcases append_eq_map_terminal_split (g := g) hx.symm with
+    ⟨wu, wv, hw, hu', hv'⟩
+  subst u'
+  subst v'
+  exact ⟨m, k, wu, wv, hmk, hw, hu, hv⟩
+
+/-- Bounded counted split of a terminal derivation from an arbitrary sentential form into
+positionwise singleton derivations. -/
+theorem stackBoundedDerivesIn_symbols_to_terminals_split {g : IndexedGrammar T}
+    {B n : ℕ} {xs : List g.ISym} {w : List T}
+    (hder : StackBoundedDerivesIn g B n xs
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ parts : List (ℕ × List T),
+      parts.length = xs.length ∧
+        (parts.map fun p => p.1).sum = n ∧
+        (parts.flatMap fun p => p.2) = w ∧
+        List.Forall₂
+          (fun s p => StackBoundedDerivesIn g B p.1 [s]
+            (p.2.map fun a => (ISym.terminal a : g.ISym)))
+          xs parts := by
+  induction xs generalizing n w with
+  | nil =>
+      obtain ⟨hn, htarget⟩ :=
+        derivesIn_nil_left_eq (g := g) (StackBoundedDerivesIn.to_derivesIn hder)
+      have hw : w = [] := by
+        simpa using htarget
+      subst n
+      subst w
+      exact ⟨[], by simp, by simp, by simp, List.Forall₂.nil⟩
+  | cons s xs ih =>
+      have hder' : StackBoundedDerivesIn g B n ([s] ++ xs)
+          (w.map fun a => (ISym.terminal a : g.ISym)) := by
+        simpa using hder
+      rcases stackBoundedDerivesIn_append_to_terminals_split
+          (g := g) (u := [s]) (v := xs) (w := w) hder' with
+        ⟨m, k, wu, wv, hmk, hw, hhead, htail⟩
+      rcases ih htail with ⟨parts, hlen, hsum, hflat, hparts⟩
+      refine ⟨(m, wu) :: parts, ?_, ?_, ?_, ?_⟩
+      · simp [hlen]
+      · simp [hsum, hmk]
+      · simp [hw, hflat]
+      · exact List.Forall₂.cons hhead hparts
+
+/-- Bounded counted split for a two-symbol terminal derivation. -/
+theorem stackBoundedDerivesIn_pair_to_terminals_split {g : IndexedGrammar T}
+    {B n : ℕ} {A C : g.nt} {σ τ : List g.flag} {w : List T}
+    (hder : StackBoundedDerivesIn g B n [ISym.indexed A σ, ISym.indexed C τ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ m k : ℕ, ∃ u v : List T,
+      m + k = n ∧
+        w = u ++ v ∧
+        StackBoundedDerivesIn g B m [ISym.indexed A σ]
+          (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+        StackBoundedDerivesIn g B k [ISym.indexed C τ]
+          (v.map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa using
+    stackBoundedDerivesIn_append_to_terminals_split
+      (g := g) (u := [ISym.indexed A σ]) (v := [ISym.indexed C τ]) hder
+
+private theorem stackBounded_singleton_indexed_eq_context_bounds {g : IndexedGrammar T}
+    {A C : g.nt} {σ τ : List g.flag} {u v : List g.ISym}
+    (h : [ISym.indexed A σ] = u ++ [ISym.indexed C τ] ++ v) :
+    u = [] ∧ v = [] ∧ A = C ∧ σ = τ := by
+  have hu : u = [] := by
+    cases u with
+    | nil => rfl
+    | cons x xs =>
+        have hlen := congrArg List.length h
+        simp at hlen
+  subst u
+  have h' : [ISym.indexed A σ] = ISym.indexed C τ :: v := by
+    simpa using h
+  simp at h'
+  rcases h' with ⟨⟨hA, hσ⟩, hv⟩
+  exact ⟨rfl, hv, hA, hσ⟩
+
+/-- Bounded first-step analysis for a terminal derivation from one indexed nonterminal in normal
+form. The recursive premises remain bounded by the original stack bound. -/
+theorem stackBoundedDerivesIn_singleton_to_terminals_cases_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : StackBoundedDerivesIn g B (n + 1) [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    (∃ C D : g.nt, ∃ m k : ℕ, ∃ u v : List T,
+      m + k = n ∧
+        w = u ++ v ∧
+        g.Transforms [ISym.indexed A σ] [ISym.indexed C σ, ISym.indexed D σ] ∧
+        StackBoundedDerivesIn g B m [ISym.indexed C σ]
+          (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+        StackBoundedDerivesIn g B k [ISym.indexed D σ]
+          (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ f : g.flag, ∃ ρ : List g.flag, ∃ C : g.nt,
+      σ = f :: ρ ∧
+        g.Transforms [ISym.indexed A σ] [ISym.indexed C ρ] ∧
+        StackBoundedDerivesIn g B n [ISym.indexed C ρ]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ C : g.nt, ∃ f : g.flag,
+      g.Transforms [ISym.indexed A σ] [ISym.indexed C (f :: σ)] ∧
+        StackBoundedDerivesIn g B n [ISym.indexed C (f :: σ)]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ a : T,
+      g.Transforms [ISym.indexed A σ] [ISym.terminal a] ∧ w = [a] ∧ n = 0) := by
+  have hsplitInput :
+      StackBoundedDerivesIn g B (1 + n) [ISym.indexed A σ]
+        (w.map fun a => (ISym.terminal a : g.ISym)) := by
+    simpa [Nat.add_comm] using hder
+  rcases stackBoundedDerivesIn_split (g := g) (m := 1) (n := n) hsplitInput with
+    ⟨mid, hfirst, hrest⟩
+  rcases hfirst with ⟨pre, hpre, hstep, _hmidBound⟩
+  have hpre' : [ISym.indexed A σ] = pre := by
+    simpa using hpre.1
+  subst pre
+  rcases transforms_kind_cases_of_isNormalForm hNF hstep with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨A₀, C, D, p, q, τ, _hC, _hD, hw₁, hw₂⟩
+    rcases stackBounded_singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+    subst p
+    subst q
+    subst A₀
+    subst τ
+    have hmid : mid = [ISym.indexed C σ, ISym.indexed D σ] := by
+      simpa using hw₂
+    subst mid
+    rcases stackBoundedDerivesIn_pair_to_terminals_split (g := g) hrest with
+      ⟨m, k, u, v, hmk, hw, hleft, hright⟩
+    left
+    exact ⟨C, D, m, k, u, v, hmk, hw, hstep, hleft, hright⟩
+  · rcases hpop with ⟨A₀, C, f, p, q, ρ, _hC, hw₁, hw₂⟩
+    rcases stackBounded_singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hσ⟩
+    subst p
+    subst q
+    subst A₀
+    have hmid : mid = [ISym.indexed C ρ] := by
+      simpa using hw₂
+    subst mid
+    right
+    left
+    exact ⟨f, ρ, C, hσ, hstep, hrest⟩
+  · rcases hpush with ⟨A₀, C, f, p, q, τ, _hC, hw₁, hw₂⟩
+    rcases stackBounded_singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+    subst p
+    subst q
+    subst A₀
+    subst τ
+    have hmid : mid = [ISym.indexed C (f :: σ)] := by
+      simpa using hw₂
+    subst mid
+    right
+    right
+    left
+    exact ⟨C, f, hstep, hrest⟩
+  · rcases hterm with ⟨A₀, a, p, q, τ, hw₁, hw₂⟩
+    rcases stackBounded_singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+    subst p
+    subst q
+    subst A₀
+    subst τ
+    have hmid : mid = [ISym.terminal a] := by
+      simpa using hw₂
+    subst mid
+    right
+    right
+    right
+    exact ⟨a, hstep, derivesIn_terminal_singleton_eq (g := g) hrest.to_derivesIn,
+      derivesIn_terminal_singleton_steps_eq_zero (g := g) hrest.to_derivesIn⟩
+
 theorem stackBoundedDerivesIn_binary_rule_to_terminals_of_children
     {g : IndexedGrammar T}
     {K m n : ℕ} {A B C : g.nt} {τ : List g.flag} {u v w : List T}
@@ -1750,19 +1994,76 @@ theorem NFYield.StackBounded.exists_stackBoundedDerivesIn
         stackBoundedDerivesIn_terminal_rule
           (g := g) hr hlhs hc hrhs hσ⟩
 
-/-- A stack-bounded singleton derivation in normal form has a bounded parse certificate.
-The certificate bound is stated as `B + n`, using the certificate extractor's linear
-count-bound. -/
+/-- A stack-bounded singleton derivation in normal form has a parse certificate with the same
+stack bound. -/
+theorem NFYield.StackBounded.of_stackBoundedDerivesIn_isNormalForm_exact
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : StackBoundedDerivesIn g B n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    NFYield.StackBounded g B A σ w := by
+  induction n using Nat.strong_induction_on generalizing B A σ w with
+  | h n ih =>
+      cases n with
+      | zero =>
+          have heq : [ISym.indexed A σ] =
+              w.map fun a => (ISym.terminal a : g.ISym) := by
+            simpa using h.1
+          cases w with
+          | nil => simp at heq
+          | cons a w => simp at heq
+      | succ n =>
+          have hder' : StackBoundedDerivesIn g B (n + 1) [ISym.indexed A σ]
+              (w.map fun a => (ISym.terminal a : g.ISym)) := by
+            simpa [Nat.succ_eq_add_one] using h
+          have hroot : σ.length ≤ B := by
+            simpa using StackBoundedDerivesIn.initial_maxStackHeight_le hder'
+          have hcases :=
+            stackBoundedDerivesIn_singleton_to_terminals_cases_of_isNormalForm
+              (g := g) hNF hder'
+          rcases hcases with hbin | hpop | hpush | hterm
+          · rcases hbin with ⟨C, D, m, k, u, v, hmk, hw, hstep, hleft, hright⟩
+            rcases (transforms_singleton_binary_iff_rule_of_isNormalForm
+                (g := g) hNF (A := A) (B := C) (C := D) (σ := σ)).mp hstep with
+              ⟨r, hr, hlhs, hc, hrhs⟩
+            subst w
+            have hleftCert : NFYield.StackBounded g B C σ u :=
+              ih m (by omega) hleft
+            have hrightCert : NFYield.StackBounded g B D σ v :=
+              ih k (by omega) hright
+            exact NFYield.StackBounded.binary hroot hr hlhs hc hrhs hleftCert hrightCert
+          · rcases hpop with ⟨f, ρ, C, hσ, hstep, hrest⟩
+            subst σ
+            rcases (transforms_singleton_pop_iff_rule_of_isNormalForm
+                (g := g) hNF (A := A) (B := C) (f := f) (ρ := ρ)).mp hstep with
+              ⟨r, hr, hlhs, hc, hrhs⟩
+            have hrestCert : NFYield.StackBounded g B C ρ w :=
+              ih n (Nat.lt_succ_self n) hrest
+            exact NFYield.StackBounded.pop hroot hr hlhs hc hrhs hrestCert
+          · rcases hpush with ⟨C, f, hstep, hrest⟩
+            rcases (transforms_singleton_push_iff_rule_of_isNormalForm
+                (g := g) hNF (A := A) (B := C) (f := f) (σ := σ)).mp hstep with
+              ⟨r, hr, hlhs, hc, hrhs⟩
+            have hrestCert : NFYield.StackBounded g B C (f :: σ) w :=
+              ih n (Nat.lt_succ_self n) hrest
+            exact NFYield.StackBounded.push hroot hr hlhs hc hrhs hrestCert
+          · rcases hterm with ⟨a, hstep, hw, _hn⟩
+            rcases (transforms_singleton_terminal_iff_rule_of_isNormalForm
+                (g := g) hNF (A := A) (σ := σ) (a := a)).mp hstep with
+              ⟨r, hr, hlhs, hc, hrhs⟩
+            subst w
+            exact NFYield.StackBounded.terminal hroot hr hlhs hc hrhs
+
+/-- Compatibility wrapper for older call sites that used the linear counted certificate bound. -/
 theorem NFYield.StackBounded.of_stackBoundedDerivesIn_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {B n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
     (h : StackBoundedDerivesIn g B n [ISym.indexed A σ]
       (w.map fun a => (ISym.terminal a : g.ISym))) :
     NFYield.StackBounded g (B + n) A σ w := by
-  have hσ : σ.length ≤ B := by
-    simpa using StackBoundedDerivesIn.initial_maxStackHeight_le h
-  exact NFYield.stackBounded_of_derivesIn_isNormalForm_initial_stackBound
-    (g := g) hNF hσ (StackBoundedDerivesIn.to_derivesIn h)
+  exact NFYield.StackBounded.mono_bound (by omega)
+    (NFYield.StackBounded.of_stackBoundedDerivesIn_isNormalForm_exact
+      (g := g) hNF h)
 
 theorem stackBoundedDerivesIn_binary_rule_to_terminals_of_prefixed_children
     {g : IndexedGrammar T}
@@ -4571,7 +4872,7 @@ theorem exists_stackBounded_certificate_of_derivesIn_target_length_bounded_prefi
             pref.length + n ≤ N →
             ∃ m : ℕ, ∃ τ : List g.flag,
               m ≤ n ∧ τ.Sublist σ ∧ τ.length ≤ K ∧
-              NFYield.StackBounded g (N + K + N + N) A (pref ++ τ) w := by
+              NFYield.StackBounded g (N + K + N) A (pref ++ τ) w := by
   obtain ⟨K, hK⟩ :=
     exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix_budget
       (g := g) hNF N L
@@ -4579,13 +4880,10 @@ theorem exists_stackBounded_certificate_of_derivesIn_target_length_bounded_prefi
   intro target htargetLen pref hpref n A σ w hwt hder hbudget
   obtain ⟨m, τ, hm_le, hτsub, hτlen, hbounded⟩ :=
     hK target htargetLen pref hpref n A σ w hwt hder hbudget
-  have hcert0 :
-      NFYield.StackBounded g ((N + K + N) + m) A (pref ++ τ) w :=
-    NFYield.StackBounded.of_stackBoundedDerivesIn_isNormalForm
-      (g := g) hNF hbounded
   have hcert :
-      NFYield.StackBounded g (N + K + N + N) A (pref ++ τ) w :=
-    NFYield.StackBounded.mono_bound (by omega) hcert0
+      NFYield.StackBounded g (N + K + N) A (pref ++ τ) w :=
+    NFYield.StackBounded.of_stackBoundedDerivesIn_isNormalForm_exact
+      (g := g) hNF hbounded
   exact ⟨m, τ, hm_le, hτsub, hτlen, hcert⟩
 
 /-- Initial-stack specialization of
@@ -4600,7 +4898,7 @@ theorem exists_bound_initial_stackBounded_certificate_of_derivesIn_target_length
           g.DerivesIn n [ISym.indexed g.initial []]
             (target.map fun a => (ISym.terminal a : g.ISym)) →
           n ≤ N →
-          NFYield.StackBounded g (N + K + N + N) g.initial [] target := by
+          NFYield.StackBounded g (N + K + N) g.initial [] target := by
   obtain ⟨K, hK⟩ :=
     exists_stackBounded_certificate_of_derivesIn_target_length_bounded_prefix_budget
       (g := g) hNF N L
