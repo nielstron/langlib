@@ -6776,6 +6776,33 @@ theorem accepting_derivationTrace_get_sententialStackHeight_le_future_pop_add_ta
       (g := g) hNF htrace hlast hbound hi
   omega
 
+theorem accepting_derivationTrace_get_encodeSentential_length_le_future_pop_add_target_mul_stackBound_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    {i : ℕ} (hi : i < trace.length) :
+    (encodeSentential (trace.get ⟨i, hi⟩)).length ≤
+      w.length + w.length +
+        (tracePopStepCount (trace.drop i) + w.length * B) := by
+  rw [encodeSentential_length]
+  have hlen :
+      (trace.get ⟨i, hi⟩).length ≤ w.length := by
+    have hsuffix := isDerivationTrace_derivesIn_get_to_last (g := g) htrace hlast hi
+    have hlen :=
+      derivesIn_length_le_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF) hsuffix
+    simpa using hlen
+  have hnt :
+      sententialNonterminalCount (trace.get ⟨i, hi⟩) ≤ w.length :=
+    le_trans (sententialNonterminalCount_le_length _) hlen
+  have hstack :
+      sententialStackHeight (trace.get ⟨i, hi⟩) ≤
+        tracePopStepCount (trace.drop i) + w.length * B :=
+    accepting_derivationTrace_get_sententialStackHeight_le_future_pop_add_target_mul_stackBound_of_isNormalForm
+      (g := g) hNF htrace hlast hbound hi
+  omega
+
 theorem derivationTrace_suffix_nonterminal_balance_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {trace : List (List g.ISym)} {last : List g.ISym}
