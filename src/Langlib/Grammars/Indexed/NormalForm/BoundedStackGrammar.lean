@@ -223,6 +223,15 @@ theorem boundedSentential?_length {g : IndexedGrammar T} {B : ℕ}
       rw [← h]
       simp [ih hw]
 
+theorem sententialMaxStackHeight_le_of_boundedSentential?
+    {g : IndexedGrammar T} {B : ℕ}
+    {w : List g.ISym} {w' : List (symbol T (BoundedStackNT g B))}
+    (h : boundedSentential? B w = some w') :
+    sententialMaxStackHeight w ≤ B := by
+  have herase := eraseBoundedSentential_of_boundedSentential? h
+  rw [← herase]
+  exact sententialMaxStackHeight_eraseBoundedSentential_le w'
+
 theorem exists_boundedSymbol?_of_stackHeight_le {g : IndexedGrammar T} {B : ℕ}
     {s : g.ISym} (hs : s.stackHeight ≤ B) :
     ∃ s' : symbol T (BoundedStackNT g B), boundedSymbol? B s = some s' := by
@@ -5969,6 +5978,29 @@ theorem boundedSentential_mem_boundedSentential_image_of_length_stackBound
             boundedSentential? (g := g) B ys = some bw} :
         Set (List (symbol T (BoundedStackNT g B)))) :=
   ⟨ys, ⟨hlen, hstack⟩, hbw⟩
+
+/-- If a replacement context has a bounded `P`-surface of length at most `L` and it encodes
+successfully at stack bound `B`, then its encoding belongs to the full bounded-sentential
+frontier at bound `B`. -/
+theorem boundedSentential_mem_boundedSentential_image_of_boundedSurface_boundedSentential?
+    {g : IndexedGrammar T} {P B L : ℕ}
+    {ys : List g.ISym} {bw : List (symbol T (BoundedStackNT g B))}
+    (hsurface : surfaceOfTruncatedForm P ys ∈ boundedSurfaceForms g L P)
+    (hbw : boundedSentential? (g := g) B ys = some bw) :
+    bw ∈
+      ({bw : List (symbol T (BoundedStackNT g B)) |
+        ∃ ys : List g.ISym,
+          ys ∈ boundedSententialForms g L B ∧
+            boundedSentential? (g := g) B ys = some bw} :
+        Set (List (symbol T (BoundedStackNT g B)))) := by
+  have hlen : ys.length ≤ L := by
+    have hsurfaceLen : (surfaceOfTruncatedForm P ys).length ≤ L := by
+      simpa [boundedSurfaceForms] using hsurface
+    simpa using hsurfaceLen
+  exact
+    boundedSentential_mem_boundedSentential_image_of_length_stackBound
+      (g := g) (K := B) (B := B) (L := L) hlen
+      (sententialMaxStackHeight_le_of_boundedSentential? hbw) hbw
 
 /-- A counted reachable member of the finite full-context bounded-sentential frontier gives
 the exact stack-bounded indexed prefix witness for the corresponding decoded sentential
