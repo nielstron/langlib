@@ -1627,6 +1627,18 @@ theorem boundedFlatPathLanguage_subset_language
   rcases h with ⟨path, hhead, hlast, hbound, hstep⟩
   exact generates_of_boundedFlatPath_initial_terminal hhead hlast hbound hstep
 
+theorem boundedFlatPathLanguage_mono {g : IndexedGrammar T}
+    {B C : ℕ} (hBC : B ≤ C) :
+    ∀ w, w ∈ boundedFlatPathLanguage g B →
+      w ∈ boundedFlatPathLanguage g C := by
+  intro w h
+  rcases h with ⟨path, hhead, hlast, hbound, hstep⟩
+  refine ⟨path, hhead, hlast, ?_, hstep⟩
+  intro i
+  have hiB : (path.get i).length ≤ B := by
+    simpa [boundedFlatForms] using hbound i
+  simpa [boundedFlatForms] using le_trans hiB hBC
+
 theorem language_eq_iUnion_boundedFlatPathLanguage (g : IndexedGrammar T) :
     g.Language = fun w : List T => ∃ B : ℕ, w ∈ boundedFlatPathLanguage g B := by
   ext w

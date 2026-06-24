@@ -7364,6 +7364,18 @@ theorem exists_bounded_accepting_flatPath_of_boundedStackGrammar_language_isNorm
   exact ⟨n, trace, ftrace, htrace, hftrace, hlen, hhead, hlast, hflen, hstack,
     hfhead, hflast, hfbound, hfstep, hfderives⟩
 
+/-- Fixed-slice bridge from the bounded-stack grammar to the bounded flat-path language. -/
+theorem boundedFlatPathLanguage_of_boundedStackGrammar_language_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B L : ℕ} {w : List T} (hwlen : w.length ≤ L)
+    (hw : w ∈ grammar_language (boundedStackGrammar g B)) :
+    w ∈ boundedFlatPathLanguage g (L * (B + 2)) := by
+  obtain ⟨_n, _trace, ftrace, _htrace, _hftrace, _hlen, _hhead, _hlast, _hflen,
+    _hstack, hfhead, hflast, hfbound, hfstep, _hfderives⟩ :=
+    exists_bounded_accepting_flatPath_of_boundedStackGrammar_language_isNormalForm
+      (g := g) hNF (B := B) (L := L) hwlen hw
+  exact ⟨ftrace, hfhead, hflast, hfbound, hfstep⟩
+
 theorem boundedStackGrammar_language_mono {g : IndexedGrammar T}
     [Fintype g.flag] {B C : ℕ} (hBC : B ≤ C) :
     ∀ w, w ∈ grammar_language (boundedStackGrammar g B) →
