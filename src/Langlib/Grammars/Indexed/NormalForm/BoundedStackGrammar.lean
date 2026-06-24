@@ -711,6 +711,21 @@ theorem StackBoundedDerivesIn.tail_of_transforms {g : IndexedGrammar T}
     StackBoundedDerivesIn g B (n + 1) w₁ w₃ :=
   ⟨w₂, h, hstep, hw₃⟩
 
+theorem StackBoundedDerivesIn.tail_of_transforms_isNormalForm_succ_bound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B n : ℕ} {w₁ w₂ w₃ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂)
+    (hstep : g.Transforms w₂ w₃) :
+    StackBoundedDerivesIn g (B + 1) (n + 1) w₁ w₃ := by
+  have hpre : StackBoundedDerivesIn g (B + 1) n w₁ w₂ :=
+    h.mono_bound (Nat.le_succ B)
+  have hw₂ : sententialMaxStackHeight w₂ ≤ B :=
+    h.final_maxStackHeight_le
+  have hstepHeight :
+      sententialMaxStackHeight w₃ ≤ sententialMaxStackHeight w₂ + 1 :=
+    transforms_maxStackHeight_le_succ_of_isNormalForm hNF hstep
+  exact hpre.tail_of_transforms hstep (by omega)
+
 theorem exists_stackBoundedDerivesIn_of_boundedStackGrammar_derives
     {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
     {w₁ w₂ : List (symbol T (BoundedStackNT g B))}
