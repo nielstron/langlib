@@ -735,6 +735,35 @@ theorem targetCompatibleBoundedSurfaceForms_finite (g : IndexedGrammar T)
   exact (boundedSurfaceForms_finite g target.length stackBound).subset
     (fun _ hw => hw.1)
 
+theorem targetCompatibleBoundedSurfaceForms_subset_boundedSurfaceForms_lengthBound
+    {g : IndexedGrammar T} {target : List T} {L stackBound : ℕ}
+    (htarget : target.length ≤ L) :
+    targetCompatibleBoundedSurfaceForms g target stackBound ⊆
+      boundedSurfaceForms g L stackBound := by
+  intro surface hsurface
+  have hlen : surface.length ≤ target.length := by
+    simpa [boundedSurfaceForms] using hsurface.1
+  simpa [boundedSurfaceForms] using le_trans hlen htarget
+
+theorem targetCompatibleBoundedSurfaceForms_card_le_boundedSurfaceForms_card_lengthBound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {target : List T} {L stackBound : ℕ}
+    (htarget : target.length ≤ L) :
+    (Set.Finite.toFinset
+        (targetCompatibleBoundedSurfaceForms_finite g target stackBound)).card ≤
+      (Set.Finite.toFinset
+        (boundedSurfaceForms_finite g L stackBound)).card := by
+  classical
+  refine Finset.card_le_card ?_
+  intro surface hsurface
+  have hsurfaceSet :
+      surface ∈ targetCompatibleBoundedSurfaceForms g target stackBound := by
+    simpa using hsurface
+  have hbounded :=
+    targetCompatibleBoundedSurfaceForms_subset_boundedSurfaceForms_lengthBound
+      (g := g) (stackBound := stackBound) htarget hsurfaceSet
+  simpa using hbounded
+
 theorem surfaceOfTruncatedForm_mem_boundedSurfaceForms {g : IndexedGrammar T}
     {lengthBound stackBound : ℕ} {w : List g.ISym}
     (hlen : w.length ≤ lengthBound) :

@@ -2089,6 +2089,79 @@ theorem exists_high_stack_between_late_surface_card_or_steps_lt_card_of_minimal_
         (by simpa [C] using hgt)
     exact Or.inr (by simpa [C] using hhigh)
 
+/-- Length-uniform version of
+`exists_high_stack_between_late_surface_card_or_steps_lt_card_of_minimal_stack_gt_bound`.
+The target-compatible surface cardinal is bounded by the length-bounded surface cardinal, so
+the dichotomy can use a constant depending only on the target length bound `L`. -/
+theorem exists_high_stack_between_late_lengthBound_surface_card_or_steps_lt_card_of_minimal_stack_gt_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {K L n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (htargetLen : target.length ≤ L)
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (hbeforeBound : ∀ k (hk : k < trace.length),
+      k < trace.length - 1 -
+          (Set.Finite.toFinset (boundedSurfaceForms_finite g L K)).card →
+        sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ K)
+    (hgt :
+      K + (Set.Finite.toFinset (boundedSurfaceForms_finite g L K)).card < B) :
+    n < (Set.Finite.toFinset (boundedSurfaceForms_finite g L K)).card ∨
+      ∃ k : Fin trace.length,
+        trace.length - 1 -
+            (Set.Finite.toFinset (boundedSurfaceForms_finite g L K)).card ≤ k.1 ∧
+          k.1 ≤
+            trace.length - 1 -
+                (Set.Finite.toFinset (boundedSurfaceForms_finite g L K)).card +
+              (Set.Finite.toFinset (boundedSurfaceForms_finite g L K)).card ∧
+          trace.length - 1 - k.1 ≤
+            (Set.Finite.toFinset (boundedSurfaceForms_finite g L K)).card ∧
+          K < sententialMaxStackHeight (trace.get k) := by
+  classical
+  let Ct :=
+    (Set.Finite.toFinset
+      (targetCompatibleBoundedSurfaceForms_finite g target K)).card
+  let CL := (Set.Finite.toFinset (boundedSurfaceForms_finite g L K)).card
+  have hCtCL : Ct ≤ CL := by
+    simpa [Ct, CL] using
+      targetCompatibleBoundedSurfaceForms_card_le_boundedSurfaceForms_card_lengthBound
+        (g := g) (stackBound := K) htargetLen
+  by_cases hn : n < CL
+  · exact Or.inl (by simpa [CL] using hn)
+  · have hCL_le_n : CL ≤ n := Nat.le_of_not_gt hn
+    have hm : trace.length - 1 - CL + Ct < trace.length := by
+      omega
+    obtain ⟨k, hkLower, hkUpper, hsuffixBudget, hhigh⟩ :=
+      exists_high_stack_between_late_surface_card_of_minimal_stack_gt_bound
+        (g := g) hNF htrace hlen hhead hlast hminLength hminBound
+        (K := K) (N := CL) (n := n) (B := B)
+        (by
+          intro k hk hlt
+          exact hbeforeBound k hk (by simpa [CL] using hlt))
+        (by simpa [Ct, CL] using hm)
+        (by simpa [CL] using hgt)
+    refine Or.inr ⟨k, by simpa [CL] using hkLower, ?_, by simpa [CL] using hsuffixBudget,
+      hhigh⟩
+    have hupper :
+        trace.length - 1 - CL + Ct ≤ trace.length - 1 - CL + CL :=
+      Nat.add_le_add_left hCtCL (trace.length - 1 - CL)
+    exact le_trans (by simpa [Ct, CL] using hkUpper) (by simpa [CL] using hupper)
+
 /-- A positionwise terminal-preserving substack replacement preserves sentential-form length. -/
 theorem length_eq_of_forall₂_symbol_substack_bound
     {g : IndexedGrammar T} {K : ℕ} {xs ys : List g.ISym}
