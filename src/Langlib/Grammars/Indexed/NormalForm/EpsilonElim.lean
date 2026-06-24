@@ -194,6 +194,45 @@ theorem derives_nil_of_append {g : IndexedGrammar T} {u v w : List g.ISym}
       simpa [List.append_assoc] using hder)
   exact derives_nil_of_append_right (u := u) (v := v) hleft
 
+/-- Counted form: if `u ++ v` derives `[]`, then `u` derives `[]` within the
+original budget. -/
+theorem derivesIn_nil_of_append_left {g : IndexedGrammar T} {n : ℕ}
+    {u v : List g.ISym} (hder : g.DerivesIn n (u ++ v) []) :
+    ∃ m : ℕ, m ≤ n ∧ g.DerivesIn m u [] := by
+  rcases derivesIn_append_split (g := g) hder with ⟨m, k, u', v', hmk, hx, hu, _hv⟩
+  have hxnil := hx
+  rw [List.nil_eq_append_iff] at hxnil
+  rcases hxnil with ⟨hu', _hv'⟩
+  subst u'
+  refine ⟨m, ?_, by simpa using hu⟩
+  omega
+
+/-- Counted form: if `u ++ v` derives `[]`, then `v` derives `[]` within the
+original budget. -/
+theorem derivesIn_nil_of_append_right {g : IndexedGrammar T} {n : ℕ}
+    {u v : List g.ISym} (hder : g.DerivesIn n (u ++ v) []) :
+    ∃ m : ℕ, m ≤ n ∧ g.DerivesIn m v [] := by
+  rcases derivesIn_append_split (g := g) hder with ⟨m, k, u', v', hmk, hx, _hu, hv⟩
+  have hxnil := hx
+  rw [List.nil_eq_append_iff] at hxnil
+  rcases hxnil with ⟨_hu', hv'⟩
+  subst v'
+  refine ⟨k, ?_, by simpa using hv⟩
+  omega
+
+/-- Counted form: every symbol in a sentential form deriving `[]` derives `[]` within
+the original budget. -/
+theorem derivesIn_nil_of_mem {g : IndexedGrammar T} {n : ℕ}
+    {w : List g.ISym} {s : g.ISym} (hder : g.DerivesIn n w []) (hs : s ∈ w) :
+    ∃ m : ℕ, m ≤ n ∧ g.DerivesIn m [s] [] := by
+  rcases (List.mem_iff_append.mp hs) with ⟨u, v, rfl⟩
+  obtain ⟨m₁, hm₁n, hleft⟩ :=
+    derivesIn_nil_of_append_left (g := g) (u := u ++ [s]) (v := v)
+      (by simpa [List.append_assoc] using hder)
+  obtain ⟨m₂, hm₂m₁, hsingle⟩ :=
+    derivesIn_nil_of_append_right (g := g) (u := u) (v := [s]) hleft
+  exact ⟨m₂, le_trans hm₂m₁ hm₁n, hsingle⟩
+
 /-- Every symbol occurring in a sentential form that derives `[]` is nullable as a singleton
 sentential form. -/
 theorem derives_nil_of_mem {g : IndexedGrammar T} {w : List g.ISym} {s : g.ISym}
@@ -385,6 +424,27 @@ theorem expandRhs_derives_nil_iff_all_nullable_rhs {g : IndexedGrammar T}
             exact ⟨A, σ, rfl, hnull⟩
         | some f =>
             exact ⟨A, f :: σ, rfl, hnull⟩
+
+/-- Counted extraction for one nonterminal occurrence in an expanded RHS deriving `[]`. -/
+theorem derivesIn_nil_of_expandRhs_nonterminal_mem {g : IndexedGrammar T}
+    {n : ℕ} {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag}
+    {B : g.nt} {push : Option g.flag}
+    (hder : g.DerivesIn n (g.expandRhs rhs σ) [])
+    (hs : IRhsSymbol.nonterminal B push ∈ rhs) :
+    ∃ m : ℕ, m ≤ n ∧
+      g.DerivesIn m
+        [ISym.indexed B (match push with | none => σ | some f => f :: σ)] [] := by
+  cases push with
+  | none =>
+      have hmem : (ISym.indexed B σ : g.ISym) ∈ g.expandRhs rhs σ := by
+        unfold expandRhs
+        exact List.mem_map.mpr ⟨IRhsSymbol.nonterminal B none, hs, rfl⟩
+      simpa using derivesIn_nil_of_mem (g := g) hder hmem
+  | some f =>
+      have hmem : (ISym.indexed B (f :: σ) : g.ISym) ∈ g.expandRhs rhs σ := by
+        unfold expandRhs
+        exact List.mem_map.mpr ⟨IRhsSymbol.nonterminal B (some f), hs, rfl⟩
+      simpa using derivesIn_nil_of_mem (g := g) hder hmem
 
 /-- `kept` is obtained from `rhs` by deleting only RHS nonterminals that are nullable at
 the stack they receive during expansion. -/
@@ -1436,6 +1496,116 @@ theorem isNullable_cases_flagsSeparated {g : IndexedGrammar T}
       exact hnull
     exact Or.inr (Or.inr ⟨f, ρ, r, B, hσ, hr, hlhs, hconsume, hrhs, hB⟩)
 
+/-- A non-consuming rule whose expanded RHS is entirely nullable makes its LHS nullable. -/
+theorem isNullable_of_rule_all_nullable_none {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {A : g.nt} {σ : List g.flag}
+    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hconsume : r.consume = none)
+    (hall : ∀ s ∈ r.rhs, ∃ B : g.nt, ∃ push : Option g.flag,
+      s = IRhsSymbol.nonterminal B push ∧
+        g.IsNullable B (match push with | none => σ | some f => f :: σ)) :
+    g.IsNullable A σ := by
+  exact isNullable_of_rule_derives_empty_none (g := g) (r := r) (A := A)
+    (σ := σ) hr hlhs hconsume
+    ((expandRhs_derives_nil_iff_all_nullable_rhs (g := g)
+      (rhs := r.rhs) (σ := σ)).mpr hall)
+
+/-- A pop rule whose unique child is nullable after the pop makes its LHS nullable with
+the consumed flag on top of the stack. -/
+theorem isNullable_of_pop_rule_nullable_child {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {A B : g.nt} {f : g.flag} {σ : List g.flag}
+    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hconsume : r.consume = some f)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none]) (hB : g.IsNullable B σ) :
+    g.IsNullable A (f :: σ) := by
+  apply isNullable_of_rule_derives_empty_some (g := g) (r := r) (A := A)
+    (f := f) (σ := σ) hr hlhs hconsume
+  rw [hrhs]
+  simpa [expandRhs, IsNullable] using hB
+
+/-- In a flag-separated grammar, nullability is exactly generated by explicit ε-rules,
+non-consuming all-nullable RHSs, and pop rules whose child is nullable after the pop. -/
+theorem isNullable_flagsSeparated_iff {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) {A : g.nt} {σ : List g.flag} :
+    g.IsNullable A σ ↔
+      (∃ r : IRule T g.nt g.flag,
+        r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs = []) ∨
+      (∃ r : IRule T g.nt g.flag,
+        r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs ≠ [] ∧
+          ∀ s ∈ r.rhs, ∃ B : g.nt, ∃ push : Option g.flag,
+            s = IRhsSymbol.nonterminal B push ∧
+              g.IsNullable B (match push with | none => σ | some f => f :: σ)) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ r : IRule T g.nt g.flag, ∃ B : g.nt,
+        σ = f :: ρ ∧ r ∈ g.rules ∧ r.lhs = A ∧ r.consume = some f ∧
+          r.rhs = [IRhsSymbol.nonterminal B none] ∧ g.IsNullable B ρ) := by
+  constructor
+  · exact isNullable_cases_flagsSeparated hfs
+  · intro h
+    rcases h with hnone_empty | hnone_nonempty | hsome
+    · rcases hnone_empty with ⟨r, hr, hlhs, hconsume, hrhs⟩
+      apply isNullable_of_rule_derives_empty_none (g := g) (r := r) (A := A)
+        (σ := σ) hr hlhs hconsume
+      rw [hrhs]
+      exact g.deri_self []
+    · rcases hnone_nonempty with ⟨r, hr, hlhs, hconsume, _hrhs_ne, hall⟩
+      exact isNullable_of_rule_all_nullable_none hr hlhs hconsume hall
+    · rcases hsome with ⟨f, ρ, r, B, hσ, hr, hlhs, hconsume, hrhs, hB⟩
+      rw [hσ]
+      exact isNullable_of_pop_rule_nullable_child hr hlhs hconsume hrhs hB
+
+/-- Empty-stack specialization of the flag-separated nullability equations. -/
+theorem isNullable_nil_iff_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) {A : g.nt} :
+    g.IsNullable A [] ↔
+      (∃ r : IRule T g.nt g.flag,
+        r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs = []) ∨
+      (∃ r : IRule T g.nt g.flag,
+        r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs ≠ [] ∧
+          ∀ s ∈ r.rhs, ∃ B : g.nt, ∃ push : Option g.flag,
+            s = IRhsSymbol.nonterminal B push ∧
+              g.IsNullable B (match push with | none => [] | some f => [f])) := by
+  rw [isNullable_flagsSeparated_iff (g := g) hfs]
+  constructor
+  · intro h
+    rcases h with hnone_empty | hnone_nonempty | hsome
+    · exact Or.inl hnone_empty
+    · exact Or.inr hnone_nonempty
+    · rcases hsome with ⟨f, ρ, r, B, hnil, _hr, _hlhs, _hconsume, _hrhs, _hB⟩
+      cases hnil
+  · intro h
+    rcases h with hnone_empty | hnone_nonempty
+    · exact Or.inl hnone_empty
+    · exact Or.inr (Or.inl hnone_nonempty)
+
+/-- Nonempty-stack specialization of the flag-separated nullability equations. -/
+theorem isNullable_cons_iff_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) {A : g.nt} {f : g.flag} {ρ : List g.flag} :
+    g.IsNullable A (f :: ρ) ↔
+      (∃ r : IRule T g.nt g.flag,
+        r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs = []) ∨
+      (∃ r : IRule T g.nt g.flag,
+        r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs ≠ [] ∧
+          ∀ s ∈ r.rhs, ∃ B : g.nt, ∃ push : Option g.flag,
+            s = IRhsSymbol.nonterminal B push ∧
+              g.IsNullable B
+                (match push with | none => f :: ρ | some f' => f' :: f :: ρ)) ∨
+      (∃ r : IRule T g.nt g.flag, ∃ B : g.nt,
+        r ∈ g.rules ∧ r.lhs = A ∧ r.consume = some f ∧
+          r.rhs = [IRhsSymbol.nonterminal B none] ∧ g.IsNullable B ρ) := by
+  rw [isNullable_flagsSeparated_iff (g := g) hfs]
+  constructor
+  · intro h
+    rcases h with hnone_empty | hnone_nonempty | hsome
+    · exact Or.inl hnone_empty
+    · exact Or.inr (Or.inl hnone_nonempty)
+    · rcases hsome with ⟨f', ρ', r, B, hstack, hr, hlhs, hconsume, hrhs, hB⟩
+      cases hstack
+      exact Or.inr (Or.inr ⟨r, B, hr, hlhs, hconsume, hrhs, hB⟩)
+  · intro h
+    rcases h with hnone_empty | hnone_nonempty | hsome
+    · exact Or.inl hnone_empty
+    · exact Or.inr (Or.inl hnone_nonempty)
+    · rcases hsome with ⟨r, B, hr, hlhs, hconsume, hrhs, hB⟩
+      exact Or.inr (Or.inr ⟨f, ρ, r, B, rfl, hr, hlhs, hconsume, hrhs, hB⟩)
+
 /-- An explicit rule `A → ε` makes `A` nullable at every stack. -/
 theorem isNullable_of_empty_rule_none {g : IndexedGrammar T}
     {r : IRule T g.nt g.flag} {A : g.nt} (hr : r ∈ g.rules)
@@ -1461,6 +1631,239 @@ theorem isNullable_of_empty_rule_some {g : IndexedGrammar T}
     simp
   · rw [hrhs]
     simp [expandRhs]
+
+/-- The semantic set of nullable stacked nonterminals. -/
+def NullableSet (g : IndexedGrammar T) : Set (g.nt × List g.flag) :=
+  {p | g.IsNullable p.1 p.2}
+
+/-- One algebraic unfolding of stack-sensitive nullability for flag-separated grammars. -/
+def NullableStep (g : IndexedGrammar T) (X : Set (g.nt × List g.flag)) :
+    Set (g.nt × List g.flag) :=
+  {p |
+    (∃ r : IRule T g.nt g.flag,
+      r ∈ g.rules ∧ r.lhs = p.1 ∧ r.consume = none ∧ r.rhs = []) ∨
+    (∃ r : IRule T g.nt g.flag,
+      r ∈ g.rules ∧ r.lhs = p.1 ∧ r.consume = none ∧ r.rhs ≠ [] ∧
+        ∀ s ∈ r.rhs, ∃ B : g.nt, ∃ push : Option g.flag,
+          s = IRhsSymbol.nonterminal B push ∧
+            (B, match push with | none => p.2 | some f => f :: p.2) ∈ X) ∨
+    (∃ f : g.flag, ∃ ρ : List g.flag, ∃ r : IRule T g.nt g.flag, ∃ B : g.nt,
+      p.2 = f :: ρ ∧ r ∈ g.rules ∧ r.lhs = p.1 ∧ r.consume = some f ∧
+        r.rhs = [IRhsSymbol.nonterminal B none] ∧ (B, ρ) ∈ X)}
+
+theorem nullableStep_mono {g : IndexedGrammar T}
+    {X Y : Set (g.nt × List g.flag)} (hXY : X ⊆ Y) :
+    g.NullableStep X ⊆ g.NullableStep Y := by
+  intro p hp
+  rcases hp with hnone_empty | hnone_nonempty | hsome
+  · exact Or.inl hnone_empty
+  · rcases hnone_nonempty with ⟨r, hr, hlhs, hconsume, hrhs_ne, hall⟩
+    exact Or.inr (Or.inl ⟨r, hr, hlhs, hconsume, hrhs_ne, fun s hs => by
+      rcases hall s hs with ⟨B, push, hsym, hmem⟩
+      exact ⟨B, push, hsym, hXY hmem⟩⟩)
+  · rcases hsome with ⟨f, ρ, r, B, hstack, hr, hlhs, hconsume, hrhs, hmem⟩
+    exact Or.inr (Or.inr ⟨f, ρ, r, B, hstack, hr, hlhs, hconsume, hrhs, hXY hmem⟩)
+
+theorem nullableStep_sound {g : IndexedGrammar T}
+    {X : Set (g.nt × List g.flag)}
+    (hX : ∀ A : g.nt, ∀ σ : List g.flag, (A, σ) ∈ X → g.IsNullable A σ) :
+    g.NullableStep X ⊆ g.NullableSet := by
+  intro p hp
+  rcases p with ⟨A, σ⟩
+  change
+    (∃ r : IRule T g.nt g.flag,
+      r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs = []) ∨
+    (∃ r : IRule T g.nt g.flag,
+      r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs ≠ [] ∧
+        ∀ s ∈ r.rhs, ∃ B : g.nt, ∃ push : Option g.flag,
+          s = IRhsSymbol.nonterminal B push ∧
+            (B, match push with | none => σ | some f => f :: σ) ∈ X) ∨
+    (∃ f : g.flag, ∃ ρ : List g.flag, ∃ r : IRule T g.nt g.flag, ∃ B : g.nt,
+      σ = f :: ρ ∧ r ∈ g.rules ∧ r.lhs = A ∧ r.consume = some f ∧
+        r.rhs = [IRhsSymbol.nonterminal B none] ∧ (B, ρ) ∈ X) at hp
+  change g.IsNullable A σ
+  rcases hp with hnone_empty | hnone_nonempty | hsome
+  · rcases hnone_empty with ⟨r, hr, hlhs, hconsume, hrhs⟩
+    exact isNullable_of_empty_rule_none hr hlhs hconsume hrhs σ
+  · rcases hnone_nonempty with ⟨r, hr, hlhs, hconsume, _hrhs_ne, hall⟩
+    apply isNullable_of_rule_all_nullable_none hr hlhs hconsume
+    intro s hs
+    rcases hall s hs with ⟨B, push, hsym, hmem⟩
+    cases push with
+    | none =>
+        exact ⟨B, none, hsym, hX B σ hmem⟩
+    | some f =>
+        exact ⟨B, some f, hsym, hX B (f :: σ) hmem⟩
+  · rcases hsome with ⟨f, ρ, r, B, hstack, hr, hlhs, hconsume, hrhs, hmem⟩
+    rw [hstack]
+    exact isNullable_of_pop_rule_nullable_child hr hlhs hconsume hrhs (hX B ρ hmem)
+
+theorem nullableSet_subset_step_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) :
+    g.NullableSet ⊆ g.NullableStep g.NullableSet := by
+  intro p hp
+  rcases p with ⟨A, σ⟩
+  change g.IsNullable A σ at hp
+  have hcases := (isNullable_flagsSeparated_iff (g := g) hfs (A := A) (σ := σ)).mp hp
+  simpa [NullableStep, NullableSet] using hcases
+
+theorem nullableStep_subset_nullableSet {g : IndexedGrammar T} :
+    g.NullableStep g.NullableSet ⊆ g.NullableSet := by
+  exact nullableStep_sound (g := g) (X := g.NullableSet) (fun A σ h => h)
+
+theorem nullableSet_fixedPoint_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) :
+    g.NullableStep g.NullableSet = g.NullableSet := by
+  apply Set.Subset.antisymm
+  · exact nullableStep_subset_nullableSet (g := g)
+  · exact nullableSet_subset_step_flagsSeparated hfs
+
+/-- Finite unfoldings of the nullability equations, starting from no nullable states. -/
+def NullableApprox (g : IndexedGrammar T) : ℕ → Set (g.nt × List g.flag)
+  | 0 => ∅
+  | n + 1 => g.NullableStep (g.NullableApprox n)
+
+theorem nullableApprox_sound (g : IndexedGrammar T) :
+    ∀ n : ℕ, g.NullableApprox n ⊆ g.NullableSet := by
+  intro n
+  induction n with
+  | zero =>
+      intro p hp
+      simp [NullableApprox] at hp
+  | succ n ih =>
+      exact nullableStep_sound (g := g) (X := g.NullableApprox n)
+        (fun A σ h => ih h)
+
+theorem nullableApprox_mono_succ (g : IndexedGrammar T) :
+    ∀ n : ℕ, g.NullableApprox n ⊆ g.NullableApprox (n + 1) := by
+  intro n
+  induction n with
+  | zero =>
+      intro p hp
+      simp [NullableApprox] at hp
+  | succ n ih =>
+      exact nullableStep_mono (g := g) ih
+
+theorem nullableApprox_mono (g : IndexedGrammar T) {m n : ℕ} (hmn : m ≤ n) :
+    g.NullableApprox m ⊆ g.NullableApprox n := by
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le hmn
+  induction k with
+  | zero =>
+      intro p hp
+      simpa using hp
+  | succ k ih =>
+      intro p hp
+      have hsucc :
+          g.NullableApprox (m + k) ⊆ g.NullableApprox (m + (k + 1)) := by
+        simpa [Nat.add_assoc] using nullableApprox_mono_succ g (m + k)
+      exact hsucc (ih (by omega) hp)
+
+theorem nullableApprox_complete_of_derivesIn_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) :
+    ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag,
+      g.DerivesIn n [ISym.indexed A σ] [] →
+        (A, σ) ∈ g.NullableApprox (n + 1) := by
+  intro n
+  refine Nat.strong_induction_on n ?_
+  intro n ih A σ hder
+  cases n with
+  | zero =>
+      simp at hder
+  | succ n =>
+      have hsplitInput :
+          g.DerivesIn (1 + n) [ISym.indexed A σ] [] := by
+        simpa [Nat.add_comm] using hder
+      rcases derivesIn_split (g := g) (m := 1) (n := n) hsplitInput with
+        ⟨mid, hfirst, hrest⟩
+      rcases hfirst with ⟨x, hx0, hstep⟩
+      have hx : x = [ISym.indexed A σ] := by
+        simpa using hx0.symm
+      subst x
+      rcases hstep with ⟨r, u, v, ρ, hr, hsource, htarget⟩
+      cases hc : r.consume with
+      | none =>
+          rw [hc] at hsource
+          rcases singleton_indexed_eq_context hsource with ⟨hu, hv, hA, hσ⟩
+          subst u
+          subst v
+          subst A
+          subst σ
+          have hmid : mid = g.expandRhs r.rhs ρ := by
+            simpa using htarget
+          subst mid
+          have hrest' : g.DerivesIn n (g.expandRhs r.rhs ρ) [] := by
+            simpa using hrest
+          change (r.lhs, ρ) ∈ g.NullableStep (g.NullableApprox (n + 1))
+          by_cases hrhs : r.rhs = []
+          · exact Or.inl ⟨r, hr, rfl, hc, hrhs⟩
+          · refine Or.inr (Or.inl ⟨r, hr, rfl, hc, hrhs, ?_⟩)
+            intro s hs
+            cases s with
+            | terminal t =>
+                have hmem : (ISym.terminal t : g.ISym) ∈ g.expandRhs r.rhs ρ :=
+                  terminal_mem_expandRhs_of_mem (g := g) (σ := ρ) hs
+                obtain ⟨m, _hmn, hsingle⟩ :=
+                  derivesIn_nil_of_mem (g := g) hrest' hmem
+                exact False.elim
+                  (not_derives_nil_of_terminal_mem (g := g)
+                    (w := [ISym.terminal t]) (t := t) (by simp)
+                    (derives_of_derivesIn (g := g) hsingle))
+            | nonterminal B push =>
+                refine ⟨B, push, rfl, ?_⟩
+                obtain ⟨m, hmn, hchild⟩ :=
+                  derivesIn_nil_of_expandRhs_nonterminal_mem
+                    (g := g) (n := n) (rhs := r.rhs) (σ := ρ) hrest' hs
+                cases push with
+                | none =>
+                    have hchildApprox :
+                        (B, ρ) ∈ g.NullableApprox (m + 1) :=
+                      ih m (by omega) B ρ (by simpa using hchild)
+                    exact nullableApprox_mono g (by omega) hchildApprox
+                | some f =>
+                    have hchildApprox :
+                        (B, f :: ρ) ∈ g.NullableApprox (m + 1) :=
+                      ih m (by omega) B (f :: ρ) (by simpa using hchild)
+                    exact nullableApprox_mono g (by omega) hchildApprox
+      | some f =>
+          rw [hc] at hsource
+          rcases singleton_indexed_eq_context hsource with ⟨hu, hv, hA, hσ⟩
+          subst u
+          subst v
+          subst A
+          subst σ
+          have hmid : mid = g.expandRhs r.rhs ρ := by
+            simpa using htarget
+          subst mid
+          have hrest' : g.DerivesIn n (g.expandRhs r.rhs ρ) [] := by
+            simpa using hrest
+          have hsomeFlag : r.consume.isSome := by
+            simp [hc]
+          rcases (hfs r hr).1 hsomeFlag with ⟨B, hrhs⟩
+          have hchild : g.DerivesIn n [ISym.indexed B ρ] [] := by
+            simpa [hrhs, expandRhs] using hrest'
+          have hchildApprox : (B, ρ) ∈ g.NullableApprox (n + 1) :=
+            ih n (by omega) B ρ hchild
+          change (r.lhs, f :: ρ) ∈ g.NullableStep (g.NullableApprox (n + 1))
+          exact Or.inr (Or.inr ⟨f, ρ, r, B, rfl, hr, rfl, hc, hrhs, hchildApprox⟩)
+
+theorem nullableSet_subset_iUnion_nullableApprox_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) :
+    g.NullableSet ⊆ {p : g.nt × List g.flag | ∃ n : ℕ, p ∈ g.NullableApprox n} := by
+  intro p hp
+  rcases p with ⟨A, σ⟩
+  change g.IsNullable A σ at hp
+  obtain ⟨n, hder⟩ := exists_derivesIn_of_derives (g := g) hp
+  exact ⟨n + 1, nullableApprox_complete_of_derivesIn_flagsSeparated
+    (g := g) hfs n A σ hder⟩
+
+theorem nullableSet_eq_iUnion_nullableApprox_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) :
+    g.NullableSet = {p : g.nt × List g.flag | ∃ n : ℕ, p ∈ g.NullableApprox n} := by
+  apply Set.Subset.antisymm
+  · exact nullableSet_subset_iUnion_nullableApprox_flagsSeparated hfs
+  · intro p hp
+    rcases hp with ⟨n, hn⟩
+    exact nullableApprox_sound g n hn
 
 /-- A grammar is ε-free exactly when no stacked nonterminal is nullable. -/
 theorem noEpsilon_iff_no_isNullable {g : IndexedGrammar T} :
