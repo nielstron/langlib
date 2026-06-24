@@ -4,7 +4,6 @@ public import Langlib.Automata.LinearBounded.Equivalence.ContextSensitive
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.Indexed.Basics.FiniteSupport
-public import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
 public import Langlib.Grammars.Indexed.NormalForm.BoundedStackGrammar
 public import Langlib.Grammars.Indexed.NormalForm.Shrinking
 @[expose]
@@ -106,16 +105,7 @@ public theorem is_Indexed_noEpsilon_diff_empty {L : Language T}
     (hL : is_Indexed L) :
     is_Indexed_noEpsilon (L \ ({[]} : Set (List T))) := by
   obtain ⟨g, hg_lang⟩ := hL
-  obtain ⟨g₀, _hg₀_ti, hg₀_fs, _hg₀_fresh_of, hg₀_lang⟩ :=
-    g.exists_terminalIsolated_flagsSeparated_all
-  let gf := g₀.toFiniteSupport
-  haveI : Fintype gf.nt := by
-    dsimp [gf]
-    infer_instance
-  have hgf_fs : gf.FlagsSeparated := by
-    simpa [gf] using g₀.toFiniteSupport_flagsSeparated hg₀_fs
-  obtain ⟨g', hne', hlang'⟩ :=
-    IndexedGrammar.exists_noEpsilon_of_fintype_flagsSeparated (g := gf) hgf_fs
+  obtain ⟨g', hne', hlang'⟩ := g.exists_noEpsilon_preserving_nonempty
   refine ⟨g', hne', ?_⟩
   ext w
   by_cases hw : w = []
@@ -125,13 +115,8 @@ public theorem is_Indexed_noEpsilon_diff_empty {L : Language T}
       exact False.elim (g'.not_generates_nil_of_noEpsilon hne' hgen)
     · intro hwL
       exact False.elim (hwL.2 (by simp))
-  · have hgf_lang : gf.Language = g₀.Language := by
-      simpa [gf] using IndexedGrammar.toFiniteSupport_language g₀
-    have hgf_gen : gf.Generates w ↔ g₀.Generates w := by
-      change w ∈ gf.Language ↔ w ∈ g₀.Language
-      rw [hgf_lang]
-    change g'.Generates w ↔ w ∈ L ∧ w ∉ ({[]} : Set (List T))
-    rw [hlang' w hw, hgf_gen, hg₀_lang w]
+  · change g'.Generates w ↔ w ∈ L ∧ w ∉ ({[]} : Set (List T))
+    rw [hlang' w hw]
     change w ∈ g.Language ↔ w ∈ L ∧ w ∉ ({[]} : Set (List T))
     rw [hg_lang]
     constructor
@@ -146,9 +131,21 @@ public theorem is_CS_of_is_Indexed_of_finite_normalForm_core [Inhabited T]
     (hcore : ∀ {A : Type} [Fintype A] [DecidableEq A] [Inhabited A]
       (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
       g.IsNormalForm → is_CS g.Language) {L : Language T}
-    (hL : is_Indexed L) : is_CS L :=
-  is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_core
-    hcore (is_Indexed_noEpsilon_diff_empty hL)
+    (hL : is_Indexed L) : is_CS L := by
+  obtain ⟨A, hA, hAdec, hAinh, f, g, hnt, hflag, hdec, hNF, hmap⟩ :=
+    is_Indexed_exists_fintype_normalForm_nonempty_image (L := L) hL
+  haveI := hA
+  haveI := hAdec
+  haveI := hAinh
+  haveI := hnt
+  haveI := hflag
+  haveI := hdec
+  have hCSg : is_CS g.Language := hcore g hNF
+  have hImage : is_CS (g.Language.homomorphicImage fun a => [f a]) :=
+    is_CS_homomorphicImage_epsfree g.Language (fun a => [f a]) (fun _ => by simp) hCSg
+  rw [Language.homomorphicImage, Language.subst_singletons_eq_map] at hImage
+  rw [hmap] at hImage
+  exact is_CS_of_diff_empty_of_is_CS hImage
 
 /-- LBA-core variant of `is_CS_of_is_Indexed_of_finite_normalForm_core`. -/
 public theorem is_CS_of_is_Indexed_of_finite_normalForm_LBA_core [Inhabited T]

@@ -122,4 +122,92 @@ public theorem is_Indexed_noEpsilon_exists_fintype_normalForm_image [Inhabited T
     · intro h
       cases h
 
+/-- Every indexed language has a finite-alphabet, finite-support, normal-form indexed
+grammar for its nonempty part. This is the class-level arbitrary-ε normal-form theorem:
+normal-form grammars are ε-free, so the empty word is handled separately by downstream
+context-sensitive closure lemmas. -/
+public theorem is_Indexed_exists_fintype_normalForm_nonempty_image [Inhabited T]
+    {L : Language T} (hL : is_Indexed L) :
+    ∃ (A : Type) (_ : Fintype A) (_ : DecidableEq A) (_ : Inhabited A)
+      (f : A → T) (g : IndexedGrammar A),
+      ∃ _ : Fintype g.nt, ∃ _ : Fintype g.flag, ∃ _ : DecidableEq g.nt,
+        g.IsNormalForm ∧ Language.map f g.Language = L \ ({[]} : Set (List T)) := by
+  classical
+  obtain ⟨S, L', hL', hmap⟩ :=
+    is_Indexed_exists_finiteAlphabet_Indexed_image (L := L) hL
+  by_cases hS : Nonempty {t : T // t ∈ S}
+  · haveI : Inhabited {t : T // t ∈ S} := ⟨Classical.choice hS⟩
+    obtain ⟨g, hlang⟩ := hL'
+    obtain ⟨g', hnt, hflag, hdec, hNF, hgen⟩ :=
+      g.exists_finiteSupport_normalForm_nonempty
+    refine ⟨{t : T // t ∈ S}, inferInstance, inferInstance, inferInstance,
+      (fun t => t.1), g', hnt, hflag, hdec, hNF, ?_⟩
+    ext w
+    constructor
+    · rintro ⟨u, hgu, hwu⟩
+      haveI := hdec
+      have hu_ne : u ≠ [] := by
+        intro hu
+        have hnil : g'.Generates [] := by simpa [hu] using hgu
+        exact (g'.not_generates_nil_of_noEpsilon
+          (g'.noEpsilon_of_isNormalForm hNF)) hnil
+      have huL' : u ∈ L' := by
+        rw [← hlang]
+        exact (hgen u hu_ne).mp hgu
+      have hwL : w ∈ L := by
+        rw [← hmap]
+        exact ⟨u, huL', hwu⟩
+      have hw_ne : w ≠ [] := by
+        intro hw
+        have hu_nil : u = [] := by
+          cases u with
+          | nil => rfl
+          | cons a rest =>
+              have hlen := congrArg List.length hwu
+              simp [hw] at hlen
+        exact hu_ne hu_nil
+      exact ⟨hwL, by simpa [Set.mem_singleton_iff] using hw_ne⟩
+    · intro hw
+      rcases hw with ⟨hwL, hw_ne_empty⟩
+      have hwMap : w ∈ Language.map (fun t : {t : T // t ∈ S} => t.1) L' := by
+        rw [hmap]
+        exact hwL
+      rcases hwMap with ⟨u, huL', hwu⟩
+      have hu_ne : u ≠ [] := by
+        intro hu
+        apply hw_ne_empty
+        simpa [hu] using hwu.symm
+      have hgu : g.Generates u := by
+        change u ∈ g.Language
+        rw [hlang]
+        exact huL'
+      exact ⟨u, (hgen u hu_ne).mpr hgu, hwu⟩
+  · have hL_nonempty_empty : L \ ({[]} : Set (List T)) = (0 : Language T) := by
+      ext w
+      constructor
+      · intro hw
+        rcases hw with ⟨hwL, hw_ne_empty⟩
+        have hwMap : w ∈ Language.map (fun t : {t : T // t ∈ S} => t.1) L' := by
+          rw [hmap]
+          exact hwL
+        rcases hwMap with ⟨u, _huL', hwu⟩
+        cases u with
+        | nil =>
+            exact False.elim (hw_ne_empty (by simpa using hwu.symm))
+        | cons a rest =>
+            exact False.elim (hS ⟨a⟩)
+      · intro h
+        cases h
+    refine ⟨PUnit, inferInstance, inferInstance, inferInstance, (fun _ => default),
+      IndexedGrammar.emptyGrammar PUnit, inferInstance, inferInstance,
+      IndexedGrammar.emptyGrammar_nt_decidableEq PUnit,
+      IndexedGrammar.emptyGrammar_isNormalForm PUnit, ?_⟩
+    rw [IndexedGrammar.emptyGrammar_language, hL_nonempty_empty]
+    ext w
+    constructor
+    · rintro ⟨u, hu, hwu⟩
+      cases hu
+    · intro h
+      cases h
+
 end

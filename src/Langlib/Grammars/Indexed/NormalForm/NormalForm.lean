@@ -29,6 +29,8 @@ and the start symbol does not appear on the right-hand side of any production.
 - `IndexedGrammar.exists_normalForm_all` — every ε-free indexed grammar has an equivalent
   grammar in normal form
 - `IndexedGrammar.exists_normalForm` — compatibility wrapper for non-empty words
+- `IndexedGrammar.exists_finiteSupport_normalForm_nonempty` — every indexed grammar has a
+  finite-support normal-form grammar preserving all non-empty words
 
 ## Proof outline
 
@@ -90,6 +92,33 @@ theorem exists_noEpsilon_of_exists_noEpsilon_terminalIsolated_flagsSeparated
   obtain ⟨g', hne', hfresh', hlang'⟩ := helim g₀ hg₀_ti hg₀_fs
   exact ⟨g', hne', fun hfresh => hfresh' (hg₀_fresh_of hfresh), fun w hw => by
     rw [hlang' w hw, hg₀_lang w]⟩
+
+/-- Every indexed grammar has an ε-free grammar preserving all non-empty generated words.
+
+The construction first makes the grammar flag-separated, restricts to finite support, and
+then applies the exact finite nullable-summary ε-elimination. -/
+theorem exists_noEpsilon_preserving_nonempty (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧
+      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, _hg₀_ti, hg₀_fs, _hg₀_fresh_of, hg₀_lang⟩ :=
+    g.exists_terminalIsolated_flagsSeparated_all
+  let gf := g₀.toFiniteSupport
+  haveI : Fintype gf.nt := by
+    dsimp [gf]
+    infer_instance
+  have hgf_fs : gf.FlagsSeparated := by
+    simpa [gf] using g₀.toFiniteSupport_flagsSeparated hg₀_fs
+  obtain ⟨g', hne', hlang'⟩ :=
+    IndexedGrammar.exists_noEpsilon_of_fintype_flagsSeparated (g := gf) hgf_fs
+  refine ⟨g', hne', ?_⟩
+  intro w hw
+  have hgf_lang : gf.Language = g₀.Language := by
+    simpa [gf] using IndexedGrammar.toFiniteSupport_language g₀
+  have hgf_gen : gf.Generates w ↔ g₀.Generates w := by
+    change w ∈ gf.Language ↔ w ∈ g₀.Language
+    rw [hgf_lang]
+  rw [hlang' w hw, hgf_gen, hg₀_lang w]
 
 /-- Normal-form theorem for ε-free indexed grammars. For every indexed grammar `g`
 with no ε-productions, there exists an indexed grammar `g'` in normal form such that
@@ -157,5 +186,18 @@ theorem exists_finiteSupport_normalForm [Inhabited T] (g : IndexedGrammar T)
         ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
   obtain ⟨g', hnt, hflag, hdec, hNF, hlang⟩ := g.exists_finiteSupport_normalForm_all hne
   exact ⟨g', hnt, hflag, hdec, hNF, fun w _ => hlang w⟩
+
+/-- Every indexed grammar has a finite-support normal-form grammar preserving all non-empty
+generated words. The empty word is intentionally omitted: normal-form grammars are ε-free. -/
+theorem exists_finiteSupport_normalForm_nonempty [Inhabited T] (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T, ∃ _ : Fintype g'.nt, ∃ _ : Fintype g'.flag,
+      ∃ _ : DecidableEq g'.nt, g'.IsNormalForm ∧
+        ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, hg₀_ne, hg₀_lang⟩ := g.exists_noEpsilon_preserving_nonempty
+  obtain ⟨g', hnt, hflag, hdec, hNF, hlang⟩ :=
+    g₀.exists_finiteSupport_normalForm hg₀_ne
+  refine ⟨g', hnt, hflag, hdec, hNF, ?_⟩
+  intro w hw
+  rw [hlang w hw, hg₀_lang w hw]
 
 end IndexedGrammar
