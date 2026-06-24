@@ -1253,6 +1253,24 @@ def flatTrace {g : IndexedGrammar T}
     (flatTrace trace).length = trace.length := by
   simp [flatTrace]
 
+@[simp] theorem flatTrace_head? {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    (flatTrace trace).head? = trace.head?.map encodeSentential := by
+  cases trace <;> rfl
+
+@[simp] theorem flatTrace_getLast? {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    (flatTrace trace).getLast? = trace.getLast?.map encodeSentential := by
+  induction trace with
+  | nil =>
+      rfl
+  | cons w trace ih =>
+      cases trace with
+      | nil =>
+          rfl
+      | cons w' trace =>
+          simpa using ih
+
 theorem flatTrace_get {g : IndexedGrammar T}
     (trace : List (List g.ISym)) {i : ℕ} (hi : i < trace.length) :
     (flatTrace trace).get ⟨i, by simpa using hi⟩ =
@@ -2600,6 +2618,20 @@ theorem isDerivationTrace_get_transform {g : IndexedGrammar T}
               have hi_tail : i + 1 < (b :: rest).length := by
                 simpa using hi
               simpa using ih htrace.2 hi_tail
+
+theorem flatTrace_get_flatTransforms_of_isDerivationTrace {g : IndexedGrammar T}
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace) {i : ℕ}
+    (hi : i + 1 < (flatTrace trace).length) :
+    FlatTransforms g
+      ((flatTrace trace).get ⟨i, by omega⟩)
+      ((flatTrace trace).get ⟨i + 1, hi⟩) := by
+  have hiTrace : i + 1 < trace.length := by
+    simpa using hi
+  have hi0 : i < trace.length := by omega
+  rw [flatTrace_get trace hi0, flatTrace_get trace hiTrace]
+  exact flatTransforms_encodeSentential_iff.mpr
+    (isDerivationTrace_get_transform htrace hiTrace)
 
 theorem isDerivationTrace_derivesIn_from_head_get {g : IndexedGrammar T}
     {trace : List (List g.ISym)} {w₁ : List g.ISym}

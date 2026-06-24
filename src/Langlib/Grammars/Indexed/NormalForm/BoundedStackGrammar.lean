@@ -861,6 +861,48 @@ theorem exists_flatLengthBounded_accepting_isDerivationTrace_of_stackBoundedDeri
   exact ⟨trace, htrace, hlen, hhead, hlast, hstack,
     fun i hi => le_trans (hflat i hi) (Nat.mul_le_mul_right (B + 2) hwlen)⟩
 
+theorem exists_bounded_accepting_flatTrace_of_stackBoundedDerivesIn_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B L n : ℕ} {w : List T} (hwlen : w.length ≤ L)
+    (h : StackBoundedDerivesIn g B n [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ trace : List (List g.ISym),
+    ∃ ftrace : List (List (FlatSymbol T g.nt g.flag)),
+      IsDerivationTrace g trace ∧
+      ftrace = flatTrace trace ∧
+      ftrace.length = n + 1 ∧
+      ftrace.head? =
+        some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+      ftrace.getLast? =
+        some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+      (∀ i : Fin ftrace.length,
+        ftrace.get i ∈ boundedFlatForms g (L * (B + 2))) ∧
+      (∀ i : ℕ, ∀ hi : i + 1 < ftrace.length,
+        FlatTransforms g
+          (ftrace.get ⟨i, by omega⟩)
+          (ftrace.get ⟨i + 1, hi⟩)) ∧
+      FlatDerives g
+        (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+        (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) := by
+  obtain ⟨trace, htrace, hlen, hhead, hlast, _hstack, hflat⟩ :=
+    exists_flatLengthBounded_accepting_isDerivationTrace_of_stackBoundedDerivesIn_isNormalForm
+      hNF hwlen h
+  refine ⟨trace, flatTrace trace, htrace, rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simpa [flatTrace_length] using hlen
+  · simp [hhead]
+  · simp [hlast]
+  · intro i
+    have hiTrace : i.1 < trace.length := by
+      simpa [flatTrace_length] using i.2
+    rw [flatTrace_get trace hiTrace]
+    exact hflat i.1 hiTrace
+  · intro i hi
+    exact flatTrace_get_flatTransforms_of_isDerivationTrace htrace hi
+  · have hder :=
+      flatDerives_encode_of_isDerivationTrace_head_last
+        (g := g) htrace hhead hlast
+    simpa using hder
+
 theorem stackBoundedDerivesIn_one_of_transforms {g : IndexedGrammar T}
     {B : ℕ} {w₁ w₂ : List g.ISym}
     (hstep : g.Transforms w₁ w₂)
