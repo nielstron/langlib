@@ -8845,4 +8845,75 @@ theorem exists_uniform_boundedStackGrammar_generates_of_length_le_isNormalForm
     Finset.le_sup (s := Set.Finite.toFinset hS) (f := boundOf) hmem
   exact boundedStackGrammar_language_mono (g := g) hle w (hboundOf w hwS)
 
+/-- If shortest accepting derivations for all generated targets of length at most `L` are
+bounded by `N`, then one fixed bounded-stack grammar captures the original normal-form
+language exactly on that whole terminal ball.
+
+This is the finite-ball form needed by the remaining simulator: the only open input is the
+uniform shortest-derivation bound `hbudget`; the stack bound is then produced by the existing
+shrinking construction and is independent of the particular target word. -/
+theorem exists_bound_boundedStackGrammar_language_eq_on_length_le_of_minimal_derivesIn_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ)
+    (hbudget : ∀ target : List T,
+      target.length ≤ L →
+      g.Generates target →
+      ∀ n : ℕ,
+        g.DerivesIn n [ISym.indexed g.initial []]
+          (target.map fun a => (ISym.terminal a : g.ISym)) →
+        (∀ m : ℕ,
+          g.DerivesIn m [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) →
+        n ≤ N) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        target ∈ grammar_language (boundedStackGrammar g B)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_boundedStackGrammar_generates_of_minimal_derivesIn_target_length_budget
+      (g := g) hNF N L
+  refine ⟨N + K + N, ?_⟩
+  intro target htargetLen
+  constructor
+  · intro hgen
+    obtain ⟨n, hder, hmin⟩ := exists_minimal_derivesIn_of_generates (g := g) hgen
+    exact hK target htargetLen n hder hmin
+      (hbudget target htargetLen hgen n hder hmin)
+  · intro hbounded
+    exact boundedStackGrammar_language_subset_language
+      (g := g) (B := N + K + N) target hbounded
+
+/-- Flat-path analogue of
+`exists_bound_boundedStackGrammar_language_eq_on_length_le_of_minimal_derivesIn_bound`.
+Under a uniform shortest-derivation bound on the terminal ball of radius `L`, one finite flat
+search slice captures the normal-form language exactly on that ball. -/
+theorem exists_bound_boundedFlatPathLanguage_eq_on_length_le_of_minimal_derivesIn_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ)
+    (hbudget : ∀ target : List T,
+      target.length ≤ L →
+      g.Generates target →
+      ∀ n : ℕ,
+        g.DerivesIn n [ISym.indexed g.initial []]
+          (target.map fun a => (ISym.terminal a : g.ISym)) →
+        (∀ m : ℕ,
+          g.DerivesIn m [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) →
+        n ≤ N) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔ target ∈ boundedFlatPathLanguage g B) := by
+  obtain ⟨B, hB⟩ :=
+    exists_bound_boundedStackGrammar_language_eq_on_length_le_of_minimal_derivesIn_bound
+      (g := g) hNF N L hbudget
+  refine ⟨L * (B + 2), ?_⟩
+  intro target htargetLen
+  constructor
+  · intro hgen
+    exact boundedFlatPathLanguage_of_boundedStackGrammar_language_isNormalForm
+      (g := g) hNF (B := B) (L := L) htargetLen ((hB target htargetLen).mp hgen)
+  · intro hflat
+    exact boundedFlatPathLanguage_subset_language
+      (g := g) (B := L * (B + 2)) hflat
+
 end IndexedGrammar
