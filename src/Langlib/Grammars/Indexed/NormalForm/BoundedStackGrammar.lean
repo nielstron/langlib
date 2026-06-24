@@ -3628,6 +3628,49 @@ theorem exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix
       (g := g) hNF hpref hτlen hτder
   exact ⟨m, τ, hτsub, hτlen, hbounded, hτmin⟩
 
+/-- If a shortest accepting derivation has step count at most `N` and the target has length at
+most `L`, then every stack in its trace is already bounded by `N`. Consequently the shortest
+derivation has fewer steps than the finite surface space with stack bound `N`. -/
+theorem exists_bounded_accepting_trace_and_surface_bound_of_minimal_derivesIn_steps_le
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {N L : ℕ} :
+    ∀ target : List T,
+      target.length ≤ L →
+      ∀ n : ℕ,
+        g.DerivesIn n [ISym.indexed g.initial []]
+          (target.map fun a => (ISym.terminal a : g.ISym)) →
+        (∀ m,
+          g.DerivesIn m [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) →
+        n ≤ N →
+        ∃ trace : List (List g.ISym),
+          IsDerivationTrace g trace ∧
+          trace.length = n + 1 ∧
+          trace.head? = some [ISym.indexed g.initial []] ∧
+          trace.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          (∀ i (hi : i < trace.length),
+            sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ N) ∧
+          n < (Set.Finite.toFinset
+            (boundedSurfaceForms_finite g L N)).card := by
+  intro target htargetLen n hder hmin hnN
+  obtain ⟨trace, htrace, hlen, hhead, hlast⟩ :=
+    exists_isDerivationTrace_of_derivesIn hder
+  have hstack :
+      ∀ i (hi : i < trace.length),
+        sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ N := by
+    intro i hi
+    have hi_le_n : i ≤ n := by omega
+    exact le_trans
+      (accepting_derivationTrace_get_maxStackHeight_le_index_of_isNormalForm
+        hNF htrace hhead hi)
+      (le_trans hi_le_n hnN)
+  have hcard :=
+    minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_stackBound_lengthBound
+      (B := N) hNF htrace hlen hhead hlast hmin htargetLen hstack
+  refine ⟨trace, htrace, hlen, hhead, hlast, hstack, ?_⟩
+  omega
+
 /-- Length-uniform finite-search bound obtained from the current budgeted shrinking bridge.
 
 If a shortest accepting derivation has step count at most `N` and the target has length at
