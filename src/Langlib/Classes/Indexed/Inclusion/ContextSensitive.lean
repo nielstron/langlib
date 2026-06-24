@@ -72,59 +72,15 @@ any accepting bounded flat path is the terminal encoding of the input word and i
 inside `boundedFlatForms g B`, so the word length is at most `B`. -/
 public theorem finite_boundedFlatPath_language
     {A : Type} [Fintype A]
-    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] (B : ℕ) :
-    (({w : List A |
-      ∃ path : List (List (IndexedGrammar.FlatSymbol A g.nt g.flag)),
-        path.head? =
-          some (IndexedGrammar.encodeSentential
-            ([IndexedGrammar.ISym.indexed g.initial []] : List g.ISym)) ∧
-        path.getLast? =
-          some (w.map fun a =>
-            (IndexedGrammar.FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
-        (∀ i : Fin path.length,
-          path.get i ∈ IndexedGrammar.boundedFlatForms g B) ∧
-        ∀ i : ℕ, ∀ hi : i + 1 < path.length,
-          IndexedGrammar.FlatTransforms g
-            (path.get ⟨i, by omega⟩)
-            (path.get ⟨i + 1, hi⟩)} : Language A) : Set (List A)).Finite := by
-  classical
-  refine (List.finite_length_le A B).subset ?_
-  intro w hw
-  rcases hw with ⟨path, _hhead, hlast, hbound, _hstep⟩
-  have hlastMem :
-      w.map (fun a => IndexedGrammar.FlatSymbol.terminal (N := g.nt) (F := g.flag) a) ∈
-        path :=
-    List.mem_of_getLast? hlast
-  rcases List.mem_iff_get.mp hlastMem with ⟨i, hi⟩
-  have hflatBound := hbound i
-  have hflatLen : (path.get i).length ≤ B := by
-    simpa [IndexedGrammar.boundedFlatForms] using hflatBound
-  have hlen :
-      (w.map fun a =>
-        (IndexedGrammar.FlatSymbol.terminal (N := g.nt) (F := g.flag) a)).length ≤ B := by
-    rw [hi] at hflatLen
-    simpa using hflatLen
-  simpa using hlen
+    (g : IndexedGrammar A) (B : ℕ) :
+    ((IndexedGrammar.boundedFlatPathLanguage g B : Language A) : Set (List A)).Finite :=
+  IndexedGrammar.finite_boundedFlatPathLanguage g B
 
 /-- Every fixed bounded-flat-path language is context-sensitive, because it is finite. -/
 public theorem is_CS_boundedFlatPath_language
     {A : Type} [Fintype A]
-    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] (B : ℕ) :
-    is_CS
-      ({w : List A |
-        ∃ path : List (List (IndexedGrammar.FlatSymbol A g.nt g.flag)),
-          path.head? =
-            some (IndexedGrammar.encodeSentential
-              ([IndexedGrammar.ISym.indexed g.initial []] : List g.ISym)) ∧
-          path.getLast? =
-            some (w.map fun a =>
-              (IndexedGrammar.FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
-          (∀ i : Fin path.length,
-            path.get i ∈ IndexedGrammar.boundedFlatForms g B) ∧
-          ∀ i : ℕ, ∀ hi : i + 1 < path.length,
-            IndexedGrammar.FlatTransforms g
-              (path.get ⟨i, by omega⟩)
-              (path.get ⟨i + 1, hi⟩)} : Language A) :=
+    (g : IndexedGrammar A) (B : ℕ) :
+    is_CS (IndexedGrammar.boundedFlatPathLanguage g B) :=
   is_CS_of_finite_language (finite_boundedFlatPath_language (g := g) B)
 
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is

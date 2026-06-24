@@ -1605,6 +1605,61 @@ theorem exists_boundedFlatPath_initial_terminal_iff_generates {g : IndexedGramma
     exact generates_of_boundedFlatPath_initial_terminal hhead hlast hbound hstep
   · exact exists_boundedFlatPath_initial_terminal_of_generates
 
+/-- Words accepted by a flat indexed path whose every flat sentential form has length at
+most `B`. This is the fixed finite search slice used by the indexed-to-CS inclusion. -/
+def boundedFlatPathLanguage (g : IndexedGrammar T) (B : ℕ) : _root_.Language T :=
+  fun w : List T =>
+    ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? =
+        some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+      path.getLast? =
+        some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+      (∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B) ∧
+      ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+        FlatTransforms g
+          (path.get ⟨i, by omega⟩)
+          (path.get ⟨i + 1, hi⟩)
+
+theorem boundedFlatPathLanguage_subset_language
+    {g : IndexedGrammar T} {B : ℕ} {w : List T}
+    (h : w ∈ boundedFlatPathLanguage g B) :
+    w ∈ g.Language := by
+  rcases h with ⟨path, hhead, hlast, hbound, hstep⟩
+  exact generates_of_boundedFlatPath_initial_terminal hhead hlast hbound hstep
+
+theorem language_eq_iUnion_boundedFlatPathLanguage (g : IndexedGrammar T) :
+    g.Language = fun w : List T => ∃ B : ℕ, w ∈ boundedFlatPathLanguage g B := by
+  ext w
+  constructor
+  · intro hgen
+    obtain ⟨B, path, hhead, hlast, hbound, hstep⟩ :=
+      exists_boundedFlatPath_initial_terminal_of_generates (g := g) hgen
+    exact ⟨B, path, hhead, hlast, hbound, hstep⟩
+  · rintro ⟨B, hB⟩
+    exact boundedFlatPathLanguage_subset_language (g := g) (B := B) hB
+
+/-- Each fixed flat-path slice is finite as a language over words: the accepting terminal
+flat form is itself one of the bounded nodes, so the accepted word has length at most `B`. -/
+theorem finite_boundedFlatPathLanguage [Fintype T]
+    (g : IndexedGrammar T) (B : ℕ) :
+    ((boundedFlatPathLanguage g B : _root_.Language T) : Set (List T)).Finite := by
+  classical
+  refine (List.finite_length_le T B).subset ?_
+  intro w hw
+  rcases hw with ⟨path, _hhead, hlast, hbound, _hstep⟩
+  have hlastMem :
+      w.map (fun a => FlatSymbol.terminal (N := g.nt) (F := g.flag) a) ∈ path :=
+    List.mem_of_getLast? hlast
+  rcases List.mem_iff_get.mp hlastMem with ⟨i, hi⟩
+  have hflatBound := hbound i
+  have hflatLen : (path.get i).length ≤ B := by
+    simpa [boundedFlatForms] using hflatBound
+  have hlen :
+      (w.map fun a => FlatSymbol.terminal (N := g.nt) (F := g.flag) a).length ≤ B := by
+    rw [hi] at hflatLen
+    simpa using hflatLen
+  simpa using hlen
+
 theorem language_eq_exists_boundedFlatPath_initial_terminal (g : IndexedGrammar T) :
     g.Language =
       (fun w : List T =>
