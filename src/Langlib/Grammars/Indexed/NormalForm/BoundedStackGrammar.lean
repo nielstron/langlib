@@ -4552,6 +4552,70 @@ theorem exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix_b
   refine ⟨m, τ, hm_le, hτsub, hτlen, ?_⟩
   exact StackBoundedDerivesIn.mono_bound (by omega) hbounded
 
+/-- Certificate-side form of
+`exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix_budget`.
+Under a fixed live-prefix/step budget, the shrunken derivation has a parse certificate whose
+stack bound is uniform in the original derivation. -/
+theorem exists_stackBounded_certificate_of_derivesIn_target_length_bounded_prefix_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            pref.length + n ≤ N →
+            ∃ m : ℕ, ∃ τ : List g.flag,
+              m ≤ n ∧ τ.Sublist σ ∧ τ.length ≤ K ∧
+              NFYield.StackBounded g (N + K + N + N) A (pref ++ τ) w := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hbudget
+  obtain ⟨m, τ, hm_le, hτsub, hτlen, hbounded⟩ :=
+    hK target htargetLen pref hpref n A σ w hwt hder hbudget
+  have hcert0 :
+      NFYield.StackBounded g ((N + K + N) + m) A (pref ++ τ) w :=
+    NFYield.StackBounded.of_stackBoundedDerivesIn_isNormalForm
+      (g := g) hNF hbounded
+  have hcert :
+      NFYield.StackBounded g (N + K + N + N) A (pref ++ τ) w :=
+    NFYield.StackBounded.mono_bound (by omega) hcert0
+  exact ⟨m, τ, hm_le, hτsub, hτlen, hcert⟩
+
+/-- Initial-stack specialization of
+`exists_stackBounded_certificate_of_derivesIn_target_length_bounded_prefix_budget`. -/
+theorem exists_bound_initial_stackBounded_certificate_of_derivesIn_target_length_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n : ℕ,
+          g.DerivesIn n [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) →
+          n ≤ N →
+          NFYield.StackBounded g (N + K + N + N) g.initial [] target := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBounded_certificate_of_derivesIn_target_length_bounded_prefix_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n hder hn
+  obtain ⟨m, τ, _hm_le, hτsub, _hτlen, hcert⟩ :=
+    hK target htargetLen ([] : List g.flag) (by simp) n g.initial []
+      target (List.Sublist.refl target) hder (by simpa using hn)
+  have hτnil : τ = [] := by
+    apply List.eq_nil_of_length_eq_zero
+    have hlen : τ.length ≤ 0 := by
+      simpa using hτsub.length_le
+    omega
+  simpa [hτnil] using hcert
+
 /-- If the visible suffix is globally sublist-minimal for its prefixed nonterminal/yield, the
 length-uniform forced-pop bound controls the original stack directly. Combined with normal-form
 stack growth, this gives a bounded-stack derivation without replacing the suffix. -/
