@@ -856,6 +856,75 @@ theorem stackBoundedDerivesIn_trace_prefix
           (hbound i hiPrev) (hbound (i + 1) hi)
       exact stackBoundedDerivesIn_trans hprev hone
 
+/-- Prefix-bounded variant of `stackBoundedDerivesIn_trace_prefix`. Only the displayed prefix
+through `i` has to satisfy the stack bound. -/
+theorem stackBoundedDerivesIn_trace_prefix_of_prefix_bound
+    {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
+    {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i : ℕ}
+    (hbound : ∀ j (hj : j < trace.length),
+      j ≤ i → sententialMaxStackHeight (trace.get ⟨j, hj⟩) ≤ B)
+    (hi : i < trace.length) :
+    StackBoundedDerivesIn g B i first (trace.get ⟨i, hi⟩) := by
+  induction i with
+  | zero =>
+      cases trace with
+      | nil =>
+          simp at hi
+      | cons a rest =>
+          have ha : a = first := by simpa using hhead
+          subst a
+          exact ⟨rfl, by simpa using hbound 0 hi (by omega)⟩
+  | succ i ih =>
+      have hiPrev : i < trace.length := by omega
+      have hprev : StackBoundedDerivesIn g B i first (trace.get ⟨i, hiPrev⟩) :=
+        ih (fun j hj hji => hbound j hj (Nat.le_trans hji (Nat.le_succ i))) hiPrev
+      have hstep : g.Transforms (trace.get ⟨i, hiPrev⟩) (trace.get ⟨i + 1, hi⟩) :=
+        isDerivationTrace_get_transform htrace hi
+      have hone :
+          StackBoundedDerivesIn g B 1
+            (trace.get ⟨i, hiPrev⟩) (trace.get ⟨i + 1, hi⟩) :=
+        stackBoundedDerivesIn_one_of_transforms hstep
+          (hbound i hiPrev (Nat.le_succ i)) (hbound (i + 1) hi le_rfl)
+      exact stackBoundedDerivesIn_trans hprev hone
+
+/-- A repeated finite surface gives a shortened bounded prefix to the later surface erasure,
+provided the earlier prefix is already stack-bounded by the surface height. This is the direct
+reachability fact used when a later high-stack configuration repeats an earlier bounded
+surface. -/
+theorem exists_stackBoundedDerivesIn_erase_later_surface_of_repeated_surface_prefix_bound
+    {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
+    {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i j : ℕ} (hi : i < trace.length) (hj : j < trace.length)
+    (hij : i ≤ j)
+    (hbound : ∀ k (hk : k < trace.length),
+      k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B)
+    (hsurface :
+      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm B (trace.get ⟨j, hj⟩)) :
+    ∃ p : ℕ,
+      p ≤ j ∧
+        StackBoundedDerivesIn g B p first
+          (eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get ⟨j, hj⟩))) := by
+  refine ⟨i, hij, ?_⟩
+  have hpre :
+      StackBoundedDerivesIn g B i first (trace.get ⟨i, hi⟩) :=
+    stackBoundedDerivesIn_trace_prefix_of_prefix_bound
+      (g := g) (B := B) htrace hhead hbound hi
+  have hiErase :
+      eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩)) =
+        trace.get ⟨i, hi⟩ :=
+    eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+      (hbound i hi (by omega))
+  have herase := congrArg eraseSurfaceForm hsurface
+  rw [hiErase] at herase
+  rw [herase] at hpre
+  simpa using hpre
+
 theorem stackBoundedDerivesIn_trace_suffix
     {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
     {last : List g.ISym}
