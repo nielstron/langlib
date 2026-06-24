@@ -726,6 +726,16 @@ theorem StackBoundedDerivesIn.tail_of_transforms_isNormalForm_succ_bound
     transforms_maxStackHeight_le_succ_of_isNormalForm hNF hstep
   exact hpre.tail_of_transforms hstep (by omega)
 
+theorem exists_stackBoundedDerivesIn_tail_of_transforms_isNormalForm_succ_bound_le
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B i : ℕ} {w₁ w₂ w₃ : List g.ISym}
+    (h : ∃ p : ℕ, p ≤ i ∧ StackBoundedDerivesIn g B p w₁ w₂)
+    (hstep : g.Transforms w₂ w₃) :
+    ∃ p : ℕ, p ≤ i + 1 ∧ StackBoundedDerivesIn g (B + 1) p w₁ w₃ := by
+  obtain ⟨p, hpi, hpre⟩ := h
+  exact ⟨p + 1, by omega,
+    hpre.tail_of_transforms_isNormalForm_succ_bound hNF hstep⟩
+
 theorem exists_stackBoundedDerivesIn_of_boundedStackGrammar_derives
     {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
     {w₁ w₂ : List (symbol T (BoundedStackNT g B))}
