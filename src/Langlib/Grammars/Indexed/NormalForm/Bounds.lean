@@ -3791,6 +3791,74 @@ theorem transforms_kind_cases_of_isNormalForm {g : IndexedGrammar T}
   simpa [TransformIsBinaryStep, TransformIsPopStep, TransformIsPushStep,
     TransformIsTerminalStep] using transforms_cases_of_isNormalForm hNF h
 
+theorem transformIsBinaryStep_encodeSentential_length_eq
+    {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
+    (h : TransformIsBinaryStep g w₁ w₂) :
+    ∃ σ : List g.flag,
+      σ.length ≤ sententialMaxStackHeight w₁ ∧
+      (encodeSentential w₂).length =
+        (encodeSentential w₁).length + σ.length + 2 := by
+  rcases h with ⟨A, B, C, u, v, σ, _hB, _hC, hw₁, hw₂⟩
+  subst w₁
+  subst w₂
+  refine ⟨σ, ?_, ?_⟩
+  · have hσ :
+        σ.length ≤ max (max (sententialMaxStackHeight u) σ.length)
+          (sententialMaxStackHeight v) :=
+      le_trans (Nat.le_max_right (sententialMaxStackHeight u) σ.length)
+        (Nat.le_max_left (max (sententialMaxStackHeight u) σ.length)
+          (sententialMaxStackHeight v))
+    simpa only [sententialMaxStackHeight_append, sententialMaxStackHeight_indexed] using hσ
+  · simp [List.length_append]
+    omega
+
+theorem transformIsPopStep_encodeSentential_length_le
+    {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
+    (h : TransformIsPopStep g w₁ w₂) :
+    (encodeSentential w₂).length ≤ (encodeSentential w₁).length := by
+  rcases h with ⟨A, B, f, u, v, σ, _hB, hw₁, hw₂⟩
+  subst w₁
+  subst w₂
+  simp [List.length_append]
+
+theorem transformIsPushStep_encodeSentential_length_eq
+    {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
+    (h : TransformIsPushStep g w₁ w₂) :
+    (encodeSentential w₂).length = (encodeSentential w₁).length + 1 := by
+  rcases h with ⟨A, B, f, u, v, σ, _hB, hw₁, hw₂⟩
+  subst w₁
+  subst w₂
+  simp [List.length_append]
+  omega
+
+theorem transformIsTerminalStep_encodeSentential_length_le
+    {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
+    (h : TransformIsTerminalStep g w₁ w₂) :
+    (encodeSentential w₂).length ≤ (encodeSentential w₁).length := by
+  rcases h with ⟨A, a, u, v, σ, hw₁, hw₂⟩
+  subst w₁
+  subst w₂
+  simp [List.length_append]
+  omega
+
+theorem transforms_encodeSentential_length_le_add_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w₁ w₂ : List g.ISym}
+    (h : g.Transforms w₁ w₂)
+    (hmax : sententialMaxStackHeight w₁ ≤ B) :
+    (encodeSentential w₂).length ≤ (encodeSentential w₁).length + B + 2 := by
+  rcases transforms_kind_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+  · obtain ⟨σ, hσ, hlen⟩ := transformIsBinaryStep_encodeSentential_length_eq hbin
+    rw [hlen]
+    omega
+  · have hlen := transformIsPopStep_encodeSentential_length_le hpop
+    omega
+  · have hlen := transformIsPushStep_encodeSentential_length_eq hpush
+    rw [hlen]
+    omega
+  · have hlen := transformIsTerminalStep_encodeSentential_length_le hterm
+    omega
+
 /-- A singleton indexed symbol can only match a one-rule redex with empty context. -/
 private theorem singleton_indexed_eq_context_bounds {g : IndexedGrammar T}
     {A B : g.nt} {σ τ : List g.flag} {u v : List g.ISym}
