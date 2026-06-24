@@ -1620,6 +1620,27 @@ theorem stack_take_append_drop_take_take_add_eq {α : Type} (η : List α) (P K 
     have htakePK : η.take (P + K) = η := (List.take_eq_self_iff η).mpr (by omega)
     simp [hdrop, htakeP, htakePK]
 
+/-- If the replacement suffix agrees with the original dropped stack on the next `R` visible
+flags, then replacing below the first `P` flags preserves the full `P + R` stack prefix. -/
+theorem stack_take_append_eq_of_suffix_take_eq {α : Type} {η τ : List α} {P R : ℕ}
+    (hP : P ≤ η.length)
+    (hτ : τ.take R = (η.drop P).take R) :
+    (η.take P ++ τ).take (P + R) = η.take (P + R) := by
+  have hlen : (η.take P).length = P := List.length_take_of_le hP
+  rw [List.take_append, hlen, Nat.add_sub_cancel_left]
+  simp [List.take_take]
+  rw [hτ]
+  exact (List.take_add (l := η) (i := P) (j := R)).symm
+
+/-- Variable-bound form of `stack_take_append_eq_of_suffix_take_eq`. -/
+theorem stack_take_append_take_eq_of_suffix_take_eq {α : Type} {η τ : List α} {P B : ℕ}
+    (hP : P ≤ η.length) (hPB : P ≤ B)
+    (hτ : τ.take (B - P) = (η.drop P).take (B - P)) :
+    (η.take P ++ τ).take B = η.take B := by
+  have hB : B = P + (B - P) := by omega
+  rw [hB]
+  exact stack_take_append_eq_of_suffix_take_eq hP hτ
+
 /-- Full-surface specialization for the canonical replacement that keeps the next `K`
 original flags below the visible prefix. -/
 theorem surfaceOfTruncatedForm_context_indexed_take_append_drop_take_eq
@@ -1630,6 +1651,19 @@ theorem surfaceOfTruncatedForm_context_indexed_take_append_drop_take_eq
         (u ++ [ISym.indexed A (η.take P ++ (η.drop P).take K)] ++ v) := by
   exact surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
     (g := g) (A := A) ((stack_take_append_drop_take_take_add_eq η P K).symm)
+
+/-- Full-surface specialization when the replacement suffix preserves the original dropped
+stack on the visible suffix prefix. -/
+theorem surfaceOfTruncatedForm_context_indexed_eq_of_suffix_take_eq
+    {g : IndexedGrammar T} {B P : ℕ} {u v : List g.ISym} {A : g.nt}
+    {η τ : List g.flag}
+    (hP : P ≤ η.length) (hPB : P ≤ B)
+    (hτ : τ.take (B - P) = (η.drop P).take (B - P)) :
+    surfaceOfTruncatedForm B (u ++ [ISym.indexed A η] ++ v) =
+      surfaceOfTruncatedForm B (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) := by
+  exact surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
+    (g := g) (A := A)
+    ((stack_take_append_take_eq_of_suffix_take_eq hP hPB hτ).symm)
 
 /-- A `P`-surface cannot distinguish a high stack `η` from a canonical replacement that
 keeps exactly the visible prefix `η.take P`. -/
@@ -1888,6 +1922,39 @@ theorem exists_canonical_surface_repeat_at_current_of_late_window_take_eq_of_con
     exists_canonical_surface_repeat_at_current_of_late_window_take_eq
       (g := g) hNF htrace hhead hfirstBound hi hic hwindowBound hbefore
       hctxBound hPK hctx htake
+
+/-- Late-window repeat bridge phrased by suffix-prefix preservation. If the replacement suffix
+keeps exactly the first `B - P` flags below the visible prefix, then the current trace node has
+the same full `B`-surface as the canonical replacement context. -/
+theorem exists_canonical_surface_repeat_at_current_of_late_window_suffix_take_eq_of_context
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B P K C a i : ℕ} {trace : List (List g.ISym)} {first : List g.ISym}
+    {u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hfirstBound : sententialMaxStackHeight first ≤ P)
+    (hi : i < trace.length)
+    (hic : i ≤ a + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hPK : P + K ≤ B)
+    (hPη : P ≤ η.length)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (hsuffix : τ.take (B - P) = (η.drop P).take (B - P)) :
+    ∃ r : ℕ, ∃ hr : r < trace.length,
+      r ≤ i ∧
+        (∀ k (hk : k < trace.length),
+          k ≤ r → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) ∧
+        sententialMaxStackHeight (u ++ v) ≤ B ∧
+        P + K ≤ B ∧
+        surfaceOfTruncatedForm B (trace.get ⟨r, hr⟩) =
+          surfaceOfTruncatedForm B (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) := by
+  have hPB : P ≤ B := le_trans (Nat.le_add_right P (C + 1)) hwindowBound
+  exact
+    exists_canonical_surface_repeat_at_current_of_late_window_take_eq_of_context
+      (g := g) hNF htrace hhead hfirstBound hi hic hwindowBound hbefore hPK hctx
+      ((stack_take_append_take_eq_of_suffix_take_eq hPη hPB hsuffix).symm)
 
 /-- Prefix-local target-compatible pigeonhole packaged with bounded reachability. If the
 target-compatible bounded-surface frontier is smaller than the displayed prefix of an accepting
