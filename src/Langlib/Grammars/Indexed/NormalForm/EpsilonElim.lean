@@ -33,6 +33,622 @@ section EpsilonElim
 def IsNullable (g : IndexedGrammar T) (A : g.nt) (σ : List g.flag) : Prop :=
   g.Derives [ISym.indexed A σ] []
 
+/-- Generating the empty word is exactly nullability of the initial nonterminal with the
+empty stack. -/
+theorem generates_nil_iff_initial_nullable (g : IndexedGrammar T) :
+    g.Generates [] ↔ g.IsNullable g.initial [] := by
+  rfl
+
+theorem isNullable_appendStackSuffix {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} (h : g.IsNullable A σ)
+    (suffix : List g.flag) :
+    g.IsNullable A (σ ++ suffix) := by
+  simpa [IsNullable] using derives_appendStackSuffix_indexed (g := g) h suffix
+
+/-- In a no-ε indexed grammar, no single stacked nonterminal can derive the empty sentential
+form. -/
+theorem not_isNullable_of_noEpsilon {g : IndexedGrammar T}
+    (hne : g.NoEpsilon') (A : g.nt) (σ : List g.flag) :
+    ¬ g.IsNullable A σ := by
+  intro hnullable
+  have hlen := derives_length_le_of_noEpsilon hne hnullable
+  simp at hlen
+
+/-- A nullable stacked nonterminal can be erased in any sentential context. -/
+theorem derives_erase_nullable {g : IndexedGrammar T} {A : g.nt} {σ : List g.flag}
+    (hnullable : g.IsNullable A σ) (u v : List g.ISym) :
+    g.Derives (u ++ [ISym.indexed A σ] ++ v) (u ++ v) := by
+  have hctx := deri_with_suffix (g := g) v (deri_with_prefix u hnullable)
+  simpa [List.append_assoc] using hctx
+
+/-- A one-step indexed rewrite of an appended sentential form rewrites either the left side
+or the right side of the append. -/
+theorem transforms_append_cases {g : IndexedGrammar T} {u v w : List g.ISym}
+    (hstep : g.Transforms (u ++ v) w) :
+    (∃ u', g.Transforms u u' ∧ w = u' ++ v) ∨
+      (∃ v', g.Transforms v v' ∧ w = u ++ v') := by
+  rcases hstep with ⟨r, p, q, σ, hr, hw₁, hw₂⟩
+  subst w
+  cases hc : r.consume with
+  | none =>
+      rw [hc] at hw₁
+      have hsplit : u ++ v = p ++ ([ISym.indexed r.lhs σ] ++ q) := by
+        simpa [List.append_assoc] using hw₁
+      rw [List.append_eq_append_iff] at hsplit
+      rcases hsplit with ⟨as, hp, hv⟩ | ⟨bs, hu, htail⟩
+      · right
+        refine ⟨as ++ g.expandRhs r.rhs σ ++ q, ?_, ?_⟩
+        · refine ⟨r, as, q, σ, hr, ?_, rfl⟩
+          rw [hc]
+          simpa [List.append_assoc] using hv
+        · rw [hp]
+          simp [List.append_assoc]
+      · cases bs with
+        | nil =>
+            right
+            refine ⟨g.expandRhs r.rhs σ ++ q, ?_, ?_⟩
+            · refine ⟨r, [], q, σ, hr, ?_, rfl⟩
+              rw [hc]
+              simpa using htail.symm
+            · rw [hu]
+              simp [List.append_assoc]
+        | cons b bs =>
+            simp at htail
+            rcases htail with ⟨rfl, hq⟩
+            left
+            refine ⟨p ++ g.expandRhs r.rhs σ ++ bs, ?_, ?_⟩
+            · refine ⟨r, p, bs, σ, hr, ?_, rfl⟩
+              rw [hc]
+              rw [hu]
+              simp [List.append_assoc]
+            · rw [hq]
+              simp [List.append_assoc]
+  | some f =>
+      rw [hc] at hw₁
+      have hsplit : u ++ v = p ++ ([ISym.indexed r.lhs (f :: σ)] ++ q) := by
+        simpa [List.append_assoc] using hw₁
+      rw [List.append_eq_append_iff] at hsplit
+      rcases hsplit with ⟨as, hp, hv⟩ | ⟨bs, hu, htail⟩
+      · right
+        refine ⟨as ++ g.expandRhs r.rhs σ ++ q, ?_, ?_⟩
+        · refine ⟨r, as, q, σ, hr, ?_, rfl⟩
+          rw [hc]
+          simpa [List.append_assoc] using hv
+        · rw [hp]
+          simp [List.append_assoc]
+      · cases bs with
+        | nil =>
+            right
+            refine ⟨g.expandRhs r.rhs σ ++ q, ?_, ?_⟩
+            · refine ⟨r, [], q, σ, hr, ?_, rfl⟩
+              rw [hc]
+              simpa using htail.symm
+            · rw [hu]
+              simp [List.append_assoc]
+        | cons b bs =>
+            simp at htail
+            rcases htail with ⟨rfl, hq⟩
+            left
+            refine ⟨p ++ g.expandRhs r.rhs σ ++ bs, ?_, ?_⟩
+            · refine ⟨r, p, bs, σ, hr, ?_, rfl⟩
+              rw [hc]
+              rw [hu]
+              simp [List.append_assoc]
+            · rw [hq]
+              simp [List.append_assoc]
+
+/-- If an appended sentential form derives `[]`, then its left component also derives `[]`. -/
+theorem derives_nil_of_append_left {g : IndexedGrammar T} {u v : List g.ISym}
+    (hder : g.Derives (u ++ v) []) :
+    g.Derives u [] := by
+  have haux :
+      ∀ {w : List g.ISym}, g.Derives w [] →
+        ∀ {u v : List g.ISym}, w = u ++ v → g.Derives u [] := by
+    intro w h
+    induction h using Relation.ReflTransGen.head_induction_on with
+    | refl =>
+        intro u v hw
+        rw [List.nil_eq_append_iff] at hw
+        rw [hw.1]
+        exact g.deri_self []
+    | @head a c hstep hrest ih =>
+        intro u v hw
+        have hstep' : g.Transforms (u ++ v) c := by
+          simpa [hw] using hstep
+        rcases transforms_append_cases hstep' with hleft | hright
+        · rcases hleft with ⟨u', hu', hw'⟩
+          exact (deri_of_tran hu').trans (ih hw')
+        · rcases hright with ⟨v', _hv', hw'⟩
+          exact ih hw'
+  exact haux hder rfl
+
+/-- If an appended sentential form derives `[]`, then its right component also derives `[]`. -/
+theorem derives_nil_of_append_right {g : IndexedGrammar T} {u v : List g.ISym}
+    (hder : g.Derives (u ++ v) []) :
+    g.Derives v [] := by
+  have haux :
+      ∀ {w : List g.ISym}, g.Derives w [] →
+        ∀ {u v : List g.ISym}, w = u ++ v → g.Derives v [] := by
+    intro w h
+    induction h using Relation.ReflTransGen.head_induction_on with
+    | refl =>
+        intro u v hw
+        rw [List.nil_eq_append_iff] at hw
+        rw [hw.2]
+        exact g.deri_self []
+    | @head a c hstep hrest ih =>
+        intro u v hw
+        have hstep' : g.Transforms (u ++ v) c := by
+          simpa [hw] using hstep
+        rcases transforms_append_cases hstep' with hleft | hright
+        · rcases hleft with ⟨u', _hu', hw'⟩
+          exact ih hw'
+        · rcases hright with ⟨v', hv', hw'⟩
+          exact (deri_of_tran hv').trans (ih hw')
+  exact haux hder rfl
+
+/-- If `u ++ v ++ w` derives `[]`, then the middle component derives `[]`. -/
+theorem derives_nil_of_append {g : IndexedGrammar T} {u v w : List g.ISym}
+    (hder : g.Derives (u ++ v ++ w) []) :
+    g.Derives v [] := by
+  have hleft : g.Derives (u ++ v) [] :=
+    derives_nil_of_append_left (u := u ++ v) (v := w) (by
+      simpa [List.append_assoc] using hder)
+  exact derives_nil_of_append_right (u := u) (v := v) hleft
+
+/-- Every symbol occurring in a sentential form that derives `[]` is nullable as a singleton
+sentential form. -/
+theorem derives_nil_of_mem {g : IndexedGrammar T} {w : List g.ISym} {s : g.ISym}
+    (hder : g.Derives w []) (hs : s ∈ w) :
+    g.Derives [s] [] := by
+  rcases (List.mem_iff_append.mp hs) with ⟨u, v, rfl⟩
+  exact derives_nil_of_append (u := u) (v := [s]) (w := v) (by simpa using hder)
+
+/-- A terminal already present in a sentential form is still present after one indexed-grammar
+rewrite step. Indexed rules rewrite only one indexed nonterminal in its context. -/
+theorem terminal_mem_of_transforms {g : IndexedGrammar T} {w₁ w₂ : List g.ISym} {t : T}
+    (hstep : g.Transforms w₁ w₂) :
+    (ISym.terminal t : g.ISym) ∈ w₁ → (ISym.terminal t : g.ISym) ∈ w₂ := by
+  rcases hstep with ⟨r, u, v, σ, _hr, hw₁, hw₂⟩
+  subst w₂
+  cases hc : r.consume with
+  | none =>
+      rw [hc] at hw₁
+      subst w₁
+      intro ht
+      rw [List.mem_append] at ht ⊢
+      rcases ht with hleft | hv
+      · left
+        rw [List.mem_append] at hleft ⊢
+        rcases hleft with hu | hmid
+        · exact Or.inl hu
+        · simp at hmid
+      · exact Or.inr hv
+  | some f =>
+      rw [hc] at hw₁
+      subst w₁
+      intro ht
+      rw [List.mem_append] at ht ⊢
+      rcases ht with hleft | hv
+      · left
+        rw [List.mem_append] at hleft ⊢
+        rcases hleft with hu | hmid
+        · exact Or.inl hu
+        · simp at hmid
+      · exact Or.inr hv
+
+/-- A terminal already present in a sentential form is preserved by any indexed derivation. -/
+theorem terminal_mem_of_derives {g : IndexedGrammar T} {w₁ w₂ : List g.ISym} {t : T}
+    (hder : g.Derives w₁ w₂) :
+    (ISym.terminal t : g.ISym) ∈ w₁ → (ISym.terminal t : g.ISym) ∈ w₂ := by
+  induction hder with
+  | refl =>
+      intro ht
+      exact ht
+  | tail _ hstep ih =>
+      intro ht
+      exact terminal_mem_of_transforms hstep (ih ht)
+
+/-- A sentential form containing a terminal cannot derive the empty sentential form. -/
+theorem not_derives_nil_of_terminal_mem {g : IndexedGrammar T} {w : List g.ISym} {t : T}
+    (ht : (ISym.terminal t : g.ISym) ∈ w) :
+    ¬ g.Derives w [] := by
+  intro hder
+  have hmem := terminal_mem_of_derives hder ht
+  simp at hmem
+
+/-- If a sentential form derives `[]`, it contains no terminal. -/
+theorem no_terminal_mem_of_derives_nil {g : IndexedGrammar T} {w : List g.ISym}
+    (hder : g.Derives w []) (t : T) :
+    (ISym.terminal t : g.ISym) ∉ w := by
+  intro ht
+  exact not_derives_nil_of_terminal_mem ht hder
+
+/-- A terminal RHS symbol appears as the corresponding terminal in any expansion. -/
+theorem terminal_mem_expandRhs_of_mem {g : IndexedGrammar T}
+    {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag} {t : T}
+    (ht : IRhsSymbol.terminal t ∈ rhs) :
+    (ISym.terminal t : g.ISym) ∈ g.expandRhs rhs σ := by
+  unfold expandRhs
+  exact List.mem_map.mpr ⟨IRhsSymbol.terminal t, ht, rfl⟩
+
+/-- Terminals in an expanded RHS come exactly from terminal RHS symbols. -/
+theorem terminal_mem_rhs_of_mem_expandRhs {g : IndexedGrammar T}
+    {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag} {t : T}
+    (ht : (ISym.terminal t : g.ISym) ∈ g.expandRhs rhs σ) :
+    IRhsSymbol.terminal t ∈ rhs := by
+  unfold expandRhs at ht
+  rw [List.mem_map] at ht
+  rcases ht with ⟨s, hs, hs_eq⟩
+  cases s with
+  | terminal t₀ =>
+      simp at hs_eq
+      subst t₀
+      exact hs
+  | nonterminal n push =>
+      cases push <;> simp at hs_eq
+
+/-- If an expanded RHS can derive `[]`, the original RHS contains no terminal symbols. -/
+theorem no_terminal_mem_rhs_of_expandRhs_derives_nil {g : IndexedGrammar T}
+    {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag}
+    (hder : g.Derives (g.expandRhs rhs σ) []) (t : T) :
+    IRhsSymbol.terminal t ∉ rhs := by
+  intro ht
+  exact not_derives_nil_of_terminal_mem
+    (terminal_mem_expandRhs_of_mem (g := g) (σ := σ) ht) hder
+
+/-- A sentential form whose every symbol is a nullable indexed nonterminal derives the empty
+sentential form. -/
+theorem derives_nil_of_all_nullable_indexed {g : IndexedGrammar T} {w : List g.ISym}
+    (hnullable :
+      ∀ s ∈ w, ∃ A : g.nt, ∃ σ : List g.flag, s = ISym.indexed A σ ∧ g.IsNullable A σ) :
+    g.Derives w [] := by
+  induction w with
+  | nil =>
+      exact g.deri_self []
+  | cons s rest ih =>
+      rcases hnullable s (by simp) with ⟨A, σ, rfl, hA⟩
+      have hhead : g.Derives ([ISym.indexed A σ] ++ rest) ([] ++ rest) :=
+        deri_with_suffix rest hA
+      have hrest : g.Derives rest [] := by
+        apply ih
+        intro x hx
+        exact hnullable x (by simp [hx])
+      exact
+        (show g.Derives (ISym.indexed A σ :: rest) rest from by
+          simpa using hhead).trans hrest
+
+/-- If a sentential form derives `[]`, every symbol in it is a nullable indexed nonterminal. -/
+theorem all_nullable_indexed_of_derives_nil {g : IndexedGrammar T} {w : List g.ISym}
+    (hder : g.Derives w []) :
+    ∀ s ∈ w, ∃ A : g.nt, ∃ σ : List g.flag, s = ISym.indexed A σ ∧ g.IsNullable A σ := by
+  intro s hs
+  cases s with
+  | terminal t =>
+      have hsingle : g.Derives [ISym.terminal t] [] :=
+        derives_nil_of_mem hder hs
+      exact False.elim
+        (not_derives_nil_of_terminal_mem (g := g) (w := [ISym.terminal t])
+          (t := t) (by simp) hsingle)
+  | indexed A σ =>
+      exact ⟨A, σ, rfl, derives_nil_of_mem hder hs⟩
+
+/-- A sentential form derives `[]` exactly when all of its symbols are nullable indexed
+nonterminals. -/
+theorem derives_nil_iff_all_nullable_indexed {g : IndexedGrammar T} {w : List g.ISym} :
+    g.Derives w [] ↔
+      ∀ s ∈ w, ∃ A : g.nt, ∃ σ : List g.flag, s = ISym.indexed A σ ∧ g.IsNullable A σ :=
+  ⟨all_nullable_indexed_of_derives_nil, derives_nil_of_all_nullable_indexed⟩
+
+/-- An expanded RHS derives `[]` exactly when every RHS symbol is a nonterminal nullable at
+the stack it receives from the expansion. -/
+theorem expandRhs_derives_nil_iff_all_nullable_rhs {g : IndexedGrammar T}
+    {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag} :
+    g.Derives (g.expandRhs rhs σ) [] ↔
+      ∀ s ∈ rhs, ∃ A : g.nt, ∃ push : Option g.flag,
+        s = IRhsSymbol.nonterminal A push ∧
+          g.IsNullable A (match push with | none => σ | some f => f :: σ) := by
+  constructor
+  · intro hder s hs
+    cases s with
+    | terminal t =>
+        exact False.elim (no_terminal_mem_rhs_of_expandRhs_derives_nil hder t hs)
+    | nonterminal A push =>
+        cases push with
+        | none =>
+            refine ⟨A, none, rfl, ?_⟩
+            have hmem : (ISym.indexed A σ : g.ISym) ∈ g.expandRhs rhs σ := by
+              unfold expandRhs
+              exact List.mem_map.mpr ⟨IRhsSymbol.nonterminal A none, hs, rfl⟩
+            exact derives_nil_of_mem hder hmem
+        | some f =>
+            refine ⟨A, some f, rfl, ?_⟩
+            have hmem : (ISym.indexed A (f :: σ) : g.ISym) ∈ g.expandRhs rhs σ := by
+              unfold expandRhs
+              exact List.mem_map.mpr ⟨IRhsSymbol.nonterminal A (some f), hs, rfl⟩
+            exact derives_nil_of_mem hder hmem
+  · intro hnullable
+    apply derives_nil_of_all_nullable_indexed
+    intro s hs
+    unfold expandRhs at hs
+    rw [List.mem_map] at hs
+    rcases hs with ⟨rhsSym, hrhsSym, hs_eq⟩
+    cases rhsSym with
+    | terminal t =>
+        rcases hnullable (IRhsSymbol.terminal t) hrhsSym with ⟨A, push, hterm, _⟩
+        cases hterm
+    | nonterminal A push =>
+        subst s
+        rcases hnullable (IRhsSymbol.nonterminal A push) hrhsSym with
+          ⟨B, push', heq, hnull⟩
+        cases heq
+        cases push with
+        | none =>
+            exact ⟨A, σ, rfl, hnull⟩
+        | some f =>
+            exact ⟨A, f :: σ, rfl, hnull⟩
+
+/-- `kept` is obtained from `rhs` by deleting only RHS nonterminals that are nullable at
+the stack they receive during expansion. -/
+inductive NullableRhsSublist (g : IndexedGrammar T) (σ : List g.flag) :
+    List (IRhsSymbol T g.nt g.flag) → List (IRhsSymbol T g.nt g.flag) → Prop
+  | nil : NullableRhsSublist g σ [] []
+  | keep (s : IRhsSymbol T g.nt g.flag) {rhs kept}
+      (h : NullableRhsSublist g σ rhs kept) :
+      NullableRhsSublist g σ (s :: rhs) (s :: kept)
+  | drop_none {A : g.nt} {rhs kept}
+      (hnullable : g.IsNullable A σ)
+      (h : NullableRhsSublist g σ rhs kept) :
+      NullableRhsSublist g σ (IRhsSymbol.nonterminal A none :: rhs) kept
+  | drop_some {A : g.nt} {f : g.flag} {rhs kept}
+      (hnullable : g.IsNullable A (f :: σ))
+      (h : NullableRhsSublist g σ rhs kept) :
+      NullableRhsSublist g σ (IRhsSymbol.nonterminal A (some f) :: rhs) kept
+
+theorem nullableRhsSublist_self (g : IndexedGrammar T) (σ : List g.flag)
+    (rhs : List (IRhsSymbol T g.nt g.flag)) :
+    NullableRhsSublist g σ rhs rhs := by
+  induction rhs with
+  | nil => exact NullableRhsSublist.nil
+  | cons s rhs ih => exact NullableRhsSublist.keep s ih
+
+theorem NullableRhsSublist.sublist {g : IndexedGrammar T} {σ : List g.flag}
+    {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : NullableRhsSublist g σ rhs kept) :
+    kept.Sublist rhs := by
+  induction h with
+  | nil => exact List.Sublist.refl []
+  | keep s h ih => exact ih.cons₂ s
+  | drop_none hnullable h ih =>
+      rename_i A rhs kept
+      exact List.Sublist.cons (IRhsSymbol.nonterminal A none) ih
+  | drop_some hnullable h ih =>
+      rename_i A f rhs kept
+      exact List.Sublist.cons (IRhsSymbol.nonterminal A (some f)) ih
+
+theorem derives_expandRhs_of_nullableRhsSublist {g : IndexedGrammar T}
+    {σ : List g.flag} {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : NullableRhsSublist g σ rhs kept) :
+    g.Derives (g.expandRhs rhs σ) (g.expandRhs kept σ) := by
+  induction h with
+  | nil =>
+      exact g.deri_self []
+  | keep s h ih =>
+      cases s with
+      | terminal t =>
+          simpa [expandRhs] using deri_with_prefix (g := g) [ISym.terminal t] ih
+      | nonterminal A push =>
+          cases push with
+          | none =>
+              simpa [expandRhs] using
+                deri_with_prefix (g := g) [ISym.indexed A σ] ih
+          | some f =>
+              simpa [expandRhs] using
+                deri_with_prefix (g := g) [ISym.indexed A (f :: σ)] ih
+  | drop_none hnullable h ih =>
+      rename_i A rhs kept
+      have hdrop :
+          g.Derives (ISym.indexed A σ :: g.expandRhs rhs σ)
+            (g.expandRhs rhs σ) := by
+        simpa using derives_erase_nullable (g := g) hnullable [] (g.expandRhs rhs σ)
+      exact hdrop.trans ih
+  | drop_some hnullable h ih =>
+      rename_i A f rhs kept
+      have hdrop :
+          g.Derives (ISym.indexed A (f :: σ) :: g.expandRhs rhs σ)
+            (g.expandRhs rhs σ) := by
+        simpa using derives_erase_nullable (g := g) hnullable [] (g.expandRhs rhs σ)
+      exact hdrop.trans ih
+
+theorem derives_nil_of_nullableRhsSublist_nil {g : IndexedGrammar T}
+    {σ : List g.flag} {rhs : List (IRhsSymbol T g.nt g.flag)}
+    (h : NullableRhsSublist g σ rhs []) :
+    g.Derives (g.expandRhs rhs σ) [] := by
+  simpa [expandRhs] using derives_expandRhs_of_nullableRhsSublist h
+
+theorem nullableRhsSublist_nil_of_expandRhs_derives_nil {g : IndexedGrammar T}
+    {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag}
+    (hder : g.Derives (g.expandRhs rhs σ) []) :
+    NullableRhsSublist g σ rhs [] := by
+  induction rhs with
+  | nil =>
+      exact NullableRhsSublist.nil
+  | cons s rhs ih =>
+      have hall :=
+        (expandRhs_derives_nil_iff_all_nullable_rhs (g := g)
+          (rhs := s :: rhs) (σ := σ)).mp hder
+      have htail_all :
+          ∀ x ∈ rhs, ∃ A : g.nt, ∃ push : Option g.flag,
+            x = IRhsSymbol.nonterminal A push ∧
+              g.IsNullable A (match push with | none => σ | some f => f :: σ) := by
+        intro x hx
+        exact hall x (by simp [hx])
+      have htail_der : g.Derives (g.expandRhs rhs σ) [] :=
+        (expandRhs_derives_nil_iff_all_nullable_rhs (g := g)
+          (rhs := rhs) (σ := σ)).mpr htail_all
+      have htail := ih htail_der
+      cases s with
+      | terminal t =>
+          rcases hall (IRhsSymbol.terminal t) (by simp) with ⟨A, push, hs, _⟩
+          cases hs
+      | nonterminal A push =>
+          rcases hall (IRhsSymbol.nonterminal A push) (by simp) with
+            ⟨B, push', hs, hnullable⟩
+          cases hs
+          cases push with
+          | none =>
+              exact NullableRhsSublist.drop_none hnullable htail
+          | some f =>
+              exact NullableRhsSublist.drop_some hnullable htail
+
+/-- A singleton indexed symbol can only be a one-rule redex with empty context. -/
+private theorem singleton_indexed_eq_context {g : IndexedGrammar T}
+    {A B : g.nt} {σ τ : List g.flag} {u v : List g.ISym}
+    (h : [ISym.indexed A σ] = u ++ [ISym.indexed B τ] ++ v) :
+    u = [] ∧ v = [] ∧ A = B ∧ σ = τ := by
+  have hu : u = [] := by
+    cases u with
+    | nil => rfl
+    | cons x xs =>
+        have hlen := congrArg List.length h
+        simp at hlen
+  subst u
+  have h' : [ISym.indexed A σ] = ISym.indexed B τ :: v := by
+    simpa using h
+  simp at h'
+  rcases h' with ⟨⟨hA, hσ⟩, hv⟩
+  exact ⟨rfl, hv, hA, hσ⟩
+
+/-- First-step analysis for a nullable stacked nonterminal. Nullability is witnessed by a
+matching grammar rule whose expansion is nullable. -/
+theorem isNullable_cases_rule {g : IndexedGrammar T} {A : g.nt} {σ : List g.flag}
+    (hnullable : g.IsNullable A σ) :
+    (∃ r : IRule T g.nt g.flag,
+      r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧
+        g.Derives (g.expandRhs r.rhs σ) []) ∨
+    (∃ f : g.flag, ∃ ρ : List g.flag, ∃ r : IRule T g.nt g.flag,
+      σ = f :: ρ ∧ r ∈ g.rules ∧ r.lhs = A ∧ r.consume = some f ∧
+        g.Derives (g.expandRhs r.rhs ρ) []) := by
+  rcases Relation.ReflTransGen.cases_head hnullable with hnil | ⟨mid, hstep, hrest⟩
+  · cases hnil
+  · rcases hstep with ⟨r, u, v, ρ, hr, hw₁, hw₂⟩
+    cases hc : r.consume with
+    | none =>
+        rw [hc] at hw₁
+        rcases singleton_indexed_eq_context hw₁ with ⟨hu, hv, hA, hσ⟩
+        subst u
+        subst v
+        have hmid : mid = g.expandRhs r.rhs ρ := by
+          simpa using hw₂
+        subst mid
+        left
+        exact ⟨r, hr, hA.symm, hc, by simpa [hσ] using hrest⟩
+    | some f =>
+        rw [hc] at hw₁
+        rcases singleton_indexed_eq_context hw₁ with ⟨hu, hv, hA, hσ⟩
+        subst u
+        subst v
+        have hmid : mid = g.expandRhs r.rhs ρ := by
+          simpa using hw₂
+        subst mid
+        right
+        exact ⟨f, ρ, r, hσ, hr, hA.symm, hc, by simpa using hrest⟩
+
+/-- Nullability propagates backwards along a derivation. -/
+theorem isNullable_of_derives_nullable {g : IndexedGrammar T}
+    {A B : g.nt} {σ τ : List g.flag}
+    (hder : g.Derives [ISym.indexed A σ] [ISym.indexed B τ])
+    (hnullable : g.IsNullable B τ) :
+    g.IsNullable A σ :=
+  hder.trans hnullable
+
+/-- If a non-consuming rule expands to a nullable sentential form, then its left-hand side is
+nullable at the same stack. -/
+theorem isNullable_of_rule_derives_empty_none {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {A : g.nt} {σ : List g.flag}
+    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hconsume : r.consume = none)
+    (hder : g.Derives (g.expandRhs r.rhs σ) []) :
+    g.IsNullable A σ := by
+  apply deri_of_deri_deri (deri_of_tran ?_) hder
+  refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+  · rw [hconsume, hlhs]
+    simp
+  · simp
+
+/-- If a flag-consuming rule expands to a nullable sentential form, then its left-hand side is
+nullable when that flag is on top of the stack. -/
+theorem isNullable_of_rule_derives_empty_some {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {A : g.nt} {f : g.flag} {σ : List g.flag}
+    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hconsume : r.consume = some f)
+    (hder : g.Derives (g.expandRhs r.rhs σ) []) :
+    g.IsNullable A (f :: σ) := by
+  apply deri_of_deri_deri (deri_of_tran ?_) hder
+  refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+  · rw [hconsume, hlhs]
+    simp
+  · simp
+
+/-- Rule-level characterization of nullable stacked nonterminals. -/
+theorem isNullable_iff_rule_derives_empty {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} :
+    g.IsNullable A σ ↔
+      (∃ r : IRule T g.nt g.flag,
+        r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧
+          g.Derives (g.expandRhs r.rhs σ) []) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ r : IRule T g.nt g.flag,
+        σ = f :: ρ ∧ r ∈ g.rules ∧ r.lhs = A ∧ r.consume = some f ∧
+          g.Derives (g.expandRhs r.rhs ρ) []) := by
+  constructor
+  · exact isNullable_cases_rule
+  · intro h
+    rcases h with hnone | hsome
+    · rcases hnone with ⟨r, hr, hlhs, hconsume, hder⟩
+      exact isNullable_of_rule_derives_empty_none hr hlhs hconsume hder
+    · rcases hsome with ⟨f, ρ, r, hσ, hr, hlhs, hconsume, hder⟩
+      rw [hσ]
+      exact isNullable_of_rule_derives_empty_some hr hlhs hconsume hder
+
+/-- An explicit rule `A → ε` makes `A` nullable at every stack. -/
+theorem isNullable_of_empty_rule_none {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {A : g.nt} (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A) (hconsume : r.consume = none) (hrhs : r.rhs = [])
+    (σ : List g.flag) :
+    g.IsNullable A σ := by
+  apply deri_of_tran
+  refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+  · rw [hconsume, hlhs]
+    simp
+  · rw [hrhs]
+    simp [expandRhs]
+
+/-- An explicit rule `Af → ε` makes `A` nullable at every stack whose top flag is `f`. -/
+theorem isNullable_of_empty_rule_some {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {A : g.nt} {f : g.flag} (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A) (hconsume : r.consume = some f) (hrhs : r.rhs = [])
+    (σ : List g.flag) :
+    g.IsNullable A (f :: σ) := by
+  apply deri_of_tran
+  refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+  · rw [hconsume, hlhs]
+    simp
+  · rw [hrhs]
+    simp [expandRhs]
+
+/-- A grammar is ε-free exactly when no stacked nonterminal is nullable. -/
+theorem noEpsilon_iff_no_isNullable {g : IndexedGrammar T} :
+    g.NoEpsilon' ↔ ∀ A : g.nt, ∀ σ : List g.flag, ¬ g.IsNullable A σ := by
+  constructor
+  · intro hne A σ
+    exact not_isNullable_of_noEpsilon hne A σ
+  · intro hno r hr hrhs
+    cases hc : r.consume with
+    | none =>
+        exact hno r.lhs []
+          (isNullable_of_empty_rule_none hr rfl hc hrhs [])
+    | some f =>
+        exact hno r.lhs (f :: [])
+          (isNullable_of_empty_rule_some hr rfl hc hrhs [])
+
 /-- If a grammar is already ε-free, it is an ε-free equivalent of itself. -/
 theorem exists_noEpsilon (g : IndexedGrammar T) (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T,

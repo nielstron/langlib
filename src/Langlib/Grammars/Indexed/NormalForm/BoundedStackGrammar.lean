@@ -1,0 +1,3304 @@
+module
+
+public import Langlib.Grammars.Indexed.NormalForm.Bounds
+public import Langlib.Grammars.Indexed.NormalForm.Shrinking
+public import Langlib.Classes.ContextSensitive.Definition
+public import Mathlib.Data.Fintype.Prod
+import Mathlib.Tactic
+@[expose]
+public section
+
+/-!
+# Bounded-stack compilation for indexed normal form
+
+For a fixed stack bound `B`, an indexed grammar has only finitely many visible stacked
+nonterminals `(A, σ)` with `|σ| ≤ B`. This file compiles the `B`-bounded slice of an indexed
+grammar into an unrestricted grammar over those finite stacked nonterminals.
+
+The construction is concrete infrastructure for the finite normal-form simulator: once a
+derivation is known to stay inside a fixed stack bound, its one-step indexed rewrites are
+ordinary noncontracting grammar rewrites over the finite alphabet of bounded stacks.
+-/
+
+variable {T : Type}
+
+namespace IndexedGrammar
+
+/-- Nonterminals of the fixed-stack-bound compilation: an indexed nonterminal together with a
+stack whose height is at most `B`. -/
+abbrev BoundedStackNT (g : IndexedGrammar T) (B : ℕ) : Type :=
+  g.nt × {σ : List g.flag // σ.length ≤ B}
+
+noncomputable instance boundedStackStackFintype {g : IndexedGrammar T}
+    [Fintype g.flag] (B : ℕ) :
+    Fintype {σ : List g.flag // σ.length ≤ B} :=
+  (List.finite_length_le g.flag B).fintype
+
+noncomputable instance boundedStackNTFintype {g : IndexedGrammar T}
+    [Fintype g.nt] [Fintype g.flag] (B : ℕ) :
+    Fintype (BoundedStackNT g B) := by
+  letI : Fintype {σ : List g.flag // σ.length ≤ B} :=
+    boundedStackStackFintype (g := g) B
+  exact instFintypeProd g.nt {σ : List g.flag // σ.length ≤ B}
+
+/-- All stacks of height at most `B`, as a finite list. -/
+noncomputable def boundedStacksList (g : IndexedGrammar T) [Fintype g.flag]
+    (B : ℕ) : List {σ : List g.flag // σ.length ≤ B} :=
+  (Finset.univ : Finset {σ : List g.flag // σ.length ≤ B}).toList
+
+@[simp] theorem mem_boundedStacksList {g : IndexedGrammar T} [Fintype g.flag]
+    {B : ℕ} (σ : {σ : List g.flag // σ.length ≤ B}) :
+    σ ∈ boundedStacksList g B := by
+  classical
+  simp [boundedStacksList]
+
+/-- Translate one bounded indexed symbol into an unrestricted-grammar symbol. Symbols whose
+stack exceeds the bound are rejected. -/
+def boundedSymbol? {g : IndexedGrammar T} (B : ℕ) :
+    g.ISym → Option (symbol T (BoundedStackNT g B))
+  | ISym.terminal a => some (symbol.terminal a)
+  | ISym.indexed A σ =>
+      if h : σ.length ≤ B then
+        some (symbol.nonterminal (A, ⟨σ, h⟩))
+      else
+        none
+
+/-- Translate a sentential form if every attached stack is within the bound. -/
+def boundedSentential? {g : IndexedGrammar T} (B : ℕ) :
+    List g.ISym → Option (List (symbol T (BoundedStackNT g B)))
+  | [] => some []
+  | s :: w =>
+      match boundedSymbol? B s, boundedSentential? B w with
+      | some s', some w' => some (s' :: w')
+      | _, _ => none
+
+/-- Forget the fixed stack bound annotation and return to indexed sentential symbols. -/
+def eraseBoundedSymbol {g : IndexedGrammar T} {B : ℕ} :
+    symbol T (BoundedStackNT g B) → g.ISym
+  | symbol.terminal a => ISym.terminal a
+  | symbol.nonterminal Aσ => ISym.indexed Aσ.1 Aσ.2.1
+
+def eraseBoundedSentential {g : IndexedGrammar T} {B : ℕ}
+    (w : List (symbol T (BoundedStackNT g B))) : List g.ISym :=
+  w.map eraseBoundedSymbol
+
+@[simp] theorem eraseBoundedSymbol_terminal {g : IndexedGrammar T} {B : ℕ}
+    (a : T) :
+    eraseBoundedSymbol (g := g) (B := B) (symbol.terminal a) = ISym.terminal a := rfl
+
+@[simp] theorem eraseBoundedSymbol_nonterminal {g : IndexedGrammar T} {B : ℕ}
+    (A : g.nt) (σ : {σ : List g.flag // σ.length ≤ B}) :
+    eraseBoundedSymbol (g := g) (B := B) (symbol.nonterminal (A, σ)) =
+      ISym.indexed A σ.1 := rfl
+
+@[simp] theorem eraseBoundedSentential_nil {g : IndexedGrammar T} {B : ℕ} :
+    eraseBoundedSentential ([] : List (symbol T (BoundedStackNT g B))) = [] := rfl
+
+@[simp] theorem eraseBoundedSentential_cons {g : IndexedGrammar T} {B : ℕ}
+    (s : symbol T (BoundedStackNT g B))
+    (w : List (symbol T (BoundedStackNT g B))) :
+    eraseBoundedSentential (s :: w) =
+      eraseBoundedSymbol s :: eraseBoundedSentential w := rfl
+
+@[simp] theorem eraseBoundedSentential_append {g : IndexedGrammar T} {B : ℕ}
+    (u v : List (symbol T (BoundedStackNT g B))) :
+    eraseBoundedSentential (u ++ v) =
+      eraseBoundedSentential u ++ eraseBoundedSentential v := by
+  simp [eraseBoundedSentential, List.map_append]
+
+@[simp] theorem eraseBoundedSentential_map_terminal {g : IndexedGrammar T} {B : ℕ}
+    (w : List T) :
+    eraseBoundedSentential
+        (w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B))) =
+      w.map fun a => (ISym.terminal a : g.ISym) := by
+  induction w with
+  | nil => rfl
+  | cons a w ih =>
+      simp [ih]
+
+theorem sententialMaxStackHeight_eraseBoundedSentential_le {g : IndexedGrammar T}
+    {B : ℕ} (w : List (symbol T (BoundedStackNT g B))) :
+    sententialMaxStackHeight (eraseBoundedSentential w) ≤ B := by
+  induction w with
+  | nil =>
+      simp
+  | cons s w ih =>
+      cases s with
+      | terminal a =>
+          simpa [eraseBoundedSentential] using ih
+      | nonterminal Aσ =>
+          exact max_le (by simpa using Aσ.2.2) ih
+
+@[simp] theorem boundedSymbol?_terminal {g : IndexedGrammar T} {B : ℕ}
+    (a : T) :
+    boundedSymbol? (g := g) B (ISym.terminal a) = some (symbol.terminal a) := rfl
+
+theorem boundedSymbol?_indexed_of_le {g : IndexedGrammar T} {B : ℕ}
+    {A : g.nt} {σ : List g.flag} (hσ : σ.length ≤ B) :
+    boundedSymbol? (g := g) B (ISym.indexed A σ) =
+      some (symbol.nonterminal (A, ⟨σ, hσ⟩)) := by
+  simp [boundedSymbol?, hσ]
+
+theorem eraseBoundedSymbol_of_boundedSymbol? {g : IndexedGrammar T} {B : ℕ}
+    {s : g.ISym} {s' : symbol T (BoundedStackNT g B)}
+    (h : boundedSymbol? B s = some s') :
+    eraseBoundedSymbol s' = s := by
+  cases s with
+  | terminal a =>
+      simp [boundedSymbol?] at h
+      subst s'
+      rfl
+  | indexed A σ =>
+      simp only [boundedSymbol?] at h
+      by_cases hσ : σ.length ≤ B
+      · simp [hσ] at h
+        subst s'
+        rfl
+      · simp [hσ] at h
+
+theorem boundedSentential?_append {g : IndexedGrammar T} {B : ℕ}
+    {u v : List g.ISym}
+    {u' v' : List (symbol T (BoundedStackNT g B))}
+    (hu : boundedSentential? B u = some u')
+    (hv : boundedSentential? B v = some v') :
+    boundedSentential? B (u ++ v) = some (u' ++ v') := by
+  induction u generalizing u' with
+  | nil =>
+      simp [boundedSentential?] at hu
+      subst u'
+      simpa using hv
+  | cons s u ih =>
+      simp only [boundedSentential?] at hu ⊢
+      cases hs : boundedSymbol? B s <;> simp [hs] at hu
+      cases huTail : boundedSentential? B u <;> simp [huTail] at hu
+      rename_i s' uTail
+      cases hu
+      simp [boundedSentential?, hs, ih huTail]
+
+theorem eraseBoundedSentential_of_boundedSentential?
+    {g : IndexedGrammar T} {B : ℕ}
+    {w : List g.ISym} {w' : List (symbol T (BoundedStackNT g B))}
+    (h : boundedSentential? B w = some w') :
+    eraseBoundedSentential w' = w := by
+  induction w generalizing w' with
+  | nil =>
+      simp [boundedSentential?] at h
+      subst w'
+      rfl
+  | cons s w ih =>
+      simp only [boundedSentential?] at h
+      cases hs : boundedSymbol? B s <;> simp [hs] at h
+      cases hw : boundedSentential? B w <;> simp [hw] at h
+      rename_i s' tail
+      rw [← h]
+      simp [eraseBoundedSymbol_of_boundedSymbol? hs, ih hw]
+
+@[simp] theorem boundedSentential?_map_terminal {g : IndexedGrammar T} {B : ℕ}
+    (w : List T) :
+    boundedSentential? (g := g) B
+        (w.map fun a => (ISym.terminal a : g.ISym)) =
+      some (w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B))) := by
+  induction w with
+  | nil =>
+      rfl
+  | cons a w ih =>
+      simp [boundedSentential?, ih]
+
+theorem boundedSentential?_length {g : IndexedGrammar T} {B : ℕ}
+    {w : List g.ISym} {w' : List (symbol T (BoundedStackNT g B))}
+    (h : boundedSentential? B w = some w') :
+    w'.length = w.length := by
+  induction w generalizing w' with
+  | nil =>
+      simp [boundedSentential?] at h
+      subst w'
+      rfl
+  | cons s w ih =>
+      simp only [boundedSentential?] at h
+      cases hs : boundedSymbol? B s <;> simp [hs] at h
+      cases hw : boundedSentential? B w <;> simp [hw] at h
+      rename_i s' tail
+      rw [← h]
+      simp [ih hw]
+
+theorem exists_boundedSymbol?_of_stackHeight_le {g : IndexedGrammar T} {B : ℕ}
+    {s : g.ISym} (hs : s.stackHeight ≤ B) :
+    ∃ s' : symbol T (BoundedStackNT g B), boundedSymbol? B s = some s' := by
+  cases s with
+  | terminal a =>
+      exact ⟨symbol.terminal a, rfl⟩
+  | indexed A σ =>
+      exact ⟨symbol.nonterminal (A, ⟨σ, by simpa using hs⟩),
+        boundedSymbol?_indexed_of_le (g := g) (A := A) (σ := σ) (by simpa using hs)⟩
+
+theorem exists_boundedSentential?_of_sententialMaxStackHeight_le
+    {g : IndexedGrammar T} {B : ℕ} {w : List g.ISym}
+    (hw : sententialMaxStackHeight w ≤ B) :
+    ∃ w' : List (symbol T (BoundedStackNT g B)),
+      boundedSentential? B w = some w' := by
+  induction w with
+  | nil =>
+      exact ⟨[], rfl⟩
+  | cons s w ih =>
+      have hs : s.stackHeight ≤ B :=
+        le_trans (Nat.le_max_left s.stackHeight (sententialMaxStackHeight w)) hw
+      have hwTail : sententialMaxStackHeight w ≤ B :=
+        le_trans (Nat.le_max_right s.stackHeight (sententialMaxStackHeight w)) hw
+      obtain ⟨s', hs'⟩ := exists_boundedSymbol?_of_stackHeight_le (g := g) (B := B) hs
+      obtain ⟨w', hw'⟩ := ih hwTail
+      exact ⟨s' :: w', by simp [boundedSentential?, hs', hw']⟩
+
+theorem sententialMaxStackHeight_le_of_append_left_le {g : IndexedGrammar T}
+    {B : ℕ} {u v : List g.ISym}
+    (h : sententialMaxStackHeight (u ++ v) ≤ B) :
+    sententialMaxStackHeight u ≤ B := by
+  have hmax : max (sententialMaxStackHeight u) (sententialMaxStackHeight v) ≤ B := by
+    simpa using h
+  exact le_trans (Nat.le_max_left _ _) hmax
+
+theorem sententialMaxStackHeight_le_of_append_right_le {g : IndexedGrammar T}
+    {B : ℕ} {u v : List g.ISym}
+    (h : sententialMaxStackHeight (u ++ v) ≤ B) :
+    sententialMaxStackHeight v ≤ B := by
+  have hmax : max (sententialMaxStackHeight u) (sententialMaxStackHeight v) ≤ B := by
+    simpa using h
+  exact le_trans (Nat.le_max_right _ _) hmax
+
+/-- Compile one indexed rule at one inherited stack into a bounded unrestricted rule, if both
+the left-hand stack and every right-hand stack remain inside the bound. -/
+def boundedRuleOf? {g : IndexedGrammar T} (B : ℕ)
+    (r : IRule T g.nt g.flag) (σ : {σ : List g.flag // σ.length ≤ B}) :
+    Option (grule T (BoundedStackNT g B)) :=
+  match r.consume with
+  | none =>
+      match boundedSentential? B (g.expandRhs r.rhs σ.1) with
+      | some out =>
+          some
+            { input_L := []
+              input_N := (r.lhs, σ)
+              input_R := []
+              output_string := out }
+      | none => none
+  | some f =>
+      if htop : σ.1.length < B then
+        match boundedSentential? B (g.expandRhs r.rhs σ.1) with
+        | some out =>
+            some
+              { input_L := []
+                input_N := (r.lhs, ⟨f :: σ.1, by simpa using Nat.succ_le_iff.mpr htop⟩)
+                input_R := []
+                output_string := out }
+        | none => none
+      else
+        none
+
+/-- The compiled bounded rules of an indexed grammar. -/
+noncomputable def boundedRules (g : IndexedGrammar T) [Fintype g.flag] (B : ℕ) :
+    List (grule T (BoundedStackNT g B)) :=
+  g.rules.flatMap fun r =>
+    (boundedStacksList g B).filterMap fun σ => boundedRuleOf? B r σ
+
+/-- The fixed-stack-bound unrestricted grammar associated to an indexed grammar. -/
+noncomputable def boundedStackGrammar (g : IndexedGrammar T) [Fintype g.flag]
+    (B : ℕ) : grammar T where
+  nt := BoundedStackNT g B
+  initial := (g.initial, ⟨[], by simp⟩)
+  rules := boundedRules g B
+
+theorem mem_boundedRules {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
+    {br : grule T (BoundedStackNT g B)}
+    (hbr : br ∈ boundedRules g B) :
+    ∃ r ∈ g.rules, ∃ σ : {σ : List g.flag // σ.length ≤ B},
+      boundedRuleOf? B r σ = some br := by
+  classical
+  rw [boundedRules, List.mem_flatMap] at hbr
+  rcases hbr with ⟨r, hr, hbr⟩
+  rw [List.mem_filterMap] at hbr
+  rcases hbr with ⟨σ, _hσ, hσbr⟩
+  exact ⟨r, hr, σ, hσbr⟩
+
+theorem boundedRuleOf?_mem_boundedRules {g : IndexedGrammar T} [Fintype g.flag]
+    {B : ℕ} {r : IRule T g.nt g.flag}
+    {σ : {σ : List g.flag // σ.length ≤ B}}
+    {br : grule T (BoundedStackNT g B)}
+    (hr : r ∈ g.rules) (hbr : boundedRuleOf? B r σ = some br) :
+    br ∈ boundedRules g B := by
+  classical
+  rw [boundedRules, List.mem_flatMap]
+  refine ⟨r, hr, ?_⟩
+  rw [List.mem_filterMap]
+  exact ⟨σ, mem_boundedStacksList σ, hbr⟩
+
+theorem boundedRuleOf?_output_length {g : IndexedGrammar T} {B : ℕ}
+    {r : IRule T g.nt g.flag} {σ : {σ : List g.flag // σ.length ≤ B}}
+    {br : grule T (BoundedStackNT g B)}
+    (hbr : boundedRuleOf? B r σ = some br) :
+    br.output_string.length = r.rhs.length := by
+  cases hc : r.consume with
+  | none =>
+      simp only [boundedRuleOf?, hc] at hbr
+      cases hout : boundedSentential? B (g.expandRhs r.rhs σ.1) with
+      | none =>
+          simp [hout] at hbr
+      | some out =>
+          simp [hout] at hbr
+          subst br
+          simp [boundedSentential?_length hout, expandRhs_length]
+  | some f =>
+      simp only [boundedRuleOf?, hc] at hbr
+      by_cases htop : σ.1.length < B
+      · simp [htop] at hbr
+        cases hout : boundedSentential? B (g.expandRhs r.rhs σ.1) with
+        | none =>
+            simp [hout] at hbr
+        | some out =>
+            simp [hout] at hbr
+            subst br
+            simp [boundedSentential?_length hout, expandRhs_length]
+      · simp [htop] at hbr
+
+theorem boundedRuleOf?_input_context_lengths {g : IndexedGrammar T} {B : ℕ}
+    {r : IRule T g.nt g.flag} {σ : {σ : List g.flag // σ.length ≤ B}}
+    {br : grule T (BoundedStackNT g B)}
+    (hbr : boundedRuleOf? B r σ = some br) :
+    br.input_L.length = 0 ∧ br.input_R.length = 0 := by
+  cases hc : r.consume with
+  | none =>
+      simp only [boundedRuleOf?, hc] at hbr
+      cases hout : boundedSentential? B (g.expandRhs r.rhs σ.1) with
+      | none =>
+          simp [hout] at hbr
+      | some out =>
+          simp [hout] at hbr
+          subst br
+          simp
+  | some f =>
+      simp only [boundedRuleOf?, hc] at hbr
+      by_cases htop : σ.1.length < B
+      · simp [htop] at hbr
+        cases hout : boundedSentential? B (g.expandRhs r.rhs σ.1) with
+        | none =>
+            simp [hout] at hbr
+        | some out =>
+            simp [hout] at hbr
+            subst br
+            simp
+      · simp [htop] at hbr
+
+/-- Every rule of the fixed-stack-bound compilation of a normal-form indexed grammar is
+noncontracting. -/
+theorem boundedStackGrammar_noncontracting {g : IndexedGrammar T}
+    [Fintype g.flag] [DecidableEq g.nt] {B : ℕ}
+    (hNF : g.IsNormalForm) :
+    grammar_noncontracting (boundedStackGrammar g B) := by
+  intro br hbr
+  rcases mem_boundedRules (g := g) (B := B) hbr with ⟨r, hr, σ, hσ⟩
+  have hout := boundedRuleOf?_output_length (g := g) (B := B) hσ
+  have hctx := boundedRuleOf?_input_context_lengths (g := g) (B := B) hσ
+  have hnonempty := IRule.rhs_ne_nil_of_isNF (T := T)
+    (N := g.nt) (F := g.flag) (r := r) (start := g.initial) (hNF r hr)
+  have hpos : 1 ≤ r.rhs.length :=
+    Nat.succ_le_of_lt (List.length_pos_of_ne_nil hnonempty)
+  omega
+
+/-- The fixed-stack-bound compilation of a normal-form indexed grammar is context-sensitive. -/
+theorem is_CS_boundedStackGrammar_language {g : IndexedGrammar T}
+    [Fintype g.flag] [DecidableEq g.nt] {B : ℕ}
+    (hNF : g.IsNormalForm) :
+    is_CS (grammar_language (boundedStackGrammar g B)) :=
+  is_CS_of_is_noncontracting
+    ⟨boundedStackGrammar g B, boundedStackGrammar_noncontracting hNF, rfl⟩
+
+theorem boundedStackGrammar_transforms_of_indexed_transforms {g : IndexedGrammar T}
+    [Fintype g.flag] {B : ℕ} {w₁ w₂ : List g.ISym}
+    (hstep : g.Transforms w₁ w₂)
+    (hw₁ : sententialMaxStackHeight w₁ ≤ B)
+    (hw₂ : sententialMaxStackHeight w₂ ≤ B) :
+    ∃ bw₁ bw₂ : List (symbol T (BoundedStackNT g B)),
+      boundedSentential? B w₁ = some bw₁ ∧
+      boundedSentential? B w₂ = some bw₂ ∧
+      grammar_transforms (boundedStackGrammar g B) bw₁ bw₂ := by
+  classical
+  rcases hstep with ⟨r, u, v, σ, hr, hlhs, hrhs⟩
+  cases hc : r.consume with
+  | none =>
+      simp only [hc] at hlhs
+      have hinput : sententialMaxStackHeight (u ++ [ISym.indexed r.lhs σ] ++ v) ≤ B := by
+        simpa [hlhs]
+          using hw₁
+      have hinput' : sententialMaxStackHeight (u ++ ([ISym.indexed r.lhs σ] ++ v)) ≤ B := by
+        simpa [List.append_assoc] using hinput
+      have huMax : sententialMaxStackHeight u ≤ B :=
+        sententialMaxStackHeight_le_of_append_left_le
+          (g := g) (u := u) (v := [ISym.indexed r.lhs σ] ++ v) hinput'
+      have hmidMax : sententialMaxStackHeight ([ISym.indexed r.lhs σ] ++ v) ≤ B :=
+        sententialMaxStackHeight_le_of_append_right_le
+          (g := g) (u := u) (v := [ISym.indexed r.lhs σ] ++ v) hinput'
+      have hsingleMax : sententialMaxStackHeight ([ISym.indexed r.lhs σ] : List g.ISym) ≤ B :=
+        sententialMaxStackHeight_le_of_append_left_le
+          (g := g) (u := [ISym.indexed r.lhs σ]) (v := v) hmidMax
+      have hvMax : sententialMaxStackHeight v ≤ B :=
+        sententialMaxStackHeight_le_of_append_right_le
+          (g := g) (u := [ISym.indexed r.lhs σ]) (v := v) hmidMax
+      have hσ : σ.length ≤ B := by
+        simpa using hsingleMax
+      have houtput : sententialMaxStackHeight (u ++ g.expandRhs r.rhs σ ++ v) ≤ B := by
+        simpa [hrhs]
+          using hw₂
+      have houtput' : sententialMaxStackHeight (u ++ (g.expandRhs r.rhs σ ++ v)) ≤ B := by
+        simpa [List.append_assoc] using houtput
+      have houtMidMax : sententialMaxStackHeight (g.expandRhs r.rhs σ ++ v) ≤ B :=
+        sententialMaxStackHeight_le_of_append_right_le
+          (g := g) (u := u) (v := g.expandRhs r.rhs σ ++ v) houtput'
+      have houtMax : sententialMaxStackHeight (g.expandRhs r.rhs σ) ≤ B :=
+        sententialMaxStackHeight_le_of_append_left_le
+          (g := g) (u := g.expandRhs r.rhs σ) (v := v) houtMidMax
+      obtain ⟨bu, hbu⟩ :=
+        exists_boundedSentential?_of_sententialMaxStackHeight_le
+          (g := g) (B := B) huMax
+      obtain ⟨bv, hbv⟩ :=
+        exists_boundedSentential?_of_sententialMaxStackHeight_le
+          (g := g) (B := B) hvMax
+      obtain ⟨out, hout⟩ :=
+        exists_boundedSentential?_of_sententialMaxStackHeight_le
+          (g := g) (B := B) houtMax
+      let σb : {τ : List g.flag // τ.length ≤ B} := ⟨σ, hσ⟩
+      let br : grule T (BoundedStackNT g B) :=
+        { input_L := []
+          input_N := (r.lhs, σb)
+          input_R := []
+          output_string := out }
+      have hsingle :
+          boundedSentential? B [ISym.indexed r.lhs σ] =
+            some [symbol.nonterminal (r.lhs, σb)] := by
+        simp [boundedSentential?, boundedSymbol?, σb, hσ]
+      have hbrOf : boundedRuleOf? B r σb = some br := by
+        simp [boundedRuleOf?, hc, hout, br, σb]
+      have hbrMem : br ∈ (boundedStackGrammar g B).rules := by
+        change br ∈ boundedRules g B
+        exact boundedRuleOf?_mem_boundedRules (g := g) (B := B) hr hbrOf
+      refine ⟨bu ++ [symbol.nonterminal (r.lhs, σb)] ++ bv, bu ++ out ++ bv, ?_, ?_, ?_⟩
+      · rw [hlhs]
+        have hmid := boundedSentential?_append (g := g) (B := B) hsingle hbv
+        have hall := boundedSentential?_append (g := g) (B := B) hbu hmid
+        simpa [List.append_assoc] using hall
+      · rw [hrhs]
+        have hmid := boundedSentential?_append (g := g) (B := B) hout hbv
+        have hall := boundedSentential?_append (g := g) (B := B) hbu hmid
+        simpa [List.append_assoc] using hall
+      · refine ⟨br, hbrMem, bu, bv, ?_, ?_⟩
+        · simp [br, List.append_assoc]
+        · simp [br, List.append_assoc]
+  | some f =>
+      simp only [hc] at hlhs
+      have hinput : sententialMaxStackHeight (u ++ [ISym.indexed r.lhs (f :: σ)] ++ v) ≤ B := by
+        simpa [hlhs]
+          using hw₁
+      have hinput' :
+          sententialMaxStackHeight (u ++ ([ISym.indexed r.lhs (f :: σ)] ++ v)) ≤ B := by
+        simpa [List.append_assoc] using hinput
+      have huMax : sententialMaxStackHeight u ≤ B :=
+        sententialMaxStackHeight_le_of_append_left_le
+          (g := g) (u := u) (v := [ISym.indexed r.lhs (f :: σ)] ++ v) hinput'
+      have hmidMax : sententialMaxStackHeight ([ISym.indexed r.lhs (f :: σ)] ++ v) ≤ B :=
+        sententialMaxStackHeight_le_of_append_right_le
+          (g := g) (u := u) (v := [ISym.indexed r.lhs (f :: σ)] ++ v) hinput'
+      have hsingleMax :
+          sententialMaxStackHeight ([ISym.indexed r.lhs (f :: σ)] : List g.ISym) ≤ B :=
+        sententialMaxStackHeight_le_of_append_left_le
+          (g := g) (u := [ISym.indexed r.lhs (f :: σ)]) (v := v) hmidMax
+      have hvMax : sententialMaxStackHeight v ≤ B :=
+        sententialMaxStackHeight_le_of_append_right_le
+          (g := g) (u := [ISym.indexed r.lhs (f :: σ)]) (v := v) hmidMax
+      have hfσ : (f :: σ).length ≤ B := by
+        simpa using hsingleMax
+      have htop : σ.length < B :=
+        Nat.lt_of_succ_le (by simpa using hfσ)
+      have hσ : σ.length ≤ B :=
+        le_of_lt htop
+      have houtput : sententialMaxStackHeight (u ++ g.expandRhs r.rhs σ ++ v) ≤ B := by
+        simpa [hrhs]
+          using hw₂
+      have houtput' : sententialMaxStackHeight (u ++ (g.expandRhs r.rhs σ ++ v)) ≤ B := by
+        simpa [List.append_assoc] using houtput
+      have houtMidMax : sententialMaxStackHeight (g.expandRhs r.rhs σ ++ v) ≤ B :=
+        sententialMaxStackHeight_le_of_append_right_le
+          (g := g) (u := u) (v := g.expandRhs r.rhs σ ++ v) houtput'
+      have houtMax : sententialMaxStackHeight (g.expandRhs r.rhs σ) ≤ B :=
+        sententialMaxStackHeight_le_of_append_left_le
+          (g := g) (u := g.expandRhs r.rhs σ) (v := v) houtMidMax
+      obtain ⟨bu, hbu⟩ :=
+        exists_boundedSentential?_of_sententialMaxStackHeight_le
+          (g := g) (B := B) huMax
+      obtain ⟨bv, hbv⟩ :=
+        exists_boundedSentential?_of_sententialMaxStackHeight_le
+          (g := g) (B := B) hvMax
+      obtain ⟨out, hout⟩ :=
+        exists_boundedSentential?_of_sententialMaxStackHeight_le
+          (g := g) (B := B) houtMax
+      let σb : {τ : List g.flag // τ.length ≤ B} := ⟨σ, hσ⟩
+      let top : {τ : List g.flag // τ.length ≤ B} :=
+        ⟨f :: σ, by simpa using Nat.succ_le_iff.mpr htop⟩
+      let br : grule T (BoundedStackNT g B) :=
+        { input_L := []
+          input_N := (r.lhs, top)
+          input_R := []
+          output_string := out }
+      have hsingle :
+          boundedSentential? B [ISym.indexed r.lhs (f :: σ)] =
+            some [symbol.nonterminal (r.lhs, top)] := by
+        simp only [boundedSentential?]
+        rw [show
+          boundedSymbol? (g := g) B (ISym.indexed r.lhs (f :: σ)) =
+            some (symbol.nonterminal (r.lhs, top)) by
+            simpa [top] using
+              boundedSymbol?_indexed_of_le (g := g) (B := B)
+                (A := r.lhs) (σ := f :: σ) (by simpa using hfσ)]
+      have hbrOf : boundedRuleOf? B r σb = some br := by
+        simp [boundedRuleOf?, hc, htop, hout, br, top, σb]
+      have hbrMem : br ∈ (boundedStackGrammar g B).rules := by
+        change br ∈ boundedRules g B
+        exact boundedRuleOf?_mem_boundedRules (g := g) (B := B) hr hbrOf
+      refine ⟨bu ++ [symbol.nonterminal (r.lhs, top)] ++ bv, bu ++ out ++ bv, ?_, ?_, ?_⟩
+      · rw [hlhs]
+        have hmid := boundedSentential?_append (g := g) (B := B) hsingle hbv
+        have hall := boundedSentential?_append (g := g) (B := B) hbu hmid
+        simpa [List.append_assoc] using hall
+      · rw [hrhs]
+        have hmid := boundedSentential?_append (g := g) (B := B) hout hbv
+        have hall := boundedSentential?_append (g := g) (B := B) hbu hmid
+        simpa [List.append_assoc] using hall
+      · refine ⟨br, hbrMem, bu, bv, ?_, ?_⟩
+        · simp [br, List.append_assoc]
+        · simp [br, List.append_assoc]
+
+theorem indexed_transforms_of_boundedStackGrammar_transforms {g : IndexedGrammar T}
+    [Fintype g.flag] {B : ℕ}
+    {w₁ w₂ : List (symbol T (BoundedStackNT g B))}
+    (hstep : grammar_transforms (boundedStackGrammar g B) w₁ w₂) :
+    g.Transforms (eraseBoundedSentential w₁) (eraseBoundedSentential w₂) := by
+  classical
+  rcases hstep with ⟨br, hbr, u, v, hw₁, hw₂⟩
+  change br ∈ boundedRules g B at hbr
+  rcases mem_boundedRules (g := g) (B := B) hbr with ⟨r, hr, σ, hbrOf⟩
+  cases hc : r.consume with
+  | none =>
+      simp only [boundedRuleOf?, hc] at hbrOf
+      cases hout : boundedSentential? B (g.expandRhs r.rhs σ.1) with
+      | none =>
+          simp [hout] at hbrOf
+      | some out =>
+          simp [hout] at hbrOf
+          subst br
+          refine ⟨r, eraseBoundedSentential u, eraseBoundedSentential v, σ.1, hr, ?_, ?_⟩
+          · simpa [eraseBoundedSentential, List.map_append, hc, List.append_assoc]
+              using congrArg eraseBoundedSentential hw₁
+          ·
+            have houtErase := eraseBoundedSentential_of_boundedSentential? hout
+            have houtErase' :
+                List.map eraseBoundedSymbol out = g.expandRhs r.rhs σ.1 := by
+              simpa [eraseBoundedSentential] using houtErase
+            simpa [eraseBoundedSentential, List.map_append, houtErase', List.append_assoc]
+              using congrArg eraseBoundedSentential hw₂
+  | some f =>
+      simp only [boundedRuleOf?, hc] at hbrOf
+      by_cases htop : σ.1.length < B
+      · simp [htop] at hbrOf
+        cases hout : boundedSentential? B (g.expandRhs r.rhs σ.1) with
+        | none =>
+            simp [hout] at hbrOf
+        | some out =>
+            simp [hout] at hbrOf
+            subst br
+            refine ⟨r, eraseBoundedSentential u, eraseBoundedSentential v, σ.1, hr, ?_, ?_⟩
+            · simpa [eraseBoundedSentential, List.map_append, hc, List.append_assoc]
+                using congrArg eraseBoundedSentential hw₁
+            ·
+              have houtErase := eraseBoundedSentential_of_boundedSentential? hout
+              have houtErase' :
+                  List.map eraseBoundedSymbol out = g.expandRhs r.rhs σ.1 := by
+                simpa [eraseBoundedSentential] using houtErase
+              simpa [eraseBoundedSentential, List.map_append, houtErase', List.append_assoc]
+                using congrArg eraseBoundedSentential hw₂
+      · simp [htop] at hbrOf
+
+theorem indexed_derives_of_boundedStackGrammar_derives {g : IndexedGrammar T}
+    [Fintype g.flag] {B : ℕ}
+    {w₁ w₂ : List (symbol T (BoundedStackNT g B))}
+    (h : grammar_derives (boundedStackGrammar g B) w₁ w₂) :
+    g.Derives (eraseBoundedSentential w₁) (eraseBoundedSentential w₂) := by
+  induction h with
+  | refl =>
+      exact g.deri_self _
+  | tail _ hstep ih =>
+      exact ih.tail (indexed_transforms_of_boundedStackGrammar_transforms hstep)
+
+theorem boundedStackGrammar_language_subset_language {g : IndexedGrammar T}
+    [Fintype g.flag] {B : ℕ} :
+    ∀ w, w ∈ grammar_language (boundedStackGrammar g B) → w ∈ g.Language := by
+  intro w hw
+  change g.Generates w
+  have hder :=
+    indexed_derives_of_boundedStackGrammar_derives
+      (g := g) (B := B) (w₁ := [symbol.nonterminal (boundedStackGrammar g B).initial])
+      (w₂ := w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B)))
+      (by simpa [grammar_language, grammar_generates] using hw)
+  simpa [Generates, boundedStackGrammar] using hder
+
+/-- Indexed derivations whose every displayed sentential form stays within a fixed stack
+bound. This is the exact hypothesis needed by the bounded-stack compiler. -/
+def StackBoundedDerivesIn (g : IndexedGrammar T) (B : ℕ) :
+    ℕ → List g.ISym → List g.ISym → Prop
+  | 0, w₁, w₂ => w₁ = w₂ ∧ sententialMaxStackHeight w₁ ≤ B
+  | n + 1, w₁, w₂ =>
+      ∃ w, StackBoundedDerivesIn g B n w₁ w ∧
+        g.Transforms w w₂ ∧ sententialMaxStackHeight w₂ ≤ B
+
+theorem StackBoundedDerivesIn.final_maxStackHeight_le {g : IndexedGrammar T}
+    {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    sententialMaxStackHeight w₂ ≤ B := by
+  induction n generalizing w₂ with
+  | zero =>
+      rcases h with ⟨rfl, hw₁⟩
+      exact hw₁
+  | succ n _ =>
+      rcases h with ⟨_, _, _, hw₂⟩
+      exact hw₂
+
+theorem StackBoundedDerivesIn.initial_maxStackHeight_le {g : IndexedGrammar T}
+    {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    sententialMaxStackHeight w₁ ≤ B := by
+  induction n generalizing w₂ with
+  | zero =>
+      rcases h with ⟨_, hw₁⟩
+      exact hw₁
+  | succ n ih =>
+      rcases h with ⟨w, hprev, _, _⟩
+      exact ih hprev
+
+theorem StackBoundedDerivesIn.to_derivesIn {g : IndexedGrammar T}
+    {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    g.DerivesIn n w₁ w₂ := by
+  induction n generalizing w₂ with
+  | zero =>
+      exact h.1
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep, _⟩
+      exact ⟨w, ih hprev, hstep⟩
+
+theorem StackBoundedDerivesIn.mono_bound {g : IndexedGrammar T}
+    {B C n : ℕ} {w₁ w₂ : List g.ISym}
+    (hBC : B ≤ C)
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    StackBoundedDerivesIn g C n w₁ w₂ := by
+  induction n generalizing w₂ with
+  | zero =>
+      rcases h with ⟨rfl, hw₁⟩
+      exact ⟨rfl, le_trans hw₁ hBC⟩
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep, hw₂⟩
+      exact ⟨w, ih hprev, hstep, le_trans hw₂ hBC⟩
+
+theorem exists_stackBoundedDerivesIn_of_boundedStackGrammar_derives
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
+    {w₁ w₂ : List (symbol T (BoundedStackNT g B))}
+    (h : grammar_derives (boundedStackGrammar g B) w₁ w₂) :
+    ∃ n, StackBoundedDerivesIn g B n
+      (eraseBoundedSentential w₁) (eraseBoundedSentential w₂) := by
+  induction h with
+  | refl =>
+      exact ⟨0, rfl, sententialMaxStackHeight_eraseBoundedSentential_le w₁⟩
+  | tail _ hstep ih =>
+      rcases ih with ⟨n, hprev⟩
+      exact ⟨n + 1, _, hprev,
+        indexed_transforms_of_boundedStackGrammar_transforms hstep,
+        sententialMaxStackHeight_eraseBoundedSentential_le _⟩
+
+theorem exists_bounded_isDerivationTrace_of_stackBoundedDerivesIn
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    ∃ trace : List (List g.ISym),
+      IsDerivationTrace g trace ∧
+      trace.length = n + 1 ∧
+      trace.head? = some w₁ ∧
+      trace.getLast? = some w₂ ∧
+      ∀ x ∈ trace, sententialMaxStackHeight x ≤ B := by
+  induction n generalizing w₂ with
+  | zero =>
+      rcases h with ⟨rfl, hw₁⟩
+      exact ⟨[w₁], by simp, by simp, by simp, by simp, by
+        intro x hx
+        have hx' : x = w₁ := by simpa using hx
+        simpa [hx'] using hw₁⟩
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep, hw₂⟩
+      obtain ⟨trace, htrace, hlen, hhead, hlast, hbound⟩ := ih hprev
+      refine ⟨trace ++ [w₂], ?_, ?_, ?_, ?_, ?_⟩
+      · exact isDerivationTrace_append_step htrace hlast hstep
+      · simp [hlen]
+      ·
+        have hne : trace ≠ [] := by
+          intro hnil
+          simp [hnil] at hlen
+        simpa [List.head?_append_of_ne_nil trace hne] using hhead
+      · simp
+      ·
+        intro x hx
+        rw [List.mem_append] at hx
+        rcases hx with hx | hx
+        · exact hbound x hx
+        ·
+          have hx' : x = w₂ := by simpa using hx
+          simpa [hx'] using hw₂
+
+theorem stackBoundedDerivesIn_one_of_transforms {g : IndexedGrammar T}
+    {B : ℕ} {w₁ w₂ : List g.ISym}
+    (hstep : g.Transforms w₁ w₂)
+    (hw₁ : sententialMaxStackHeight w₁ ≤ B)
+    (hw₂ : sententialMaxStackHeight w₂ ≤ B) :
+    StackBoundedDerivesIn g B 1 w₁ w₂ :=
+  ⟨w₁, ⟨rfl, hw₁⟩, hstep, hw₂⟩
+
+theorem stackBoundedDerivesIn_trans {g : IndexedGrammar T}
+    {B m n : ℕ} {w₁ w₂ w₃ : List g.ISym}
+    (h₁ : StackBoundedDerivesIn g B m w₁ w₂)
+    (h₂ : StackBoundedDerivesIn g B n w₂ w₃) :
+    StackBoundedDerivesIn g B (m + n) w₁ w₃ := by
+  induction n generalizing w₃ with
+  | zero =>
+      rcases h₂ with ⟨rfl, _⟩
+      simpa using h₁
+  | succ n ih =>
+      rcases h₂ with ⟨w, hprev, hstep, hw₃⟩
+      rw [Nat.add_succ]
+      exact ⟨w, ih hprev, hstep, hw₃⟩
+
+theorem stackBoundedDerivesIn_of_bounded_isDerivationTrace
+    {g : IndexedGrammar T} {B n : ℕ} {trace : List (List g.ISym)}
+    {w₁ w₂ : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some w₁)
+    (hlast : trace.getLast? = some w₂)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B) :
+    StackBoundedDerivesIn g B n w₁ w₂ := by
+  induction n generalizing trace w₁ w₂ with
+  | zero =>
+      cases trace with
+      | nil => simp at hlen
+      | cons a rest =>
+          cases rest with
+          | nil =>
+              simp at hhead hlast
+              subst a
+              subst w₂
+              exact ⟨rfl, hbound w₁ (by simp)⟩
+          | cons b rest =>
+              simp at hlen
+  | succ n ih =>
+      cases trace with
+      | nil => simp at hlen
+      | cons a rest =>
+          cases rest with
+          | nil => simp at hlen
+          | cons b rest =>
+              simp only [isDerivationTrace_cons_cons] at htrace
+              have ha : a = w₁ := by simpa using hhead
+              subst a
+              have hlen_tail : (b :: rest).length = n + 1 := by
+                simpa using hlen
+              have hlast_tail : (b :: rest).getLast? = some w₂ := by
+                simpa using hlast
+              have hbound_tail : ∀ x ∈ b :: rest, sententialMaxStackHeight x ≤ B := by
+                intro x hx
+                exact hbound x (by simp [hx])
+              have htail : StackBoundedDerivesIn g B n b w₂ :=
+                ih htrace.2 hlen_tail (by simp) hlast_tail hbound_tail
+              have hw₁ : sententialMaxStackHeight w₁ ≤ B :=
+                hbound w₁ (by simp)
+              have hb : sententialMaxStackHeight b ≤ B :=
+                hbound b (by simp)
+              have hone : StackBoundedDerivesIn g B 1 w₁ b :=
+                stackBoundedDerivesIn_one_of_transforms htrace.1 hw₁ hb
+              simpa [Nat.add_comm] using stackBoundedDerivesIn_trans hone htail
+
+theorem stackBoundedDerivesIn_trace_prefix
+    {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
+    {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hbound : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B)
+    {i : ℕ} (hi : i < trace.length) :
+    StackBoundedDerivesIn g B i first (trace.get ⟨i, hi⟩) := by
+  induction i with
+  | zero =>
+      cases trace with
+      | nil =>
+          simp at hi
+      | cons a rest =>
+          have ha : a = first := by simpa using hhead
+          subst a
+          exact ⟨rfl, by simpa using hbound 0 hi⟩
+  | succ i ih =>
+      have hiPrev : i < trace.length := by omega
+      have hprev : StackBoundedDerivesIn g B i first (trace.get ⟨i, hiPrev⟩) :=
+        ih hiPrev
+      have hstep : g.Transforms (trace.get ⟨i, hiPrev⟩) (trace.get ⟨i + 1, hi⟩) :=
+        isDerivationTrace_get_transform htrace hi
+      have hone :
+          StackBoundedDerivesIn g B 1
+            (trace.get ⟨i, hiPrev⟩) (trace.get ⟨i + 1, hi⟩) :=
+        stackBoundedDerivesIn_one_of_transforms hstep
+          (hbound i hiPrev) (hbound (i + 1) hi)
+      exact stackBoundedDerivesIn_trans hprev hone
+
+theorem stackBoundedDerivesIn_trace_suffix
+    {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
+    {last : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some last)
+    (hbound : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B)
+    {i : ℕ} (hi : i < trace.length) :
+    StackBoundedDerivesIn g B (trace.length - 1 - i) (trace.get ⟨i, hi⟩) last := by
+  have hdropTrace : IsDerivationTrace g (trace.drop i) :=
+    isDerivationTrace_drop htrace i
+  have hdropLen : (trace.drop i).length = (trace.length - 1 - i) + 1 := by
+    rw [List.length_drop]
+    omega
+  have hdropHead : (trace.drop i).head? = some (trace.get ⟨i, hi⟩) :=
+    trace_drop_head?_eq_get (g := g) hi
+  have hdropLast : (trace.drop i).getLast? = some last := by
+    rw [trace_drop_getLast?_eq_getLast? (g := g) hi, hlast]
+  have hboundMem : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B := by
+    intro x hx
+    rcases (List.mem_iff_get.mp hx) with ⟨j, hj⟩
+    rw [← hj]
+    exact hbound j.1 j.2
+  have hdropBound : ∀ x ∈ trace.drop i, sententialMaxStackHeight x ≤ B := by
+    intro x hx
+    exact hboundMem x ((List.drop_sublist i trace).subset hx)
+  exact stackBoundedDerivesIn_of_bounded_isDerivationTrace
+    hdropTrace hdropLen hdropHead hdropLast hdropBound
+
+theorem minimal_accepting_stackBound_le_of_stackBoundedDerivesIn
+    {g : IndexedGrammar T} {n B C m : ℕ} {w : List T}
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? = some (w.map ISym.terminal) ∧
+          ∀ i (hi : i < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨i, hi⟩) ≤ C') →
+        B ≤ C')
+    (hbounded : StackBoundedDerivesIn g C m
+      [ISym.indexed g.initial []] (w.map ISym.terminal))
+    (hmn : m ≤ n) :
+    B ≤ C := by
+  have hder_m :
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) :=
+    StackBoundedDerivesIn.to_derivesIn hbounded
+  have hn_le_m : n ≤ m := hminLength m hder_m
+  have hm_eq : m = n := by omega
+  subst m
+  obtain ⟨trace', htrace', hlen', hhead', hlast', hbound'⟩ :=
+    exists_bounded_isDerivationTrace_of_stackBoundedDerivesIn hbounded
+  exact hminBound C
+    ⟨trace', htrace', hlen', hhead', hlast', by
+      intro i hi
+      exact hbound' (trace'.get ⟨i, hi⟩) (List.get_mem trace' ⟨i, hi⟩)⟩
+
+theorem minimal_accepting_stackBound_le_of_stackBounded_prefix_suffix
+    {g : IndexedGrammar T} {n B Bpre Bsuf p q : ℕ} {w : List T}
+    {mid : List g.ISym}
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? = some (w.map ISym.terminal) ∧
+          ∀ i (hi : i < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨i, hi⟩) ≤ C') →
+        B ≤ C')
+    (hpre : StackBoundedDerivesIn g Bpre p [ISym.indexed g.initial []] mid)
+    (hsuf : StackBoundedDerivesIn g Bsuf q mid (w.map ISym.terminal))
+    (hsteps : p + q ≤ n) :
+    B ≤ max Bpre Bsuf := by
+  have hpre' :
+      StackBoundedDerivesIn g (max Bpre Bsuf) p [ISym.indexed g.initial []] mid :=
+    StackBoundedDerivesIn.mono_bound (Nat.le_max_left Bpre Bsuf) hpre
+  have hsuf' :
+      StackBoundedDerivesIn g (max Bpre Bsuf) q mid (w.map ISym.terminal) :=
+    StackBoundedDerivesIn.mono_bound (Nat.le_max_right Bpre Bsuf) hsuf
+  exact minimal_accepting_stackBound_le_of_stackBoundedDerivesIn
+    hminLength hminBound (stackBoundedDerivesIn_trans hpre' hsuf') hsteps
+
+theorem stackBoundedDerivesIn_append_left {g : IndexedGrammar T}
+    {B n : ℕ} {u u' v : List g.ISym}
+    (h : StackBoundedDerivesIn g B n u u')
+    (hv : sententialMaxStackHeight v ≤ B) :
+    StackBoundedDerivesIn g B n (u ++ v) (u' ++ v) := by
+  induction n generalizing u' with
+  | zero =>
+      rcases h with ⟨rfl, hu⟩
+      exact ⟨rfl, by simpa using max_le hu hv⟩
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep, hu'⟩
+      exact ⟨w ++ v, ih hprev, transforms_append_left hstep v,
+        by simpa using max_le hu' hv⟩
+
+theorem stackBoundedDerivesIn_append_right {g : IndexedGrammar T}
+    {B n : ℕ} {u v v' : List g.ISym}
+    (h : StackBoundedDerivesIn g B n v v')
+    (hu : sententialMaxStackHeight u ≤ B) :
+    StackBoundedDerivesIn g B n (u ++ v) (u ++ v') := by
+  induction n generalizing v' with
+  | zero =>
+      rcases h with ⟨rfl, hv⟩
+      exact ⟨rfl, by simpa using max_le hu hv⟩
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep, hv'⟩
+      exact ⟨u ++ w, ih hprev, transforms_append_right hstep u,
+        by simpa using max_le hu hv'⟩
+
+theorem stackBoundedDerivesIn_append {g : IndexedGrammar T}
+    {B m n : ℕ} {u u' v v' : List g.ISym}
+    (hu : StackBoundedDerivesIn g B m u u')
+    (hv : StackBoundedDerivesIn g B n v v') :
+    StackBoundedDerivesIn g B (m + n) (u ++ v) (u' ++ v') :=
+  stackBoundedDerivesIn_trans
+    (stackBoundedDerivesIn_append_left hu
+      (StackBoundedDerivesIn.initial_maxStackHeight_le hv))
+    (stackBoundedDerivesIn_append_right hv
+      (StackBoundedDerivesIn.final_maxStackHeight_le hu))
+
+theorem stackBoundedDerivesIn_append_to_terminals_of_stackBoundedDerivesIn
+    {g : IndexedGrammar T}
+    {B m n : ℕ} {u v : List g.ISym} {wu wv : List T}
+    (hu : StackBoundedDerivesIn g B m u
+      (wu.map fun a => (ISym.terminal a : g.ISym)))
+    (hv : StackBoundedDerivesIn g B n v
+      (wv.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g B (m + n) (u ++ v)
+      ((wu ++ wv).map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa [List.map_append] using stackBoundedDerivesIn_append hu hv
+
+/-- Bounded terminal-word composition from a positionwise list of singleton derivations. -/
+theorem stackBoundedDerivesIn_symbols_to_terminals_of_forall₂
+    {g : IndexedGrammar T} {B : ℕ}
+    {xs : List g.ISym} {parts : List (ℕ × List T)}
+    (hparts : List.Forall₂
+      (fun s p => StackBoundedDerivesIn g B p.1 [s]
+        (p.2.map fun a => (ISym.terminal a : g.ISym)))
+      xs parts) :
+    StackBoundedDerivesIn g B ((parts.map fun p => p.1).sum) xs
+      ((parts.flatMap fun p => p.2).map fun a => (ISym.terminal a : g.ISym)) := by
+  induction hparts with
+  | nil =>
+      simp [StackBoundedDerivesIn]
+  | cons hhead _htail ih =>
+      have hcomp :=
+        stackBoundedDerivesIn_append_to_terminals_of_stackBoundedDerivesIn
+          (g := g) hhead ih
+      simpa [List.map_append] using hcomp
+
+theorem stackBoundedDerivesIn_pair_to_terminals_of_stackBoundedDerivesIn
+    {g : IndexedGrammar T}
+    {B m n : ℕ} {A C : g.nt} {σ τ : List g.flag} {u v : List T}
+    (hleft : StackBoundedDerivesIn g B m [ISym.indexed A σ]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : StackBoundedDerivesIn g B n [ISym.indexed C τ]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g B (m + n) [ISym.indexed A σ, ISym.indexed C τ]
+      ((u ++ v).map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa using
+    stackBoundedDerivesIn_append_to_terminals_of_stackBoundedDerivesIn
+      (g := g) (u := [ISym.indexed A σ]) (v := [ISym.indexed C τ])
+      hleft hright
+
+theorem stackBoundedDerivesIn_binary_rule_to_terminals_of_children
+    {g : IndexedGrammar T}
+    {K m n : ℕ} {A B C : g.nt} {τ : List g.flag} {u v w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none])
+    (hw : w = u ++ v)
+    (hτ : τ.length ≤ K)
+    (hleft : StackBoundedDerivesIn g K m [ISym.indexed B τ]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : StackBoundedDerivesIn g K n [ISym.indexed C τ]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g K (1 + (m + n)) [ISym.indexed A τ]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  subst w
+  have hstep :
+      g.Transforms [ISym.indexed A τ] [ISym.indexed B τ, ISym.indexed C τ] := by
+    refine ⟨r, [], [], τ, hr, ?_, ?_⟩
+    · simp [hc, hlhs]
+    · simp [hrhs, expandRhs]
+  have hstart : sententialMaxStackHeight ([ISym.indexed A τ] : List g.ISym) ≤ K := by
+    simpa using hτ
+  have hmid :
+      sententialMaxStackHeight ([ISym.indexed B τ, ISym.indexed C τ] : List g.ISym) ≤ K := by
+    simpa using max_le hτ hτ
+  have hfirst :=
+    stackBoundedDerivesIn_one_of_transforms (g := g) hstep hstart hmid
+  have hchildren :=
+    stackBoundedDerivesIn_pair_to_terminals_of_stackBoundedDerivesIn
+      (g := g) hleft hright
+  simpa [List.map_append] using stackBoundedDerivesIn_trans hfirst hchildren
+
+theorem stackBoundedDerivesIn_pop_rule_to_terminals_of_child
+    {g : IndexedGrammar T}
+    {K n : ℕ} {A B : g.nt} {f : g.flag} {ρ : List g.flag} {w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = some f)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
+    (hρtop : (f :: ρ).length ≤ K)
+    (hchild : StackBoundedDerivesIn g K n [ISym.indexed B ρ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g K (1 + n) [ISym.indexed A (f :: ρ)]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have hstep : g.Transforms [ISym.indexed A (f :: ρ)] [ISym.indexed B ρ] := by
+    refine ⟨r, [], [], ρ, hr, ?_, ?_⟩
+    · simp [hc, hlhs]
+    · simp [hrhs, expandRhs]
+  have hstart :
+      sententialMaxStackHeight ([ISym.indexed A (f :: ρ)] : List g.ISym) ≤ K := by
+    simpa using hρtop
+  have hρ : ρ.length ≤ K :=
+    le_trans (Nat.le_succ ρ.length) (by simpa using hρtop)
+  have hmid : sententialMaxStackHeight ([ISym.indexed B ρ] : List g.ISym) ≤ K := by
+    simpa using hρ
+  have hfirst :=
+    stackBoundedDerivesIn_one_of_transforms (g := g) hstep hstart hmid
+  simpa using stackBoundedDerivesIn_trans hfirst hchild
+
+theorem stackBoundedDerivesIn_push_rule_to_terminals_of_child
+    {g : IndexedGrammar T}
+    {K n : ℕ} {A B : g.nt} {f : g.flag} {τ : List g.flag} {w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B (some f)])
+    (hτtop : (f :: τ).length ≤ K)
+    (hchild : StackBoundedDerivesIn g K n [ISym.indexed B (f :: τ)]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g K (1 + n) [ISym.indexed A τ]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have hstep : g.Transforms [ISym.indexed A τ] [ISym.indexed B (f :: τ)] := by
+    refine ⟨r, [], [], τ, hr, ?_, ?_⟩
+    · simp [hc, hlhs]
+    · simp [hrhs, expandRhs]
+  have hτ : τ.length ≤ K :=
+    le_trans (Nat.le_succ τ.length) (by simpa using hτtop)
+  have hstart : sententialMaxStackHeight ([ISym.indexed A τ] : List g.ISym) ≤ K := by
+    simpa using hτ
+  have hmid :
+      sententialMaxStackHeight ([ISym.indexed B (f :: τ)] : List g.ISym) ≤ K := by
+    simpa using hτtop
+  have hfirst :=
+    stackBoundedDerivesIn_one_of_transforms (g := g) hstep hstart hmid
+  simpa using stackBoundedDerivesIn_trans hfirst hchild
+
+theorem stackBoundedDerivesIn_terminal_rule
+    {g : IndexedGrammar T}
+    {K : ℕ} {A : g.nt} {σ : List g.flag} {a : T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.terminal a])
+    (hσ : σ.length ≤ K) :
+    StackBoundedDerivesIn g K 1 [ISym.indexed A σ]
+      ([a].map fun b => (ISym.terminal b : g.ISym)) := by
+  have hstep : g.Transforms [ISym.indexed A σ] [ISym.terminal a] := by
+    refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+    · simp [hc, hlhs]
+    · simp [hrhs, expandRhs]
+  have hstart : sententialMaxStackHeight ([ISym.indexed A σ] : List g.ISym) ≤ K := by
+    simpa using hσ
+  have hfinal : sententialMaxStackHeight ([ISym.terminal a] : List g.ISym) ≤ K := by
+    simp
+  simpa using stackBoundedDerivesIn_one_of_transforms (g := g) hstep hstart hfinal
+
+theorem stackBoundedDerivesIn_binary_rule_to_terminals_of_prefixed_children
+    {g : IndexedGrammar T}
+    {M m n : ℕ} {A B C : g.nt} {pref τ : List g.flag} {u v w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none])
+    (hw : w = u ++ v)
+    (hτ : τ.length ≤ M)
+    (hleft : StackBoundedDerivesIn g (pref.length + M) m
+      [ISym.indexed B (pref ++ τ)]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : StackBoundedDerivesIn g (pref.length + M) n
+      [ISym.indexed C (pref ++ τ)]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g (pref.length + M) (1 + (m + n))
+      [ISym.indexed A (pref ++ τ)]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have hstack : (pref ++ τ).length ≤ pref.length + M := by
+    simp [List.length_append]
+    omega
+  exact stackBoundedDerivesIn_binary_rule_to_terminals_of_children
+    (g := g) (K := pref.length + M) (A := A) (B := B) (C := C)
+    (τ := pref ++ τ) (u := u) (v := v) (w := w)
+    hr hlhs hc hrhs hw hstack hleft hright
+
+theorem stackBoundedDerivesIn_pop_rule_to_terminals_of_prefixed_child
+    {g : IndexedGrammar T}
+    {M n : ℕ} {A B : g.nt} {f : g.flag} {pref τ : List g.flag} {w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = some f)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
+    (hτ : τ.length ≤ M)
+    (hchild : StackBoundedDerivesIn g (pref.length + M + 1) n
+      [ISym.indexed B (pref ++ τ)]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g (pref.length + M + 1) (1 + n)
+      [ISym.indexed A (f :: (pref ++ τ))]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have htop : (f :: (pref ++ τ)).length ≤ pref.length + M + 1 := by
+    simp [List.length_append]
+    omega
+  exact stackBoundedDerivesIn_pop_rule_to_terminals_of_child
+    (g := g) (K := pref.length + M + 1) (A := A) (B := B) (f := f)
+    (ρ := pref ++ τ) (w := w) hr hlhs hc hrhs htop hchild
+
+theorem stackBoundedDerivesIn_push_rule_to_terminals_of_prefixed_child
+    {g : IndexedGrammar T}
+    {M n : ℕ} {A B : g.nt} {f : g.flag} {pref τ : List g.flag} {w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B (some f)])
+    (hτ : τ.length ≤ M)
+    (hchild : StackBoundedDerivesIn g (pref.length + M + 1) n
+      [ISym.indexed B (f :: (pref ++ τ))]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g (pref.length + M + 1) (1 + n)
+      [ISym.indexed A (pref ++ τ)]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have htop : (f :: (pref ++ τ)).length ≤ pref.length + M + 1 := by
+    simp [List.length_append]
+    omega
+  exact stackBoundedDerivesIn_push_rule_to_terminals_of_child
+    (g := g) (K := pref.length + M + 1) (A := A) (B := B) (f := f)
+    (τ := pref ++ τ) (w := w) hr hlhs hc hrhs htop hchild
+
+theorem stackBoundedDerivesIn_terminal_rule_of_prefixed_stack
+    {g : IndexedGrammar T}
+    {M : ℕ} {A : g.nt} {pref τ : List g.flag} {a : T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.terminal a])
+    (hτ : τ.length ≤ M) :
+    StackBoundedDerivesIn g (pref.length + M) 1
+      [ISym.indexed A (pref ++ τ)]
+      ([a].map fun b => (ISym.terminal b : g.ISym)) := by
+  have hstack : (pref ++ τ).length ≤ pref.length + M := by
+    simp [List.length_append]
+    omega
+  exact stackBoundedDerivesIn_terminal_rule
+    (g := g) (K := pref.length + M) (A := A) (σ := pref ++ τ) (a := a)
+    hr hlhs hc hrhs hstack
+
+theorem stackBoundedDerivesIn_binary_rule_to_terminals_of_bounded_prefix_children
+    {g : IndexedGrammar T}
+    {N K m n : ℕ} {A B C : g.nt} {pref τ : List g.flag} {u v w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none])
+    (hw : w = u ++ v)
+    (hpref : pref.length ≤ N)
+    (hτ : τ.length ≤ K)
+    (hleft : StackBoundedDerivesIn g (N + K + 1) m
+      [ISym.indexed B (pref ++ τ)]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : StackBoundedDerivesIn g (N + K + 1) n
+      [ISym.indexed C (pref ++ τ)]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g (N + K + 1) (1 + (m + n))
+      [ISym.indexed A (pref ++ τ)]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have hstack : (pref ++ τ).length ≤ N + K + 1 := by
+    simp [List.length_append]
+    omega
+  exact stackBoundedDerivesIn_binary_rule_to_terminals_of_children
+    (g := g) (K := N + K + 1) (A := A) (B := B) (C := C)
+    (τ := pref ++ τ) (u := u) (v := v) (w := w)
+    hr hlhs hc hrhs hw hstack hleft hright
+
+theorem stackBoundedDerivesIn_pop_rule_to_terminals_of_bounded_prefix_child
+    {g : IndexedGrammar T}
+    {N K n : ℕ} {A B : g.nt} {f : g.flag} {pref τ : List g.flag} {w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = some f)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
+    (hpref : pref.length ≤ N)
+    (hτ : τ.length ≤ K)
+    (hchild : StackBoundedDerivesIn g (N + K + 1) n
+      [ISym.indexed B (pref ++ τ)]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g (N + K + 1) (1 + n)
+      [ISym.indexed A (f :: (pref ++ τ))]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have htop : (f :: (pref ++ τ)).length ≤ N + K + 1 := by
+    simp [List.length_append]
+    omega
+  exact stackBoundedDerivesIn_pop_rule_to_terminals_of_child
+    (g := g) (K := N + K + 1) (A := A) (B := B) (f := f)
+    (ρ := pref ++ τ) (w := w) hr hlhs hc hrhs htop hchild
+
+theorem stackBoundedDerivesIn_push_rule_to_terminals_of_bounded_prefix_child
+    {g : IndexedGrammar T}
+    {N K n : ℕ} {A B : g.nt} {f : g.flag} {pref τ : List g.flag} {w : List T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B (some f)])
+    (hpref : pref.length ≤ N)
+    (hτ : τ.length ≤ K)
+    (hchild : StackBoundedDerivesIn g (N + K + 1) n
+      [ISym.indexed B (f :: (pref ++ τ))]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g (N + K + 1) (1 + n)
+      [ISym.indexed A (pref ++ τ)]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have htop : (f :: (pref ++ τ)).length ≤ N + K + 1 := by
+    simp [List.length_append]
+    omega
+  exact stackBoundedDerivesIn_push_rule_to_terminals_of_child
+    (g := g) (K := N + K + 1) (A := A) (B := B) (f := f)
+    (τ := pref ++ τ) (w := w) hr hlhs hc hrhs htop hchild
+
+theorem stackBoundedDerivesIn_terminal_rule_of_bounded_prefix_stack
+    {g : IndexedGrammar T}
+    {N K : ℕ} {A : g.nt} {pref τ : List g.flag} {a : T}
+    {r : IRule T g.nt g.flag}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.terminal a])
+    (hpref : pref.length ≤ N)
+    (hτ : τ.length ≤ K) :
+    StackBoundedDerivesIn g (N + K + 1) 1
+      [ISym.indexed A (pref ++ τ)]
+      ([a].map fun b => (ISym.terminal b : g.ISym)) := by
+  have hstack : (pref ++ τ).length ≤ N + K + 1 := by
+    simp [List.length_append]
+    omega
+  exact stackBoundedDerivesIn_terminal_rule
+    (g := g) (K := N + K + 1) (A := A) (σ := pref ++ τ) (a := a)
+    hr hlhs hc hrhs hstack
+
+/-- Convert an ordinary counted derivation into a stack-bounded counted derivation when every
+intermediate sentential form is known to satisfy the same stack bound. -/
+theorem stackBoundedDerivesIn_of_derivesIn_of_intermediate_stackBound
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : g.DerivesIn n w₁ w₂)
+    (hstack : ∀ i x, DerivesInIntermediate g n w₁ w₂ i x →
+      sententialMaxStackHeight x ≤ B) :
+    StackBoundedDerivesIn g B n w₁ w₂ := by
+  induction n generalizing w₂ with
+  | zero =>
+      have hw : w₁ = w₂ := by simpa using h
+      subst w₂
+      have hmid : DerivesInIntermediate g 0 w₁ w₁ 0 w₁ := by
+        exact ⟨le_rfl, rfl, rfl⟩
+      exact ⟨rfl, hstack 0 w₁ hmid⟩
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep⟩
+      have hprevStack : ∀ i x, DerivesInIntermediate g n w₁ w i x →
+          sententialMaxStackHeight x ≤ B := by
+        intro i x hmid
+        rcases hmid with ⟨hi, hpre, hsuf⟩
+        refine hstack i x ?_
+        refine ⟨le_trans hi (Nat.le_succ n), hpre, ?_⟩
+        have htail : g.DerivesIn ((n - i) + 1) x w₂ :=
+          ⟨w, hsuf, hstep⟩
+        have hsub : n + 1 - i = (n - i) + 1 := by omega
+        simpa [hsub] using htail
+      have hfull : g.DerivesIn (n + 1) w₁ w₂ := ⟨w, hprev, hstep⟩
+      have hw₂ : sententialMaxStackHeight w₂ ≤ B := by
+        exact hstack (n + 1) w₂ ⟨le_rfl, hfull, by simp⟩
+      exact ⟨w, ih hprev hprevStack, hstep, hw₂⟩
+
+theorem stackBoundedDerivesIn_of_derivesIn_isNormalForm_initial_stackBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : g.DerivesIn n w₁ w₂)
+    (hstart : sententialMaxStackHeight w₁ ≤ B) :
+    StackBoundedDerivesIn g (B + n) n w₁ w₂ := by
+  apply stackBoundedDerivesIn_of_derivesIn_of_intermediate_stackBound
+    (g := g) (B := B + n) h
+  intro i x hmid
+  have hx :=
+    derivesIn_maxStackHeight_le_add_of_isNormalForm
+      (g := g) hNF hmid.2.1
+  have hi : i ≤ n := hmid.1
+  omega
+
+/-- In normal form, a positionwise split of a terminal suffix gives a bounded derivation of
+the whole sentential form. The bound is the surface stack bound plus the total remaining
+rewrite budget. -/
+theorem stackBoundedDerivesIn_symbols_to_terminals_of_forall₂_derivesIn_isNormalForm_stackBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B₀ : ℕ} {xs : List g.ISym} {parts : List (ℕ × List T)}
+    (hparts : List.Forall₂
+      (fun s p => g.DerivesIn p.1 [s]
+        (p.2.map fun a => (ISym.terminal a : g.ISym)))
+      xs parts)
+    (hheight : ∀ s ∈ xs, s.stackHeight ≤ B₀) :
+    StackBoundedDerivesIn g (B₀ + (parts.map fun p => p.1).sum)
+      ((parts.map fun p => p.1).sum) xs
+      ((parts.flatMap fun p => p.2).map fun a => (ISym.terminal a : g.ISym)) := by
+  induction hparts with
+  | nil =>
+      simp [StackBoundedDerivesIn]
+  | cons hhead _htail ih =>
+      rename_i s p xs parts
+      have hstart : sententialMaxStackHeight ([s] : List g.ISym) ≤ B₀ := by
+        simpa using hheight s (by simp)
+      have hheadBound₀ :
+          StackBoundedDerivesIn g (B₀ + p.1) p.1 [s]
+            (p.2.map fun a => (ISym.terminal a : g.ISym)) :=
+        stackBoundedDerivesIn_of_derivesIn_isNormalForm_initial_stackBound
+          (g := g) (B := B₀) hNF hhead hstart
+      have hheadBound :
+          StackBoundedDerivesIn g (B₀ + (((p :: parts).map fun p => p.1).sum)) p.1 [s]
+            (p.2.map fun a => (ISym.terminal a : g.ISym)) :=
+        StackBoundedDerivesIn.mono_bound (by simp) hheadBound₀
+      have htailHeight : ∀ t ∈ xs, t.stackHeight ≤ B₀ := by
+        intro t ht
+        exact hheight t (by simp [ht])
+      have htailBound₀ :
+          StackBoundedDerivesIn g (B₀ + (parts.map fun p => p.1).sum)
+            ((parts.map fun p => p.1).sum) xs
+            ((parts.flatMap fun p => p.2).map fun a => (ISym.terminal a : g.ISym)) :=
+        ih htailHeight
+      have htailBound :
+          StackBoundedDerivesIn g (B₀ + (((p :: parts).map fun p => p.1).sum))
+            ((parts.map fun p => p.1).sum) xs
+            ((parts.flatMap fun p => p.2).map fun a => (ISym.terminal a : g.ISym)) :=
+        StackBoundedDerivesIn.mono_bound (by simp) htailBound₀
+      have hcomp :=
+        stackBoundedDerivesIn_append_to_terminals_of_stackBoundedDerivesIn
+          (g := g) hheadBound htailBound
+      simpa [List.map_append] using hcomp
+
+/-- Whole-form bounded suffix extracted from an accepting trace position. The proof uses the
+positionwise terminal-yield split, so the bound is distributed over every live symbol rather
+than over a distinguished local occurrence. -/
+theorem stackBoundedDerivesIn_accepting_derivationTrace_symbols_suffix_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hi : i < trace.length) :
+    StackBoundedDerivesIn g
+      (sententialMaxStackHeight (trace.get ⟨i, hi⟩) + (trace.length - 1 - i))
+      (trace.length - 1 - i)
+      (trace.get ⟨i, hi⟩)
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨parts, _hlen, hsum, hflat, hparts⟩ :=
+    accepting_derivationTrace_symbols_suffix_to_terminals_split
+      (g := g) htrace hlast hi
+  have hheight :
+      ∀ s ∈ trace.get ⟨i, hi⟩,
+        s.stackHeight ≤ sententialMaxStackHeight (trace.get ⟨i, hi⟩) := by
+    intro s hs
+    exact stackHeight_le_sententialMaxStackHeight_of_mem hs
+  have hbounded :=
+    stackBoundedDerivesIn_symbols_to_terminals_of_forall₂_derivesIn_isNormalForm_stackBound
+      (g := g) hNF hparts hheight
+  simpa [hsum, hflat] using hbounded
+
+theorem minimal_accepting_stackBound_le_of_stackBounded_prefix_derivesIn_suffix
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n B Bpre p q : ℕ} {w : List T} {mid : List g.ISym}
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? = some (w.map ISym.terminal) ∧
+          ∀ i (hi : i < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨i, hi⟩) ≤ C') →
+        B ≤ C')
+    (hpre : StackBoundedDerivesIn g Bpre p [ISym.indexed g.initial []] mid)
+    (hsuf : g.DerivesIn q mid (w.map ISym.terminal))
+    (hsteps : p + q ≤ n) :
+    B ≤ Bpre + q := by
+  have hmidBound : sententialMaxStackHeight mid ≤ Bpre :=
+    StackBoundedDerivesIn.final_maxStackHeight_le hpre
+  have hsufBounded :
+      StackBoundedDerivesIn g (Bpre + q) q mid (w.map ISym.terminal) :=
+    stackBoundedDerivesIn_of_derivesIn_isNormalForm_initial_stackBound
+      (g := g) (B := Bpre) hNF hsuf hmidBound
+  have hpreBounded :
+      StackBoundedDerivesIn g (Bpre + q) p [ISym.indexed g.initial []] mid :=
+    StackBoundedDerivesIn.mono_bound (by omega) hpre
+  exact minimal_accepting_stackBound_le_of_stackBoundedDerivesIn
+    hminLength hminBound
+    (stackBoundedDerivesIn_trans hpreBounded hsufBounded) hsteps
+
+theorem minimal_accepting_stackBound_le_of_reachable_trace_suffix_derivesIn
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n B Bpre q : ℕ} {w : List T} {trace : List (List g.ISym)}
+    {i : ℕ} {mid : List g.ISym}
+    (hlen : trace.length = n + 1)
+    (hi : i < trace.length)
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? = some (w.map ISym.terminal) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (hpre : StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []] mid)
+    (hsuf : g.DerivesIn q mid (w.map ISym.terminal))
+    (hq : q ≤ trace.length - 1 - i) :
+    B ≤ Bpre + q := by
+  have hsteps : i + q ≤ n := by omega
+  exact minimal_accepting_stackBound_le_of_stackBounded_prefix_derivesIn_suffix
+    (g := g) hNF hminLength hminBound hpre hsuf hsteps
+
+/-- A positionwise terminal-preserving substack replacement preserves sentential-form length. -/
+theorem length_eq_of_forall₂_symbol_substack_bound
+    {g : IndexedGrammar T} {K : ℕ} {xs ys : List g.ISym}
+    (hrel : List.Forall₂
+      (fun s t =>
+        match s, t with
+        | ISym.terminal a, ISym.terminal b => a = b
+        | ISym.indexed A σ, ISym.indexed C τ =>
+            A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+        | _, _ => False)
+      xs ys) :
+    ys.length = xs.length := by
+  induction hrel with
+  | nil => rfl
+  | cons _hhead _htail ih =>
+      simp [ih]
+
+/-- A positionwise terminal-preserving substack replacement preserves the visible terminal
+yield of a sentential form. -/
+theorem sententialTerminals_eq_of_forall₂_symbol_substack_bound
+    {g : IndexedGrammar T} {K : ℕ} {xs ys : List g.ISym}
+    (hrel : List.Forall₂
+      (fun s t =>
+        match s, t with
+        | ISym.terminal a, ISym.terminal b => a = b
+        | ISym.indexed A σ, ISym.indexed C τ =>
+            A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+        | _, _ => False)
+      xs ys) :
+    sententialTerminals ys = sententialTerminals xs := by
+  induction hrel with
+  | nil =>
+      simp
+  | cons hhead _htail ih =>
+      rename_i s t xs ys
+      cases s <;> cases t <;> simp at hhead ⊢
+      · simp [hhead, ih]
+      · exact ih
+
+/-- A positionwise terminal-preserving substack replacement preserves the number of live
+indexed nonterminals. -/
+theorem sententialNonterminalCount_eq_of_forall₂_symbol_substack_bound
+    {g : IndexedGrammar T} {K : ℕ} {xs ys : List g.ISym}
+    (hrel : List.Forall₂
+      (fun s t =>
+        match s, t with
+        | ISym.terminal a, ISym.terminal b => a = b
+        | ISym.indexed A σ, ISym.indexed C τ =>
+            A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+        | _, _ => False)
+      xs ys) :
+    sententialNonterminalCount ys = sententialNonterminalCount xs := by
+  induction hrel with
+  | nil =>
+      simp
+  | cons hhead _htail ih =>
+      rename_i s t xs ys
+      cases s <;> cases t <;> simp at hhead ⊢
+      · exact ih
+      · omega
+
+/-- A target-compatible sentential form remains target-compatible after a positionwise
+terminal-preserving substack replacement; the finite representative is the truncated surface
+of the replacement. -/
+theorem surfaceOfTruncatedForm_mem_targetCompatibleBoundedSurfaceForms_of_forall₂_symbol_substack_bound
+    {g : IndexedGrammar T} {K : ℕ} {target : List T} {xs ys : List g.ISym}
+    (hrel : List.Forall₂
+      (fun s t =>
+        match s, t with
+        | ISym.terminal a, ISym.terminal b => a = b
+        | ISym.indexed A σ, ISym.indexed C τ =>
+            A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+        | _, _ => False)
+      xs ys)
+    (hlen : xs.length ≤ target.length)
+    (hterm : (sententialTerminals xs).Sublist target) :
+    surfaceOfTruncatedForm K ys ∈
+      targetCompatibleBoundedSurfaceForms g target K := by
+  apply surfaceOfTruncatedForm_mem_targetCompatibleBoundedSurfaceForms
+  · rw [length_eq_of_forall₂_symbol_substack_bound hrel]
+    exact hlen
+  · rw [sententialTerminals_eq_of_forall₂_symbol_substack_bound hrel]
+    exact hterm
+
+/-- A positionwise terminal-preserving substack replacement has the advertised stack bound on
+the replacement sentential form. -/
+theorem sententialMaxStackHeight_le_of_forall₂_symbol_substack_bound
+    {g : IndexedGrammar T} {K : ℕ} {xs ys : List g.ISym}
+    (hrel : List.Forall₂
+      (fun s t =>
+        match s, t with
+        | ISym.terminal a, ISym.terminal b => a = b
+        | ISym.indexed A σ, ISym.indexed C τ =>
+            A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+        | _, _ => False)
+      xs ys) :
+    sententialMaxStackHeight ys ≤ K := by
+  induction hrel with
+  | nil =>
+      simp
+  | cons hhead _htail ih =>
+      rename_i s t xs ys
+      cases s <;> cases t <;> simp at hhead ⊢
+      · exact ih
+      · exact ⟨hhead.2.2, ih⟩
+
+/-- Whole-form accepting suffix shrinking with the concrete singleton split and local
+minimality certificates retained. The shrunken suffix derivation is stack-bounded by the
+uniform replacement height plus the summed replacement step budgets. -/
+theorem exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_replacement_budget_with_minimality
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            ∃ parts : List (ℕ × List T),
+            ∃ ys : List g.ISym, ∃ parts' : List (ℕ × List T),
+              parts.length = (trace.get ⟨i, hi⟩).length ∧
+                (parts.map fun p => p.1).sum = trace.length - 1 - i ∧
+                (parts.flatMap fun p => p.2) = target ∧
+                List.Forall₂
+                  (fun s p => g.DerivesIn p.1 [s]
+                    (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                  (trace.get ⟨i, hi⟩) parts ∧
+                (parts'.map fun p => p.1).sum ≤ (parts.map fun p => p.1).sum ∧
+                (parts'.flatMap fun p => p.2) = (parts.flatMap fun p => p.2) ∧
+                List.Forall₂
+                  (fun s p => g.DerivesIn p.1 [s]
+                    (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                  ys parts' ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                parts'.length = parts.length ∧
+                List.Forall₂
+                  (fun sp tq =>
+                    match sp.1, tq.1 with
+                    | ISym.terminal a, ISym.terminal b =>
+                        a = b ∧ tq.2 = sp.2
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧
+                          tq.2.2 = sp.2.2 ∧
+                          tq.2.1 ≤ sp.2.1 ∧
+                          τ.Sublist σ ∧
+                          τ.length ≤ K ∧
+                          g.DerivesIn tq.2.1 [ISym.indexed C τ]
+                            (tq.2.2.map fun a => (ISym.terminal a : g.ISym)) ∧
+                          ∀ ρ : List g.flag, ∀ k : ℕ,
+                            k ≤ sp.2.1 →
+                            g.DerivesIn k [ISym.indexed C ρ]
+                              (sp.2.2.map fun a => (ISym.terminal a : g.ISym)) →
+                            ρ.Sublist τ → ρ = τ
+                    | _, _ => False)
+                  ((trace.get ⟨i, hi⟩).zip parts) (ys.zip parts') ∧
+                sententialMaxStackHeight ys ≤ K ∧
+                StackBoundedDerivesIn g (K + (parts'.map fun p => p.1).sum)
+                  ((parts'.map fun p => p.1).sum) ys
+                  (target.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_symbols_suffix_shrink_replacement_budget_with_minimality
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget
+  obtain ⟨parts, ys, parts', hpartsLen, hsum, hflat, hparts, hsum',
+    hflat', hparts', hrel, hpartsLen', hcert, hder⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hysBound : sententialMaxStackHeight ys ≤ K :=
+    sententialMaxStackHeight_le_of_forall₂_symbol_substack_bound hrel
+  have hbounded :
+      StackBoundedDerivesIn g (K + (parts'.map fun p => p.1).sum)
+        ((parts'.map fun p => p.1).sum) ys
+        (target.map fun a => (ISym.terminal a : g.ISym)) :=
+    stackBoundedDerivesIn_of_derivesIn_isNormalForm_initial_stackBound
+      (g := g) (B := K) hNF hder hysBound
+  exact ⟨parts, ys, parts', hpartsLen, hsum, hflat, hparts, hsum',
+    hflat', hparts', hrel, hpartsLen', hcert, hysBound, hbounded⟩
+
+/-- Surface-packaged form of
+`exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_replacement_budget_with_minimality`.
+It keeps the finite target-compatible surface representative and the local minimality
+certificates for each indexed replacement in one result. -/
+theorem exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_surface_budget_with_minimality
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            ∃ parts : List (ℕ × List T),
+            ∃ ys : List g.ISym, ∃ parts' : List (ℕ × List T),
+              parts.length = (trace.get ⟨i, hi⟩).length ∧
+                (parts.map fun p => p.1).sum = trace.length - 1 - i ∧
+                (parts.flatMap fun p => p.2) = target ∧
+                List.Forall₂
+                  (fun s p => g.DerivesIn p.1 [s]
+                    (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                  (trace.get ⟨i, hi⟩) parts ∧
+                (parts'.map fun p => p.1).sum ≤ (parts.map fun p => p.1).sum ∧
+                (parts'.flatMap fun p => p.2) = (parts.flatMap fun p => p.2) ∧
+                List.Forall₂
+                  (fun s p => g.DerivesIn p.1 [s]
+                    (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                  ys parts' ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                parts'.length = parts.length ∧
+                List.Forall₂
+                  (fun sp tq =>
+                    match sp.1, tq.1 with
+                    | ISym.terminal a, ISym.terminal b =>
+                        a = b ∧ tq.2 = sp.2
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧
+                          tq.2.2 = sp.2.2 ∧
+                          tq.2.1 ≤ sp.2.1 ∧
+                          τ.Sublist σ ∧
+                          τ.length ≤ K ∧
+                          g.DerivesIn tq.2.1 [ISym.indexed C τ]
+                            (tq.2.2.map fun a => (ISym.terminal a : g.ISym)) ∧
+                          ∀ ρ : List g.flag, ∀ k : ℕ,
+                            k ≤ sp.2.1 →
+                            g.DerivesIn k [ISym.indexed C ρ]
+                              (sp.2.2.map fun a => (ISym.terminal a : g.ISym)) →
+                            ρ.Sublist τ → ρ = τ
+                    | _, _ => False)
+                  ((trace.get ⟨i, hi⟩).zip parts) (ys.zip parts') ∧
+                ys.length = (trace.get ⟨i, hi⟩).length ∧
+                sententialTerminals ys =
+                  sententialTerminals (trace.get ⟨i, hi⟩) ∧
+                sententialNonterminalCount ys =
+                  sententialNonterminalCount (trace.get ⟨i, hi⟩) ∧
+                sententialMaxStackHeight ys ≤ K ∧
+                eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys ∧
+                surfaceOfTruncatedForm K ys ∈
+                  targetCompatibleBoundedSurfaceForms g target K ∧
+                StackBoundedDerivesIn g (K + (parts'.map fun p => p.1).sum)
+                  ((parts'.map fun p => p.1).sum) ys
+                  (target.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_replacement_budget_with_minimality
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget
+  obtain ⟨parts, ys, parts', hpartsLen, hsum, hflat, hparts, hsum',
+    hflat', hparts', hrel, hpartsLen', hcert, hysBound, hbounded⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hlenEq :
+      ys.length = (trace.get ⟨i, hi⟩).length :=
+    length_eq_of_forall₂_symbol_substack_bound hrel
+  have htermEq :
+      sententialTerminals ys =
+        sententialTerminals (trace.get ⟨i, hi⟩) :=
+    sententialTerminals_eq_of_forall₂_symbol_substack_bound hrel
+  have hntEq :
+      sententialNonterminalCount ys =
+        sententialNonterminalCount (trace.get ⟨i, hi⟩) :=
+    sententialNonterminalCount_eq_of_forall₂_symbol_substack_bound hrel
+  have herase :
+      eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys :=
+    eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+      hysBound
+  have hxlen :
+      (trace.get ⟨i, hi⟩).length ≤ target.length :=
+    accepting_derivationTrace_get_length_le_target_of_isNormalForm
+      hNF htrace hlast hi
+  have hxterm : (sententialTerminals (trace.get ⟨i, hi⟩)).Sublist target := by
+    have hsuffix :=
+      isDerivationTrace_derivesIn_get_to_last (g := g) htrace hlast hi
+    have hsub := derivesIn_sententialTerminals_sublist (g := g) hsuffix
+    simpa using hsub
+  have hsurface :
+      surfaceOfTruncatedForm K ys ∈
+        targetCompatibleBoundedSurfaceForms g target K :=
+    surfaceOfTruncatedForm_mem_targetCompatibleBoundedSurfaceForms_of_forall₂_symbol_substack_bound
+      hrel hxlen hxterm
+  exact ⟨parts, ys, parts', hpartsLen, hsum, hflat, hparts, hsum',
+    hflat', hparts', hrel, hpartsLen', hcert, hlenEq, htermEq, hntEq, hysBound,
+    herase, hsurface, hbounded⟩
+
+/-- Whole-form accepting suffix shrinking plus its bounded-stack suffix derivation. The
+replacement sentential form has all visible stacks bounded by `K`, and its derivation to the
+target is stack-bounded by `K + n'`. -/
+theorem exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            ∃ ys : List g.ISym, ∃ n' : ℕ,
+              n' ≤ trace.length - 1 - i ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                sententialMaxStackHeight ys ≤ K ∧
+                StackBoundedDerivesIn g (K + n') n' ys
+                  (target.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_symbols_suffix_shrink_replacement_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget
+  obtain ⟨ys, n', hn', hrel, hder⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hysBound : sententialMaxStackHeight ys ≤ K :=
+    sententialMaxStackHeight_le_of_forall₂_symbol_substack_bound hrel
+  have hbounded :
+      StackBoundedDerivesIn g (K + n') n' ys
+        (target.map fun a => (ISym.terminal a : g.ISym)) :=
+    stackBoundedDerivesIn_of_derivesIn_isNormalForm_initial_stackBound
+      (g := g) (B := K) hNF hder hysBound
+  exact ⟨ys, n', hn', hrel, hysBound, hbounded⟩
+
+/-- Whole-form accepting suffix shrinking packaged with its finite surface representative.
+The replacement has the same visible length, terminal yield, and number of live nonterminals
+as the trace position it replaces; since its stacks are bounded, its truncated surface erases
+back to the replacement itself and belongs to the finite target-compatible surface set. -/
+theorem exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_surface_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            ∃ ys : List g.ISym, ∃ n' : ℕ,
+              n' ≤ trace.length - 1 - i ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                ys.length = (trace.get ⟨i, hi⟩).length ∧
+                sententialTerminals ys =
+                  sententialTerminals (trace.get ⟨i, hi⟩) ∧
+                sententialNonterminalCount ys =
+                  sententialNonterminalCount (trace.get ⟨i, hi⟩) ∧
+                sententialMaxStackHeight ys ≤ K ∧
+                eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys ∧
+                surfaceOfTruncatedForm K ys ∈
+                  targetCompatibleBoundedSurfaceForms g target K ∧
+                StackBoundedDerivesIn g (K + n') n' ys
+                  (target.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_replacement_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget
+  obtain ⟨ys, n', hn', hrel, hysBound, hbounded⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hlenEq :
+      ys.length = (trace.get ⟨i, hi⟩).length :=
+    length_eq_of_forall₂_symbol_substack_bound hrel
+  have htermEq :
+      sententialTerminals ys =
+        sententialTerminals (trace.get ⟨i, hi⟩) :=
+    sententialTerminals_eq_of_forall₂_symbol_substack_bound hrel
+  have hntEq :
+      sententialNonterminalCount ys =
+        sententialNonterminalCount (trace.get ⟨i, hi⟩) :=
+    sententialNonterminalCount_eq_of_forall₂_symbol_substack_bound hrel
+  have herase :
+      eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys :=
+    eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+      hysBound
+  have hxlen :
+      (trace.get ⟨i, hi⟩).length ≤ target.length :=
+    accepting_derivationTrace_get_length_le_target_of_isNormalForm
+      hNF htrace hlast hi
+  have hxterm : (sententialTerminals (trace.get ⟨i, hi⟩)).Sublist target := by
+    have hsuffix :=
+      isDerivationTrace_derivesIn_get_to_last (g := g) htrace hlast hi
+    have hsub := derivesIn_sententialTerminals_sublist (g := g) hsuffix
+    simpa using hsub
+  have hsurface :
+      surfaceOfTruncatedForm K ys ∈
+        targetCompatibleBoundedSurfaceForms g target K :=
+    surfaceOfTruncatedForm_mem_targetCompatibleBoundedSurfaceForms_of_forall₂_symbol_substack_bound
+      hrel hxlen hxterm
+  exact ⟨ys, n', hn', hrel, hlenEq, htermEq, hntEq, hysBound,
+    herase, hsurface, hbounded⟩
+
+/-- Finite-surface version of the whole-form minimal-stack bridge. It is enough to prove a
+bounded prefix reachability statement for every member of the finite target-compatible
+surface set; the whole-form suffix shrinker supplies one such surface, whose erasure is the
+replacement sentential form used to splice a shorter bounded accepting derivation. -/
+theorem exists_bound_minimal_stackBound_le_of_reachable_targetCompatible_surface_suffix_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n B : ℕ, ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.length = n + 1 →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ k,
+            g.DerivesIn k [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k) →
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            ∀ Bpre : ℕ,
+              trace.length - 1 - i ≤ N →
+              (∀ surface : SurfaceForm g K,
+                surface ∈ targetCompatibleBoundedSurfaceForms g target K →
+                StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []]
+                  (eraseSurfaceForm surface)) →
+              ∃ ys : List g.ISym, ∃ n' : ℕ,
+                n' ≤ trace.length - 1 - i ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                ys.length = (trace.get ⟨i, hi⟩).length ∧
+                sententialTerminals ys =
+                  sententialTerminals (trace.get ⟨i, hi⟩) ∧
+                sententialNonterminalCount ys =
+                  sententialNonterminalCount (trace.get ⟨i, hi⟩) ∧
+                surfaceOfTruncatedForm K ys ∈
+                  targetCompatibleBoundedSurfaceForms g target K ∧
+                eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys ∧
+                StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []] ys ∧
+                StackBoundedDerivesIn g (K + n') n' ys
+                  (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                B ≤ Bpre + n' := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_surface_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n B trace htrace hlen hlast hminLength hminBound
+    i hi Bpre hsuffixBudget hreachable
+  obtain ⟨ys, n', hn', hrel, hlenEq, htermEq, hntEq, _hysBound,
+    herase, hsurface, hboundedSuffix⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hpreSurface :
+      StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []]
+        (eraseSurfaceForm (surfaceOfTruncatedForm K ys)) :=
+    hreachable (surfaceOfTruncatedForm K ys) hsurface
+  have hpre :
+      StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []] ys := by
+    simpa [herase] using hpreSurface
+  have hsuffixDerives :
+      g.DerivesIn n' ys
+        (target.map fun a => (ISym.terminal a : g.ISym)) :=
+    StackBoundedDerivesIn.to_derivesIn hboundedSuffix
+  have hB :
+      B ≤ Bpre + n' :=
+    minimal_accepting_stackBound_le_of_reachable_trace_suffix_derivesIn
+      (g := g) hNF (n := n) (B := B) (Bpre := Bpre) (q := n')
+      (w := target) (trace := trace) (i := i) (mid := ys)
+      hlen hi hminLength hminBound hpre hsuffixDerives hn'
+  exact ⟨ys, n', hn', hrel, hlenEq, htermEq, hntEq, hsurface,
+    herase, hpre, hboundedSuffix, hB⟩
+
+/-- Stack-bound-only consequence of the finite-surface replacement bridge. If every finite
+target-compatible surface is reachable by a prefix staying within `Bpre`, then the stack bound
+minimal among shortest accepting traces is controlled by the larger of that prefix bound and
+the uniform replacement-suffix bound `K + N`. -/
+theorem exists_bound_minimal_stackBound_le_max_of_reachable_targetCompatible_surface_suffix_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n B : ℕ, ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.length = n + 1 →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ k,
+            g.DerivesIn k [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k) →
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') →
+          ∀ i : ℕ, i < trace.length →
+            ∀ Bpre : ℕ,
+              trace.length - 1 - i ≤ N →
+              (∀ surface : SurfaceForm g K,
+                surface ∈ targetCompatibleBoundedSurfaceForms g target K →
+                StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []]
+                  (eraseSurfaceForm surface)) →
+              B ≤ max Bpre (K + N) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_minimal_stackBound_le_of_reachable_targetCompatible_surface_suffix_replacement_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n B trace htrace hlen hlast hminLength hminBound
+    i hi Bpre hsuffixBudget hreachable
+  obtain ⟨ys, n', hn', _hrel, _hlenEq, _htermEq, _hntEq, _hsurface,
+    _herase, hpre, hboundedSuffix, _hBadd⟩ :=
+    hK target htargetLen n B trace htrace hlen hlast hminLength hminBound
+      i hi Bpre hsuffixBudget hreachable
+  have hsteps : i + n' ≤ n := by
+    omega
+  have hBmax :
+      B ≤ max Bpre (K + n') :=
+    minimal_accepting_stackBound_le_of_stackBounded_prefix_suffix
+      (g := g) (n := n) (B := B) (Bpre := Bpre) (Bsuf := K + n')
+      (p := i) (q := n') (w := target) (mid := ys)
+      hminLength hminBound hpre hboundedSuffix hsteps
+  have hmono : max Bpre (K + n') ≤ max Bpre (K + N) := by
+    refine Nat.max_le.mpr ⟨Nat.le_max_left _ _, ?_⟩
+    exact le_trans (by omega) (Nat.le_max_right _ _)
+  exact le_trans hBmax hmono
+
+/-- Whole-form version of the global minimal-stack bridge. If the accepting-trace suffix
+shrinker replaces every indexed stack in the displayed sentential form, and that entire
+replacement form is reachable by a bounded prefix, then the least stack bound of the chosen
+shortest accepting trace is bounded by the prefix bound plus the replacement suffix length. -/
+theorem exists_bound_minimal_stackBound_le_of_reachable_symbols_suffix_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n B : ℕ, ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.length = n + 1 →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ k,
+            g.DerivesIn k [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k) →
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            ∀ Bpre : ℕ,
+              trace.length - 1 - i ≤ N →
+              (∀ ys : List g.ISym,
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys →
+                StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []] ys) →
+              ∃ ys : List g.ISym, ∃ n' : ℕ,
+                n' ≤ trace.length - 1 - i ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                g.DerivesIn n' ys
+                  (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                B ≤ Bpre + n' := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_symbols_suffix_shrink_replacement_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n B trace htrace hlen hlast hminLength hminBound
+    i hi Bpre hsuffixBudget hreachable
+  obtain ⟨ys, n', hn', hrel, hder⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hpre :
+      StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []] ys :=
+    hreachable ys hrel
+  have hB :
+      B ≤ Bpre + n' :=
+    minimal_accepting_stackBound_le_of_reachable_trace_suffix_derivesIn
+      (g := g) hNF (n := n) (B := B) (Bpre := Bpre) (q := n')
+      (w := target) (trace := trace) (i := i)
+      hlen hi hminLength hminBound hpre hder hn'
+  exact ⟨ys, n', hn', hrel, hder, hB⟩
+
+/-- If the trace-local suffix shrinker produces a modified middle sentential form that is
+reachable by a bounded prefix, then the least stack bound of the chosen shortest accepting
+trace is bounded by that prefix bound plus the replacement suffix length. This is the exact
+global bridge needed by the remaining ancestry/reachability argument. -/
+theorem exists_bound_minimal_stackBound_le_of_reachable_indexed_context_suffix_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n B : ℕ, ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.length = n + 1 →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ k,
+            g.DerivesIn k [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k) →
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            ∀ A : g.nt, ∀ pref σ : List g.flag,
+              ∀ u v : List g.ISym, ∀ Bpre : ℕ,
+                pref.length ≤ N →
+                pref.length + (trace.length - 1 - i) ≤ N →
+                trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A (pref ++ σ)] ++ v →
+                (∀ τ : List g.flag,
+                  τ.Sublist σ →
+                  τ.length ≤ K →
+                  StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []]
+                    (u ++ [ISym.indexed A (pref ++ τ)] ++ v)) →
+                ∃ q m : ℕ, ∃ τ : List g.flag, ∃ w : List T, ∃ n' : ℕ,
+                  w.Sublist target ∧ w.length ≤ L ∧
+                  q ≤ trace.length - 1 - i ∧
+                  m ≤ q ∧
+                  m ≤ trace.length - 1 - i ∧
+                  n' ≤ trace.length - 1 - i ∧
+                  τ.Sublist σ ∧ τ.length ≤ K ∧
+                  g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  g.DerivesIn n' (u ++ [ISym.indexed A (pref ++ τ)] ++ v)
+                    (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  (∀ ρ : List g.flag, ∀ k : ℕ,
+                    k ≤ q →
+                    g.DerivesIn k [ISym.indexed A (pref ++ ρ)]
+                      (w.map fun a => (ISym.terminal a : g.ISym)) →
+                    ρ.Sublist τ → ρ = τ) ∧
+                  B ≤ Bpre + n' := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_indexed_context_suffix_shrink_replacement_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n B trace htrace hlen hlast hminLength hminBound
+    i hi A pref σ u v Bpre hpref hbudget hctx hreachable
+  obtain ⟨q, m, τ, w, n', hwt, hwlen, hq, hm, hmSuffix, hn',
+      hτsub, hτlen, hτder, hreplacement, hτmin⟩ :=
+    hK target htargetLen trace htrace hlast i hi A pref σ hpref hbudget u v hctx
+  have hpre :
+      StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []]
+        (u ++ [ISym.indexed A (pref ++ τ)] ++ v) :=
+    hreachable τ hτsub hτlen
+  have hB :
+      B ≤ Bpre + n' :=
+    minimal_accepting_stackBound_le_of_reachable_trace_suffix_derivesIn
+      (g := g) hNF (n := n) (B := B) (Bpre := Bpre) (q := n')
+      (w := target) (trace := trace) (i := i)
+      hlen hi hminLength hminBound hpre hreplacement hn'
+  exact ⟨q, m, τ, w, n', hwt, hwlen, hq, hm, hmSuffix, hn', hτsub, hτlen,
+    hτder, hreplacement, hτmin, hB⟩
+
+/-- Max-stack form of
+`exists_bound_minimal_stackBound_le_of_reachable_indexed_context_suffix_replacement_budget`.
+The distinguished symbol is chosen to attain the current sentential maximum stack height; the
+only external obligation is reachability of the shrunk middle form. -/
+theorem exists_bound_minimal_stackBound_le_of_reachable_max_stack_suffix_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (P Q L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n B : ℕ, ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.length = n + 1 →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ k,
+            g.DerivesIn k [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k) →
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            ∀ Bpre : ℕ,
+              P ≤ Q →
+              P + (trace.length - 1 - i) ≤ Q →
+              0 < sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+              (∀ A : g.nt, ∀ η pref σ τ : List g.flag,
+                ∀ u v : List g.ISym,
+                  ISym.indexed A η ∈ trace.get ⟨i, hi⟩ →
+                  η = pref ++ σ →
+                  pref.length ≤ P →
+                  η.length = sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+                  trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A (pref ++ σ)] ++ v →
+                  τ.Sublist σ →
+                  τ.length ≤ K →
+                  StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []]
+                    (u ++ [ISym.indexed A (pref ++ τ)] ++ v)) →
+              ∃ A : g.nt, ∃ η pref σ τ : List g.flag,
+                ∃ u v : List g.ISym, ∃ q m : ℕ, ∃ w : List T, ∃ n' : ℕ,
+                  ISym.indexed A η ∈ trace.get ⟨i, hi⟩ ∧
+                  η = pref ++ σ ∧
+                  pref.length ≤ P ∧
+                  η.length = sententialMaxStackHeight (trace.get ⟨i, hi⟩) ∧
+                  trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A (pref ++ σ)] ++ v ∧
+                  w.Sublist target ∧ w.length ≤ L ∧
+                  q ≤ trace.length - 1 - i ∧
+                  m ≤ q ∧
+                  m ≤ trace.length - 1 - i ∧
+                  n' ≤ trace.length - 1 - i ∧
+                  τ.Sublist σ ∧ τ.length ≤ K ∧
+                  g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  g.DerivesIn n' (u ++ [ISym.indexed A (pref ++ τ)] ++ v)
+                    (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  (∀ ρ : List g.flag, ∀ k : ℕ,
+                    k ≤ q →
+                    g.DerivesIn k [ISym.indexed A (pref ++ ρ)]
+                      (w.map fun a => (ISym.terminal a : g.ISym)) →
+                    ρ.Sublist τ → ρ = τ) ∧
+                  B ≤ Bpre + n' := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_max_stack_suffix_shrink_replacement_budget
+      (g := g) hNF P Q L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n B trace htrace hlen hlast hminLength hminBound
+    i hi Bpre hPQ hbudget hpos hreachable
+  obtain ⟨A, η, pref, σ, τ, u, v, q, m, w, n',
+      hmem, hη, hpref, hηmax, hctx, hwt, hwlen, hq, hm, hmSuffix, hn',
+      hτsub, hτlen, hτder, hreplacement, hτmin⟩ :=
+    hK target htargetLen trace htrace hlast i hi hPQ hbudget hpos
+  have hpre :
+      StackBoundedDerivesIn g Bpre i [ISym.indexed g.initial []]
+        (u ++ [ISym.indexed A (pref ++ τ)] ++ v) :=
+    hreachable A η pref σ τ u v hmem hη hpref hηmax hctx hτsub hτlen
+  have hB :
+      B ≤ Bpre + n' :=
+    minimal_accepting_stackBound_le_of_reachable_trace_suffix_derivesIn
+      (g := g) hNF (n := n) (B := B) (Bpre := Bpre) (q := n')
+      (w := target) (trace := trace) (i := i)
+      hlen hi hminLength hminBound hpre hreplacement hn'
+  exact ⟨A, η, pref, σ, τ, u, v, q, m, w, n', hmem, hη, hpref, hηmax, hctx,
+    hwt, hwlen, hq, hm, hmSuffix, hn', hτsub, hτlen, hτder, hreplacement, hτmin,
+    hB⟩
+
+theorem stackBoundedDerivesIn_singleton_to_terminals_of_derivesIn_isNormalForm_bounded_stack
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {K n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (hσ : σ.length ≤ K)
+    (h : g.DerivesIn n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g (K + n) n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  apply stackBoundedDerivesIn_of_derivesIn_isNormalForm_initial_stackBound
+    (g := g) hNF h
+  simpa using hσ
+
+theorem stackBoundedDerivesIn_singleton_to_terminals_of_derivesIn_isNormalForm_bounded_prefix_stack
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {N K n : ℕ} {A : g.nt} {pref σ : List g.flag} {w : List T}
+    (hpref : pref.length ≤ N)
+    (hσ : σ.length ≤ K)
+    (h : g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    StackBoundedDerivesIn g (N + K + n) n [ISym.indexed A (pref ++ σ)]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have hstart : sententialMaxStackHeight ([ISym.indexed A (pref ++ σ)] : List g.ISym) ≤
+      N + K := by
+    simp [List.length_append]
+    omega
+  have hbounded :=
+    stackBoundedDerivesIn_of_derivesIn_isNormalForm_initial_stackBound
+      (g := g) (B := N + K) hNF h hstart
+  simpa [Nat.add_assoc] using hbounded
+
+/-- Local shrinking plus normal-form stack growth yields a uniformly stack-bounded derivation.
+For a fixed combined budget `N`, the bound is independent of the original visible suffix `σ`:
+first shrink to a locally budget-minimal sub-suffix of bounded length, then use the normal-form
+`initial stack + steps` bound. -/
+theorem exists_stackBoundedDerivesIn_of_derivesIn_bounded_prefix_budget
+    {g : IndexedGrammar T} [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N : ℕ) (target : List T) :
+    ∃ K : ℕ,
+      ∀ pref : List g.flag,
+        pref.length ≤ N →
+        ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+          w.Sublist target →
+          g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+            (w.map fun a => (ISym.terminal a : g.ISym)) →
+          pref.length + n ≤ N →
+          ∃ m : ℕ, ∃ τ : List g.flag,
+            m ≤ n ∧ τ.Sublist σ ∧ τ.length ≤ K ∧
+            StackBoundedDerivesIn g (N + K + N) m
+              [ISym.indexed A (pref ++ τ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_locally_budgeted_generating_prefixed_suffix_for_bounded_prefix_budget
+      (g := g) hNF N target
+  refine ⟨K, ?_⟩
+  intro pref hpref n A σ w hwt hder hbudget
+  obtain ⟨m, τ, hm_le, hτder, hτsub, hτlen, _hτmin⟩ :=
+    hK pref hpref n A σ w hwt hder hbudget
+  have hbounded :
+      StackBoundedDerivesIn g (N + K + m) m
+        [ISym.indexed A (pref ++ τ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) :=
+    stackBoundedDerivesIn_singleton_to_terminals_of_derivesIn_isNormalForm_bounded_prefix_stack
+      (g := g) hNF hpref hτlen hτder
+  refine ⟨m, τ, hm_le, hτsub, hτlen, ?_⟩
+  exact StackBoundedDerivesIn.mono_bound (by omega) hbounded
+
+/-- Length-uniform version of
+`exists_stackBoundedDerivesIn_of_derivesIn_bounded_prefix_budget`. For every target of length
+at most `L`, one stack bound works for all derivations whose live-prefix/step budget is at
+most `N`. -/
+theorem exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            pref.length + n ≤ N →
+            ∃ m : ℕ, ∃ τ : List g.flag,
+              m ≤ n ∧ τ.Sublist σ ∧ τ.length ≤ K ∧
+              StackBoundedDerivesIn g (N + K + N) m
+                [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_locally_budgeted_generating_prefixed_suffix_for_target_length_bounded_prefix_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hbudget
+  obtain ⟨m, τ, hm_le, hτder, hτsub, hτlen, _hτmin⟩ :=
+    hK target htargetLen pref hpref n A σ w hwt hder hbudget
+  have hbounded :
+      StackBoundedDerivesIn g (N + K + m) m
+        [ISym.indexed A (pref ++ τ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) :=
+    stackBoundedDerivesIn_singleton_to_terminals_of_derivesIn_isNormalForm_bounded_prefix_stack
+      (g := g) hNF hpref hτlen hτder
+  refine ⟨m, τ, hm_le, hτsub, hτlen, ?_⟩
+  exact StackBoundedDerivesIn.mono_bound (by omega) hbounded
+
+/-- If the visible suffix is globally sublist-minimal for its prefixed nonterminal/yield, the
+length-uniform forced-pop bound controls the original stack directly. Combined with normal-form
+stack growth, this gives a bounded-stack derivation without replacing the suffix. -/
+theorem exists_stackBoundedDerivesIn_of_global_minimal_derivesIn_target_length_bounded_prefix_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            (∀ τ : List g.flag, ∀ m : ℕ,
+              g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              τ.Sublist σ → τ = σ) →
+            pref.length + n ≤ N →
+            StackBoundedDerivesIn g (N + (K + N) + N) n
+              [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_counted_minimal_suffix_length_of_target_length_bounded_prefix_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hmin hbudget
+  have hσlen : σ.length ≤ K + N :=
+    hK target htargetLen pref hpref n A σ w hwt hder hmin hbudget
+  have hbounded :
+      StackBoundedDerivesIn g (N + (K + N) + n) n
+        [ISym.indexed A (pref ++ σ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) :=
+    stackBoundedDerivesIn_singleton_to_terminals_of_derivesIn_isNormalForm_bounded_prefix_stack
+      (g := g) hNF (N := N) (K := K + N) hpref hσlen hder
+  exact StackBoundedDerivesIn.mono_bound (by omega) hbounded
+
+/-- Unbudgeted counterpart of
+`exists_stackBoundedDerivesIn_of_global_minimal_derivesIn_target_length_bounded_prefix_budget`.
+If the visible suffix is globally sublist-minimal for its prefixed nonterminal/yield, its
+length is bounded uniformly over all targets of length at most `L`; normal-form stack growth
+then gives a stack-bounded derivation with bound depending only on that initial bound and the
+actual derivation length. -/
+theorem exists_stackBoundedDerivesIn_of_global_minimal_derivesIn_target_length_bounded_prefix
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            (∀ τ : List g.flag, ∀ m : ℕ,
+              g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              τ.Sublist σ → τ = σ) →
+            StackBoundedDerivesIn g (N + K + n) n
+              [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_counted_minimal_generating_prefixed_suffix_length_for_target_length_bounded_prefix
+      (g := g) N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hmin
+  have hσlen : σ.length ≤ K :=
+    hK target htargetLen pref hpref n A σ w hwt hder hmin
+  exact
+    stackBoundedDerivesIn_singleton_to_terminals_of_derivesIn_isNormalForm_bounded_prefix_stack
+      (g := g) hNF (N := N) (K := K) hpref hσlen hder
+
+/-- Length-uniform unbudgeted shrinking-to-bounded-stack bridge. This removes the dependence
+on a fixed target word and original suffix length, but the stack bound still contains the
+count `m` of the shrunken derivation. Removing that remaining count dependency is the global
+shortest-derivation/stack-control problem. -/
+theorem exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            ∃ m : ℕ, ∃ τ : List g.flag,
+              τ.Sublist σ ∧ τ.length ≤ K ∧
+              StackBoundedDerivesIn g (N + K + m) m
+                [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+              ∀ ρ : List g.flag, ∀ k : ℕ,
+                g.DerivesIn k [ISym.indexed A (pref ++ ρ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) →
+                ρ.Sublist τ → ρ = τ := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_counted_generating_prefixed_suffix_for_target_length_bounded_prefix_target_sublists
+      (g := g) N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder
+  obtain ⟨m, τ, hτsub, hτlen, hτder, hτmin⟩ :=
+    hK target htargetLen pref hpref n A σ w hwt hder
+  have hbounded :
+      StackBoundedDerivesIn g (N + K + m) m
+        [ISym.indexed A (pref ++ τ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) :=
+    stackBoundedDerivesIn_singleton_to_terminals_of_derivesIn_isNormalForm_bounded_prefix_stack
+      (g := g) hNF hpref hτlen hτder
+  exact ⟨m, τ, hτsub, hτlen, hbounded, hτmin⟩
+
+/-- Length-uniform finite-search bound obtained from the current budgeted shrinking bridge.
+
+If a shortest accepting derivation has step count at most `N` and the target has length at
+most `L`, the local shrinking infrastructure produces an accepting trace with all stacks
+bounded by `N + K + N`; the trace therefore has fewer than the corresponding finite
+bounded-surface configurations. The remaining global inclusion work is to remove the
+hypothesis `n ≤ N` by proving an input-length bound on shortest accepting derivations/stacks. -/
+theorem exists_bound_bounded_accepting_trace_and_surface_bound_of_minimal_derivesIn_target_length_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n : ℕ,
+          g.DerivesIn n [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ m,
+            g.DerivesIn m [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) →
+          n ≤ N →
+          ∃ trace : List (List g.ISym),
+            IsDerivationTrace g trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? =
+              some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ N + K + N) ∧
+            n < (Set.Finite.toFinset
+              (boundedSurfaceForms_finite g L (N + K + N))).card := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n hder hmin hnN
+  obtain ⟨m, τ, hm_le, hτsub, _hτlen, hbounded0⟩ :=
+    hK target htargetLen ([] : List g.flag) (by simp) n g.initial []
+      target (List.Sublist.refl target) hder (by simpa using hnN)
+  have hτnil : τ = [] := by
+    apply List.eq_nil_of_length_eq_zero
+    have hlen : τ.length ≤ 0 := by
+      simpa using hτsub.length_le
+    omega
+  subst τ
+  have hbounded :
+      StackBoundedDerivesIn g (N + K + N) m
+        [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) := by
+    simpa using hbounded0
+  have hder_m :
+      g.DerivesIn m [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) :=
+    StackBoundedDerivesIn.to_derivesIn hbounded
+  have hn_le_m : n ≤ m := hmin m hder_m
+  have hmn : m = n := by omega
+  subst m
+  obtain ⟨trace, htrace, hlen, hhead, hlast, htraceBound⟩ :=
+    exists_bounded_isDerivationTrace_of_stackBoundedDerivesIn hbounded
+  have hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ N + K + N := by
+    intro i hi
+    exact htraceBound (trace.get ⟨i, hi⟩) (List.get_mem trace ⟨i, hi⟩)
+  have hcard :=
+    minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_stackBound_lengthBound
+      (g := g) (L := L) (B := N + K + N) hNF htrace hlen hhead hlast hmin
+      htargetLen hstack
+  refine ⟨trace, htrace, hlen, hhead, hlast, hstack, ?_⟩
+  omega
+
+theorem boundedStackGrammar_derives_of_stackBoundedDerivesIn
+    {g : IndexedGrammar T} [Fintype g.flag] {B n : ℕ}
+    {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    ∃ bw₁ bw₂ : List (symbol T (BoundedStackNT g B)),
+      boundedSentential? B w₁ = some bw₁ ∧
+      boundedSentential? B w₂ = some bw₂ ∧
+      grammar_derives (boundedStackGrammar g B) bw₁ bw₂ := by
+  induction n generalizing w₂ with
+  | zero =>
+      rcases h with ⟨rfl, hw₁⟩
+      obtain ⟨bw, hbw⟩ :=
+        exists_boundedSentential?_of_sententialMaxStackHeight_le
+          (g := g) (B := B) hw₁
+      exact ⟨bw, bw, hbw, hbw, Relation.ReflTransGen.refl⟩
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep, hw₂⟩
+      obtain ⟨bw₁, bw, hbw₁, hbw, hder⟩ := ih hprev
+      have hw : sententialMaxStackHeight w ≤ B :=
+        StackBoundedDerivesIn.final_maxStackHeight_le hprev
+      obtain ⟨cw, bw₂, hcw, hbw₂, htran⟩ :=
+        boundedStackGrammar_transforms_of_indexed_transforms
+          (g := g) (B := B) hstep hw hw₂
+      have hsame : bw = cw := by
+        apply Option.some.inj
+        rw [← hbw, hcw]
+      subst cw
+      exact ⟨bw₁, bw₂, hbw₁, hbw₂, hder.tail htran⟩
+
+/-- The bounded-grammar sentential forms obtained by erasing target-compatible finite
+surfaces and translating them into the larger stack bound `K + N` form a finite set. -/
+theorem finite_boundedSentential_image_of_targetCompatibleBoundedSurfaceForms
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K N : ℕ} (target : List T) :
+    ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+      ∃ surface : SurfaceForm g K,
+        surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+          boundedSentential? (g := g) (K + N) (eraseSurfaceForm surface) = some bw} :
+        Set (List (symbol T (BoundedStackNT g (K + N))))).Finite := by
+  classical
+  let encodeSurface : SurfaceForm g K → List (symbol T (BoundedStackNT g (K + N))) :=
+    fun surface =>
+      match boundedSentential? (g := g) (K + N) (eraseSurfaceForm surface) with
+      | some bw => bw
+      | none => []
+  have hfinite :=
+    (targetCompatibleBoundedSurfaceForms_finite g target K).image encodeSurface
+  apply hfinite.subset
+  intro bw hbw
+  rcases hbw with ⟨surface, hsurface, henc⟩
+  exact ⟨surface, hsurface, by simp [encodeSurface, henc]⟩
+
+/-- Whole-form accepting suffix shrinking compiled into the fixed bounded-stack grammar for
+the uniform bound `K + N`. This records the finite grammar derivation supplied by the shrunk
+suffix, rather than only the indexed bounded derivation. -/
+theorem exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            ∃ ys : List g.ISym, ∃ n' : ℕ,
+              ∃ bw : List (symbol T (BoundedStackNT g (K + N))),
+                n' ≤ trace.length - 1 - i ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                ys.length = (trace.get ⟨i, hi⟩).length ∧
+                sententialTerminals ys =
+                  sententialTerminals (trace.get ⟨i, hi⟩) ∧
+                sententialNonterminalCount ys =
+                  sententialNonterminalCount (trace.get ⟨i, hi⟩) ∧
+                sententialMaxStackHeight ys ≤ K ∧
+                surfaceOfTruncatedForm K ys ∈
+                  targetCompatibleBoundedSurfaceForms g target K ∧
+                eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys ∧
+                boundedSentential? (g := g) (K + N) ys = some bw ∧
+                bw ∈
+                  ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+                    ∃ surface : SurfaceForm g K,
+                      surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+                        boundedSentential? (g := g) (K + N)
+                          (eraseSurfaceForm surface) = some bw} :
+                    Set (List (symbol T (BoundedStackNT g (K + N)))) ) ∧
+                grammar_derives (boundedStackGrammar g (K + N)) bw
+                  (target.map fun a =>
+                    (symbol.terminal a : symbol T (BoundedStackNT g (K + N)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_surface_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget
+  obtain ⟨ys, n', hn', hrel, hlenEq, htermEq, hntEq, hysBound,
+    herase, hsurface, hbounded⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hboundedUniform :
+      StackBoundedDerivesIn g (K + N) n' ys
+        (target.map fun a => (ISym.terminal a : g.ISym)) :=
+    StackBoundedDerivesIn.mono_bound (by omega) hbounded
+  obtain ⟨bw, btarget, hbw, hbtarget, hGder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := K + N) hboundedUniform
+  have hbtargetEq :
+      btarget =
+        (target.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (K + N)))) := by
+    apply Option.some.inj
+    rw [← hbtarget]
+    simp
+  subst btarget
+  have hbwm :
+      bw ∈
+        ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+          ∃ surface : SurfaceForm g K,
+            surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+              boundedSentential? (g := g) (K + N)
+                (eraseSurfaceForm surface) = some bw} :
+          Set (List (symbol T (BoundedStackNT g (K + N)))) ) :=
+    ⟨surfaceOfTruncatedForm K ys, hsurface, by simpa [herase] using hbw⟩
+  exact ⟨ys, n', bw, hn', hrel, hlenEq, htermEq, hntEq, hysBound,
+    hsurface, herase, hbw, hbwm, hGder⟩
+
+/-- Strengthened compiled-suffix theorem retaining the original singleton split, the
+replacement singleton split, and the local minimality certificates for each indexed
+replacement. This is the finite-grammar form needed by later reachability arguments that
+must inspect why the finite representative is a valid shrink of the trace position. -/
+theorem exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_budget_with_minimality
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            ∃ parts : List (ℕ × List T),
+            ∃ ys : List g.ISym, ∃ parts' : List (ℕ × List T),
+            ∃ bw : List (symbol T (BoundedStackNT g (K + N))),
+              parts.length = (trace.get ⟨i, hi⟩).length ∧
+                (parts.map fun p => p.1).sum = trace.length - 1 - i ∧
+                (parts.flatMap fun p => p.2) = target ∧
+                List.Forall₂
+                  (fun s p => g.DerivesIn p.1 [s]
+                    (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                  (trace.get ⟨i, hi⟩) parts ∧
+                (parts'.map fun p => p.1).sum ≤ (parts.map fun p => p.1).sum ∧
+                (parts'.flatMap fun p => p.2) = (parts.flatMap fun p => p.2) ∧
+                List.Forall₂
+                  (fun s p => g.DerivesIn p.1 [s]
+                    (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                  ys parts' ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                parts'.length = parts.length ∧
+                List.Forall₂
+                  (fun sp tq =>
+                    match sp.1, tq.1 with
+                    | ISym.terminal a, ISym.terminal b =>
+                        a = b ∧ tq.2 = sp.2
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧
+                          tq.2.2 = sp.2.2 ∧
+                          tq.2.1 ≤ sp.2.1 ∧
+                          τ.Sublist σ ∧
+                          τ.length ≤ K ∧
+                          g.DerivesIn tq.2.1 [ISym.indexed C τ]
+                            (tq.2.2.map fun a => (ISym.terminal a : g.ISym)) ∧
+                          ∀ ρ : List g.flag, ∀ k : ℕ,
+                            k ≤ sp.2.1 →
+                            g.DerivesIn k [ISym.indexed C ρ]
+                              (sp.2.2.map fun a => (ISym.terminal a : g.ISym)) →
+                            ρ.Sublist τ → ρ = τ
+                    | _, _ => False)
+                  ((trace.get ⟨i, hi⟩).zip parts) (ys.zip parts') ∧
+                ys.length = (trace.get ⟨i, hi⟩).length ∧
+                sententialTerminals ys =
+                  sententialTerminals (trace.get ⟨i, hi⟩) ∧
+                sententialNonterminalCount ys =
+                  sententialNonterminalCount (trace.get ⟨i, hi⟩) ∧
+                sententialMaxStackHeight ys ≤ K ∧
+                surfaceOfTruncatedForm K ys ∈
+                  targetCompatibleBoundedSurfaceForms g target K ∧
+                eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys ∧
+                boundedSentential? (g := g) (K + N) ys = some bw ∧
+                bw ∈
+                  ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+                    ∃ surface : SurfaceForm g K,
+                      surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+                        boundedSentential? (g := g) (K + N)
+                          (eraseSurfaceForm surface) = some bw} :
+                    Set (List (symbol T (BoundedStackNT g (K + N)))) ) ∧
+                grammar_derives (boundedStackGrammar g (K + N)) bw
+                  (target.map fun a =>
+                    (symbol.terminal a : symbol T (BoundedStackNT g (K + N)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_stackBounded_accepting_derivationTrace_symbols_suffix_shrink_surface_budget_with_minimality
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget
+  obtain ⟨parts, ys, parts', hpartsLen, hsum, hflat, hparts, hsum',
+    hflat', hparts', hrel, hpartsLen', hcert, hlenEq, htermEq, hntEq, hysBound,
+    herase, hsurface, hbounded⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hparts'_le_N : (parts'.map fun p => p.1).sum ≤ N := by
+    exact le_trans hsum' (by simpa [hsum] using hsuffixBudget)
+  have hboundedUniform :
+      StackBoundedDerivesIn g (K + N) ((parts'.map fun p => p.1).sum) ys
+        (target.map fun a => (ISym.terminal a : g.ISym)) :=
+    StackBoundedDerivesIn.mono_bound
+      (Nat.add_le_add_left hparts'_le_N K) hbounded
+  obtain ⟨bw, btarget, hbw, hbtarget, hGder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := K + N) hboundedUniform
+  have hbtargetEq :
+      btarget =
+        (target.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (K + N)))) := by
+    apply Option.some.inj
+    rw [← hbtarget]
+    simp
+  subst btarget
+  have hbwm :
+      bw ∈
+        ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+          ∃ surface : SurfaceForm g K,
+            surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+              boundedSentential? (g := g) (K + N)
+                (eraseSurfaceForm surface) = some bw} :
+          Set (List (symbol T (BoundedStackNT g (K + N)))) ) :=
+    ⟨surfaceOfTruncatedForm K ys, hsurface, by simpa [herase] using hbw⟩
+  exact ⟨parts, ys, parts', bw, hpartsLen, hsum, hflat, hparts, hsum',
+    hflat', hparts', hrel, hpartsLen', hcert, hlenEq, htermEq, hntEq, hysBound,
+    hsurface, herase, hbw, hbwm, hGder⟩
+
+theorem exists_boundedStackGrammar_derives_of_global_minimal_derivesIn_target_length_bounded_prefix_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            (∀ τ : List g.flag, ∀ m : ℕ,
+              g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              τ.Sublist σ → τ = σ) →
+            pref.length + n ≤ N →
+            ∃ hstack : (pref ++ σ).length ≤ N + (K + N) + N,
+              grammar_derives (boundedStackGrammar g (N + (K + N) + N))
+                [symbol.nonterminal (A, ⟨pref ++ σ, hstack⟩)]
+                (w.map fun a =>
+                  (symbol.terminal a :
+                    symbol T (BoundedStackNT g (N + (K + N) + N)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBoundedDerivesIn_of_global_minimal_derivesIn_target_length_bounded_prefix_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hmin hbudget
+  have hbounded :
+      StackBoundedDerivesIn g (N + (K + N) + N) n
+        [ISym.indexed A (pref ++ σ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) :=
+    hK target htargetLen pref hpref n A σ w hwt hder hmin hbudget
+  have hstack : (pref ++ σ).length ≤ N + (K + N) + N := by
+    have hstart := StackBoundedDerivesIn.initial_maxStackHeight_le hbounded
+    simpa using hstart
+  obtain ⟨bw₁, bw₂, hbw₁, hbw₂, hGder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := N + (K + N) + N) hbounded
+  have hstartSome :
+      boundedSentential? (g := g) (N + (K + N) + N)
+          [ISym.indexed A (pref ++ σ)] =
+        some [symbol.nonterminal (A, ⟨pref ++ σ, hstack⟩)] := by
+    simp only [boundedSentential?]
+    rw [boundedSymbol?_indexed_of_le (g := g) (B := N + (K + N) + N)
+      (A := A) (σ := pref ++ σ) hstack]
+  have htermSome :
+      boundedSentential? (g := g) (N + (K + N) + N)
+          (w.map fun a => (ISym.terminal a : g.ISym)) =
+        some (w.map fun a =>
+          (symbol.terminal a :
+            symbol T (BoundedStackNT g (N + (K + N) + N)))) := by
+    simp
+  have hbw₁ : bw₁ = [symbol.nonterminal (A, ⟨pref ++ σ, hstack⟩)] := by
+    apply Option.some.inj
+    rw [← hbw₁, hstartSome]
+  have hbw₂ :
+      bw₂ =
+        (w.map fun a =>
+          (symbol.terminal a :
+            symbol T (BoundedStackNT g (N + (K + N) + N)))) := by
+    apply Option.some.inj
+    rw [← hbw₂, htermSome]
+  subst bw₁
+  subst bw₂
+  exact ⟨hstack, hGder⟩
+
+theorem exists_boundedStackGrammar_derives_of_global_minimal_derivesIn_target_length_bounded_prefix
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            (∀ τ : List g.flag, ∀ m : ℕ,
+              g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              τ.Sublist σ → τ = σ) →
+            ∃ hstack : (pref ++ σ).length ≤ N + K + n,
+              grammar_derives (boundedStackGrammar g (N + K + n))
+                [symbol.nonterminal (A, ⟨pref ++ σ, hstack⟩)]
+                (w.map fun a =>
+                  (symbol.terminal a : symbol T (BoundedStackNT g (N + K + n)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBoundedDerivesIn_of_global_minimal_derivesIn_target_length_bounded_prefix
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hmin
+  have hbounded :
+      StackBoundedDerivesIn g (N + K + n) n
+        [ISym.indexed A (pref ++ σ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) :=
+    hK target htargetLen pref hpref n A σ w hwt hder hmin
+  have hstack : (pref ++ σ).length ≤ N + K + n := by
+    have hstart := StackBoundedDerivesIn.initial_maxStackHeight_le hbounded
+    simpa using hstart
+  obtain ⟨bw₁, bw₂, hbw₁, hbw₂, hGder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := N + K + n) hbounded
+  have hstartSome :
+      boundedSentential? (g := g) (N + K + n)
+          [ISym.indexed A (pref ++ σ)] =
+        some [symbol.nonterminal (A, ⟨pref ++ σ, hstack⟩)] := by
+    simp only [boundedSentential?]
+    rw [boundedSymbol?_indexed_of_le (g := g) (B := N + K + n)
+      (A := A) (σ := pref ++ σ) hstack]
+  have htermSome :
+      boundedSentential? (g := g) (N + K + n)
+          (w.map fun a => (ISym.terminal a : g.ISym)) =
+        some (w.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (N + K + n)))) := by
+    simp
+  have hbw₁ : bw₁ = [symbol.nonterminal (A, ⟨pref ++ σ, hstack⟩)] := by
+    apply Option.some.inj
+    rw [← hbw₁, hstartSome]
+  have hbw₂ :
+      bw₂ =
+        (w.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (N + K + n)))) := by
+    apply Option.some.inj
+    rw [← hbw₂, htermSome]
+  subst bw₁
+  subst bw₂
+  exact ⟨hstack, hGder⟩
+
+theorem exists_boundedStackGrammar_derives_of_derivesIn_target_length_bounded_prefix
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            ∃ m : ℕ, ∃ τ : List g.flag,
+              τ.Sublist σ ∧ τ.length ≤ K ∧
+              (∃ hstack : (pref ++ τ).length ≤ N + K + m,
+                grammar_derives (boundedStackGrammar g (N + K + m))
+                  [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)]
+                  (w.map fun a =>
+                    (symbol.terminal a : symbol T (BoundedStackNT g (N + K + m))))) ∧
+              ∀ ρ : List g.flag, ∀ k : ℕ,
+                g.DerivesIn k [ISym.indexed A (pref ++ ρ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) →
+                ρ.Sublist τ → ρ = τ := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder
+  obtain ⟨m, τ, hτsub, hτlen, hbounded, hτmin⟩ :=
+    hK target htargetLen pref hpref n A σ w hwt hder
+  have hstack : (pref ++ τ).length ≤ N + K + m := by
+    simp [List.length_append]
+    omega
+  obtain ⟨bw₁, bw₂, hbw₁, hbw₂, hGder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := N + K + m) hbounded
+  have hstartSome :
+      boundedSentential? (g := g) (N + K + m)
+          [ISym.indexed A (pref ++ τ)] =
+        some [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)] := by
+    simp only [boundedSentential?]
+    rw [boundedSymbol?_indexed_of_le (g := g) (B := N + K + m)
+      (A := A) (σ := pref ++ τ) hstack]
+  have htermSome :
+      boundedSentential? (g := g) (N + K + m)
+          (w.map fun a => (ISym.terminal a : g.ISym)) =
+        some (w.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (N + K + m)))) := by
+    simp
+  have hbw₁ : bw₁ = [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)] := by
+    apply Option.some.inj
+    rw [← hbw₁, hstartSome]
+  have hbw₂ :
+      bw₂ =
+        (w.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (N + K + m)))) := by
+    apply Option.some.inj
+    rw [← hbw₂, htermSome]
+  subst bw₁
+  subst bw₂
+  exact ⟨m, τ, hτsub, hτlen, ⟨hstack, hGder⟩, hτmin⟩
+
+theorem exists_boundedStackGrammar_derives_of_derivesIn_bounded_prefix_budget
+    {g : IndexedGrammar T} [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N : ℕ) (target : List T) :
+    ∃ K : ℕ,
+      ∀ pref : List g.flag,
+        pref.length ≤ N →
+        ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+          w.Sublist target →
+          g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+            (w.map fun a => (ISym.terminal a : g.ISym)) →
+          pref.length + n ≤ N →
+          ∃ m : ℕ, ∃ τ : List g.flag,
+            m ≤ n ∧ τ.Sublist σ ∧ τ.length ≤ K ∧
+            ∃ hstack : (pref ++ τ).length ≤ N + K + N,
+              grammar_derives (boundedStackGrammar g (N + K + N))
+                [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)]
+                (w.map fun a =>
+                  (symbol.terminal a : symbol T (BoundedStackNT g (N + K + N)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBoundedDerivesIn_of_derivesIn_bounded_prefix_budget
+      (g := g) hNF N target
+  refine ⟨K, ?_⟩
+  intro pref hpref n A σ w hwt hder hbudget
+  obtain ⟨m, τ, hm_le, hτsub, hτlen, hbounded⟩ :=
+    hK pref hpref n A σ w hwt hder hbudget
+  have hstack : (pref ++ τ).length ≤ N + K + N := by
+    simp [List.length_append]
+    omega
+  obtain ⟨bw₁, bw₂, hbw₁, hbw₂, hGder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := N + K + N) hbounded
+  have hstartSome :
+      boundedSentential? (g := g) (N + K + N)
+          [ISym.indexed A (pref ++ τ)] =
+        some [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)] := by
+    simp only [boundedSentential?]
+    rw [boundedSymbol?_indexed_of_le (g := g) (B := N + K + N)
+      (A := A) (σ := pref ++ τ) hstack]
+  have htermSome :
+      boundedSentential? (g := g) (N + K + N)
+          (w.map fun a => (ISym.terminal a : g.ISym)) =
+        some (w.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (N + K + N)))) := by
+    simp
+  have hbw₁ : bw₁ = [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)] := by
+    apply Option.some.inj
+    rw [← hbw₁, hstartSome]
+  have hbw₂ :
+      bw₂ =
+        (w.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (N + K + N)))) := by
+    apply Option.some.inj
+    rw [← hbw₂, htermSome]
+  subst bw₁
+  subst bw₂
+  exact ⟨m, τ, hm_le, hτsub, hτlen, hstack, hGder⟩
+
+theorem exists_boundedStackGrammar_derives_of_derivesIn_target_length_bounded_prefix_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w.Sublist target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            pref.length + n ≤ N →
+            ∃ m : ℕ, ∃ τ : List g.flag,
+              m ≤ n ∧ τ.Sublist σ ∧ τ.length ≤ K ∧
+              ∃ hstack : (pref ++ τ).length ≤ N + K + N,
+                grammar_derives (boundedStackGrammar g (N + K + N))
+                  [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)]
+                  (w.map fun a =>
+                    (symbol.terminal a : symbol T (BoundedStackNT g (N + K + N)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hbudget
+  obtain ⟨m, τ, hm_le, hτsub, hτlen, hbounded⟩ :=
+    hK target htargetLen pref hpref n A σ w hwt hder hbudget
+  have hstack : (pref ++ τ).length ≤ N + K + N := by
+    simp [List.length_append]
+    omega
+  obtain ⟨bw₁, bw₂, hbw₁, hbw₂, hGder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := N + K + N) hbounded
+  have hstartSome :
+      boundedSentential? (g := g) (N + K + N)
+          [ISym.indexed A (pref ++ τ)] =
+        some [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)] := by
+    simp only [boundedSentential?]
+    rw [boundedSymbol?_indexed_of_le (g := g) (B := N + K + N)
+      (A := A) (σ := pref ++ τ) hstack]
+  have htermSome :
+      boundedSentential? (g := g) (N + K + N)
+          (w.map fun a => (ISym.terminal a : g.ISym)) =
+        some (w.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (N + K + N)))) := by
+    simp
+  have hbw₁ : bw₁ = [symbol.nonterminal (A, ⟨pref ++ τ, hstack⟩)] := by
+    apply Option.some.inj
+    rw [← hbw₁, hstartSome]
+  have hbw₂ :
+      bw₂ =
+        (w.map fun a =>
+          (symbol.terminal a : symbol T (BoundedStackNT g (N + K + N)))) := by
+    apply Option.some.inj
+    rw [← hbw₂, htermSome]
+  subst bw₁
+  subst bw₂
+  exact ⟨m, τ, hm_le, hτsub, hτlen, hstack, hGder⟩
+
+theorem boundedStackGrammar_generates_of_stackBoundedDerivesIn
+    {g : IndexedGrammar T} [Fintype g.flag] {B n : ℕ} {w : List T}
+    (h : StackBoundedDerivesIn g B n
+      [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    w ∈ grammar_language (boundedStackGrammar g B) := by
+  obtain ⟨bw₁, bw₂, hstart, hterm, hder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := B) h
+  have hstartSome :
+      boundedSentential? B [ISym.indexed g.initial []] =
+        some [symbol.nonterminal ((boundedStackGrammar g B).initial)] := by
+    simp [boundedStackGrammar, boundedSentential?, boundedSymbol?]
+  have hbw₁ : bw₁ = [symbol.nonterminal ((boundedStackGrammar g B).initial)] := by
+    apply Option.some.inj
+    rw [← hstart, hstartSome]
+  have htermSome :
+      boundedSentential? B
+          (w.map fun a => (ISym.terminal a : g.ISym)) =
+        some (w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B))) := by
+    simp
+  have hbw₂ : bw₂ =
+      w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B)) := by
+    apply Option.some.inj
+    rw [← hterm, htermSome]
+  subst bw₁
+  subst bw₂
+  simpa [grammar_language, grammar_generates] using hder
+
+theorem boundedStackGrammar_language_iff_exists_stackBoundedDerivesIn
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ} {w : List T} :
+    w ∈ grammar_language (boundedStackGrammar g B) ↔
+      ∃ n, StackBoundedDerivesIn g B n
+        [ISym.indexed g.initial []]
+        (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  constructor
+  · intro hw
+    have hder :
+        grammar_derives (boundedStackGrammar g B)
+          [symbol.nonterminal (boundedStackGrammar g B).initial]
+          (w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B))) := by
+      simpa [grammar_language, grammar_generates] using hw
+    obtain ⟨n, hbounded⟩ :=
+      exists_stackBoundedDerivesIn_of_boundedStackGrammar_derives
+        (g := g) (B := B) hder
+    refine ⟨n, ?_⟩
+    simpa [boundedStackGrammar] using hbounded
+  · rintro ⟨n, hbounded⟩
+    exact boundedStackGrammar_generates_of_stackBoundedDerivesIn
+      (g := g) (B := B) hbounded
+
+theorem exists_bounded_isDerivationTrace_of_boundedStackGrammar_language
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ} {w : List T}
+    (hw : w ∈ grammar_language (boundedStackGrammar g B)) :
+    ∃ n, ∃ trace : List (List g.ISym),
+      IsDerivationTrace g trace ∧
+      trace.length = n + 1 ∧
+      trace.head? = some [ISym.indexed g.initial []] ∧
+      trace.getLast? = some (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+      ∀ x ∈ trace, sententialMaxStackHeight x ≤ B := by
+  obtain ⟨n, hbounded⟩ :=
+    (boundedStackGrammar_language_iff_exists_stackBoundedDerivesIn
+      (g := g) (B := B) (w := w)).mp hw
+  obtain ⟨trace, htrace, hlen, hhead, hlast, hbound⟩ :=
+    exists_bounded_isDerivationTrace_of_stackBoundedDerivesIn hbounded
+  exact ⟨n, trace, htrace, hlen, hhead, hlast, hbound⟩
+
+theorem boundedStackGrammar_language_iff_exists_bounded_isDerivationTrace
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ} {w : List T} :
+    w ∈ grammar_language (boundedStackGrammar g B) ↔
+      ∃ n, ∃ trace : List (List g.ISym),
+        IsDerivationTrace g trace ∧
+        trace.length = n + 1 ∧
+        trace.head? = some [ISym.indexed g.initial []] ∧
+        trace.getLast? = some (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+        ∀ x ∈ trace, sententialMaxStackHeight x ≤ B := by
+  constructor
+  · exact exists_bounded_isDerivationTrace_of_boundedStackGrammar_language
+  · rintro ⟨n, trace, htrace, hlen, hhead, hlast, hbound⟩
+    exact boundedStackGrammar_generates_of_stackBoundedDerivesIn
+      (g := g) (B := B)
+      (stackBoundedDerivesIn_of_bounded_isDerivationTrace
+        htrace hlen hhead hlast hbound)
+
+theorem boundedStackGrammar_language_mono {g : IndexedGrammar T}
+    [Fintype g.flag] {B C : ℕ} (hBC : B ≤ C) :
+    ∀ w, w ∈ grammar_language (boundedStackGrammar g B) →
+      w ∈ grammar_language (boundedStackGrammar g C) := by
+  intro w hw
+  obtain ⟨n, hbounded⟩ :=
+    (boundedStackGrammar_language_iff_exists_stackBoundedDerivesIn
+      (g := g) (B := B) (w := w)).mp hw
+  exact boundedStackGrammar_generates_of_stackBoundedDerivesIn
+    (g := g) (B := C)
+    (StackBoundedDerivesIn.mono_bound hBC hbounded)
+
+theorem boundedStackGrammar_generates_of_derivesIn_of_intermediate_stackBound
+    {g : IndexedGrammar T} [Fintype g.flag] {B n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym)))
+    (hstack : ∀ i x,
+      DerivesInIntermediate g n [ISym.indexed g.initial []]
+        (w.map fun a => (ISym.terminal a : g.ISym)) i x →
+        sententialMaxStackHeight x ≤ B) :
+    w ∈ grammar_language (boundedStackGrammar g B) :=
+  boundedStackGrammar_generates_of_stackBoundedDerivesIn
+    (g := g) (B := B)
+    (stackBoundedDerivesIn_of_derivesIn_of_intermediate_stackBound
+      (g := g) (B := B) h hstack)
+
+theorem boundedStackGrammar_generates_of_derivesIn_isNormalForm_initial_stackBound
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {B n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym)))
+    (hstart : sententialMaxStackHeight ([ISym.indexed g.initial []] : List g.ISym) ≤ B) :
+    w ∈ grammar_language (boundedStackGrammar g (B + n)) :=
+  boundedStackGrammar_generates_of_stackBoundedDerivesIn
+    (g := g) (B := B + n)
+    (stackBoundedDerivesIn_of_derivesIn_isNormalForm_initial_stackBound
+      (g := g) hNF h hstart)
+
+theorem boundedStackGrammar_generates_of_derivesIn_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    w ∈ grammar_language (boundedStackGrammar g n) := by
+  apply boundedStackGrammar_generates_of_derivesIn_of_intermediate_stackBound
+    (g := g) (B := n) h
+  intro i x hmid
+  exact le_trans
+    (accepting_derivesInIntermediate_maxStackHeight_le_index_of_isNormalForm hNF hmid)
+    hmid.1
+
+/-- Every generated word of a finite-flag normal-form indexed grammar is generated by one of
+the concrete fixed-bound compiled grammars. The bound may depend on the accepting derivation;
+the remaining global inclusion still needs a uniform LBA/search argument. -/
+theorem exists_boundedStackGrammar_generates_of_generates_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List T} (hgen : g.Generates w) :
+    ∃ B : ℕ, w ∈ grammar_language (boundedStackGrammar g B) := by
+  obtain ⟨n, hder⟩ := (generates_iff_exists_derivesIn g w).mp hgen
+  exact ⟨n, boundedStackGrammar_generates_of_derivesIn_isNormalForm hNF hder⟩
+
+theorem language_eq_iUnion_boundedStackGrammar_language_of_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) :
+    g.Language = fun w => ∃ B : ℕ, w ∈ grammar_language (boundedStackGrammar g B) := by
+  ext w
+  constructor
+  · intro hw
+    exact exists_boundedStackGrammar_generates_of_generates_isNormalForm
+      (g := g) hNF hw
+  · rintro ⟨B, hw⟩
+    exact boundedStackGrammar_language_subset_language (g := g) (B := B) w hw
+
+end IndexedGrammar

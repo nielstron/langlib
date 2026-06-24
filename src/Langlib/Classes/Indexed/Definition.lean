@@ -72,6 +72,31 @@ theorem is_Indexed_of_is_Indexed_noEpsilon {L : Language T}
   rcases h with ⟨g, _, hL⟩
   exact ⟨g, hL⟩
 
+/-- An ε-free indexed language does not contain the empty word. -/
+theorem not_nil_mem_of_is_Indexed_noEpsilon {L : Language T}
+    (h : is_Indexed_noEpsilon L) : [] ∉ L := by
+  rintro hnil
+  rcases h with ⟨g, hne, hL⟩
+  have hgen : g.Generates [] := by
+    change [] ∈ g.Language
+    rw [hL]
+    exact hnil
+  exact g.not_generates_nil_of_noEpsilon hne hgen
+
+/-- Removing `ε` from an ε-free indexed language leaves the same language. -/
+theorem diff_empty_of_is_Indexed_noEpsilon {L : Language T}
+    (h : is_Indexed_noEpsilon L) :
+    L \ ({[]} : Set (List T)) = L := by
+  ext w
+  constructor
+  · intro hw
+    exact hw.1
+  · intro hw
+    refine ⟨hw, ?_⟩
+    intro hε
+    rw [Set.mem_singleton_iff] at hε
+    exact not_nil_mem_of_is_Indexed_noEpsilon h (by simpa [hε] using hw)
+
 theorem IndexedNoEpsilon_subclass_Indexed :
     (IndexedNoEpsilon : Set (Language T)) ⊆ Indexed := by
   intro L hL

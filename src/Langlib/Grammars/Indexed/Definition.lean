@@ -185,6 +185,126 @@ theorem deri_with_suffix {g : IndexedGrammar T} (s : List (ISym g))
     refine ⟨r, u, v ++ s, σ, hr, ?_, by simp_all [List.append_assoc]⟩
     revert hlhs; cases r.consume <;> intro hlhs <;> simp_all [List.append_assoc]
 
+/-! ## Uniform stack-suffix extension -/
+
+def ISym.appendStackSuffix {g : IndexedGrammar T} (suffix : List g.flag) : g.ISym → g.ISym
+  | ISym.terminal a => ISym.terminal a
+  | ISym.indexed A σ => ISym.indexed A (σ ++ suffix)
+
+def appendStackSuffixes {g : IndexedGrammar T} (suffix : List g.flag)
+    (w : List g.ISym) : List g.ISym :=
+  w.map (ISym.appendStackSuffix suffix)
+
+@[simp] theorem ISym.appendStackSuffix_terminal {g : IndexedGrammar T}
+    (suffix : List g.flag) (a : T) :
+    ISym.appendStackSuffix (g := g) suffix (ISym.terminal a) = ISym.terminal a := rfl
+
+@[simp] theorem ISym.appendStackSuffix_indexed {g : IndexedGrammar T}
+    (suffix : List g.flag) (A : g.nt) (σ : List g.flag) :
+    ISym.appendStackSuffix (g := g) suffix (ISym.indexed A σ) =
+      ISym.indexed A (σ ++ suffix) := rfl
+
+@[simp] theorem appendStackSuffixes_nil {g : IndexedGrammar T}
+    (suffix : List g.flag) :
+    appendStackSuffixes (g := g) suffix [] = [] := rfl
+
+@[simp] theorem appendStackSuffixes_cons {g : IndexedGrammar T}
+    (suffix : List g.flag) (s : g.ISym) (w : List g.ISym) :
+    appendStackSuffixes suffix (s :: w) =
+      ISym.appendStackSuffix suffix s :: appendStackSuffixes suffix w := rfl
+
+@[simp] theorem appendStackSuffixes_append {g : IndexedGrammar T}
+    (suffix : List g.flag) (u v : List g.ISym) :
+    appendStackSuffixes suffix (u ++ v) =
+      appendStackSuffixes suffix u ++ appendStackSuffixes suffix v := by
+  simp [appendStackSuffixes, List.map_append]
+
+@[simp] theorem appendStackSuffixes_length {g : IndexedGrammar T}
+    (suffix : List g.flag) (w : List g.ISym) :
+    (appendStackSuffixes suffix w).length = w.length := by
+  simp [appendStackSuffixes]
+
+@[simp] theorem appendStackSuffixes_map_terminal {g : IndexedGrammar T}
+    (suffix : List g.flag) (w : List T) :
+    appendStackSuffixes suffix (w.map fun a => (ISym.terminal a : g.ISym)) =
+      w.map fun a => (ISym.terminal a : g.ISym) := by
+  induction w with
+  | nil => rfl
+  | cons a w ih =>
+      simp [ih]
+
+@[simp] theorem appendStackSuffixes_expandRhs {g : IndexedGrammar T}
+    (suffix : List g.flag) (rhs : List (IRhsSymbol T g.nt g.flag))
+    (σ : List g.flag) :
+    appendStackSuffixes suffix (g.expandRhs rhs σ) =
+      g.expandRhs rhs (σ ++ suffix) := by
+  induction rhs with
+  | nil => rfl
+  | cons s rhs ih =>
+      cases s with
+      | terminal a =>
+          change ISym.terminal a :: appendStackSuffixes suffix (g.expandRhs rhs σ) =
+            ISym.terminal a :: g.expandRhs rhs (σ ++ suffix)
+          rw [ih]
+      | nonterminal A push =>
+          cases push with
+          | none =>
+              change ISym.indexed A (σ ++ suffix) ::
+                  appendStackSuffixes suffix (g.expandRhs rhs σ) =
+                ISym.indexed A (σ ++ suffix) :: g.expandRhs rhs (σ ++ suffix)
+              rw [ih]
+          | some f =>
+              change ISym.indexed A ((f :: σ) ++ suffix) ::
+                  appendStackSuffixes suffix (g.expandRhs rhs σ) =
+                ISym.indexed A (f :: (σ ++ suffix)) ::
+                  g.expandRhs rhs (σ ++ suffix)
+              simp [ih]
+
+theorem transforms_appendStackSuffixes {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂)
+    (suffix : List g.flag) :
+    g.Transforms (appendStackSuffixes suffix w₁)
+      (appendStackSuffixes suffix w₂) := by
+  rcases h with ⟨r, u, v, σ, hr, hlhs, hrhs⟩
+  refine ⟨r, appendStackSuffixes suffix u, appendStackSuffixes suffix v,
+    σ ++ suffix, hr, ?_, ?_⟩
+  · cases hc : r.consume with
+    | none =>
+        rw [hc] at hlhs
+        rw [hlhs]
+        simp [List.append_assoc]
+    | some f =>
+        rw [hc] at hlhs
+        rw [hlhs]
+        simp [List.append_assoc]
+  · rw [hrhs]
+    simp [List.append_assoc]
+
+theorem derives_appendStackSuffixes {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : g.Derives w₁ w₂)
+    (suffix : List g.flag) :
+    g.Derives (appendStackSuffixes suffix w₁)
+      (appendStackSuffixes suffix w₂) := by
+  induction h with
+  | refl =>
+      exact ReflTransGen.refl
+  | tail _ hstep ih =>
+      exact ih.tail (transforms_appendStackSuffixes hstep suffix)
+
+theorem derives_appendStackSuffix_indexed {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} {w : List g.ISym}
+    (h : g.Derives [ISym.indexed A σ] w) (suffix : List g.flag) :
+    g.Derives [ISym.indexed A (σ ++ suffix)]
+      (appendStackSuffixes suffix w) := by
+  simpa using derives_appendStackSuffixes h suffix
+
+theorem derives_appendStackSuffix_to_terminals {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : g.Derives [ISym.indexed A σ] (w.map ISym.terminal))
+    (suffix : List g.flag) :
+    g.Derives [ISym.indexed A (σ ++ suffix)] (w.map ISym.terminal) := by
+  simpa using derives_appendStackSuffix_indexed (g := g) h suffix
+
 /-- A grammar has no ε-productions. -/
 def NoEpsilon' (g : IndexedGrammar T) : Prop :=
   ∀ r ∈ g.rules, r.rhs ≠ []

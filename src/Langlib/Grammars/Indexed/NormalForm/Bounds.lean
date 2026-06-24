@@ -27,9 +27,16 @@ def ISym.isTerminal {g : IndexedGrammar T} : g.ISym → Bool
   | ISym.terminal _ => true
   | ISym.indexed _ _ => false
 
+def ISym.toTerminal? {g : IndexedGrammar T} : g.ISym → Option T
+  | ISym.terminal a => some a
+  | ISym.indexed _ _ => none
+
 def ISym.stackHeight {g : IndexedGrammar T} : g.ISym → ℕ
   | ISym.terminal _ => 0
   | ISym.indexed _ σ => σ.length
+
+def sententialTerminals {g : IndexedGrammar T} (w : List g.ISym) : List T :=
+  w.filterMap ISym.toTerminal?
 
 def sententialNonterminalCount {g : IndexedGrammar T} (w : List g.ISym) : ℕ :=
   w.countP ISym.isIndexed
@@ -58,12 +65,56 @@ def sententialMaxStackHeight {g : IndexedGrammar T} : List g.ISym → ℕ
     (σ : List g.flag) :
     ISym.isTerminal (g := g) (ISym.indexed A σ) = false := rfl
 
+@[simp] theorem ISym.toTerminal?_terminal {g : IndexedGrammar T} (a : T) :
+    ISym.toTerminal? (g := g) (ISym.terminal a) = some a := rfl
+
+@[simp] theorem ISym.toTerminal?_indexed {g : IndexedGrammar T} (A : g.nt)
+    (σ : List g.flag) :
+    ISym.toTerminal? (g := g) (ISym.indexed A σ) = none := rfl
+
 @[simp] theorem ISym.stackHeight_terminal {g : IndexedGrammar T} (a : T) :
     ISym.stackHeight (g := g) (ISym.terminal a) = 0 := rfl
 
 @[simp] theorem ISym.stackHeight_indexed {g : IndexedGrammar T} (A : g.nt)
     (σ : List g.flag) :
     ISym.stackHeight (g := g) (ISym.indexed A σ) = σ.length := rfl
+
+@[simp] theorem sententialTerminals_nil {g : IndexedGrammar T} :
+    sententialTerminals ([] : List g.ISym) = [] := rfl
+
+@[simp] theorem sententialTerminals_append {g : IndexedGrammar T}
+    (u v : List g.ISym) :
+    sententialTerminals (u ++ v) =
+      sententialTerminals u ++ sententialTerminals v := by
+  simp [sententialTerminals, List.filterMap_append]
+
+@[simp] theorem sententialTerminals_terminal {g : IndexedGrammar T} (a : T) :
+    sententialTerminals ([ISym.terminal a] : List g.ISym) = [a] := by
+  simp [sententialTerminals]
+
+@[simp] theorem sententialTerminals_indexed {g : IndexedGrammar T} (A : g.nt)
+    (σ : List g.flag) :
+    sententialTerminals ([ISym.indexed A σ] : List g.ISym) = [] := by
+  simp [sententialTerminals]
+
+@[simp] theorem sententialTerminals_cons_terminal {g : IndexedGrammar T}
+    (a : T) (w : List g.ISym) :
+    sententialTerminals (ISym.terminal a :: w) = a :: sententialTerminals w := by
+  simp [sententialTerminals]
+
+@[simp] theorem sententialTerminals_cons_indexed {g : IndexedGrammar T}
+    (A : g.nt) (σ : List g.flag) (w : List g.ISym) :
+    sententialTerminals (ISym.indexed A σ :: w) = sententialTerminals w := by
+  simp [sententialTerminals]
+
+@[simp] theorem sententialTerminals_map_terminal {g : IndexedGrammar T}
+    (w : List T) :
+    sententialTerminals
+        (w.map fun a => (ISym.terminal a : g.ISym)) = w := by
+  induction w with
+  | nil => rfl
+  | cons a w ih =>
+      simp [ih]
 
 @[simp] theorem sententialNonterminalCount_nil {g : IndexedGrammar T} :
     sententialNonterminalCount ([] : List g.ISym) = 0 := rfl
@@ -152,6 +203,14 @@ theorem sententialTerminalCount_le_length {g : IndexedGrammar T}
     (w : List g.ISym) :
     sententialTerminalCount w ≤ w.length := by
   exact List.countP_le_length
+
+@[simp] theorem sententialTerminals_length {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    (sententialTerminals w).length = sententialTerminalCount w := by
+  induction w with
+  | nil => rfl
+  | cons s w ih =>
+      cases s <;> simpa [sententialTerminals, sententialTerminalCount] using ih
 
 theorem sententialTerminalCount_add_nonterminalCount {g : IndexedGrammar T}
     (w : List g.ISym) :
@@ -258,6 +317,139 @@ theorem stackHeight_le_sententialMaxStackHeight_of_mem {g : IndexedGrammar T}
       · simp
       · exact le_trans (ih hs) (by simp)
 
+theorem exists_indexed_mem_stackHeight_eq_sententialMaxStackHeight_of_pos
+    {g : IndexedGrammar T} {w : List g.ISym}
+    (hpos : 0 < sententialMaxStackHeight w) :
+    ∃ A : g.nt, ∃ σ : List g.flag,
+      ISym.indexed A σ ∈ w ∧ σ.length = sententialMaxStackHeight w := by
+  induction w with
+  | nil =>
+      simp at hpos
+  | cons s w ih =>
+      cases s with
+      | terminal a =>
+          simp only [sententialMaxStackHeight_cons_terminal] at hpos
+          obtain ⟨A, σ, hmem, hlen⟩ := ih hpos
+          exact ⟨A, σ, List.mem_cons_of_mem _ hmem, hlen⟩
+      | indexed A σ =>
+          by_cases htail : sententialMaxStackHeight w ≤ σ.length
+          · refine ⟨A, σ, List.mem_cons_self, ?_⟩
+            rw [sententialMaxStackHeight_cons_indexed, Nat.max_eq_left htail]
+          · have hσlt : σ.length < sententialMaxStackHeight w := by omega
+            have htail_pos : 0 < sententialMaxStackHeight w := by omega
+            obtain ⟨B, τ, hmem, hlen⟩ := ih htail_pos
+            refine ⟨B, τ, List.mem_cons_of_mem _ hmem, ?_⟩
+            rw [sententialMaxStackHeight_cons_indexed, Nat.max_eq_right (le_of_lt hσlt)]
+            exact hlen
+
+theorem exists_indexed_mem_stackHeight_gt_of_sententialMaxStackHeight_gt
+    {g : IndexedGrammar T} {w : List g.ISym} {B : ℕ}
+    (hgt : B < sententialMaxStackHeight w) :
+    ∃ A : g.nt, ∃ σ : List g.flag,
+      ISym.indexed A σ ∈ w ∧ B < σ.length := by
+  have hpos : 0 < sententialMaxStackHeight w := by omega
+  obtain ⟨A, σ, hmem, hlen⟩ :=
+    exists_indexed_mem_stackHeight_eq_sententialMaxStackHeight_of_pos
+      (g := g) hpos
+  exact ⟨A, σ, hmem, by omega⟩
+
+theorem sententialMaxStackHeight_le_sententialStackHeight {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    sententialMaxStackHeight w ≤ sententialStackHeight w := by
+  induction w with
+  | nil =>
+      simp
+  | cons s w ih =>
+      cases s with
+      | terminal a =>
+          simpa using ih
+      | indexed A σ =>
+          simp
+          omega
+
+/-! ## Stack-suffix extension and sentential measures -/
+
+@[simp] theorem ISym.isIndexed_appendStackSuffix {g : IndexedGrammar T}
+    (suffix : List g.flag) (s : g.ISym) :
+    (ISym.appendStackSuffix suffix s).isIndexed = s.isIndexed := by
+  cases s <;> rfl
+
+@[simp] theorem ISym.isTerminal_appendStackSuffix {g : IndexedGrammar T}
+    (suffix : List g.flag) (s : g.ISym) :
+    (ISym.appendStackSuffix suffix s).isTerminal = s.isTerminal := by
+  cases s <;> rfl
+
+@[simp] theorem ISym.toTerminal?_appendStackSuffix {g : IndexedGrammar T}
+    (suffix : List g.flag) (s : g.ISym) :
+    (ISym.appendStackSuffix suffix s).toTerminal? = s.toTerminal? := by
+  cases s <;> rfl
+
+@[simp] theorem sententialTerminals_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (w : List g.ISym) :
+    sententialTerminals (appendStackSuffixes suffix w) = sententialTerminals w := by
+  induction w with
+  | nil => rfl
+  | cons s w ih =>
+      cases s <;> simpa [appendStackSuffixes, sententialTerminals] using ih
+
+@[simp] theorem sententialNonterminalCount_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (w : List g.ISym) :
+    sententialNonterminalCount (appendStackSuffixes suffix w) =
+      sententialNonterminalCount w := by
+  induction w with
+  | nil => rfl
+  | cons s w ih =>
+      cases s <;> simpa [appendStackSuffixes, sententialNonterminalCount] using ih
+
+@[simp] theorem sententialTerminalCount_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (w : List g.ISym) :
+    sententialTerminalCount (appendStackSuffixes suffix w) =
+      sententialTerminalCount w := by
+  induction w with
+  | nil => rfl
+  | cons s w ih =>
+      cases s <;> simpa [appendStackSuffixes, sententialTerminalCount] using ih
+
+theorem sententialStackHeight_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (w : List g.ISym) :
+    sententialStackHeight (appendStackSuffixes suffix w) =
+      sententialStackHeight w + sententialNonterminalCount w * suffix.length := by
+  induction w with
+  | nil => simp
+  | cons s w ih =>
+      cases s with
+      | terminal a =>
+          simpa [appendStackSuffixes, sententialStackHeight, sententialNonterminalCount] using ih
+      | indexed A σ =>
+          simp only [appendStackSuffixes_cons, ISym.appendStackSuffix_indexed,
+            sententialStackHeight_cons_indexed, sententialNonterminalCount_cons_indexed,
+            List.length_append]
+          rw [ih, Nat.add_mul]
+          simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+
+theorem sententialMaxStackHeight_appendStackSuffixes_le {g : IndexedGrammar T}
+    (suffix : List g.flag) (w : List g.ISym) :
+    sententialMaxStackHeight (appendStackSuffixes suffix w) ≤
+      sententialMaxStackHeight w + suffix.length := by
+  induction w with
+  | nil =>
+      simp
+  | cons s w ih =>
+      cases s with
+      | terminal a =>
+          simpa [appendStackSuffixes] using ih
+      | indexed A σ =>
+          simp only [appendStackSuffixes_cons, ISym.appendStackSuffix_indexed,
+            sententialMaxStackHeight_cons, ISym.stackHeight_indexed]
+          exact Nat.max_le.mpr
+            ⟨by
+              rw [List.length_append]
+              exact Nat.add_le_add_right
+                (Nat.le_max_left σ.length (sententialMaxStackHeight w)) suffix.length,
+             le_trans ih
+              (Nat.add_le_add_right (Nat.le_max_right σ.length (sententialMaxStackHeight w))
+                suffix.length)⟩
+
 /-! ## Stack-prefix projections -/
 
 def ISym.truncateStack {g : IndexedGrammar T} (k : ℕ) : g.ISym → g.ISym
@@ -301,6 +493,19 @@ def truncateStacks {g : IndexedGrammar T} (k : ℕ) (w : List g.ISym) : List g.I
     (s : g.ISym) :
     (ISym.truncateStack k s).isTerminal = s.isTerminal := by
   cases s <;> rfl
+
+@[simp] theorem ISym.toTerminal?_truncateStack {g : IndexedGrammar T} (k : ℕ)
+    (s : g.ISym) :
+    (ISym.truncateStack k s).toTerminal? = s.toTerminal? := by
+  cases s <;> rfl
+
+@[simp] theorem sententialTerminals_truncateStacks {g : IndexedGrammar T}
+    (k : ℕ) (w : List g.ISym) :
+    sententialTerminals (truncateStacks k w) = sententialTerminals w := by
+  induction w with
+  | nil => rfl
+  | cons s w ih =>
+      cases s <;> simpa [truncateStacks, sententialTerminals] using ih
 
 @[simp] theorem sententialNonterminalCount_truncateStacks {g : IndexedGrammar T}
     (k : ℕ) (w : List g.ISym) :
@@ -483,6 +688,12 @@ def eraseSurfaceForm {g : IndexedGrammar T} {k : ℕ}
   | cons s w ih =>
       simp [surfaceOfTruncatedForm, eraseSurfaceForm, truncateStacks]
 
+@[simp] theorem sententialTerminals_eraseSurfaceForm_surfaceOfTruncatedForm
+    {g : IndexedGrammar T} (k : ℕ) (w : List g.ISym) :
+    sententialTerminals (eraseSurfaceForm (surfaceOfTruncatedForm k w)) =
+      sententialTerminals w := by
+  simp
+
 theorem eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
     {g : IndexedGrammar T} {k : ℕ} {w : List g.ISym}
     (h : sententialMaxStackHeight w ≤ k) :
@@ -510,12 +721,35 @@ theorem boundedSurfaceForms_finite (g : IndexedGrammar T)
   dsimp [boundedSurfaceForms]
   exact List.finite_length_le (SurfaceSymbol g stackBound) lengthBound
 
+/-- Surface forms bounded by a stack height and compatible with a fixed target word: the
+terminal yield already visible in the surface form must occur as a sublist of the target. -/
+def targetCompatibleBoundedSurfaceForms (g : IndexedGrammar T)
+    (target : List T) (stackBound : ℕ) : Set (SurfaceForm g stackBound) :=
+  {w | w ∈ boundedSurfaceForms g target.length stackBound ∧
+    (sententialTerminals (eraseSurfaceForm w)).Sublist target}
+
+theorem targetCompatibleBoundedSurfaceForms_finite (g : IndexedGrammar T)
+    [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (target : List T) (stackBound : ℕ) :
+    (targetCompatibleBoundedSurfaceForms g target stackBound).Finite := by
+  exact (boundedSurfaceForms_finite g target.length stackBound).subset
+    (fun _ hw => hw.1)
+
 theorem surfaceOfTruncatedForm_mem_boundedSurfaceForms {g : IndexedGrammar T}
     {lengthBound stackBound : ℕ} {w : List g.ISym}
     (hlen : w.length ≤ lengthBound) :
     surfaceOfTruncatedForm stackBound w ∈
       boundedSurfaceForms g lengthBound stackBound := by
   simpa [boundedSurfaceForms] using hlen
+
+theorem surfaceOfTruncatedForm_mem_targetCompatibleBoundedSurfaceForms
+    {g : IndexedGrammar T} {target : List T} {stackBound : ℕ}
+    {w : List g.ISym}
+    (hlen : w.length ≤ target.length)
+    (hterm : (sententialTerminals w).Sublist target) :
+    surfaceOfTruncatedForm stackBound w ∈
+      targetCompatibleBoundedSurfaceForms g target stackBound := by
+  exact ⟨surfaceOfTruncatedForm_mem_boundedSurfaceForms hlen, by simpa using hterm⟩
 
 /-- Sentential forms whose length and maximum stack height are both bounded. -/
 def boundedSententialForms (g : IndexedGrammar T) (lengthBound stackBound : ℕ) :
@@ -672,6 +906,38 @@ theorem derivesIn_trans {g : IndexedGrammar T} {m n : ℕ}
       rcases h₂ with ⟨w, hprev, hstep⟩
       exact ⟨w, by simpa [Nat.add_assoc] using ih hprev, hstep⟩
 
+theorem derivesIn_appendStackSuffixes {g : IndexedGrammar T} {n : ℕ}
+    {w₁ w₂ : List g.ISym} (h : g.DerivesIn n w₁ w₂)
+    (suffix : List g.flag) :
+    g.DerivesIn n (appendStackSuffixes suffix w₁)
+      (appendStackSuffixes suffix w₂) := by
+  induction n generalizing w₂ with
+  | zero =>
+      have hw : w₁ = w₂ := by simpa using h
+      subst w₂
+      rfl
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep⟩
+      exact ⟨appendStackSuffixes suffix w, ih hprev,
+        transforms_appendStackSuffixes hstep suffix⟩
+
+theorem derivesIn_appendStackSuffix_indexed {g : IndexedGrammar T} {n : ℕ}
+    {A : g.nt} {σ : List g.flag} {w : List g.ISym}
+    (h : g.DerivesIn n [ISym.indexed A σ] w)
+    (suffix : List g.flag) :
+    g.DerivesIn n [ISym.indexed A (σ ++ suffix)]
+      (appendStackSuffixes suffix w) := by
+  simpa using derivesIn_appendStackSuffixes (g := g) h suffix
+
+theorem derivesIn_appendStackSuffix_to_terminals {g : IndexedGrammar T} {n : ℕ}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym)))
+    (suffix : List g.flag) :
+    g.DerivesIn n [ISym.indexed A (σ ++ suffix)]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa using derivesIn_appendStackSuffix_indexed (g := g) h suffix
+
 /-! ## Derivation traces -/
 
 /-- A concrete list of successive sentential forms, each adjacent pair related by one
@@ -680,6 +946,135 @@ def IsDerivationTrace (g : IndexedGrammar T) : List (List g.ISym) → Prop
   | [] => True
   | [_] => True
   | w₁ :: w₂ :: rest => g.Transforms w₁ w₂ ∧ IsDerivationTrace g (w₂ :: rest)
+
+def traceTerminalIncreaseCount {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (if sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 then 1 else 0) +
+        traceTerminalIncreaseCount (w₂ :: rest)
+  | _ => 0
+
+def traceNonterminalIncreaseCount {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (if sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 then 1 else 0) +
+        traceNonterminalIncreaseCount (w₂ :: rest)
+  | _ => 0
+
+def traceNonterminalDecreaseCount {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (if sententialNonterminalCount w₁ = sententialNonterminalCount w₂ + 1 then 1 else 0) +
+        traceNonterminalDecreaseCount (w₂ :: rest)
+  | _ => 0
+
+def TransformIsObservablePop {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) : Prop :=
+  sententialNonterminalCount w₂ = sententialNonterminalCount w₁ ∧
+    sententialTerminalCount w₂ = sententialTerminalCount w₁ ∧
+    sententialStackHeight w₁ = sententialStackHeight w₂ + 1
+
+def traceTerminalIncreaseCountUpTo {g : IndexedGrammar T} :
+    ℕ → List (List g.ISym) → ℕ
+  | 0, _ => 0
+  | i + 1, w₁ :: w₂ :: rest =>
+      (if sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 then 1 else 0) +
+        traceTerminalIncreaseCountUpTo i (w₂ :: rest)
+  | _ + 1, _ => 0
+
+def traceNonterminalIncreaseCountUpTo {g : IndexedGrammar T} :
+    ℕ → List (List g.ISym) → ℕ
+  | 0, _ => 0
+  | i + 1, w₁ :: w₂ :: rest =>
+      (if sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 then 1 else 0) +
+        traceNonterminalIncreaseCountUpTo i (w₂ :: rest)
+  | _ + 1, _ => 0
+
+def traceNonterminalDecreaseCountUpTo {g : IndexedGrammar T} :
+    ℕ → List (List g.ISym) → ℕ
+  | 0, _ => 0
+  | i + 1, w₁ :: w₂ :: rest =>
+      (if sententialNonterminalCount w₁ = sententialNonterminalCount w₂ + 1 then 1 else 0) +
+        traceNonterminalDecreaseCountUpTo i (w₂ :: rest)
+  | _ + 1, _ => 0
+
+def TransformIsObservablePush {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) : Prop :=
+  sententialNonterminalCount w₂ = sententialNonterminalCount w₁ ∧
+    sententialTerminalCount w₂ = sententialTerminalCount w₁ ∧
+    sententialStackHeight w₂ = sententialStackHeight w₁ + 1
+
+instance instDecidableTransformIsObservablePush {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) : Decidable (TransformIsObservablePush w₁ w₂) := by
+  unfold TransformIsObservablePush
+  infer_instance
+
+instance instDecidableTransformIsObservablePop {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) : Decidable (TransformIsObservablePop w₁ w₂) := by
+  unfold TransformIsObservablePop
+  infer_instance
+
+def tracePushStepCount {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (if TransformIsObservablePush w₁ w₂ then 1 else 0) +
+        tracePushStepCount (w₂ :: rest)
+  | _ => 0
+
+def tracePopStepCount {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (if TransformIsObservablePop w₁ w₂ then 1 else 0) +
+        tracePopStepCount (w₂ :: rest)
+  | _ => 0
+
+def traceStackHeightIncrease {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (sententialStackHeight w₂ - sententialStackHeight w₁) +
+        traceStackHeightIncrease (w₂ :: rest)
+  | _ => 0
+
+def traceStackHeightDecrease {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (sententialStackHeight w₁ - sententialStackHeight w₂) +
+        traceStackHeightDecrease (w₂ :: rest)
+  | _ => 0
+
+def traceBinaryCopyStackHeight {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (if sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 then
+        sententialStackHeight w₂ - sententialStackHeight w₁
+      else
+        0) + traceBinaryCopyStackHeight (w₂ :: rest)
+  | _ => 0
+
+def traceTerminalEraseStackHeight {g : IndexedGrammar T} :
+    List (List g.ISym) → ℕ
+  | w₁ :: w₂ :: rest =>
+      (if sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 then
+        sententialStackHeight w₁ - sententialStackHeight w₂
+      else
+        0) + traceTerminalEraseStackHeight (w₂ :: rest)
+  | _ => 0
+
+def tracePushStepCountUpTo {g : IndexedGrammar T} :
+    ℕ → List (List g.ISym) → ℕ
+  | 0, _ => 0
+  | i + 1, w₁ :: w₂ :: rest =>
+      (if TransformIsObservablePush w₁ w₂ then 1 else 0) +
+        tracePushStepCountUpTo i (w₂ :: rest)
+  | _ + 1, _ => 0
+
+def tracePopStepCountUpTo {g : IndexedGrammar T} :
+    ℕ → List (List g.ISym) → ℕ
+  | 0, _ => 0
+  | i + 1, w₁ :: w₂ :: rest =>
+      (if TransformIsObservablePop w₁ w₂ then 1 else 0) +
+        tracePopStepCountUpTo i (w₂ :: rest)
+  | _ + 1, _ => 0
 
 @[simp] theorem isDerivationTrace_nil {g : IndexedGrammar T} :
     IsDerivationTrace g [] := by
@@ -695,6 +1090,890 @@ def IsDerivationTrace (g : IndexedGrammar T) : List (List g.ISym) → Prop
     IsDerivationTrace g (w₁ :: w₂ :: rest) ↔
       g.Transforms w₁ w₂ ∧ IsDerivationTrace g (w₂ :: rest) := by
   rfl
+
+theorem isDerivationTrace_appendStackSuffixes {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} (htrace : IsDerivationTrace g trace)
+    (suffix : List g.flag) :
+    IsDerivationTrace g (trace.map (appendStackSuffixes suffix)) := by
+  induction trace with
+  | nil =>
+      simp
+  | cons w₁ rest ih =>
+      cases rest with
+      | nil =>
+          simp
+      | cons w₂ rest =>
+          simp only [isDerivationTrace_cons_cons] at htrace ⊢
+          exact ⟨transforms_appendStackSuffixes htrace.1 suffix, ih htrace.2⟩
+
+@[simp] theorem traceTerminalIncreaseCount_nil {g : IndexedGrammar T} :
+    traceTerminalIncreaseCount ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem traceTerminalIncreaseCount_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    traceTerminalIncreaseCount [w] = 0 := rfl
+
+@[simp] theorem traceTerminalIncreaseCount_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceTerminalIncreaseCount (w₁ :: w₂ :: rest) =
+      (if sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 then 1 else 0) +
+        traceTerminalIncreaseCount (w₂ :: rest) := rfl
+
+@[simp] theorem traceNonterminalIncreaseCount_nil {g : IndexedGrammar T} :
+    traceNonterminalIncreaseCount ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem traceNonterminalIncreaseCount_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    traceNonterminalIncreaseCount [w] = 0 := rfl
+
+@[simp] theorem traceNonterminalIncreaseCount_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceNonterminalIncreaseCount (w₁ :: w₂ :: rest) =
+      (if sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 then 1 else 0) +
+        traceNonterminalIncreaseCount (w₂ :: rest) := rfl
+
+@[simp] theorem traceNonterminalDecreaseCount_nil {g : IndexedGrammar T} :
+    traceNonterminalDecreaseCount ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem traceNonterminalDecreaseCount_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    traceNonterminalDecreaseCount [w] = 0 := rfl
+
+@[simp] theorem traceNonterminalDecreaseCount_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceNonterminalDecreaseCount (w₁ :: w₂ :: rest) =
+      (if sententialNonterminalCount w₁ = sententialNonterminalCount w₂ + 1 then 1 else 0) +
+        traceNonterminalDecreaseCount (w₂ :: rest) := rfl
+
+@[simp] theorem tracePushStepCount_nil {g : IndexedGrammar T} :
+    tracePushStepCount ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem tracePushStepCount_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    tracePushStepCount [w] = 0 := rfl
+
+@[simp] theorem tracePushStepCount_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    tracePushStepCount (w₁ :: w₂ :: rest) =
+      (if TransformIsObservablePush w₁ w₂ then 1 else 0) +
+        tracePushStepCount (w₂ :: rest) := rfl
+
+@[simp] theorem tracePopStepCount_nil {g : IndexedGrammar T} :
+    tracePopStepCount ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem tracePopStepCount_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    tracePopStepCount [w] = 0 := rfl
+
+@[simp] theorem tracePopStepCount_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    tracePopStepCount (w₁ :: w₂ :: rest) =
+      (if TransformIsObservablePop w₁ w₂ then 1 else 0) +
+        tracePopStepCount (w₂ :: rest) := rfl
+
+@[simp] theorem traceStackHeightIncrease_nil {g : IndexedGrammar T} :
+    traceStackHeightIncrease ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem traceStackHeightIncrease_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    traceStackHeightIncrease [w] = 0 := rfl
+
+@[simp] theorem traceStackHeightIncrease_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceStackHeightIncrease (w₁ :: w₂ :: rest) =
+      (sententialStackHeight w₂ - sententialStackHeight w₁) +
+        traceStackHeightIncrease (w₂ :: rest) := rfl
+
+@[simp] theorem traceStackHeightDecrease_nil {g : IndexedGrammar T} :
+    traceStackHeightDecrease ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem traceStackHeightDecrease_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    traceStackHeightDecrease [w] = 0 := rfl
+
+@[simp] theorem traceStackHeightDecrease_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceStackHeightDecrease (w₁ :: w₂ :: rest) =
+      (sententialStackHeight w₁ - sententialStackHeight w₂) +
+        traceStackHeightDecrease (w₂ :: rest) := rfl
+
+@[simp] theorem traceBinaryCopyStackHeight_nil {g : IndexedGrammar T} :
+    traceBinaryCopyStackHeight ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem traceBinaryCopyStackHeight_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    traceBinaryCopyStackHeight [w] = 0 := rfl
+
+@[simp] theorem traceBinaryCopyStackHeight_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceBinaryCopyStackHeight (w₁ :: w₂ :: rest) =
+      (if sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 then
+        sententialStackHeight w₂ - sententialStackHeight w₁
+      else
+        0) + traceBinaryCopyStackHeight (w₂ :: rest) := rfl
+
+@[simp] theorem traceTerminalEraseStackHeight_nil {g : IndexedGrammar T} :
+    traceTerminalEraseStackHeight ([] : List (List g.ISym)) = 0 := rfl
+
+@[simp] theorem traceTerminalEraseStackHeight_singleton {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    traceTerminalEraseStackHeight [w] = 0 := rfl
+
+@[simp] theorem traceTerminalEraseStackHeight_cons_cons {g : IndexedGrammar T}
+    (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceTerminalEraseStackHeight (w₁ :: w₂ :: rest) =
+      (if sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 then
+        sententialStackHeight w₁ - sententialStackHeight w₂
+      else
+        0) + traceTerminalEraseStackHeight (w₂ :: rest) := rfl
+
+theorem traceStackHeight_balance {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {first last : List g.ISym}
+    (hhead : trace.head? = some first)
+    (hlast : trace.getLast? = some last) :
+    sententialStackHeight last + traceStackHeightDecrease trace =
+      sententialStackHeight first + traceStackHeightIncrease trace := by
+  induction trace generalizing first last with
+  | nil =>
+      simp at hhead
+  | cons a rest ih =>
+      cases rest with
+      | nil =>
+          simp at hhead hlast
+          subst first
+          subst last
+          simp
+      | cons b rest =>
+          have hfirst : a = first := by simpa using hhead
+          subst first
+          have ih_tail :
+              sententialStackHeight last +
+                  traceStackHeightDecrease (b :: rest) =
+                sententialStackHeight b +
+                  traceStackHeightIncrease (b :: rest) :=
+            ih (first := b) (last := last) (by simp) (by simpa using hlast)
+          simp only [traceStackHeightDecrease_cons_cons,
+            traceStackHeightIncrease_cons_cons]
+          omega
+
+theorem accepting_derivationTrace_stackHeightIncrease_eq_decrease
+    {g : IndexedGrammar T} {trace : List (List g.ISym)} {w : List T}
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    traceStackHeightIncrease trace = traceStackHeightDecrease trace := by
+  have hbalance := traceStackHeight_balance (g := g) hhead hlast
+  simpa using hbalance.symm
+
+theorem trace_drop_head?_eq_get {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {i : ℕ} (hi : i < trace.length) :
+    (trace.drop i).head? = some (trace.get ⟨i, hi⟩) := by
+  rw [List.drop_eq_getElem_cons hi]
+  rfl
+
+theorem trace_drop_getLast?_eq_getLast? {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {i : ℕ} (hi : i < trace.length) :
+    (trace.drop i).getLast? = trace.getLast? := by
+  have hdrop_ne : trace.drop i ≠ [] := by
+    intro hnil
+    have hhead := trace_drop_head?_eq_get (g := g) hi
+    rw [hnil] at hhead
+    simp at hhead
+  have hlast :=
+    List.getLast?_append_of_ne_nil (trace.take i) (l₂ := trace.drop i) hdrop_ne
+  rw [List.take_append_drop] at hlast
+  exact hlast.symm
+
+theorem isDerivationTrace_drop {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} (htrace : IsDerivationTrace g trace)
+    (i : ℕ) :
+    IsDerivationTrace g (trace.drop i) := by
+  induction i generalizing trace with
+  | zero =>
+      simpa using htrace
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ rest =>
+          cases rest with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              simp only [isDerivationTrace_cons_cons] at htrace
+              simpa using ih htrace.2
+
+theorem trace_get_stackHeight_le_last_add_drop_decrease
+    {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {last : List g.ISym} {i : ℕ}
+    (hi : i < trace.length)
+    (hlast : trace.getLast? = some last) :
+    sententialStackHeight (trace.get ⟨i, hi⟩) ≤
+      sententialStackHeight last + traceStackHeightDecrease (trace.drop i) := by
+  have hhead := trace_drop_head?_eq_get (g := g) hi
+  have hlast_drop : (trace.drop i).getLast? = some last := by
+    rw [trace_drop_getLast?_eq_getLast? (g := g) hi, hlast]
+  have hbalance :=
+    traceStackHeight_balance (g := g) hhead hlast_drop
+  omega
+
+theorem accepting_derivationTrace_get_stackHeight_le_future_decrease
+    {g : IndexedGrammar T} {trace : List (List g.ISym)} {w : List T}
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialStackHeight (trace.get ⟨i, hi⟩) ≤
+      traceStackHeightDecrease (trace.drop i) := by
+  have h :=
+    trace_get_stackHeight_le_last_add_drop_decrease
+      (g := g) (last := w.map ISym.terminal) hi hlast
+  simpa using h
+
+theorem accepting_derivationTrace_get_maxStackHeight_le_future_decrease
+    {g : IndexedGrammar T} {trace : List (List g.ISym)} {w : List T}
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤
+      traceStackHeightDecrease (trace.drop i) := by
+  exact le_trans (sententialMaxStackHeight_le_sententialStackHeight _)
+    (accepting_derivationTrace_get_stackHeight_le_future_decrease
+      (g := g) hlast hi)
+
+@[simp] theorem traceTerminalIncreaseCountUpTo_zero {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    traceTerminalIncreaseCountUpTo 0 trace = 0 := rfl
+
+@[simp] theorem traceTerminalIncreaseCountUpTo_nil {g : IndexedGrammar T}
+    (i : ℕ) :
+    traceTerminalIncreaseCountUpTo i ([] : List (List g.ISym)) = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem traceTerminalIncreaseCountUpTo_singleton {g : IndexedGrammar T}
+    (i : ℕ) (w : List g.ISym) :
+    traceTerminalIncreaseCountUpTo i [w] = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem traceTerminalIncreaseCountUpTo_succ_cons_cons {g : IndexedGrammar T}
+    (i : ℕ) (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceTerminalIncreaseCountUpTo (i + 1) (w₁ :: w₂ :: rest) =
+      (if sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 then 1 else 0) +
+        traceTerminalIncreaseCountUpTo i (w₂ :: rest) := rfl
+
+@[simp] theorem traceNonterminalIncreaseCountUpTo_zero {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    traceNonterminalIncreaseCountUpTo 0 trace = 0 := rfl
+
+@[simp] theorem traceNonterminalIncreaseCountUpTo_nil {g : IndexedGrammar T}
+    (i : ℕ) :
+    traceNonterminalIncreaseCountUpTo i ([] : List (List g.ISym)) = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem traceNonterminalIncreaseCountUpTo_singleton {g : IndexedGrammar T}
+    (i : ℕ) (w : List g.ISym) :
+    traceNonterminalIncreaseCountUpTo i [w] = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem traceNonterminalIncreaseCountUpTo_succ_cons_cons {g : IndexedGrammar T}
+    (i : ℕ) (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceNonterminalIncreaseCountUpTo (i + 1) (w₁ :: w₂ :: rest) =
+      (if sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 then 1 else 0) +
+        traceNonterminalIncreaseCountUpTo i (w₂ :: rest) := rfl
+
+@[simp] theorem traceNonterminalDecreaseCountUpTo_zero {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    traceNonterminalDecreaseCountUpTo 0 trace = 0 := rfl
+
+@[simp] theorem traceNonterminalDecreaseCountUpTo_nil {g : IndexedGrammar T}
+    (i : ℕ) :
+    traceNonterminalDecreaseCountUpTo i ([] : List (List g.ISym)) = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem traceNonterminalDecreaseCountUpTo_singleton {g : IndexedGrammar T}
+    (i : ℕ) (w : List g.ISym) :
+    traceNonterminalDecreaseCountUpTo i [w] = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem traceNonterminalDecreaseCountUpTo_succ_cons_cons {g : IndexedGrammar T}
+    (i : ℕ) (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    traceNonterminalDecreaseCountUpTo (i + 1) (w₁ :: w₂ :: rest) =
+      (if sententialNonterminalCount w₁ = sententialNonterminalCount w₂ + 1 then 1 else 0) +
+        traceNonterminalDecreaseCountUpTo i (w₂ :: rest) := rfl
+
+@[simp] theorem tracePushStepCountUpTo_zero {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    tracePushStepCountUpTo 0 trace = 0 := rfl
+
+@[simp] theorem tracePushStepCountUpTo_nil {g : IndexedGrammar T}
+    (i : ℕ) :
+    tracePushStepCountUpTo i ([] : List (List g.ISym)) = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem tracePushStepCountUpTo_singleton {g : IndexedGrammar T}
+    (i : ℕ) (w : List g.ISym) :
+    tracePushStepCountUpTo i [w] = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem tracePushStepCountUpTo_succ_cons_cons {g : IndexedGrammar T}
+    (i : ℕ) (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    tracePushStepCountUpTo (i + 1) (w₁ :: w₂ :: rest) =
+      (if TransformIsObservablePush w₁ w₂ then 1 else 0) +
+        tracePushStepCountUpTo i (w₂ :: rest) := rfl
+
+@[simp] theorem tracePopStepCountUpTo_zero {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    tracePopStepCountUpTo 0 trace = 0 := rfl
+
+@[simp] theorem tracePopStepCountUpTo_nil {g : IndexedGrammar T}
+    (i : ℕ) :
+    tracePopStepCountUpTo i ([] : List (List g.ISym)) = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem tracePopStepCountUpTo_singleton {g : IndexedGrammar T}
+    (i : ℕ) (w : List g.ISym) :
+    tracePopStepCountUpTo i [w] = 0 := by
+  cases i <;> rfl
+
+@[simp] theorem tracePopStepCountUpTo_succ_cons_cons {g : IndexedGrammar T}
+    (i : ℕ) (w₁ w₂ : List g.ISym) (rest : List (List g.ISym)) :
+    tracePopStepCountUpTo (i + 1) (w₁ :: w₂ :: rest) =
+      (if TransformIsObservablePop w₁ w₂ then 1 else 0) +
+        tracePopStepCountUpTo i (w₂ :: rest) := rfl
+
+theorem TransformIsObservablePush_appendStackSuffixes_iff {g : IndexedGrammar T}
+    (suffix : List g.flag) (w₁ w₂ : List g.ISym) :
+    TransformIsObservablePush (appendStackSuffixes suffix w₁)
+        (appendStackSuffixes suffix w₂) ↔
+      TransformIsObservablePush w₁ w₂ := by
+  unfold TransformIsObservablePush
+  constructor
+  · rintro ⟨hnt, hterm, hstack⟩
+    simp only [sententialNonterminalCount_appendStackSuffixes,
+      sententialTerminalCount_appendStackSuffixes] at hnt hterm
+    rw [sententialStackHeight_appendStackSuffixes,
+      sententialStackHeight_appendStackSuffixes] at hstack
+    rw [hnt] at hstack
+    exact ⟨hnt, hterm, by omega⟩
+  · rintro ⟨hnt, hterm, hstack⟩
+    simp only [sententialNonterminalCount_appendStackSuffixes,
+      sententialTerminalCount_appendStackSuffixes]
+    refine ⟨hnt, hterm, ?_⟩
+    rw [sententialStackHeight_appendStackSuffixes,
+      sententialStackHeight_appendStackSuffixes, hnt]
+    omega
+
+theorem TransformIsObservablePop_appendStackSuffixes_iff {g : IndexedGrammar T}
+    (suffix : List g.flag) (w₁ w₂ : List g.ISym) :
+    TransformIsObservablePop (appendStackSuffixes suffix w₁)
+        (appendStackSuffixes suffix w₂) ↔
+      TransformIsObservablePop w₁ w₂ := by
+  unfold TransformIsObservablePop
+  constructor
+  · rintro ⟨hnt, hterm, hstack⟩
+    simp only [sententialNonterminalCount_appendStackSuffixes,
+      sententialTerminalCount_appendStackSuffixes] at hnt hterm
+    rw [sententialStackHeight_appendStackSuffixes,
+      sententialStackHeight_appendStackSuffixes] at hstack
+    rw [hnt] at hstack
+    exact ⟨hnt, hterm, by omega⟩
+  · rintro ⟨hnt, hterm, hstack⟩
+    simp only [sententialNonterminalCount_appendStackSuffixes,
+      sententialTerminalCount_appendStackSuffixes]
+    refine ⟨hnt, hterm, ?_⟩
+    rw [sententialStackHeight_appendStackSuffixes,
+      sententialStackHeight_appendStackSuffixes, hnt]
+    omega
+
+theorem traceTerminalIncreaseCount_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (trace : List (List g.ISym)) :
+    traceTerminalIncreaseCount (trace.map (appendStackSuffixes suffix)) =
+      traceTerminalIncreaseCount trace := by
+  induction trace with
+  | nil =>
+      rfl
+  | cons w₁ rest ih =>
+      cases rest with
+      | nil =>
+          rfl
+      | cons w₂ rest =>
+          have htail :
+              traceTerminalIncreaseCount
+                  (appendStackSuffixes suffix w₂ ::
+                    List.map (appendStackSuffixes suffix) rest) =
+                traceTerminalIncreaseCount (w₂ :: rest) := by
+            simpa using ih
+          simp only [List.map_cons, traceTerminalIncreaseCount_cons_cons,
+            sententialTerminalCount_appendStackSuffixes]
+          rw [htail]
+
+theorem traceNonterminalIncreaseCount_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (trace : List (List g.ISym)) :
+    traceNonterminalIncreaseCount (trace.map (appendStackSuffixes suffix)) =
+      traceNonterminalIncreaseCount trace := by
+  induction trace with
+  | nil =>
+      rfl
+  | cons w₁ rest ih =>
+      cases rest with
+      | nil =>
+          rfl
+      | cons w₂ rest =>
+          have htail :
+              traceNonterminalIncreaseCount
+                  (appendStackSuffixes suffix w₂ ::
+                    List.map (appendStackSuffixes suffix) rest) =
+                traceNonterminalIncreaseCount (w₂ :: rest) := by
+            simpa using ih
+          simp only [List.map_cons, traceNonterminalIncreaseCount_cons_cons,
+            sententialNonterminalCount_appendStackSuffixes]
+          rw [htail]
+
+theorem traceNonterminalDecreaseCount_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (trace : List (List g.ISym)) :
+    traceNonterminalDecreaseCount (trace.map (appendStackSuffixes suffix)) =
+      traceNonterminalDecreaseCount trace := by
+  induction trace with
+  | nil =>
+      rfl
+  | cons w₁ rest ih =>
+      cases rest with
+      | nil =>
+          rfl
+      | cons w₂ rest =>
+          have htail :
+              traceNonterminalDecreaseCount
+                  (appendStackSuffixes suffix w₂ ::
+                    List.map (appendStackSuffixes suffix) rest) =
+                traceNonterminalDecreaseCount (w₂ :: rest) := by
+            simpa using ih
+          simp only [List.map_cons, traceNonterminalDecreaseCount_cons_cons,
+            sententialNonterminalCount_appendStackSuffixes]
+          rw [htail]
+
+theorem tracePushStepCount_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (trace : List (List g.ISym)) :
+    tracePushStepCount (trace.map (appendStackSuffixes suffix)) =
+      tracePushStepCount trace := by
+  induction trace with
+  | nil =>
+      rfl
+  | cons w₁ rest ih =>
+      cases rest with
+      | nil =>
+          rfl
+      | cons w₂ rest =>
+          have htail :
+              tracePushStepCount
+                  (appendStackSuffixes suffix w₂ ::
+                    List.map (appendStackSuffixes suffix) rest) =
+                tracePushStepCount (w₂ :: rest) := by
+            simpa using ih
+          have hiff := TransformIsObservablePush_appendStackSuffixes_iff
+            (g := g) suffix w₁ w₂
+          by_cases hpush : TransformIsObservablePush w₁ w₂
+          · have hpush' :
+                TransformIsObservablePush (appendStackSuffixes suffix w₁)
+                  (appendStackSuffixes suffix w₂) := hiff.mpr hpush
+            simp only [List.map_cons, tracePushStepCount_cons_cons, if_pos hpush',
+              if_pos hpush]
+            rw [htail]
+          · have hpush' :
+                ¬ TransformIsObservablePush (appendStackSuffixes suffix w₁)
+                  (appendStackSuffixes suffix w₂) := by
+              intro h
+              exact hpush (hiff.mp h)
+            simp only [List.map_cons, tracePushStepCount_cons_cons, if_neg hpush',
+              if_neg hpush, zero_add]
+            rw [htail]
+
+theorem tracePopStepCount_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (trace : List (List g.ISym)) :
+    tracePopStepCount (trace.map (appendStackSuffixes suffix)) =
+      tracePopStepCount trace := by
+  induction trace with
+  | nil =>
+      rfl
+  | cons w₁ rest ih =>
+      cases rest with
+      | nil =>
+          rfl
+      | cons w₂ rest =>
+          have htail :
+              tracePopStepCount
+                  (appendStackSuffixes suffix w₂ ::
+                    List.map (appendStackSuffixes suffix) rest) =
+                tracePopStepCount (w₂ :: rest) := by
+            simpa using ih
+          have hiff := TransformIsObservablePop_appendStackSuffixes_iff
+            (g := g) suffix w₁ w₂
+          by_cases hpop : TransformIsObservablePop w₁ w₂
+          · have hpop' :
+                TransformIsObservablePop (appendStackSuffixes suffix w₁)
+                  (appendStackSuffixes suffix w₂) := hiff.mpr hpop
+            simp only [List.map_cons, tracePopStepCount_cons_cons, if_pos hpop',
+              if_pos hpop]
+            rw [htail]
+          · have hpop' :
+                ¬ TransformIsObservablePop (appendStackSuffixes suffix w₁)
+                  (appendStackSuffixes suffix w₂) := by
+              intro h
+              exact hpop (hiff.mp h)
+            simp only [List.map_cons, tracePopStepCount_cons_cons, if_neg hpop',
+              if_neg hpop, zero_add]
+            rw [htail]
+
+theorem traceTerminalIncreaseCountUpTo_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (i : ℕ) (trace : List (List g.ISym)) :
+    traceTerminalIncreaseCountUpTo i (trace.map (appendStackSuffixes suffix)) =
+      traceTerminalIncreaseCountUpTo i trace := by
+  induction i generalizing trace with
+  | zero =>
+      rfl
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          rfl
+      | cons w₁ rest =>
+          cases rest with
+          | nil =>
+              rfl
+          | cons w₂ rest =>
+              have htail :
+                  traceTerminalIncreaseCountUpTo i
+                      (appendStackSuffixes suffix w₂ ::
+                        List.map (appendStackSuffixes suffix) rest) =
+                    traceTerminalIncreaseCountUpTo i (w₂ :: rest) := by
+                simpa using ih (w₂ :: rest)
+              simp only [List.map_cons, traceTerminalIncreaseCountUpTo_succ_cons_cons,
+                sententialTerminalCount_appendStackSuffixes]
+              rw [htail]
+
+theorem traceNonterminalIncreaseCountUpTo_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (i : ℕ) (trace : List (List g.ISym)) :
+    traceNonterminalIncreaseCountUpTo i (trace.map (appendStackSuffixes suffix)) =
+      traceNonterminalIncreaseCountUpTo i trace := by
+  induction i generalizing trace with
+  | zero =>
+      rfl
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          rfl
+      | cons w₁ rest =>
+          cases rest with
+          | nil =>
+              rfl
+          | cons w₂ rest =>
+              have htail :
+                  traceNonterminalIncreaseCountUpTo i
+                      (appendStackSuffixes suffix w₂ ::
+                        List.map (appendStackSuffixes suffix) rest) =
+                    traceNonterminalIncreaseCountUpTo i (w₂ :: rest) := by
+                simpa using ih (w₂ :: rest)
+              simp only [List.map_cons, traceNonterminalIncreaseCountUpTo_succ_cons_cons,
+                sententialNonterminalCount_appendStackSuffixes]
+              rw [htail]
+
+theorem traceNonterminalDecreaseCountUpTo_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (i : ℕ) (trace : List (List g.ISym)) :
+    traceNonterminalDecreaseCountUpTo i (trace.map (appendStackSuffixes suffix)) =
+      traceNonterminalDecreaseCountUpTo i trace := by
+  induction i generalizing trace with
+  | zero =>
+      rfl
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          rfl
+      | cons w₁ rest =>
+          cases rest with
+          | nil =>
+              rfl
+          | cons w₂ rest =>
+              have htail :
+                  traceNonterminalDecreaseCountUpTo i
+                      (appendStackSuffixes suffix w₂ ::
+                        List.map (appendStackSuffixes suffix) rest) =
+                    traceNonterminalDecreaseCountUpTo i (w₂ :: rest) := by
+                simpa using ih (w₂ :: rest)
+              simp only [List.map_cons, traceNonterminalDecreaseCountUpTo_succ_cons_cons,
+                sententialNonterminalCount_appendStackSuffixes]
+              rw [htail]
+
+theorem tracePushStepCountUpTo_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (i : ℕ) (trace : List (List g.ISym)) :
+    tracePushStepCountUpTo i (trace.map (appendStackSuffixes suffix)) =
+      tracePushStepCountUpTo i trace := by
+  induction i generalizing trace with
+  | zero =>
+      rfl
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          rfl
+      | cons w₁ rest =>
+          cases rest with
+          | nil =>
+              rfl
+          | cons w₂ rest =>
+              have htail :
+                  tracePushStepCountUpTo i
+                      (appendStackSuffixes suffix w₂ ::
+                        List.map (appendStackSuffixes suffix) rest) =
+                    tracePushStepCountUpTo i (w₂ :: rest) := by
+                simpa using ih (w₂ :: rest)
+              have hiff := TransformIsObservablePush_appendStackSuffixes_iff
+                (g := g) suffix w₁ w₂
+              by_cases hpush : TransformIsObservablePush w₁ w₂
+              · have hpush' :
+                    TransformIsObservablePush (appendStackSuffixes suffix w₁)
+                      (appendStackSuffixes suffix w₂) := hiff.mpr hpush
+                simp only [List.map_cons, tracePushStepCountUpTo_succ_cons_cons,
+                  if_pos hpush', if_pos hpush]
+                rw [htail]
+              · have hpush' :
+                    ¬ TransformIsObservablePush (appendStackSuffixes suffix w₁)
+                      (appendStackSuffixes suffix w₂) := by
+                  intro h
+                  exact hpush (hiff.mp h)
+                simp only [List.map_cons, tracePushStepCountUpTo_succ_cons_cons,
+                  if_neg hpush', if_neg hpush, zero_add]
+                rw [htail]
+
+theorem tracePopStepCountUpTo_appendStackSuffixes {g : IndexedGrammar T}
+    (suffix : List g.flag) (i : ℕ) (trace : List (List g.ISym)) :
+    tracePopStepCountUpTo i (trace.map (appendStackSuffixes suffix)) =
+      tracePopStepCountUpTo i trace := by
+  induction i generalizing trace with
+  | zero =>
+      rfl
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          rfl
+      | cons w₁ rest =>
+          cases rest with
+          | nil =>
+              rfl
+          | cons w₂ rest =>
+              have htail :
+                  tracePopStepCountUpTo i
+                      (appendStackSuffixes suffix w₂ ::
+                        List.map (appendStackSuffixes suffix) rest) =
+                    tracePopStepCountUpTo i (w₂ :: rest) := by
+                simpa using ih (w₂ :: rest)
+              have hiff := TransformIsObservablePop_appendStackSuffixes_iff
+                (g := g) suffix w₁ w₂
+              by_cases hpop : TransformIsObservablePop w₁ w₂
+              · have hpop' :
+                    TransformIsObservablePop (appendStackSuffixes suffix w₁)
+                      (appendStackSuffixes suffix w₂) := hiff.mpr hpop
+                simp only [List.map_cons, tracePopStepCountUpTo_succ_cons_cons,
+                  if_pos hpop', if_pos hpop]
+                rw [htail]
+              · have hpop' :
+                    ¬ TransformIsObservablePop (appendStackSuffixes suffix w₁)
+                      (appendStackSuffixes suffix w₂) := by
+                  intro h
+                  exact hpop (hiff.mp h)
+                simp only [List.map_cons, tracePopStepCountUpTo_succ_cons_cons,
+                  if_neg hpop', if_neg hpop, zero_add]
+                rw [htail]
+
+theorem traceTerminalIncreaseCountUpTo_le_traceTerminalIncreaseCount
+    {g : IndexedGrammar T} (i : ℕ) (trace : List (List g.ISym)) :
+    traceTerminalIncreaseCountUpTo i trace ≤ traceTerminalIncreaseCount trace := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ trace =>
+          cases trace with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              simpa using Nat.add_le_add_left (ih (w₂ :: rest))
+                (if sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 then 1 else 0)
+
+theorem traceNonterminalIncreaseCountUpTo_le_traceNonterminalIncreaseCount
+    {g : IndexedGrammar T} (i : ℕ) (trace : List (List g.ISym)) :
+    traceNonterminalIncreaseCountUpTo i trace ≤ traceNonterminalIncreaseCount trace := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ trace =>
+          cases trace with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              simpa using Nat.add_le_add_left (ih (w₂ :: rest))
+                (if sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 then 1 else 0)
+
+theorem traceNonterminalDecreaseCountUpTo_le_traceNonterminalDecreaseCount
+    {g : IndexedGrammar T} (i : ℕ) (trace : List (List g.ISym)) :
+    traceNonterminalDecreaseCountUpTo i trace ≤ traceNonterminalDecreaseCount trace := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ trace =>
+          cases trace with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              simpa using Nat.add_le_add_left (ih (w₂ :: rest))
+                (if sententialNonterminalCount w₁ = sententialNonterminalCount w₂ + 1 then 1 else 0)
+
+theorem tracePushStepCountUpTo_le_tracePushStepCount
+    {g : IndexedGrammar T} (i : ℕ) (trace : List (List g.ISym)) :
+    tracePushStepCountUpTo i trace ≤ tracePushStepCount trace := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ trace =>
+          cases trace with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              simpa using Nat.add_le_add_left (ih (w₂ :: rest))
+                (if TransformIsObservablePush w₁ w₂ then 1 else 0)
+
+theorem tracePopStepCountUpTo_le_tracePopStepCount
+    {g : IndexedGrammar T} (i : ℕ) (trace : List (List g.ISym)) :
+    tracePopStepCountUpTo i trace ≤ tracePopStepCount trace := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ trace =>
+          cases trace with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              simpa using Nat.add_le_add_left (ih (w₂ :: rest))
+                (if TransformIsObservablePop w₁ w₂ then 1 else 0)
+
+theorem tracePushStepCount_le_traceStackHeightIncrease
+    {g : IndexedGrammar T} (trace : List (List g.ISym)) :
+    tracePushStepCount trace ≤ traceStackHeightIncrease trace := by
+  induction trace with
+  | nil =>
+      simp
+  | cons w₁ trace ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₂ rest =>
+          by_cases hpush : TransformIsObservablePush w₁ w₂
+          · have hpush' := hpush
+            rcases hpush with ⟨_, _, hstack⟩
+            have hdelta :
+                sententialStackHeight w₂ - sententialStackHeight w₁ = 1 := by
+              omega
+            simp [hpush', hdelta]
+            omega
+          · simp [hpush]
+            omega
+
+theorem tracePopStepCount_le_traceStackHeightDecrease
+    {g : IndexedGrammar T} (trace : List (List g.ISym)) :
+    tracePopStepCount trace ≤ traceStackHeightDecrease trace := by
+  induction trace with
+  | nil =>
+      simp
+  | cons w₁ trace ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₂ rest =>
+          by_cases hpop : TransformIsObservablePop w₁ w₂
+          · have hpop' := hpop
+            rcases hpop with ⟨_, _, hstack⟩
+            have hdelta :
+                sententialStackHeight w₁ - sententialStackHeight w₂ = 1 := by
+              omega
+            simp [hpop', hdelta]
+            omega
+          · simp [hpop]
+            omega
+
+theorem accepting_derivationTrace_pushStepCount_le_stackHeightDecrease
+    {g : IndexedGrammar T} {trace : List (List g.ISym)} {w : List T}
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    tracePushStepCount trace ≤ traceStackHeightDecrease trace := by
+  have hpush := tracePushStepCount_le_traceStackHeightIncrease (g := g) trace
+  have hbalance :=
+    accepting_derivationTrace_stackHeightIncrease_eq_decrease (g := g) hhead hlast
+  omega
+
+theorem accepting_derivationTrace_popStepCount_le_stackHeightIncrease
+    {g : IndexedGrammar T} {trace : List (List g.ISym)} {w : List T}
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    tracePopStepCount trace ≤ traceStackHeightIncrease trace := by
+  have hpop := tracePopStepCount_le_traceStackHeightDecrease (g := g) trace
+  have hbalance :=
+    accepting_derivationTrace_stackHeightIncrease_eq_decrease (g := g) hhead hlast
+  omega
+
+theorem tracePushStepCountUpTo_le_index {g : IndexedGrammar T}
+    (i : ℕ) (trace : List (List g.ISym)) :
+    tracePushStepCountUpTo i trace ≤ i := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ trace =>
+          cases trace with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              have htail := ih (w₂ :: rest)
+              by_cases hpush : TransformIsObservablePush w₁ w₂
+              · simp [hpush]
+                omega
+              · simp [hpush]
+                omega
+
+theorem tracePopStepCountUpTo_le_index {g : IndexedGrammar T}
+    (i : ℕ) (trace : List (List g.ISym)) :
+    tracePopStepCountUpTo i trace ≤ i := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₁ trace =>
+          cases trace with
+          | nil =>
+              simp
+          | cons w₂ rest =>
+              have htail := ih (w₂ :: rest)
+              by_cases hpop : TransformIsObservablePop w₁ w₂
+              · simp [hpop]
+                omega
+              · simp [hpop]
+                omega
 
 theorem isDerivationTrace_append_step {g : IndexedGrammar T}
     {trace : List (List g.ISym)} {w w' : List g.ISym}
@@ -901,6 +2180,27 @@ theorem exists_derivesInIntermediate {g : IndexedGrammar T} {n i : ℕ}
   rcases derivesIn_split_at (g := g) hi h with ⟨x, hpre, hsuf⟩
   exact ⟨x, hi, hpre, hsuf⟩
 
+theorem derivesInIntermediate_appendStackSuffixes {g : IndexedGrammar T}
+    {n i : ℕ} {w₁ w₂ x : List g.ISym}
+    (hmid : DerivesInIntermediate g n w₁ w₂ i x)
+    (suffix : List g.flag) :
+    DerivesInIntermediate g n
+      (appendStackSuffixes suffix w₁) (appendStackSuffixes suffix w₂) i
+      (appendStackSuffixes suffix x) := by
+  exact ⟨hmid.1, derivesIn_appendStackSuffixes hmid.2.1 suffix,
+    derivesIn_appendStackSuffixes hmid.2.2 suffix⟩
+
+theorem derivesInIntermediate_appendStackSuffix_to_terminals {g : IndexedGrammar T}
+    {n i : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    {x : List g.ISym}
+    (hmid : DerivesInIntermediate g n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym)) i x)
+    (suffix : List g.flag) :
+    DerivesInIntermediate g n [ISym.indexed A (σ ++ suffix)]
+      (w.map fun a => (ISym.terminal a : g.ISym)) i
+      (appendStackSuffixes suffix x) := by
+  simpa using derivesInIntermediate_appendStackSuffixes (g := g) hmid suffix
+
 /-- A shortest counted derivation cannot see the same intermediate sentential form at two
 different step indices. -/
 theorem minimal_derivesIn_intermediate_index_eq {g : IndexedGrammar T} {n : ℕ}
@@ -1075,10 +2375,928 @@ theorem exists_minimal_accepting_derivationTrace_nodup_of_generates {g : Indexed
   exact ⟨n, trace, htrace, hlen, hhead, hlast,
     minimal_derivationTrace_nodup htrace hlen hhead hlast hmin⟩
 
+theorem exists_bound_sententialMaxStackHeight_of_list {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    ∃ B : ℕ, ∀ x ∈ trace, sententialMaxStackHeight x ≤ B := by
+  induction trace with
+  | nil =>
+      exact ⟨0, by simp⟩
+  | cons x trace ih =>
+      obtain ⟨B, hB⟩ := ih
+      refine ⟨max (sententialMaxStackHeight x) B, ?_⟩
+      intro y hy
+      simp only [List.mem_cons] at hy
+      rcases hy with rfl | hy
+      · exact Nat.le_max_left _ _
+      · exact le_trans (hB y hy) (Nat.le_max_right _ _)
+
+/-- Among all accepting traces with a fixed counted length, choose one with least stack bound.
+This is the concrete tie-breaker needed by global stack-control arguments: any other accepting
+trace with the same length and stack bound `C` forces the chosen bound to be at most `C`. -/
+theorem exists_minimal_stackBound_accepting_derivationTrace_of_derivesIn
+    {g : IndexedGrammar T} {n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal)) :
+    ∃ B : ℕ, ∃ trace : List (List g.ISym),
+      IsDerivationTrace g trace ∧
+        trace.length = n + 1 ∧
+        trace.head? = some [ISym.indexed g.initial []] ∧
+        trace.getLast? = some (w.map ISym.terminal) ∧
+        (∀ i (hi : i < trace.length),
+          sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+        ∀ C : ℕ,
+          (∃ trace' : List (List g.ISym),
+            IsDerivationTrace g trace' ∧
+              trace'.length = n + 1 ∧
+              trace'.head? = some [ISym.indexed g.initial []] ∧
+              trace'.getLast? = some (w.map ISym.terminal) ∧
+              ∀ i (hi : i < trace'.length),
+                sententialMaxStackHeight (trace'.get ⟨i, hi⟩) ≤ C) →
+            B ≤ C := by
+  let P : ℕ → Prop := fun B =>
+    ∃ trace : List (List g.ISym),
+      IsDerivationTrace g trace ∧
+        trace.length = n + 1 ∧
+        trace.head? = some [ISym.indexed g.initial []] ∧
+        trace.getLast? = some (w.map ISym.terminal) ∧
+        ∀ i (hi : i < trace.length),
+          sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B
+  obtain ⟨trace₀, htrace₀, hlen₀, hhead₀, hlast₀⟩ :=
+    exists_isDerivationTrace_of_derivesIn h
+  obtain ⟨B₀, hB₀⟩ := exists_bound_sententialMaxStackHeight_of_list trace₀
+  have hB₀get :
+      ∀ i (hi : i < trace₀.length),
+        sententialMaxStackHeight (trace₀.get ⟨i, hi⟩) ≤ B₀ := by
+    intro i hi
+    exact hB₀ (trace₀.get ⟨i, hi⟩) (List.get_mem trace₀ ⟨i, hi⟩)
+  obtain ⟨B, hmin⟩ :=
+    exists_minimal_of_wellFoundedLT
+      (P := P)
+      ⟨B₀, trace₀, htrace₀, hlen₀, hhead₀, hlast₀, hB₀get⟩
+  rcases hmin.1 with ⟨trace, htrace, hlen, hhead, hlast, hbound⟩
+  refine ⟨B, trace, htrace, hlen, hhead, hlast, hbound, ?_⟩
+  intro C hC
+  rcases le_total C B with hCB | hBC
+  · exact hmin.2 hC hCB
+  · exact hBC
+
+/-- Generated-word form of the lexicographic choice used by later global arguments: first take
+a shortest accepting derivation length, then among traces with that length take one with least
+maximum stack bound. -/
+theorem exists_shortest_stackBound_minimal_accepting_derivationTrace_of_generates
+    {g : IndexedGrammar T} {w : List T} (hgen : g.Generates w) :
+    ∃ n : ℕ, ∃ B : ℕ, ∃ trace : List (List g.ISym),
+      IsDerivationTrace g trace ∧
+        trace.length = n + 1 ∧
+        trace.head? = some [ISym.indexed g.initial []] ∧
+        trace.getLast? = some (w.map ISym.terminal) ∧
+        g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal) ∧
+        (∀ m,
+          g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) ∧
+        (∀ i (hi : i < trace.length),
+          sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+        ∀ C : ℕ,
+          (∃ trace' : List (List g.ISym),
+            IsDerivationTrace g trace' ∧
+              trace'.length = n + 1 ∧
+              trace'.head? = some [ISym.indexed g.initial []] ∧
+              trace'.getLast? = some (w.map ISym.terminal) ∧
+              ∀ i (hi : i < trace'.length),
+                sententialMaxStackHeight (trace'.get ⟨i, hi⟩) ≤ C) →
+            B ≤ C := by
+  obtain ⟨n, hder, hminLength⟩ := exists_minimal_derivesIn_of_generates (g := g) hgen
+  obtain ⟨B, trace, htrace, hlen, hhead, hlast, hbound, hminBound⟩ :=
+    exists_minimal_stackBound_accepting_derivationTrace_of_derivesIn (g := g) hder
+  exact ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+    hminBound⟩
+
 theorem derivesIn_length_le_of_noEpsilon {g : IndexedGrammar T}
     (hne : g.NoEpsilon') {n : ℕ} {w₁ w₂ : List g.ISym}
     (h : g.DerivesIn n w₁ w₂) : w₁.length ≤ w₂.length :=
   derives_length_le_of_noEpsilon hne (derives_of_derivesIn h)
+
+/-! ## Append splitting -/
+
+/-- A one-step indexed rewrite remains valid after appending an unchanged right context. -/
+theorem transforms_append_left {g : IndexedGrammar T} {u u' : List g.ISym}
+    (h : g.Transforms u u') (v : List g.ISym) :
+    g.Transforms (u ++ v) (u' ++ v) := by
+  rcases h with ⟨r, p, q, σ, hr, hw₁, hw₂⟩
+  refine ⟨r, p, q ++ v, σ, hr, ?_, ?_⟩
+  · cases hc : r.consume with
+    | none =>
+        rw [hc] at hw₁
+        simp [hw₁, List.append_assoc]
+    | some f =>
+        rw [hc] at hw₁
+        simp [hw₁, List.append_assoc]
+  · rw [hw₂]
+    simp [List.append_assoc]
+
+/-- A one-step indexed rewrite remains valid after prepending an unchanged left context. -/
+theorem transforms_append_right {g : IndexedGrammar T} {v v' : List g.ISym}
+    (h : g.Transforms v v') (u : List g.ISym) :
+    g.Transforms (u ++ v) (u ++ v') := by
+  rcases h with ⟨r, p, q, σ, hr, hw₁, hw₂⟩
+  refine ⟨r, u ++ p, q, σ, hr, ?_, ?_⟩
+  · cases hc : r.consume with
+    | none =>
+        rw [hc] at hw₁
+        simp [hw₁, List.append_assoc]
+    | some f =>
+        rw [hc] at hw₁
+        simp [hw₁, List.append_assoc]
+  · rw [hw₂]
+    simp [List.append_assoc]
+
+/-- Indexed derivations are closed under appending an unchanged right context. -/
+theorem derives_append_left {g : IndexedGrammar T} {u u' : List g.ISym}
+    (h : g.Derives u u') (v : List g.ISym) :
+    g.Derives (u ++ v) (u' ++ v) := by
+  induction h with
+  | refl =>
+      exact g.deri_self _
+  | tail _ hstep ih =>
+      exact ih.tail (transforms_append_left hstep v)
+
+/-- Indexed derivations are closed under prepending an unchanged left context. -/
+theorem derives_append_right {g : IndexedGrammar T} {v v' : List g.ISym}
+    (h : g.Derives v v') (u : List g.ISym) :
+    g.Derives (u ++ v) (u ++ v') := by
+  induction h with
+  | refl =>
+      exact g.deri_self _
+  | tail _ hstep ih =>
+      exact ih.tail (transforms_append_right hstep u)
+
+/-- Independent indexed derivations compose over append. -/
+theorem derives_append {g : IndexedGrammar T} {u u' v v' : List g.ISym}
+    (hu : g.Derives u u') (hv : g.Derives v v') :
+    g.Derives (u ++ v) (u' ++ v') :=
+  (derives_append_left hu v).trans (derives_append_right hv u')
+
+/-- Counted indexed derivations are closed under appending an unchanged right context. -/
+theorem derivesIn_append_left {g : IndexedGrammar T} {n : ℕ}
+    {u u' : List g.ISym}
+    (h : g.DerivesIn n u u') (v : List g.ISym) :
+    g.DerivesIn n (u ++ v) (u' ++ v) := by
+  induction n generalizing u' with
+  | zero =>
+      have hu : u = u' := by simpa using h
+      subst u'
+      rfl
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep⟩
+      exact ⟨w ++ v, ih hprev, transforms_append_left hstep v⟩
+
+/-- Counted indexed derivations are closed under prepending an unchanged left context. -/
+theorem derivesIn_append_right {g : IndexedGrammar T} {n : ℕ}
+    {v v' : List g.ISym}
+    (h : g.DerivesIn n v v') (u : List g.ISym) :
+    g.DerivesIn n (u ++ v) (u ++ v') := by
+  induction n generalizing v' with
+  | zero =>
+      have hv : v = v' := by simpa using h
+      subst v'
+      rfl
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep⟩
+      exact ⟨u ++ w, ih hprev, transforms_append_right hstep u⟩
+
+/-- Independent counted indexed derivations compose over append. -/
+theorem derivesIn_append {g : IndexedGrammar T} {m n : ℕ}
+    {u u' v v' : List g.ISym}
+    (hu : g.DerivesIn m u u') (hv : g.DerivesIn n v v') :
+    g.DerivesIn (m + n) (u ++ v) (u' ++ v') :=
+  derivesIn_trans (derivesIn_append_left hu v) (derivesIn_append_right hv u')
+
+/-- If two sentential forms independently derive terminal words, their append derives the
+concatenated terminal word. -/
+theorem derives_append_to_terminals_of_derives {g : IndexedGrammar T}
+    {u v : List g.ISym} {wu wv : List T}
+    (hu : g.Derives u (wu.map fun a => (ISym.terminal a : g.ISym)))
+    (hv : g.Derives v (wv.map fun a => (ISym.terminal a : g.ISym))) :
+    g.Derives (u ++ v)
+      ((wu ++ wv).map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa [List.map_append] using derives_append hu hv
+
+/-- Pair-specialized composition for the binary branch of a normal-form indexed derivation. -/
+theorem derives_pair_to_terminals_of_derives {g : IndexedGrammar T}
+    {A B : g.nt} {σ τ : List g.flag} {u v : List T}
+    (hleft : g.Derives [ISym.indexed A σ]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : g.Derives [ISym.indexed B τ]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    g.Derives [ISym.indexed A σ, ISym.indexed B τ]
+      ((u ++ v).map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa using
+    derives_append_to_terminals_of_derives (g := g)
+      (u := [ISym.indexed A σ]) (v := [ISym.indexed B τ])
+      hleft hright
+
+/-- Counted terminal-word composition over append. -/
+theorem derivesIn_append_to_terminals_of_derivesIn {g : IndexedGrammar T}
+    {m n : ℕ} {u v : List g.ISym} {wu wv : List T}
+    (hu : g.DerivesIn m u (wu.map fun a => (ISym.terminal a : g.ISym)))
+    (hv : g.DerivesIn n v (wv.map fun a => (ISym.terminal a : g.ISym))) :
+    g.DerivesIn (m + n) (u ++ v)
+      ((wu ++ wv).map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa [List.map_append] using derivesIn_append hu hv
+
+/-- Counted terminal-word composition over three appended sentential regions. -/
+theorem derivesIn_append_three_to_terminals_of_derivesIn {g : IndexedGrammar T}
+    {nu nv nz : ℕ} {u v z : List g.ISym} {wu wv wz : List T}
+    (hu : g.DerivesIn nu u (wu.map fun a => (ISym.terminal a : g.ISym)))
+    (hv : g.DerivesIn nv v (wv.map fun a => (ISym.terminal a : g.ISym)))
+    (hz : g.DerivesIn nz z (wz.map fun a => (ISym.terminal a : g.ISym))) :
+    g.DerivesIn (nu + nv + nz) (u ++ v ++ z)
+      ((wu ++ wv ++ wz).map fun a => (ISym.terminal a : g.ISym)) := by
+  have huv :=
+    derivesIn_append_to_terminals_of_derivesIn (g := g) hu hv
+  have huvz :=
+    derivesIn_append_to_terminals_of_derivesIn (g := g) huv hz
+  simpa [List.map_append, List.append_assoc, Nat.add_assoc] using huvz
+
+/-- Counted terminal-word composition around a distinguished singleton. -/
+theorem derivesIn_context_singleton_to_terminals_of_derivesIn {g : IndexedGrammar T}
+    {nu ns nv : ℕ} {u v : List g.ISym} {s : g.ISym} {wu ws wv : List T}
+    (hu : g.DerivesIn nu u (wu.map fun a => (ISym.terminal a : g.ISym)))
+    (hs : g.DerivesIn ns [s] (ws.map fun a => (ISym.terminal a : g.ISym)))
+    (hv : g.DerivesIn nv v (wv.map fun a => (ISym.terminal a : g.ISym))) :
+    g.DerivesIn (nu + ns + nv) (u ++ [s] ++ v)
+      ((wu ++ ws ++ wv).map fun a => (ISym.terminal a : g.ISym)) :=
+  derivesIn_append_three_to_terminals_of_derivesIn (g := g) hu hs hv
+
+/-- Counted terminal-word composition around a distinguished indexed nonterminal. -/
+theorem derivesIn_context_indexed_to_terminals_of_derivesIn {g : IndexedGrammar T}
+    {nu ns nv : ℕ} {u v : List g.ISym} {A : g.nt} {σ : List g.flag}
+    {wu ws wv : List T}
+    (hu : g.DerivesIn nu u (wu.map fun a => (ISym.terminal a : g.ISym)))
+    (hs : g.DerivesIn ns [ISym.indexed A σ]
+      (ws.map fun a => (ISym.terminal a : g.ISym)))
+    (hv : g.DerivesIn nv v (wv.map fun a => (ISym.terminal a : g.ISym))) :
+    g.DerivesIn (nu + ns + nv) (u ++ [ISym.indexed A σ] ++ v)
+      ((wu ++ ws ++ wv).map fun a => (ISym.terminal a : g.ISym)) :=
+  derivesIn_context_singleton_to_terminals_of_derivesIn (g := g) hu hs hv
+
+/-- There is no indexed-grammar rewrite step whose source sentential form is empty. -/
+theorem not_transforms_nil {g : IndexedGrammar T} {w : List g.ISym} :
+    ¬ g.Transforms ([] : List g.ISym) w := by
+  rintro ⟨r, u, v, σ, _hr, hsource, _htarget⟩
+  cases hc : r.consume with
+  | none =>
+      rw [hc] at hsource
+      simp at hsource
+  | some f =>
+      rw [hc] at hsource
+      simp at hsource
+
+/-- A counted derivation starting from the empty sentential form is necessarily the
+zero-step derivation to the empty sentential form. -/
+theorem derivesIn_nil_left_eq {g : IndexedGrammar T} {n : ℕ} {w : List g.ISym}
+    (h : g.DerivesIn n ([] : List g.ISym) w) : n = 0 ∧ w = [] := by
+  induction n generalizing w with
+  | zero =>
+      have hw : ([] : List g.ISym) = w := by
+        simpa using h
+      exact ⟨rfl, hw.symm⟩
+  | succ n ih =>
+      rcases h with ⟨x, hprev, hstep⟩
+      obtain ⟨_hn, hx⟩ := ih hprev
+      rw [hx] at hstep
+      exact False.elim (not_transforms_nil (g := g) hstep)
+
+/-- Counted terminal-word composition from a positionwise list of singleton derivations. -/
+theorem derivesIn_symbols_to_terminals_of_forall₂ {g : IndexedGrammar T}
+    {xs : List g.ISym} {parts : List (ℕ × List T)}
+    (hparts : List.Forall₂
+      (fun s p => g.DerivesIn p.1 [s]
+        (p.2.map fun a => (ISym.terminal a : g.ISym)))
+      xs parts) :
+    g.DerivesIn ((parts.map fun p => p.1).sum) xs
+      ((parts.flatMap fun p => p.2).map fun a => (ISym.terminal a : g.ISym)) := by
+  induction hparts with
+  | nil =>
+      simp
+  | cons hhead _htail ih =>
+      have hcomp :=
+        derivesIn_append_to_terminals_of_derivesIn (g := g) hhead ih
+      simpa [List.map_append] using hcomp
+
+/-- Counted pair-specialized composition for a normal-form binary branch. -/
+theorem derivesIn_pair_to_terminals_of_derivesIn {g : IndexedGrammar T}
+    {m n : ℕ} {A B : g.nt} {σ τ : List g.flag} {u v : List T}
+    (hleft : g.DerivesIn m [ISym.indexed A σ]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : g.DerivesIn n [ISym.indexed B τ]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    g.DerivesIn (m + n) [ISym.indexed A σ, ISym.indexed B τ]
+      ((u ++ v).map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa using
+    derivesIn_append_to_terminals_of_derivesIn (g := g)
+      (u := [ISym.indexed A σ]) (v := [ISym.indexed B τ])
+      hleft hright
+
+/-- A one-step indexed rewrite of an appended sentential form rewrites either the left side
+or the right side of the append. -/
+theorem transforms_append_cases_of_append {g : IndexedGrammar T} {u v w : List g.ISym}
+    (hstep : g.Transforms (u ++ v) w) :
+    (∃ u', g.Transforms u u' ∧ w = u' ++ v) ∨
+      (∃ v', g.Transforms v v' ∧ w = u ++ v') := by
+  rcases hstep with ⟨r, p, q, σ, hr, hw₁, hw₂⟩
+  subst w
+  cases hc : r.consume with
+  | none =>
+      rw [hc] at hw₁
+      have hsplit : u ++ v = p ++ ([ISym.indexed r.lhs σ] ++ q) := by
+        simpa [List.append_assoc] using hw₁
+      rw [List.append_eq_append_iff] at hsplit
+      rcases hsplit with ⟨as, hp, hv⟩ | ⟨bs, hu, htail⟩
+      · right
+        refine ⟨as ++ g.expandRhs r.rhs σ ++ q, ?_, ?_⟩
+        · refine ⟨r, as, q, σ, hr, ?_, rfl⟩
+          rw [hc]
+          simpa [List.append_assoc] using hv
+        · rw [hp]
+          simp [List.append_assoc]
+      · cases bs with
+        | nil =>
+            right
+            refine ⟨g.expandRhs r.rhs σ ++ q, ?_, ?_⟩
+            · refine ⟨r, [], q, σ, hr, ?_, rfl⟩
+              rw [hc]
+              simpa using htail.symm
+            · rw [hu]
+              simp [List.append_assoc]
+        | cons b bs =>
+            simp at htail
+            rcases htail with ⟨rfl, hq⟩
+            left
+            refine ⟨p ++ g.expandRhs r.rhs σ ++ bs, ?_, ?_⟩
+            · refine ⟨r, p, bs, σ, hr, ?_, rfl⟩
+              rw [hc]
+              rw [hu]
+              simp [List.append_assoc]
+            · rw [hq]
+              simp [List.append_assoc]
+  | some f =>
+      rw [hc] at hw₁
+      have hsplit : u ++ v = p ++ ([ISym.indexed r.lhs (f :: σ)] ++ q) := by
+        simpa [List.append_assoc] using hw₁
+      rw [List.append_eq_append_iff] at hsplit
+      rcases hsplit with ⟨as, hp, hv⟩ | ⟨bs, hu, htail⟩
+      · right
+        refine ⟨as ++ g.expandRhs r.rhs σ ++ q, ?_, ?_⟩
+        · refine ⟨r, as, q, σ, hr, ?_, rfl⟩
+          rw [hc]
+          simpa [List.append_assoc] using hv
+        · rw [hp]
+          simp [List.append_assoc]
+      · cases bs with
+        | nil =>
+            right
+            refine ⟨g.expandRhs r.rhs σ ++ q, ?_, ?_⟩
+            · refine ⟨r, [], q, σ, hr, ?_, rfl⟩
+              rw [hc]
+              simpa using htail.symm
+            · rw [hu]
+              simp [List.append_assoc]
+        | cons b bs =>
+            simp at htail
+            rcases htail with ⟨rfl, hq⟩
+            left
+            refine ⟨p ++ g.expandRhs r.rhs σ ++ bs, ?_, ?_⟩
+            · refine ⟨r, p, bs, σ, hr, ?_, rfl⟩
+              rw [hc]
+              rw [hu]
+              simp [List.append_assoc]
+            · rw [hq]
+              simp [List.append_assoc]
+
+/-- A counted derivation from an appended sentential form can be factored into counted
+derivations from the two sides of the append. The two side budgets add up to the original
+budget. -/
+theorem derivesIn_append_split {g : IndexedGrammar T} {n : ℕ}
+    {u v x : List g.ISym}
+    (hder : g.DerivesIn n (u ++ v) x) :
+    ∃ m k : ℕ, ∃ u' v' : List g.ISym,
+      m + k = n ∧
+        x = u' ++ v' ∧
+        g.DerivesIn m u u' ∧
+        g.DerivesIn k v v' := by
+  induction n generalizing x with
+  | zero =>
+      have hx : u ++ v = x := by simpa using hder
+      subst x
+      exact ⟨0, 0, u, v, rfl, rfl, rfl, rfl⟩
+  | succ n ih =>
+      rcases hder with ⟨y, hprev, hstep⟩
+      rcases ih hprev with ⟨m, k, u', v', hmk, hy, hu, hv⟩
+      subst y
+      rcases transforms_append_cases_of_append hstep with hleft | hright
+      · rcases hleft with ⟨u'', hstepLeft, hx⟩
+        refine ⟨m + 1, k, u'', v', ?_, hx, ?_, hv⟩
+        · omega
+        · exact ⟨u', hu, hstepLeft⟩
+      · rcases hright with ⟨v'', hstepRight, hx⟩
+        refine ⟨m, k + 1, u', v'', ?_, hx, hu, ?_⟩
+        · omega
+        · exact ⟨v', hv, hstepRight⟩
+
+theorem append_eq_map_terminal_split {g : IndexedGrammar T}
+    {u v : List g.ISym} {w : List T}
+    (h : u ++ v = (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ wu wv : List T,
+      w = wu ++ wv ∧
+        u = (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        v = (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+  induction u generalizing w with
+  | nil =>
+      refine ⟨[], w, by simp, rfl, ?_⟩
+      simpa using h
+  | cons s u ih =>
+      cases w with
+      | nil =>
+          simp at h
+      | cons a w =>
+          simp only [List.map_cons, List.cons_append, List.cons.injEq] at h
+          rcases h with ⟨hs, htail⟩
+          subst s
+          rcases ih htail with ⟨wu, wv, hw, hu, hv⟩
+          refine ⟨a :: wu, wv, ?_, ?_, hv⟩
+          · simp [hw]
+          · simp [hu]
+
+theorem derives_append_to_terminals_split {g : IndexedGrammar T}
+    {u v : List g.ISym} {w : List T}
+    (hder : g.Derives (u ++ v) (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ wu wv : List T,
+      w = wu ++ wv ∧
+        g.Derives u (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.Derives v (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+  have haux :
+      ∀ {x : List g.ISym},
+        g.Derives x (w.map fun a => (ISym.terminal a : g.ISym)) →
+        ∀ {u v : List g.ISym}, x = u ++ v →
+          ∃ wu wv : List T,
+            w = wu ++ wv ∧
+              g.Derives u (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+              g.Derives v (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+    intro x h
+    induction h using Relation.ReflTransGen.head_induction_on with
+    | refl =>
+        intro u v hx
+        rcases append_eq_map_terminal_split (g := g) hx.symm with ⟨wu, wv, hw, hu, hv⟩
+        subst u
+        subst v
+        exact ⟨wu, wv, hw, g.deri_self _, g.deri_self _⟩
+    | @head a c hstep hrest ih =>
+        intro u v hx
+        subst a
+        rcases transforms_append_cases_of_append hstep with hleft | hright
+        · rcases hleft with ⟨u', hu', hc⟩
+          rcases ih hc with ⟨wu, wv, hw, huder, hvder⟩
+          exact ⟨wu, wv, hw, (deri_of_tran hu').trans huder, hvder⟩
+        · rcases hright with ⟨v', hv', hc⟩
+          rcases ih hc with ⟨wu, wv, hw, huder, hvder⟩
+          exact ⟨wu, wv, hw, huder, (deri_of_tran hv').trans hvder⟩
+  exact haux hder rfl
+
+theorem derives_pair_to_terminals_split {g : IndexedGrammar T}
+    {A B : g.nt} {σ τ : List g.flag} {w : List T}
+    (hder : g.Derives [ISym.indexed A σ, ISym.indexed B τ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ u v : List T,
+      w = u ++ v ∧
+        g.Derives [ISym.indexed A σ] (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.Derives [ISym.indexed B τ] (v.map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa using
+    derives_append_to_terminals_split (g := g)
+      (u := [ISym.indexed A σ]) (v := [ISym.indexed B τ]) (w := w) hder
+
+/-- Counted split of an appended terminal derivation. -/
+theorem derivesIn_append_to_terminals_split {g : IndexedGrammar T} {n : ℕ}
+    {u v : List g.ISym} {w : List T}
+    (hder : g.DerivesIn n (u ++ v)
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ m k : ℕ, ∃ wu wv : List T,
+      m + k = n ∧
+        w = wu ++ wv ∧
+        g.DerivesIn m u (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn k v (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases derivesIn_append_split (g := g) hder with ⟨m, k, u', v', hmk, hx, hu, hv⟩
+  rcases append_eq_map_terminal_split (g := g) hx.symm with
+    ⟨wu, wv, hw, hu', hv'⟩
+  subst u'
+  subst v'
+  exact ⟨m, k, wu, wv, hmk, hw, hu, hv⟩
+
+/-- Counted split of a terminal derivation from three appended regions. The budgets for the
+three independent regions add up to the original budget. -/
+theorem derivesIn_append_three_to_terminals_split {g : IndexedGrammar T} {n : ℕ}
+    {u v z : List g.ISym} {w : List T}
+    (hder : g.DerivesIn n (u ++ v ++ z)
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ nu nv nz : ℕ, ∃ wu wv wz : List T,
+      nu + nv + nz = n ∧
+        w = wu ++ wv ++ wz ∧
+        g.DerivesIn nu u (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn nv v (wv.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn nz z (wz.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases derivesIn_append_to_terminals_split
+      (g := g) (u := u ++ v) (v := z) hder with
+    ⟨nuv, nz, wuv, wz, hnuvz, hwuvz, huv, hz⟩
+  rcases derivesIn_append_to_terminals_split
+      (g := g) (u := u) (v := v) huv with
+    ⟨nu, nv, wu, wv, hnuv, hwuv, hu, hv⟩
+  refine ⟨nu, nv, nz, wu, wv, wz, ?_, ?_, hu, hv, hz⟩
+  · omega
+  · rw [hwuvz, hwuv]
+
+/-- Counted split around a distinguished singleton in the middle of a sentential form. -/
+theorem derivesIn_context_singleton_to_terminals_split {g : IndexedGrammar T} {n : ℕ}
+    {u v : List g.ISym} {s : g.ISym} {w : List T}
+    (hder : g.DerivesIn n (u ++ [s] ++ v)
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ nu ns nv : ℕ, ∃ wu ws wv : List T,
+      nu + ns + nv = n ∧
+        w = wu ++ ws ++ wv ∧
+        ws.Sublist w ∧
+        g.DerivesIn nu u (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn ns [s] (ws.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn nv v (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases derivesIn_append_three_to_terminals_split
+      (g := g) (u := u) (v := [s]) (z := v) hder with
+    ⟨nu, ns, nv, wu, ws, wv, hsum, hw, hu, hs, hv⟩
+  have hws : ws.Sublist w := by
+    subst w
+    exact (List.sublist_append_right wu ws).trans
+      (List.sublist_append_left (wu ++ ws) wv)
+  exact ⟨nu, ns, nv, wu, ws, wv, hsum, hw, hws, hu, hs, hv⟩
+
+/-- Counted split around a distinguished indexed nonterminal in the middle of a sentential
+form. This exposes the terminal subword and local counted derivation generated by that one
+indexed symbol. -/
+theorem derivesIn_context_indexed_to_terminals_split {g : IndexedGrammar T} {n : ℕ}
+    {u v : List g.ISym} {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : g.DerivesIn n (u ++ [ISym.indexed A σ] ++ v)
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ nu ns nv : ℕ, ∃ wu ws wv : List T,
+      nu + ns + nv = n ∧
+        w = wu ++ ws ++ wv ∧
+        ws.Sublist w ∧
+        g.DerivesIn nu u (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn ns [ISym.indexed A σ]
+          (ws.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn nv v (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa using
+    derivesIn_context_singleton_to_terminals_split
+      (g := g) (u := u) (v := v) (s := ISym.indexed A σ) hder
+
+/-- Counted split of a terminal derivation from an arbitrary sentential form into
+positionwise singleton derivations. The list `parts` records, for each source symbol, the
+number of rewrite steps and the terminal subword it contributes. -/
+theorem derivesIn_symbols_to_terminals_split {g : IndexedGrammar T} {n : ℕ}
+    {xs : List g.ISym} {w : List T}
+    (hder : g.DerivesIn n xs (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ parts : List (ℕ × List T),
+      parts.length = xs.length ∧
+        (parts.map fun p => p.1).sum = n ∧
+        (parts.flatMap fun p => p.2) = w ∧
+        List.Forall₂
+          (fun s p => g.DerivesIn p.1 [s]
+            (p.2.map fun a => (ISym.terminal a : g.ISym)))
+          xs parts := by
+  induction xs generalizing n w with
+  | nil =>
+      obtain ⟨hn, htarget⟩ := derivesIn_nil_left_eq (g := g) hder
+      have hw : w = [] := by
+        simpa using htarget
+      subst n
+      subst w
+      exact ⟨[], by simp, by simp, by simp, List.Forall₂.nil⟩
+  | cons s xs ih =>
+      have hder' : g.DerivesIn n ([s] ++ xs)
+          (w.map fun a => (ISym.terminal a : g.ISym)) := by
+        simpa using hder
+      rcases derivesIn_append_to_terminals_split
+          (g := g) (u := [s]) (v := xs) (w := w) hder' with
+        ⟨m, k, wu, wv, hmk, hw, hhead, htail⟩
+      rcases ih htail with ⟨parts, hlen, hsum, hflat, hparts⟩
+      refine ⟨(m, wu) :: parts, ?_, ?_, ?_, ?_⟩
+      · simp [hlen]
+      · simp [hsum, hmk]
+      · simp [hw, hflat]
+      · exact List.Forall₂.cons hhead hparts
+
+/-- At any position of an accepting trace, the remaining suffix derivation splits across the
+whole sentential form at that position. Each entry of `parts` gives the exact remaining
+rewrite budget and terminal subword for the corresponding source symbol. -/
+theorem accepting_derivationTrace_symbols_suffix_to_terminals_split
+    {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {w : List T} {i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hi : i < trace.length) :
+    ∃ parts : List (ℕ × List T),
+      parts.length = (trace.get ⟨i, hi⟩).length ∧
+        (parts.map fun p => p.1).sum = trace.length - 1 - i ∧
+        (parts.flatMap fun p => p.2) = w ∧
+        List.Forall₂
+          (fun s p => g.DerivesIn p.1 [s]
+            (p.2.map fun a => (ISym.terminal a : g.ISym)))
+          (trace.get ⟨i, hi⟩) parts := by
+  have hsuffix :=
+    isDerivationTrace_derivesIn_get_to_last (g := g) htrace hlast hi
+  exact derivesIn_symbols_to_terminals_split (g := g) hsuffix
+
+/-- If an indexed symbol occurs with explicit left and right context at an accepting trace
+position, the suffix of the trace exposes the terminal subword generated by that one symbol. -/
+theorem accepting_derivationTrace_indexed_context_suffix_to_terminals_split
+    {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {w : List T} {i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hi : i < trace.length)
+    {u v : List g.ISym} {A : g.nt} {σ : List g.flag}
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A σ] ++ v) :
+    ∃ nu ns nv : ℕ, ∃ wu ws wv : List T,
+      nu + ns + nv = trace.length - 1 - i ∧
+        w = wu ++ ws ++ wv ∧
+        ws.Sublist w ∧
+        g.DerivesIn nu u (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn ns [ISym.indexed A σ]
+          (ws.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn nv v (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+  have hsuffix :=
+    isDerivationTrace_derivesIn_get_to_last (g := g) htrace hlast hi
+  rw [hctx] at hsuffix
+  exact derivesIn_context_indexed_to_terminals_split (g := g) hsuffix
+
+/-- Length-bounded projection of
+`accepting_derivationTrace_indexed_context_suffix_to_terminals_split`, retaining only the
+local counted derivation generated by the distinguished indexed symbol. -/
+theorem accepting_derivationTrace_indexed_context_exists_local_derivesIn
+    {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {w : List T} {L i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hi : i < trace.length)
+    {u v : List g.ISym} {A : g.nt} {σ : List g.flag}
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A σ] ++ v) :
+    ∃ ns : ℕ, ∃ ws : List T,
+      ws.Sublist w ∧ ws.length ≤ L ∧
+        g.DerivesIn ns [ISym.indexed A σ]
+          (ws.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases accepting_derivationTrace_indexed_context_suffix_to_terminals_split
+      (g := g) htrace hlast hi hctx with
+    ⟨_nu, ns, _nv, _wu, ws, _wv, _hsum, _hw, hws, _hu, hs, _hv⟩
+  exact ⟨ns, ws, hws, le_trans hws.length_le hwlen, hs⟩
+
+/-- Replace the local terminal derivation of a distinguished indexed symbol inside an
+accepting-trace suffix. This keeps the left and right context derivations from the original
+suffix split and swaps only the local derivation of the indexed symbol. -/
+theorem accepting_derivationTrace_indexed_context_suffix_replacement
+    {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {w : List T} {i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hi : i < trace.length)
+    {u v : List g.ISym} {A : g.nt} {σ τ : List g.flag}
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A σ] ++ v)
+    (hreplace :
+      ∀ n : ℕ, ∀ localWord : List T,
+        g.DerivesIn n [ISym.indexed A σ]
+          (localWord.map fun a => (ISym.terminal a : g.ISym)) →
+        ∃ m : ℕ,
+          g.DerivesIn m [ISym.indexed A τ]
+            (localWord.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ n : ℕ,
+      g.DerivesIn n (u ++ [ISym.indexed A τ] ++ v)
+        (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases accepting_derivationTrace_indexed_context_suffix_to_terminals_split
+      (g := g) htrace hlast hi hctx with
+    ⟨nu, ns, nv, wu, ws, wv, _hsum, hw, _hws, hu, hs, hv⟩
+  obtain ⟨m, hτ⟩ := hreplace ns ws hs
+  refine ⟨nu + m + nv, ?_⟩
+  have hnew :=
+    derivesIn_context_indexed_to_terminals_of_derivesIn
+      (g := g) (u := u) (v := v) (A := A) (σ := τ)
+      (nu := nu) (ns := m) (nv := nv)
+      (wu := wu) (ws := ws) (wv := wv) hu hτ hv
+  simpa [hw] using hnew
+
+/-- Membership-facing version of
+`accepting_derivationTrace_indexed_context_suffix_to_terminals_split`. -/
+theorem accepting_derivationTrace_indexed_mem_suffix_to_terminals_split
+    {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {w : List T} {i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hi : i < trace.length)
+    {A : g.nt} {σ : List g.flag}
+    (hmem : ISym.indexed A σ ∈ trace.get ⟨i, hi⟩) :
+    ∃ u v : List g.ISym, ∃ nu ns nv : ℕ, ∃ wu ws wv : List T,
+      trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A σ] ++ v ∧
+        nu + ns + nv = trace.length - 1 - i ∧
+        w = wu ++ ws ++ wv ∧
+        ws.Sublist w ∧
+        g.DerivesIn nu u (wu.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn ns [ISym.indexed A σ]
+          (ws.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn nv v (wv.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases (List.mem_iff_append.mp hmem) with ⟨u, v, hctx0⟩
+  have hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A σ] ++ v := by
+    simpa using hctx0
+  rcases accepting_derivationTrace_indexed_context_suffix_to_terminals_split
+      (g := g) htrace hlast hi hctx with
+    ⟨nu, ns, nv, wu, ws, wv, hsum, hw, hws, hu, hs, hv⟩
+  exact ⟨u, v, nu, ns, nv, wu, ws, wv, hctx, hsum, hw, hws, hu, hs, hv⟩
+
+/-- Length-bounded membership-facing local derivation generated by an indexed symbol in an
+accepting trace. -/
+theorem accepting_derivationTrace_indexed_mem_exists_local_derivesIn
+    {g : IndexedGrammar T}
+    {trace : List (List g.ISym)} {w : List T} {L i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hi : i < trace.length)
+    {A : g.nt} {σ : List g.flag}
+    (hmem : ISym.indexed A σ ∈ trace.get ⟨i, hi⟩) :
+    ∃ ns : ℕ, ∃ ws : List T,
+      ws.Sublist w ∧ ws.length ≤ L ∧
+        g.DerivesIn ns [ISym.indexed A σ]
+          (ws.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases accepting_derivationTrace_indexed_mem_suffix_to_terminals_split
+      (g := g) htrace hlast hi hmem with
+    ⟨_u, _v, _nu, ns, _nv, _wu, ws, _wv, _hctx, _hsum, _hw, hws, _hu, hs, _hv⟩
+  exact ⟨ns, ws, hws, le_trans hws.length_le hwlen, hs⟩
+
+/-- Counted split for the pair produced by a normal-form binary branch. -/
+theorem derivesIn_pair_to_terminals_split {g : IndexedGrammar T} {n : ℕ}
+    {A B : g.nt} {σ τ : List g.flag} {w : List T}
+    (hder : g.DerivesIn n [ISym.indexed A σ, ISym.indexed B τ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ m k : ℕ, ∃ u v : List T,
+      m + k = n ∧
+        w = u ++ v ∧
+        g.DerivesIn m [ISym.indexed A σ]
+          (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn k [ISym.indexed B τ]
+          (v.map fun a => (ISym.terminal a : g.ISym)) := by
+  simpa using
+    derivesIn_append_to_terminals_split (g := g)
+      (u := [ISym.indexed A σ]) (v := [ISym.indexed B τ]) (w := w) hder
+
+theorem not_transforms_from_terminals {g : IndexedGrammar T}
+    {w : List T} {x : List g.ISym} :
+    ¬ g.Transforms (w.map fun a => (ISym.terminal a : g.ISym)) x := by
+  intro h
+  rcases h with ⟨r, u, v, σ, _hr, hw₁, _hw₂⟩
+  have hcount :
+      sententialNonterminalCount (w.map fun a => (ISym.terminal a : g.ISym)) = 0 := by
+    simp [sententialNonterminalCount]
+  cases hc : r.consume with
+  | none =>
+      rw [hc] at hw₁
+      rw [hw₁] at hcount
+      simp [List.append_assoc] at hcount
+  | some f =>
+      rw [hc] at hw₁
+      rw [hw₁] at hcount
+      simp [List.append_assoc] at hcount
+
+theorem derives_from_terminals_eq {g : IndexedGrammar T}
+    {u : List T} {w : List g.ISym}
+    (hder : g.Derives (u.map fun a => (ISym.terminal a : g.ISym)) w) :
+    w = u.map fun a => (ISym.terminal a : g.ISym) := by
+  induction hder with
+  | refl =>
+      rfl
+  | tail _ hstep ih =>
+      rw [ih] at hstep
+      exact False.elim (not_transforms_from_terminals hstep)
+
+theorem derives_terminals_inj {g : IndexedGrammar T}
+    {u w : List T}
+    (hder : g.Derives (u.map fun a => (ISym.terminal a : g.ISym))
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    w = u := by
+  have h := derives_from_terminals_eq (g := g) hder
+  have hmap : w.map (fun a => (ISym.terminal a : g.ISym)) =
+      u.map fun a => (ISym.terminal a : g.ISym) := h
+  exact (Function.Injective.list_map (fun a b hab => by simpa using hab)) hmap
+
+theorem derives_terminal_singleton_eq {g : IndexedGrammar T}
+    {a : T} {w : List T}
+    (hder : g.Derives [ISym.terminal a]
+      (w.map fun b => (ISym.terminal b : g.ISym))) :
+    w = [a] := by
+  simpa using
+    derives_terminals_inj (g := g) (u := [a]) (w := w) hder
+
+theorem derivesIn_from_terminals_eq {g : IndexedGrammar T}
+    {n : ℕ} {u : List T} {w : List g.ISym}
+    (hder : g.DerivesIn n
+      (u.map fun a => (ISym.terminal a : g.ISym)) w) :
+    w = u.map fun a => (ISym.terminal a : g.ISym) :=
+  derives_from_terminals_eq (g := g) (derives_of_derivesIn hder)
+
+theorem not_derivesIn_succ_from_terminals {g : IndexedGrammar T}
+    {n : ℕ} {u : List T} {w : List g.ISym} :
+    ¬ g.DerivesIn (n + 1)
+      (u.map fun a => (ISym.terminal a : g.ISym)) w := by
+  intro hder
+  rcases hder with ⟨x, hprev, hstep⟩
+  have hx := derivesIn_from_terminals_eq (g := g) hprev
+  subst x
+  exact not_transforms_from_terminals hstep
+
+theorem derivesIn_terminal_singleton_eq {g : IndexedGrammar T}
+    {n : ℕ} {a : T} {w : List T}
+    (hder : g.DerivesIn n [ISym.terminal a]
+      (w.map fun b => (ISym.terminal b : g.ISym))) :
+    w = [a] := by
+  exact derives_terminal_singleton_eq (g := g) (derives_of_derivesIn hder)
+
+theorem derivesIn_terminal_singleton_steps_eq_zero {g : IndexedGrammar T}
+    {n : ℕ} {a : T} {w : List T}
+    (hder : g.DerivesIn n [ISym.terminal a]
+      (w.map fun b => (ISym.terminal b : g.ISym))) :
+    n = 0 := by
+  cases n with
+  | zero => rfl
+  | succ n =>
+      exact False.elim
+        (not_derivesIn_succ_from_terminals (g := g) (n := n) (u := [a]) hder)
+
+/-! ## Terminal-yield monotonicity -/
+
+/-- A single indexed-grammar rewrite never deletes or reorders terminals already present in the
+sentential form. -/
+theorem transforms_sententialTerminals_sublist {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    (sententialTerminals w₁).Sublist (sententialTerminals w₂) := by
+  rcases h with ⟨r, u, v, σ, _hr, hw₁, hw₂⟩
+  cases hconsume : r.consume with
+  | none =>
+      rw [hconsume] at hw₁
+      rw [hw₁, hw₂]
+      simp only [sententialTerminals_append, sententialTerminals_indexed, List.append_nil]
+      exact
+        List.Sublist.append
+          (List.sublist_append_left (sententialTerminals u)
+            (sententialTerminals (g.expandRhs r.rhs σ)))
+          (List.Sublist.refl (sententialTerminals v))
+  | some f =>
+      rw [hconsume] at hw₁
+      rw [hw₁, hw₂]
+      simp only [sententialTerminals_append, sententialTerminals_indexed, List.append_nil]
+      exact
+        List.Sublist.append
+          (List.sublist_append_left (sententialTerminals u)
+            (sententialTerminals (g.expandRhs r.rhs σ)))
+          (List.Sublist.refl (sententialTerminals v))
+
+theorem transforms_terminalCount_le {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    sententialTerminalCount w₁ ≤ sententialTerminalCount w₂ := by
+  have hsub := transforms_sententialTerminals_sublist (g := g) h
+  simpa using hsub.length_le
+
+theorem derivesIn_sententialTerminals_sublist {g : IndexedGrammar T} {n : ℕ}
+    {w₁ w₂ : List g.ISym} (h : g.DerivesIn n w₁ w₂) :
+    (sententialTerminals w₁).Sublist (sententialTerminals w₂) := by
+  induction n generalizing w₂ with
+  | zero =>
+      have hw : w₁ = w₂ := by simpa using h
+      subst w₂
+      exact List.Sublist.refl _
+  | succ n ih =>
+      rcases h with ⟨w, hprev, hstep⟩
+      exact (ih hprev).trans (transforms_sententialTerminals_sublist hstep)
+
+theorem derivesIn_terminalCount_le {g : IndexedGrammar T} {n : ℕ}
+    {w₁ w₂ : List g.ISym} (h : g.DerivesIn n w₁ w₂) :
+    sententialTerminalCount w₁ ≤ sententialTerminalCount w₂ := by
+  have hsub := derivesIn_sententialTerminals_sublist (g := g) h
+  simpa using hsub.length_le
+
+theorem derives_sententialTerminals_sublist {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : g.Derives w₁ w₂) :
+    (sententialTerminals w₁).Sublist (sententialTerminals w₂) := by
+  induction h with
+  | refl =>
+      exact List.Sublist.refl _
+  | tail _ hstep ih =>
+      exact ih.trans (transforms_sententialTerminals_sublist hstep)
+
+theorem derives_terminalCount_le {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : g.Derives w₁ w₂) :
+    sententialTerminalCount w₁ ≤ sententialTerminalCount w₂ := by
+  have hsub := derives_sententialTerminals_sublist (g := g) h
+  simpa using hsub.length_le
 
 private theorem max_push_le_succ (a b c : ℕ) :
     max a (max (b + 1) c) ≤ max a (max b c) + 1 := by
@@ -1094,28 +3312,32 @@ private theorem max_push_le_succ (a b c : ℕ) :
         le_trans (Nat.le_max_right b c) (Nat.le_max_right a (max b c))
       exact le_trans hc (Nat.le_succ _)
 
+private theorem max_pop_le (a b c : ℕ) :
+    max a (max b c) ≤ max a (max (b + 1) c) := by
+  apply Nat.max_le.mpr
+  constructor
+  · exact Nat.le_max_left a (max (b + 1) c)
+  · apply Nat.max_le.mpr
+    constructor
+    · exact le_trans (le_trans (Nat.le_succ b) (Nat.le_max_left (b + 1) c))
+        (Nat.le_max_right a (max (b + 1) c))
+    · exact le_trans (Nat.le_max_right (b + 1) c)
+        (Nat.le_max_right a (max (b + 1) c))
+
 private theorem max_pop_le_succ (a b c : ℕ) :
     max a (max b c) ≤ max a (max (b + 1) c) + 1 := by
-  have hbase : max a (max b c) ≤ max a (max (b + 1) c) := by
-    apply Nat.max_le.mpr
-    constructor
-    · exact Nat.le_max_left a (max (b + 1) c)
-    · apply Nat.max_le.mpr
-      constructor
-      · exact le_trans (le_trans (Nat.le_succ b) (Nat.le_max_left (b + 1) c))
-          (Nat.le_max_right a (max (b + 1) c))
-      · exact le_trans (Nat.le_max_right (b + 1) c)
-          (Nat.le_max_right a (max (b + 1) c))
-  exact le_trans hbase (Nat.le_succ _)
+  exact le_trans (max_pop_le a b c) (Nat.le_succ _)
+
+private theorem max_drop_middle_le (a b c : ℕ) :
+    max a c ≤ max a (max b c) := by
+  apply Nat.max_le.mpr
+  constructor
+  · exact Nat.le_max_left a (max b c)
+  · exact le_trans (Nat.le_max_right b c) (Nat.le_max_right a (max b c))
 
 private theorem max_terminal_le_succ (a b c : ℕ) :
     max a c ≤ max a (max b c) + 1 := by
-  have hbase : max a c ≤ max a (max b c) := by
-    apply Nat.max_le.mpr
-    constructor
-    · exact Nat.le_max_left a (max b c)
-    · exact le_trans (Nat.le_max_right b c) (Nat.le_max_right a (max b c))
-  exact le_trans hbase (Nat.le_succ _)
+  exact le_trans (max_drop_middle_le a b c) (Nat.le_succ _)
 
 /-! ## Normal-form step bounds -/
 
@@ -1182,6 +3404,37 @@ theorem transforms_length_le_succ_of_isNormalForm {g : IndexedGrammar T}
     w₂.length ≤ w₁.length + 1 := by
   rcases transforms_length_eq_or_succ_of_isNormalForm hNF h with hlen | hlen <;> omega
 
+/-- A normal-form binary split step `A[σ] ↦ B[σ] C[σ]`. -/
+def TransformIsBinaryStep (g : IndexedGrammar T)
+    (w₁ w₂ : List g.ISym) : Prop :=
+  ∃ A B C : g.nt, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+    B ≠ g.initial ∧ C ≠ g.initial ∧
+      w₁ = u ++ [ISym.indexed A σ] ++ v ∧
+      w₂ = u ++ [ISym.indexed B σ, ISym.indexed C σ] ++ v
+
+/-- A normal-form flag-pop step `A[f :: σ] ↦ B[σ]`. -/
+def TransformIsPopStep (g : IndexedGrammar T)
+    (w₁ w₂ : List g.ISym) : Prop :=
+  ∃ A B : g.nt, ∃ f : g.flag, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+    B ≠ g.initial ∧
+      w₁ = u ++ [ISym.indexed A (f :: σ)] ++ v ∧
+      w₂ = u ++ [ISym.indexed B σ] ++ v
+
+/-- A normal-form flag-push step `A[σ] ↦ B[f :: σ]`. -/
+def TransformIsPushStep (g : IndexedGrammar T)
+    (w₁ w₂ : List g.ISym) : Prop :=
+  ∃ A B : g.nt, ∃ f : g.flag, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+    B ≠ g.initial ∧
+      w₁ = u ++ [ISym.indexed A σ] ++ v ∧
+      w₂ = u ++ [ISym.indexed B (f :: σ)] ++ v
+
+/-- A normal-form terminal-emission step `A[σ] ↦ a`. -/
+def TransformIsTerminalStep (g : IndexedGrammar T)
+    (w₁ w₂ : List g.ISym) : Prop :=
+  ∃ A : g.nt, ∃ a : T, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+    w₁ = u ++ [ISym.indexed A σ] ++ v ∧
+      w₂ = u ++ [ISym.terminal a] ++ v
+
 /-- A one-step rewrite in normal form has exactly one of the four indexed-normal-form
 shapes: binary split, flag pop, flag push, or terminal emission. -/
 theorem transforms_cases_of_isNormalForm {g : IndexedGrammar T}
@@ -1233,6 +3486,1405 @@ theorem transforms_cases_of_isNormalForm {g : IndexedGrammar T}
     · simpa [hc] using hw₁
     · rw [hw₂, hrhs]
       simp [expandRhs]
+
+theorem transforms_kind_cases_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    TransformIsBinaryStep g w₁ w₂ ∨
+      TransformIsPopStep g w₁ w₂ ∨
+      TransformIsPushStep g w₁ w₂ ∨
+      TransformIsTerminalStep g w₁ w₂ := by
+  simpa [TransformIsBinaryStep, TransformIsPopStep, TransformIsPushStep,
+    TransformIsTerminalStep] using transforms_cases_of_isNormalForm hNF h
+
+/-- A singleton indexed symbol can only match a one-rule redex with empty context. -/
+private theorem singleton_indexed_eq_context_bounds {g : IndexedGrammar T}
+    {A B : g.nt} {σ τ : List g.flag} {u v : List g.ISym}
+    (h : [ISym.indexed A σ] = u ++ [ISym.indexed B τ] ++ v) :
+    u = [] ∧ v = [] ∧ A = B ∧ σ = τ := by
+  have hu : u = [] := by
+    cases u with
+    | nil => rfl
+    | cons x xs =>
+        have hlen := congrArg List.length h
+        simp at hlen
+  subst u
+  have h' : [ISym.indexed A σ] = ISym.indexed B τ :: v := by
+    simpa using h
+  simp at h'
+  rcases h' with ⟨⟨hA, hσ⟩, hv⟩
+  exact ⟨rfl, hv, hA, hσ⟩
+
+theorem transforms_singleton_binary_iff_rule_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A B C : g.nt} {σ : List g.flag} :
+    g.Transforms [ISym.indexed A σ] [ISym.indexed B σ, ISym.indexed C σ] ↔
+      ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧
+          r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] := by
+  constructor
+  · intro hstep
+    rcases hstep with ⟨r, u, v, τ, hr, hw₁, hw₂⟩
+    rcases hNF r hr with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨hc, B₀, C₀, hrhs, _hB₀, _hC₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, hA, hτ⟩
+      subst u
+      subst v
+      subst τ
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+      rcases hw₂ with ⟨hB, hC⟩
+      subst B₀
+      subst C₀
+      exact ⟨r, hr, hA.symm, hc, hrhs⟩
+    · rcases hpop with ⟨f, hc, B₀, hrhs, _hB₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+    · rcases hpush with ⟨hc, B₀, f, hrhs, _hB₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+    · rcases hterm with ⟨hc, a, hrhs⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+  · rintro ⟨r, hr, hlhs, hc, hrhs⟩
+    refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+    · rw [hc, hlhs]
+      rfl
+    · rw [hrhs]
+      simp [expandRhs]
+
+theorem transforms_singleton_pop_iff_rule_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A B : g.nt} {f : g.flag} {ρ : List g.flag} :
+    g.Transforms [ISym.indexed A (f :: ρ)] [ISym.indexed B ρ] ↔
+      ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = some f ∧
+          r.rhs = [IRhsSymbol.nonterminal B none] := by
+  constructor
+  · intro hstep
+    rcases hstep with ⟨r, u, v, τ, hr, hw₁, hw₂⟩
+    rcases hNF r hr with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨hc, B₀, C₀, hrhs, _hB₀, _hC₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+    · rcases hpop with ⟨f₀, hc, B₀, hrhs, _hB₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, hA, hstack⟩
+      subst u
+      subst v
+      simp at hstack
+      rcases hstack with ⟨hf, hτ⟩
+      subst f₀
+      subst τ
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+      subst B₀
+      exact ⟨r, hr, hA.symm, hc, hrhs⟩
+    · rcases hpush with ⟨hc, B₀, f₀, hrhs, _hB₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+      rcases hw₂ with ⟨_, hout⟩
+      subst τ
+      have hlen := congrArg List.length hout
+      simp at hlen
+      omega
+    · rcases hterm with ⟨hc, a, hrhs⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+  · rintro ⟨r, hr, hlhs, hc, hrhs⟩
+    refine ⟨r, [], [], ρ, hr, ?_, ?_⟩
+    · rw [hc, hlhs]
+      rfl
+    · rw [hrhs]
+      simp [expandRhs]
+
+theorem transforms_singleton_push_iff_rule_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A B : g.nt} {f : g.flag} {σ : List g.flag} :
+    g.Transforms [ISym.indexed A σ] [ISym.indexed B (f :: σ)] ↔
+      ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧
+          r.rhs = [IRhsSymbol.nonterminal B (some f)] := by
+  constructor
+  · intro hstep
+    rcases hstep with ⟨r, u, v, τ, hr, hw₁, hw₂⟩
+    rcases hNF r hr with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨hc, B₀, C₀, hrhs, _hB₀, _hC₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+    · rcases hpop with ⟨f₀, hc, B₀, hrhs, _hB₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+      rcases hw₂ with ⟨_, hout⟩
+      subst σ
+      have hlen := congrArg List.length hout
+      simp at hlen
+      omega
+    · rcases hpush with ⟨hc, B₀, f₀, hrhs, _hB₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, hA, hτ⟩
+      subst u
+      subst v
+      subst τ
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+      rcases hw₂ with ⟨hB, hf⟩
+      subst B₀
+      subst f₀
+      exact ⟨r, hr, hA.symm, hc, hrhs⟩
+    · rcases hterm with ⟨hc, a, hrhs⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+  · rintro ⟨r, hr, hlhs, hc, hrhs⟩
+    refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+    · rw [hc, hlhs]
+      rfl
+    · rw [hrhs]
+      simp [expandRhs]
+
+theorem transforms_singleton_terminal_iff_rule_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A : g.nt} {σ : List g.flag} {a : T} :
+    g.Transforms [ISym.indexed A σ] [ISym.terminal a] ↔
+      ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] := by
+  constructor
+  · intro hstep
+    rcases hstep with ⟨r, u, v, τ, hr, hw₁, hw₂⟩
+    rcases hNF r hr with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨hc, B₀, C₀, hrhs, _hB₀, _hC₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+    · rcases hpop with ⟨f, hc, B₀, hrhs, _hB₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+    · rcases hpush with ⟨hc, B₀, f, hrhs, _hB₀⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, _hA, _hτ⟩
+      subst u
+      subst v
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+    · rcases hterm with ⟨hc, a₀, hrhs⟩
+      rw [hc] at hw₁
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hu, hv, hA, hτ⟩
+      subst u
+      subst v
+      subst τ
+      rw [hrhs] at hw₂
+      simp [expandRhs] at hw₂
+      subst a₀
+      exact ⟨r, hr, hA.symm, hc, hrhs⟩
+  · rintro ⟨r, hr, hlhs, hc, hrhs⟩
+    refine ⟨r, [], [], σ, hr, ?_, ?_⟩
+    · rw [hc, hlhs]
+      rfl
+    · rw [hrhs]
+      simp [expandRhs]
+
+/-- First-step analysis for a terminal derivation from one indexed nonterminal in normal form.
+The first rule is exposed, and the rest of the terminal derivation is split along the symbols
+created by that first rule. -/
+theorem derives_singleton_to_terminals_cases_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : g.Derives [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    (∃ B C : g.nt, ∃ u v : List T,
+      w = u ++ v ∧
+        g.Transforms [ISym.indexed A σ] [ISym.indexed B σ, ISym.indexed C σ] ∧
+        g.Derives [ISym.indexed B σ]
+          (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.Derives [ISym.indexed C σ]
+          (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+      σ = f :: ρ ∧
+        g.Transforms [ISym.indexed A σ] [ISym.indexed B ρ] ∧
+        g.Derives [ISym.indexed B ρ]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ B : g.nt, ∃ f : g.flag,
+      g.Transforms [ISym.indexed A σ] [ISym.indexed B (f :: σ)] ∧
+        g.Derives [ISym.indexed B (f :: σ)]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ a : T,
+      g.Transforms [ISym.indexed A σ] [ISym.terminal a] ∧ w = [a]) := by
+  rcases Relation.ReflTransGen.cases_head hder with hnil | ⟨mid, hstep, hrest⟩
+  · cases w with
+    | nil =>
+        simp at hnil
+    | cons a w =>
+        simp at hnil
+  · rcases transforms_kind_cases_of_isNormalForm hNF hstep with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨A₀, B, C, p, q, τ, _hB, _hC, hw₁, hw₂⟩
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+      subst p
+      subst q
+      subst A₀
+      subst τ
+      have hmid : mid = [ISym.indexed B σ, ISym.indexed C σ] := by
+        simpa using hw₂
+      subst mid
+      rcases derives_pair_to_terminals_split (g := g) hrest with
+        ⟨u, v, hw, hleft, hright⟩
+      left
+      exact ⟨B, C, u, v, hw, hstep, hleft, hright⟩
+    · rcases hpop with ⟨A₀, B, f, p, q, ρ, _hB, hw₁, hw₂⟩
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hσ⟩
+      subst p
+      subst q
+      subst A₀
+      have hmid : mid = [ISym.indexed B ρ] := by
+        simpa using hw₂
+      subst mid
+      right
+      left
+      exact ⟨f, ρ, B, hσ, hstep, hrest⟩
+    · rcases hpush with ⟨A₀, B, f, p, q, τ, _hB, hw₁, hw₂⟩
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+      subst p
+      subst q
+      subst A₀
+      subst τ
+      have hmid : mid = [ISym.indexed B (f :: σ)] := by
+        simpa using hw₂
+      subst mid
+      right
+      right
+      left
+      exact ⟨B, f, hstep, hrest⟩
+    · rcases hterm with ⟨A₀, a, p, q, τ, hw₁, hw₂⟩
+      rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+      subst p
+      subst q
+      subst A₀
+      subst τ
+      have hmid : mid = [ISym.terminal a] := by
+        simpa using hw₂
+      subst mid
+      right
+      right
+      right
+      exact ⟨a, hstep, derives_terminal_singleton_eq (g := g) hrest⟩
+
+/-- Exact recursive characterization of terminal derivations from one indexed nonterminal in
+normal form. This is the simulator-facing form of first-step analysis: the forward direction
+decomposes an accepting derivation, and the reverse direction composes the corresponding
+subderivations after the exposed first step. -/
+theorem derives_singleton_to_terminals_iff_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A : g.nt} {σ : List g.flag} {w : List T} :
+    g.Derives [ISym.indexed A σ]
+        (w.map fun a => (ISym.terminal a : g.ISym)) ↔
+      (∃ B C : g.nt, ∃ u v : List T,
+        w = u ++ v ∧
+          g.Transforms [ISym.indexed A σ] [ISym.indexed B σ, ISym.indexed C σ] ∧
+          g.Derives [ISym.indexed B σ]
+            (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+          g.Derives [ISym.indexed C σ]
+            (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+        σ = f :: ρ ∧
+          g.Transforms [ISym.indexed A σ] [ISym.indexed B ρ] ∧
+          g.Derives [ISym.indexed B ρ]
+            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ B : g.nt, ∃ f : g.flag,
+        g.Transforms [ISym.indexed A σ] [ISym.indexed B (f :: σ)] ∧
+          g.Derives [ISym.indexed B (f :: σ)]
+            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ a : T,
+        g.Transforms [ISym.indexed A σ] [ISym.terminal a] ∧ w = [a]) := by
+  constructor
+  · exact derives_singleton_to_terminals_cases_of_isNormalForm hNF
+  · intro h
+    rcases h with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨B, C, u, v, hw, hstep, hleft, hright⟩
+      subst w
+      exact (deri_of_tran hstep).trans
+        (derives_pair_to_terminals_of_derives (g := g) hleft hright)
+    · rcases hpop with ⟨f, ρ, B, _hσ, hstep, hrest⟩
+      exact (deri_of_tran hstep).trans hrest
+    · rcases hpush with ⟨B, f, hstep, hrest⟩
+      exact (deri_of_tran hstep).trans hrest
+    · rcases hterm with ⟨a, hstep, hw⟩
+      subst w
+      simpa using deri_of_tran hstep
+
+/-- Recursive characterization of terminal derivations from one indexed nonterminal using
+concrete normal-form rules from `g.rules`.
+
+This is the structural, uncounted counterpart of
+`derivesIn_singleton_to_terminals_rule_iff_of_isNormalForm`: it exposes the first rule and the
+subderivations generated by that rule, without hiding the rule choice behind `Transforms`. -/
+theorem derives_singleton_to_terminals_rule_iff_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A : g.nt} {σ : List g.flag} {w : List T} :
+    g.Derives [ISym.indexed A σ]
+        (w.map fun a => (ISym.terminal a : g.ISym)) ↔
+      (∃ B C : g.nt, ∃ u v : List T,
+        ∃ r ∈ g.rules,
+          r.lhs = A ∧ r.consume = none ∧
+          r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+          w = u ++ v ∧
+          g.Derives [ISym.indexed B σ]
+            (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+          g.Derives [ISym.indexed C σ]
+            (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+        ∃ r ∈ g.rules,
+          σ = f :: ρ ∧
+          r.lhs = A ∧ r.consume = some f ∧
+          r.rhs = [IRhsSymbol.nonterminal B none] ∧
+          g.Derives [ISym.indexed B ρ]
+            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+        g.Derives [ISym.indexed B (f :: σ)]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ a : T, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+          w = [a]) := by
+  constructor
+  · intro hder
+    have hcases :=
+      (derives_singleton_to_terminals_iff_of_isNormalForm
+        (g := g) hNF (A := A) (σ := σ) (w := w)).mp hder
+    rcases hcases with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨B, C, u, v, hw, hstep, hleft, hright⟩
+      rcases (transforms_singleton_binary_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (C := C) (σ := σ)).mp hstep with
+        ⟨r, hr, hlhs, hc, hrhs⟩
+      left
+      exact ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw, hleft, hright⟩
+    · rcases hpop with ⟨f, ρ, B, hσ, hstep, hrest⟩
+      rcases (transforms_singleton_pop_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (f := f) (ρ := ρ)).mp
+          (by simpa [hσ] using hstep) with
+        ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      left
+      exact ⟨f, ρ, B, r, hr, hσ, hlhs, hc, hrhs, hrest⟩
+    · rcases hpush with ⟨B, f, hstep, hrest⟩
+      rcases (transforms_singleton_push_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (f := f) (σ := σ)).mp hstep with
+        ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      right
+      left
+      exact ⟨B, f, r, hr, hlhs, hc, hrhs, hrest⟩
+    · rcases hterm with ⟨a, hstep, hw⟩
+      rcases (transforms_singleton_terminal_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (σ := σ) (a := a)).mp hstep with
+        ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      right
+      right
+      exact ⟨a, r, hr, hlhs, hc, hrhs, hw⟩
+  · intro h
+    apply (derives_singleton_to_terminals_iff_of_isNormalForm
+      (g := g) hNF (A := A) (σ := σ) (w := w)).mpr
+    rcases h with hbin | hpop | hpush | hterm
+    · rcases hbin with
+        ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw, hleft, hright⟩
+      have hstep :
+          g.Transforms [ISym.indexed A σ] [ISym.indexed B σ, ISym.indexed C σ] :=
+        (transforms_singleton_binary_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (C := C) (σ := σ)).mpr
+          ⟨r, hr, hlhs, hc, hrhs⟩
+      left
+      exact ⟨B, C, u, v, hw, hstep, hleft, hright⟩
+    · rcases hpop with ⟨f, ρ, B, r, hr, hσ, hlhs, hc, hrhs, hrest⟩
+      have hstep :
+          g.Transforms [ISym.indexed A (f :: ρ)] [ISym.indexed B ρ] :=
+        (transforms_singleton_pop_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (f := f) (ρ := ρ)).mpr
+          ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      left
+      exact ⟨f, ρ, B, hσ, by simpa [hσ] using hstep, hrest⟩
+    · rcases hpush with ⟨B, f, r, hr, hlhs, hc, hrhs, hrest⟩
+      have hstep :
+          g.Transforms [ISym.indexed A σ] [ISym.indexed B (f :: σ)] :=
+        (transforms_singleton_push_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (f := f) (σ := σ)).mpr
+          ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      right
+      left
+      exact ⟨B, f, hstep, hrest⟩
+    · rcases hterm with ⟨a, r, hr, hlhs, hc, hrhs, hw⟩
+      have hstep :
+          g.Transforms [ISym.indexed A σ] [ISym.terminal a] :=
+        (transforms_singleton_terminal_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (σ := σ) (a := a)).mpr
+          ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      right
+      right
+      exact ⟨a, hstep, hw⟩
+
+/-- Counted first-step analysis for a terminal derivation from one indexed nonterminal in
+normal form. The binary case splits both the terminal word and the remaining step budget. -/
+theorem derivesIn_singleton_to_terminals_cases_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : g.DerivesIn (n + 1) [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    (∃ B C : g.nt, ∃ m k : ℕ, ∃ u v : List T,
+      m + k = n ∧
+        w = u ++ v ∧
+        g.Transforms [ISym.indexed A σ] [ISym.indexed B σ, ISym.indexed C σ] ∧
+        g.DerivesIn m [ISym.indexed B σ]
+          (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+        g.DerivesIn k [ISym.indexed C σ]
+          (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+      σ = f :: ρ ∧
+        g.Transforms [ISym.indexed A σ] [ISym.indexed B ρ] ∧
+        g.DerivesIn n [ISym.indexed B ρ]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ B : g.nt, ∃ f : g.flag,
+      g.Transforms [ISym.indexed A σ] [ISym.indexed B (f :: σ)] ∧
+        g.DerivesIn n [ISym.indexed B (f :: σ)]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+    (∃ a : T,
+      g.Transforms [ISym.indexed A σ] [ISym.terminal a] ∧ w = [a] ∧ n = 0) := by
+  have hsplitInput :
+      g.DerivesIn (1 + n) [ISym.indexed A σ]
+        (w.map fun a => (ISym.terminal a : g.ISym)) := by
+    simpa [Nat.add_comm] using hder
+  rcases derivesIn_split (g := g) (m := 1) (n := n) hsplitInput with
+    ⟨mid, hfirst, hrest⟩
+  rcases hfirst with ⟨pre, hpre, hstep⟩
+  have hpre' : [ISym.indexed A σ] = pre := by simpa using hpre
+  subst pre
+  rcases transforms_kind_cases_of_isNormalForm hNF hstep with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨A₀, B, C, p, q, τ, _hB, _hC, hw₁, hw₂⟩
+    rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+    subst p
+    subst q
+    subst A₀
+    subst τ
+    have hmid : mid = [ISym.indexed B σ, ISym.indexed C σ] := by
+      simpa using hw₂
+    subst mid
+    rcases derivesIn_pair_to_terminals_split (g := g) hrest with
+      ⟨m, k, u, v, hmk, hw, hleft, hright⟩
+    left
+    exact ⟨B, C, m, k, u, v, hmk, hw, hstep, hleft, hright⟩
+  · rcases hpop with ⟨A₀, B, f, p, q, ρ, _hB, hw₁, hw₂⟩
+    rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hσ⟩
+    subst p
+    subst q
+    subst A₀
+    have hmid : mid = [ISym.indexed B ρ] := by
+      simpa using hw₂
+    subst mid
+    right
+    left
+    exact ⟨f, ρ, B, hσ, hstep, hrest⟩
+  · rcases hpush with ⟨A₀, B, f, p, q, τ, _hB, hw₁, hw₂⟩
+    rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+    subst p
+    subst q
+    subst A₀
+    subst τ
+    have hmid : mid = [ISym.indexed B (f :: σ)] := by
+      simpa using hw₂
+    subst mid
+    right
+    right
+    left
+    exact ⟨B, f, hstep, hrest⟩
+  · rcases hterm with ⟨A₀, a, p, q, τ, hw₁, hw₂⟩
+    rcases singleton_indexed_eq_context_bounds hw₁ with ⟨hp, hq, hA, hτ⟩
+    subst p
+    subst q
+    subst A₀
+    subst τ
+    have hmid : mid = [ISym.terminal a] := by
+      simpa using hw₂
+    subst mid
+    right
+    right
+    right
+    exact ⟨a, hstep, derivesIn_terminal_singleton_eq (g := g) hrest,
+      derivesIn_terminal_singleton_steps_eq_zero (g := g) hrest⟩
+
+/-- Exact counted recursive characterization of terminal derivations from one indexed
+nonterminal in normal form. -/
+theorem derivesIn_singleton_to_terminals_iff_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T} :
+    g.DerivesIn (n + 1) [ISym.indexed A σ]
+        (w.map fun a => (ISym.terminal a : g.ISym)) ↔
+      (∃ B C : g.nt, ∃ m k : ℕ, ∃ u v : List T,
+        m + k = n ∧
+          w = u ++ v ∧
+          g.Transforms [ISym.indexed A σ] [ISym.indexed B σ, ISym.indexed C σ] ∧
+          g.DerivesIn m [ISym.indexed B σ]
+            (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+          g.DerivesIn k [ISym.indexed C σ]
+            (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+        σ = f :: ρ ∧
+          g.Transforms [ISym.indexed A σ] [ISym.indexed B ρ] ∧
+          g.DerivesIn n [ISym.indexed B ρ]
+            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ B : g.nt, ∃ f : g.flag,
+        g.Transforms [ISym.indexed A σ] [ISym.indexed B (f :: σ)] ∧
+          g.DerivesIn n [ISym.indexed B (f :: σ)]
+            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ a : T,
+        g.Transforms [ISym.indexed A σ] [ISym.terminal a] ∧ w = [a] ∧ n = 0) := by
+  constructor
+  · exact derivesIn_singleton_to_terminals_cases_of_isNormalForm hNF
+  · intro h
+    rcases h with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨B, C, m, k, u, v, hmk, hw, hstep, hleft, hright⟩
+      subst w
+      have hpair :=
+        derivesIn_pair_to_terminals_of_derivesIn (g := g) hleft hright
+      have hpairn :
+          g.DerivesIn n [ISym.indexed B σ, ISym.indexed C σ]
+            ((u ++ v).map fun a => (ISym.terminal a : g.ISym)) := by
+        simpa [hmk] using hpair
+      have htotal := derivesIn_trans (derivesIn_one_of_transforms hstep) hpairn
+      simpa [Nat.add_comm] using htotal
+    · rcases hpop with ⟨f, ρ, B, _hσ, hstep, hrest⟩
+      have htotal := derivesIn_trans (derivesIn_one_of_transforms hstep) hrest
+      simpa [Nat.add_comm] using htotal
+    · rcases hpush with ⟨B, f, hstep, hrest⟩
+      have htotal := derivesIn_trans (derivesIn_one_of_transforms hstep) hrest
+      simpa [Nat.add_comm] using htotal
+    · rcases hterm with ⟨a, hstep, hw, hn⟩
+      subst w
+      subst n
+      simpa using derivesIn_one_of_transforms hstep
+
+/-- Counted recursive characterization using concrete normal-form rules from `g.rules`.
+This is the finite-search-facing form of singleton terminal derivability. -/
+theorem derivesIn_singleton_to_terminals_rule_iff_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T} :
+    g.DerivesIn (n + 1) [ISym.indexed A σ]
+        (w.map fun a => (ISym.terminal a : g.ISym)) ↔
+      (∃ B C : g.nt, ∃ m k : ℕ, ∃ u v : List T,
+        ∃ r ∈ g.rules,
+          r.lhs = A ∧ r.consume = none ∧
+          r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+          m + k = n ∧
+          w = u ++ v ∧
+          g.DerivesIn m [ISym.indexed B σ]
+            (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+          g.DerivesIn k [ISym.indexed C σ]
+            (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+        ∃ r ∈ g.rules,
+          σ = f :: ρ ∧
+          r.lhs = A ∧ r.consume = some f ∧
+          r.rhs = [IRhsSymbol.nonterminal B none] ∧
+          g.DerivesIn n [ISym.indexed B ρ]
+            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+        g.DerivesIn n [ISym.indexed B (f :: σ)]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ a : T, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+          w = [a] ∧ n = 0) := by
+  constructor
+  · intro hder
+    have hcases :=
+      (derivesIn_singleton_to_terminals_iff_of_isNormalForm
+        (g := g) hNF (n := n) (A := A) (σ := σ) (w := w)).mp hder
+    rcases hcases with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨B, C, m, k, u, v, hmk, hw, hstep, hleft, hright⟩
+      rcases (transforms_singleton_binary_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (C := C) (σ := σ)).mp hstep with
+        ⟨r, hr, hlhs, hc, hrhs⟩
+      left
+      exact ⟨B, C, m, k, u, v, r, hr, hlhs, hc, hrhs, hmk, hw, hleft, hright⟩
+    · rcases hpop with ⟨f, ρ, B, hσ, hstep, hrest⟩
+      rcases (transforms_singleton_pop_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (f := f) (ρ := ρ)).mp
+          (by simpa [hσ] using hstep) with
+        ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      left
+      exact ⟨f, ρ, B, r, hr, hσ, hlhs, hc, hrhs, hrest⟩
+    · rcases hpush with ⟨B, f, hstep, hrest⟩
+      rcases (transforms_singleton_push_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (f := f) (σ := σ)).mp hstep with
+        ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      right
+      left
+      exact ⟨B, f, r, hr, hlhs, hc, hrhs, hrest⟩
+    · rcases hterm with ⟨a, hstep, hw, hn⟩
+      rcases (transforms_singleton_terminal_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (σ := σ) (a := a)).mp hstep with
+        ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      right
+      right
+      exact ⟨a, r, hr, hlhs, hc, hrhs, hw, hn⟩
+  · intro h
+    apply (derivesIn_singleton_to_terminals_iff_of_isNormalForm
+      (g := g) hNF (n := n) (A := A) (σ := σ) (w := w)).mpr
+    rcases h with hbin | hpop | hpush | hterm
+    · rcases hbin with
+        ⟨B, C, m, k, u, v, r, hr, hlhs, hc, hrhs, hmk, hw, hleft, hright⟩
+      have hstep :
+          g.Transforms [ISym.indexed A σ] [ISym.indexed B σ, ISym.indexed C σ] :=
+        (transforms_singleton_binary_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (C := C) (σ := σ)).mpr
+          ⟨r, hr, hlhs, hc, hrhs⟩
+      left
+      exact ⟨B, C, m, k, u, v, hmk, hw, hstep, hleft, hright⟩
+    · rcases hpop with ⟨f, ρ, B, r, hr, hσ, hlhs, hc, hrhs, hrest⟩
+      have hstep :
+          g.Transforms [ISym.indexed A (f :: ρ)] [ISym.indexed B ρ] :=
+        (transforms_singleton_pop_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (f := f) (ρ := ρ)).mpr
+          ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      left
+      exact ⟨f, ρ, B, hσ, by simpa [hσ] using hstep, hrest⟩
+    · rcases hpush with ⟨B, f, r, hr, hlhs, hc, hrhs, hrest⟩
+      have hstep :
+          g.Transforms [ISym.indexed A σ] [ISym.indexed B (f :: σ)] :=
+        (transforms_singleton_push_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (B := B) (f := f) (σ := σ)).mpr
+          ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      right
+      left
+      exact ⟨B, f, hstep, hrest⟩
+    · rcases hterm with ⟨a, r, hr, hlhs, hc, hrhs, hw, hn⟩
+      have hstep :
+          g.Transforms [ISym.indexed A σ] [ISym.terminal a] :=
+        (transforms_singleton_terminal_iff_rule_of_isNormalForm
+          (g := g) hNF (A := A) (σ := σ) (a := a)).mpr
+          ⟨r, hr, hlhs, hc, hrhs⟩
+      right
+      right
+      right
+      exact ⟨a, hstep, hw, hn⟩
+
+theorem derives_singleton_to_terminals_length_pos_of_noEpsilon {g : IndexedGrammar T}
+    (hne : g.NoEpsilon') {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : g.Derives [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    0 < w.length := by
+  have hlen := derives_length_le_of_noEpsilon hne hder
+  simp at hlen
+  omega
+
+theorem derives_singleton_to_terminals_length_pos_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : g.Derives [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    0 < w.length :=
+  derives_singleton_to_terminals_length_pos_of_noEpsilon
+    (g.noEpsilon_of_isNormalForm hNF) hder
+
+theorem binary_subderivations_lengths_pos_of_noEpsilon {g : IndexedGrammar T}
+    (hne : g.NoEpsilon') {B C : g.nt} {σ : List g.flag} {u v : List T}
+    (hleft : g.Derives [ISym.indexed B σ]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : g.Derives [ISym.indexed C σ]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    0 < u.length ∧ 0 < v.length :=
+  ⟨derives_singleton_to_terminals_length_pos_of_noEpsilon hne hleft,
+    derives_singleton_to_terminals_length_pos_of_noEpsilon hne hright⟩
+
+theorem binary_subderivations_lengths_lt_parent_of_noEpsilon {g : IndexedGrammar T}
+    (hne : g.NoEpsilon') {B C : g.nt} {σ : List g.flag} {w u v : List T}
+    (hw : w = u ++ v)
+    (hleft : g.Derives [ISym.indexed B σ]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : g.Derives [ISym.indexed C σ]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    u.length < w.length ∧ v.length < w.length := by
+  have hpos := binary_subderivations_lengths_pos_of_noEpsilon hne hleft hright
+  have hlen := congrArg List.length hw
+  simp [List.length_append] at hlen
+  omega
+
+theorem binary_subderivations_lengths_lt_parent_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B C : g.nt} {σ : List g.flag} {w u v : List T}
+    (hw : w = u ++ v)
+    (hleft : g.Derives [ISym.indexed B σ]
+      (u.map fun a => (ISym.terminal a : g.ISym)))
+    (hright : g.Derives [ISym.indexed C σ]
+      (v.map fun a => (ISym.terminal a : g.ISym))) :
+    u.length < w.length ∧ v.length < w.length :=
+  binary_subderivations_lengths_lt_parent_of_noEpsilon
+    (g.noEpsilon_of_isNormalForm hNF) hw hleft hright
+
+/-- The two words generated by a binary branch are sublists of the parent word. -/
+theorem binary_subderivation_words_sublist_parent {w u v : List T}
+    (hw : w = u ++ v) :
+    u.Sublist w ∧ v.Sublist w := by
+  subst w
+  exact ⟨List.sublist_append_left u v, List.sublist_append_right u v⟩
+
+/-- Binary branch words remain inside any target word containing the parent as a sublist. -/
+theorem binary_subderivation_words_sublist_target {w u v target : List T}
+    (hw : w = u ++ v) (hwt : w.Sublist target) :
+    u.Sublist target ∧ v.Sublist target := by
+  have hparent := binary_subderivation_words_sublist_parent (T := T) hw
+  exact ⟨hparent.1.trans hwt, hparent.2.trans hwt⟩
+
+/-- Forward rule-level singleton decomposition with the binary branch annotated by the
+well-founded facts needed for recursion on the target yield: both child yields are nonempty,
+strictly shorter than the parent yield, and remain sublists of any ambient target containing
+the parent yield. -/
+theorem derives_singleton_to_terminals_rule_cases_with_target_bounds_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {A : g.nt} {σ : List g.flag} {w target : List T}
+    (hwt : w.Sublist target)
+    (hder : g.Derives [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+      (∃ B C : g.nt, ∃ u v : List T,
+        ∃ r ∈ g.rules,
+          r.lhs = A ∧ r.consume = none ∧
+          r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+          w = u ++ v ∧
+          0 < u.length ∧ 0 < v.length ∧
+          u.length < w.length ∧ v.length < w.length ∧
+          u.Sublist target ∧ v.Sublist target ∧
+          g.Derives [ISym.indexed B σ]
+            (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+          g.Derives [ISym.indexed C σ]
+            (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+        ∃ r ∈ g.rules,
+          σ = f :: ρ ∧
+          r.lhs = A ∧ r.consume = some f ∧
+          r.rhs = [IRhsSymbol.nonterminal B none] ∧
+          g.Derives [ISym.indexed B ρ]
+            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+        g.Derives [ISym.indexed B (f :: σ)]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ a : T, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+          w = [a]) := by
+  have hcases :=
+    (derives_singleton_to_terminals_rule_iff_of_isNormalForm
+      (g := g) hNF (A := A) (σ := σ) (w := w)).mp hder
+  rcases hcases with hbin | hpop | hpush | hterm
+  · rcases hbin with
+      ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw, hleft, hright⟩
+    have hpos :=
+      binary_subderivations_lengths_pos_of_noEpsilon
+        (g.noEpsilon_of_isNormalForm hNF) hleft hright
+    have hlt :=
+      binary_subderivations_lengths_lt_parent_of_isNormalForm
+        hNF hw hleft hright
+    have hsub := binary_subderivation_words_sublist_target (T := T) hw hwt
+    left
+    exact ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw,
+      hpos.1, hpos.2, hlt.1, hlt.2, hsub.1, hsub.2, hleft, hright⟩
+  · right
+    left
+    exact hpop
+  · right
+    right
+    left
+    exact hpush
+  · right
+    right
+    right
+    exact hterm
+
+/-- Counted forward rule-level singleton decomposition with explicit decreasing sub-budgets and
+target-compatible child yields. This is the finite-search form of the first-step analysis: every
+recursive premise has a strictly smaller counted budget, and binary premises also have nonempty,
+strictly smaller terminal yields contained in the ambient target. -/
+theorem derivesIn_singleton_to_terminals_rule_cases_with_target_bounds_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {A : g.nt} {σ : List g.flag} {w target : List T}
+    (hwt : w.Sublist target)
+    (hder : g.DerivesIn (n + 1) [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+      (∃ B C : g.nt, ∃ m k : ℕ, ∃ u v : List T,
+        ∃ r ∈ g.rules,
+          r.lhs = A ∧ r.consume = none ∧
+          r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+          m + k = n ∧
+          m < n + 1 ∧ k < n + 1 ∧
+          w = u ++ v ∧
+          0 < u.length ∧ 0 < v.length ∧
+          u.length < w.length ∧ v.length < w.length ∧
+          u.Sublist target ∧ v.Sublist target ∧
+          g.DerivesIn m [ISym.indexed B σ]
+            (u.map fun a => (ISym.terminal a : g.ISym)) ∧
+          g.DerivesIn k [ISym.indexed C σ]
+            (v.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+        ∃ r ∈ g.rules,
+          σ = f :: ρ ∧
+          r.lhs = A ∧ r.consume = some f ∧
+          r.rhs = [IRhsSymbol.nonterminal B none] ∧
+          n < n + 1 ∧
+          g.DerivesIn n [ISym.indexed B ρ]
+            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+        n < n + 1 ∧
+        g.DerivesIn n [ISym.indexed B (f :: σ)]
+          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+      (∃ a : T, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+          w = [a] ∧ n = 0) := by
+  have hcases :=
+    (derivesIn_singleton_to_terminals_rule_iff_of_isNormalForm
+      (g := g) hNF (n := n) (A := A) (σ := σ) (w := w)).mp hder
+  rcases hcases with hbin | hpop | hpush | hterm
+  · rcases hbin with
+      ⟨B, C, m, k, u, v, r, hr, hlhs, hc, hrhs, hmk, hw, hleft, hright⟩
+    have hleftD := derives_of_derivesIn (g := g) hleft
+    have hrightD := derives_of_derivesIn (g := g) hright
+    have hpos :=
+      binary_subderivations_lengths_pos_of_noEpsilon
+        (g.noEpsilon_of_isNormalForm hNF) hleftD hrightD
+    have hlt :=
+      binary_subderivations_lengths_lt_parent_of_isNormalForm
+        hNF hw hleftD hrightD
+    have hsub := binary_subderivation_words_sublist_target (T := T) hw hwt
+    have hm_lt : m < n + 1 := by omega
+    have hk_lt : k < n + 1 := by omega
+    left
+    exact ⟨B, C, m, k, u, v, r, hr, hlhs, hc, hrhs, hmk, hm_lt, hk_lt, hw,
+      hpos.1, hpos.2, hlt.1, hlt.2, hsub.1, hsub.2, hleft, hright⟩
+  · rcases hpop with ⟨f, ρ, B, r, hr, hσ, hlhs, hc, hrhs, hrest⟩
+    right
+    left
+    exact ⟨f, ρ, B, r, hr, hσ, hlhs, hc, hrhs, Nat.lt_succ_self n, hrest⟩
+  · rcases hpush with ⟨B, f, r, hr, hlhs, hc, hrhs, hrest⟩
+    right
+    right
+    left
+    exact ⟨B, f, r, hr, hlhs, hc, hrhs, Nat.lt_succ_self n, hrest⟩
+  · right
+    right
+    right
+    exact hterm
+
+theorem transformIsBinaryStep_nonterminalCount_increase {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsBinaryStep g w₁ w₂) :
+    sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 := by
+  rcases h with ⟨A, B, C, u, v, σ, _, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+  omega
+
+theorem transformIsBinaryStep_terminalCount_eq {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsBinaryStep g w₁ w₂) :
+    sententialTerminalCount w₂ = sententialTerminalCount w₁ := by
+  rcases h with ⟨A, B, C, u, v, σ, _, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+
+theorem transformIsBinaryStep_stackHeight_eq_add {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsBinaryStep g w₁ w₂) :
+    ∃ σ : List g.flag,
+      sententialStackHeight w₂ = sententialStackHeight w₁ + σ.length := by
+  rcases h with ⟨A, B, C, u, v, σ, _, _, hw₁, hw₂⟩
+  refine ⟨σ, ?_⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+  omega
+
+theorem transformIsBinaryStep_maxStackHeight_eq {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsBinaryStep g w₁ w₂) :
+  sententialMaxStackHeight w₂ = sententialMaxStackHeight w₁ := by
+  rcases h with ⟨A, B, C, u, v, σ, _, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc, Nat.max_comm]
+
+theorem transformIsPopStep_nonterminalCount_eq {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsPopStep g w₁ w₂) :
+    sententialNonterminalCount w₂ = sententialNonterminalCount w₁ := by
+  rcases h with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+
+theorem transformIsPopStep_terminalCount_eq {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsPopStep g w₁ w₂) :
+    sententialTerminalCount w₂ = sententialTerminalCount w₁ := by
+  rcases h with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+
+theorem transformIsPopStep_stackHeight_decrease_one {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsPopStep g w₁ w₂) :
+    sententialStackHeight w₁ = sententialStackHeight w₂ + 1 := by
+  rcases h with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+  omega
+
+theorem transformIsPopStep_maxStackHeight_le {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsPopStep g w₁ w₂) :
+    sententialMaxStackHeight w₂ ≤ sententialMaxStackHeight w₁ := by
+  rcases h with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simpa [List.append_assoc, Nat.max_assoc, Nat.max_comm] using
+    max_pop_le (sententialMaxStackHeight u) σ.length (sententialMaxStackHeight v)
+
+theorem transformIsPushStep_nonterminalCount_eq {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsPushStep g w₁ w₂) :
+    sententialNonterminalCount w₂ = sententialNonterminalCount w₁ := by
+  rcases h with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+
+theorem transformIsPushStep_terminalCount_eq {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsPushStep g w₁ w₂) :
+    sententialTerminalCount w₂ = sententialTerminalCount w₁ := by
+  rcases h with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+
+theorem transformIsPushStep_stackHeight_increase_one {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsPushStep g w₁ w₂) :
+    sententialStackHeight w₂ = sententialStackHeight w₁ + 1 := by
+  rcases h with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+  omega
+
+theorem transformIsPushStep_maxStackHeight_le_succ {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsPushStep g w₁ w₂) :
+    sententialMaxStackHeight w₂ ≤ sententialMaxStackHeight w₁ + 1 := by
+  rcases h with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simpa [List.append_assoc, Nat.max_assoc, Nat.max_comm] using
+    max_push_le_succ (sententialMaxStackHeight u) σ.length (sententialMaxStackHeight v)
+
+theorem transformIsTerminalStep_nonterminalCount_decrease {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsTerminalStep g w₁ w₂) :
+    sententialNonterminalCount w₁ = sententialNonterminalCount w₂ + 1 := by
+  rcases h with ⟨A, a, u, v, σ, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+  omega
+
+theorem transformIsTerminalStep_terminalCount_increase {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsTerminalStep g w₁ w₂) :
+    sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 := by
+  rcases h with ⟨A, a, u, v, σ, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+  omega
+
+theorem transformIsTerminalStep_stackHeight_eq_add {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsTerminalStep g w₁ w₂) :
+    ∃ σ : List g.flag,
+      sententialStackHeight w₁ = sententialStackHeight w₂ + σ.length := by
+  rcases h with ⟨A, a, u, v, σ, hw₁, hw₂⟩
+  refine ⟨σ, ?_⟩
+  rw [hw₁, hw₂]
+  simp [List.append_assoc]
+  omega
+
+theorem transformIsTerminalStep_maxStackHeight_le {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsTerminalStep g w₁ w₂) :
+    sententialMaxStackHeight w₂ ≤ sententialMaxStackHeight w₁ := by
+  rcases h with ⟨A, a, u, v, σ, hw₁, hw₂⟩
+  rw [hw₁, hw₂]
+  simpa [List.append_assoc, Nat.max_assoc, Nat.max_comm] using
+    max_drop_middle_le (sententialMaxStackHeight u) σ.length (sententialMaxStackHeight v)
+
+theorem transforms_binaryStep_iff_nonterminalCount_increase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    TransformIsBinaryStep g w₁ w₂ ↔
+      sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 := by
+  constructor
+  · exact transformIsBinaryStep_nonterminalCount_increase
+  · intro hinc
+    rcases transforms_kind_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+    · exact hbin
+    · have hsame := transformIsPopStep_nonterminalCount_eq hpop
+      omega
+    · have hsame := transformIsPushStep_nonterminalCount_eq hpush
+      omega
+    · have hdec := transformIsTerminalStep_nonterminalCount_decrease hterm
+      omega
+
+theorem transforms_terminalStep_iff_terminalCount_increase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    TransformIsTerminalStep g w₁ w₂ ↔
+      sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 := by
+  constructor
+  · exact transformIsTerminalStep_terminalCount_increase
+  · intro hinc
+    rcases transforms_kind_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+    · have hsame := transformIsBinaryStep_terminalCount_eq hbin
+      omega
+    · have hsame := transformIsPopStep_terminalCount_eq hpop
+      omega
+    · have hsame := transformIsPushStep_terminalCount_eq hpush
+      omega
+    · exact hterm
+
+theorem transforms_popStep_iff_counts_and_stackHeight_decrease_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    TransformIsPopStep g w₁ w₂ ↔
+      sententialNonterminalCount w₂ = sententialNonterminalCount w₁ ∧
+        sententialTerminalCount w₂ = sententialTerminalCount w₁ ∧
+        sententialStackHeight w₁ = sententialStackHeight w₂ + 1 := by
+  constructor
+  · intro hpop
+    exact ⟨transformIsPopStep_nonterminalCount_eq hpop,
+      transformIsPopStep_terminalCount_eq hpop,
+      transformIsPopStep_stackHeight_decrease_one hpop⟩
+  · rintro ⟨hnt, htermCount, hstack⟩
+    rcases transforms_kind_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+    · have hinc := transformIsBinaryStep_nonterminalCount_increase hbin
+      omega
+    · exact hpop
+    · have hpushStack := transformIsPushStep_stackHeight_increase_one hpush
+      omega
+    · have htermInc := transformIsTerminalStep_terminalCount_increase hterm
+      omega
+
+theorem transforms_pushStep_iff_counts_and_stackHeight_increase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    TransformIsPushStep g w₁ w₂ ↔
+      sententialNonterminalCount w₂ = sententialNonterminalCount w₁ ∧
+        sententialTerminalCount w₂ = sententialTerminalCount w₁ ∧
+        sententialStackHeight w₂ = sententialStackHeight w₁ + 1 := by
+  constructor
+  · intro hpush
+    exact ⟨transformIsPushStep_nonterminalCount_eq hpush,
+      transformIsPushStep_terminalCount_eq hpush,
+      transformIsPushStep_stackHeight_increase_one hpush⟩
+  · rintro ⟨hnt, htermCount, hstack⟩
+    rcases transforms_kind_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+    · have hinc := transformIsBinaryStep_nonterminalCount_increase hbin
+      omega
+    · have hpopStack := transformIsPopStep_stackHeight_decrease_one hpop
+      omega
+    · exact hpush
+    · have htermInc := transformIsTerminalStep_terminalCount_increase hterm
+      omega
+
+theorem transforms_pushStep_iff_observablePush_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    TransformIsPushStep g w₁ w₂ ↔ TransformIsObservablePush w₁ w₂ := by
+  simpa [TransformIsObservablePush] using
+    transforms_pushStep_iff_counts_and_stackHeight_increase_of_isNormalForm hNF h
+
+theorem transforms_popStep_iff_observablePop_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    TransformIsPopStep g w₁ w₂ ↔ TransformIsObservablePop w₁ w₂ := by
+  simpa [TransformIsObservablePop] using
+    transforms_popStep_iff_counts_and_stackHeight_decrease_of_isNormalForm hNF h
+
+theorem transforms_maxStackHeight_le_add_pushIndicator_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    sententialMaxStackHeight w₂ ≤
+      sententialMaxStackHeight w₁ + if TransformIsObservablePush w₁ w₂ then 1 else 0 := by
+  by_cases hpushObs : TransformIsObservablePush w₁ w₂
+  · have hpush :=
+      (transforms_pushStep_iff_observablePush_of_isNormalForm hNF h).mpr hpushObs
+    rw [if_pos hpushObs]
+    exact transformIsPushStep_maxStackHeight_le_succ hpush
+  · rw [if_neg hpushObs]
+    rcases transforms_kind_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+    · have hmax := transformIsBinaryStep_maxStackHeight_eq hbin
+      omega
+    · exact transformIsPopStep_maxStackHeight_le hpop
+    · have hobs :=
+        (transforms_pushStep_iff_observablePush_of_isNormalForm hNF h).mp hpush
+      exact False.elim (hpushObs hobs)
+    · exact transformIsTerminalStep_maxStackHeight_le hterm
+
+theorem transforms_stackHeightIncrease_eq_push_add_binaryCopy_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    sententialStackHeight w₂ - sententialStackHeight w₁ =
+      (if TransformIsObservablePush w₁ w₂ then 1 else 0) +
+        (if sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 then
+          sententialStackHeight w₂ - sententialStackHeight w₁
+        else
+          0) := by
+  rcases transforms_kind_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+  · have hnt := transformIsBinaryStep_nonterminalCount_increase hbin
+    have htermCount := transformIsBinaryStep_terminalCount_eq hbin
+    have hstack := transformIsBinaryStep_stackHeight_eq_add hbin
+    have hpushObs : ¬ TransformIsObservablePush w₁ w₂ := by
+      intro hobs
+      rcases hobs with ⟨hntEq, _, _⟩
+      omega
+    rcases hstack with ⟨σ, hstack⟩
+    simp [hpushObs, hnt]
+  · have hnt := transformIsPopStep_nonterminalCount_eq hpop
+    have htermCount := transformIsPopStep_terminalCount_eq hpop
+    have hstack := transformIsPopStep_stackHeight_decrease_one hpop
+    have hpushObs : ¬ TransformIsObservablePush w₁ w₂ := by
+      intro hobs
+      rcases hobs with ⟨_, _, hpushStack⟩
+      omega
+    have hntInc :
+        ¬ sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 := by
+      omega
+    simp [hpushObs, hntInc]
+    omega
+  · have hnt := transformIsPushStep_nonterminalCount_eq hpush
+    have hstack := transformIsPushStep_stackHeight_increase_one hpush
+    have hpushObs :
+        TransformIsObservablePush w₁ w₂ :=
+      (transforms_pushStep_iff_observablePush_of_isNormalForm hNF h).mp hpush
+    have hntInc :
+        ¬ sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 := by
+      omega
+    simp [hpushObs, hntInc]
+    omega
+  · have hntDec := transformIsTerminalStep_nonterminalCount_decrease hterm
+    have htermInc := transformIsTerminalStep_terminalCount_increase hterm
+    have hstack := transformIsTerminalStep_stackHeight_eq_add hterm
+    have hpushObs : ¬ TransformIsObservablePush w₁ w₂ := by
+      intro hobs
+      rcases hobs with ⟨hnt, _, _⟩
+      omega
+    have hntInc :
+        ¬ sententialNonterminalCount w₂ = sententialNonterminalCount w₁ + 1 := by
+      omega
+    rcases hstack with ⟨σ, hstack⟩
+    simp [hpushObs, hntInc]
+    omega
+
+theorem transforms_stackHeightDecrease_eq_pop_add_terminalErase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    sententialStackHeight w₁ - sententialStackHeight w₂ =
+      (if TransformIsObservablePop w₁ w₂ then 1 else 0) +
+        (if sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 then
+          sententialStackHeight w₁ - sententialStackHeight w₂
+        else
+          0) := by
+  rcases transforms_kind_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+  · have hnt := transformIsBinaryStep_nonterminalCount_increase hbin
+    have htermCount := transformIsBinaryStep_terminalCount_eq hbin
+    have hstack := transformIsBinaryStep_stackHeight_eq_add hbin
+    have hpopObs : ¬ TransformIsObservablePop w₁ w₂ := by
+      intro hobs
+      rcases hobs with ⟨hntEq, _, _⟩
+      omega
+    have htermInc :
+        ¬ sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 := by
+      omega
+    rcases hstack with ⟨σ, hstack⟩
+    simp [hpopObs, htermInc]
+    omega
+  · have htermCount := transformIsPopStep_terminalCount_eq hpop
+    have hstack := transformIsPopStep_stackHeight_decrease_one hpop
+    have hpopObs :
+        TransformIsObservablePop w₁ w₂ :=
+      (transforms_popStep_iff_observablePop_of_isNormalForm hNF h).mp hpop
+    have htermInc :
+        ¬ sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 := by
+      omega
+    simp [hpopObs, htermInc]
+    omega
+  · have hnt := transformIsPushStep_nonterminalCount_eq hpush
+    have htermCount := transformIsPushStep_terminalCount_eq hpush
+    have hstack := transformIsPushStep_stackHeight_increase_one hpush
+    have hpopObs : ¬ TransformIsObservablePop w₁ w₂ := by
+      intro hobs
+      rcases hobs with ⟨_, _, hpopStack⟩
+      omega
+    have htermInc :
+        ¬ sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 := by
+      omega
+    simp [hpopObs, htermInc]
+    omega
+  · have htermInc := transformIsTerminalStep_terminalCount_increase hterm
+    have hstack := transformIsTerminalStep_stackHeight_eq_add hterm
+    have hpopObs : ¬ TransformIsObservablePop w₁ w₂ := by
+      intro hobs
+      rcases hobs with ⟨_, htermCount, _⟩
+      omega
+    rcases hstack with ⟨σ, hstack⟩
+    simp [hpopObs, htermInc]
+
+theorem isDerivationTrace_stackHeightIncrease_eq_push_add_binaryCopy_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace) :
+    traceStackHeightIncrease trace =
+      tracePushStepCount trace + traceBinaryCopyStackHeight trace := by
+  induction trace with
+  | nil =>
+      simp
+  | cons w₁ trace ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₂ rest =>
+          simp only [isDerivationTrace_cons_cons] at htrace
+          have hstep :=
+            transforms_stackHeightIncrease_eq_push_add_binaryCopy_of_isNormalForm
+              hNF htrace.1
+          have htail := ih htrace.2
+          simp only [traceStackHeightIncrease_cons_cons, tracePushStepCount_cons_cons,
+            traceBinaryCopyStackHeight_cons_cons]
+          rw [htail]
+          omega
+
+theorem isDerivationTrace_stackHeightDecrease_eq_pop_add_terminalErase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace) :
+    traceStackHeightDecrease trace =
+      tracePopStepCount trace + traceTerminalEraseStackHeight trace := by
+  induction trace with
+  | nil =>
+      simp
+  | cons w₁ trace ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₂ rest =>
+          simp only [isDerivationTrace_cons_cons] at htrace
+          have hstep :=
+            transforms_stackHeightDecrease_eq_pop_add_terminalErase_of_isNormalForm
+              hNF htrace.1
+          have htail := ih htrace.2
+          simp only [traceStackHeightDecrease_cons_cons, tracePopStepCount_cons_cons,
+            traceTerminalEraseStackHeight_cons_cons]
+          rw [htail]
+          omega
+
+theorem accepting_derivationTrace_push_add_binaryCopy_eq_pop_add_terminalErase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    tracePushStepCount trace + traceBinaryCopyStackHeight trace =
+      tracePopStepCount trace + traceTerminalEraseStackHeight trace := by
+  have hinc :=
+    isDerivationTrace_stackHeightIncrease_eq_push_add_binaryCopy_of_isNormalForm
+      hNF htrace
+  have hdec :=
+    isDerivationTrace_stackHeightDecrease_eq_pop_add_terminalErase_of_isNormalForm
+      hNF htrace
+  have hbalance :=
+    accepting_derivationTrace_stackHeightIncrease_eq_decrease (g := g) hhead hlast
+  omega
+
+theorem accepting_derivationTrace_suffix_stackHeight_add_push_add_binaryCopy_eq_pop_add_terminalErase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialStackHeight (trace.get ⟨i, hi⟩) +
+        tracePushStepCount (trace.drop i) +
+        traceBinaryCopyStackHeight (trace.drop i) =
+      tracePopStepCount (trace.drop i) +
+        traceTerminalEraseStackHeight (trace.drop i) := by
+  have hdropTrace := isDerivationTrace_drop htrace i
+  have hheadDrop := trace_drop_head?_eq_get (g := g) hi
+  have hlastDrop : (trace.drop i).getLast? = some (w.map ISym.terminal) := by
+    rw [trace_drop_getLast?_eq_getLast? (g := g) hi, hlast]
+  have hbalance :=
+    traceStackHeight_balance (g := g) hheadDrop hlastDrop
+  have hbalance' :
+      traceStackHeightDecrease (trace.drop i) =
+        sententialStackHeight (trace.get ⟨i, hi⟩) +
+          traceStackHeightIncrease (trace.drop i) := by
+    simpa using hbalance
+  have hinc :=
+    isDerivationTrace_stackHeightIncrease_eq_push_add_binaryCopy_of_isNormalForm
+      hNF hdropTrace
+  have hdec :=
+    isDerivationTrace_stackHeightDecrease_eq_pop_add_terminalErase_of_isNormalForm
+      hNF hdropTrace
+  omega
+
+theorem accepting_derivationTrace_get_maxStackHeight_le_future_pop_add_terminalErase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤
+      tracePopStepCount (trace.drop i) +
+        traceTerminalEraseStackHeight (trace.drop i) := by
+  have hheight :=
+    accepting_derivationTrace_get_maxStackHeight_le_future_decrease
+      (g := g) hlast hi
+  have hdropTrace := isDerivationTrace_drop htrace i
+  have hdec :=
+    isDerivationTrace_stackHeightDecrease_eq_pop_add_terminalErase_of_isNormalForm
+      hNF hdropTrace
+  omega
 
 /-- A normal-form step either increases the number of nonterminals by one, preserves it, or
 decreases it by one. -/
@@ -1295,6 +4947,27 @@ theorem transforms_terminalCount_le_succ_of_isNormalForm {g : IndexedGrammar T}
     {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
     sententialTerminalCount w₂ ≤ sententialTerminalCount w₁ + 1 := by
   rcases transforms_terminalCount_cases_of_isNormalForm hNF h with htc | htc <;> omega
+
+theorem transforms_terminalCount_succ_iff_nonterminalCount_decrease_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
+    sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1 ↔
+      sententialNonterminalCount w₁ = sententialNonterminalCount w₂ + 1 := by
+  rcases transforms_cases_of_isNormalForm hNF h with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨A, B, C, u, v, σ, _, _, hw₁, hw₂⟩
+    rw [hw₁, hw₂]
+    simp [List.append_assoc]
+    omega
+  · rcases hpop with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+    rw [hw₁, hw₂]
+    simp [List.append_assoc]
+  · rcases hpush with ⟨A, B, f, u, v, σ, _, hw₁, hw₂⟩
+    rw [hw₁, hw₂]
+    simp [List.append_assoc]
+  · rcases hterm with ⟨A, a, u, v, σ, hw₁, hw₂⟩
+    rw [hw₁, hw₂]
+    simp [List.append_assoc]
+    constructor <;> intro _ <;> omega
 
 /-- A normal-form step can increase the maximum stack height by at most one. -/
 theorem transforms_maxStackHeight_le_succ_of_isNormalForm {g : IndexedGrammar T}
@@ -1378,6 +5051,672 @@ theorem generated_length_le_derivesIn_steps_of_isNormalForm {g : IndexedGrammar 
   have hterm := derivesIn_terminalCount_le_add_of_isNormalForm hNF h
   simpa using hterm
 
+theorem isDerivationTrace_terminalCount_eq_head_add_terminalIncreaseCount_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {first last : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hlast : trace.getLast? = some last) :
+    sententialTerminalCount last =
+      sententialTerminalCount first + traceTerminalIncreaseCount trace := by
+  induction trace generalizing first last with
+  | nil =>
+      simp at hhead
+  | cons a rest ih =>
+      cases rest with
+      | nil =>
+          simp at hhead hlast
+          subst first
+          subst last
+          simp
+      | cons b rest =>
+          simp only [isDerivationTrace_cons_cons] at htrace
+          have hhead_tail : (b :: rest).head? = some b := by simp
+          have hlast_tail : (b :: rest).getLast? = some last := by
+            simpa using hlast
+          have ih_tail :=
+            ih htrace.2 hhead_tail hlast_tail
+          have hfirst : a = first := by simpa using hhead
+          subst first
+          rcases transforms_terminalCount_cases_of_isNormalForm hNF htrace.1 with hpreserve | hinc
+          · have hnot :
+                ¬ sententialTerminalCount b = sententialTerminalCount a + 1 := by
+              omega
+            rw [traceTerminalIncreaseCount_cons_cons, if_neg hnot]
+            omega
+          · rw [traceTerminalIncreaseCount_cons_cons, if_pos hinc]
+            omega
+
+theorem isDerivationTrace_nonterminal_balance_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {first last : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hlast : trace.getLast? = some last) :
+    sententialNonterminalCount last + traceNonterminalDecreaseCount trace =
+      sententialNonterminalCount first + traceNonterminalIncreaseCount trace := by
+  induction trace generalizing first last with
+  | nil =>
+      simp at hhead
+  | cons a rest ih =>
+      cases rest with
+      | nil =>
+          simp at hhead hlast
+          subst first
+          subst last
+          simp
+      | cons b rest =>
+          simp only [isDerivationTrace_cons_cons] at htrace
+          have hhead_tail : (b :: rest).head? = some b := by simp
+          have hlast_tail : (b :: rest).getLast? = some last := by
+            simpa using hlast
+          have ih_tail :=
+            ih htrace.2 hhead_tail hlast_tail
+          have hfirst : a = first := by simpa using hhead
+          subst first
+          rcases transforms_nonterminalCount_cases_of_isNormalForm hNF htrace.1 with hinc | hsame | hdec
+          · have hnot_dec :
+                ¬ sententialNonterminalCount a = sententialNonterminalCount b + 1 := by
+              omega
+            rw [traceNonterminalIncreaseCount_cons_cons, traceNonterminalDecreaseCount_cons_cons,
+              if_pos hinc, if_neg hnot_dec]
+            omega
+          · have hnot_inc :
+                ¬ sententialNonterminalCount b = sententialNonterminalCount a + 1 := by
+              omega
+            have hnot_dec :
+                ¬ sententialNonterminalCount a = sententialNonterminalCount b + 1 := by
+              omega
+            rw [traceNonterminalIncreaseCount_cons_cons, traceNonterminalDecreaseCount_cons_cons,
+              if_neg hnot_inc, if_neg hnot_dec]
+            omega
+          · have hnot_inc :
+                ¬ sententialNonterminalCount b = sententialNonterminalCount a + 1 := by
+              omega
+            rw [traceNonterminalIncreaseCount_cons_cons, traceNonterminalDecreaseCount_cons_cons,
+              if_neg hnot_inc, if_pos hdec]
+            omega
+
+theorem isDerivationTrace_get_terminalCount_eq_head_add_terminalIncreaseCountUpTo_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i : ℕ} (hi : i < trace.length) :
+    sententialTerminalCount (trace.get ⟨i, hi⟩) =
+      sententialTerminalCount first + traceTerminalIncreaseCountUpTo i trace := by
+  induction i generalizing trace first with
+  | zero =>
+      cases trace with
+      | nil =>
+          simp at hi
+      | cons a rest =>
+          have hfirst : a = first := by simpa using hhead
+          subst first
+          simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp at hi
+      | cons a rest =>
+          cases rest with
+          | nil =>
+              simp at hi
+          | cons b rest =>
+              simp only [isDerivationTrace_cons_cons] at htrace
+              have hi_tail : i < (b :: rest).length := by simpa using hi
+              have hget :
+                  (a :: b :: rest).get ⟨i + 1, hi⟩ =
+                    (b :: rest).get ⟨i, hi_tail⟩ := by
+                simp
+              have ih_tail :=
+                ih (trace := b :: rest) (first := b) htrace.2 (by simp) hi_tail
+              have hfirst : a = first := by simpa using hhead
+              subst first
+              rcases transforms_terminalCount_cases_of_isNormalForm hNF htrace.1 with
+                hpreserve | hinc
+              · have hnot :
+                    ¬ sententialTerminalCount b = sententialTerminalCount a + 1 := by
+                  omega
+                rw [traceTerminalIncreaseCountUpTo_succ_cons_cons, if_neg hnot]
+                simp only [Nat.zero_add]
+                rw [hget, ih_tail]
+                omega
+              · rw [traceTerminalIncreaseCountUpTo_succ_cons_cons, if_pos hinc]
+                rw [hget, ih_tail]
+                omega
+
+theorem isDerivationTrace_get_nonterminal_balanceUpTo_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i : ℕ} (hi : i < trace.length) :
+    sententialNonterminalCount (trace.get ⟨i, hi⟩) +
+        traceNonterminalDecreaseCountUpTo i trace =
+      sententialNonterminalCount first + traceNonterminalIncreaseCountUpTo i trace := by
+  induction i generalizing trace first with
+  | zero =>
+      cases trace with
+      | nil =>
+          simp at hi
+      | cons a rest =>
+          have hfirst : a = first := by simpa using hhead
+          subst first
+          simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp at hi
+      | cons a rest =>
+          cases rest with
+          | nil =>
+              simp at hi
+          | cons b rest =>
+              simp only [isDerivationTrace_cons_cons] at htrace
+              have hi_tail : i < (b :: rest).length := by simpa using hi
+              have hget :
+                  (a :: b :: rest).get ⟨i + 1, hi⟩ =
+                    (b :: rest).get ⟨i, hi_tail⟩ := by
+                simp
+              have ih_tail :=
+                ih (trace := b :: rest) (first := b) htrace.2 (by simp) hi_tail
+              have hfirst : a = first := by simpa using hhead
+              subst first
+              rcases transforms_nonterminalCount_cases_of_isNormalForm hNF htrace.1 with
+                hinc | hsame | hdec
+              · have hnot_dec :
+                    ¬ sententialNonterminalCount a =
+                      sententialNonterminalCount b + 1 := by
+                  omega
+                rw [traceNonterminalIncreaseCountUpTo_succ_cons_cons,
+                  traceNonterminalDecreaseCountUpTo_succ_cons_cons,
+                  if_pos hinc, if_neg hnot_dec]
+                simp only [Nat.zero_add]
+                rw [hget, ih_tail]
+                omega
+              · have hnot_inc :
+                    ¬ sententialNonterminalCount b =
+                      sententialNonterminalCount a + 1 := by
+                  omega
+                have hnot_dec :
+                    ¬ sententialNonterminalCount a =
+                      sententialNonterminalCount b + 1 := by
+                  omega
+                rw [traceNonterminalIncreaseCountUpTo_succ_cons_cons,
+                  traceNonterminalDecreaseCountUpTo_succ_cons_cons,
+                  if_neg hnot_inc, if_neg hnot_dec]
+                simp only [Nat.zero_add]
+                rw [hget, ih_tail]
+                omega
+              · have hnot_inc :
+                    ¬ sententialNonterminalCount b =
+                      sententialNonterminalCount a + 1 := by
+                  omega
+                rw [traceNonterminalIncreaseCountUpTo_succ_cons_cons,
+                  traceNonterminalDecreaseCountUpTo_succ_cons_cons,
+                  if_neg hnot_inc, if_pos hdec]
+                simp only [Nat.zero_add]
+                rw [hget]
+                have := ih_tail
+                omega
+
+theorem isDerivationTrace_terminalIncreaseCount_eq_nonterminalDecreaseCount_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace) :
+    traceTerminalIncreaseCount trace = traceNonterminalDecreaseCount trace := by
+  induction trace with
+  | nil =>
+      simp
+  | cons a rest ih =>
+      cases rest with
+      | nil =>
+          simp
+      | cons b rest =>
+          simp only [isDerivationTrace_cons_cons] at htrace
+          have ih_tail := ih htrace.2
+          have hiff :=
+            transforms_terminalCount_succ_iff_nonterminalCount_decrease_of_isNormalForm
+              hNF htrace.1
+          by_cases hterm :
+              sententialTerminalCount b = sententialTerminalCount a + 1
+          · have hdec :
+                sententialNonterminalCount a = sententialNonterminalCount b + 1 :=
+              hiff.mp hterm
+            simp [traceTerminalIncreaseCount, traceNonterminalDecreaseCount, hterm, hdec,
+              ih_tail]
+          · have hdec :
+                ¬ sententialNonterminalCount a = sententialNonterminalCount b + 1 := by
+              intro h
+              exact hterm (hiff.mpr h)
+            simp [traceTerminalIncreaseCount, traceNonterminalDecreaseCount, hterm, hdec,
+              ih_tail]
+
+theorem isDerivationTrace_terminalIncreaseCountUpTo_eq_nonterminalDecreaseCountUpTo_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace) (i : ℕ) :
+    traceTerminalIncreaseCountUpTo i trace =
+      traceNonterminalDecreaseCountUpTo i trace := by
+  induction i generalizing trace with
+  | zero =>
+      simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons a rest =>
+          cases rest with
+          | nil =>
+              simp
+          | cons b rest =>
+              simp only [isDerivationTrace_cons_cons] at htrace
+              have ih_tail := ih htrace.2
+              have hiff :=
+                transforms_terminalCount_succ_iff_nonterminalCount_decrease_of_isNormalForm
+                  hNF htrace.1
+              by_cases hterm :
+                  sententialTerminalCount b = sententialTerminalCount a + 1
+              · have hdec :
+                    sententialNonterminalCount a = sententialNonterminalCount b + 1 :=
+                  hiff.mp hterm
+                simp [traceTerminalIncreaseCountUpTo, traceNonterminalDecreaseCountUpTo,
+                  hterm, hdec, ih_tail]
+              · have hdec :
+                    ¬ sententialNonterminalCount a = sententialNonterminalCount b + 1 := by
+                  intro h
+                  exact hterm (hiff.mpr h)
+                simp [traceTerminalIncreaseCountUpTo, traceNonterminalDecreaseCountUpTo,
+                  hterm, hdec, ih_tail]
+
+theorem accepting_derivationTrace_terminalIncreaseCount_eq_target_length_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    traceTerminalIncreaseCount trace = w.length := by
+  have hcount :=
+    isDerivationTrace_terminalCount_eq_head_add_terminalIncreaseCount_of_isNormalForm
+      hNF htrace hhead hlast
+  simpa using hcount.symm
+
+theorem accepting_derivationTrace_nonterminalDecreaseCount_eq_succ_nonterminalIncreaseCount_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    traceNonterminalDecreaseCount trace =
+      traceNonterminalIncreaseCount trace + 1 := by
+  have hbalance :=
+    isDerivationTrace_nonterminal_balance_of_isNormalForm
+      hNF htrace hhead hlast
+  have hbalance' :
+      traceNonterminalDecreaseCount trace =
+        1 + traceNonterminalIncreaseCount trace := by
+    simpa using hbalance
+  omega
+
+theorem accepting_derivationTrace_nonterminalIncreaseCount_succ_eq_target_length_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    traceNonterminalIncreaseCount trace + 1 = w.length := by
+  have hterm :=
+    accepting_derivationTrace_terminalIncreaseCount_eq_target_length_of_isNormalForm
+      hNF htrace hhead hlast
+  have hterm_dec :=
+    isDerivationTrace_terminalIncreaseCount_eq_nonterminalDecreaseCount_of_isNormalForm
+      hNF htrace
+  have hdec :=
+    accepting_derivationTrace_nonterminalDecreaseCount_eq_succ_nonterminalIncreaseCount_of_isNormalForm
+      hNF htrace hhead hlast
+  omega
+
+theorem derivationTrace_suffix_terminalCount_add_increase_eq_last_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {last : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some last)
+    {i : ℕ} (hi : i < trace.length) :
+    sententialTerminalCount (trace.get ⟨i, hi⟩) +
+        traceTerminalIncreaseCount (trace.drop i) =
+      sententialTerminalCount last := by
+  have hdropTrace := isDerivationTrace_drop htrace i
+  have hheadDrop := trace_drop_head?_eq_get (g := g) hi
+  have hlastDrop : (trace.drop i).getLast? = some last := by
+    rw [trace_drop_getLast?_eq_getLast? (g := g) hi, hlast]
+  have hcount :=
+    isDerivationTrace_terminalCount_eq_head_add_terminalIncreaseCount_of_isNormalForm
+      hNF hdropTrace hheadDrop hlastDrop
+  omega
+
+theorem accepting_derivationTrace_suffix_terminalCount_add_increase_eq_target_length_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialTerminalCount (trace.get ⟨i, hi⟩) +
+        traceTerminalIncreaseCount (trace.drop i) =
+      w.length := by
+  have h :=
+    derivationTrace_suffix_terminalCount_add_increase_eq_last_of_isNormalForm
+      (g := g) hNF htrace hlast hi
+  simpa using h
+
+theorem accepting_derivationTrace_suffix_terminalIncreaseCount_le_target_length_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    traceTerminalIncreaseCount (trace.drop i) ≤ w.length := by
+  have h :=
+    accepting_derivationTrace_suffix_terminalCount_add_increase_eq_target_length_of_isNormalForm
+      (g := g) hNF htrace hlast hi
+  omega
+
+theorem derivationTrace_suffix_nonterminal_balance_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {last : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some last)
+    {i : ℕ} (hi : i < trace.length) :
+    sententialNonterminalCount last +
+        traceNonterminalDecreaseCount (trace.drop i) =
+      sententialNonterminalCount (trace.get ⟨i, hi⟩) +
+        traceNonterminalIncreaseCount (trace.drop i) := by
+  have hdropTrace := isDerivationTrace_drop htrace i
+  have hheadDrop := trace_drop_head?_eq_get (g := g) hi
+  have hlastDrop : (trace.drop i).getLast? = some last := by
+    rw [trace_drop_getLast?_eq_getLast? (g := g) hi, hlast]
+  exact isDerivationTrace_nonterminal_balance_of_isNormalForm
+    hNF hdropTrace hheadDrop hlastDrop
+
+theorem accepting_derivationTrace_suffix_nonterminalDecreaseCount_eq_terminalIncreaseCount_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace) (i : ℕ) :
+    traceNonterminalDecreaseCount (trace.drop i) =
+      traceTerminalIncreaseCount (trace.drop i) := by
+  have hdropTrace := isDerivationTrace_drop htrace i
+  exact (isDerivationTrace_terminalIncreaseCount_eq_nonterminalDecreaseCount_of_isNormalForm
+    hNF hdropTrace).symm
+
+theorem accepting_derivationTrace_suffix_nonterminalCount_add_increase_eq_terminalIncreaseCount_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialNonterminalCount (trace.get ⟨i, hi⟩) +
+        traceNonterminalIncreaseCount (trace.drop i) =
+      traceTerminalIncreaseCount (trace.drop i) := by
+  have hbalance :=
+    derivationTrace_suffix_nonterminal_balance_of_isNormalForm
+      (g := g) hNF htrace hlast hi
+  have hdec :=
+    accepting_derivationTrace_suffix_nonterminalDecreaseCount_eq_terminalIncreaseCount_of_isNormalForm
+      (g := g) hNF htrace i
+  simpa [hdec] using hbalance.symm
+
+theorem accepting_derivationTrace_suffix_nonterminalIncreaseCount_le_target_length_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    traceNonterminalIncreaseCount (trace.drop i) ≤ w.length := by
+  have hnt :=
+    accepting_derivationTrace_suffix_nonterminalCount_add_increase_eq_terminalIncreaseCount_of_isNormalForm
+      (g := g) hNF htrace hlast hi
+  have hterm :=
+    accepting_derivationTrace_suffix_terminalIncreaseCount_le_target_length_of_isNormalForm
+      (g := g) hNF htrace hlast hi
+  omega
+
+theorem accepting_derivationTrace_get_terminalCount_eq_terminalIncreaseCountUpTo_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    {i : ℕ} (hi : i < trace.length) :
+    sententialTerminalCount (trace.get ⟨i, hi⟩) =
+      traceTerminalIncreaseCountUpTo i trace := by
+  have hcount :=
+    isDerivationTrace_get_terminalCount_eq_head_add_terminalIncreaseCountUpTo_of_isNormalForm
+      hNF htrace hhead hi
+  simpa using hcount
+
+theorem accepting_derivationTrace_get_nonterminal_balanceUpTo_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    {i : ℕ} (hi : i < trace.length) :
+    sententialNonterminalCount (trace.get ⟨i, hi⟩) +
+        traceNonterminalDecreaseCountUpTo i trace =
+      1 + traceNonterminalIncreaseCountUpTo i trace := by
+  have hbalance :=
+    isDerivationTrace_get_nonterminal_balanceUpTo_of_isNormalForm
+      hNF htrace hhead hi
+  simpa using hbalance
+
+theorem accepting_derivationTrace_get_length_eq_succ_nonterminalIncreaseCountUpTo_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    {i : ℕ} (hi : i < trace.length) :
+    (trace.get ⟨i, hi⟩).length =
+      traceNonterminalIncreaseCountUpTo i trace + 1 := by
+  have hterm :=
+    accepting_derivationTrace_get_terminalCount_eq_terminalIncreaseCountUpTo_of_isNormalForm
+      hNF htrace hhead hi
+  have hbalance :=
+    accepting_derivationTrace_get_nonterminal_balanceUpTo_of_isNormalForm
+      hNF htrace hhead hi
+  have htd :=
+    isDerivationTrace_terminalIncreaseCountUpTo_eq_nonterminalDecreaseCountUpTo_of_isNormalForm
+      hNF htrace i
+  have hlen :=
+    sententialTerminalCount_add_nonterminalCount (trace.get ⟨i, hi⟩)
+  omega
+
+theorem isDerivationTrace_get_maxStackHeight_le_head_add_pushStepCountUpTo_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i : ℕ} (hi : i < trace.length) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤
+      sententialMaxStackHeight first + tracePushStepCountUpTo i trace := by
+  induction i generalizing trace first with
+  | zero =>
+      cases trace with
+      | nil =>
+          simp at hi
+      | cons a rest =>
+          have hfirst : a = first := by simpa using hhead
+          subst first
+          simp
+  | succ i ih =>
+      cases trace with
+      | nil =>
+          simp at hi
+      | cons a rest =>
+          cases rest with
+          | nil =>
+              simp at hi
+          | cons b rest =>
+              simp only [isDerivationTrace_cons_cons] at htrace
+              have hi_tail : i < (b :: rest).length := by simpa using hi
+              have hget :
+                  (a :: b :: rest).get ⟨i + 1, hi⟩ =
+                    (b :: rest).get ⟨i, hi_tail⟩ := by
+                simp
+              have ih_tail :=
+                ih (trace := b :: rest) (first := b) htrace.2 (by simp) hi_tail
+              have hstep :=
+                transforms_maxStackHeight_le_add_pushIndicator_of_isNormalForm
+                  hNF htrace.1
+              have hfirst : a = first := by simpa using hhead
+              subst first
+              rw [tracePushStepCountUpTo_succ_cons_cons, hget]
+              by_cases hpush : TransformIsObservablePush a b
+              · rw [if_pos hpush]
+                have hstep' :
+                    sententialMaxStackHeight b ≤ sententialMaxStackHeight a + 1 := by
+                  simpa [hpush] using hstep
+                omega
+              · rw [if_neg hpush]
+                have hstep' :
+                    sententialMaxStackHeight b ≤ sententialMaxStackHeight a := by
+                  simpa [hpush] using hstep
+                omega
+
+theorem accepting_derivationTrace_get_maxStackHeight_le_pushStepCountUpTo_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    {i : ℕ} (hi : i < trace.length) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤
+      tracePushStepCountUpTo i trace := by
+  have h :=
+    isDerivationTrace_get_maxStackHeight_le_head_add_pushStepCountUpTo_of_isNormalForm
+      hNF htrace hhead hi
+  simpa using h
+
+theorem isDerivationTrace_get_maxStackHeight_le_head_add_pushStepCount_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i : ℕ} (hi : i < trace.length) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤
+      sententialMaxStackHeight first + tracePushStepCount trace := by
+  have hprefix :=
+    isDerivationTrace_get_maxStackHeight_le_head_add_pushStepCountUpTo_of_isNormalForm
+      hNF htrace hhead hi
+  have hle := tracePushStepCountUpTo_le_tracePushStepCount (g := g) i trace
+  omega
+
+theorem accepting_derivationTrace_get_maxStackHeight_le_pushStepCount_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    {i : ℕ} (hi : i < trace.length) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤
+      tracePushStepCount trace := by
+  have h :=
+    isDerivationTrace_get_maxStackHeight_le_head_add_pushStepCount_of_isNormalForm
+      hNF htrace hhead hi
+  simpa using h
+
+theorem accepting_derivationTrace_get_maxStackHeight_le_stackHeightDecrease_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤
+      traceStackHeightDecrease trace := by
+  have hheight :=
+    accepting_derivationTrace_get_maxStackHeight_le_pushStepCount_of_isNormalForm
+      hNF htrace hhead hi
+  have hpush :=
+    accepting_derivationTrace_pushStepCount_le_stackHeightDecrease
+      (g := g) (trace := trace) (w := w) hhead hlast
+  omega
+
+theorem accepting_derivationTrace_get_maxStackHeight_le_pop_add_terminalErase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤
+      tracePopStepCount trace + traceTerminalEraseStackHeight trace := by
+  have hheight :=
+    accepting_derivationTrace_get_maxStackHeight_le_stackHeightDecrease_of_isNormalForm
+      hNF htrace hhead hlast hi
+  have hdec :=
+    isDerivationTrace_stackHeightDecrease_eq_pop_add_terminalErase_of_isNormalForm
+      hNF htrace
+  omega
+
+theorem accepting_derivationTrace_terminalIncreaseCountUpTo_le_target_length_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} (i : ℕ)
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    traceTerminalIncreaseCountUpTo i trace ≤ w.length := by
+  have hle := traceTerminalIncreaseCountUpTo_le_traceTerminalIncreaseCount
+    (g := g) i trace
+  have htotal :=
+    accepting_derivationTrace_terminalIncreaseCount_eq_target_length_of_isNormalForm
+      hNF htrace hhead hlast
+  omega
+
+theorem accepting_derivationTrace_nonterminalIncreaseCountUpTo_succ_le_target_length_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} (i : ℕ)
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    traceNonterminalIncreaseCountUpTo i trace + 1 ≤ w.length := by
+  have hle := traceNonterminalIncreaseCountUpTo_le_traceNonterminalIncreaseCount
+    (g := g) i trace
+  have htotal :=
+    accepting_derivationTrace_nonterminalIncreaseCount_succ_eq_target_length_of_isNormalForm
+      hNF htrace hhead hlast
+  omega
+
+theorem accepting_derivationTrace_nonterminalDecreaseCountUpTo_le_target_length_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} (i : ℕ)
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal)) :
+    traceNonterminalDecreaseCountUpTo i trace ≤ w.length := by
+  have hle := traceNonterminalDecreaseCountUpTo_le_traceNonterminalDecreaseCount
+    (g := g) i trace
+  have htotal_term :=
+    accepting_derivationTrace_terminalIncreaseCount_eq_target_length_of_isNormalForm
+      hNF htrace hhead hlast
+  have htotal_eq :=
+    isDerivationTrace_terminalIncreaseCount_eq_nonterminalDecreaseCount_of_isNormalForm
+      hNF htrace
+  omega
+
+theorem accepting_derivesIn_exists_derivationTrace_with_counts_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal)) :
+    ∃ trace,
+      IsDerivationTrace g trace ∧ trace.length = n + 1 ∧
+        trace.head? = some [ISym.indexed g.initial []] ∧
+        trace.getLast? = some (w.map ISym.terminal) ∧
+        traceTerminalIncreaseCount trace = w.length ∧
+        traceNonterminalIncreaseCount trace + 1 = w.length := by
+  obtain ⟨trace, htrace, hlen, hhead, hlast⟩ :=
+    exists_isDerivationTrace_of_derivesIn h
+  exact ⟨trace, htrace, hlen, hhead, hlast,
+    accepting_derivationTrace_terminalIncreaseCount_eq_target_length_of_isNormalForm
+      hNF htrace hhead hlast,
+    accepting_derivationTrace_nonterminalIncreaseCount_succ_eq_target_length_of_isNormalForm
+      hNF htrace hhead hlast⟩
+
 theorem accepting_derivationTrace_get_length_le_target_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {trace : List (List g.ISym)} {w : List T}
@@ -1442,6 +5781,105 @@ theorem accepting_surfaceTrace_get_mem_boundedSurfaceForms_of_isNormalForm
   exact accepting_derivationTrace_get_surface_mem_boundedSurfaceForms_of_isNormalForm
     hNF htrace hlast hi
 
+theorem accepting_derivationTrace_get_surface_mem_boundedSurfaceForms_of_isNormalForm_lengthBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {L B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    {i : ℕ} (hi : i < trace.length) :
+    surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) ∈
+      boundedSurfaceForms g L B := by
+  apply surfaceOfTruncatedForm_mem_boundedSurfaceForms
+  exact le_trans
+    (accepting_derivationTrace_get_length_le_target_of_isNormalForm hNF htrace hlast hi)
+    hwlen
+
+theorem accepting_surfaceTrace_get_mem_boundedSurfaceForms_of_isNormalForm_lengthBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {L B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (i : Fin (surfaceTrace B trace).length) :
+    (surfaceTrace B trace).get i ∈ boundedSurfaceForms g L B := by
+  have hi : i.1 < trace.length := by
+    simpa using i.2
+  rw [surfaceTrace_get B trace hi]
+  exact accepting_derivationTrace_get_surface_mem_boundedSurfaceForms_of_isNormalForm_lengthBound
+    hNF htrace hlast hwlen hi
+
+theorem accepting_derivationTrace_get_surface_mem_targetCompatibleBoundedSurfaceForms
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) ∈
+      targetCompatibleBoundedSurfaceForms g w B := by
+  apply surfaceOfTruncatedForm_mem_targetCompatibleBoundedSurfaceForms
+  · exact accepting_derivationTrace_get_length_le_target_of_isNormalForm hNF htrace hlast hi
+  · have hsuffix :=
+      isDerivationTrace_derivesIn_get_to_last (g := g) htrace hlast hi
+    have hsub := derivesIn_sententialTerminals_sublist (g := g) hsuffix
+    simpa using hsub
+
+theorem accepting_surfaceTrace_get_mem_targetCompatibleBoundedSurfaceForms
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (i : Fin (surfaceTrace B trace).length) :
+    (surfaceTrace B trace).get i ∈ targetCompatibleBoundedSurfaceForms g w B := by
+  have hi : i.1 < trace.length := by
+    simpa using i.2
+  rw [surfaceTrace_get B trace hi]
+  exact accepting_derivationTrace_get_surface_mem_targetCompatibleBoundedSurfaceForms
+    hNF htrace hlast hi
+
+theorem accepting_derivationTrace_exists_surface_repeat_of_card_lt_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {L B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hcard :
+      (Set.Finite.toFinset (boundedSurfaceForms_finite g L B)).card <
+        trace.length) :
+    ∃ i j : Fin trace.length, i < j ∧
+      surfaceOfTruncatedForm B (trace.get i) =
+        surfaceOfTruncatedForm B (trace.get j) := by
+  have hcard' :
+      (Set.Finite.toFinset (boundedSurfaceForms_finite g L B)).card <
+        (surfaceTrace B trace).length := by
+    simpa using hcard
+  rcases List.exists_get_eq_of_finite_set_card_lt_length
+      (xs := surfaceTrace B trace)
+      (boundedSurfaceForms g L B)
+      (boundedSurfaceForms_finite g L B)
+      (fun i =>
+        accepting_surfaceTrace_get_mem_boundedSurfaceForms_of_isNormalForm_lengthBound
+          hNF htrace hlast hwlen i)
+      hcard' with ⟨i, j, hij, hget⟩
+  let i' : Fin trace.length := ⟨i.1, by simpa using i.2⟩
+  let j' : Fin trace.length := ⟨j.1, by simpa using j.2⟩
+  have hi : i.1 < trace.length := i'.2
+  have hj : j.1 < trace.length := j'.2
+  have hget' :
+      (surfaceTrace B trace).get ⟨i.1, by simpa using hi⟩ =
+        (surfaceTrace B trace).get ⟨j.1, by simpa using hj⟩ := by
+    simpa using hget
+  have hsurface :
+      surfaceOfTruncatedForm B (trace.get ⟨i.1, hi⟩) =
+        surfaceOfTruncatedForm B (trace.get ⟨j.1, hj⟩) := by
+    rw [surfaceTrace_get B trace hi] at hget'
+    rw [surfaceTrace_get B trace hj] at hget'
+    exact hget'
+  refine ⟨i', j', ?_, ?_⟩
+  · exact hij
+  · exact hsurface
+
 theorem accepting_derivationTrace_exists_surface_repeat_of_card_lt_length
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
     [DecidableEq g.nt] (hNF : g.IsNormalForm)
@@ -1464,6 +5902,48 @@ theorem accepting_derivationTrace_exists_surface_repeat_of_card_lt_length
       (boundedSurfaceForms_finite g w.length B)
       (fun i =>
         accepting_surfaceTrace_get_mem_boundedSurfaceForms_of_isNormalForm
+          hNF htrace hlast i)
+      hcard' with ⟨i, j, hij, hget⟩
+  let i' : Fin trace.length := ⟨i.1, by simpa using i.2⟩
+  let j' : Fin trace.length := ⟨j.1, by simpa using j.2⟩
+  have hi : i.1 < trace.length := i'.2
+  have hj : j.1 < trace.length := j'.2
+  have hget' :
+      (surfaceTrace B trace).get ⟨i.1, by simpa using hi⟩ =
+        (surfaceTrace B trace).get ⟨j.1, by simpa using hj⟩ := by
+    simpa using hget
+  have hsurface :
+      surfaceOfTruncatedForm B (trace.get ⟨i.1, hi⟩) =
+        surfaceOfTruncatedForm B (trace.get ⟨j.1, hj⟩) := by
+    rw [surfaceTrace_get B trace hi] at hget'
+    rw [surfaceTrace_get B trace hj] at hget'
+    exact hget'
+  refine ⟨i', j', ?_, ?_⟩
+  · exact hij
+  · exact hsurface
+
+theorem accepting_derivationTrace_exists_targetCompatible_surface_repeat_of_card_lt_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hcard :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card <
+        trace.length) :
+    ∃ i j : Fin trace.length, i < j ∧
+      surfaceOfTruncatedForm B (trace.get i) =
+        surfaceOfTruncatedForm B (trace.get j) := by
+  have hcard' :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card <
+        (surfaceTrace B trace).length := by
+    simpa using hcard
+  rcases List.exists_get_eq_of_finite_set_card_lt_length
+      (xs := surfaceTrace B trace)
+      (targetCompatibleBoundedSurfaceForms g w B)
+      (targetCompatibleBoundedSurfaceForms_finite g w B)
+      (fun i =>
+        accepting_surfaceTrace_get_mem_targetCompatibleBoundedSurfaceForms
           hNF htrace hlast i)
       hcard' with ⟨i, j, hij, hget⟩
   let i' : Fin trace.length := ⟨i.1, by simpa using i.2⟩
@@ -1520,6 +6000,401 @@ theorem minimal_accepting_derivationTrace_length_le_boundedSententialForms_card_
   exact accepting_derivationTrace_length_le_boundedSententialForms_card_of_stackBound
     hNF htrace hlast hnodup hstack
 
+/-- Length-uniform version of the bounded-surface pigeonhole bound. If the accepted word has
+length at most `L`, then a shortest stack-bounded accepting trace is bounded by the finite
+surface space with length parameter `L`, independent of the particular target word. -/
+theorem minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T} {L B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    (hwlen : w.length ≤ L)
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) :
+    trace.length ≤
+      (Set.Finite.toFinset (boundedSurfaceForms_finite g L B)).card := by
+  apply le_of_not_gt
+  intro hcard
+  obtain ⟨i, j, hij, hsurface⟩ :=
+    accepting_derivationTrace_exists_surface_repeat_of_card_lt_lengthBound
+      hNF htrace hlast hwlen hcard
+  have hactual : trace.get i = trace.get j := by
+    have hi_eq :
+        eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get i)) = trace.get i :=
+      eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+        (hstack i.1 i.2)
+    have hj_eq :
+        eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get j)) = trace.get j :=
+      eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+        (hstack j.1 j.2)
+    have herase := congrArg eraseSurfaceForm hsurface
+    rwa [hi_eq, hj_eq] at herase
+  have hnodup := minimal_derivationTrace_nodup htrace hlen hhead hlast hmin
+  have hij_eq : i = j := (List.Nodup.get_inj_iff hnodup).mp hactual
+  exact (ne_of_lt hij) hij_eq
+
+/-- A shortest accepting derivation whose stacks are bounded by `B` has no more steps than
+there are bounded visible-stack surface forms of target length `|w|`.
+
+This is the same pigeonhole argument as the full sentential-form bound, but expressed on the
+finite surface alphabet. A repeated bounded surface would erase back to a repeated actual
+sentential form because all actual stacks are already below `B`, contradicting minimality. -/
+theorem minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_stackBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) :
+    trace.length ≤
+      (Set.Finite.toFinset (boundedSurfaceForms_finite g w.length B)).card := by
+  apply le_of_not_gt
+  intro hcard
+  obtain ⟨i, j, hij, hsurface⟩ :=
+    accepting_derivationTrace_exists_surface_repeat_of_card_lt_length
+      hNF htrace hlast hcard
+  have hactual : trace.get i = trace.get j := by
+    have hi_eq :
+        eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get i)) = trace.get i :=
+      eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+        (hstack i.1 i.2)
+    have hj_eq :
+        eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get j)) = trace.get j :=
+      eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+        (hstack j.1 j.2)
+    have herase := congrArg eraseSurfaceForm hsurface
+    rwa [hi_eq, hj_eq] at herase
+  have hnodup := minimal_derivationTrace_nodup htrace hlen hhead hlast hmin
+  have hij_eq : i = j := (List.Nodup.get_inj_iff hnodup).mp hactual
+  exact (ne_of_lt hij) hij_eq
+
+/-- Target-compatible version of the bounded-surface pigeonhole bound. The finite set includes
+only surfaces whose visible terminal yield is a sublist of the accepted word. -/
+theorem minimal_accepting_derivationTrace_length_le_targetCompatibleBoundedSurfaceForms_card_of_stackBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) :
+    trace.length ≤
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card := by
+  apply le_of_not_gt
+  intro hcard
+  obtain ⟨i, j, hij, hsurface⟩ :=
+    accepting_derivationTrace_exists_targetCompatible_surface_repeat_of_card_lt_length
+      hNF htrace hlast hcard
+  have hactual : trace.get i = trace.get j := by
+    have hi_eq :
+        eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get i)) = trace.get i :=
+      eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+        (hstack i.1 i.2)
+    have hj_eq :
+        eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get j)) = trace.get j :=
+      eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+        (hstack j.1 j.2)
+    have herase := congrArg eraseSurfaceForm hsurface
+    rwa [hi_eq, hj_eq] at herase
+  have hnodup := minimal_derivationTrace_nodup htrace hlen hhead hlast hmin
+  have hij_eq : i = j := (List.Nodup.get_inj_iff hnodup).mp hactual
+  exact (ne_of_lt hij) hij_eq
+
+theorem accepting_derivationTrace_length_le_boundedSententialForms_card_of_pushCount
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hnodup : trace.Nodup) :
+    trace.length ≤
+      (Set.Finite.toFinset
+        (boundedSententialForms_finite g w.length (tracePushStepCount trace))).card := by
+  apply accepting_derivationTrace_length_le_boundedSententialForms_card_of_stackBound
+    hNF htrace hlast hnodup
+  intro i hi
+  exact accepting_derivationTrace_get_maxStackHeight_le_pushStepCount_of_isNormalForm
+    hNF htrace hhead hi
+
+theorem minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_pushCount
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) :
+    trace.length ≤
+      (Set.Finite.toFinset
+        (boundedSurfaceForms_finite g w.length (tracePushStepCount trace))).card := by
+  apply minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_stackBound
+    hNF htrace hlen hhead hlast hmin
+  intro i hi
+  exact accepting_derivationTrace_get_maxStackHeight_le_pushStepCount_of_isNormalForm
+    hNF htrace hhead hi
+
+theorem minimal_accepting_derivationTrace_length_le_targetCompatibleBoundedSurfaceForms_card_of_pushCount
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) :
+    trace.length ≤
+      (Set.Finite.toFinset
+        (targetCompatibleBoundedSurfaceForms_finite g w (tracePushStepCount trace))).card := by
+  apply minimal_accepting_derivationTrace_length_le_targetCompatibleBoundedSurfaceForms_card_of_stackBound
+    hNF htrace hlen hhead hlast hmin
+  intro i hi
+  exact accepting_derivationTrace_get_maxStackHeight_le_pushStepCount_of_isNormalForm
+    hNF htrace hhead hi
+
+theorem exists_minimal_accepting_derivationTrace_with_targetCompatibleSurface_bound_of_pushCount
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {w : List T}
+    (hgen : g.Generates w) :
+    ∃ n trace,
+      IsDerivationTrace g trace ∧
+        trace.length = n + 1 ∧
+        trace.head? = some [ISym.indexed g.initial []] ∧
+        trace.getLast? = some (w.map ISym.terminal) ∧
+        g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal) ∧
+        (∀ m,
+          g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) ∧
+        n <
+          (Set.Finite.toFinset
+            (targetCompatibleBoundedSurfaceForms_finite g w (tracePushStepCount trace))).card := by
+  obtain ⟨n, hder, hmin⟩ := exists_minimal_derivesIn_of_generates (g := g) hgen
+  obtain ⟨trace, htrace, hlen, hhead, hlast⟩ :=
+    exists_isDerivationTrace_of_derivesIn hder
+  have hbound :=
+    minimal_accepting_derivationTrace_length_le_targetCompatibleBoundedSurfaceForms_card_of_pushCount
+      hNF htrace hlen hhead hlast hmin
+  refine ⟨n, trace, htrace, hlen, hhead, hlast, hder, hmin, ?_⟩
+  omega
+
+/-- Counted-derivation version of
+`minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_stackBound`. -/
+theorem minimal_accepting_derivesIn_steps_succ_le_boundedSurfaceForms_card_of_stackBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    {B : ℕ}
+    (hstack : ∀ i x,
+      DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+        sententialMaxStackHeight x ≤ B) :
+    n + 1 ≤
+      (Set.Finite.toFinset (boundedSurfaceForms_finite g w.length B)).card := by
+  obtain ⟨trace, htrace, hlen, hhead, hlast⟩ :=
+    exists_isDerivationTrace_of_derivesIn h
+  have hbound :=
+    minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_stackBound
+      (B := B) hNF htrace hlen hhead hlast hmin ?_
+  · simpa [hlen] using hbound
+  · intro i hi
+    have hi_le : i ≤ n := by omega
+    exact hstack i (trace.get ⟨i, hi⟩)
+      (isDerivationTrace_get_intermediate htrace hlen hhead hlast hi_le)
+
+/-- A shortest accepting derivation with stacks bounded by `B` uses strictly fewer steps than
+the finite bounded-surface search space. -/
+theorem minimal_accepting_derivesIn_steps_lt_boundedSurfaceForms_card_of_stackBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    {B : ℕ}
+    (hstack : ∀ i x,
+      DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+        sententialMaxStackHeight x ≤ B) :
+    n < (Set.Finite.toFinset (boundedSurfaceForms_finite g w.length B)).card := by
+  have hsucc :=
+    minimal_accepting_derivesIn_steps_succ_le_boundedSurfaceForms_card_of_stackBound
+      hNF h hmin hstack
+  omega
+
+/-- Counted-derivation version of the target-compatible bounded-surface trace bound. -/
+theorem minimal_accepting_derivesIn_steps_succ_le_targetCompatibleBoundedSurfaceForms_card_of_stackBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    {B : ℕ}
+    (hstack : ∀ i x,
+      DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+        sententialMaxStackHeight x ≤ B) :
+    n + 1 ≤
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card := by
+  obtain ⟨trace, htrace, hlen, hhead, hlast⟩ :=
+    exists_isDerivationTrace_of_derivesIn h
+  have hbound :=
+    minimal_accepting_derivationTrace_length_le_targetCompatibleBoundedSurfaceForms_card_of_stackBound
+      (B := B) hNF htrace hlen hhead hlast hmin ?_
+  · simpa [hlen] using hbound
+  · intro i hi
+    have hi_le : i ≤ n := by omega
+    exact hstack i (trace.get ⟨i, hi⟩)
+      (isDerivationTrace_get_intermediate htrace hlen hhead hlast hi_le)
+
+/-- A shortest accepting derivation with stacks bounded by `B` uses fewer steps than the
+target-compatible finite bounded-surface search space. -/
+theorem minimal_accepting_derivesIn_steps_lt_targetCompatibleBoundedSurfaceForms_card_of_stackBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {w : List T}
+    (h : g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    {B : ℕ}
+    (hstack : ∀ i x,
+      DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+        sententialMaxStackHeight x ≤ B) :
+    n < (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card := by
+  have hsucc :=
+    minimal_accepting_derivesIn_steps_succ_le_targetCompatibleBoundedSurfaceForms_card_of_stackBound
+      hNF h hmin hstack
+  omega
+
+/-- Counted-derivation version of the length-uniform bounded-surface trace bound. -/
+theorem minimal_accepting_derivesIn_steps_succ_le_boundedSurfaceForms_card_of_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {w : List T} {L : ℕ}
+    (h : g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    (hwlen : w.length ≤ L)
+    {B : ℕ}
+    (hstack : ∀ i x,
+      DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+        sententialMaxStackHeight x ≤ B) :
+    n + 1 ≤
+      (Set.Finite.toFinset (boundedSurfaceForms_finite g L B)).card := by
+  obtain ⟨trace, htrace, hlen, hhead, hlast⟩ :=
+    exists_isDerivationTrace_of_derivesIn h
+  have hbound :=
+    minimal_accepting_derivationTrace_length_le_boundedSurfaceForms_card_of_stackBound_lengthBound
+      (B := B) hNF htrace hlen hhead hlast hmin hwlen ?_
+  · simpa [hlen] using hbound
+  · intro i hi
+    have hi_le : i ≤ n := by omega
+    exact hstack i (trace.get ⟨i, hi⟩)
+      (isDerivationTrace_get_intermediate htrace hlen hhead hlast hi_le)
+
+/-- A shortest accepting derivation with stacks bounded by `B` uses strictly fewer steps than
+the finite bounded-surface search space for any length bound `L` on the target word. -/
+theorem minimal_accepting_derivesIn_steps_lt_boundedSurfaceForms_card_of_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {w : List T} {L : ℕ}
+    (h : g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    (hwlen : w.length ≤ L)
+    {B : ℕ}
+    (hstack : ∀ i x,
+      DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+        sententialMaxStackHeight x ≤ B) :
+    n < (Set.Finite.toFinset (boundedSurfaceForms_finite g L B)).card := by
+  have hsucc :=
+    minimal_accepting_derivesIn_steps_succ_le_boundedSurfaceForms_card_of_stackBound_lengthBound
+      hNF h hmin hwlen hstack
+  omega
+
+/-- Generated-word version of the length-uniform bounded-surface finite-search witness. -/
+theorem exists_minimal_accepting_derivesIn_steps_lt_boundedSurfaceForms_card_of_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {w : List T} {L B : ℕ}
+    (hgen : g.Generates w)
+    (hwlen : w.length ≤ L)
+    (hstack : ∀ n,
+      g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal) →
+      (∀ m, g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) →
+      ∀ i x,
+        DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+          sententialMaxStackHeight x ≤ B) :
+    ∃ n,
+      g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal) ∧
+      (∀ m,
+        g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) ∧
+      n < (Set.Finite.toFinset (boundedSurfaceForms_finite g L B)).card := by
+  obtain ⟨n, hder, hmin⟩ := exists_minimal_derivesIn_of_generates (g := g) hgen
+  exact ⟨n, hder, hmin,
+    minimal_accepting_derivesIn_steps_lt_boundedSurfaceForms_card_of_stackBound_lengthBound
+      hNF hder hmin hwlen (hstack n hder hmin)⟩
+
+/-- Generated-word version of the bounded-surface finite-search witness. Once a stack bound is
+known for the chosen shortest accepting derivation, the accepting derivation can be searched for
+below the finite bounded-surface cardinal. -/
+theorem exists_minimal_accepting_derivesIn_steps_lt_boundedSurfaceForms_card_of_stackBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {w : List T} {B : ℕ}
+    (hgen : g.Generates w)
+    (hstack : ∀ n,
+      g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal) →
+      (∀ m, g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) →
+      ∀ i x,
+        DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+          sententialMaxStackHeight x ≤ B) :
+    ∃ n,
+      g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal) ∧
+      (∀ m,
+        g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) ∧
+      n < (Set.Finite.toFinset (boundedSurfaceForms_finite g w.length B)).card := by
+  obtain ⟨n, hder, hmin⟩ := exists_minimal_derivesIn_of_generates (g := g) hgen
+  exact ⟨n, hder, hmin,
+    minimal_accepting_derivesIn_steps_lt_boundedSurfaceForms_card_of_stackBound
+      hNF hder hmin (hstack n hder hmin)⟩
+
+/-- Generated-word version of the target-compatible bounded-surface finite-search witness. -/
+theorem exists_minimal_accepting_derivesIn_steps_lt_targetCompatibleBoundedSurfaceForms_card_of_stackBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {w : List T} {B : ℕ}
+    (hgen : g.Generates w)
+    (hstack : ∀ n,
+      g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal) →
+      (∀ m, g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) →
+      ∀ i x,
+        DerivesInIntermediate g n [ISym.indexed g.initial []] (w.map ISym.terminal) i x →
+          sententialMaxStackHeight x ≤ B) :
+    ∃ n,
+      g.DerivesIn n [ISym.indexed g.initial []] (w.map ISym.terminal) ∧
+      (∀ m,
+        g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m) ∧
+      n < (Set.Finite.toFinset
+        (targetCompatibleBoundedSurfaceForms_finite g w B)).card := by
+  obtain ⟨n, hder, hmin⟩ := exists_minimal_derivesIn_of_generates (g := g) hgen
+  exact ⟨n, hder, hmin,
+    minimal_accepting_derivesIn_steps_lt_targetCompatibleBoundedSurfaceForms_card_of_stackBound
+      hNF hder hmin (hstack n hder hmin)⟩
+
 theorem accepting_derivesInIntermediate_length_le_target_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {n i : ℕ} {w : List T} {x : List g.ISym}
@@ -1548,6 +6423,23 @@ theorem accepting_derivesInIntermediate_mem_boundedSententialForms_of_isNormalFo
   exact ⟨accepting_derivesInIntermediate_length_le_target_of_isNormalForm hNF hmid,
     le_trans (accepting_derivesInIntermediate_maxStackHeight_le_index_of_isNormalForm hNF hmid)
       hmid.1⟩
+
+theorem accepting_derivesInIntermediate_sententialTerminals_sublist_target
+    {g : IndexedGrammar T} {n i : ℕ} {w : List T} {x : List g.ISym}
+    (hmid : DerivesInIntermediate g n [ISym.indexed g.initial []]
+      (w.map ISym.terminal) i x) :
+    (sententialTerminals x).Sublist w := by
+  have hsub := derivesIn_sententialTerminals_sublist (g := g) hmid.2.2
+  simpa using hsub
+
+theorem accepting_derivesInIntermediate_terminalCount_le_target
+    {g : IndexedGrammar T} {n i : ℕ} {w : List T} {x : List g.ISym}
+    (hmid : DerivesInIntermediate g n [ISym.indexed g.initial []]
+      (w.map ISym.terminal) i x) :
+    sententialTerminalCount x ≤ w.length := by
+  have hsub := accepting_derivesInIntermediate_sententialTerminals_sublist_target
+    (g := g) hmid
+  simpa using hsub.length_le
 
 /-- If a shortest accepting derivation has all intermediate stack heights bounded by `B`, then
 its step count is bounded by the finite set of sentential forms with length at most the target
@@ -1605,6 +6497,20 @@ theorem exists_minimal_accepting_derivesIn_with_boundedSententialForms_card
   obtain ⟨n, hder, hmin⟩ := exists_minimal_derivesIn_of_generates (g := g) hgen
   exact ⟨n, hder, hmin, generated_length_le_derivesIn_steps_of_isNormalForm hNF hder,
     minimal_accepting_derivesIn_steps_succ_le_boundedSententialForms_card hNF hder hmin⟩
+
+theorem intermediate_sententialTerminals_sublist_target {g : IndexedGrammar T}
+    {x : List g.ISym} {w : List T}
+    (hsuffix : g.Derives x (w.map ISym.terminal)) :
+    (sententialTerminals x).Sublist w := by
+  have hsub := derives_sententialTerminals_sublist (g := g) hsuffix
+  simpa using hsub
+
+theorem intermediate_terminalCount_le_target {g : IndexedGrammar T}
+    {x : List g.ISym} {w : List T}
+    (hsuffix : g.Derives x (w.map ISym.terminal)) :
+    sententialTerminalCount x ≤ w.length := by
+  have hsub := intermediate_sententialTerminals_sublist_target (g := g) hsuffix
+  simpa using hsub.length_le
 
 /-- In an accepting derivation of a no-ε grammar, every intermediate sentential form on the
 chosen suffix has length at most the target word. -/
