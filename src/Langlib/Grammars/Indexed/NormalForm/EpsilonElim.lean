@@ -715,6 +715,117 @@ theorem exists_nullableRhsSublist_derives_to_terminals_parts {g : IndexedGrammar
               | cons a wh =>
                   exact hkeep (by simp)
 
+/-- Counted branch-wise RHS pruning.  Besides deleting nullable RHS nonterminals, this
+records a counted terminal yield for every kept symbol, and the kept budgets together do not
+exceed the original derivation budget. -/
+theorem exists_nullableRhsSublist_derivesIn_to_terminals_parts {g : IndexedGrammar T}
+    {n : ℕ} {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag} {w : List T}
+    (hder : g.DerivesIn n (g.expandRhs rhs σ)
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ kept : List (IRhsSymbol T g.nt g.flag), ∃ parts : List (ℕ × List T),
+      NullableRhsSublist g σ rhs kept ∧
+        w = parts.flatMap (fun p => p.2) ∧
+        (parts.map fun p => p.1).sum ≤ n ∧
+        List.Forall₂
+          (fun s p =>
+            p.2 ≠ [] ∧
+              g.DerivesIn p.1 (g.expandRhs [s] σ)
+                (p.2.map fun a => (ISym.terminal a : g.ISym)))
+          kept parts := by
+  induction rhs generalizing n w with
+  | nil =>
+      obtain ⟨_hn, htarget⟩ :=
+        derivesIn_nil_left_eq (g := g) (by simpa [expandRhs] using hder)
+      have hw : w = [] := by
+        simpa using htarget
+      subst w
+      exact ⟨[], [], NullableRhsSublist.nil, rfl, by simp, List.Forall₂.nil⟩
+  | cons s rhs ih =>
+      have hsource :
+          g.DerivesIn n (g.expandRhs [s] σ ++ g.expandRhs rhs σ)
+            (w.map fun a => (ISym.terminal a : g.ISym)) := by
+        simpa [expandRhs] using hder
+      rcases derivesIn_append_to_terminals_split
+          (g := g) (u := g.expandRhs [s] σ) (v := g.expandRhs rhs σ)
+          hsource with
+        ⟨nh, nt, wh, wt, hbudget, hw, hhead, htail⟩
+      subst w
+      rcases ih htail with ⟨kept, parts, hsub, hwt, hparts_budget, hparts⟩
+      have hkeep (hwh : wh ≠ []) :
+          ∃ kept' : List (IRhsSymbol T g.nt g.flag), ∃ parts' : List (ℕ × List T),
+            NullableRhsSublist g σ (s :: rhs) kept' ∧
+              wh ++ wt = parts'.flatMap (fun p => p.2) ∧
+              (parts'.map fun p => p.1).sum ≤ n ∧
+              List.Forall₂
+                (fun s p =>
+                  p.2 ≠ [] ∧
+                    g.DerivesIn p.1 (g.expandRhs [s] σ)
+                      (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                kept' parts' := by
+        refine ⟨s :: kept, (nh, wh) :: parts, NullableRhsSublist.keep s hsub, ?_, ?_, ?_⟩
+        · simp [hwt]
+        · simp
+          omega
+        · exact List.Forall₂.cons ⟨hwh, hhead⟩ hparts
+      cases s with
+      | terminal t =>
+          have hwh : wh ≠ [] := by
+            intro hnil_wh
+            subst wh
+            have hnil : g.Derives ([ISym.terminal t] : List g.ISym) [] :=
+              derives_of_derivesIn (g := g) (by simpa [expandRhs] using hhead)
+            exact not_derives_nil_of_terminal_mem (g := g) (t := t) (by simp) hnil
+          exact hkeep hwh
+      | nonterminal A push =>
+          cases push with
+          | none =>
+              cases wh with
+              | nil =>
+                  have hnullable : g.IsNullable A σ := by
+                    simpa [IsNullable, expandRhs] using
+                      derives_of_derivesIn (g := g) hhead
+                  refine ⟨kept, parts, NullableRhsSublist.drop_none hnullable hsub,
+                    by simp [hwt], ?_, hparts⟩
+                  omega
+              | cons a wh =>
+                  exact hkeep (by simp)
+          | some f =>
+              cases wh with
+              | nil =>
+                  have hnullable : g.IsNullable A (f :: σ) := by
+                    simpa [IsNullable, expandRhs] using
+                      derives_of_derivesIn (g := g) hhead
+                  refine ⟨kept, parts, NullableRhsSublist.drop_some hnullable hsub,
+                    by simp [hwt], ?_, hparts⟩
+                  omega
+              | cons a wh =>
+                  exact hkeep (by simp)
+
+theorem exists_nonempty_nullableRhsSublist_derivesIn_to_terminals_parts
+    {g : IndexedGrammar T}
+    {n : ℕ} {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag} {w : List T}
+    (hder : g.DerivesIn n (g.expandRhs rhs σ)
+      (w.map fun a => (ISym.terminal a : g.ISym))) (hw : w ≠ []) :
+    ∃ kept : List (IRhsSymbol T g.nt g.flag), ∃ parts : List (ℕ × List T),
+      NullableRhsSublist g σ rhs kept ∧
+        kept ≠ [] ∧
+        w = parts.flatMap (fun p => p.2) ∧
+        (parts.map fun p => p.1).sum ≤ n ∧
+        List.Forall₂
+          (fun s p =>
+            p.2 ≠ [] ∧
+              g.DerivesIn p.1 (g.expandRhs [s] σ)
+                (p.2.map fun a => (ISym.terminal a : g.ISym)))
+          kept parts := by
+  obtain ⟨kept, parts, hsub, hflat, hbudget, hparts⟩ :=
+    exists_nullableRhsSublist_derivesIn_to_terminals_parts
+      (g := g) (n := n) (rhs := rhs) (σ := σ) (w := w) hder
+  refine ⟨kept, parts, hsub, ?_, hflat, hbudget, hparts⟩
+  intro hkept
+  subst kept
+  cases hparts
+  exact hw (by simpa using hflat)
+
 /-- One epsilon-pruned step: apply an original rule, but keep only a nonempty RHS sublist
 whose deleted nonterminals are nullable at the stack used by the rule application. -/
 def PrunedTransforms (g : IndexedGrammar T) (w₁ w₂ : List g.ISym) : Prop :=
