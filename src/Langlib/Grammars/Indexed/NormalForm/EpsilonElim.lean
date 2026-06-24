@@ -2,6 +2,7 @@ module
 
 public import Mathlib
 public import Langlib.Grammars.Indexed.Definition
+public import Langlib.Grammars.Indexed.NormalForm.Bounds
 @[expose]
 public section
 
@@ -543,6 +544,99 @@ theorem derives_rule_nullableRhsSublist {g : IndexedGrammar T}
         derives_rule_nullableRhsSublist_some
           (g := g) (r := r) (f := f) (σ := σ) (kept := kept) hr hconsume hsub u v
 
+/-- A derivation whose source sentential form is empty can only end at the empty sentential
+form. -/
+theorem derives_empty_left_eq {g : IndexedGrammar T} {w : List g.ISym}
+    (h : g.Derives ([] : List g.ISym) w) :
+    w = [] := by
+  obtain ⟨n, hn⟩ := exists_derivesIn_of_derives (g := g) h
+  exact (derivesIn_nil_left_eq (g := g) hn).2
+
+/-- If an expanded RHS derives a terminal word, then the same word is derived by some
+sublist obtained by deleting only nullable RHS nonterminals.  Nonempty terminal output keeps
+at least one RHS symbol. -/
+theorem exists_nullableRhsSublist_derives_to_terminals {g : IndexedGrammar T}
+    {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag} {w : List T}
+    (hder : g.Derives (g.expandRhs rhs σ)
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ kept : List (IRhsSymbol T g.nt g.flag),
+      NullableRhsSublist g σ rhs kept ∧
+        g.Derives (g.expandRhs kept σ)
+          (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+        (w ≠ [] → kept ≠ []) := by
+  induction rhs generalizing w with
+  | nil =>
+      have htarget :
+          (w.map fun a => (ISym.terminal a : g.ISym)) = [] :=
+        derives_empty_left_eq (g := g) (by simpa [expandRhs] using hder)
+      have hw : w = [] := by
+        simpa using htarget
+      subst w
+      refine ⟨[], NullableRhsSublist.nil, ?_, ?_⟩
+      · exact g.deri_self []
+      · intro hne
+        exact False.elim (hne rfl)
+  | cons s rhs ih =>
+      have hsource :
+          g.Derives (g.expandRhs [s] σ ++ g.expandRhs rhs σ)
+            (w.map fun a => (ISym.terminal a : g.ISym)) := by
+        simpa [expandRhs] using hder
+      rcases derives_append_to_terminals_split
+          (g := g) (u := g.expandRhs [s] σ) (v := g.expandRhs rhs σ)
+          hsource with
+        ⟨wh, wt, hw, hhead, htail⟩
+      subst w
+      rcases ih htail with ⟨kept, hsub, hkept_der, hkept_nonempty⟩
+      have hkeep :
+          ∃ kept' : List (IRhsSymbol T g.nt g.flag),
+            NullableRhsSublist g σ (s :: rhs) kept' ∧
+              g.Derives (g.expandRhs kept' σ)
+                ((wh ++ wt).map fun a => (ISym.terminal a : g.ISym)) ∧
+              ((wh ++ wt) ≠ [] → kept' ≠ []) := by
+        refine ⟨s :: kept, NullableRhsSublist.keep s hsub, ?_, ?_⟩
+        · have hleft :
+              g.Derives (g.expandRhs [s] σ ++ g.expandRhs kept σ)
+                ((wh.map fun a => (ISym.terminal a : g.ISym)) ++
+                  g.expandRhs kept σ) :=
+            deri_with_suffix (g := g) (g.expandRhs kept σ) hhead
+          have hright :
+              g.Derives
+                ((wh.map fun a => (ISym.terminal a : g.ISym)) ++
+                  g.expandRhs kept σ)
+                ((wh.map fun a => (ISym.terminal a : g.ISym)) ++
+                  (wt.map fun a => (ISym.terminal a : g.ISym))) :=
+            deri_with_prefix (g := g)
+              (wh.map fun a => (ISym.terminal a : g.ISym)) hkept_der
+          have hcomp := hleft.trans hright
+          simpa [expandRhs, List.map_append] using hcomp
+        · intro _ hnil
+          cases hnil
+      cases s with
+      | terminal t =>
+          exact hkeep
+      | nonterminal A push =>
+          cases push with
+          | none =>
+              cases wh with
+              | nil =>
+                  have hnullable : g.IsNullable A σ := by
+                    simpa [IsNullable, expandRhs] using hhead
+                  refine ⟨kept, NullableRhsSublist.drop_none hnullable hsub, ?_, ?_⟩
+                  · simpa using hkept_der
+                  · simpa using hkept_nonempty
+              | cons a wh =>
+                  exact hkeep
+          | some f =>
+              cases wh with
+              | nil =>
+                  have hnullable : g.IsNullable A (f :: σ) := by
+                    simpa [IsNullable, expandRhs] using hhead
+                  refine ⟨kept, NullableRhsSublist.drop_some hnullable hsub, ?_, ?_⟩
+                  · simpa using hkept_der
+                  · simpa using hkept_nonempty
+              | cons a wh =>
+                  exact hkeep
+
 theorem nullableRhsSublist_nil_of_expandRhs_derives_nil {g : IndexedGrammar T}
     {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag}
     (hder : g.Derives (g.expandRhs rhs σ) []) :
@@ -595,6 +689,50 @@ private theorem singleton_indexed_eq_context {g : IndexedGrammar T}
   simp at h'
   rcases h' with ⟨⟨hA, hσ⟩, hv⟩
   exact ⟨rfl, hv, hA, hσ⟩
+
+/-- Every nonempty generated word has a first start-rule expansion whose nullable
+deletions leave a nonempty RHS deriving the same word. -/
+theorem exists_initial_rule_nullableRhsSublist_of_generates_nonempty
+    {g : IndexedGrammar T} {w : List T}
+    (hgen : g.Generates w) (hw : w ≠ []) :
+    ∃ r : IRule T g.nt g.flag,
+      ∃ kept : List (IRhsSymbol T g.nt g.flag),
+        r ∈ g.rules ∧
+          r.lhs = g.initial ∧
+          r.consume = none ∧
+          NullableRhsSublist g [] r.rhs kept ∧
+          kept ≠ [] ∧
+          g.Derives (g.expandRhs kept [])
+            (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases Relation.ReflTransGen.cases_head hgen with hrefl | ⟨mid, hstep, hrest⟩
+  · cases w with
+    | nil =>
+        exact False.elim (hw rfl)
+    | cons a w =>
+        simp at hrefl
+  · rcases hstep with ⟨r, u, v, σ, hr, hsource, htarget⟩
+    cases hc : r.consume with
+    | none =>
+        rw [hc] at hsource
+        rcases singleton_indexed_eq_context hsource with ⟨hu, hv, hlhs, hσ⟩
+        subst u
+        subst v
+        subst σ
+        have hmid : mid = g.expandRhs r.rhs [] := by
+          simpa using htarget
+        subst mid
+        have hrest' :
+            g.Derives (g.expandRhs r.rhs [])
+              (w.map fun a => (ISym.terminal a : g.ISym)) := by
+          simpa using hrest
+        rcases exists_nullableRhsSublist_derives_to_terminals
+            (g := g) (rhs := r.rhs) (σ := []) (w := w) hrest' with
+          ⟨kept, hsub, hkept_der, hkept_nonempty⟩
+        exact ⟨r, kept, hr, hlhs.symm, hc, hsub, hkept_nonempty hw, hkept_der⟩
+    | some f =>
+        rw [hc] at hsource
+        rcases singleton_indexed_eq_context hsource with ⟨_hu, _hv, _hlhs, hσ⟩
+        simp at hσ
 
 /-- First-step analysis for a nullable stacked nonterminal. Nullability is witnessed by a
 matching grammar rule whose expansion is nullable. -/
