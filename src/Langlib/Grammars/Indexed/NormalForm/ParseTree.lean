@@ -357,6 +357,32 @@ public theorem iff_exists_derivesIn_isNormalForm {g : IndexedGrammar T}
   · rintro ⟨n, hn⟩
     exact of_derivesIn_isNormalForm (g := g) hNF hn
 
+public theorem generates_iff_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {w : List T} :
+    g.Generates w ↔ NFYield g g.initial [] w := by
+  rw [generates_iff_exists_derivesIn]
+  exact (NFYield.iff_exists_derivesIn_isNormalForm (g := g) hNF).symm
+
+public theorem language_iff_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {w : List T} :
+    w ∈ g.Language ↔ NFYield g g.initial [] w := by
+  exact generates_iff_isNormalForm (g := g) hNF
+
+public theorem generates_iff_exists_stackBounded_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {w : List T} :
+    g.Generates w ↔ ∃ K, NFYield.StackBounded g K g.initial [] w := by
+  constructor
+  · intro hgen
+    exact NFYield.exists_stackBounded ((generates_iff_isNormalForm (g := g) hNF).mp hgen)
+  · rintro ⟨K, hbounded⟩
+    exact (generates_iff_isNormalForm (g := g) hNF).mpr
+      (NFYield.StackBounded.toNFYield hbounded)
+
+public theorem language_iff_exists_stackBounded_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) {w : List T} :
+    w ∈ g.Language ↔ ∃ K, NFYield.StackBounded g K g.initial [] w := by
+  exact generates_iff_exists_stackBounded_isNormalForm (g := g) hNF
+
 end NFYield
 
 end IndexedGrammar

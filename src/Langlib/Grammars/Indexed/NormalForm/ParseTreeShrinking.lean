@@ -516,6 +516,74 @@ public theorem exists_bound_minimal_certificate_first_step_for_target_length
     right
     exact hterm
 
+/-- Initial-stack specialization of
+`exists_bound_minimal_certificate_first_step_for_target_length`. The root stack is `[]`, so
+the pop case is impossible and the remaining binary/push/terminal cases expose exactly the
+certificate obligations below the start symbol. -/
+public theorem exists_bound_initial_certificate_first_step_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ w : List T,
+          w <+ target →
+          NFYield g g.initial [] w →
+          ((∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules,
+            r.lhs = g.initial ∧ r.consume = none ∧
+            r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+            w = u ++ v ∧
+            0 < u.length ∧ 0 < v.length ∧
+            u.length < w.length ∧ v.length < w.length ∧
+            u <+ target ∧ v <+ target ∧
+            NFYield g B [] u ∧
+            NFYield g C [] v ∧
+            ∀ ρ : List g.flag,
+              NFYield g B ρ u →
+              NFYield g C ρ v →
+              ρ <+ ([] : List g.flag) → ρ = []) ∨
+          (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+            r.lhs = g.initial ∧ r.consume = none ∧
+            r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+            ([f] : List g.flag).length ≤ K ∧
+            NFYield g B [f] w ∧
+            ∀ ρ : List g.flag,
+              NFYield g B (f :: ρ) w →
+              ρ <+ ([] : List g.flag) → ρ = []) ∨
+          (∃ a : T, ∃ r ∈ g.rules,
+            r.lhs = g.initial ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+              w = [a])) := by
+  obtain ⟨K, hK⟩ :=
+    NFYield.exists_bound_minimal_certificate_first_step_for_target_length
+      (g := g) hNF L
+  refine ⟨K, ?_⟩
+  intro target htargetLen w hwt hcert
+  have hmin :
+      ∀ ρ : List g.flag,
+        NFYield g g.initial ρ w →
+        ρ <+ ([] : List g.flag) → ρ = [] := by
+    intro ρ _hρ hρsub
+    exact eq_nil_of_sublist_nil hρsub
+  obtain ⟨_hemptyLen, hcases⟩ :=
+    hK target htargetLen g.initial ([] : List g.flag) w hwt hcert hmin
+  rcases hcases with hbin | hpop | hpush | hterm
+  · rcases hbin with
+      ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+        husub, hvsub, hleft, hright, hpairMin⟩
+    left
+    exact ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+      husub, hvsub, hleft, hright, hpairMin⟩
+  · rcases hpop with ⟨f, ρ, B, r, hr, hnil, _hρlen, _hlhs, _hc, _hrhs, _hchild, _hmin⟩
+    cases hnil
+  · rcases hpush with ⟨B, f, r, hr, hlhs, hc, hrhs, hflen, hchild, hchildMin⟩
+    right
+    left
+    exact ⟨B, f, r, hr, hlhs, hc, hrhs, by simpa using hflen, by simpa using hchild,
+      hchildMin⟩
+  · right
+    right
+    exact hterm
+
 /-- Bounded-prefix exact first-step decomposition for suffix-minimal parse certificates.
 
 The suffix below `pref` is minimal among certificates preserving that prefix. Binary and push

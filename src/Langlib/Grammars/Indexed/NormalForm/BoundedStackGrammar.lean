@@ -4618,6 +4618,29 @@ theorem exists_boundedStackGrammar_generates_of_certificate
   obtain ⟨B, hboundedCert⟩ := NFYield.exists_stackBounded (g := g) h
   exact ⟨B, boundedStackGrammar_generates_of_stackBounded_certificate (g := g) hboundedCert⟩
 
+theorem exists_boundedStackGrammar_generates_iff_certificate
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List T} :
+    (∃ B : ℕ, w ∈ grammar_language (boundedStackGrammar g B)) ↔
+      NFYield g g.initial [] w := by
+  constructor
+  · rintro ⟨B, hw⟩
+    exact (NFYield.generates_iff_isNormalForm (g := g) hNF).mp
+      (boundedStackGrammar_language_subset_language (g := g) (B := B) w hw)
+  · intro hcert
+    exact exists_boundedStackGrammar_generates_of_certificate (g := g) hcert
+
+theorem exists_boundedStackGrammar_generates_iff_stackBounded_certificate
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List T} :
+    (∃ B : ℕ, w ∈ grammar_language (boundedStackGrammar g B)) ↔
+      ∃ K, NFYield.StackBounded g K g.initial [] w := by
+  rw [exists_boundedStackGrammar_generates_iff_certificate (g := g) hNF]
+  constructor
+  · exact NFYield.exists_stackBounded
+  · rintro ⟨K, hbounded⟩
+    exact NFYield.StackBounded.toNFYield hbounded
+
 /-- Budgeted finite-core wrapper for normal-form grammars.
 
 If an accepting derivation is shortest and its length is at most `N`, then a single
