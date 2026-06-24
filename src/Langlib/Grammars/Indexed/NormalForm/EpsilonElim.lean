@@ -1281,6 +1281,32 @@ theorem prunedDerives_initial_of_generates_nonempty
   exact prunedDerives_indexed_to_terminals_of_derivesIn_nonempty
     (g := g) (n := n) (A := g.initial) (σ := []) (w := w) hder hw
 
+/-- A pruned derivation from the start symbol can only end in a nonempty terminal word. -/
+theorem ne_nil_of_prunedDerives_initial_to_terminals
+    {g : IndexedGrammar T} {w : List T}
+    (hder : g.PrunedDerives [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    w ≠ [] := by
+  have hlen : 1 ≤ w.length := by
+    simpa using prunedDerives_length_le (g := g) hder
+  intro hw
+  subst w
+  simp at hlen
+
+/-- Semantic ε-elimination: pruned derivations from the start generate exactly the nonempty
+part of the original language. -/
+theorem prunedDerives_initial_to_terminals_iff_generates_nonempty
+    {g : IndexedGrammar T} {w : List T} :
+    g.PrunedDerives [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym)) ↔
+      g.Generates w ∧ w ≠ [] := by
+  constructor
+  · intro hder
+    exact ⟨by simpa [Generates] using derives_of_prunedDerives hder,
+      ne_nil_of_prunedDerives_initial_to_terminals hder⟩
+  · rintro ⟨hgen, hw⟩
+    exact prunedDerives_initial_of_generates_nonempty hgen hw
+
 /-- First-step analysis for a nullable stacked nonterminal. Nullability is witnessed by a
 matching grammar rule whose expansion is nullable. -/
 theorem isNullable_cases_rule {g : IndexedGrammar T} {A : g.nt} {σ : List g.flag}
