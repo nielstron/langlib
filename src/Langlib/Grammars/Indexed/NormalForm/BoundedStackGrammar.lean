@@ -275,6 +275,25 @@ theorem sententialMaxStackHeight_le_of_append_right_le {g : IndexedGrammar T}
     simpa using h
   exact le_trans (Nat.le_max_right _ _) hmax
 
+/-- Removing one indexed symbol from a bounded sentential context preserves the same max-stack
+bound on the surrounding context. -/
+theorem sententialMaxStackHeight_context_without_indexed_le {g : IndexedGrammar T}
+    {B : ℕ} {u v : List g.ISym} {A : g.nt} {η : List g.flag}
+    (h : sententialMaxStackHeight (u ++ [ISym.indexed A η] ++ v) ≤ B) :
+    sententialMaxStackHeight (u ++ v) ≤ B := by
+  simp only [sententialMaxStackHeight_append, sententialMaxStackHeight_indexed] at h ⊢
+  omega
+
+/-- Equality-oriented version of `sententialMaxStackHeight_context_without_indexed_le`. -/
+theorem sententialMaxStackHeight_context_without_indexed_le_of_eq {g : IndexedGrammar T}
+    {B : ℕ} {ys u v : List g.ISym} {A : g.nt} {η : List g.flag}
+    (hctx : ys = u ++ [ISym.indexed A η] ++ v)
+    (hys : sententialMaxStackHeight ys ≤ B) :
+    sententialMaxStackHeight (u ++ v) ≤ B := by
+  exact sententialMaxStackHeight_context_without_indexed_le
+    (g := g) (B := B) (u := u) (v := v) (A := A) (η := η)
+    (by simpa [hctx] using hys)
+
 /-- Compile one indexed rule at one inherited stack into a bounded unrestricted rule, if both
 the left-hand stack and every right-hand stack remain inside the bound. -/
 def boundedRuleOf? {g : IndexedGrammar T} (B : ℕ)
@@ -1829,6 +1848,46 @@ theorem exists_canonical_surface_repeat_at_current_of_late_window_take_eq
       (g := g) (B := B) (P := P) (K := K) (trace := trace)
       (u := u) (v := v) (A := A) (η := η) (τ := τ)
       hi hprefix hctxBound hPK hctx htake
+
+/-- Late-window surface-repeat witness with the surrounding-context bound derived from the
+current trace node. The remaining explicit stack hypothesis is the actual visible-prefix
+agreement between the current stack and the canonical replacement. -/
+theorem exists_canonical_surface_repeat_at_current_of_late_window_take_eq_of_context
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B P K C a i : ℕ} {trace : List (List g.ISym)} {first : List g.ISym}
+    {u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hfirstBound : sententialMaxStackHeight first ≤ P)
+    (hi : i < trace.length)
+    (hic : i ≤ a + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hPK : P + K ≤ B)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : η.take B = (η.take P ++ τ).take B) :
+    ∃ r : ℕ, ∃ hr : r < trace.length,
+      r ≤ i ∧
+        (∀ k (hk : k < trace.length),
+          k ≤ r → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) ∧
+        sententialMaxStackHeight (u ++ v) ≤ B ∧
+        P + K ≤ B ∧
+        surfaceOfTruncatedForm B (trace.get ⟨r, hr⟩) =
+          surfaceOfTruncatedForm B (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) := by
+  have hcurrent :
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B := by
+    exact le_trans
+      (prefix_maxStackHeight_le_late_window_of_before_bound
+        (g := g) hNF htrace hhead hfirstBound hic hbefore i hi le_rfl)
+      hwindowBound
+  have hctxBound : sententialMaxStackHeight (u ++ v) ≤ B :=
+    sententialMaxStackHeight_context_without_indexed_le_of_eq
+      (g := g) hctx hcurrent
+  exact
+    exists_canonical_surface_repeat_at_current_of_late_window_take_eq
+      (g := g) hNF htrace hhead hfirstBound hi hic hwindowBound hbefore
+      hctxBound hPK hctx htake
 
 /-- Prefix-local target-compatible pigeonhole packaged with bounded reachability. If the
 target-compatible bounded-surface frontier is smaller than the displayed prefix of an accepting
