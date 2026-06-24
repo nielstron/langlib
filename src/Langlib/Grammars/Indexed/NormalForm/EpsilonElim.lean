@@ -1963,6 +1963,322 @@ theorem exists_approxNullableRhsSublist_of_nullableRhsSublist_flagsSeparated
       · exact nullableApprox_mono g (Nat.le_max_left m n) hm
       · exact hn.mono (Nat.le_max_right m n)
 
+/-! ## Finite-summary ε-elimination skeleton -/
+
+/-- Evaluate a finite stack summary.  The transition `step q f` is the summary after
+pushing flag `f` on top of a stack with summary `q`. -/
+def stackSummaryEval {F Q : Type} (init : Q) (step : Q → F → Q) : List F → Q
+  | [] => init
+  | f :: σ => step (stackSummaryEval init step σ) f
+
+@[simp] theorem stackSummaryEval_nil {F Q : Type} (init : Q) (step : Q → F → Q) :
+    stackSummaryEval init step ([] : List F) = init := rfl
+
+@[simp] theorem stackSummaryEval_cons {F Q : Type} (init : Q) (step : Q → F → Q)
+    (f : F) (σ : List F) :
+    stackSummaryEval init step (f :: σ) = step (stackSummaryEval init step σ) f := rfl
+
+/-- Annotate every stack flag with the summary of the suffix below it. -/
+def annotateStackWithSummary {F Q : Type} (init : Q) (step : Q → F → Q) :
+    List F → List (F × Q)
+  | [] => []
+  | f :: σ => (f, stackSummaryEval init step σ) :: annotateStackWithSummary init step σ
+
+@[simp] theorem annotateStackWithSummary_nil {F Q : Type}
+    (init : Q) (step : Q → F → Q) :
+    annotateStackWithSummary init step ([] : List F) = [] := rfl
+
+@[simp] theorem annotateStackWithSummary_cons {F Q : Type}
+    (init : Q) (step : Q → F → Q) (f : F) (σ : List F) :
+    annotateStackWithSummary init step (f :: σ) =
+      (f, stackSummaryEval init step σ) :: annotateStackWithSummary init step σ := rfl
+
+@[simp] theorem map_fst_annotateStackWithSummary {F Q : Type}
+    (init : Q) (step : Q → F → Q) :
+    ∀ σ : List F, (annotateStackWithSummary init step σ).map Prod.fst = σ
+  | [] => rfl
+  | f :: σ => by simp [map_fst_annotateStackWithSummary init step σ]
+
+/-- A finite stack summary recognizes exactly the nullable stacks when `nullable_sound` and
+`nullable_complete` are supplied later. -/
+structure NullableStackSummary (g : IndexedGrammar T) where
+  state : Type
+  instFintype : Fintype state
+  init : state
+  step : state → g.flag → state
+  nullable : g.nt → state → Prop
+  nullableDecidable : ∀ A q, Decidable (nullable A q)
+
+attribute [instance] NullableStackSummary.instFintype
+attribute [instance] NullableStackSummary.nullableDecidable
+
+def NullableStackSummary.eval {g : IndexedGrammar T} (S : NullableStackSummary g) :
+    List g.flag → S.state :=
+  stackSummaryEval S.init S.step
+
+def NullableStackSummary.annotateStack {g : IndexedGrammar T}
+    (S : NullableStackSummary g) : List g.flag → List (g.flag × S.state) :=
+  annotateStackWithSummary S.init S.step
+
+@[simp] theorem NullableStackSummary.eval_nil {g : IndexedGrammar T}
+    (S : NullableStackSummary g) :
+    S.eval [] = S.init := rfl
+
+@[simp] theorem NullableStackSummary.eval_cons {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (f : g.flag) (σ : List g.flag) :
+    S.eval (f :: σ) = S.step (S.eval σ) f := rfl
+
+@[simp] theorem NullableStackSummary.map_fst_annotateStack {g : IndexedGrammar T}
+    (S : NullableStackSummary g) :
+    ∀ σ : List g.flag, (S.annotateStack σ).map Prod.fst = σ :=
+  map_fst_annotateStackWithSummary S.init S.step
+
+/-- A RHS symbol is droppable at summary state `q` when it is a nonterminal nullable at the
+stack summary it receives. -/
+def SummaryDroppableRhsSymbol {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (q : S.state) : IRhsSymbol T g.nt g.flag → Prop
+  | IRhsSymbol.terminal _ => False
+  | IRhsSymbol.nonterminal A none => S.nullable A q
+  | IRhsSymbol.nonterminal A (some f) => S.nullable A (S.step q f)
+
+instance summaryDroppableRhsSymbolDecidable {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (q : S.state) (s : IRhsSymbol T g.nt g.flag) :
+    Decidable (SummaryDroppableRhsSymbol S q s) := by
+  cases s with
+  | terminal t =>
+      exact isFalse (by simp [SummaryDroppableRhsSymbol])
+  | nonterminal A push =>
+      cases push with
+      | none =>
+          exact S.nullableDecidable A q
+      | some f =>
+          exact S.nullableDecidable A (S.step q f)
+
+/-- RHS sublist pruning justified by a finite stack summary. -/
+inductive SummaryNullableRhsSublist {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (q : S.state) :
+    List (IRhsSymbol T g.nt g.flag) → List (IRhsSymbol T g.nt g.flag) → Prop
+  | nil : SummaryNullableRhsSublist S q [] []
+  | keep (s : IRhsSymbol T g.nt g.flag) {rhs kept}
+      (h : SummaryNullableRhsSublist S q rhs kept) :
+      SummaryNullableRhsSublist S q (s :: rhs) (s :: kept)
+  | drop {s rhs kept}
+      (hdrop : SummaryDroppableRhsSymbol S q s)
+      (h : SummaryNullableRhsSublist S q rhs kept) :
+      SummaryNullableRhsSublist S q (s :: rhs) kept
+
+/-- Enumerate all summary-justified RHS prunings. -/
+def summaryPrunedRhsList {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (q : S.state) :
+    List (IRhsSymbol T g.nt g.flag) → List (List (IRhsSymbol T g.nt g.flag))
+  | [] => [[]]
+  | s :: rhs =>
+      let tail := summaryPrunedRhsList S q rhs
+      (tail.map fun kept => s :: kept) ++
+        if SummaryDroppableRhsSymbol S q s then tail else []
+
+theorem mem_summaryPrunedRhsList_iff {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (q : S.state) :
+    ∀ {rhs kept : List (IRhsSymbol T g.nt g.flag)},
+      kept ∈ summaryPrunedRhsList S q rhs ↔ SummaryNullableRhsSublist S q rhs kept
+  | [], kept => by
+      constructor
+      · intro h
+        simp [summaryPrunedRhsList] at h
+        subst kept
+        exact SummaryNullableRhsSublist.nil
+      · intro h
+        cases h
+        simp [summaryPrunedRhsList]
+  | s :: rhs, kept => by
+      constructor
+      · intro h
+        simp only [summaryPrunedRhsList, List.mem_append, List.mem_map] at h
+        by_cases hdrop : SummaryDroppableRhsSymbol S q s
+        · simp [hdrop] at h
+          rcases h with hkeep | hdropMem
+          · rcases hkeep with ⟨keptTail, hmemTail, rfl⟩
+            exact SummaryNullableRhsSublist.keep s
+              ((mem_summaryPrunedRhsList_iff S q).mp hmemTail)
+          · exact SummaryNullableRhsSublist.drop hdrop
+              ((mem_summaryPrunedRhsList_iff S q).mp hdropMem)
+        · simp [hdrop] at h
+          rcases h with ⟨keptTail, hmemTail, rfl⟩
+          exact SummaryNullableRhsSublist.keep s
+            ((mem_summaryPrunedRhsList_iff S q).mp hmemTail)
+      · intro h
+        cases h with
+        | keep s htail =>
+            simp only [summaryPrunedRhsList, List.mem_append, List.mem_map]
+            exact Or.inl ⟨_, (mem_summaryPrunedRhsList_iff S q).mpr htail, rfl⟩
+        | drop hdrop htail =>
+            simp only [summaryPrunedRhsList, List.mem_append, List.mem_map]
+            exact Or.inr (by
+              simp [hdrop, (mem_summaryPrunedRhsList_iff S q).mpr htail])
+
+/-- Lift a kept RHS symbol into the summary grammar at current tail summary `q`.  Pushed
+flags are annotated with the summary below the pushed flag. -/
+def summaryLiftRhsSymbol {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (q : S.state) :
+    IRhsSymbol T g.nt g.flag → IRhsSymbol T (g.nt × S.state) (g.flag × S.state)
+  | IRhsSymbol.terminal t => IRhsSymbol.terminal t
+  | IRhsSymbol.nonterminal A none => IRhsSymbol.nonterminal (A, q) none
+  | IRhsSymbol.nonterminal A (some f) =>
+      IRhsSymbol.nonterminal (A, S.step q f) (some (f, q))
+
+def summaryLiftRhs {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (q : S.state) (rhs : List (IRhsSymbol T g.nt g.flag)) :
+    List (IRhsSymbol T (g.nt × S.state) (g.flag × S.state)) :=
+  rhs.map (summaryLiftRhsSymbol S q)
+
+theorem summaryLiftRhs_ne_nil {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (q : S.state) {rhs : List (IRhsSymbol T g.nt g.flag)}
+    (hne : rhs ≠ []) :
+    summaryLiftRhs S q rhs ≠ [] := by
+  intro hnil
+  cases rhs with
+  | nil =>
+      exact hne rfl
+  | cons s rhs =>
+      simp [summaryLiftRhs] at hnil
+
+def summaryRuleForKept {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (r : IRule T g.nt g.flag) (q : S.state)
+    (kept : List (IRhsSymbol T g.nt g.flag)) :
+    IRule T (g.nt × S.state) (g.flag × S.state) where
+  lhs :=
+    match r.consume with
+    | none => (r.lhs, q)
+    | some f => (r.lhs, S.step q f)
+  consume := r.consume.map fun f => (f, q)
+  rhs := summaryLiftRhs S q kept
+
+noncomputable def summaryRulesForRule {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (r : IRule T g.nt g.flag) :
+    List (IRule T (g.nt × S.state) (g.flag × S.state)) :=
+  (Finset.univ.toList : List S.state).flatMap fun q =>
+    (summaryPrunedRhsList S q r.rhs).filterMap fun kept =>
+      if kept = [] then none else some (summaryRuleForKept S r q kept)
+
+noncomputable def epsilonElimSummary {g : IndexedGrammar T} (S : NullableStackSummary g) :
+    IndexedGrammar T where
+  nt := g.nt × S.state
+  flag := g.flag × S.state
+  initial := (g.initial, S.init)
+  rules := g.rules.flatMap (summaryRulesForRule S)
+
+theorem mem_summaryRulesForRule {g : IndexedGrammar T} (S : NullableStackSummary g)
+    {r : IRule T g.nt g.flag}
+    {r' : IRule T (g.nt × S.state) (g.flag × S.state)}
+    (hr' : r' ∈ summaryRulesForRule S r) :
+    ∃ q : S.state, ∃ kept : List (IRhsSymbol T g.nt g.flag),
+      q ∈ (Finset.univ.toList : List S.state) ∧
+        kept ∈ summaryPrunedRhsList S q r.rhs ∧
+        kept ≠ [] ∧
+        r' = summaryRuleForKept S r q kept := by
+  rw [summaryRulesForRule, List.mem_flatMap] at hr'
+  rcases hr' with ⟨q, hq, hr'⟩
+  rw [List.mem_filterMap] at hr'
+  rcases hr' with ⟨kept, hkeptMem, hsome⟩
+  by_cases hkept : kept = []
+  · simp [hkept] at hsome
+  · simp [hkept] at hsome
+    exact ⟨q, kept, hq, hkeptMem, hkept, hsome.symm⟩
+
+theorem epsilonElimSummary_noEpsilon {g : IndexedGrammar T}
+    (S : NullableStackSummary g) :
+    (epsilonElimSummary S).NoEpsilon' := by
+  intro r' hr' hrhs
+  change r' ∈ g.rules.flatMap (summaryRulesForRule S) at hr'
+  rw [List.mem_flatMap] at hr'
+  rcases hr' with ⟨r, _hr, hr'⟩
+  rcases mem_summaryRulesForRule S hr' with
+    ⟨q, kept, _hq, _hkeptMem, hkept, rfl⟩
+  exact summaryLiftRhs_ne_nil S q hkept hrhs
+
+/-- Project an annotated-summary sentential symbol back to the original grammar. -/
+def summaryProjectISym {g : IndexedGrammar T} (S : NullableStackSummary g) :
+    (epsilonElimSummary S).ISym → g.ISym
+  | ISym.terminal t => ISym.terminal t
+  | ISym.indexed A σ => ISym.indexed A.1 (σ.map Prod.fst)
+
+def summaryProjectSF {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (w : List (epsilonElimSummary S).ISym) : List g.ISym :=
+  w.map (summaryProjectISym S)
+
+/-- Lift an original sentential symbol with the correct stack summary and annotated flags. -/
+def summaryLiftISym {g : IndexedGrammar T} (S : NullableStackSummary g) :
+    g.ISym → (epsilonElimSummary S).ISym
+  | ISym.terminal t => ISym.terminal t
+  | ISym.indexed A σ => ISym.indexed (A, S.eval σ) (S.annotateStack σ)
+
+def summaryLiftSF {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (w : List g.ISym) : List (epsilonElimSummary S).ISym :=
+  w.map (summaryLiftISym S)
+
+@[simp] theorem summaryProjectISym_lift {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (s : g.ISym) :
+    summaryProjectISym S (summaryLiftISym S s) = s := by
+  cases s with
+  | terminal t =>
+      rfl
+  | indexed A σ =>
+      simp [summaryProjectISym, summaryLiftISym]
+
+@[simp] theorem summaryProjectSF_lift {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (w : List g.ISym) :
+    summaryProjectSF S (summaryLiftSF S w) = w := by
+  induction w with
+  | nil =>
+      rfl
+  | cons s w ih =>
+      simp [summaryProjectSF, summaryLiftSF] at ih ⊢
+      exact ih
+
+theorem summaryProject_expandRhs_lift {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (q : S.state)
+    (rhs : List (IRhsSymbol T g.nt g.flag)) (σ : List (g.flag × S.state)) :
+    summaryProjectSF S
+      ((epsilonElimSummary S).expandRhs (summaryLiftRhs S q rhs) σ) =
+      g.expandRhs rhs (σ.map Prod.fst) := by
+  unfold summaryProjectSF summaryLiftRhs expandRhs
+  rw [List.map_map, List.map_map]
+  apply List.map_congr_left
+  intro s _hs
+  cases s with
+  | terminal t =>
+      rfl
+  | nonterminal A push =>
+      cases push <;> rfl
+
+/-- Semantic soundness of summary-justified RHS deletion at an actually matching stack
+summary. -/
+theorem SummaryNullableRhsSublist.toNullableRhsSublist_eval {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hsound : ∀ A : g.nt, ∀ σ : List g.flag,
+      S.nullable A (S.eval σ) → g.IsNullable A σ)
+    {σ : List g.flag} {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : SummaryNullableRhsSublist S (S.eval σ) rhs kept) :
+    NullableRhsSublist g σ rhs kept := by
+  induction h with
+  | nil =>
+      exact NullableRhsSublist.nil
+  | keep s h ih =>
+      exact NullableRhsSublist.keep s ih
+  | drop hdrop h ih =>
+      rename_i s rhs kept
+      cases s with
+      | terminal t =>
+          exact False.elim hdrop
+      | nonterminal A push =>
+          cases push with
+          | none =>
+              exact NullableRhsSublist.drop_none (hsound A σ hdrop) ih
+          | some f =>
+              have hnull : g.IsNullable A (f :: σ) := by
+                simpa using hsound A (f :: σ) hdrop
+              exact NullableRhsSublist.drop_some hnull ih
+
 /-- A grammar is ε-free exactly when no stacked nonterminal is nullable. -/
 theorem noEpsilon_iff_no_isNullable {g : IndexedGrammar T} :
     g.NoEpsilon' ↔ ∀ A : g.nt, ∀ σ : List g.flag, ¬ g.IsNullable A σ := by
