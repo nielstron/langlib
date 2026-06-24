@@ -637,6 +637,221 @@ theorem exists_nullableRhsSublist_derives_to_terminals {g : IndexedGrammar T}
               | cons a wh =>
                   exact hkeep
 
+/-- Branch-wise strengthening of `exists_nullableRhsSublist_derives_to_terminals`: every
+kept RHS symbol is assigned a nonempty terminal yield derived from that symbol. -/
+theorem exists_nullableRhsSublist_derives_to_terminals_parts {g : IndexedGrammar T}
+    {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag} {w : List T}
+    (hder : g.Derives (g.expandRhs rhs σ)
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ kept : List (IRhsSymbol T g.nt g.flag), ∃ parts : List (List T),
+      NullableRhsSublist g σ rhs kept ∧
+        w = parts.flatten ∧
+        List.Forall₂
+          (fun s part =>
+            part ≠ [] ∧
+              g.Derives (g.expandRhs [s] σ)
+                (part.map fun a => (ISym.terminal a : g.ISym)))
+          kept parts := by
+  induction rhs generalizing w with
+  | nil =>
+      have htarget :
+          (w.map fun a => (ISym.terminal a : g.ISym)) = [] :=
+        derives_empty_left_eq (g := g) (by simpa [expandRhs] using hder)
+      have hw : w = [] := by
+        simpa using htarget
+      subst w
+      exact ⟨[], [], NullableRhsSublist.nil, rfl, List.Forall₂.nil⟩
+  | cons s rhs ih =>
+      have hsource :
+          g.Derives (g.expandRhs [s] σ ++ g.expandRhs rhs σ)
+            (w.map fun a => (ISym.terminal a : g.ISym)) := by
+        simpa [expandRhs] using hder
+      rcases derives_append_to_terminals_split
+          (g := g) (u := g.expandRhs [s] σ) (v := g.expandRhs rhs σ)
+          hsource with
+        ⟨wh, wt, hw, hhead, htail⟩
+      subst w
+      rcases ih htail with ⟨kept, parts, hsub, hwt, hparts⟩
+      have hkeep (hwh : wh ≠ []) :
+          ∃ kept' : List (IRhsSymbol T g.nt g.flag), ∃ parts' : List (List T),
+            NullableRhsSublist g σ (s :: rhs) kept' ∧
+              wh ++ wt = parts'.flatten ∧
+              List.Forall₂
+                (fun s part =>
+                  part ≠ [] ∧
+                    g.Derives (g.expandRhs [s] σ)
+                      (part.map fun a => (ISym.terminal a : g.ISym)))
+                kept' parts' := by
+        refine ⟨s :: kept, wh :: parts, NullableRhsSublist.keep s hsub, ?_, ?_⟩
+        · simp [hwt]
+        · exact List.Forall₂.cons ⟨hwh, hhead⟩ hparts
+      cases s with
+      | terminal t =>
+          have hwh : wh ≠ [] := by
+            intro hnil_wh
+            subst wh
+            have hnil : g.Derives ([ISym.terminal t] : List g.ISym) [] := by
+              simpa [expandRhs] using hhead
+            exact not_derives_nil_of_terminal_mem (g := g) (t := t) (by simp) hnil
+          exact hkeep hwh
+      | nonterminal A push =>
+          cases push with
+          | none =>
+              cases wh with
+              | nil =>
+                  have hnullable : g.IsNullable A σ := by
+                    simpa [IsNullable, expandRhs] using hhead
+                  exact ⟨kept, parts, NullableRhsSublist.drop_none hnullable hsub, by simp [hwt],
+                    hparts⟩
+              | cons a wh =>
+                  exact hkeep (by simp)
+          | some f =>
+              cases wh with
+              | nil =>
+                  have hnullable : g.IsNullable A (f :: σ) := by
+                    simpa [IsNullable, expandRhs] using hhead
+                  exact ⟨kept, parts, NullableRhsSublist.drop_some hnullable hsub, by simp [hwt],
+                    hparts⟩
+              | cons a wh =>
+                  exact hkeep (by simp)
+
+/-- One epsilon-pruned step: apply an original rule, but keep only a nonempty RHS sublist
+whose deleted nonterminals are nullable at the stack used by the rule application. -/
+def PrunedTransforms (g : IndexedGrammar T) (w₁ w₂ : List g.ISym) : Prop :=
+  ∃ r : IRule T g.nt g.flag, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+    ∃ kept : List (IRhsSymbol T g.nt g.flag),
+      r ∈ g.rules ∧
+        kept ≠ [] ∧
+        NullableRhsSublist g σ r.rhs kept ∧
+        (match r.consume with
+         | none => w₁ = u ++ [ISym.indexed r.lhs σ] ++ v
+         | some f => w₁ = u ++ [ISym.indexed r.lhs (f :: σ)] ++ v) ∧
+        w₂ = u ++ g.expandRhs kept σ ++ v
+
+/-- Reflexive-transitive closure of epsilon-pruned indexed steps. -/
+def PrunedDerives (g : IndexedGrammar T) : List g.ISym → List g.ISym → Prop :=
+  ReflTransGen g.PrunedTransforms
+
+theorem prunedTransforms_length_le {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
+    (hstep : g.PrunedTransforms w₁ w₂) :
+    w₁.length ≤ w₂.length := by
+  rcases hstep with ⟨r, u, v, σ, kept, _hr, hkept, _hsub, hw₁, hw₂⟩
+  have hlen : 1 ≤ (g.expandRhs kept σ).length := by
+    simp [expandRhs]
+    exact Nat.succ_le_of_lt (List.length_pos_of_ne_nil hkept)
+  subst w₂
+  cases hc : r.consume with
+  | none =>
+      rw [hc] at hw₁
+      subst w₁
+      simp [List.length_append]
+      omega
+  | some f =>
+      rw [hc] at hw₁
+      subst w₁
+      simp [List.length_append]
+      omega
+
+theorem prunedDerives_length_le {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
+    (hder : g.PrunedDerives w₁ w₂) :
+    w₁.length ≤ w₂.length := by
+  induction hder with
+  | refl => exact le_rfl
+  | tail _ hstep ih =>
+      exact le_trans ih (prunedTransforms_length_le hstep)
+
+theorem derives_of_prunedTransforms {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
+    (hstep : g.PrunedTransforms w₁ w₂) :
+    g.Derives w₁ w₂ := by
+  rcases hstep with ⟨r, u, v, σ, kept, hr, _hkept, hsub, hw₁, hw₂⟩
+  subst w₂
+  cases hc : r.consume with
+  | none =>
+      rw [hc] at hw₁
+      have hfull :
+          g.Transforms w₁ (u ++ g.expandRhs r.rhs σ ++ v) := by
+        refine ⟨r, u, v, σ, hr, ?_, rfl⟩
+        simpa [hc] using hw₁
+      exact
+        (deri_of_tran hfull).trans
+          (derives_context_expandRhs_of_nullableRhsSublist hsub u v)
+  | some f =>
+      rw [hc] at hw₁
+      have hfull :
+          g.Transforms w₁ (u ++ g.expandRhs r.rhs σ ++ v) := by
+        refine ⟨r, u, v, σ, hr, ?_, rfl⟩
+        simpa [hc] using hw₁
+      exact
+        (deri_of_tran hfull).trans
+          (derives_context_expandRhs_of_nullableRhsSublist hsub u v)
+
+theorem derives_of_prunedDerives {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
+    (hder : g.PrunedDerives w₁ w₂) :
+    g.Derives w₁ w₂ := by
+  induction hder with
+  | refl => exact g.deri_self w₁
+  | tail _ hstep ih =>
+      exact ih.trans (derives_of_prunedTransforms hstep)
+
+theorem prunedTransforms_with_prefix {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (u : List g.ISym)
+    (hstep : g.PrunedTransforms w₁ w₂) :
+    g.PrunedTransforms (u ++ w₁) (u ++ w₂) := by
+  rcases hstep with ⟨r, p, q, σ, kept, hr, hkept, hsub, hw₁, hw₂⟩
+  refine ⟨r, u ++ p, q, σ, kept, hr, hkept, hsub, ?_, ?_⟩
+  · cases hc : r.consume with
+    | none =>
+        have hw₁' : w₁ = p ++ [ISym.indexed r.lhs σ] ++ q := by
+          simpa [hc] using hw₁
+        simp [hw₁', List.append_assoc]
+    | some f =>
+        have hw₁' : w₁ = p ++ [ISym.indexed r.lhs (f :: σ)] ++ q := by
+          simpa [hc] using hw₁
+        simp [hw₁', List.append_assoc]
+  · simp [hw₂, List.append_assoc]
+
+theorem prunedTransforms_with_suffix {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (v : List g.ISym)
+    (hstep : g.PrunedTransforms w₁ w₂) :
+    g.PrunedTransforms (w₁ ++ v) (w₂ ++ v) := by
+  rcases hstep with ⟨r, p, q, σ, kept, hr, hkept, hsub, hw₁, hw₂⟩
+  refine ⟨r, p, q ++ v, σ, kept, hr, hkept, hsub, ?_, ?_⟩
+  · cases hc : r.consume with
+    | none =>
+        have hw₁' : w₁ = p ++ [ISym.indexed r.lhs σ] ++ q := by
+          simpa [hc] using hw₁
+        simp [hw₁', List.append_assoc]
+    | some f =>
+        have hw₁' : w₁ = p ++ [ISym.indexed r.lhs (f :: σ)] ++ q := by
+          simpa [hc] using hw₁
+        simp [hw₁', List.append_assoc]
+  · simp [hw₂, List.append_assoc]
+
+theorem prunedDerives_with_prefix {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (u : List g.ISym)
+    (hder : g.PrunedDerives w₁ w₂) :
+    g.PrunedDerives (u ++ w₁) (u ++ w₂) := by
+  induction hder with
+  | refl => exact ReflTransGen.refl
+  | tail _ hstep ih =>
+      exact ih.tail (prunedTransforms_with_prefix u hstep)
+
+theorem prunedDerives_with_suffix {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (v : List g.ISym)
+    (hder : g.PrunedDerives w₁ w₂) :
+    g.PrunedDerives (w₁ ++ v) (w₂ ++ v) := by
+  induction hder with
+  | refl => exact ReflTransGen.refl
+  | tail _ hstep ih =>
+      exact ih.tail (prunedTransforms_with_suffix v hstep)
+
+theorem prunedDerives_append {g : IndexedGrammar T}
+    {u₁ u₂ v₁ v₂ : List g.ISym}
+    (hu : g.PrunedDerives u₁ u₂) (hv : g.PrunedDerives v₁ v₂) :
+    g.PrunedDerives (u₁ ++ v₁) (u₂ ++ v₂) :=
+  (prunedDerives_with_suffix v₁ hu).trans
+    (prunedDerives_with_prefix u₂ hv)
+
 theorem nullableRhsSublist_nil_of_expandRhs_derives_nil {g : IndexedGrammar T}
     {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag}
     (hder : g.Derives (g.expandRhs rhs σ) []) :
@@ -733,6 +948,20 @@ theorem exists_initial_rule_nullableRhsSublist_of_generates_nonempty
         rw [hc] at hsource
         rcases singleton_indexed_eq_context hsource with ⟨_hu, _hv, _hlhs, hσ⟩
         simp at hσ
+
+theorem exists_prunedTransforms_initial_of_generates_nonempty
+    {g : IndexedGrammar T} {w : List T}
+    (hgen : g.Generates w) (hw : w ≠ []) :
+    ∃ sent : List g.ISym,
+      g.PrunedTransforms [ISym.indexed g.initial []] sent ∧
+        g.Derives sent (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases exists_initial_rule_nullableRhsSublist_of_generates_nonempty
+      (g := g) hgen hw with
+    ⟨r, kept, hr, hlhs, hconsume, hsub, hkept, hder⟩
+  refine ⟨g.expandRhs kept [], ?_, hder⟩
+  refine ⟨r, [], [], [], kept, hr, hkept, hsub, ?_, ?_⟩
+  · simp [hconsume, hlhs]
+  · simp
 
 /-- First-step analysis for a nullable stacked nonterminal. Nullability is witnessed by a
 matching grammar rule whose expansion is nullable. -/
