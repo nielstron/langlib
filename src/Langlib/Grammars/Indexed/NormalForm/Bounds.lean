@@ -128,6 +128,15 @@ theorem encodeISym_ne_nil {g : IndexedGrammar T} (s : g.ISym) :
     encodeISym s ≠ [] := by
   cases s <;> simp [encodeISym]
 
+@[simp] theorem encodeSentential_initial {g : IndexedGrammar T} :
+    encodeSentential ([ISym.indexed g.initial []] : List g.ISym) =
+      [FlatSymbol.nonterminal g.initial, FlatSymbol.stackBottom] := by
+  simp [encodeSentential, encodeISym]
+
+@[simp] theorem encodeSentential_initial_length {g : IndexedGrammar T} :
+    (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)).length = 2 := by
+  simp
+
 @[simp] theorem encodeSentential_map_terminal {g : IndexedGrammar T}
     (w : List T) :
     encodeSentential (w.map fun a => (ISym.terminal a : g.ISym)) =
@@ -141,6 +150,20 @@ theorem encodeISym_ne_nil {g : IndexedGrammar T} (s : g.ISym) :
     (w : List T) :
     (encodeSentential (w.map fun a => (ISym.terminal a : g.ISym))).length = w.length := by
   simp
+
+@[simp] theorem flatSymbol_terminals_map_terminal {N F : Type} (w : List T) :
+    (w.map (FlatSymbol.terminal (N := N) (F := F))).filterMap
+        FlatSymbol.toTerminal? = w := by
+  induction w with
+  | nil => rfl
+  | cons a w ih =>
+      simp [ih]
+
+@[simp] theorem encodeSentential_final_terminals {g : IndexedGrammar T}
+    (w : List T) :
+    (encodeSentential (w.map fun a => (ISym.terminal a : g.ISym))).filterMap
+        FlatSymbol.toTerminal? = w := by
+  simp [Function.comp_def]
 
 @[simp] theorem encodeISym_terminals {g : IndexedGrammar T} (s : g.ISym) :
     (encodeISym s).filterMap FlatSymbol.toTerminal? =
