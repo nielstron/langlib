@@ -774,6 +774,65 @@ public theorem finite_bounded_length_certificate_items
       intro item h
       exact ⟨h.1, h.2.1⟩)
 
+/-- For a fixed target word, binary pair-certificate items with one bounded shared stack and
+two yields drawn from the target sublists form a finite frontier. -/
+public theorem finite_bounded_target_pair_certificate_items
+    (g : IndexedGrammar T) [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) (target : List T) :
+    ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+      item.1.2.length ≤ B ∧
+        item.2.1 <+ target ∧
+        item.2.2 <+ target ∧
+        NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+        NFYield g item.1.1.2 item.1.2 item.2.2} :
+        Set (((g.nt × g.nt) × List g.flag) × (List T × List T))).Finite := by
+  have hnts : (Set.univ : Set (g.nt × g.nt)).Finite := Set.finite_univ
+  have hstacks : ({σ : List g.flag | σ.length ≤ B} : Set (List g.flag)).Finite :=
+    List.finite_length_le g.flag B
+  have hwords : ({w : List T | w <+ target} : Set (List T)).Finite :=
+    (List.finite_toSet target.sublists).subset
+      (by
+        intro w hw
+        exact (List.mem_sublists).2 hw)
+  have hprod :
+      ((((Set.univ : Set (g.nt × g.nt)) ×ˢ
+          ({σ : List g.flag | σ.length ≤ B} : Set (List g.flag))) ×ˢ
+        (({w : List T | w <+ target} : Set (List T)) ×ˢ
+          ({w : List T | w <+ target} : Set (List T))))).Finite :=
+    _root_.Set.Finite.prod (_root_.Set.Finite.prod hnts hstacks)
+      (_root_.Set.Finite.prod hwords hwords)
+  refine hprod.subset ?_
+  rintro ⟨⟨⟨A, C⟩, σ⟩, ⟨u, v⟩⟩ h
+  exact ⟨⟨trivial, h.1⟩, h.2.1, h.2.2.1⟩
+
+/-- Length-uniform finite frontier for binary pair-certificate items with one bounded shared
+stack and two bounded-length yields. -/
+public theorem finite_bounded_length_pair_certificate_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B L : ℕ) :
+    ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+      item.1.2.length ≤ B ∧
+        item.2.1.length ≤ L ∧
+        item.2.2.length ≤ L ∧
+        NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+        NFYield g item.1.1.2 item.1.2 item.2.2} :
+        Set (((g.nt × g.nt) × List g.flag) × (List T × List T))).Finite := by
+  have hnts : (Set.univ : Set (g.nt × g.nt)).Finite := Set.finite_univ
+  have hstacks : ({σ : List g.flag | σ.length ≤ B} : Set (List g.flag)).Finite :=
+    List.finite_length_le g.flag B
+  have hwords : ({w : List T | w.length ≤ L} : Set (List T)).Finite :=
+    List.finite_length_le T L
+  have hprod :
+      ((((Set.univ : Set (g.nt × g.nt)) ×ˢ
+          ({σ : List g.flag | σ.length ≤ B} : Set (List g.flag))) ×ˢ
+        (({w : List T | w.length ≤ L} : Set (List T)) ×ˢ
+          ({w : List T | w.length ≤ L} : Set (List T))))).Finite :=
+    _root_.Set.Finite.prod (_root_.Set.Finite.prod hnts hstacks)
+      (_root_.Set.Finite.prod hwords hwords)
+  refine hprod.subset ?_
+  rintro ⟨⟨⟨A, C⟩, σ⟩, ⟨u, v⟩⟩ h
+  exact ⟨⟨trivial, h.1⟩, h.2.1, h.2.2.1⟩
+
 end NFYield
 
 end IndexedGrammar
