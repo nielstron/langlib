@@ -962,6 +962,43 @@ theorem exists_stackBoundedDerivesIn_erase_repeated_targetCompatible_surface_bef
       (g := g) (B := B) htrace hhead i.2 j.2 hijNat hprefixBoundI hsurface
   exact ⟨i, j, hij, hjm, p, hpj, hpre⟩
 
+/-- Interval-local target-compatible pigeonhole packaged with bounded reachability. The
+repeated surface is found inside `[a, m]`, and the bounded prefix reaches the later surface
+erasure no later than the earlier repeated index. -/
+theorem exists_stackBoundedDerivesIn_erase_repeated_targetCompatible_surface_between_of_card_lt
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B a m : ℕ} {trace : List (List g.ISym)} {w : List T}
+    {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (ham : a ≤ m)
+    (hm : m < trace.length)
+    (hcard :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card <
+        m + 1 - a)
+    (hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ m → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) :
+    ∃ i j : Fin trace.length, i < j ∧ a ≤ i.1 ∧ j.1 ≤ m ∧
+      ∃ p : ℕ,
+        p ≤ i.1 ∧
+          StackBoundedDerivesIn g B p first
+            (eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get j))) := by
+  obtain ⟨i, j, hij, hai, hjm, hsurface⟩ :=
+    accepting_derivationTrace_exists_targetCompatible_surface_repeat_between_of_card_lt
+      (g := g) hNF htrace hlast ham hm hcard
+  have hijNat : i.1 ≤ j.1 := Nat.le_of_lt (show i.1 < j.1 from hij)
+  have him : i.1 ≤ m := le_trans hijNat hjm
+  have hprefixBoundI : ∀ k (hk : k < trace.length),
+      k ≤ i.1 → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B := by
+    intro k hk hki
+    exact hprefixBound k hk (le_trans hki him)
+  obtain ⟨p, hpi, hpre⟩ :=
+    exists_stackBoundedDerivesIn_erase_later_surface_of_repeated_surface_prefix_bound
+      (g := g) (B := B) htrace hhead i.2 j.2 hijNat hprefixBoundI hsurface
+  exact ⟨i, j, hij, hai, hjm, p, hpi, hpre⟩
+
 theorem stackBoundedDerivesIn_trace_suffix
     {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
     {last : List g.ISym}
@@ -1678,6 +1715,82 @@ theorem exists_minimal_stackBound_le_of_targetCompatible_surface_repeat_prefix_b
       (mid := eraseSurfaceForm (surfaceOfTruncatedForm K (trace.get j)))
       hminLength hminBound hpreSurface hsuffix hsteps
   exact ⟨i, j, hij, hjm, hB⟩
+
+/-- Interval-local version of
+`exists_minimal_stackBound_le_of_targetCompatible_surface_repeat_prefix_bound`. The repeated
+surface is found in `[a, m]`, so the resulting upper bound also records that the suffix starts
+at or after `a`. -/
+theorem exists_minimal_stackBound_le_of_targetCompatible_surface_repeat_interval_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {K a m n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (ham : a ≤ m)
+    (hm : m < trace.length)
+    (hcard :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g target K)).card <
+        m + 1 - a)
+    (hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ m → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ K) :
+    ∃ i j : Fin trace.length, i < j ∧ a ≤ i.1 ∧ j.1 ≤ m ∧
+      B ≤ K + (trace.length - 1 - i.1) := by
+  obtain ⟨i, j, hij, hai, hjm, hsurface⟩ :=
+    accepting_derivationTrace_exists_targetCompatible_surface_repeat_between_of_card_lt
+      (g := g) hNF htrace hlast ham hm hcard
+  have hijNat : i.1 ≤ j.1 := Nat.le_of_lt (show i.1 < j.1 from hij)
+  have him : i.1 ≤ m := le_trans hijNat hjm
+  have hprefixBoundI : ∀ k (hk : k < trace.length),
+      k ≤ i.1 → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ K := by
+    intro k hk hki
+    exact hprefixBound k hk (le_trans hki him)
+  obtain ⟨p, hpi, hpreSurface⟩ :=
+    exists_stackBoundedDerivesIn_erase_later_surface_of_repeated_surface_prefix_bound
+      (g := g) (B := K) htrace hhead i.2 j.2 hijNat hprefixBoundI hsurface
+  have hiErase :
+      eraseSurfaceForm (surfaceOfTruncatedForm K (trace.get i)) = trace.get i :=
+    eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+      (hprefixBound i.1 i.2 him)
+  have herase :
+      trace.get i =
+        eraseSurfaceForm (surfaceOfTruncatedForm K (trace.get j)) := by
+    have hcongr := congrArg eraseSurfaceForm hsurface
+    rwa [hiErase] at hcongr
+  have hsuffix_i :
+      g.DerivesIn (trace.length - 1 - i.1) (trace.get i)
+        (target.map fun a => (ISym.terminal a : g.ISym)) :=
+    isDerivationTrace_derivesIn_get_to_last (g := g) htrace hlast i.2
+  have hsuffix :
+      g.DerivesIn (trace.length - 1 - i.1)
+        (eraseSurfaceForm (surfaceOfTruncatedForm K (trace.get j)))
+        (target.map fun a => (ISym.terminal a : g.ISym)) := by
+    rw [← herase]
+    exact hsuffix_i
+  have hsteps : p + (trace.length - 1 - i.1) ≤ n := by
+    omega
+  have hB :
+      B ≤ K + (trace.length - 1 - i.1) :=
+    minimal_accepting_stackBound_le_of_stackBounded_prefix_derivesIn_suffix
+      (g := g) hNF (n := n) (B := B) (Bpre := K) (p := p)
+      (q := trace.length - 1 - i.1) (w := target)
+      (mid := eraseSurfaceForm (surfaceOfTruncatedForm K (trace.get j)))
+      hminLength hminBound hpreSurface hsuffix hsteps
+  exact ⟨i, j, hij, hai, hjm, hB⟩
 
 /-- A positionwise terminal-preserving substack replacement preserves sentential-form length. -/
 theorem length_eq_of_forall₂_symbol_substack_bound

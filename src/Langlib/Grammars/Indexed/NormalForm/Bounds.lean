@@ -6048,6 +6048,99 @@ theorem accepting_derivationTrace_exists_targetCompatible_surface_repeat_before_
     change j.1 ≤ m
     exact Nat.lt_succ_iff.mp hjPrefix
 
+/-- Interval-local target-compatible surface pigeonhole. If an interval `[a, m]` of an
+accepting surface trace is longer than the finite target-compatible surface set, then two
+surfaces repeat inside that interval. -/
+theorem accepting_derivationTrace_exists_targetCompatible_surface_repeat_between_of_card_lt
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B a m : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (ham : a ≤ m)
+    (hm : m < trace.length)
+    (hcard :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card <
+        m + 1 - a) :
+    ∃ i j : Fin trace.length, i < j ∧ a ≤ i.1 ∧ j.1 ≤ m ∧
+      surfaceOfTruncatedForm B (trace.get i) =
+        surfaceOfTruncatedForm B (trace.get j) := by
+  let xs := ((surfaceTrace B trace).drop a).take (m + 1 - a)
+  have htakeLen : xs.length = m + 1 - a := by
+    have hlen_le : m + 1 - a ≤ (surfaceTrace B trace).length - a := by
+      rw [surfaceTrace_length]
+      omega
+    dsimp [xs]
+    rw [List.length_take, List.length_drop]
+    exact Nat.min_eq_left hlen_le
+  have hmem :
+      ∀ i : Fin xs.length,
+        xs.get i ∈ targetCompatibleBoundedSurfaceForms g w B := by
+    intro i
+    have hiInterval : i.1 < m + 1 - a := by
+      simpa [htakeLen] using i.2
+    have hiTrace : a + i.1 < trace.length := by
+      omega
+    have hiSurface : a + i.1 < (surfaceTrace B trace).length := by
+      simpa [surfaceTrace_length] using hiTrace
+    have hget :
+        xs.get i =
+          (surfaceTrace B trace).get ⟨a + i.1, hiSurface⟩ := by
+      change xs[i.1] = (surfaceTrace B trace)[a + i.1]
+      simp [xs]
+    have hfull :=
+      accepting_surfaceTrace_get_mem_targetCompatibleBoundedSurfaceForms
+        (g := g) hNF htrace hlast ⟨a + i.1, hiSurface⟩
+    rw [hget]
+    exact hfull
+  have hcard' :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card <
+        xs.length := by
+    simpa [htakeLen] using hcard
+  rcases List.exists_get_eq_of_finite_set_card_lt_length
+      (xs := xs)
+      (targetCompatibleBoundedSurfaceForms g w B)
+      (targetCompatibleBoundedSurfaceForms_finite g w B)
+      hmem hcard' with ⟨i, j, hij, hget⟩
+  have hiInterval : i.1 < m + 1 - a := by
+    simpa [htakeLen] using i.2
+  have hjInterval : j.1 < m + 1 - a := by
+    simpa [htakeLen] using j.2
+  have hiTrace : a + i.1 < trace.length := by omega
+  have hjTrace : a + j.1 < trace.length := by omega
+  let i' : Fin trace.length := ⟨a + i.1, hiTrace⟩
+  let j' : Fin trace.length := ⟨a + j.1, hjTrace⟩
+  have hiSurface : a + i.1 < (surfaceTrace B trace).length := by
+    simpa [surfaceTrace_length] using hiTrace
+  have hjSurface : a + j.1 < (surfaceTrace B trace).length := by
+    simpa [surfaceTrace_length] using hjTrace
+  have hget_i :
+      xs.get i = (surfaceTrace B trace).get ⟨a + i.1, hiSurface⟩ := by
+    change xs[i.1] = (surfaceTrace B trace)[a + i.1]
+    simp [xs]
+  have hget_j :
+      xs.get j = (surfaceTrace B trace).get ⟨a + j.1, hjSurface⟩ := by
+    change xs[j.1] = (surfaceTrace B trace)[a + j.1]
+    simp [xs]
+  have hsurfaceTrace :
+      (surfaceTrace B trace).get ⟨a + i.1, hiSurface⟩ =
+        (surfaceTrace B trace).get ⟨a + j.1, hjSurface⟩ := by
+    rw [← hget_i, ← hget_j]
+    exact hget
+  have hsurface :
+      surfaceOfTruncatedForm B (trace.get i') =
+        surfaceOfTruncatedForm B (trace.get j') := by
+    rw [surfaceTrace_get B trace hiTrace] at hsurfaceTrace
+    rw [surfaceTrace_get B trace hjTrace] at hsurfaceTrace
+    exact hsurfaceTrace
+  refine ⟨i', j', ?_, ?_, ?_, hsurface⟩
+  · change a + i.1 < a + j.1
+    omega
+  · change a ≤ a + i.1
+    omega
+  · change a + j.1 ≤ m
+    omega
+
 theorem accepting_derivationTrace_length_le_boundedSententialForms_card_of_stackBound
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
     [DecidableEq g.nt] (hNF : g.IsNormalForm)
