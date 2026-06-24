@@ -4815,6 +4815,81 @@ theorem exists_bound_accepting_derivationTrace_max_stack_suffix_shrink_replaceme
   exact ⟨A, η, pref, σ, τ, u, v, q, m, w, n', hmem, hη, hprefP, hηmax, hctx,
     hwt, hwlen, hq, hm, hmSuffix, hn', hτsub, hτlen, hτder, hreplacement, hτmin⟩
 
+/-- Canonical max-stack replacement. This strengthens
+`exists_bound_accepting_derivationTrace_max_stack_suffix_shrink_replacement_budget` by
+recording that the selected maximum stack is split as `η.take P ++ η.drop P`. The stronger
+fields are needed by the bounded-prefix reachability argument, where only this canonical
+split has a finite-surface interpretation. -/
+theorem exists_bound_accepting_derivationTrace_canonical_max_stack_suffix_shrink_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P Q L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            P ≤ Q →
+            P + (trace.length - 1 - i) ≤ Q →
+            0 < sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+            ∃ A : g.nt, ∃ η pref σ τ : List g.flag,
+              ∃ u v : List g.ISym, ∃ q m : ℕ, ∃ w : List T, ∃ n' : ℕ,
+                ISym.indexed A η ∈ trace.get ⟨i, hi⟩ ∧
+                η = pref ++ σ ∧
+                pref = η.take P ∧
+                σ = η.drop P ∧
+                pref.length ≤ P ∧
+                (P < η.length → pref.length = P) ∧
+                η.length = sententialMaxStackHeight (trace.get ⟨i, hi⟩) ∧
+                trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A (pref ++ σ)] ++ v ∧
+                w <+ target ∧ w.length ≤ L ∧
+                q ≤ trace.length - 1 - i ∧
+                m ≤ q ∧
+                m ≤ trace.length - 1 - i ∧
+                n' ≤ trace.length - 1 - i ∧
+                τ <+ σ ∧ τ.length ≤ K ∧
+                g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+                g.DerivesIn n' (u ++ [ISym.indexed A (pref ++ τ)] ++ v)
+                  (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ ρ : List g.flag, ∀ k : ℕ,
+                  k ≤ q →
+                  g.DerivesIn k [ISym.indexed A (pref ++ ρ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym)) →
+                  ρ <+ τ → ρ = τ := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_indexed_mem_suffix_shrink_replacement_budget
+      (g := g) hNF Q L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hPQ hbudget hpos
+  obtain ⟨A, η, hmem, hηmax⟩ :=
+    exists_indexed_mem_stackHeight_eq_sententialMaxStackHeight_of_pos
+      (g := g) (w := trace.get ⟨i, hi⟩) hpos
+  let pref : List g.flag := η.take P
+  let σ : List g.flag := η.drop P
+  have hη : η = pref ++ σ := by
+    unfold pref σ
+    exact (List.take_append_drop P η).symm
+  have hprefP : pref.length ≤ P := by
+    unfold pref
+    exact List.length_take_le P η
+  have hprefEq : pref = η.take P := rfl
+  have hσEq : σ = η.drop P := rfl
+  have hprefLen_eq_of_lt : P < η.length → pref.length = P := by
+    intro hlt
+    simp [pref, List.length_take, Nat.min_eq_left (Nat.le_of_lt hlt)]
+  have hprefQ : pref.length ≤ Q := le_trans hprefP hPQ
+  have hlocalBudget : pref.length + (trace.length - 1 - i) ≤ Q := by omega
+  have hmem' : ISym.indexed A (pref ++ σ) ∈ trace.get ⟨i, hi⟩ := by
+    simpa [← hη] using hmem
+  obtain ⟨u, v, q, m, τ, w, n', hctx, hwt, hwlen, hq, hm, hmSuffix, hn',
+      hτsub, hτlen, hτder, hreplacement, hτmin⟩ :=
+    hK target htargetLen trace htrace hlast i hi A pref σ hprefQ hlocalBudget hmem'
+  exact ⟨A, η, pref, σ, τ, u, v, q, m, w, n', hmem, hη, hprefEq, hσEq,
+    hprefP, hprefLen_eq_of_lt, hηmax, hctx, hwt, hwlen, hq, hm, hmSuffix, hn',
+    hτsub, hτlen, hτder, hreplacement, hτmin⟩
+
 /-- A compact counted first-step shrinking corollary. Under a bounded live prefix, every
 non-pop, non-terminal first step can be replaced by a counted derivation from a bounded
 sub-suffix of the original stack; pop and terminal cases are exposed separately. -/
