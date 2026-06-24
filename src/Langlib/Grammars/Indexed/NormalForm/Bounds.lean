@@ -111,6 +111,10 @@ def encodeSentential {g : IndexedGrammar T}
     (w : List g.ISym) :
     encodeSentential (s :: w) = encodeISym s ++ encodeSentential w := rfl
 
+@[simp] theorem encodeSentential_singleton {g : IndexedGrammar T} (s : g.ISym) :
+    encodeSentential [s] = encodeISym s := by
+  simp [encodeSentential]
+
 @[simp] theorem encodeSentential_append {g : IndexedGrammar T}
     (u v : List g.ISym) :
     encodeSentential (u ++ v) = encodeSentential u ++ encodeSentential v := by
@@ -199,6 +203,36 @@ def decodeFlatStack {N F : Type} :
   | cons f σ ih =>
       simp [decodeFlatStack, ih]
 
+theorem encodeFlatStack_of_decodeFlatStack_eq_some {N F : Type}
+    {x : List (FlatSymbol T N F)} {σ : List F} {rest : List (FlatSymbol T N F)}
+    (h : decodeFlatStack x = some (σ, rest)) :
+    x = σ.map FlatSymbol.flag ++ FlatSymbol.stackBottom :: rest := by
+  induction x generalizing σ rest with
+  | nil =>
+      simp [decodeFlatStack] at h
+  | cons a xs ih =>
+      cases a with
+      | terminal a =>
+          simp [decodeFlatStack] at h
+      | nonterminal A =>
+          simp [decodeFlatStack] at h
+      | flag f =>
+          cases htail : decodeFlatStack xs with
+          | none =>
+              simp [decodeFlatStack, htail] at h
+          | some p =>
+              rcases p with ⟨τ, rest'⟩
+              simp [decodeFlatStack, htail] at h
+              rcases h with ⟨hσ, hrest⟩
+              subst σ
+              subst rest
+              rw [ih htail]
+              rfl
+      | stackBottom =>
+          simp [decodeFlatStack] at h
+          rcases h with ⟨rfl, rfl⟩
+          rfl
+
 def decodeFlatSententialAux {g : IndexedGrammar T} :
     ℕ → List (FlatSymbol T g.nt g.flag) → Option (List g.ISym)
   | 0, [] => some []
@@ -221,6 +255,61 @@ def decodeFlatSententialAux {g : IndexedGrammar T} :
 def decodeFlatSentential {g : IndexedGrammar T}
     (w : List (FlatSymbol T g.nt g.flag)) : Option (List g.ISym) :=
   decodeFlatSententialAux w.length w
+
+theorem encodeSentential_of_decodeFlatSententialAux_eq_some {g : IndexedGrammar T} :
+    ∀ n : ℕ, ∀ x : List (FlatSymbol T g.nt g.flag), ∀ w : List g.ISym,
+      decodeFlatSententialAux n x = some w → encodeSentential w = x := by
+  intro n
+  induction n with
+  | zero =>
+      intro x w h
+      cases x with
+      | nil =>
+          simp [decodeFlatSententialAux] at h
+          subst w
+          rfl
+      | cons a xs =>
+          simp [decodeFlatSententialAux] at h
+  | succ n ih =>
+      intro x w h
+      cases x with
+      | nil =>
+          simp [decodeFlatSententialAux] at h
+          subst w
+          rfl
+      | cons a rest =>
+          cases a with
+          | terminal a =>
+              cases htail : decodeFlatSententialAux n rest with
+              | none =>
+                  simp [decodeFlatSententialAux, htail] at h
+              | some tail =>
+                  simp [decodeFlatSententialAux, htail] at h
+                  subst w
+                  simp [ih rest tail htail]
+          | nonterminal A =>
+              cases hstack : decodeFlatStack rest with
+              | none =>
+                  simp [decodeFlatSententialAux, hstack] at h
+              | some p =>
+                  rcases p with ⟨σ, rest'⟩
+                  cases htail : decodeFlatSententialAux n rest' with
+                  | none =>
+                      simp [decodeFlatSententialAux, hstack, htail] at h
+                  | some tail =>
+                      simp [decodeFlatSententialAux, hstack, htail] at h
+                      subst w
+                      have hrest :
+                          rest = σ.map FlatSymbol.flag ++ FlatSymbol.stackBottom :: rest' :=
+                        encodeFlatStack_of_decodeFlatStack_eq_some hstack
+                      have htailEnc : List.flatMap encodeISym tail = rest' := by
+                        simpa [encodeSentential] using ih rest' tail htail
+                      rw [hrest]
+                      simp [encodeSentential, encodeISym, htailEnc, List.append_assoc]
+          | flag f =>
+              simp [decodeFlatSententialAux] at h
+          | stackBottom =>
+              simp [decodeFlatSententialAux] at h
 
 theorem decodeFlatSententialAux_encodeSentential_add {g : IndexedGrammar T}
     (k : ℕ) (w : List g.ISym) :
@@ -279,6 +368,22 @@ theorem decodeFlatSententialAux_encodeSentential_add {g : IndexedGrammar T}
   simpa [decodeFlatSentential, encodeSentential_length, Nat.add_assoc, Nat.add_comm,
     Nat.add_left_comm] using h
 
+theorem encodeSentential_of_decodeFlatSentential_eq_some {g : IndexedGrammar T}
+    {x : List (FlatSymbol T g.nt g.flag)} {w : List g.ISym}
+    (h : decodeFlatSentential x = some w) :
+    encodeSentential w = x :=
+  encodeSentential_of_decodeFlatSententialAux_eq_some x.length x w h
+
+theorem decodeFlatSentential_eq_some_iff {g : IndexedGrammar T}
+    {x : List (FlatSymbol T g.nt g.flag)} {w : List g.ISym} :
+    decodeFlatSentential x = some w ↔ x = encodeSentential w := by
+  constructor
+  · intro h
+    exact (encodeSentential_of_decodeFlatSentential_eq_some h).symm
+  · intro h
+    rw [h]
+    simp
+
 @[simp] theorem decodeFlatSentential_map_terminal {g : IndexedGrammar T}
     (w : List T) :
     decodeFlatSentential (g := g)
@@ -306,6 +411,18 @@ def FlatTransforms (g : IndexedGrammar T)
 def FlatDerives (g : IndexedGrammar T) :
     List (FlatSymbol T g.nt g.flag) → List (FlatSymbol T g.nt g.flag) → Prop :=
   Relation.ReflTransGen (FlatTransforms g)
+
+theorem flatTransforms_iff_exists_encoded_transform {g : IndexedGrammar T}
+    {x y : List (FlatSymbol T g.nt g.flag)} :
+    FlatTransforms g x y ↔
+      ∃ w₁ w₂ : List g.ISym,
+        x = encodeSentential w₁ ∧ y = encodeSentential w₂ ∧ g.Transforms w₁ w₂ := by
+  constructor
+  · rintro ⟨w₁, w₂, hx, hy, hstep⟩
+    exact ⟨w₁, w₂, (decodeFlatSentential_eq_some_iff.mp hx),
+      (decodeFlatSentential_eq_some_iff.mp hy), hstep⟩
+  · rintro ⟨w₁, w₂, rfl, rfl, hstep⟩
+    exact ⟨w₁, w₂, by simp, by simp, hstep⟩
 
 theorem flatTransforms_encodeSentential_iff {g : IndexedGrammar T}
     {w₁ w₂ : List g.ISym} :
@@ -4189,6 +4306,195 @@ theorem transforms_kind_cases_of_isNormalForm {g : IndexedGrammar T}
       TransformIsTerminalStep g w₁ w₂ := by
   simpa [TransformIsBinaryStep, TransformIsPopStep, TransformIsPushStep,
     TransformIsTerminalStep] using transforms_cases_of_isNormalForm hNF h
+
+theorem flatTransforms_cases_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {x y : List (FlatSymbol T g.nt g.flag)} (h : FlatTransforms g x y) :
+    (∃ A B C : g.nt, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+      B ≠ g.initial ∧ C ≠ g.initial ∧
+      x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+      y = encodeSentential u ++ encodeISym (ISym.indexed B σ) ++
+        encodeISym (ISym.indexed C σ) ++ encodeSentential v) ∨
+    (∃ A B : g.nt, ∃ f : g.flag, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+      B ≠ g.initial ∧
+      x = encodeSentential u ++ encodeISym (ISym.indexed A (f :: σ)) ++
+        encodeSentential v ∧
+      y = encodeSentential u ++ encodeISym (ISym.indexed B σ) ++ encodeSentential v) ∨
+    (∃ A B : g.nt, ∃ f : g.flag, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+      B ≠ g.initial ∧
+      x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+      y = encodeSentential u ++ encodeISym (ISym.indexed B (f :: σ)) ++
+        encodeSentential v) ∨
+    (∃ A : g.nt, ∃ a : T, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+      x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+      y = encodeSentential u ++ encodeISym (ISym.terminal a) ++ encodeSentential v) := by
+  rcases (flatTransforms_iff_exists_encoded_transform.mp h) with
+    ⟨w₁, w₂, hx, hy, hstep⟩
+  rcases transforms_kind_cases_of_isNormalForm hNF hstep with hbin | hpop | hpush | hterm
+  · rcases hbin with ⟨A, B, C, u, v, σ, hB, hC, hw₁, hw₂⟩
+    subst w₁
+    subst w₂
+    left
+    refine ⟨A, B, C, u, v, σ, hB, hC, ?_, ?_⟩
+    · rw [hx]
+      simp [encodeSentential_append, List.append_assoc]
+    · rw [hy]
+      simp [encodeSentential_append, List.append_assoc]
+  · rcases hpop with ⟨A, B, f, u, v, σ, hB, hw₁, hw₂⟩
+    subst w₁
+    subst w₂
+    right
+    left
+    refine ⟨A, B, f, u, v, σ, hB, ?_, ?_⟩
+    · rw [hx]
+      simp [encodeSentential_append, List.append_assoc]
+    · rw [hy]
+      simp [encodeSentential_append, List.append_assoc]
+  · rcases hpush with ⟨A, B, f, u, v, σ, hB, hw₁, hw₂⟩
+    subst w₁
+    subst w₂
+    right
+    right
+    left
+    refine ⟨A, B, f, u, v, σ, hB, ?_, ?_⟩
+    · rw [hx]
+      simp [encodeSentential_append, List.append_assoc]
+    · rw [hy]
+      simp [encodeSentential_append, List.append_assoc]
+  · rcases hterm with ⟨A, a, u, v, σ, hw₁, hw₂⟩
+    subst w₁
+    subst w₂
+    right
+    right
+    right
+    refine ⟨A, a, u, v, σ, ?_, ?_⟩
+    · rw [hx]
+      simp [encodeSentential_append, List.append_assoc]
+    · rw [hy]
+      simp [encodeSentential_append, List.append_assoc]
+
+theorem flatTransforms_rule_cases_iff_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {x y : List (FlatSymbol T g.nt g.flag)} :
+    FlatTransforms g x y ↔
+    (∃ r ∈ g.rules, ∃ A B C : g.nt, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+      r.lhs = A ∧ r.consume = none ∧
+      r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+      B ≠ g.initial ∧ C ≠ g.initial ∧
+      x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+      y = encodeSentential u ++ encodeISym (ISym.indexed B σ) ++
+        encodeISym (ISym.indexed C σ) ++ encodeSentential v) ∨
+    (∃ r ∈ g.rules, ∃ A B : g.nt, ∃ f : g.flag, ∃ u v : List g.ISym,
+      ∃ σ : List g.flag,
+      r.lhs = A ∧ r.consume = some f ∧
+      r.rhs = [IRhsSymbol.nonterminal B none] ∧ B ≠ g.initial ∧
+      x = encodeSentential u ++ encodeISym (ISym.indexed A (f :: σ)) ++
+        encodeSentential v ∧
+      y = encodeSentential u ++ encodeISym (ISym.indexed B σ) ++ encodeSentential v) ∨
+    (∃ r ∈ g.rules, ∃ A B : g.nt, ∃ f : g.flag, ∃ u v : List g.ISym,
+      ∃ σ : List g.flag,
+      r.lhs = A ∧ r.consume = none ∧
+      r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧ B ≠ g.initial ∧
+      x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+      y = encodeSentential u ++ encodeISym (ISym.indexed B (f :: σ)) ++
+        encodeSentential v) ∨
+    (∃ r ∈ g.rules, ∃ A : g.nt, ∃ a : T, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+      r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+      x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+      y = encodeSentential u ++ encodeISym (ISym.terminal a) ++ encodeSentential v) := by
+  constructor
+  · intro hflat
+    rcases (flatTransforms_iff_exists_encoded_transform.mp hflat) with
+      ⟨w₁, w₂, hx, hy, r, u, v, σ, hr, hw₁, hw₂⟩
+    rcases hNF r hr with hbin | hpop | hpush | hterm
+    · rcases hbin with ⟨hc, B, C, hrhs, hB, hC⟩
+      rw [hc] at hw₁
+      left
+      refine ⟨r, hr, r.lhs, B, C, u, v, σ, rfl, hc, hrhs, hB, hC, ?_, ?_⟩
+      · rw [hx, hw₁]
+        simp [encodeSentential_append, List.append_assoc]
+      · rw [hy, hw₂, hrhs]
+        simp [expandRhs, encodeSentential_append, List.append_assoc]
+    · rcases hpop with ⟨f, hc, B, hrhs, hB⟩
+      rw [hc] at hw₁
+      right
+      left
+      refine ⟨r, hr, r.lhs, B, f, u, v, σ, rfl, hc, hrhs, hB, ?_, ?_⟩
+      · rw [hx, hw₁]
+        simp [encodeSentential_append, List.append_assoc]
+      · rw [hy, hw₂, hrhs]
+        simp [expandRhs, encodeSentential_append, List.append_assoc]
+    · rcases hpush with ⟨hc, B, f, hrhs, hB⟩
+      rw [hc] at hw₁
+      right
+      right
+      left
+      refine ⟨r, hr, r.lhs, B, f, u, v, σ, rfl, hc, hrhs, hB, ?_, ?_⟩
+      · rw [hx, hw₁]
+        simp [encodeSentential_append, List.append_assoc]
+      · rw [hy, hw₂, hrhs]
+        simp [expandRhs, encodeSentential_append, List.append_assoc]
+    · rcases hterm with ⟨hc, a, hrhs⟩
+      rw [hc] at hw₁
+      right
+      right
+      right
+      refine ⟨r, hr, r.lhs, a, u, v, σ, rfl, hc, hrhs, ?_, ?_⟩
+      · rw [hx, hw₁]
+        simp [encodeSentential_append, List.append_assoc]
+      · rw [hy, hw₂, hrhs]
+        simp [expandRhs, encodeSentential_append, List.append_assoc]
+  · intro hcases
+    apply flatTransforms_iff_exists_encoded_transform.mpr
+    rcases hcases with hbin | hpop | hpush | hterm
+    · rcases hbin with
+        ⟨r, hr, A, B, C, u, v, σ, hlhs, hc, hrhs, _hB, _hC, hx, hy⟩
+      refine ⟨u ++ [ISym.indexed A σ] ++ v,
+        u ++ [ISym.indexed B σ, ISym.indexed C σ] ++ v, ?_, ?_, ?_⟩
+      · rw [hx]
+        simp [encodeSentential_append, List.append_assoc]
+      · rw [hy]
+        simp [encodeSentential_append, List.append_assoc]
+      · refine ⟨r, u, v, σ, hr, ?_, ?_⟩
+        · rw [hc, hlhs]
+        · rw [hrhs]
+          simp [expandRhs]
+    · rcases hpop with
+        ⟨r, hr, A, B, f, u, v, σ, hlhs, hc, hrhs, _hB, hx, hy⟩
+      refine ⟨u ++ [ISym.indexed A (f :: σ)] ++ v,
+        u ++ [ISym.indexed B σ] ++ v, ?_, ?_, ?_⟩
+      · rw [hx]
+        simp [encodeSentential_append, List.append_assoc]
+      · rw [hy]
+        simp [encodeSentential_append, List.append_assoc]
+      · refine ⟨r, u, v, σ, hr, ?_, ?_⟩
+        · rw [hc, hlhs]
+        · rw [hrhs]
+          simp [expandRhs]
+    · rcases hpush with
+        ⟨r, hr, A, B, f, u, v, σ, hlhs, hc, hrhs, _hB, hx, hy⟩
+      refine ⟨u ++ [ISym.indexed A σ] ++ v,
+        u ++ [ISym.indexed B (f :: σ)] ++ v, ?_, ?_, ?_⟩
+      · rw [hx]
+        simp [encodeSentential_append, List.append_assoc]
+      · rw [hy]
+        simp [encodeSentential_append, List.append_assoc]
+      · refine ⟨r, u, v, σ, hr, ?_, ?_⟩
+        · rw [hc, hlhs]
+        · rw [hrhs]
+          simp [expandRhs]
+    · rcases hterm with
+        ⟨r, hr, A, a, u, v, σ, hlhs, hc, hrhs, hx, hy⟩
+      refine ⟨u ++ [ISym.indexed A σ] ++ v,
+        u ++ [ISym.terminal a] ++ v, ?_, ?_, ?_⟩
+      · rw [hx]
+        simp [encodeSentential_append, List.append_assoc]
+      · rw [hy]
+        simp [encodeSentential_append, List.append_assoc]
+      · refine ⟨r, u, v, σ, hr, ?_, ?_⟩
+        · rw [hc, hlhs]
+        · rw [hrhs]
+          simp [expandRhs]
 
 theorem transformIsBinaryStep_encodeSentential_length_eq
     {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
