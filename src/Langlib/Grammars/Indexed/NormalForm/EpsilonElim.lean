@@ -2279,6 +2279,406 @@ theorem SummaryNullableRhsSublist.toNullableRhsSublist_eval {g : IndexedGrammar 
                 simpa using hsound A (f :: σ) hdrop
               exact NullableRhsSublist.drop_some hnull ih
 
+/-- Semantic completeness of summary-justified RHS deletion at an actually matching stack
+summary. -/
+theorem NullableRhsSublist.toSummary_eval {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hcomplete : ∀ A : g.nt, ∀ σ : List g.flag,
+      g.IsNullable A σ → S.nullable A (S.eval σ))
+    {σ : List g.flag} {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : NullableRhsSublist g σ rhs kept) :
+    SummaryNullableRhsSublist S (S.eval σ) rhs kept := by
+  induction h with
+  | nil =>
+      exact SummaryNullableRhsSublist.nil
+  | keep s h ih =>
+      exact SummaryNullableRhsSublist.keep s ih
+  | drop_none hnullable h ih =>
+      exact SummaryNullableRhsSublist.drop (hcomplete _ _ hnullable) ih
+  | drop_some hnullable h ih =>
+      exact SummaryNullableRhsSublist.drop (by
+        simpa using hcomplete _ _ hnullable) ih
+
+@[simp] theorem summaryLiftSF_nil {g : IndexedGrammar T}
+    (S : NullableStackSummary g) :
+    summaryLiftSF S ([] : List g.ISym) = [] := rfl
+
+@[simp] theorem summaryLiftSF_cons {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (s : g.ISym) (w : List g.ISym) :
+    summaryLiftSF S (s :: w) = summaryLiftISym S s :: summaryLiftSF S w := rfl
+
+@[simp] theorem summaryLiftSF_append {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (u v : List g.ISym) :
+    summaryLiftSF S (u ++ v) = summaryLiftSF S u ++ summaryLiftSF S v := by
+  simp [summaryLiftSF, List.map_append]
+
+@[simp] theorem summaryLiftSF_terminals {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (w : List T) :
+    summaryLiftSF S (w.map fun a => (ISym.terminal a : g.ISym)) =
+      (w.map fun a => (ISym.terminal a : (epsilonElimSummary S).ISym)) := by
+  induction w with
+  | nil => rfl
+  | cons a w ih =>
+      simp [summaryLiftSF, summaryLiftISym]
+
+@[simp] theorem summaryProjectSF_terminals {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (w : List T) :
+    summaryProjectSF S
+      (w.map fun a => (ISym.terminal a : (epsilonElimSummary S).ISym)) =
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  induction w with
+  | nil => rfl
+  | cons a w ih =>
+      simp [summaryProjectSF, summaryProjectISym]
+
+theorem summaryLift_expandRhs_eval {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (rhs : List (IRhsSymbol T g.nt g.flag)) (σ : List g.flag) :
+    (epsilonElimSummary S).expandRhs (summaryLiftRhs S (S.eval σ) rhs)
+        (S.annotateStack σ) =
+      summaryLiftSF S (g.expandRhs rhs σ) := by
+  unfold summaryLiftSF summaryLiftRhs expandRhs
+  rw [List.map_map, List.map_map]
+  apply List.map_congr_left
+  intro s _hs
+  cases s with
+  | terminal t =>
+      rfl
+  | nonterminal A push =>
+      cases push with
+      | none =>
+          rfl
+      | some f =>
+          simp [summaryLiftISym, summaryLiftRhsSymbol,
+            NullableStackSummary.eval, NullableStackSummary.annotateStack]
+
+theorem summaryRuleForKept_mem_summaryRulesForRule {g : IndexedGrammar T}
+    (S : NullableStackSummary g) {r : IRule T g.nt g.flag}
+    {q : S.state} {kept : List (IRhsSymbol T g.nt g.flag)}
+    (hkeptMem : kept ∈ summaryPrunedRhsList S q r.rhs)
+    (hkept : kept ≠ []) :
+    summaryRuleForKept S r q kept ∈ summaryRulesForRule S r := by
+  rw [summaryRulesForRule, List.mem_flatMap]
+  refine ⟨q, by simp, ?_⟩
+  rw [List.mem_filterMap]
+  exact ⟨kept, hkeptMem, by simp [hkept]⟩
+
+theorem summaryRuleForKept_mem_epsilonElimSummary_rules {g : IndexedGrammar T}
+    (S : NullableStackSummary g) {r : IRule T g.nt g.flag}
+    {q : S.state} {kept : List (IRhsSymbol T g.nt g.flag)}
+    (hr : r ∈ g.rules)
+    (hkeptMem : kept ∈ summaryPrunedRhsList S q r.rhs)
+    (hkept : kept ≠ []) :
+    summaryRuleForKept S r q kept ∈ (epsilonElimSummary S).rules := by
+  change summaryRuleForKept S r q kept ∈ g.rules.flatMap (summaryRulesForRule S)
+  rw [List.mem_flatMap]
+  exact ⟨r, hr, summaryRuleForKept_mem_summaryRulesForRule S hkeptMem hkept⟩
+
+/-- The annotated summary carried by a nonterminal agrees with the summary of its stack, and
+each stack flag remembers the summary of the suffix below it. -/
+def SummaryWellAnnotatedISym {g : IndexedGrammar T} (S : NullableStackSummary g) :
+    (epsilonElimSummary S).ISym → Prop
+  | ISym.terminal _ => True
+  | ISym.indexed A σ =>
+      A.2 = S.eval (σ.map Prod.fst) ∧ σ = S.annotateStack (σ.map Prod.fst)
+
+def SummaryWellAnnotatedSF {g : IndexedGrammar T} (S : NullableStackSummary g)
+    (w : List (epsilonElimSummary S).ISym) : Prop :=
+  ∀ s ∈ w, SummaryWellAnnotatedISym S s
+
+theorem summaryLiftISym_wellAnnotated {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (s : g.ISym) :
+    SummaryWellAnnotatedISym S (summaryLiftISym S s) := by
+  cases s with
+  | terminal t =>
+      trivial
+  | indexed A σ =>
+      simp [SummaryWellAnnotatedISym, summaryLiftISym]
+
+theorem summaryLiftSF_wellAnnotated {g : IndexedGrammar T}
+    (S : NullableStackSummary g) (w : List g.ISym) :
+    SummaryWellAnnotatedSF S (summaryLiftSF S w) := by
+  intro x hx
+  rw [summaryLiftSF, List.mem_map] at hx
+  rcases hx with ⟨s, _hs, rfl⟩
+  exact summaryLiftISym_wellAnnotated S s
+
+theorem summaryWellAnnotated_expandRhs_lift {g : IndexedGrammar T}
+    (S : NullableStackSummary g) {q : S.state} {σ : List (g.flag × S.state)}
+    (rhs : List (IRhsSymbol T g.nt g.flag))
+    (hq : q = S.eval (σ.map Prod.fst))
+    (hσ : σ = S.annotateStack (σ.map Prod.fst)) :
+    SummaryWellAnnotatedSF S
+      ((epsilonElimSummary S).expandRhs (summaryLiftRhs S q rhs) σ) := by
+  intro x hx
+  simp [expandRhs, summaryLiftRhs, List.mem_map] at hx
+  rcases hx with ⟨s, hs, rfl⟩
+  cases s with
+  | terminal t =>
+      trivial
+  | nonterminal A push =>
+      cases push with
+      | none =>
+          exact ⟨hq, hσ⟩
+      | some f =>
+          constructor
+          · rw [hq]
+            simp [NullableStackSummary.eval]
+          · calc
+              (f, q) :: σ =
+                  (f, S.eval (σ.map Prod.fst)) :: σ := by
+                    rw [hq]
+              _ = (f, S.eval (σ.map Prod.fst)) ::
+                    S.annotateStack (σ.map Prod.fst) :=
+                    congrArg (fun τ => (f, S.eval (σ.map Prod.fst)) :: τ) hσ
+              _ = S.annotateStack (f :: σ.map Prod.fst) := by
+                    rfl
+              _ = S.annotateStack (((f, q) :: σ).map Prod.fst) := by
+                    rfl
+
+private theorem summaryWellAnnotated_redex_of_context {g : IndexedGrammar T}
+    (S : NullableStackSummary g) {u v : List (epsilonElimSummary S).ISym}
+    {x : (epsilonElimSummary S).ISym}
+    (h : SummaryWellAnnotatedSF S (u ++ [x] ++ v)) :
+    SummaryWellAnnotatedISym S x := by
+  exact h x (by simp)
+
+private theorem summaryWellAnnotated_context_left {g : IndexedGrammar T}
+    (S : NullableStackSummary g) {u v : List (epsilonElimSummary S).ISym}
+    {x : (epsilonElimSummary S).ISym}
+    (h : SummaryWellAnnotatedSF S (u ++ [x] ++ v)) :
+    SummaryWellAnnotatedSF S u := by
+  intro y hy
+  exact h y (by simp [hy])
+
+private theorem summaryWellAnnotated_context_right {g : IndexedGrammar T}
+    (S : NullableStackSummary g) {u v : List (epsilonElimSummary S).ISym}
+    {x : (epsilonElimSummary S).ISym}
+    (h : SummaryWellAnnotatedSF S (u ++ [x] ++ v)) :
+    SummaryWellAnnotatedSF S v := by
+  intro y hy
+  exact h y (by simp [hy])
+
+private theorem summaryWellAnnotated_pop_tail {g : IndexedGrammar T}
+    (S : NullableStackSummary g) {f : g.flag} {q : S.state}
+    {σ : List (g.flag × S.state)}
+    (h : (f, q) :: σ =
+      S.annotateStack (((f, q) :: σ).map Prod.fst)) :
+    q = S.eval (σ.map Prod.fst) ∧
+      σ = S.annotateStack (σ.map Prod.fst) := by
+  simpa [NullableStackSummary.annotateStack] using h
+
+theorem summaryTransforms_project_pruned_and_wellAnnotated {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hsound : ∀ A : g.nt, ∀ σ : List g.flag,
+      S.nullable A (S.eval σ) → g.IsNullable A σ)
+    {w₁ w₂ : List (epsilonElimSummary S).ISym}
+    (hwa : SummaryWellAnnotatedSF S w₁)
+    (hstep : (epsilonElimSummary S).Transforms w₁ w₂) :
+    g.PrunedTransforms (summaryProjectSF S w₁) (summaryProjectSF S w₂) ∧
+      SummaryWellAnnotatedSF S w₂ := by
+  rcases hstep with ⟨r', u, v, σ, hr', hsource, htarget⟩
+  change r' ∈ g.rules.flatMap (summaryRulesForRule S) at hr'
+  rw [List.mem_flatMap] at hr'
+  rcases hr' with ⟨r, hr, hr'⟩
+  rcases mem_summaryRulesForRule S hr' with
+    ⟨q, kept, _hqmem, hkeptMem, hkept, rfl⟩
+  have hsubSummary :
+      SummaryNullableRhsSublist S q r.rhs kept :=
+    (mem_summaryPrunedRhsList_iff S q).mp hkeptMem
+  cases hc : r.consume with
+  | none =>
+      have hsource' :
+          w₁ = u ++ [ISym.indexed (r.lhs, q) σ] ++ v := by
+        simpa [summaryRuleForKept, hc] using hsource
+      have hredex :
+          SummaryWellAnnotatedISym S (ISym.indexed (r.lhs, q) σ) :=
+        summaryWellAnnotated_redex_of_context S (by simpa [hsource'] using hwa)
+      rcases hredex with ⟨hqeval, hσann⟩
+      change q = S.eval (σ.map Prod.fst) at hqeval
+      have hsub :
+          NullableRhsSublist g (σ.map Prod.fst) r.rhs kept := by
+        exact SummaryNullableRhsSublist.toNullableRhsSublist_eval
+          (g := g) S hsound (σ := σ.map Prod.fst) (by simpa [hqeval] using hsubSummary)
+      have hpruned :
+          g.PrunedTransforms (summaryProjectSF S w₁) (summaryProjectSF S w₂) := by
+        refine ⟨r, summaryProjectSF S u, summaryProjectSF S v, σ.map Prod.fst,
+          kept, hr, hkept, hsub, ?_, ?_⟩
+        · simp [summaryProjectSF, summaryProjectISym, hsource', hc, List.map_append]
+        · subst w₂
+          have hexp :
+              summaryProjectSF S
+                ((epsilonElimSummary S).expandRhs (summaryLiftRhs S q kept) σ) =
+                g.expandRhs kept (σ.map Prod.fst) :=
+            summaryProject_expandRhs_lift S q kept σ
+          simpa [summaryProjectSF] using hexp
+      have htargetWA :
+          SummaryWellAnnotatedSF S w₂ := by
+        subst w₂
+        intro x hx
+        simp only [summaryRuleForKept, hc, List.mem_append] at hx
+        rcases hx with hx | hx
+        · rcases hx with hx | hx
+          · exact summaryWellAnnotated_context_left S (by simpa [hsource'] using hwa) x hx
+          · exact summaryWellAnnotated_expandRhs_lift S kept hqeval hσann x hx
+        · exact summaryWellAnnotated_context_right S (by simpa [hsource'] using hwa) x hx
+      exact ⟨hpruned, htargetWA⟩
+  | some f =>
+      have hsource' :
+          w₁ = u ++ [ISym.indexed (r.lhs, S.step q f) ((f, q) :: σ)] ++ v := by
+        simpa [summaryRuleForKept, hc] using hsource
+      have hredex :
+          SummaryWellAnnotatedISym S
+            (ISym.indexed (r.lhs, S.step q f) ((f, q) :: σ)) :=
+        summaryWellAnnotated_redex_of_context S (by simpa [hsource'] using hwa)
+      rcases hredex with ⟨_hlhseval, hstack⟩
+      rcases summaryWellAnnotated_pop_tail S hstack with ⟨hqeval, hσann⟩
+      have hsub :
+          NullableRhsSublist g (σ.map Prod.fst) r.rhs kept := by
+        exact SummaryNullableRhsSublist.toNullableRhsSublist_eval
+          (g := g) S hsound (σ := σ.map Prod.fst) (by simpa [hqeval] using hsubSummary)
+      have hpruned :
+          g.PrunedTransforms (summaryProjectSF S w₁) (summaryProjectSF S w₂) := by
+        refine ⟨r, summaryProjectSF S u, summaryProjectSF S v, σ.map Prod.fst,
+          kept, hr, hkept, hsub, ?_, ?_⟩
+        · simp [summaryProjectSF, summaryProjectISym, hsource', hc, List.map_append]
+        · subst w₂
+          have hexp :
+              summaryProjectSF S
+                ((epsilonElimSummary S).expandRhs (summaryLiftRhs S q kept) σ) =
+                g.expandRhs kept (σ.map Prod.fst) :=
+            summaryProject_expandRhs_lift S q kept σ
+          simpa [summaryProjectSF] using hexp
+      have htargetWA :
+          SummaryWellAnnotatedSF S w₂ := by
+        subst w₂
+        intro x hx
+        simp only [summaryRuleForKept, hc, List.mem_append] at hx
+        rcases hx with hx | hx
+        · rcases hx with hx | hx
+          · exact summaryWellAnnotated_context_left S (by simpa [hsource'] using hwa) x hx
+          · exact summaryWellAnnotated_expandRhs_lift S kept hqeval hσann x hx
+        · exact summaryWellAnnotated_context_right S (by simpa [hsource'] using hwa) x hx
+      exact ⟨hpruned, htargetWA⟩
+
+theorem prunedDerives_project_of_summaryDerives {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hsound : ∀ A : g.nt, ∀ σ : List g.flag,
+      S.nullable A (S.eval σ) → g.IsNullable A σ)
+    {w₁ w₂ : List (epsilonElimSummary S).ISym}
+    (hder : (epsilonElimSummary S).Derives w₁ w₂)
+    (hwa : SummaryWellAnnotatedSF S w₁) :
+    g.PrunedDerives (summaryProjectSF S w₁) (summaryProjectSF S w₂) ∧
+      SummaryWellAnnotatedSF S w₂ := by
+  induction hder with
+  | refl =>
+      exact ⟨ReflTransGen.refl, hwa⟩
+  | tail _ hstep ih =>
+      rcases ih with ⟨hpruned, hmidWA⟩
+      rcases summaryTransforms_project_pruned_and_wellAnnotated
+          (g := g) S hsound hmidWA hstep with
+        ⟨hstepPruned, htargetWA⟩
+      exact ⟨hpruned.tail hstepPruned, htargetWA⟩
+
+theorem prunedDerives_project_of_epsilonElimSummary_generates {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hsound : ∀ A : g.nt, ∀ σ : List g.flag,
+      S.nullable A (S.eval σ) → g.IsNullable A σ)
+    {w : List T}
+    (hgen : (epsilonElimSummary S).Generates w) :
+    g.PrunedDerives [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  rcases prunedDerives_project_of_summaryDerives (g := g) S hsound hgen
+      (summaryLiftSF_wellAnnotated S [ISym.indexed g.initial []]) with
+    ⟨hpruned, _hwa⟩
+  simpa [Generates, summaryLiftSF, summaryLiftISym, summaryProjectSF,
+    summaryProjectISym] using hpruned
+
+theorem summaryTransforms_lift_of_prunedTransforms {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hcomplete : ∀ A : g.nt, ∀ σ : List g.flag,
+      g.IsNullable A σ → S.nullable A (S.eval σ))
+    {w₁ w₂ : List g.ISym}
+    (hstep : g.PrunedTransforms w₁ w₂) :
+    (epsilonElimSummary S).Transforms (summaryLiftSF S w₁) (summaryLiftSF S w₂) := by
+  rcases hstep with
+    ⟨r, u, v, σ, kept, hr, hkept, hsub, hsource, htarget⟩
+  have hsubSummary :
+      SummaryNullableRhsSublist S (S.eval σ) r.rhs kept :=
+    NullableRhsSublist.toSummary_eval S hcomplete hsub
+  have hkeptMem :
+      kept ∈ summaryPrunedRhsList S (S.eval σ) r.rhs :=
+    (mem_summaryPrunedRhsList_iff S (S.eval σ)).mpr hsubSummary
+  have hrule :
+      summaryRuleForKept S r (S.eval σ) kept ∈ (epsilonElimSummary S).rules :=
+    summaryRuleForKept_mem_epsilonElimSummary_rules S hr hkeptMem hkept
+  refine ⟨summaryRuleForKept S r (S.eval σ) kept,
+    summaryLiftSF S u, summaryLiftSF S v, S.annotateStack σ, hrule, ?_, ?_⟩
+  · cases hc : r.consume with
+    | none =>
+        have hsource' : w₁ = u ++ [ISym.indexed r.lhs σ] ++ v := by
+          simpa [hc] using hsource
+        simp [summaryRuleForKept, hc, hsource', summaryLiftSF, summaryLiftISym,
+          List.map_append]
+    | some f =>
+        have hsource' : w₁ = u ++ [ISym.indexed r.lhs (f :: σ)] ++ v := by
+          simpa [hc] using hsource
+        simp [summaryRuleForKept, hc, hsource', summaryLiftSF, summaryLiftISym,
+          List.map_append, NullableStackSummary.eval, NullableStackSummary.annotateStack]
+  · subst w₂
+    simp [summaryRuleForKept, summaryLift_expandRhs_eval, summaryLiftSF,
+      List.map_append]
+
+theorem summaryDerives_lift_of_prunedDerives {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hcomplete : ∀ A : g.nt, ∀ σ : List g.flag,
+      g.IsNullable A σ → S.nullable A (S.eval σ))
+    {w₁ w₂ : List g.ISym}
+    (hder : g.PrunedDerives w₁ w₂) :
+    (epsilonElimSummary S).Derives (summaryLiftSF S w₁) (summaryLiftSF S w₂) := by
+  induction hder with
+  | refl =>
+      exact ReflTransGen.refl
+  | tail _ hstep ih =>
+      exact ih.tail (summaryTransforms_lift_of_prunedTransforms S hcomplete hstep)
+
+theorem epsilonElimSummary_generates_of_generates_nonempty {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hcomplete : ∀ A : g.nt, ∀ σ : List g.flag,
+      g.IsNullable A σ → S.nullable A (S.eval σ))
+    {w : List T} (hgen : g.Generates w) (hw : w ≠ []) :
+    (epsilonElimSummary S).Generates w := by
+  have hpruned :
+      g.PrunedDerives [ISym.indexed g.initial []]
+        (w.map fun a => (ISym.terminal a : g.ISym)) :=
+    prunedDerives_initial_of_generates_nonempty (g := g) hgen hw
+  have hlift := summaryDerives_lift_of_prunedDerives S hcomplete hpruned
+  simpa [Generates, summaryLiftSF, summaryLiftISym] using hlift
+
+theorem generates_of_epsilonElimSummary_generates {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hsound : ∀ A : g.nt, ∀ σ : List g.flag,
+      S.nullable A (S.eval σ) → g.IsNullable A σ)
+    {w : List T} (hgen : (epsilonElimSummary S).Generates w) :
+    g.Generates w ∧ w ≠ [] := by
+  have hpruned :=
+    prunedDerives_project_of_epsilonElimSummary_generates (g := g) S hsound hgen
+  exact (prunedDerives_initial_to_terminals_iff_generates_nonempty
+    (g := g) (w := w)).mp hpruned
+
+theorem epsilonElimSummary_generates_iff {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hsound : ∀ A : g.nt, ∀ σ : List g.flag,
+      S.nullable A (S.eval σ) → g.IsNullable A σ)
+    (hcomplete : ∀ A : g.nt, ∀ σ : List g.flag,
+      g.IsNullable A σ → S.nullable A (S.eval σ))
+    {w : List T} :
+    (epsilonElimSummary S).Generates w ↔ g.Generates w ∧ w ≠ [] := by
+  constructor
+  · exact generates_of_epsilonElimSummary_generates S hsound
+  · rintro ⟨hgen, hw⟩
+    exact epsilonElimSummary_generates_of_generates_nonempty S hcomplete hgen hw
+
 /-- A grammar is ε-free exactly when no stacked nonterminal is nullable. -/
 theorem noEpsilon_iff_no_isNullable {g : IndexedGrammar T} :
     g.NoEpsilon' ↔ ∀ A : g.nt, ∀ σ : List g.flag, ¬ g.IsNullable A σ := by
