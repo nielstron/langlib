@@ -5964,6 +5964,90 @@ theorem accepting_derivationTrace_exists_targetCompatible_surface_repeat_of_card
   · exact hij
   · exact hsurface
 
+/-- Prefix-local target-compatible surface pigeonhole. If the first `m + 1` entries of an
+accepting surface trace are longer than the finite target-compatible surface set, then two
+surfaces already repeat inside that prefix. -/
+theorem accepting_derivationTrace_exists_targetCompatible_surface_repeat_before_of_card_lt
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B m : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hm : m < trace.length)
+    (hcard :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card <
+        m + 1) :
+    ∃ i j : Fin trace.length, i < j ∧ j.1 ≤ m ∧
+      surfaceOfTruncatedForm B (trace.get i) =
+        surfaceOfTruncatedForm B (trace.get j) := by
+  let xs := (surfaceTrace B trace).take (m + 1)
+  have htakeLen : xs.length = m + 1 := by
+    simp [xs, List.length_take, surfaceTrace_length, Nat.min_eq_left (Nat.succ_le_of_lt hm)]
+  have hmem :
+      ∀ i : Fin xs.length,
+        xs.get i ∈ targetCompatibleBoundedSurfaceForms g w B := by
+    intro i
+    have hiPrefix : i.1 < m + 1 := by
+      simpa [htakeLen] using i.2
+    have hiSurface : i.1 < (surfaceTrace B trace).length := by
+      rw [surfaceTrace_length]
+      omega
+    have hget :
+        xs.get i =
+          (surfaceTrace B trace).get ⟨i.1, hiSurface⟩ := by
+      change xs[i.1] = (surfaceTrace B trace)[i.1]
+      simp [xs]
+    have hfull :=
+      accepting_surfaceTrace_get_mem_targetCompatibleBoundedSurfaceForms
+        (g := g) hNF htrace hlast ⟨i.1, hiSurface⟩
+    rw [hget]
+    exact hfull
+  have hcard' :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card <
+        xs.length := by
+    simpa [htakeLen] using hcard
+  rcases List.exists_get_eq_of_finite_set_card_lt_length
+      (xs := xs)
+      (targetCompatibleBoundedSurfaceForms g w B)
+      (targetCompatibleBoundedSurfaceForms_finite g w B)
+      hmem hcard' with ⟨i, j, hij, hget⟩
+  have hiPrefix : i.1 < m + 1 := by
+    simpa [htakeLen] using i.2
+  have hjPrefix : j.1 < m + 1 := by
+    simpa [htakeLen] using j.2
+  have hiTrace : i.1 < trace.length := by omega
+  have hjTrace : j.1 < trace.length := by omega
+  let i' : Fin trace.length := ⟨i.1, hiTrace⟩
+  let j' : Fin trace.length := ⟨j.1, hjTrace⟩
+  have hiSurface : i.1 < (surfaceTrace B trace).length := by
+    simpa [surfaceTrace_length] using hiTrace
+  have hjSurface : j.1 < (surfaceTrace B trace).length := by
+    simpa [surfaceTrace_length] using hjTrace
+  have hget_i :
+      xs.get i = (surfaceTrace B trace).get ⟨i.1, hiSurface⟩ := by
+    change xs[i.1] = (surfaceTrace B trace)[i.1]
+    simp [xs]
+  have hget_j :
+      xs.get j = (surfaceTrace B trace).get ⟨j.1, hjSurface⟩ := by
+    change xs[j.1] = (surfaceTrace B trace)[j.1]
+    simp [xs]
+  have hsurfaceTrace :
+      (surfaceTrace B trace).get ⟨i.1, hiSurface⟩ =
+        (surfaceTrace B trace).get ⟨j.1, hjSurface⟩ := by
+    rw [← hget_i, ← hget_j]
+    exact hget
+  have hsurface :
+      surfaceOfTruncatedForm B (trace.get i') =
+        surfaceOfTruncatedForm B (trace.get j') := by
+    rw [surfaceTrace_get B trace hiTrace] at hsurfaceTrace
+    rw [surfaceTrace_get B trace hjTrace] at hsurfaceTrace
+    exact hsurfaceTrace
+  refine ⟨i', j', ?_, ?_, hsurface⟩
+  · exact hij
+  ·
+    change j.1 ≤ m
+    exact Nat.lt_succ_iff.mp hjPrefix
+
 theorem accepting_derivationTrace_length_le_boundedSententialForms_card_of_stackBound
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
     [DecidableEq g.nt] (hNF : g.IsNormalForm)
