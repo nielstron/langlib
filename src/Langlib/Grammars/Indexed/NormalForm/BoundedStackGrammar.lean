@@ -1050,6 +1050,73 @@ theorem StackBoundedDerivesIn.tail_of_NFYield_context {g : IndexedGrammar T}
       refine ⟨_, _, hr, hlhs, hc, hrhs, rfl, ?_⟩
       exact hpre.tail_terminal_context_same_bound_of_rule hr hlhs hc hrhs
 
+theorem exists_stackBoundedDerivesIn_tail_of_NFYield_context_le
+    {g : IndexedGrammar T}
+    {B i : ℕ} {first u v : List g.ISym} {A : g.nt} {σ : List g.flag}
+    {w : List T}
+    (hpre : ∃ p : ℕ,
+      p ≤ i ∧ StackBoundedDerivesIn g B p first (u ++ [ISym.indexed A σ] ++ v))
+    (hcert : NFYield g A σ w) :
+    (∃ C D : g.nt, ∃ x y : List T, ∃ r ∈ g.rules,
+      r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal C none, IRhsSymbol.nonterminal D none] ∧
+        w = x ++ y ∧
+        NFYield g C σ x ∧
+        NFYield g D σ y ∧
+        ∃ p : ℕ,
+          p ≤ i + 1 ∧
+            StackBoundedDerivesIn g B p first
+              (u ++ [ISym.indexed C σ, ISym.indexed D σ] ++ v)) ∨
+    (∃ f : g.flag, ∃ ρ : List g.flag, ∃ C : g.nt, ∃ r ∈ g.rules,
+      σ = f :: ρ ∧
+        r.lhs = A ∧ r.consume = some f ∧
+        r.rhs = [IRhsSymbol.nonterminal C none] ∧
+        NFYield g C ρ w ∧
+        ∃ p : ℕ,
+          p ≤ i + 1 ∧
+            StackBoundedDerivesIn g B p first
+              (u ++ [ISym.indexed C ρ] ++ v)) ∨
+    (∃ C : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+      r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal C (some f)] ∧
+        NFYield g C (f :: σ) w ∧
+        ∃ p : ℕ,
+          p ≤ i + 1 ∧
+            StackBoundedDerivesIn g (B + 1) p first
+              (u ++ [ISym.indexed C (f :: σ)] ++ v)) ∨
+    (∃ a : T, ∃ r ∈ g.rules,
+      r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.terminal a] ∧
+        w = [a] ∧
+        ∃ p : ℕ,
+          p ≤ i + 1 ∧
+            StackBoundedDerivesIn g B p first
+              (u ++ [ISym.terminal a] ++ v)) := by
+  obtain ⟨p, hpi, hpre⟩ := hpre
+  rcases hpre.tail_of_NFYield_context hcert with hbin | hpop | hpush | hterm
+  · rcases hbin with
+      ⟨C, D, x, y, r, hr, hlhs, hc, hrhs, hw, hleft, hright, htail⟩
+    left
+    refine ⟨C, D, x, y, r, hr, hlhs, hc, hrhs, hw, hleft, hright, p + 1, ?_, htail⟩
+    omega
+  · rcases hpop with ⟨f, ρ, C, r, hr, hσ, hlhs, hc, hrhs, hchild, htail⟩
+    right
+    left
+    refine ⟨f, ρ, C, r, hr, hσ, hlhs, hc, hrhs, hchild, p + 1, ?_, htail⟩
+    omega
+  · rcases hpush with ⟨C, f, r, hr, hlhs, hc, hrhs, hchild, htail⟩
+    right
+    right
+    left
+    refine ⟨C, f, r, hr, hlhs, hc, hrhs, hchild, p + 1, ?_, htail⟩
+    omega
+  · rcases hterm with ⟨a, r, hr, hlhs, hc, hrhs, hw, htail⟩
+    right
+    right
+    right
+    refine ⟨a, r, hr, hlhs, hc, hrhs, hw, p + 1, ?_, htail⟩
+    omega
+
 theorem stackBoundedDerivesIn_trans {g : IndexedGrammar T}
     {B m n : ℕ} {w₁ w₂ w₃ : List g.ISym}
     (h₁ : StackBoundedDerivesIn g B m w₁ w₂)
