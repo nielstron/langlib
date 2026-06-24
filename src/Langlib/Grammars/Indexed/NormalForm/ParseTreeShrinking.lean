@@ -277,6 +277,60 @@ public theorem exists_bound_first_step_bounded_prefix_certificate_for_target_len
     right
     exact hterm
 
+/-- Canonical-prefix specialization of bounded-prefix first-step decomposition.
+
+For stacks split as `η.take P ++ σ`, the first-step cases preserve the visible canonical
+prefix in binary branches and expose whether a pop consumes from that prefix or from the
+remaining suffix. -/
+public theorem exists_bound_canonical_prefix_first_step_certificate_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ A : g.nt, ∀ η σ : List g.flag, ∀ w : List T,
+          w <+ target →
+          NFYield g A (η.take P ++ σ) w →
+          (∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules, ∃ τ : List g.flag,
+            r.lhs = A ∧ r.consume = none ∧
+            r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+            w = u ++ v ∧
+            0 < u.length ∧ 0 < v.length ∧
+            u.length < w.length ∧ v.length < w.length ∧
+            u <+ target ∧ v <+ target ∧
+            τ <+ σ ∧ τ.length ≤ K ∧
+            NFYield g B (η.take P ++ τ) u ∧
+            NFYield g C (η.take P ++ τ) v ∧
+            NFYield g A (η.take P ++ τ) w ∧
+            ∀ ρ : List g.flag,
+              NFYield g B (η.take P ++ ρ) u →
+              NFYield g C (η.take P ++ ρ) v →
+              ρ <+ τ → ρ = τ) ∨
+          (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+            ∃ r ∈ g.rules,
+              η.take P ++ σ = f :: ρ ∧
+              r.lhs = A ∧ r.consume = some f ∧
+              r.rhs = [IRhsSymbol.nonterminal B none] ∧
+              NFYield g B ρ w) ∨
+          (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules, ∃ τ : List g.flag,
+            r.lhs = A ∧ r.consume = none ∧
+            r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+            τ <+ σ ∧ τ.length ≤ K ∧
+            NFYield g B ((f :: η.take P) ++ τ) w ∧
+            NFYield g A (η.take P ++ τ) w ∧
+            ∀ ρ : List g.flag,
+              NFYield g B ((f :: η.take P) ++ ρ) w →
+              ρ <+ τ → ρ = τ) ∨
+          (∃ a : T, ∃ r ∈ g.rules,
+            r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+              w = [a]) := by
+  obtain ⟨K, hK⟩ :=
+    NFYield.exists_bound_first_step_bounded_prefix_certificate_for_target_length
+      (g := g) hNF P L
+  refine ⟨K, ?_⟩
+  intro target htargetLen A η σ w hwt hcert
+  exact hK target htargetLen (η.take P) (List.length_take_le P η) A σ w hwt hcert
+
 /-- Length-uniform bounded-prefix common-suffix shrinking for pairs of parse certificates.
 This is the certificate-level form needed by binary branches: the two children keep one shared
 bounded suffix below the preserved prefix, and that suffix is sublist-minimal for the pair. -/
