@@ -6096,6 +6096,52 @@ theorem accepting_derivationTrace_get_maxStackHeight_le_future_pop_add_terminalE
       hNF hdropTrace
   omega
 
+theorem accepting_derivationTrace_get_sententialStackHeight_le_future_pop_add_terminalErase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    sententialStackHeight (trace.get ⟨i, hi⟩) ≤
+      tracePopStepCount (trace.drop i) +
+        traceTerminalEraseStackHeight (trace.drop i) := by
+  have hheight :=
+    accepting_derivationTrace_get_stackHeight_le_future_decrease
+      (g := g) hlast hi
+  have hdropTrace := isDerivationTrace_drop htrace i
+  have hdec :=
+    isDerivationTrace_stackHeightDecrease_eq_pop_add_terminalErase_of_isNormalForm
+      hNF hdropTrace
+  omega
+
+theorem accepting_derivationTrace_get_encodeSentential_length_le_future_pop_add_terminalErase_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    {i : ℕ} (hi : i < trace.length) :
+    (encodeSentential (trace.get ⟨i, hi⟩)).length ≤
+      w.length + w.length +
+        (tracePopStepCount (trace.drop i) +
+          traceTerminalEraseStackHeight (trace.drop i)) := by
+  rw [encodeSentential_length]
+  have hlen :
+      (trace.get ⟨i, hi⟩).length ≤ w.length := by
+    have hsuffix := isDerivationTrace_derivesIn_get_to_last (g := g) htrace hlast hi
+    have hlen :=
+      derivesIn_length_le_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF) hsuffix
+    simpa using hlen
+  have hnt :
+      sententialNonterminalCount (trace.get ⟨i, hi⟩) ≤ w.length :=
+    le_trans (sententialNonterminalCount_le_length _) hlen
+  have hstack :
+      sententialStackHeight (trace.get ⟨i, hi⟩) ≤
+        tracePopStepCount (trace.drop i) +
+          traceTerminalEraseStackHeight (trace.drop i) :=
+    accepting_derivationTrace_get_sententialStackHeight_le_future_pop_add_terminalErase_of_isNormalForm
+      hNF htrace hlast hi
+  omega
+
 /-- A normal-form step either increases the number of nonterminals by one, preserves it, or
 decreases it by one. -/
 theorem transforms_nonterminalCount_cases_of_isNormalForm {g : IndexedGrammar T}
