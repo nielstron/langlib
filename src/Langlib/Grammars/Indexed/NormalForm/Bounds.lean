@@ -179,6 +179,76 @@ theorem encodeISym_ne_nil {g : IndexedGrammar T} (s : g.ISym) :
       rw [encodeSentential_cons, List.filterMap_append, encodeISym_terminals, ih]
       cases s <;> simp [sententialTerminals, ISym.toTerminal?]
 
+def decodeFlatStack {N F : Type} :
+    List (FlatSymbol T N F) → Option (List F × List (FlatSymbol T N F))
+  | [] => none
+  | FlatSymbol.stackBottom :: rest => some ([], rest)
+  | FlatSymbol.flag f :: rest =>
+      match decodeFlatStack rest with
+      | some (σ, rest') => some (f :: σ, rest')
+      | none => none
+  | FlatSymbol.terminal _ :: _ => none
+  | FlatSymbol.nonterminal _ :: _ => none
+
+@[simp] theorem decodeFlatStack_flags_append {N F : Type}
+    (σ : List F) (rest : List (FlatSymbol T N F)) :
+    decodeFlatStack (σ.map FlatSymbol.flag ++ FlatSymbol.stackBottom :: rest) =
+      some (σ, rest) := by
+  induction σ with
+  | nil => rfl
+  | cons f σ ih =>
+      simp [decodeFlatStack, ih]
+
+def decodeFlatSententialAux {g : IndexedGrammar T} :
+    ℕ → List (FlatSymbol T g.nt g.flag) → Option (List g.ISym)
+  | 0, [] => some []
+  | 0, _ :: _ => none
+  | _ + 1, [] => some []
+  | n + 1, FlatSymbol.terminal a :: rest =>
+      match decodeFlatSententialAux n rest with
+      | some w => some (ISym.terminal a :: w)
+      | none => none
+  | n + 1, FlatSymbol.nonterminal A :: rest =>
+      match decodeFlatStack rest with
+      | some (σ, rest') =>
+          match decodeFlatSententialAux n rest' with
+          | some w => some (ISym.indexed A σ :: w)
+          | none => none
+      | none => none
+  | _ + 1, FlatSymbol.flag _ :: _ => none
+  | _ + 1, FlatSymbol.stackBottom :: _ => none
+
+def decodeFlatSentential {g : IndexedGrammar T}
+    (w : List (FlatSymbol T g.nt g.flag)) : Option (List g.ISym) :=
+  decodeFlatSententialAux w.length w
+
+theorem decodeFlatSententialAux_encodeSentential_add {g : IndexedGrammar T}
+    (k : ℕ) (w : List g.ISym) :
+    decodeFlatSententialAux (k + w.length) (encodeSentential w) = some w := by
+  induction w generalizing k with
+  | nil =>
+      cases k <;> rfl
+  | cons s w ih =>
+      cases s with
+      | terminal a =>
+          have hfuel :
+              k + (ISym.terminal a :: w).length = (k + w.length) + 1 := by
+            simp [Nat.add_assoc]
+          rw [hfuel]
+          simp [decodeFlatSententialAux, encodeSentential]
+          rw [show decodeFlatSententialAux (k + w.length) (List.flatMap encodeISym w) =
+              some w by
+            simpa [encodeSentential] using ih k]
+      | indexed A σ =>
+          have hfuel :
+              k + (ISym.indexed A σ :: w).length = (k + w.length) + 1 := by
+            simp [Nat.add_assoc]
+          rw [hfuel]
+          simp [decodeFlatSententialAux, encodeSentential, encodeISym]
+          rw [show decodeFlatSententialAux (k + w.length) (List.flatMap encodeISym w) =
+              some w by
+            simpa [encodeSentential] using ih k]
+
 @[simp] theorem encodeSentential_length {g : IndexedGrammar T}
     (w : List g.ISym) :
     (encodeSentential w).length =
@@ -199,6 +269,15 @@ theorem encodeISym_ne_nil {g : IndexedGrammar T} (s : g.ISym) :
           simp [encodeSentential, sententialStackHeight, sententialNonterminalCount,
             ISym.stackHeight, ISym.isIndexed, htail]
           omega
+
+@[simp] theorem decodeFlatSentential_encodeSentential {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    decodeFlatSentential (encodeSentential w) = some w := by
+  have h :=
+    decodeFlatSententialAux_encodeSentential_add
+      (g := g) (sententialStackHeight w + sententialNonterminalCount w) w
+  simpa [decodeFlatSentential, encodeSentential_length, Nat.add_assoc, Nat.add_comm,
+    Nat.add_left_comm] using h
 
 @[simp] theorem ISym.isIndexed_terminal {g : IndexedGrammar T} (a : T) :
     ISym.isIndexed (g := g) (ISym.terminal a) = false := rfl
