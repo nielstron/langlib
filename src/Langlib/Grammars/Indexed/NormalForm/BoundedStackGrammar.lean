@@ -2613,6 +2613,30 @@ theorem boundedStackGrammar_derives_of_stackBoundedDerivesIn
       subst cw
       exact ⟨bw₁, bw₂, hbw₁, hbw₂, hder.tail htran⟩
 
+/-- The bounded-grammar sentential forms obtained by erasing length-bounded finite surfaces
+and translating them into the larger stack bound `K + N` form a finite set. This frontier is
+uniform in the target word; it depends only on the length bound `L`. -/
+theorem finite_boundedSentential_image_of_boundedSurfaceForms
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K N L : ℕ} :
+    ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+      ∃ surface : SurfaceForm g K,
+        surface ∈ boundedSurfaceForms g L K ∧
+          boundedSentential? (g := g) (K + N) (eraseSurfaceForm surface) = some bw} :
+        Set (List (symbol T (BoundedStackNT g (K + N))))).Finite := by
+  classical
+  let encodeSurface : SurfaceForm g K → List (symbol T (BoundedStackNT g (K + N))) :=
+    fun surface =>
+      match boundedSentential? (g := g) (K + N) (eraseSurfaceForm surface) with
+      | some bw => bw
+      | none => []
+  have hfinite :=
+    (boundedSurfaceForms_finite g L K).image encodeSurface
+  apply hfinite.subset
+  intro bw hbw
+  rcases hbw with ⟨surface, hsurface, henc⟩
+  exact ⟨surface, hsurface, by simp [encodeSurface, henc]⟩
+
 /-- The bounded-grammar sentential forms obtained by erasing target-compatible finite
 surfaces and translating them into the larger stack bound `K + N` form a finite set. -/
 theorem finite_boundedSentential_image_of_targetCompatibleBoundedSurfaceForms
@@ -2709,6 +2733,80 @@ theorem exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationT
         ({bw : List (symbol T (BoundedStackNT g (K + N))) |
           ∃ surface : SurfaceForm g K,
             surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+              boundedSentential? (g := g) (K + N)
+                (eraseSurfaceForm surface) = some bw} :
+          Set (List (symbol T (BoundedStackNT g (K + N)))) ) :=
+    ⟨surfaceOfTruncatedForm K ys, hsurface, by simpa [herase] using hbw⟩
+  exact ⟨ys, n', bw, hn', hrel, hlenEq, htermEq, hntEq, hysBound,
+    hsurface, herase, hbw, hbwm, hGder⟩
+
+/-- Length-uniform finite-frontier version of
+`exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_budget`.
+The compiled suffix starts in a bounded sentential form coming from the finite set of all
+surfaces of length at most `L`, independent of the particular target word. -/
+theorem exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_lengthBound_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            ∃ ys : List g.ISym, ∃ n' : ℕ,
+              ∃ bw : List (symbol T (BoundedStackNT g (K + N))),
+                n' ≤ trace.length - 1 - i ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                ys.length = (trace.get ⟨i, hi⟩).length ∧
+                sententialTerminals ys =
+                  sententialTerminals (trace.get ⟨i, hi⟩) ∧
+                sententialNonterminalCount ys =
+                  sententialNonterminalCount (trace.get ⟨i, hi⟩) ∧
+                sententialMaxStackHeight ys ≤ K ∧
+                surfaceOfTruncatedForm K ys ∈ boundedSurfaceForms g L K ∧
+                eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys ∧
+                boundedSentential? (g := g) (K + N) ys = some bw ∧
+                bw ∈
+                  ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+                    ∃ surface : SurfaceForm g K,
+                      surface ∈ boundedSurfaceForms g L K ∧
+                        boundedSentential? (g := g) (K + N)
+                          (eraseSurfaceForm surface) = some bw} :
+                    Set (List (symbol T (BoundedStackNT g (K + N)))) ) ∧
+                grammar_derives (boundedStackGrammar g (K + N)) bw
+                  (target.map fun a =>
+                    (symbol.terminal a : symbol T (BoundedStackNT g (K + N)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget
+  obtain ⟨ys, n', bw, hn', hrel, hlenEq, htermEq, hntEq, hysBound,
+    _hsurfaceTarget, herase, hbw, _hbwmTarget, hGder⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hsurface :
+      surfaceOfTruncatedForm K ys ∈ boundedSurfaceForms g L K := by
+    apply surfaceOfTruncatedForm_mem_boundedSurfaceForms
+    have hxlen :
+        (trace.get ⟨i, hi⟩).length ≤ target.length :=
+      accepting_derivationTrace_get_length_le_target_of_isNormalForm
+        hNF htrace hlast hi
+    rw [hlenEq]
+    exact le_trans hxlen htargetLen
+  have hbwm :
+      bw ∈
+        ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+          ∃ surface : SurfaceForm g K,
+            surface ∈ boundedSurfaceForms g L K ∧
               boundedSentential? (g := g) (K + N)
                 (eraseSurfaceForm surface) = some bw} :
           Set (List (symbol T (BoundedStackNT g (K + N)))) ) :=
