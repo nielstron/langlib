@@ -333,6 +333,27 @@ theorem sententialMaxStackHeight_context_replace_indexed_take_append_sublist_dro
   apply sententialMaxStackHeight_context_replace_indexed_le_of_length_le
   exact length_take_append_sublist_drop_le hτ
 
+theorem sententialMaxStackHeight_context_indexed_le_of_context_le_of_stack_le
+    {g : IndexedGrammar T} {u v : List g.ISym} {A : g.nt} {σ : List g.flag}
+    {B : ℕ}
+    (hctx : sententialMaxStackHeight (u ++ v) ≤ B)
+    (hσ : σ.length ≤ B) :
+    sententialMaxStackHeight (u ++ [ISym.indexed A σ] ++ v) ≤ B := by
+  simp only [sententialMaxStackHeight_append, sententialMaxStackHeight_indexed] at *
+  omega
+
+theorem sententialMaxStackHeight_context_indexed_take_append_le
+    {g : IndexedGrammar T} {u v : List g.ISym} {A : g.nt}
+    {η τ : List g.flag} {P K B : ℕ}
+    (hctx : sententialMaxStackHeight (u ++ v) ≤ B)
+    (hPK : P + K ≤ B)
+    (hτ : τ.length ≤ K) :
+    sententialMaxStackHeight (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) ≤ B := by
+  apply sententialMaxStackHeight_context_indexed_le_of_context_le_of_stack_le hctx
+  rw [List.length_append]
+  have htake : (η.take P).length ≤ P := List.length_take_le P η
+  omega
+
 theorem stackHeight_le_sententialMaxStackHeight_of_mem {g : IndexedGrammar T}
     {s : g.ISym} {w : List g.ISym} (hs : s ∈ w) :
     s.stackHeight ≤ sententialMaxStackHeight w := by

@@ -1290,6 +1290,82 @@ theorem exists_stackBoundedDerivesIn_erase_later_surface_of_repeated_surface_pre
   rw [herase] at hpre
   simpa using hpre
 
+theorem exists_stackBoundedDerivesIn_of_surface_eq_prefix_bound
+    {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
+    {first ys : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i : ℕ} (hi : i < trace.length)
+    (hbound : ∀ k (hk : k < trace.length),
+      k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B)
+    (hys : sententialMaxStackHeight ys ≤ B)
+    (hsurface :
+      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm B ys) :
+    ∃ p : ℕ,
+      p ≤ i ∧ StackBoundedDerivesIn g B p first ys := by
+  refine ⟨i, le_rfl, ?_⟩
+  have hpre :
+      StackBoundedDerivesIn g B i first (trace.get ⟨i, hi⟩) :=
+    stackBoundedDerivesIn_trace_prefix_of_prefix_bound
+      (g := g) (B := B) htrace hhead hbound hi
+  have hiErase :
+      eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩)) =
+        trace.get ⟨i, hi⟩ :=
+    eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le
+      (hbound i hi (by omega))
+  have hysErase :
+      eraseSurfaceForm (surfaceOfTruncatedForm B ys) = ys :=
+    eraseSurfaceForm_surfaceOfTruncatedForm_eq_self_of_sententialMaxStackHeight_le hys
+  have herase := congrArg eraseSurfaceForm hsurface
+  rw [hiErase, hysErase] at herase
+  rw [herase] at hpre
+  simpa using hpre
+
+theorem exists_stackBoundedDerivesIn_of_surface_eq_prefix_bound_le
+    {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
+    {first ys : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i j : ℕ} (hi : i < trace.length) (hij : i ≤ j)
+    (hbound : ∀ k (hk : k < trace.length),
+      k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B)
+    (hys : sententialMaxStackHeight ys ≤ B)
+    (hsurface :
+      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm B ys) :
+    ∃ p : ℕ,
+      p ≤ j ∧ StackBoundedDerivesIn g B p first ys := by
+  obtain ⟨p, hpi, hpre⟩ :=
+    exists_stackBoundedDerivesIn_of_surface_eq_prefix_bound
+      (g := g) (B := B) htrace hhead hi hbound hys hsurface
+  exact ⟨p, le_trans hpi hij, hpre⟩
+
+theorem exists_stackBoundedDerivesIn_canonical_context_of_surface_eq_prefix_bound_le
+    {g : IndexedGrammar T} {B P K : ℕ} {trace : List (List g.ISym)}
+    {first u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    {i j : ℕ} (hi : i < trace.length) (hij : i ≤ j)
+    (hbound : ∀ k (hk : k < trace.length),
+      k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B)
+    (hctx : sententialMaxStackHeight (u ++ v) ≤ B)
+    (hPK : P + K ≤ B)
+    (hτ : τ.length ≤ K)
+    (hsurface :
+      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm B (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v)) :
+    ∃ p : ℕ,
+      p ≤ j ∧
+        StackBoundedDerivesIn g B p first
+          (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) := by
+  have hys :
+      sententialMaxStackHeight (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) ≤ B :=
+    sententialMaxStackHeight_context_indexed_take_append_le hctx hPK hτ
+  exact
+    exists_stackBoundedDerivesIn_of_surface_eq_prefix_bound_le
+      (g := g) (B := B) htrace hhead hi hij hbound hys hsurface
+
 /-- Prefix-local target-compatible pigeonhole packaged with bounded reachability. If the
 target-compatible bounded-surface frontier is smaller than the displayed prefix of an accepting
 trace, then some repeated surface inside that prefix yields a shortened bounded derivation from
