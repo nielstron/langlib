@@ -703,6 +703,14 @@ theorem StackBoundedDerivesIn.mono_bound {g : IndexedGrammar T}
       rcases h with ⟨w, hprev, hstep, hw₂⟩
       exact ⟨w, ih hprev, hstep, le_trans hw₂ hBC⟩
 
+theorem StackBoundedDerivesIn.tail_of_transforms {g : IndexedGrammar T}
+    {B n : ℕ} {w₁ w₂ w₃ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂)
+    (hstep : g.Transforms w₂ w₃)
+    (hw₃ : sententialMaxStackHeight w₃ ≤ B) :
+    StackBoundedDerivesIn g B (n + 1) w₁ w₃ :=
+  ⟨w₂, h, hstep, hw₃⟩
+
 theorem exists_stackBoundedDerivesIn_of_boundedStackGrammar_derives
     {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
     {w₁ w₂ : List (symbol T (BoundedStackNT g B))}
@@ -831,6 +839,75 @@ theorem stackBoundedDerivesIn_terminal_context_of_rule {g : IndexedGrammar T}
     (NFYield.transforms_terminal_context_of_rule
       (g := g) (u := u) (v := v) hr hlhs hc hrhs)
     hstart hfinal
+
+theorem StackBoundedDerivesIn.tail_binary_context_of_rule {g : IndexedGrammar T}
+    {B n : ℕ} {first : List g.ISym}
+    {A C D : g.nt} {σ : List g.flag} {r : IRule T g.nt g.flag}
+    {u v : List g.ISym}
+    (hpre : StackBoundedDerivesIn g B n first (u ++ [ISym.indexed A σ] ++ v))
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal C none, IRhsSymbol.nonterminal D none])
+    (hfinal : sententialMaxStackHeight
+      (u ++ [ISym.indexed C σ, ISym.indexed D σ] ++ v) ≤ B) :
+    StackBoundedDerivesIn g B (n + 1) first
+      (u ++ [ISym.indexed C σ, ISym.indexed D σ] ++ v) :=
+  hpre.tail_of_transforms
+    (NFYield.transforms_binary_context_of_rule
+      (g := g) (u := u) (v := v) hr hlhs hc hrhs)
+    hfinal
+
+theorem StackBoundedDerivesIn.tail_pop_context_of_rule {g : IndexedGrammar T}
+    {B n : ℕ} {first : List g.ISym}
+    {A C : g.nt} {f : g.flag} {ρ : List g.flag}
+    {r : IRule T g.nt g.flag} {u v : List g.ISym}
+    (hpre : StackBoundedDerivesIn g B n first (u ++ [ISym.indexed A (f :: ρ)] ++ v))
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = some f)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal C none])
+    (hfinal : sententialMaxStackHeight (u ++ [ISym.indexed C ρ] ++ v) ≤ B) :
+    StackBoundedDerivesIn g B (n + 1) first
+      (u ++ [ISym.indexed C ρ] ++ v) :=
+  hpre.tail_of_transforms
+    (NFYield.transforms_pop_context_of_rule
+      (g := g) (u := u) (v := v) hr hlhs hc hrhs)
+    hfinal
+
+theorem StackBoundedDerivesIn.tail_push_context_of_rule {g : IndexedGrammar T}
+    {B n : ℕ} {first : List g.ISym}
+    {A C : g.nt} {f : g.flag} {σ : List g.flag}
+    {r : IRule T g.nt g.flag} {u v : List g.ISym}
+    (hpre : StackBoundedDerivesIn g B n first (u ++ [ISym.indexed A σ] ++ v))
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal C (some f)])
+    (hfinal : sententialMaxStackHeight (u ++ [ISym.indexed C (f :: σ)] ++ v) ≤ B) :
+    StackBoundedDerivesIn g B (n + 1) first
+      (u ++ [ISym.indexed C (f :: σ)] ++ v) :=
+  hpre.tail_of_transforms
+    (NFYield.transforms_push_context_of_rule
+      (g := g) (u := u) (v := v) hr hlhs hc hrhs)
+    hfinal
+
+theorem StackBoundedDerivesIn.tail_terminal_context_of_rule {g : IndexedGrammar T}
+    {B n : ℕ} {first : List g.ISym}
+    {A : g.nt} {σ : List g.flag} {a : T}
+    {r : IRule T g.nt g.flag} {u v : List g.ISym}
+    (hpre : StackBoundedDerivesIn g B n first (u ++ [ISym.indexed A σ] ++ v))
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.terminal a])
+    (hfinal : sententialMaxStackHeight (u ++ [ISym.terminal a] ++ v) ≤ B) :
+    StackBoundedDerivesIn g B (n + 1) first
+      (u ++ [ISym.terminal a] ++ v) :=
+  hpre.tail_of_transforms
+    (NFYield.transforms_terminal_context_of_rule
+      (g := g) (u := u) (v := v) hr hlhs hc hrhs)
+    hfinal
 
 theorem stackBoundedDerivesIn_trans {g : IndexedGrammar T}
     {B m n : ℕ} {w₁ w₂ w₃ : List g.ISym}
