@@ -82,6 +82,45 @@ public theorem exists_bound_minimal_suffix_length_for_target_length_bounded_pref
   have hτσ : τ = σ := hmin τ hτcert hτsub
   simpa [← hτσ] using hτlen
 
+/-- Every parse certificate can be replaced, for the same nonterminal and yield, by one whose
+root stack has a bounded-length sublist of the original stack. The first `N` live flags are
+preserved and only the deeper suffix is shrunk. -/
+public theorem exists_bound_short_stack_certificate_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ A : g.nt, ∀ w : List T,
+          w <+ target →
+          ∀ σ : List g.flag,
+            NFYield g A σ w →
+            ∃ σ' : List g.flag,
+              NFYield g A σ' w ∧
+              σ' <+ σ ∧
+              σ'.length ≤ N + K := by
+  obtain ⟨K, hK⟩ :=
+    NFYield.exists_bound_prefixed_suffix_for_target_length_bounded_prefix_target_sublists
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen A w hwt σ hcert
+  let pref : List g.flag := σ.take N
+  let rest : List g.flag := σ.drop N
+  have hpref : pref.length ≤ N := by
+    simp [pref]
+  have hsplit : pref ++ rest = σ := by
+    simp [pref, rest]
+  have hcertSplit : NFYield g A (pref ++ rest) w := by
+    simpa [hsplit] using hcert
+  obtain ⟨τ, hτcert, hτsub, hτlen, _hτmin⟩ :=
+    hK target htargetLen pref hpref A w hwt rest hcertSplit
+  refine ⟨pref ++ τ, hτcert, ?_, ?_⟩
+  · have hsub : (pref ++ τ).Sublist (pref ++ rest) :=
+      List.Sublist.append (List.Sublist.refl pref) hτsub
+    simpa [hsplit] using hsub
+  · simp [List.length_append]
+    omega
+
 end NFYield
 
 end IndexedGrammar
