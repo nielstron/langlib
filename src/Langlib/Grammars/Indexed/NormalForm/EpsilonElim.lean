@@ -7,13 +7,10 @@ public section
 
 /-! # ε-Free Indexed Grammars
 
-This file records the local interface used by the normal-form pipeline once an
-indexed grammar is already known to have no ε-productions.
-
-The full ε-elimination construction for indexed grammars is substantially more
-delicate than the context-free version because nullability can depend on the
-current stack. The proved theorem below is intentionally the identity
-transformation under an explicit `NoEpsilon'` hypothesis.
+This file develops the stack-sensitive nullability infrastructure used by the
+normal-form pipeline.  Nullability for indexed grammars depends on the current
+stack, so ε-elimination is organized around right-hand-side sublists whose
+deleted symbols are nullable at the stack they receive during expansion.
 
 ## References
 
@@ -460,11 +457,91 @@ theorem derives_expandRhs_of_nullableRhsSublist {g : IndexedGrammar T}
         simpa using derives_erase_nullable (g := g) hnullable [] (g.expandRhs rhs σ)
       exact hdrop.trans ih
 
+theorem derives_context_expandRhs_of_nullableRhsSublist {g : IndexedGrammar T}
+    {σ : List g.flag} {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : NullableRhsSublist g σ rhs kept) (u v : List g.ISym) :
+    g.Derives (u ++ g.expandRhs rhs σ ++ v)
+      (u ++ g.expandRhs kept σ ++ v) := by
+  simpa [List.append_assoc] using
+    deri_with_suffix (g := g) v
+      (deri_with_prefix (g := g) u (derives_expandRhs_of_nullableRhsSublist h))
+
 theorem derives_nil_of_nullableRhsSublist_nil {g : IndexedGrammar T}
     {σ : List g.flag} {rhs : List (IRhsSymbol T g.nt g.flag)}
     (h : NullableRhsSublist g σ rhs []) :
     g.Derives (g.expandRhs rhs σ) [] := by
   simpa [expandRhs] using derives_expandRhs_of_nullableRhsSublist h
+
+theorem NullableRhsSublist.kept_ne_nil_of_not_derives_nil {g : IndexedGrammar T}
+    {σ : List g.flag} {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : NullableRhsSublist g σ rhs kept)
+    (hnot : ¬ g.Derives (g.expandRhs rhs σ) []) :
+    kept ≠ [] := by
+  intro hkept
+  subst kept
+  exact hnot (derives_nil_of_nullableRhsSublist_nil h)
+
+theorem exists_nonempty_nullableRhsSublist_of_not_derives_nil {g : IndexedGrammar T}
+    {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag}
+    (hnot : ¬ g.Derives (g.expandRhs rhs σ) []) :
+    ∃ kept : List (IRhsSymbol T g.nt g.flag),
+      NullableRhsSublist g σ rhs kept ∧ kept ≠ [] := by
+  refine ⟨rhs, nullableRhsSublist_self g σ rhs, ?_⟩
+  intro hrhs
+  subst rhs
+  exact hnot (by simpa [expandRhs] using g.deri_self [])
+
+theorem derives_rule_nullableRhsSublist_none {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {σ : List g.flag}
+    {kept : List (IRhsSymbol T g.nt g.flag)}
+    (hr : r ∈ g.rules) (hconsume : r.consume = none)
+    (hsub : NullableRhsSublist g σ r.rhs kept) (u v : List g.ISym) :
+    g.Derives (u ++ [ISym.indexed r.lhs σ] ++ v)
+      (u ++ g.expandRhs kept σ ++ v) := by
+  have hstep :
+      g.Transforms (u ++ [ISym.indexed r.lhs σ] ++ v)
+        (u ++ g.expandRhs r.rhs σ ++ v) := by
+    refine ⟨r, u, v, σ, hr, ?_, rfl⟩
+    rw [hconsume]
+  exact
+    (deri_of_tran hstep).trans
+      (derives_context_expandRhs_of_nullableRhsSublist hsub u v)
+
+theorem derives_rule_nullableRhsSublist_some {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {f : g.flag} {σ : List g.flag}
+    {kept : List (IRhsSymbol T g.nt g.flag)}
+    (hr : r ∈ g.rules) (hconsume : r.consume = some f)
+    (hsub : NullableRhsSublist g σ r.rhs kept) (u v : List g.ISym) :
+    g.Derives (u ++ [ISym.indexed r.lhs (f :: σ)] ++ v)
+      (u ++ g.expandRhs kept σ ++ v) := by
+  have hstep :
+      g.Transforms (u ++ [ISym.indexed r.lhs (f :: σ)] ++ v)
+        (u ++ g.expandRhs r.rhs σ ++ v) := by
+    refine ⟨r, u, v, σ, hr, ?_, rfl⟩
+    rw [hconsume]
+  exact
+    (deri_of_tran hstep).trans
+      (derives_context_expandRhs_of_nullableRhsSublist hsub u v)
+
+theorem derives_rule_nullableRhsSublist {g : IndexedGrammar T}
+    {r : IRule T g.nt g.flag} {σ : List g.flag}
+    {kept : List (IRhsSymbol T g.nt g.flag)}
+    (hr : r ∈ g.rules) (hsub : NullableRhsSublist g σ r.rhs kept)
+    (u v : List g.ISym) :
+    g.Derives
+      (match r.consume with
+       | none => u ++ [ISym.indexed r.lhs σ] ++ v
+       | some f => u ++ [ISym.indexed r.lhs (f :: σ)] ++ v)
+      (u ++ g.expandRhs kept σ ++ v) := by
+  cases hconsume : r.consume with
+  | none =>
+      simpa [hconsume] using
+        derives_rule_nullableRhsSublist_none
+          (g := g) (r := r) (σ := σ) (kept := kept) hr hconsume hsub u v
+  | some f =>
+      simpa [hconsume] using
+        derives_rule_nullableRhsSublist_some
+          (g := g) (r := r) (f := f) (σ := σ) (kept := kept) hr hconsume hsub u v
 
 theorem nullableRhsSublist_nil_of_expandRhs_derives_nil {g : IndexedGrammar T}
     {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag}
@@ -650,12 +727,20 @@ theorem noEpsilon_iff_no_isNullable {g : IndexedGrammar T} :
           (isNullable_of_empty_rule_some hr rfl hc hrhs [])
 
 /-- If a grammar is already ε-free, it is an ε-free equivalent of itself. -/
+theorem exists_noEpsilon_all (g : IndexedGrammar T) (hne : g.NoEpsilon') :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
+  exact ⟨g, hne, fun h => h, fun _ => Iff.rfl⟩
+
 theorem exists_noEpsilon (g : IndexedGrammar T) (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T,
       g'.NoEpsilon' ∧
       (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
       ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
-  exact ⟨g, hne, fun h => h, fun _ _ => Iff.rfl⟩
+  obtain ⟨g', hne', hfresh, hlang⟩ := g.exists_noEpsilon_all hne
+  exact ⟨g', hne', hfresh, fun w _ => hlang w⟩
 
 end EpsilonElim
 

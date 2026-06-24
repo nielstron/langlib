@@ -26,8 +26,9 @@ and the start symbol does not appear on the right-hand side of any production.
 
 ## Main results
 
-- `IndexedGrammar.exists_normalForm` — every ε-free indexed grammar has an equivalent
-  grammar in normal form (for non-empty words)
+- `IndexedGrammar.exists_normalForm_all` — every ε-free indexed grammar has an equivalent
+  grammar in normal form
+- `IndexedGrammar.exists_normalForm` — compatibility wrapper for non-empty words
 
 ## Proof outline
 
@@ -57,11 +58,11 @@ namespace IndexedGrammar
 
 /-- Normal-form theorem for ε-free indexed grammars. For every indexed grammar `g`
 with no ε-productions, there exists an indexed grammar `g'` in normal form such that
-`g'` generates the same non-empty words as `g`. -/
-theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) (hne : g.NoEpsilon') :
+`g'` generates exactly the same words as `g`. -/
+theorem exists_normalForm_all [Inhabited T] (g : IndexedGrammar T) (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T,
       (∃ _ : DecidableEq g'.nt, g'.IsNormalForm) ∧
-      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
   -- Step 1: Fresh start — introduce a new start symbol not on any RHS.
   let g₁ := g.freshStart
   have hg₁_lang : ∀ w : List T, w ∈ g₁.Language ↔ w ∈ g.Language :=
@@ -69,39 +70,57 @@ theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) (hne : g.NoEpsilo
   have hg₁_fresh : g₁.StartNotOnRhs' := freshStart_startNotOnRhs g
   have hg₁_ne : g₁.NoEpsilon' := freshStart_noEpsilon g hne
   -- Step 2: ε-free pass-through
-  obtain ⟨g₂, hg₂_ne, hg₂_fresh_of, hg₂_lang⟩ := exists_noEpsilon g₁ hg₁_ne
+  obtain ⟨g₂, hg₂_ne, hg₂_fresh_of, hg₂_lang⟩ := exists_noEpsilon_all g₁ hg₁_ne
   have hg₂_fresh : g₂.StartNotOnRhs' := hg₂_fresh_of hg₁_fresh
   -- Step 3: Terminal isolation (fully proved)
   obtain ⟨g₃, hg₃_ne, hg₃_ti, hg₃_fresh_of, hg₃_lang⟩ :=
-    exists_terminalsIsolated' g₂ hg₂_ne
+    exists_terminalsIsolated g₂ hg₂_ne
   have hg₃_fresh : g₃.StartNotOnRhs' := hg₃_fresh_of hg₂_fresh
   -- Step 4: Flag separation
   obtain ⟨g₄, hg₄_ne, hg₄_ti, hg₄_fs, hg₄_fresh_of, hg₄_lang⟩ :=
-    exists_flagsSeparated' g₃ hg₃_ne hg₃_ti
+    exists_flagsSeparated g₃ hg₃_ne hg₃_ti
   -- Step 5: Binarization + final NF assembly
   have hg₄_fresh : g₄.StartNotOnRhs' := hg₄_fresh_of hg₃_fresh
   obtain ⟨g₅, hg₅_nf, hg₅_lang⟩ :=
-    exists_normalForm_from_separated' g₄ hg₄_ne hg₄_ti hg₄_fs hg₄_fresh
-  exact ⟨g₅, hg₅_nf, fun w hw => by
-    rw [hg₅_lang w hw, hg₄_lang w hw, hg₃_lang w hw, hg₂_lang w hw]
+    exists_normalForm_from_separated g₄ hg₄_ne hg₄_ti hg₄_fs hg₄_fresh
+  exact ⟨g₅, hg₅_nf, fun w => by
+    rw [hg₅_lang w, hg₄_lang w, hg₃_lang w, hg₂_lang w]
     exact hg₁_lang w⟩
 
+/-- Compatibility form of the normal-form theorem, preserving all non-empty words. -/
+theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) (hne : g.NoEpsilon') :
+    ∃ g' : IndexedGrammar T,
+      (∃ _ : DecidableEq g'.nt, g'.IsNormalForm) ∧
+      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g', hNF, hlang⟩ := g.exists_normalForm_all hne
+  exact ⟨g', hNF, fun w _ => hlang w⟩
+
 /-- Every ε-free indexed grammar has a finite-support normal-form grammar preserving all
-non-empty generated words. -/
-theorem exists_finiteSupport_normalForm [Inhabited T] (g : IndexedGrammar T)
+generated words. -/
+theorem exists_finiteSupport_normalForm_all [Inhabited T] (g : IndexedGrammar T)
     (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T, ∃ _ : Fintype g'.nt, ∃ _ : Fintype g'.flag,
       ∃ _ : DecidableEq g'.nt, g'.IsNormalForm ∧
-        ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
-  obtain ⟨g₀, ⟨hdec, hNF⟩, hlang⟩ := g.exists_normalForm hne
+        ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, ⟨hdec, hNF⟩, hlang⟩ := g.exists_normalForm_all hne
   let g' := g₀.toFiniteSupport
   haveI := hdec
   have hdec' : DecidableEq g'.nt := Classical.decEq _
   refine ⟨g', inferInstance, inferInstance, hdec', ?_, ?_⟩
   · exact g₀.toFiniteSupport_isNormalForm hNF
-  · intro w hw
+  · intro w
     change w ∈ g₀.toFiniteSupport.Language ↔ w ∈ g.Language
     rw [g₀.toFiniteSupport_language]
-    exact hlang w hw
+    exact hlang w
+
+/-- Compatibility form of the finite-support normal-form theorem, preserving all non-empty
+generated words. -/
+theorem exists_finiteSupport_normalForm [Inhabited T] (g : IndexedGrammar T)
+    (hne : g.NoEpsilon') :
+    ∃ g' : IndexedGrammar T, ∃ _ : Fintype g'.nt, ∃ _ : Fintype g'.flag,
+      ∃ _ : DecidableEq g'.nt, g'.IsNormalForm ∧
+        ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g', hnt, hflag, hdec, hNF, hlang⟩ := g.exists_finiteSupport_normalForm_all hne
+  exact ⟨g', hnt, hflag, hdec, hNF, fun w _ => hlang w⟩
 
 end IndexedGrammar

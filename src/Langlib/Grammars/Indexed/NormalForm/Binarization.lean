@@ -817,6 +817,32 @@ theorem binarize_generates_iff (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
   exact ⟨binarize_generates_backward g hne hti hfs hfresh hw,
          binarize_generates_forward g hne hti hfs hfresh hw⟩
 
+theorem binarize_generates_iff_all (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
+    (hfs : g.FlagsSeparated) (hfresh : g.StartNotOnRhs') :
+    ∀ w : List T, (g.binarize).Generates w ↔ g.Generates w := by
+  intro w
+  by_cases hw : w = []
+  · subst w
+    constructor
+    · intro hgen
+      obtain ⟨hdec, hNF⟩ := g.binarize_isNormalForm hne hti hfs hfresh
+      letI := hdec
+      have hne_bin : (g.binarize).NoEpsilon' :=
+        (g.binarize).noEpsilon_of_isNormalForm hNF
+      exact False.elim ((g.binarize).not_generates_nil_of_noEpsilon hne_bin hgen)
+    · intro hgen
+      exact False.elim (g.not_generates_nil_of_noEpsilon hne hgen)
+  · exact g.binarize_generates_iff hne hti hfs hfresh w hw
+
+theorem exists_normalForm_from_separated (g : IndexedGrammar T)
+    (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
+    (hfs : g.FlagsSeparated) (hfresh : g.StartNotOnRhs') :
+    ∃ g' : IndexedGrammar T,
+      (∃ _ : DecidableEq g'.nt, g'.IsNormalForm) ∧
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) :=
+  ⟨g.binarize, g.binarize_isNormalForm hne hti hfs hfresh,
+   g.binarize_generates_iff_all hne hti hfs hfresh⟩
+
 theorem exists_normalForm_from_separated' (g : IndexedGrammar T)
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
     (hfs : g.FlagsSeparated) (hfresh : g.StartNotOnRhs') :
@@ -824,7 +850,7 @@ theorem exists_normalForm_from_separated' (g : IndexedGrammar T)
       (∃ _ : DecidableEq g'.nt, g'.IsNormalForm) ∧
       ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) :=
   ⟨g.binarize, g.binarize_isNormalForm hne hti hfs hfresh,
-   g.binarize_generates_iff hne hti hfs hfresh⟩
+   fun w _ => g.binarize_generates_iff_all hne hti hfs hfresh w⟩
 
 end Binarization
 

@@ -1204,16 +1204,29 @@ theorem flagSeparate_language_backward {w : List T}
   rw [fsUnsepSF_terminal g w] at hd
   simpa [fsUnsepSF, fsUnsepSym, flagSeparate] using hd
 
+theorem flagSeparate_generates_iff (w : List T) :
+    (g.flagSeparate).Generates w ↔ g.Generates w :=
+  ⟨g.flagSeparate_language_backward, g.flagSeparate_language_forward⟩
+
+theorem exists_flagsSeparated (g : IndexedGrammar T)
+    (hne : g.NoEpsilon') (hti : g.TerminalsIsolated) :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧ g'.TerminalsIsolated ∧ g'.FlagsSeparated ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) :=
+  ⟨g.flagSeparate, g.flagSeparate_noEpsilon hne, g.flagSeparate_terminalsIsolated hti,
+   g.flagSeparate_flagsSeparated hti,
+   g.flagSeparate_startNotOnRhs,
+   g.flagSeparate_generates_iff⟩
+
 theorem exists_flagsSeparated' (g : IndexedGrammar T)
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated) :
     ∃ g' : IndexedGrammar T,
       g'.NoEpsilon' ∧ g'.TerminalsIsolated ∧ g'.FlagsSeparated ∧
       (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
-      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) :=
-  ⟨g.flagSeparate, g.flagSeparate_noEpsilon hne, g.flagSeparate_terminalsIsolated hti,
-   g.flagSeparate_flagsSeparated hti,
-   g.flagSeparate_startNotOnRhs,
-   fun _ _ => ⟨g.flagSeparate_language_backward, g.flagSeparate_language_forward⟩⟩
+      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g', hne', hti', hfs, hfresh, hlang⟩ := g.exists_flagsSeparated hne hti
+  exact ⟨g', hne', hti', hfs, hfresh, fun w _ => hlang w⟩
 
 end FlagSeparation
 

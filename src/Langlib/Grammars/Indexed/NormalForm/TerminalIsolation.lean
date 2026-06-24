@@ -314,16 +314,28 @@ theorem termIsolate_language_backward {w : List T}
   unfold IndexedGrammar.tiProjSF; simp +decide [ IndexedGrammar.Generates ] ;
   congr! 2
 
+theorem termIsolate_generates_iff (w : List T) :
+    (g.termIsolate).Generates w ↔ g.Generates w :=
+  ⟨g.termIsolate_language_backward, g.termIsolate_language_forward⟩
+
 /-! ### Main result -/
+
+theorem exists_terminalsIsolated (g : IndexedGrammar T) (hne : g.NoEpsilon') :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧ g'.TerminalsIsolated ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
+  exact ⟨g.termIsolate, g.termIsolate_noEpsilon hne, g.termIsolate_terminalsIsolated,
+    g.termIsolate_startNotOnRhs,
+    g.termIsolate_generates_iff⟩
 
 theorem exists_terminalsIsolated' (g : IndexedGrammar T) (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T,
       g'.NoEpsilon' ∧ g'.TerminalsIsolated ∧
       (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
       ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
-  exact ⟨g.termIsolate, g.termIsolate_noEpsilon hne, g.termIsolate_terminalsIsolated,
-    g.termIsolate_startNotOnRhs,
-    fun w _ => ⟨g.termIsolate_language_backward, g.termIsolate_language_forward⟩⟩
+  obtain ⟨g', hne', hti, hfresh, hlang⟩ := g.exists_terminalsIsolated hne
+  exact ⟨g', hne', hti, hfresh, fun w _ => hlang w⟩
 
 end TerminalIsolation
 
