@@ -8606,4 +8606,44 @@ theorem language_eq_iUnion_boundedStackGrammar_language_of_isNormalForm
   · rintro ⟨B, hw⟩
     exact boundedStackGrammar_language_subset_language (g := g) (B := B) w hw
 
+/-- On every finite ball of terminal words, the per-word bounded-stack witnesses for a
+normal-form grammar can be uniformized to a single fixed bounded-stack grammar. -/
+theorem exists_uniform_boundedStackGrammar_generates_of_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ w : List T,
+      w.length ≤ L →
+      w ∈ g.Language →
+      w ∈ grammar_language (boundedStackGrammar g B) := by
+  classical
+  let S : Set (List T) := {w | w.length ≤ L ∧ w ∈ g.Language}
+  have hS : S.Finite :=
+    (List.finite_length_le T L).subset (by
+      intro w hw
+      exact hw.1)
+  have hExists :
+      ∀ w : List T, w ∈ S →
+        ∃ B : ℕ, w ∈ grammar_language (boundedStackGrammar g B) := by
+    intro w hw
+    exact exists_boundedStackGrammar_generates_of_generates_isNormalForm
+      (g := g) hNF hw.2
+  let boundOf : List T → ℕ := fun w =>
+    if hw : w ∈ S then Classical.choose (hExists w hw) else 0
+  have hboundOf :
+      ∀ w : List T, ∀ hw : w ∈ S,
+        w ∈ grammar_language (boundedStackGrammar g (boundOf w)) := by
+    intro w hw
+    dsimp [boundOf]
+    rw [dif_pos hw]
+    exact Classical.choose_spec (hExists w hw)
+  refine ⟨(Set.Finite.toFinset hS).sup boundOf, ?_⟩
+  intro w hlen hw
+  have hwS : w ∈ S := ⟨hlen, hw⟩
+  have hmem : w ∈ Set.Finite.toFinset hS := by
+    rw [Set.Finite.mem_toFinset]
+    exact hwS
+  have hle : boundOf w ≤ (Set.Finite.toFinset hS).sup boundOf :=
+    Finset.le_sup (s := Set.Finite.toFinset hS) (f := boundOf) hmem
+  exact boundedStackGrammar_language_mono (g := g) hle w (hboundOf w hwS)
+
 end IndexedGrammar
