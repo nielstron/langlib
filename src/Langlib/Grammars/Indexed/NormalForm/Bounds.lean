@@ -306,6 +306,33 @@ theorem sententialTerminalCount_add_nonterminalCount {g : IndexedGrammar T}
   | cons a w ih =>
       simpa using ih
 
+theorem length_take_append_sublist_drop_le {α : Type} {η τ : List α} {P : ℕ}
+    (hτ : τ.Sublist (η.drop P)) :
+    (η.take P ++ τ).length ≤ η.length := by
+  have hτlen : τ.length ≤ (η.drop P).length := hτ.length_le
+  rw [List.length_append]
+  have hsplit : (η.take P).length + (η.drop P).length = η.length := by
+    rw [List.length_take, List.length_drop]
+    omega
+  omega
+
+theorem sententialMaxStackHeight_context_replace_indexed_le_of_length_le
+    {g : IndexedGrammar T} {u v : List g.ISym} {A : g.nt} {σ τ : List g.flag}
+    (hτ : τ.length ≤ σ.length) :
+    sententialMaxStackHeight (u ++ [ISym.indexed A τ] ++ v) ≤
+      sententialMaxStackHeight (u ++ [ISym.indexed A σ] ++ v) := by
+  simp only [sententialMaxStackHeight_append, sententialMaxStackHeight_indexed]
+  omega
+
+theorem sententialMaxStackHeight_context_replace_indexed_take_append_sublist_drop_le
+    {g : IndexedGrammar T} {u v : List g.ISym} {A : g.nt}
+    {η τ : List g.flag} {P : ℕ}
+    (hτ : τ.Sublist (η.drop P)) :
+    sententialMaxStackHeight (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) ≤
+      sententialMaxStackHeight (u ++ [ISym.indexed A η] ++ v) := by
+  apply sententialMaxStackHeight_context_replace_indexed_le_of_length_le
+  exact length_take_append_sublist_drop_le hτ
+
 theorem stackHeight_le_sententialMaxStackHeight_of_mem {g : IndexedGrammar T}
     {s : g.ISym} {w : List g.ISym} (hs : s ∈ w) :
     s.stackHeight ≤ sententialMaxStackHeight w := by

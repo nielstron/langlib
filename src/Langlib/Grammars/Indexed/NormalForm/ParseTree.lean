@@ -200,6 +200,20 @@ theorem transforms_binary_of_rule {g : IndexedGrammar T}
   · rw [hrhs]
     simp [expandRhs]
 
+theorem transforms_binary_context_of_rule {g : IndexedGrammar T}
+    {A B C : g.nt} {σ : List g.flag} {r : IRule T g.nt g.flag}
+    {u v : List g.ISym}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none]) :
+    g.Transforms (u ++ [ISym.indexed A σ] ++ v)
+      (u ++ [ISym.indexed B σ, ISym.indexed C σ] ++ v) := by
+  refine ⟨r, u, v, σ, hr, ?_, ?_⟩
+  · rw [hc, hlhs]
+  · rw [hrhs]
+    simp [expandRhs]
+
 theorem transforms_pop_of_rule {g : IndexedGrammar T}
     {A B : g.nt} {f : g.flag} {ρ : List g.flag} {r : IRule T g.nt g.flag}
     (hr : r ∈ g.rules)
@@ -210,6 +224,20 @@ theorem transforms_pop_of_rule {g : IndexedGrammar T}
   refine ⟨r, [], [], ρ, hr, ?_, ?_⟩
   · rw [hc, hlhs]
     rfl
+  · rw [hrhs]
+    simp [expandRhs]
+
+theorem transforms_pop_context_of_rule {g : IndexedGrammar T}
+    {A B : g.nt} {f : g.flag} {ρ : List g.flag} {r : IRule T g.nt g.flag}
+    {u v : List g.ISym}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = some f)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none]) :
+    g.Transforms (u ++ [ISym.indexed A (f :: ρ)] ++ v)
+      (u ++ [ISym.indexed B ρ] ++ v) := by
+  refine ⟨r, u, v, ρ, hr, ?_, ?_⟩
+  · rw [hc, hlhs]
   · rw [hrhs]
     simp [expandRhs]
 
@@ -226,6 +254,20 @@ theorem transforms_push_of_rule {g : IndexedGrammar T}
   · rw [hrhs]
     simp [expandRhs]
 
+theorem transforms_push_context_of_rule {g : IndexedGrammar T}
+    {A B : g.nt} {f : g.flag} {σ : List g.flag} {r : IRule T g.nt g.flag}
+    {u v : List g.ISym}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B (some f)]) :
+    g.Transforms (u ++ [ISym.indexed A σ] ++ v)
+      (u ++ [ISym.indexed B (f :: σ)] ++ v) := by
+  refine ⟨r, u, v, σ, hr, ?_, ?_⟩
+  · rw [hc, hlhs]
+  · rw [hrhs]
+    simp [expandRhs]
+
 theorem transforms_terminal_of_rule {g : IndexedGrammar T}
     {A : g.nt} {σ : List g.flag} {a : T} {r : IRule T g.nt g.flag}
     (hr : r ∈ g.rules)
@@ -236,6 +278,20 @@ theorem transforms_terminal_of_rule {g : IndexedGrammar T}
   refine ⟨r, [], [], σ, hr, ?_, ?_⟩
   · rw [hc, hlhs]
     rfl
+  · rw [hrhs]
+    simp [expandRhs]
+
+theorem transforms_terminal_context_of_rule {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} {a : T} {r : IRule T g.nt g.flag}
+    {u v : List g.ISym}
+    (hr : r ∈ g.rules)
+    (hlhs : r.lhs = A)
+    (hc : r.consume = none)
+    (hrhs : r.rhs = [IRhsSymbol.terminal a]) :
+    g.Transforms (u ++ [ISym.indexed A σ] ++ v)
+      (u ++ [ISym.terminal a] ++ v) := by
+  refine ⟨r, u, v, σ, hr, ?_, ?_⟩
+  · rw [hc, hlhs]
   · rw [hrhs]
     simp [expandRhs]
 
