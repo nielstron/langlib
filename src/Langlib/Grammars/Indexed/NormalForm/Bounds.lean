@@ -51,6 +51,132 @@ def sententialMaxStackHeight {g : IndexedGrammar T} : List g.ISym → ℕ
   | [] => 0
   | s :: w => max s.stackHeight (sententialMaxStackHeight w)
 
+/-! ## Flat tape encoding -/
+
+/-- Finite tape alphabet used to flatten indexed sentential forms: terminals stay terminals,
+an indexed nonterminal is encoded as its nonterminal head, followed by its stack flags, followed
+by a boundary marker. -/
+public inductive FlatSymbol (T N F : Type) where
+  | terminal : T → FlatSymbol T N F
+  | nonterminal : N → FlatSymbol T N F
+  | flag : F → FlatSymbol T N F
+  | stackBottom : FlatSymbol T N F
+deriving DecidableEq, Fintype
+
+namespace FlatSymbol
+
+def toTerminal? {T N F : Type} : FlatSymbol T N F → Option T
+  | terminal a => some a
+  | nonterminal _ => none
+  | flag _ => none
+  | stackBottom => none
+
+@[simp] theorem toTerminal?_terminal {N F : Type} (a : T) :
+    toTerminal? (N := N) (F := F) (FlatSymbol.terminal a) = some a := rfl
+
+@[simp] theorem toTerminal?_nonterminal {N F : Type} (A : N) :
+    toTerminal? (T := T) (F := F) (FlatSymbol.nonterminal A) = none := rfl
+
+@[simp] theorem toTerminal?_flag {N F : Type} (f : F) :
+    toTerminal? (T := T) (N := N) (FlatSymbol.flag f) = none := rfl
+
+@[simp] theorem toTerminal?_stackBottom {N F : Type} :
+    toTerminal? (T := T) (N := N) (F := F) FlatSymbol.stackBottom = none := rfl
+
+end FlatSymbol
+
+/-- Flatten one indexed symbol into a word over the finite tape alphabet. -/
+def encodeISym {g : IndexedGrammar T} : g.ISym → List (FlatSymbol T g.nt g.flag)
+  | ISym.terminal a => [FlatSymbol.terminal a]
+  | ISym.indexed A σ => FlatSymbol.nonterminal A :: σ.map FlatSymbol.flag ++
+      [FlatSymbol.stackBottom]
+
+/-- Flatten a whole indexed sentential form. -/
+def encodeSentential {g : IndexedGrammar T}
+    (w : List g.ISym) : List (FlatSymbol T g.nt g.flag) :=
+  w.flatMap encodeISym
+
+@[simp] theorem encodeISym_terminal {g : IndexedGrammar T} (a : T) :
+    encodeISym (g := g) (ISym.terminal a) = [FlatSymbol.terminal a] := rfl
+
+@[simp] theorem encodeISym_indexed {g : IndexedGrammar T} (A : g.nt)
+    (σ : List g.flag) :
+    encodeISym (g := g) (ISym.indexed A σ) =
+      FlatSymbol.nonterminal A :: σ.map FlatSymbol.flag ++ [FlatSymbol.stackBottom] := rfl
+
+@[simp] theorem encodeSentential_nil {g : IndexedGrammar T} :
+    encodeSentential ([] : List g.ISym) = [] := rfl
+
+@[simp] theorem encodeSentential_cons {g : IndexedGrammar T} (s : g.ISym)
+    (w : List g.ISym) :
+    encodeSentential (s :: w) = encodeISym s ++ encodeSentential w := rfl
+
+@[simp] theorem encodeSentential_append {g : IndexedGrammar T}
+    (u v : List g.ISym) :
+    encodeSentential (u ++ v) = encodeSentential u ++ encodeSentential v := by
+  simp [encodeSentential, List.flatMap_append]
+
+@[simp] theorem encodeISym_length_terminal {g : IndexedGrammar T} (a : T) :
+    (encodeISym (g := g) (ISym.terminal a)).length = 1 := rfl
+
+@[simp] theorem encodeISym_length_indexed {g : IndexedGrammar T} (A : g.nt)
+    (σ : List g.flag) :
+    (encodeISym (g := g) (ISym.indexed A σ)).length = σ.length + 2 := by
+  simp [encodeISym]
+
+theorem encodeISym_ne_nil {g : IndexedGrammar T} (s : g.ISym) :
+    encodeISym s ≠ [] := by
+  cases s <;> simp [encodeISym]
+
+@[simp] theorem encodeSentential_map_terminal {g : IndexedGrammar T}
+    (w : List T) :
+    encodeSentential (w.map fun a => (ISym.terminal a : g.ISym)) =
+      w.map FlatSymbol.terminal := by
+  induction w with
+  | nil => rfl
+  | cons a w ih =>
+      simp [ih]
+
+@[simp] theorem encodeSentential_length_map_terminal {g : IndexedGrammar T}
+    (w : List T) :
+    (encodeSentential (w.map fun a => (ISym.terminal a : g.ISym))).length = w.length := by
+  simp
+
+@[simp] theorem encodeISym_terminals {g : IndexedGrammar T} (s : g.ISym) :
+    (encodeISym s).filterMap FlatSymbol.toTerminal? =
+      sententialTerminals ([s] : List g.ISym) := by
+  cases s <;> simp [encodeISym, sententialTerminals, FlatSymbol.toTerminal?, ISym.toTerminal?]
+
+@[simp] theorem encodeSentential_terminals {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    (encodeSentential w).filterMap FlatSymbol.toTerminal? = sententialTerminals w := by
+  induction w with
+  | nil => rfl
+  | cons s w ih =>
+      rw [encodeSentential_cons, List.filterMap_append, encodeISym_terminals, ih]
+      cases s <;> simp [sententialTerminals, ISym.toTerminal?]
+
+@[simp] theorem encodeSentential_length {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    (encodeSentential w).length =
+      w.length + sententialStackHeight w + sententialNonterminalCount w := by
+  induction w with
+  | nil => simp [encodeSentential, sententialStackHeight, sententialNonterminalCount]
+  | cons s w ih =>
+      have htail :
+          (List.map (fun s => (encodeISym s).length) w).sum =
+            w.length + sententialStackHeight w + sententialNonterminalCount w := by
+        simpa [encodeSentential] using ih
+      cases s with
+      | terminal a =>
+          simp [encodeSentential, sententialStackHeight, sententialNonterminalCount,
+            ISym.stackHeight, ISym.isIndexed, htail]
+          omega
+      | indexed A σ =>
+          simp [encodeSentential, sententialStackHeight, sententialNonterminalCount,
+            ISym.stackHeight, ISym.isIndexed, htail]
+          omega
+
 @[simp] theorem ISym.isIndexed_terminal {g : IndexedGrammar T} (a : T) :
     ISym.isIndexed (g := g) (ISym.terminal a) = false := rfl
 
