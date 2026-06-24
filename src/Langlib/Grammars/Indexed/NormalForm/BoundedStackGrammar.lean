@@ -5982,6 +5982,92 @@ theorem exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationT
   exact ⟨ys, n', bw, hn', hrel, hlenEq, htermEq, hntEq, hysBound,
     hsurface, herase, hbw, hbwm, hGder⟩
 
+/-- Target-compatible finite-frontier acceptance bridge.
+
+The suffix shrinker produces a start form `bw` in the finite target-compatible surface
+frontier and a fixed bounded-stack suffix derivation `bw ⇒* target`. If the finite frontier
+has been saturated enough to prove that every such suffix start is reachable from the bounded
+grammar's initial symbol, then the target belongs to that same fixed bounded-stack grammar. -/
+theorem exists_bound_boundedStackGrammar_generates_of_reachable_targetCompatible_suffix_frontier_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ _hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            (∀ bw : List (symbol T (BoundedStackNT g (K + N))),
+              bw ∈
+                ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+                  ∃ surface : SurfaceForm g K,
+                    surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+                      boundedSentential? (g := g) (K + N)
+                        (eraseSurfaceForm surface) = some bw} :
+                  Set (List (symbol T (BoundedStackNT g (K + N)))) ) →
+              grammar_derives (boundedStackGrammar g (K + N)) bw
+                (target.map fun a =>
+                  (symbol.terminal a : symbol T (BoundedStackNT g (K + N)))) →
+              grammar_derives (boundedStackGrammar g (K + N))
+                [symbol.nonterminal (boundedStackGrammar g (K + N)).initial] bw) →
+            target ∈ grammar_language (boundedStackGrammar g (K + N)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget hreachable
+  obtain ⟨ys, n', bw, _hn', _hrel, _hlenEq, _htermEq, _hntEq, _hysBound,
+    _hsurface, _herase, _hbw, hbwm, hGder⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  exact boundedStackGrammar_generates_of_prefix_suffix_derives
+    (g := g) (B := K + N)
+    (hreachable bw hbwm hGder) hGder
+
+/-- Length-uniform finite-frontier acceptance bridge.
+
+This is the target-independent frontier version of
+`exists_bound_boundedStackGrammar_generates_of_reachable_targetCompatible_suffix_frontier_budget`:
+the suffix start is required only to lie in the finite set of visible surfaces of length at
+most `L`. -/
+theorem exists_bound_boundedStackGrammar_generates_of_reachable_suffix_frontier_lengthBound_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ _hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            (∀ bw : List (symbol T (BoundedStackNT g (K + N))),
+              bw ∈
+                ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+                  ∃ surface : SurfaceForm g K,
+                    surface ∈ boundedSurfaceForms g L K ∧
+                      boundedSentential? (g := g) (K + N)
+                        (eraseSurfaceForm surface) = some bw} :
+                  Set (List (symbol T (BoundedStackNT g (K + N)))) ) →
+              grammar_derives (boundedStackGrammar g (K + N)) bw
+                (target.map fun a =>
+                  (symbol.terminal a : symbol T (BoundedStackNT g (K + N)))) →
+              grammar_derives (boundedStackGrammar g (K + N))
+                [symbol.nonterminal (boundedStackGrammar g (K + N)).initial] bw) →
+            target ∈ grammar_language (boundedStackGrammar g (K + N)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_lengthBound_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget hreachable
+  obtain ⟨ys, n', bw, _hn', _hrel, _hlenEq, _htermEq, _hntEq, _hysBound,
+    _hsurface, _herase, _hbw, hbwm, hGder⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  exact boundedStackGrammar_generates_of_prefix_suffix_derives
+    (g := g) (B := K + N)
+    (hreachable bw hbwm hGder) hGder
+
 /-- Strengthened compiled-suffix theorem retaining the original singleton split, the
 replacement singleton split, and the local minimality certificates for each indexed
 replacement. This is the finite-grammar form needed by later reachability arguments that
