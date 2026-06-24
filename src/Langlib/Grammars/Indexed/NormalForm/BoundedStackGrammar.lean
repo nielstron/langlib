@@ -1875,6 +1875,69 @@ theorem targetCompatible_late_surface_interval_length_le_card_of_minimal_stack_g
     (a := trace.length - 1 - N) (m := m) ha hm hprefixBound
     (fun i hi => by omega) hgt
 
+/-- If the least accepting stack bound is larger than `K + N`, then some configuration in the
+finite late window of length `|targetCompatibleBoundedSurfaceForms g target K| + 1` already
+exceeds stack height `K`. Otherwise that whole window would be `K`-bounded, contradicting the
+late-window surface-repeat bound. -/
+theorem exists_high_stack_before_late_surface_card_of_minimal_stack_gt_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {K N n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (hm :
+      trace.length - 1 - N +
+        (Set.Finite.toFinset
+          (targetCompatibleBoundedSurfaceForms_finite g target K)).card <
+        trace.length)
+    (hgt : K + N < B) :
+    ∃ k : Fin trace.length,
+      k.1 ≤
+          trace.length - 1 - N +
+            (Set.Finite.toFinset
+              (targetCompatibleBoundedSurfaceForms_finite g target K)).card ∧
+        K < sententialMaxStackHeight (trace.get k) := by
+  classical
+  let a := trace.length - 1 - N
+  let C :=
+    (Set.Finite.toFinset
+      (targetCompatibleBoundedSurfaceForms_finite g target K)).card
+  have hm' : a + C < trace.length := by
+    simpa [a, C] using hm
+  by_contra hnone
+  have hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ a + C → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ K := by
+    intro k hk hkm
+    by_contra hle
+    have hhigh : K < sententialMaxStackHeight (trace.get ⟨k, hk⟩) :=
+      Nat.lt_of_not_ge hle
+    exact hnone ⟨⟨k, hk⟩, by simpa [a, C] using hkm, hhigh⟩
+  have hwindow :
+      (a + C) + 1 - a ≤ C := by
+    simpa [a, C] using
+      (targetCompatible_late_surface_interval_length_le_card_of_minimal_stack_gt_bound
+        (g := g) hNF htrace hlen hhead hlast hminLength hminBound
+        (K := K) (N := N) (m := a + C) (n := n) (B := B)
+        (by dsimp [a]; omega) hm' hprefixBound hgt)
+  have hsucc : C + 1 ≤ C := by
+    omega
+  omega
+
 /-- A positionwise terminal-preserving substack replacement preserves sentential-form length. -/
 theorem length_eq_of_forall₂_symbol_substack_bound
     {g : IndexedGrammar T} {K : ℕ} {xs ys : List g.ISym}
