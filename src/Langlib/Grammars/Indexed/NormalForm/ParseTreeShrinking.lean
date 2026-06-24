@@ -458,6 +458,151 @@ public theorem exists_bound_minimal_certificate_first_step_for_target_length
     right
     exact hterm
 
+/-- Bounded-prefix exact first-step decomposition for suffix-minimal parse certificates.
+
+The suffix below `pref` is minimal among certificates preserving that prefix. Binary and push
+branches therefore keep that suffix exactly. A pop either consumes the first suffix flag
+(`pref = []`) and passes global minimality to the child, or consumes the first prefix flag and
+passes suffix-minimality to the child under the shortened prefix. -/
+public theorem exists_bound_minimal_prefixed_certificate_first_step_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w <+ target →
+            NFYield g A (pref ++ σ) w →
+            (∀ ρ : List g.flag,
+              NFYield g A (pref ++ ρ) w →
+              ρ <+ σ → ρ = σ) →
+            σ.length ≤ K ∧
+            ((∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules,
+              r.lhs = A ∧ r.consume = none ∧
+              r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+              w = u ++ v ∧
+              0 < u.length ∧ 0 < v.length ∧
+              u.length < w.length ∧ v.length < w.length ∧
+              u <+ target ∧ v <+ target ∧
+              NFYield g B (pref ++ σ) u ∧
+              NFYield g C (pref ++ σ) v ∧
+              ∀ ρ : List g.flag,
+                NFYield g B (pref ++ ρ) u →
+                NFYield g C (pref ++ ρ) v →
+                ρ <+ σ → ρ = σ) ∨
+            (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+              ∃ r ∈ g.rules,
+                pref = [] ∧
+                σ = f :: ρ ∧
+                ρ.length ≤ K ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                NFYield g B ρ w ∧
+                ∀ μ : List g.flag,
+                  NFYield g B μ w →
+                  μ <+ ρ → μ = ρ) ∨
+            (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+              ∃ r ∈ g.rules,
+                pref = f :: pref' ∧
+                pref'.length ≤ N ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                NFYield g B (pref' ++ σ) w ∧
+                ∀ μ : List g.flag,
+                  NFYield g B (pref' ++ μ) w →
+                  μ <+ σ → μ = σ) ∨
+            (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+              r.lhs = A ∧ r.consume = none ∧
+              r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+              NFYield g B ((f :: pref) ++ σ) w ∧
+              ∀ ρ : List g.flag,
+                NFYield g B ((f :: pref) ++ ρ) w →
+                ρ <+ σ → ρ = σ) ∨
+            (∃ a : T, ∃ r ∈ g.rules,
+              r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+                w = [a])) := by
+  obtain ⟨Kstep, hStep⟩ :=
+    NFYield.exists_bound_first_step_bounded_prefix_certificate_for_target_length
+      (g := g) hNF N L
+  obtain ⟨Kmin, hMinLen⟩ :=
+    NFYield.exists_bound_minimal_suffix_length_for_target_length_bounded_prefix
+      (g := g) hNF N L
+  refine ⟨max Kstep Kmin, ?_⟩
+  intro target htargetLen pref hpref A σ w hwt hcert hmin
+  have hσlenMin : σ.length ≤ Kmin :=
+    hMinLen target htargetLen pref hpref A σ w hwt hcert hmin
+  have hσlen : σ.length ≤ max Kstep Kmin := by
+    omega
+  refine ⟨hσlen, ?_⟩
+  have hcases := hStep target htargetLen pref hpref A σ w hwt hcert
+  rcases hcases with hbin | hpop | hpush | hterm
+  · rcases hbin with
+      ⟨B, C, u, v, r, hr, τ, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+        husub, hvsub, hτsub, _hτlen, hleft, hright, hparent, hτmin⟩
+    have hτσ : τ = σ := hmin τ hparent hτsub
+    left
+    exact ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+      husub, hvsub,
+      (by simpa [hτσ] using hleft),
+      (by simpa [hτσ] using hright),
+      fun ρ hρleft hρright hρsub => by
+        exact (hτmin ρ hρleft hρright (by simpa [hτσ] using hρsub)).trans hτσ⟩
+  · rcases hpop with ⟨f, ρ, B, r, hr, hstack, hlhs, hc, hrhs, hchild⟩
+    rcases _root_.IndexedGrammar.append_eq_cons_cases
+        (pref := pref) (σ := σ) (f := f) (ρ := ρ) hstack with hempty | hcons
+    · rcases hempty with ⟨hpref, hσ⟩
+      right
+      left
+      have hρlen : ρ.length ≤ max Kstep Kmin := by
+        have hρle : ρ.length ≤ σ.length := by
+          rw [hσ]
+          simp
+        omega
+      refine ⟨f, ρ, B, r, hr, hpref, hσ, hρlen, hlhs, hc, hrhs, hchild, ?_⟩
+      intro μ hμ hμsub
+      have hparent : NFYield g A (pref ++ (f :: μ)) w := by
+        have hpopCert : NFYield g A (f :: μ) w :=
+          NFYield.pop (g := g) hr hlhs hc hrhs hμ
+        simpa [hpref] using hpopCert
+      have hsub : (f :: μ) <+ σ := by
+        simpa [hσ] using List.Sublist.cons_cons f hμsub
+      have heq := hmin (f :: μ) hparent hsub
+      simpa [hσ] using heq
+    · rcases hcons with ⟨pref', hpref, hρ⟩
+      right
+      right
+      left
+      have hpref'len : pref'.length ≤ N := by
+        subst pref
+        simp at hpref ⊢
+        omega
+      refine ⟨f, pref', B, r, hr, hpref, hpref'len, hlhs, hc, hrhs,
+        (by simpa [hρ] using hchild), ?_⟩
+      intro μ hμ hμsub
+      have hparent : NFYield g A (pref ++ μ) w := by
+        have hpopCert : NFYield g A (f :: (pref' ++ μ)) w :=
+          NFYield.pop (g := g) hr hlhs hc hrhs hμ
+        simpa [hpref] using hpopCert
+      exact hmin μ hparent hμsub
+  · rcases hpush with
+      ⟨B, f, r, hr, τ, hlhs, hc, hrhs, hτsub, _hτlen, hchild, hparent, hτmin⟩
+    have hτσ : τ = σ := hmin τ hparent hτsub
+    right
+    right
+    right
+    left
+    exact ⟨B, f, r, hr, hlhs, hc, hrhs,
+      (by simpa [hτσ] using hchild),
+      fun ρ hρchild hρsub => by
+        exact (hτmin ρ hρchild (by simpa [hτσ] using hρsub)).trans hτσ⟩
+  · right
+    right
+    right
+    right
+    exact hterm
+
 /-- Every parse certificate can be replaced, for the same nonterminal and yield, by one whose
 root stack has a bounded-length sublist of the original stack. The first `N` live flags are
 preserved and only the deeper suffix is shrunk. -/
