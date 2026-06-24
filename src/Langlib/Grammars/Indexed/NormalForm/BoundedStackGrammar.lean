@@ -2,6 +2,7 @@ module
 
 public import Langlib.Grammars.Indexed.NormalForm.Bounds
 public import Langlib.Grammars.Indexed.NormalForm.ParseTree
+public import Langlib.Grammars.Indexed.NormalForm.ParseTreeShrinking
 public import Langlib.Grammars.Indexed.NormalForm.Shrinking
 public import Langlib.Classes.ContextSensitive.Definition
 public import Mathlib.Data.Fintype.Prod
@@ -6925,6 +6926,18 @@ theorem
                     surfaceOfTruncatedForm P
                         (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) ∈
                       boundedSurfaceForms g L P →
+                    (((A, η.take P ++ τ), w) :
+                        (g.nt × List g.flag) × List T) ∈
+                      ({item : (g.nt × List g.flag) × List T |
+                        item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                          NFYield g item.1.1 item.1.2 item.2} :
+                        Set ((g.nt × List g.flag) × List T)) →
+                    (((A, η.take P ++ τ), w) :
+                        (g.nt × List g.flag) × List T) ∈
+                      ({item : (g.nt × List g.flag) × List T |
+                        item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                          NFYield g item.1.1 item.1.2 item.2} :
+                        Set ((g.nt × List g.flag) × List T)) →
                     ∃ p : ℕ,
                       p ≤ i ∧
                         StackBoundedDerivesIn g Bpre p [ISym.indexed g.initial []]
@@ -6971,9 +6984,30 @@ theorem
           (g := g) (P := P) (L := L) (target := target) (trace := trace)
           hNF htrace hlast htargetLen hi
           (u := u) (v := v) (A := A) (η := η) (τ := τ) hctx hηHigh
+      have htargetItem :
+          (((A, η.take P ++ τ), w) :
+              (g.nt × List g.flag) × List T) ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) :=
+        NFYield.canonical_prefix_certificate_mem_bounded_target_items
+          (g := g) (P := P) (K := K) (target := target)
+          (A := A) (η := η) (τ := τ) hwt hτlen hcert
+      have hlengthItem :
+          (((A, η.take P ++ τ), w) :
+              (g.nt × List g.flag) × List T) ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) :=
+        NFYield.canonical_prefix_certificate_mem_bounded_length_items
+          (g := g) (P := P) (K := K) (L := L)
+          (A := A) (η := η) (τ := τ) hwlen hτlen hcert
       exact hreachable i hi hlow hup hhigh A η τ u v q m w n'
         hmem hηmax hctx hwt hwlen hq hm hmSuffix hn' hτsub hτlen
-        hτder hcert hreplacement hτmin htargetSurface hboundedSurface)
+        hτder hcert hreplacement hτmin htargetSurface hboundedSurface
+        htargetItem hlengthItem)
 
 theorem exists_minimal_accepting_derivesIn_with_boundedStackGrammar_card
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]

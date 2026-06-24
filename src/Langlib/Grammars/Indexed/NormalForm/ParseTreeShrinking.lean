@@ -944,6 +944,44 @@ public theorem finite_bounded_length_certificate_items
       intro item h
       exact ⟨h.1, h.2.1⟩)
 
+/-- A canonical-prefix replacement certificate is one of the finite target-frontier
+certificate items once the replacement suffix is bounded. -/
+public theorem canonical_prefix_certificate_mem_bounded_target_items
+    {g : IndexedGrammar T} {P K : ℕ} {target w : List T}
+    {A : g.nt} {η τ : List g.flag}
+    (hwt : w <+ target)
+    (hτ : τ.length ≤ K)
+    (hcert : NFYield g A (η.take P ++ τ) w) :
+    (((A, η.take P ++ τ), w) :
+        (g.nt × List g.flag) × List T) ∈
+      ({item : (g.nt × List g.flag) × List T |
+        item.1.2.length ≤ P + K ∧ item.2 <+ target ∧
+          NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)) := by
+  refine ⟨?_, hwt, hcert⟩
+  have htake : (η.take P).length ≤ P := List.length_take_le P η
+  simp [List.length_append]
+  omega
+
+/-- Length-uniform version of
+`canonical_prefix_certificate_mem_bounded_target_items`. -/
+public theorem canonical_prefix_certificate_mem_bounded_length_items
+    {g : IndexedGrammar T} {P K L : ℕ} {w : List T}
+    {A : g.nt} {η τ : List g.flag}
+    (hwlen : w.length ≤ L)
+    (hτ : τ.length ≤ K)
+    (hcert : NFYield g A (η.take P ++ τ) w) :
+    (((A, η.take P ++ τ), w) :
+        (g.nt × List g.flag) × List T) ∈
+      ({item : (g.nt × List g.flag) × List T |
+        item.1.2.length ≤ P + K ∧ item.2.length ≤ L ∧
+          NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)) := by
+  refine ⟨?_, hwlen, hcert⟩
+  have htake : (η.take P).length ≤ P := List.length_take_le P η
+  simp [List.length_append]
+  omega
+
 /-- Length-uniform finite frontier for stack-bounded parse-certificate items. -/
 public theorem finite_bounded_length_stackBounded_certificate_items
     (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
