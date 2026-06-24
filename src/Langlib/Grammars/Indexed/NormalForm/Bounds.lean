@@ -1470,6 +1470,21 @@ theorem boundedFlatForms_finite (g : IndexedGrammar T)
   dsimp [boundedFlatForms]
   exact List.finite_length_le (FlatSymbol T g.nt g.flag) flatLengthBound
 
+theorem exists_list_length_bound {α : Type} (xs : List (List α)) :
+    ∃ B : ℕ, ∀ x ∈ xs, x.length ≤ B := by
+  induction xs with
+  | nil =>
+      exact ⟨0, by simp⟩
+  | cons x xs ih =>
+      rcases ih with ⟨B, hB⟩
+      refine ⟨max x.length B, ?_⟩
+      intro y hy
+      simp at hy
+      rcases hy with hxy | hy
+      · subst y
+        exact Nat.le_max_left x.length B
+      · exact le_trans (hB y hy) (Nat.le_max_right x.length B)
+
 theorem encodeSentential_mem_boundedFlatForms_of_length_le_of_maxStackHeight_le
     {g : IndexedGrammar T} {L B : ℕ} {w : List g.ISym}
     (hlen : w.length ≤ L) (hmax : sententialMaxStackHeight w ≤ B) :
@@ -1477,6 +1492,73 @@ theorem encodeSentential_mem_boundedFlatForms_of_length_le_of_maxStackHeight_le
   exact le_trans
     (encodeSentential_length_le_of_maxStackHeight_le hmax)
     (Nat.mul_le_mul_right (B + 2) hlen)
+
+theorem exists_boundedFlatPath_initial_terminal_of_generates {g : IndexedGrammar T}
+    {w : List T} (h : g.Generates w) :
+    ∃ B : ℕ, ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? =
+        some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+      path.getLast? =
+        some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+      (∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B) ∧
+      ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+        FlatTransforms g
+          (path.get ⟨i, by omega⟩)
+          (path.get ⟨i + 1, hi⟩) := by
+  obtain ⟨path, hhead, hlast, hstep⟩ :=
+    exists_flatPath_initial_terminal_of_generates h
+  obtain ⟨B, hB⟩ := exists_list_length_bound path
+  refine ⟨B, path, hhead, hlast, ?_, hstep⟩
+  intro i
+  exact hB (path.get i) (List.get_mem path i)
+
+theorem generates_of_boundedFlatPath_initial_terminal {g : IndexedGrammar T}
+    {w : List T} {B : ℕ} {path : List (List (FlatSymbol T g.nt g.flag))}
+    (hhead : path.head? =
+      some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)))
+    (hlast : path.getLast? =
+      some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)))
+    (_hbound : ∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B)
+    (hstep : ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+      FlatTransforms g
+        (path.get ⟨i, by omega⟩)
+        (path.get ⟨i + 1, hi⟩)) :
+    g.Generates w :=
+  generates_of_flatPath_initial_terminal hhead hlast hstep
+
+theorem exists_boundedFlatPath_initial_terminal_iff_generates {g : IndexedGrammar T}
+    {w : List T} :
+    (∃ B : ℕ, ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? =
+        some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+      path.getLast? =
+        some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+      (∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B) ∧
+      ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+        FlatTransforms g
+          (path.get ⟨i, by omega⟩)
+          (path.get ⟨i + 1, hi⟩)) ↔
+      g.Generates w := by
+  constructor
+  · rintro ⟨B, path, hhead, hlast, hbound, hstep⟩
+    exact generates_of_boundedFlatPath_initial_terminal hhead hlast hbound hstep
+  · exact exists_boundedFlatPath_initial_terminal_of_generates
+
+theorem language_eq_exists_boundedFlatPath_initial_terminal (g : IndexedGrammar T) :
+    g.Language =
+      (fun w : List T =>
+        ∃ B : ℕ, ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+          path.head? =
+            some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+          path.getLast? =
+            some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+          (∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B) ∧
+          ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+            FlatTransforms g
+              (path.get ⟨i, by omega⟩)
+              (path.get ⟨i + 1, hi⟩)) := by
+  ext w
+  exact exists_boundedFlatPath_initial_terminal_iff_generates.symm
 
 def flatTrace {g : IndexedGrammar T}
     (trace : List (List g.ISym)) : List (List (FlatSymbol T g.nt g.flag)) :=
