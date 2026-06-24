@@ -21,6 +21,174 @@ namespace IndexedGrammar
 
 namespace NFYield
 
+/-- Certificate-level first-step decomposition with bounded shrinking for the stack-copying
+branches. Binary branches use one bounded common inherited stack; push branches use a bounded
+base stack below the pushed flag. Pop and terminal branches are exposed exactly. -/
+public theorem exists_bound_first_step_binary_push_certificate_for_target_sublists
+    {g : IndexedGrammar T} [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (target : List T) :
+    ∃ K : ℕ,
+      ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+        w <+ target →
+        NFYield g A σ w →
+        (∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules, ∃ τ : List g.flag,
+          r.lhs = A ∧ r.consume = none ∧
+          r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+          w = u ++ v ∧
+          0 < u.length ∧ 0 < v.length ∧
+          u.length < w.length ∧ v.length < w.length ∧
+          u <+ target ∧ v <+ target ∧
+          τ <+ σ ∧ τ.length ≤ K ∧
+          NFYield g B τ u ∧
+          NFYield g C τ v ∧
+          NFYield g A τ w ∧
+          ∀ ρ : List g.flag,
+            NFYield g B ρ u →
+            NFYield g C ρ v →
+            ρ <+ τ → ρ = τ) ∨
+        (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+          ∃ r ∈ g.rules,
+            σ = f :: ρ ∧
+            r.lhs = A ∧ r.consume = some f ∧
+            r.rhs = [IRhsSymbol.nonterminal B none] ∧
+            NFYield g B ρ w) ∨
+        (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules, ∃ τ : List g.flag,
+          r.lhs = A ∧ r.consume = none ∧
+          r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+          τ <+ σ ∧ τ.length ≤ K ∧
+          NFYield g B (f :: τ) w ∧
+          NFYield g A τ w ∧
+          ∀ ρ : List g.flag,
+            NFYield g B (f :: ρ) w →
+            ρ <+ τ → ρ = τ) ∨
+        (∃ a : T, ∃ r ∈ g.rules,
+          r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+            w = [a]) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_rule_binary_push_substack_for_target_sublists (g := g) hNF target
+  refine ⟨K, ?_⟩
+  intro A σ w hwt hcert
+  have hcases := hK A σ w hwt (NFYield.derives (g := g) hcert)
+  rcases hcases with hbin | hpop | hpush | hterm
+  · rcases hbin with
+      ⟨B, C, u, v, r, hr, τ, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+        husub, hvsub, hτsub, hτlen, hleft, hright, hparent, hτmin⟩
+    left
+    exact ⟨B, C, u, v, r, hr, τ, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+      husub, hvsub, hτsub, hτlen,
+      (NFYield.iff_derives_isNormalForm (g := g) hNF).mpr hleft,
+      (NFYield.iff_derives_isNormalForm (g := g) hNF).mpr hright,
+      (NFYield.iff_derives_isNormalForm (g := g) hNF).mpr hparent,
+      fun ρ hρleft hρright hρsub =>
+        hτmin ρ (NFYield.derives (g := g) hρleft)
+          (NFYield.derives (g := g) hρright) hρsub⟩
+  · rcases hpop with ⟨f, ρ, B, r, hr, hσ, hlhs, hc, hrhs, hchild⟩
+    right
+    left
+    exact ⟨f, ρ, B, r, hr, hσ, hlhs, hc, hrhs,
+      (NFYield.iff_derives_isNormalForm (g := g) hNF).mpr hchild⟩
+  · rcases hpush with
+      ⟨B, f, r, hr, τ, hlhs, hc, hrhs, hτsub, hτlen, hchild, hparent, hτmin⟩
+    right
+    right
+    left
+    exact ⟨B, f, r, hr, τ, hlhs, hc, hrhs, hτsub, hτlen,
+      (NFYield.iff_derives_isNormalForm (g := g) hNF).mpr hchild,
+      (NFYield.iff_derives_isNormalForm (g := g) hNF).mpr hparent,
+      fun ρ hρchild hρsub =>
+        hτmin ρ (NFYield.derives (g := g) hρchild) hρsub⟩
+  · right
+    right
+    right
+    exact hterm
+
+/-- Length-uniform version of
+`exists_bound_first_step_binary_push_certificate_for_target_sublists`. -/
+public theorem exists_bound_first_step_binary_push_certificate_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+          w <+ target →
+          NFYield g A σ w →
+          (∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules, ∃ τ : List g.flag,
+            r.lhs = A ∧ r.consume = none ∧
+            r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+            w = u ++ v ∧
+            0 < u.length ∧ 0 < v.length ∧
+            u.length < w.length ∧ v.length < w.length ∧
+            u <+ target ∧ v <+ target ∧
+            τ <+ σ ∧ τ.length ≤ K ∧
+            NFYield g B τ u ∧
+            NFYield g C τ v ∧
+            NFYield g A τ w ∧
+            ∀ ρ : List g.flag,
+              NFYield g B ρ u →
+              NFYield g C ρ v →
+              ρ <+ τ → ρ = τ) ∨
+          (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+            ∃ r ∈ g.rules,
+              σ = f :: ρ ∧
+              r.lhs = A ∧ r.consume = some f ∧
+              r.rhs = [IRhsSymbol.nonterminal B none] ∧
+              NFYield g B ρ w) ∨
+          (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules, ∃ τ : List g.flag,
+            r.lhs = A ∧ r.consume = none ∧
+            r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+            τ <+ σ ∧ τ.length ≤ K ∧
+            NFYield g B (f :: τ) w ∧
+            NFYield g A τ w ∧
+            ∀ ρ : List g.flag,
+              NFYield g B (f :: ρ) w →
+              ρ <+ τ → ρ = τ) ∨
+          (∃ a : T, ∃ r ∈ g.rules,
+            r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+              w = [a]) := by
+  classical
+  have htargets :
+      ({target : List T | target.length ≤ L} : Set (List T)).Finite :=
+    List.finite_length_le T L
+  let targets : Finset (List T) := Set.Finite.toFinset htargets
+  let targetBound : List T → ℕ := fun target =>
+    Classical.choose
+      (NFYield.exists_bound_first_step_binary_push_certificate_for_target_sublists
+        (g := g) hNF target)
+  refine ⟨targets.sup targetBound, ?_⟩
+  intro target htargetLen A σ w hwt hcert
+  have htargetMem : target ∈ targets := by
+    rw [Set.Finite.mem_toFinset]
+    exact htargetLen
+  have hle : targetBound target ≤ targets.sup targetBound :=
+    Finset.le_sup (s := targets) (f := targetBound) htargetMem
+  have htarget :=
+    Classical.choose_spec
+      (NFYield.exists_bound_first_step_binary_push_certificate_for_target_sublists
+        (g := g) hNF target)
+  have hcases := htarget A σ w hwt hcert
+  rcases hcases with hbin | hpop | hpush | hterm
+  · rcases hbin with
+      ⟨B, C, u, v, r, hr, τ, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+        husub, hvsub, hτsub, hτlen, hleft, hright, hparent, hτmin⟩
+    left
+    exact ⟨B, C, u, v, r, hr, τ, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+      husub, hvsub, hτsub, le_trans hτlen hle, hleft, hright, hparent, hτmin⟩
+  · right
+    left
+    exact hpop
+  · rcases hpush with
+      ⟨B, f, r, hr, τ, hlhs, hc, hrhs, hτsub, hτlen, hchild, hparent, hτmin⟩
+    right
+    right
+    left
+    exact ⟨B, f, r, hr, τ, hlhs, hc, hrhs, hτsub, le_trans hτlen hle,
+      hchild, hparent, hτmin⟩
+  · right
+    right
+    right
+    exact hterm
+
 /-- Length-uniform bounded-prefix suffix shrinking for parse certificates. For a fixed target
 length bound and a fixed live-prefix bound, every certificate whose yield is a sublist of the
 target has an equivalent certificate using a bounded sub-suffix of the inherited stack. -/
