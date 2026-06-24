@@ -382,6 +382,36 @@ theorem generates_of_flatDerives_initial_terminal {g : IndexedGrammar T}
     g.Generates w :=
   flatDerives_initial_terminal_iff_generates.mp h
 
+theorem exists_flatPath_isChain_of_flatDerives {g : IndexedGrammar T}
+    {x y : List (FlatSymbol T g.nt g.flag)}
+    (h : FlatDerives g x y) :
+    ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? = some x ∧
+      path.getLast? = some y ∧
+      path.IsChain (FlatTransforms g) := by
+  obtain ⟨path, hne, hchain, hhead, hlast⟩ :=
+    List.exists_isChain_ne_nil_of_relationReflTransGen h
+  refine ⟨path, ?_, ?_, hchain⟩
+  · rw [List.head?_eq_some_head hne, hhead]
+  · rw [List.getLast?_eq_some_getLast hne, hlast]
+
+theorem exists_flatPath_of_flatDerives {g : IndexedGrammar T}
+    {x y : List (FlatSymbol T g.nt g.flag)}
+    (h : FlatDerives g x y) :
+    ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? = some x ∧
+      path.getLast? = some y ∧
+      ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+        FlatTransforms g
+          (path.get ⟨i, by omega⟩)
+          (path.get ⟨i + 1, hi⟩) := by
+  obtain ⟨path, hhead, hlast, hchain⟩ :=
+    exists_flatPath_isChain_of_flatDerives h
+  refine ⟨path, hhead, hlast, ?_⟩
+  rw [List.isChain_iff_getElem] at hchain
+  intro i hi
+  simpa [List.get_eq_getElem] using hchain i hi
+
 theorem flatDerives_of_flatPath {g : IndexedGrammar T}
     {path : List (List (FlatSymbol T g.nt g.flag))}
     {x y : List (FlatSymbol T g.nt g.flag)}
@@ -429,6 +459,37 @@ theorem generates_of_flatPath_initial_terminal {g : IndexedGrammar T}
     g.Generates w :=
   generates_of_flatDerives_initial_terminal
     (flatDerives_of_flatPath hhead hlast hstep)
+
+theorem exists_flatPath_initial_terminal_of_generates {g : IndexedGrammar T}
+    {w : List T} (h : g.Generates w) :
+    ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? =
+        some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+      path.getLast? =
+        some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+      ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+        FlatTransforms g
+          (path.get ⟨i, by omega⟩)
+          (path.get ⟨i + 1, hi⟩) := by
+  exact exists_flatPath_of_flatDerives
+    (flatDerives_initial_terminal_of_generates h)
+
+theorem exists_flatPath_initial_terminal_iff_generates {g : IndexedGrammar T}
+    {w : List T} :
+    (∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? =
+        some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+      path.getLast? =
+        some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+      ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+        FlatTransforms g
+          (path.get ⟨i, by omega⟩)
+          (path.get ⟨i + 1, hi⟩)) ↔
+      g.Generates w := by
+  constructor
+  · rintro ⟨path, hhead, hlast, hstep⟩
+    exact generates_of_flatPath_initial_terminal hhead hlast hstep
+  · exact exists_flatPath_initial_terminal_of_generates
 
 @[simp] theorem ISym.isIndexed_terminal {g : IndexedGrammar T} (a : T) :
     ISym.isIndexed (g := g) (ISym.terminal a) = false := rfl
