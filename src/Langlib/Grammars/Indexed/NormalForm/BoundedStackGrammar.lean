@@ -7382,6 +7382,114 @@ theorem boundedStackGrammar_generates_of_derivesIn_isNormalForm_steps_le
     (g := g) (B := N)
     (stackBoundedDerivesIn_of_accepting_derivesIn_isNormalForm_steps_le hNF h hn)
 
+/-- Generated-word wrapper for the finite-frontier whole-surface bridge.
+
+For a fixed suffix budget `N`, choose a shortest accepting trace and then a least stack bound
+among traces of that length. If the trace has fewer than `N` steps, the step-count bound
+already compiles it into the final bounded-stack grammar. Otherwise, cutting exactly `N`
+steps from the end reduces the remaining obligation to finite-frontier reachability of every
+target-compatible replacement surface at that cut. -/
+theorem
+    exists_bound_boundedStackGrammar_generates_of_stepReachable_targetCompatible_surface_reachability
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        g.Generates target →
+        ∃ n B : ℕ, ∃ trace : List (List g.ISym),
+          IsDerivationTrace g trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            g.DerivesIn n [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            (∀ m,
+              g.DerivesIn m [ISym.indexed g.initial []]
+                (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+            (∀ C' : ℕ,
+              (∃ trace' : List (List g.ISym),
+                IsDerivationTrace g trace' ∧
+                  trace'.length = n + 1 ∧
+                  trace'.head? = some [ISym.indexed g.initial []] ∧
+                  trace'.getLast? =
+                    some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  ∀ j (hj : j < trace'.length),
+                    sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+                B ≤ C') ∧
+            ∀ Bpre : ℕ,
+              (N ≤ n →
+                ∀ surface : SurfaceForm g K,
+                  surface ∈ targetCompatibleBoundedSurfaceForms g target K →
+                  ∃ bw : List (symbol T (BoundedStackNT g Bpre)),
+                    boundedSentential? (g := g) Bpre (eraseSurfaceForm surface) =
+                      some bw ∧
+                      bw ∈
+                        ({bw : List (symbol T (BoundedStackNT g Bpre)) |
+                          (∃ ys : List g.ISym,
+                            ys ∈ boundedSententialForms g L Bpre ∧
+                              boundedSentential? (g := g) Bpre ys = some bw) ∧
+                            ∃ p : ℕ, p ≤ trace.length - 1 - N ∧
+                              grammar_derivesIn (boundedStackGrammar g Bpre) p
+                                [symbol.nonterminal
+                                  (boundedStackGrammar g Bpre).initial] bw} :
+                          Set (List (symbol T (BoundedStackNT g Bpre))))) →
+              target ∈
+                grammar_language (boundedStackGrammar g (max Bpre (K + N))) := by
+  classical
+  obtain ⟨K, hK⟩ :=
+    exists_bound_minimal_stackBound_le_max_of_stepReachable_targetCompatible_surface_suffix_replacement_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen hgen
+  obtain ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+      hminBound⟩ :=
+    exists_shortest_stackBound_minimal_accepting_derivationTrace_of_generates
+      (g := g) hgen
+  refine ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+    hminBound, ?_⟩
+  intro Bpre hreachable
+  let Bfinal := max Bpre (K + N)
+  by_cases hnN : N ≤ n
+  · let i : ℕ := trace.length - 1 - N
+    have hi : i < trace.length := by
+      simp [i]
+      omega
+    have hsuffixBudget : trace.length - 1 - i ≤ N := by
+      simp [i]
+      omega
+    have htraceBoundMem :
+        ∀ x ∈ trace, sententialMaxStackHeight x ≤ B := by
+      intro x hx
+      rcases List.mem_iff_get.mp hx with ⟨j, hj⟩
+      rw [← hj]
+      exact hbound j.1 j.2
+    have hbounded :
+        StackBoundedDerivesIn g B n [ISym.indexed g.initial []]
+          (target.map fun a => (ISym.terminal a : g.ISym)) :=
+      stackBoundedDerivesIn_of_bounded_isDerivationTrace
+        (g := g) htrace hlen hhead hlast htraceBoundMem
+    have htargetB : target ∈ grammar_language (boundedStackGrammar g B) :=
+      boundedStackGrammar_generates_of_stackBoundedDerivesIn (g := g) hbounded
+    have hBfinal : B ≤ Bfinal := by
+      simpa [Bfinal] using
+        hK target htargetLen n B trace htrace hlen hlast hminLength hminBound
+          i hi Bpre hsuffixBudget
+          (by
+            intro surface hsurface
+            exact hreachable hnN surface hsurface)
+    exact boundedStackGrammar_language_mono
+      (g := g) (B := B) (C := Bfinal) hBfinal target htargetB
+  · have hnLt : n < N := Nat.lt_of_not_ge hnN
+    have htargetN :
+        target ∈ grammar_language (boundedStackGrammar g n) :=
+      boundedStackGrammar_generates_of_derivesIn_isNormalForm
+        (g := g) hNF hder
+    exact boundedStackGrammar_language_mono
+      (g := g) (B := n) (C := Bfinal) (by omega) target htargetN
+
 /-- Generated-word form of the late-window replacement bridge, compiled back into a fixed
 bounded-stack grammar.
 
