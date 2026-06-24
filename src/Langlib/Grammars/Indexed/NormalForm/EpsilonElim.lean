@@ -1396,6 +1396,46 @@ theorem isNullable_iff_rule_derives_empty {g : IndexedGrammar T}
       rw [hσ]
       exact isNullable_of_rule_derives_empty_some hr hlhs hconsume hder
 
+/-- In a flag-separated grammar, nullability has three concrete sources:
+an explicit ε-rule, a non-consuming rule whose whole RHS is nullable at the inherited stack,
+or a pop rule whose single child is nullable after the pop. -/
+theorem isNullable_cases_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) {A : g.nt} {σ : List g.flag}
+    (hnullable : g.IsNullable A σ) :
+    (∃ r : IRule T g.nt g.flag,
+      r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs = []) ∨
+    (∃ r : IRule T g.nt g.flag,
+      r ∈ g.rules ∧ r.lhs = A ∧ r.consume = none ∧ r.rhs ≠ [] ∧
+        ∀ s ∈ r.rhs, ∃ B : g.nt, ∃ push : Option g.flag,
+          s = IRhsSymbol.nonterminal B push ∧
+            g.IsNullable B (match push with | none => σ | some f => f :: σ)) ∨
+    (∃ f : g.flag, ∃ ρ : List g.flag, ∃ r : IRule T g.nt g.flag, ∃ B : g.nt,
+      σ = f :: ρ ∧ r ∈ g.rules ∧ r.lhs = A ∧ r.consume = some f ∧
+        r.rhs = [IRhsSymbol.nonterminal B none] ∧ g.IsNullable B ρ) := by
+  rcases isNullable_cases_rule (g := g) hnullable with hnone | hsome
+  · rcases hnone with ⟨r, hr, hlhs, hconsume, hder⟩
+    by_cases hrhs : r.rhs = []
+    · exact Or.inl ⟨r, hr, hlhs, hconsume, hrhs⟩
+    · exact Or.inr (Or.inl ⟨r, hr, hlhs, hconsume, hrhs,
+        (expandRhs_derives_nil_iff_all_nullable_rhs (g := g)
+          (rhs := r.rhs) (σ := σ)).mp hder⟩)
+  · rcases hsome with ⟨f, ρ, r, hσ, hr, hlhs, hconsume, hder⟩
+    have hsomeFlag : r.consume.isSome := by
+      simp [hconsume]
+    rcases (hfs r hr).1 hsomeFlag with ⟨B, hrhs⟩
+    have hB : g.IsNullable B ρ := by
+      have hall :=
+        (expandRhs_derives_nil_iff_all_nullable_rhs (g := g)
+          (rhs := r.rhs) (σ := ρ)).mp hder
+      have hmem : IRhsSymbol.nonterminal B none ∈ r.rhs := by
+        rw [hrhs]
+        simp
+      rcases hall (IRhsSymbol.nonterminal B none) hmem with
+        ⟨C, push, hsym, hnull⟩
+      cases hsym
+      exact hnull
+    exact Or.inr (Or.inr ⟨f, ρ, r, B, hσ, hr, hlhs, hconsume, hrhs, hB⟩)
+
 /-- An explicit rule `A → ε` makes `A` nullable at every stack. -/
 theorem isNullable_of_empty_rule_none {g : IndexedGrammar T}
     {r : IRule T g.nt g.flag} {A : g.nt} (hr : r ∈ g.rules)
