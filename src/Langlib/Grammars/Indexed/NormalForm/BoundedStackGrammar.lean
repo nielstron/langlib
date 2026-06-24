@@ -5910,6 +5910,89 @@ theorem finite_boundedSentential_image_of_targetCompatibleBoundedSurfaceForms_at
   rcases hbw with ⟨surface, hsurface, henc⟩
   exact ⟨surface, hsurface, by simp [encodeSurface, henc]⟩
 
+/-- The bounded-grammar sentential forms obtained by translating full sentential forms with
+bounded length and bounded stack height into an arbitrary fixed bounded-stack grammar form a
+finite set. This is the full-context frontier used when the visible surface is not enough to
+recover the replacement context. -/
+theorem finite_boundedSentential_image_of_boundedSententialForms_at_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K B L : ℕ} :
+    ({bw : List (symbol T (BoundedStackNT g B)) |
+      ∃ ys : List g.ISym,
+        ys ∈ boundedSententialForms g L K ∧
+          boundedSentential? (g := g) B ys = some bw} :
+        Set (List (symbol T (BoundedStackNT g B)))).Finite := by
+  classical
+  let encodeForm : List g.ISym → List (symbol T (BoundedStackNT g B)) :=
+    fun ys =>
+      match boundedSentential? (g := g) B ys with
+      | some bw => bw
+      | none => []
+  have hfinite :=
+    (boundedSententialForms_finite g L K).image encodeForm
+  apply hfinite.subset
+  intro bw hbw
+  rcases hbw with ⟨ys, hys, henc⟩
+  exact ⟨ys, hys, by simp [encodeForm, henc]⟩
+
+/-- The part of the bounded full-context frontier reachable in at most `N` counted steps in
+the fixed bounded-stack grammar is finite. -/
+theorem finite_stepReachable_boundedSentential_image_of_boundedSententialForms_at_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K B L N : ℕ} :
+    ({bw : List (symbol T (BoundedStackNT g B)) |
+      (∃ ys : List g.ISym,
+        ys ∈ boundedSententialForms g L K ∧
+          boundedSentential? (g := g) B ys = some bw) ∧
+        ∃ p : ℕ, p ≤ N ∧
+          grammar_derivesIn (boundedStackGrammar g B) p
+            [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+        Set (List (symbol T (BoundedStackNT g B)))).Finite := by
+  exact
+    finite_boundedSentential_image_of_boundedSententialForms_at_bound
+      (g := g) (K := K) (B := B) (L := L) |>.subset
+        (by
+          intro bw hbw
+          exact hbw.1)
+
+/-- Membership helper for the full bounded-sentential encoding frontier. -/
+theorem boundedSentential_mem_boundedSentential_image_of_length_stackBound
+    {g : IndexedGrammar T} {K B L : ℕ}
+    {ys : List g.ISym} {bw : List (symbol T (BoundedStackNT g B))}
+    (hlen : ys.length ≤ L)
+    (hstack : sententialMaxStackHeight ys ≤ K)
+    (hbw : boundedSentential? (g := g) B ys = some bw) :
+    bw ∈
+      ({bw : List (symbol T (BoundedStackNT g B)) |
+        ∃ ys : List g.ISym,
+          ys ∈ boundedSententialForms g L K ∧
+            boundedSentential? (g := g) B ys = some bw} :
+        Set (List (symbol T (BoundedStackNT g B)))) :=
+  ⟨ys, ⟨hlen, hstack⟩, hbw⟩
+
+/-- A counted reachable member of the finite full-context bounded-sentential frontier gives
+the exact stack-bounded indexed prefix witness for the corresponding decoded sentential
+form. -/
+theorem exists_stackBoundedDerivesIn_le_of_stepReachable_boundedSentential_image
+    {g : IndexedGrammar T} [Fintype g.flag] {K B L N : ℕ}
+    {ys : List g.ISym} {bw : List (symbol T (BoundedStackNT g B))}
+    (hbw : boundedSentential? (g := g) B ys = some bw)
+    (hfrontier :
+      bw ∈
+        ({bw : List (symbol T (BoundedStackNT g B)) |
+          (∃ ys : List g.ISym,
+            ys ∈ boundedSententialForms g L K ∧
+              boundedSentential? (g := g) B ys = some bw) ∧
+            ∃ p : ℕ, p ≤ N ∧
+              grammar_derivesIn (boundedStackGrammar g B) p
+                [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+          Set (List (symbol T (BoundedStackNT g B))))) :
+    ∃ p : ℕ, p ≤ N ∧
+      StackBoundedDerivesIn g B p [ISym.indexed g.initial []] ys := by
+  exact
+    exists_stackBoundedDerivesIn_le_of_boundedStackGrammar_derivesIn_initial_boundedSentential
+      (g := g) (B := B) (i := N) hbw hfrontier.2
+
 /-- The reachable part of the length-bounded finite surface frontier is finite in any fixed
 bounded-stack grammar. This is the prefix side of the finite saturation argument. -/
 theorem finite_reachable_boundedSentential_image_of_boundedSurfaceForms_at_bound
