@@ -1356,6 +1356,68 @@ public theorem bounded_prefix_push_branch_mem_frontiers
     bounded_prefix_certificate_mem_bounded_length_items
       (g := g) (N := N) (K := K) (L := L) hpref hwlen hτ hparent⟩
 
+/-- Frontier memberships supplied by a pop that consumes the first suffix flag below an empty
+preserved prefix. -/
+public theorem empty_prefix_pop_branch_mem_frontiers
+    {g : IndexedGrammar T} {K L : ℕ} {target w : List T}
+    {B : g.nt} {ρ : List g.flag}
+    (htargetLen : target.length ≤ L)
+    (hwt : w <+ target)
+    (hρ : ρ.length ≤ K)
+    (hchild : NFYield g B ρ w) :
+    (((B, ρ), w) :
+        (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ K ∧ item.2 <+ target ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) ∧
+      (((B, ρ), w) :
+        (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ K ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) := by
+  have hnil : ([] : List g.flag).length ≤ 0 := by simp
+  have hwlen : w.length ≤ L := le_trans hwt.length_le htargetLen
+  exact ⟨
+    by
+      simpa using
+        (bounded_prefix_certificate_mem_bounded_target_items
+          (g := g) (N := 0) (K := K) hnil hwt hρ hchild),
+    by
+      simpa using
+        (bounded_prefix_certificate_mem_bounded_length_items
+          (g := g) (N := 0) (K := K) (L := L) hnil hwlen hρ hchild)⟩
+
+/-- Frontier memberships supplied by a pop that consumes the first preserved prefix flag and
+therefore continues under the shortened prefix. -/
+public theorem shortened_prefix_pop_branch_mem_frontiers
+    {g : IndexedGrammar T} {N K L : ℕ} {target w : List T}
+    {B : g.nt} {pref' σ : List g.flag}
+    (hpref' : pref'.length ≤ N)
+    (htargetLen : target.length ≤ L)
+    (hwt : w <+ target)
+    (hσ : σ.length ≤ K)
+    (hchild : NFYield g B (pref' ++ σ) w) :
+    (((B, pref' ++ σ), w) :
+        (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ N + K ∧ item.2 <+ target ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) ∧
+      (((B, pref' ++ σ), w) :
+        (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ N + K ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) := by
+  have hwlen : w.length ≤ L := le_trans hwt.length_le htargetLen
+  exact ⟨
+    bounded_prefix_certificate_mem_bounded_target_items
+      (g := g) (N := N) (K := K) hpref' hwt hσ hchild,
+    bounded_prefix_certificate_mem_bounded_length_items
+      (g := g) (N := N) (K := K) (L := L) hpref' hwlen hσ hchild⟩
+
 end NFYield
 
 end IndexedGrammar
