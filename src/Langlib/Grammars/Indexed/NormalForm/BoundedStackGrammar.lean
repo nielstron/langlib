@@ -5501,6 +5501,84 @@ theorem exists_bound_bounded_accepting_flatPath_of_minimal_derivesIn_target_leng
     hfhead, hflast, hfbound, hfstep, hfderives, ?_⟩
   omega
 
+/-- Step-budget flat-path version with the sharper flat tape space from the pop-budget
+accounting. Compared with
+`exists_bound_bounded_accepting_flatPath_of_minimal_derivesIn_target_length_budget`, the finite
+flat set is bounded by `L + L + (N + L * (N + K + N))`: `N` pays for future pops and
+`L * (N + K + N)` pays for live stacks under the produced stack bound. -/
+theorem exists_bound_bounded_accepting_flatPath_of_minimal_derivesIn_target_length_stepFlatBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n : ℕ,
+          g.DerivesIn n [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ m,
+            g.DerivesIn m [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) →
+          n ≤ N →
+          ∃ trace : List (List g.ISym),
+          ∃ ftrace : List (List (FlatSymbol T g.nt g.flag)),
+            IsDerivationTrace g trace ∧
+            ftrace = flatTrace trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? =
+              some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            ftrace.length = n + 1 ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ N + K + N) ∧
+            ftrace.head? =
+              some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+            ftrace.getLast? =
+              some (target.map fun a =>
+                (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+            (∀ i : Fin ftrace.length,
+              ftrace.get i ∈
+                boundedFlatForms g (L + L + (N + L * (N + K + N)))) ∧
+            (∀ i : ℕ, ∀ hi : i + 1 < ftrace.length,
+              FlatTransforms g
+                (ftrace.get ⟨i, by omega⟩)
+                (ftrace.get ⟨i + 1, hi⟩)) ∧
+            FlatDerives g
+              (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+              (target.map fun a =>
+                (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+            n < (Set.Finite.toFinset
+              (boundedFlatForms_finite g
+                (L + L + (N + L * (N + K + N))))).card := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_bounded_accepting_flatPath_of_minimal_derivesIn_target_length_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n hder hmin hnN
+  obtain ⟨trace, ftrace, htrace, hftrace, hlen, hhead, hlast, hflen, hstack,
+    hfhead, hflast, _hfbound, hfstep, hfderives, _hcard⟩ :=
+    hK target htargetLen n hder hmin hnN
+  subst ftrace
+  have hboundMem :
+      ∀ x ∈ trace, sententialMaxStackHeight x ≤ N + K + N := by
+    intro x hx
+    rcases List.mem_iff_get.mp hx with ⟨i, hi⟩
+    rw [← hi]
+    exact hstack i.1 i.2
+  have hfboundStep :
+      ∀ i : Fin (flatTrace trace).length,
+        (flatTrace trace).get i ∈
+          boundedFlatForms g (L + L + (N + L * (N + K + N))) :=
+    accepting_flatTrace_get_mem_boundedFlatForms_of_isNormalForm_stepBudget_stackBound_lengthBound
+      (g := g) (B := N + K + N) (L := L) (n := n) (N := N)
+      hNF htrace hlen hlast htargetLen hboundMem hnN
+  have hcard :=
+    minimal_accepting_derivationTrace_length_le_boundedFlatForms_card_of_stepBudget_stackBound_lengthBound
+      (g := g) (L := L) (B := N + K + N) (N := N)
+      hNF htrace hlen hhead hlast hmin htargetLen hboundMem hnN
+  refine ⟨trace, flatTrace trace, htrace, rfl, hlen, hhead, hlast, hflen, hstack,
+    hfhead, hflast, hfboundStep, hfstep, hfderives, ?_⟩
+  omega
+
 /-- Generated-word version of
 `exists_bound_bounded_accepting_flatPath_of_minimal_derivesIn_target_length_budget`.
 The temporary budget is stated as a bound on the selected shortest accepting derivation length,
@@ -5558,6 +5636,72 @@ theorem exists_bound_bounded_accepting_flatPath_of_generates_target_length_budge
                 (L * ((N + K + N) + 2)))).card := by
   obtain ⟨K, hK⟩ :=
     exists_bound_bounded_accepting_flatPath_of_minimal_derivesIn_target_length_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen hgen hbudget
+  obtain ⟨n, hder, hmin⟩ := exists_minimal_derivesIn_of_generates (g := g) hgen
+  obtain ⟨trace, ftrace, htrace, hftrace, hlen, hhead, hlast, hflen, hstack,
+    hfhead, hflast, hfbound, hfstep, hfderives, hcard⟩ :=
+    hK target htargetLen n hder hmin (hbudget n hder hmin)
+  exact ⟨n, trace, ftrace, hder, hmin, htrace, hftrace, hlen, hhead, hlast, hflen,
+    hstack, hfhead, hflast, hfbound, hfstep, hfderives, hcard⟩
+
+/-- Generated-word wrapper for
+`exists_bound_bounded_accepting_flatPath_of_minimal_derivesIn_target_length_stepFlatBound`.
+It packages the sharper step-budget flat finite set after choosing a shortest accepting
+derivation for the generated target. -/
+theorem exists_bound_bounded_accepting_flatPath_of_generates_target_length_stepFlatBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        g.Generates target →
+        (∀ n : ℕ,
+          g.DerivesIn n [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ m,
+            g.DerivesIn m [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) →
+          n ≤ N) →
+          ∃ n : ℕ,
+          ∃ trace : List (List g.ISym),
+          ∃ ftrace : List (List (FlatSymbol T g.nt g.flag)),
+            g.DerivesIn n [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            (∀ m,
+              g.DerivesIn m [ISym.indexed g.initial []]
+                (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) ∧
+            IsDerivationTrace g trace ∧
+            ftrace = flatTrace trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? =
+              some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            ftrace.length = n + 1 ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ N + K + N) ∧
+            ftrace.head? =
+              some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+            ftrace.getLast? =
+              some (target.map fun a =>
+                (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+            (∀ i : Fin ftrace.length,
+              ftrace.get i ∈
+                boundedFlatForms g (L + L + (N + L * (N + K + N)))) ∧
+            (∀ i : ℕ, ∀ hi : i + 1 < ftrace.length,
+              FlatTransforms g
+                (ftrace.get ⟨i, by omega⟩)
+                (ftrace.get ⟨i + 1, hi⟩)) ∧
+            FlatDerives g
+              (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+              (target.map fun a =>
+                (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+            n < (Set.Finite.toFinset
+              (boundedFlatForms_finite g
+                (L + L + (N + L * (N + K + N))))).card := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_bounded_accepting_flatPath_of_minimal_derivesIn_target_length_stepFlatBound
       (g := g) hNF N L
   refine ⟨K, ?_⟩
   intro target htargetLen hgen hbudget
