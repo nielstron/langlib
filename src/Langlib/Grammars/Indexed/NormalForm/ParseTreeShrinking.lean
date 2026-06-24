@@ -1418,6 +1418,258 @@ public theorem shortened_prefix_pop_branch_mem_frontiers
     bounded_prefix_certificate_mem_bounded_length_items
       (g := g) (N := N) (K := K) (L := L) hpref' hwlen hσ hchild⟩
 
+/-- Bounded-prefix first-step decomposition for suffix-minimal certificates, with the finite
+frontier memberships needed by the branch exposed in each case. -/
+public theorem exists_bound_minimal_prefixed_certificate_first_step_mem_frontiers_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w <+ target →
+            NFYield g A (pref ++ σ) w →
+            (∀ ρ : List g.flag,
+              NFYield g A (pref ++ ρ) w →
+              ρ <+ σ → ρ = σ) →
+            σ.length ≤ K ∧
+            (((A, pref ++ σ), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ N + K ∧ item.2 <+ target ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            (((A, pref ++ σ), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ N + K ∧ item.2.length ≤ L ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            ((∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules,
+                r.lhs = A ∧ r.consume = none ∧
+                r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+                w = u ++ v ∧
+                0 < u.length ∧ 0 < v.length ∧
+                u.length < w.length ∧ v.length < w.length ∧
+                u <+ target ∧ v <+ target ∧
+                NFYield g B (pref ++ σ) u ∧
+                NFYield g C (pref ++ σ) v ∧
+                (∀ ρ : List g.flag,
+                  NFYield g B (pref ++ ρ) u →
+                  NFYield g C (pref ++ ρ) v →
+                  ρ <+ σ → ρ = σ) ∧
+                (((B, pref ++ σ), u) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((C, pref ++ σ), v) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((A, pref ++ σ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                ((((B, C), pref ++ σ), (u, v)) :
+                    ((g.nt × g.nt) × List g.flag) × (List T × List T)) ∈
+                  ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                    item.1.2.length ≤ N + K ∧
+                      item.2.1 <+ target ∧
+                      item.2.2 <+ target ∧
+                      NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                      NFYield g item.1.1.2 item.1.2 item.2.2} :
+                    Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+                (((B, pref ++ σ), u) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((C, pref ++ σ), v) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((A, pref ++ σ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                ((((B, C), pref ++ σ), (u, v)) :
+                    ((g.nt × g.nt) × List g.flag) × (List T × List T)) ∈
+                  ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                    item.1.2.length ≤ N + K ∧
+                      item.2.1.length ≤ L ∧
+                      item.2.2.length ≤ L ∧
+                      NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                      NFYield g item.1.1.2 item.1.2 item.2.2} :
+                    Set (((g.nt × g.nt) × List g.flag) × (List T × List T)))) ∨
+            (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+              ∃ r ∈ g.rules,
+                pref = [] ∧
+                σ = f :: ρ ∧
+                ρ.length ≤ K ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                NFYield g B ρ w ∧
+                (∀ μ : List g.flag,
+                  NFYield g B μ w →
+                  μ <+ ρ → μ = ρ) ∧
+                (((B, ρ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((B, ρ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T))) ∨
+            (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+              ∃ r ∈ g.rules,
+                pref = f :: pref' ∧
+                pref'.length ≤ N ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                NFYield g B (pref' ++ σ) w ∧
+                (∀ μ : List g.flag,
+                  NFYield g B (pref' ++ μ) w →
+                  μ <+ σ → μ = σ) ∧
+                (((B, pref' ++ σ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((B, pref' ++ σ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T))) ∨
+            (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+                NFYield g B ((f :: pref) ++ σ) w ∧
+                r.lhs = A ∧ r.consume = none ∧
+                r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+                (∀ ρ : List g.flag,
+                  NFYield g B ((f :: pref) ++ ρ) w →
+                  ρ <+ σ → ρ = σ) ∧
+                (((B, (f :: pref) ++ σ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ (N + 1) + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((A, pref ++ σ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((B, (f :: pref) ++ σ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ (N + 1) + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((A, pref ++ σ), w) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ N + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T))) ∨
+            (∃ a : T, ∃ r ∈ g.rules,
+              r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+                w = [a])) := by
+  obtain ⟨K, hK⟩ :=
+    NFYield.exists_bound_minimal_prefixed_certificate_first_step_for_target_length
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref A σ w hwt hcert hmin
+  obtain ⟨hσlen, hcases⟩ :=
+    hK target htargetLen pref hpref A σ w hwt hcert hmin
+  have hparentTarget :
+      (((A, pref ++ σ), w) :
+          (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ N + K ∧ item.2 <+ target ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) :=
+    bounded_prefix_certificate_mem_bounded_target_items
+      (g := g) (N := N) (K := K) hpref hwt hσlen hcert
+  have hparentLength :
+      (((A, pref ++ σ), w) :
+          (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ N + K ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) := by
+    have hwlen : w.length ≤ L := le_trans hwt.length_le htargetLen
+    exact bounded_prefix_certificate_mem_bounded_length_items
+      (g := g) (N := N) (K := K) (L := L) hpref hwlen hσlen hcert
+  refine ⟨hσlen, hparentTarget, hparentLength, ?_⟩
+  rcases hcases with hbin | hpopEmpty | hpopPrefix | hpush | hterm
+  · rcases hbin with
+      ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw, hupos, hvpos, hult, hvlt,
+        hut, hvt, hleft, hright, hpairMin⟩
+    left
+    refine ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, hw,
+      hupos, hvpos, hult, hvlt, hut, hvt, hleft, hright, hpairMin, ?_⟩
+    exact bounded_prefix_binary_branch_mem_frontiers
+      (g := g) (N := N) (K := K) (L := L)
+      (target := target) (u := u) (v := v) (w := w)
+      (A := A) (B := B) (C := C) (pref := pref) (τ := σ)
+      hpref htargetLen hut hvt hwt hσlen hleft hright hcert
+  · rcases hpopEmpty with
+      ⟨f, ρ, B, r, hr, hprefEmpty, hσ, hρlen, hlhs, hc, hrhs, hchild, hchildMin⟩
+    right
+    left
+    refine ⟨f, ρ, B, r, hr, hprefEmpty, hσ, hρlen,
+      hlhs, hc, hrhs, hchild, hchildMin, ?_⟩
+    exact empty_prefix_pop_branch_mem_frontiers
+      (g := g) (K := K) (L := L) (target := target)
+      (w := w) (B := B) (ρ := ρ) htargetLen hwt hρlen hchild
+  · rcases hpopPrefix with
+      ⟨f, pref', B, r, hr, hprefEq, hpref'len, hlhs, hc, hrhs, hchild, hchildMin⟩
+    right
+    right
+    left
+    refine ⟨f, pref', B, r, hr, hprefEq, hpref'len,
+      hlhs, hc, hrhs, hchild, hchildMin, ?_⟩
+    exact shortened_prefix_pop_branch_mem_frontiers
+      (g := g) (N := N) (K := K) (L := L)
+      (target := target) (w := w) (B := B)
+      (pref' := pref') (σ := σ) hpref'len htargetLen hwt hσlen hchild
+  · rcases hpush with
+      ⟨B, f, r, hr, hlhs, hc, hrhs, hchild, hchildMin⟩
+    right
+    right
+    right
+    left
+    refine ⟨B, f, r, hr, hchild, hlhs, hc, hrhs, hchildMin, ?_⟩
+    exact bounded_prefix_push_branch_mem_frontiers
+      (g := g) (N := N) (K := K) (L := L)
+      (target := target) (w := w) (A := A) (B := B)
+      (pref := pref) (τ := σ) (f := f)
+      hpref htargetLen hwt hσlen hchild hcert
+  · right
+    right
+    right
+    right
+    exact hterm
+
 end NFYield
 
 end IndexedGrammar
