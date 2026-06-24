@@ -1028,6 +1028,23 @@ theorem sententialMaxStackHeight_le_sententialStackHeight {g : IndexedGrammar T}
           simp
           omega
 
+theorem sententialMaxStackHeight_le_encodeSentential_length {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    sententialMaxStackHeight w ≤ (encodeSentential w).length := by
+  rw [encodeSentential_length]
+  exact le_trans (sententialMaxStackHeight_le_sententialStackHeight w) (by omega)
+
+theorem sententialMaxStackHeight_le_of_decodeFlatSentential_eq_some
+    {g : IndexedGrammar T} {x : List (FlatSymbol T g.nt g.flag)}
+    {w : List g.ISym}
+    (h : decodeFlatSentential x = some w) :
+    sententialMaxStackHeight w ≤ x.length := by
+  calc
+    sententialMaxStackHeight w ≤ (encodeSentential w).length :=
+      sententialMaxStackHeight_le_encodeSentential_length w
+    _ = x.length := by
+      exact congrArg List.length (encodeSentential_of_decodeFlatSentential_eq_some h)
+
 theorem sententialStackHeight_le_nonterminalCount_mul_maxStackHeight {g : IndexedGrammar T}
     (w : List g.ISym) :
     sententialStackHeight w ≤
