@@ -6293,6 +6293,21 @@ theorem boundedStackGrammar_language_iff_exists_stackBoundedDerivesIn
     exact boundedStackGrammar_generates_of_stackBoundedDerivesIn
       (g := g) (B := B) hbounded
 
+theorem boundedStackGrammar_language_iff_stackBounded_certificate
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {B : ℕ} {w : List T} :
+    w ∈ grammar_language (boundedStackGrammar g B) ↔
+      NFYield.StackBounded g B g.initial [] w := by
+  constructor
+  · intro hw
+    rcases (boundedStackGrammar_language_iff_exists_stackBoundedDerivesIn
+        (g := g) (B := B) (w := w)).mp hw with
+      ⟨n, hbounded⟩
+    exact NFYield.StackBounded.of_stackBoundedDerivesIn_isNormalForm_exact
+      (g := g) hNF hbounded
+  · intro hcert
+    exact boundedStackGrammar_generates_of_stackBounded_certificate (g := g) hcert
+
 theorem exists_bounded_isDerivationTrace_of_boundedStackGrammar_language
     {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ} {w : List T}
     (hw : w ∈ grammar_language (boundedStackGrammar g B)) :

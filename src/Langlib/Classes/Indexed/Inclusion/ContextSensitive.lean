@@ -47,6 +47,25 @@ public theorem is_LBA_pos_boundedStackGrammar_language_of_isNormalForm
     (IndexedGrammar.boundedStackGrammar g B) hfin
     (IndexedGrammar.boundedStackGrammar_noncontracting hNF)
 
+/-- The exact stack-bounded certificate slice of a finite normal-form indexed grammar is LBA:
+it is the same language as the fixed bounded-stack grammar. -/
+public theorem is_LBA_pos_stackBounded_certificate_language_of_isNormalForm
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (B : ℕ) :
+    is_LBA_pos
+      ({w : List A | IndexedGrammar.NFYield.StackBounded g B g.initial [] w} :
+        Language A) := by
+  have hEq :
+      grammar_language (IndexedGrammar.boundedStackGrammar g B) =
+        ({w : List A | IndexedGrammar.NFYield.StackBounded g B g.initial [] w} :
+          Language A) := by
+    ext w
+    exact IndexedGrammar.boundedStackGrammar_language_iff_stackBounded_certificate
+      (g := g) hNF
+  simpa [← hEq] using
+    is_LBA_pos_boundedStackGrammar_language_of_isNormalForm (g := g) hNF B
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]
