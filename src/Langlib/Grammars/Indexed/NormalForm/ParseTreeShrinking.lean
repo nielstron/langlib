@@ -2,6 +2,7 @@ module
 
 public import Langlib.Grammars.Indexed.NormalForm.ParseTree
 public import Langlib.Grammars.Indexed.NormalForm.Shrinking
+import Mathlib.Data.Finite.Prod
 @[expose]
 public section
 
@@ -120,6 +121,80 @@ public theorem exists_bound_short_stack_certificate_for_target_length
     simpa [hsplit] using hsub
   · simp [List.length_append]
     omega
+
+/-! ## Finite certificate frontiers -/
+
+/-- For a fixed target word, there are only finitely many candidate certificate items with a
+bounded stack and a yield that is a sublist of the target. -/
+public theorem finite_bounded_target_items
+    (g : IndexedGrammar T) [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) (target : List T) :
+    ({item : (g.nt × List g.flag) × List T |
+      item.1.2.length ≤ B ∧ item.2 <+ target} : Set ((g.nt × List g.flag) × List T)).Finite := by
+  have hnt : (Set.univ : Set g.nt).Finite := Set.finite_univ
+  have hstacks : ({σ : List g.flag | σ.length ≤ B} : Set (List g.flag)).Finite :=
+    List.finite_length_le g.flag B
+  have hwords : ({w : List T | w <+ target} : Set (List T)).Finite :=
+    (List.finite_toSet target.sublists).subset
+      (by
+        intro w hw
+        exact (List.mem_sublists).2 hw)
+  have hprod :
+      ((((Set.univ : Set g.nt) ×ˢ
+          ({σ : List g.flag | σ.length ≤ B} : Set (List g.flag))) ×ˢ
+        ({w : List T | w <+ target} : Set (List T)))).Finite :=
+    _root_.Set.Finite.prod (_root_.Set.Finite.prod hnt hstacks) hwords
+  refine hprod.subset ?_
+  rintro ⟨⟨A, σ⟩, w⟩ h
+  simpa using h
+
+/-- For a fixed length bound, there are only finitely many candidate certificate items with a
+bounded stack and a yield of bounded length. -/
+public theorem finite_bounded_length_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B L : ℕ) :
+    ({item : (g.nt × List g.flag) × List T |
+      item.1.2.length ≤ B ∧ item.2.length ≤ L} :
+        Set ((g.nt × List g.flag) × List T)).Finite := by
+  have hnt : (Set.univ : Set g.nt).Finite := Set.finite_univ
+  have hstacks : ({σ : List g.flag | σ.length ≤ B} : Set (List g.flag)).Finite :=
+    List.finite_length_le g.flag B
+  have hwords : ({w : List T | w.length ≤ L} : Set (List T)).Finite :=
+    List.finite_length_le T L
+  have hprod :
+      ((((Set.univ : Set g.nt) ×ˢ
+          ({σ : List g.flag | σ.length ≤ B} : Set (List g.flag))) ×ˢ
+        ({w : List T | w.length ≤ L} : Set (List T)))).Finite :=
+    _root_.Set.Finite.prod (_root_.Set.Finite.prod hnt hstacks) hwords
+  refine hprod.subset ?_
+  rintro ⟨⟨A, σ⟩, w⟩ h
+  simpa using h
+
+/-- Actual parse-certificate items form a finite subset of the bounded target frontier. -/
+public theorem finite_bounded_target_certificate_items
+    (g : IndexedGrammar T) [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) (target : List T) :
+    ({item : (g.nt × List g.flag) × List T |
+      item.1.2.length ≤ B ∧ item.2 <+ target ∧
+        NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)).Finite := by
+  exact (NFYield.finite_bounded_target_items (g := g) B target).subset
+    (by
+      intro item h
+      exact ⟨h.1, h.2.1⟩)
+
+/-- Actual parse-certificate items form a finite subset of the bounded length frontier. -/
+public theorem finite_bounded_length_certificate_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B L : ℕ) :
+    ({item : (g.nt × List g.flag) × List T |
+      item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+        NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)).Finite := by
+  exact (NFYield.finite_bounded_length_items (g := g) B L).subset
+    (by
+      intro item h
+      exact ⟨h.1, h.2.1⟩)
 
 end NFYield
 
