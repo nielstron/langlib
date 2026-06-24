@@ -680,6 +680,18 @@ theorem StackBoundedDerivesIn.initial_maxStackHeight_le {g : IndexedGrammar T}
       rcases h with ⟨w, hprev, _, _⟩
       exact ih hprev
 
+theorem StackBoundedDerivesIn.initial_encodeSentential_length_le
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    (encodeSentential w₁).length ≤ w₁.length * (B + 2) :=
+  encodeSentential_length_le_of_maxStackHeight_le h.initial_maxStackHeight_le
+
+theorem StackBoundedDerivesIn.final_encodeSentential_length_le
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    (encodeSentential w₂).length ≤ w₂.length * (B + 2) :=
+  encodeSentential_length_le_of_maxStackHeight_le h.final_maxStackHeight_le
+
 theorem StackBoundedDerivesIn.to_derivesIn {g : IndexedGrammar T}
     {B n : ℕ} {w₁ w₂ : List g.ISym}
     (h : StackBoundedDerivesIn g B n w₁ w₂) :
@@ -788,6 +800,21 @@ theorem exists_bounded_isDerivationTrace_of_stackBoundedDerivesIn
         ·
           have hx' : x = w₂ := by simpa using hx
           simpa [hx'] using hw₂
+
+theorem exists_encoded_bounded_isDerivationTrace_of_stackBoundedDerivesIn
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    ∃ trace : List (List g.ISym),
+      IsDerivationTrace g trace ∧
+      trace.length = n + 1 ∧
+      trace.head? = some w₁ ∧
+      trace.getLast? = some w₂ ∧
+      (∀ x ∈ trace, sententialMaxStackHeight x ≤ B) ∧
+      ∀ x ∈ trace, (encodeSentential x).length ≤ x.length * (B + 2) := by
+  obtain ⟨trace, htrace, hlen, hhead, hlast, hbound⟩ :=
+    exists_bounded_isDerivationTrace_of_stackBoundedDerivesIn h
+  exact ⟨trace, htrace, hlen, hhead, hlast, hbound,
+    fun x hx => encodeSentential_length_le_of_maxStackHeight_le (hbound x hx)⟩
 
 theorem stackBoundedDerivesIn_one_of_transforms {g : IndexedGrammar T}
     {B : ℕ} {w₁ w₂ : List g.ISym}

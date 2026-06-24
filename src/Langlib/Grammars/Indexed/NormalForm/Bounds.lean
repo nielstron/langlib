@@ -6023,6 +6023,36 @@ theorem accepting_derivationTrace_get_length_le_target_of_isNormalForm
     derivesIn_length_le_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF) hsuffix
   simpa using hlen
 
+theorem accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm_stackBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B)
+    {i : ℕ} (hi : i < trace.length) :
+    (encodeSentential (trace.get ⟨i, hi⟩)).length ≤ w.length * (B + 2) := by
+  exact le_trans
+    (encodeSentential_length_le_of_maxStackHeight_le (hstack i hi))
+    (Nat.mul_le_mul_right (B + 2)
+      (accepting_derivationTrace_get_length_le_target_of_isNormalForm
+        hNF htrace hlast hi))
+
+theorem accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm_stackBound_lengthBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B L : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B)
+    {i : ℕ} (hi : i < trace.length) :
+    (encodeSentential (trace.get ⟨i, hi⟩)).length ≤ L * (B + 2) := by
+  exact le_trans
+    (accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm_stackBound
+      hNF htrace hlast hstack hi)
+    (Nat.mul_le_mul_right (B + 2) hwlen)
+
 theorem accepting_derivationTrace_get_maxStackHeight_le_index_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {trace : List (List g.ISym)}
