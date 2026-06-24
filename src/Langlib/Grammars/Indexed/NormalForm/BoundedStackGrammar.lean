@@ -816,6 +816,51 @@ theorem exists_encoded_bounded_isDerivationTrace_of_stackBoundedDerivesIn
   exact ⟨trace, htrace, hlen, hhead, hlast, hbound,
     fun x hx => encodeSentential_length_le_of_maxStackHeight_le (hbound x hx)⟩
 
+theorem exists_flatBounded_accepting_isDerivationTrace_of_stackBoundedDerivesIn_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B n : ℕ} {w : List T}
+    (h : StackBoundedDerivesIn g B n [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ trace : List (List g.ISym),
+      IsDerivationTrace g trace ∧
+      trace.length = n + 1 ∧
+      trace.head? = some [ISym.indexed g.initial []] ∧
+      trace.getLast? = some (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+      (∀ i (hi : i < trace.length),
+        sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+      ∀ i (hi : i < trace.length),
+        (encodeSentential (trace.get ⟨i, hi⟩)).length ≤ w.length * (B + 2) := by
+  obtain ⟨trace, htrace, hlen, hhead, hlast, hbound⟩ :=
+    exists_bounded_isDerivationTrace_of_stackBoundedDerivesIn h
+  have hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B := by
+    intro i hi
+    exact hbound _ (List.get_mem trace ⟨i, hi⟩)
+  exact ⟨trace, htrace, hlen, hhead, hlast, hstack,
+    fun i hi =>
+      accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm_stackBound
+        hNF htrace hlast hstack hi⟩
+
+theorem exists_flatLengthBounded_accepting_isDerivationTrace_of_stackBoundedDerivesIn_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B L n : ℕ} {w : List T} (hwlen : w.length ≤ L)
+    (h : StackBoundedDerivesIn g B n [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ trace : List (List g.ISym),
+      IsDerivationTrace g trace ∧
+      trace.length = n + 1 ∧
+      trace.head? = some [ISym.indexed g.initial []] ∧
+      trace.getLast? = some (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+      (∀ i (hi : i < trace.length),
+        sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+      ∀ i (hi : i < trace.length),
+        (encodeSentential (trace.get ⟨i, hi⟩)).length ≤ L * (B + 2) := by
+  obtain ⟨trace, htrace, hlen, hhead, hlast, hstack, hflat⟩ :=
+    exists_flatBounded_accepting_isDerivationTrace_of_stackBoundedDerivesIn_isNormalForm
+      hNF h
+  exact ⟨trace, htrace, hlen, hhead, hlast, hstack,
+    fun i hi => le_trans (hflat i hi) (Nat.mul_le_mul_right (B + 2) hwlen)⟩
+
 theorem stackBoundedDerivesIn_one_of_transforms {g : IndexedGrammar T}
     {B : ℕ} {w₁ w₂ : List g.ISym}
     (hstep : g.Transforms w₁ w₂)
