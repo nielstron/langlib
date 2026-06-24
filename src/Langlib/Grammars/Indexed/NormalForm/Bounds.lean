@@ -3395,6 +3395,33 @@ private theorem max_terminal_le_succ (a b c : ℕ) :
     max a c ≤ max a (max b c) + 1 := by
   exact le_trans (max_drop_middle_le a b c) (Nat.le_succ _)
 
+theorem sententialMaxStackHeight_context_binary_eq {g : IndexedGrammar T}
+    {u v : List g.ISym} {A B C : g.nt} {σ : List g.flag} :
+    sententialMaxStackHeight (u ++ [ISym.indexed B σ, ISym.indexed C σ] ++ v) =
+      sententialMaxStackHeight (u ++ [ISym.indexed A σ] ++ v) := by
+  simp [List.append_assoc, Nat.max_comm]
+
+theorem sententialMaxStackHeight_context_pop_le {g : IndexedGrammar T}
+    {u v : List g.ISym} {A B : g.nt} {f : g.flag} {ρ : List g.flag} :
+    sententialMaxStackHeight (u ++ [ISym.indexed B ρ] ++ v) ≤
+      sententialMaxStackHeight (u ++ [ISym.indexed A (f :: ρ)] ++ v) := by
+  simpa [List.append_assoc, Nat.max_assoc, Nat.max_comm] using
+    max_pop_le (sententialMaxStackHeight u) ρ.length (sententialMaxStackHeight v)
+
+theorem sententialMaxStackHeight_context_push_le_succ {g : IndexedGrammar T}
+    {u v : List g.ISym} {A B : g.nt} {f : g.flag} {σ : List g.flag} :
+    sententialMaxStackHeight (u ++ [ISym.indexed B (f :: σ)] ++ v) ≤
+      sententialMaxStackHeight (u ++ [ISym.indexed A σ] ++ v) + 1 := by
+  simpa [List.append_assoc, Nat.max_assoc, Nat.max_comm] using
+    max_push_le_succ (sententialMaxStackHeight u) σ.length (sententialMaxStackHeight v)
+
+theorem sententialMaxStackHeight_context_terminal_le {g : IndexedGrammar T}
+    {u v : List g.ISym} {A : g.nt} {a : T} {σ : List g.flag} :
+    sententialMaxStackHeight (u ++ [ISym.terminal a] ++ v) ≤
+      sententialMaxStackHeight (u ++ [ISym.indexed A σ] ++ v) := by
+  simpa [List.append_assoc, Nat.max_assoc, Nat.max_comm] using
+    max_drop_middle_le (sententialMaxStackHeight u) σ.length (sententialMaxStackHeight v)
+
 /-! ## Normal-form step bounds -/
 
 theorem IRule.rhs_length_eq_one_or_two_of_isNF {N F : Type} [DecidableEq N]
