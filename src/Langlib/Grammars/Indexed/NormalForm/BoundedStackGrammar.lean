@@ -7323,6 +7323,47 @@ theorem boundedStackGrammar_language_iff_exists_bounded_isDerivationTrace
       (stackBoundedDerivesIn_of_bounded_isDerivationTrace
         htrace hlen hhead hlast hbound)
 
+/-- Flat finite-path certificate extracted from a generated word of a fixed bounded-stack
+slice. This is the bridge from the finite noncontracting slice back to the flat indexed
+sentential-form search space used by the eventual LBA simulation. -/
+theorem exists_bounded_accepting_flatPath_of_boundedStackGrammar_language_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B L : ℕ} {w : List T} (hwlen : w.length ≤ L)
+    (hw : w ∈ grammar_language (boundedStackGrammar g B)) :
+    ∃ n : ℕ,
+    ∃ trace : List (List g.ISym),
+    ∃ ftrace : List (List (FlatSymbol T g.nt g.flag)),
+      IsDerivationTrace g trace ∧
+      ftrace = flatTrace trace ∧
+      trace.length = n + 1 ∧
+      trace.head? = some [ISym.indexed g.initial []] ∧
+      trace.getLast? = some (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+      ftrace.length = n + 1 ∧
+      (∀ i (hi : i < trace.length),
+        sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+      ftrace.head? =
+        some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+      ftrace.getLast? =
+        some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+      (∀ i : Fin ftrace.length,
+        ftrace.get i ∈ boundedFlatForms g (L * (B + 2))) ∧
+      (∀ i : ℕ, ∀ hi : i + 1 < ftrace.length,
+        FlatTransforms g
+          (ftrace.get ⟨i, by omega⟩)
+          (ftrace.get ⟨i + 1, hi⟩)) ∧
+      FlatDerives g
+        (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+        (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) := by
+  obtain ⟨n, hbounded⟩ :=
+    (boundedStackGrammar_language_iff_exists_stackBoundedDerivesIn
+      (g := g) (B := B) (w := w)).mp hw
+  obtain ⟨trace, ftrace, htrace, hftrace, hlen, hhead, hlast, hflen, hstack,
+    hfhead, hflast, hfbound, hfstep, hfderives⟩ :=
+    exists_bounded_accepting_flatTrace_of_stackBoundedDerivesIn_isNormalForm
+      (g := g) hNF (B := B) (L := L) hwlen hbounded
+  exact ⟨n, trace, ftrace, htrace, hftrace, hlen, hhead, hlast, hflen, hstack,
+    hfhead, hflast, hfbound, hfstep, hfderives⟩
+
 theorem boundedStackGrammar_language_mono {g : IndexedGrammar T}
     [Fintype g.flag] {B C : ℕ} (hBC : B ≤ C) :
     ∀ w, w ∈ grammar_language (boundedStackGrammar g B) →
@@ -7489,6 +7530,103 @@ theorem
         (g := g) hNF hder
     exact boundedStackGrammar_language_mono
       (g := g) (B := n) (C := Bfinal) (by omega) target htargetN
+
+/-- Flat-path form of
+`exists_bound_boundedStackGrammar_generates_of_stepReachable_targetCompatible_surface_reachability`.
+
+The prefix reachability premise is still the finite counted full-sentential frontier at the
+chosen cut. The conclusion is now an explicit flat accepting path whose every node lies in a
+finite flat space determined by the compiled bound `max Bpre (K + N)`. -/
+theorem
+    exists_bound_bounded_flatPath_of_stepReachable_targetCompatible_surface_reachability
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        g.Generates target →
+        ∃ n B : ℕ, ∃ trace : List (List g.ISym),
+          IsDerivationTrace g trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            g.DerivesIn n [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            (∀ m,
+              g.DerivesIn m [ISym.indexed g.initial []]
+                (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+            (∀ C' : ℕ,
+              (∃ trace' : List (List g.ISym),
+                IsDerivationTrace g trace' ∧
+                  trace'.length = n + 1 ∧
+                  trace'.head? = some [ISym.indexed g.initial []] ∧
+                  trace'.getLast? =
+                    some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  ∀ j (hj : j < trace'.length),
+                    sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+                B ≤ C') ∧
+            ∀ Bpre : ℕ,
+              (N ≤ n →
+                ∀ surface : SurfaceForm g K,
+                  surface ∈ targetCompatibleBoundedSurfaceForms g target K →
+                  ∃ bw : List (symbol T (BoundedStackNT g Bpre)),
+                    boundedSentential? (g := g) Bpre (eraseSurfaceForm surface) =
+                      some bw ∧
+                      bw ∈
+                        ({bw : List (symbol T (BoundedStackNT g Bpre)) |
+                          (∃ ys : List g.ISym,
+                            ys ∈ boundedSententialForms g L Bpre ∧
+                              boundedSentential? (g := g) Bpre ys = some bw) ∧
+                            ∃ p : ℕ, p ≤ trace.length - 1 - N ∧
+                              grammar_derivesIn (boundedStackGrammar g Bpre) p
+                                [symbol.nonterminal
+                                  (boundedStackGrammar g Bpre).initial] bw} :
+                          Set (List (symbol T (BoundedStackNT g Bpre))))) →
+              ∃ m : ℕ,
+              ∃ trace' : List (List g.ISym),
+              ∃ ftrace : List (List (FlatSymbol T g.nt g.flag)),
+                IsDerivationTrace g trace' ∧
+                ftrace = flatTrace trace' ∧
+                trace'.length = m + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ftrace.length = m + 1 ∧
+                (∀ i (hi : i < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨i, hi⟩) ≤ max Bpre (K + N)) ∧
+                ftrace.head? =
+                  some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+                ftrace.getLast? =
+                  some (target.map fun a =>
+                    (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+                (∀ i : Fin ftrace.length,
+                  ftrace.get i ∈
+                    boundedFlatForms g (L * ((max Bpre (K + N)) + 2))) ∧
+                (∀ i : ℕ, ∀ hi : i + 1 < ftrace.length,
+                  FlatTransforms g
+                    (ftrace.get ⟨i, by omega⟩)
+                    (ftrace.get ⟨i + 1, hi⟩)) ∧
+                FlatDerives g
+                  (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+                  (target.map fun a =>
+                    (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_boundedStackGrammar_generates_of_stepReachable_targetCompatible_surface_reachability
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen hgen
+  obtain ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+      hminBound, hgenerated⟩ :=
+    hK target htargetLen hgen
+  refine ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+    hminBound, ?_⟩
+  intro Bpre hreachable
+  exact
+    exists_bounded_accepting_flatPath_of_boundedStackGrammar_language_isNormalForm
+      (g := g) hNF (B := max Bpre (K + N)) (L := L) htargetLen
+      (hgenerated Bpre hreachable)
 
 /-- Generated-word form of the late-window replacement bridge, compiled back into a fixed
 bounded-stack grammar.
