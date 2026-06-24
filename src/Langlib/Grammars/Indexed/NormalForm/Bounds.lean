@@ -5761,6 +5761,24 @@ theorem transformIsTerminalStep_maxStackHeight_le {g : IndexedGrammar T}
   simpa [List.append_assoc, Nat.max_assoc, Nat.max_comm] using
     max_drop_middle_le (sententialMaxStackHeight u) σ.length (sententialMaxStackHeight v)
 
+theorem transformIsTerminalStep_stackHeightDecrease_le_maxStackHeight {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} (h : TransformIsTerminalStep g w₁ w₂) :
+    sententialStackHeight w₁ - sententialStackHeight w₂ ≤
+      sententialMaxStackHeight w₁ := by
+  rcases h with ⟨A, a, u, v, σ, hw₁, hw₂⟩
+  have hdiff :
+      sententialStackHeight w₁ - sententialStackHeight w₂ = σ.length := by
+    rw [hw₁, hw₂]
+    simp [List.append_assoc]
+    omega
+  have hσ :
+      σ.length ≤ sententialMaxStackHeight w₁ := by
+    rw [hw₁]
+    simp only [sententialMaxStackHeight_append, sententialMaxStackHeight_indexed]
+    omega
+  rw [hdiff]
+  exact hσ
+
 theorem transforms_binaryStep_iff_nonterminalCount_increase_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {w₁ w₂ : List g.ISym} (h : g.Transforms w₁ w₂) :
@@ -5794,6 +5812,49 @@ theorem transforms_terminalStep_iff_terminalCount_increase_of_isNormalForm
     · have hsame := transformIsPushStep_terminalCount_eq hpush
       omega
     · exact hterm
+
+theorem traceTerminalEraseStackHeight_le_terminalIncreaseCount_mul_of_isDerivationTrace_stackBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B) :
+    traceTerminalEraseStackHeight trace ≤ traceTerminalIncreaseCount trace * B := by
+  induction trace with
+  | nil =>
+      simp
+  | cons w₁ trace ih =>
+      cases trace with
+      | nil =>
+          simp
+      | cons w₂ rest =>
+          simp only [isDerivationTrace_cons_cons] at htrace
+          have htailBound :
+              ∀ x ∈ (w₂ :: rest), sententialMaxStackHeight x ≤ B := by
+            intro x hx
+            exact hbound x (by simp [hx])
+          have htail := ih htrace.2 htailBound
+          by_cases htermCount : sententialTerminalCount w₂ = sententialTerminalCount w₁ + 1
+          · have htermStep :
+                TransformIsTerminalStep g w₁ w₂ :=
+              (transforms_terminalStep_iff_terminalCount_increase_of_isNormalForm
+                hNF htrace.1).mpr htermCount
+            have hstepMax :
+                sententialStackHeight w₁ - sententialStackHeight w₂ ≤ B :=
+              le_trans
+                (transformIsTerminalStep_stackHeightDecrease_le_maxStackHeight htermStep)
+                (hbound w₁ (by simp))
+            simp only [traceTerminalEraseStackHeight_cons_cons,
+              traceTerminalIncreaseCount_cons_cons, if_pos htermCount]
+            calc
+              (sententialStackHeight w₁ - sententialStackHeight w₂) +
+                  traceTerminalEraseStackHeight (w₂ :: rest)
+                  ≤ B + traceTerminalIncreaseCount (w₂ :: rest) * B :=
+                    Nat.add_le_add hstepMax htail
+              _ = (1 + traceTerminalIncreaseCount (w₂ :: rest)) * B := by
+                    rw [Nat.add_mul, Nat.one_mul]
+          · simp only [traceTerminalEraseStackHeight_cons_cons,
+              traceTerminalIncreaseCount_cons_cons, if_neg htermCount]
+            simpa using htail
 
 theorem transforms_popStep_iff_counts_and_stackHeight_decrease_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
@@ -6675,6 +6736,44 @@ theorem accepting_derivationTrace_suffix_terminalIncreaseCount_le_target_length_
   have h :=
     accepting_derivationTrace_suffix_terminalCount_add_increase_eq_target_length_of_isNormalForm
       (g := g) hNF htrace hlast hi
+  omega
+
+theorem accepting_derivationTrace_suffix_terminalEraseStackHeight_le_target_length_mul_stackBound_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    {i : ℕ} (hi : i < trace.length) :
+    traceTerminalEraseStackHeight (trace.drop i) ≤ w.length * B := by
+  have hdropTrace := isDerivationTrace_drop htrace i
+  have hdropBound :
+      ∀ x ∈ trace.drop i, sententialMaxStackHeight x ≤ B := by
+    intro x hx
+    exact hbound x (List.mem_of_mem_drop hx)
+  have herase :=
+    traceTerminalEraseStackHeight_le_terminalIncreaseCount_mul_of_isDerivationTrace_stackBound
+      (g := g) hNF hdropTrace hdropBound
+  have hterm :=
+    accepting_derivationTrace_suffix_terminalIncreaseCount_le_target_length_of_isNormalForm
+      (g := g) hNF htrace hlast hi
+  exact le_trans herase (Nat.mul_le_mul_right B hterm)
+
+theorem accepting_derivationTrace_get_sententialStackHeight_le_future_pop_add_target_mul_stackBound_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hbound : ∀ x ∈ trace, sententialMaxStackHeight x ≤ B)
+    {i : ℕ} (hi : i < trace.length) :
+    sententialStackHeight (trace.get ⟨i, hi⟩) ≤
+      tracePopStepCount (trace.drop i) + w.length * B := by
+  have hlive :=
+    accepting_derivationTrace_get_sententialStackHeight_le_future_pop_add_terminalErase_of_isNormalForm
+      (g := g) hNF htrace hlast hi
+  have herase :=
+    accepting_derivationTrace_suffix_terminalEraseStackHeight_le_target_length_mul_stackBound_of_isNormalForm
+      (g := g) hNF htrace hlast hbound hi
   omega
 
 theorem derivationTrace_suffix_nonterminal_balance_of_isNormalForm
