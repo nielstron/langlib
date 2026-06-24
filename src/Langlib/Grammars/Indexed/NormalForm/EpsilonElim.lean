@@ -2679,6 +2679,20 @@ theorem epsilonElimSummary_generates_iff {g : IndexedGrammar T}
   · rintro ⟨hgen, hw⟩
     exact epsilonElimSummary_generates_of_generates_nonempty S hcomplete hgen hw
 
+theorem exists_noEpsilon_of_nullableStackSummary {g : IndexedGrammar T}
+    (S : NullableStackSummary g)
+    (hsound : ∀ A : g.nt, ∀ σ : List g.flag,
+      S.nullable A (S.eval σ) → g.IsNullable A σ)
+    (hcomplete : ∀ A : g.nt, ∀ σ : List g.flag,
+      g.IsNullable A σ → S.nullable A (S.eval σ)) :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧
+        ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  refine ⟨epsilonElimSummary S, epsilonElimSummary_noEpsilon S, ?_⟩
+  intro w hw
+  rw [epsilonElimSummary_generates_iff S hsound hcomplete]
+  exact ⟨fun h => h.1, fun h => ⟨h, hw⟩⟩
+
 /-- A grammar is ε-free exactly when no stacked nonterminal is nullable. -/
 theorem noEpsilon_iff_no_isNullable {g : IndexedGrammar T} :
     g.NoEpsilon' ↔ ∀ A : g.nt, ∀ σ : List g.flag, ¬ g.IsNullable A σ := by
