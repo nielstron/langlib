@@ -1577,6 +1577,41 @@ theorem exists_stackBoundedDerivesIn_of_surface_eq_prefix_bound_le
       (g := g) (B := B) htrace hhead hi hbound hys hsurface
   exact ⟨p, le_trans hpi hij, hpre⟩
 
+/-- Replacing one indexed occurrence by another with the same visible `B`-stack prefix
+preserves the full `B`-surface of the surrounding sentential context. -/
+theorem surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
+    {g : IndexedGrammar T} {B : ℕ} {u v : List g.ISym} {A : g.nt}
+    {η ζ : List g.flag} (htake : η.take B = ζ.take B) :
+    surfaceOfTruncatedForm B (u ++ [ISym.indexed A η] ++ v) =
+      surfaceOfTruncatedForm B (u ++ [ISym.indexed A ζ] ++ v) := by
+  simp [surfaceOfTruncatedForm, surfaceOfTruncatedSymbol, ISym.truncateStack, htake]
+
+/-- The stack made of the visible prefix plus the next `K` original flags has the same
+`P + K` prefix as the original stack. -/
+theorem stack_take_append_drop_take_take_add_eq {α : Type} (η : List α) (P K : ℕ) :
+    (η.take P ++ (η.drop P).take K).take (P + K) = η.take (P + K) := by
+  by_cases hP : P ≤ η.length
+  · have hlen : (η.take P).length = P := List.length_take_of_le hP
+    rw [List.take_append, hlen, Nat.add_sub_cancel_left]
+    simp [List.take_take]
+    exact (List.take_add (l := η) (i := P) (j := K)).symm
+  · have hlen : η.length ≤ P := Nat.le_of_not_ge hP
+    have hdrop : η.drop P = [] := List.drop_eq_nil_of_le hlen
+    have htakeP : η.take P = η := (List.take_eq_self_iff η).mpr hlen
+    have htakePK : η.take (P + K) = η := (List.take_eq_self_iff η).mpr (by omega)
+    simp [hdrop, htakeP, htakePK]
+
+/-- Full-surface specialization for the canonical replacement that keeps the next `K`
+original flags below the visible prefix. -/
+theorem surfaceOfTruncatedForm_context_indexed_take_append_drop_take_eq
+    {g : IndexedGrammar T} {P K : ℕ} {u v : List g.ISym} {A : g.nt}
+    {η : List g.flag} :
+    surfaceOfTruncatedForm (P + K) (u ++ [ISym.indexed A η] ++ v) =
+      surfaceOfTruncatedForm (P + K)
+        (u ++ [ISym.indexed A (η.take P ++ (η.drop P).take K)] ++ v) := by
+  exact surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
+    (g := g) (A := A) ((stack_take_append_drop_take_take_add_eq η P K).symm)
+
 /-- A `P`-surface cannot distinguish a high stack `η` from a canonical replacement that
 keeps exactly the visible prefix `η.take P`. -/
 theorem surfaceOfTruncatedForm_context_indexed_take_append_eq_of_lt
@@ -1660,6 +1695,31 @@ theorem exists_stackBoundedDerivesIn_canonical_context_of_surface_eq_prefix_boun
   exact
     exists_stackBoundedDerivesIn_of_surface_eq_prefix_bound_le
       (g := g) (B := B) htrace hhead hi hij hbound hys hsurface
+
+/-- If the actual current context and its canonical replacement agree on the full `B` visible
+stack prefix, then the current trace position itself supplies the surface-repeat witness needed
+by the late-window frontier bridge. -/
+theorem exists_canonical_surface_repeat_at_current_of_prefix_bound_take_eq
+    {g : IndexedGrammar T} {B P K : ℕ} {trace : List (List g.ISym)}
+    {u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
+    {i : ℕ} (hi : i < trace.length)
+    (hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B)
+    (hctxBound : sententialMaxStackHeight (u ++ v) ≤ B)
+    (hPK : P + K ≤ B)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : η.take B = (η.take P ++ τ).take B) :
+    ∃ r : ℕ, ∃ hr : r < trace.length,
+      r ≤ i ∧
+        (∀ k (hk : k < trace.length),
+          k ≤ r → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) ∧
+        sententialMaxStackHeight (u ++ v) ≤ B ∧
+        P + K ≤ B ∧
+        surfaceOfTruncatedForm B (trace.get ⟨r, hr⟩) =
+          surfaceOfTruncatedForm B (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) := by
+  refine ⟨i, hi, le_rfl, hprefixBound, hctxBound, hPK, ?_⟩
+  rw [hctx]
+  exact surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq (g := g) (A := A) htake
 
 /-- Prefix-local target-compatible pigeonhole packaged with bounded reachability. If the
 target-compatible bounded-surface frontier is smaller than the displayed prefix of an accepting
