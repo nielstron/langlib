@@ -3059,6 +3059,92 @@ theorem exists_bound_minimal_stackBound_le_of_shorter_reachable_max_stack_suffix
     hwt, hwlen, hq, hm, hmSuffix, hn', hτsub, hτlen, hτder, hreplacement, hτmin,
     hB⟩
 
+/-- Late-window max-stack replacement bridge. If the prefix before the late window is
+`P`-bounded but the least accepting stack bound is larger than `P + N`, the late-window
+surface argument supplies a high-stack position with suffix budget at most `N`. The max-stack
+shrinker then bounds the least accepting stack bound by the supplied reachable-prefix bound
+plus `N`. The remaining, explicitly exposed premise is the real reachability obligation for
+the shrunken distinguished max-stack context. -/
+theorem exists_bound_minimal_stackBound_le_of_late_window_shorter_reachable_max_stack
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (P N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n B : ℕ, ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.length = n + 1 →
+          trace.head? = some [ISym.indexed g.initial []] →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ k,
+            g.DerivesIn k [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k) →
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') →
+          ∀ Bpre : ℕ,
+            (∀ k (hk : k < trace.length),
+              k < trace.length - 1 - N →
+                sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P) →
+            trace.length - 1 - N +
+                (Set.Finite.toFinset
+                  (targetCompatibleBoundedSurfaceForms_finite g target P)).card <
+              trace.length →
+            P + N < B →
+            (∀ i : ℕ, ∀ hi : i < trace.length,
+              trace.length - 1 - N ≤ i →
+              i ≤ trace.length - 1 - N +
+                (Set.Finite.toFinset
+                  (targetCompatibleBoundedSurfaceForms_finite g target P)).card →
+              P < sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+              ∀ A : g.nt, ∀ η pref σ τ : List g.flag,
+                ∀ u v : List g.ISym,
+                  ISym.indexed A η ∈ trace.get ⟨i, hi⟩ →
+                  η = pref ++ σ →
+                  pref.length ≤ P →
+                  η.length = sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+                  trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A (pref ++ σ)] ++ v →
+                  τ.Sublist σ →
+                  τ.length ≤ K →
+                  ∃ p : ℕ,
+                    p ≤ i ∧
+                      StackBoundedDerivesIn g Bpre p [ISym.indexed g.initial []]
+                        (u ++ [ISym.indexed A (pref ++ τ)] ++ v)) →
+            B ≤ Bpre + N := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_minimal_stackBound_le_of_shorter_reachable_max_stack_suffix_replacement_budget
+      (g := g) hNF P (P + N) L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n B trace htrace hlen hhead hlast hminLength hminBound
+    Bpre hbeforeBound hm hgt hreachable
+  obtain ⟨i, hiLower, hiUpper, hsuffixBudget, hhigh⟩ :=
+    exists_high_stack_between_late_surface_card_of_minimal_stack_gt_bound
+      (g := g) hNF htrace hlen hhead hlast hminLength hminBound
+      (K := P) (N := N) (n := n) (B := B) hbeforeBound hm hgt
+  have hP_le : P ≤ P + N := Nat.le_add_right P N
+  have hbudget : P + (trace.length - 1 - i.1) ≤ P + N :=
+    Nat.add_le_add_left hsuffixBudget P
+  have hpos : 0 < sententialMaxStackHeight (trace.get i) :=
+    lt_of_le_of_lt (Nat.zero_le P) hhigh
+  obtain ⟨A, η, pref, σ, τ, u, v, q, m, w, n', _hmem, _hη, _hpref,
+      _hηmax, _hctx, _hwt, _hwlen, _hq, _hm, _hmSuffix, hn', _hτsub,
+      _hτlen, _hτder, _hreplacement, _hτmin, hB⟩ :=
+    hK target htargetLen n B trace htrace hlen hlast hminLength hminBound
+      i.1 i.2 Bpre hP_le hbudget hpos
+      (by
+        intro A η pref σ τ u v hmem hη hpref hηmax hctx hτsub hτlen
+        exact hreachable i.1 i.2 hiLower hiUpper hhigh A η pref σ τ u v
+          hmem hη hpref hηmax hctx hτsub hτlen)
+  have hnN : n' ≤ N := le_trans hn' hsuffixBudget
+  omega
+
 theorem stackBoundedDerivesIn_singleton_to_terminals_of_derivesIn_isNormalForm_bounded_stack
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {K n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
