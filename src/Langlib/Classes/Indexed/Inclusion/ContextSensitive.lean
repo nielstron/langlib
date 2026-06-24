@@ -83,6 +83,26 @@ public theorem is_CS_boundedFlatPath_language
     is_CS (IndexedGrammar.boundedFlatPathLanguage g B) :=
   is_CS_of_finite_language (finite_boundedFlatPath_language (g := g) B)
 
+/-- A fixed bounded-flat-path slice of a normal-form indexed grammar does not contain `ε`. -/
+public theorem not_nil_mem_boundedFlatPath_language_of_isNormalForm
+    {A : Type} (g : IndexedGrammar A) [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (B : ℕ) :
+    [] ∉ IndexedGrammar.boundedFlatPathLanguage g B := by
+  intro hnil
+  exact g.not_generates_nil_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF)
+    (IndexedGrammar.boundedFlatPathLanguage_subset_language (g := g) (B := B) hnil)
+
+/-- Every fixed bounded-flat-path slice of a normal-form indexed grammar is recognized by the
+bounded-tape LBA model. -/
+public theorem is_LBA_pos_boundedFlatPath_language_of_isNormalForm
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (B : ℕ) :
+    is_LBA_pos (IndexedGrammar.boundedFlatPathLanguage g B) :=
+  is_LBA_pos_of_isCS_not_nil
+    (is_CS_boundedFlatPath_language (g := g) B)
+    (not_nil_mem_boundedFlatPath_language_of_isNormalForm (g := g) hNF B)
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]
