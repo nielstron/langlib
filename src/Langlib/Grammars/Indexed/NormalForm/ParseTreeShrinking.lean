@@ -842,6 +842,41 @@ public theorem finite_bounded_target_stackBounded_certificate_items
       intro item h
       exact ⟨h.1, h.2.1⟩)
 
+/-- Terminal words with some stack-bounded certificate over the bounded target frontier form a
+finite set. -/
+public theorem finite_bounded_target_stackBounded_certificate_words
+    (g : IndexedGrammar T) [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) (target : List T) :
+    ({w : List T |
+      w <+ target ∧
+        ∃ A : g.nt, ∃ σ : List g.flag,
+          σ.length ≤ B ∧ NFYield.StackBounded g B A σ w} :
+        Set (List T)).Finite := by
+  let items :
+      Set ((g.nt × List g.flag) × List T) :=
+    {item | item.1.2.length ≤ B ∧ item.2 <+ target ∧
+      NFYield.StackBounded g B item.1.1 item.1.2 item.2}
+  have hitems : items.Finite :=
+    NFYield.finite_bounded_target_stackBounded_certificate_items (g := g) B target
+  have himage : (items.image fun item => item.2).Finite := hitems.image _
+  exact himage.subset
+    (by
+      intro w hw
+      rcases hw with ⟨hwt, A, σ, hσ, hcert⟩
+      exact ⟨((A, σ), w), ⟨hσ, hwt, hcert⟩, rfl⟩)
+
+/-- Initial stack-bounded certificate words over a fixed target frontier form a finite set. -/
+public theorem finite_bounded_target_initial_stackBounded_certificate_words
+    (g : IndexedGrammar T) [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) (target : List T) :
+    ({w : List T |
+      w <+ target ∧ NFYield.StackBounded g B g.initial [] w} :
+        Set (List T)).Finite := by
+  exact (NFYield.finite_bounded_target_stackBounded_certificate_words (g := g) B target).subset
+    (by
+      intro w hw
+      exact ⟨hw.1, g.initial, [], by simp, hw.2⟩)
+
 /-- Actual parse-certificate items form a finite subset of the bounded length frontier. -/
 public theorem finite_bounded_length_certificate_items
     (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
@@ -867,6 +902,40 @@ public theorem finite_bounded_length_stackBounded_certificate_items
     (by
       intro item h
       exact ⟨h.1, h.2.1⟩)
+
+/-- Terminal words of bounded length with some stack-bounded certificate form a finite set. -/
+public theorem finite_bounded_length_stackBounded_certificate_words
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B L : ℕ) :
+    ({w : List T |
+      w.length ≤ L ∧
+        ∃ A : g.nt, ∃ σ : List g.flag,
+          σ.length ≤ B ∧ NFYield.StackBounded g B A σ w} :
+        Set (List T)).Finite := by
+  let items :
+      Set ((g.nt × List g.flag) × List T) :=
+    {item | item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+      NFYield.StackBounded g B item.1.1 item.1.2 item.2}
+  have hitems : items.Finite :=
+    NFYield.finite_bounded_length_stackBounded_certificate_items (g := g) B L
+  have himage : (items.image fun item => item.2).Finite := hitems.image _
+  exact himage.subset
+    (by
+      intro w hw
+      rcases hw with ⟨hwlen, A, σ, hσ, hcert⟩
+      exact ⟨((A, σ), w), ⟨hσ, hwlen, hcert⟩, rfl⟩)
+
+/-- Initial stack-bounded certificate words of bounded length form a finite set. -/
+public theorem finite_bounded_length_initial_stackBounded_certificate_words
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B L : ℕ) :
+    ({w : List T |
+      w.length ≤ L ∧ NFYield.StackBounded g B g.initial [] w} :
+        Set (List T)).Finite := by
+  exact (NFYield.finite_bounded_length_stackBounded_certificate_words (g := g) B L).subset
+    (by
+      intro w hw
+      exact ⟨hw.1, g.initial, [], by simp, hw.2⟩)
 
 /-- For a fixed target word, binary pair-certificate items with one bounded shared stack and
 two yields drawn from the target sublists form a finite frontier. -/
