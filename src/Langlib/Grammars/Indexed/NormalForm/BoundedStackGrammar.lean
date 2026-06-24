@@ -925,6 +925,43 @@ theorem exists_stackBoundedDerivesIn_erase_later_surface_of_repeated_surface_pre
   rw [herase] at hpre
   simpa using hpre
 
+/-- Prefix-local target-compatible pigeonhole packaged with bounded reachability. If the
+target-compatible bounded-surface frontier is smaller than the displayed prefix of an accepting
+trace, then some repeated surface inside that prefix yields a shortened bounded derivation from
+the initial form to the later surface erasure. -/
+theorem exists_stackBoundedDerivesIn_erase_repeated_targetCompatible_surface_before_of_card_lt
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B m : ℕ} {trace : List (List g.ISym)} {w : List T}
+    {first : List g.ISym}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hm : m < trace.length)
+    (hcard :
+      (Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g w B)).card <
+        m + 1)
+    (hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ m → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) :
+    ∃ i j : Fin trace.length, i < j ∧ j.1 ≤ m ∧
+      ∃ p : ℕ,
+        p ≤ j.1 ∧
+          StackBoundedDerivesIn g B p first
+            (eraseSurfaceForm (surfaceOfTruncatedForm B (trace.get j))) := by
+  obtain ⟨i, j, hij, hjm, hsurface⟩ :=
+    accepting_derivationTrace_exists_targetCompatible_surface_repeat_before_of_card_lt
+      (g := g) hNF htrace hlast hm hcard
+  have hijNat : i.1 ≤ j.1 := Nat.le_of_lt (show i.1 < j.1 from hij)
+  have him : i.1 ≤ m := le_trans hijNat hjm
+  have hprefixBoundI : ∀ k (hk : k < trace.length),
+      k ≤ i.1 → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B := by
+    intro k hk hki
+    exact hprefixBound k hk (le_trans hki him)
+  obtain ⟨p, hpj, hpre⟩ :=
+    exists_stackBoundedDerivesIn_erase_later_surface_of_repeated_surface_prefix_bound
+      (g := g) (B := B) htrace hhead i.2 j.2 hijNat hprefixBoundI hsurface
+  exact ⟨i, j, hij, hjm, p, hpj, hpre⟩
+
 theorem stackBoundedDerivesIn_trace_suffix
     {g : IndexedGrammar T} {B : ℕ} {trace : List (List g.ISym)}
     {last : List g.ISym}
