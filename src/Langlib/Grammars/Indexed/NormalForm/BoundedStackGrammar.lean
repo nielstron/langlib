@@ -3800,6 +3800,63 @@ theorem boundedStackGrammar_derives_of_stackBoundedDerivesIn
       subst cw
       exact ⟨bw₁, bw₂, hbw₁, hbw₂, hder.tail htran⟩
 
+/-- Erasing a finite surface whose visible stacks are bounded by `K` can be translated into
+any bounded-stack grammar whose stack bound is at least `K`. -/
+theorem exists_boundedSentential?_eraseSurfaceForm_of_le
+    {g : IndexedGrammar T} {K B : ℕ} (surface : SurfaceForm g K)
+    (hKB : K ≤ B) :
+    ∃ bw : List (symbol T (BoundedStackNT g B)),
+      boundedSentential? (g := g) B (eraseSurfaceForm surface) = some bw := by
+  exact exists_boundedSentential?_of_sententialMaxStackHeight_le
+    (g := g) (B := B)
+    (le_trans (eraseSurfaceForm_maxStackHeight_le surface) hKB)
+
+/-- The bounded-grammar sentential forms obtained by erasing length-bounded finite surfaces
+and translating them into an arbitrary fixed bounded-stack grammar form a finite set. -/
+theorem finite_boundedSentential_image_of_boundedSurfaceForms_at_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K B L : ℕ} :
+    ({bw : List (symbol T (BoundedStackNT g B)) |
+      ∃ surface : SurfaceForm g K,
+        surface ∈ boundedSurfaceForms g L K ∧
+          boundedSentential? (g := g) B (eraseSurfaceForm surface) = some bw} :
+        Set (List (symbol T (BoundedStackNT g B)))).Finite := by
+  classical
+  let encodeSurface : SurfaceForm g K → List (symbol T (BoundedStackNT g B)) :=
+    fun surface =>
+      match boundedSentential? (g := g) B (eraseSurfaceForm surface) with
+      | some bw => bw
+      | none => []
+  have hfinite :=
+    (boundedSurfaceForms_finite g L K).image encodeSurface
+  apply hfinite.subset
+  intro bw hbw
+  rcases hbw with ⟨surface, hsurface, henc⟩
+  exact ⟨surface, hsurface, by simp [encodeSurface, henc]⟩
+
+/-- The bounded-grammar sentential forms obtained by erasing target-compatible finite surfaces
+and translating them into an arbitrary fixed bounded-stack grammar form a finite set. -/
+theorem finite_boundedSentential_image_of_targetCompatibleBoundedSurfaceForms_at_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {K B : ℕ} (target : List T) :
+    ({bw : List (symbol T (BoundedStackNT g B)) |
+      ∃ surface : SurfaceForm g K,
+        surface ∈ targetCompatibleBoundedSurfaceForms g target K ∧
+          boundedSentential? (g := g) B (eraseSurfaceForm surface) = some bw} :
+        Set (List (symbol T (BoundedStackNT g B)))).Finite := by
+  classical
+  let encodeSurface : SurfaceForm g K → List (symbol T (BoundedStackNT g B)) :=
+    fun surface =>
+      match boundedSentential? (g := g) B (eraseSurfaceForm surface) with
+      | some bw => bw
+      | none => []
+  have hfinite :=
+    (targetCompatibleBoundedSurfaceForms_finite g target K).image encodeSurface
+  apply hfinite.subset
+  intro bw hbw
+  rcases hbw with ⟨surface, hsurface, henc⟩
+  exact ⟨surface, hsurface, by simp [encodeSurface, henc]⟩
+
 /-- The bounded-grammar sentential forms obtained by erasing length-bounded finite surfaces
 and translating them into the larger stack bound `K + N` form a finite set. This frontier is
 uniform in the target word; it depends only on the length bound `L`. -/
