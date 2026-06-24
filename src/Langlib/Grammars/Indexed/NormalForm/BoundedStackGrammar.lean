@@ -1721,6 +1721,115 @@ theorem exists_canonical_surface_repeat_at_current_of_prefix_bound_take_eq
   rw [hctx]
   exact surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq (g := g) (A := A) htake
 
+/-- Local max-stack bound inside a late window. If all trace positions before `a` are
+`P`-bounded and the first trace node is `P`-bounded, then every position in `[a, a + C]`
+has stack height at most `P + C + 1`. The extra `1` covers the first step entering the
+window from the last pre-window node. -/
+theorem isDerivationTrace_get_maxStackHeight_le_late_window_of_before_bound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {first : List g.ISym} {P C a i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hfirstBound : sententialMaxStackHeight first ≤ P)
+    (hi : i < trace.length)
+    (hai : a ≤ i)
+    (hic : i ≤ a + C)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P) :
+    sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ P + C + 1 := by
+  by_cases ha0 : a = 0
+  · subst a
+    have hder :
+        g.DerivesIn i first (trace.get ⟨i, hi⟩) :=
+      isDerivationTrace_derivesIn_from_head_get (g := g) htrace hhead hi
+    have hheight :=
+      derivesIn_maxStackHeight_le_add_of_isNormalForm hNF hder
+    omega
+  · let b := a - 1
+    have hb_lt_a : b < a := by
+      dsimp [b]
+      omega
+    have hb_trace : b < trace.length := by
+      dsimp [b]
+      omega
+    have hbi : b ≤ i := by
+      dsimp [b]
+      omega
+    have hbBound :
+        sententialMaxStackHeight (trace.get ⟨b, hb_trace⟩) ≤ P :=
+      hbefore b hb_trace hb_lt_a
+    have hder :
+        g.DerivesIn (i - b) (trace.get ⟨b, hb_trace⟩) (trace.get ⟨i, hi⟩) :=
+      isDerivationTrace_derivesIn_get_to_get (g := g) htrace hb_trace hi hbi
+    have hheight :=
+      derivesIn_maxStackHeight_le_add_of_isNormalForm hNF hder
+    omega
+
+/-- Prefix-bound form of
+`isDerivationTrace_get_maxStackHeight_le_late_window_of_before_bound`. This is the shape
+needed by surface-repeat and bounded-stack prefix-reachability bridges. -/
+theorem prefix_maxStackHeight_le_late_window_of_before_bound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {first : List g.ISym} {P C a i : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hfirstBound : sententialMaxStackHeight first ≤ P)
+    (hic : i ≤ a + C)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P) :
+    ∀ k (hk : k < trace.length),
+      k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P + C + 1 := by
+  intro k hk hki
+  by_cases hka : k < a
+  · have hkP := hbefore k hk hka
+    omega
+  · exact
+      isDerivationTrace_get_maxStackHeight_le_late_window_of_before_bound
+        (g := g) hNF htrace hhead hfirstBound hk (Nat.le_of_not_gt hka)
+        (by omega) hbefore
+
+/-- Late-window version of
+`exists_canonical_surface_repeat_at_current_of_prefix_bound_take_eq`. The prefix bound up to
+the current late-window position is obtained from the pre-window `P` bound and the local
+normal-form stack-growth estimate. -/
+theorem exists_canonical_surface_repeat_at_current_of_late_window_take_eq
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B P K C a i : ℕ} {trace : List (List g.ISym)} {first : List g.ISym}
+    {u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hfirstBound : sententialMaxStackHeight first ≤ P)
+    (hi : i < trace.length)
+    (hic : i ≤ a + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hctxBound : sententialMaxStackHeight (u ++ v) ≤ B)
+    (hPK : P + K ≤ B)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : η.take B = (η.take P ++ τ).take B) :
+    ∃ r : ℕ, ∃ hr : r < trace.length,
+      r ≤ i ∧
+        (∀ k (hk : k < trace.length),
+          k ≤ r → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) ∧
+        sententialMaxStackHeight (u ++ v) ≤ B ∧
+        P + K ≤ B ∧
+        surfaceOfTruncatedForm B (trace.get ⟨r, hr⟩) =
+          surfaceOfTruncatedForm B (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) := by
+  have hprefix :
+      ∀ k (hk : k < trace.length),
+        k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B := by
+    intro k hk hki
+    exact le_trans
+      (prefix_maxStackHeight_le_late_window_of_before_bound
+        (g := g) hNF htrace hhead hfirstBound hic hbefore k hk hki)
+      hwindowBound
+  exact
+    exists_canonical_surface_repeat_at_current_of_prefix_bound_take_eq
+      (g := g) (B := B) (P := P) (K := K) (trace := trace)
+      (u := u) (v := v) (A := A) (η := η) (τ := τ)
+      hi hprefix hctxBound hPK hctx htake
+
 /-- Prefix-local target-compatible pigeonhole packaged with bounded reachability. If the
 target-compatible bounded-surface frontier is smaller than the displayed prefix of an accepting
 trace, then some repeated surface inside that prefix yields a shortened bounded derivation from

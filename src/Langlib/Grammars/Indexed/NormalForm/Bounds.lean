@@ -3202,6 +3202,28 @@ theorem isDerivationTrace_derivesIn_get_to_last {g : IndexedGrammar T}
               have htail := ih htrace.2 hlast hi_tail
               simpa using htail
 
+/-- Counted derivability between two displayed positions of a derivation trace. -/
+theorem isDerivationTrace_derivesIn_get_to_get {g : IndexedGrammar T}
+    {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace) {i j : ℕ}
+    (hi : i < trace.length) (hj : j < trace.length) (hij : i ≤ j) :
+    g.DerivesIn (j - i) (trace.get ⟨i, hi⟩) (trace.get ⟨j, hj⟩) := by
+  have hdropTrace : IsDerivationTrace g (trace.drop i) :=
+    isDerivationTrace_drop htrace i
+  have hdropHead :
+      (trace.drop i).head? = some (trace.get ⟨i, hi⟩) :=
+    trace_drop_head?_eq_get (g := g) hi
+  have hdropIdx : j - i < (trace.drop i).length := by
+    rw [List.length_drop]
+    omega
+  have hdropGet :
+      (trace.drop i).get ⟨j - i, hdropIdx⟩ = trace.get ⟨j, hj⟩ := by
+    simp only [List.get_eq_getElem, List.getElem_drop, Nat.add_sub_of_le hij]
+  have hder :=
+    isDerivationTrace_derivesIn_from_head_get
+      (g := g) hdropTrace hdropHead hdropIdx
+  rwa [hdropGet] at hder
+
 /-- Split a counted derivation after `m` steps. -/
 theorem derivesIn_split {g : IndexedGrammar T} {m n : ℕ}
     {w₁ w₃ : List g.ISym}
