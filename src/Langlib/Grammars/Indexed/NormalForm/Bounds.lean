@@ -1036,6 +1036,47 @@ theorem truncateStacks_mem_boundedSententialForms {g : IndexedGrammar T}
     truncateStacks stackBound w ∈ boundedSententialForms g lengthBound stackBound := by
   exact ⟨by simpa using hlen, sententialMaxStackHeight_truncateStacks_le stackBound w⟩
 
+/-- Flat encoded sentential forms with a bounded tape length. -/
+def boundedFlatForms (g : IndexedGrammar T) (flatLengthBound : ℕ) :
+    Set (List (FlatSymbol T g.nt g.flag)) :=
+  {w | w.length ≤ flatLengthBound}
+
+theorem boundedFlatForms_finite (g : IndexedGrammar T)
+    [Fintype T] [Fintype g.nt] [Fintype g.flag] (flatLengthBound : ℕ) :
+    (boundedFlatForms g flatLengthBound).Finite := by
+  dsimp [boundedFlatForms]
+  exact List.finite_length_le (FlatSymbol T g.nt g.flag) flatLengthBound
+
+theorem encodeSentential_mem_boundedFlatForms_of_length_le_of_maxStackHeight_le
+    {g : IndexedGrammar T} {L B : ℕ} {w : List g.ISym}
+    (hlen : w.length ≤ L) (hmax : sententialMaxStackHeight w ≤ B) :
+    encodeSentential w ∈ boundedFlatForms g (L * (B + 2)) := by
+  exact le_trans
+    (encodeSentential_length_le_of_maxStackHeight_le hmax)
+    (Nat.mul_le_mul_right (B + 2) hlen)
+
+def flatTrace {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) : List (List (FlatSymbol T g.nt g.flag)) :=
+  trace.map encodeSentential
+
+@[simp] theorem flatTrace_nil {g : IndexedGrammar T} :
+    flatTrace ([] : List (List g.ISym)) = [] := rfl
+
+@[simp] theorem flatTrace_cons {g : IndexedGrammar T}
+    (w : List g.ISym) (trace : List (List g.ISym)) :
+    flatTrace (w :: trace) = encodeSentential w :: flatTrace trace := rfl
+
+@[simp] theorem flatTrace_length {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) :
+    (flatTrace trace).length = trace.length := by
+  simp [flatTrace]
+
+theorem flatTrace_get {g : IndexedGrammar T}
+    (trace : List (List g.ISym)) {i : ℕ} (hi : i < trace.length) :
+    (flatTrace trace).get ⟨i, by simpa using hi⟩ =
+      encodeSentential (trace.get ⟨i, hi⟩) := by
+  simp [flatTrace]
+
 def surfaceTrace {g : IndexedGrammar T} (stackBound : ℕ)
     (trace : List (List g.ISym)) : List (SurfaceForm g stackBound) :=
   trace.map (surfaceOfTruncatedForm stackBound)
@@ -6120,6 +6161,23 @@ theorem accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm
     (accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm_stackBound
       hNF htrace hlast hstack hi)
     (Nat.mul_le_mul_right (B + 2) hwlen)
+
+theorem accepting_flatTrace_get_mem_boundedFlatForms_of_isNormalForm_stackBound_lengthBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B L : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hwlen : w.length ≤ L)
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B)
+    (i : Fin (flatTrace trace).length) :
+    (flatTrace trace).get i ∈ boundedFlatForms g (L * (B + 2)) := by
+  have hi : i.1 < trace.length := by
+    simpa using i.2
+  rw [flatTrace_get trace hi]
+  exact
+    accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm_stackBound_lengthBound
+      hNF htrace hlast hwlen hstack hi
 
 theorem accepting_derivationTrace_get_maxStackHeight_le_index_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
