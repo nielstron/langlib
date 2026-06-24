@@ -1865,6 +1865,104 @@ theorem nullableSet_eq_iUnion_nullableApprox_flagsSeparated {g : IndexedGrammar 
     rcases hp with ⟨n, hn⟩
     exact nullableApprox_sound g n hn
 
+theorem isNullable_iff_exists_nullableApprox_flagsSeparated {g : IndexedGrammar T}
+    (hfs : g.FlagsSeparated) {A : g.nt} {σ : List g.flag} :
+    g.IsNullable A σ ↔ ∃ n : ℕ, (A, σ) ∈ g.NullableApprox n := by
+  constructor
+  · intro hnullable
+    have hmem : (A, σ) ∈ g.NullableSet := by
+      simpa [NullableSet] using hnullable
+    exact nullableSet_subset_iUnion_nullableApprox_flagsSeparated hfs hmem
+  · rintro ⟨n, hn⟩
+    have hmem : (A, σ) ∈ g.NullableSet :=
+      nullableApprox_sound g n hn
+    simpa [NullableSet] using hmem
+
+/-- A RHS sublist whose deletions are justified by one finite nullable approximation rank. -/
+inductive ApproxNullableRhsSublist (g : IndexedGrammar T) (n : ℕ) (σ : List g.flag) :
+    List (IRhsSymbol T g.nt g.flag) → List (IRhsSymbol T g.nt g.flag) → Prop
+  | nil : ApproxNullableRhsSublist g n σ [] []
+  | keep (s : IRhsSymbol T g.nt g.flag) {rhs kept}
+      (h : ApproxNullableRhsSublist g n σ rhs kept) :
+      ApproxNullableRhsSublist g n σ (s :: rhs) (s :: kept)
+  | drop_none {A : g.nt} {rhs kept}
+      (hnullable : (A, σ) ∈ g.NullableApprox n)
+      (h : ApproxNullableRhsSublist g n σ rhs kept) :
+      ApproxNullableRhsSublist g n σ (IRhsSymbol.nonterminal A none :: rhs) kept
+  | drop_some {A : g.nt} {f : g.flag} {rhs kept}
+      (hnullable : (A, f :: σ) ∈ g.NullableApprox n)
+      (h : ApproxNullableRhsSublist g n σ rhs kept) :
+      ApproxNullableRhsSublist g n σ (IRhsSymbol.nonterminal A (some f) :: rhs) kept
+
+theorem ApproxNullableRhsSublist.toNullableRhsSublist {g : IndexedGrammar T}
+    {n : ℕ} {σ : List g.flag} {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : ApproxNullableRhsSublist g n σ rhs kept) :
+    NullableRhsSublist g σ rhs kept := by
+  induction h with
+  | nil =>
+      exact NullableRhsSublist.nil
+  | keep s h ih =>
+      exact NullableRhsSublist.keep s ih
+  | drop_none hnullable h ih =>
+      rename_i A rhs kept
+      have hnull : g.IsNullable A σ := by
+        have hmem := nullableApprox_sound g n hnullable
+        simpa [NullableSet] using hmem
+      exact NullableRhsSublist.drop_none hnull ih
+  | drop_some hnullable h ih =>
+      rename_i A f rhs kept
+      have hnull : g.IsNullable A (f :: σ) := by
+        have hmem := nullableApprox_sound g n hnullable
+        simpa [NullableSet] using hmem
+      exact NullableRhsSublist.drop_some hnull ih
+
+theorem ApproxNullableRhsSublist.mono {g : IndexedGrammar T}
+    {m n : ℕ} (hmn : m ≤ n) {σ : List g.flag}
+    {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : ApproxNullableRhsSublist g m σ rhs kept) :
+    ApproxNullableRhsSublist g n σ rhs kept := by
+  induction h with
+  | nil =>
+      exact ApproxNullableRhsSublist.nil
+  | keep s h ih =>
+      exact ApproxNullableRhsSublist.keep s ih
+  | drop_none hnullable h ih =>
+      exact ApproxNullableRhsSublist.drop_none
+        (nullableApprox_mono g hmn hnullable) ih
+  | drop_some hnullable h ih =>
+      exact ApproxNullableRhsSublist.drop_some
+        (nullableApprox_mono g hmn hnullable) ih
+
+theorem exists_approxNullableRhsSublist_of_nullableRhsSublist_flagsSeparated
+    {g : IndexedGrammar T} (hfs : g.FlagsSeparated) {σ : List g.flag}
+    {rhs kept : List (IRhsSymbol T g.nt g.flag)}
+    (h : NullableRhsSublist g σ rhs kept) :
+    ∃ n : ℕ, ApproxNullableRhsSublist g n σ rhs kept := by
+  induction h with
+  | nil =>
+      exact ⟨0, ApproxNullableRhsSublist.nil⟩
+  | keep s h ih =>
+      rcases ih with ⟨n, hn⟩
+      exact ⟨n, ApproxNullableRhsSublist.keep s hn⟩
+  | drop_none hnullable h ih =>
+      rename_i A rhs kept
+      rcases ih with ⟨n, hn⟩
+      rcases (isNullable_iff_exists_nullableApprox_flagsSeparated
+          (g := g) hfs (A := A) (σ := σ)).mp hnullable with
+        ⟨m, hm⟩
+      refine ⟨max m n, ApproxNullableRhsSublist.drop_none ?_ ?_⟩
+      · exact nullableApprox_mono g (Nat.le_max_left m n) hm
+      · exact hn.mono (Nat.le_max_right m n)
+  | drop_some hnullable h ih =>
+      rename_i A f rhs kept
+      rcases ih with ⟨n, hn⟩
+      rcases (isNullable_iff_exists_nullableApprox_flagsSeparated
+          (g := g) hfs (A := A) (σ := f :: σ)).mp hnullable with
+        ⟨m, hm⟩
+      refine ⟨max m n, ApproxNullableRhsSublist.drop_some ?_ ?_⟩
+      · exact nullableApprox_mono g (Nat.le_max_left m n) hm
+      · exact hn.mono (Nat.le_max_right m n)
+
 /-- A grammar is ε-free exactly when no stacked nonterminal is nullable. -/
 theorem noEpsilon_iff_no_isNullable {g : IndexedGrammar T} :
     g.NoEpsilon' ↔ ∀ A : g.nt, ∀ σ : List g.flag, ¬ g.IsNullable A σ := by
