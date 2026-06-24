@@ -279,6 +279,12 @@ theorem decodeFlatSententialAux_encodeSentential_add {g : IndexedGrammar T}
   simpa [decodeFlatSentential, encodeSentential_length, Nat.add_assoc, Nat.add_comm,
     Nat.add_left_comm] using h
 
+theorem encodeSentential_injective {g : IndexedGrammar T} :
+    Function.Injective (encodeSentential (g := g)) := by
+  intro u v h
+  have hdecode := congrArg (decodeFlatSentential (g := g)) h
+  simpa using hdecode
+
 @[simp] theorem ISym.isIndexed_terminal {g : IndexedGrammar T} (a : T) :
     ISym.isIndexed (g := g) (ISym.terminal a) = false := rfl
 
@@ -6705,6 +6711,61 @@ theorem minimal_accepting_derivationTrace_length_le_boundedSententialForms_card_
   have hnodup := minimal_derivationTrace_nodup htrace hlen hhead hlast hmin
   exact accepting_derivationTrace_length_le_boundedSententialForms_card_of_stackBound
     hNF htrace hlast hnodup hstack
+
+theorem accepting_flatTrace_length_le_boundedFlatForms_card_of_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {L B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hnodup : trace.Nodup)
+    (hwlen : w.length ≤ L)
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) :
+    (flatTrace trace).length ≤
+      (Set.Finite.toFinset (boundedFlatForms_finite g (L * (B + 2)))).card := by
+  have hflatNodup : (flatTrace trace).Nodup := by
+    simpa [flatTrace] using hnodup.map encodeSentential_injective
+  exact List.Nodup.length_le_finite_set_card_of_get_mem hflatNodup
+    (boundedFlatForms g (L * (B + 2)))
+    (boundedFlatForms_finite g (L * (B + 2)))
+    (accepting_flatTrace_get_mem_boundedFlatForms_of_isNormalForm_stackBound_lengthBound
+      hNF htrace hlast hwlen hstack)
+
+theorem accepting_derivationTrace_length_le_boundedFlatForms_card_of_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {L B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hnodup : trace.Nodup)
+    (hwlen : w.length ≤ L)
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) :
+    trace.length ≤
+      (Set.Finite.toFinset (boundedFlatForms_finite g (L * (B + 2)))).card := by
+  simpa [flatTrace_length] using
+    accepting_flatTrace_length_le_boundedFlatForms_card_of_stackBound_lengthBound
+      hNF htrace hlast hnodup hwlen hstack
+
+theorem minimal_accepting_derivationTrace_length_le_boundedFlatForms_card_of_stackBound_lengthBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {n : ℕ} {w : List T} {L B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hmin : ∀ m,
+      g.DerivesIn m [ISym.indexed g.initial []] (w.map ISym.terminal) → n ≤ m)
+    (hwlen : w.length ≤ L)
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) :
+    trace.length ≤
+      (Set.Finite.toFinset (boundedFlatForms_finite g (L * (B + 2)))).card := by
+  have hnodup := minimal_derivationTrace_nodup htrace hlen hhead hlast hmin
+  exact accepting_derivationTrace_length_le_boundedFlatForms_card_of_stackBound_lengthBound
+    hNF htrace hlast hnodup hwlen hstack
 
 /-- Length-uniform version of the bounded-surface pigeonhole bound. If the accepted word has
 length at most `L`, then a shortest stack-bounded accepting trace is bounded by the finite
