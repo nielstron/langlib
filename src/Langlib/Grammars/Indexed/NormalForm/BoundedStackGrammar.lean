@@ -2934,6 +2934,116 @@ theorem exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationT
     hflat', hparts', hrel, hpartsLen', hcert, hlenEq, htermEq, hntEq, hysBound,
     hsurface, herase, hbw, hbwm, hGder⟩
 
+/-- Length-uniform finite-frontier version of
+`exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_budget_with_minimality`.
+It keeps the singleton split and local minimality certificates, while placing the compiled
+suffix start in the finite frontier of all surfaces of length at most `L`. -/
+theorem exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_lengthBound_budget_with_minimality
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            trace.length - 1 - i ≤ N →
+            ∃ parts : List (ℕ × List T),
+            ∃ ys : List g.ISym, ∃ parts' : List (ℕ × List T),
+            ∃ bw : List (symbol T (BoundedStackNT g (K + N))),
+              parts.length = (trace.get ⟨i, hi⟩).length ∧
+                (parts.map fun p => p.1).sum = trace.length - 1 - i ∧
+                (parts.flatMap fun p => p.2) = target ∧
+                List.Forall₂
+                  (fun s p => g.DerivesIn p.1 [s]
+                    (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                  (trace.get ⟨i, hi⟩) parts ∧
+                (parts'.map fun p => p.1).sum ≤ (parts.map fun p => p.1).sum ∧
+                (parts'.flatMap fun p => p.2) = (parts.flatMap fun p => p.2) ∧
+                List.Forall₂
+                  (fun s p => g.DerivesIn p.1 [s]
+                    (p.2.map fun a => (ISym.terminal a : g.ISym)))
+                  ys parts' ∧
+                List.Forall₂
+                  (fun s t =>
+                    match s, t with
+                    | ISym.terminal a, ISym.terminal b => a = b
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧ τ.Sublist σ ∧ τ.length ≤ K
+                    | _, _ => False)
+                  (trace.get ⟨i, hi⟩) ys ∧
+                parts'.length = parts.length ∧
+                List.Forall₂
+                  (fun sp tq =>
+                    match sp.1, tq.1 with
+                    | ISym.terminal a, ISym.terminal b =>
+                        a = b ∧ tq.2 = sp.2
+                    | ISym.indexed A σ, ISym.indexed C τ =>
+                        A = C ∧
+                          tq.2.2 = sp.2.2 ∧
+                          tq.2.1 ≤ sp.2.1 ∧
+                          τ.Sublist σ ∧
+                          τ.length ≤ K ∧
+                          g.DerivesIn tq.2.1 [ISym.indexed C τ]
+                            (tq.2.2.map fun a => (ISym.terminal a : g.ISym)) ∧
+                          ∀ ρ : List g.flag, ∀ k : ℕ,
+                            k ≤ sp.2.1 →
+                            g.DerivesIn k [ISym.indexed C ρ]
+                              (sp.2.2.map fun a => (ISym.terminal a : g.ISym)) →
+                            ρ.Sublist τ → ρ = τ
+                    | _, _ => False)
+                  ((trace.get ⟨i, hi⟩).zip parts) (ys.zip parts') ∧
+                ys.length = (trace.get ⟨i, hi⟩).length ∧
+                sententialTerminals ys =
+                  sententialTerminals (trace.get ⟨i, hi⟩) ∧
+                sententialNonterminalCount ys =
+                  sententialNonterminalCount (trace.get ⟨i, hi⟩) ∧
+                sententialMaxStackHeight ys ≤ K ∧
+                surfaceOfTruncatedForm K ys ∈ boundedSurfaceForms g L K ∧
+                eraseSurfaceForm (surfaceOfTruncatedForm K ys) = ys ∧
+                boundedSentential? (g := g) (K + N) ys = some bw ∧
+                bw ∈
+                  ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+                    ∃ surface : SurfaceForm g K,
+                      surface ∈ boundedSurfaceForms g L K ∧
+                        boundedSentential? (g := g) (K + N)
+                          (eraseSurfaceForm surface) = some bw} :
+                    Set (List (symbol T (BoundedStackNT g (K + N)))) ) ∧
+                grammar_derives (boundedStackGrammar g (K + N)) bw
+                  (target.map fun a =>
+                    (symbol.terminal a : symbol T (BoundedStackNT g (K + N)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_boundedStackGrammar_suffix_derives_of_accepting_derivationTrace_symbols_suffix_shrink_surface_budget_with_minimality
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hsuffixBudget
+  obtain ⟨parts, ys, parts', bw, hpartsLen, hsum, hflat, hparts, hsum',
+    hflat', hparts', hrel, hpartsLen', hcert, hlenEq, htermEq, hntEq, hysBound,
+    _hsurfaceTarget, herase, hbw, _hbwmTarget, hGder⟩ :=
+    hK target htargetLen trace htrace hlast i hi hsuffixBudget
+  have hsurface :
+      surfaceOfTruncatedForm K ys ∈ boundedSurfaceForms g L K := by
+    apply surfaceOfTruncatedForm_mem_boundedSurfaceForms
+    have hxlen :
+        (trace.get ⟨i, hi⟩).length ≤ target.length :=
+      accepting_derivationTrace_get_length_le_target_of_isNormalForm
+        hNF htrace hlast hi
+    rw [hlenEq]
+    exact le_trans hxlen htargetLen
+  have hbwm :
+      bw ∈
+        ({bw : List (symbol T (BoundedStackNT g (K + N))) |
+          ∃ surface : SurfaceForm g K,
+            surface ∈ boundedSurfaceForms g L K ∧
+              boundedSentential? (g := g) (K + N)
+                (eraseSurfaceForm surface) = some bw} :
+          Set (List (symbol T (BoundedStackNT g (K + N)))) ) :=
+    ⟨surfaceOfTruncatedForm K ys, hsurface, by simpa [herase] using hbw⟩
+  exact ⟨parts, ys, parts', bw, hpartsLen, hsum, hflat, hparts, hsum',
+    hflat', hparts', hrel, hpartsLen', hcert, hlenEq, htermEq, hntEq, hysBound,
+    hsurface, herase, hbw, hbwm, hGder⟩
+
 theorem exists_boundedStackGrammar_derives_of_global_minimal_derivesIn_target_length_bounded_prefix_budget
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
     (hNF : g.IsNormalForm) (N L : ℕ) :
