@@ -4611,6 +4611,13 @@ theorem boundedStackGrammar_generates_of_stackBounded_certificate
     NFYield.StackBounded.exists_stackBoundedDerivesIn (g := g) h
   exact boundedStackGrammar_generates_of_stackBoundedDerivesIn (g := g) hbounded
 
+theorem exists_boundedStackGrammar_generates_of_certificate
+    {g : IndexedGrammar T} [Fintype g.flag] {w : List T}
+    (h : NFYield g g.initial [] w) :
+    ∃ B : ℕ, w ∈ grammar_language (boundedStackGrammar g B) := by
+  obtain ⟨B, hboundedCert⟩ := NFYield.exists_stackBounded (g := g) h
+  exact ⟨B, boundedStackGrammar_generates_of_stackBounded_certificate (g := g) hboundedCert⟩
+
 /-- Budgeted finite-core wrapper for normal-form grammars.
 
 If an accepting derivation is shortest and its length is at most `N`, then a single

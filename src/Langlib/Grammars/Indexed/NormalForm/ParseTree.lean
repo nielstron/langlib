@@ -139,6 +139,54 @@ public theorem mono_bound {g : IndexedGrammar T} {K L : ℕ}
 
 end StackBounded
 
+public theorem exists_stackBounded {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : NFYield g A σ w) :
+    ∃ K, StackBounded g K A σ w := by
+  induction h with
+  | binary hr hlhs hc hrhs _ _ ihleft ihright =>
+      rcases ihleft with ⟨Kleft, hleft⟩
+      rcases ihright with ⟨Kright, hright⟩
+      let K := max Kleft Kright
+      have hKleft : Kleft ≤ K := by
+        simp [K]
+      have hKright : Kright ≤ K := by
+        simp [K]
+      have hσ : _ := le_trans (StackBounded.stack_length_le hleft) hKleft
+      exact ⟨K,
+        StackBounded.binary hσ hr hlhs hc hrhs
+          (StackBounded.mono_bound hKleft hleft)
+          (StackBounded.mono_bound hKright hright)⟩
+  | pop hr hlhs hc hrhs _ ihrest =>
+      rcases ihrest with ⟨Krest, hrest⟩
+      let K := Krest + 1
+      have hKrest : Krest ≤ K := by
+        simp [K]
+      exact ⟨K,
+        StackBounded.pop
+          (by
+            have hρ := StackBounded.stack_length_le hrest
+            simp [K] at hρ ⊢
+            omega)
+          hr hlhs hc hrhs
+          (StackBounded.mono_bound hKrest hrest)⟩
+  | push hr hlhs hc hrhs _ ihrest =>
+      rcases ihrest with ⟨Krest, hrest⟩
+      let K := Krest
+      have hKrest : Krest ≤ K := by simp [K]
+      exact ⟨K,
+        StackBounded.push
+          (by
+            have htop := StackBounded.stack_length_le hrest
+            simp [K] at htop ⊢
+            omega)
+          hr hlhs hc hrhs
+          (StackBounded.mono_bound hKrest hrest)⟩
+  | terminal hr hlhs hc hrhs =>
+      rename_i A0 σ0 a0 r0
+      exact ⟨σ0.length,
+        StackBounded.terminal (by rfl) hr hlhs hc hrhs⟩
+
 theorem transforms_binary_of_rule {g : IndexedGrammar T}
     {A B C : g.nt} {σ : List g.flag} {r : IRule T g.nt g.flag}
     (hr : r ∈ g.rules)
