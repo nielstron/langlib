@@ -6097,6 +6097,66 @@ theorem stepReachable_boundedSentential_image_mem_of_stackBoundedDerivesIn
     stepReachable_boundedSentential_image_mem_of_boundedSurface_boundedSentential?_derivesIn
       (g := g) hsurface hbw ⟨p, hp, hder⟩
 
+/-- Surface-repeat bridge into the finite step-reachable full-context frontier.
+
+If a canonical replacement context has the same `B`-surface as a prefix node whose whole
+prefix is already `B`-bounded, and the replacement context itself fits in `B`, then its
+bounded-stack encoding is a member of the finite counted frontier reachable within the
+advertised prefix budget. -/
+theorem exists_stepReachable_boundedSentential_image_of_canonical_context_surface_eq_prefix_bound_le
+    {g : IndexedGrammar T} [Fintype g.flag]
+    {P K B L N : ℕ} {trace : List (List g.ISym)}
+    {u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
+    {i j : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hi : i < trace.length) (hij : i ≤ j) (hjN : j ≤ N)
+    (hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B)
+    (hctx : sententialMaxStackHeight (u ++ v) ≤ B)
+    (hPK : P + K ≤ B)
+    (hτ : τ.length ≤ K)
+    (hsurfaceEq :
+      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm B (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v))
+    (hsurfaceBound :
+      surfaceOfTruncatedForm P (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) ∈
+        boundedSurfaceForms g L P) :
+    ∃ bw : List (symbol T (BoundedStackNT g B)),
+      boundedSentential? (g := g) B
+          (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) = some bw ∧
+        bw ∈
+          ({bw : List (symbol T (BoundedStackNT g B)) |
+            (∃ ys : List g.ISym,
+              ys ∈ boundedSententialForms g L B ∧
+                boundedSentential? (g := g) B ys = some bw) ∧
+              ∃ p : ℕ, p ≤ N ∧
+                grammar_derivesIn (boundedStackGrammar g B) p
+                  [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+            Set (List (symbol T (BoundedStackNT g B)))) := by
+  let ys : List g.ISym := u ++ [ISym.indexed A (η.take P ++ τ)] ++ v
+  have hysStack : sententialMaxStackHeight ys ≤ B := by
+    simpa [ys] using
+      sententialMaxStackHeight_context_indexed_take_append_le
+        (g := g) (u := u) (v := v) (A := A) (η := η) (τ := τ)
+        (P := P) (K := K) (B := B) hctx hPK hτ
+  obtain ⟨bw, hbw⟩ :=
+    exists_boundedSentential?_of_sententialMaxStackHeight_le
+      (g := g) (B := B) hysStack
+  obtain ⟨p, hpj, hpre⟩ :=
+    exists_stackBoundedDerivesIn_canonical_context_of_surface_eq_prefix_bound_le
+      (g := g) (B := B) (P := P) (K := K) (trace := trace)
+      (u := u) (v := v) (A := A) (η := η) (τ := τ)
+      htrace hhead hi hij hprefixBound hctx hPK hτ
+      (by simpa [ys] using hsurfaceEq)
+  refine ⟨bw, hbw, ?_⟩
+  exact
+    stepReachable_boundedSentential_image_mem_of_stackBoundedDerivesIn
+      (g := g) (P := P) (B := B) (L := L) (N := N) (p := p)
+      (ys := ys) (bw := bw)
+      (by simpa [ys] using hsurfaceBound)
+      hbw (le_trans hpj hjN) hpre
+
 /-- A counted reachable member of the finite full-context bounded-sentential frontier gives
 the exact stack-bounded indexed prefix witness for the corresponding decoded sentential
 form. -/
