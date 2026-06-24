@@ -320,6 +320,17 @@ theorem termIsolate_generates_iff (w : List T) :
 
 /-! ### Main result -/
 
+/-- Terminal isolation preserves the language of any indexed grammar. This unconditional
+packaging is used by the arbitrary-ε pipeline before the ε-free invariant is available. -/
+theorem exists_terminalsIsolated_all (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T,
+      g'.TerminalsIsolated ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
+  exact ⟨g.termIsolate, g.termIsolate_terminalsIsolated,
+    g.termIsolate_startNotOnRhs,
+    g.termIsolate_generates_iff⟩
+
 theorem exists_terminalsIsolated (g : IndexedGrammar T) (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T,
       g'.NoEpsilon' ∧ g'.TerminalsIsolated ∧

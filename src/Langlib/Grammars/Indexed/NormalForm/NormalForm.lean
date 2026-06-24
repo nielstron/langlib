@@ -56,6 +56,41 @@ namespace IndexedGrammar
 
 /-! ## Aho's Normal Form Theorem -/
 
+/-- Before ε-elimination is available, any indexed grammar can still be made
+terminal-isolated and flag-separated without changing its language. This is the structural
+preprocessing target for the arbitrary-ε part of the normal-form construction. -/
+theorem exists_terminalIsolated_flagsSeparated_all (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T,
+      g'.TerminalsIsolated ∧ g'.FlagsSeparated ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₁, hg₁_ti, hg₁_fresh_of, hg₁_lang⟩ := g.exists_terminalsIsolated_all
+  obtain ⟨g₂, hg₂_ti, hg₂_fs, hg₂_fresh_of, hg₂_lang⟩ :=
+    g₁.exists_flagsSeparated_all hg₁_ti
+  exact ⟨g₂, hg₂_ti, hg₂_fs, fun hfresh => hg₂_fresh_of (hg₁_fresh_of hfresh),
+    fun w => by
+      rw [hg₂_lang w, hg₁_lang w]⟩
+
+/-- It is enough to prove ε-elimination after terminal isolation and flag separation.
+The preprocessing is language-preserving and can be run before the ε-free invariant exists. -/
+theorem exists_noEpsilon_of_exists_noEpsilon_terminalIsolated_flagsSeparated
+    (helim : ∀ g₀ : IndexedGrammar T,
+      g₀.TerminalsIsolated → g₀.FlagsSeparated →
+        ∃ g' : IndexedGrammar T,
+          g'.NoEpsilon' ∧
+          (g₀.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+          ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g₀.Generates w))
+    (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, hg₀_ti, hg₀_fs, hg₀_fresh_of, hg₀_lang⟩ :=
+    g.exists_terminalIsolated_flagsSeparated_all
+  obtain ⟨g', hne', hfresh', hlang'⟩ := helim g₀ hg₀_ti hg₀_fs
+  exact ⟨g', hne', fun hfresh => hfresh' (hg₀_fresh_of hfresh), fun w hw => by
+    rw [hlang' w hw, hg₀_lang w]⟩
+
 /-- Normal-form theorem for ε-free indexed grammars. For every indexed grammar `g`
 with no ε-productions, there exists an indexed grammar `g'` in normal form such that
 `g'` generates exactly the same words as `g`. -/

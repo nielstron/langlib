@@ -1208,6 +1208,17 @@ theorem flagSeparate_generates_iff (w : List T) :
     (g.flagSeparate).Generates w ↔ g.Generates w :=
   ⟨g.flagSeparate_language_backward, g.flagSeparate_language_forward⟩
 
+theorem exists_flagsSeparated_all (g : IndexedGrammar T)
+    (hti : g.TerminalsIsolated) :
+    ∃ g' : IndexedGrammar T,
+      g'.TerminalsIsolated ∧ g'.FlagsSeparated ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) :=
+  ⟨g.flagSeparate, g.flagSeparate_terminalsIsolated hti,
+   g.flagSeparate_flagsSeparated hti,
+   g.flagSeparate_startNotOnRhs,
+   g.flagSeparate_generates_iff⟩
+
 theorem exists_flagsSeparated (g : IndexedGrammar T)
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated) :
     ∃ g' : IndexedGrammar T,
