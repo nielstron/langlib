@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Grammars.Indexed.NormalForm.Bounds
+public import Langlib.Grammars.Indexed.NormalForm.ParseTree
 public import Langlib.Grammars.Indexed.NormalForm.Shrinking
 public import Langlib.Classes.ContextSensitive.Definition
 public import Mathlib.Data.Fintype.Prod
@@ -1278,6 +1279,36 @@ theorem stackBoundedDerivesIn_terminal_rule
   have hfinal : sententialMaxStackHeight ([ISym.terminal a] : List g.ISym) ≤ K := by
     simp
   simpa using stackBoundedDerivesIn_one_of_transforms (g := g) hstep hstart hfinal
+
+theorem NFYield.StackBounded.exists_stackBoundedDerivesIn
+    {g : IndexedGrammar T} {K : ℕ}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : NFYield.StackBounded g K A σ w) :
+    ∃ n,
+      StackBoundedDerivesIn g K n [ISym.indexed A σ]
+        (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  induction h with
+  | binary hσ hr hlhs hc hrhs _ _ ihleft ihright =>
+      rcases ihleft with ⟨m, hleft⟩
+      rcases ihright with ⟨n, hright⟩
+      exact ⟨1 + (m + n),
+        stackBoundedDerivesIn_binary_rule_to_terminals_of_children
+          (g := g) hr hlhs hc hrhs rfl hσ hleft hright⟩
+  | pop hσ hr hlhs hc hrhs _ ihrest =>
+      rcases ihrest with ⟨n, hrest⟩
+      exact ⟨1 + n,
+        stackBoundedDerivesIn_pop_rule_to_terminals_of_child
+          (g := g) hr hlhs hc hrhs hσ hrest⟩
+  | push _ hr hlhs hc hrhs hrest ihrest =>
+      rcases ihrest with ⟨n, hrestBounded⟩
+      exact ⟨1 + n,
+        stackBoundedDerivesIn_push_rule_to_terminals_of_child
+          (g := g) hr hlhs hc hrhs
+          (NFYield.StackBounded.stack_length_le hrest) hrestBounded⟩
+  | terminal hσ hr hlhs hc hrhs =>
+      exact ⟨1,
+        stackBoundedDerivesIn_terminal_rule
+          (g := g) hr hlhs hc hrhs hσ⟩
 
 theorem stackBoundedDerivesIn_binary_rule_to_terminals_of_prefixed_children
     {g : IndexedGrammar T}
@@ -4536,6 +4567,49 @@ theorem boundedStackGrammar_generates_of_stackBoundedDerivesIn
   subst bw₁
   subst bw₂
   simpa [grammar_language, grammar_generates] using hder
+
+theorem boundedStackGrammar_derives_of_stackBounded_certificate
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : NFYield.StackBounded g B A σ w) :
+    grammar_derives (boundedStackGrammar g B)
+      [symbol.nonterminal (A, ⟨σ, NFYield.StackBounded.stack_length_le h⟩)]
+      (w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B))) := by
+  obtain ⟨n, hbounded⟩ :=
+    NFYield.StackBounded.exists_stackBoundedDerivesIn (g := g) h
+  obtain ⟨bw₁, bw₂, hstart, hterm, hder⟩ :=
+    boundedStackGrammar_derives_of_stackBoundedDerivesIn
+      (g := g) (B := B) hbounded
+  have hstartSome :
+      boundedSentential? B [ISym.indexed A σ] =
+        some [symbol.nonterminal
+          (A, ⟨σ, NFYield.StackBounded.stack_length_le h⟩)] := by
+    simp [boundedSentential?, boundedSymbol?, NFYield.StackBounded.stack_length_le h]
+  have htermSome :
+      boundedSentential? B
+          (w.map fun a => (ISym.terminal a : g.ISym)) =
+        some (w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B))) := by
+    simp
+  have hbw₁ :
+      bw₁ = [symbol.nonterminal
+        (A, ⟨σ, NFYield.StackBounded.stack_length_le h⟩)] := by
+    apply Option.some.inj
+    rw [← hstart, hstartSome]
+  have hbw₂ :
+      bw₂ = w.map fun a => (symbol.terminal a : symbol T (BoundedStackNT g B)) := by
+    apply Option.some.inj
+    rw [← hterm, htermSome]
+  subst bw₁
+  subst bw₂
+  exact hder
+
+theorem boundedStackGrammar_generates_of_stackBounded_certificate
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ} {w : List T}
+    (h : NFYield.StackBounded g B g.initial [] w) :
+    w ∈ grammar_language (boundedStackGrammar g B) := by
+  obtain ⟨n, hbounded⟩ :=
+    NFYield.StackBounded.exists_stackBoundedDerivesIn (g := g) h
+  exact boundedStackGrammar_generates_of_stackBoundedDerivesIn (g := g) hbounded
 
 /-- Budgeted finite-core wrapper for normal-form grammars.
 

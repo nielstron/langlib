@@ -761,6 +761,19 @@ public theorem finite_bounded_target_certificate_items
       intro item h
       exact ⟨h.1, h.2.1⟩)
 
+/-- Stack-bounded parse-certificate items form a finite subset of the bounded target frontier. -/
+public theorem finite_bounded_target_stackBounded_certificate_items
+    (g : IndexedGrammar T) [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) (target : List T) :
+    ({item : (g.nt × List g.flag) × List T |
+      item.1.2.length ≤ B ∧ item.2 <+ target ∧
+        NFYield.StackBounded g B item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)).Finite := by
+  exact (NFYield.finite_bounded_target_items (g := g) B target).subset
+    (by
+      intro item h
+      exact ⟨h.1, h.2.1⟩)
+
 /-- Actual parse-certificate items form a finite subset of the bounded length frontier. -/
 public theorem finite_bounded_length_certificate_items
     (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
@@ -768,6 +781,19 @@ public theorem finite_bounded_length_certificate_items
     ({item : (g.nt × List g.flag) × List T |
       item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
         NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)).Finite := by
+  exact (NFYield.finite_bounded_length_items (g := g) B L).subset
+    (by
+      intro item h
+      exact ⟨h.1, h.2.1⟩)
+
+/-- Length-uniform finite frontier for stack-bounded parse-certificate items. -/
+public theorem finite_bounded_length_stackBounded_certificate_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B L : ℕ) :
+    ({item : (g.nt × List g.flag) × List T |
+      item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+        NFYield.StackBounded g B item.1.1 item.1.2 item.2} :
         Set ((g.nt × List g.flag) × List T)).Finite := by
   exact (NFYield.finite_bounded_length_items (g := g) B L).subset
     (by

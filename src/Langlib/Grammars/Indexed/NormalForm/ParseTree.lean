@@ -54,6 +54,91 @@ public inductive NFYield (g : IndexedGrammar T) : g.nt → List g.flag → List 
 
 namespace NFYield
 
+/-- A parse certificate whose every indexed stack is bounded by `K`. This is the certificate-side
+invariant needed to pass from parse-tree shrinking to the fixed bounded-stack grammar. -/
+public inductive StackBounded (g : IndexedGrammar T) (K : ℕ) :
+    g.nt → List g.flag → List T → Prop where
+  | binary {A B C : g.nt} {σ : List g.flag} {u v : List T}
+      {r : IRule T g.nt g.flag}
+      (hσ : σ.length ≤ K)
+      (hr : r ∈ g.rules)
+      (hlhs : r.lhs = A)
+      (hc : r.consume = none)
+      (hrhs : r.rhs =
+        [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none])
+      (hleft : StackBounded g K B σ u)
+      (hright : StackBounded g K C σ v) :
+      StackBounded g K A σ (u ++ v)
+  | pop {A B : g.nt} {f : g.flag} {ρ : List g.flag} {w : List T}
+      {r : IRule T g.nt g.flag}
+      (hσ : (f :: ρ).length ≤ K)
+      (hr : r ∈ g.rules)
+      (hlhs : r.lhs = A)
+      (hc : r.consume = some f)
+      (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
+      (hrest : StackBounded g K B ρ w) :
+      StackBounded g K A (f :: ρ) w
+  | push {A B : g.nt} {f : g.flag} {σ : List g.flag} {w : List T}
+      {r : IRule T g.nt g.flag}
+      (hσ : σ.length ≤ K)
+      (hr : r ∈ g.rules)
+      (hlhs : r.lhs = A)
+      (hc : r.consume = none)
+      (hrhs : r.rhs = [IRhsSymbol.nonterminal B (some f)])
+      (hrest : StackBounded g K B (f :: σ) w) :
+      StackBounded g K A σ w
+  | terminal {A : g.nt} {σ : List g.flag} {a : T}
+      {r : IRule T g.nt g.flag}
+      (hσ : σ.length ≤ K)
+      (hr : r ∈ g.rules)
+      (hlhs : r.lhs = A)
+      (hc : r.consume = none)
+      (hrhs : r.rhs = [IRhsSymbol.terminal a]) :
+      StackBounded g K A σ [a]
+
+namespace StackBounded
+
+public theorem stack_length_le {g : IndexedGrammar T} {K : ℕ}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : StackBounded g K A σ w) :
+    σ.length ≤ K := by
+  cases h with
+  | binary hσ _ _ _ _ _ _ => exact hσ
+  | pop hσ _ _ _ _ _ =>
+      simpa using hσ
+  | push hσ _ _ _ _ _ => exact hσ
+  | terminal hσ _ _ _ _ => exact hσ
+
+public theorem toNFYield {g : IndexedGrammar T} {K : ℕ}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : StackBounded g K A σ w) :
+    NFYield g A σ w := by
+  induction h with
+  | binary _ hr hlhs hc hrhs _ _ ihleft ihright =>
+      exact NFYield.binary hr hlhs hc hrhs ihleft ihright
+  | pop _ hr hlhs hc hrhs _ ihrest =>
+      exact NFYield.pop hr hlhs hc hrhs ihrest
+  | push _ hr hlhs hc hrhs _ ihrest =>
+      exact NFYield.push hr hlhs hc hrhs ihrest
+  | terminal _ hr hlhs hc hrhs =>
+      exact NFYield.terminal hr hlhs hc hrhs
+
+public theorem mono_bound {g : IndexedGrammar T} {K L : ℕ}
+    (hKL : K ≤ L) {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : StackBounded g K A σ w) :
+    StackBounded g L A σ w := by
+  induction h with
+  | binary hσ hr hlhs hc hrhs _ _ ihleft ihright =>
+      exact StackBounded.binary (le_trans hσ hKL) hr hlhs hc hrhs ihleft ihright
+  | pop hσ hr hlhs hc hrhs _ ihrest =>
+      exact StackBounded.pop (le_trans hσ hKL) hr hlhs hc hrhs ihrest
+  | push hσ hr hlhs hc hrhs _ ihrest =>
+      exact StackBounded.push (le_trans hσ hKL) hr hlhs hc hrhs ihrest
+  | terminal hσ hr hlhs hc hrhs =>
+      exact StackBounded.terminal (le_trans hσ hKL) hr hlhs hc hrhs
+
+end StackBounded
+
 theorem transforms_binary_of_rule {g : IndexedGrammar T}
     {A B C : g.nt} {σ : List g.flag} {r : IRule T g.nt g.flag}
     (hr : r ∈ g.rules)
