@@ -963,6 +963,78 @@ theorem prunedDerives_append {g : IndexedGrammar T}
   (prunedDerives_with_suffix v₁ hu).trans
     (prunedDerives_with_prefix u₂ hv)
 
+theorem part_fst_le_sum_of_mem (parts : List (ℕ × List T)) {p : ℕ × List T}
+    (hp : p ∈ parts) :
+    p.1 ≤ (parts.map fun q => q.1).sum := by
+  induction parts with
+  | nil =>
+      simp at hp
+  | cons =>
+      rename_i hd parts ih
+      simp only [List.mem_cons] at hp
+      simp only [List.map_cons, List.sum_cons]
+      rcases hp with hp | hp
+      · subst p
+        omega
+      · have htail := ih hp
+        omega
+
+theorem prunedDerives_expandRhs_to_terminals_of_forall₂_derivesIn
+    {g : IndexedGrammar T} {N : ℕ}
+    (hrec : ∀ {m : ℕ} {A : g.nt} {σ : List g.flag} {w : List T},
+      m < N →
+        g.DerivesIn m [ISym.indexed A σ]
+          (w.map fun a => (ISym.terminal a : g.ISym)) →
+        w ≠ [] →
+        g.PrunedDerives [ISym.indexed A σ]
+          (w.map fun a => (ISym.terminal a : g.ISym)))
+    {σ : List g.flag} {kept : List (IRhsSymbol T g.nt g.flag)}
+    {parts : List (ℕ × List T)}
+    (hparts : List.Forall₂
+      (fun s p =>
+        p.2 ≠ [] ∧
+          g.DerivesIn p.1 (g.expandRhs [s] σ)
+            (p.2.map fun a => (ISym.terminal a : g.ISym)))
+      kept parts)
+    (hlt : ∀ p ∈ parts, p.1 < N) :
+    g.PrunedDerives (g.expandRhs kept σ)
+      ((parts.flatMap fun p => p.2).map fun a => (ISym.terminal a : g.ISym)) := by
+  induction hparts with
+  | nil =>
+      exact ReflTransGen.refl
+  | cons hhead _htail ih =>
+      rename_i s part kept parts
+      rcases part with ⟨m, y⟩
+      rcases hhead with ⟨hyne, hder⟩
+      have hheadPruned :
+          g.PrunedDerives (g.expandRhs [s] σ)
+            (y.map fun a => (ISym.terminal a : g.ISym)) := by
+        cases s with
+        | terminal t =>
+            have hy : y = [t] := by
+              simpa [expandRhs] using
+                derivesIn_terminal_singleton_eq (g := g) hder
+            subst y
+            simpa [expandRhs] using
+              (ReflTransGen.refl :
+                g.PrunedDerives ([ISym.terminal t] : List g.ISym) [ISym.terminal t])
+        | nonterminal A push =>
+            cases push with
+            | none =>
+                exact hrec (A := A) (σ := σ) (w := y)
+                  (hlt (m, y) (by simp)) (by simpa [expandRhs] using hder) hyne
+            | some f =>
+                exact hrec (A := A) (σ := f :: σ) (w := y)
+                  (hlt (m, y) (by simp)) (by simpa [expandRhs] using hder) hyne
+      have htailPruned :
+          g.PrunedDerives (g.expandRhs kept σ)
+            ((parts.flatMap fun p => p.2).map fun a => (ISym.terminal a : g.ISym)) := by
+        apply ih
+        intro p hp
+        exact hlt p (by simp [hp])
+      have hcat := prunedDerives_append hheadPruned htailPruned
+      simpa [expandRhs, List.map_append] using hcat
+
 theorem nullableRhsSublist_nil_of_expandRhs_derives_nil {g : IndexedGrammar T}
     {rhs : List (IRhsSymbol T g.nt g.flag)} {σ : List g.flag}
     (hder : g.Derives (g.expandRhs rhs σ) []) :
@@ -1073,6 +1145,141 @@ theorem exists_prunedTransforms_initial_of_generates_nonempty
   refine ⟨r, [], [], [], kept, hr, hkept, hsub, ?_, ?_⟩
   · simp [hconsume, hlhs]
   · simp
+
+theorem prunedDerives_indexed_to_terminals_of_derivesIn_nonempty
+    {g : IndexedGrammar T} {n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : g.DerivesIn n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym)))
+    (hw : w ≠ []) :
+    g.PrunedDerives [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  have hmain :
+      ∀ n : ℕ, ∀ (A : g.nt) (σ : List g.flag) (w : List T),
+        g.DerivesIn n [ISym.indexed A σ]
+          (w.map fun a => (ISym.terminal a : g.ISym)) →
+        w ≠ [] →
+        g.PrunedDerives [ISym.indexed A σ]
+          (w.map fun a => (ISym.terminal a : g.ISym)) := by
+    intro n
+    refine Nat.strong_induction_on n ?_
+    intro n ih A σ w hder hw
+    cases n with
+    | zero =>
+        have hEq : ([ISym.indexed A σ] : List g.ISym) =
+            (w.map fun a => (ISym.terminal a : g.ISym)) := by
+          simpa using hder
+        have hmem : (ISym.indexed A σ : g.ISym) ∈
+            (w.map fun a => (ISym.terminal a : g.ISym)) := by
+          rw [← hEq]
+          simp
+        rcases List.mem_map.mp hmem with ⟨t, _ht, ht⟩
+        cases ht
+    | succ n =>
+        have hsplitInput :
+            g.DerivesIn (1 + n) [ISym.indexed A σ]
+              (w.map fun a => (ISym.terminal a : g.ISym)) := by
+          simpa [Nat.add_comm] using hder
+        rcases derivesIn_split (g := g) (m := 1) (n := n) hsplitInput with
+          ⟨mid, hfirst, hrest⟩
+        rcases hfirst with ⟨x, hx0, hstep⟩
+        have hx : x = [ISym.indexed A σ] := by
+          simpa using hx0.symm
+        subst x
+        rcases hstep with ⟨r, u, v, ρ, hr, hsource, htarget⟩
+        cases hc : r.consume with
+        | none =>
+            rw [hc] at hsource
+            rcases singleton_indexed_eq_context hsource with ⟨hu, hv, hA, hσ⟩
+            subst u
+            subst v
+            subst A
+            subst σ
+            have hmid : mid = g.expandRhs r.rhs ρ := by
+              simpa using htarget
+            subst mid
+            have hrest' :
+                g.DerivesIn n (g.expandRhs r.rhs ρ)
+                  (w.map fun a => (ISym.terminal a : g.ISym)) := by
+              simpa using hrest
+            obtain ⟨kept, parts, hsub, hkept, hflat, hbudget, hparts⟩ :=
+              exists_nonempty_nullableRhsSublist_derivesIn_to_terminals_parts
+                (g := g) (n := n) (rhs := r.rhs) (σ := ρ) (w := w) hrest' hw
+            have hprunedStep :
+                g.PrunedTransforms [ISym.indexed r.lhs ρ] (g.expandRhs kept ρ) := by
+              refine ⟨r, [], [], ρ, kept, hr, hkept, hsub, ?_, ?_⟩
+              · simp [hc]
+              · simp
+            have hlt : ∀ p ∈ parts, p.1 < n + 1 := by
+              intro p hp
+              have hple : p.1 ≤ (parts.map fun q => q.1).sum :=
+                part_fst_le_sum_of_mem (T := T) parts hp
+              have hpn : p.1 ≤ n := le_trans hple hbudget
+              omega
+            have htail :
+                g.PrunedDerives (g.expandRhs kept ρ)
+                  ((parts.flatMap fun p => p.2).map fun a =>
+                    (ISym.terminal a : g.ISym)) :=
+              prunedDerives_expandRhs_to_terminals_of_forall₂_derivesIn
+                (g := g) (N := n + 1)
+                (hrec := fun {m A σ w} hm hderm hwm => ih m hm A σ w hderm hwm)
+                (σ := ρ) hparts hlt
+            have htailW :
+                g.PrunedDerives (g.expandRhs kept ρ)
+                  (w.map fun a => (ISym.terminal a : g.ISym)) := by
+              simpa [hflat] using htail
+            exact (ReflTransGen.single hprunedStep).trans htailW
+        | some f =>
+            rw [hc] at hsource
+            rcases singleton_indexed_eq_context hsource with ⟨hu, hv, hA, hσ⟩
+            subst u
+            subst v
+            subst A
+            subst σ
+            have hmid : mid = g.expandRhs r.rhs ρ := by
+              simpa using htarget
+            subst mid
+            have hrest' :
+                g.DerivesIn n (g.expandRhs r.rhs ρ)
+                  (w.map fun a => (ISym.terminal a : g.ISym)) := by
+              simpa using hrest
+            obtain ⟨kept, parts, hsub, hkept, hflat, hbudget, hparts⟩ :=
+              exists_nonempty_nullableRhsSublist_derivesIn_to_terminals_parts
+                (g := g) (n := n) (rhs := r.rhs) (σ := ρ) (w := w) hrest' hw
+            have hprunedStep :
+                g.PrunedTransforms [ISym.indexed r.lhs (f :: ρ)] (g.expandRhs kept ρ) := by
+              refine ⟨r, [], [], ρ, kept, hr, hkept, hsub, ?_, ?_⟩
+              · simp [hc]
+              · simp
+            have hlt : ∀ p ∈ parts, p.1 < n + 1 := by
+              intro p hp
+              have hple : p.1 ≤ (parts.map fun q => q.1).sum :=
+                part_fst_le_sum_of_mem (T := T) parts hp
+              have hpn : p.1 ≤ n := le_trans hple hbudget
+              omega
+            have htail :
+                g.PrunedDerives (g.expandRhs kept ρ)
+                  ((parts.flatMap fun p => p.2).map fun a =>
+                    (ISym.terminal a : g.ISym)) :=
+              prunedDerives_expandRhs_to_terminals_of_forall₂_derivesIn
+                (g := g) (N := n + 1)
+                (hrec := fun {m A σ w} hm hderm hwm => ih m hm A σ w hderm hwm)
+                (σ := ρ) hparts hlt
+            have htailW :
+                g.PrunedDerives (g.expandRhs kept ρ)
+                  (w.map fun a => (ISym.terminal a : g.ISym)) := by
+              simpa [hflat] using htail
+            exact (ReflTransGen.single hprunedStep).trans htailW
+  exact hmain n A σ w hder hw
+
+/-- Every nonempty generated word has a complete derivation using only ε-pruned steps. -/
+theorem prunedDerives_initial_of_generates_nonempty
+    {g : IndexedGrammar T} {w : List T}
+    (hgen : g.Generates w) (hw : w ≠ []) :
+    g.PrunedDerives [ISym.indexed g.initial []]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨n, hder⟩ := exists_derivesIn_of_derives (g := g) hgen
+  exact prunedDerives_indexed_to_terminals_of_derivesIn_nonempty
+    (g := g) (n := n) (A := g.initial) (σ := []) (w := w) hder hw
 
 /-- First-step analysis for a nullable stacked nonterminal. Nullability is witnessed by a
 matching grammar rule whose expansion is nullable. -/
