@@ -285,6 +285,71 @@ theorem encodeSentential_injective {g : IndexedGrammar T} :
   have hdecode := congrArg (decodeFlatSentential (g := g)) h
   simpa using hdecode
 
+/-- One flat step is an indexed step between the decoded sentential forms. -/
+def FlatTransforms (g : IndexedGrammar T)
+    (x y : List (FlatSymbol T g.nt g.flag)) : Prop :=
+  ∃ w₁ w₂ : List g.ISym,
+    decodeFlatSentential x = some w₁ ∧
+    decodeFlatSentential y = some w₂ ∧
+    g.Transforms w₁ w₂
+
+def FlatDerives (g : IndexedGrammar T) :
+    List (FlatSymbol T g.nt g.flag) → List (FlatSymbol T g.nt g.flag) → Prop :=
+  Relation.ReflTransGen (FlatTransforms g)
+
+theorem flatTransforms_encodeSentential_iff {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} :
+    FlatTransforms g (encodeSentential w₁) (encodeSentential w₂) ↔
+      g.Transforms w₁ w₂ := by
+  constructor
+  · rintro ⟨u, v, hu, hv, hstep⟩
+    have hu_eq : w₁ = u := Option.some.inj (by simpa using hu)
+    have hv_eq : w₂ = v := Option.some.inj (by simpa using hv)
+    subst u
+    subst v
+    exact hstep
+  · intro hstep
+    exact ⟨w₁, w₂, by simp, by simp, hstep⟩
+
+theorem flatDerives_encode_of_derives {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym}
+    (h : g.Derives w₁ w₂) :
+    FlatDerives g (encodeSentential w₁) (encodeSentential w₂) := by
+  induction h with
+  | refl =>
+      exact Relation.ReflTransGen.refl
+  | tail _ hstep ih =>
+      exact ih.tail (flatTransforms_encodeSentential_iff.mpr hstep)
+
+theorem derives_of_flatDerives_encode_to_decoded {g : IndexedGrammar T}
+    {x : List (FlatSymbol T g.nt g.flag)} {w₁ w₂ : List g.ISym}
+    (h : FlatDerives g (encodeSentential w₁) x)
+    (hx : decodeFlatSentential x = some w₂) :
+    g.Derives w₁ w₂ := by
+  induction h generalizing w₂ with
+  | refl =>
+      have hw : w₁ = w₂ := Option.some.inj (by simpa using hx)
+      subst w₂
+      exact Relation.ReflTransGen.refl
+  | tail hprev hstep ih =>
+      rcases hstep with ⟨u, v, hu, hv, hstep⟩
+      have hprevDer : g.Derives w₁ u := ih hu
+      have hv_eq : v = w₂ := by
+        have hs : some v = some w₂ := by
+          rw [← hv, hx]
+        exact Option.some.inj hs
+      subst w₂
+      exact hprevDer.tail hstep
+
+theorem flatDerives_encodeSentential_iff {g : IndexedGrammar T}
+    {w₁ w₂ : List g.ISym} :
+    FlatDerives g (encodeSentential w₁) (encodeSentential w₂) ↔
+      g.Derives w₁ w₂ := by
+  constructor
+  · intro h
+    exact derives_of_flatDerives_encode_to_decoded h (by simp)
+  · exact flatDerives_encode_of_derives
+
 @[simp] theorem ISym.isIndexed_terminal {g : IndexedGrammar T} (a : T) :
     ISym.isIndexed (g := g) (ISym.terminal a) = false := rfl
 
