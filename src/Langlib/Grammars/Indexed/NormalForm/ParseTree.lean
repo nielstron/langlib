@@ -387,6 +387,106 @@ public theorem of_derivesIn_isNormalForm {g : IndexedGrammar T}
           · rcases hterm with ⟨a, r, hr, hlhs, hc, hrhs, hw, _hn⟩
             simpa [hw] using (NFYield.terminal (g := g) (σ := σ) hr hlhs hc hrhs)
 
+/-- Counted singleton terminal derivations in normal form have bounded parse certificates.
+If the root stack has length at most `B`, then every stack appearing in the extracted
+certificate is bounded by `B + n`. -/
+public theorem stackBounded_of_derivesIn_isNormalForm_initial_stackBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (hσ : σ.length ≤ B)
+    (hder : g.DerivesIn n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    NFYield.StackBounded g (B + n) A σ w := by
+  induction n using Nat.strong_induction_on generalizing B A σ w with
+  | h n ih =>
+      cases n with
+      | zero =>
+          have heq : [ISym.indexed A σ] =
+              w.map fun a => (ISym.terminal a : g.ISym) := by
+            simpa using hder
+          cases w with
+          | nil => simp at heq
+          | cons a w => simp at heq
+      | succ n =>
+          have hder' :
+              g.DerivesIn (n + 1) [ISym.indexed A σ]
+                (w.map fun a => (ISym.terminal a : g.ISym)) := by
+            simpa [Nat.succ_eq_add_one] using hder
+          have hcases :=
+            derivesIn_singleton_to_terminals_rule_cases_with_target_bounds_of_isNormalForm
+              (g := g) hNF (n := n) (A := A) (σ := σ) (w := w) (target := w)
+              (List.Sublist.refl w) hder'
+          rcases hcases with hbin | hpop | hpush | hterm
+          · rcases hbin with
+              ⟨C, D, m, k, u, v, r, hr, hlhs, hc, hrhs, hmk, hm_lt, hk_lt,
+                hw, _hu_pos, _hv_pos, _hu_lt, _hv_lt, _hu_sub, _hv_sub,
+                hleft, hright⟩
+            subst w
+            have hleftBound :
+                NFYield.StackBounded g (B + m) C σ u :=
+              ih m (by simpa [Nat.succ_eq_add_one] using hm_lt) hσ hleft
+            have hrightBound :
+                NFYield.StackBounded g (B + k) D σ v :=
+              ih k (by simpa [Nat.succ_eq_add_one] using hk_lt) hσ hright
+            have hleft' :
+                NFYield.StackBounded g (B + (n + 1)) C σ u :=
+              NFYield.StackBounded.mono_bound (by omega) hleftBound
+            have hright' :
+                NFYield.StackBounded g (B + (n + 1)) D σ v :=
+              NFYield.StackBounded.mono_bound (by omega) hrightBound
+            exact NFYield.StackBounded.binary (by omega) hr hlhs hc hrhs
+              hleft' hright'
+          · rcases hpop with
+              ⟨f, ρ, C, r, hr, hσeq, hlhs, hc, hrhs, hn_lt, hrest⟩
+            subst σ
+            have hρ : ρ.length ≤ B := by
+              simpa using Nat.le_of_succ_le hσ
+            have hrestBound :
+                NFYield.StackBounded g (B + n) C ρ w :=
+              ih n (Nat.lt_succ_self n) hρ hrest
+            have hrest' :
+                NFYield.StackBounded g (B + (n + 1)) C ρ w :=
+              NFYield.StackBounded.mono_bound (by omega) hrestBound
+            exact NFYield.StackBounded.pop (by omega) hr hlhs hc hrhs hrest'
+          · rcases hpush with
+              ⟨C, f, r, hr, hlhs, hc, hrhs, hn_lt, hrest⟩
+            have hchild :
+                (f :: σ).length ≤ B + 1 := by
+              simp
+              omega
+            have hrestBound :
+                NFYield.StackBounded g ((B + 1) + n) C (f :: σ) w :=
+              ih n (Nat.lt_succ_self n) hchild hrest
+            have hrest' :
+                NFYield.StackBounded g (B + (n + 1)) C (f :: σ) w := by
+              simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hrestBound
+            exact NFYield.StackBounded.push (by omega) hr hlhs hc hrhs hrest'
+          · rcases hterm with ⟨a, r, hr, hlhs, hc, hrhs, hw, hn⟩
+            subst n
+            simpa [hw] using
+              (NFYield.StackBounded.terminal (g := g) (K := B + 1)
+                (A := A) (σ := σ) (a := a) (by omega) hr hlhs hc hrhs)
+
+/-- Counted singleton terminal derivations in normal form have certificates bounded by their
+root stack length plus their step count. -/
+public theorem stackBounded_of_derivesIn_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : g.DerivesIn n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    NFYield.StackBounded g (σ.length + n) A σ w :=
+  NFYield.stackBounded_of_derivesIn_isNormalForm_initial_stackBound
+    (g := g) hNF (B := σ.length) le_rfl hder
+
+/-- Existence form of `NFYield.stackBounded_of_derivesIn_isNormalForm`. -/
+public theorem exists_stackBounded_of_derivesIn_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (hder : g.DerivesIn n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    ∃ K, NFYield.StackBounded g K A σ w :=
+  ⟨σ.length + n, NFYield.stackBounded_of_derivesIn_isNormalForm (g := g) hNF hder⟩
+
 /-- Uncounted singleton terminal derivations in normal form are exactly parse certificates. -/
 public theorem iff_derives_isNormalForm {g : IndexedGrammar T}
     [DecidableEq g.nt] (hNF : g.IsNormalForm)

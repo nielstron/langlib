@@ -1750,6 +1750,20 @@ theorem NFYield.StackBounded.exists_stackBoundedDerivesIn
         stackBoundedDerivesIn_terminal_rule
           (g := g) hr hlhs hc hrhs hσ⟩
 
+/-- A stack-bounded singleton derivation in normal form has a bounded parse certificate.
+The certificate bound is stated as `B + n`, using the certificate extractor's linear
+count-bound. -/
+theorem NFYield.StackBounded.of_stackBoundedDerivesIn_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B n : ℕ} {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : StackBoundedDerivesIn g B n [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym))) :
+    NFYield.StackBounded g (B + n) A σ w := by
+  have hσ : σ.length ≤ B := by
+    simpa using StackBoundedDerivesIn.initial_maxStackHeight_le h
+  exact NFYield.stackBounded_of_derivesIn_isNormalForm_initial_stackBound
+    (g := g) hNF hσ (StackBoundedDerivesIn.to_derivesIn h)
+
 theorem stackBoundedDerivesIn_binary_rule_to_terminals_of_prefixed_children
     {g : IndexedGrammar T}
     {M m n : ℕ} {A B C : g.nt} {pref τ : List g.flag} {u v w : List T}
