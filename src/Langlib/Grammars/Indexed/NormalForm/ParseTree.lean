@@ -139,6 +139,191 @@ public theorem mono_bound {g : IndexedGrammar T} {K L : ℕ}
 
 end StackBounded
 
+/-- Every normal-form parse certificate has a nonempty terminal yield. -/
+public theorem yield_length_pos {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : NFYield g A σ w) :
+    0 < w.length := by
+  induction h with
+  | binary _ _ _ _ _ _ ihleft ihright =>
+      simp [List.length_append]
+      omega
+  | pop _ _ _ _ _ ihrest =>
+      exact ihrest
+  | push _ _ _ _ _ ihrest =>
+      exact ihrest
+  | terminal _ _ _ _ =>
+      simp
+
+/-- Normal-form parse certificates never yield `[]`. -/
+public theorem yield_ne_nil {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : NFYield g A σ w) :
+    w ≠ [] := by
+  intro hw
+  have hpos := NFYield.yield_length_pos (g := g) h
+  rw [hw] at hpos
+  simp at hpos
+
+/-- In a binary parse branch, both child yields are strictly shorter than the parent yield. -/
+public theorem binary_child_lengths_lt {g : IndexedGrammar T}
+    {B C : g.nt} {σ : List g.flag} {u v : List T}
+    (hleft : NFYield g B σ u)
+    (hright : NFYield g C σ v) :
+    u.length < (u ++ v).length ∧ v.length < (u ++ v).length := by
+  have hupos := NFYield.yield_length_pos (g := g) hleft
+  have hvpos := NFYield.yield_length_pos (g := g) hright
+  simp [List.length_append]
+  omega
+
+/-- First-step decomposition for parse certificates, with the binary branch annotated by the
+well-founded data needed for target-yield recursion. -/
+public theorem cases_with_target_bounds {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} {w target : List T}
+    (hwt : w.Sublist target)
+    (h : NFYield g A σ w) :
+      (∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+        w = u ++ v ∧
+        0 < u.length ∧ 0 < v.length ∧
+        u.length < w.length ∧ v.length < w.length ∧
+        u.Sublist target ∧ v.Sublist target ∧
+        NFYield g B σ u ∧ NFYield g C σ v) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt, ∃ r ∈ g.rules,
+        σ = f :: ρ ∧
+        r.lhs = A ∧ r.consume = some f ∧
+        r.rhs = [IRhsSymbol.nonterminal B none] ∧
+        NFYield g B ρ w) ∨
+      (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+        NFYield g B (f :: σ) w) ∨
+      (∃ a : T, ∃ r ∈ g.rules,
+        r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+          w = [a]) := by
+  cases h with
+  | binary hr hlhs hc hrhs hleft hright =>
+      rename_i B C u v r
+      have hposLeft := NFYield.yield_length_pos (g := g) hleft
+      have hposRight := NFYield.yield_length_pos (g := g) hright
+      have hlt := NFYield.binary_child_lengths_lt (g := g) hleft hright
+      have hsubLeft : u.Sublist target :=
+        (List.sublist_append_left u v).trans (by simpa using hwt)
+      have hsubRight : v.Sublist target :=
+        (List.sublist_append_right u v).trans (by simpa using hwt)
+      left
+      exact ⟨B, C, u, v, r, hr, hlhs, hc, hrhs, rfl, hposLeft, hposRight,
+        by simpa using hlt.1, by simpa using hlt.2, hsubLeft, hsubRight,
+        hleft, hright⟩
+  | pop hr hlhs hc hrhs hrest =>
+      rename_i B f ρ r
+      right
+      left
+      exact ⟨f, ρ, B, r, hr, rfl, hlhs, hc, hrhs, hrest⟩
+  | push hr hlhs hc hrhs hrest =>
+      rename_i B f r
+      right
+      right
+      left
+      exact ⟨B, f, r, hr, hlhs, hc, hrhs, hrest⟩
+  | terminal hr hlhs hc hrhs =>
+      rename_i a r
+      right
+      right
+      right
+      exact ⟨a, r, hr, hlhs, hc, hrhs, rfl⟩
+
+namespace StackBounded
+
+/-- Stack-bounded parse certificates also have nonempty terminal yields. -/
+public theorem yield_length_pos {g : IndexedGrammar T} {K : ℕ}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : StackBounded g K A σ w) :
+    0 < w.length :=
+  NFYield.yield_length_pos (g := g) (StackBounded.toNFYield h)
+
+/-- Stack-bounded parse certificates never yield `[]`. -/
+public theorem yield_ne_nil {g : IndexedGrammar T} {K : ℕ}
+    {A : g.nt} {σ : List g.flag} {w : List T}
+    (h : StackBounded g K A σ w) :
+    w ≠ [] :=
+  NFYield.yield_ne_nil (g := g) (StackBounded.toNFYield h)
+
+/-- In a stack-bounded binary parse branch, both child yields are strictly shorter than the
+parent yield. -/
+public theorem binary_child_lengths_lt {g : IndexedGrammar T} {K : ℕ}
+    {B C : g.nt} {σ : List g.flag} {u v : List T}
+    (hleft : StackBounded g K B σ u)
+    (hright : StackBounded g K C σ v) :
+    u.length < (u ++ v).length ∧ v.length < (u ++ v).length :=
+  NFYield.binary_child_lengths_lt
+    (g := g) (StackBounded.toNFYield hleft) (StackBounded.toNFYield hright)
+
+/-- First-step decomposition for stack-bounded parse certificates, retaining stack-bounded
+child certificates and the branch root stack bounds. -/
+public theorem cases_with_target_bounds {g : IndexedGrammar T} {K : ℕ}
+    {A : g.nt} {σ : List g.flag} {w target : List T}
+    (hwt : w.Sublist target)
+    (h : StackBounded g K A σ w) :
+      (∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules,
+        σ.length ≤ K ∧
+        r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+        w = u ++ v ∧
+        0 < u.length ∧ 0 < v.length ∧
+        u.length < w.length ∧ v.length < w.length ∧
+        u.Sublist target ∧ v.Sublist target ∧
+        StackBounded g K B σ u ∧ StackBounded g K C σ v) ∨
+      (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt, ∃ r ∈ g.rules,
+        (f :: ρ).length ≤ K ∧
+        σ = f :: ρ ∧
+        r.lhs = A ∧ r.consume = some f ∧
+        r.rhs = [IRhsSymbol.nonterminal B none] ∧
+        StackBounded g K B ρ w) ∨
+      (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+        σ.length ≤ K ∧
+        r.lhs = A ∧ r.consume = none ∧
+        r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+        StackBounded g K B (f :: σ) w) ∨
+      (∃ a : T, ∃ r ∈ g.rules,
+        σ.length ≤ K ∧
+        r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+          w = [a]) := by
+  cases h with
+  | binary hσ hr hlhs hc hrhs hleft hright =>
+      rename_i B C u v r
+      have hposLeft := StackBounded.yield_length_pos (g := g) hleft
+      have hposRight := StackBounded.yield_length_pos (g := g) hright
+      have hlt := StackBounded.binary_child_lengths_lt (g := g) hleft hright
+      have hsubLeft : u.Sublist target :=
+        (List.sublist_append_left u v).trans (by simpa using hwt)
+      have hsubRight : v.Sublist target :=
+        (List.sublist_append_right u v).trans (by simpa using hwt)
+      left
+      exact ⟨B, C, u, v, r, hr, hσ, hlhs, hc, hrhs, rfl,
+        hposLeft, hposRight, by simpa using hlt.1, by simpa using hlt.2,
+        hsubLeft, hsubRight, hleft, hright⟩
+  | pop hσ hr hlhs hc hrhs hrest =>
+      rename_i B f ρ r
+      right
+      left
+      exact ⟨f, ρ, B, r, hr, hσ, rfl, hlhs, hc, hrhs, hrest⟩
+  | push hσ hr hlhs hc hrhs hrest =>
+      rename_i B f r
+      right
+      right
+      left
+      exact ⟨B, f, r, hr, hσ, hlhs, hc, hrhs, hrest⟩
+  | terminal hσ hr hlhs hc hrhs =>
+      rename_i a r
+      right
+      right
+      right
+      exact ⟨a, r, hr, hσ, hlhs, hc, hrhs, rfl⟩
+
+end StackBounded
+
 public theorem exists_stackBounded {g : IndexedGrammar T}
     {A : g.nt} {σ : List g.flag} {w : List T}
     (h : NFYield g A σ w) :
