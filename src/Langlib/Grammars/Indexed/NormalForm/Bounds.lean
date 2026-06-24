@@ -491,6 +491,21 @@ theorem exists_flatPath_initial_terminal_iff_generates {g : IndexedGrammar T}
     exact generates_of_flatPath_initial_terminal hhead hlast hstep
   · exact exists_flatPath_initial_terminal_of_generates
 
+theorem language_eq_exists_flatPath_initial_terminal (g : IndexedGrammar T) :
+    g.Language =
+      (fun w : List T =>
+        ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+          path.head? =
+            some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+          path.getLast? =
+            some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+          ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+            FlatTransforms g
+              (path.get ⟨i, by omega⟩)
+              (path.get ⟨i + 1, hi⟩)) := by
+  ext w
+  exact exists_flatPath_initial_terminal_iff_generates.symm
+
 @[simp] theorem ISym.isIndexed_terminal {g : IndexedGrammar T} (a : T) :
     ISym.isIndexed (g := g) (ISym.terminal a) = false := rfl
 
