@@ -277,6 +277,64 @@ public theorem exists_bound_first_step_bounded_prefix_certificate_for_target_len
     right
     exact hterm
 
+/-- Length-uniform bounded-prefix common-suffix shrinking for pairs of parse certificates.
+This is the certificate-level form needed by binary branches: the two children keep one shared
+bounded suffix below the preserved prefix, and that suffix is sublist-minimal for the pair. -/
+public theorem exists_bound_pair_certificate_for_target_length_bounded_prefix
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ A C : g.nt, ∀ u v : List T,
+            u <+ target →
+            v <+ target →
+            ∀ σ : List g.flag,
+              NFYield g A (pref ++ σ) u →
+              NFYield g C (pref ++ σ) v →
+              ∃ τ : List g.flag,
+                NFYield g A (pref ++ τ) u ∧
+                NFYield g C (pref ++ τ) v ∧
+                τ <+ σ ∧
+                τ.length ≤ K ∧
+                ∀ ρ : List g.flag,
+                  NFYield g A (pref ++ ρ) u →
+                  NFYield g C (pref ++ ρ) v →
+                  ρ <+ τ → ρ = τ := by
+  classical
+  have htargets :
+      ({target : List T | target.length ≤ L} : Set (List T)).Finite :=
+    List.finite_length_le T L
+  let targets : Finset (List T) := Set.Finite.toFinset htargets
+  let targetBound : List T → ℕ := fun target =>
+    Classical.choose
+      (exists_bound_generating_prefixed_pair_suffix_for_bounded_prefix_target_sublists
+        (g := g) N target)
+  refine ⟨targets.sup targetBound, ?_⟩
+  intro target htargetLen pref hpref A C u v hu hv σ hleft hright
+  have htargetMem : target ∈ targets := by
+    rw [Set.Finite.mem_toFinset]
+    exact htargetLen
+  have hle : targetBound target ≤ targets.sup targetBound :=
+    Finset.le_sup (s := targets) (f := targetBound) htargetMem
+  have hspec :=
+    Classical.choose_spec
+      (exists_bound_generating_prefixed_pair_suffix_for_bounded_prefix_target_sublists
+        (g := g) N target)
+  obtain ⟨τ, hτleft, hτright, hτsub, hτlen, hτmin⟩ :=
+    hspec pref hpref A C u v hu hv σ
+      (NFYield.derives (g := g) hleft)
+      (NFYield.derives (g := g) hright)
+  refine ⟨τ,
+    (NFYield.iff_derives_isNormalForm (g := g) hNF).mpr hτleft,
+    (NFYield.iff_derives_isNormalForm (g := g) hNF).mpr hτright,
+    hτsub, le_trans hτlen hle, ?_⟩
+  intro ρ hρleft hρright hρsub
+  exact hτmin ρ (NFYield.derives (g := g) hρleft)
+    (NFYield.derives (g := g) hρright) hρsub
+
 /-- Length-uniform bounded-prefix suffix shrinking for parse certificates. For a fixed target
 length bound and a fixed live-prefix bound, every certificate whose yield is a sublist of the
 target has an equivalent certificate using a bounded sub-suffix of the inherited stack. -/
