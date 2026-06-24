@@ -5272,6 +5272,73 @@ theorem exists_bound_bounded_accepting_trace_and_surface_bound_of_minimal_derive
   refine ⟨trace, htrace, hlen, hhead, hlast, hstack, ?_⟩
   omega
 
+/-- Flat-tape version of
+`exists_bound_bounded_accepting_trace_and_surface_bound_of_minimal_derivesIn_target_length_budget`.
+Under the same temporary step-budget hypothesis, the produced shortest accepting trace has every
+flat encoded sentential form inside the finite tape space of length
+`L * ((N + K + N) + 2)`, and its step count is bounded by that finite flat space. -/
+theorem exists_bound_flat_accepting_trace_and_flat_bound_of_minimal_derivesIn_target_length_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n : ℕ,
+          g.DerivesIn n [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ m,
+            g.DerivesIn m [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) →
+          n ≤ N →
+          ∃ trace : List (List g.ISym),
+            IsDerivationTrace g trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? =
+              some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ N + K + N) ∧
+            (∀ i (hi : i < trace.length),
+              (encodeSentential (trace.get ⟨i, hi⟩)).length ≤
+                L * ((N + K + N) + 2)) ∧
+            n < (Set.Finite.toFinset
+              (boundedFlatForms_finite g (L * ((N + K + N) + 2)))).card := by
+  obtain ⟨K, hK⟩ :=
+    exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n hder hmin hnN
+  obtain ⟨m, τ, hm_le, hτsub, _hτlen, hbounded0⟩ :=
+    hK target htargetLen ([] : List g.flag) (by simp) n g.initial []
+      target (List.Sublist.refl target) hder (by simpa using hnN)
+  have hτnil : τ = [] := by
+    apply List.eq_nil_of_length_eq_zero
+    have hlen : τ.length ≤ 0 := by
+      simpa using hτsub.length_le
+    omega
+  subst τ
+  have hbounded :
+      StackBoundedDerivesIn g (N + K + N) m
+        [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) := by
+    simpa using hbounded0
+  have hder_m :
+      g.DerivesIn m [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) :=
+    StackBoundedDerivesIn.to_derivesIn hbounded
+  have hn_le_m : n ≤ m := hmin m hder_m
+  have hmn : m = n := by omega
+  subst m
+  obtain ⟨trace, htrace, hlen, hhead, hlast, hstack, hflat⟩ :=
+    exists_flatLengthBounded_accepting_isDerivationTrace_of_stackBoundedDerivesIn_isNormalForm
+      (g := g) hNF (B := N + K + N) (L := L) htargetLen hbounded
+  have hcard :=
+    minimal_accepting_derivationTrace_length_le_boundedFlatForms_card_of_stackBound_lengthBound
+      (g := g) (L := L) (B := N + K + N) hNF htrace hlen hhead hlast hmin
+      htargetLen hstack
+  refine ⟨trace, htrace, hlen, hhead, hlast, hstack, hflat, ?_⟩
+  omega
+
 theorem boundedStackGrammar_derives_of_stackBoundedDerivesIn
     {g : IndexedGrammar T} [Fintype g.flag] {B n : ℕ}
     {w₁ w₂ : List g.ISym}
