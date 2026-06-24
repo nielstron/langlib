@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Automata.LinearBounded.Equivalence.ContextSensitive
+public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.Indexed.Basics.FiniteSupport
 public import Langlib.Grammars.Indexed.NormalForm.BoundedStackGrammar
@@ -76,3 +77,48 @@ public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_LBA_core [Inha
     (hL : is_Indexed_noEpsilon L) : is_CS L :=
   is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core
     (finite_normalForm_CS_core_of_LBA_core hcore) hL
+
+/-- Once epsilon elimination supplies an ε-free indexed witness for `L \ {ε}`, the existing
+finite-normal-form core proves `L` context-sensitive. -/
+public theorem is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_core [Inhabited T]
+    (hcore : ∀ {A : Type} [Fintype A] [DecidableEq A] [Inhabited A]
+      (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
+      g.IsNormalForm → is_CS g.Language) {L : Language T}
+    (hpart : is_Indexed_noEpsilon (L \ ({[]} : Set (List T)))) : is_CS L := by
+  exact is_CS_of_diff_empty_of_is_CS
+    (is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core hcore hpart)
+
+/-- LBA-core variant of
+`is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_core`. -/
+public theorem is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_LBA_core
+    [Inhabited T]
+    (hcore : ∀ {A : Type} [Fintype A] [DecidableEq A] [Inhabited A]
+      (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
+      g.IsNormalForm → is_LBA_pos g.Language) {L : Language T}
+    (hpart : is_Indexed_noEpsilon (L \ ({[]} : Set (List T)))) : is_CS L :=
+  is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_core
+    (finite_normalForm_CS_core_of_LBA_core hcore) hpart
+
+/-- Class-level reduction: arbitrary indexed languages reduce to the no-ε inclusion once the
+epsilon-elimination theorem provides `L \ {ε}` as an ε-free indexed language. -/
+public theorem is_CS_of_is_Indexed_of_epsilon_elim_of_finite_normalForm_core [Inhabited T]
+    (helim : ∀ {L : Language T}, is_Indexed L →
+      is_Indexed_noEpsilon (L \ ({[]} : Set (List T))))
+    (hcore : ∀ {A : Type} [Fintype A] [DecidableEq A] [Inhabited A]
+      (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
+      g.IsNormalForm → is_CS g.Language) {L : Language T}
+    (hL : is_Indexed L) : is_CS L :=
+  is_CS_of_is_Indexed_nonemptyPart_noEpsilon_of_finite_normalForm_core
+    hcore (helim hL)
+
+/-- LBA-core variant of
+`is_CS_of_is_Indexed_of_epsilon_elim_of_finite_normalForm_core`. -/
+public theorem is_CS_of_is_Indexed_of_epsilon_elim_of_finite_normalForm_LBA_core [Inhabited T]
+    (helim : ∀ {L : Language T}, is_Indexed L →
+      is_Indexed_noEpsilon (L \ ({[]} : Set (List T))))
+    (hcore : ∀ {A : Type} [Fintype A] [DecidableEq A] [Inhabited A]
+      (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt],
+      g.IsNormalForm → is_LBA_pos g.Language) {L : Language T}
+    (hL : is_Indexed L) : is_CS L :=
+  is_CS_of_is_Indexed_of_epsilon_elim_of_finite_normalForm_core
+    helim (finite_normalForm_CS_core_of_LBA_core hcore) hL

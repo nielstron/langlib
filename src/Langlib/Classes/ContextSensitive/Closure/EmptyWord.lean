@@ -239,3 +239,35 @@ theorem is_CS_insert_empty_of_is_CS {T : Type} {L : Language T} (hL : is_CS L) :
         exact Or.inr hw
     rwa [hEq]
   · exact is_CS_insert_empty_of_is_CS_not_nil hL hε
+
+/-- If the nonempty part of a language is context-sensitive, then the whole language is
+context-sensitive. The only possible difference is the empty word, which context-sensitive
+languages can adjoin. -/
+theorem is_CS_of_diff_empty_of_is_CS {T : Type} {L : Language T}
+    (hL : is_CS (L \ ({[]} : Set (List T)))) :
+    is_CS L := by
+  by_cases hε : ([] : List T) ∈ L
+  · have hAdd := is_CS_insert_empty_of_is_CS hL
+    have hEq :
+        (fun w : List T => w = [] ∨ (L \ ({[]} : Set (List T))) w) = L := by
+      ext w
+      constructor
+      · rintro (rfl | hw)
+        · exact hε
+        · exact hw.1
+      · intro hw
+        by_cases hnil : w = []
+        · exact Or.inl hnil
+        · exact Or.inr ⟨hw, by simpa [Set.mem_singleton_iff] using hnil⟩
+    rwa [hEq] at hAdd
+  · have hEq : L \ ({[]} : Set (List T)) = L := by
+      ext w
+      constructor
+      · intro hw
+        exact hw.1
+      · intro hw
+        refine ⟨hw, ?_⟩
+        intro hnil
+        rw [Set.mem_singleton_iff] at hnil
+        exact hε (by simpa [hnil] using hw)
+    rwa [hEq] at hL
