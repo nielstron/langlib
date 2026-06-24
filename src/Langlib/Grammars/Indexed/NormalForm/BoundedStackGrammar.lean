@@ -6120,6 +6120,71 @@ theorem exists_stackBoundedDerivesIn_le_of_stepReachable_boundedSentential_image
     exists_stackBoundedDerivesIn_le_of_boundedStackGrammar_derivesIn_initial_boundedSentential
       (g := g) (B := B) (i := N) hbw hfrontier.2
 
+/-- Finite-frontier version of the whole-surface replacement bridge.
+
+The suffix shrinker only needs each target-compatible finite surface to be reachable by some
+bounded prefix no longer than the current trace prefix. This reformulation packages that
+reachability as membership in the counted, finite, full-sentential frontier of the fixed
+bounded-stack grammar. -/
+theorem
+    exists_bound_minimal_stackBound_le_max_of_stepReachable_targetCompatible_surface_suffix_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n B : ℕ, ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.length = n + 1 →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ k,
+            g.DerivesIn k [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k) →
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') →
+          ∀ i : ℕ, i < trace.length →
+            ∀ Bpre : ℕ,
+              trace.length - 1 - i ≤ N →
+              (∀ surface : SurfaceForm g K,
+                surface ∈ targetCompatibleBoundedSurfaceForms g target K →
+                ∃ bw : List (symbol T (BoundedStackNT g Bpre)),
+                  boundedSentential? (g := g) Bpre (eraseSurfaceForm surface) = some bw ∧
+                    bw ∈
+                      ({bw : List (symbol T (BoundedStackNT g Bpre)) |
+                        (∃ ys : List g.ISym,
+                          ys ∈ boundedSententialForms g L Bpre ∧
+                            boundedSentential? (g := g) Bpre ys = some bw) ∧
+                          ∃ p : ℕ, p ≤ i ∧
+                            grammar_derivesIn (boundedStackGrammar g Bpre) p
+                              [symbol.nonterminal
+                                (boundedStackGrammar g Bpre).initial] bw} :
+                        Set (List (symbol T (BoundedStackNT g Bpre))))) →
+              B ≤ max Bpre (K + N) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_minimal_stackBound_le_max_of_shorter_reachable_targetCompatible_surface_suffix_replacement_budget
+      (g := g) hNF N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n B trace htrace hlen hlast hminLength hminBound
+    i hi Bpre hsuffixBudget hreachable
+  exact
+    hK target htargetLen n B trace htrace hlen hlast hminLength hminBound
+      i hi Bpre hsuffixBudget
+      (by
+        intro surface hsurface
+        obtain ⟨bw, hbw, hfrontier⟩ := hreachable surface hsurface
+        exact
+          exists_stackBoundedDerivesIn_le_of_stepReachable_boundedSentential_image
+            (g := g) (K := Bpre) (B := Bpre) (L := L) (N := i)
+            (ys := eraseSurfaceForm surface) (bw := bw) hbw hfrontier)
+
 /-- The reachable part of the length-bounded finite surface frontier is finite in any fixed
 bounded-stack grammar. This is the prefix side of the finite saturation argument. -/
 theorem finite_reachable_boundedSentential_image_of_boundedSurfaceForms_at_bound
