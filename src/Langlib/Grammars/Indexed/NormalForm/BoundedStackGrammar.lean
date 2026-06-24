@@ -680,6 +680,34 @@ theorem StackBoundedDerivesIn.initial_maxStackHeight_le {g : IndexedGrammar T}
       rcases h with ⟨w, hprev, _, _⟩
       exact ih hprev
 
+theorem StackBoundedDerivesIn.initial_sententialStackHeight_le
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    sententialStackHeight w₁ ≤ sententialNonterminalCount w₁ * B :=
+  sententialStackHeight_le_nonterminalCount_mul_of_maxStackHeight_le
+    h.initial_maxStackHeight_le
+
+theorem StackBoundedDerivesIn.final_sententialStackHeight_le
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    sententialStackHeight w₂ ≤ sententialNonterminalCount w₂ * B :=
+  sententialStackHeight_le_nonterminalCount_mul_of_maxStackHeight_le
+    h.final_maxStackHeight_le
+
+theorem StackBoundedDerivesIn.initial_encodeSentential_length_le'
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    (encodeSentential w₁).length ≤ w₁.length + sententialNonterminalCount w₁ * (B + 1) :=
+  encodeSentential_length_le_length_add_nonterminalCount_mul_succ_of_maxStackHeight_le
+    h.initial_maxStackHeight_le
+
+theorem StackBoundedDerivesIn.final_encodeSentential_length_le'
+    {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
+    (h : StackBoundedDerivesIn g B n w₁ w₂) :
+    (encodeSentential w₂).length ≤ w₂.length + sententialNonterminalCount w₂ * (B + 1) :=
+  encodeSentential_length_le_length_add_nonterminalCount_mul_succ_of_maxStackHeight_le
+    h.final_maxStackHeight_le
+
 theorem StackBoundedDerivesIn.initial_encodeSentential_length_le
     {g : IndexedGrammar T} {B n : ℕ} {w₁ w₂ : List g.ISym}
     (h : StackBoundedDerivesIn g B n w₁ w₂) :

@@ -1028,6 +1028,67 @@ theorem sententialMaxStackHeight_le_sententialStackHeight {g : IndexedGrammar T}
           simp
           omega
 
+theorem sententialStackHeight_le_nonterminalCount_mul_maxStackHeight {g : IndexedGrammar T}
+    (w : List g.ISym) :
+    sententialStackHeight w ≤
+      sententialNonterminalCount w * sententialMaxStackHeight w := by
+  induction w with
+  | nil =>
+      simp
+  | cons s w ih =>
+      cases s with
+      | terminal a =>
+          simpa using ih
+      | indexed A σ =>
+          have htailMax :
+              sententialMaxStackHeight w ≤
+                max σ.length (sententialMaxStackHeight w) :=
+            Nat.le_max_right σ.length (sententialMaxStackHeight w)
+          have htail :
+              sententialStackHeight w ≤
+                sententialNonterminalCount w *
+                  max σ.length (sententialMaxStackHeight w) :=
+            le_trans ih (Nat.mul_le_mul_left _ htailMax)
+          have hσ :
+              σ.length ≤ max σ.length (sententialMaxStackHeight w) :=
+            Nat.le_max_left σ.length (sententialMaxStackHeight w)
+          simp only [sententialStackHeight_cons_indexed,
+            sententialNonterminalCount_cons_indexed,
+            sententialMaxStackHeight_cons_indexed]
+          calc
+            σ.length + sententialStackHeight w
+                ≤ max σ.length (sententialMaxStackHeight w) +
+                    sententialNonterminalCount w *
+                      max σ.length (sententialMaxStackHeight w) :=
+                  Nat.add_le_add hσ htail
+            _ = (sententialNonterminalCount w + 1) *
+                    max σ.length (sententialMaxStackHeight w) := by
+                  rw [Nat.add_mul, Nat.one_mul, Nat.add_comm]
+
+theorem sententialStackHeight_le_nonterminalCount_mul_of_maxStackHeight_le
+    {g : IndexedGrammar T} {B : ℕ} {w : List g.ISym}
+    (hmax : sententialMaxStackHeight w ≤ B) :
+    sententialStackHeight w ≤ sententialNonterminalCount w * B := by
+  exact le_trans
+    (sententialStackHeight_le_nonterminalCount_mul_maxStackHeight w)
+    (Nat.mul_le_mul_left _ hmax)
+
+theorem encodeSentential_length_le_length_add_nonterminalCount_mul_succ_of_maxStackHeight_le
+    {g : IndexedGrammar T} {B : ℕ} {w : List g.ISym}
+    (hmax : sententialMaxStackHeight w ≤ B) :
+    (encodeSentential w).length ≤ w.length + sententialNonterminalCount w * (B + 1) := by
+  rw [encodeSentential_length]
+  have hstack :=
+    sententialStackHeight_le_nonterminalCount_mul_of_maxStackHeight_le
+      (g := g) (B := B) (w := w) hmax
+  calc
+    w.length + sententialStackHeight w + sententialNonterminalCount w
+        ≤ w.length + sententialNonterminalCount w * B + sententialNonterminalCount w := by
+          omega
+    _ = w.length + sententialNonterminalCount w * (B + 1) := by
+          rw [Nat.mul_succ]
+          omega
+
 /-! ## Stack-suffix extension and sentential measures -/
 
 @[simp] theorem ISym.isIndexed_appendStackSuffix {g : IndexedGrammar T}
@@ -6878,6 +6939,25 @@ theorem accepting_derivationTrace_get_length_le_target_of_isNormalForm
     derivesIn_length_le_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF) hsuffix
   simpa using hlen
 
+theorem accepting_derivationTrace_get_sententialStackHeight_le_of_isNormalForm_stackBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {trace : List (List g.ISym)} {w : List T} {B : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (w.map ISym.terminal))
+    (hstack : ∀ i (hi : i < trace.length),
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B)
+    {i : ℕ} (hi : i < trace.length) :
+    sententialStackHeight (trace.get ⟨i, hi⟩) ≤ w.length * B := by
+  have htotal :=
+    sententialStackHeight_le_nonterminalCount_mul_of_maxStackHeight_le
+      (g := g) (B := B) (w := trace.get ⟨i, hi⟩) (hstack i hi)
+  have hnonterm :
+      sententialNonterminalCount (trace.get ⟨i, hi⟩) ≤ w.length :=
+    le_trans (sententialNonterminalCount_le_length _)
+      (accepting_derivationTrace_get_length_le_target_of_isNormalForm
+        hNF htrace hlast hi)
+  exact le_trans htotal (Nat.mul_le_mul_right B hnonterm)
+
 theorem accepting_derivationTrace_get_encodeSentential_length_le_of_isNormalForm_stackBound
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {trace : List (List g.ISym)} {w : List T} {B : ℕ}
@@ -7868,6 +7948,31 @@ theorem accepting_derivesInIntermediate_terminalCount_le_target
   have hsub := accepting_derivesInIntermediate_sententialTerminals_sublist_target
     (g := g) hmid
   simpa using hsub.length_le
+
+theorem accepting_derivesInIntermediate_sententialStackHeight_le_of_isNormalForm_stackBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n i B : ℕ} {w : List T} {x : List g.ISym}
+    (hmid : DerivesInIntermediate g n [ISym.indexed g.initial []]
+      (w.map ISym.terminal) i x)
+    (hstack : sententialMaxStackHeight x ≤ B) :
+    sententialStackHeight x ≤ w.length * B := by
+  have htotal :=
+    sententialStackHeight_le_nonterminalCount_mul_of_maxStackHeight_le
+      (g := g) (B := B) (w := x) hstack
+  have hnonterm : sententialNonterminalCount x ≤ w.length :=
+    le_trans (sententialNonterminalCount_le_length x)
+      (accepting_derivesInIntermediate_length_le_target_of_isNormalForm hNF hmid)
+  exact le_trans htotal (Nat.mul_le_mul_right B hnonterm)
+
+theorem accepting_derivesInIntermediate_sententialStackHeight_le_target_mul_index_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {n i : ℕ} {w : List T} {x : List g.ISym}
+    (hmid : DerivesInIntermediate g n [ISym.indexed g.initial []]
+      (w.map ISym.terminal) i x) :
+    sententialStackHeight x ≤ w.length * i :=
+  accepting_derivesInIntermediate_sententialStackHeight_le_of_isNormalForm_stackBound
+    hNF hmid
+    (accepting_derivesInIntermediate_maxStackHeight_le_index_of_isNormalForm hNF hmid)
 
 /-- If a shortest accepting derivation has all intermediate stack heights bounded by `B`, then
 its step count is bounded by the finite set of sentential forms with length at most the target
