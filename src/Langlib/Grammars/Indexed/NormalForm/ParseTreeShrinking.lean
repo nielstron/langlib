@@ -1232,6 +1232,64 @@ public theorem bounded_length_surface_certificate_rank_mem
         Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) :=
   ⟨hsurface, hitem, hrank⟩
 
+/-- Target-specific rank-frontier membership is monotone in both the certificate stack bound
+and the rank bound. -/
+public theorem bounded_target_surface_certificate_rank_items_mono_bound
+    {g : IndexedGrammar T} {P B C R S : ℕ} {target : List T}
+    {x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ}
+    (hBC : B ≤ C) (hRS : R ≤ S)
+    (hx : x ∈
+      ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+        x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+          x.1.2 ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ B ∧ item.2 <+ target ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) ∧
+          x.2 ≤ R} :
+        Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ))) :
+    x ∈
+      ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+        x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+          x.1.2 ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ C ∧ item.2 <+ target ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) ∧
+          x.2 ≤ S} :
+        Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) := by
+  exact ⟨hx.1, ⟨le_trans hx.2.1.1 hBC, hx.2.1.2.1, hx.2.1.2.2⟩,
+    le_trans hx.2.2 hRS⟩
+
+/-- Length-uniform rank-frontier membership is monotone in both the certificate stack bound
+and the rank bound. -/
+public theorem bounded_length_surface_certificate_rank_items_mono_bound
+    {g : IndexedGrammar T} {P B C L R S : ℕ}
+    {x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ}
+    (hBC : B ≤ C) (hRS : R ≤ S)
+    (hx : x ∈
+      ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+        x.1.1 ∈ boundedSurfaceForms g L P ∧
+          x.1.2 ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) ∧
+          x.2 ≤ R} :
+        Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ))) :
+    x ∈
+      ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+        x.1.1 ∈ boundedSurfaceForms g L P ∧
+          x.1.2 ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ C ∧ item.2.length ≤ L ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) ∧
+          x.2 ≤ S} :
+        Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) := by
+  exact ⟨hx.1, ⟨le_trans hx.2.1.1 hBC, hx.2.1.2.1, hx.2.1.2.2⟩,
+    le_trans hx.2.2 hRS⟩
+
 /-- A canonical-prefix replacement certificate is one of the finite target-frontier
 certificate items once the replacement suffix is bounded. -/
 public theorem canonical_prefix_certificate_mem_bounded_target_items
