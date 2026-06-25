@@ -1971,6 +1971,54 @@ theorem exists_canonical_surface_repeat_at_current_of_late_window_take_eq_of_con
       (g := g) hNF htrace hhead hfirstBound hi hic hwindowBound hbefore
       hctxBound hPK hctx htake
 
+/-- Late-window surface-repeat witness for an arbitrary replacement stack.
+
+If the replacement stack `ζ` agrees with the current stack on the full visible `B` prefix,
+then the current trace position itself supplies the full-surface repeat. This is the
+prefix-preserving analogue of
+`exists_canonical_surface_repeat_at_current_of_late_window_take_eq_of_context`. -/
+theorem exists_surface_repeat_at_current_of_late_window_take_eq_of_context
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B P K C a i : ℕ} {trace : List (List g.ISym)} {first : List g.ISym}
+    {u v : List g.ISym} {A : g.nt} {η ζ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some first)
+    (hfirstBound : sententialMaxStackHeight first ≤ P)
+    (hi : i < trace.length)
+    (hic : i ≤ a + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hPK : P + K ≤ B)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : η.take B = ζ.take B) :
+    ∃ r : ℕ, ∃ hr : r < trace.length,
+      r ≤ i ∧
+        (∀ k (hk : k < trace.length),
+          k ≤ r → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) ∧
+        sententialMaxStackHeight (u ++ v) ≤ B ∧
+        P + K ≤ B ∧
+        surfaceOfTruncatedForm B (trace.get ⟨r, hr⟩) =
+          surfaceOfTruncatedForm B (u ++ [ISym.indexed A ζ] ++ v) := by
+  have hprefix :
+      ∀ k (hk : k < trace.length),
+        k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B := by
+    intro k hk hki
+    exact le_trans
+      (prefix_maxStackHeight_le_late_window_of_before_bound
+        (g := g) hNF htrace hhead hfirstBound hic hbefore k hk hki)
+      hwindowBound
+  have hcurrent :
+      sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B :=
+    hprefix i hi le_rfl
+  have hctxBound : sententialMaxStackHeight (u ++ v) ≤ B :=
+    sententialMaxStackHeight_context_without_indexed_le_of_eq
+      (g := g) hctx hcurrent
+  refine ⟨i, hi, le_rfl, hprefix, hctxBound, hPK, ?_⟩
+  rw [hctx]
+  exact surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
+    (g := g) (B := B) (u := u) (v := v) (A := A) htake
+
 /-- Late-window repeat bridge phrased by suffix-prefix preservation. If the replacement suffix
 keeps exactly the first `B - P` flags below the visible prefix, then the current trace node has
 the same full `B`-surface as the canonical replacement context. -/
