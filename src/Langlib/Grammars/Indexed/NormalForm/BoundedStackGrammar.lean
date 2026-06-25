@@ -5776,6 +5776,94 @@ theorem
   · intro ρ k hk hρder hρsub
     exact hτmin ρ k hk (by simpa [pref] using hρder) hρsub
 
+/-- Minimal-stack bridge for prefix-preserving context replacement with a shortened prefix.
+
+The budgeted prefix-preserving shrinker produces a bounded replacement stack `ζ` whose first
+`P` flags agree with the original stack. If that concrete replacement context is reachable by
+a `Bpre`-bounded prefix no longer than the original trace prefix, then the replacement suffix
+can be spliced into the shortest derivation, forcing the least stack bound `B` of that
+shortest derivation below `Bpre + n'`. -/
+theorem
+    exists_bound_minimal_stackBound_le_of_shorter_reachable_indexed_context_prefix_preserving_shrink_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P Q L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ n B : ℕ, ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.length = n + 1 →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          (∀ k,
+            g.DerivesIn k [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k) →
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            ∀ A : g.nt, ∀ η : List g.flag, ∀ u v : List g.ISym, ∀ Bpre : ℕ,
+              P ≤ Q →
+              P + (trace.length - 1 - i) ≤ Q →
+              trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v →
+              (∀ τ ζ : List g.flag,
+                τ.Sublist (η.drop P) →
+                τ.length ≤ K →
+                ζ = η.take P ++ τ →
+                ζ.Sublist η →
+                ζ.length ≤ P + K →
+                ζ.take P = η.take P →
+                ∃ p : ℕ,
+                  p ≤ i ∧
+                    StackBoundedDerivesIn g Bpre p [ISym.indexed g.initial []]
+                      (u ++ [ISym.indexed A ζ] ++ v)) →
+              ∃ q m : ℕ, ∃ τ ζ : List g.flag, ∃ w : List T, ∃ n' : ℕ,
+                w.Sublist target ∧ w.length ≤ L ∧
+                q ≤ trace.length - 1 - i ∧
+                m ≤ q ∧
+                m ≤ trace.length - 1 - i ∧
+                n' ≤ trace.length - 1 - i ∧
+                τ.Sublist (η.drop P) ∧ τ.length ≤ K ∧
+                ζ = η.take P ++ τ ∧
+                ζ.Sublist η ∧ ζ.length ≤ P + K ∧ ζ.take P = η.take P ∧
+                g.DerivesIn m [ISym.indexed A ζ]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+                g.DerivesIn n' (u ++ [ISym.indexed A ζ] ++ v)
+                  (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                (∀ ρ : List g.flag, ∀ k : ℕ,
+                  k ≤ q →
+                  g.DerivesIn k [ISym.indexed A (η.take P ++ ρ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym)) →
+                  ρ.Sublist τ → ρ = τ) ∧
+                B ≤ Bpre + n' := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_indexed_context_prefix_preserving_shrink_replacement_budget
+      (g := g) hNF P Q L
+  refine ⟨K, ?_⟩
+  intro target htargetLen n B trace htrace hlen hlast hminLength hminBound
+    i hi A η u v Bpre hPQ hbudget hctx hreachable
+  obtain ⟨q, m, τ, ζ, w, n', hwt, hwlen, hq, hm, hmSuffix, hn', hτsub, hτlen,
+      hζeq, hζsub, hζlen, hζtake, hζder, hreplacement, hτmin⟩ :=
+    hK target htargetLen trace htrace hlast i hi hPQ hbudget A η u v hctx
+  obtain ⟨p, hp, hpre⟩ :=
+    hreachable τ ζ hτsub hτlen hζeq hζsub hζlen hζtake
+  have hsteps : p + n' ≤ n := by
+    omega
+  have hB :
+      B ≤ Bpre + n' :=
+    minimal_accepting_stackBound_le_of_stackBounded_prefix_derivesIn_suffix
+      (g := g) hNF (n := n) (B := B) (Bpre := Bpre) (p := p) (q := n')
+      (w := target) (mid := u ++ [ISym.indexed A ζ] ++ v)
+      hminLength hminBound hpre hreplacement hsteps
+  exact ⟨q, m, τ, ζ, w, n', hwt, hwlen, hq, hm, hmSuffix, hn', hτsub, hτlen,
+    hζeq, hζsub, hζlen, hζtake, hζder, hreplacement, hτmin, hB⟩
+
 /-- If a shortest accepting derivation has step count at most `N` and the target has length at
 most `L`, then every stack in its trace is already bounded by `N`. Consequently the shortest
 derivation has fewer steps than the finite surface space with stack bound `N`. -/
