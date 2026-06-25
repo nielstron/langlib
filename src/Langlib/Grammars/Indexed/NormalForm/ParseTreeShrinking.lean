@@ -1232,6 +1232,117 @@ public theorem bounded_length_surface_certificate_rank_mem
         Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) :=
   ⟨hsurface, hitem, hrank⟩
 
+/-- A root certificate embeds every target-compatible visible surface into the target-specific
+surface/certificate/rank frontier by pairing it with the root item and rank zero. -/
+public theorem targetCompatibleBoundedSurfaceForms_card_le_bounded_target_surface_certificate_rank_items_card_of_certificate
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B R : ℕ} {target : List T}
+    (hcert : NFYield g g.initial [] target) :
+    (Set.Finite.toFinset
+        (targetCompatibleBoundedSurfaceForms_finite g target P)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P B R target)).card := by
+  classical
+  let surfaces : Finset (SurfaceForm g P) :=
+    Set.Finite.toFinset (targetCompatibleBoundedSurfaceForms_finite g target P)
+  let frontier : Finset ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) :=
+    Set.Finite.toFinset
+      (NFYield.finite_bounded_target_surface_certificate_rank_items
+        (g := g) P B R target)
+  let rootItem : (g.nt × List g.flag) × List T :=
+    ((g.initial, ([] : List g.flag)), target)
+  let embed : SurfaceForm g P →
+      (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ :=
+    fun surface => ((surface, rootItem), 0)
+  change surfaces.card ≤ frontier.card
+  apply Finset.card_le_card_of_injOn embed
+  · intro surface hsurface
+    rw [Finset.mem_coe] at hsurface
+    have hsurfaceSet : surface ∈ targetCompatibleBoundedSurfaceForms g target P := by
+      simpa [surfaces] using hsurface
+    have hitem :
+        rootItem ∈
+          ({item : (g.nt × List g.flag) × List T |
+            item.1.2.length ≤ B ∧ item.2 <+ target ∧
+              NFYield g item.1.1 item.1.2 item.2} :
+            Set ((g.nt × List g.flag) × List T)) := by
+      refine ⟨by simp [rootItem], by simp [rootItem], ?_⟩
+      simpa [rootItem] using hcert
+    have hfrontier :
+        embed surface ∈
+          ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+            x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+              x.1.2 ∈
+                ({item : (g.nt × List g.flag) × List T |
+                  item.1.2.length ≤ B ∧ item.2 <+ target ∧
+                    NFYield g item.1.1 item.1.2 item.2} :
+                  Set ((g.nt × List g.flag) × List T)) ∧
+              x.2 ≤ R} :
+            Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) :=
+      NFYield.bounded_target_surface_certificate_rank_mem
+        (g := g) (P := P) (B := B) (R := R) (target := target)
+        hsurfaceSet hitem (Nat.zero_le R)
+    simpa [frontier] using hfrontier
+  · intro surface₁ _ surface₂ _ heq
+    simpa [embed] using congrArg (fun x => x.1.1) heq
+
+/-- A root certificate for a word of length at most `L` embeds every length-bounded visible
+surface into the length-uniform surface/certificate/rank frontier by pairing it with the root
+item and rank zero. -/
+public theorem boundedSurfaceForms_card_le_bounded_length_surface_certificate_rank_items_card_of_certificate
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B L R : ℕ} {target : List T}
+    (htargetLen : target.length ≤ L)
+    (hcert : NFYield g g.initial [] target) :
+    (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P B L R)).card := by
+  classical
+  let surfaces : Finset (SurfaceForm g P) :=
+    Set.Finite.toFinset (boundedSurfaceForms_finite g L P)
+  let frontier : Finset ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) :=
+    Set.Finite.toFinset
+      (NFYield.finite_bounded_length_surface_certificate_rank_items
+        (g := g) P B L R)
+  let rootItem : (g.nt × List g.flag) × List T :=
+    ((g.initial, ([] : List g.flag)), target)
+  let embed : SurfaceForm g P →
+      (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ :=
+    fun surface => ((surface, rootItem), 0)
+  change surfaces.card ≤ frontier.card
+  apply Finset.card_le_card_of_injOn embed
+  · intro surface hsurface
+    rw [Finset.mem_coe] at hsurface
+    have hsurfaceSet : surface ∈ boundedSurfaceForms g L P := by
+      simpa [surfaces] using hsurface
+    have hitem :
+        rootItem ∈
+          ({item : (g.nt × List g.flag) × List T |
+            item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+              NFYield g item.1.1 item.1.2 item.2} :
+            Set ((g.nt × List g.flag) × List T)) := by
+      refine ⟨by simp [rootItem], by simpa [rootItem] using htargetLen, ?_⟩
+      simpa [rootItem] using hcert
+    have hfrontier :
+        embed surface ∈
+          ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+            x.1.1 ∈ boundedSurfaceForms g L P ∧
+              x.1.2 ∈
+                ({item : (g.nt × List g.flag) × List T |
+                  item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+                    NFYield g item.1.1 item.1.2 item.2} :
+                  Set ((g.nt × List g.flag) × List T)) ∧
+              x.2 ≤ R} :
+            Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) :=
+      NFYield.bounded_length_surface_certificate_rank_mem
+        (g := g) (P := P) (B := B) (L := L) (R := R)
+        hsurfaceSet hitem (Nat.zero_le R)
+    simpa [frontier] using hfrontier
+  · intro surface₁ _ surface₂ _ heq
+    simpa [embed] using congrArg (fun x => x.1.1) heq
+
 /-- Target-specific rank-frontier membership is monotone in both the certificate stack bound
 and the rank bound. -/
 public theorem bounded_target_surface_certificate_rank_items_mono_bound
