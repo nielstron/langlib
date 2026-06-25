@@ -1791,6 +1791,44 @@ theorem packedFlatForm_initial_lookup_one {g : IndexedGrammar T} {W n : ℕ}
       some (FlatSymbol.stackBottom (T := T) (N := g.nt) (F := g.flag)) := by
   simp [packedFlatForm, packedTape, packedCell]
 
+/-- Cell-level shape of the packed initial row.
+
+Flattened slot `0` stores the initial nonterminal, flattened slot `1` stores the stack-bottom
+marker, and all later flattened slots are blank. -/
+theorem packedFlatForm_initial_cell {g : IndexedGrammar T} {W n : ℕ}
+    (i : Fin n) :
+    packedFlatForm g W n (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) i =
+      fun j =>
+        if i.1 * W + j.1 = 0 then
+          some (FlatSymbol.nonterminal (T := T) (F := g.flag) g.initial)
+        else if i.1 * W + j.1 = 1 then
+          some (FlatSymbol.stackBottom (T := T) (N := g.nt) (F := g.flag))
+        else
+          none := by
+  funext j
+  let k := i.1 * W + j.1
+  change
+    ([FlatSymbol.nonterminal (T := T) (F := g.flag) g.initial,
+        FlatSymbol.stackBottom (T := T) (N := g.nt) (F := g.flag)][k]?) =
+      if k = 0 then
+        some (FlatSymbol.nonterminal (T := T) (F := g.flag) g.initial)
+      else if k = 1 then
+        some (FlatSymbol.stackBottom (T := T) (N := g.nt) (F := g.flag))
+      else
+        none
+  by_cases h0 : k = 0
+  · simp [h0]
+  by_cases h1 : k = 1
+  · simp [h1]
+  · have hk : 2 ≤ k := by omega
+    have hnone :
+        ([FlatSymbol.nonterminal (T := T) (F := g.flag) g.initial,
+          FlatSymbol.stackBottom (T := T) (N := g.nt) (F := g.flag)][k]?) = none := by
+      rw [List.getElem?_eq_none]
+      simp
+      omega
+    simp [h0, h1, hnone]
+
 theorem packedFlatForm_terminal_lookup {g : IndexedGrammar T} {W n k : ℕ}
     (w : List T) (hW : 0 < W) (hk : k < n * W) :
     packedFlatForm g W n (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)))
@@ -1810,6 +1848,18 @@ theorem packedFlatForm_terminal_lookup_of_lt {g : IndexedGrammar T} {W n k : ℕ
   rw [packedFlatForm_terminal_lookup (g := g) (W := W) (n := n) (k := k) w hW hk]
   rw [List.getElem?_eq_getElem hkw]
   rfl
+
+/-- Cell-level shape of the packed terminal row.
+
+The `j`-th slot of cell `i` stores terminal `w[i * W + j]`, padded with `none` past the end
+of `w`. -/
+theorem packedFlatForm_terminal_cell {g : IndexedGrammar T} {W n : ℕ}
+    (w : List T) (i : Fin n) :
+    packedFlatForm g W n (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag))) i =
+      fun j => (w[i.1 * W + j.1]?).map
+        (FlatSymbol.terminal (N := g.nt) (F := g.flag)) := by
+  funext j
+  simp [packedFlatForm, packedTape, packedCell, List.getElem?_map]
 
 theorem packedFlatForm_ext_of_boundedFlatForms {g : IndexedGrammar T} {W n : ℕ}
     {x y : List (FlatSymbol T g.nt g.flag)}
