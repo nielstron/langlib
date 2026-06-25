@@ -1343,6 +1343,41 @@ public theorem boundedSurfaceForms_card_le_bounded_length_surface_certificate_ra
   · intro surface₁ _ surface₂ _ heq
     simpa [embed] using congrArg (fun x => x.1.1) heq
 
+/-- Generated-word form of
+`boundedSurfaceForms_card_le_bounded_length_surface_certificate_rank_items_card_of_certificate`.
+For normal-form grammars, a generated target supplies the root parse certificate needed to
+embed the visible surface frontier into the length-uniform surface/certificate/rank frontier. -/
+public theorem boundedSurfaceForms_card_le_bounded_length_surface_certificate_rank_items_card_of_generates_isNormalForm
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] {P B L R : ℕ} {target : List T}
+    (hNF : g.IsNormalForm)
+    (htargetLen : target.length ≤ L)
+    (hgen : g.Generates target) :
+    (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P B L R)).card := by
+  exact
+    NFYield.boundedSurfaceForms_card_le_bounded_length_surface_certificate_rank_items_card_of_certificate
+      (g := g) (P := P) (B := B) (L := L) (R := R) htargetLen
+      ((NFYield.generates_iff_isNormalForm (g := g) hNF).mp hgen)
+
+/-- If the generated language has any target in the length ball, then any length-uniform
+surface/certificate/rank frontier for that ball dominates the visible surface frontier. -/
+public theorem boundedSurfaceForms_card_le_bounded_length_surface_certificate_rank_items_card_of_exists_generates_isNormalForm
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] {P B L R : ℕ}
+    (hNF : g.IsNormalForm)
+    (hgenExists : ∃ target : List T, target.length ≤ L ∧ g.Generates target) :
+    (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P B L R)).card := by
+  rcases hgenExists with ⟨target, htargetLen, hgen⟩
+  exact
+    NFYield.boundedSurfaceForms_card_le_bounded_length_surface_certificate_rank_items_card_of_generates_isNormalForm
+      (g := g) (P := P) (B := B) (L := L) (R := R) hNF htargetLen hgen
+
 /-- Target-specific rank-frontier membership is monotone in both the certificate stack bound
 and the rank bound. -/
 public theorem bounded_target_surface_certificate_rank_items_mono_bound
