@@ -1873,6 +1873,50 @@ theorem exists_packedFlatDerivesIn_card_bound_of_packedFlatDerives
       k + 1 ≤ Fintype.card (PackedFlatForm g W n) :=
   RelDerivesIn.exists_card_bound_of_reflTransGen h
 
+/-- Concrete short-path form of packed bounded-flat reachability. -/
+theorem exists_packedFlatPath_length_le_card_of_packedFlatDerives
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {W n : ℕ} {x y : PackedFlatForm g W n}
+    (h : PackedFlatDerives g W n x y) :
+    ∃ path : List (PackedFlatForm g W n),
+      path.head? = some x ∧
+      path.getLast? = some y ∧
+      path.length ≤ Fintype.card (PackedFlatForm g W n) ∧
+      path.IsChain (PackedFlatTransforms g W n) := by
+  obtain ⟨k, hk, hcard⟩ :=
+    exists_packedFlatDerivesIn_card_bound_of_packedFlatDerives
+      (g := g) (W := W) (n := n) h
+  obtain ⟨path, hlen, hhead, hlast, hchain⟩ := RelDerivesIn.exists_chain hk
+  exact ⟨path, hhead, hlast, by simpa [hlen] using hcard, hchain⟩
+
+/-- A concrete packed path gives packed bounded-flat reachability. -/
+theorem packedFlatDerives_of_packedFlatPath
+    {g : IndexedGrammar T} {W n : ℕ} {x y : PackedFlatForm g W n}
+    {path : List (PackedFlatForm g W n)}
+    (hhead : path.head? = some x)
+    (hlast : path.getLast? = some y)
+    (hchain : path.IsChain (PackedFlatTransforms g W n)) :
+    PackedFlatDerives g W n x y := by
+  have hne : path ≠ [] := by
+    cases path with
+    | nil =>
+        simp at hhead
+    | cons _ _ =>
+        simp
+  have hrt :=
+    List.relationReflTransGen_of_exists_isChain path hchain hne
+  have hx : path.head hne = x := by
+    cases path with
+    | nil =>
+        contradiction
+    | cons a rest =>
+        simpa using hhead
+  have hy : path.getLast hne = y := by
+    have hs : some (path.getLast hne) = some y := by
+      rw [← List.getLast?_eq_some_getLast hne, hlast]
+    exact Option.some.inj hs
+  simpa [PackedFlatDerives, hx, hy] using hrt
+
 theorem packedFlatTransforms_of_boundedFlatTransforms
     {g : IndexedGrammar T} {W n : ℕ}
     {x y : BoundedFlatForm g (n * W)}
@@ -2347,6 +2391,39 @@ theorem packedFlatPathStackBoundLanguage_iff_exists_packedFlatDerivesIn_card_bou
     exact ⟨hwne, k, hk, hcard⟩
   · rintro ⟨hwne, k, hk, _hcard⟩
     exact ⟨hwne, packedFlatDerives_of_packedFlatDerivesIn (g := g) hk⟩
+
+/-- Concrete short packed-path form of fixed-width packed flat-path membership.
+
+The witness path lives over exactly `|w|` packed tape cells and has at most as many nodes as
+the finite packed state space for that input length. -/
+theorem packedFlatPathStackBoundLanguage_iff_exists_packedFlatPath_card_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {B : ℕ} {w : List T} :
+    w ∈ packedFlatPathStackBoundLanguage g B ↔
+      ∃ hwne : w ≠ [],
+      ∃ path : List (PackedFlatForm g (B + 2) w.length),
+        path.head? =
+          some (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) ∧
+        path.getLast? =
+          some (packedBoundedFlatForm g (B + 2) w.length
+            ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+              terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩) ∧
+        path.length ≤ Fintype.card (PackedFlatForm g (B + 2) w.length) ∧
+        path.IsChain (PackedFlatTransforms g (B + 2) w.length) := by
+  constructor
+  · rintro ⟨hwne, hpacked⟩
+    obtain ⟨path, hhead, hlast, hlen, hchain⟩ :=
+      exists_packedFlatPath_length_le_card_of_packedFlatDerives
+        (g := g) (W := B + 2) (n := w.length) hpacked
+    exact ⟨hwne, path, hhead, hlast, hlen, hchain⟩
+  · rintro ⟨hwne, path, hhead, hlast, _hlen, hchain⟩
+    exact ⟨hwne, packedFlatDerives_of_packedFlatPath
+      (g := g) (W := B + 2) (n := w.length)
+      (path := path) hhead hlast hchain⟩
 
 theorem nil_not_mem_packedFlatPathStackBoundLanguage
     (g : IndexedGrammar T) (B : ℕ) :
