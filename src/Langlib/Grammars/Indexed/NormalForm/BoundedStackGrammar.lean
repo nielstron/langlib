@@ -10938,6 +10938,116 @@ theorem prefix_pop_child_certificate_frontiers_of_local_minimal
       hpref'Bound hwlen hτlen hchildCert
   exact ⟨hchildCert, hchildMin, htargetItem, hlengthItem⟩
 
+/-- Uniform child-descent form of the local short-or-pop dichotomy.
+
+If the replacement suffix is not already short, the forced pop produces a child certificate in
+the same finite certificate frontiers. The child's local rank `pref.length + steps` is strictly
+smaller than the parent's rank `(η.take P).length + m`, so this is the induction-facing form of
+the pop branch. -/
+theorem short_or_pop_child_certificate_frontiers_of_local_minimal
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P K Kpop L C q m : ℕ} {target w : List T}
+    {A : g.nt} {η τ : List g.flag}
+    (hwt : w.Sublist target) (hwlen : w.length ≤ L)
+    (hm : m ≤ q) (hτlen : τ.length ≤ K)
+    (hmin : ∀ μ : List g.flag, ∀ k : ℕ,
+      k ≤ q →
+      g.DerivesIn k [ISym.indexed A (η.take P ++ μ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) →
+      μ.Sublist τ → μ = τ)
+    (hshortOrPop :
+      τ.length ≤ Kpop ∨
+        ∃ n₀ : ℕ,
+          m = n₀ + 1 ∧
+            ((∃ f : g.flag, ∃ ρ : List g.flag, ∃ Bchild : g.nt,
+              ∃ r ∈ g.rules,
+                η.take P = [] ∧ τ = f :: ρ ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal Bchild none] ∧
+                n₀ < P + C ∧
+                g.DerivesIn n₀ [ISym.indexed Bchild ρ]
+                  (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+            (∃ f : g.flag, ∃ pref' : List g.flag, ∃ Bchild : g.nt,
+              ∃ r ∈ g.rules,
+                η.take P = f :: pref' ∧
+                pref'.length + n₀ < P + C ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal Bchild none] ∧
+                g.DerivesIn n₀ [ISym.indexed Bchild (pref' ++ τ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym))))) :
+    τ.length ≤ Kpop ∨
+      ∃ prefChild τChild : List g.flag, ∃ Bchild : g.nt, ∃ n₀ : ℕ,
+        prefChild.length ≤ P ∧
+          τChild.length ≤ K ∧
+          prefChild.length + n₀ < (η.take P).length + m ∧
+          NFYield g Bchild (prefChild ++ τChild) w ∧
+          (∀ μ : List g.flag, ∀ k : ℕ,
+            k ≤ n₀ →
+            g.DerivesIn k [ISym.indexed Bchild (prefChild ++ μ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            μ.Sublist τChild → μ = τChild) ∧
+          (((Bchild, prefChild ++ τChild), w) :
+              (g.nt × List g.flag) × List T) ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) ∧
+          (((Bchild, prefChild ++ τChild), w) :
+              (g.nt × List g.flag) × List T) ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) := by
+  rcases hshortOrPop with hshort | hpop
+  · exact Or.inl hshort
+  rcases hpop with ⟨n₀, hmEq, hpop⟩
+  have hnq : n₀ + 1 ≤ q := by
+    rw [← hmEq]
+    exact hm
+  rcases hpop with hpopEmpty | hpopPrefix
+  · rcases hpopEmpty with
+      ⟨f, ρ, Bchild, r, hr, hpref, hτ, hlhs, hc, hrhs, _hbudget, hchildDer⟩
+    obtain ⟨hcert, hchildMin, htargetItem, hlengthItem⟩ :=
+      empty_prefix_pop_child_certificate_frontiers_of_local_minimal
+        (g := g) hNF (P := P) (K := K) (L := L) (q := q) (n := n₀)
+        (target := target) (w := w) (A := A) (B := Bchild) (f := f)
+        (pref := η.take P) (τ := τ) (ρ := ρ) (r := r)
+        hwt hwlen hnq hpref hτ hτlen hr hlhs hc hrhs hchildDer hmin
+    have hρlen : ρ.length ≤ K := by
+      rw [hτ] at hτlen
+      simp at hτlen ⊢
+      omega
+    have hrank : ([] : List g.flag).length + n₀ < (η.take P).length + m := by
+      rw [hpref, hmEq]
+      simp
+    refine Or.inr ⟨[], ρ, Bchild, n₀, by simp, hρlen, hrank, ?_, ?_, ?_, ?_⟩
+    · simpa using hcert
+    · simpa using hchildMin
+    · simpa using htargetItem
+    · simpa using hlengthItem
+  · rcases hpopPrefix with
+      ⟨f, pref', Bchild, r, hr, hpref, _hbudget, hlhs, hc, hrhs, hchildDer⟩
+    have hprefBound : (η.take P).length ≤ P := List.length_take_le P η
+    obtain ⟨hcert, hchildMin, htargetItem, hlengthItem⟩ :=
+      prefix_pop_child_certificate_frontiers_of_local_minimal
+        (g := g) hNF (P := P) (K := K) (L := L) (q := q) (n := n₀)
+        (target := target) (w := w) (A := A) (B := Bchild) (f := f)
+        (pref := η.take P) (pref' := pref') (τ := τ) (r := r)
+        hwt hwlen hnq hprefBound hpref hτlen hr hlhs hc hrhs hchildDer hmin
+    have hpref'Bound : pref'.length ≤ P := by
+      have hlen : (f :: pref').length ≤ P := by
+        simpa [hpref] using hprefBound
+      simp at hlen ⊢
+      omega
+    have hrank : pref'.length + n₀ < (η.take P).length + m := by
+      rw [hpref, hmEq]
+      simp
+      omega
+    exact Or.inr
+      ⟨pref', τ, Bchild, n₀, hpref'Bound, hτlen, hrank, hcert, hchildMin,
+        htargetItem, hlengthItem⟩
+
 /-- Enlarged-budget generated-word form of the certified prefix-preserving surface-repeat
 bridge.
 
