@@ -11102,6 +11102,132 @@ theorem short_or_pop_child_certificate_frontiers_of_local_minimal
       ⟨pref', τ, Bchild, n₀, hpref'Bound, hτlen, hrank, hcert, hchildMin,
         htargetItem, hlengthItem⟩
 
+/-- Package a rank-decreasing child certificate into the finite surface/certificate/rank
+frontiers.
+
+The child-descent lemma supplies the smaller local rank
+`prefChild.length + n₀ < (η.take P).length + m`. If the parent rank is bounded by `R`, then the
+child belongs to both finite rank frontiers paired with the same visible replacement surface. -/
+theorem short_or_child_certificate_rank_frontiers_of_parent_rank_bound
+    {g : IndexedGrammar T} {P K Kpop L R m : ℕ} {target w : List T}
+    {η τ : List g.flag} {surface : SurfaceForm g P}
+    (htargetSurface : surface ∈ targetCompatibleBoundedSurfaceForms g target P)
+    (hlengthSurface : surface ∈ boundedSurfaceForms g L P)
+    (hparentRank : (η.take P).length + m ≤ R)
+    (hdescent :
+      τ.length ≤ Kpop ∨
+        ∃ prefChild τChild : List g.flag,
+        ∃ Bchild : g.nt, ∃ n₀ : ℕ,
+          prefChild.length ≤ P ∧
+            τChild.length ≤ K ∧
+            prefChild.length + n₀ < (η.take P).length + m ∧
+            NFYield g Bchild (prefChild ++ τChild) w ∧
+            (∀ μ : List g.flag, ∀ k : ℕ,
+              k ≤ n₀ →
+              g.DerivesIn k [ISym.indexed Bchild (prefChild ++ μ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              μ.Sublist τChild → μ = τChild) ∧
+            (((Bchild, prefChild ++ τChild), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            (((Bchild, prefChild ++ τChild), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T))) :
+    τ.length ≤ Kpop ∨
+      ∃ prefChild τChild : List g.flag,
+      ∃ Bchild : g.nt, ∃ n₀ : ℕ,
+        prefChild.length ≤ P ∧
+          τChild.length ≤ K ∧
+          prefChild.length + n₀ < (η.take P).length + m ∧
+          NFYield g Bchild (prefChild ++ τChild) w ∧
+          (∀ μ : List g.flag, ∀ k : ℕ,
+            k ≤ n₀ →
+            g.DerivesIn k [ISym.indexed Bchild (prefChild ++ μ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            μ.Sublist τChild → μ = τChild) ∧
+          (((Bchild, prefChild ++ τChild), w) :
+              (g.nt × List g.flag) × List T) ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) ∧
+          (((Bchild, prefChild ++ τChild), w) :
+              (g.nt × List g.flag) × List T) ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) ∧
+          (((surface, ((Bchild, prefChild ++ τChild), w)),
+              prefChild.length + n₀) :
+              (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) ∈
+            ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+              x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+                x.1.2 ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                x.2 ≤ R} :
+              Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) ∧
+          (((surface, ((Bchild, prefChild ++ τChild), w)),
+              prefChild.length + n₀) :
+              (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) ∈
+            ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+              x.1.1 ∈ boundedSurfaceForms g L P ∧
+                x.1.2 ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                x.2 ≤ R} :
+              Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) := by
+  rcases hdescent with hshort | hchild
+  · exact Or.inl hshort
+  rcases hchild with
+    ⟨prefChild, τChild, Bchild, n₀, hpref, hτ, hrank, hcert, hmin, htargetItem,
+      hlengthItem⟩
+  have hchildRank : prefChild.length + n₀ ≤ R :=
+    Nat.le_of_lt (lt_of_lt_of_le hrank hparentRank)
+  have htargetRank :
+      (((surface, ((Bchild, prefChild ++ τChild), w)), prefChild.length + n₀) :
+          (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) ∈
+        ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+          x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+            x.1.2 ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) :=
+    NFYield.bounded_target_surface_certificate_rank_mem
+      (g := g) (P := P) (B := P + K) (R := R) (target := target)
+      htargetSurface htargetItem hchildRank
+  have hlengthRank :
+      (((surface, ((Bchild, prefChild ++ τChild), w)), prefChild.length + n₀) :
+          (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) ∈
+        ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+          x.1.1 ∈ boundedSurfaceForms g L P ∧
+            x.1.2 ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) :=
+    NFYield.bounded_length_surface_certificate_rank_mem
+      (g := g) (P := P) (B := P + K) (L := L) (R := R)
+      hlengthSurface hlengthItem hchildRank
+  exact Or.inr
+    ⟨prefChild, τChild, Bchild, n₀, hpref, hτ, hrank, hcert, hmin, htargetItem,
+      hlengthItem, htargetRank, hlengthRank⟩
+
 /-- Enlarged-budget generated-word form of the certified prefix-preserving surface-repeat
 bridge.
 
