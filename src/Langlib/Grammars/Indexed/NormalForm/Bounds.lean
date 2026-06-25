@@ -139,6 +139,20 @@ theorem exists_chain (h : RelDerivesIn r n a b) :
           · simpa using hlast
           · exact List.IsChain.cons_cons hstep hchain
 
+/-- Short path form of reachability in a finite directed graph: whenever `b` is reachable
+from `a`, there is a concrete edge chain from `a` to `b` whose number of vertices is bounded
+by the cardinality of the state space. -/
+theorem exists_path_card_bound_of_reflTransGen [Fintype α]
+    (h : Relation.ReflTransGen r a b) :
+    ∃ path : List α,
+      path.head? = some a ∧
+      path.getLast? = some b ∧
+      path.length ≤ Fintype.card α ∧
+      path.IsChain r := by
+  obtain ⟨n, hn, hcard⟩ := exists_card_bound_of_reflTransGen h
+  obtain ⟨path, hlen, hhead, hlast, hchain⟩ := exists_chain hn
+  exact ⟨path, hhead, hlast, by simpa [hlen] using hcard, hchain⟩
+
 end RelDerivesIn
 
 theorem reflTransGen_reverse {α : Type} {r : α → α → Prop} {a b : α}
@@ -6103,6 +6117,70 @@ theorem packedTerminalReverseRuleStepLanguage_iff_terminalRow_reaches_initial
     have hrow := castPackedCellsRow_packedTerminalCells g (B + 2) w
     rw [← hrow] at hcast
     simpa [packedBoundedFlatForm] using hcast
+
+/-- Short concrete rule-path form of the fixed-width terminal reverse rule-step language.
+
+The terminal input row reaches the initial row by reverse concrete normal-form rule steps, and
+the row path can be chosen with at most one visit per finite packed row state. -/
+theorem packedTerminalReverseRuleStepLanguage_iff_exists_terminalRow_rulePath_card_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) {w : List T} :
+    w ∈ packedTerminalReverseRuleStepLanguage g B ↔
+      ∃ hwne : w ≠ [],
+      ∃ path : List (PackedFlatForm g (B + 2) w.length),
+        path.head? =
+          some (packedFlatForm g (B + 2) w.length
+            (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)))) ∧
+        path.getLast? =
+          some (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) ∧
+        path.length ≤ Fintype.card (PackedFlatForm g (B + 2) w.length) ∧
+        path.IsChain (fun x y => PackedFlatRuleStep g (B + 2) w.length y x) := by
+  rw [packedTerminalReverseRuleStepLanguage_iff_terminalRow_reaches_initial]
+  constructor
+  · rintro ⟨hwne, hreach⟩
+    obtain ⟨path, hhead, hlast, hlen, hchain⟩ :=
+      RelDerivesIn.exists_path_card_bound_of_reflTransGen hreach
+    exact ⟨hwne, path, hhead, hlast, hlen, hchain⟩
+  · rintro ⟨hwne, path, hhead, hlast, _hlen, hchain⟩
+    refine ⟨hwne, ?_⟩
+    have hne : path ≠ [] := by
+      cases path with
+      | nil =>
+          simp at hhead
+      | cons _ _ =>
+          simp
+    have hrt :=
+      List.relationReflTransGen_of_exists_isChain path hchain hne
+    have hx :
+        path.head hne =
+          packedFlatForm g (B + 2) w.length
+            (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag))) := by
+      cases path with
+      | nil =>
+          contradiction
+      | cons a rest =>
+          simpa using hhead
+    have hy :
+        path.getLast hne =
+          packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩ := by
+      have hs :
+          some (path.getLast hne) =
+            some (packedBoundedFlatForm g (B + 2) w.length
+              ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+                initial_mem_boundedFlatForms_length_mul_of_pos
+                  (g := g) (B := B) (w := w)
+                  (List.length_pos_of_ne_nil hwne)⟩) := by
+        rw [← List.getLast?_eq_some_getLast hne, hlast]
+      exact Option.some.inj hs
+    simpa [hx, hy] using hrt
 
 theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)

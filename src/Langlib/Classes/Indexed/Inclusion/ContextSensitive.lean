@@ -431,6 +431,65 @@ public theorem finite_normalForm_language_iff_exists_terminalRow_reaches_initial
       (packedTerminalReverseRuleStep_language_iff_terminalRow_reaches_initial
         (g := g) (B := B)).mpr hB⟩
 
+/-- Bounded concrete rule-path form of the fixed-width terminal target. -/
+public theorem packedTerminalReverseRuleStep_language_iff_exists_terminalRow_rulePath_card_bound
+    {A : Type} [Fintype A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) {w : List A} :
+    w ∈ IndexedGrammar.packedTerminalReverseRuleStepLanguage g B ↔
+      ∃ hwne : w ≠ [],
+      ∃ path : List (IndexedGrammar.PackedFlatForm g (B + 2) w.length),
+        path.head? =
+          some (IndexedGrammar.packedFlatForm g (B + 2) w.length
+            (w.map (IndexedGrammar.FlatSymbol.terminal (N := g.nt) (F := g.flag)))) ∧
+        path.getLast? =
+          some (IndexedGrammar.packedBoundedFlatForm g (B + 2) w.length
+            ⟨IndexedGrammar.encodeSentential
+                ([IndexedGrammar.ISym.indexed g.initial []] : List g.ISym),
+              IndexedGrammar.initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) ∧
+        path.length ≤
+          Fintype.card (IndexedGrammar.PackedFlatForm g (B + 2) w.length) ∧
+        path.IsChain
+          (fun x y => IndexedGrammar.PackedFlatRuleStep g (B + 2) w.length y x) :=
+  IndexedGrammar.packedTerminalReverseRuleStepLanguage_iff_exists_terminalRow_rulePath_card_bound
+    (g := g) B
+
+/-- Bounded concrete rule-path target for the finite normal-form core. -/
+public theorem finite_normalForm_language_iff_exists_terminalRow_rulePath_card_bound
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List A} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ, ∃ hwne : w ≠ [],
+      ∃ path : List (IndexedGrammar.PackedFlatForm g (B + 2) w.length),
+        path.head? =
+          some (IndexedGrammar.packedFlatForm g (B + 2) w.length
+            (w.map (IndexedGrammar.FlatSymbol.terminal (N := g.nt) (F := g.flag)))) ∧
+        path.getLast? =
+          some (IndexedGrammar.packedBoundedFlatForm g (B + 2) w.length
+            ⟨IndexedGrammar.encodeSentential
+                ([IndexedGrammar.ISym.indexed g.initial []] : List g.ISym),
+              IndexedGrammar.initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) ∧
+        path.length ≤
+          Fintype.card (IndexedGrammar.PackedFlatForm g (B + 2) w.length) ∧
+        path.IsChain
+          (fun x y => IndexedGrammar.PackedFlatRuleStep g (B + 2) w.length y x) := by
+  rw [finite_normalForm_language_iff_exists_packedTerminalReverseRuleStepLanguage
+    (g := g) hNF]
+  constructor
+  · rintro ⟨B, hB⟩
+    exact ⟨B,
+      (packedTerminalReverseRuleStep_language_iff_exists_terminalRow_rulePath_card_bound
+        (g := g) (B := B)).mp hB⟩
+  · rintro ⟨B, hB⟩
+    exact ⟨B,
+      (packedTerminalReverseRuleStep_language_iff_exists_terminalRow_rulePath_card_bound
+        (g := g) (B := B)).mpr hB⟩
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]
