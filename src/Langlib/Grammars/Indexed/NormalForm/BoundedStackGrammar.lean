@@ -10753,6 +10753,60 @@ theorem exists_bound_late_window_prefix_preserving_replacement_short_or_pop
     simpa [hζeq] using hζder
   exact hKpop target htargetLen (η.take P) hpref q m A τ w hwt hm hqC hder hτmin
 
+/-- Late-window direct boundedness for locally minimal prefix-preserving replacements.
+
+The late-window inequality gives `q ≤ C`, hence the preserved prefix plus the local derivation
+length is bounded by `P + C`. The locally budgeted minimal-suffix theorem then bounds the
+replacement suffix directly, without exposing the intermediate pop descent. -/
+theorem exists_bound_late_window_prefix_preserving_replacement_short_of_local_minimal
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (P L C : ℕ) :
+    ∃ Kshort : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          ∀ i : ℕ, i < trace.length →
+            trace.length - 1 - C ≤ i →
+            ∀ A : g.nt, ∀ η τ ζ : List g.flag,
+              ∀ q m : ℕ, ∀ w : List T,
+                w.Sublist target →
+                q ≤ trace.length - 1 - i →
+                m ≤ q →
+                ζ = η.take P ++ τ →
+                g.DerivesIn m [ISym.indexed A ζ]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) →
+                (∀ ρ : List g.flag, ∀ k : ℕ,
+                  k ≤ q →
+                  g.DerivesIn k [ISym.indexed A (η.take P ++ ρ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym)) →
+                  ρ.Sublist τ → ρ = τ) →
+                τ.length ≤ Kshort := by
+  obtain ⟨Kmin, hKmin⟩ :=
+    exists_bound_locally_budgeted_minimal_suffix_length_of_target_length_bounded_prefix_budget
+      (g := g) hNF (P + C) L
+  refine ⟨Kmin + (P + C), ?_⟩
+  intro target htargetLen trace i hi hlow A η τ ζ q m w hwt hq hm hζeq hζder hτmin
+  have hpref : (η.take P).length ≤ P + C := by
+    exact le_trans (List.length_take_le P η) (Nat.le_add_right P C)
+  have hqC : q ≤ C := by omega
+  have hbudget : (η.take P).length + m ≤ P + C := by
+    have hmC : m ≤ C := le_trans hm hqC
+    have htake : (η.take P).length ≤ P := List.length_take_le P η
+    omega
+  have hder :
+      g.DerivesIn m [ISym.indexed A (η.take P ++ τ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) := by
+    simpa [hζeq] using hζder
+  have hmin :
+      ∀ ρ : List g.flag, ∀ k : ℕ,
+        k ≤ m →
+        g.DerivesIn k [ISym.indexed A (η.take P ++ ρ)]
+          (w.map fun a => (ISym.terminal a : g.ISym)) →
+        ρ.Sublist τ → ρ = τ := by
+    intro ρ k hk hρder hρsub
+    exact hτmin ρ k (le_trans hk hm) hρder hρsub
+  exact hKmin target htargetLen (η.take P) hpref m A τ w hwt hder hmin hbudget
+
 /-- Pop-descent package when the local pop consumes the first suffix flag below an empty
 preserved prefix. The child derivation gives a child parse certificate, the parent's local
 minimality descends to the child suffix, and the child item lies in both finite certificate

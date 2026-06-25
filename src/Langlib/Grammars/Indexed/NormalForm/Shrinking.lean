@@ -4522,6 +4522,53 @@ theorem exists_bound_locally_budgeted_minimal_suffix_length_of_bounded_prefix_bu
               hprev pref' hpref'_le n B σ w hwt hchild hmin_child hbudget_child
             omega
 
+/-- Length-uniform version of
+`exists_bound_locally_budgeted_minimal_suffix_length_of_bounded_prefix_budget`. For a finite
+terminal alphabet, one suffix-height bound works for every target word of length at most `L`
+when minimality is only required up to the local derivation budget. -/
+theorem exists_bound_locally_budgeted_minimal_suffix_length_of_target_length_bounded_prefix_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w <+ target →
+            g.DerivesIn n [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            (∀ τ : List g.flag, ∀ m : ℕ,
+              m ≤ n →
+              g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              τ <+ σ → τ = σ) →
+            pref.length + n ≤ N →
+            σ.length ≤ K + N := by
+  classical
+  have htargets :
+      ({target : List T | target.length ≤ L} : Set (List T)).Finite :=
+    List.finite_length_le T L
+  let targets : Finset (List T) := Set.Finite.toFinset htargets
+  let targetBound : List T → ℕ := fun target =>
+    Classical.choose
+      (exists_bound_locally_budgeted_minimal_suffix_length_of_bounded_prefix_budget
+        (g := g) hNF N target)
+  refine ⟨targets.sup targetBound, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hmin hbudget
+  have htargetMem : target ∈ targets := by
+    rw [Set.Finite.mem_toFinset]
+    exact htargetLen
+  have hle : targetBound target ≤ targets.sup targetBound :=
+    Finset.le_sup (s := targets) (f := targetBound) htargetMem
+  have hspec :=
+    Classical.choose_spec
+      (exists_bound_locally_budgeted_minimal_suffix_length_of_bounded_prefix_budget
+        (g := g) hNF N target)
+  have hσ :=
+    hspec pref hpref n A σ w hwt hder hmin hbudget
+  exact le_trans hσ (Nat.add_le_add_right hle N)
+
 /-- Local-budget bounded-prefix suffix shrinking. If the live prefix length plus the counted
 derivation length is at most `N`, then a sub-suffix can be chosen with a uniform length bound;
 the chosen suffix is minimal among all suffixes deriving the same yield within the original
