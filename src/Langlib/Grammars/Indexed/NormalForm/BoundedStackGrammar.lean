@@ -9867,6 +9867,68 @@ theorem boundedFlatPathLanguage_length_of_late_window_trace_bound_isNormalForm
       (target := target) (trace := trace) le_rfl htrace hlen hhead hlast
       hbeforeBound hwindowBound
 
+/-- Generated-word exact-length low-window branch.
+
+For every generated target, choose the standard shortest accepting trace with least stack
+bound among traces of that length. If that trace is `P`-bounded before the late `C`-window
+and throughout the late window, the target is accepted in the exact-length bounded flat-path
+slice with width `P + 2`. -/
+theorem exists_boundedFlatPathLanguage_length_of_late_window_low_branch_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    (P C : ℕ) :
+    ∀ target : List T,
+      g.Generates target →
+      ∃ n B : ℕ, ∃ trace : List (List g.ISym),
+        IsDerivationTrace g trace ∧
+          trace.length = n + 1 ∧
+          trace.head? = some [ISym.indexed g.initial []] ∧
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          g.DerivesIn n [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          (∀ m,
+            g.DerivesIn m [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) ∧
+          (∀ i (hi : i < trace.length),
+            sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+          (∀ C' : ℕ,
+            (∃ trace' : List (List g.ISym),
+              IsDerivationTrace g trace' ∧
+                trace'.length = n + 1 ∧
+                trace'.head? = some [ISym.indexed g.initial []] ∧
+                trace'.getLast? =
+                  some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ j (hj : j < trace'.length),
+                  sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+              B ≤ C') ∧
+          ((∀ k (hk : k < trace.length),
+            k < trace.length - 1 - C →
+              sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P) →
+          (∀ i (hi : i < trace.length),
+            trace.length - 1 - C ≤ i →
+            i ≤ trace.length - 1 - C + C →
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ P) →
+          target ∈ boundedFlatPathLanguage g (target.length * (P + 2))) := by
+  intro target hgen
+  obtain ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+      hminBound⟩ :=
+    exists_shortest_stackBound_minimal_accepting_derivationTrace_of_generates
+      (g := g) hgen
+  refine ⟨n, B, trace, htrace, hlen, hhead, ?_, ?_, ?_, hbound, ?_, ?_⟩
+  · simpa using hlast
+  · simpa using hder
+  · intro m hm
+    exact hminLength m (by simpa using hm)
+  · intro C' hC'
+    exact hminBound C' (by
+      rcases hC' with ⟨trace', htrace', hlen', hhead', hlast', hbound'⟩
+      exact ⟨trace', htrace', hlen', hhead', by simpa using hlast', hbound'⟩)
+  · intro hbeforeBound hwindowBound
+    exact
+      boundedFlatPathLanguage_length_of_late_window_trace_bound_isNormalForm
+        (g := g) hNF (P := P) (C := C) (n := n) (target := target)
+        (trace := trace) htrace hlen hhead (by simpa using hlast)
+        hbeforeBound hwindowBound
+
 /-- Fixed bounded-stack slices embed in the matching packed flat-path language.
 
 Normal form excludes `ε`, so the exact-length flat-path certificate extracted from the
