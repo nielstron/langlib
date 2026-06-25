@@ -2266,12 +2266,60 @@ theorem boundedFlatPathLanguage_length_iff_packedFlatDerives
   exact (packedFlatDerives_iff_boundedFlatDerives (g := g) (W := B + 2)
     (n := w.length) (by omega)).symm
 
+/-- Fixed stack-bound packed flat-path language.
+
+For stack bound `B`, every input word is represented on exactly `|w|` packed tape cells with
+`B + 2` flat slots per cell: one nonterminal/terminal slot, up to `B` stack flags, and the
+stack-bottom marker. The empty word is excluded because there are no tape cells on which to
+place the initial flat sentential form. -/
+def packedFlatPathStackBoundLanguage (g : IndexedGrammar T) (B : ℕ) : _root_.Language T :=
+  fun w : List T =>
+    ∃ hwne : w ≠ [],
+      PackedFlatDerives g (B + 2) w.length
+        (packedBoundedFlatForm g (B + 2) w.length
+          ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+            initial_mem_boundedFlatForms_length_mul_of_pos
+              (g := g) (B := B) (w := w) (List.length_pos_of_ne_nil hwne)⟩)
+        (packedBoundedFlatForm g (B + 2) w.length
+          ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+            terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩)
+
+theorem packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
+    {g : IndexedGrammar T} {B : ℕ} {w : List T} :
+    w ∈ packedFlatPathStackBoundLanguage g B ↔
+      w ≠ [] ∧ w ∈ boundedFlatPathLanguage g (w.length * (B + 2)) := by
+  constructor
+  · rintro ⟨hwne, hpacked⟩
+    exact ⟨hwne,
+      (boundedFlatPathLanguage_length_iff_packedFlatDerives
+        (g := g) (B := B) (w := w) hwne).mpr hpacked⟩
+  · rintro ⟨hwne, hflat⟩
+    exact ⟨hwne,
+      (boundedFlatPathLanguage_length_iff_packedFlatDerives
+        (g := g) (B := B) (w := w) hwne).mp hflat⟩
+
+theorem nil_not_mem_packedFlatPathStackBoundLanguage
+    (g : IndexedGrammar T) (B : ℕ) :
+    [] ∉ packedFlatPathStackBoundLanguage g B := by
+  intro h
+  exact ((packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
+    (g := g) (B := B) (w := [])).mp h).1 rfl
+
 theorem boundedFlatPathLanguage_subset_language
     {g : IndexedGrammar T} {B : ℕ} {w : List T}
     (h : w ∈ boundedFlatPathLanguage g B) :
     w ∈ g.Language := by
   rcases h with ⟨path, hhead, hlast, hbound, hstep⟩
   exact generates_of_boundedFlatPath_initial_terminal hhead hlast hbound hstep
+
+theorem packedFlatPathStackBoundLanguage_subset_language
+    {g : IndexedGrammar T} {B : ℕ} {w : List T}
+    (h : w ∈ packedFlatPathStackBoundLanguage g B) :
+    w ∈ g.Language := by
+  rcases (packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
+    (g := g) (B := B) (w := w)).mp h with ⟨_hwne, hflat⟩
+  exact boundedFlatPathLanguage_subset_language
+    (g := g) (B := w.length * (B + 2)) hflat
 
 theorem boundedFlatPathLanguage_mono {g : IndexedGrammar T}
     {B C : ℕ} (hBC : B ≤ C) :

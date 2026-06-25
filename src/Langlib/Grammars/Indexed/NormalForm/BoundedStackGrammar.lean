@@ -9855,6 +9855,31 @@ theorem language_iff_exists_packedFlatDerives_width_isNormalForm
       (boundedFlatPathLanguage_length_iff_packedFlatDerives
         (g := g) (B := B) (w := w) hwne).mpr hpacked⟩
 
+/-- Packed-language form of normal-form generation.
+
+A finite normal-form grammar generates exactly the union, over all stack bounds `B`, of the
+fixed-stack-bound packed flat-path languages. This packages the nonempty side condition inside
+the packed language itself, so the statement is a genuine language equality rather than a
+relation with a separate endpoint well-formedness proof. -/
+theorem language_iff_exists_packedFlatPathStackBoundLanguage_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w : List T} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ, w ∈ packedFlatPathStackBoundLanguage g B := by
+  constructor
+  · intro hgen
+    have hwne : w ≠ [] := by
+      intro hw
+      subst w
+      exact (g.not_generates_nil_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF)) hgen
+    obtain ⟨B, hpacked⟩ :=
+      (language_iff_exists_packedFlatDerives_width_isNormalForm
+        (g := g) hNF (w := w) hwne).mp hgen
+    exact ⟨B, hwne, hpacked⟩
+  · rintro ⟨B, hpacked⟩
+    exact packedFlatPathStackBoundLanguage_subset_language
+      (g := g) (B := B) hpacked
+
 /-- Set-level form of
 `language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm`. -/
 theorem language_eq_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
@@ -9863,6 +9888,16 @@ theorem language_eq_exists_boundedFlatPathLanguage_length_stackBound_isNormalFor
       fun w : List T => ∃ B : ℕ, w ∈ boundedFlatPathLanguage g (w.length * (B + 2)) := by
   ext w
   exact language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
+    (g := g) hNF
+
+/-- Set-level form of
+`language_iff_exists_packedFlatPathStackBoundLanguage_isNormalForm`. -/
+theorem language_eq_exists_packedFlatPathStackBoundLanguage_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm) :
+    g.Language =
+      fun w : List T => ∃ B : ℕ, w ∈ packedFlatPathStackBoundLanguage g B := by
+  ext w
+  exact language_iff_exists_packedFlatPathStackBoundLanguage_isNormalForm
     (g := g) hNF
 
 /-- A bounded flat path decodes to a counted indexed derivation whose intermediate stack
@@ -17468,6 +17503,37 @@ theorem exists_bound_packedFlatDerives_width_eq_on_length_le_isNormalForm
   rw [hB target htargetLen]
   exact boundedFlatPathLanguage_length_iff_packedFlatDerives
     (g := g) (B := B) (w := target) htargetNe
+
+/-- Exact-length packed-language finite-ball form.
+
+On a fixed terminal ball, one stack-bound parameter `B` makes the normal-form language agree
+with the corresponding packed flat-path language. Unlike the raw packed reachability statement,
+the packed language excludes `ε` internally, matching normal-form grammars. -/
+theorem exists_bound_packedFlatPathStackBoundLanguage_eq_on_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔ target ∈ packedFlatPathStackBoundLanguage g B) := by
+  obtain ⟨B, hB⟩ :=
+    exists_bound_boundedFlatPathLanguage_length_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  refine ⟨B, ?_⟩
+  intro target htargetLen
+  constructor
+  · intro hgen
+    have htargetNe : target ≠ [] := by
+      intro htarget
+      subst target
+      exact (g.not_generates_nil_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF)) hgen
+    exact
+      (packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
+        (g := g) (B := B) (w := target)).mpr
+        ⟨htargetNe, (hB target htargetLen).mp hgen⟩
+  · intro hpacked
+    exact (hB target htargetLen).mpr
+      ((packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
+        (g := g) (B := B) (w := target)).mp hpacked).2
 
 /-- If shortest accepting derivations for all generated targets of length at most `L` are
 bounded by `N`, then one fixed bounded-stack grammar captures the original normal-form
