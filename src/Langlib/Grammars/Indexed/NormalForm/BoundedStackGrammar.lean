@@ -3679,6 +3679,229 @@ theorem exists_high_stack_between_late_surface_card_or_steps_lt_card_of_minimal_
         (by simpa [C] using hgt)
     exact Or.inr (by simpa [C] using hhigh)
 
+/-- Target-specific combined branch-rank budget version of the late high-stack locator.
+
+A root certificate embeds the target-compatible visible surfaces into the combined
+single-certificate-or-binary-pair target frontier, so any budget dominating that combined
+frontier is also a valid late-window budget. -/
+theorem
+    exists_high_stack_between_late_target_surface_branch_rank_budget_or_steps_lt_budget_of_minimal_stack_gt_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P Bcert R C n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (hcert : NFYield g g.initial [] target)
+    (hC :
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P Bcert R target)).card +
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+            (g := g) P Bcert R target)).card ≤ C)
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (hbeforeBound : ∀ k (hk : k < trace.length),
+      k < trace.length - 1 - C →
+        sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hgt : P + C < B) :
+    n < C ∨
+      ∃ k : Fin trace.length,
+        trace.length - 1 - C ≤ k.1 ∧
+          k.1 ≤ trace.length - 1 - C + C ∧
+          trace.length - 1 - k.1 ≤ C ∧
+          P < sententialMaxStackHeight (trace.get k) := by
+  classical
+  let Ct :=
+    (Set.Finite.toFinset
+      (targetCompatibleBoundedSurfaceForms_finite g target P)).card
+  have hCtC : Ct ≤ C := by
+    have hCtBranch :
+        Ct ≤
+          (Set.Finite.toFinset
+            (NFYield.finite_bounded_target_surface_certificate_rank_items
+              (g := g) P Bcert R target)).card +
+            (Set.Finite.toFinset
+              (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+                (g := g) P Bcert R target)).card := by
+      simpa [Ct] using
+        NFYield.targetCompatibleBoundedSurfaceForms_card_le_bounded_target_surface_branch_rank_items_card_of_certificate
+          (g := g) (P := P) (B := Bcert) (R := R) (target := target) hcert
+    exact le_trans hCtBranch hC
+  by_cases hn : n < C
+  · exact Or.inl hn
+  · have hC_le_n : C ≤ n := Nat.le_of_not_gt hn
+    have hm : trace.length - 1 - C + Ct < trace.length := by
+      omega
+    obtain ⟨k, hkLower, hkUpper, hsuffixBudget, hhigh⟩ :=
+      exists_high_stack_between_late_surface_card_of_minimal_stack_gt_bound
+        (g := g) hNF htrace hlen hhead hlast hminLength hminBound
+        (K := P) (N := C) (n := n) (B := B)
+        hbeforeBound
+        (by simpa [Ct] using hm)
+        hgt
+    refine Or.inr ⟨k, hkLower, ?_, hsuffixBudget, hhigh⟩
+    exact le_trans hkUpper (Nat.add_le_add_left hCtC (trace.length - 1 - C))
+
+/-- Generated-target version of
+`exists_high_stack_between_late_target_surface_branch_rank_budget_or_steps_lt_budget_of_minimal_stack_gt_bound`.
+
+For a normal-form grammar, `g.Generates target` supplies the root certificate used to compare
+the visible surface frontier with the target combined branch frontier. -/
+theorem
+    exists_high_stack_between_late_target_surface_branch_rank_budget_or_steps_lt_budget_of_minimal_stack_gt_bound_of_generates
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P Bcert R C n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (hgen : g.Generates target)
+    (hC :
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P Bcert R target)).card +
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+            (g := g) P Bcert R target)).card ≤ C)
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (hbeforeBound : ∀ k (hk : k < trace.length),
+      k < trace.length - 1 - C →
+        sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hgt : P + C < B) :
+    n < C ∨
+      ∃ k : Fin trace.length,
+        trace.length - 1 - C ≤ k.1 ∧
+          k.1 ≤ trace.length - 1 - C + C ∧
+          trace.length - 1 - k.1 ≤ C ∧
+          P < sententialMaxStackHeight (trace.get k) := by
+  exact
+    exists_high_stack_between_late_target_surface_branch_rank_budget_or_steps_lt_budget_of_minimal_stack_gt_bound
+      (g := g) hNF (P := P) (Bcert := Bcert) (R := R) (C := C) (n := n)
+      (B := B) (trace := trace) (target := target)
+      ((NFYield.generates_iff_isNormalForm (g := g) hNF).mp hgen) hC htrace hlen hhead
+      hlast hminLength hminBound hbeforeBound hgt
+
+/-- Generated-target card version of the target combined branch-rank high-stack locator.
+
+The late-window budget is exactly the cardinality of the target combined branch frontier. -/
+theorem
+    exists_high_stack_between_late_target_surface_branch_rank_frontier_card_or_steps_lt_budget_of_minimal_stack_gt_bound_of_generates
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P Bcert R n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (hgen : g.Generates target)
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (hbeforeBound : ∀ k (hk : k < trace.length),
+      k < trace.length - 1 -
+          ((Set.Finite.toFinset
+            (NFYield.finite_bounded_target_surface_certificate_rank_items
+              (g := g) P Bcert R target)).card +
+            (Set.Finite.toFinset
+              (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+                (g := g) P Bcert R target)).card) →
+        sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hgt :
+      P +
+          ((Set.Finite.toFinset
+            (NFYield.finite_bounded_target_surface_certificate_rank_items
+              (g := g) P Bcert R target)).card +
+            (Set.Finite.toFinset
+              (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+                (g := g) P Bcert R target)).card) <
+        B) :
+    n <
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_target_surface_certificate_rank_items
+            (g := g) P Bcert R target)).card +
+          (Set.Finite.toFinset
+            (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+              (g := g) P Bcert R target)).card ∨
+      ∃ k : Fin trace.length,
+        trace.length - 1 -
+            ((Set.Finite.toFinset
+              (NFYield.finite_bounded_target_surface_certificate_rank_items
+                (g := g) P Bcert R target)).card +
+              (Set.Finite.toFinset
+                (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+                  (g := g) P Bcert R target)).card) ≤ k.1 ∧
+          k.1 ≤
+            trace.length - 1 -
+                ((Set.Finite.toFinset
+                  (NFYield.finite_bounded_target_surface_certificate_rank_items
+                    (g := g) P Bcert R target)).card +
+                  (Set.Finite.toFinset
+                    (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+                      (g := g) P Bcert R target)).card) +
+              ((Set.Finite.toFinset
+                (NFYield.finite_bounded_target_surface_certificate_rank_items
+                  (g := g) P Bcert R target)).card +
+                (Set.Finite.toFinset
+                  (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+                    (g := g) P Bcert R target)).card) ∧
+          trace.length - 1 - k.1 ≤
+            (Set.Finite.toFinset
+              (NFYield.finite_bounded_target_surface_certificate_rank_items
+                (g := g) P Bcert R target)).card +
+              (Set.Finite.toFinset
+                (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+                  (g := g) P Bcert R target)).card ∧
+          P < sententialMaxStackHeight (trace.get k) := by
+  exact
+    exists_high_stack_between_late_target_surface_branch_rank_budget_or_steps_lt_budget_of_minimal_stack_gt_bound_of_generates
+      (g := g) hNF (P := P) (Bcert := Bcert) (R := R)
+      (C :=
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_target_surface_certificate_rank_items
+            (g := g) P Bcert R target)).card +
+          (Set.Finite.toFinset
+            (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+              (g := g) P Bcert R target)).card)
+      (n := n) (B := B) (trace := trace) (target := target) hgen le_rfl
+      htrace hlen hhead hlast hminLength hminBound hbeforeBound hgt
+
 /-- Length-uniform version of
 `exists_high_stack_between_late_surface_card_or_steps_lt_card_of_minimal_stack_gt_bound`.
 The target-compatible surface cardinal is bounded by the length-bounded surface cardinal, so
