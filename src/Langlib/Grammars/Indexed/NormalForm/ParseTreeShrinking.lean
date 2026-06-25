@@ -2265,6 +2265,85 @@ public theorem bounded_length_surface_pair_certificate_rank_items_card_mono_boun
       hBC hRS hxSet
   simpa using hxSet'
 
+/-- A generated word in the length ball embeds the visible surface frontier into the combined
+single-certificate-or-binary-pair rank frontier.
+
+The embedding uses the root single-certificate item; the pair side is included in the bound so a
+later saturation argument can size one window for both unary/pop descent states and binary
+pair states. -/
+public theorem boundedSurfaceForms_card_le_bounded_length_surface_branch_rank_items_card_of_exists_generates_isNormalForm
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] {P B L R : ℕ}
+    (hNF : g.IsNormalForm)
+    (hgenExists : ∃ target : List T, target.length ≤ L ∧ g.Generates target) :
+    (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P B L R)).card +
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_pair_certificate_rank_items
+          (g := g) P B L R)).card := by
+  have hsingle :
+      (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card ≤
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_length_surface_certificate_rank_items
+            (g := g) P B L R)).card :=
+    NFYield.boundedSurfaceForms_card_le_bounded_length_surface_certificate_rank_items_card_of_exists_generates_isNormalForm
+      (g := g) (P := P) (B := B) (L := L) (R := R) hNF hgenExists
+  exact le_trans hsingle (Nat.le_add_right _ _)
+
+/-- Target-specific combined surface/branch/rank frontier cardinality is monotone in both the
+stack bound and the rank bound. -/
+public theorem bounded_target_surface_branch_rank_items_card_mono_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B C R S : ℕ} {target : List T}
+    (hBC : B ≤ C) (hRS : R ≤ S) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P B R target)).card +
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+          (g := g) P B R target)).card ≤
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P C S target)).card +
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+          (g := g) P C S target)).card := by
+  exact Nat.add_le_add
+    (NFYield.bounded_target_surface_certificate_rank_items_card_mono_bound
+      (g := g) (P := P) (B := B) (C := C) (R := R) (S := S)
+      (target := target) hBC hRS)
+    (NFYield.bounded_target_surface_pair_certificate_rank_items_card_mono_bound
+      (g := g) (P := P) (B := B) (C := C) (R := R) (S := S)
+      (target := target) hBC hRS)
+
+/-- Length-uniform combined surface/branch/rank frontier cardinality is monotone in both the
+stack bound and the rank bound. -/
+public theorem bounded_length_surface_branch_rank_items_card_mono_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B C L R S : ℕ}
+    (hBC : B ≤ C) (hRS : R ≤ S) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P B L R)).card +
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_pair_certificate_rank_items
+          (g := g) P B L R)).card ≤
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P C L S)).card +
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_pair_certificate_rank_items
+          (g := g) P C L S)).card := by
+  exact Nat.add_le_add
+    (NFYield.bounded_length_surface_certificate_rank_items_card_mono_bound
+      (g := g) (P := P) (B := B) (C := C) (L := L) (R := R) (S := S)
+      hBC hRS)
+    (NFYield.bounded_length_surface_pair_certificate_rank_items_card_mono_bound
+      (g := g) (P := P) (B := B) (C := C) (L := L) (R := R) (S := S)
+      hBC hRS)
+
 /-- Frontier memberships supplied by a bounded-prefix binary certificate branch. This bundles
 the individual child certificates, the shrunken parent certificate, and the shared pair
 certificate into both target-specific and length-uniform finite frontiers. -/
