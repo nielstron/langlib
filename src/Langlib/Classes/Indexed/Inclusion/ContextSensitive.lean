@@ -258,6 +258,20 @@ public theorem finite_normalForm_language_iff_exists_packedTerminalCells_mem_rev
   IndexedGrammar.language_iff_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_isNormalForm
     (g := g) hNF
 
+/-- Fixed-width terminal-language target for the finite normal-form core.
+
+For a finite normal-form indexed grammar, membership is the union over fixed packed widths of
+the terminal preimages of the reverse packed-rule row languages. -/
+public theorem finite_normalForm_language_iff_exists_packedTerminalReverseRuleStepLanguage
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List A} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ,
+        w ∈ IndexedGrammar.packedTerminalReverseRuleStepLanguage g B :=
+  IndexedGrammar.language_iff_exists_packedTerminalReverseRuleStepLanguage_isNormalForm
+    (g := g) hNF
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]

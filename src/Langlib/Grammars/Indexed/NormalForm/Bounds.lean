@@ -5897,6 +5897,21 @@ theorem nil_not_mem_packedReverseRuleStepRowLanguage (g : IndexedGrammar T) (B :
   simp at hlen
   omega
 
+/-- Fixed-width terminal preimage of the packed reverse row language.
+
+The terminal input word is deterministically packed into cells; the packed row is then checked
+by `packedReverseRuleStepRowLanguage`. This is the terminal-language target for the fixed-width
+LBA construction. -/
+def packedTerminalReverseRuleStepLanguage (g : IndexedGrammar T) (B : ℕ) :
+    _root_.Language T :=
+  fun w => packedTerminalCells g (B + 2) w ∈ packedReverseRuleStepRowLanguage g B
+
+theorem nil_not_mem_packedTerminalReverseRuleStepLanguage (g : IndexedGrammar T) (B : ℕ) :
+    [] ∉ packedTerminalReverseRuleStepLanguage g B := by
+  intro hnil
+  exact nil_not_mem_packedReverseRuleStepRowLanguage (g := g) B (by
+    simpa [packedTerminalReverseRuleStepLanguage, packedTerminalCells] using hnil)
+
 theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {B : ℕ} {w : List T} :
@@ -5935,6 +5950,15 @@ theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRule
     subst row
     refine ⟨hwne, ?_⟩
     simpa [packedBoundedFlatForm] using hrev
+
+theorem packedFlatPathStackBoundLanguage_iff_packedTerminalReverseRuleStepLanguage_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w : List T} :
+    w ∈ packedFlatPathStackBoundLanguage g B ↔
+      w ∈ packedTerminalReverseRuleStepLanguage g B := by
+  exact
+    packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
+      (g := g) hNF
 
 theorem transformIsBinaryStep_encodeSentential_length_eq
     {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}

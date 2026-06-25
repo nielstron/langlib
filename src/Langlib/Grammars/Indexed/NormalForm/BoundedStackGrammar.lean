@@ -9954,6 +9954,27 @@ theorem language_iff_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_i
       (packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
         (g := g) hNF (B := B) (w := w)).mpr hrow⟩
 
+/-- Fixed-width terminal-language form of normal-form generation.
+
+This packages the deterministic terminal packing and the fixed-width reverse row language into
+one terminal language. The remaining finite-normal-form core can target
+`packedTerminalReverseRuleStepLanguage g B` directly. -/
+theorem language_iff_exists_packedTerminalReverseRuleStepLanguage_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w : List T} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ, w ∈ packedTerminalReverseRuleStepLanguage g B := by
+  rw [language_iff_exists_packedFlatPathStackBoundLanguage_isNormalForm (g := g) hNF]
+  constructor
+  · rintro ⟨B, hpacked⟩
+    exact ⟨B,
+      (packedFlatPathStackBoundLanguage_iff_packedTerminalReverseRuleStepLanguage_of_isNormalForm
+        (g := g) hNF (B := B) (w := w)).mp hpacked⟩
+  · rintro ⟨B, hrow⟩
+    exact ⟨B,
+      (packedFlatPathStackBoundLanguage_iff_packedTerminalReverseRuleStepLanguage_of_isNormalForm
+        (g := g) hNF (B := B) (w := w)).mpr hrow⟩
+
 /-- Set-level form of
 `language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm`. -/
 theorem language_eq_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
@@ -10006,6 +10027,17 @@ theorem language_eq_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_is
   ext w
   exact
     language_iff_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_isNormalForm
+      (g := g) hNF
+
+/-- Set-level form of
+`language_iff_exists_packedTerminalReverseRuleStepLanguage_isNormalForm`. -/
+theorem language_eq_exists_packedTerminalReverseRuleStepLanguage_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm) :
+    g.Language =
+      fun w : List T => ∃ B : ℕ, w ∈ packedTerminalReverseRuleStepLanguage g B := by
+  ext w
+  exact
+    language_iff_exists_packedTerminalReverseRuleStepLanguage_isNormalForm
       (g := g) hNF
 
 /-- A bounded flat path decodes to a counted indexed derivation whose intermediate stack
