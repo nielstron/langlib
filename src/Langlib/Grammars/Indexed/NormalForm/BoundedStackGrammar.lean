@@ -5642,6 +5642,61 @@ theorem exists_stackBoundedDerivesIn_of_derivesIn_target_length_bounded_prefix
       (g := g) hNF hpref hτlen hτder
   exact ⟨m, τ, hτsub, hτlen, hbounded, hτmin⟩
 
+/-- Whole-stack form of context replacement by bounded suffix shrinking.
+
+At an accepting-trace position, split the selected stack as `η.take N ++ η.drop N`, shrink
+only the dropped suffix, and reassemble the accepting suffix derivation. The replacement stack
+is a sublist of the original stack, has uniformly bounded length, and preserves the first `N`
+visible flags exactly. -/
+theorem exists_bound_accepting_derivationTrace_indexed_context_prefix_preserving_shrink_replacement
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            ∀ A : g.nt, ∀ η : List g.flag, ∀ u v : List g.ISym,
+              trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v →
+              ∃ m : ℕ, ∃ ζ : List g.flag, ∃ w : List T, ∃ n' : ℕ,
+                w.Sublist target ∧ w.length ≤ L ∧
+                ζ.Sublist η ∧ ζ.length ≤ N + K ∧ ζ.take N = η.take N ∧
+                g.DerivesIn m [ISym.indexed A ζ]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+                g.DerivesIn n' (u ++ [ISym.indexed A ζ] ++ v)
+                  (target.map fun a => (ISym.terminal a : g.ISym)) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_indexed_context_suffix_shrink_replacement
+      (g := g) N L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi A η u v hctx
+  let pref : List g.flag := η.take N
+  let σ : List g.flag := η.drop N
+  have hpref : pref.length ≤ N := by
+    simp [pref]
+  have hηsplit : pref ++ σ = η := by
+    simp [pref, σ]
+  have hctx' :
+      trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A (pref ++ σ)] ++ v := by
+    simpa [hηsplit] using hctx
+  obtain ⟨m, τ, w, n', hwt, hwlen, hτsub, hτlen, hτder, hreplacement, _hτmin⟩ :=
+    hK target htargetLen trace htrace hlast i hi A pref σ hpref u v hctx'
+  let ζ : List g.flag := pref ++ τ
+  have hζsub : ζ.Sublist η := by
+    have hsub : (pref ++ τ).Sublist (pref ++ σ) :=
+      List.Sublist.append (List.Sublist.refl pref) hτsub
+    simpa [ζ, hηsplit] using hsub
+  have hζlen : ζ.length ≤ N + K := by
+    simpa [ζ, List.length_append] using Nat.add_le_add hpref hτlen
+  have hζtake : ζ.take N = η.take N := by
+    simpa [ζ, pref, σ] using
+      NFYield.take_append_sublist_drop_eq_take (σ := η) (τ := τ) (N := N) hτsub
+  refine ⟨m, ζ, w, n', hwt, hwlen, hζsub, hζlen, hζtake, ?_, ?_⟩
+  · simpa [ζ] using hτder
+  · simpa [ζ] using hreplacement
+
 /-- If a shortest accepting derivation has step count at most `N` and the target has length at
 most `L`, then every stack in its trace is already bounded by `N`. Consequently the shortest
 derivation has fewer steps than the finite surface space with stack bound `N`. -/
