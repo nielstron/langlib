@@ -1852,6 +1852,27 @@ def PackedFlatDerives (g : IndexedGrammar T) (W n : ℕ) :
     PackedFlatForm g W n → PackedFlatForm g W n → Prop :=
   Relation.ReflTransGen (PackedFlatTransforms g W n)
 
+/-- Exactly `k` steps in the packed bounded-flat graph. -/
+def PackedFlatDerivesIn (g : IndexedGrammar T) (W n k : ℕ) :
+    PackedFlatForm g W n → PackedFlatForm g W n → Prop :=
+  RelDerivesIn (PackedFlatTransforms g W n) k
+
+theorem packedFlatDerives_of_packedFlatDerivesIn
+    {g : IndexedGrammar T} {W n k : ℕ} {x y : PackedFlatForm g W n}
+    (h : PackedFlatDerivesIn g W n k x y) :
+    PackedFlatDerives g W n x y :=
+  RelDerivesIn.reflTransGen h
+
+/-- In the finite packed bounded-flat graph, a reachable endpoint pair has a counted
+derivation using no more vertices than the whole packed state space. -/
+theorem exists_packedFlatDerivesIn_card_bound_of_packedFlatDerives
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {W n : ℕ} {x y : PackedFlatForm g W n}
+    (h : PackedFlatDerives g W n x y) :
+    ∃ k : ℕ, PackedFlatDerivesIn g W n k x y ∧
+      k + 1 ≤ Fintype.card (PackedFlatForm g W n) :=
+  RelDerivesIn.exists_card_bound_of_reflTransGen h
+
 theorem packedFlatTransforms_of_boundedFlatTransforms
     {g : IndexedGrammar T} {W n : ℕ}
     {x y : BoundedFlatForm g (n * W)}
@@ -2297,6 +2318,35 @@ theorem packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
     exact ⟨hwne,
       (boundedFlatPathLanguage_length_iff_packedFlatDerives
         (g := g) (B := B) (w := w) hwne).mp hflat⟩
+
+/-- Counted finite-search form of fixed-width packed flat-path membership.
+
+For a fixed packed width `B + 2`, every packed accepting path can be shortened to a counted
+path with at most as many vertices as the finite packed state space for the input length. -/
+theorem packedFlatPathStackBoundLanguage_iff_exists_packedFlatDerivesIn_card_bound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {B : ℕ} {w : List T} :
+    w ∈ packedFlatPathStackBoundLanguage g B ↔
+      ∃ hwne : w ≠ [],
+      ∃ k : ℕ,
+        PackedFlatDerivesIn g (B + 2) w.length k
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩)
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+              terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩) ∧
+        k + 1 ≤ Fintype.card (PackedFlatForm g (B + 2) w.length) := by
+  constructor
+  · rintro ⟨hwne, hpacked⟩
+    obtain ⟨k, hk, hcard⟩ :=
+      exists_packedFlatDerivesIn_card_bound_of_packedFlatDerives
+        (g := g) (W := B + 2) (n := w.length) hpacked
+    exact ⟨hwne, k, hk, hcard⟩
+  · rintro ⟨hwne, k, hk, _hcard⟩
+    exact ⟨hwne, packedFlatDerives_of_packedFlatDerivesIn (g := g) hk⟩
 
 theorem nil_not_mem_packedFlatPathStackBoundLanguage
     (g : IndexedGrammar T) (B : ℕ) :
