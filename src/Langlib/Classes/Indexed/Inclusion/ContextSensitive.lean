@@ -151,6 +151,29 @@ public theorem packedFlatPathStackBound_language_subset_language
       w ∈ g.Language :=
   fun _ h => IndexedGrammar.packedFlatPathStackBoundLanguage_subset_language h
 
+/-- Fixed bounded-stack slices embed in the same-width packed flat-path language. -/
+public theorem boundedStackGrammar_language_subset_packedFlatPathStackBound_language_of_isNormalForm
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (B : ℕ) :
+    ∀ w : List A,
+      w ∈ grammar_language (IndexedGrammar.boundedStackGrammar g B) →
+      w ∈ IndexedGrammar.packedFlatPathStackBoundLanguage g B :=
+  fun _ h =>
+    IndexedGrammar.boundedStackGrammar_language_subset_packedFlatPathStackBoundLanguage_isNormalForm
+      (g := g) hNF h
+
+/-- Packed flat-path witnesses decode to the length-scaled bounded-stack slice. -/
+public theorem packedFlatPathStackBound_language_subset_boundedStackGrammar_language_length
+    {A : Type} (g : IndexedGrammar A) [Fintype g.flag] (B : ℕ) :
+    ∀ w : List A,
+      w ∈ IndexedGrammar.packedFlatPathStackBoundLanguage g B →
+      w ∈ grammar_language
+        (IndexedGrammar.boundedStackGrammar g (w.length * (B + 2))) :=
+  fun _ h =>
+    IndexedGrammar.packedFlatPathStackBoundLanguage_subset_boundedStackGrammar_language_length
+      (g := g) h
+
 /-- Packed-language finite-ball form of the current normal-form simulator target.
 
 On every fixed input-length ball, one fixed stack-bound packed flat-path language agrees with

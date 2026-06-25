@@ -9802,6 +9802,27 @@ theorem boundedFlatPathLanguage_of_boundedStackGrammar_language_length_isNormalF
     boundedFlatPathLanguage_of_boundedStackGrammar_language_isNormalForm
       (g := g) hNF (B := B) (L := w.length) (w := w) le_rfl hw
 
+/-- Fixed bounded-stack slices embed in the matching packed flat-path language.
+
+Normal form excludes `ε`, so the exact-length flat-path certificate extracted from the
+bounded-stack grammar can be repacked over `|w|` cells of width `B + 2`. -/
+theorem boundedStackGrammar_language_subset_packedFlatPathStackBoundLanguage_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {B : ℕ} {w : List T}
+    (hw : w ∈ grammar_language (boundedStackGrammar g B)) :
+    w ∈ packedFlatPathStackBoundLanguage g B := by
+  have hgen : w ∈ g.Language :=
+    boundedStackGrammar_language_subset_language (g := g) (B := B) w hw
+  have hwne : w ≠ [] := by
+    intro hwNil
+    subst w
+    exact (g.not_generates_nil_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF)) hgen
+  exact
+    (packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
+      (g := g) (B := B) (w := w)).mpr
+      ⟨hwne, boundedFlatPathLanguage_of_boundedStackGrammar_language_length_isNormalForm
+        (g := g) hNF hw⟩
+
 /-- Per-word exact flat-bound characterization of normal-form generation.
 
 The remaining finite normal-form core has to make the stack bound uniform enough for one LBA;
@@ -10000,6 +10021,19 @@ theorem boundedStackGrammar_language_of_boundedFlatPathLanguage
       (w₂ := w.map fun a => (ISym.terminal a : g.ISym))
       hhead hlast' hbound hstep
   exact boundedStackGrammar_generates_of_stackBoundedDerivesIn (g := g) hbounded
+
+/-- Packed flat-path witnesses decode to the corresponding length-scaled bounded-stack slice.
+
+The packed language stores a flat sentential form of size at most `|w| * (B + 2)`, and the
+reverse flat-path bridge turns that bound into the stack bound of the compiled grammar. -/
+theorem packedFlatPathStackBoundLanguage_subset_boundedStackGrammar_language_length
+    {g : IndexedGrammar T} [Fintype g.flag] {B : ℕ} {w : List T}
+    (hw : w ∈ packedFlatPathStackBoundLanguage g B) :
+    w ∈ grammar_language (boundedStackGrammar g (w.length * (B + 2))) := by
+  exact boundedStackGrammar_language_of_boundedFlatPathLanguage
+    (g := g)
+    ((packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
+      (g := g) (B := B) (w := w)).mp hw).2
 
 /-- Normal-form certificate form of the fixed-slice reverse bridge. -/
 theorem stackBounded_certificate_of_boundedFlatPathLanguage_isNormalForm
