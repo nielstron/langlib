@@ -5890,6 +5890,13 @@ def packedReverseRuleStepRowLanguage (g : IndexedGrammar T) (B : ℕ) :
             initial_mem_boundedFlatForms_mul_of_pos
               (g := g) (B := B) hn⟩)
 
+theorem nil_not_mem_packedReverseRuleStepRowLanguage (g : IndexedGrammar T) (B : ℕ) :
+    [] ∉ packedReverseRuleStepRowLanguage g B := by
+  rintro ⟨n, row, hn, hcells, _hreach⟩
+  have hlen := congrArg List.length hcells
+  simp at hlen
+  omega
+
 theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {B : ℕ} {w : List T} :
