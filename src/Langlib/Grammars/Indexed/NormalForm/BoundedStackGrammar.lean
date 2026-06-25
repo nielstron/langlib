@@ -2019,6 +2019,40 @@ theorem exists_surface_repeat_at_current_of_late_window_take_eq_of_context
   exact surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
     (g := g) (B := B) (u := u) (v := v) (A := A) htake
 
+/-- Initial-trace late-window surface-repeat witness for an arbitrary replacement stack.
+
+This is the form needed by the finite-frontier bridges: once the replacement stack has the same
+full visible `B` prefix as the current stack, the current trace node itself supplies the
+required surface repeat. -/
+theorem exists_surface_repeat_at_current_of_late_window_context_take_eq
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B P K C i : ℕ} {trace : List (List g.ISym)}
+    {u v : List g.ISym} {A : g.nt} {η ζ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hi : i < trace.length)
+    (hic : i ≤ trace.length - 1 - C + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < trace.length - 1 - C → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hPK : P + K ≤ B)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : η.take B = ζ.take B) :
+    ∃ r : ℕ, ∃ hr : r < trace.length,
+      r ≤ i ∧
+        (∀ k (hk : k < trace.length),
+          k ≤ r → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) ∧
+        sententialMaxStackHeight (u ++ v) ≤ B ∧
+        P + K ≤ B ∧
+        surfaceOfTruncatedForm B (trace.get ⟨r, hr⟩) =
+          surfaceOfTruncatedForm B (u ++ [ISym.indexed A ζ] ++ v) := by
+  exact
+    exists_surface_repeat_at_current_of_late_window_take_eq_of_context
+      (g := g) hNF (B := B) (P := P) (K := K) (C := C)
+      (a := trace.length - 1 - C) (i := i) (trace := trace)
+      (first := [ISym.indexed g.initial []]) htrace hhead (by simp)
+      hi hic hwindowBound hbefore hPK hctx htake
+
 /-- Late-window repeat bridge phrased by suffix-prefix preservation. If the replacement suffix
 keeps exactly the first `B - P` flags below the visible prefix, then the current trace node has
 the same full `B`-surface as the canonical replacement context. -/
@@ -2051,6 +2085,41 @@ theorem exists_canonical_surface_repeat_at_current_of_late_window_suffix_take_eq
     exists_canonical_surface_repeat_at_current_of_late_window_take_eq_of_context
       (g := g) hNF htrace hhead hfirstBound hi hic hwindowBound hbefore hPK hctx
       ((stack_take_append_take_eq_of_suffix_take_eq hPη hPB hsuffix).symm)
+
+/-- Initial-trace form of
+`exists_canonical_surface_repeat_at_current_of_late_window_suffix_take_eq_of_context`.
+
+This is the canonical replacement version used when the replacement suffix preserves the
+visible suffix prefix below the top `P` stack flags. -/
+theorem exists_canonical_surface_repeat_at_current_of_late_window_context_suffix_take_eq
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B P K C i : ℕ} {trace : List (List g.ISym)}
+    {u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hi : i < trace.length)
+    (hic : i ≤ trace.length - 1 - C + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < trace.length - 1 - C → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hPK : P + K ≤ B)
+    (hPη : P ≤ η.length)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (hsuffix : τ.take (B - P) = (η.drop P).take (B - P)) :
+    ∃ r : ℕ, ∃ hr : r < trace.length,
+      r ≤ i ∧
+        (∀ k (hk : k < trace.length),
+          k ≤ r → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B) ∧
+        sententialMaxStackHeight (u ++ v) ≤ B ∧
+        P + K ≤ B ∧
+        surfaceOfTruncatedForm B (trace.get ⟨r, hr⟩) =
+          surfaceOfTruncatedForm B (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) := by
+  exact
+    exists_canonical_surface_repeat_at_current_of_late_window_suffix_take_eq_of_context
+      (g := g) hNF (B := B) (P := P) (K := K) (C := C)
+      (a := trace.length - 1 - C) (i := i) (trace := trace)
+      (first := [ISym.indexed g.initial []]) htrace hhead (by simp) hi hic
+      hwindowBound hbefore hPK hPη hctx hsuffix
 
 /-- Direct stack-bounded prefix bridge for a late-window replacement whose visible stack prefix
 matches the current trace stack. This is the lower-level form of the finite-frontier bridge:
