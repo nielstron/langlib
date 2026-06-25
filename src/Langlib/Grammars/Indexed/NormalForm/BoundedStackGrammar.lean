@@ -11320,6 +11320,163 @@ theorem
   · exact boundedStackGrammar_language_mono
       (g := g) (B := B) (C := Bfinal) (by omega) target htargetB
 
+/-- Enlarged-budget generated-word bridge with the direct locally minimal suffix bound threaded
+into the remaining surface-repeat premise.
+
+The returned `K` is the common finite-frontier stack bound, enlarged to dominate both the
+prefix-preserving shrinker bound and the direct late-window suffix bound `Kshort`. The premise
+therefore receives certificate-item memberships at the common bound together with the concrete
+`τ.length ≤ Kshort` evidence supplied by local minimality. -/
+theorem
+    exists_bound_boundedStackGrammar_generates_of_late_window_certificate_prefix_preserving_frontier_surfaceRepeat_short_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (P L C : ℕ)
+    (hC : (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card ≤ C) :
+    ∃ K Kshort : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        g.Generates target →
+        ∃ n B : ℕ, ∃ trace : List (List g.ISym),
+          IsDerivationTrace g trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            g.DerivesIn n [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            (∀ m,
+              g.DerivesIn m [ISym.indexed g.initial []]
+                (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+            (∀ C' : ℕ,
+              (∃ trace' : List (List g.ISym),
+                IsDerivationTrace g trace' ∧
+                  trace'.length = n + 1 ∧
+                  trace'.head? = some [ISym.indexed g.initial []] ∧
+                  trace'.getLast? =
+                    some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  ∀ j (hj : j < trace'.length),
+                    sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+                B ≤ C') ∧
+            ∀ Bpre : ℕ,
+              (∀ k (hk : k < trace.length),
+                k < trace.length - 1 - C →
+                  sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P) →
+              (∀ i : ℕ, ∀ hi : i < trace.length,
+                trace.length - 1 - C ≤ i →
+                i ≤ trace.length - 1 - C + C →
+                P < sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+                ∀ A : g.nt, ∀ η τ ζ : List g.flag,
+                  ∀ u v : List g.ISym, ∀ q m : ℕ, ∀ w : List T, ∀ n' : ℕ,
+                    ISym.indexed A η ∈ trace.get ⟨i, hi⟩ →
+                    η.length = sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+                    trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v →
+                    w.Sublist target →
+                    w.length ≤ L →
+                    q ≤ trace.length - 1 - i →
+                    m ≤ q →
+                    m ≤ trace.length - 1 - i →
+                    n' ≤ trace.length - 1 - i →
+                    τ.Sublist (η.drop P) →
+                    τ.length ≤ K →
+                    ζ = η.take P ++ τ →
+                    ζ.Sublist η →
+                    ζ.length ≤ P + K →
+                    ζ.take P = η.take P →
+                    g.DerivesIn m [ISym.indexed A ζ]
+                      (w.map fun a => (ISym.terminal a : g.ISym)) →
+                    NFYield g A ζ w →
+                    g.DerivesIn n' (u ++ [ISym.indexed A ζ] ++ v)
+                      (target.map fun a => (ISym.terminal a : g.ISym)) →
+                    (∀ ρ : List g.flag, ∀ k : ℕ,
+                      k ≤ q →
+                      g.DerivesIn k [ISym.indexed A (η.take P ++ ρ)]
+                        (w.map fun a => (ISym.terminal a : g.ISym)) →
+                      ρ.Sublist τ → ρ = τ) →
+                    surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+                      targetCompatibleBoundedSurfaceForms g target P →
+                    surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+                      boundedSurfaceForms g L P →
+                    (((A, ζ), w) : (g.nt × List g.flag) × List T) ∈
+                      ({item : (g.nt × List g.flag) × List T |
+                        item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                          NFYield g item.1.1 item.1.2 item.2} :
+                        Set ((g.nt × List g.flag) × List T)) →
+                    (((A, ζ), w) : (g.nt × List g.flag) × List T) ∈
+                      ({item : (g.nt × List g.flag) × List T |
+                        item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                          NFYield g item.1.1 item.1.2 item.2} :
+                        Set ((g.nt × List g.flag) × List T)) →
+                    τ.length ≤ Kshort →
+                    ∃ r : ℕ, ∃ hr : r < trace.length,
+                      r ≤ i ∧
+                        (∀ k (hk : k < trace.length),
+                          k ≤ r →
+                            sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ Bpre) ∧
+                        sententialMaxStackHeight (u ++ v) ≤ Bpre ∧
+                        P + K ≤ Bpre ∧
+                        surfaceOfTruncatedForm Bpre (trace.get ⟨r, hr⟩) =
+                          surfaceOfTruncatedForm Bpre
+                            (u ++ [ISym.indexed A ζ] ++ v)) →
+              target ∈
+                grammar_language
+                  (boundedStackGrammar g (max (P + C) (Bpre + C))) := by
+  classical
+  obtain ⟨Kshrink, hshrink⟩ :=
+    exists_bound_boundedStackGrammar_generates_of_late_window_certificate_prefix_preserving_frontier_surfaceRepeat_budget
+      (g := g) hNF P L C hC
+  obtain ⟨Kshort, hshort⟩ :=
+    exists_bound_late_window_prefix_preserving_replacement_short_of_local_minimal
+      (g := g) hNF P L C
+  let K := max Kshrink Kshort
+  refine ⟨K, Kshort, ?_⟩
+  intro target htargetLen hgen
+  obtain ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+      hminBound, hgenerated⟩ :=
+    hshrink target htargetLen hgen
+  refine ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+    hminBound, ?_⟩
+  intro Bpre hbeforeBound hsurfaceRepeat
+  exact hgenerated Bpre hbeforeBound
+    (by
+      intro i hi hlow hup hhigh A η τ ζ u v q m w n' hmem hηmax hctx hwt hwlen
+        hq hm hmSuffix hn' hτsub hτlen hζeq hζsub hζlen hζtake hζder hcert
+        hreplacement hτmin htargetSurface hboundedSurface htargetItem hlengthItem
+      have hKshrink_le : Kshrink ≤ K := by
+        dsimp [K]
+        exact Nat.le_max_left Kshrink Kshort
+      have hfrontier_le : P + Kshrink ≤ P + K := Nat.add_le_add_left hKshrink_le P
+      have hτlenK : τ.length ≤ K := le_trans hτlen hKshrink_le
+      have hζlenK : ζ.length ≤ P + K := le_trans hζlen hfrontier_le
+      have htargetItemK :
+          (((A, ζ), w) : (g.nt × List g.flag) × List T) ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) :=
+        NFYield.bounded_target_certificate_items_mono_bound
+          (g := g) (B := P + Kshrink) (C := P + K) (target := target)
+          hfrontier_le htargetItem
+      have hlengthItemK :
+          (((A, ζ), w) : (g.nt × List g.flag) × List T) ∈
+            ({item : (g.nt × List g.flag) × List T |
+              item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                NFYield g item.1.1 item.1.2 item.2} :
+              Set ((g.nt × List g.flag) × List T)) :=
+        NFYield.bounded_length_certificate_items_mono_bound
+          (g := g) (B := P + Kshrink) (C := P + K) (L := L)
+          hfrontier_le hlengthItem
+      have hshortBound :=
+        hshort target htargetLen trace i hi hlow A η τ ζ q m w
+          hwt hq hm hζeq hζder hτmin
+      obtain ⟨r, hr, hri, hprefixBound, hctxBound, hPK, hsurfaceEq⟩ :=
+        hsurfaceRepeat i hi hlow hup hhigh A η τ ζ u v q m w n'
+          hmem hηmax hctx hwt hwlen hq hm hmSuffix hn' hτsub hτlenK hζeq hζsub
+          hζlenK hζtake hζder hcert hreplacement hτmin htargetSurface hboundedSurface
+          htargetItemK hlengthItemK hshortBound
+      exact ⟨r, hr, hri, hprefixBound, hctxBound,
+        le_trans hfrontier_le hPK, hsurfaceEq⟩)
+
 /-- Enlarged-budget generated-word bridge with the local short-or-pop replacement dichotomy
 threaded into the remaining surface-repeat premise.
 
