@@ -1759,6 +1759,26 @@ theorem packedFlatForm_lookup {g : IndexedGrammar T} {W n k : ℕ}
       x[k]? :=
   packedTape_lookup (W := W) (n := n) (k := k) x hW hk
 
+theorem packedFlatForm_terminal_lookup {g : IndexedGrammar T} {W n k : ℕ}
+    (w : List T) (hW : 0 < W) (hk : k < n * W) :
+    packedFlatForm g W n (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)))
+        ⟨k / W, Nat.div_lt_of_lt_mul (by simpa [Nat.mul_comm] using hk)⟩
+        ⟨k % W, Nat.mod_lt k hW⟩ =
+      (w[k]?).map (FlatSymbol.terminal (N := g.nt) (F := g.flag)) := by
+  rw [packedFlatForm_lookup (g := g) (W := W) (n := n) (k := k)
+    (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag))) hW hk]
+  rw [List.getElem?_map]
+
+theorem packedFlatForm_terminal_lookup_of_lt {g : IndexedGrammar T} {W n k : ℕ}
+    (w : List T) (hW : 0 < W) (hk : k < n * W) (hkw : k < w.length) :
+    packedFlatForm g W n (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)))
+        ⟨k / W, Nat.div_lt_of_lt_mul (by simpa [Nat.mul_comm] using hk)⟩
+        ⟨k % W, Nat.mod_lt k hW⟩ =
+      some (FlatSymbol.terminal (N := g.nt) (F := g.flag) (w.get ⟨k, hkw⟩)) := by
+  rw [packedFlatForm_terminal_lookup (g := g) (W := W) (n := n) (k := k) w hW hk]
+  rw [List.getElem?_eq_getElem hkw]
+  rfl
+
 theorem packedFlatForm_ext_of_boundedFlatForms {g : IndexedGrammar T} {W n : ℕ}
     {x y : List (FlatSymbol T g.nt g.flag)}
     (hW : 0 < W) (hx : x ∈ boundedFlatForms g (n * W))
