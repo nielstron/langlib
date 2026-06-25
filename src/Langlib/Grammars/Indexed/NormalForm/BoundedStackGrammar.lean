@@ -15439,6 +15439,55 @@ theorem exists_uniform_boundedStackGrammar_generates_of_length_le_isNormalForm
     Finset.le_sup (s := Set.Finite.toFinset hS) (f := boundOf) hmem
   exact boundedStackGrammar_language_mono (g := g) hle w (hboundOf w hwS)
 
+/-- On every finite ball of terminal words, a normal-form grammar agrees with one fixed
+bounded-stack grammar.
+
+The bound is obtained by finite choice over the finitely many generated words in the ball.
+This removes the shortest-derivation-budget hypothesis from fixed-ball capture; the global
+LBA core still needs a uniform machine construction rather than a separately chosen slice for
+each input length. -/
+theorem exists_bound_boundedStackGrammar_language_eq_on_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        target ∈ grammar_language (boundedStackGrammar g B)) := by
+  obtain ⟨B, hB⟩ :=
+    exists_uniform_boundedStackGrammar_generates_of_length_le_isNormalForm
+      (g := g) hNF L
+  refine ⟨B, ?_⟩
+  intro target htargetLen
+  constructor
+  · intro hgen
+    exact hB target htargetLen hgen
+  · intro hbounded
+    exact boundedStackGrammar_language_subset_language
+      (g := g) (B := B) target hbounded
+
+/-- Flat-path analogue of
+`exists_bound_boundedStackGrammar_language_eq_on_length_le_isNormalForm`.
+On every finite terminal ball, one fixed bounded flat-path slice agrees with the original
+normal-form language. -/
+theorem exists_bound_boundedFlatPathLanguage_eq_on_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔ target ∈ boundedFlatPathLanguage g B) := by
+  obtain ⟨B, hB⟩ :=
+    exists_bound_boundedStackGrammar_language_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  refine ⟨L * (B + 2), ?_⟩
+  intro target htargetLen
+  constructor
+  · intro hgen
+    exact boundedFlatPathLanguage_of_boundedStackGrammar_language_isNormalForm
+      (g := g) hNF (B := B) (L := L) htargetLen ((hB target htargetLen).mp hgen)
+  · intro hflat
+    exact boundedFlatPathLanguage_subset_language
+      (g := g) (B := L * (B + 2)) hflat
+
 /-- If shortest accepting derivations for all generated targets of length at most `L` are
 bounded by `N`, then one fixed bounded-stack grammar captures the original normal-form
 language exactly on that whole terminal ball.

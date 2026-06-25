@@ -103,6 +103,40 @@ public theorem is_LBA_pos_boundedFlatPath_language_of_isNormalForm
     (is_CS_boundedFlatPath_language (g := g) B)
     (not_nil_mem_boundedFlatPath_language_of_isNormalForm (g := g) hNF B)
 
+/-- On each fixed input-length ball, a finite normal-form indexed grammar agrees with one
+fixed bounded-stack grammar, and that fixed slice is LBA-recognizable. -/
+public theorem exists_LBA_pos_boundedStackGrammar_language_eq_on_length_le_of_isNormalForm
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ,
+      is_LBA_pos (grammar_language (IndexedGrammar.boundedStackGrammar g B)) ∧
+        ∀ target : List A,
+          target.length ≤ L →
+          (target ∈ g.Language ↔
+            target ∈ grammar_language (IndexedGrammar.boundedStackGrammar g B)) := by
+  obtain ⟨B, hB⟩ :=
+    IndexedGrammar.exists_bound_boundedStackGrammar_language_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  exact ⟨B, is_LBA_pos_boundedStackGrammar_language_of_isNormalForm (g := g) hNF B, hB⟩
+
+/-- Flat-path finite-ball form of the current normal-form simulator: on every fixed
+input-length ball, one finite bounded-flat-path slice agrees with the original normal-form
+language, and that slice is LBA-recognizable. -/
+public theorem exists_LBA_pos_boundedFlatPath_language_eq_on_length_le_of_isNormalForm
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ,
+      is_LBA_pos (IndexedGrammar.boundedFlatPathLanguage g B) ∧
+        ∀ target : List A,
+          target.length ≤ L →
+          (target ∈ g.Language ↔ target ∈ IndexedGrammar.boundedFlatPathLanguage g B) := by
+  obtain ⟨B, hB⟩ :=
+    IndexedGrammar.exists_bound_boundedFlatPathLanguage_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  exact ⟨B, is_LBA_pos_boundedFlatPath_language_of_isNormalForm (g := g) hNF B, hB⟩
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]

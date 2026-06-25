@@ -2292,6 +2292,33 @@ public theorem boundedSurfaceForms_card_le_bounded_length_surface_branch_rank_it
       (g := g) (P := P) (B := B) (L := L) (R := R) hNF hgenExists
   exact le_trans hsingle (Nat.le_add_right _ _)
 
+/-- A root certificate embeds every target-compatible visible surface into the combined
+single-certificate-or-binary-pair target frontier.
+
+The pair side is included so target-local saturation arguments can use the same branch budget
+for unary/pop descent states and binary pair states. -/
+public theorem targetCompatibleBoundedSurfaceForms_card_le_bounded_target_surface_branch_rank_items_card_of_certificate
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B R : ℕ} {target : List T}
+    (hcert : NFYield g g.initial [] target) :
+    (Set.Finite.toFinset
+        (targetCompatibleBoundedSurfaceForms_finite g target P)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P B R target)).card +
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+          (g := g) P B R target)).card := by
+  have hsingle :
+      (Set.Finite.toFinset
+          (targetCompatibleBoundedSurfaceForms_finite g target P)).card ≤
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_target_surface_certificate_rank_items
+            (g := g) P B R target)).card :=
+    NFYield.targetCompatibleBoundedSurfaceForms_card_le_bounded_target_surface_certificate_rank_items_card_of_certificate
+      (g := g) (P := P) (B := B) (R := R) (target := target) hcert
+  exact le_trans hsingle (Nat.le_add_right _ _)
+
 /-- Target-specific combined surface/branch/rank frontier cardinality is monotone in both the
 stack bound and the rank bound. -/
 public theorem bounded_target_surface_branch_rank_items_card_mono_bound
