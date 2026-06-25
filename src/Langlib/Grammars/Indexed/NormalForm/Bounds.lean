@@ -141,6 +141,24 @@ theorem exists_chain (h : RelDerivesIn r n a b) :
 
 end RelDerivesIn
 
+theorem reflTransGen_reverse {α : Type} {r : α → α → Prop} {a b : α}
+    (h : Relation.ReflTransGen r a b) :
+    Relation.ReflTransGen (fun x y => r y x) b a := by
+  induction h with
+  | refl =>
+      exact Relation.ReflTransGen.refl
+  | tail _ hstep ih =>
+      exact Relation.ReflTransGen.head hstep ih
+
+theorem reflTransGen_reverse_iff {α : Type} {r : α → α → Prop} {a b : α} :
+    Relation.ReflTransGen (fun x y => r y x) b a ↔
+      Relation.ReflTransGen r a b := by
+  constructor
+  · intro h
+    simpa using (reflTransGen_reverse h)
+  · intro h
+    exact reflTransGen_reverse h
+
 /-! ## Sentential-form measures -/
 
 def ISym.isIndexed {g : IndexedGrammar T} : g.ISym → Bool
@@ -5704,6 +5722,60 @@ theorem packedFlatPathStackBoundLanguage_iff_exists_packedFlatRulePath_card_boun
     exact ⟨hwne, path, hhead, hlast, hlen,
       (packedFlatPath_ruleStep_iff_transforms_of_isNormalForm
         (g := g) hNF).mp hchain⟩
+
+theorem packedFlatDerives_iff_reverse_packedFlatRuleStep_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {W n : ℕ} {x y : PackedFlatForm g W n} :
+    PackedFlatDerives g W n x y ↔
+      Relation.ReflTransGen (fun a b => PackedFlatRuleStep g W n b a) y x := by
+  constructor
+  · intro h
+    have hRule : Relation.ReflTransGen (PackedFlatRuleStep g W n) x y :=
+      Relation.ReflTransGen.mono
+        (fun _ _ hstep =>
+          (packedFlatTransforms_iff_packedFlatRuleStep_of_isNormalForm
+            (g := g) hNF).mp hstep)
+        h
+    exact reflTransGen_reverse hRule
+  · intro h
+    have hRule : Relation.ReflTransGen (PackedFlatRuleStep g W n) x y := by
+      simpa using (reflTransGen_reverse h)
+    exact Relation.ReflTransGen.mono
+      (fun _ _ hstep =>
+        (packedFlatTransforms_iff_packedFlatRuleStep_of_isNormalForm
+          (g := g) hNF).mpr hstep)
+      hRule
+
+/-- Backward-reachability form of packed flat-path membership.
+
+The reverse relation starts from the terminal row determined by the input and reduces toward the
+packed initial row by inverse normal-form rule steps. This matches the standard backward LBA
+simulation shape. -/
+theorem packedFlatPathStackBoundLanguage_iff_reverse_packedFlatRuleStep_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w : List T} :
+    w ∈ packedFlatPathStackBoundLanguage g B ↔
+      ∃ hwne : w ≠ [],
+        Relation.ReflTransGen
+          (fun x y => PackedFlatRuleStep g (B + 2) w.length y x)
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+              terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩)
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) := by
+  dsimp [packedFlatPathStackBoundLanguage]
+  constructor
+  · rintro ⟨hwne, hder⟩
+    exact ⟨hwne,
+      (packedFlatDerives_iff_reverse_packedFlatRuleStep_of_isNormalForm
+        (g := g) hNF).mp hder⟩
+  · rintro ⟨hwne, hrev⟩
+    exact ⟨hwne,
+      (packedFlatDerives_iff_reverse_packedFlatRuleStep_of_isNormalForm
+        (g := g) hNF).mpr hrev⟩
 
 theorem transformIsBinaryStep_encodeSentential_length_eq
     {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
