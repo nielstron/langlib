@@ -4066,6 +4066,112 @@ theorem exists_bound_locally_budgeted_first_step_pop_combined_budget_cases_of_su
         simp [hpref_eq]
       omega, hlhs, hc, hrhs, hchild⟩
 
+/-- Length-uniform form of
+`exists_bound_locally_budgeted_first_step_pop_combined_budget_cases_of_suffix_minimal_long`.
+One forced-pop threshold works for every target word of length at most `L`. -/
+theorem
+    exists_bound_locally_budgeted_first_step_pop_combined_budget_cases_of_suffix_minimal_long_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (Q L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            pref.length + (n + 1) ≤ Q →
+            w <+ target →
+            g.DerivesIn (n + 1) [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            (∀ τ : List g.flag, ∀ m : ℕ,
+              m ≤ n + 1 →
+              g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              τ <+ σ → τ = σ) →
+            K < σ.length →
+            (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+              ∃ r ∈ g.rules,
+                pref = [] ∧ σ = f :: ρ ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                n < Q ∧
+                g.DerivesIn n [ISym.indexed B ρ]
+                  (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+            (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+              ∃ r ∈ g.rules,
+                pref = f :: pref' ∧
+                pref'.length + n < Q ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                g.DerivesIn n [ISym.indexed B (pref' ++ σ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym))) := by
+  classical
+  have htargets :
+      ({target : List T | target.length ≤ L} : Set (List T)).Finite :=
+    List.finite_length_le T L
+  let targets : Finset (List T) := Set.Finite.toFinset htargets
+  let targetBound : List T → ℕ := fun target =>
+    Classical.choose
+      (exists_bound_locally_budgeted_first_step_pop_combined_budget_cases_of_suffix_minimal_long
+        (g := g) hNF Q target)
+  refine ⟨targets.sup targetBound, ?_⟩
+  intro target htargetLen pref n A σ w hbudget hwt hder hmin hlong
+  have htargetMem : target ∈ targets := by
+    rw [Set.Finite.mem_toFinset]
+    exact htargetLen
+  have hle : targetBound target ≤ targets.sup targetBound :=
+    Finset.le_sup (s := targets) (f := targetBound) htargetMem
+  have htarget :=
+    Classical.choose_spec
+      (exists_bound_locally_budgeted_first_step_pop_combined_budget_cases_of_suffix_minimal_long
+        (g := g) hNF Q target)
+  exact htarget pref n A σ w hbudget hwt hder hmin (lt_of_le_of_lt hle hlong)
+
+/-- Slack form of the length-uniform locally budgeted combined-budget forced-pop split. -/
+theorem
+    exists_bound_locally_budgeted_first_step_pop_combined_budget_cases_of_suffix_minimal_long_target_length_with_slack
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (Q L : ℕ) :
+    ∃ K₀ : ℕ,
+      ∀ K : ℕ,
+        K₀ ≤ K →
+        ∀ target : List T,
+          target.length ≤ L →
+          ∀ pref : List g.flag,
+            ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+              pref.length + (n + 1) ≤ Q →
+              w <+ target →
+              g.DerivesIn (n + 1) [ISym.indexed A (pref ++ σ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              (∀ τ : List g.flag, ∀ m : ℕ,
+                m ≤ n + 1 →
+                g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) →
+                τ <+ σ → τ = σ) →
+              K < σ.length →
+              (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+                ∃ r ∈ g.rules,
+                  pref = [] ∧ σ = f :: ρ ∧
+                  r.lhs = A ∧ r.consume = some f ∧
+                  r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                  n < Q ∧
+                  g.DerivesIn n [ISym.indexed B ρ]
+                    (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+              (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+                ∃ r ∈ g.rules,
+                  pref = f :: pref' ∧
+                  pref'.length + n < Q ∧
+                  r.lhs = A ∧ r.consume = some f ∧
+                  r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                  g.DerivesIn n [ISym.indexed B (pref' ++ σ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym))) := by
+  obtain ⟨K₀, hK₀⟩ :=
+    exists_bound_locally_budgeted_first_step_pop_combined_budget_cases_of_suffix_minimal_long_target_length
+      (g := g) hNF Q L
+  refine ⟨K₀, ?_⟩
+  intro K hK target htargetLen pref n A σ w hbudget hwt hder hmin hlong
+  exact hK₀ target htargetLen pref n A σ w hbudget hwt hder hmin
+    (lt_of_le_of_lt hK hlong)
+
 /-- A locally budget-minimal suffix under a bounded live prefix has bounded length. The
 minimality budget is exactly the derivation length, so after a forced pop the child derivation
 inherits the same invariant with one fewer step. -/
@@ -5155,6 +5261,111 @@ theorem exists_bound_first_step_pop_budget_cases_of_suffix_minimal_long
     right
     exact ⟨f, pref', B, r, hr, hpref, hlhs, hc, hrhs, hbudget',
       by simpa [hρ] using hchild⟩
+
+/-- Length-uniform budgeted forced-pop split. One bound works for every target word whose
+length is at most `L`. -/
+theorem exists_bound_first_step_pop_budget_cases_of_suffix_minimal_long_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ N →
+          ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w <+ target →
+            g.DerivesIn (n + 1) [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            (∀ τ : List g.flag, ∀ m : ℕ,
+              g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              τ <+ σ → τ = σ) →
+            K < σ.length →
+            pref.length + (n + 1) ≤ N →
+            (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+              ∃ r ∈ g.rules,
+                pref = [] ∧ σ = f :: ρ ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                n ≤ N ∧
+                g.DerivesIn n [ISym.indexed B ρ]
+                  (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+            (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+              ∃ r ∈ g.rules,
+                pref = f :: pref' ∧
+                r.lhs = A ∧ r.consume = some f ∧
+                r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                pref'.length + n ≤ N ∧
+                g.DerivesIn n [ISym.indexed B (pref' ++ σ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym))) := by
+  classical
+  have htargets :
+      ({target : List T | target.length ≤ L} : Set (List T)).Finite :=
+    List.finite_length_le T L
+  let targets : Finset (List T) := Set.Finite.toFinset htargets
+  let targetBound : List T → ℕ := fun target =>
+    Classical.choose
+      (exists_bound_first_step_pop_budget_cases_of_suffix_minimal_long
+        (g := g) hNF N target)
+  refine ⟨targets.sup targetBound, ?_⟩
+  intro target htargetLen pref hpref n A σ w hwt hder hmin hlong hbudget
+  have htargetMem : target ∈ targets := by
+    rw [Set.Finite.mem_toFinset]
+    exact htargetLen
+  have hle : targetBound target ≤ targets.sup targetBound :=
+    Finset.le_sup (s := targets) (f := targetBound) htargetMem
+  have htarget :=
+    Classical.choose_spec
+      (exists_bound_first_step_pop_budget_cases_of_suffix_minimal_long
+        (g := g) hNF N target)
+  exact htarget pref hpref n A σ w hwt hder hmin (lt_of_le_of_lt hle hlong) hbudget
+
+/-- Slack form of
+`exists_bound_first_step_pop_budget_cases_of_suffix_minimal_long_target_length`: any larger
+threshold than the uniform one can be used in the forced-pop conclusion. -/
+theorem exists_bound_first_step_pop_budget_cases_of_suffix_minimal_long_target_length_with_slack
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K₀ : ℕ,
+      ∀ K : ℕ,
+        K₀ ≤ K →
+        ∀ target : List T,
+          target.length ≤ L →
+          ∀ pref : List g.flag,
+            pref.length ≤ N →
+            ∀ n : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+              w <+ target →
+              g.DerivesIn (n + 1) [ISym.indexed A (pref ++ σ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              (∀ τ : List g.flag, ∀ m : ℕ,
+                g.DerivesIn m [ISym.indexed A (pref ++ τ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) →
+                τ <+ σ → τ = σ) →
+              K < σ.length →
+              pref.length + (n + 1) ≤ N →
+              (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+                ∃ r ∈ g.rules,
+                  pref = [] ∧ σ = f :: ρ ∧
+                  r.lhs = A ∧ r.consume = some f ∧
+                  r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                  n ≤ N ∧
+                  g.DerivesIn n [ISym.indexed B ρ]
+                    (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+              (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+                ∃ r ∈ g.rules,
+                  pref = f :: pref' ∧
+                  r.lhs = A ∧ r.consume = some f ∧
+                  r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                  pref'.length + n ≤ N ∧
+                  g.DerivesIn n [ISym.indexed B (pref' ++ σ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym))) := by
+  obtain ⟨K₀, hK₀⟩ :=
+    exists_bound_first_step_pop_budget_cases_of_suffix_minimal_long_target_length
+      (g := g) hNF N L
+  refine ⟨K₀, ?_⟩
+  intro K hK target htargetLen pref hpref n A σ w hwt hder hmin hlong hbudget
+  exact hK₀ target htargetLen pref hpref n A σ w hwt hder hmin
+    (lt_of_le_of_lt hK hlong) hbudget
 
 /-- A counted sublist-minimal suffix under a bounded live prefix has bounded length. The bound
 is obtained by induction on the combined live-prefix/step budget: if the suffix is longer than

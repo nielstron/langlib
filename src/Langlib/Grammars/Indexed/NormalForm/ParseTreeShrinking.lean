@@ -783,6 +783,102 @@ public theorem exists_bound_minimal_prefixed_certificate_first_step_for_target_l
     right
     exact hterm
 
+/-- Monotone form of
+`exists_bound_minimal_prefixed_certificate_first_step_for_target_length`. Once the first-step
+bound has been found, the same decomposition is available at any larger suffix budget. -/
+public theorem exists_bound_minimal_prefixed_certificate_first_step_for_target_length_with_slack
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ) :
+    ∃ K₀ : ℕ,
+      ∀ K : ℕ,
+        K₀ ≤ K →
+        ∀ target : List T,
+          target.length ≤ L →
+          ∀ pref : List g.flag,
+            pref.length ≤ N →
+            ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+              w <+ target →
+              NFYield g A (pref ++ σ) w →
+              (∀ ρ : List g.flag,
+                NFYield g A (pref ++ ρ) w →
+                ρ <+ σ → ρ = σ) →
+              σ.length ≤ K ∧
+              ((∃ B C : g.nt, ∃ u v : List T, ∃ r ∈ g.rules,
+                r.lhs = A ∧ r.consume = none ∧
+                r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+                w = u ++ v ∧
+                0 < u.length ∧ 0 < v.length ∧
+                u.length < w.length ∧ v.length < w.length ∧
+                u <+ target ∧ v <+ target ∧
+                NFYield g B (pref ++ σ) u ∧
+                NFYield g C (pref ++ σ) v ∧
+                ∀ ρ : List g.flag,
+                  NFYield g B (pref ++ ρ) u →
+                  NFYield g C (pref ++ ρ) v →
+                  ρ <+ σ → ρ = σ) ∨
+              (∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+                ∃ r ∈ g.rules,
+                  pref = [] ∧
+                  σ = f :: ρ ∧
+                  ρ.length ≤ K ∧
+                  r.lhs = A ∧ r.consume = some f ∧
+                  r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                  NFYield g B ρ w ∧
+                  ∀ μ : List g.flag,
+                    NFYield g B μ w →
+                    μ <+ ρ → μ = ρ) ∨
+              (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+                ∃ r ∈ g.rules,
+                  pref = f :: pref' ∧
+                  pref'.length ≤ N ∧
+                  r.lhs = A ∧ r.consume = some f ∧
+                  r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                  NFYield g B (pref' ++ σ) w ∧
+                  ∀ μ : List g.flag,
+                    NFYield g B (pref' ++ μ) w →
+                    μ <+ σ → μ = σ) ∨
+              (∃ B : g.nt, ∃ f : g.flag, ∃ r ∈ g.rules,
+                r.lhs = A ∧ r.consume = none ∧
+                r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧
+                NFYield g B ((f :: pref) ++ σ) w ∧
+                ∀ ρ : List g.flag,
+                  NFYield g B ((f :: pref) ++ ρ) w →
+                  ρ <+ σ → ρ = σ) ∨
+              (∃ a : T, ∃ r ∈ g.rules,
+                r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+                  w = [a])) := by
+  obtain ⟨K₀, hK₀⟩ :=
+    NFYield.exists_bound_minimal_prefixed_certificate_first_step_for_target_length
+      (g := g) hNF N L
+  refine ⟨K₀, ?_⟩
+  intro K hK target htargetLen pref hpref A σ w hwt hcert hmin
+  obtain ⟨hσlen₀, hcases⟩ :=
+    hK₀ target htargetLen pref hpref A σ w hwt hcert hmin
+  refine ⟨le_trans hσlen₀ hK, ?_⟩
+  rcases hcases with hbin | hpopEmpty | hpopPrefix | hpush | hterm
+  · left
+    exact hbin
+  · rcases hpopEmpty with
+      ⟨f, ρ, B, r, hr, hprefEmpty, hσ, hρlen₀, hlhs, hc, hrhs, hchild, hchildMin⟩
+    right
+    left
+    exact ⟨f, ρ, B, r, hr, hprefEmpty, hσ, le_trans hρlen₀ hK,
+      hlhs, hc, hrhs, hchild, hchildMin⟩
+  · right
+    right
+    left
+    exact hpopPrefix
+  · right
+    right
+    right
+    left
+    exact hpush
+  · right
+    right
+    right
+    right
+    exact hterm
+
 /-- Appending a sublist of the dropped suffix below `σ.take N` does not change the first `N`
 visible stack flags. -/
 theorem take_append_sublist_drop_eq_take {α : Type} {σ τ : List α} {N : ℕ}
@@ -1233,6 +1329,92 @@ public theorem bounded_prefix_pair_certificate_mem_bounded_length_items
         Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) := by
   exact ⟨by simpa [List.length_append] using Nat.add_le_add hpref hτ,
     hulen, hvlen, hleft, hright⟩
+
+/-- Certificate-item membership is monotone in the stack bound for the target-specific
+frontier. -/
+public theorem bounded_target_certificate_items_mono_bound
+    {g : IndexedGrammar T} {B C : ℕ} {target : List T}
+    {item : (g.nt × List g.flag) × List T}
+    (hBC : B ≤ C)
+    (hitem : item ∈
+      ({item : (g.nt × List g.flag) × List T |
+        item.1.2.length ≤ B ∧ item.2 <+ target ∧
+          NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T))) :
+    item ∈
+      ({item : (g.nt × List g.flag) × List T |
+        item.1.2.length ≤ C ∧ item.2 <+ target ∧
+          NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)) := by
+  exact ⟨le_trans hitem.1 hBC, hitem.2.1, hitem.2.2⟩
+
+/-- Certificate-item membership is monotone in the stack bound for the length-uniform
+frontier. -/
+public theorem bounded_length_certificate_items_mono_bound
+    {g : IndexedGrammar T} {B C L : ℕ}
+    {item : (g.nt × List g.flag) × List T}
+    (hBC : B ≤ C)
+    (hitem : item ∈
+      ({item : (g.nt × List g.flag) × List T |
+        item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+          NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T))) :
+    item ∈
+      ({item : (g.nt × List g.flag) × List T |
+        item.1.2.length ≤ C ∧ item.2.length ≤ L ∧
+          NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)) := by
+  exact ⟨le_trans hitem.1 hBC, hitem.2.1, hitem.2.2⟩
+
+/-- Pair-certificate membership is monotone in the stack bound for the target-specific
+frontier. -/
+public theorem bounded_target_pair_certificate_items_mono_bound
+    {g : IndexedGrammar T} {B C : ℕ} {target : List T}
+    {item : ((g.nt × g.nt) × List g.flag) × (List T × List T)}
+    (hBC : B ≤ C)
+    (hitem : item ∈
+      ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+        item.1.2.length ≤ B ∧
+          item.2.1 <+ target ∧
+          item.2.2 <+ target ∧
+          NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+          NFYield g item.1.1.2 item.1.2 item.2.2} :
+        Set (((g.nt × g.nt) × List g.flag) × (List T × List T)))) :
+    item ∈
+      ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+        item.1.2.length ≤ C ∧
+          item.2.1 <+ target ∧
+          item.2.2 <+ target ∧
+          NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+          NFYield g item.1.1.2 item.1.2 item.2.2} :
+        Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) := by
+  exact ⟨le_trans hitem.1 hBC, hitem.2.1, hitem.2.2.1, hitem.2.2.2.1,
+    hitem.2.2.2.2⟩
+
+/-- Pair-certificate membership is monotone in the stack bound for the length-uniform
+frontier. -/
+public theorem bounded_length_pair_certificate_items_mono_bound
+    {g : IndexedGrammar T} {B C L : ℕ}
+    {item : ((g.nt × g.nt) × List g.flag) × (List T × List T)}
+    (hBC : B ≤ C)
+    (hitem : item ∈
+      ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+        item.1.2.length ≤ B ∧
+          item.2.1.length ≤ L ∧
+          item.2.2.length ≤ L ∧
+          NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+          NFYield g item.1.1.2 item.1.2 item.2.2} :
+        Set (((g.nt × g.nt) × List g.flag) × (List T × List T)))) :
+    item ∈
+      ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+        item.1.2.length ≤ C ∧
+          item.2.1.length ≤ L ∧
+          item.2.2.length ≤ L ∧
+          NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+          NFYield g item.1.1.2 item.1.2 item.2.2} :
+        Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) := by
+  exact ⟨le_trans hitem.1 hBC, hitem.2.1, hitem.2.2.1, hitem.2.2.2.1,
+    hitem.2.2.2.2⟩
 
 /-- Frontier memberships supplied by a bounded-prefix binary certificate branch. This bundles
 the individual child certificates, the shrunken parent certificate, and the shared pair
