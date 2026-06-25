@@ -13137,6 +13137,196 @@ theorem
     intro Ksat Kpopsat Csat _hKsat _hKpopsat _hCsat target htargetLen hgen
     exact False.elim (hgenExists ⟨target, htargetLen, hgen⟩)
 
+/-- Generated-word bridge with a concrete one-step saturated rank frontier.
+
+The base late-window budget is the cardinality of the length-uniform rank frontier with
+certificate stack/rank bounds `0, 0`. After the shrinker returns its intrinsic `K` and `Kpop`,
+the surface-repeat premise is allowed to use the enlarged finite frontier with certificate
+stack bound `P + K` and rank bound `P + C`. Cardinal monotonicity supplies the required
+`C ≤ Csat` comparison. -/
+theorem
+    exists_bound_boundedStackGrammar_generates_of_late_window_certificate_prefix_preserving_frontier_surfaceRepeat_child_descent_rank_saturated_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (P L : ℕ) :
+    let C :=
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P 0 L 0)).card
+    ∃ K Kpop : ℕ,
+      let Csat :=
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_length_surface_certificate_rank_items
+            (g := g) P (P + K) L (P + C))).card
+      ∀ target : List T,
+        target.length ≤ L →
+        g.Generates target →
+        ∃ n B : ℕ, ∃ trace : List (List g.ISym),
+          IsDerivationTrace g trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            g.DerivesIn n [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            (∀ m,
+              g.DerivesIn m [ISym.indexed g.initial []]
+                (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+            (∀ C' : ℕ,
+              (∃ trace' : List (List g.ISym),
+                IsDerivationTrace g trace' ∧
+                  trace'.length = n + 1 ∧
+                  trace'.head? = some [ISym.indexed g.initial []] ∧
+                  trace'.getLast? =
+                    some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  ∀ j (hj : j < trace'.length),
+                    sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+                B ≤ C') ∧
+            ∀ Bpre : ℕ,
+              (∀ k (hk : k < trace.length),
+                k < trace.length - 1 - C →
+                  sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P) →
+              (∀ i : ℕ, ∀ hi : i < trace.length,
+                trace.length - 1 - C ≤ i →
+                i ≤ trace.length - 1 - C + C →
+                P < sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+                ∀ A : g.nt, ∀ η τ ζ : List g.flag,
+                  ∀ u v : List g.ISym, ∀ q m : ℕ, ∀ w : List T, ∀ n' : ℕ,
+                    ISym.indexed A η ∈ trace.get ⟨i, hi⟩ →
+                    η.length = sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+                    trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v →
+                    w.Sublist target →
+                    w.length ≤ L →
+                    q ≤ trace.length - 1 - i →
+                    m ≤ q →
+                    m ≤ trace.length - 1 - i →
+                    n' ≤ trace.length - 1 - i →
+                    τ.Sublist (η.drop P) →
+                    τ.length ≤ K →
+                    ζ = η.take P ++ τ →
+                    ζ.Sublist η →
+                    ζ.length ≤ P + K →
+                    ζ.take P = η.take P →
+                    g.DerivesIn m [ISym.indexed A ζ]
+                      (w.map fun a => (ISym.terminal a : g.ISym)) →
+                    NFYield g A ζ w →
+                    g.DerivesIn n' (u ++ [ISym.indexed A ζ] ++ v)
+                      (target.map fun a => (ISym.terminal a : g.ISym)) →
+                    (∀ ρ : List g.flag, ∀ k : ℕ,
+                      k ≤ q →
+                      g.DerivesIn k [ISym.indexed A (η.take P ++ ρ)]
+                        (w.map fun a => (ISym.terminal a : g.ISym)) →
+                      ρ.Sublist τ → ρ = τ) →
+                    surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+                      targetCompatibleBoundedSurfaceForms g target P →
+                    surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+                      boundedSurfaceForms g L P →
+                    (((A, ζ), w) : (g.nt × List g.flag) × List T) ∈
+                      ({item : (g.nt × List g.flag) × List T |
+                        item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                          NFYield g item.1.1 item.1.2 item.2} :
+                        Set ((g.nt × List g.flag) × List T)) →
+                    (((A, ζ), w) : (g.nt × List g.flag) × List T) ∈
+                      ({item : (g.nt × List g.flag) × List T |
+                        item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                          NFYield g item.1.1 item.1.2 item.2} :
+                        Set ((g.nt × List g.flag) × List T)) →
+                    (τ.length ≤ Kpop ∨
+                      ∃ prefChild τChild : List g.flag,
+                      ∃ Bchild : g.nt, ∃ n₀ : ℕ,
+                        prefChild.length ≤ P ∧
+                          τChild.length ≤ K ∧
+                          prefChild.length + n₀ < (η.take P).length + m ∧
+                          NFYield g Bchild (prefChild ++ τChild) w ∧
+                          (∀ μ : List g.flag, ∀ k : ℕ,
+                            k ≤ n₀ →
+                            g.DerivesIn k [ISym.indexed Bchild (prefChild ++ μ)]
+                              (w.map fun a => (ISym.terminal a : g.ISym)) →
+                            μ.Sublist τChild → μ = τChild) ∧
+                          (((Bchild, prefChild ++ τChild), w) :
+                              (g.nt × List g.flag) × List T) ∈
+                            ({item : (g.nt × List g.flag) × List T |
+                              item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                                NFYield g item.1.1 item.1.2 item.2} :
+                              Set ((g.nt × List g.flag) × List T)) ∧
+                          (((Bchild, prefChild ++ τChild), w) :
+                              (g.nt × List g.flag) × List T) ∈
+                            ({item : (g.nt × List g.flag) × List T |
+                              item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                                NFYield g item.1.1 item.1.2 item.2} :
+                              Set ((g.nt × List g.flag) × List T)) ∧
+                          (((surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v),
+                              ((Bchild, prefChild ++ τChild), w)),
+                              prefChild.length + n₀) :
+                              (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) ∈
+                            ({x : (SurfaceForm g P ×
+                                ((g.nt × List g.flag) × List T)) × ℕ |
+                              x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+                                x.1.2 ∈
+                                  ({item : (g.nt × List g.flag) × List T |
+                                    item.1.2.length ≤ (P + K) ∧
+                                      item.2.Sublist target ∧
+                                      NFYield g item.1.1 item.1.2 item.2} :
+                                    Set ((g.nt × List g.flag) × List T)) ∧
+                                x.2 ≤ P + Csat} :
+                              Set ((SurfaceForm g P ×
+                                ((g.nt × List g.flag) × List T)) × ℕ)) ∧
+                          (((surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v),
+                              ((Bchild, prefChild ++ τChild), w)),
+                              prefChild.length + n₀) :
+                              (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) ∈
+                            ({x : (SurfaceForm g P ×
+                                ((g.nt × List g.flag) × List T)) × ℕ |
+                              x.1.1 ∈ boundedSurfaceForms g L P ∧
+                                x.1.2 ∈
+                                  ({item : (g.nt × List g.flag) × List T |
+                                    item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                                      NFYield g item.1.1 item.1.2 item.2} :
+                                    Set ((g.nt × List g.flag) × List T)) ∧
+                                x.2 ≤ P + Csat} :
+                              Set ((SurfaceForm g P ×
+                                ((g.nt × List g.flag) × List T)) × ℕ))) →
+                    ∃ r : ℕ, ∃ hr : r < trace.length,
+                      r ≤ i ∧
+                        (∀ k (hk : k < trace.length),
+                          k ≤ r →
+                            sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ Bpre) ∧
+                        sententialMaxStackHeight (u ++ v) ≤ Bpre ∧
+                        P + K ≤ Bpre ∧
+                        surfaceOfTruncatedForm Bpre (trace.get ⟨r, hr⟩) =
+                          surfaceOfTruncatedForm Bpre
+                            (u ++ [ISym.indexed A ζ] ++ v)) →
+              target ∈
+                grammar_language
+                  (boundedStackGrammar g (max (P + C) (Bpre + C))) := by
+  classical
+  dsimp only
+  obtain ⟨K, Kpop, hK⟩ :=
+    exists_bound_boundedStackGrammar_generates_of_late_window_certificate_prefix_preserving_frontier_surfaceRepeat_child_descent_rank_frontier_budget_mono
+      (g := g) hNF P 0 0 L
+  let C :=
+    (Set.Finite.toFinset
+      (NFYield.finite_bounded_length_surface_certificate_rank_items
+        (g := g) P 0 L 0)).card
+  let Csat :=
+    (Set.Finite.toFinset
+      (NFYield.finite_bounded_length_surface_certificate_rank_items
+        (g := g) P (P + K) L (P + C))).card
+  have hCCsat : C ≤ Csat := by
+    dsimp [C, Csat]
+    exact
+      NFYield.bounded_length_surface_certificate_rank_items_card_mono_bound
+        (g := g) (P := P) (B := 0) (C := P + K) (L := L) (R := 0)
+        (S := P +
+          (Set.Finite.toFinset
+            (NFYield.finite_bounded_length_surface_certificate_rank_items
+              (g := g) P 0 L 0)).card)
+        (Nat.zero_le (P + K)) (Nat.zero_le _)
+  refine ⟨K, Kpop, ?_⟩
+  intro target htargetLen hgen
+  exact
+    hK K Kpop Csat le_rfl le_rfl hCCsat target htargetLen hgen
+
 /-- Generated-word form of the certified canonical late-window bridge.
 
 For a generated target, this packages the shortest/minimal-stack accepting trace together
