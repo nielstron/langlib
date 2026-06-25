@@ -266,6 +266,39 @@ public theorem exists_reverse_packedFlatRuleStep_eq_on_length_le_of_isNormalForm
   IndexedGrammar.exists_bound_reverse_packedFlatRuleStep_eq_on_length_le_isNormalForm
     (g := g) hNF L
 
+/-- Bounded concrete rule-path finite-ball form of the current simulator target.
+
+On each fixed input-length ball, one packed width works for every target in the ball, and
+membership is exactly a concrete reverse rule path whose length is bounded by the finite
+packed-row state space. -/
+public theorem exists_terminalRow_rulePath_card_bound_eq_on_length_le_of_isNormalForm
+    {A : Type} [Fintype A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List A,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        ∃ htargetNe : target ≠ [],
+        ∃ path : List (IndexedGrammar.PackedFlatForm g (B + 2) target.length),
+          path.head? =
+            some (IndexedGrammar.packedFlatForm g (B + 2) target.length
+              (target.map (IndexedGrammar.FlatSymbol.terminal
+                (N := g.nt) (F := g.flag)))) ∧
+          path.getLast? =
+            some (IndexedGrammar.packedBoundedFlatForm g (B + 2) target.length
+              ⟨IndexedGrammar.encodeSentential
+                  ([IndexedGrammar.ISym.indexed g.initial []] : List g.ISym),
+                IndexedGrammar.initial_mem_boundedFlatForms_length_mul_of_pos
+                  (g := g) (B := B) (w := target)
+                  (List.length_pos_of_ne_nil htargetNe)⟩) ∧
+          path.length ≤
+            Fintype.card (IndexedGrammar.PackedFlatForm g (B + 2) target.length) ∧
+          path.IsChain
+            (fun x y =>
+              IndexedGrammar.PackedFlatRuleStep g (B + 2) target.length y x)) :=
+  IndexedGrammar.exists_bound_terminalRow_rulePath_card_bound_eq_on_length_le_isNormalForm
+    (g := g) hNF L
+
 /-- Exact concrete target for the finite normal-form core.
 
 For a finite normal-form indexed grammar, membership is equivalent to the existence of a packed

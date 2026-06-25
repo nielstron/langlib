@@ -17762,6 +17762,40 @@ theorem exists_bound_reverse_packedFlatRuleStep_eq_on_length_le_isNormalForm
   exact packedFlatPathStackBoundLanguage_iff_reverse_packedFlatRuleStep_of_isNormalForm
     (g := g) hNF
 
+/-- Bounded concrete rule-path finite-ball form.
+
+On a fixed terminal ball, one packed width works for every target in the ball. Membership is
+equivalent to a concrete reverse rule-step path from the terminal packed row to the initial
+packed row, with path length bounded by the finite packed row state space. -/
+theorem exists_bound_terminalRow_rulePath_card_bound_eq_on_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        ∃ htargetNe : target ≠ [],
+        ∃ path : List (PackedFlatForm g (B + 2) target.length),
+          path.head? =
+            some (packedFlatForm g (B + 2) target.length
+              (target.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)))) ∧
+          path.getLast? =
+            some (packedBoundedFlatForm g (B + 2) target.length
+              ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+                initial_mem_boundedFlatForms_length_mul_of_pos
+                  (g := g) (B := B) (w := target)
+                  (List.length_pos_of_ne_nil htargetNe)⟩) ∧
+          path.length ≤ Fintype.card (PackedFlatForm g (B + 2) target.length) ∧
+          path.IsChain
+            (fun x y => PackedFlatRuleStep g (B + 2) target.length y x)) := by
+  obtain ⟨B, hB⟩ :=
+    exists_bound_packedTerminalReverseRuleStepLanguage_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  refine ⟨B, ?_⟩
+  intro target htargetLen
+  rw [hB target htargetLen]
+  exact packedTerminalReverseRuleStepLanguage_iff_exists_terminalRow_rulePath_card_bound
+    (g := g) B
+
 /-- If shortest accepting derivations for all generated targets of length at most `L` are
 bounded by `N`, then one fixed bounded-stack grammar captures the original normal-form
 language exactly on that whole terminal ball.
