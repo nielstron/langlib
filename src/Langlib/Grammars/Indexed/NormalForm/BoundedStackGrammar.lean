@@ -3808,6 +3808,90 @@ theorem
       ((NFYield.generates_iff_isNormalForm (g := g) hNF).mp hgen) hC htrace hlen hhead
       hlast hminLength hminBound hbeforeBound hgt
 
+/-- Generated-target rank-frontier-card version of
+`exists_high_stack_between_late_lengthBound_surface_certificate_rank_budget_or_steps_lt_budget_of_minimal_stack_gt_bound`.
+
+The late-window budget is the cardinality of the finite length-uniform
+surface/certificate/rank frontier itself. The generated target supplies the root certificate
+used to compare the visible surface frontier with that cardinal. -/
+theorem
+    exists_high_stack_between_late_lengthBound_surface_certificate_rank_frontier_card_or_steps_lt_budget_of_minimal_stack_gt_bound_of_generates
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P Bcert R L n B : ℕ} {trace : List (List g.ISym)} {target : List T}
+    (htargetLen : target.length ≤ L)
+    (hgen : g.Generates target)
+    (htrace : IsDerivationTrace g trace)
+    (hlen : trace.length = n + 1)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hlast : trace.getLast? = some (target.map ISym.terminal))
+    (hminLength : ∀ k,
+      g.DerivesIn k [ISym.indexed g.initial []]
+        (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ k)
+    (hminBound : ∀ C' : ℕ,
+      (∃ trace' : List (List g.ISym),
+        IsDerivationTrace g trace' ∧
+          trace'.length = n + 1 ∧
+          trace'.head? = some [ISym.indexed g.initial []] ∧
+          trace'.getLast? =
+            some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+          ∀ j (hj : j < trace'.length),
+            sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+        B ≤ C')
+    (hbeforeBound : ∀ k (hk : k < trace.length),
+      k < trace.length - 1 -
+          (Set.Finite.toFinset
+            (NFYield.finite_bounded_length_surface_certificate_rank_items
+              (g := g) P Bcert L R)).card →
+        sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hgt :
+      P +
+          (Set.Finite.toFinset
+            (NFYield.finite_bounded_length_surface_certificate_rank_items
+              (g := g) P Bcert L R)).card <
+        B) :
+    n <
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_length_surface_certificate_rank_items
+            (g := g) P Bcert L R)).card ∨
+      ∃ k : Fin trace.length,
+        trace.length - 1 -
+            (Set.Finite.toFinset
+              (NFYield.finite_bounded_length_surface_certificate_rank_items
+                (g := g) P Bcert L R)).card ≤ k.1 ∧
+          k.1 ≤
+            trace.length - 1 -
+                (Set.Finite.toFinset
+                  (NFYield.finite_bounded_length_surface_certificate_rank_items
+                    (g := g) P Bcert L R)).card +
+              (Set.Finite.toFinset
+                (NFYield.finite_bounded_length_surface_certificate_rank_items
+                  (g := g) P Bcert L R)).card ∧
+          trace.length - 1 - k.1 ≤
+            (Set.Finite.toFinset
+              (NFYield.finite_bounded_length_surface_certificate_rank_items
+                (g := g) P Bcert L R)).card ∧
+          P < sententialMaxStackHeight (trace.get k) := by
+  classical
+  have hC :
+      (Set.Finite.toFinset
+          (NFYield.finite_bounded_length_surface_certificate_rank_items
+            (g := g) P Bcert L R)).card ≤
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_length_surface_certificate_rank_items
+            (g := g) P Bcert L R)).card := by
+    exact le_rfl
+  exact
+    exists_high_stack_between_late_lengthBound_surface_certificate_rank_budget_or_steps_lt_budget_of_minimal_stack_gt_bound_of_generates
+      (g := g) hNF (P := P) (Bcert := Bcert) (R := R) (L := L)
+      (C :=
+        (Set.Finite.toFinset
+          (NFYield.finite_bounded_length_surface_certificate_rank_items
+            (g := g) P Bcert L R)).card)
+      (n := n) (B := B) (trace := trace) (target := target) htargetLen hgen hC
+      htrace hlen hhead hlast hminLength hminBound
+      hbeforeBound hgt
+
 /-- A positionwise terminal-preserving substack replacement preserves sentential-form length. -/
 theorem length_eq_of_forall₂_symbol_substack_bound
     {g : IndexedGrammar T} {K : ℕ} {xs ys : List g.ISym}
