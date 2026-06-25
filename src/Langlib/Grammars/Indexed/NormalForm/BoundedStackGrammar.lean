@@ -9753,6 +9753,88 @@ theorem boundedFlatPathLanguage_of_boundedStackGrammar_language_isNormalForm
       (g := g) hNF (B := B) (L := L) hwlen hw
   exact ⟨ftrace, hfhead, hflast, hfbound, hfstep⟩
 
+/-- Exact-length form of
+`exists_bounded_accepting_flatPath_of_boundedStackGrammar_language_isNormalForm`.
+
+This packages the bounded-stack-to-flat-path bridge with the flat tape bound computed from the
+actual input length, which is the shape needed by the eventual input-parametric LBA
+simulation. -/
+theorem exists_bounded_accepting_flatPath_of_boundedStackGrammar_language_length_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w : List T}
+    (hw : w ∈ grammar_language (boundedStackGrammar g B)) :
+    ∃ n : ℕ,
+    ∃ trace : List (List g.ISym),
+    ∃ ftrace : List (List (FlatSymbol T g.nt g.flag)),
+      IsDerivationTrace g trace ∧
+      ftrace = flatTrace trace ∧
+      trace.length = n + 1 ∧
+      trace.head? = some [ISym.indexed g.initial []] ∧
+      trace.getLast? = some (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+      ftrace.length = n + 1 ∧
+      (∀ i (hi : i < trace.length),
+        sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+      ftrace.head? =
+        some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+      ftrace.getLast? =
+        some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+      (∀ i : Fin ftrace.length,
+        ftrace.get i ∈ boundedFlatForms g (w.length * (B + 2))) ∧
+      (∀ i : ℕ, ∀ hi : i + 1 < ftrace.length,
+        FlatTransforms g
+          (ftrace.get ⟨i, by omega⟩)
+          (ftrace.get ⟨i + 1, hi⟩)) ∧
+      FlatDerives g
+        (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+        (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) := by
+  exact
+    exists_bounded_accepting_flatPath_of_boundedStackGrammar_language_isNormalForm
+      (g := g) hNF (B := B) (L := w.length) (w := w) le_rfl hw
+
+/-- Exact-length fixed-slice bridge from the bounded-stack grammar to the bounded flat-path
+language. -/
+theorem boundedFlatPathLanguage_of_boundedStackGrammar_language_length_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w : List T}
+    (hw : w ∈ grammar_language (boundedStackGrammar g B)) :
+    w ∈ boundedFlatPathLanguage g (w.length * (B + 2)) := by
+  exact
+    boundedFlatPathLanguage_of_boundedStackGrammar_language_isNormalForm
+      (g := g) hNF (B := B) (L := w.length) (w := w) le_rfl hw
+
+/-- Per-word exact flat-bound characterization of normal-form generation.
+
+The remaining finite normal-form core has to make the stack bound uniform enough for one LBA;
+this theorem isolates the already-proved part: once a stack bound exists for the word, the flat
+certificate uses only `|w| * (B + 2)` cells. -/
+theorem language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w : List T} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ, w ∈ boundedFlatPathLanguage g (w.length * (B + 2)) := by
+  constructor
+  · intro hgen
+    have hcert : NFYield g g.initial [] w :=
+      (NFYield.generates_iff_isNormalForm (g := g) hNF).mp hgen
+    obtain ⟨B, hB⟩ :=
+      (exists_boundedStackGrammar_generates_iff_certificate (g := g) hNF (w := w)).mpr
+        hcert
+    exact ⟨B, boundedFlatPathLanguage_of_boundedStackGrammar_language_length_isNormalForm
+      (g := g) hNF hB⟩
+  · rintro ⟨B, hflat⟩
+    exact boundedFlatPathLanguage_subset_language
+      (g := g) (B := w.length * (B + 2)) hflat
+
+/-- Set-level form of
+`language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm`. -/
+theorem language_eq_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm) :
+    g.Language =
+      fun w : List T => ∃ B : ℕ, w ∈ boundedFlatPathLanguage g (w.length * (B + 2)) := by
+  ext w
+  exact language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
+    (g := g) hNF
+
 /-- A bounded flat path decodes to a counted indexed derivation whose intermediate stack
 heights are bounded by the same flat tape bound. -/
 theorem exists_stackBoundedDerivesIn_of_boundedFlatPath
@@ -17302,6 +17384,31 @@ theorem exists_bound_boundedFlatPathLanguage_eq_on_length_le_isNormalForm
   · intro hflat
     exact boundedFlatPathLanguage_subset_language
       (g := g) (B := L * (B + 2)) hflat
+
+/-- Exact-length flat-path finite-ball form of
+`exists_bound_boundedStackGrammar_language_eq_on_length_le_isNormalForm`.
+
+On a fixed terminal ball, one stack bound `B` suffices; each target word is then captured by
+the flat search space whose tape bound is computed from that word's own length. -/
+theorem exists_bound_boundedFlatPathLanguage_length_eq_on_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        target ∈ boundedFlatPathLanguage g (target.length * (B + 2))) := by
+  obtain ⟨B, hB⟩ :=
+    exists_bound_boundedStackGrammar_language_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  refine ⟨B, ?_⟩
+  intro target htargetLen
+  constructor
+  · intro hgen
+    exact boundedFlatPathLanguage_of_boundedStackGrammar_language_length_isNormalForm
+      (g := g) hNF (B := B) ((hB target htargetLen).mp hgen)
+  · intro hflat
+    exact boundedFlatPathLanguage_subset_language
+      (g := g) (B := target.length * (B + 2)) hflat
 
 /-- If shortest accepting derivations for all generated targets of length at most `L` are
 bounded by `N`, then one fixed bounded-stack grammar captures the original normal-form
