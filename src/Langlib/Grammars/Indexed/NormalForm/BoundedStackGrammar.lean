@@ -13725,4 +13725,44 @@ theorem exists_bound_boundedFlatPathLanguage_eq_on_length_le_of_minimal_derivesI
     exact boundedFlatPathLanguage_subset_language
       (g := g) (B := L * (B + 2)) hflat
 
+/-- Direct flat-path finite-search slice under a uniform shortest-derivation budget.
+
+This is the flat-search analogue of
+`exists_bound_boundedFlatPathLanguage_eq_on_length_le_of_minimal_derivesIn_bound`, but it uses
+the sharper step-budget flat bound exposed by
+`exists_bound_bounded_accepting_flatPath_of_generates_target_length_stepFlatBound`.
+It packages the current finite-ball simulator target without routing through a fixed
+bounded-stack grammar first. -/
+theorem exists_bound_boundedFlatPathLanguage_eq_on_length_le_of_minimal_derivesIn_stepFlatBound
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (N L : ℕ)
+    (hbudget : ∀ target : List T,
+      target.length ≤ L →
+      g.Generates target →
+      ∀ n : ℕ,
+        g.DerivesIn n [ISym.indexed g.initial []]
+          (target.map fun a => (ISym.terminal a : g.ISym)) →
+        (∀ m : ℕ,
+          g.DerivesIn m [ISym.indexed g.initial []]
+            (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) →
+        n ≤ N) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔ target ∈ boundedFlatPathLanguage g B) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_bounded_accepting_flatPath_of_generates_target_length_stepFlatBound
+      (g := g) hNF N L
+  refine ⟨L + L + (N + L * (N + K + N)), ?_⟩
+  intro target htargetLen
+  constructor
+  · intro hgen
+    obtain ⟨n, trace, ftrace, _hder, _hmin, _htrace, _hftrace, _hlen, _hhead,
+        _hlast, _hflen, _hstack, hfhead, hflast, hfbound, hfstep, _hfderives,
+        _hcard⟩ :=
+      hK target htargetLen hgen (hbudget target htargetLen hgen)
+    exact ⟨ftrace, hfhead, hflast, hfbound, hfstep⟩
+  · intro hflat
+    exact boundedFlatPathLanguage_subset_language
+      (g := g) (B := L + L + (N + L * (N + K + N))) hflat
+
 end IndexedGrammar
