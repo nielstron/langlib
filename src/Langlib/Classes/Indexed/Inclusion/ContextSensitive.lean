@@ -243,6 +243,21 @@ public theorem finite_normalForm_language_iff_exists_reverse_packedFlatRuleStep
   IndexedGrammar.language_iff_exists_reverse_packedFlatRuleStep_isNormalForm
     (g := g) hNF
 
+/-- Packed-cell tape-alphabet target for the finite normal-form core.
+
+The terminal word is first represented as a list of packed cells. The remaining recognizer
+target is the union over fixed widths of reverse packed-rule row languages. -/
+public theorem finite_normalForm_language_iff_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List A} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ,
+        IndexedGrammar.packedTerminalCells g (B + 2) w ∈
+          IndexedGrammar.packedReverseRuleStepRowLanguage g B :=
+  IndexedGrammar.language_iff_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_isNormalForm
+    (g := g) hNF
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]

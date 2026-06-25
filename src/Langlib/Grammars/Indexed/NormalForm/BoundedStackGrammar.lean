@@ -9932,6 +9932,28 @@ theorem language_iff_exists_reverse_packedFlatRuleStep_isNormalForm
       (packedFlatPathStackBoundLanguage_iff_reverse_packedFlatRuleStep_of_isNormalForm
         (g := g) hNF (B := B) (w := w)).mpr hrev⟩
 
+/-- Packed-cell row-language form of normal-form generation.
+
+The generated word is first laid out as packed terminal cells; membership is then equivalent to
+membership in some fixed-width reverse packed-rule row language. This is the tape-alphabet form
+of `language_iff_exists_reverse_packedFlatRuleStep_isNormalForm`. -/
+theorem language_iff_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w : List T} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ,
+        packedTerminalCells g (B + 2) w ∈ packedReverseRuleStepRowLanguage g B := by
+  rw [language_iff_exists_packedFlatPathStackBoundLanguage_isNormalForm (g := g) hNF]
+  constructor
+  · rintro ⟨B, hpacked⟩
+    exact ⟨B,
+      (packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
+        (g := g) hNF (B := B) (w := w)).mp hpacked⟩
+  · rintro ⟨B, hrow⟩
+    exact ⟨B,
+      (packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
+        (g := g) hNF (B := B) (w := w)).mpr hrow⟩
+
 /-- Set-level form of
 `language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm`. -/
 theorem language_eq_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
@@ -9972,6 +9994,19 @@ theorem language_eq_exists_reverse_packedFlatRuleStep_isNormalForm
   ext w
   exact language_iff_exists_reverse_packedFlatRuleStep_isNormalForm
     (g := g) hNF
+
+/-- Set-level form of
+`language_iff_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_isNormalForm`. -/
+theorem language_eq_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm) :
+    g.Language =
+      fun w : List T =>
+        ∃ B : ℕ,
+          packedTerminalCells g (B + 2) w ∈ packedReverseRuleStepRowLanguage g B := by
+  ext w
+  exact
+    language_iff_exists_packedTerminalCells_mem_reverseRuleStepRowLanguage_isNormalForm
+      (g := g) hNF
 
 /-- A bounded flat path decodes to a counted indexed derivation whose intermediate stack
 heights are bounded by the same flat tape bound. -/

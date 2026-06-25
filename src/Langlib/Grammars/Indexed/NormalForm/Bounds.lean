@@ -2347,16 +2347,22 @@ theorem boundedFlatPathLanguage_iff_exists_path_length_le_card
   · rintro ⟨path, hhead, hlast, _hlen, hbound, hstep⟩
     exact ⟨path, hhead, hlast, hbound, hstep⟩
 
-theorem initial_mem_boundedFlatForms_length_mul_of_pos
-    {g : IndexedGrammar T} {B : ℕ} {w : List T} (hwpos : 0 < w.length) :
+theorem initial_mem_boundedFlatForms_mul_of_pos
+    {g : IndexedGrammar T} {B n : ℕ} (hn : 0 < n) :
     encodeSentential ([ISym.indexed g.initial []] : List g.ISym) ∈
-      boundedFlatForms g (w.length * (B + 2)) := by
+      boundedFlatForms g (n * (B + 2)) := by
   simp [boundedFlatForms]
-  have hw1 : 1 ≤ w.length := Nat.succ_le_of_lt hwpos
+  have hn1 : 1 ≤ n := Nat.succ_le_of_lt hn
   have hB2 : 2 ≤ B + 2 := by omega
   calc
     2 ≤ 1 * (B + 2) := by simp [hB2]
-    _ ≤ w.length * (B + 2) := Nat.mul_le_mul_right (B + 2) hw1
+    _ ≤ n * (B + 2) := Nat.mul_le_mul_right (B + 2) hn1
+
+theorem initial_mem_boundedFlatForms_length_mul_of_pos
+    {g : IndexedGrammar T} {B : ℕ} {w : List T} (hwpos : 0 < w.length) :
+    encodeSentential ([ISym.indexed g.initial []] : List g.ISym) ∈
+      boundedFlatForms g (w.length * (B + 2)) :=
+  initial_mem_boundedFlatForms_mul_of_pos (g := g) (B := B) hwpos
 
 theorem terminal_mem_boundedFlatForms_length_mul
     {g : IndexedGrammar T} {B : ℕ} (w : List T) :
@@ -5826,6 +5832,102 @@ theorem packedFlatPathStackBoundLanguage_iff_reverse_packedFlatRuleStep_of_isNor
     exact ⟨hwne,
       (packedFlatDerives_iff_reverse_packedFlatRuleStep_of_isNormalForm
         (g := g) hNF).mpr hrev⟩
+
+/-- Interpret a list of packed cells as the corresponding packed row. -/
+def packedCellsRow {α : Type} {W : ℕ} (cells : List (PackedBlock α W)) :
+    Fin cells.length → PackedBlock α W :=
+  fun i => cells.get i
+
+/-- Pack the terminal word into the packed-row cell alphabet.
+
+This is the LBA-facing input row: the word is laid out in flattened slot order across
+`w.length` packed cells of width `W`. -/
+def packedTerminalCells (g : IndexedGrammar T) (W : ℕ) (w : List T) :
+    List (PackedBlock (FlatSymbol T g.nt g.flag) W) :=
+  List.ofFn (packedFlatForm g W w.length
+    (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag))))
+
+@[simp] theorem packedTerminalCells_length (g : IndexedGrammar T) (W : ℕ)
+    (w : List T) :
+    (packedTerminalCells g W w).length = w.length := by
+  simp [packedTerminalCells]
+
+theorem packedTerminalCells_ne_nil_iff (g : IndexedGrammar T) (W : ℕ)
+    {w : List T} :
+    packedTerminalCells g W w ≠ [] ↔ w ≠ [] := by
+  constructor
+  · intro hcells hw
+    subst w
+    exact hcells (by simp [packedTerminalCells])
+  · intro hw hcells
+    exact hw (List.length_eq_zero_iff.mp (by
+      simpa [packedTerminalCells] using congrArg List.length hcells))
+
+theorem packedCellsRow_packedTerminalCells
+    (g : IndexedGrammar T) (W : ℕ) (w : List T) :
+    packedCellsRow (packedTerminalCells g W w) =
+      fun i =>
+        packedFlatForm g W w.length
+          (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)))
+          ⟨i.1, by simpa [packedTerminalCells] using i.2⟩ := by
+  funext i
+  simp [packedCellsRow, packedTerminalCells]
+
+/-- Fixed-width reverse packed-rule row language over the packed-cell alphabet.
+
+The input is already a packed row. Acceptance means reverse concrete normal-form rule
+reachability from that row to the packed initial row on the same number of cells. -/
+def packedReverseRuleStepRowLanguage (g : IndexedGrammar T) (B : ℕ) :
+    _root_.Language (PackedBlock (FlatSymbol T g.nt g.flag) (B + 2)) :=
+  fun cells =>
+    ∃ n : ℕ, ∃ row : PackedFlatForm g (B + 2) n, ∃ hn : 0 < n,
+      cells = List.ofFn row ∧
+      Relation.ReflTransGen
+        (fun x y => PackedFlatRuleStep g (B + 2) n y x)
+        row
+        (packedBoundedFlatForm g (B + 2) n
+          ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+            initial_mem_boundedFlatForms_mul_of_pos
+              (g := g) (B := B) hn⟩)
+
+theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w : List T} :
+    w ∈ packedFlatPathStackBoundLanguage g B ↔
+      packedTerminalCells g (B + 2) w ∈ packedReverseRuleStepRowLanguage g B := by
+  rw [packedFlatPathStackBoundLanguage_iff_reverse_packedFlatRuleStep_of_isNormalForm
+    (g := g) hNF]
+  constructor
+  · rintro ⟨hwne, hrev⟩
+    refine ⟨w.length,
+      packedBoundedFlatForm g (B + 2) w.length
+        ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+          terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩,
+      List.length_pos_of_ne_nil hwne, ?_, ?_⟩
+    · simp [packedTerminalCells, packedBoundedFlatForm]
+    · simpa [packedBoundedFlatForm] using hrev
+  · rintro ⟨n, row, hn, hcells, hrev⟩
+    have hwne : w ≠ [] := by
+      exact (packedTerminalCells_ne_nil_iff g (B + 2)).mp
+        (by
+          rw [hcells]
+          intro hnil
+          have hlen := congrArg List.length hnil
+          simp at hlen
+          omega)
+    have hnlen : w.length = n := by
+      simpa [packedTerminalCells] using congrArg List.length hcells
+    subst n
+    have hrow :
+        row =
+          packedBoundedFlatForm g (B + 2) w.length
+            ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+              terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩ := by
+      apply List.ofFn_inj.mp
+      simpa [packedTerminalCells, packedBoundedFlatForm] using hcells.symm
+    subst row
+    refine ⟨hwne, ?_⟩
+    simpa [packedBoundedFlatForm] using hrev
 
 theorem transformIsBinaryStep_encodeSentential_length_eq
     {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
