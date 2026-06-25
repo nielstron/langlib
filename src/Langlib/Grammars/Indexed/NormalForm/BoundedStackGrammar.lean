@@ -1956,6 +1956,60 @@ theorem exists_canonical_surface_repeat_at_current_of_late_window_suffix_take_eq
       (g := g) hNF htrace hhead hfirstBound hi hic hwindowBound hbefore hPK hctx
       ((stack_take_append_take_eq_of_suffix_take_eq hPη hPB hsuffix).symm)
 
+/-- Direct stack-bounded prefix bridge for a late-window replacement whose visible stack prefix
+matches the current trace stack. This is the lower-level form of the finite-frontier bridge:
+the local window bound supplies a `B`-bounded prefix derivation to the replacement context. -/
+theorem exists_stackBoundedDerivesIn_late_window_context_take_eq
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B P C a i j : ℕ} {trace : List (List g.ISym)}
+    {u v : List g.ISym} {A : g.nt} {η ζ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hi : i < trace.length)
+    (hic : i ≤ a + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hij : i ≤ j)
+    (hζ : ζ.length ≤ B)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : η.take B = ζ.take B) :
+    ∃ p : ℕ,
+      p ≤ j ∧
+        StackBoundedDerivesIn g B p [ISym.indexed g.initial []]
+          (u ++ [ISym.indexed A ζ] ++ v) := by
+  let ys : List g.ISym := u ++ [ISym.indexed A ζ] ++ v
+  have hprefix :
+      ∀ k (hk : k < trace.length),
+        k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B := by
+    intro k hk hki
+    exact le_trans
+      (prefix_maxStackHeight_le_late_window_of_before_bound
+        (g := g) hNF htrace hhead (by simp) hic hbefore k hk hki)
+      hwindowBound
+  have hcurrent : sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B :=
+    hprefix i hi le_rfl
+  have hctxBound : sententialMaxStackHeight (u ++ v) ≤ B :=
+    sententialMaxStackHeight_context_without_indexed_le_of_eq
+      (g := g) hctx hcurrent
+  have hysStack : sententialMaxStackHeight ys ≤ B := by
+    simpa [ys] using
+      sententialMaxStackHeight_context_indexed_le_of_context_le_of_stack_le
+        (g := g) (u := u) (v := v) (A := A) (σ := ζ)
+        hctxBound hζ
+  have hsurfaceEq :
+      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm B ys := by
+    rw [hctx]
+    simpa [ys] using
+      surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
+        (g := g) (B := B) (u := u) (v := v) (A := A)
+        (η := η) (ζ := ζ) htake
+  exact
+    exists_stackBoundedDerivesIn_of_surface_eq_prefix_bound_le
+      (g := g) (B := B) (trace := trace) (first := [ISym.indexed g.initial []])
+      (ys := ys) htrace hhead hi hij hprefix hysStack hsurfaceEq
+
 /-- Prefix-local target-compatible pigeonhole packaged with bounded reachability. If the
 target-compatible bounded-surface frontier is smaller than the displayed prefix of an accepting
 trace, then some repeated surface inside that prefix yields a shortened bounded derivation from
@@ -6474,38 +6528,20 @@ theorem exists_stepReachable_boundedSentential_image_of_late_window_context_take
                   [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
             Set (List (symbol T (BoundedStackNT g B)))) := by
   let ys : List g.ISym := u ++ [ISym.indexed A ζ] ++ v
-  have hprefix :
-      ∀ k (hk : k < trace.length),
-        k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B := by
-    intro k hk hki
-    exact le_trans
-      (prefix_maxStackHeight_le_late_window_of_before_bound
-        (g := g) hNF htrace hhead (by simp) hic hbefore k hk hki)
-      hwindowBound
-  have hcurrent : sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B :=
-    hprefix i hi le_rfl
-  have hctxBound : sententialMaxStackHeight (u ++ v) ≤ B :=
-    sententialMaxStackHeight_context_without_indexed_le_of_eq
-      (g := g) hctx hcurrent
+  obtain ⟨p, hpi, hpre⟩ :=
+    exists_stackBoundedDerivesIn_late_window_context_take_eq
+      (g := g) hNF htrace hhead hi hic hwindowBound hbefore hij hζ hctx htake
   have hysStack : sententialMaxStackHeight ys ≤ B := by
-    simpa [ys] using
-      sententialMaxStackHeight_context_indexed_le_of_context_le_of_stack_le
-        (g := g) (u := u) (v := v) (A := A) (σ := ζ)
-        hctxBound hζ
-  have hsurfaceEq :
-      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
-        surfaceOfTruncatedForm B ys := by
-    rw [hctx]
-    simpa [ys] using
-      surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
-        (g := g) (B := B) (u := u) (v := v) (A := A)
-        (η := η) (ζ := ζ) htake
+    simpa [ys] using hpre.final_maxStackHeight_le
+  obtain ⟨bw, hbw⟩ :=
+    exists_boundedSentential?_of_sententialMaxStackHeight_le
+      (g := g) (B := B) hysStack
+  refine ⟨bw, hbw, ?_⟩
   exact
-    exists_stepReachable_boundedSentential_image_of_context_surface_eq_prefix_bound_le
-      (g := g) (P := P) (B := B) (L := L) (N := N) (trace := trace)
-      (ys := ys) (i := i) (j := j)
-      htrace hhead hi hij hjN hprefix hysStack hsurfaceEq
-      (by simpa [ys] using hsurfaceBound)
+    stepReachable_boundedSentential_image_mem_of_stackBoundedDerivesIn
+      (g := g) (P := P) (B := B) (L := L) (N := N) (p := p)
+      (ys := ys) (bw := bw) (by simpa [ys] using hsurfaceBound)
+      hbw (le_trans hpi hjN) hpre
 
 /-- Surface-repeat bridge into the finite step-reachable full-context frontier.
 
