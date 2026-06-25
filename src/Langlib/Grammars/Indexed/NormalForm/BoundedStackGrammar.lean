@@ -10154,6 +10154,28 @@ theorem packedFlatPathStackBoundLanguage_subset_boundedStackGrammar_language_len
     ((packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
       (g := g) (B := B) (w := w)).mp hw).2
 
+/-- Fixed bounded-stack slices embed in the matching fixed-width terminal target. -/
+theorem boundedStackGrammar_language_subset_packedTerminalReverseRuleStepLanguage_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {B : ℕ} {w : List T}
+    (hw : w ∈ grammar_language (boundedStackGrammar g B)) :
+    w ∈ packedTerminalReverseRuleStepLanguage g B :=
+  (packedFlatPathStackBoundLanguage_iff_packedTerminalReverseRuleStepLanguage_of_isNormalForm
+    (g := g) hNF (B := B) (w := w)).mp
+    (boundedStackGrammar_language_subset_packedFlatPathStackBoundLanguage_isNormalForm
+      (g := g) hNF hw)
+
+/-- Fixed-width terminal-target witnesses decode to the length-scaled bounded-stack slice. -/
+theorem packedTerminalReverseRuleStepLanguage_subset_boundedStackGrammar_language_length_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {B : ℕ} {w : List T}
+    (hw : w ∈ packedTerminalReverseRuleStepLanguage g B) :
+    w ∈ grammar_language (boundedStackGrammar g (w.length * (B + 2))) :=
+  packedFlatPathStackBoundLanguage_subset_boundedStackGrammar_language_length
+    (g := g)
+    ((packedFlatPathStackBoundLanguage_iff_packedTerminalReverseRuleStepLanguage_of_isNormalForm
+      (g := g) hNF (B := B) (w := w)).mpr hw)
+
 /-- Normal-form certificate form of the fixed-slice reverse bridge. -/
 theorem stackBounded_certificate_of_boundedFlatPathLanguage_isNormalForm
     {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
@@ -17687,6 +17709,27 @@ theorem exists_bound_packedFlatPathStackBoundLanguage_eq_on_length_le_isNormalFo
     exact (hB target htargetLen).mpr
       ((packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
         (g := g) (B := B) (w := target)).mp hpacked).2
+
+/-- Fixed-width terminal-target finite-ball form.
+
+On a fixed terminal ball, one packed width makes the normal-form language agree with the
+terminal preimage of the reverse packed-rule row language. -/
+theorem exists_bound_packedTerminalReverseRuleStepLanguage_eq_on_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        target ∈ packedTerminalReverseRuleStepLanguage g B) := by
+  obtain ⟨B, hB⟩ :=
+    exists_bound_packedFlatPathStackBoundLanguage_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  refine ⟨B, ?_⟩
+  intro target htargetLen
+  rw [hB target htargetLen]
+  exact
+    packedFlatPathStackBoundLanguage_iff_packedTerminalReverseRuleStepLanguage_of_isNormalForm
+      (g := g) hNF
 
 /-- Concrete reverse-rule finite-ball form.
 

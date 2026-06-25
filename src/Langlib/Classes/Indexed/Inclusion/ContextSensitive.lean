@@ -174,6 +174,40 @@ public theorem packedFlatPathStackBound_language_subset_boundedStackGrammar_lang
     IndexedGrammar.packedFlatPathStackBoundLanguage_subset_boundedStackGrammar_language_length
       (g := g) h
 
+/-- Fixed-width terminal targets are sound for finite normal-form indexed grammars. -/
+public theorem packedTerminalReverseRuleStep_language_subset_language_of_isNormalForm
+    {A : Type} (g : IndexedGrammar A) [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (B : ℕ) :
+    ∀ w : List A,
+      w ∈ IndexedGrammar.packedTerminalReverseRuleStepLanguage g B →
+      w ∈ g.Language :=
+  fun _ h =>
+    IndexedGrammar.packedTerminalReverseRuleStepLanguage_subset_language_of_isNormalForm
+      (g := g) hNF h
+
+/-- Fixed bounded-stack slices embed in the matching fixed-width terminal target. -/
+public theorem boundedStackGrammar_language_subset_packedTerminalReverseRuleStep_language_of_isNormalForm
+    {A : Type} (g : IndexedGrammar A) [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (B : ℕ) :
+    ∀ w : List A,
+      w ∈ grammar_language (IndexedGrammar.boundedStackGrammar g B) →
+      w ∈ IndexedGrammar.packedTerminalReverseRuleStepLanguage g B :=
+  fun _ h =>
+    IndexedGrammar.boundedStackGrammar_language_subset_packedTerminalReverseRuleStepLanguage_isNormalForm
+      (g := g) hNF h
+
+/-- Fixed-width terminal-target witnesses decode to the length-scaled bounded-stack slice. -/
+public theorem packedTerminalReverseRuleStep_language_subset_boundedStackGrammar_language_length
+    {A : Type} (g : IndexedGrammar A) [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (B : ℕ) :
+    ∀ w : List A,
+      w ∈ IndexedGrammar.packedTerminalReverseRuleStepLanguage g B →
+      w ∈ grammar_language
+        (IndexedGrammar.boundedStackGrammar g (w.length * (B + 2))) :=
+  fun _ h =>
+    IndexedGrammar.packedTerminalReverseRuleStepLanguage_subset_boundedStackGrammar_language_length_isNormalForm
+      (g := g) hNF h
+
 /-- Packed-language finite-ball form of the current normal-form simulator target.
 
 On every fixed input-length ball, one fixed stack-bound packed flat-path language agrees with
@@ -188,6 +222,21 @@ public theorem exists_packedFlatPathStackBound_language_eq_on_length_le_of_isNor
       (target ∈ g.Language ↔
         target ∈ IndexedGrammar.packedFlatPathStackBoundLanguage g B) :=
   IndexedGrammar.exists_bound_packedFlatPathStackBoundLanguage_eq_on_length_le_isNormalForm
+    (g := g) hNF L
+
+/-- Fixed-width terminal-target finite-ball form of the current normal-form simulator target.
+
+On every fixed input-length ball, one fixed packed width makes the normal-form language agree
+with the terminal preimage of the reverse packed-rule row language. -/
+public theorem exists_packedTerminalReverseRuleStep_language_eq_on_length_le_of_isNormalForm
+    {A : Type} [Fintype A]
+    (g : IndexedGrammar A) [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List A,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        target ∈ IndexedGrammar.packedTerminalReverseRuleStepLanguage g B) :=
+  IndexedGrammar.exists_bound_packedTerminalReverseRuleStepLanguage_eq_on_length_le_isNormalForm
     (g := g) hNF L
 
 /-- Concrete reverse-rule finite-ball form of the current simulator target.

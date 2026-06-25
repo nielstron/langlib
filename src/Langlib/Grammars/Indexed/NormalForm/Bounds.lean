@@ -5960,6 +5960,15 @@ theorem packedFlatPathStackBoundLanguage_iff_packedTerminalReverseRuleStepLangua
     packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
       (g := g) hNF
 
+theorem packedTerminalReverseRuleStepLanguage_subset_language_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w : List T}
+    (hw : w ∈ packedTerminalReverseRuleStepLanguage g B) :
+    w ∈ g.Language :=
+  packedFlatPathStackBoundLanguage_subset_language
+    ((packedFlatPathStackBoundLanguage_iff_packedTerminalReverseRuleStepLanguage_of_isNormalForm
+      (g := g) hNF (B := B) (w := w)).mpr hw)
+
 theorem transformIsBinaryStep_encodeSentential_length_eq
     {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
     (h : TransformIsBinaryStep g w₁ w₂) :
