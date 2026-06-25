@@ -1774,6 +1774,69 @@ public theorem bounded_prefix_pair_certificate_mem_bounded_length_items
   exact ⟨by simpa [List.length_append] using Nat.add_le_add hpref hτ,
     hulen, hvlen, hleft, hright⟩
 
+/-- Canonical-prefix binary pair certificates have a uniformly bounded shared suffix, and the
+resulting shared-stack pair belongs to both finite pair frontiers.
+
+This packages the pair suffix-shrinker in the same canonical `η.take P ++ τ` shape used by the
+single-certificate frontier theorem, so binary branches can later refer directly to finite
+frontier membership rather than re-running the shrinking construction. -/
+public theorem exists_bound_pair_canonical_prefix_certificate_mem_frontiers_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ A C : g.nt, ∀ η σ : List g.flag, ∀ u v : List T,
+          u <+ target →
+          v <+ target →
+          NFYield g A (η.take P ++ σ) u →
+          NFYield g C (η.take P ++ σ) v →
+          ∃ τ : List g.flag,
+            NFYield g A (η.take P ++ τ) u ∧
+              NFYield g C (η.take P ++ τ) v ∧
+              τ <+ σ ∧
+              τ.length ≤ K ∧
+              (∀ ρ : List g.flag,
+                NFYield g A (η.take P ++ ρ) u →
+                NFYield g C (η.take P ++ ρ) v →
+                ρ <+ τ → ρ = τ) ∧
+              ((((A, C), η.take P ++ τ), (u, v)) :
+                  ((g.nt × g.nt) × List g.flag) × (List T × List T)) ∈
+                ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                  item.1.2.length ≤ P + K ∧
+                    item.2.1 <+ target ∧
+                    item.2.2 <+ target ∧
+                    NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                    NFYield g item.1.1.2 item.1.2 item.2.2} :
+                  Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+              ((((A, C), η.take P ++ τ), (u, v)) :
+                  ((g.nt × g.nt) × List g.flag) × (List T × List T)) ∈
+                ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                  item.1.2.length ≤ P + K ∧
+                    item.2.1.length ≤ L ∧
+                    item.2.2.length ≤ L ∧
+                    NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                    NFYield g item.1.1.2 item.1.2 item.2.2} :
+                  Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_pair_certificate_for_target_length_bounded_prefix (g := g) hNF P L
+  refine ⟨K, ?_⟩
+  intro target htargetLen A C η σ u v hut hvt hleft hright
+  obtain ⟨τ, hτleft, hτright, hτsub, hτlen, hτmin⟩ :=
+    hK target htargetLen (η.take P) (List.length_take_le P η)
+      A C u v hut hvt σ hleft hright
+  have hulen : u.length ≤ L := le_trans hut.length_le htargetLen
+  have hvlen : v.length ≤ L := le_trans hvt.length_le htargetLen
+  refine ⟨τ, hτleft, hτright, hτsub, hτlen, hτmin, ?_, ?_⟩
+  · exact canonical_prefix_pair_certificate_mem_bounded_target_items
+      (g := g) (P := P) (K := K) (target := target)
+      (u := u) (v := v) (A := A) (C := C) (η := η) (τ := τ)
+      hut hvt hτlen hτleft hτright
+  · exact canonical_prefix_pair_certificate_mem_bounded_length_items
+      (g := g) (P := P) (K := K) (L := L)
+      (u := u) (v := v) (A := A) (C := C) (η := η) (τ := τ)
+      hulen hvlen hτlen hτleft hτright
+
 /-- Certificate-item membership is monotone in the stack bound for the target-specific
 frontier. -/
 public theorem bounded_target_certificate_items_mono_bound
@@ -1949,6 +2012,109 @@ public theorem bounded_prefix_binary_branch_mem_frontiers
       (g := g) (N := N) (K := K) (L := L) hpref hwlen hτ hparent,
     bounded_prefix_pair_certificate_mem_bounded_length_items
       (g := g) (N := N) (K := K) (L := L) hpref hulen hvlen hτ hleft hright⟩
+
+/-- Canonical-prefix binary branches can be shrunken to one uniformly bounded shared suffix,
+with the rebuilt parent and both children registered in the finite certificate frontiers.
+
+This is the binary-rule analogue of the single-certificate canonical frontier theorem: the
+pair shrinker supplies a common suffix for the two child certificates, and the normal-form
+binary rule rebuilds the parent certificate at that same shared stack. -/
+public theorem exists_bound_binary_canonical_prefix_branch_mem_frontiers_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ A B C : g.nt, ∀ r : IRule T g.nt g.flag,
+          r ∈ g.rules →
+          r.lhs = A →
+          r.consume = none →
+          r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] →
+          ∀ η σ : List g.flag, ∀ u v : List T,
+            u <+ target →
+            v <+ target →
+            u ++ v <+ target →
+            NFYield g B (η.take P ++ σ) u →
+            NFYield g C (η.take P ++ σ) v →
+            ∃ τ : List g.flag,
+              NFYield g B (η.take P ++ τ) u ∧
+                NFYield g C (η.take P ++ τ) v ∧
+                NFYield g A (η.take P ++ τ) (u ++ v) ∧
+                τ <+ σ ∧
+                τ.length ≤ K ∧
+                (∀ ρ : List g.flag,
+                  NFYield g B (η.take P ++ ρ) u →
+                  NFYield g C (η.take P ++ ρ) v →
+                  ρ <+ τ → ρ = τ) ∧
+                (((B, η.take P ++ τ), u) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ P + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((C, η.take P ++ τ), v) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ P + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((A, η.take P ++ τ), u ++ v) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ P + K ∧ item.2 <+ target ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                ((((B, C), η.take P ++ τ), (u, v)) :
+                    ((g.nt × g.nt) × List g.flag) × (List T × List T)) ∈
+                  ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                    item.1.2.length ≤ P + K ∧
+                      item.2.1 <+ target ∧
+                      item.2.2 <+ target ∧
+                      NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                      NFYield g item.1.1.2 item.1.2 item.2.2} :
+                    Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+                (((B, η.take P ++ τ), u) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ P + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((C, η.take P ++ τ), v) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ P + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                (((A, η.take P ++ τ), u ++ v) :
+                    (g.nt × List g.flag) × List T) ∈
+                  ({item : (g.nt × List g.flag) × List T |
+                    item.1.2.length ≤ P + K ∧ item.2.length ≤ L ∧
+                      NFYield g item.1.1 item.1.2 item.2} :
+                    Set ((g.nt × List g.flag) × List T)) ∧
+                ((((B, C), η.take P ++ τ), (u, v)) :
+                    ((g.nt × g.nt) × List g.flag) × (List T × List T)) ∈
+                  ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                    item.1.2.length ≤ P + K ∧
+                      item.2.1.length ≤ L ∧
+                      item.2.2.length ≤ L ∧
+                      NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                      NFYield g item.1.1.2 item.1.2 item.2.2} :
+                    Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_pair_canonical_prefix_certificate_mem_frontiers_for_target_length
+      (g := g) hNF P L
+  refine ⟨K, ?_⟩
+  intro target htargetLen A B C r hr hlhs hc hrhs η σ u v hut hvt hwt hleft hright
+  obtain ⟨τ, hτleft, hτright, hτsub, hτlen, hτmin, _htargetPair, _hlengthPair⟩ :=
+    hK target htargetLen B C η σ u v hut hvt hleft hright
+  have hparent : NFYield g A (η.take P ++ τ) (u ++ v) :=
+    NFYield.binary hr hlhs hc hrhs hτleft hτright
+  refine ⟨τ, hτleft, hτright, hparent, hτsub, hτlen, hτmin, ?_⟩
+  exact bounded_prefix_binary_branch_mem_frontiers
+    (g := g) (N := P) (K := K) (L := L)
+    (target := target) (u := u) (v := v) (w := u ++ v)
+    (A := A) (B := B) (C := C) (pref := η.take P) (τ := τ)
+    (List.length_take_le P η) htargetLen hut hvt hwt hτlen hτleft hτright hparent
 
 /-- Frontier memberships supplied by a bounded-prefix push certificate branch. The pushed
 child lives in the finite frontier with preserved prefix length `N + 1`; the shrunken parent
