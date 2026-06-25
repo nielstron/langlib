@@ -5980,6 +5980,33 @@ theorem packedTerminalReverseRuleStepLanguage_iff_packedCellsRow_reaches_initial
   packedReverseRuleStepRowLanguage_iff_packedCellsRow_reaches_initial
     (g := g) (B := B) (cells := packedTerminalCells g (B + 2) w)
 
+theorem packedTerminalReverseRuleStepLanguage_iff_nonempty_packedCellsRow_reaches_initial
+    (g : IndexedGrammar T) (B : ℕ) {w : List T} :
+    w ∈ packedTerminalReverseRuleStepLanguage g B ↔
+      ∃ hwne : w ≠ [],
+        Relation.ReflTransGen
+          (fun x y =>
+            PackedFlatRuleStep g (B + 2) (packedTerminalCells g (B + 2) w).length y x)
+          (packedCellsRow (packedTerminalCells g (B + 2) w))
+          (packedBoundedFlatForm g (B + 2) (packedTerminalCells g (B + 2) w).length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_mul_of_pos
+                (g := g) (B := B)
+                (List.length_pos_of_ne_nil
+                  ((packedTerminalCells_ne_nil_iff g (B + 2)).mpr hwne))⟩) := by
+  rw [packedTerminalReverseRuleStepLanguage_iff_packedCellsRow_reaches_initial]
+  constructor
+  · rintro ⟨hcells, hreach⟩
+    have hwne : w ≠ [] :=
+      (packedTerminalCells_ne_nil_iff g (B + 2)).mp hcells
+    refine ⟨hwne, ?_⟩
+    simpa using hreach
+  · rintro ⟨hwne, hreach⟩
+    have hcells : packedTerminalCells g (B + 2) w ≠ [] :=
+      (packedTerminalCells_ne_nil_iff g (B + 2)).mpr hwne
+    refine ⟨hcells, ?_⟩
+    simpa using hreach
+
 theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {B : ℕ} {w : List T} :
