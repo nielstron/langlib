@@ -5873,6 +5873,22 @@ theorem packedCellsRow_packedTerminalCells
   funext i
   simp [packedCellsRow, packedTerminalCells]
 
+theorem packedTerminalCells_get
+    (g : IndexedGrammar T) (W : ℕ) (w : List T) (i : Fin w.length) :
+    (packedTerminalCells g W w).get
+        ⟨i.1, by simp [packedTerminalCells, i.2]⟩ =
+      fun j => (w[i.1 * W + j.1]?).map
+        (FlatSymbol.terminal (N := g.nt) (F := g.flag)) := by
+  simp [packedTerminalCells, packedFlatForm_terminal_cell]
+
+theorem packedTerminalCells_get_slot
+    (g : IndexedGrammar T) (W : ℕ) (w : List T) (i : Fin w.length) (j : Fin W) :
+    (packedTerminalCells g W w).get
+        ⟨i.1, by simp [packedTerminalCells, i.2]⟩ j =
+      (w[i.1 * W + j.1]?).map
+        (FlatSymbol.terminal (N := g.nt) (F := g.flag)) := by
+  simpa using congrFun (packedTerminalCells_get (g := g) (W := W) (w := w) i) j
+
 /-- Fixed-width reverse packed-rule row language over the packed-cell alphabet.
 
 The input is already a packed row. Acceptance means reverse concrete normal-form rule
