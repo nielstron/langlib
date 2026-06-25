@@ -17,6 +17,128 @@ variable {T : Type}
 
 namespace IndexedGrammar
 
+/-! ## Finite directed reachability -/
+
+/-- Exactly `n` directed steps along a relation. This counted form is used to put
+finite-cardinality bounds on witnesses for reflexive-transitive reachability. -/
+inductive RelDerivesIn {α : Type} (r : α → α → Prop) : ℕ → α → α → Prop where
+  | zero (a : α) : RelDerivesIn r 0 a a
+  | succ {n : ℕ} {a b c : α} :
+      r a b → RelDerivesIn r n b c → RelDerivesIn r (n + 1) a c
+
+namespace RelDerivesIn
+
+variable {α : Type} {r : α → α → Prop} {a b c x : α} {n m i j : ℕ}
+
+theorem reflTransGen (h : RelDerivesIn r n a b) : Relation.ReflTransGen r a b := by
+  induction h with
+  | zero a => exact Relation.ReflTransGen.refl
+  | succ hstep _ ih => exact Relation.ReflTransGen.head hstep ih
+
+theorem exists_of_reflTransGen (h : Relation.ReflTransGen r a b) :
+    ∃ n : ℕ, RelDerivesIn r n a b := by
+  refine Relation.ReflTransGen.head_induction_on h ?_ ?_
+  · exact ⟨0, zero b⟩
+  · intro a c hac _ ih
+    obtain ⟨n, hn⟩ := ih
+    exact ⟨n + 1, succ hac hn⟩
+
+theorem trans (h₁ : RelDerivesIn r n a b) (h₂ : RelDerivesIn r m b c) :
+    RelDerivesIn r (n + m) a c := by
+  induction h₁ generalizing m c with
+  | zero a =>
+      simpa using h₂
+  | succ hstep _ ih =>
+      convert succ hstep (ih h₂) using 1
+      omega
+
+theorem split (h : RelDerivesIn r n a b) (hi : i ≤ n) :
+    ∃ x : α, RelDerivesIn r i a x ∧ RelDerivesIn r (n - i) x b := by
+  induction i generalizing a n with
+  | zero =>
+      exact ⟨a, zero a, by simpa using h⟩
+  | succ i ih =>
+      cases h with
+      | zero a =>
+          omega
+      | @succ n₀ a₀ b₀ c₀ hstep hrest =>
+          have hi' : i ≤ n₀ := by omega
+          obtain ⟨x, hpre, hsuf⟩ := ih hrest hi'
+          exact ⟨x, succ hstep hpre, by simpa [Nat.succ_sub_succ_eq_sub] using hsuf⟩
+
+theorem minimal_intermediate_index_eq
+    (hmin : ∀ m : ℕ, RelDerivesIn r m a b → n ≤ m)
+    (hi : i ≤ n) (hj : j ≤ n)
+    (hprei : RelDerivesIn r i a x) (hsufi : RelDerivesIn r (n - i) x b)
+    (hprej : RelDerivesIn r j a x) (hsufj : RelDerivesIn r (n - j) x b) :
+    i = j := by
+  rcases lt_trichotomy i j with hij | h | hji
+  · have hshort : RelDerivesIn r (i + (n - j)) a b := trans hprei hsufj
+    have hshort_lt : i + (n - j) < n := by omega
+    exact False.elim ((not_lt_of_ge (hmin _ hshort)) hshort_lt)
+  · exact h
+  · have hshort : RelDerivesIn r (j + (n - i)) a b := trans hprej hsufi
+    have hshort_lt : j + (n - i) < n := by omega
+    exact False.elim ((not_lt_of_ge (hmin _ hshort)) hshort_lt)
+
+/-- Any finite directed reachability witness can be chosen with at most as many vertices as
+the whole finite state space. -/
+theorem exists_card_bound_of_reflTransGen [Fintype α]
+    (h : Relation.ReflTransGen r a b) :
+    ∃ n : ℕ, RelDerivesIn r n a b ∧ n + 1 ≤ Fintype.card α := by
+  classical
+  obtain ⟨n₀, hn₀⟩ := exists_of_reflTransGen h
+  let P : ℕ → Prop := fun k => RelDerivesIn r k a b
+  have hP : ∃ k : ℕ, P k := ⟨n₀, hn₀⟩
+  let n := Nat.find hP
+  have hn : RelDerivesIn r n a b := Nat.find_spec hP
+  have hmin : ∀ m : ℕ, RelDerivesIn r m a b → n ≤ m := by
+    intro m hm
+    exact Nat.find_min' hP hm
+  let mid : Fin (n + 1) → α := fun k =>
+    Classical.choose (split hn (i := k.1) (by omega))
+  have hmid :
+      ∀ k : Fin (n + 1),
+        RelDerivesIn r k.1 a (mid k) ∧ RelDerivesIn r (n - k.1) (mid k) b := by
+    intro k
+    exact Classical.choose_spec (split hn (i := k.1) (by omega))
+  have hinj : Function.Injective mid := by
+    intro p q hpq
+    apply Fin.ext
+    have hp := hmid p
+    have hq := hmid q
+    exact minimal_intermediate_index_eq (r := r) (a := a) (b := b) (n := n)
+      (x := mid p) hmin (by omega) (by omega) hp.1 hp.2
+      (by simpa [hpq] using hq.1) (by simpa [hpq] using hq.2)
+  have hcard := Fintype.card_le_of_injective mid hinj
+  exact ⟨n, hn, by simpa using hcard⟩
+
+theorem exists_chain (h : RelDerivesIn r n a b) :
+    ∃ path : List α,
+      path.length = n + 1 ∧
+      path.head? = some a ∧
+      path.getLast? = some b ∧
+      path.IsChain r := by
+  induction h with
+  | zero a =>
+      exact ⟨[a], by simp, by simp, by simp, List.isChain_singleton a⟩
+  | @succ n₀ a₀ b₀ c₀ hstep hrest ih =>
+      obtain ⟨path, hlen, hhead, hlast, hchain⟩ := ih
+      cases path with
+      | nil =>
+          simp at hlen
+      | cons p ps =>
+          have hp : p = b₀ := by
+            simpa using hhead
+          subst p
+          refine ⟨a₀ :: b₀ :: ps, ?_, ?_, ?_, ?_⟩
+          · simp [hlen, Nat.add_assoc]
+          · simp
+          · simpa using hlast
+          · exact List.IsChain.cons_cons hstep hchain
+
+end RelDerivesIn
+
 /-! ## Sentential-form measures -/
 
 def ISym.isIndexed {g : IndexedGrammar T} : g.ISym → Bool
@@ -1571,6 +1693,64 @@ def BoundedFlatDerives (g : IndexedGrammar T) (B : ℕ) :
     BoundedFlatForm g B → BoundedFlatForm g B → Prop :=
   Relation.ReflTransGen (BoundedFlatTransforms g B)
 
+/-- Exactly `n` bounded flat steps in the finite bounded-flat-form graph. -/
+def BoundedFlatDerivesIn (g : IndexedGrammar T) (B : ℕ) (n : ℕ) :
+    BoundedFlatForm g B → BoundedFlatForm g B → Prop :=
+  RelDerivesIn (BoundedFlatTransforms g B) n
+
+theorem boundedFlatDerives_of_boundedFlatDerivesIn
+    {g : IndexedGrammar T} {B n : ℕ} {x y : BoundedFlatForm g B}
+    (h : BoundedFlatDerivesIn g B n x y) :
+    BoundedFlatDerives g B x y :=
+  RelDerivesIn.reflTransGen h
+
+/-- In the finite bounded-flat-form graph, any reachable endpoint pair has a counted
+derivation using no more vertices than the whole state space. -/
+theorem exists_boundedFlatDerivesIn_card_bound_of_boundedFlatDerives
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {B : ℕ} {x y : BoundedFlatForm g B}
+    (h : BoundedFlatDerives g B x y) :
+    ∃ n : ℕ, BoundedFlatDerivesIn g B n x y ∧
+      n + 1 ≤ Fintype.card (BoundedFlatForm g B) :=
+  RelDerivesIn.exists_card_bound_of_reflTransGen h
+
+/-- Concrete path form of
+`exists_boundedFlatDerivesIn_card_bound_of_boundedFlatDerives`. -/
+theorem exists_boundedFlatPath_length_le_card_of_boundedFlatDerives
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {B : ℕ} {x y : BoundedFlatForm g B}
+    (h : BoundedFlatDerives g B x y) :
+    ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? = some x.1 ∧
+      path.getLast? = some y.1 ∧
+      path.length ≤ Fintype.card (BoundedFlatForm g B) ∧
+      (∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B) ∧
+      ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+        FlatTransforms g
+          (path.get ⟨i, by omega⟩)
+          (path.get ⟨i + 1, hi⟩) := by
+  obtain ⟨n, hn, hcard⟩ :=
+    exists_boundedFlatDerivesIn_card_bound_of_boundedFlatDerives
+      (g := g) (B := B) h
+  obtain ⟨bpath, hlen, hhead, hlast, hchain⟩ := RelDerivesIn.exists_chain hn
+  refine ⟨bpath.map Subtype.val, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [List.head?_map, hhead]
+    rfl
+  · rw [List.getLast?_map, hlast]
+    rfl
+  · simpa [hlen] using hcard
+  · intro i
+    have hi : i.1 < bpath.length := by
+      simpa using i.2
+    rw [List.get_eq_getElem, List.getElem_map]
+    exact (bpath.get ⟨i.1, hi⟩).2
+  · rw [List.isChain_iff_getElem] at hchain
+    intro i hi
+    have hi₀ : i + 1 < bpath.length := by
+      simpa using hi
+    have hrel := hchain i hi₀
+    simpa [BoundedFlatTransforms, List.get_eq_getElem] using hrel
+
 theorem boundedFlatDerives_of_boundedFlatPath
     {g : IndexedGrammar T} {B : ℕ} {x y : BoundedFlatForm g B}
     {path : List (List (FlatSymbol T g.nt g.flag))}
@@ -1768,6 +1948,38 @@ theorem boundedFlatPathLanguage_iff_boundedFlatDerives
   · intro hder
     obtain ⟨path, hhead, hlast, hbound, hstep⟩ :=
       exists_boundedFlatPath_of_boundedFlatDerives (g := g) (B := B) hder
+    exact ⟨path, hhead, hlast, hbound, hstep⟩
+
+/-- Finite-search form of `boundedFlatPathLanguage_iff_boundedFlatDerives`: if the initial
+and terminal flat forms fit in the fixed bounded-flat state space, membership has a witness
+path whose number of nodes is bounded by the cardinality of that state space. -/
+theorem boundedFlatPathLanguage_iff_exists_path_length_le_card
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {B : ℕ} {w : List T}
+    (hinit :
+      encodeSentential ([ISym.indexed g.initial []] : List g.ISym) ∈ boundedFlatForms g B)
+    (hterm :
+      w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)) ∈ boundedFlatForms g B) :
+    w ∈ boundedFlatPathLanguage g B ↔
+      ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+        path.head? =
+          some (encodeSentential ([ISym.indexed g.initial []] : List g.ISym)) ∧
+        path.getLast? =
+          some (w.map fun a => (FlatSymbol.terminal (N := g.nt) (F := g.flag) a)) ∧
+        path.length ≤ Fintype.card (BoundedFlatForm g B) ∧
+        (∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B) ∧
+        ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+          FlatTransforms g
+            (path.get ⟨i, by omega⟩)
+            (path.get ⟨i + 1, hi⟩) := by
+  constructor
+  · intro hw
+    have hder :=
+      (boundedFlatPathLanguage_iff_boundedFlatDerives
+        (g := g) (B := B) (w := w) hinit hterm).mp hw
+    exact exists_boundedFlatPath_length_le_card_of_boundedFlatDerives
+      (g := g) (B := B) hder
+  · rintro ⟨path, hhead, hlast, _hlen, hbound, hstep⟩
     exact ⟨path, hhead, hlast, hbound, hstep⟩
 
 theorem initial_mem_boundedFlatForms_length_mul_of_pos
