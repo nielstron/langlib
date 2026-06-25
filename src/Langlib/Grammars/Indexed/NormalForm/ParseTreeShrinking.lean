@@ -1436,6 +1436,72 @@ public theorem bounded_length_surface_certificate_rank_items_mono_bound
   exact ⟨hx.1, ⟨le_trans hx.2.1.1 hBC, hx.2.1.2.1, hx.2.1.2.2⟩,
     le_trans hx.2.2 hRS⟩
 
+/-- Target-specific rank-frontier cardinality is monotone in both the certificate stack bound
+and the rank bound. -/
+public theorem bounded_target_surface_certificate_rank_items_card_mono_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B C R S : ℕ} {target : List T}
+    (hBC : B ≤ C) (hRS : R ≤ S) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P B R target)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P C S target)).card := by
+  classical
+  refine Finset.card_le_card ?_
+  intro x hx
+  have hxSet :
+      x ∈
+        ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+          x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+            x.1.2 ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ B ∧ item.2 <+ target ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) := by
+    simpa using hx
+  have hxSet' :=
+    NFYield.bounded_target_surface_certificate_rank_items_mono_bound
+      (g := g) (P := P) (B := B) (C := C) (R := R) (S := S)
+      (target := target) hBC hRS hxSet
+  simpa using hxSet'
+
+/-- Length-uniform rank-frontier cardinality is monotone in both the certificate stack bound
+and the rank bound. -/
+public theorem bounded_length_surface_certificate_rank_items_card_mono_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B C L R S : ℕ}
+    (hBC : B ≤ C) (hRS : R ≤ S) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P B L R)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P C L S)).card := by
+  classical
+  refine Finset.card_le_card ?_
+  intro x hx
+  have hxSet :
+      x ∈
+        ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+          x.1.1 ∈ boundedSurfaceForms g L P ∧
+            x.1.2 ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) := by
+    simpa using hx
+  have hxSet' :=
+    NFYield.bounded_length_surface_certificate_rank_items_mono_bound
+      (g := g) (P := P) (B := B) (C := C) (L := L) (R := R) (S := S)
+      hBC hRS hxSet
+  simpa using hxSet'
+
 /-- A canonical-prefix replacement certificate is one of the finite target-frontier
 certificate items once the replacement suffix is bounded. -/
 public theorem canonical_prefix_certificate_mem_bounded_target_items
