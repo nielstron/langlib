@@ -2216,6 +2216,22 @@ theorem boundedFlatPathLanguage_length_iff_boundedFlatDerives
       (g := g) (B := B) (w := w) (List.length_pos_of_ne_nil hwne))
     (terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w)
 
+theorem boundedFlatPathLanguage_length_iff_packedFlatDerives
+    {g : IndexedGrammar T} {B : ℕ} {w : List T} (hwne : w ≠ []) :
+    w ∈ boundedFlatPathLanguage g (w.length * (B + 2)) ↔
+      PackedFlatDerives g (B + 2) w.length
+        (packedBoundedFlatForm g (B + 2) w.length
+          ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+            initial_mem_boundedFlatForms_length_mul_of_pos
+              (g := g) (B := B) (w := w) (List.length_pos_of_ne_nil hwne)⟩)
+        (packedBoundedFlatForm g (B + 2) w.length
+          ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+            terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩) := by
+  rw [boundedFlatPathLanguage_length_iff_boundedFlatDerives
+    (g := g) (B := B) (w := w) hwne]
+  exact (packedFlatDerives_iff_boundedFlatDerives (g := g) (W := B + 2)
+    (n := w.length) (by omega)).symm
+
 theorem boundedFlatPathLanguage_subset_language
     {g : IndexedGrammar T} {B : ℕ} {w : List T}
     (h : w ∈ boundedFlatPathLanguage g B) :
