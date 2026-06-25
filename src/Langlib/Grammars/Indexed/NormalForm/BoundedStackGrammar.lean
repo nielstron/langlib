@@ -5697,6 +5697,85 @@ theorem exists_bound_accepting_derivationTrace_indexed_context_prefix_preserving
   · simpa [ζ] using hτder
   · simpa [ζ] using hreplacement
 
+/-- Budget-preserving whole-stack context replacement.
+
+This is the prefix-preserving form of
+`exists_bound_accepting_derivationTrace_indexed_context_suffix_shrink_replacement_budget`.
+The parameter `P` is the preserved visible stack prefix, while `Q` bounds that prefix together
+with the remaining trace budget. The replacement keeps the accepting suffix no longer than
+the original trace suffix. -/
+theorem
+    exists_bound_accepting_derivationTrace_indexed_context_prefix_preserving_shrink_replacement_budget
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P Q L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          IsDerivationTrace g trace →
+          trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) →
+          ∀ i : ℕ, ∀ hi : i < trace.length,
+            P ≤ Q →
+            P + (trace.length - 1 - i) ≤ Q →
+            ∀ A : g.nt, ∀ η : List g.flag, ∀ u v : List g.ISym,
+              trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v →
+              ∃ q m : ℕ, ∃ τ ζ : List g.flag, ∃ w : List T, ∃ n' : ℕ,
+                w.Sublist target ∧ w.length ≤ L ∧
+                q ≤ trace.length - 1 - i ∧
+                m ≤ q ∧
+                m ≤ trace.length - 1 - i ∧
+                n' ≤ trace.length - 1 - i ∧
+                τ.Sublist (η.drop P) ∧ τ.length ≤ K ∧
+                ζ = η.take P ++ τ ∧
+                ζ.Sublist η ∧ ζ.length ≤ P + K ∧ ζ.take P = η.take P ∧
+                g.DerivesIn m [ISym.indexed A ζ]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) ∧
+                g.DerivesIn n' (u ++ [ISym.indexed A ζ] ++ v)
+                  (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                ∀ ρ : List g.flag, ∀ k : ℕ,
+                  k ≤ q →
+                  g.DerivesIn k [ISym.indexed A (η.take P ++ ρ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym)) →
+                  ρ.Sublist τ → ρ = τ := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_accepting_derivationTrace_indexed_context_suffix_shrink_replacement_budget
+      (g := g) hNF Q L
+  refine ⟨K, ?_⟩
+  intro target htargetLen trace htrace hlast i hi hPQ hbudget A η u v hctx
+  let pref : List g.flag := η.take P
+  let σ : List g.flag := η.drop P
+  have hprefP : pref.length ≤ P := by
+    simp [pref]
+  have hprefQ : pref.length ≤ Q := le_trans hprefP hPQ
+  have hprefBudget : pref.length + (trace.length - 1 - i) ≤ Q := by
+    omega
+  have hηsplit : pref ++ σ = η := by
+    simp [pref, σ]
+  have hctx' :
+      trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A (pref ++ σ)] ++ v := by
+    simpa [hηsplit] using hctx
+  obtain ⟨q, m, τ, w, n', hwt, hwlen, hq, hm, hmSuffix, hn', hτsub, hτlen,
+      hτder, hreplacement, hτmin⟩ :=
+    hK target htargetLen trace htrace hlast i hi A pref σ hprefQ hprefBudget u v hctx'
+  let ζ : List g.flag := pref ++ τ
+  have hζeq : ζ = η.take P ++ τ := by
+    simp [ζ, pref]
+  have hζsub : ζ.Sublist η := by
+    have hsub : (pref ++ τ).Sublist (pref ++ σ) :=
+      List.Sublist.append (List.Sublist.refl pref) hτsub
+    simpa [ζ, hηsplit] using hsub
+  have hζlen : ζ.length ≤ P + K := by
+    simpa [ζ, List.length_append] using Nat.add_le_add hprefP hτlen
+  have hζtake : ζ.take P = η.take P := by
+    simpa [ζ, pref, σ] using
+      NFYield.take_append_sublist_drop_eq_take (σ := η) (τ := τ) (N := P) hτsub
+  refine ⟨q, m, τ, ζ, w, n', hwt, hwlen, hq, hm, hmSuffix, hn', hτsub,
+    hτlen, hζeq, hζsub, hζlen, hζtake, ?_, ?_, ?_⟩
+  · simpa [ζ] using hτder
+  · simpa [ζ] using hreplacement
+  · intro ρ k hk hρder hρsub
+    exact hτmin ρ k hk (by simpa [pref] using hρder) hρsub
+
 /-- If a shortest accepting derivation has step count at most `N` and the target has length at
 most `L`, then every stack in its trace is already bounded by `N`. Consequently the shortest
 derivation has fewer steps than the finite surface space with stack bound `N`. -/
