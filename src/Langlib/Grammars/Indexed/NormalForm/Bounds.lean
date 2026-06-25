@@ -1770,6 +1770,42 @@ theorem boundedFlatPathLanguage_iff_boundedFlatDerives
       exists_boundedFlatPath_of_boundedFlatDerives (g := g) (B := B) hder
     exact ⟨path, hhead, hlast, hbound, hstep⟩
 
+theorem initial_mem_boundedFlatForms_length_mul_of_pos
+    {g : IndexedGrammar T} {B : ℕ} {w : List T} (hwpos : 0 < w.length) :
+    encodeSentential ([ISym.indexed g.initial []] : List g.ISym) ∈
+      boundedFlatForms g (w.length * (B + 2)) := by
+  simp [boundedFlatForms]
+  have hw1 : 1 ≤ w.length := Nat.succ_le_of_lt hwpos
+  have hB2 : 2 ≤ B + 2 := by omega
+  calc
+    2 ≤ 1 * (B + 2) := by simp [hB2]
+    _ ≤ w.length * (B + 2) := Nat.mul_le_mul_right (B + 2) hw1
+
+theorem terminal_mem_boundedFlatForms_length_mul
+    {g : IndexedGrammar T} {B : ℕ} (w : List T) :
+    w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)) ∈
+      boundedFlatForms g (w.length * (B + 2)) := by
+  simp [boundedFlatForms]
+  have hfactor : 1 ≤ B + 2 := by omega
+  calc
+    w.length = w.length * 1 := by rw [Nat.mul_one]
+    _ ≤ w.length * (B + 2) := Nat.mul_le_mul_left w.length hfactor
+
+theorem boundedFlatPathLanguage_length_iff_boundedFlatDerives
+    {g : IndexedGrammar T} {B : ℕ} {w : List T} (hwne : w ≠ []) :
+    w ∈ boundedFlatPathLanguage g (w.length * (B + 2)) ↔
+      BoundedFlatDerives g (w.length * (B + 2))
+        ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+          initial_mem_boundedFlatForms_length_mul_of_pos
+            (g := g) (B := B) (w := w) (List.length_pos_of_ne_nil hwne)⟩
+        ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+          terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩ := by
+  exact boundedFlatPathLanguage_iff_boundedFlatDerives
+    (g := g) (B := w.length * (B + 2)) (w := w)
+    (initial_mem_boundedFlatForms_length_mul_of_pos
+      (g := g) (B := B) (w := w) (List.length_pos_of_ne_nil hwne))
+    (terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w)
+
 theorem boundedFlatPathLanguage_subset_language
     {g : IndexedGrammar T} {B : ℕ} {w : List T}
     (h : w ∈ boundedFlatPathLanguage g B) :
