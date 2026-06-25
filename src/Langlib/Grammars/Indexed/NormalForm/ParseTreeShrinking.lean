@@ -783,6 +783,21 @@ public theorem exists_bound_minimal_prefixed_certificate_first_step_for_target_l
     right
     exact hterm
 
+/-- Appending a sublist of the dropped suffix below `σ.take N` does not change the first `N`
+visible stack flags. -/
+theorem take_append_sublist_drop_eq_take {α : Type} {σ τ : List α} {N : ℕ}
+    (hτ : τ <+ σ.drop N) :
+    (σ.take N ++ τ).take N = σ.take N := by
+  by_cases hN : N ≤ σ.length
+  · have hlen : (σ.take N).length = N := List.length_take_of_le hN
+    rw [List.take_append, hlen, Nat.sub_self]
+    simp
+  · have hσlen : σ.length ≤ N := Nat.le_of_not_ge hN
+    have hdrop : σ.drop N = [] := List.drop_eq_nil_of_le hσlen
+    have hτnil : τ = [] := by
+      simpa [hdrop] using hτ
+    simp [hτnil, (List.take_eq_self_iff σ).mpr hσlen]
+
 /-- Every parse certificate can be replaced, for the same nonterminal and yield, by one whose
 root stack has a bounded-length sublist of the original stack. The first `N` live flags are
 preserved and only the deeper suffix is shrunk. -/
@@ -799,7 +814,8 @@ public theorem exists_bound_short_stack_certificate_for_target_length
             ∃ σ' : List g.flag,
               NFYield g A σ' w ∧
               σ' <+ σ ∧
-              σ'.length ≤ N + K := by
+              σ'.length ≤ N + K ∧
+              σ'.take N = σ.take N := by
   obtain ⟨K, hK⟩ :=
     NFYield.exists_bound_prefixed_suffix_for_target_length_bounded_prefix_target_sublists
       (g := g) hNF N L
@@ -815,12 +831,14 @@ public theorem exists_bound_short_stack_certificate_for_target_length
     simpa [hsplit] using hcert
   obtain ⟨τ, hτcert, hτsub, hτlen, _hτmin⟩ :=
     hK target htargetLen pref hpref A w hwt rest hcertSplit
-  refine ⟨pref ++ τ, hτcert, ?_, ?_⟩
+  refine ⟨pref ++ τ, hτcert, ?_, ?_, ?_⟩
   · have hsub : (pref ++ τ).Sublist (pref ++ rest) :=
       List.Sublist.append (List.Sublist.refl pref) hτsub
     simpa [hsplit] using hsub
   · simp [List.length_append]
     omega
+  · simpa [pref, rest] using
+      take_append_sublist_drop_eq_take (σ := σ) (τ := τ) (N := N) hτsub
 
 /-! ## Finite certificate frontiers -/
 
