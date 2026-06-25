@@ -9901,6 +9901,37 @@ theorem language_iff_exists_packedFlatPathStackBoundLanguage_isNormalForm
     exact packedFlatPathStackBoundLanguage_subset_language
       (g := g) (B := B) hpacked
 
+/-- Reverse rule-step reachability form of normal-form generation.
+
+For each nonempty generated word, some fixed packed width `B + 2` per terminal cell suffices,
+and membership is exactly backward reachability from the terminal packed row to the initial
+packed row by concrete normal-form rule steps. -/
+theorem language_iff_exists_reverse_packedFlatRuleStep_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w : List T} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ, ∃ hwne : w ≠ [],
+        Relation.ReflTransGen
+          (fun x y => PackedFlatRuleStep g (B + 2) w.length y x)
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+              terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩)
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) := by
+  rw [language_iff_exists_packedFlatPathStackBoundLanguage_isNormalForm (g := g) hNF]
+  constructor
+  · rintro ⟨B, hpacked⟩
+    exact ⟨B,
+      (packedFlatPathStackBoundLanguage_iff_reverse_packedFlatRuleStep_of_isNormalForm
+        (g := g) hNF (B := B) (w := w)).mp hpacked⟩
+  · rintro ⟨B, hrev⟩
+    exact ⟨B,
+      (packedFlatPathStackBoundLanguage_iff_reverse_packedFlatRuleStep_of_isNormalForm
+        (g := g) hNF (B := B) (w := w)).mpr hrev⟩
+
 /-- Set-level form of
 `language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm`. -/
 theorem language_eq_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
@@ -9919,6 +9950,27 @@ theorem language_eq_exists_packedFlatPathStackBoundLanguage_isNormalForm
       fun w : List T => ∃ B : ℕ, w ∈ packedFlatPathStackBoundLanguage g B := by
   ext w
   exact language_iff_exists_packedFlatPathStackBoundLanguage_isNormalForm
+    (g := g) hNF
+
+/-- Set-level form of
+`language_iff_exists_reverse_packedFlatRuleStep_isNormalForm`. -/
+theorem language_eq_exists_reverse_packedFlatRuleStep_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm) :
+    g.Language =
+      fun w : List T =>
+        ∃ B : ℕ, ∃ hwne : w ≠ [],
+          Relation.ReflTransGen
+            (fun x y => PackedFlatRuleStep g (B + 2) w.length y x)
+            (packedBoundedFlatForm g (B + 2) w.length
+              ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+                terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩)
+            (packedBoundedFlatForm g (B + 2) w.length
+              ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+                initial_mem_boundedFlatForms_length_mul_of_pos
+                  (g := g) (B := B) (w := w)
+                  (List.length_pos_of_ne_nil hwne)⟩) := by
+  ext w
+  exact language_iff_exists_reverse_packedFlatRuleStep_isNormalForm
     (g := g) hNF
 
 /-- A bounded flat path decodes to a counted indexed derivation whose intermediate stack
@@ -17568,6 +17620,37 @@ theorem exists_bound_packedFlatPathStackBoundLanguage_eq_on_length_le_isNormalFo
     exact (hB target htargetLen).mpr
       ((packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length
         (g := g) (B := B) (w := target)).mp hpacked).2
+
+/-- Concrete reverse-rule finite-ball form.
+
+On a fixed terminal ball, one packed width `B + 2` per terminal cell makes membership in the
+normal-form language equivalent to backward reachability from the terminal row to the initial
+row by concrete normal-form rule steps. -/
+theorem exists_bound_reverse_packedFlatRuleStep_eq_on_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        ∃ htargetNe : target ≠ [],
+          Relation.ReflTransGen
+            (fun x y => PackedFlatRuleStep g (B + 2) target.length y x)
+            (packedBoundedFlatForm g (B + 2) target.length
+              ⟨target.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+                terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) target⟩)
+            (packedBoundedFlatForm g (B + 2) target.length
+              ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+                initial_mem_boundedFlatForms_length_mul_of_pos
+                  (g := g) (B := B) (w := target)
+                  (List.length_pos_of_ne_nil htargetNe)⟩)) := by
+  obtain ⟨B, hB⟩ :=
+    exists_bound_packedFlatPathStackBoundLanguage_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  refine ⟨B, ?_⟩
+  intro target htargetLen
+  rw [hB target htargetLen]
+  exact packedFlatPathStackBoundLanguage_iff_reverse_packedFlatRuleStep_of_isNormalForm
+    (g := g) hNF
 
 /-- If shortest accepting derivations for all generated targets of length at most `L` are
 bounded by `N`, then one fixed bounded-stack grammar captures the original normal-form
