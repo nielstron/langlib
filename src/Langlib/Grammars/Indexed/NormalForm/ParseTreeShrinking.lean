@@ -1923,6 +1923,348 @@ public theorem bounded_length_pair_certificate_items_mono_bound
   exact ⟨le_trans hitem.1 hBC, hitem.2.1, hitem.2.2.1, hitem.2.2.2.1,
     hitem.2.2.2.2⟩
 
+/-- Target-specific finite frontier pairing visible surfaces, binary pair-certificate items,
+and a bounded local rank. -/
+public theorem finite_bounded_target_surface_pair_certificate_rank_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (P B R : ℕ) (target : List T) :
+    ({x :
+      (SurfaceForm g P × (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+      x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+        x.1.2 ∈
+          ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+            item.1.2.length ≤ B ∧
+              item.2.1 <+ target ∧
+              item.2.2 <+ target ∧
+              NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+              NFYield g item.1.1.2 item.1.2 item.2.2} :
+            Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+        x.2 ≤ R} :
+        Set ((SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)).Finite := by
+  let base :
+      Set (SurfaceForm g P ×
+        (((g.nt × g.nt) × List g.flag) × (List T × List T))) :=
+    {x | x.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+      x.2 ∈
+        ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+          item.1.2.length ≤ B ∧
+            item.2.1 <+ target ∧
+            item.2.2 <+ target ∧
+            NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+            NFYield g item.1.1.2 item.1.2 item.2.2} :
+          Set (((g.nt × g.nt) × List g.flag) × (List T × List T)))}
+  have hsurface : (targetCompatibleBoundedSurfaceForms g target P).Finite :=
+    targetCompatibleBoundedSurfaceForms_finite g target P
+  have hitems :
+      ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+        item.1.2.length ≤ B ∧
+          item.2.1 <+ target ∧
+          item.2.2 <+ target ∧
+          NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+          NFYield g item.1.1.2 item.1.2 item.2.2} :
+        Set (((g.nt × g.nt) × List g.flag) × (List T × List T))).Finite :=
+    NFYield.finite_bounded_target_pair_certificate_items (g := g) B target
+  have hbase : base.Finite := by
+    exact (Set.Finite.prod hsurface hitems).subset
+      (by
+        intro x hx
+        exact hx)
+  have hrank : ({r : ℕ | r ≤ R} : Set ℕ).Finite :=
+    NFYield.finite_rank_le R
+  exact (Set.Finite.prod hbase hrank).subset
+    (by
+      intro x hx
+      exact ⟨⟨hx.1, hx.2.1⟩, hx.2.2⟩)
+
+/-- Length-uniform finite frontier pairing visible surfaces, binary pair-certificate items,
+and a bounded local rank. -/
+public theorem finite_bounded_length_surface_pair_certificate_rank_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (P B L R : ℕ) :
+    ({x :
+      (SurfaceForm g P × (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+      x.1.1 ∈ boundedSurfaceForms g L P ∧
+        x.1.2 ∈
+          ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+            item.1.2.length ≤ B ∧
+              item.2.1.length ≤ L ∧
+              item.2.2.length ≤ L ∧
+              NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+              NFYield g item.1.1.2 item.1.2 item.2.2} :
+            Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+        x.2 ≤ R} :
+        Set ((SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)).Finite := by
+  let base :
+      Set (SurfaceForm g P ×
+        (((g.nt × g.nt) × List g.flag) × (List T × List T))) :=
+    {x | x.1 ∈ boundedSurfaceForms g L P ∧
+      x.2 ∈
+        ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+          item.1.2.length ≤ B ∧
+            item.2.1.length ≤ L ∧
+            item.2.2.length ≤ L ∧
+            NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+            NFYield g item.1.1.2 item.1.2 item.2.2} :
+          Set (((g.nt × g.nt) × List g.flag) × (List T × List T)))}
+  have hsurface : (boundedSurfaceForms g L P).Finite :=
+    boundedSurfaceForms_finite g L P
+  have hitems :
+      ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+        item.1.2.length ≤ B ∧
+          item.2.1.length ≤ L ∧
+          item.2.2.length ≤ L ∧
+          NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+          NFYield g item.1.1.2 item.1.2 item.2.2} :
+        Set (((g.nt × g.nt) × List g.flag) × (List T × List T))).Finite :=
+    NFYield.finite_bounded_length_pair_certificate_items (g := g) B L
+  have hbase : base.Finite := by
+    exact (Set.Finite.prod hsurface hitems).subset
+      (by
+        intro x hx
+        exact hx)
+  have hrank : ({r : ℕ | r ≤ R} : Set ℕ).Finite :=
+    NFYield.finite_rank_le R
+  exact (Set.Finite.prod hbase hrank).subset
+    (by
+      intro x hx
+      exact ⟨⟨hx.1, hx.2.1⟩, hx.2.2⟩)
+
+/-- Membership constructor for the target-specific surface/pair-certificate/rank frontier. -/
+public theorem bounded_target_surface_pair_certificate_rank_mem
+    {g : IndexedGrammar T} {P B R : ℕ} {target : List T}
+    {surface : SurfaceForm g P}
+    {item : ((g.nt × g.nt) × List g.flag) × (List T × List T)}
+    {rank : ℕ}
+    (hsurface : surface ∈ targetCompatibleBoundedSurfaceForms g target P)
+    (hitem :
+      item ∈
+        ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+          item.1.2.length ≤ B ∧
+            item.2.1 <+ target ∧
+            item.2.2 <+ target ∧
+            NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+            NFYield g item.1.1.2 item.1.2 item.2.2} :
+          Set (((g.nt × g.nt) × List g.flag) × (List T × List T))))
+    (hrank : rank ≤ R) :
+    (((surface, item), rank) :
+        (SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ) ∈
+      ({x :
+        (SurfaceForm g P × (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+        x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+          x.1.2 ∈
+            ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+              item.1.2.length ≤ B ∧
+                item.2.1 <+ target ∧
+                item.2.2 <+ target ∧
+                NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                NFYield g item.1.1.2 item.1.2 item.2.2} :
+              Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+          x.2 ≤ R} :
+        Set ((SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)) :=
+  ⟨hsurface, hitem, hrank⟩
+
+/-- Membership constructor for the length-uniform surface/pair-certificate/rank frontier. -/
+public theorem bounded_length_surface_pair_certificate_rank_mem
+    {g : IndexedGrammar T} {P B L R : ℕ}
+    {surface : SurfaceForm g P}
+    {item : ((g.nt × g.nt) × List g.flag) × (List T × List T)}
+    {rank : ℕ}
+    (hsurface : surface ∈ boundedSurfaceForms g L P)
+    (hitem :
+      item ∈
+        ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+          item.1.2.length ≤ B ∧
+            item.2.1.length ≤ L ∧
+            item.2.2.length ≤ L ∧
+            NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+            NFYield g item.1.1.2 item.1.2 item.2.2} :
+          Set (((g.nt × g.nt) × List g.flag) × (List T × List T))))
+    (hrank : rank ≤ R) :
+    (((surface, item), rank) :
+        (SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ) ∈
+      ({x :
+        (SurfaceForm g P × (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+        x.1.1 ∈ boundedSurfaceForms g L P ∧
+          x.1.2 ∈
+            ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+              item.1.2.length ≤ B ∧
+                item.2.1.length ≤ L ∧
+                item.2.2.length ≤ L ∧
+                NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                NFYield g item.1.1.2 item.1.2 item.2.2} :
+              Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+          x.2 ≤ R} :
+        Set ((SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)) :=
+  ⟨hsurface, hitem, hrank⟩
+
+/-- Target-specific surface/pair/rank membership is monotone in both the pair-stack bound and
+the rank bound. -/
+public theorem bounded_target_surface_pair_certificate_rank_items_mono_bound
+    {g : IndexedGrammar T} {P B C R S : ℕ} {target : List T}
+    {x : (SurfaceForm g P ×
+      (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ}
+    (hBC : B ≤ C) (hRS : R ≤ S)
+    (hx : x ∈
+      ({x :
+        (SurfaceForm g P × (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+        x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+          x.1.2 ∈
+            ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+              item.1.2.length ≤ B ∧
+                item.2.1 <+ target ∧
+                item.2.2 <+ target ∧
+                NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                NFYield g item.1.1.2 item.1.2 item.2.2} :
+              Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+          x.2 ≤ R} :
+        Set ((SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ))) :
+    x ∈
+      ({x :
+        (SurfaceForm g P × (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+        x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+          x.1.2 ∈
+            ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+              item.1.2.length ≤ C ∧
+                item.2.1 <+ target ∧
+                item.2.2 <+ target ∧
+                NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                NFYield g item.1.1.2 item.1.2 item.2.2} :
+              Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+          x.2 ≤ S} :
+        Set ((SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)) := by
+  exact ⟨hx.1,
+    NFYield.bounded_target_pair_certificate_items_mono_bound
+      (g := g) (B := B) (C := C) (target := target) hBC hx.2.1,
+    le_trans hx.2.2 hRS⟩
+
+/-- Length-uniform surface/pair/rank membership is monotone in both the pair-stack bound and
+the rank bound. -/
+public theorem bounded_length_surface_pair_certificate_rank_items_mono_bound
+    {g : IndexedGrammar T} {P B C L R S : ℕ}
+    {x : (SurfaceForm g P ×
+      (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ}
+    (hBC : B ≤ C) (hRS : R ≤ S)
+    (hx : x ∈
+      ({x :
+        (SurfaceForm g P × (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+        x.1.1 ∈ boundedSurfaceForms g L P ∧
+          x.1.2 ∈
+            ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+              item.1.2.length ≤ B ∧
+                item.2.1.length ≤ L ∧
+                item.2.2.length ≤ L ∧
+                NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                NFYield g item.1.1.2 item.1.2 item.2.2} :
+              Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+          x.2 ≤ R} :
+        Set ((SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ))) :
+    x ∈
+      ({x :
+        (SurfaceForm g P × (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+        x.1.1 ∈ boundedSurfaceForms g L P ∧
+          x.1.2 ∈
+            ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+              item.1.2.length ≤ C ∧
+                item.2.1.length ≤ L ∧
+                item.2.2.length ≤ L ∧
+                NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                NFYield g item.1.1.2 item.1.2 item.2.2} :
+              Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+          x.2 ≤ S} :
+        Set ((SurfaceForm g P ×
+          (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)) := by
+  exact ⟨hx.1,
+    NFYield.bounded_length_pair_certificate_items_mono_bound
+      (g := g) (B := B) (C := C) (L := L) hBC hx.2.1,
+    le_trans hx.2.2 hRS⟩
+
+/-- Target-specific surface/pair/rank frontier cardinality is monotone in both the pair-stack
+bound and the rank bound. -/
+public theorem bounded_target_surface_pair_certificate_rank_items_card_mono_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B C R S : ℕ} {target : List T}
+    (hBC : B ≤ C) (hRS : R ≤ S) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+          (g := g) P B R target)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+          (g := g) P C S target)).card := by
+  classical
+  refine Finset.card_le_card ?_
+  intro x hx
+  have hxSet :
+      x ∈
+        ({x :
+          (SurfaceForm g P ×
+            (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+          x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+            x.1.2 ∈
+              ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                item.1.2.length ≤ B ∧
+                  item.2.1 <+ target ∧
+                  item.2.2 <+ target ∧
+                  NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                  NFYield g item.1.1.2 item.1.2 item.2.2} :
+                Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P ×
+            (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)) := by
+    simpa using hx
+  have hxSet' :=
+    NFYield.bounded_target_surface_pair_certificate_rank_items_mono_bound
+      (g := g) (P := P) (B := B) (C := C) (R := R) (S := S)
+      (target := target) hBC hRS hxSet
+  simpa using hxSet'
+
+/-- Length-uniform surface/pair/rank frontier cardinality is monotone in both the pair-stack
+bound and the rank bound. -/
+public theorem bounded_length_surface_pair_certificate_rank_items_card_mono_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B C L R S : ℕ}
+    (hBC : B ≤ C) (hRS : R ≤ S) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_pair_certificate_rank_items
+          (g := g) P B L R)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_pair_certificate_rank_items
+          (g := g) P C L S)).card := by
+  classical
+  refine Finset.card_le_card ?_
+  intro x hx
+  have hxSet :
+      x ∈
+        ({x :
+          (SurfaceForm g P ×
+            (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+          x.1.1 ∈ boundedSurfaceForms g L P ∧
+            x.1.2 ∈
+              ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                item.1.2.length ≤ B ∧
+                  item.2.1.length ≤ L ∧
+                  item.2.2.length ≤ L ∧
+                  NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                  NFYield g item.1.1.2 item.1.2 item.2.2} :
+                Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P ×
+            (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)) := by
+    simpa using hx
+  have hxSet' :=
+    NFYield.bounded_length_surface_pair_certificate_rank_items_mono_bound
+      (g := g) (P := P) (B := B) (C := C) (L := L) (R := R) (S := S)
+      hBC hRS hxSet
+  simpa using hxSet'
+
 /-- Frontier memberships supplied by a bounded-prefix binary certificate branch. This bundles
 the individual child certificates, the shrunken parent certificate, and the shared pair
 certificate into both target-specific and length-uniform finite frontiers. -/
