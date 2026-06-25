@@ -137,6 +137,61 @@ public theorem exists_LBA_pos_boundedFlatPath_language_eq_on_length_le_of_isNorm
       (g := g) hNF L
   exact ⟨B, is_LBA_pos_boundedFlatPath_language_of_isNormalForm (g := g) hNF B, hB⟩
 
+/-- If the generated words in a terminal ball have a uniform shortest-derivation budget, then
+the shrinker produces one bounded-stack grammar for that whole ball, and the resulting fixed
+slice is LBA-recognizable. -/
+public theorem exists_LBA_pos_boundedStackGrammar_language_eq_on_length_le_of_minimal_derivesIn_bound
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ)
+    (hbudget : ∀ target : List A,
+      target.length ≤ L →
+      g.Generates target →
+      ∀ n : ℕ,
+        g.DerivesIn n [IndexedGrammar.ISym.indexed g.initial []]
+          (target.map fun a => (IndexedGrammar.ISym.terminal a : g.ISym)) →
+        (∀ m : ℕ,
+          g.DerivesIn m [IndexedGrammar.ISym.indexed g.initial []]
+            (target.map fun a => (IndexedGrammar.ISym.terminal a : g.ISym)) → n ≤ m) →
+        n ≤ N) :
+    ∃ B : ℕ,
+      is_LBA_pos (grammar_language (IndexedGrammar.boundedStackGrammar g B)) ∧
+        ∀ target : List A,
+          target.length ≤ L →
+          (target ∈ g.Language ↔
+            target ∈ grammar_language (IndexedGrammar.boundedStackGrammar g B)) := by
+  obtain ⟨B, hB⟩ :=
+    IndexedGrammar.exists_bound_boundedStackGrammar_language_eq_on_length_le_of_minimal_derivesIn_bound
+      (g := g) hNF N L hbudget
+  exact ⟨B, is_LBA_pos_boundedStackGrammar_language_of_isNormalForm (g := g) hNF B, hB⟩
+
+/-- Flat-path LBA version of
+`exists_LBA_pos_boundedStackGrammar_language_eq_on_length_le_of_minimal_derivesIn_bound`,
+using the direct step-budget flat-path shrinker. -/
+public theorem exists_LBA_pos_boundedFlatPath_language_eq_on_length_le_of_minimal_derivesIn_bound
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (N L : ℕ)
+    (hbudget : ∀ target : List A,
+      target.length ≤ L →
+      g.Generates target →
+      ∀ n : ℕ,
+        g.DerivesIn n [IndexedGrammar.ISym.indexed g.initial []]
+          (target.map fun a => (IndexedGrammar.ISym.terminal a : g.ISym)) →
+        (∀ m : ℕ,
+          g.DerivesIn m [IndexedGrammar.ISym.indexed g.initial []]
+            (target.map fun a => (IndexedGrammar.ISym.terminal a : g.ISym)) → n ≤ m) →
+        n ≤ N) :
+    ∃ B : ℕ,
+      is_LBA_pos (IndexedGrammar.boundedFlatPathLanguage g B) ∧
+        ∀ target : List A,
+          target.length ≤ L →
+          (target ∈ g.Language ↔ target ∈ IndexedGrammar.boundedFlatPathLanguage g B) := by
+  obtain ⟨B, hB⟩ :=
+    IndexedGrammar.exists_bound_boundedFlatPathLanguage_eq_on_length_le_of_minimal_derivesIn_stepFlatBound
+      (g := g) hNF N L hbudget
+  exact ⟨B, is_LBA_pos_boundedFlatPath_language_of_isNormalForm (g := g) hNF B, hB⟩
+
 /-- Fixed packed flat-path slices are ε-free by construction. -/
 public theorem not_nil_mem_packedFlatPathStackBound_language
     {A : Type} (g : IndexedGrammar A) (B : ℕ) :
