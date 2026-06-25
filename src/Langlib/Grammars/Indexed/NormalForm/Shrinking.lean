@@ -4175,7 +4175,7 @@ theorem
 /-- Bridge-facing local-budget forced-pop split. The hypotheses are phrased with a visible
 prefix budget `P`, a remaining local budget `q ≤ C`, and minimality only for derivations using
 at most `q` steps. -/
-theorem exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length
+public theorem exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
     (hNF : g.IsNormalForm) (P C L : ℕ) :
     ∃ K : ℕ,
@@ -4225,7 +4225,7 @@ theorem exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length
 
 /-- Slack form of
 `exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length`. -/
-theorem exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length_with_slack
+public theorem exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length_with_slack
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
     (hNF : g.IsNormalForm) (P C L : ℕ) :
     ∃ K₀ : ℕ,
@@ -4272,7 +4272,7 @@ theorem exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length
     (lt_of_le_of_lt hK hlong)
 
 /-- A zero-step derivation cannot turn one indexed symbol into a terminal word. -/
-theorem not_derivesIn_zero_indexed_to_terminals {g : IndexedGrammar T}
+public theorem not_derivesIn_zero_indexed_to_terminals {g : IndexedGrammar T}
     {A : g.nt} {σ : List g.flag} {w : List T} :
     ¬ g.DerivesIn 0 [ISym.indexed A σ]
       (w.map fun a => (ISym.terminal a : g.ISym)) := by
@@ -4286,7 +4286,7 @@ theorem not_derivesIn_zero_indexed_to_terminals {g : IndexedGrammar T}
 
 /-- Bridge-facing local-budget forced-pop dichotomy. Either the suffix is below the uniform
 forced-pop threshold, or the positive local derivation exposes one of the two pop branches. -/
-theorem exists_bound_prefix_budget_forced_pop_dichotomy_target_length
+public theorem exists_bound_prefix_budget_forced_pop_dichotomy_target_length
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
     (hNF : g.IsNormalForm) (P C L : ℕ) :
     ∃ K : ℕ,
@@ -4344,7 +4344,7 @@ theorem exists_bound_prefix_budget_forced_pop_dichotomy_target_length
         exact ⟨n, rfl, hcases⟩
 
 /-- Slack form of `exists_bound_prefix_budget_forced_pop_dichotomy_target_length`. -/
-theorem exists_bound_prefix_budget_forced_pop_dichotomy_target_length_with_slack
+public theorem exists_bound_prefix_budget_forced_pop_dichotomy_target_length_with_slack
     {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
     (hNF : g.IsNormalForm) (P C L : ℕ) :
     ∃ K₀ : ℕ,

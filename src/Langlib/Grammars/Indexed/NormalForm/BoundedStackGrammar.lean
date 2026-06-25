@@ -10696,6 +10696,63 @@ theorem
           (i := r) (j := i) htrace hhead hr hri le_rfl hprefixBound
           hysStack hsurfaceEq hboundedSurface)
 
+/-- Late-window form of the local replacement short-or-pop dichotomy. The late-window lower
+bound converts the local suffix budget `q ≤ trace.length - 1 - i` into the uniform budget
+`q ≤ C`, and the replacement equality normalizes the preserved prefix to `η.take P`. -/
+theorem exists_bound_late_window_prefix_preserving_replacement_short_or_pop
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (P L C : ℕ) :
+    ∃ Kpop : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ trace : List (List g.ISym),
+          ∀ i : ℕ, i < trace.length →
+            trace.length - 1 - C ≤ i →
+            ∀ A : g.nt, ∀ η τ ζ : List g.flag,
+              ∀ q m : ℕ, ∀ w : List T,
+                w.Sublist target →
+                q ≤ trace.length - 1 - i →
+                m ≤ q →
+                ζ = η.take P ++ τ →
+                g.DerivesIn m [ISym.indexed A ζ]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) →
+                (∀ ρ : List g.flag, ∀ k : ℕ,
+                  k ≤ q →
+                  g.DerivesIn k [ISym.indexed A (η.take P ++ ρ)]
+                    (w.map fun a => (ISym.terminal a : g.ISym)) →
+                  ρ.Sublist τ → ρ = τ) →
+                τ.length ≤ Kpop ∨
+                  ∃ n : ℕ,
+                    m = n + 1 ∧
+                      ((∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+                        ∃ r ∈ g.rules,
+                          η.take P = [] ∧ τ = f :: ρ ∧
+                          r.lhs = A ∧ r.consume = some f ∧
+                          r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                          n < P + C ∧
+                          g.DerivesIn n [ISym.indexed B ρ]
+                            (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+                      (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+                        ∃ r ∈ g.rules,
+                          η.take P = f :: pref' ∧
+                          pref'.length + n < P + C ∧
+                          r.lhs = A ∧ r.consume = some f ∧
+                          r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                          g.DerivesIn n [ISym.indexed B (pref' ++ τ)]
+                            (w.map fun a => (ISym.terminal a : g.ISym)))) := by
+  obtain ⟨Kpop, hKpop⟩ :=
+    exists_bound_prefix_budget_forced_pop_dichotomy_target_length
+      (g := g) hNF P C L
+  refine ⟨Kpop, ?_⟩
+  intro target htargetLen trace i hi hlow A η τ ζ q m w hwt hq hm hζeq hζder hτmin
+  have hpref : (η.take P).length ≤ P := List.length_take_le P η
+  have hqC : q ≤ C := by omega
+  have hder :
+      g.DerivesIn m [ISym.indexed A (η.take P ++ τ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) := by
+    simpa [hζeq] using hζder
+  exact hKpop target htargetLen (η.take P) hpref q m A τ w hwt hm hqC hder hτmin
+
 /-- Enlarged-budget generated-word form of the certified prefix-preserving surface-repeat
 bridge.
 
