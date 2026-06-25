@@ -5765,6 +5765,68 @@ def PackedFlatRuleStep (g : IndexedGrammar T) (W n : ℕ)
     y = packedBoundedFlatForm g W n y₀ ∧
     FlatRuleStep g x₀.1 y₀.1
 
+/-- Expanded list-witness form of `PackedFlatRuleStep`.
+
+This removes the bounded-form subtype wrapper: a packed step is exactly a concrete
+normal-form flat rule step between two flat lists whose lengths fit in the packed row. -/
+theorem packedFlatRuleStep_iff_exists_flatRuleStep
+    {g : IndexedGrammar T} {W n : ℕ} {x y : PackedFlatForm g W n} :
+    PackedFlatRuleStep g W n x y ↔
+      ∃ x₀ y₀ : List (FlatSymbol T g.nt g.flag),
+        x₀.length ≤ n * W ∧
+        y₀.length ≤ n * W ∧
+        x = packedFlatForm g W n x₀ ∧
+        y = packedFlatForm g W n y₀ ∧
+        FlatRuleStep g x₀ y₀ := by
+  constructor
+  · rintro ⟨x₀, y₀, hx, hy, hstep⟩
+    exact ⟨x₀.1, y₀.1, x₀.2, y₀.2, hx, hy, hstep⟩
+  · rintro ⟨x₀, y₀, hxlen, hylen, hx, hy, hstep⟩
+    refine ⟨⟨x₀, ?_⟩, ⟨y₀, ?_⟩, hx, hy, hstep⟩
+    · change x₀.length ≤ n * W
+      exact hxlen
+    · change y₀.length ≤ n * W
+      exact hylen
+
+/-- Expanded list-witness form of a reverse packed rule step. -/
+theorem reverse_packedFlatRuleStep_iff_exists_flatRuleStep
+    {g : IndexedGrammar T} {W n : ℕ} {x y : PackedFlatForm g W n} :
+    PackedFlatRuleStep g W n y x ↔
+      ∃ x₀ y₀ : List (FlatSymbol T g.nt g.flag),
+        x₀.length ≤ n * W ∧
+        y₀.length ≤ n * W ∧
+        x = packedFlatForm g W n x₀ ∧
+        y = packedFlatForm g W n y₀ ∧
+        FlatRuleStep g y₀ x₀ := by
+  rw [packedFlatRuleStep_iff_exists_flatRuleStep (g := g) (W := W) (n := n)
+    (x := y) (y := x)]
+  constructor
+  · rintro ⟨y₀, x₀, hylen, hxlen, hy, hx, hstep⟩
+    exact ⟨x₀, y₀, hxlen, hylen, hx, hy, hstep⟩
+  · rintro ⟨x₀, y₀, hxlen, hylen, hx, hy, hstep⟩
+    exact ⟨y₀, x₀, hylen, hxlen, hy, hx, hstep⟩
+
+/-- A reverse packed rule path can be checked through concrete bounded flat-list witnesses
+for every adjacent row pair. -/
+theorem isChain_reverse_packedFlatRuleStep_iff_exists_flatRuleStep
+    {g : IndexedGrammar T} {W n : ℕ} {path : List (PackedFlatForm g W n)} :
+    path.IsChain (fun x y => PackedFlatRuleStep g W n y x) ↔
+      path.IsChain (fun x y =>
+        ∃ x₀ y₀ : List (FlatSymbol T g.nt g.flag),
+          x₀.length ≤ n * W ∧
+          y₀.length ≤ n * W ∧
+          x = packedFlatForm g W n x₀ ∧
+          y = packedFlatForm g W n y₀ ∧
+          FlatRuleStep g y₀ x₀) := by
+  rw [List.isChain_iff_getElem, List.isChain_iff_getElem]
+  constructor
+  · intro h i hi
+    exact (reverse_packedFlatRuleStep_iff_exists_flatRuleStep
+      (g := g) (W := W) (n := n)).mp (h i hi)
+  · intro h i hi
+    exact (reverse_packedFlatRuleStep_iff_exists_flatRuleStep
+      (g := g) (W := W) (n := n)).mpr (h i hi)
+
 theorem PackedFlatRuleStep.cast_length {g : IndexedGrammar T} {W m n : ℕ}
     (h : m = n) {x y : PackedFlatForm g W m}
     (hstep : PackedFlatRuleStep g W m x y) :
@@ -6079,6 +6141,43 @@ theorem packedReverseRuleStepRowLanguage_iff_exists_row_rulePath_card_bound
         rw [← List.getLast?_eq_some_getLast hne, hlast]
       exact Option.some.inj hs
     simpa [hx, hy] using hrt
+
+/-- Flat-list edge-witness form of the fixed-width reverse row language.
+
+This is the same bounded row path as
+`packedReverseRuleStepRowLanguage_iff_exists_row_rulePath_card_bound`, but each adjacent
+reverse edge is expanded to two concrete flat lists that pack to the adjacent rows and satisfy
+the underlying `FlatRuleStep`. -/
+theorem packedReverseRuleStepRowLanguage_iff_exists_flatRuleStep_path_card_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) {cells : List (PackedBlock (FlatSymbol T g.nt g.flag) (B + 2))} :
+    cells ∈ packedReverseRuleStepRowLanguage g B ↔
+      ∃ hcells : cells ≠ [],
+      ∃ path : List (PackedFlatForm g (B + 2) cells.length),
+        path.head? = some (packedCellsRow cells) ∧
+        path.getLast? =
+          some (packedBoundedFlatForm g (B + 2) cells.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_mul_of_pos
+                (g := g) (B := B) (List.length_pos_of_ne_nil hcells)⟩) ∧
+        path.length ≤ Fintype.card (PackedFlatForm g (B + 2) cells.length) ∧
+        path.IsChain (fun x y =>
+          ∃ x₀ y₀ : List (FlatSymbol T g.nt g.flag),
+            x₀.length ≤ cells.length * (B + 2) ∧
+            y₀.length ≤ cells.length * (B + 2) ∧
+            x = packedFlatForm g (B + 2) cells.length x₀ ∧
+            y = packedFlatForm g (B + 2) cells.length y₀ ∧
+            FlatRuleStep g y₀ x₀) := by
+  rw [packedReverseRuleStepRowLanguage_iff_exists_row_rulePath_card_bound]
+  constructor
+  · rintro ⟨hcells, path, hhead, hlast, hlen, hchain⟩
+    exact ⟨hcells, path, hhead, hlast, hlen,
+      (isChain_reverse_packedFlatRuleStep_iff_exists_flatRuleStep
+        (g := g) (W := B + 2) (n := cells.length)).mp hchain⟩
+  · rintro ⟨hcells, path, hhead, hlast, hlen, hchain⟩
+    exact ⟨hcells, path, hhead, hlast, hlen,
+      (isChain_reverse_packedFlatRuleStep_iff_exists_flatRuleStep
+        (g := g) (W := B + 2) (n := cells.length)).mpr hchain⟩
 
 theorem nil_not_mem_packedReverseRuleStepRowLanguage (g : IndexedGrammar T) (B : ℕ) :
     [] ∉ packedReverseRuleStepRowLanguage g B := by

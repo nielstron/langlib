@@ -439,6 +439,39 @@ public theorem packedReverseRuleStepRowLanguage_iff_exists_row_rulePath_card_bou
   IndexedGrammar.packedReverseRuleStepRowLanguage_iff_exists_row_rulePath_card_bound
     (g := g) B
 
+/-- Flat-list edge-witness form of the fixed-width reverse row language. -/
+public theorem packedReverseRuleStepRowLanguage_iff_exists_flatRuleStep_path_card_bound
+    {A : Type} [Fintype A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ)
+    {cells : List
+      (IndexedGrammar.PackedBlock (IndexedGrammar.FlatSymbol A g.nt g.flag) (B + 2))} :
+    cells ∈ IndexedGrammar.packedReverseRuleStepRowLanguage g B ↔
+      ∃ hcells : cells ≠ [],
+      ∃ path : List
+          (IndexedGrammar.PackedFlatForm g (B + 2) cells.length),
+        path.head? = some (IndexedGrammar.packedCellsRow cells) ∧
+        path.getLast? =
+          some (IndexedGrammar.packedBoundedFlatForm g (B + 2) cells.length
+            ⟨IndexedGrammar.encodeSentential
+                ([IndexedGrammar.ISym.indexed g.initial []] : List g.ISym),
+              IndexedGrammar.initial_mem_boundedFlatForms_mul_of_pos
+                (g := g) (B := B) (List.length_pos_of_ne_nil hcells)⟩) ∧
+        path.length ≤
+          Fintype.card
+            (IndexedGrammar.PackedFlatForm g (B + 2) cells.length) ∧
+        path.IsChain (fun x y =>
+          ∃ x₀ y₀ : List (IndexedGrammar.FlatSymbol A g.nt g.flag),
+            x₀.length ≤ cells.length * (B + 2) ∧
+            y₀.length ≤ cells.length * (B + 2) ∧
+            x =
+              IndexedGrammar.packedFlatForm g (B + 2) cells.length x₀ ∧
+            y =
+              IndexedGrammar.packedFlatForm g (B + 2) cells.length y₀ ∧
+            IndexedGrammar.FlatRuleStep g y₀ x₀) :=
+  IndexedGrammar.packedReverseRuleStepRowLanguage_iff_exists_flatRuleStep_path_card_bound
+    (g := g) B
+
 /-- Fixed-width terminal-language target for the finite normal-form core.
 
 For a finite normal-form indexed grammar, membership is the union over fixed packed widths of
