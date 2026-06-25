@@ -5838,6 +5838,11 @@ def packedCellsRow {α : Type} {W : ℕ} (cells : List (PackedBlock α W)) :
     Fin cells.length → PackedBlock α W :=
   fun i => cells.get i
 
+theorem packedCellsRow_ofFn {α : Type} {W : ℕ}
+    (cells : List (PackedBlock α W)) :
+    List.ofFn (packedCellsRow cells) = cells :=
+  List.ofFn_get cells
+
 /-- Pack the terminal word into the packed-row cell alphabet.
 
 This is the LBA-facing input row: the word is laid out in flattened slot order across
@@ -5906,6 +5911,38 @@ def packedReverseRuleStepRowLanguage (g : IndexedGrammar T) (B : ℕ) :
             initial_mem_boundedFlatForms_mul_of_pos
               (g := g) (B := B) hn⟩)
 
+theorem packedReverseRuleStepRowLanguage_iff_packedCellsRow_reaches_initial
+    (g : IndexedGrammar T) (B : ℕ)
+    {cells : List (PackedBlock (FlatSymbol T g.nt g.flag) (B + 2))} :
+    cells ∈ packedReverseRuleStepRowLanguage g B ↔
+      ∃ hcells : cells ≠ [],
+        Relation.ReflTransGen
+          (fun x y => PackedFlatRuleStep g (B + 2) cells.length y x)
+          (packedCellsRow cells)
+          (packedBoundedFlatForm g (B + 2) cells.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_mul_of_pos
+                (g := g) (B := B) (List.length_pos_of_ne_nil hcells)⟩) := by
+  constructor
+  · rintro ⟨n, row, hn, hcells, hreach⟩
+    have hlen : cells.length = n := by
+      simp [hcells]
+    have hne : cells ≠ [] := by
+      intro hnil
+      have hlen0 : cells.length = 0 := by simp [hnil]
+      omega
+    subst n
+    have hrow : row = packedCellsRow cells := by
+      apply List.ofFn_inj.mp
+      simpa [packedCellsRow_ofFn] using hcells.symm
+    subst row
+    refine ⟨hne, ?_⟩
+    simpa
+  · rintro ⟨hcells, hreach⟩
+    refine ⟨cells.length, packedCellsRow cells, List.length_pos_of_ne_nil hcells,
+      ?_, hreach⟩
+    exact (packedCellsRow_ofFn cells).symm
+
 theorem nil_not_mem_packedReverseRuleStepRowLanguage (g : IndexedGrammar T) (B : ℕ) :
     [] ∉ packedReverseRuleStepRowLanguage g B := by
   rintro ⟨n, row, hn, hcells, _hreach⟩
@@ -5927,6 +5964,21 @@ theorem nil_not_mem_packedTerminalReverseRuleStepLanguage (g : IndexedGrammar T)
   intro hnil
   exact nil_not_mem_packedReverseRuleStepRowLanguage (g := g) B (by
     simpa [packedTerminalReverseRuleStepLanguage, packedTerminalCells] using hnil)
+
+theorem packedTerminalReverseRuleStepLanguage_iff_packedCellsRow_reaches_initial
+    (g : IndexedGrammar T) (B : ℕ) {w : List T} :
+    w ∈ packedTerminalReverseRuleStepLanguage g B ↔
+      ∃ hcells : packedTerminalCells g (B + 2) w ≠ [],
+        Relation.ReflTransGen
+          (fun x y =>
+            PackedFlatRuleStep g (B + 2) (packedTerminalCells g (B + 2) w).length y x)
+          (packedCellsRow (packedTerminalCells g (B + 2) w))
+          (packedBoundedFlatForm g (B + 2) (packedTerminalCells g (B + 2) w).length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_mul_of_pos
+                (g := g) (B := B) (List.length_pos_of_ne_nil hcells)⟩) :=
+  packedReverseRuleStepRowLanguage_iff_packedCellsRow_reaches_initial
+    (g := g) (B := B) (cells := packedTerminalCells g (B + 2) w)
 
 theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
