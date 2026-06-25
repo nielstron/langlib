@@ -6543,6 +6543,56 @@ theorem exists_stepReachable_boundedSentential_image_of_late_window_context_take
       (ys := ys) (bw := bw) (by simpa [ys] using hsurfaceBound)
       hbw (le_trans hpi hjN) hpre
 
+/-- Canonical late-window finite-frontier bridge phrased by suffix-prefix preservation.
+
+This specializes `exists_stepReachable_boundedSentential_image_of_late_window_context_take_eq`
+to the stack `η.take P ++ τ`. The replacement only needs to preserve the visible suffix prefix
+below `P`; the theorem packages the resulting full `B`-surface agreement and bounded encoding. -/
+theorem exists_stepReachable_boundedSentential_image_of_late_window_canonical_suffix_take_eq
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P K B L N C a i j : ℕ} {trace : List (List g.ISym)}
+    {u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hi : i < trace.length)
+    (hic : i ≤ a + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hij : i ≤ j) (hjN : j ≤ N)
+    (hPK : P + K ≤ B)
+    (hτ : τ.length ≤ K)
+    (hPη : P ≤ η.length)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (hsuffix : τ.take (B - P) = (η.drop P).take (B - P))
+    (hsurfaceBound :
+      surfaceOfTruncatedForm P (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) ∈
+        boundedSurfaceForms g L P) :
+    ∃ bw : List (symbol T (BoundedStackNT g B)),
+      boundedSentential? (g := g) B
+          (u ++ [ISym.indexed A (η.take P ++ τ)] ++ v) = some bw ∧
+        bw ∈
+          ({bw : List (symbol T (BoundedStackNT g B)) |
+            (∃ ys : List g.ISym,
+              ys ∈ boundedSententialForms g L B ∧
+                boundedSentential? (g := g) B ys = some bw) ∧
+              ∃ p : ℕ, p ≤ N ∧
+                grammar_derivesIn (boundedStackGrammar g B) p
+                  [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+            Set (List (symbol T (BoundedStackNT g B)))) := by
+  have hζ : (η.take P ++ τ).length ≤ B := by
+    rw [List.length_append]
+    have htake : (η.take P).length ≤ P := List.length_take_le P η
+    omega
+  have hPB : P ≤ B := le_trans (Nat.le_add_right P K) hPK
+  have htake :
+      η.take B = (η.take P ++ τ).take B :=
+    (stack_take_append_take_eq_of_suffix_take_eq hPη hPB hsuffix).symm
+  exact
+    exists_stepReachable_boundedSentential_image_of_late_window_context_take_eq
+      (g := g) hNF htrace hhead hi hic hwindowBound hbefore hij hjN hζ hctx htake
+      hsurfaceBound
+
 /-- Surface-repeat bridge into the finite step-reachable full-context frontier.
 
 If a canonical replacement context has the same `B`-surface as a prefix node whose whole prefix
