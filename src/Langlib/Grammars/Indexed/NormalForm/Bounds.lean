@@ -2601,6 +2601,22 @@ theorem packedFlatPathStackBoundLanguage_of_boundedFlatPathLanguage
           (Nat.mul_le_mul_right (B + 2) hlen))
       w hw
 
+/-- Normal-form generated words are nonempty, so any bounded flat-path certificate for such
+a word repacks into the corresponding fixed-width packed flat-path language. -/
+theorem packedFlatPathStackBoundLanguage_of_boundedFlatPathLanguage_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w : List T}
+    (hgen : g.Generates w)
+    (hw : w ∈ boundedFlatPathLanguage g B) :
+    w ∈ packedFlatPathStackBoundLanguage g B := by
+  exact packedFlatPathStackBoundLanguage_of_boundedFlatPathLanguage
+    (g := g) (B := B)
+    (by
+      intro hwempty
+      subst w
+      exact (g.not_generates_nil_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF)) hgen)
+    hw
+
 theorem language_eq_iUnion_boundedFlatPathLanguage (g : IndexedGrammar T) :
     g.Language = fun w : List T => ∃ B : ℕ, w ∈ boundedFlatPathLanguage g B := by
   ext w
