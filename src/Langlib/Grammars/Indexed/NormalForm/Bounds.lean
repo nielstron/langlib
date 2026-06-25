@@ -5597,6 +5597,114 @@ theorem flatTransforms_rule_cases_iff_of_isNormalForm {g : IndexedGrammar T}
         · rw [hrhs]
           simp [expandRhs]
 
+/-- Rule-shaped flat step data for a normal-form indexed grammar.
+
+This is the verifier-facing version of one flattened step: a rule is chosen from the finite
+rule set, a shared encoded context is exposed, and the redex/replacement has one of the four
+normal-form shapes. It is equivalent to `FlatTransforms` for normal-form grammars. -/
+def FlatRuleStep (g : IndexedGrammar T)
+    (x y : List (FlatSymbol T g.nt g.flag)) : Prop :=
+  (∃ r ∈ g.rules, ∃ A B C : g.nt, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+    r.lhs = A ∧ r.consume = none ∧
+    r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
+    B ≠ g.initial ∧ C ≠ g.initial ∧
+    x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+    y = encodeSentential u ++ encodeISym (ISym.indexed B σ) ++
+      encodeISym (ISym.indexed C σ) ++ encodeSentential v) ∨
+  (∃ r ∈ g.rules, ∃ A B : g.nt, ∃ f : g.flag, ∃ u v : List g.ISym,
+    ∃ σ : List g.flag,
+    r.lhs = A ∧ r.consume = some f ∧
+    r.rhs = [IRhsSymbol.nonterminal B none] ∧ B ≠ g.initial ∧
+    x = encodeSentential u ++ encodeISym (ISym.indexed A (f :: σ)) ++
+      encodeSentential v ∧
+    y = encodeSentential u ++ encodeISym (ISym.indexed B σ) ++ encodeSentential v) ∨
+  (∃ r ∈ g.rules, ∃ A B : g.nt, ∃ f : g.flag, ∃ u v : List g.ISym,
+    ∃ σ : List g.flag,
+    r.lhs = A ∧ r.consume = none ∧
+    r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧ B ≠ g.initial ∧
+    x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+    y = encodeSentential u ++ encodeISym (ISym.indexed B (f :: σ)) ++
+      encodeSentential v) ∨
+  (∃ r ∈ g.rules, ∃ A : g.nt, ∃ a : T, ∃ u v : List g.ISym, ∃ σ : List g.flag,
+    r.lhs = A ∧ r.consume = none ∧ r.rhs = [IRhsSymbol.terminal a] ∧
+    x = encodeSentential u ++ encodeISym (ISym.indexed A σ) ++ encodeSentential v ∧
+    y = encodeSentential u ++ encodeISym (ISym.terminal a) ++ encodeSentential v)
+
+theorem flatTransforms_iff_flatRuleStep_of_isNormalForm {g : IndexedGrammar T}
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {x y : List (FlatSymbol T g.nt g.flag)} :
+    FlatTransforms g x y ↔ FlatRuleStep g x y := by
+  simpa [FlatRuleStep] using
+    flatTransforms_rule_cases_iff_of_isNormalForm (g := g) hNF (x := x) (y := y)
+
+/-- Packed edge data whose underlying bounded flat forms carry a concrete normal-form rule
+step witness. -/
+def PackedFlatRuleStep (g : IndexedGrammar T) (W n : ℕ)
+    (x y : PackedFlatForm g W n) : Prop :=
+  ∃ x₀ y₀ : BoundedFlatForm g (n * W),
+    x = packedBoundedFlatForm g W n x₀ ∧
+    y = packedBoundedFlatForm g W n y₀ ∧
+    FlatRuleStep g x₀.1 y₀.1
+
+theorem packedFlatTransforms_iff_packedFlatRuleStep_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {W n : ℕ} {x y : PackedFlatForm g W n} :
+    PackedFlatTransforms g W n x y ↔ PackedFlatRuleStep g W n x y := by
+  constructor
+  · rintro ⟨x₀, y₀, hx, hy, hstep⟩
+    refine ⟨x₀, y₀, hx, hy, ?_⟩
+    exact (flatTransforms_iff_flatRuleStep_of_isNormalForm (g := g) hNF).mp
+      (by simpa [BoundedFlatTransforms] using hstep)
+  · rintro ⟨x₀, y₀, hx, hy, hstep⟩
+    refine ⟨x₀, y₀, hx, hy, ?_⟩
+    exact (flatTransforms_iff_flatRuleStep_of_isNormalForm (g := g) hNF).mpr hstep
+
+theorem packedFlatPath_ruleStep_iff_transforms_of_isNormalForm
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {W n : ℕ} {path : List (PackedFlatForm g W n)} :
+    path.IsChain (PackedFlatRuleStep g W n) ↔
+      path.IsChain (PackedFlatTransforms g W n) := by
+  rw [List.isChain_iff_getElem, List.isChain_iff_getElem]
+  constructor
+  · intro h i hi
+    exact (packedFlatTransforms_iff_packedFlatRuleStep_of_isNormalForm
+      (g := g) hNF).mpr (h i hi)
+  · intro h i hi
+    exact (packedFlatTransforms_iff_packedFlatRuleStep_of_isNormalForm
+      (g := g) hNF).mp (h i hi)
+
+/-- Normal-form packed membership as a short path whose every edge carries concrete rule-step
+data. This is the packed certificate shape needed by a uniform finite verifier. -/
+theorem packedFlatPathStackBoundLanguage_iff_exists_packedFlatRulePath_card_bound_of_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {B : ℕ} {w : List T} :
+    w ∈ packedFlatPathStackBoundLanguage g B ↔
+      ∃ hwne : w ≠ [],
+      ∃ path : List (PackedFlatForm g (B + 2) w.length),
+        path.head? =
+          some (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) ∧
+        path.getLast? =
+          some (packedBoundedFlatForm g (B + 2) w.length
+            ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+              terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩) ∧
+        path.length ≤ Fintype.card (PackedFlatForm g (B + 2) w.length) ∧
+        path.IsChain (PackedFlatRuleStep g (B + 2) w.length) := by
+  rw [packedFlatPathStackBoundLanguage_iff_exists_packedFlatPath_card_bound]
+  constructor
+  · rintro ⟨hwne, path, hhead, hlast, hlen, hchain⟩
+    exact ⟨hwne, path, hhead, hlast, hlen,
+      (packedFlatPath_ruleStep_iff_transforms_of_isNormalForm
+        (g := g) hNF).mpr hchain⟩
+  · rintro ⟨hwne, path, hhead, hlast, hlen, hchain⟩
+    exact ⟨hwne, path, hhead, hlast, hlen,
+      (packedFlatPath_ruleStep_iff_transforms_of_isNormalForm
+        (g := g) hNF).mp hchain⟩
+
 theorem transformIsBinaryStep_encodeSentential_length_eq
     {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
     (h : TransformIsBinaryStep g w₁ w₂) :
