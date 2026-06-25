@@ -2314,6 +2314,46 @@ public theorem exists_bound_minimal_prefixed_certificate_first_step_mem_frontier
     right
     exact hterm
 
+/-- Canonical-prefix finite-frontier membership for suffix-minimal parse certificates.
+
+This is the canonical `η.take P ++ σ` form used by the bounded-stack frontier arguments: a
+suffix-minimal certificate under the visible prefix has a uniformly bounded suffix, and the
+whole certified item belongs to both finite certificate frontiers. -/
+public theorem exists_bound_minimal_canonical_prefix_certificate_mem_frontiers_for_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ A : g.nt, ∀ η σ : List g.flag, ∀ w : List T,
+          w <+ target →
+          NFYield g A (η.take P ++ σ) w →
+          (∀ ρ : List g.flag,
+            NFYield g A (η.take P ++ ρ) w →
+            ρ <+ σ → ρ = σ) →
+          σ.length ≤ K ∧
+            (((A, η.take P ++ σ), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ P + K ∧ item.2 <+ target ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            (((A, η.take P ++ σ), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ P + K ∧ item.2.length ≤ L ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) := by
+  obtain ⟨K, hK⟩ :=
+    NFYield.exists_bound_minimal_prefixed_certificate_first_step_mem_frontiers_for_target_length
+      (g := g) hNF P L
+  refine ⟨K, ?_⟩
+  intro target htargetLen A η σ w hwt hcert hmin
+  obtain ⟨hσlen, htargetItem, hlengthItem, _hcases⟩ :=
+    hK target htargetLen (η.take P) (List.length_take_le P η)
+      A σ w hwt hcert hmin
+  exact ⟨hσlen, htargetItem, hlengthItem⟩
+
 end NFYield
 
 end IndexedGrammar
