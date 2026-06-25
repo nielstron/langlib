@@ -2265,6 +2265,152 @@ public theorem bounded_length_surface_pair_certificate_rank_items_card_mono_boun
       hBC hRS hxSet
   simpa using hxSet'
 
+/-- A target-specific single-certificate/rank frontier embeds into the corresponding
+length-uniform frontier whenever the target lies in the length ball. -/
+public theorem bounded_target_surface_certificate_rank_items_card_le_bounded_length_surface_certificate_rank_items_card
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B L R : ℕ} {target : List T}
+    (htargetLen : target.length ≤ L) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P B R target)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P B L R)).card := by
+  classical
+  refine Finset.card_le_card ?_
+  intro x hx
+  have hxSet :
+      x ∈
+        ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+          x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+            x.1.2 ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ B ∧ item.2 <+ target ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) := by
+    simpa using hx
+  have hsurface :
+      x.1.1 ∈ boundedSurfaceForms g L P :=
+    targetCompatibleBoundedSurfaceForms_subset_boundedSurfaceForms_lengthBound
+      (g := g) (target := target) (L := L) (stackBound := P) htargetLen hxSet.1
+  have hitem :
+      x.1.2 ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) := by
+    exact ⟨hxSet.2.1.1, le_trans hxSet.2.1.2.1.length_le htargetLen,
+      hxSet.2.1.2.2⟩
+  have hxSet' :
+      x ∈
+        ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+          x.1.1 ∈ boundedSurfaceForms g L P ∧
+            x.1.2 ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) :=
+    ⟨hsurface, hitem, hxSet.2.2⟩
+  simpa using hxSet'
+
+/-- A target-specific binary-pair/rank frontier embeds into the corresponding length-uniform
+frontier whenever the target lies in the length ball. -/
+public theorem bounded_target_surface_pair_certificate_rank_items_card_le_bounded_length_surface_pair_certificate_rank_items_card
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B L R : ℕ} {target : List T}
+    (htargetLen : target.length ≤ L) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+          (g := g) P B R target)).card ≤
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_pair_certificate_rank_items
+          (g := g) P B L R)).card := by
+  classical
+  refine Finset.card_le_card ?_
+  intro x hx
+  have hxSet :
+      x ∈
+        ({x :
+          (SurfaceForm g P ×
+            (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+          x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+            x.1.2 ∈
+              ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                item.1.2.length ≤ B ∧
+                  item.2.1 <+ target ∧
+                  item.2.2 <+ target ∧
+                  NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                  NFYield g item.1.1.2 item.1.2 item.2.2} :
+                Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P ×
+            (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)) := by
+    simpa using hx
+  have hsurface :
+      x.1.1 ∈ boundedSurfaceForms g L P :=
+    targetCompatibleBoundedSurfaceForms_subset_boundedSurfaceForms_lengthBound
+      (g := g) (target := target) (L := L) (stackBound := P) htargetLen hxSet.1
+  have hitem :
+      x.1.2 ∈
+        ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+          item.1.2.length ≤ B ∧
+            item.2.1.length ≤ L ∧
+            item.2.2.length ≤ L ∧
+            NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+            NFYield g item.1.1.2 item.1.2 item.2.2} :
+          Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) := by
+    exact ⟨hxSet.2.1.1, le_trans hxSet.2.1.2.1.length_le htargetLen,
+      le_trans hxSet.2.1.2.2.1.length_le htargetLen, hxSet.2.1.2.2.2.1,
+      hxSet.2.1.2.2.2.2⟩
+  have hxSet' :
+      x ∈
+        ({x :
+          (SurfaceForm g P ×
+            (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ |
+          x.1.1 ∈ boundedSurfaceForms g L P ∧
+            x.1.2 ∈
+              ({item : ((g.nt × g.nt) × List g.flag) × (List T × List T) |
+                item.1.2.length ≤ B ∧
+                  item.2.1.length ≤ L ∧
+                  item.2.2.length ≤ L ∧
+                  NFYield g item.1.1.1 item.1.2 item.2.1 ∧
+                  NFYield g item.1.1.2 item.1.2 item.2.2} :
+                Set (((g.nt × g.nt) × List g.flag) × (List T × List T))) ∧
+            x.2 ≤ R} :
+          Set ((SurfaceForm g P ×
+            (((g.nt × g.nt) × List g.flag) × (List T × List T))) × ℕ)) :=
+    ⟨hsurface, hitem, hxSet.2.2⟩
+  simpa using hxSet'
+
+/-- The target-specific combined branch/rank frontier embeds into the length-uniform combined
+branch/rank frontier on a length ball. -/
+public theorem bounded_target_surface_branch_rank_items_card_le_bounded_length_surface_branch_rank_items_card
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    {P B L R : ℕ} {target : List T}
+    (htargetLen : target.length ≤ L) :
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_certificate_rank_items
+          (g := g) P B R target)).card +
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_target_surface_pair_certificate_rank_items
+          (g := g) P B R target)).card ≤
+    (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_certificate_rank_items
+          (g := g) P B L R)).card +
+      (Set.Finite.toFinset
+        (NFYield.finite_bounded_length_surface_pair_certificate_rank_items
+          (g := g) P B L R)).card := by
+  exact Nat.add_le_add
+    (NFYield.bounded_target_surface_certificate_rank_items_card_le_bounded_length_surface_certificate_rank_items_card
+      (g := g) (P := P) (B := B) (L := L) (R := R) (target := target) htargetLen)
+    (NFYield.bounded_target_surface_pair_certificate_rank_items_card_le_bounded_length_surface_pair_certificate_rank_items_card
+      (g := g) (P := P) (B := B) (L := L) (R := R) (target := target) htargetLen)
+
 /-- A generated word in the length ball embeds the visible surface frontier into the combined
 single-certificate-or-binary-pair rank frontier.
 
