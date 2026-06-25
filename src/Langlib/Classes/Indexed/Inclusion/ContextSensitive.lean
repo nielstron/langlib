@@ -137,6 +137,36 @@ public theorem exists_LBA_pos_boundedFlatPath_language_eq_on_length_le_of_isNorm
       (g := g) hNF L
   exact ⟨B, is_LBA_pos_boundedFlatPath_language_of_isNormalForm (g := g) hNF B, hB⟩
 
+/-- Fixed packed flat-path slices are ε-free by construction. -/
+public theorem not_nil_mem_packedFlatPathStackBound_language
+    {A : Type} (g : IndexedGrammar A) (B : ℕ) :
+    [] ∉ IndexedGrammar.packedFlatPathStackBoundLanguage g B :=
+  IndexedGrammar.nil_not_mem_packedFlatPathStackBoundLanguage g B
+
+/-- Fixed packed flat-path slices are sound for the original indexed grammar. -/
+public theorem packedFlatPathStackBound_language_subset_language
+    {A : Type} (g : IndexedGrammar A) (B : ℕ) :
+    ∀ w : List A,
+      w ∈ IndexedGrammar.packedFlatPathStackBoundLanguage g B →
+      w ∈ g.Language :=
+  fun _ h => IndexedGrammar.packedFlatPathStackBoundLanguage_subset_language h
+
+/-- Packed-language finite-ball form of the current normal-form simulator target.
+
+On every fixed input-length ball, one fixed stack-bound packed flat-path language agrees with
+the original normal-form language. The remaining global core still has to turn this
+length-parametric packed reachability family into one LBA/CS witness. -/
+public theorem exists_packedFlatPathStackBound_language_eq_on_length_le_of_isNormalForm
+    {A : Type} [Fintype A]
+    (g : IndexedGrammar A) [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List A,
+      target.length ≤ L →
+      (target ∈ g.Language ↔
+        target ∈ IndexedGrammar.packedFlatPathStackBoundLanguage g B) :=
+  IndexedGrammar.exists_bound_packedFlatPathStackBoundLanguage_eq_on_length_le_isNormalForm
+    (g := g) hNF L
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]
