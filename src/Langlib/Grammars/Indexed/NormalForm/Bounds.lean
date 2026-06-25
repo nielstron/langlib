@@ -1548,6 +1548,120 @@ theorem boundedFlatForms_finite (g : IndexedGrammar T)
   dsimp [boundedFlatForms]
   exact List.finite_length_le (FlatSymbol T g.nt g.flag) flatLengthBound
 
+/-- The finite state space of flat sentential forms of length at most `B`. -/
+def BoundedFlatForm (g : IndexedGrammar T) (B : ℕ) : Type :=
+  {w : List (FlatSymbol T g.nt g.flag) // w ∈ boundedFlatForms g B}
+
+noncomputable instance BoundedFlatForm.instFintype (g : IndexedGrammar T)
+    [Fintype T] [Fintype g.nt] [Fintype g.flag] (B : ℕ) :
+    Fintype (BoundedFlatForm g B) :=
+  (boundedFlatForms_finite g B).fintype
+
+noncomputable instance BoundedFlatForm.instDecidableEq (g : IndexedGrammar T) (B : ℕ) :
+    DecidableEq (BoundedFlatForm g B) :=
+  Classical.decEq _
+
+/-- One flat step restricted to the finite bounded flat-form state space. -/
+def BoundedFlatTransforms (g : IndexedGrammar T) (B : ℕ)
+    (x y : BoundedFlatForm g B) : Prop :=
+  FlatTransforms g x.1 y.1
+
+/-- Reachability in the finite bounded flat-form graph. -/
+def BoundedFlatDerives (g : IndexedGrammar T) (B : ℕ) :
+    BoundedFlatForm g B → BoundedFlatForm g B → Prop :=
+  Relation.ReflTransGen (BoundedFlatTransforms g B)
+
+theorem boundedFlatDerives_of_boundedFlatPath
+    {g : IndexedGrammar T} {B : ℕ} {x y : BoundedFlatForm g B}
+    {path : List (List (FlatSymbol T g.nt g.flag))}
+    (hhead : path.head? = some x.1)
+    (hlast : path.getLast? = some y.1)
+    (hbound : ∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B)
+    (hstep : ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+      FlatTransforms g
+        (path.get ⟨i, by omega⟩)
+        (path.get ⟨i + 1, hi⟩)) :
+    BoundedFlatDerives g B x y := by
+  induction path generalizing x with
+  | nil =>
+      simp at hhead
+  | cons a rest ih =>
+      cases rest with
+      | nil =>
+          have hx : x.1 = a := by
+            simpa using hhead.symm
+          have hy : y.1 = a := by
+            simpa using hlast.symm
+          have hxy : x = y := by
+            apply Subtype.ext
+            rw [hx, hy]
+          subst y
+          exact Relation.ReflTransGen.refl
+      | cons b rest =>
+          have hx : x.1 = a := by
+            simpa using hhead.symm
+          let z : BoundedFlatForm g B :=
+            ⟨b, by
+              have hb := hbound ⟨1, by simp⟩
+              simpa using hb⟩
+          have hfirst : BoundedFlatTransforms g B x z := by
+            dsimp [BoundedFlatTransforms, z]
+            have h := hstep 0 (by simp)
+            simpa [hx] using h
+          have htailHead : (b :: rest).head? = some z.1 := by
+            simp [z]
+          have htailLast : (b :: rest).getLast? = some y.1 := by
+            simpa using hlast
+          have htailBound :
+              ∀ i : Fin (b :: rest).length,
+                (b :: rest).get i ∈ boundedFlatForms g B := by
+            intro i
+            have hiOrig : i.1 + 1 < (a :: b :: rest).length := by
+              simpa using Nat.succ_lt_succ i.2
+            simpa using hbound ⟨i.1 + 1, hiOrig⟩
+          have htailStep :
+              ∀ i : ℕ, ∀ hi : i + 1 < (b :: rest).length,
+                FlatTransforms g
+                  ((b :: rest).get ⟨i, by omega⟩)
+                  ((b :: rest).get ⟨i + 1, hi⟩) := by
+            intro i hi
+            have hiOrig : (i + 1) + 1 < (a :: b :: rest).length := by
+              simpa using Nat.succ_lt_succ hi
+            simpa using hstep (i + 1) hiOrig
+          exact Relation.ReflTransGen.head hfirst
+            (ih htailHead htailLast htailBound htailStep)
+
+theorem exists_boundedFlatPath_of_boundedFlatDerives
+    {g : IndexedGrammar T} {B : ℕ} {x y : BoundedFlatForm g B}
+    (h : BoundedFlatDerives g B x y) :
+    ∃ path : List (List (FlatSymbol T g.nt g.flag)),
+      path.head? = some x.1 ∧
+      path.getLast? = some y.1 ∧
+      (∀ i : Fin path.length, path.get i ∈ boundedFlatForms g B) ∧
+      ∀ i : ℕ, ∀ hi : i + 1 < path.length,
+        FlatTransforms g
+          (path.get ⟨i, by omega⟩)
+          (path.get ⟨i + 1, hi⟩) := by
+  obtain ⟨bpath, hne, hchain, hhead, hlast⟩ :=
+    List.exists_isChain_ne_nil_of_relationReflTransGen h
+  refine ⟨bpath.map Subtype.val, ?_, ?_, ?_, ?_⟩
+  · rw [List.head?_map, List.head?_eq_some_head hne, hhead]
+    rfl
+  · rw [List.getLast?_map, List.getLast?_eq_some_getLast hne, hlast]
+    rfl
+  · intro i
+    have hi : i.1 < bpath.length := by
+      simpa using i.2
+    rw [List.get_eq_getElem, List.getElem_map]
+    change (bpath[i.1]).1 ∈ boundedFlatForms g B
+    exact (bpath.get ⟨i.1, hi⟩).2
+  · rw [List.isChain_iff_getElem] at hchain
+    intro i hi
+    have hi₀ : i + 1 < bpath.length := by
+      simpa using hi
+    have hrel := hchain i hi₀
+    simpa [BoundedFlatTransforms, List.get_eq_getElem] using hrel
+
 theorem exists_list_length_bound {α : Type} (xs : List (List α)) :
     ∃ B : ℕ, ∀ x ∈ xs, x.length ≤ B := by
   induction xs with
@@ -1636,6 +1750,25 @@ def boundedFlatPathLanguage (g : IndexedGrammar T) (B : ℕ) : _root_.Language T
         FlatTransforms g
           (path.get ⟨i, by omega⟩)
           (path.get ⟨i + 1, hi⟩)
+
+theorem boundedFlatPathLanguage_iff_boundedFlatDerives
+    {g : IndexedGrammar T} {B : ℕ} {w : List T}
+    (hinit :
+      encodeSentential ([ISym.indexed g.initial []] : List g.ISym) ∈ boundedFlatForms g B)
+    (hterm :
+      w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)) ∈ boundedFlatForms g B) :
+    w ∈ boundedFlatPathLanguage g B ↔
+      BoundedFlatDerives g B
+        ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym), hinit⟩
+        ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)), hterm⟩ := by
+  constructor
+  · rintro ⟨path, hhead, hlast, hbound, hstep⟩
+    exact boundedFlatDerives_of_boundedFlatPath
+      (g := g) (B := B) hhead hlast hbound hstep
+  · intro hder
+    obtain ⟨path, hhead, hlast, hbound, hstep⟩ :=
+      exists_boundedFlatPath_of_boundedFlatDerives (g := g) (B := B) hder
+    exact ⟨path, hhead, hlast, hbound, hstep⟩
 
 theorem boundedFlatPathLanguage_subset_language
     {g : IndexedGrammar T} {B : ℕ} {w : List T}
