@@ -6392,12 +6392,127 @@ theorem stepReachable_boundedSentential_image_mem_of_stackBoundedDerivesIn
     stepReachable_boundedSentential_image_mem_of_boundedSurface_boundedSentential?_derivesIn
       (g := g) hsurface hbw ⟨p, hp, hder⟩
 
+/-- Surface-repeat bridge into the finite step-reachable full-context frontier for an arbitrary
+replacement sentential form.
+
+If `ys` has the same `B`-surface as a prefix node whose whole prefix is already `B`-bounded,
+and `ys` itself fits in `B`, then the bounded-stack encoding of `ys` is a member of the finite
+counted frontier reachable within the advertised prefix budget. -/
+theorem exists_stepReachable_boundedSentential_image_of_context_surface_eq_prefix_bound_le
+    {g : IndexedGrammar T} [Fintype g.flag]
+    {P B L N : ℕ} {trace : List (List g.ISym)} {ys : List g.ISym}
+    {i j : ℕ}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hi : i < trace.length) (hij : i ≤ j) (hjN : j ≤ N)
+    (hprefixBound : ∀ k (hk : k < trace.length),
+      k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B)
+    (hysStack : sententialMaxStackHeight ys ≤ B)
+    (hsurfaceEq :
+      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm B ys)
+    (hsurfaceBound : surfaceOfTruncatedForm P ys ∈ boundedSurfaceForms g L P) :
+    ∃ bw : List (symbol T (BoundedStackNT g B)),
+      boundedSentential? (g := g) B ys = some bw ∧
+        bw ∈
+          ({bw : List (symbol T (BoundedStackNT g B)) |
+            (∃ ys : List g.ISym,
+              ys ∈ boundedSententialForms g L B ∧
+                boundedSentential? (g := g) B ys = some bw) ∧
+              ∃ p : ℕ, p ≤ N ∧
+                grammar_derivesIn (boundedStackGrammar g B) p
+                  [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+            Set (List (symbol T (BoundedStackNT g B)))) := by
+  obtain ⟨bw, hbw⟩ :=
+    exists_boundedSentential?_of_sententialMaxStackHeight_le
+      (g := g) (B := B) hysStack
+  obtain ⟨p, hpj, hpre⟩ :=
+    exists_stackBoundedDerivesIn_of_surface_eq_prefix_bound_le
+      (g := g) (B := B) (trace := trace) (first := [ISym.indexed g.initial []])
+      (ys := ys) htrace hhead hi hij hprefixBound hysStack hsurfaceEq
+  refine ⟨bw, hbw, ?_⟩
+  exact
+    stepReachable_boundedSentential_image_mem_of_stackBoundedDerivesIn
+      (g := g) (P := P) (B := B) (L := L) (N := N) (p := p)
+      (ys := ys) (bw := bw) hsurfaceBound hbw (le_trans hpj hjN) hpre
+
+/-- Late-window form of
+`exists_stepReachable_boundedSentential_image_of_context_surface_eq_prefix_bound_le` for an
+arbitrary replacement stack.
+
+The local late-window stack-growth bound supplies the bounded prefix path. The replacement stack
+only has to fit in `B` and agree with the actual stack on the visible `B` prefix, so this bridge
+can be used with prefix-preserving certificate shrinkers as well as the canonical suffix
+shrinker. -/
+theorem exists_stepReachable_boundedSentential_image_of_late_window_context_take_eq
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P B L N C a i j : ℕ} {trace : List (List g.ISym)}
+    {u v : List g.ISym} {A : g.nt} {η ζ : List g.flag}
+    (htrace : IsDerivationTrace g trace)
+    (hhead : trace.head? = some [ISym.indexed g.initial []])
+    (hi : i < trace.length)
+    (hic : i ≤ a + C)
+    (hwindowBound : P + C + 1 ≤ B)
+    (hbefore : ∀ k (hk : k < trace.length),
+      k < a → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P)
+    (hij : i ≤ j) (hjN : j ≤ N)
+    (hζ : ζ.length ≤ B)
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : η.take B = ζ.take B)
+    (hsurfaceBound :
+      surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+        boundedSurfaceForms g L P) :
+    ∃ bw : List (symbol T (BoundedStackNT g B)),
+      boundedSentential? (g := g) B (u ++ [ISym.indexed A ζ] ++ v) = some bw ∧
+        bw ∈
+          ({bw : List (symbol T (BoundedStackNT g B)) |
+            (∃ ys : List g.ISym,
+              ys ∈ boundedSententialForms g L B ∧
+                boundedSentential? (g := g) B ys = some bw) ∧
+              ∃ p : ℕ, p ≤ N ∧
+                grammar_derivesIn (boundedStackGrammar g B) p
+                  [symbol.nonterminal (boundedStackGrammar g B).initial] bw} :
+            Set (List (symbol T (BoundedStackNT g B)))) := by
+  let ys : List g.ISym := u ++ [ISym.indexed A ζ] ++ v
+  have hprefix :
+      ∀ k (hk : k < trace.length),
+        k ≤ i → sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ B := by
+    intro k hk hki
+    exact le_trans
+      (prefix_maxStackHeight_le_late_window_of_before_bound
+        (g := g) hNF htrace hhead (by simp) hic hbefore k hk hki)
+      hwindowBound
+  have hcurrent : sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B :=
+    hprefix i hi le_rfl
+  have hctxBound : sententialMaxStackHeight (u ++ v) ≤ B :=
+    sententialMaxStackHeight_context_without_indexed_le_of_eq
+      (g := g) hctx hcurrent
+  have hysStack : sententialMaxStackHeight ys ≤ B := by
+    simpa [ys] using
+      sententialMaxStackHeight_context_indexed_le_of_context_le_of_stack_le
+        (g := g) (u := u) (v := v) (A := A) (σ := ζ)
+        hctxBound hζ
+  have hsurfaceEq :
+      surfaceOfTruncatedForm B (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm B ys := by
+    rw [hctx]
+    simpa [ys] using
+      surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
+        (g := g) (B := B) (u := u) (v := v) (A := A)
+        (η := η) (ζ := ζ) htake
+  exact
+    exists_stepReachable_boundedSentential_image_of_context_surface_eq_prefix_bound_le
+      (g := g) (P := P) (B := B) (L := L) (N := N) (trace := trace)
+      (ys := ys) (i := i) (j := j)
+      htrace hhead hi hij hjN hprefix hysStack hsurfaceEq
+      (by simpa [ys] using hsurfaceBound)
+
 /-- Surface-repeat bridge into the finite step-reachable full-context frontier.
 
-If a canonical replacement context has the same `B`-surface as a prefix node whose whole
-prefix is already `B`-bounded, and the replacement context itself fits in `B`, then its
-bounded-stack encoding is a member of the finite counted frontier reachable within the
-advertised prefix budget. -/
+If a canonical replacement context has the same `B`-surface as a prefix node whose whole prefix
+is already `B`-bounded, and the replacement context itself fits in `B`, then its bounded-stack
+encoding is a member of the finite counted frontier reachable within the advertised prefix
+budget. -/
 theorem exists_stepReachable_boundedSentential_image_of_canonical_context_surface_eq_prefix_bound_le
     {g : IndexedGrammar T} [Fintype g.flag]
     {P K B L N : ℕ} {trace : List (List g.ISym)}
@@ -6435,22 +6550,13 @@ theorem exists_stepReachable_boundedSentential_image_of_canonical_context_surfac
       sententialMaxStackHeight_context_indexed_take_append_le
         (g := g) (u := u) (v := v) (A := A) (η := η) (τ := τ)
         (P := P) (K := K) (B := B) hctx hPK hτ
-  obtain ⟨bw, hbw⟩ :=
-    exists_boundedSentential?_of_sententialMaxStackHeight_le
-      (g := g) (B := B) hysStack
-  obtain ⟨p, hpj, hpre⟩ :=
-    exists_stackBoundedDerivesIn_canonical_context_of_surface_eq_prefix_bound_le
-      (g := g) (B := B) (P := P) (K := K) (trace := trace)
-      (u := u) (v := v) (A := A) (η := η) (τ := τ)
-      htrace hhead hi hij hprefixBound hctx hPK hτ
-      (by simpa [ys] using hsurfaceEq)
-  refine ⟨bw, hbw, ?_⟩
   exact
-    stepReachable_boundedSentential_image_mem_of_stackBoundedDerivesIn
-      (g := g) (P := P) (B := B) (L := L) (N := N) (p := p)
-      (ys := ys) (bw := bw)
+    exists_stepReachable_boundedSentential_image_of_context_surface_eq_prefix_bound_le
+      (g := g) (P := P) (B := B) (L := L) (N := N) (trace := trace)
+      (ys := ys) (i := i) (j := j)
+      htrace hhead hi hij hjN hprefixBound hysStack
+      (by simpa [ys] using hsurfaceEq)
       (by simpa [ys] using hsurfaceBound)
-      hbw (le_trans hpj hjN) hpre
 
 /-- A counted reachable member of the finite full-context bounded-sentential frontier gives
 the exact stack-bounded indexed prefix witness for the corresponding decoded sentential
