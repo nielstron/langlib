@@ -4271,6 +4271,129 @@ theorem exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length
   exact hK₀ target htargetLen pref hpref q n A σ w hwt hnq hqC hder hmin
     (lt_of_le_of_lt hK hlong)
 
+/-- A zero-step derivation cannot turn one indexed symbol into a terminal word. -/
+theorem not_derivesIn_zero_indexed_to_terminals {g : IndexedGrammar T}
+    {A : g.nt} {σ : List g.flag} {w : List T} :
+    ¬ g.DerivesIn 0 [ISym.indexed A σ]
+      (w.map fun a => (ISym.terminal a : g.ISym)) := by
+  intro h
+  have heq : [ISym.indexed A σ] =
+      w.map fun a => (ISym.terminal a : g.ISym) := by
+    simpa using h
+  cases w with
+  | nil => simp at heq
+  | cons _ _ => simp at heq
+
+/-- Bridge-facing local-budget forced-pop dichotomy. Either the suffix is below the uniform
+forced-pop threshold, or the positive local derivation exposes one of the two pop branches. -/
+theorem exists_bound_prefix_budget_forced_pop_dichotomy_target_length
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P C L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        ∀ pref : List g.flag,
+          pref.length ≤ P →
+          ∀ q m : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+            w <+ target →
+            m ≤ q →
+            q ≤ C →
+            g.DerivesIn m [ISym.indexed A (pref ++ σ)]
+              (w.map fun a => (ISym.terminal a : g.ISym)) →
+            (∀ τ : List g.flag, ∀ k : ℕ,
+              k ≤ q →
+              g.DerivesIn k [ISym.indexed A (pref ++ τ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              τ <+ σ → τ = σ) →
+            σ.length ≤ K ∨
+              ∃ n : ℕ,
+                m = n + 1 ∧
+                  ((∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+                    ∃ r ∈ g.rules,
+                      pref = [] ∧ σ = f :: ρ ∧
+                      r.lhs = A ∧ r.consume = some f ∧
+                      r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                      n < P + C ∧
+                      g.DerivesIn n [ISym.indexed B ρ]
+                        (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+                  (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+                    ∃ r ∈ g.rules,
+                      pref = f :: pref' ∧
+                      pref'.length + n < P + C ∧
+                      r.lhs = A ∧ r.consume = some f ∧
+                      r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                      g.DerivesIn n [ISym.indexed B (pref' ++ σ)]
+                        (w.map fun a => (ISym.terminal a : g.ISym)))) := by
+  obtain ⟨K, hK⟩ :=
+    exists_bound_prefix_budget_forced_pop_cases_of_suffix_long_target_length
+      (g := g) hNF P C L
+  refine ⟨K, ?_⟩
+  intro target htargetLen pref hpref q m A σ w hwt hmq hqC hder hmin
+  by_cases hshort : σ.length ≤ K
+  · exact Or.inl hshort
+  · right
+    cases m with
+    | zero =>
+        exact False.elim
+          (not_derivesIn_zero_indexed_to_terminals (g := g) (A := A)
+            (σ := pref ++ σ) (w := w) hder)
+    | succ n =>
+        have hlong : K < σ.length := Nat.lt_of_not_ge hshort
+        have hcases :=
+          hK target htargetLen pref hpref q n A σ w hwt hmq hqC hder hmin hlong
+        exact ⟨n, rfl, hcases⟩
+
+/-- Slack form of `exists_bound_prefix_budget_forced_pop_dichotomy_target_length`. -/
+theorem exists_bound_prefix_budget_forced_pop_dichotomy_target_length_with_slack
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (P C L : ℕ) :
+    ∃ K₀ : ℕ,
+      ∀ K : ℕ,
+        K₀ ≤ K →
+        ∀ target : List T,
+          target.length ≤ L →
+          ∀ pref : List g.flag,
+            pref.length ≤ P →
+            ∀ q m : ℕ, ∀ A : g.nt, ∀ σ : List g.flag, ∀ w : List T,
+              w <+ target →
+              m ≤ q →
+              q ≤ C →
+              g.DerivesIn m [ISym.indexed A (pref ++ σ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              (∀ τ : List g.flag, ∀ k : ℕ,
+                k ≤ q →
+                g.DerivesIn k [ISym.indexed A (pref ++ τ)]
+                  (w.map fun a => (ISym.terminal a : g.ISym)) →
+                τ <+ σ → τ = σ) →
+              σ.length ≤ K ∨
+                ∃ n : ℕ,
+                  m = n + 1 ∧
+                    ((∃ f : g.flag, ∃ ρ : List g.flag, ∃ B : g.nt,
+                      ∃ r ∈ g.rules,
+                        pref = [] ∧ σ = f :: ρ ∧
+                        r.lhs = A ∧ r.consume = some f ∧
+                        r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                        n < P + C ∧
+                        g.DerivesIn n [ISym.indexed B ρ]
+                          (w.map fun a => (ISym.terminal a : g.ISym))) ∨
+                    (∃ f : g.flag, ∃ pref' : List g.flag, ∃ B : g.nt,
+                      ∃ r ∈ g.rules,
+                        pref = f :: pref' ∧
+                        pref'.length + n < P + C ∧
+                        r.lhs = A ∧ r.consume = some f ∧
+                        r.rhs = [IRhsSymbol.nonterminal B none] ∧
+                        g.DerivesIn n [ISym.indexed B (pref' ++ σ)]
+                          (w.map fun a => (ISym.terminal a : g.ISym)))) := by
+  obtain ⟨K₀, hK₀⟩ :=
+    exists_bound_prefix_budget_forced_pop_dichotomy_target_length
+      (g := g) hNF P C L
+  refine ⟨K₀, ?_⟩
+  intro K hK target htargetLen pref hpref q m A σ w hwt hmq hqC hder hmin
+  rcases hK₀ target htargetLen pref hpref q m A σ w hwt hmq hqC hder hmin with
+    hshort | hpop
+  · exact Or.inl (le_trans hshort hK)
+  · exact Or.inr hpop
+
 /-- A locally budget-minimal suffix under a bounded live prefix has bounded length. The
 minimality budget is exactly the derivation length, so after a forced pop the child derivation
 inherits the same invariant with one fewer step. -/
