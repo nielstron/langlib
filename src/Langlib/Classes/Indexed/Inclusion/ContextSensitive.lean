@@ -384,6 +384,53 @@ public theorem finite_normalForm_language_iff_exists_nonempty_packedCellsRow_rea
       (packedTerminalReverseRuleStep_language_iff_nonempty_packedCellsRow_reaches_initial
         (g := g) (B := B)).mpr hB⟩
 
+/-- Length-normalized row-reachability expansion of the fixed-width terminal target. -/
+public theorem packedTerminalReverseRuleStep_language_iff_terminalRow_reaches_initial
+    {A : Type} (g : IndexedGrammar A) (B : ℕ) {w : List A} :
+    w ∈ IndexedGrammar.packedTerminalReverseRuleStepLanguage g B ↔
+      ∃ hwne : w ≠ [],
+        Relation.ReflTransGen
+          (fun x y => IndexedGrammar.PackedFlatRuleStep g (B + 2) w.length y x)
+          (IndexedGrammar.packedFlatForm g (B + 2) w.length
+            (w.map (IndexedGrammar.FlatSymbol.terminal (N := g.nt) (F := g.flag))))
+          (IndexedGrammar.packedBoundedFlatForm g (B + 2) w.length
+            ⟨IndexedGrammar.encodeSentential
+                ([IndexedGrammar.ISym.indexed g.initial []] : List g.ISym),
+              IndexedGrammar.initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) :=
+  IndexedGrammar.packedTerminalReverseRuleStepLanguage_iff_terminalRow_reaches_initial
+    (g := g) B
+
+/-- Length-normalized concrete row-reachability target for the finite normal-form core. -/
+public theorem finite_normalForm_language_iff_exists_terminalRow_reaches_initial
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List A} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ, ∃ hwne : w ≠ [],
+        Relation.ReflTransGen
+          (fun x y => IndexedGrammar.PackedFlatRuleStep g (B + 2) w.length y x)
+          (IndexedGrammar.packedFlatForm g (B + 2) w.length
+            (w.map (IndexedGrammar.FlatSymbol.terminal (N := g.nt) (F := g.flag))))
+          (IndexedGrammar.packedBoundedFlatForm g (B + 2) w.length
+            ⟨IndexedGrammar.encodeSentential
+                ([IndexedGrammar.ISym.indexed g.initial []] : List g.ISym),
+              IndexedGrammar.initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) := by
+  rw [finite_normalForm_language_iff_exists_packedTerminalReverseRuleStepLanguage
+    (g := g) hNF]
+  constructor
+  · rintro ⟨B, hB⟩
+    exact ⟨B,
+      (packedTerminalReverseRuleStep_language_iff_terminalRow_reaches_initial
+        (g := g) (B := B)).mp hB⟩
+  · rintro ⟨B, hB⟩
+    exact ⟨B,
+      (packedTerminalReverseRuleStep_language_iff_terminalRow_reaches_initial
+        (g := g) (B := B)).mpr hB⟩
+
 /-- If every finite-support normal-form indexed grammar over a finite inhabited alphabet is
 context-sensitive, then every ε-free indexed language is context-sensitive. -/
 public theorem is_CS_of_is_Indexed_noEpsilon_of_finite_normalForm_core [Inhabited T]

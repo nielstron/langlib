@@ -1764,10 +1764,41 @@ noncomputable instance PackedFlatForm.instDecidableEq (g : IndexedGrammar T)
     DecidableEq (PackedFlatForm g W n) :=
   Classical.decEq _
 
+/-- Transport a packed row across an equality of tape lengths. -/
+def castPackedFlatForm {g : IndexedGrammar T} {W m n : ℕ} (h : m = n)
+    (row : PackedFlatForm g W m) : PackedFlatForm g W n :=
+  fun i => row ⟨i.1, by rw [h]; exact i.2⟩
+
+@[simp] theorem castPackedFlatForm_rfl {g : IndexedGrammar T} {W n : ℕ}
+    (row : PackedFlatForm g W n) :
+    castPackedFlatForm (g := g) (W := W) (m := n) (n := n) rfl row = row := by
+  rfl
+
+@[simp] theorem castPackedFlatForm_symm_cast {g : IndexedGrammar T} {W m n : ℕ}
+    (h : m = n) (row : PackedFlatForm g W m) :
+    castPackedFlatForm (g := g) (W := W) h.symm
+      (castPackedFlatForm (g := g) (W := W) h row) = row := by
+  subst n
+  rfl
+
+@[simp] theorem castPackedFlatForm_cast_symm {g : IndexedGrammar T} {W m n : ℕ}
+    (h : m = n) (row : PackedFlatForm g W n) :
+    castPackedFlatForm (g := g) (W := W) h
+      (castPackedFlatForm (g := g) (W := W) h.symm row) = row := by
+  subst n
+  rfl
+
 /-- Pack a flat sentential form into `n` width-`W` tape cells. -/
 def packedFlatForm (g : IndexedGrammar T) (W n : ℕ)
     (x : List (FlatSymbol T g.nt g.flag)) : PackedFlatForm g W n :=
   packedTape W n x
+
+@[simp] theorem castPackedFlatForm_packedFlatForm {g : IndexedGrammar T}
+    {W m n : ℕ} (h : m = n) (x : List (FlatSymbol T g.nt g.flag)) :
+    castPackedFlatForm (g := g) (W := W) h (packedFlatForm g W m x) =
+      packedFlatForm g W n x := by
+  subst n
+  rfl
 
 theorem packedFlatForm_lookup {g : IndexedGrammar T} {W n k : ℕ}
     (x : List (FlatSymbol T g.nt g.flag)) (hW : 0 < W) (hk : k < n * W) :
@@ -5720,6 +5751,30 @@ def PackedFlatRuleStep (g : IndexedGrammar T) (W n : ℕ)
     y = packedBoundedFlatForm g W n y₀ ∧
     FlatRuleStep g x₀.1 y₀.1
 
+theorem PackedFlatRuleStep.cast_length {g : IndexedGrammar T} {W m n : ℕ}
+    (h : m = n) {x y : PackedFlatForm g W m}
+    (hstep : PackedFlatRuleStep g W m x y) :
+    PackedFlatRuleStep g W n
+      (castPackedFlatForm (g := g) (W := W) h x)
+      (castPackedFlatForm (g := g) (W := W) h y) := by
+  subst n
+  simpa using hstep
+
+theorem reflTransGen_reverse_PackedFlatRuleStep_cast_length
+    {g : IndexedGrammar T} {W m n : ℕ} (h : m = n)
+    {x y : PackedFlatForm g W m}
+    (hreach : Relation.ReflTransGen
+      (fun a b => PackedFlatRuleStep g W m b a) x y) :
+    Relation.ReflTransGen
+      (fun a b => PackedFlatRuleStep g W n b a)
+      (castPackedFlatForm (g := g) (W := W) h x)
+      (castPackedFlatForm (g := g) (W := W) h y) := by
+  induction hreach with
+  | refl =>
+      exact Relation.ReflTransGen.refl
+  | tail _ hstep ih =>
+      exact Relation.ReflTransGen.tail ih (PackedFlatRuleStep.cast_length h hstep)
+
 theorem packedFlatTransforms_iff_packedFlatRuleStep_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {W n : ℕ} {x y : PackedFlatForm g W n} :
@@ -5878,6 +5933,16 @@ theorem packedCellsRow_packedTerminalCells
   funext i
   simp [packedCellsRow, packedTerminalCells]
 
+theorem castPackedCellsRow_packedTerminalCells
+    (g : IndexedGrammar T) (W : ℕ) (w : List T) :
+    castPackedFlatForm (g := g) (W := W)
+      (packedTerminalCells_length g W w)
+      (packedCellsRow (packedTerminalCells g W w)) =
+        packedFlatForm g W w.length
+          (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag))) := by
+  funext i
+  simp [castPackedFlatForm, packedCellsRow_packedTerminalCells]
+
 theorem packedTerminalCells_get
     (g : IndexedGrammar T) (W : ℕ) (w : List T) (i : Fin w.length) :
     (packedTerminalCells g W w).get
@@ -6006,6 +6071,38 @@ theorem packedTerminalReverseRuleStepLanguage_iff_nonempty_packedCellsRow_reache
       (packedTerminalCells_ne_nil_iff g (B + 2)).mpr hwne
     refine ⟨hcells, ?_⟩
     simpa using hreach
+
+theorem packedTerminalReverseRuleStepLanguage_iff_terminalRow_reaches_initial
+    (g : IndexedGrammar T) (B : ℕ) {w : List T} :
+    w ∈ packedTerminalReverseRuleStepLanguage g B ↔
+      ∃ hwne : w ≠ [],
+        Relation.ReflTransGen
+          (fun x y => PackedFlatRuleStep g (B + 2) w.length y x)
+          (packedFlatForm g (B + 2) w.length
+            (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag))))
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) := by
+  rw [packedTerminalReverseRuleStepLanguage_iff_nonempty_packedCellsRow_reaches_initial]
+  constructor
+  · rintro ⟨hwne, hreach⟩
+    refine ⟨hwne, ?_⟩
+    have hlen := packedTerminalCells_length g (B + 2) w
+    have hcast :=
+      reflTransGen_reverse_PackedFlatRuleStep_cast_length
+        (g := g) (W := B + 2) hlen hreach
+    simpa [packedBoundedFlatForm, castPackedCellsRow_packedTerminalCells] using hcast
+  · rintro ⟨hwne, hreach⟩
+    refine ⟨hwne, ?_⟩
+    have hlen := packedTerminalCells_length g (B + 2) w
+    have hcast :=
+      reflTransGen_reverse_PackedFlatRuleStep_cast_length
+        (g := g) (W := B + 2) hlen.symm hreach
+    have hrow := castPackedCellsRow_packedTerminalCells g (B + 2) w
+    rw [← hrow] at hcast
+    simpa [packedBoundedFlatForm] using hcast
 
 theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
