@@ -1724,6 +1724,54 @@ theorem surfaceOfTruncatedForm_canonical_context_mem_boundedSurfaceForms_lengthB
       (surfaceOfTruncatedForm_canonical_context_mem_targetCompatibleBoundedSurfaceForms
         (g := g) hNF htrace hlast hi hctx hη)
 
+/-- Any replacement preserving the first `P` stack flags has the same `P`-surface frontier
+membership as the original accepting-trace context. -/
+theorem surfaceOfTruncatedForm_prefix_preserving_context_mem_targetCompatibleBoundedSurfaceForms
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P : ℕ} {target : List T} {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)))
+    {i : ℕ} (hi : i < trace.length)
+    {u v : List g.ISym} {A : g.nt} {η ζ : List g.flag}
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : ζ.take P = η.take P) :
+    surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+      targetCompatibleBoundedSurfaceForms g target P := by
+  have hsurface :
+      surfaceOfTruncatedForm P (trace.get ⟨i, hi⟩) =
+        surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) := by
+    rw [hctx]
+    exact
+      surfaceOfTruncatedForm_context_indexed_eq_of_stack_take_eq
+        (g := g) (B := P) (u := u) (v := v) (A := A)
+        (η := η) (ζ := ζ) htake.symm
+  have hmem :
+      surfaceOfTruncatedForm P (trace.get ⟨i, hi⟩) ∈
+        targetCompatibleBoundedSurfaceForms g target P :=
+    accepting_derivationTrace_get_surface_mem_targetCompatibleBoundedSurfaceForms
+      (g := g) hNF htrace hlast hi
+  rwa [← hsurface]
+
+/-- Length-uniform version of
+`surfaceOfTruncatedForm_prefix_preserving_context_mem_targetCompatibleBoundedSurfaceForms`. -/
+theorem surfaceOfTruncatedForm_prefix_preserving_context_mem_boundedSurfaceForms_lengthBound
+    {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P L : ℕ} {target : List T} {trace : List (List g.ISym)}
+    (htrace : IsDerivationTrace g trace)
+    (hlast : trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)))
+    (htargetLen : target.length ≤ L)
+    {i : ℕ} (hi : i < trace.length)
+    {u v : List g.ISym} {A : g.nt} {η ζ : List g.flag}
+    (hctx : trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v)
+    (htake : ζ.take P = η.take P) :
+    surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+      boundedSurfaceForms g L P := by
+  exact
+    targetCompatibleBoundedSurfaceForms_subset_boundedSurfaceForms_lengthBound
+      (g := g) (target := target) (L := L) (stackBound := P) htargetLen
+      (surfaceOfTruncatedForm_prefix_preserving_context_mem_targetCompatibleBoundedSurfaceForms
+        (g := g) hNF htrace hlast hi hctx htake)
+
 theorem exists_stackBoundedDerivesIn_canonical_context_of_surface_eq_prefix_bound_le
     {g : IndexedGrammar T} {B P K : ℕ} {trace : List (List g.ISym)}
     {first u v : List g.ISym} {A : g.nt} {η τ : List g.flag}
