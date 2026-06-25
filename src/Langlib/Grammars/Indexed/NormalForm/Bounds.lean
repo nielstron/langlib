@@ -1856,6 +1856,41 @@ theorem packedFlatDerives_of_boundedFlatDerives
     exact Relation.ReflTransGen.head
       (packedFlatTransforms_of_boundedFlatTransforms (g := g) (W := W) (n := n) hab) ih
 
+theorem boundedFlatDerives_of_packedFlatDerives
+    {g : IndexedGrammar T} {W n : ℕ} (hW : 0 < W)
+    {p q : PackedFlatForm g W n} {x y : BoundedFlatForm g (n * W)}
+    (hp : p = packedBoundedFlatForm g W n x)
+    (hq : q = packedBoundedFlatForm g W n y)
+    (h : PackedFlatDerives g W n p q) :
+    BoundedFlatDerives g (n * W) x y := by
+  induction h generalizing x y with
+  | refl =>
+      have hpack : packedBoundedFlatForm g W n x = packedBoundedFlatForm g W n y := by
+        rw [← hp, ← hq]
+      have hxy : x = y := packedBoundedFlatForm_injective (g := g) hW hpack
+      subst y
+      exact Relation.ReflTransGen.refl
+  | tail hpre hstep ih =>
+      rcases hstep with ⟨u, v, hu, hv, huv⟩
+      have hv_y : v = y := by
+        apply packedBoundedFlatForm_injective (g := g) hW
+        rw [← hv, hq]
+      subst v
+      have hpre_bounded : BoundedFlatDerives g (n * W) x u :=
+        ih hp hu
+      exact Relation.ReflTransGen.tail hpre_bounded huv
+
+theorem packedFlatDerives_iff_boundedFlatDerives
+    {g : IndexedGrammar T} {W n : ℕ}
+    (hW : 0 < W) {x y : BoundedFlatForm g (n * W)} :
+    PackedFlatDerives g W n
+        (packedBoundedFlatForm g W n x)
+        (packedBoundedFlatForm g W n y) ↔
+      BoundedFlatDerives g (n * W) x y := by
+  constructor
+  · exact boundedFlatDerives_of_packedFlatDerives (g := g) (W := W) (n := n) hW rfl rfl
+  · exact packedFlatDerives_of_boundedFlatDerives
+
 /-- Exactly `n` bounded flat steps in the finite bounded-flat-form graph. -/
 def BoundedFlatDerivesIn (g : IndexedGrammar T) (B : ℕ) (n : ℕ) :
     BoundedFlatForm g B → BoundedFlatForm g B → Prop :=
