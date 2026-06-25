@@ -9825,6 +9825,36 @@ theorem language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalFo
     exact boundedFlatPathLanguage_subset_language
       (g := g) (B := w.length * (B + 2)) hflat
 
+/-- Per-word exact packed-reachability characterization of nonempty normal-form generation.
+
+This is the packed-tape form of
+`language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm`: the flat
+certificate of width `B + 2` per input symbol is represented over exactly `|w|` tape cells. -/
+theorem language_iff_exists_packedFlatDerives_width_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {w : List T} (hwne : w ≠ []) :
+    w ∈ g.Language ↔
+      ∃ B : ℕ,
+        PackedFlatDerives g (B + 2) w.length
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w) (List.length_pos_of_ne_nil hwne)⟩)
+          (packedBoundedFlatForm g (B + 2) w.length
+            ⟨w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+              terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) w⟩) := by
+  rw [language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
+    (g := g) hNF]
+  constructor
+  · rintro ⟨B, hflat⟩
+    exact ⟨B,
+      (boundedFlatPathLanguage_length_iff_packedFlatDerives
+        (g := g) (B := B) (w := w) hwne).mp hflat⟩
+  · rintro ⟨B, hpacked⟩
+    exact ⟨B,
+      (boundedFlatPathLanguage_length_iff_packedFlatDerives
+        (g := g) (B := B) (w := w) hwne).mpr hpacked⟩
+
 /-- Set-level form of
 `language_iff_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm`. -/
 theorem language_eq_exists_boundedFlatPathLanguage_length_stackBound_isNormalForm
@@ -17409,6 +17439,35 @@ theorem exists_bound_boundedFlatPathLanguage_length_eq_on_length_le_isNormalForm
   · intro hflat
     exact boundedFlatPathLanguage_subset_language
       (g := g) (B := target.length * (B + 2)) hflat
+
+/-- Exact-length packed-reachability finite-ball form.
+
+On a fixed terminal ball, one stack-width parameter `B` suffices; each nonempty target is then
+captured by packed bounded-flat reachability over exactly `target.length` tape cells. -/
+theorem exists_bound_packedFlatDerives_width_eq_on_length_le_isNormalForm
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) (L : ℕ) :
+    ∃ B : ℕ, ∀ target : List T,
+      target.length ≤ L →
+      ∀ htargetNe : target ≠ [],
+      (target ∈ g.Language ↔
+        PackedFlatDerives g (B + 2) target.length
+          (packedBoundedFlatForm g (B + 2) target.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := target)
+                (List.length_pos_of_ne_nil htargetNe)⟩)
+          (packedBoundedFlatForm g (B + 2) target.length
+            ⟨target.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)),
+              terminal_mem_boundedFlatForms_length_mul (g := g) (B := B) target⟩)) := by
+  obtain ⟨B, hB⟩ :=
+    exists_bound_boundedFlatPathLanguage_length_eq_on_length_le_isNormalForm
+      (g := g) hNF L
+  refine ⟨B, ?_⟩
+  intro target htargetLen htargetNe
+  rw [hB target htargetLen]
+  exact boundedFlatPathLanguage_length_iff_packedFlatDerives
+    (g := g) (B := B) (w := target) htargetNe
 
 /-- If shortest accepting derivations for all generated targets of length at most `L` are
 bounded by `N`, then one fixed bounded-stack grammar captures the original normal-form
