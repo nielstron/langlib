@@ -2579,6 +2579,28 @@ theorem boundedFlatPathLanguage_mono {g : IndexedGrammar T}
     simpa [boundedFlatForms] using hbound i
   simpa [boundedFlatForms] using le_trans hiB hBC
 
+/-- A coarse bounded flat-path certificate for a nonempty word can be packed into the
+fixed-width packed flat-path language with the same stack-bound parameter.
+
+The packed language uses the exact flat tape budget `|w| * (B + 2)`. Nonemptiness gives
+`B ≤ |w| * (B + 2)`, so the coarse bound is enlarged by monotonicity before repacking. -/
+theorem packedFlatPathStackBoundLanguage_of_boundedFlatPathLanguage
+    {g : IndexedGrammar T} {B : ℕ} {w : List T}
+    (hwne : w ≠ [])
+    (hw : w ∈ boundedFlatPathLanguage g B) :
+    w ∈ packedFlatPathStackBoundLanguage g B := by
+  rw [packedFlatPathStackBoundLanguage_iff_boundedFlatPathLanguage_length]
+  refine ⟨hwne, ?_⟩
+  exact
+    boundedFlatPathLanguage_mono
+      (g := g) (B := B) (C := w.length * (B + 2))
+      (by
+        have hlen : 1 ≤ w.length :=
+          Nat.succ_le_of_lt (List.length_pos_of_ne_nil hwne)
+        exact le_trans (by omega : B ≤ 1 * (B + 2))
+          (Nat.mul_le_mul_right (B + 2) hlen))
+      w hw
+
 theorem language_eq_iUnion_boundedFlatPathLanguage (g : IndexedGrammar T) :
     g.Language = fun w : List T => ∃ B : ℕ, w ∈ boundedFlatPathLanguage g B := by
   ext w

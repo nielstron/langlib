@@ -206,6 +206,18 @@ public theorem packedFlatPathStackBound_language_subset_language
       w ∈ g.Language :=
   fun _ h => IndexedGrammar.packedFlatPathStackBoundLanguage_subset_language h
 
+/-- Nonempty bounded flat-path witnesses repack into the matching fixed-width packed
+flat-path language. -/
+public theorem packedFlatPathStackBound_language_of_boundedFlatPath_language
+    {A : Type} (g : IndexedGrammar A) (B : ℕ) :
+    ∀ w : List A,
+      w ≠ [] →
+      w ∈ IndexedGrammar.boundedFlatPathLanguage g B →
+      w ∈ IndexedGrammar.packedFlatPathStackBoundLanguage g B :=
+  fun _ hwne h =>
+    IndexedGrammar.packedFlatPathStackBoundLanguage_of_boundedFlatPathLanguage
+      (g := g) (B := B) hwne h
+
 /-- Fixed bounded-stack slices embed in the same-width packed flat-path language. -/
 public theorem boundedStackGrammar_language_subset_packedFlatPathStackBound_language_of_isNormalForm
     {A : Type} [Fintype A] [DecidableEq A]
