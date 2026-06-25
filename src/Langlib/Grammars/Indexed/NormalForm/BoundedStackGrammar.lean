@@ -17536,6 +17536,48 @@ theorem language_eq_iUnion_boundedStackGrammar_language_of_isNormalForm
   · rintro ⟨B, hw⟩
     exact boundedStackGrammar_language_subset_language (g := g) (B := B) w hw
 
+/-- Per-word length-scaled bounded-stack characterization of normal-form generation.
+
+The arbitrary stack bound from `language_eq_iUnion_boundedStackGrammar_language_of_isNormalForm`
+can be enlarged to `|w| * (B + 2)` for nonempty generated words. This is the stack-grammar
+analogue of the exact-length flat and packed encodings used by the simulator target. -/
+theorem language_iff_exists_length_scaled_boundedStackGrammar_language_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List T} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ,
+        w ∈ grammar_language (boundedStackGrammar g (w.length * (B + 2))) := by
+  constructor
+  · intro hgen
+    obtain ⟨B, hB⟩ :=
+      exists_boundedStackGrammar_generates_of_generates_isNormalForm
+        (g := g) hNF hgen
+    have hwne : w ≠ [] := by
+      intro hw
+      subst w
+      exact (g.not_generates_nil_of_noEpsilon (g.noEpsilon_of_isNormalForm hNF)) hgen
+    have hscale : B ≤ w.length * (B + 2) := by
+      have hpos : 1 ≤ w.length := Nat.succ_le_of_lt (List.length_pos_of_ne_nil hwne)
+      exact le_trans (by omega : B ≤ 1 * (B + 2))
+        (Nat.mul_le_mul_right (B + 2) hpos)
+    exact ⟨B, boundedStackGrammar_language_mono (g := g) hscale w hB⟩
+  · rintro ⟨B, hB⟩
+    exact boundedStackGrammar_language_subset_language
+      (g := g) (B := w.length * (B + 2)) w hB
+
+/-- Set-level form of
+`language_iff_exists_length_scaled_boundedStackGrammar_language_isNormalForm`. -/
+theorem language_eq_exists_length_scaled_boundedStackGrammar_language_isNormalForm
+    {g : IndexedGrammar T} [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) :
+    g.Language =
+      fun w : List T =>
+        ∃ B : ℕ,
+          w ∈ grammar_language (boundedStackGrammar g (w.length * (B + 2))) := by
+  ext w
+  exact language_iff_exists_length_scaled_boundedStackGrammar_language_isNormalForm
+    (g := g) hNF
+
 /-- On every finite ball of terminal words, the per-word bounded-stack witnesses for a
 normal-form grammar can be uniformized to a single fixed bounded-stack grammar. -/
 theorem exists_uniform_boundedStackGrammar_generates_of_length_le_isNormalForm

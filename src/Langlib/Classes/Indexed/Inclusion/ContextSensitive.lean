@@ -229,6 +229,23 @@ public theorem packedFlatPathStackBound_language_subset_boundedStackGrammar_lang
     IndexedGrammar.packedFlatPathStackBoundLanguage_subset_boundedStackGrammar_language_length
       (g := g) h
 
+/-- Length-scaled bounded-stack target for the finite normal-form core.
+
+Every generated word of a finite normal-form grammar is accepted by a bounded-stack grammar
+whose stack bound is a fixed constant times the input length, with the constant still chosen
+per word. The global LBA core has to make this existential constant machine-checkable within
+one bounded-tape recognizer. -/
+public theorem finite_normalForm_language_iff_exists_length_scaled_boundedStackGrammar
+    {A : Type} [Fintype A] [DecidableEq A]
+    (g : IndexedGrammar A) [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]
+    (hNF : g.IsNormalForm) {w : List A} :
+    w ∈ g.Language ↔
+      ∃ B : ℕ,
+        w ∈ grammar_language
+          (IndexedGrammar.boundedStackGrammar g (w.length * (B + 2))) :=
+  IndexedGrammar.language_iff_exists_length_scaled_boundedStackGrammar_language_isNormalForm
+    (g := g) hNF
+
 /-- Fixed-width terminal targets are sound for finite normal-form indexed grammars. -/
 public theorem packedTerminalReverseRuleStep_language_subset_language_of_isNormalForm
     {A : Type} (g : IndexedGrammar A) [DecidableEq g.nt]
