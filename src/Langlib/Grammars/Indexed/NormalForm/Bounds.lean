@@ -6022,6 +6022,64 @@ theorem packedReverseRuleStepRowLanguage_iff_packedCellsRow_reaches_initial
       ?_, hreach⟩
     exact (packedCellsRow_ofFn cells).symm
 
+/-- Short concrete rule-path form of the fixed-width reverse row language.
+
+The packed input row reaches the packed initial row by reverse concrete normal-form rule steps,
+and the row path can be chosen with at most one visit per finite packed row state. -/
+theorem packedReverseRuleStepRowLanguage_iff_exists_row_rulePath_card_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) {cells : List (PackedBlock (FlatSymbol T g.nt g.flag) (B + 2))} :
+    cells ∈ packedReverseRuleStepRowLanguage g B ↔
+      ∃ hcells : cells ≠ [],
+      ∃ path : List (PackedFlatForm g (B + 2) cells.length),
+        path.head? = some (packedCellsRow cells) ∧
+        path.getLast? =
+          some (packedBoundedFlatForm g (B + 2) cells.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_mul_of_pos
+                (g := g) (B := B) (List.length_pos_of_ne_nil hcells)⟩) ∧
+        path.length ≤ Fintype.card (PackedFlatForm g (B + 2) cells.length) ∧
+        path.IsChain
+          (fun x y => PackedFlatRuleStep g (B + 2) cells.length y x) := by
+  rw [packedReverseRuleStepRowLanguage_iff_packedCellsRow_reaches_initial]
+  constructor
+  · rintro ⟨hcells, hreach⟩
+    obtain ⟨path, hhead, hlast, hlen, hchain⟩ :=
+      RelDerivesIn.exists_path_card_bound_of_reflTransGen hreach
+    exact ⟨hcells, path, hhead, hlast, hlen, hchain⟩
+  · rintro ⟨hcells, path, hhead, hlast, _hlen, hchain⟩
+    refine ⟨hcells, ?_⟩
+    have hne : path ≠ [] := by
+      cases path with
+      | nil =>
+          simp at hhead
+      | cons _ _ =>
+          simp
+    have hrt :=
+      List.relationReflTransGen_of_exists_isChain path hchain hne
+    have hx :
+        path.head hne = packedCellsRow cells := by
+      cases path with
+      | nil =>
+          contradiction
+      | cons a rest =>
+          simpa using hhead
+    have hy :
+        path.getLast hne =
+          packedBoundedFlatForm g (B + 2) cells.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_mul_of_pos
+                (g := g) (B := B) (List.length_pos_of_ne_nil hcells)⟩ := by
+      have hs :
+          some (path.getLast hne) =
+            some (packedBoundedFlatForm g (B + 2) cells.length
+              ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+                initial_mem_boundedFlatForms_mul_of_pos
+                  (g := g) (B := B) (List.length_pos_of_ne_nil hcells)⟩) := by
+        rw [← List.getLast?_eq_some_getLast hne, hlast]
+      exact Option.some.inj hs
+    simpa [hx, hy] using hrt
+
 theorem nil_not_mem_packedReverseRuleStepRowLanguage (g : IndexedGrammar T) (B : ℕ) :
     [] ∉ packedReverseRuleStepRowLanguage g B := by
   rintro ⟨n, row, hn, hcells, _hreach⟩
