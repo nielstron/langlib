@@ -6339,6 +6339,44 @@ theorem packedTerminalReverseRuleStepLanguage_iff_exists_terminalRow_rulePath_ca
       exact Option.some.inj hs
     simpa [hx, hy] using hrt
 
+/-- Flat-list edge-witness form of the fixed-width terminal reverse rule-step language.
+
+The terminal input row reaches the packed initial row by a bounded path, and each adjacent
+reverse edge is expanded to concrete flat lists satisfying the underlying `FlatRuleStep`. -/
+theorem packedTerminalReverseRuleStepLanguage_iff_exists_terminalRow_flatRuleStep_path_card_bound
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (B : ℕ) {w : List T} :
+    w ∈ packedTerminalReverseRuleStepLanguage g B ↔
+      ∃ hwne : w ≠ [],
+      ∃ path : List (PackedFlatForm g (B + 2) w.length),
+        path.head? =
+          some (packedFlatForm g (B + 2) w.length
+            (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)))) ∧
+        path.getLast? =
+          some (packedBoundedFlatForm g (B + 2) w.length
+            ⟨encodeSentential ([ISym.indexed g.initial []] : List g.ISym),
+              initial_mem_boundedFlatForms_length_mul_of_pos
+                (g := g) (B := B) (w := w)
+                (List.length_pos_of_ne_nil hwne)⟩) ∧
+        path.length ≤ Fintype.card (PackedFlatForm g (B + 2) w.length) ∧
+        path.IsChain (fun x y =>
+          ∃ x₀ y₀ : List (FlatSymbol T g.nt g.flag),
+            x₀.length ≤ w.length * (B + 2) ∧
+            y₀.length ≤ w.length * (B + 2) ∧
+            x = packedFlatForm g (B + 2) w.length x₀ ∧
+            y = packedFlatForm g (B + 2) w.length y₀ ∧
+            FlatRuleStep g y₀ x₀) := by
+  rw [packedTerminalReverseRuleStepLanguage_iff_exists_terminalRow_rulePath_card_bound]
+  constructor
+  · rintro ⟨hwne, path, hhead, hlast, hlen, hchain⟩
+    exact ⟨hwne, path, hhead, hlast, hlen,
+      (isChain_reverse_packedFlatRuleStep_iff_exists_flatRuleStep
+        (g := g) (W := B + 2) (n := w.length)).mp hchain⟩
+  · rintro ⟨hwne, path, hhead, hlast, hlen, hchain⟩
+    exact ⟨hwne, path, hhead, hlast, hlen,
+      (isChain_reverse_packedFlatRuleStep_iff_exists_flatRuleStep
+        (g := g) (W := B + 2) (n := w.length)).mpr hchain⟩
+
 theorem packedFlatPathStackBoundLanguage_iff_packedTerminalCells_mem_reverseRuleStepRowLanguage_of_isNormalForm
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {B : ℕ} {w : List T} :
