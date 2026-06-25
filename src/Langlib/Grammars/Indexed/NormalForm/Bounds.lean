@@ -1,6 +1,8 @@
 module
 
 public import Langlib.Grammars.Indexed.Definition
+public import Mathlib.Data.Fintype.Option
+public import Mathlib.Data.Fintype.Pi
 public import Mathlib.Data.Set.Finite.List
 import Mathlib.Tactic
 @[expose]
@@ -1670,6 +1672,103 @@ theorem boundedFlatForms_finite (g : IndexedGrammar T)
   dsimp [boundedFlatForms]
   exact List.finite_length_le (FlatSymbol T g.nt g.flag) flatLengthBound
 
+/-! ## Packing linearly bounded flat forms
+
+The LBA core has only `|w|` tape cells on a nonempty input `w`. A flat sentential form whose
+length is bounded by `|w| * W` can still be represented on that tape by storing `W` flat
+symbols per cell. The definitions below keep that representation explicit and prove that it
+faithfully represents every flat list inside the stated length bound.
+-/
+
+/-- A bounded-width block of optional symbols stored in one LBA tape cell. -/
+abbrev PackedBlock (α : Type) (W : ℕ) : Type :=
+  Fin W → Option α
+
+noncomputable instance PackedBlock.instFintype {α : Type} [Fintype α] (W : ℕ) :
+    Fintype (PackedBlock α W) := by
+  classical
+  change Fintype (Fin W → Option α)
+  infer_instance
+
+instance PackedBlock.instDecidableEq {α : Type} [DecidableEq α] (W : ℕ) :
+    DecidableEq (PackedBlock α W) := by
+  change DecidableEq (Fin W → Option α)
+  infer_instance
+
+/-- The `i`-th width-`W` block of a list, padded with `none` past the list end. -/
+def packedCell {α : Type} (W : ℕ) (xs : List α) (i : ℕ) : PackedBlock α W :=
+  fun j => xs[i * W + j.1]?
+
+/-- Pack a list into `n` width-`W` tape cells. Entries beyond `n * W` are ignored. -/
+def packedTape {α : Type} (W n : ℕ) (xs : List α) : Fin n → PackedBlock α W :=
+  fun i => packedCell W xs i.1
+
+theorem packedTape_lookup {α : Type} {W n k : ℕ} (xs : List α)
+    (hW : 0 < W) (hk : k < n * W) :
+    packedTape W n xs
+        ⟨k / W, Nat.div_lt_of_lt_mul (by simpa [Nat.mul_comm] using hk)⟩
+        ⟨k % W, Nat.mod_lt k hW⟩ =
+      xs[k]? := by
+  simp [packedTape, packedCell]
+  rw [Nat.mul_comm (k / W) W, Nat.div_add_mod]
+
+theorem packedTape_ext_of_length_le {α : Type} {W n : ℕ} {xs ys : List α}
+    (hW : 0 < W) (hxs : xs.length ≤ n * W) (hys : ys.length ≤ n * W)
+    (hpack : packedTape W n xs = packedTape W n ys) :
+    xs = ys := by
+  apply List.ext_getElem?
+  intro k
+  by_cases hk : k < n * W
+  · have hx := packedTape_lookup (W := W) (n := n) (k := k) xs hW hk
+    have hy := packedTape_lookup (W := W) (n := n) (k := k) ys hW hk
+    have hp :=
+      congrFun
+        (congrFun hpack
+          ⟨k / W, Nat.div_lt_of_lt_mul (by simpa [Nat.mul_comm] using hk)⟩)
+        ⟨k % W, Nat.mod_lt k hW⟩
+    rw [hx, hy] at hp
+    exact hp
+  · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
+
+/-- A packed flat form over `n` tape cells, using `W` flat slots per cell. -/
+abbrev PackedFlatForm (g : IndexedGrammar T) (W n : ℕ) : Type :=
+  Fin n → PackedBlock (FlatSymbol T g.nt g.flag) W
+
+noncomputable instance PackedFlatForm.instFintype (g : IndexedGrammar T)
+    [Fintype T] [Fintype g.nt] [Fintype g.flag] (W n : ℕ) :
+    Fintype (PackedFlatForm g W n) := by
+  classical
+  change Fintype (Fin n → PackedBlock (FlatSymbol T g.nt g.flag) W)
+  infer_instance
+
+noncomputable instance PackedFlatForm.instDecidableEq (g : IndexedGrammar T)
+    (W n : ℕ) :
+    DecidableEq (PackedFlatForm g W n) :=
+  Classical.decEq _
+
+/-- Pack a flat sentential form into `n` width-`W` tape cells. -/
+def packedFlatForm (g : IndexedGrammar T) (W n : ℕ)
+    (x : List (FlatSymbol T g.nt g.flag)) : PackedFlatForm g W n :=
+  packedTape W n x
+
+theorem packedFlatForm_lookup {g : IndexedGrammar T} {W n k : ℕ}
+    (x : List (FlatSymbol T g.nt g.flag)) (hW : 0 < W) (hk : k < n * W) :
+    packedFlatForm g W n x
+        ⟨k / W, Nat.div_lt_of_lt_mul (by simpa [Nat.mul_comm] using hk)⟩
+        ⟨k % W, Nat.mod_lt k hW⟩ =
+      x[k]? :=
+  packedTape_lookup (W := W) (n := n) (k := k) x hW hk
+
+theorem packedFlatForm_ext_of_boundedFlatForms {g : IndexedGrammar T} {W n : ℕ}
+    {x y : List (FlatSymbol T g.nt g.flag)}
+    (hW : 0 < W) (hx : x ∈ boundedFlatForms g (n * W))
+    (hy : y ∈ boundedFlatForms g (n * W))
+    (hpack : packedFlatForm g W n x = packedFlatForm g W n y) :
+    x = y := by
+  exact packedTape_ext_of_length_le (W := W) (n := n) (xs := x) (ys := y) hW
+    (by simpa [boundedFlatForms] using hx)
+    (by simpa [boundedFlatForms] using hy) hpack
+
 /-- The finite state space of flat sentential forms of length at most `B`. -/
 def BoundedFlatForm (g : IndexedGrammar T) (B : ℕ) : Type :=
   {w : List (FlatSymbol T g.nt g.flag) // w ∈ boundedFlatForms g B}
@@ -1683,6 +1782,18 @@ noncomputable instance BoundedFlatForm.instDecidableEq (g : IndexedGrammar T) (B
     DecidableEq (BoundedFlatForm g B) :=
   Classical.decEq _
 
+def packedBoundedFlatForm (g : IndexedGrammar T) (W n : ℕ) :
+    BoundedFlatForm g (n * W) → PackedFlatForm g W n :=
+  fun x => packedFlatForm g W n x.1
+
+theorem packedBoundedFlatForm_injective {g : IndexedGrammar T} {W n : ℕ}
+    (hW : 0 < W) :
+    Function.Injective (packedBoundedFlatForm g W n) := by
+  intro x y hpack
+  apply Subtype.ext
+  exact packedFlatForm_ext_of_boundedFlatForms (g := g) (W := W) (n := n) hW
+    x.2 y.2 hpack
+
 /-- One flat step restricted to the finite bounded flat-form state space. -/
 def BoundedFlatTransforms (g : IndexedGrammar T) (B : ℕ)
     (x y : BoundedFlatForm g B) : Prop :=
@@ -1692,6 +1803,58 @@ def BoundedFlatTransforms (g : IndexedGrammar T) (B : ℕ)
 def BoundedFlatDerives (g : IndexedGrammar T) (B : ℕ) :
     BoundedFlatForm g B → BoundedFlatForm g B → Prop :=
   Relation.ReflTransGen (BoundedFlatTransforms g B)
+
+/-- One bounded-flat step viewed through the packed representation on `n` tape cells
+with `W` flat slots per cell. -/
+def PackedFlatTransforms (g : IndexedGrammar T) (W n : ℕ)
+    (x y : PackedFlatForm g W n) : Prop :=
+  ∃ x₀ y₀ : BoundedFlatForm g (n * W),
+    x = packedBoundedFlatForm g W n x₀ ∧
+    y = packedBoundedFlatForm g W n y₀ ∧
+    BoundedFlatTransforms g (n * W) x₀ y₀
+
+/-- Reachability in the packed bounded-flat graph. -/
+def PackedFlatDerives (g : IndexedGrammar T) (W n : ℕ) :
+    PackedFlatForm g W n → PackedFlatForm g W n → Prop :=
+  Relation.ReflTransGen (PackedFlatTransforms g W n)
+
+theorem packedFlatTransforms_of_boundedFlatTransforms
+    {g : IndexedGrammar T} {W n : ℕ}
+    {x y : BoundedFlatForm g (n * W)}
+    (h : BoundedFlatTransforms g (n * W) x y) :
+    PackedFlatTransforms g W n
+      (packedBoundedFlatForm g W n x)
+      (packedBoundedFlatForm g W n y) :=
+  ⟨x, y, rfl, rfl, h⟩
+
+theorem packedFlatTransforms_iff_boundedFlatTransforms
+    {g : IndexedGrammar T} {W n : ℕ}
+    (hW : 0 < W) {x y : BoundedFlatForm g (n * W)} :
+    PackedFlatTransforms g W n
+        (packedBoundedFlatForm g W n x)
+        (packedBoundedFlatForm g W n y) ↔
+      BoundedFlatTransforms g (n * W) x y := by
+  constructor
+  · rintro ⟨x₀, y₀, hx, hy, hstep⟩
+    have hx₀ : x = x₀ := packedBoundedFlatForm_injective (g := g) hW hx
+    have hy₀ : y = y₀ := packedBoundedFlatForm_injective (g := g) hW hy
+    subst x₀
+    subst y₀
+    exact hstep
+  · exact packedFlatTransforms_of_boundedFlatTransforms
+
+theorem packedFlatDerives_of_boundedFlatDerives
+    {g : IndexedGrammar T} {W n : ℕ}
+    {x y : BoundedFlatForm g (n * W)}
+    (h : BoundedFlatDerives g (n * W) x y) :
+    PackedFlatDerives g W n
+      (packedBoundedFlatForm g W n x)
+      (packedBoundedFlatForm g W n y) := by
+  refine Relation.ReflTransGen.head_induction_on h ?_ ?_
+  · exact Relation.ReflTransGen.refl
+  · intro a b hab _ ih
+    exact Relation.ReflTransGen.head
+      (packedFlatTransforms_of_boundedFlatTransforms (g := g) (W := W) (n := n) hab) ih
 
 /-- Exactly `n` bounded flat steps in the finite bounded-flat-form graph. -/
 def BoundedFlatDerivesIn (g : IndexedGrammar T) (B : ℕ) (n : ℕ) :
