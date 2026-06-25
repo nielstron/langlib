@@ -10753,6 +10753,191 @@ theorem exists_bound_late_window_prefix_preserving_replacement_short_or_pop
     simpa [hζeq] using hζder
   exact hKpop target htargetLen (η.take P) hpref q m A τ w hwt hm hqC hder hτmin
 
+/-- Pop-descent package when the local pop consumes the first suffix flag below an empty
+preserved prefix. The child derivation gives a child parse certificate, the parent's local
+minimality descends to the child suffix, and the child item lies in both finite certificate
+frontiers at the common bound `P + K`. -/
+theorem empty_prefix_pop_child_certificate_frontiers_of_local_minimal
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P K L q n : ℕ} {target w : List T}
+    {A B : g.nt} {f : g.flag} {pref τ ρ : List g.flag}
+    {r : IRule T g.nt g.flag}
+    (hwt : w.Sublist target) (hwlen : w.length ≤ L)
+    (hnq : n + 1 ≤ q)
+    (hpref : pref = []) (hτ : τ = f :: ρ) (hτlen : τ.length ≤ K)
+    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hc : r.consume = some f)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
+    (hchildDer :
+      g.DerivesIn n [ISym.indexed B ρ]
+        (w.map fun a => (ISym.terminal a : g.ISym)))
+    (hmin : ∀ μ : List g.flag, ∀ k : ℕ,
+      k ≤ q →
+      g.DerivesIn k [ISym.indexed A (pref ++ μ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) →
+      μ.Sublist τ → μ = τ) :
+    NFYield g B ρ w ∧
+      (∀ μ : List g.flag, ∀ k : ℕ,
+        k ≤ n →
+        g.DerivesIn k [ISym.indexed B μ]
+          (w.map fun a => (ISym.terminal a : g.ISym)) →
+        μ.Sublist ρ → μ = ρ) ∧
+      (((B, ρ), w) : (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) ∧
+      (((B, ρ), w) : (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) := by
+  have hchildCert : NFYield g B ρ w :=
+    NFYield.of_derivesIn_isNormalForm (g := g) hNF hchildDer
+  have hρlen : ρ.length ≤ K := by
+    subst τ
+    simp at hτlen ⊢
+    omega
+  have hchildMin :
+      ∀ μ : List g.flag, ∀ k : ℕ,
+        k ≤ n →
+        g.DerivesIn k [ISym.indexed B μ]
+          (w.map fun a => (ISym.terminal a : g.ISym)) →
+        μ.Sublist ρ → μ = ρ := by
+    intro μ k hk hμder hμsub
+    have hparent :
+        g.DerivesIn (k + 1) [ISym.indexed A (pref ++ (f :: μ))]
+          (w.map fun a => (ISym.terminal a : g.ISym)) := by
+      have hder :
+          g.DerivesIn (k + 1) [ISym.indexed A (f :: μ)]
+            (w.map fun a => (ISym.terminal a : g.ISym)) := by
+        apply (derivesIn_singleton_to_terminals_rule_iff_of_isNormalForm
+          (g := g) hNF (n := k) (A := A) (σ := f :: μ) (w := w)).mpr
+        right
+        left
+        exact ⟨f, μ, B, r, hr, rfl, hlhs, hc, hrhs, hμder⟩
+      simpa [hpref] using hder
+    have hsub : (f :: μ).Sublist τ := by
+      simpa [hτ] using List.Sublist.cons_cons f hμsub
+    have heq := hmin (f :: μ) (k + 1) (by omega) hparent hsub
+    have heq' : f :: μ = f :: ρ := by
+      simpa [hτ] using heq
+    exact (List.cons.inj heq').2
+  have hprefBound : ([] : List g.flag).length ≤ P := by simp
+  have htargetItem :
+      (((B, ρ), w) : (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) := by
+    have hitem :=
+      NFYield.bounded_prefix_certificate_mem_bounded_target_items
+        (g := g) (N := P) (K := K) (target := target)
+        (A := B) (pref := ([] : List g.flag)) (τ := ρ)
+        hprefBound hwt hρlen hchildCert
+    simpa using hitem
+  have hlengthItem :
+      (((B, ρ), w) : (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) := by
+    have hitem :=
+      NFYield.bounded_prefix_certificate_mem_bounded_length_items
+        (g := g) (N := P) (K := K) (L := L)
+        (A := B) (pref := ([] : List g.flag)) (τ := ρ)
+        hprefBound hwlen hρlen hchildCert
+    simpa using hitem
+  exact ⟨hchildCert, hchildMin, htargetItem, hlengthItem⟩
+
+/-- Pop-descent package when the local pop consumes one preserved prefix flag. The child stays
+under the shortened preserved prefix and the same suffix; local minimality and both finite
+certificate-frontier memberships descend to that child obligation. -/
+theorem prefix_pop_child_certificate_frontiers_of_local_minimal
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm)
+    {P K L q n : ℕ} {target w : List T}
+    {A B : g.nt} {f : g.flag} {pref pref' τ : List g.flag}
+    {r : IRule T g.nt g.flag}
+    (hwt : w.Sublist target) (hwlen : w.length ≤ L)
+    (hnq : n + 1 ≤ q)
+    (hprefBound : pref.length ≤ P) (hpref : pref = f :: pref')
+    (hτlen : τ.length ≤ K)
+    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hc : r.consume = some f)
+    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
+    (hchildDer :
+      g.DerivesIn n [ISym.indexed B (pref' ++ τ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)))
+    (hmin : ∀ μ : List g.flag, ∀ k : ℕ,
+      k ≤ q →
+      g.DerivesIn k [ISym.indexed A (pref ++ μ)]
+        (w.map fun a => (ISym.terminal a : g.ISym)) →
+      μ.Sublist τ → μ = τ) :
+    NFYield g B (pref' ++ τ) w ∧
+      (∀ μ : List g.flag, ∀ k : ℕ,
+        k ≤ n →
+        g.DerivesIn k [ISym.indexed B (pref' ++ μ)]
+          (w.map fun a => (ISym.terminal a : g.ISym)) →
+        μ.Sublist τ → μ = τ) ∧
+      (((B, pref' ++ τ), w) : (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) ∧
+      (((B, pref' ++ τ), w) : (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) := by
+  have hchildCert : NFYield g B (pref' ++ τ) w :=
+    NFYield.of_derivesIn_isNormalForm (g := g) hNF hchildDer
+  have hpref'Bound : pref'.length ≤ P := by
+    have hlen : (f :: pref').length ≤ P := by
+      simpa [hpref] using hprefBound
+    simp at hlen ⊢
+    omega
+  have hchildMin :
+      ∀ μ : List g.flag, ∀ k : ℕ,
+        k ≤ n →
+        g.DerivesIn k [ISym.indexed B (pref' ++ μ)]
+          (w.map fun a => (ISym.terminal a : g.ISym)) →
+        μ.Sublist τ → μ = τ := by
+    intro μ k hk hμder hμsub
+    have hparent :
+        g.DerivesIn (k + 1) [ISym.indexed A (pref ++ μ)]
+          (w.map fun a => (ISym.terminal a : g.ISym)) := by
+      have hder :
+          g.DerivesIn (k + 1) [ISym.indexed A (f :: (pref' ++ μ))]
+            (w.map fun a => (ISym.terminal a : g.ISym)) := by
+        apply (derivesIn_singleton_to_terminals_rule_iff_of_isNormalForm
+          (g := g) hNF (n := k) (A := A) (σ := f :: (pref' ++ μ)) (w := w)).mpr
+        right
+        left
+        exact ⟨f, pref' ++ μ, B, r, hr, rfl, hlhs, hc, hrhs, hμder⟩
+      simpa [hpref] using hder
+    exact hmin μ (k + 1) (by omega) hparent hμsub
+  have htargetItem :
+      (((B, pref' ++ τ), w) : (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) :=
+    NFYield.bounded_prefix_certificate_mem_bounded_target_items
+      (g := g) (N := P) (K := K) (target := target)
+      (A := B) (pref := pref') (τ := τ)
+      hpref'Bound hwt hτlen hchildCert
+  have hlengthItem :
+      (((B, pref' ++ τ), w) : (g.nt × List g.flag) × List T) ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T)) :=
+    NFYield.bounded_prefix_certificate_mem_bounded_length_items
+      (g := g) (N := P) (K := K) (L := L)
+      (A := B) (pref := pref') (τ := τ)
+      hpref'Bound hwlen hτlen hchildCert
+  exact ⟨hchildCert, hchildMin, htargetItem, hlengthItem⟩
+
 /-- Enlarged-budget generated-word form of the certified prefix-preserving surface-repeat
 bridge.
 
