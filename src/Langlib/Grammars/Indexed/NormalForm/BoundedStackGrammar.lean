@@ -11525,6 +11525,144 @@ theorem surfaceRepeat_of_late_window_child_descent_rank_frontier
       (surface := surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v))
       htargetSurface hlengthSurface hparentRank hdescent)
 
+/-- Monotone-budget form of `surfaceRepeat_of_late_window_child_descent_rank_frontier`.
+
+The local late-window arithmetic packages child descent at the natural budget `P + C`. This
+wrapper transports that ranked alternative to larger suffix and rank budgets before invoking
+the surface-repeat premise. -/
+theorem surfaceRepeat_of_late_window_child_descent_rank_frontier_mono
+    {g : IndexedGrammar T}
+    {P K K' Kpop Kpop' L C C' Bpre i q m : ℕ} {target w : List T}
+    {trace : List (List g.ISym)} {A : g.nt} {η τ ζ : List g.flag}
+    {u v : List g.ISym}
+    (hK : K ≤ K') (hKpop : Kpop ≤ Kpop') (hC : C ≤ C')
+    (hlow : trace.length - 1 - C ≤ i)
+    (hi : i < trace.length)
+    (hq : q ≤ trace.length - 1 - i) (hm : m ≤ q)
+    (htargetSurface :
+      surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+        targetCompatibleBoundedSurfaceForms g target P)
+    (hlengthSurface :
+      surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+        boundedSurfaceForms g L P)
+    (hdescent :
+      τ.length ≤ Kpop ∨
+        ∃ prefChild τChild : List g.flag,
+        ∃ Bchild : g.nt, ∃ n₀ : ℕ,
+          prefChild.length ≤ P ∧
+            τChild.length ≤ K ∧
+            prefChild.length + n₀ < (η.take P).length + m ∧
+            NFYield g Bchild (prefChild ++ τChild) w ∧
+            (∀ μ : List g.flag, ∀ k : ℕ,
+              k ≤ n₀ →
+              g.DerivesIn k [ISym.indexed Bchild (prefChild ++ μ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              μ.Sublist τChild → μ = τChild) ∧
+            (((Bchild, prefChild ++ τChild), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            (((Bchild, prefChild ++ τChild), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)))
+    (hsurfaceRepeat :
+      (τ.length ≤ Kpop' ∨
+        ∃ prefChild τChild : List g.flag,
+        ∃ Bchild : g.nt, ∃ n₀ : ℕ,
+          prefChild.length ≤ P ∧
+            τChild.length ≤ K' ∧
+            prefChild.length + n₀ < (η.take P).length + m ∧
+            NFYield g Bchild (prefChild ++ τChild) w ∧
+            (∀ μ : List g.flag, ∀ k : ℕ,
+              k ≤ n₀ →
+              g.DerivesIn k [ISym.indexed Bchild (prefChild ++ μ)]
+                (w.map fun a => (ISym.terminal a : g.ISym)) →
+              μ.Sublist τChild → μ = τChild) ∧
+            (((Bchild, prefChild ++ τChild), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ (P + K') ∧ item.2.Sublist target ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            (((Bchild, prefChild ++ τChild), w) :
+                (g.nt × List g.flag) × List T) ∈
+              ({item : (g.nt × List g.flag) × List T |
+                item.1.2.length ≤ (P + K') ∧ item.2.length ≤ L ∧
+                  NFYield g item.1.1 item.1.2 item.2} :
+                Set ((g.nt × List g.flag) × List T)) ∧
+            (((surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v),
+                ((Bchild, prefChild ++ τChild), w)), prefChild.length + n₀) :
+                (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) ∈
+              ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+                x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+                  x.1.2 ∈
+                    ({item : (g.nt × List g.flag) × List T |
+                      item.1.2.length ≤ (P + K') ∧ item.2.Sublist target ∧
+                        NFYield g item.1.1 item.1.2 item.2} :
+                      Set ((g.nt × List g.flag) × List T)) ∧
+                  x.2 ≤ P + C'} :
+                Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)) ∧
+            (((surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v),
+                ((Bchild, prefChild ++ τChild), w)), prefChild.length + n₀) :
+                (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ) ∈
+              ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+                x.1.1 ∈ boundedSurfaceForms g L P ∧
+                  x.1.2 ∈
+                    ({item : (g.nt × List g.flag) × List T |
+                      item.1.2.length ≤ (P + K') ∧ item.2.length ≤ L ∧
+                        NFYield g item.1.1 item.1.2 item.2} :
+                      Set ((g.nt × List g.flag) × List T)) ∧
+                  x.2 ≤ P + C'} :
+                Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ))) →
+      ∃ r : ℕ, ∃ hr : r < trace.length,
+        r ≤ i ∧
+          (∀ k (hk : k < trace.length),
+            k ≤ r →
+              sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ Bpre) ∧
+          sententialMaxStackHeight (u ++ v) ≤ Bpre ∧
+          P + K' ≤ Bpre ∧
+          surfaceOfTruncatedForm Bpre (trace.get ⟨r, hr⟩) =
+            surfaceOfTruncatedForm Bpre (u ++ [ISym.indexed A ζ] ++ v)) :
+      ∃ r : ℕ, ∃ hr : r < trace.length,
+        r ≤ i ∧
+          (∀ k (hk : k < trace.length),
+            k ≤ r →
+              sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ Bpre) ∧
+          sententialMaxStackHeight (u ++ v) ≤ Bpre ∧
+          P + K' ≤ Bpre ∧
+          surfaceOfTruncatedForm Bpre (trace.get ⟨r, hr⟩) =
+            surfaceOfTruncatedForm Bpre (u ++ [ISym.indexed A ζ] ++ v) := by
+  have hiPred : i ≤ trace.length - 1 := by
+    simpa [Nat.pred_eq_sub_one] using Nat.le_pred_of_lt hi
+  have hqC : q ≤ C := by
+    have hqi : q + i ≤ trace.length - 1 :=
+      (Nat.le_sub_iff_add_le hiPred).mp hq
+    have hlow' : trace.length - 1 ≤ i + C :=
+      Nat.sub_le_iff_le_add.mp hlow
+    omega
+  have hparentRank : (η.take P).length + m ≤ P + C := by
+    have hmC : m ≤ C := le_trans hm hqC
+    have htake : (η.take P).length ≤ P := List.length_take_le P η
+    omega
+  have hranked :=
+    short_or_child_certificate_rank_frontiers_of_parent_rank_bound
+      (g := g) (P := P) (K := K) (Kpop := Kpop) (L := L) (R := P + C)
+      (m := m) (target := target) (w := w) (η := η) (τ := τ)
+      (surface := surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v))
+      htargetSurface hlengthSurface hparentRank hdescent
+  exact hsurfaceRepeat
+    (short_or_ranked_child_certificate_mono_bound
+      (g := g) (P := P) (K := K) (K' := K') (Kpop := Kpop) (Kpop' := Kpop')
+      (L := L) (R := P + C) (R' := P + C') (m := m) (target := target)
+      (w := w) (η := η) (τ := τ)
+      (surface := surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v))
+      hK hKpop (Nat.add_le_add_left hC P) hranked)
+
 /-- Enlarged-budget generated-word form of the certified prefix-preserving surface-repeat
 bridge.
 
