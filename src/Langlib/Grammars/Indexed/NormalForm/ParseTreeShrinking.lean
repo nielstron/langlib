@@ -1058,6 +1058,130 @@ public theorem finite_bounded_length_certificate_items
       intro item h
       exact ⟨h.1, h.2.1⟩)
 
+/-- The natural-number ranks bounded by `R` form a finite set. -/
+public theorem finite_rank_le (R : ℕ) :
+    ({r : ℕ | r ≤ R} : Set ℕ).Finite := by
+  have hrange : ((Finset.range (R + 1) : Finset ℕ) : Set ℕ).Finite :=
+    Finset.finite_toSet _
+  exact hrange.subset
+    (by
+      intro r hr
+      simpa [Finset.mem_range, Nat.lt_succ_iff] using hr)
+
+/-- Target-specific finite frontier pairing visible surfaces with parse-certificate items. -/
+public theorem finite_bounded_target_surface_certificate_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (P B : ℕ) (target : List T) :
+    ({x : SurfaceForm g P × ((g.nt × List g.flag) × List T) |
+      x.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+        x.2 ∈
+          ({item : (g.nt × List g.flag) × List T |
+            item.1.2.length ≤ B ∧ item.2 <+ target ∧
+              NFYield g item.1.1 item.1.2 item.2} :
+            Set ((g.nt × List g.flag) × List T))} :
+        Set (SurfaceForm g P × ((g.nt × List g.flag) × List T))).Finite := by
+  have hsurface : (targetCompatibleBoundedSurfaceForms g target P).Finite :=
+    targetCompatibleBoundedSurfaceForms_finite g target P
+  have hitems :
+      ({item : (g.nt × List g.flag) × List T |
+        item.1.2.length ≤ B ∧ item.2 <+ target ∧
+          NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)).Finite :=
+    NFYield.finite_bounded_target_certificate_items (g := g) B target
+  exact (Set.Finite.prod hsurface hitems).subset
+    (by
+      intro x hx
+      exact hx)
+
+/-- Length-uniform finite frontier pairing visible surfaces with parse-certificate items. -/
+public theorem finite_bounded_length_surface_certificate_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (P B L : ℕ) :
+    ({x : SurfaceForm g P × ((g.nt × List g.flag) × List T) |
+      x.1 ∈ boundedSurfaceForms g L P ∧
+        x.2 ∈
+          ({item : (g.nt × List g.flag) × List T |
+            item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+              NFYield g item.1.1 item.1.2 item.2} :
+            Set ((g.nt × List g.flag) × List T))} :
+        Set (SurfaceForm g P × ((g.nt × List g.flag) × List T))).Finite := by
+  have hsurface : (boundedSurfaceForms g L P).Finite :=
+    boundedSurfaceForms_finite g L P
+  have hitems :
+      ({item : (g.nt × List g.flag) × List T |
+        item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+          NFYield g item.1.1 item.1.2 item.2} :
+        Set ((g.nt × List g.flag) × List T)).Finite :=
+    NFYield.finite_bounded_length_certificate_items (g := g) B L
+  exact (Set.Finite.prod hsurface hitems).subset
+    (by
+      intro x hx
+      exact hx)
+
+/-- Target-specific finite frontier pairing visible surfaces, parse-certificate items, and a
+bounded local rank. -/
+public theorem finite_bounded_target_surface_certificate_rank_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (P B R : ℕ) (target : List T) :
+    ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+      x.1.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+        x.1.2 ∈
+          ({item : (g.nt × List g.flag) × List T |
+            item.1.2.length ≤ B ∧ item.2 <+ target ∧
+              NFYield g item.1.1 item.1.2 item.2} :
+            Set ((g.nt × List g.flag) × List T)) ∧
+        x.2 ≤ R} :
+        Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)).Finite := by
+  let base : Set (SurfaceForm g P × ((g.nt × List g.flag) × List T)) :=
+    {x | x.1 ∈ targetCompatibleBoundedSurfaceForms g target P ∧
+      x.2 ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ B ∧ item.2 <+ target ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T))}
+  have hbase : base.Finite := by
+    simpa [base] using
+      (NFYield.finite_bounded_target_surface_certificate_items
+        (g := g) P B target)
+  have hrank : ({r : ℕ | r ≤ R} : Set ℕ).Finite :=
+    NFYield.finite_rank_le R
+  exact (Set.Finite.prod hbase hrank).subset
+    (by
+      intro x hx
+      exact ⟨⟨hx.1, hx.2.1⟩, hx.2.2⟩)
+
+/-- Length-uniform finite frontier pairing visible surfaces, parse-certificate items, and a
+bounded local rank. -/
+public theorem finite_bounded_length_surface_certificate_rank_items
+    (g : IndexedGrammar T) [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    (P B L R : ℕ) :
+    ({x : (SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ |
+      x.1.1 ∈ boundedSurfaceForms g L P ∧
+        x.1.2 ∈
+          ({item : (g.nt × List g.flag) × List T |
+            item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+              NFYield g item.1.1 item.1.2 item.2} :
+            Set ((g.nt × List g.flag) × List T)) ∧
+        x.2 ≤ R} :
+        Set ((SurfaceForm g P × ((g.nt × List g.flag) × List T)) × ℕ)).Finite := by
+  let base : Set (SurfaceForm g P × ((g.nt × List g.flag) × List T)) :=
+    {x | x.1 ∈ boundedSurfaceForms g L P ∧
+      x.2 ∈
+        ({item : (g.nt × List g.flag) × List T |
+          item.1.2.length ≤ B ∧ item.2.length ≤ L ∧
+            NFYield g item.1.1 item.1.2 item.2} :
+          Set ((g.nt × List g.flag) × List T))}
+  have hbase : base.Finite := by
+    simpa [base] using
+      (NFYield.finite_bounded_length_surface_certificate_items
+        (g := g) P B L)
+  have hrank : ({r : ℕ | r ≤ R} : Set ℕ).Finite :=
+    NFYield.finite_rank_le R
+  exact (Set.Finite.prod hbase hrank).subset
+    (by
+      intro x hx
+      exact ⟨⟨hx.1, hx.2.1⟩, hx.2.2⟩)
+
 /-- A canonical-prefix replacement certificate is one of the finite target-frontier
 certificate items once the replacement suffix is bounded. -/
 public theorem canonical_prefix_certificate_mem_bounded_target_items
