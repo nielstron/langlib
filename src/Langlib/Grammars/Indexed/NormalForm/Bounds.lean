@@ -1759,6 +1759,20 @@ theorem packedFlatForm_lookup {g : IndexedGrammar T} {W n k : ℕ}
       x[k]? :=
   packedTape_lookup (W := W) (n := n) (k := k) x hW hk
 
+theorem packedFlatForm_initial_lookup_zero {g : IndexedGrammar T} {W n : ℕ}
+    (hW : 0 < W) (hn : 0 < n) :
+    packedFlatForm g W n (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+        ⟨0, hn⟩ ⟨0, hW⟩ =
+      some (FlatSymbol.nonterminal (T := T) (F := g.flag) g.initial) := by
+  simp [packedFlatForm, packedTape, packedCell]
+
+theorem packedFlatForm_initial_lookup_one {g : IndexedGrammar T} {W n : ℕ}
+    (hW : 1 < W) (hn : 0 < n) :
+    packedFlatForm g W n (encodeSentential ([ISym.indexed g.initial []] : List g.ISym))
+        ⟨0, hn⟩ ⟨1, hW⟩ =
+      some (FlatSymbol.stackBottom (T := T) (N := g.nt) (F := g.flag)) := by
+  simp [packedFlatForm, packedTape, packedCell]
+
 theorem packedFlatForm_terminal_lookup {g : IndexedGrammar T} {W n k : ℕ}
     (w : List T) (hW : 0 < W) (hk : k < n * W) :
     packedFlatForm g W n (w.map (FlatSymbol.terminal (N := g.nt) (F := g.flag)))
