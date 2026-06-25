@@ -10370,6 +10370,148 @@ theorem
           htargetItem hlengthItem
       exact ⟨bw, hbw, hfrontier.2⟩)
 
+/-- Full-surface-repeat form of the certified prefix-preserving late-window bridge.
+
+The finite-step frontier premise is discharged by an earlier trace position whose full
+`Bpre`-surface matches the certified prefix-preserving replacement context. The remaining
+obligation is an actual ancestry/saturation statement over finite surface and certificate
+frontiers. -/
+theorem
+    exists_bound_boundedStackGrammar_generates_of_late_window_certificate_prefix_preserving_frontier_surfaceRepeat_reachability
+    {g : IndexedGrammar T} [Fintype T] [Fintype g.nt] [Fintype g.flag]
+    [DecidableEq g.nt] (hNF : g.IsNormalForm) (P L : ℕ) :
+    ∃ K : ℕ,
+      ∀ target : List T,
+        target.length ≤ L →
+        g.Generates target →
+        ∃ n B : ℕ, ∃ trace : List (List g.ISym),
+          IsDerivationTrace g trace ∧
+            trace.length = n + 1 ∧
+            trace.head? = some [ISym.indexed g.initial []] ∧
+            trace.getLast? = some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            g.DerivesIn n [ISym.indexed g.initial []]
+              (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+            (∀ m,
+              g.DerivesIn m [ISym.indexed g.initial []]
+                (target.map fun a => (ISym.terminal a : g.ISym)) → n ≤ m) ∧
+            (∀ i (hi : i < trace.length),
+              sententialMaxStackHeight (trace.get ⟨i, hi⟩) ≤ B) ∧
+            (∀ C' : ℕ,
+              (∃ trace' : List (List g.ISym),
+                IsDerivationTrace g trace' ∧
+                  trace'.length = n + 1 ∧
+                  trace'.head? = some [ISym.indexed g.initial []] ∧
+                  trace'.getLast? =
+                    some (target.map fun a => (ISym.terminal a : g.ISym)) ∧
+                  ∀ j (hj : j < trace'.length),
+                    sententialMaxStackHeight (trace'.get ⟨j, hj⟩) ≤ C') →
+                B ≤ C') ∧
+            ∀ Bpre : ℕ,
+              (∀ k (hk : k < trace.length),
+                k < trace.length - 1 -
+                    (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card →
+                  sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ P) →
+              (∀ i : ℕ, ∀ hi : i < trace.length,
+                trace.length - 1 -
+                    (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card ≤ i →
+                i ≤ trace.length - 1 -
+                      (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card +
+                    (Set.Finite.toFinset (boundedSurfaceForms_finite g L P)).card →
+                P < sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+                ∀ A : g.nt, ∀ η τ ζ : List g.flag,
+                  ∀ u v : List g.ISym, ∀ q m : ℕ, ∀ w : List T, ∀ n' : ℕ,
+                    ISym.indexed A η ∈ trace.get ⟨i, hi⟩ →
+                    η.length = sententialMaxStackHeight (trace.get ⟨i, hi⟩) →
+                    trace.get ⟨i, hi⟩ = u ++ [ISym.indexed A η] ++ v →
+                    w.Sublist target →
+                    w.length ≤ L →
+                    q ≤ trace.length - 1 - i →
+                    m ≤ q →
+                    m ≤ trace.length - 1 - i →
+                    n' ≤ trace.length - 1 - i →
+                    τ.Sublist (η.drop P) →
+                    τ.length ≤ K →
+                    ζ = η.take P ++ τ →
+                    ζ.Sublist η →
+                    ζ.length ≤ P + K →
+                    ζ.take P = η.take P →
+                    g.DerivesIn m [ISym.indexed A ζ]
+                      (w.map fun a => (ISym.terminal a : g.ISym)) →
+                    NFYield g A ζ w →
+                    g.DerivesIn n' (u ++ [ISym.indexed A ζ] ++ v)
+                      (target.map fun a => (ISym.terminal a : g.ISym)) →
+                    (∀ ρ : List g.flag, ∀ k : ℕ,
+                      k ≤ q →
+                      g.DerivesIn k [ISym.indexed A (η.take P ++ ρ)]
+                        (w.map fun a => (ISym.terminal a : g.ISym)) →
+                      ρ.Sublist τ → ρ = τ) →
+                    surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+                      targetCompatibleBoundedSurfaceForms g target P →
+                    surfaceOfTruncatedForm P (u ++ [ISym.indexed A ζ] ++ v) ∈
+                      boundedSurfaceForms g L P →
+                    (((A, ζ), w) : (g.nt × List g.flag) × List T) ∈
+                      ({item : (g.nt × List g.flag) × List T |
+                        item.1.2.length ≤ (P + K) ∧ item.2.Sublist target ∧
+                          NFYield g item.1.1 item.1.2 item.2} :
+                        Set ((g.nt × List g.flag) × List T)) →
+                    (((A, ζ), w) : (g.nt × List g.flag) × List T) ∈
+                      ({item : (g.nt × List g.flag) × List T |
+                        item.1.2.length ≤ (P + K) ∧ item.2.length ≤ L ∧
+                          NFYield g item.1.1 item.1.2 item.2} :
+                        Set ((g.nt × List g.flag) × List T)) →
+                    ∃ r : ℕ, ∃ hr : r < trace.length,
+                      r ≤ i ∧
+                        (∀ k (hk : k < trace.length),
+                          k ≤ r →
+                            sententialMaxStackHeight (trace.get ⟨k, hk⟩) ≤ Bpre) ∧
+                        sententialMaxStackHeight (u ++ v) ≤ Bpre ∧
+                        P + K ≤ Bpre ∧
+                        surfaceOfTruncatedForm Bpre (trace.get ⟨r, hr⟩) =
+                          surfaceOfTruncatedForm Bpre
+                            (u ++ [ISym.indexed A ζ] ++ v)) →
+              target ∈
+                grammar_language
+                  (boundedStackGrammar g
+                    (max
+                      (P + (Set.Finite.toFinset
+                        (boundedSurfaceForms_finite g L P)).card)
+                      (Bpre + (Set.Finite.toFinset
+                        (boundedSurfaceForms_finite g L P)).card))) := by
+  classical
+  obtain ⟨K, hK⟩ :=
+    exists_bound_boundedStackGrammar_generates_of_late_window_certificate_prefix_preserving_frontier_stepReachableSentential_reachability
+      (g := g) hNF P L
+  refine ⟨K, ?_⟩
+  intro target htargetLen hgen
+  obtain ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+      hminBound, hgenerated⟩ :=
+    hK target htargetLen hgen
+  refine ⟨n, B, trace, htrace, hlen, hhead, hlast, hder, hminLength, hbound,
+    hminBound, ?_⟩
+  intro Bpre hbeforeBound hsurfaceRepeat
+  exact hgenerated Bpre hbeforeBound
+    (by
+      intro i hi hlow hup hhigh A η τ ζ u v q m w n' hmem hηmax hctx hwt hwlen
+        hq hm hmSuffix hn' hτsub hτlen hζeq hζsub hζlen hζtake hζder hcert
+        hreplacement hτmin htargetSurface hboundedSurface htargetItem hlengthItem
+      obtain ⟨r, hr, hri, hprefixBound, hctxBound, hPK, hsurfaceEq⟩ :=
+        hsurfaceRepeat i hi hlow hup hhigh A η τ ζ u v q m w n'
+          hmem hηmax hctx hwt hwlen hq hm hmSuffix hn' hτsub hτlen hζeq hζsub
+          hζlen hζtake hζder hcert hreplacement hτmin htargetSurface hboundedSurface
+          htargetItem hlengthItem
+      have hζBound : ζ.length ≤ Bpre := le_trans hζlen hPK
+      have hysStack :
+          sententialMaxStackHeight (u ++ [ISym.indexed A ζ] ++ v) ≤ Bpre :=
+        sententialMaxStackHeight_context_indexed_le_of_context_le_of_stack_le
+          (g := g) (u := u) (v := v) (A := A) (σ := ζ)
+          hctxBound hζBound
+      exact
+        exists_stepReachable_boundedSentential_image_of_context_surface_eq_prefix_bound_le
+          (g := g) (P := P) (B := Bpre) (L := L) (N := i)
+          (trace := trace) (ys := u ++ [ISym.indexed A ζ] ++ v)
+          (i := r) (j := i) htrace hhead hr hri le_rfl hprefixBound
+          hysStack hsurfaceEq hboundedSurface)
+
 /-- Generated-word form of the certified canonical late-window bridge.
 
 For a generated target, this packages the shortest/minimal-stack accepting trace together
