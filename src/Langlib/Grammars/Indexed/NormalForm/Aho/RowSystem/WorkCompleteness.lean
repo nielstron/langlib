@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowTrace
+public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Trace
 
 @[expose]
 public section
@@ -83,7 +83,7 @@ public theorem trace_productive_boundary (g : IndexedGrammar T) [Fintype g.nt]
         refine ⟨samePrefixRows g alpha ++ [marked, boundary], h₂, ?_, ?_, ?_⟩
         · apply WorkTrace.append g cert (trace_same_prefix g cert _ alpha henabled)
           apply WorkTrace.cons
-          · refine ⟨by simp, by simp [marked], by simp [paddingOK], by simp [paddingOK], ?_⟩
+          · refine ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], ?_⟩
             change WorkEdge g cert .prefix .marked h₀
               (inactive (WorkSym.index R d)) (inactive (WorkSym.index R d.markUsed))
             rw [workEdge_prefix_iff g cert .prefix .marked h₀ _ _ (by simp)]
@@ -91,7 +91,7 @@ public theorem trace_productive_boundary (g : IndexedGrammar T) [Fintype g.nt]
             simp only [prefixEdge, hproductive, true_and]
             exact ⟨R, d, rfl, rfl⟩
           · apply WorkTrace.cons
-            · refine ⟨by simp [advanceWorkState], by simp [boundary], ?_, ?_, ?_⟩
+            · refine ⟨by simp [advanceWorkState], by simp, ?_, ?_, ?_⟩
               · change paddingOK false (inactive (WorkSym.dollar : WorkSym g))
                 simp [paddingOK]
               · change paddingOK false (inactive (WorkSym.dollar : WorkSym g))
@@ -99,7 +99,7 @@ public theorem trace_productive_boundary (g : IndexedGrammar T) [Fintype g.nt]
               · change WorkEdge g cert .marked .stage1 h₁
                   (inactive WorkSym.dollar) (inactive WorkSym.dollar)
                 rw [workEdge_prefix_iff g cert .marked .stage1 h₁ _ _ (by simp)]
-                simp [henabled, prefixEdge, Boundary, hproductive, boundary]
+                simp [henabled, prefixEdge, Boundary, hproductive]
             · exact .nil _
         · simp [samePrefixRows, marked, boundary]
         · simp [samePrefixRows, marked, boundary]
@@ -115,7 +115,7 @@ public theorem trace_productive_boundary (g : IndexedGrammar T) [Fintype g.nt]
           ?_, by simp [xs, boundary], ?_⟩
         · apply WorkTrace.append g cert (trace_same_prefix g cert _ xs henabled)
           apply WorkTrace.cons
-          · refine ⟨by simp, by simp [boundary], by simp [paddingOK], by simp [paddingOK], ?_⟩
+          · refine ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], ?_⟩
             change WorkEdge g cert .prefix .stage1 h₀
               (inactive WorkSym.dollar) (inactive WorkSym.dollar)
             rw [workEdge_prefix_iff g cert .prefix .stage1 h₀ _ _ (by simp)]
@@ -143,7 +143,7 @@ public theorem trace_plain_boundary (g : IndexedGrammar T) [Fintype g.nt]
     ?_, by simp [boundary], by simp [boundary]⟩
   apply WorkTrace.append g cert (trace_same_prefix g cert _ alpha henabled)
   apply WorkTrace.cons
-  · refine ⟨by simp, by simp [boundary], by simp [paddingOK], by simp [paddingOK], ?_⟩
+  · refine ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], ?_⟩
     change WorkEdge g cert .prefix .stage1 h₀
       (inactive WorkSym.dollar) (inactive WorkSym.dollar)
     rw [workEdge_prefix_iff g cert .prefix .stage1 h₀ _ _ (by simp)]
@@ -215,7 +215,7 @@ public theorem accepts_replace_one (g : IndexedGrammar T) [Fintype g.nt]
       (beta.map inactive ++ List.replicate k none), result, ?_, ?_, ?_, ?_⟩
   · apply WorkTrace.append g cert hprefix
     apply WorkTrace.cons
-    · exact ⟨by simp, by simp [focusRow], by simp [paddingOK], by simp [paddingOK], hfocus h⟩
+    · exact ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], hfocus h⟩
     · simpa [advanceWorkState, focusRow, h₁] using hsuffix
   · simp [focusRow, sameSuffixRows]
   · simp [focusRow, sameSuffixRows]
@@ -370,7 +370,7 @@ private theorem trace_plus2_shift (g : IndexedGrammar T) [Fintype g.nt]
         · refine ⟨by simp, by simp, holdCons.head, hnewCons.head,
             hloop h none prev2 ⟨by simp [InactiveOpt], hinactive2, hprev2⟩⟩
         · apply WorkTrace.cons
-          · refine ⟨by simp [q, advanceWorkState], by simp,
+          · refine ⟨by simp [advanceWorkState], by simp,
               holdCons.tail.head, hnewCons.tail.head, hloop q.history none prev1 ?_⟩
             refine ⟨by simp [InactiveOpt], hinactive1, ?_⟩
             simp [q, advanceWorkState, updateHistory, hprev1]
@@ -448,7 +448,7 @@ private theorem trace_plus2_from_stage2 (g : IndexedGrammar T) [Fintype g.nt]
         · exact ⟨by simp, by simp, holdCons.head, hnewCons.head,
             hfirst h none (by simp [InactiveOpt])⟩
         · apply WorkTrace.cons
-          · exact ⟨by simp [q, advanceWorkState], by simp,
+          · exact ⟨by simp [advanceWorkState], by simp,
               holdCons.tail.head, hnewCons.tail.head,
               hsecond q.history none (by simp [InactiveOpt])⟩
           · exact .nil _
@@ -466,11 +466,11 @@ private theorem trace_plus2_from_stage2 (g : IndexedGrammar T) [Fintype g.nt]
           · apply WorkTrace.cons
             · exact ⟨by simp, by simp, holdCons.head, hnewCons.head, hfirst h x hx⟩
             · apply WorkTrace.cons
-              · exact ⟨by simp [q₁, advanceWorkState], by simp,
+              · exact ⟨by simp [advanceWorkState], by simp,
                   holdCons.tail.head, hnewCons.tail.head,
                   hsecond q₁.history none (by simp [InactiveOpt])⟩
               · apply WorkTrace.cons
-                · refine ⟨by simp [q₂, q₁, advanceWorkState], by simp,
+                · refine ⟨by simp [advanceWorkState], by simp,
                       holdCons.tail.tail.head, hnewCons.tail.tail.head,
                       hloop q₂.history none x ?_⟩
                   refine ⟨by simp [InactiveOpt], hx, ?_⟩
@@ -499,7 +499,7 @@ private theorem trace_plus2_from_stage2 (g : IndexedGrammar T) [Fintype g.nt]
           apply WorkTrace.cons
           · exact ⟨by simp, by simp, holdCons.head, hnewCons.head, hfirst h x hx⟩
           · apply WorkTrace.cons
-            · exact ⟨by simp [q₁, advanceWorkState], by simp,
+            · exact ⟨by simp [advanceWorkState], by simp,
                 holdCons.tail.head, hnewCons.tail.head, hsecond q₁.history y hy⟩
             · simpa [q₂, q₁, advanceWorkState] using hshift
 
@@ -531,8 +531,7 @@ public theorem popChainRows_new (g : IndexedGrammar T) (R : CFlag g)
   induction beta with
   | nil => rfl
   | cons z beta ih =>
-      simp only [popChainRows, List.map_cons, nextOr, List.cons_append, Prod.snd,
-        Prod.fst]
+      simp only [popChainRows, List.map_cons, nextOr, List.cons_append]
       exact congrArg (inactive z :: ·) ih
 
 private theorem trace_pop_chain (g : IndexedGrammar T) [Fintype g.nt]
@@ -637,19 +636,19 @@ public theorem accepts_pop (g : IndexedGrammar T) [Fintype g.nt]
         (focusRow :: (popChainRows g R d beta ++
           plus2FromRows g newFocus WorkSym.close xs)) result := by
       apply WorkTrace.cons
-      · exact ⟨by simp, by simp [focusRow], by simp [paddingOK], by simp [paddingOK], hfocus h⟩
+      · exact ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], hfocus h⟩
       · exact WorkTrace.append g cert
           (by simpa [advanceWorkState, focusRow, h₁] using hchain) htail
     simpa [List.append_assoc] using WorkTrace.append g cert hprefix hmid
   · simp [focusRow, xs, hold]
     rw [List.replicate_add]
-    simp [List.append_assoc]
+    simp
   · simp only [List.map_append, List.map_cons, List.map_nil]
     rw [hnew]
     rw [show focusRow.2.1 :: (popChainRows g R d beta).map (fun r => r.2.1) =
         beta.map inactive ++ [inactive (WorkSym.index R d.markUsed), inactive WorkSym.dollar] by
       simpa [focusRow] using popChainRows_new g R d beta]
-    simp [focusRow, xs, List.map_append, List.append_assoc]
+    simp [xs, List.map_append, List.append_assoc]
   · unfold workScanDone
     rw [hphase]
     simpa [lastTwoOldNone] using hlast
@@ -803,7 +802,7 @@ public theorem accepts_insert_one (g : IndexedGrammar T) [Fintype g.nt]
   refine ⟨prefixRows ++ focusRow :: plus1FromRows g inserted xs, result, ?_, ?_, ?_, ?_⟩
   · apply WorkTrace.append g cert hprefix
     apply WorkTrace.cons
-    · exact ⟨by simp, by simp [focusRow], by simp [paddingOK], by simp [paddingOK], hfocus h⟩
+    · exact ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], hfocus h⟩
     · simpa [advanceWorkState, focusRow, h₁] using htail
   · simp [focusRow, xs]
     rw [List.replicate_add]
@@ -842,7 +841,7 @@ public theorem paddedCursor_eq_append (g : IndexedGrammar T) (n : ℕ)
       c.left.map inactive ++ [active c.focus] ++ c.right.map inactive ++
         List.replicate (n * workWidth - c.word.length) none := by
   rw [paddedWork_eq_append n c.slots (by simpa using hwork)]
-  simp [WorkCursor.slots, WorkCursor.word, inactive, active, List.map_map,
+  simp [WorkCursor.slots, WorkCursor.word, active, List.map_map,
     Function.comp_def, List.append_assoc]
   rfl
 
@@ -999,9 +998,9 @@ public theorem accepts_replace_two (g : IndexedGrammar T) [Fintype g.nt]
         ([focusRow, nextRow] ++ sameSuffixRows
           (beta.map inactive ++ List.replicate k none)) result := by
       apply WorkTrace.cons
-      · exact ⟨by simp, by simp [focusRow], by simp [paddingOK], by simp [paddingOK], hfocus h⟩
+      · exact ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], hfocus h⟩
       · apply WorkTrace.cons
-        · exact ⟨by simp [advanceWorkState], by simp [nextRow],
+        · exact ⟨by simp [advanceWorkState], by simp,
             by simp [advanceWorkState, paddingOK, active, inactive],
             by simp [advanceWorkState, paddingOK, active, inactive], hnext h₁⟩
         · simpa [advanceWorkState, focusRow, nextRow, h₁, h₂] using hsuffix
@@ -1157,7 +1156,7 @@ private theorem trace_minus1_from_first (g : IndexedGrammar T) [Fintype g.nt]
       exact ⟨by simp, by simp, holdCons.head, hnewCons.head, hfirst h hactive⟩
 
 /-- Shift a suffix left after a preceding focus-replacement row has entered `stage2`.  The
-first old square is the adjacent ephemeral index being deleted. -/
+first old square is the adjacent compressed index being deleted. -/
 private theorem trace_minus1_from_minus1First (g : IndexedGrammar T) [Fintype g.nt]
     (cert : CompositeCert g) (h : WorkHistory g) (deletedNext : WorkSym g)
     (xs : List (Option (WorkSlot g)))
@@ -1200,7 +1199,7 @@ private theorem trace_minus1_from_minus1First (g : IndexedGrammar T) [Fintype g.
       exact ⟨by simp, by simp, holdCons.head, hnewCons.head, hfirst h⟩
 
 /-- Replace the active task and delete its immediately adjacent index in the same certified
-scan.  This is the row-level implementation of ephemeral pop-and-erase. -/
+scan.  This is the row-level implementation of unframed pop-and-erase. -/
 public theorem accepts_replace_delete_next (g : IndexedGrammar T) [Fintype g.nt]
     (cert : CompositeCert g) (alpha beta : List (WorkSym g))
     (oldFocus newFocus deletedNext : WorkSym g) (k : ℕ)
@@ -1238,7 +1237,7 @@ public theorem accepts_replace_delete_next (g : IndexedGrammar T) [Fintype g.nt]
     result, ?_, ?_, ?_, ?_⟩
   · apply WorkTrace.append g cert hprefix
     apply WorkTrace.cons
-    · exact ⟨by simp, by simp [focusRow], by simp [paddingOK], by simp [paddingOK],
+    · exact ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK],
         hfocus h⟩
     · simpa [advanceWorkState, focusRow, h₁] using htail
   · simp [focusRow, xs, hold]
@@ -1331,7 +1330,7 @@ public theorem accepts_delete_one (g : IndexedGrammar T) [Fintype g.nt]
     result, ?_, ?_, ?_, ?_⟩
   · apply WorkTrace.append g cert hprefix
     apply WorkTrace.cons
-    · exact ⟨by simp, by simp [focusRow], by simp [paddingOK], by simp [paddingOK], hfocus h⟩
+    · exact ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], hfocus h⟩
     · simpa [advanceWorkState, focusRow, h₁] using htail
   · simp [focusRow, xs]
   · simp [focusRow, xs]
@@ -1382,81 +1381,6 @@ public theorem accepts_eraseIndex (g : IndexedGrammar T) [Fintype g.nt]
     (fun h old new hs => by simp [WorkEdge, deleteOneEdge, herase, hs])
   simpa [hold, hnew] using hacc
 
-namespace LegacyPlus2
-
-public def plus2ShiftRows (g : IndexedGrammar T)
-    (prev2 prev1 : Option (WorkSlot g)) : List (Option (WorkSlot g)) →
-      List (Option (WorkSlot g) × Option (WorkSlot g) × WorkPhase)
-  | [] => [(none, prev2, .suffixPlus2), (none, prev1, .suffixPlus2)]
-  | x :: xs => (x, prev2, .suffixPlus2) :: plus2ShiftRows g prev1 x xs
-
-@[simp] public theorem plus2ShiftRows_old (g : IndexedGrammar T)
-    (prev2 prev1 : Option (WorkSlot g)) (xs : List (Option (WorkSlot g))) :
-    (plus2ShiftRows g prev2 prev1 xs).map (fun r => r.1) = xs ++ [none, none] := by
-  induction xs generalizing prev2 prev1 with
-  | nil => rfl
-  | cons x xs ih => simp [plus2ShiftRows, ih]
-
-@[simp] public theorem plus2ShiftRows_new (g : IndexedGrammar T)
-    (prev2 prev1 : Option (WorkSlot g)) (xs : List (Option (WorkSlot g))) :
-    (plus2ShiftRows g prev2 prev1 xs).map (fun r => r.2.1) = prev2 :: prev1 :: xs := by
-  induction xs generalizing prev2 prev1 with
-  | nil => rfl
-  | cons x xs ih => simp [plus2ShiftRows, ih]
-
-private theorem trace_plus2_shift (g : IndexedGrammar T) [Fintype g.nt]
-    (cert : CompositeCert g) (h : WorkHistory g) (oldEnded newEnded : Bool)
-    (prev2 prev1 : Option (WorkSlot g)) (xs : List (Option (WorkSlot g)))
-    (hprev2 : h.old2 = some prev2) (hprev1 : h.old1 = some prev1)
-    (hinactive2 : InactiveOpt prev2) (hinactive1 : InactiveOpt prev1)
-    (hxsInactive : ∀ x ∈ xs, InactiveOpt x)
-    (holdPad : PaddingStream g oldEnded (xs ++ [none, none]))
-    (hnewPad : PaddingStream g newEnded (prev2 :: prev1 :: xs))
-    (hloop : ∀ h old new, plus2Suffix h old new →
-      WorkEdge g cert .suffixPlus2 .suffixPlus2 h old new) :
-    ∃ result,
-      WorkTrace g cert ⟨.suffixPlus2, h, oldEnded, newEnded⟩
-        (plus2ShiftRows g prev2 prev1 xs) result ∧
-      result.phase = .suffixPlus2 ∧ lastTwoOldNone result.history := by
-  cases xs with
-  | nil =>
-      have holdCons : PaddingStream g oldEnded [none, none] := by simpa using holdPad
-      have hnewCons : PaddingStream g newEnded [prev2, prev1] := hnewPad
-      let q := advanceWorkState ⟨.suffixPlus2, h, oldEnded, newEnded⟩
-        none prev2 .suffixPlus2
-      let result := advanceWorkState q none prev1 .suffixPlus2
-      refine ⟨result, ?_, rfl, ?_⟩
-      · apply WorkTrace.cons
-        · refine ⟨by simp, by simp, holdCons.head, hnewCons.head,
-            hloop h none prev2 ⟨by simp [InactiveOpt], hinactive2, hprev2⟩⟩
-        · apply WorkTrace.cons
-          · refine ⟨by simp [q, advanceWorkState], by simp,
-              holdCons.tail.head, hnewCons.tail.head, hloop q.history none prev1 ?_⟩
-            refine ⟨by simp [InactiveOpt], hinactive1, ?_⟩
-            simp [q, advanceWorkState, updateHistory, hprev1]
-          · exact .nil _
-      · simp [result, q, advanceWorkState, lastTwoOldNone, updateHistory]
-  | cons x xs =>
-      have holdCons : PaddingStream g oldEnded (x :: (xs ++ [none, none])) := by
-        simpa using holdPad
-      have hnewCons : PaddingStream g newEnded (prev2 :: prev1 :: x :: xs) := hnewPad
-      have hx : InactiveOpt x := hxsInactive x (by simp)
-      let q := advanceWorkState ⟨.suffixPlus2, h, oldEnded, newEnded⟩
-        x prev2 .suffixPlus2
-      have hq2 : q.history.old2 = some prev1 := by
-        simp [q, advanceWorkState, updateHistory, hprev1]
-      have hq1 : q.history.old1 = some x := by
-        simp [q, advanceWorkState, updateHistory]
-      rcases trace_plus2_shift g cert q.history q.oldEnded q.newEnded prev1 x xs
-          hq2 hq1 hinactive1 hx (by intro y hy; exact hxsInactive y (by simp [hy]))
-          holdCons.tail hnewCons.tail hloop with ⟨result, hshift, hphase, hlast⟩
-      refine ⟨result, .cons ?_ hshift, hphase, hlast⟩
-      exact ⟨by simp, by simp, holdCons.head, hnewCons.head,
-        hloop h x prev2 ⟨hx, hinactive2, hprev2⟩⟩
-termination_by xs.length
-
-end LegacyPlus2
-
 public def minus2ShiftRows (g : IndexedGrammar T)
     (prev2 prev1 : Option (WorkSlot g)) : List (Option (WorkSlot g)) →
       List (Option (WorkSlot g) × Option (WorkSlot g) × WorkPhase)
@@ -1502,7 +1426,7 @@ private theorem trace_minus2_shift (g : IndexedGrammar T) [Fintype g.nt]
         · refine ⟨by simp, by simp, holdCons.head, hnewCons.head,
             hloop h prev2 none ⟨hinactive2, by simp [InactiveOpt], hprev2⟩⟩
         · apply WorkTrace.cons
-          · refine ⟨by simp [q, advanceWorkState], by simp,
+          · refine ⟨by simp [advanceWorkState], by simp,
               holdCons.tail.head, hnewCons.tail.head, hloop q.history prev1 none ?_⟩
             refine ⟨hinactive1, by simp [InactiveOpt], ?_⟩
             simp [q, advanceWorkState, updateHistory, hprev1]
@@ -1580,7 +1504,7 @@ private theorem trace_minus2_from_return (g : IndexedGrammar T) [Fintype g.nt]
       · apply WorkTrace.cons
         · exact ⟨by simp, by simp, holdCons.head, hnewCons.head, hdollar h⟩
         · apply WorkTrace.cons
-          · exact ⟨by simp [q, advanceWorkState], by simp,
+          · exact ⟨by simp [advanceWorkState], by simp,
               holdCons.tail.head, hnewCons.tail.head, hclose q.history⟩
           · exact .nil _
       · simp [result, q, advanceWorkState, lastTwoNewNone, updateHistory]
@@ -1599,10 +1523,10 @@ private theorem trace_minus2_from_return (g : IndexedGrammar T) [Fintype g.nt]
           · apply WorkTrace.cons
             · exact ⟨by simp, by simp, holdCons.head, hnewCons.head, hdollar h⟩
             · apply WorkTrace.cons
-              · exact ⟨by simp [q₁, advanceWorkState], by simp,
+              · exact ⟨by simp [advanceWorkState], by simp,
                   holdCons.tail.head, hnewCons.tail.head, hclose q₁.history⟩
               · apply WorkTrace.cons
-                · refine ⟨by simp [q₂, q₁, advanceWorkState], by simp,
+                · refine ⟨by simp [advanceWorkState], by simp,
                       holdCons.tail.tail.head, hnewCons.tail.tail.head,
                       hloop q₂.history x none ?_⟩
                   refine ⟨hx, by simp [InactiveOpt], ?_⟩
@@ -1632,7 +1556,7 @@ private theorem trace_minus2_from_return (g : IndexedGrammar T) [Fintype g.nt]
           apply WorkTrace.cons
           · exact ⟨by simp, by simp, holdCons.head, hnewCons.head, hdollar h⟩
           · apply WorkTrace.cons
-            · exact ⟨by simp [q₁, advanceWorkState], by simp,
+            · exact ⟨by simp [advanceWorkState], by simp,
                 holdCons.tail.head, hnewCons.tail.head, hclose q₁.history⟩
             · simpa [q₂, q₁, advanceWorkState] using hshift
 
@@ -1719,7 +1643,7 @@ public theorem accepts_returnFrame (g : IndexedGrammar T) [Fintype g.nt]
   · have hmid : WorkTrace g .returnFrame ⟨.stage1, h, false, false⟩
         (focusRow :: (returnBetaRows g beta ++ minus2FromRows g xs)) result := by
       apply WorkTrace.cons
-      · refine ⟨by simp, by simp [focusRow], by simp [paddingOK], by simp [paddingOK], ?_⟩
+      · refine ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], ?_⟩
         simpa [WorkEdge, prefixEdge, focusRow] using
           (show ∃ z, z ≠ WorkSym.dollar ∧ inactive Z = inactive z ∧ active Z = active z from
             ⟨Z, hZ, rfl, rfl⟩)
@@ -1729,7 +1653,7 @@ public theorem accepts_returnFrame (g : IndexedGrammar T) [Fintype g.nt]
   · simp [focusRow, xs, hold, List.map_append, List.append_assoc]
   · simp [focusRow, xs, hnew, List.map_append, List.append_assoc]
     rw [List.replicate_add]
-    simp [List.append_assoc]
+    simp
   · unfold workScanDone
     rw [hphase]
     simpa [lastTwoNewNone] using hlast
@@ -2119,3 +2043,4 @@ public theorem workTraceAccepts_of_certStep (g : IndexedGrammar T) [Fintype g.nt
 
 end Aho
 end IndexedGrammar
+

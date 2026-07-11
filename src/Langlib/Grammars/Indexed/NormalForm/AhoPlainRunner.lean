@@ -15,7 +15,7 @@ public section
 
 Plain tasks consume no inherited stack occurrence.  Their binary, irrelevant-push, and terminal
 moves only rearrange terminal-owned payloads; a relevant push temporarily allocates one
-productive-event owner and delegates to ephemeral mode.
+productive-event owner and delegates to copy-on-write overlay execution.
 -/
 
 variable {T : Type}
@@ -49,16 +49,16 @@ public def transport
 
 end IndexOwnerPool
 
-/-- The terminal constructor is independent of the exact current-window parking bound. -/
-public theorem plainScheduleRun_terminal_atOrBelow
+/-- Run a terminal constructor in ordinary plain mode. -/
+public theorem plainScheduleRun_terminal
     {g : IndexedGrammar T} [Fintype g.nt]
     {A : g.nt} {stack : List g.flag} {a : T}
     {r : IRule T g.nt g.flag}
     (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hc : r.consume = none)
     (hrhs : r.rhs = [IRhsSymbol.terminal a]) :
-    PlainScheduleRunAtOrBelow (NFParse.terminal (σ := stack) hr hlhs hc hrhs) := by
+    PlainScheduleRun (NFParse.terminal (σ := stack) hr hlhs hc hrhs) := by
   intro input unused pre post input_eq alpha next tail hstable hstart hend
-    resources hfree _parkingAtOrBelow _hactive _shadowLayout _ticketTransientFree
+    resources hfree _parkingBelow _hactive _shadowLayout _ticketTransientFree
     _htransientFree _hScratchFree
   let parse : NFParse g A stack [a] := .terminal hr hlhs hc hrhs
   let task : ScheduleTask g input :=
@@ -104,30 +104,8 @@ public theorem plainScheduleRun_terminal_atOrBelow
       List.map_append] using hstep
   exact hterminal.trans hmatch
 
-/-- Ordinary strict specialization of the parking-insensitive terminal runner. -/
-public theorem plainScheduleRun_terminal
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {A : g.nt} {stack : List g.flag} {a : T}
-    {r : IRule T g.nt g.flag}
-    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hc : r.consume = none)
-    (hrhs : r.rhs = [IRhsSymbol.terminal a]) :
-    PlainScheduleRun (NFParse.terminal (σ := stack) hr hlhs hc hrhs) :=
-  PlainScheduleRunAtOrBelow.toPlain
-    (plainScheduleRun_terminal_atOrBelow hr hlhs hc hrhs)
-
-/-- Marker-aware specialization of the parking-insensitive terminal runner. -/
-public theorem parkedPlainScheduleRun_terminal
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {A : g.nt} {stack : List g.flag} {a : T}
-    {r : IRule T g.nt g.flag}
-    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hc : r.consume = none)
-    (hrhs : r.rhs = [IRhsSymbol.terminal a]) :
-    ParkedPlainScheduleRun (NFParse.terminal (σ := stack) hr hlhs hc hrhs) :=
-  PlainScheduleRunAtOrBelow.toParkedPlain
-    (plainScheduleRun_terminal_atOrBelow hr hlhs hc hrhs)
-
 /-- Split a plain binary task into its two ordered plain children and run them sequentially. -/
-public theorem plainScheduleRun_binary_atOrBelow
+public theorem plainScheduleRun_binary
     {g : IndexedGrammar T} [Fintype g.nt]
     {A B C : g.nt} {stack : List g.flag} {u v : List T}
     {r : IRule T g.nt g.flag}
@@ -137,11 +115,13 @@ public theorem plainScheduleRun_binary_atOrBelow
     (leftParse : NFParse g B stack u) (rightParse : NFParse g C stack v)
     (leftRuns : OrdinaryScheduleRuns leftParse)
     (rightRuns : OrdinaryScheduleRuns rightParse) :
-    PlainScheduleRunAtOrBelow
+    PlainScheduleRun
       (NFParse.binary hr hlhs hc hrhs leftParse rightParse) := by
   intro input unused pre post input_eq alpha next tail hstable hstart hend
-    resources hfree parkingAtOrBelow hactive shadowLayout ticketTransientFree htransientFree
+    resources hfree parkingBelow hactive shadowLayout ticketTransientFree htransientFree
     hScratchFree
+  have parkingAtOrBelow : resources.tickets.ParkingAtOrBelow resources.window :=
+    parkingBelow.toAtOrBelow
   let parent : NFParse g A stack (u ++ v) :=
     .binary hr hlhs hc hrhs leftParse rightParse
   have leftUnused : ¬ leftParse.ConsumesAt 0 := fun h => unused (Or.inl h)
@@ -419,29 +399,23 @@ public theorem plainScheduleRun_binary_atOrBelow
       (by
         simp only [IndexTicketLedger.semanticCursor]
         rw [leftSemanticOwnerOf]
-        simp [leftTickets, startTickets, forkCursor, startCursor,
-        IndexTicketLedger.transport, IndexTicketLedger.semanticCursor,
-        IndexTicketLedger.semanticOwnerOf,
+        simp [startTickets, forkCursor, startCursor,
         ScheduleCursor.relabelTicketOwners])
       (by
         simp only [IndexTicketLedger.semanticCursor]
         rw [leftSemanticOwnerOf]
-        simp [leftTickets, startTickets, hframesFork,
-        IndexTicketLedger.transport, IndexTicketLedger.semanticOwnerOf])
+        simp [startTickets, hframesFork])
   have rightTicketPrefixLedger : PrefixFrameLedger rightTickets.semanticCursor :=
     startTicketOwnerLedger.prefixLedger.transport
       (by
         simp only [IndexTicketLedger.semanticCursor]
         rw [rightSemanticOwnerOf]
-        simp [rightTickets, startTickets, rightCursor, startCursor,
-        IndexTicketLedger.transport, IndexTicketLedger.semanticCursor,
-        IndexTicketLedger.semanticOwnerOf,
+        simp [startTickets, rightCursor, startCursor,
         ScheduleCursor.relabelTicketOwners])
       (by
         simp only [IndexTicketLedger.semanticCursor]
         rw [rightSemanticOwnerOf]
-        simp [rightTickets, startTickets, hframesRight,
-        IndexTicketLedger.transport, IndexTicketLedger.semanticOwnerOf])
+        simp [startTickets, hframesRight])
   let leftOwnerLedger : ScheduleOwnerLedger leftParse
       resources.window.binaryLeft forkCursor :=
     startLedger.transport resources.window.binaryLeft
@@ -565,8 +539,7 @@ public theorem plainScheduleRun_binary_atOrBelow
   have htaskPerm : forkCursor.taskOwners.Perm
       (rightTask.owner :: startCursor.taskOwners) := by
     simp only [forkCursor, startCursor, ScheduleCursor.taskOwners_mk,
-      ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil,
-      List.append_nil]
+      ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
     rw [hleftOwner]
     simpa only [List.append_assoc] using
       (List.perm_middle
@@ -577,8 +550,7 @@ public theorem plainScheduleRun_binary_atOrBelow
   have hfinishPerm : forkCursor.taskOwners.Perm
       (leftTask.owner :: rightCursor.taskOwners) := by
     simp only [forkCursor, rightCursor, ScheduleCursor.taskOwners_mk,
-      ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil,
-      List.append_nil]
+      ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
     simpa only [List.append_assoc] using
       (List.perm_middle
         (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap
@@ -634,7 +606,7 @@ public theorem plainScheduleRun_binary_atOrBelow
       exact resources.charged_le_indices
     productive_le_credit := by
       have hp := resources.productive_le_credit
-      simp only [parent, NFParse.productiveCount, NFParse.binaryCount,
+      simp only [NFParse.productiveCount, NFParse.binaryCount,
         NFParse.terminalCount] at hp
       dsimp [leftPool]
       simp only [NFParse.productiveCount]
@@ -711,7 +683,7 @@ public theorem plainScheduleRun_binary_atOrBelow
       exact resources.charged_le_indices
     productive_le_credit := by
       have hp := resources.productive_le_credit
-      simp only [parent, NFParse.productiveCount, NFParse.binaryCount,
+      simp only [NFParse.productiveCount, NFParse.binaryCount,
         NFParse.terminalCount] at hp
       dsimp [rightPool]
       simp only [NFParse.productiveCount]
@@ -839,42 +811,6 @@ public theorem plainScheduleRun_binary_atOrBelow
   simpa [startState, startCursor, parentTask, parent, plainScheduleCursor,
     List.append_assoc] using hforkStep.trans (hleftRun.trans hrightRun)
 
-/-- Ordinary strict specialization of the common binary runner. -/
-public theorem plainScheduleRun_binary
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {A B C : g.nt} {stack : List g.flag} {u v : List T}
-    {r : IRule T g.nt g.flag}
-    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hc : r.consume = none)
-    (hrhs : r.rhs =
-      [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none])
-    (leftParse : NFParse g B stack u) (rightParse : NFParse g C stack v)
-    (leftRuns : OrdinaryScheduleRuns leftParse)
-    (rightRuns : OrdinaryScheduleRuns rightParse) :
-    PlainScheduleRun
-      (NFParse.binary hr hlhs hc hrhs leftParse rightParse) :=
-  PlainScheduleRunAtOrBelow.toPlain
-    (plainScheduleRun_binary_atOrBelow hr hlhs hc hrhs leftParse rightParse
-      leftRuns rightRuns)
-
-/-- Marker-aware specialization of the common binary runner.  Both child windows begin
-strictly after the parent window, so the detached marker is absorbed before either child is
-run. -/
-public theorem parkedPlainScheduleRun_binary
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {A B C : g.nt} {stack : List g.flag} {u v : List T}
-    {r : IRule T g.nt g.flag}
-    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hc : r.consume = none)
-    (hrhs : r.rhs =
-      [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none])
-    (leftParse : NFParse g B stack u) (rightParse : NFParse g C stack v)
-    (leftRuns : OrdinaryScheduleRuns leftParse)
-    (rightRuns : OrdinaryScheduleRuns rightParse) :
-    ParkedPlainScheduleRun
-      (NFParse.binary hr hlhs hc hrhs leftParse rightParse) :=
-  PlainScheduleRunAtOrBelow.toParkedPlain
-    (plainScheduleRun_binary_atOrBelow hr hlhs hc hrhs leftParse rightParse
-      leftRuns rightRuns)
-
 /-- An irrelevant push merely replaces the plain task by its unary child while preserving
 the strict parking bound through the unchanged productive window. -/
 public theorem plainScheduleRun_pushSkip
@@ -974,15 +910,12 @@ public theorem plainScheduleRun_pushSkip
       (by
         simp only [IndexTicketLedger.semanticCursor]
         rw [childSemanticOwnerOf]
-        simp [childTickets, startTickets, childCursor, startCursor,
-        IndexTicketLedger.transport, IndexTicketLedger.semanticCursor,
-        IndexTicketLedger.semanticOwnerOf,
+        simp [startTickets, childCursor, startCursor,
         ScheduleCursor.relabelTicketOwners])
       (by
         simp only [IndexTicketLedger.semanticCursor]
         rw [childSemanticOwnerOf]
-        simp [childTickets, startTickets, hframes,
-        IndexTicketLedger.transport, IndexTicketLedger.semanticOwnerOf])
+        simp [startTickets, hframes])
   let childOwnerLedger : ScheduleOwnerLedger rest resources.window.pushChild
       childCursor :=
     startLedger.transport resources.window.pushChild
@@ -996,7 +929,7 @@ public theorem plainScheduleRun_pushSkip
       (by
         rw [hframes]
         simpa [ProductiveOwnerWindow.pushChild] using
-          startLedger.frames.pushCompress hdepthOne)
+          startLedger.frames.push)
       childPrefixLedger
   let childShadowLedger : ShadowOwnerLedger rest resources.window.pushChild
       childCursor :=
@@ -1030,7 +963,7 @@ public theorem plainScheduleRun_pushSkip
         simpa [childTickets, startTickets, hframes,
           IndexTicketLedger.transport, IndexTicketLedger.semanticOwnerOf,
           ProductiveOwnerWindow.pushChild] using
-            startTicketOwnerLedger.frames.pushCompress hdepthOne)
+            startTicketOwnerLedger.frames.push)
       childTicketPrefixLedger
   let childTicketShadowLedger : childTickets.SemanticShadowOwnerLedger rest
       resources.window.pushChild :=
@@ -1339,14 +1272,8 @@ public theorem plainScheduleRun_pushUse_of_pool_nonempty
         parentZeroOwner, childOneOwner]
     · by_cases hright : ticket = childOneTicket
       · subst ticket
-        have hownersNe : childOneOwner ≠ parentZeroOwner := by
-          intro heq
-          apply hleft
-          apply IndexTicket.semanticOwner_injective (g := g)
-          simpa [parentZeroTicket, childOneTicket, parentZeroOwner,
-            childOneOwner] using heq
         simp [ticketOwnerSwap, parentZeroTicket, childOneTicket,
-          parentZeroOwner, childOneOwner, hownersNe]
+          parentZeroOwner, childOneOwner]
       · have hleftSemantic :
             IndexTicket.semanticOwner (g := g) ticket ≠ parentZeroOwner := by
           intro heq
@@ -1443,7 +1370,7 @@ public theorem plainScheduleRun_pushUse_of_pool_nonempty
         exact hchildOneOutsidePrimaryChild
       apply Or.inr
       refine ⟨event, ?_⟩
-      simpa [ticketOwnerSwap,
+      simp [ticketOwnerSwap,
         Equiv.swap_apply_of_ne_of_ne hleft hright]
   have hswapOutsideShadowChild
       {candidate : Fin (10 * input.length)}
@@ -1625,11 +1552,6 @@ public theorem plainScheduleRun_pushUse_of_pool_nonempty
       rw [childTickets.semanticCursor_frameOwners]
       simp only [IndexTicketLedger.semanticCursor,
         ScheduleCursor.relabelTicketOwners]
-      change
-        ((childCursor.left.map
-          (ScheduleAtom.relabelTicketOwner childTickets.semanticOwnerOf)).filterMap
-            ScheduleAtom.indexOwner?).Perm
-          (childCursor.frameOwners.map childTickets.semanticOwnerOf)
       rw [ScheduleAtom.filterMap_indexOwner_relabelTicketOwner]
       exact childPrefixLedger.owners_perm.map childTickets.semanticOwnerOf
   }
@@ -1802,7 +1724,7 @@ public theorem plainScheduleRun_pushUse_of_pool_nonempty
                 (by simpa [IndexTicketLedger.semanticOwners] using
                   childFullOwnersLength) j := by
                 have hsucc : Fin.succ j =
-                    (⟨j.val + 1, by simpa using Nat.succ_lt_succ j.isLt⟩ :
+                    (⟨j.val + 1, by simp⟩ :
                       Fin ([f] :: resources.ticketShadowBlocks).length) := by
                   apply Fin.ext
                   rfl
@@ -1810,9 +1732,9 @@ public theorem plainScheduleRun_pushUse_of_pool_nonempty
                 change blockOwnerAt
                     (childTickets.semanticOwnerOf owner ::
                       childTickets.semanticOwners
-                        resources.ticketShadowOwners)
+                      resources.ticketShadowOwners)
                     childFullOwnersLength
-                    ⟨j.val + 1, by simpa using Nat.succ_lt_succ j.isLt⟩ = _
+                    ⟨j.val + 1, by simp⟩ = _
                 exact EventOwnedLayout.blockOwnerAt_cons_succ
                   (block := [f])
                   (owner := childTickets.semanticOwnerOf owner)
@@ -1862,7 +1784,7 @@ public theorem plainScheduleRun_pushUse_of_pool_nonempty
           apply Or.inl
           refine ⟨by simpa [hdepthZero] using hone, ?_⟩
           rw [htailAt, hownerEq]
-          simpa [ticketOwnerSwap, parentZeroOwner, childOneOwner,
+          simp [ticketOwnerSwap, parentZeroOwner, childOneOwner,
             hdepthZero]
         · apply Or.inr
           rw [htailAt]
@@ -2005,7 +1927,7 @@ public theorem plainScheduleRun_pushUse_of_pool_nonempty
       have hfreeLen := (List.perm_cons_erase hownerFree).length_eq
       change rest.productiveCount ≤ resources.charged + 1 +
         (resources.pool.free.erase owner).length
-      simp only [parent, NFParse.productiveCount, NFParse.binaryCount,
+      simp only [NFParse.productiveCount, NFParse.binaryCount,
         NFParse.terminalCount] at hp
       simp only [NFParse.productiveCount] at ⊢
       simp only [List.length_cons] at hfreeLen
@@ -2120,18 +2042,6 @@ public theorem plainScheduleRun_pop_false
     (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
     (rest : NFParse g B stack w) :
     PlainScheduleRun (NFParse.pop hr hlhs hc hrhs rest) := by
-  intro input unused
-  exact False.elim (unused (by simp [NFParse.ConsumesAt]))
-
-/-- The same impossible plain-pop entry under a detached parking marker. -/
-public theorem parkedPlainScheduleRun_pop_false
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {A B : g.nt} {f : g.flag} {stack : List g.flag} {w : List T}
-    {r : IRule T g.nt g.flag}
-    (hr : r ∈ g.rules) (hlhs : r.lhs = A) (hc : r.consume = some f)
-    (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
-    (rest : NFParse g B stack w) :
-    ParkedPlainScheduleRun (NFParse.pop hr hlhs hc hrhs rest) := by
   intro input unused
   exact False.elim (unused (by simp [NFParse.ConsumesAt]))
 

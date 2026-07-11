@@ -1,12 +1,12 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoCorrectness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.InputSafety
 
 @[expose]
 public section
 
 /-!
-# Reachability of Aho's padded rows
+# Padded-row reachability for Aho's machine
 
 This file proves that the semantic padded-row presentation is neither weaker nor stronger than
 the bounded composite machine.  In particular, a path starting at a raw input row can initialize
@@ -203,3 +203,4 @@ public theorem mem_paddedReachLanguage_iff_boundedReaches
 
 end Aho
 end IndexedGrammar
+

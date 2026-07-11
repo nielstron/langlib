@@ -85,7 +85,7 @@ noncomputable def binarize : IndexedGrammar T where
 Under the hypotheses, every rule falls into one of five categories.
 -/
 private lemma rule_classification
-    (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
+    (hne : g.NoEpsilon') (_hti : g.TerminalsIsolated)
     (hfs : g.FlagsSeparated) (r : IRule T g.nt g.flag) (hr : r ∈ g.rules) :
     (∃ a : T, r.rhs = [IRhsSymbol.terminal a] ∧ r.consume = none) ∨
     (∃ f : g.flag, ∃ B : g.nt, r.consume = some f ∧ r.rhs = [IRhsSymbol.nonterminal B none]) ∨
@@ -185,7 +185,7 @@ binSingleRule for multi-nonterminal rules produces NF rules.
 -/
 private lemma binSingleRule_isNF_multi
     (r : IRule T g.nt g.flag)
-    (hc : r.consume = none) (hlen : r.rhs.length ≥ 2)
+    (_hc : r.consume = none) (hlen : r.rhs.length ≥ 2)
     (hall : ∀ s ∈ r.rhs, ∃ n : g.nt, s = IRhsSymbol.nonterminal n none)
     (hfresh : ∀ s ∈ r.rhs, match s with | .nonterminal n _ => n ≠ g.initial | .terminal _ => True)
     (i : Nat)
@@ -221,7 +221,7 @@ private lemma binSingleRule_isNF_multi
               tauto;
             · rcases z with ( _ | ⟨ n, f ⟩ ) <;> simp +decide [ * ] at *;
               tauto;
-            · intro a ha; specialize hall a ( by rw [ h ] ; simp +decide [ ha ] ) ; rcases hall with ⟨ n, rfl ⟩ ; simp +decide [ hfresh ] ;
+            · intro a ha; specialize hall a ( by rw [ h ] ; simp +decide [ ha ] ) ; rcases hall with ⟨ n, rfl ⟩ ; simp +decide;
               grind) (by
             simp +arith +decide) (by
             lia) r' hr' ) r' hr'
@@ -288,7 +288,7 @@ private lemma binSingleRule_rules_mem (r : IRule T g.nt g.flag) (i : Nat)
     (r' : IRule T (g.nt ⊕ (Nat × Nat)) (Option g.flag))
     (hr' : r' ∈ g.binSingleRule i r) :
     r' ∈ g.binarize.rules := by
-  unfold IndexedGrammar.binarize; simp +decide [ hr' ] ;
+  unfold IndexedGrammar.binarize; simp +decide;
   grind
 
 /-
@@ -331,7 +331,7 @@ One-step transform in g can be simulated by multi-step derive in g.binarize.
 -/
 private lemma binarize_forward_transforms
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
-    (hfs : g.FlagsSeparated) (hfresh : g.StartNotOnRhs')
+    (hfs : g.FlagsSeparated) (_hfresh : g.StartNotOnRhs')
     {w₁ w₂ : List g.ISym}
     (h : g.Transforms w₁ w₂) :
     (g.binarize).Derives (w₁.map g.liftBinISym) (w₂.map g.liftBinISym) := by
@@ -379,10 +379,10 @@ private lemma binarize_forward_transforms
     have h_step2 : g.binarize.Transforms (u.map g.liftBinISym ++ [ISym.indexed (Sum.inl B) (none :: σ.map some)] ++ v.map g.liftBinISym) (u.map g.liftBinISym ++ [ISym.indexed (Sum.inl B) (σ.map some)] ++ v.map g.liftBinISym) := by
       use ⟨ Sum.inl B, some none, [IRhsSymbol.nonterminal (Sum.inl B) none] ⟩, u.map g.liftBinISym, v.map g.liftBinISym, σ.map some;
       simp +decide [ IndexedGrammar.binarize, IndexedGrammar.expandRhs ];
-      obtain ⟨ i, hi ⟩ := List.mem_iff_get.mp hr; use r, i; simp_all +decide [ List.get ] ;
+      obtain ⟨ i, hi ⟩ := List.mem_iff_get.mp hr; use r, i; simp_all +decide;
       grind +locals;
     convert deri_of_tran_deri h_step1 ( deri_of_tran h_step2 ) using 1;
-    · simp +decide [ List.map_append ];
+    · simp +decide;
       rfl;
     · simp +decide [ IndexedGrammar.expandRhs ];
       rfl;
@@ -419,7 +419,7 @@ Forward: g.Generates w → g.binarize.Generates w
 private lemma binarize_generates_forward
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
     (hfs : g.FlagsSeparated) (hfresh : g.StartNotOnRhs')
-    {w : List T} (hw : w ≠ []) (h : g.Generates w) :
+    {w : List T} (_hw : w ≠ []) (h : g.Generates w) :
     (g.binarize).Generates w := by
   convert binarize_forward_derives g hne hti hfs hfresh h;
   unfold IndexedGrammar.Generates; aesop;
@@ -669,7 +669,7 @@ private lemma unbinarize_binarizeChain_tail_eq
 /-- unbinarize_rule_step for a specific binSingleRule output r' given original rule r. -/
 private lemma unbinarize_rule_step_of
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
-    (hfs : g.FlagsSeparated) (hfresh : g.StartNotOnRhs')
+    (hfs : g.FlagsSeparated) (_hfresh : g.StartNotOnRhs')
     (i : Nat) (r : IRule T g.nt g.flag) (hi : g.rules[i]? = some r)
     (r' : IRule T (g.nt ⊕ (Nat × Nat)) (Option g.flag))
     (hr' : r' ∈ g.binSingleRule i r)
@@ -704,7 +704,7 @@ private lemma unbinarize_rule_step_of
     rcases hr' with rfl | rfl
     · convert derives_rule_expansion g r hr (g.stripStack σ) using 1 <;>
         simp +decide [hc, hrhs, IndexedGrammar.unbinarizeSym, IndexedGrammar.unbinarizeSF,
-          IndexedGrammar.expandRhs, IndexedGrammar.binLiftRhsSym, IndexedGrammar.stripStack]
+          IndexedGrammar.expandRhs, IndexedGrammar.stripStack]
     · simp +decide [IndexedGrammar.unbinarizeSym, IndexedGrammar.unbinarizeSF,
         IndexedGrammar.expandRhs, IndexedGrammar.stripStack]
       exact deri_self g [ISym.indexed B (g.stripStack σ)]
@@ -718,7 +718,7 @@ private lemma unbinarize_rule_step_of
           simp +decide [IndexedGrammar.binarizeChain] at hr'
           rcases hr' with rfl
           convert derives_rule_expansion g r hr (g.stripStack σ) using 1
-          · simp +decide [hc, hrhs_eq, IndexedGrammar.unbinarizeSym,
+          · simp +decide [hc, IndexedGrammar.unbinarizeSym,
               IndexedGrammar.stripStack]
           · simpa +decide [hrhs_eq] using unbinarize_expandRhs_nonterminals g r hall σ
       | cons z rest ih =>
@@ -729,7 +729,7 @@ private lemma unbinarize_rule_step_of
               simp
             rcases hall x hx_mem with ⟨nx, rfl⟩
             convert derives_rule_expansion g r hr (g.stripStack σ) using 1
-            · simp +decide [hc, hrhs_eq, IndexedGrammar.unbinarizeSym,
+            · simp +decide [hc, IndexedGrammar.unbinarizeSym,
                 IndexedGrammar.stripStack]
             · have hchain := unbinarizeSym_chain_expandRhs g r i 0 hi hall σ
               simp +decide [hrhs_eq, IndexedGrammar.unbinarizeSym,
@@ -800,7 +800,7 @@ Backward: g.binarize.Generates w → g.Generates w
 private lemma binarize_generates_backward
     (hne : g.NoEpsilon') (hti : g.TerminalsIsolated)
     (hfs : g.FlagsSeparated) (hfresh : g.StartNotOnRhs')
-    {w : List T} (hw : w ≠ []) (h : (g.binarize).Generates w) :
+    {w : List T} (_hw : w ≠ []) (h : (g.binarize).Generates w) :
     g.Generates w := by
   convert unbinarize_derives g hne hti hfs hfresh h;
   -- By definition of `Generates`, we have that `g.Generates w` means `g.Derives [ISym.indexed g.initial []] (w.map ISym.terminal)`.

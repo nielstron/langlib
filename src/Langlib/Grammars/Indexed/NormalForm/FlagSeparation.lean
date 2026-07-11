@@ -283,7 +283,7 @@ theorem fsSingleRule_terminalsIsolated (i : Nat) (r : IRule T g.nt g.flag)
     (∀ s ∈ r'.rhs, ∃ n f, s = IRhsSymbol.nonterminal n f) := by
   cases r';
   unfold IndexedGrammar.fsSingleRule at hr';
-  split_ifs at hr' <;> simp_all +decide only [List.mem_cons, List.mem_singleton];
+  split_ifs at hr' <;> simp_all +decide only;
   · split_ifs at hr';
     · rename_i h₁ h₂ h₃;
       cases hr';
@@ -294,7 +294,7 @@ theorem fsSingleRule_terminalsIsolated (i : Nat) (r : IRule T g.nt g.flag)
         rename_i h;
         have := fsSingleRule_ti_filterMap_push g i 1 r.rhs.zipIdx _ h;
         exact this;
-    · cases hr' <;> simp_all +decide [ List.mem_cons, List.mem_singleton ];
+    · cases hr' <;> simp_all +decide [List.mem_cons];
       rename_i k hk₁ hk₂ hk₃;
       cases hk₃;
       · rcases hti with ( ⟨ a, ha ⟩ | hti ) <;> simp_all +decide [ List.map ];
@@ -303,7 +303,7 @@ theorem fsSingleRule_terminalsIsolated (i : Nat) (r : IRule T g.nt g.flag)
       · contradiction;
   · grind +suggestions;
   · split_ifs at hr';
-    · cases hti <;> simp_all +decide [ List.mem_singleton ];
+    · cases hti <;> simp_all +decide;
       · grind;
       · exact Or.inr fun s hs => by obtain ⟨ n, f, rfl ⟩ := ‹∀ s ∈ r.rhs, ∃ n f, s = IRhsSymbol.nonterminal n f› s hs; exact Or.inl ⟨ n, f, rfl ⟩ ;
     · cases hr';
@@ -369,7 +369,7 @@ private theorem fsSingleRule_fs_passRule (r : IRule T g.nt g.flag) (i : Nat)
     IRule.FlagsSeparated
       (⟨Sum.inr (i, 0), none, r.rhs.map g.fsStripPushRhsSym⟩ :
         IRule T (g.nt ⊕ (Nat × Nat)) g.flag) := by
-  constructor <;> simp_all +decide [ IRule.FlagsSeparated ];
+  constructor <;> simp_all +decide;
   exact Or.inl fun s hs => by obtain ⟨ n, f, rfl ⟩ := hti s hs; exact Or.inl ⟨ n, rfl ⟩ ;
 
 /-
@@ -432,7 +432,7 @@ theorem fsSingleRule_flagsSeparated (i : Nat) (r : IRule T g.nt g.flag)
     · unfold IndexedGrammar.fsSingleRule at hr';
       cases hti <;> simp_all +decide [ IRule.FlagsSeparated ];
       · cases hr' <;> aesop;
-      · rcases hr' with ( rfl | rfl ) <;> simp_all +decide [ IRule.FlagsSeparated ];
+      · rcases hr' with ( rfl | rfl ) <;> simp_all +decide;
         exact Or.inl fun s hs => by rcases ‹∀ s ∈ r.rhs, ∃ n f, s = IRhsSymbol.nonterminal n f› s hs with ⟨ n, f, rfl ⟩ ; exact Or.inl ⟨ n, rfl ⟩ ;
     · unfold IndexedGrammar.fsSingleRule at hr';
       simp [hc, hnp] at hr';
@@ -576,8 +576,9 @@ theorem fsSingleRule_startNotOnRhs (i : Nat) (r : IRule T g.nt g.flag)
         (s, j) ∈ r.rhs.zipIdx → s ∈ r.rhs :=
     fun {_} {_} h => fst_mem_of_mem_zipIdx h
   unfold IndexedGrammar.fsSingleRule at hr'
-  aesop (add safe [fsLiftRhsSym_ne_start, fsStripPushRhsSym_ne_start,
-    fsReplaceRhsSym_ne_start, start_nonterminal_not_mem_zipIdx])
+  aesop (config := { warnOnNonterminal := false })
+    (add safe [fsLiftRhsSym_ne_start, fsStripPushRhsSym_ne_start,
+      fsReplaceRhsSym_ne_start, start_nonterminal_not_mem_zipIdx])
   all_goals
     solve_by_elim [fsLiftRhsSym_ne_start, fsStripPushRhsSym_ne_start,
       fsReplaceRhsSym_ne_start, start_nonterminal_not_mem_zipIdx, hzip_mem]
@@ -682,7 +683,7 @@ private theorem resolveIntermediatesPairs
     have h₂ := deri_with_prefix
       (expandRhs g.flagSeparate [g.fsLiftRhsSym s] σ)
       h_tail
-    convert h₁.trans h₂ using 1 <;> simp [expandRhs]
+    exact h₁.trans h₂
 
 theorem resolveIntermediates (rhs : List (IRhsSymbol T g.nt g.flag)) (i offset : Nat)
     (hri : ∀ (s : IRhsSymbol T g.nt g.flag) (j : Nat),
@@ -1004,7 +1005,7 @@ private theorem fsUnsepSym_inr_push_consume
     g.fsUnsepSym (.indexed (Sum.inr (i, j + 1)) σ) = [ISym.indexed n (f :: σ)] := by
   have hi := getElem?_of_mem_zipIdx hri
   have hs := getElem?_of_mem_zipIdx hmem
-  simp [fsUnsepSym, fsUnsepIntermediate, hi, hc, hs, Nat.add_sub_cancel]
+  simp [fsUnsepSym, fsUnsepIntermediate, hi, hc, hs]
 
 private theorem fsUnsepSym_inr_push_noConsume
     (i j : Nat) (r : IRule T g.nt g.flag) (hri : (r, i) ∈ g.rules.zipIdx)
@@ -1064,19 +1065,16 @@ private theorem fsUnsepSF_expand_replace_consume
       simp [fsUnsepSF, expandRhs] at iht
       cases s with
       | terminal t =>
-          simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
-            fsUnsepIntermediate, expandRhs, hi, hc]
+          simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym, expandRhs]
           exact iht
       | nonterminal n f =>
           cases f with
           | none =>
-              simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
-                fsUnsepIntermediate, expandRhs, hi, hc]
+              simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym, expandRhs]
               exact iht
           | some f =>
               simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
-                fsUnsepIntermediate, expandRhs, hi, hc, hhead,
-                Nat.add_sub_cancel]
+                fsUnsepIntermediate, expandRhs, hi, hc, hhead]
               exact iht
 
 private theorem fsUnsepSF_expand_replace_noConsume
@@ -1103,14 +1101,12 @@ private theorem fsUnsepSF_expand_replace_noConsume
       simp [fsUnsepSF, expandRhs] at iht
       cases s with
       | terminal t =>
-          simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
-            fsUnsepIntermediate, expandRhs, hi, hc]
+          simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym, expandRhs]
           exact iht
       | nonterminal n f =>
           cases f with
           | none =>
-              simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
-                fsUnsepIntermediate, expandRhs, hi, hc]
+              simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym, expandRhs]
               exact iht
           | some f =>
               simp [List.zipIdx_cons, fsUnsepSF, fsUnsepSym, fsReplaceRhsSym,
@@ -1129,7 +1125,7 @@ private theorem fsUnsep_rule_step_of
       (g.fsUnsepSF (expandRhs g.flagSeparate r'.rhs σ)) := by
   have hr_mem : r ∈ g.rules := fst_mem_of_mem_zipIdx hri
   unfold IndexedGrammar.fsSingleRule at hr'
-  aesop
+  aesop (config := { warnOnNonterminal := false })
   all_goals
     first
     | have hi := getElem?_of_mem_zipIdx hri

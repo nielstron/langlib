@@ -28,7 +28,7 @@ public theorem overlayScheduleRun_terminal_false
   intro input head overlayTail protectedFlags hidden blocks owners word used hstack
     baseLayout overlayLayout hall
   have htop := hall 0 overlayLayout.flags_length_pos
-  exact False.elim (by simpa [NFParse.ConsumesAt] using htop)
+  simp [NFParse.ConsumesAt] at htop
 
 end Aho
 end IndexedGrammar

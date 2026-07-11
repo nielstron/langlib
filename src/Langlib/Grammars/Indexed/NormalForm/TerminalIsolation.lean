@@ -132,7 +132,7 @@ theorem termIsolate_inr_derives_terminal (t : T) (ht : t ∈ collectTerminals g)
   apply deri_of_tran;
   -- Apply the terminal rule to transform [ISym.indexed (Sum.inr t) []] into [ISym.terminal t].
   use ⟨Sum.inr t, none, [IRhsSymbol.terminal t]⟩, [], [], []
-  simp [ht];
+  simp;
   exact ⟨ List.mem_append_right _ ( List.mem_map.mpr ⟨ t, ht, rfl ⟩ ), by rfl ⟩
 
 /-
@@ -268,12 +268,12 @@ theorem termIsolate_proj_transforms {w₁ w₂ : List (g.termIsolate).ISym}
     cases h : r'.consume <;> simp_all +decide [ IndexedGrammar.tiProjSF ];
     · convert deri_of_tran _ using 1;
       use r', u.map g.tiProjISym, v.map g.tiProjISym, σ;
-      simp +decide [ h, tiProjSF_expandRhs_transformed ];
+      simp +decide [ h ];
       exact ⟨ by assumption, rfl, tiProjSF_expandRhs_transformed g r' σ ⟩;
     · convert deri_of_tran _ using 1;
       use r';
       use List.map g.tiProjISym u, List.map g.tiProjISym v, σ;
-      simp +decide [ h, tiProjSF_expandRhs_transformed ];
+      simp +decide [ h ];
       exact ⟨ by assumption, rfl, tiProjSF_expandRhs_transformed g r' σ ⟩;
   · unfold termIsolate at hr; simp_all +decide ;
     rcases hr with ⟨ a, ha, rfl ⟩ ; simp_all +decide [ IndexedGrammar.expandRhs ] ;

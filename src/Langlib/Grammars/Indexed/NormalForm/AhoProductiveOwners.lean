@@ -147,8 +147,7 @@ public theorem consumeRoute_popContinuation_noBinary_with_owners
           have : e = d := by omega
           simpa [this] using he
       · intro d
-        simpa [Nat.add_comm] using
-          (NFParse.eventOwnerNat_pop_succ hr hlhs hc hrhs rest d).symm
+        simp [Nat.add_comm]
   | @popTail A B f stack w r hr hlhs hc hrhs rest k route ih =>
       rcases ih hroute with
         ⟨Y, suffix, residual, hsuffix, path, hcount, hconsumes, hevents, howners⟩
@@ -213,7 +212,7 @@ public theorem consumeRoute_popContinuation_noBinary_with_owners
             · intro hd
               have hrest := (hevents d).1 hd
               exact Finset.mem_image.mpr ⟨k + 2 + d, hrest, by
-                simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]⟩
+                simp [Nat.add_comm, Nat.add_left_comm]⟩
             · intro hd
               rcases Finset.mem_image.mp hd with ⟨e, he, hed⟩
               have heq : e = k + 2 + d := by
@@ -244,7 +243,7 @@ public structure ProductiveOwnerWindow
   end_le : base + parse.productiveCount ≤ 2 * input.length - 1
 
 /-- Start of the generic ghost-owner pool.  The preceding interval contains the primary and
-shadow semantic windows together with the two legacy temporary labels; every pooled label is
+shadow semantic windows together with the two dedicated temporary labels; every pooled label is
 therefore outside both semantic windows and distinct from both temporary labels. -/
 public def genericOwnerOffset (input : List T) : ℕ :=
   4 * input.length
@@ -253,6 +252,7 @@ public def genericOwnerOffset (input : List T) : ℕ :=
 public def genericOwner
     {g : IndexedGrammar T} {input : List T}
     (slot : Fin (6 * input.length)) : Fin (10 * input.length) :=
+  let _ := g
   ⟨genericOwnerOffset input + slot.val, by
     have := slot.isLt
     simp only [genericOwnerOffset]
@@ -314,6 +314,7 @@ namespace ProductiveOwnerWindow
 public def scratchOwner
     {g : IndexedGrammar T} {input : List T}
     (hinput : 0 < input.length) : Fin (10 * input.length) :=
+  let _ := g
   ⟨4 * input.length - 2, by omega⟩
 
 @[simp] public theorem scratchOwner_val
@@ -325,6 +326,7 @@ public def scratchOwner
 public def transientOwner
     {g : IndexedGrammar T} {input : List T}
     (hinput : 0 < input.length) : Fin (10 * input.length) :=
+  let _ := g
   ⟨4 * input.length - 1, by omega⟩
 
 @[simp] public theorem transientOwner_val

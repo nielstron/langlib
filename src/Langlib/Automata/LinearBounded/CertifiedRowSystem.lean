@@ -249,7 +249,7 @@ private def scanOptions (S : CertifiedRowSystem I A C Q F) :
   | q, [] => some q
   | q, x :: xs => (scanSymbol S q x).bind fun q' => scanOptions S q' xs
 
-private def scanTape (S : CertifiedRowSystem I A C Q F) {n : ℕ} (side : Side)
+private def scanTape (_S : CertifiedRowSystem I A C Q F) {n : ℕ} (side : Side)
     (a₀ a₁ : Fin (n + 1) → Option A) (cert : Fin (n + 1) → Option C) :
     List (ScanSymbol A C) :=
   List.ofFn fun k => (trackFn side a₀ a₁ k, trackFn side.other a₀ a₁ k, cert k)
@@ -267,7 +267,7 @@ private lemma scanOptions_append (q : Q) (xs ys : List (ScanSymbol A C)) :
   | nil => simp [scanOptions]
   | cons x xs ih =>
       simp only [List.cons_append, scanOptions]
-      cases h : scanSymbol S q x <;> simp [h, ih]
+      cases h : scanSymbol S q x <;> simp [ih]
 
 private lemma scanOptions_append_some {q q' : Q} {xs : List (ScanSymbol A C)}
     (h : scanOptions S q xs = some q') (old new : A) (cert : C) :
@@ -470,8 +470,8 @@ private lemma init_to_tmp {n : ℕ} (input : Fin (n + 1) → I) :
   rcases Nat.eq_zero_or_pos n with rfl | hn
   · apply Relation.ReflTransGen.single
     refine ⟨.initSweep, tmpCell S input i₀, .right, hmem, ?_⟩
-    simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_neg (by omega : ¬ 0 < 0)]
-    refine cfg_eq rfl ?_ (Fin.ext (by simp [i₀]))
+    simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
+    refine cfg_eq rfl ?_ (Fin.ext (by simp))
     have hi₀ : i₀ = 0 := Fin.ext rfl
     rw [← hi₀, hupd]
     exact (initTapeAt_full S input).symm
@@ -480,7 +480,7 @@ private lemma init_to_tmp {n : ℕ} (input : Fin (n + 1) → I) :
     · refine ⟨.initSweep, tmpCell S input i₀, .right, hmem, ?_⟩
       simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
       apply cfg_eq rfl hupd.symm
-      simp [i₀, hn]
+      simp [hn]
     · have hone : (1 : ℕ) ≤ (⟨1, by omega⟩ : Fin (n + 1)).val := by simp
       simpa [initTapeAt_full] using convert_sweep S input ⟨1, by omega⟩ hone
 
@@ -506,7 +506,7 @@ private lemma tmp_to_marked {n : ℕ} (input : Fin (n + 1) → I) :
       simp only [Function.update_apply]
       by_cases hk : k = Fin.last n
       · subst k
-        simp [out, W, markedTape, markedCell, tmpCell, inputWorkCell]
+        simp [out, W, markedTape, markedCell]
       · rw [if_neg hk]
         have hkn : k.val ≠ n := fun h => hk (Fin.ext (by simpa using h))
         simp [markedTape, markedCell, tmpCell, inputWorkCell, hkn]
@@ -644,7 +644,7 @@ private lemma stepTapeAt_update {n : ℕ} (side : Side)
   simp only [stepTapeAt]
   rw [update_markedTape]
   cases side <;>
-    simp [stepTapeAt, stepTrack0At, stepTrack1At, stepCertAt, prefixWrite_update]
+    simp [stepTrack0At, stepTrack1At, stepCertAt, prefixWrite_update]
 
 private lemma stepTapeAt_full {n : ℕ} (side : Side)
     (a₀ a₁ : Fin (n + 1) → Option A) (cert₀ : Fin (n + 1) → Option C)
@@ -663,7 +663,7 @@ private lemma stepTapeAt_zero {n : ℕ} (side : Side)
     stepTapeAt (I := I) side a₀ a₁ cert₀ new cert 0 =
       markedTape (I := I) a₀ a₁ cert₀ := by
   cases side <;>
-    simp [stepTapeAt, stepTrack0At, stepTrack1At, stepCertAt, prefixWrite]
+    simp [stepTapeAt, stepTrack0At, stepTrack1At, stepCertAt]
 
 private def desiredScan {n : ℕ} (old new : Fin (n + 1) → A)
     (cert : Fin (n + 1) → C) : List (ScanSymbol A C) :=
@@ -872,7 +872,7 @@ private lemma simulate_step {n : ℕ} (side : Side)
       · subst n
         have hq : q₁ = qend := by
           have := hend
-          simp [desiredScan, scanOptions, scanSymbol, List.ofFn_succ, q₁] at this
+          simp [desiredScan, scanOptions, scanSymbol, List.ofFn_succ] at this
           exact this
         simp [q₁, out, hq, hdone]
       · have h0n : 0 ≠ n := Ne.symm hn
@@ -907,7 +907,7 @@ private lemma simulate_step {n : ℕ} (side : Side)
           ⟨stepTapeAt (I := I) side a₀ a₁ cert₀ new cert 1, head₁⟩⟩ := by
       refine ⟨.step side q₁, out, .right, ?_, ?_⟩
       · simpa [hn] using hfirstMem
-      · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hnpos]
+      · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
         have hup := stepTapeAt_update (I := I) side a₀ a₁ cert₀ new cert
           (0 : Fin (n + 1))
         exact cfg_eq rfl (by simpa [stepTapeAt_zero, out, eq_comm] using hup.symm)
@@ -1582,15 +1582,14 @@ private lemma sound_ready_step {n : ℕ} (input : Fin (n + 1) → I)
             _ = trackFn side a₀ a₁ 0 := by cases side <;> rfl
             _ = none := ha
         rw [finalChoice, hw] at hfinal
-        simpa using hfinal
+        simp at hfinal
     | some old =>
         let qnew := S.finalCell S.finalStart old
         have hscanPrefix : scanFinalOptions S S.finalStart
             ((List.ofFn (trackFn side a₀ a₁)).take 1) = some qnew := by
-          have ht := take_succ_ofFn (trackFn side a₀ a₁) (0 : Fin (n + 1))
           rw [show (List.ofFn (trackFn side a₀ a₁)).take 1 =
               (List.ofFn (trackFn side a₀ a₁)).take 0 ++ [some old] by
-            simpa [ha] using ht]
+            simp [ha]]
           simp [scanFinalOptions, ha, qnew]
         by_cases hn : n = 0
         · subst n
@@ -1629,7 +1628,7 @@ private lemma sound_ready_step {n : ℕ} (input : Fin (n + 1) → I)
               _ = trackFn side a₀ a₁ 0 := by cases side <;> rfl
               _ = some old := ha
           rw [finalChoice, hw] at hfinal
-          simp [h0n, qnew] at hfinal
+          simp [h0n] at hfinal
           obtain ⟨rfl, rfl, rfl⟩ := hfinal
           have hnpos : 0 < n := Nat.pos_of_ne_zero hn
           simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
@@ -1742,7 +1741,7 @@ private lemma sound_final_step {n : ℕ} (input : Fin (n + 1) → I)
           _ = trackFn side a₀ a₁ head := by cases side <;> rfl
           _ = none := ha
       rw [finalChoice, hw] at hmem
-      simpa using hmem
+      simp at hmem
   | some old =>
       have hw : WorkCell.track side
           ⟨decide (head.val = 0), decide (head.val = n), a₀ head, a₁ head, cert head⟩ =
@@ -1783,7 +1782,7 @@ private lemma sound_final_step {n : ℕ} (input : Fin (n + 1) → I)
         rw [hu]
         exact SoundClaim.accept side a₀ a₁ cert head hpath hfin
       · have hlt : head.val < n := by have := head.isLt; omega
-        simp [hlast, qnew] at hmem
+        simp [hlast] at hmem
         obtain ⟨rfl, rfl, rfl⟩ := hmem
         simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
         have hu : Function.update (markedTape (I := I) a₀ a₁ cert) head
@@ -1839,7 +1838,7 @@ private lemma sound_back_step {n : ℕ} (input : Fin (n + 1) → I)
     exact SoundClaim.back side a₀ a₁ cert ⟨head.val - 1, by omega⟩ hpath
 
 private lemma sound_accept_step {n : ℕ} (input : Fin (n + 1) → I)
-    (side : Side) (a₀ a₁ : Fin (n + 1) → Option A)
+    (_side : Side) (a₀ a₁ : Fin (n + 1) → Option A)
     (cert : Fin (n + 1) → Option C) (head : Fin (n + 1))
     {cfg' : DLBA.Cfg (TapeCell I A C) (State Q F) n}
     (hstep : LBA.Step (machine S)

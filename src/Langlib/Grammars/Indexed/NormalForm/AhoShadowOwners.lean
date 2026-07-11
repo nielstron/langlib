@@ -225,7 +225,7 @@ public theorem eventOwner
   left
   have hlt := parse.eventOwnerNat_lt_productiveCount hd
   have hend := window.end_le
-  simp only [OutsideShadowWindow, ProductiveOwnerWindow.eventOwner_val,
+  simp only [ProductiveOwnerWindow.eventOwner_val,
     shadowOwnerOffset]
   omega
 
@@ -240,7 +240,7 @@ public theorem scratchOwner
       (ProductiveOwnerWindow.scratchOwner (g := g) hinput) := by
   right
   have hend := window.end_le
-  simp only [OutsideShadowWindow, ProductiveOwnerWindow.scratchOwner_val,
+  simp only [ProductiveOwnerWindow.scratchOwner_val,
     shadowOwnerOffset]
   omega
 
@@ -255,7 +255,7 @@ public theorem transientOwner
       (ProductiveOwnerWindow.transientOwner (g := g) hinput) := by
   right
   have hend := window.end_le
-  simp only [OutsideShadowWindow, ProductiveOwnerWindow.transientOwner_val,
+  simp only [ProductiveOwnerWindow.transientOwner_val,
     shadowOwnerOffset]
   omega
 
@@ -271,7 +271,7 @@ public theorem genericOwner
   right
   have hend := window.end_le
   have hge := genericOwnerRange_val_ge howner
-  simp only [OutsideShadowWindow, genericOwnerOffset, shadowOwnerOffset] at hge ⊢
+  simp only [genericOwnerOffset, shadowOwnerOffset] at hge ⊢
   omega
 
 /-- Equal-count transports preserve shadow-window exclusion. -/
@@ -352,7 +352,7 @@ public theorem binaryZero_left
       shadowOwnerOffset input + window.base := by
     change shadowOwnerOffset input + (window.eventOwner 0 hzero).val = _
     rw [hprimary]
-  simp only [OutsideShadowWindow, ProductiveOwnerWindow.binaryLeft_base]
+  simp only [ProductiveOwnerWindow.binaryLeft_base]
   omega
 
 /-- The binary root ticket is already outside the right child's shadow window. -/
@@ -375,7 +375,7 @@ public theorem binaryZero_right
       shadowOwnerOffset input + window.base := by
     change shadowOwnerOffset input + (window.eventOwner 0 hzero).val = _
     rw [hprimary]
-  simp only [OutsideShadowWindow, ProductiveOwnerWindow.binaryRight_base]
+  simp only [ProductiveOwnerWindow.binaryRight_base]
   omega
 
 end OutsideShadowWindow

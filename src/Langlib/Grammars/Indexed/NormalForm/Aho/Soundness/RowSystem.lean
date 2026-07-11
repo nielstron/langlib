@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowSystemCompleteness
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowWorkSoundness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Completeness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowWork.FrameReturn
 
 @[expose]
 public section

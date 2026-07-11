@@ -1,14 +1,14 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoCompleteness
-public import Langlib.Grammars.Indexed.NormalForm.AhoPaddedReach
-public import Langlib.Grammars.Indexed.NormalForm.AhoSoundness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.PaddedReach
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Acceptance
+public import Langlib.Grammars.Indexed.NormalForm.AhoCertificate
 
 @[expose]
 public section
 
 /-!
-# Language correctness of Aho's bounded simulation
+# Language equivalence for Aho's bounded simulation
 
 This module isolates the final grammar/machine language argument.  Soundness is unconditional;
 the completeness hypothesis is precisely the uniform twenty-one-slots-per-terminal theorem supplied

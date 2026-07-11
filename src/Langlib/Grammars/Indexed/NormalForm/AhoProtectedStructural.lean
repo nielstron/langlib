@@ -8,9 +8,9 @@ public section
 /-!
 # Productive structural steps for protected tasks
 
-The protected atomic runner handles a unary interval ending in a pop.  At a productive binary
+The protected atomic runner handles a unary interval ending in a pop. At a productive binary
 event the two children may consume different aligned prefixes of the shared protected layout;
-at a push event a fresh ephemeral singleton is delegated to the ephemeral runner.
+at a push event the runner allocates a fresh compressed singleton.
 -/
 
 variable {T : Type}
@@ -60,7 +60,7 @@ private theorem takeFlattenLengthReflectsLECurrent
                 omega
               exact Nat.succ_le_succ (ih htail ha' hb' htailLength)
 
-/-- Local earlier-boundary block-count comparison, independent of the legacy ephemeral file. -/
+/-- Local earlier-boundary block-count comparison used by the structural proof. -/
 private theorem blockCountLEOfFlagCountLECurrent
     {g : IndexedGrammar T} [Fintype g.nt]
     {blocks : List (List g.flag)} {d e : ℕ}
@@ -119,8 +119,7 @@ end NFParse
 
 namespace EventCompatible
 
-/-- Restrict compatibility to an aligned maximal consumed prefix without importing the
-legacy ephemeral structural runner. -/
+/-- Restrict compatibility to an aligned maximal consumed prefix. -/
 private def takeAtConsumedBoundaryCurrent
     {g : IndexedGrammar T} [Fintype g.nt]
     {A : g.nt} {stack : List g.flag} {w : List T}
@@ -737,7 +736,7 @@ public theorem protectedScheduleRun_binary_atOrBelow
       omega
   have hfork : ScheduleInvariant forkCursor := by
     dsimp [forkCursor, startCursor]
-    exact ScheduleInvariant.liveBinary (alpha ++ [ScheduleAtom.dollar]) word
+    exact ScheduleInvariant.plainBinary (alpha ++ [ScheduleAtom.dollar]) word
       parentTask leftTask rightTask hleftOwner hrightFresh hstart'
   have hindicesFork : forkCursor.indexOwners = startCursor.indexOwners := by
     simp [forkCursor, startCursor, ScheduleCursor.indexOwners,
@@ -914,8 +913,7 @@ public theorem protectedScheduleRun_binary_atOrBelow
   have htaskPerm : forkCursor.taskOwners.Perm
       (rightTask.owner :: startCursor.taskOwners) := by
     simp only [forkCursor, startCursor, ScheduleCursor.taskOwners_mk,
-      ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil,
-      List.append_nil]
+      ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
     rw [hleftOwner]
     simpa only [List.append_assoc] using
       (List.perm_middle
@@ -1086,8 +1084,6 @@ public theorem protectedScheduleRun_binary_atOrBelow
         rw [ScheduleRunResources.rebaseCursor_window,
           ScheduleRunResources.rebaseCursor_semanticOwners,
           leftResourcesWindow, leftResourcesTickets]
-        change EventOwnedLayout leftParse resources.window.binaryLeft blocks
-          (forkTickets.semanticOwners owners)
         exact leftTicketOwnerLayout)
       (by
         refine ⟨parkedBlocks, parkedOwners, ?_, ?_⟩
@@ -1132,8 +1128,7 @@ public theorem protectedScheduleRun_binary_atOrBelow
     have hfinishPerm : forkCursor.taskOwners.Perm
         (leftTask.owner :: rightCursor.taskOwners) := by
       simp only [forkCursor, rightCursor, ScheduleCursor.taskOwners_mk,
-        ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil,
-        List.append_nil]
+        ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
       rw [layout.taskOwners_eq]
       simpa only [List.append_assoc] using
         (List.perm_middle
@@ -1694,8 +1689,7 @@ public theorem protectedScheduleRun_binary_atOrBelow
       have hfinishPerm : forkCursor.taskOwners.Perm
           (leftTask.owner :: rightCursor.taskOwners) := by
         simp only [forkCursor, rightCursor, ScheduleCursor.taskOwners_mk,
-          ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil,
-          List.append_nil]
+          ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
         simpa only [List.append_assoc] using
           (List.perm_middle
             (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap
@@ -2141,8 +2135,7 @@ public theorem protectedScheduleRun_binary_atOrBelow
       have hfinishPerm : forkCursor.taskOwners.Perm
           (leftTask.owner :: rightCursor.taskOwners) := by
         simp only [forkCursor, rightCursor, ScheduleCursor.taskOwners_mk,
-          ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil,
-          List.append_nil]
+          ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
         rw [prefixLayout.taskOwners_eq]
         simpa only [List.append_assoc] using
           (List.perm_middle

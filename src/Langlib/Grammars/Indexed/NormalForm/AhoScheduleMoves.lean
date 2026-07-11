@@ -254,7 +254,7 @@ public theorem plainBinary
     ScheduleInvariant ⟨left, .task leftTask, .task rightTask :: right⟩ := by
   apply ScheduleInvariant.insertTaskOwner hinv rightTask.owner hrightFresh
   · simp only [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?,
-      List.filterMap_cons, List.filterMap_nil, List.append_nil]
+      List.filterMap_cons, List.filterMap_nil]
     rw [hleftOwner]
     simpa only [List.append_assoc, List.append_nil] using
       (List.perm_middle (l₁ := left.filterMap ScheduleAtom.taskOwner? ++ [parent.owner])
@@ -298,33 +298,6 @@ public theorem plainPushUse
   · simp [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?]
   · simp [ScheduleCursor.word]
     omega
-
-/-- Mode-neutral alias used by live binary branches. -/
-public theorem liveBinary
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    (left right : List (ScheduleAtom g input))
-    (parent first second : ScheduleTask g input)
-    (hfirstOwner : first.owner = parent.owner)
-    (hsecondFresh : second.owner ∉
-      (ScheduleCursor.mk left (.task parent) right).taskOwners)
-    (hinv : ScheduleInvariant ⟨left, .task parent, right⟩) :
-    ScheduleInvariant ⟨left, .task first, .task second :: right⟩ :=
-  plainBinary left right parent first second hfirstOwner hsecondFresh hinv
-
-/-- Mode-neutral alias used when a live push allocates a fresh block. -/
-public theorem livePushFresh
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    (left right : List (ScheduleAtom g input))
-    (parent child : ScheduleTask g input) (idx : ScheduleIndex g input)
-    (htaskOwner : child.owner = parent.owner)
-    (hindexFresh : idx.owner ∉
-      (ScheduleCursor.mk left (.task parent) right).indexOwners)
-    (hcapacity :
-      (ScheduleCursor.mk left (.task parent) right).indexOwners.length <
-        6 * input.length)
-    (hinv : ScheduleInvariant ⟨left, .task parent, right⟩) :
-    ScheduleInvariant ⟨left, .task child, .index idx :: right⟩ :=
-  plainPushUse left right parent child idx htaskOwner hindexFresh hcapacity hinv
 
 /-- Replace a focused live task and its adjacent represented block without changing either
 persistent owner.  This is the invariant part of `livePushCompress`. -/
@@ -384,7 +357,7 @@ public theorem matchTerminal
     cases next <;> simp [ScheduleAtom.closeOwner?]
   apply ScheduleInvariant.removeTaskOwner hinv owner
   · simp only [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?, htaskNext,
-      List.filterMap_cons, List.filterMap_nil, List.append_nil]
+      List.filterMap_cons, List.filterMap_nil]
     simpa only [List.append_assoc, List.append_nil] using
       (List.perm_middle (l₁ := left.filterMap ScheduleAtom.taskOwner?)
         (l₂ := [next].filterMap ScheduleAtom.taskOwner? ++
@@ -423,7 +396,7 @@ public theorem finishTask
     cases next <;> simp [ScheduleAtom.closeOwner?]
   apply ScheduleInvariant.removeTaskOwner hinv task.owner
   · simp only [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?, htaskNext,
-      List.filterMap_cons, List.filterMap_nil, List.append_nil]
+      List.filterMap_cons, List.filterMap_nil]
     simpa only [List.append_assoc] using
       (List.perm_middle (l₁ := left.filterMap ScheduleAtom.taskOwner?)
         (l₂ := [next].filterMap ScheduleAtom.taskOwner? ++
@@ -439,7 +412,7 @@ public theorem finishTask
 
 /-! ## Pop-frame cursor changes -/
 
-/-- Pop and immediately erase an adjacent ephemeral block.  No frame is opened: the selected
+/-- Pop and immediately erase an adjacent compressed block. No frame is opened: the selected
 index is owned by the active call, so after applying its relation the residual task may reuse
 that owner. -/
 public theorem popErase
@@ -498,7 +471,7 @@ public theorem popFrame
         (List.perm_middle (l₁ := a) (l₂ := b ++ c) (a := task.owner))
     simpa only [a, b, c, List.append_assoc, List.singleton_append] using
       hnew.trans hold.symm
-  · simp [ScheduleCursor.indexOwners_mk, ScheduleCursor.word,
+  · simp [ScheduleCursor.word,
       ScheduleCursor.indexOwners, ScheduleAtom.indexOwner?,
       ScheduleIndex.markUsed, List.filterMap_append, List.append_assoc]
   · simp only [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?,
@@ -614,7 +587,7 @@ public theorem eraseIndex
       List.filterMap_cons, List.filterMap_nil, List.append_nil]
     exact List.append_assoc _ _ _
   · simp only [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?, hindexNext,
-      List.filterMap_cons, List.filterMap_nil, List.append_nil]
+      List.filterMap_cons, List.filterMap_nil]
     simpa only [List.append_assoc] using
       (List.perm_middle
         (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap ScheduleAtom.indexOwner?)

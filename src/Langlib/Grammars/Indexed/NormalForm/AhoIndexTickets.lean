@@ -127,6 +127,7 @@ the complete parking bank, are retained by the embedding. -/
 public def semanticOwner
     {g : IndexedGrammar T} {input : List T}
     (ticket : IndexTicket input) : Fin (10 * input.length) :=
+  let _ := g
   ⟨ticket.val, by
     have := ticket.isLt
     omega⟩
@@ -444,12 +445,11 @@ public def ScheduleCursor.relabelTicketOwners
     (f : Fin (10 * input.length) → Fin (10 * input.length)) :
     (cursor.relabelTicketOwners f).indexOwners = cursor.indexOwners.map f := by
   simp only [ScheduleCursor.indexOwners, ScheduleCursor.word,
-    ScheduleCursor.relabelTicketOwners, List.map_append, List.map_cons,
+    ScheduleCursor.relabelTicketOwners, List.map_append,
     List.filterMap_append, ScheduleAtom.filterMap_indexOwner_relabelTicketOwner,
-    List.filterMap_cons, List.filterMap_nil,
+    List.filterMap_cons,
     ScheduleAtom.indexOwner?_relabelTicketOwner]
-  cases cursor.focus <;> simp [ScheduleAtom.relabelTicketOwner,
-    ScheduleAtom.indexOwner?]
+  cases cursor.focus <;> simp [ScheduleAtom.indexOwner?]
 
 @[simp] public theorem ScheduleCursor.relabelTicketOwners_frameOwners
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
@@ -457,12 +457,11 @@ public def ScheduleCursor.relabelTicketOwners
     (f : Fin (10 * input.length) → Fin (10 * input.length)) :
     (cursor.relabelTicketOwners f).frameOwners = cursor.frameOwners.map f := by
   simp only [ScheduleCursor.frameOwners, ScheduleCursor.word,
-    ScheduleCursor.relabelTicketOwners, List.map_append, List.map_cons,
+    ScheduleCursor.relabelTicketOwners, List.map_append,
     List.filterMap_append, ScheduleAtom.filterMap_closeOwner_relabelTicketOwner,
-    List.filterMap_cons, List.filterMap_nil,
+    List.filterMap_cons,
     ScheduleAtom.closeOwner?_relabelTicketOwner]
-  cases cursor.focus <;> simp [ScheduleAtom.relabelTicketOwner,
-    ScheduleAtom.closeOwner?]
+  cases cursor.focus <;> simp [ScheduleAtom.closeOwner?]
 
 /-- An injective logical-ticket assignment for all persistent physical owners in a cursor. -/
 public structure IndexTicketLedger
@@ -563,7 +562,7 @@ public theorem ParkingBelow.parkingTicket_fresh
   intro hmem
   have hlt := hbelow window.parkingSlot (by
     simpa [ProductiveOwnerWindow.parkingTicket] using hmem)
-  simpa using hlt
+  simp at hlt
 
 /-- Increasing the productive-window base preserves a strict parking bound. -/
 public theorem ParkingBelow.mono
@@ -998,6 +997,7 @@ public def reticket
   ticketOf := fun candidate =>
     Equiv.swap (ledger.ticketOf owner) target (ledger.ticketOf candidate)
   tickets_nodup := by
+    have _ := htargetFresh
     have hinjective : Function.Injective
         (Equiv.swap (ledger.ticketOf owner) target) :=
       (Equiv.swap (ledger.ticketOf owner) target).injective
@@ -1532,6 +1532,7 @@ public theorem pool_free_ne_nil
     (pool : IndexOwnerPool cursor)
     (hcapacity : cursor.indexOwners.length < 6 * input.length) :
     pool.free ≠ [] := by
+  have _ := ledger
   intro hnil
   have hconserve := pool.index_count_add_free_length
   simp only [hnil, List.length_nil, Nat.add_zero] at hconserve

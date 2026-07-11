@@ -21,7 +21,7 @@ variable {T : Type}
 namespace IndexedGrammar
 namespace Aho
 
-/-- Reassemble the complete owner ledger after an ephemeral head is erased without opening a
+/-- Reassemble the complete owner ledger after a transient head is erased without opening a
 frame. -/
 private def ScheduleOwnerLedger.eraseHead
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
@@ -47,7 +47,7 @@ private def ScheduleOwnerLedger.eraseHead
   frames := hframes
   prefixLedger := hprefix
 
-/-- Reassemble the shadow-owner ledger after the ephemeral head is erased. -/
+/-- Reassemble the shadow-owner ledger after the transient head is erased. -/
 private def ShadowOwnerLedger.eraseHead
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {stack stack' : List g.flag} {w : List T}
@@ -267,7 +267,7 @@ public theorem overlayScheduleRun_atomicPop
           dsimp [d]
           omega
         have hd : d ∈ continuation.rest.eventDepths :=
-          (heventShift d).2 (by simpa [heq] using event.property)
+          (heventShift d).2 (by simp [heq])
         refine ⟨⟨d, hd⟩, ?_⟩
         apply Fin.ext
         simp only [ProductiveOwnerWindow.eventOwner_val,
@@ -1191,7 +1191,7 @@ public theorem overlayScheduleRun_atomicPop
           dsimp [d]
           omega
         have hd : d ∈ continuation.rest.eventDepths :=
-          (heventShift d).2 (by simpa [heq] using event.property)
+          (heventShift d).2 (by simp [heq])
         refine ⟨⟨d, hd⟩, ?_⟩
         apply Fin.ext
         simp only [ProductiveOwnerWindow.eventOwner_val,
@@ -1675,7 +1675,7 @@ public theorem overlayScheduleRun_atomicPop
               residualFullShadowOwnersSubset residualFullShadowOwnersNodup
               residualTicketShadowLedger (by rfl) residualFullShadowLayout
               residualShadowLedger (by rfl) hcredit
-          simpa [residualResources] using hrelease)
+          simp [residualResources])
         (by simpa [residualResources] using residualCredit)
         residualOwnerLayout residualShadowLayout residualTicketOwnerLayout
         ⟨parkedBlocks, parkedOwners, rfl, rfl⟩

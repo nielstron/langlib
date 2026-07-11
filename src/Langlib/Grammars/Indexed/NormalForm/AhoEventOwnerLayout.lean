@@ -162,27 +162,6 @@ namespace EventOwnedLayout
     blockOwnerAt (owner :: owners) hlen ⟨0, by simp⟩ = owner := by
   simp [blockOwnerAt]
 
-/-- A ledger with no inherited sibling entries is an `EventOwnedLayout`. -/
-public def ofCanonical
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    {A : g.nt} {stack : List g.flag} {w : List T}
-    {parse : NFParse g A stack w}
-    {window : ProductiveOwnerWindow (input := input) parse}
-    {blocks : List (List g.flag)}
-    {owners : List (Fin (10 * input.length))}
-    (compatible : EventCompatible parse blocks)
-    (owners_length : owners.length = blocks.length)
-    (endpoint_pos : ∀ i : Fin blocks.length, 0 < blockEndpoint blocks i)
-    (owner_at : ∀ i : Fin blocks.length,
-      ∃ hd : blockEndpoint blocks i ∈ parse.eventDepths,
-        blockOwnerAt owners owners_length i =
-          window.eventOwner (blockEndpoint blocks i) hd) :
-    EventOwnedLayout parse window blocks owners where
-  compatible := compatible
-  owners_length := owners_length
-  endpoint_pos := endpoint_pos
-  owner_at i := Or.inl (owner_at i)
-
 /-- Remove the first block while transporting endpoint-event ownership through a unary or
 atomic-pop continuation.  The caller supplies precisely the semantic shift of endpoint owners;
 the concrete list alignment is handled here. -/

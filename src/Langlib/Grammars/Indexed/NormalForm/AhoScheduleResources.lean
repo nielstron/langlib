@@ -10,8 +10,8 @@ public section
 # Resource-pool surgery for Aho's compressed scheduler
 
 Fresh compressed blocks move one owner from the free suffix into the cursor's persistent-index
-owners.  Erasing an ephemeral block performs the inverse operation.  These lemmas express both
-updates as permutations, keeping the duplicate-freedom proof independent of cursor syntax.
+owners.  Erasing a private overlay block performs the inverse operation.  These lemmas express
+both updates as permutations, keeping the duplicate-freedom proof independent of cursor syntax.
 -/
 
 variable {T : Type}
@@ -120,17 +120,6 @@ public def TicketShadowContextExtends
     resources.ticketShadowBlocks = blocks ++ parkedBlocks ∧
     resources.ticketShadowOwners = owners ++ parkedOwners
 
-/-- A nonempty physical free pool leaves strict room in the physical-size carrier. -/
-public theorem index_count_lt_six_mul
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    {A : g.nt} {stack : List g.flag} {w : List T}
-    {parse : NFParse g A stack w} {pre : List T}
-    {cursor : ScheduleCursor g input}
-    (resources : ScheduleRunResources parse pre cursor)
-    (hfree : resources.pool.free ≠ []) :
-    cursor.indexOwners.length < 6 * input.length :=
-  resources.pool.index_count_lt_of_free_ne_nil hfree
-
 /-- An explicit strict index bound below the exhaustive `6|input|` owner pool supplies a free
 physical owner. -/
 public theorem free_ne_nil_of_index_count_lt
@@ -181,50 +170,6 @@ public def genericShadowStartLayout
     have hmemIndices := resources.active_subset_indexOwners hmemActive
     have hgeneric := resources.pool.mem_genericOwnerRange_of_mem_indices hmemIndices
     exact OutsideShadowWindow.genericOwner resources.window hgeneric)
-
-/-- Exact conservation of the root productive-owner carrier.  Every persistent index is
-charged and every owner not on the work tape occurs exactly once in the exhaustive free pool. -/
-public theorem charged_add_free_length
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    {A : g.nt} {stack : List g.flag} {w : List T}
-    {parse : NFParse g A stack w} {pre : List T}
-    {cursor : ScheduleCursor g input}
-    (resources : ScheduleRunResources parse pre cursor) :
-    resources.charged + resources.pool.free.length =
-      6 * input.length := by
-  have hlength := resources.pool.all_perm.length_eq
-  rw [List.length_append, genericOwnerRange_length] at hlength
-  rw [resources.charged_eq_indices]
-  exact hlength
-
-/-- Strictly fewer charged indices than root capacity leaves at least one free owner. -/
-public theorem free_ne_nil_of_charged_lt_capacity
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    {A : g.nt} {stack : List g.flag} {w : List T}
-    {parse : NFParse g A stack w} {pre : List T}
-    {cursor : ScheduleCursor g input}
-    (resources : ScheduleRunResources parse pre cursor)
-    (hcharge : resources.charged < 6 * input.length) :
-    resources.pool.free ≠ [] := by
-  intro hnil
-  have hlength := resources.charged_add_free_length
-  simp only [hnil, List.length_nil, Nat.add_zero] at hlength
-  omega
-
-/-- A call which still needs a new productive-event charge has a free physical owner. -/
-public theorem free_ne_nil_of_charged_lt_productive
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    {A : g.nt} {stack : List g.flag} {w : List T}
-    {parse : NFParse g A stack w} {pre : List T}
-    {cursor : ScheduleCursor g input}
-    (resources : ScheduleRunResources parse pre cursor)
-    (hcharge : resources.charged < parse.productiveCount) :
-    resources.pool.free ≠ [] := by
-  intro hnil
-  have hzero : resources.pool.free.length = 0 := by simp [hnil]
-  have hcredit := resources.productive_le_credit
-  rw [hzero, Nat.add_zero] at hcredit
-  omega
 
 end ScheduleRunResources
 
@@ -328,101 +273,7 @@ public def ProtectedScheduleRun
           rw [input_eq]
           simp) _ hend)
 
-/-- Resource-aware ephemeral mode.  The first canonical block is owned by this call and has
-disappeared at the endpoint; lower protected blocks remain and are marked used. -/
-public def EphemeralScheduleRun
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {A : g.nt} {stack : List g.flag} {w : List T}
-    (parse : NFParse g A stack w) : Prop :=
-  ∀ {input : List T} (owned : ScheduleIndex g input)
-    (protectedFlags hidden : List g.flag) (blocks : List (List g.flag))
-    (owners : List (Fin (10 * input.length)))
-    (word used : List (ScheduleAtom g input))
-    (hstack : stack = owned.flags ++ protectedFlags ++ hidden)
-    (howned : owned.flags ≠ [])
-    (hall : ∀ k < owned.flags.length + protectedFlags.length, parse.ConsumesAt k)
-    (hboundary : ¬ parse.ConsumesAt (owned.flags.length + protectedFlags.length))
-    (layout : ScheduleBlockLayout g input protectedFlags blocks owners word used)
-    (compatible : EventCompatible parse (owned.flags :: blocks))
-    (hlater : protectedFlags ≠ [] → owned.mark.later = true)
-    (hused : used ≠ []),
-    ∀ (pre post : List T) (input_eq : input = pre ++ w ++ post)
-      (alpha : List (ScheduleAtom g input))
-      (hstable : StablePrefix (alpha.map ScheduleAtom.workSym))
-      (hstart : ScheduleInvariant
-        (liveScheduleCursor parse (by
-          exact hall 0 (by
-            have := List.length_pos_of_ne_nil howned
-            omega))
-          pre post input_eq alpha (.index owned :: word)))
-      (_hframes : List.Disjoint (owned.owner :: owners)
-        (liveScheduleCursor parse (by
-          exact hall 0 (by
-            have := List.length_pos_of_ne_nil howned
-            omega))
-          pre post input_eq alpha (.index owned :: word)).frameOwners)
-      (hend : ScheduleInvariant (scheduleWordCursor alpha used))
-      (resources : ScheduleRunResources parse pre
-        (liveScheduleCursor parse (by
-          exact hall 0 (by
-            have := List.length_pos_of_ne_nil howned
-            omega))
-          pre post input_eq alpha (.index owned :: word)))
-      (_credit : 0 < resources.charged)
-      (_ownerLayout : EventOwnedLayout parse resources.window
-        (owned.flags :: blocks) (owned.owner :: owners))
-      (_shadowLayout : ShadowStartLayout parse resources.window
-        (owned.flags :: blocks) (owned.owner :: owners))
-      (_ticketOwnerLayout : resources.tickets.EventTicketLayout
-        parse resources.window (owned.flags :: blocks) (owned.owner :: owners))
-      (_ticketShadowContext : resources.TicketShadowContextExtends
-        (owned.flags :: blocks) (owned.owner :: owners))
-      (_ticketTransientHead : ∀ hinput : 0 < input.length,
-        IndexTicket.transient hinput ∈
-            (liveScheduleCursor parse (by
-              exact hall 0 (by
-                have := List.length_pos_of_ne_nil howned
-                omega))
-              pre post input_eq alpha (.index owned :: word)).indexTickets
-                resources.tickets.ticketOf →
-          resources.tickets.ticketOf owned.owner = IndexTicket.transient hinput)
-      (_hactive : resources.ownerLedger.active = owned.owner :: owners)
-      (_transientHead : ∀ hinput : 0 < input.length,
-        ProductiveOwnerWindow.transientOwner (g := g) hinput ∈
-            (liveScheduleCursor parse (by
-              exact hall 0 (by
-                have := List.length_pos_of_ne_nil howned
-                omega))
-              pre post input_eq alpha (.index owned :: word)).indexOwners →
-          owned.owner = ProductiveOwnerWindow.transientOwner (g := g) hinput)
-      (_scratchHead : ∀ hinput : 0 < input.length,
-        ProductiveOwnerWindow.scratchOwner (g := g) hinput ∈
-            (liveScheduleCursor parse (by
-              exact hall 0 (by
-                have := List.length_pos_of_ne_nil howned
-                omega))
-              pre post input_eq alpha (.index owned :: word)).indexOwners →
-          owned.owner = ProductiveOwnerWindow.scratchOwner (g := g) hinput),
-      ScheduleReaches g input
-        (scheduleStateOfCursor pre.length (by
-          rw [input_eq]
-          simp) _ hstart)
-        (scheduleStateOfCursor (pre ++ w).length (by
-          rw [input_eq]
-          simp) _ hend)
-
-/-- Final root-relative mutual target used by the bounded scheduler proof. -/
-public def ScheduleBlockRuns
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {A : g.nt} {stack : List g.flag} {w : List T}
-    (parse : NFParse g A stack w) : Prop :=
-  PlainScheduleRun parse ∧ ProtectedScheduleRun parse ∧ EphemeralScheduleRun parse
-
-/-- The two ordinary strict-entry runners used by the sound window-parking recursion.
-
-The legacy `ScheduleBlockRuns` tuple also contains the old arbitrary ephemeral mode.  The
-copy-on-write proof does not use that mode: branch-local work is represented by overlay and
-parked-protected runners instead. -/
+/-- The two ordinary strict-entry runners used by the window-parking recursion. -/
 public def OrdinaryScheduleRuns
     {g : IndexedGrammar T} [Fintype g.nt]
     {A : g.nt} {stack : List g.flag} {w : List T}
@@ -564,7 +415,7 @@ end IndexOwnerPool
 
 namespace ScheduleRunResources
 
-/-- Release an ephemeral block owner before running a same-yield residual parse.  One charged
+/-- Release a private overlay owner before running a same-yield residual parse. One charged
 owner becomes one free owner, so the productive-event credit is preserved exactly. -/
 public def releaseOwned
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}

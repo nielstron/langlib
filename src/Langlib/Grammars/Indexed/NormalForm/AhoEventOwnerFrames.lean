@@ -245,40 +245,6 @@ public def push
     refine ⟨⟨childDepth, childMem⟩, ?_⟩
     exact howner.trans (window.eventOwner_push hd)
 
-/-- Compatibility alias retained for callers which already know the child has depth zero. -/
-public def pushOfChildZero
-    {g : IndexedGrammar T} {input : List T}
-    {A B : g.nt} {f : g.flag} {stack : List g.flag} {w : List T}
-    {r : IRule T g.nt g.flag}
-    {hr : r ∈ g.rules} {hlhs : r.lhs = A} {hc : r.consume = none}
-    {hrhs : r.rhs = [IRhsSymbol.nonterminal B (some f)]}
-    {rest : NFParse g B (f :: stack) w}
-    {window : ProductiveOwnerWindow (input := input)
-      (NFParse.push hr hlhs hc hrhs rest)}
-    {owners : List (Fin (10 * input.length))}
-    (frames : EventOwnedFrames
-      (NFParse.push hr hlhs hc hrhs rest) window owners)
-    (_hzero : 0 ∈ rest.eventDepths) :
-    EventOwnedFrames rest window.pushChild owners :=
-  frames.push
-
-/-- Compatibility alias for the fused push branch. -/
-public def pushCompress
-    {g : IndexedGrammar T} {input : List T}
-    {A B : g.nt} {f : g.flag} {stack : List g.flag} {w : List T}
-    {r : IRule T g.nt g.flag}
-    {hr : r ∈ g.rules} {hlhs : r.lhs = A} {hc : r.consume = none}
-    {hrhs : r.rhs = [IRhsSymbol.nonterminal B (some f)]}
-    {rest : NFParse g B (f :: stack) w}
-    {window : ProductiveOwnerWindow (input := input)
-      (NFParse.push hr hlhs hc hrhs rest)}
-    {owners : List (Fin (10 * input.length))}
-    (frames : EventOwnedFrames
-      (NFParse.push hr hlhs hc hrhs rest) window owners)
-    (_hdepthOne : 1 ∉ rest.eventDepths) :
-    EventOwnedFrames rest window.pushChild owners :=
-  frames.push
-
 /-- The binary root owner lies strictly before the left child's productive window. -/
 public theorem zero_outside_binaryLeft
     {g : IndexedGrammar T} {input : List T}
@@ -479,18 +445,6 @@ public def remove
         (owner :: new.frameOwners) := by
       exact hprefix.symm.trans (ledger.owners_perm.trans hframes)
     exact List.Perm.cons_inv hcons
-
-/-- With a non-index focus, the complete persistent-index count splits into the open-frame
-count and the indices still present on the cursor's right side. -/
-public theorem indexOwners_length_eq_frameCount_add_right
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    {cursor : ScheduleCursor g input} (ledger : PrefixFrameLedger cursor)
-    (hfocus : [cursor.focus].filterMap ScheduleAtom.indexOwner? = []) :
-    cursor.indexOwners.length =
-      cursor.frameCount +
-        (cursor.right.filterMap ScheduleAtom.indexOwner?).length := by
-  rw [ScheduleCursor.indexOwners_mk, hfocus, List.append_nil,
-    List.length_append, ledger.prefix_length_eq_frameCount]
 
 /-- Complete cursor-level freshness from the three owner ledgers.  Prefix indices are open
 frames, selected right-side indices are governed by the event layout, and every remaining

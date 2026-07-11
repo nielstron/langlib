@@ -243,7 +243,7 @@ public theorem overlayScheduleRun_pushFresh
       (.index freshOwned :: .index owned :: word)
   have hchildInv : ScheduleInvariant childCursor := by
     dsimp [childCursor, startCursor]
-    exact ScheduleInvariant.livePushFresh (alpha ++ [ScheduleAtom.dollar])
+    exact ScheduleInvariant.plainPushUse (alpha ++ [ScheduleAtom.dollar])
       (.index owned :: word) parentTask childTask freshOwned htaskOwner hnewFresh
       (resources.pool.index_count_lt_of_free_ne_nil hfree) hstart'
   have hindexPerm : childCursor.indexOwners.Perm
@@ -279,7 +279,7 @@ public theorem overlayScheduleRun_pushFresh
   have htasks : childCursor.taskOwners = startCursor.taskOwners := by
     simp only [childCursor, startCursor, liveScheduleCursor,
       ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?,
-      List.filterMap_cons, List.filterMap_nil, List.append_nil]
+      List.filterMap_cons, List.filterMap_nil]
     rw [htaskOwner]
   have hframesEq : childCursor.frameOwners = startCursor.frameOwners := by
     simp [childCursor, startCursor, liveScheduleCursor,
@@ -351,8 +351,7 @@ public theorem overlayScheduleRun_pushFresh
     right
     have hend := resources.window.end_le
     have hlocal := rest.eventOwnerNat_lt_productiveCount hone
-    simp only [OutsideProductiveWindow,
-      ProductiveOwnerWindow.shadowEventOwner_val,
+    simp only [ProductiveOwnerWindow.shadowEventOwner_val,
       ProductiveOwnerWindow.pushChild_base, shadowOwnerOffset]
     omega
   have hrotationSelected : rotation.tickets.semanticOwners
@@ -659,8 +658,8 @@ public theorem overlayScheduleRun_pushFresh
       change rest.productiveCount ≤ resources.charged + 1 +
         (resources.pool.free.erase newOwner).length
       have hfreeLen := (List.perm_cons_erase hnewFree).length_eq
-      simp only [parent, NFParse.productiveCount, NFParse.binaryCount,
-        NFParse.terminalCount, List.length_cons] at hp ⊢
+      simp only [NFParse.productiveCount, NFParse.binaryCount,
+        NFParse.terminalCount] at hp ⊢
       simp only [List.length_cons] at hfreeLen
       omega
     task_locality := by
@@ -831,7 +830,7 @@ public theorem overlayScheduleRun_pushFresh
         have hlengthStep :
             (ScheduleOverlay.flags (freshOwned :: owned :: overlayTail) []).length =
               (ScheduleOverlay.flags (owned :: overlayTail) []).length + 1 := by
-          simp [freshOwned, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+          simp [freshOwned, Nat.add_comm, Nat.add_left_comm]
         exact .attached {
           marker := restore.marker
           base_head := restore.base_head
@@ -918,7 +917,7 @@ public theorem overlayScheduleRun_pushFresh
     (by simpa [freshOwned, blocks, owners] using childTicketOwnerLayout)
     (by simpa [freshOwned, blocks, owners] using childTicketShadowContext)
     (by simpa [freshOwned, word] using childTicketTransientHead)
-    (by simpa [childResources, childOwnerLedger, freshOwned, owners] using rfl)
+    (by simp [childResources, childOwnerLedger, freshOwned, owners])
     (by
       intro hinput hmem
       exact False.elim

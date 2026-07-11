@@ -1,12 +1,12 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowSystem
+public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Checker
 
 @[expose]
 public section
 
 /-!
-# Input-track correctness for Aho's padded rows
+# Input-track soundness for Aho's padded rows
 
 The work-track checker is independent of the immutable input letters and their consumed-prefix
 bits.  This file isolates the latter component.  It shows that the finite input scan accepts
@@ -140,54 +140,54 @@ public theorem certStep_inputAction {g : IndexedGrammar T} [Fintype g.nt]
   cases cert with
   | plainBinary A B C =>
       rcases hstep with ⟨_, alpha, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | plainTerminal A a =>
       rcases hstep with ⟨_, alpha, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | plainPushSkip A B f =>
       rcases hstep with ⟨_, alpha, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | plainPushUse A B f =>
       rcases hstep with ⟨_, alpha, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | liveBinaryBoth A B C =>
       rcases hstep with ⟨_, alpha, Z, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | liveBinaryLeft A B C =>
       rcases hstep with ⟨_, alpha, Z, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | liveBinaryRight A B C =>
       rcases hstep with ⟨_, alpha, Z, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | livePushFresh A B f =>
       rcases hstep with ⟨_, alpha, Z, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | livePushCompress A B f R d =>
       rcases hstep with ⟨_, _, alpha, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | popPlain R d A B =>
       rcases hstep with ⟨_, hshape⟩
       rcases hshape with hframed | herase
       · rcases hframed with ⟨alpha, beta, gamma, _, _, hnew⟩
-        simpa [CompositeCert.InputAction, hnew]
+        simp [CompositeCert.InputAction, hnew]
       · rcases herase with ⟨alpha, gamma, _, hnew⟩
-        simpa [CompositeCert.InputAction, hnew]
+        simp [CompositeCert.InputAction, hnew]
   | popLive R d A B =>
       rcases hstep with ⟨_, _, hshape⟩
       rcases hshape with hframed | herase
       · rcases hframed with ⟨alpha, beta, gamma, _, _, hnew⟩
-        simpa [CompositeCert.InputAction, hnew]
+        simp [CompositeCert.InputAction, hnew]
       · rcases herase with ⟨alpha, gamma, _, hnew⟩
-        simpa [CompositeCert.InputAction, hnew]
+        simp [CompositeCert.InputAction, hnew]
   | matchTerminal a =>
       rcases hstep with ⟨hinput, alpha, Z, beta, _, hnew⟩
-      exact ⟨hinput, by simpa [hnew]⟩
+      exact ⟨hinput, by simp [hnew]⟩
   | eraseIndex R d =>
       rcases hstep with ⟨_, alpha, Z, beta, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
   | returnFrame =>
       rcases hstep with ⟨alpha, Z, beta, gamma, _, _, _, hnew⟩
-      simpa [CompositeCert.InputAction, hnew]
+      simp [CompositeCert.InputAction, hnew]
 
 private def CompositeCert.Nonmatching {g : IndexedGrammar T}
     (cert : CompositeCert g) : Prop :=
@@ -293,7 +293,7 @@ private theorem evalInputBlocks_nonmatching_accepts_iff
               simp only [inputPositionCells, evalInputBlocks, Nat.lt_irrefl,
                 decide_false, Nat.zero_sub, Nat.zero_lt_succ, decide_true]
               rw [hstep, evalInputBlocks_position_dead]
-              simp [inputDone, inputDone_nonmatching cert hcert]
+              simp [inputDone]
       | succ oldPos =>
           cases newPos with
           | zero =>
@@ -305,7 +305,7 @@ private theorem evalInputBlocks_nonmatching_accepts_iff
               simp only [inputPositionCells, evalInputBlocks, Nat.zero_lt_succ,
                 decide_true, Nat.add_sub_cancel, Nat.lt_irrefl, decide_false, Nat.zero_sub]
               rw [hstep, evalInputBlocks_position_dead]
-              simp [inputDone, inputDone_nonmatching cert hcert]
+              simp [inputDone]
           | succ newPos =>
               have hold' : oldPos ≤ input.length := by omega
               have hnew' : newPos ≤ input.length := by omega
@@ -523,9 +523,9 @@ public theorem runCells_eq_of_clearInputBlocks_eq_of_map_block_eq
             rcases old with ⟨oldInput, oldConsumed, oldBlock⟩
             rcases new with ⟨newInput, newConsumed, newBlock⟩
             simp only [RunCell.clearBlock, RunCell.mk.injEq] at hclear
-            simp only [RunCell.block] at hblocks
             rcases hclear.1 with ⟨rfl, rfl, _⟩
-            rw [hblocks.1]
+            have hblock : oldBlock = newBlock := hblocks.1
+            rw [hblock]
           subst new
           exact congrArg (List.cons old) (ih hclear.2 hblocks.2)
 
@@ -902,3 +902,4 @@ public theorem evalInputBlocks_encodeRunCells_sound
 
 end Aho
 end IndexedGrammar
+

@@ -1,12 +1,12 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoCorrectness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.LocalEdits
 
 @[expose]
 public section
 
 /-!
-# Mark-aware block denotation for Aho's work tape
+# Block denotation for Aho's work tape
 
 Compressed indices must be interpreted as separate visible stack blocks.  Flags omitted by a
 `plainPushSkip` move are ghost gaps between those blocks: flattening the visible blocks loses the
@@ -56,11 +56,6 @@ mutual
             if block.continues then LiveDecorates blocks rest
             else Decorates blocks rest
 end
-
-/-- Mode-indexed wrapper used by generic preservation statements. -/
-public def StackDecorates {g : IndexedGrammar T} (live : Bool)
-    (blocks : VisibleStack g) (actual : List g.flag) : Prop :=
-  if live then LiveDecorates blocks actual else Decorates blocks actual
 
 namespace Decorates
 

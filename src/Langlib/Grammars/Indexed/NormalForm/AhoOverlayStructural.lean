@@ -59,10 +59,10 @@ public theorem overlayScheduleRun_of_smaller
       · by_cases hone : 1 ∈ rest.eventDepths
         · apply overlayScheduleRun_pushFresh hr hlhs hc hrhs rest hone
           apply overlayIH rest
-          simp [parent, NFParse.nodeCount]
+          simp [NFParse.nodeCount]
         · apply overlayScheduleRun_pushCompress hr hlhs hc hrhs rest hone
           apply overlayIH rest
-          simp [parent, NFParse.nodeCount]
+          simp [NFParse.nodeCount]
       · apply overlayScheduleRun_atomicPop parent
         · intro d hd
           exact Nat.pos_of_ne_zero (fun hd0 => hzero (hd0 ▸ hd))

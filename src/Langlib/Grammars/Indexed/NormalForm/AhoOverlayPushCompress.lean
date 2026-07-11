@@ -408,7 +408,7 @@ public theorem overlayScheduleRun_pushCompress
         (startResources.ownerLedger.outside_at candidate hcandidate)
     frames := by
       rw [hframesEq]
-      exact startResources.ownerLedger.frames.pushCompress hdepthOne
+      exact startResources.ownerLedger.frames.push
     prefixLedger := childPrefixLedger
   }
   let childTickets : IndexTicketLedger
@@ -438,7 +438,7 @@ public theorem overlayScheduleRun_pushCompress
         (startResources.ticketOwnerLedger.outside_at candidate hcandidate)
     frames := by
       rw [hticketFramesEq]
-      exact startResources.ticketOwnerLedger.frames.pushCompress hdepthOne
+      exact startResources.ticketOwnerLedger.frames.push
     prefixLedger := childTicketPrefix
   }
   let childTicketShadowLedger : childTickets.SemanticShadowOwnerLedger
@@ -650,7 +650,7 @@ public theorem overlayScheduleRun_pushCompress
         have hlengthStep :
             (ScheduleOverlay.flags (newOwned :: overlayTail) []).length =
               (ScheduleOverlay.flags (head :: overlayTail) []).length + 1 := by
-          simp [newOwned, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+          simp [newOwned, Nat.add_comm, Nat.add_left_comm]
         exact .attached {
           marker := restore.marker
           base_head := restore.base_head

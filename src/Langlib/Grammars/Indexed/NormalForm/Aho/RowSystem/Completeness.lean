@@ -1,8 +1,8 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowSystemCorrectness
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowWorkCompleteness
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowInputCorrectness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Evaluation
+public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.WorkCompleteness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowInput
 
 @[expose]
 public section
@@ -25,7 +25,7 @@ namespace Aho
       rw [show packedBlockList g work cell (input.length + 1) =
           packedCell workWidth work cell ::
             packedBlockList g work (cell + 1) input.length by
-        simp [packedBlockList, List.ofFn_succ, Nat.add_assoc, Nat.add_comm,
+        simp [packedBlockList, List.ofFn_succ, Nat.add_comm,
           Nat.add_left_comm]]
       exact congrArg (packedCell workWidth work cell :: ·) (ih (cell + 1))
 
@@ -209,9 +209,7 @@ private theorem evalRowTriples_composite_from
     (fun q r => (inputStep cert q.1 r.1 r.2.1,
       evalWorkBlock g cert q.2 r.1.block r.2.1.block r.2.2))
     (by intros; rfl) (by intros; rfl) (by intros; rfl) (by intros; rfl)
-    (by intro q r
-        simpa using (rowStepCell_composite_same g cert q.1 q.2
-          r.1 r.2.1 r.2.2))
+    (by intro q r; simp)
     (inputState, workState) rows
   rw [evalCompositeTriples_eq g cert rows inputState workState] at hfold
   simpa [physical, List.map_map, Function.comp_def] using hfold
@@ -339,7 +337,7 @@ private theorem exists_phaseFn_of_length {n : ℕ} {phases : List WorkPhase}
     (h : phases.length = n) :
     ∃ choices : Fin n → WorkPhase, List.ofFn choices = phases := by
   let choices : Fin n → WorkPhase := fun i =>
-    phases.get ⟨i.val, by simpa [h] using i.isLt⟩
+    phases.get ⟨i.val, by simp [h]⟩
   refine ⟨choices, ?_⟩
   apply List.ext_getElem
   · simp [h]
@@ -438,3 +436,4 @@ public theorem rowReachLanguage_of_paddedReachLanguage
 
 end Aho
 end IndexedGrammar
+

@@ -523,11 +523,6 @@ public def restoreParkedActiveHead
       rw [restored.semanticCursor_frameOwners]
       simp only [IndexTicketLedger.semanticCursor,
         ScheduleCursor.relabelTicketOwners]
-      change
-        ((cursor.left.map
-          (ScheduleAtom.relabelTicketOwner restored.semanticOwnerOf)).filterMap
-            ScheduleAtom.indexOwner?).Perm
-          (cursor.frameOwners.map restored.semanticOwnerOf)
       rw [ScheduleAtom.filterMap_indexOwner_relabelTicketOwner]
       exact resources.ownerLedger.prefixLedger.owners_perm.map
         restored.semanticOwnerOf
@@ -946,7 +941,7 @@ public def sealTransientHead
     fullShadowLayout := sealedFullShadowLayout
   }
 
-/-- Normalize the logical transient ticket at an ephemeral head.  If the transient ticket is
+/-- Normalize the logical transient ticket at a compressed head. If the transient ticket is
 already absent this is the identity package; otherwise the head is sealed to shadow start zero
 and both projected cursor ledgers are rebuilt over the unchanged physical cursor. -/
 public def normalizeTransientHead
@@ -1065,11 +1060,6 @@ public def normalizeTransientHead
         rw [headSeal.sealed.semanticCursor_frameOwners]
         simp only [IndexTicketLedger.semanticCursor,
           ScheduleCursor.relabelTicketOwners]
-        change
-          ((cursor.left.map
-            (ScheduleAtom.relabelTicketOwner headSeal.sealed.semanticOwnerOf)).filterMap
-              ScheduleAtom.indexOwner?).Perm
-            (cursor.frameOwners.map headSeal.sealed.semanticOwnerOf)
         rw [ScheduleAtom.filterMap_indexOwner_relabelTicketOwner]
         exact resources.ownerLedger.prefixLedger.owners_perm.map
           headSeal.sealed.semanticOwnerOf
@@ -1263,6 +1253,7 @@ public def rotateHeadForFreshPush
     (hheadMem : head ∈ cursor.indexOwners)
     (hfocus : [cursor.focus].filterMap ScheduleAtom.indexOwner? = []) :
     FreshPushHeadRotation resources normal hone := by
+  have _ := hinput
   let target : IndexTicket input :=
     resources.window.pushChild.shadowEventTicket 1 hone
   by_cases hzero : 0 ∈ rest.eventDepths

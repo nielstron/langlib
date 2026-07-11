@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowSystem
+public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Checker
 
 @[expose]
 public section
@@ -182,10 +182,11 @@ public theorem evalWorkSlots_of_accepts (g : IndexedGrammar T) [Fintype g.nt]
       workScanDone result = true := by
   rcases h with ⟨rows, result, htrace, hold, hnew, hdone⟩
   refine ⟨rows.map (fun r => r.2.2), result, ?_, ?_, ?_, hdone⟩
-  · simpa [← hold]
-  · simpa [← hold, ← hnew]
+  · simp [← hold]
+  · simp [← hold, ← hnew]
   · rw [← hold, ← hnew]
     exact evalWorkSlots_of_trace g cert htrace
 
 end Aho
 end IndexedGrammar
+

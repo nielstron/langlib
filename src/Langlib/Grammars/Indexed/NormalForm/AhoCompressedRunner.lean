@@ -188,25 +188,6 @@ public theorem exists_popContinuation_of_eventFree_block_with_owners
       rfl
     rw [hcast, howners]
 
-/-- Compatibility wrapper retaining the original atomic-pop continuation interface. -/
-public theorem exists_popContinuation_of_eventFree_block
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {A : g.nt} {block suffix : List g.flag} {w : List T}
-    (parse : NFParse g A (block ++ suffix) w)
-    {R : CFlag g} (hdenotes : CFlag.Denotes g block R)
-    (hlast : parse.ConsumesAt (block.length - 1))
-    (hevents : ∀ d ∈ parse.eventDepths, block.length - 1 < d) :
-    ∃ continuation : PopContinuation block suffix parse R,
-      continuation.rest.nodeCount < parse.nodeCount ∧
-      (∀ j, continuation.rest.ConsumesAt j ↔
-        parse.ConsumesAt (block.length + j)) ∧
-      ∀ d, d ∈ continuation.rest.eventDepths ↔
-        block.length + d ∈ parse.eventDepths := by
-  rcases exists_popContinuation_of_eventFree_block_with_owners
-      parse hdenotes hlast hevents with
-    ⟨continuation, hcount, hconsumes, heventShift, _hownerShift⟩
-  exact ⟨continuation, hcount, hconsumes, heventShift⟩
-
 /-- Every productive event of `parse` is aligned with a whole compressed-block boundary. -/
 public structure EventCompatible
     {g : IndexedGrammar T} [Fintype g.nt]

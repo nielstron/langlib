@@ -1,16 +1,16 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoMachine
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.LocalEdits
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem
 
 @[expose]
 public section
 
 /-!
-# A finite synchronized row checker for Aho's machine
+# Certified row checker for Aho's machine
 
-The packed rows in `AhoMachine` retain the active work-head bit.  Consequently every composite
-move is a regular relation on two aligned rows.  Insertions and deletions only shift the remaining
+The packed rows in `Aho.Machine.PaddedRows` retain the active work-head bit. Consequently every
+composite move is a regular relation on two aligned rows.  Insertions and deletions only shift the remaining
 suffix by at most two slots: the checker below remembers the preceding two old and new slots.
 
 The per-cell certificate chooses the finite composite rule and the phase reached after each of the
@@ -404,7 +404,7 @@ public theorem workSlotStep_prefix_mark (g : IndexedGrammar T) [Fintype g.nt]
   · refine ⟨by simp, by simp [paddingOK], by simp [paddingOK], ?_⟩
     rw [workEdge_prefix_iff g cert .prefix .marked h _ _ (by simp)]
     refine ⟨henabled, ?_⟩
-    simp only [prefixEdge, hproductive, Bool.true_eq, true_and]
+    simp only [prefixEdge, hproductive, true_and]
     exact ⟨R, d, rfl, rfl⟩
 
 public theorem workSlotStep_prefix_boundary (g : IndexedGrammar T) [Fintype g.nt]
@@ -524,7 +524,7 @@ public def packedBlockList (g : IndexedGrammar T) (work : List (WorkSlot g))
   | nil => rfl
   | cons a w ih =>
       simp [encodeRunRowFrom, runBlocks, packedBlockList, List.ofFn_succ, ih,
-        Nat.add_assoc, Nat.add_comm, Nat.add_left_comm, Function.comp_def]
+        Nat.add_comm, Nat.add_left_comm]
 
 /-- Reblock a flat phase function into one twenty-one-phase certificate per physical row cell. -/
 public def phaseBlockList (n : ℕ) (phases : Fin (n * workWidth) → WorkPhase) :
@@ -784,8 +784,7 @@ public theorem evalStep_init_from (g : IndexedGrammar T) [Fintype g.nt]
       | nil => simp at hlen
       | cons new news =>
           simp only [List.length_cons, Nat.succ.injEq] at hlen
-          simp only [List.replicate_succ, CertifiedRowSystem.evalStep, ahoRowSystem,
-            rowStepCell, evalInitScan]
+          simp only [ahoRowSystem, evalInitScan]
           exact ih _ _ hlen
 
 public theorem evalStep_init_start (g : IndexedGrammar T) [Fintype g.nt]
@@ -801,8 +800,7 @@ public theorem evalStep_init_start (g : IndexedGrammar T) [Fintype g.nt]
       | nil => simp at hlen
       | cons new news =>
           simp only [List.length_cons, Nat.succ.injEq] at hlen
-          simp only [List.replicate_succ, CertifiedRowSystem.evalStep, ahoRowSystem,
-            rowStepCell, evalInitScan]
+          simp only [ahoRowSystem, evalInitScan]
           exact evalStep_init_from g (initScanCell g .first old new) olds news hlen
 
 private theorem evalStep_init_sound_from (g : IndexedGrammar T) [Fintype g.nt]
@@ -911,3 +909,4 @@ public theorem final_ahoRowSystem_iff (g : IndexedGrammar T) [Fintype g.nt]
 
 end Aho
 end IndexedGrammar
+

@@ -380,27 +380,6 @@ public theorem reticket_base_nonparking_restores
       exact ledger.reticket_ticketOf_eq_of_mem_ne baseOwner target hlive
         htargetFresh htargetNotScratch hcandidate hne
 
-/-- Core targets are nonparking, so reticketing the designated base owner to a fresh core
-ticket restores the strict parking bound. -/
-public theorem reticket_base_core_restores
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    {A : g.nt} {stack : List g.flag} {w : List T}
-    {parse : NFParse g A stack w} {cursor : ScheduleCursor g input}
-    {ledger : IndexTicketLedger cursor}
-    {window : ProductiveOwnerWindow (input := input) parse}
-    {baseOwner : Fin (10 * input.length)}
-    (parking : ledger.OverlayParking window baseOwner)
-    (hlive : baseOwner ∈ cursor.indexOwners)
-    (target : IndexTicket input)
-    (htargetFresh : target ∉ cursor.indexTickets ledger.ticketOf)
-    (htargetNotScratch : ∀ hinput : 0 < input.length,
-      target ≠ IndexTicket.scratch hinput)
-    (hcore : target.val < 4 * input.length) :
-    (ledger.reticket baseOwner target hlive htargetFresh
-      htargetNotScratch).ParkingBelow window :=
-  parking.reticket_base_nonparking_restores hlive target htargetFresh
-    htargetNotScratch (IndexTicket.nonparking_of_core hcore)
-
 /-- Reticketing any live owner to a fresh nonparking target preserves the restorable
 invariant.  When the selected owner is the parked base owner, the result takes the strict
 branch; otherwise the parked witness is unchanged. -/

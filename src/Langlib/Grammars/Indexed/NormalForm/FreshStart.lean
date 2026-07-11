@@ -154,9 +154,9 @@ theorem proper_of_proper_transforms {w₁ w₂ : List (g.freshStart).ISym}
       · exact ⟨ x, Or.inl hx ⟩;
       · rcases hx with ⟨ a, ha, hx ⟩ ; rcases a with ( _ | ⟨ n, _ | f ⟩ ) <;> simp_all +decide [ IndexedGrammar.liftRule ] ;
         · rcases hr with ⟨ r, hr₁, hr₂, hr₃, rfl ⟩ ; simp_all +decide [ IndexedGrammar.liftRhsSym ] ;
-          rcases ha with ⟨ a, ha₁, ha₂ ⟩ ; rcases a with ( _ | ⟨ n, _ | f ⟩ ) <;> simp_all +decide [ IndexedGrammar.liftRhsSym ] ;
+          rcases ha with ⟨ a, ha₁, ha₂ ⟩ ; rcases a with ( _ | ⟨ n, _ | f ⟩ ) <;> simp_all +decide ;
         · rcases hr with ⟨ r, hr₁, hr₂, hr₃, rfl ⟩ ; simp_all +decide [ IndexedGrammar.liftRhsSym ] ;
-          rcases ha with ⟨ a, ha₁, ha₂ ⟩ ; rcases a with ( _ | ⟨ n, _ | f ⟩ ) <;> simp_all +decide [ IndexedGrammar.liftRhsSym ] ;
+          rcases ha with ⟨ a, ha₁, ha₂ ⟩ ; rcases a with ( _ | ⟨ n, _ | f ⟩ ) <;> simp_all +decide ;
       · exact ⟨ x, Or.inr hx ⟩
 
 /-
@@ -225,7 +225,7 @@ theorem freshStart_unlift_transforms [Inhabited T] {w₁ w₂ : List (g.freshSta
   rcases r' with ⟨ lhs, consume, rhs ⟩ ; simp_all +decide [ IndexedGrammar.liftRule ] ;
   cases consume <;> simp_all +decide [ IndexedGrammar.unliftSF ];
   · rw [ ← expandRhs_liftRhsSym ];
-    simp +decide [ Function.comp, unlift_lift ];
+    simp +decide;
     rw [ show g.unliftISym ∘ g.liftISym = id from funext fun x => unlift_lift g x ] ; aesop;
   · rw [ ← expandRhs_liftRhsSym ];
     simp +decide [ Function.comp_def, unlift_lift ];

@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoCompleteness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Execution
 public import Mathlib.Data.List.SplitLengths
 public import Mathlib.Data.Finset.Sort
 
@@ -411,12 +411,6 @@ public def cons {N : ℕ} {X : Type} {blocks : List X}
   owners_length := by simp [ownership.owners_length]
   owners_nodup := List.nodup_cons.mpr ⟨hfresh, ownership.owners_nodup⟩
 
-/-- Alias emphasizing that the new block/owner is prepended. -/
-public def prepend {N : ℕ} {X : Type} {blocks : List X}
-    (block : X) (owner : Fin N) (ownership : BlockOwnership N blocks)
-    (hfresh : owner ∉ ownership.owners) : BlockOwnership N (block :: blocks) :=
-  ownership.cons block owner hfresh
-
 /-- Retain ownership for the first `n` blocks. -/
 public def take {N : ℕ} {X : Type} {blocks : List X}
     (n : ℕ) (ownership : BlockOwnership N blocks) :
@@ -468,9 +462,9 @@ public theorem blocks_length_le {N : ℕ} {X : Type} {blocks : List X}
 
 end BlockOwnership
 
-/-! ## Revised transient-index accounting -/
+/-! ## Transient-index accounting -/
 
-/-- Arithmetic form used by the ephemeral compressed-token scheduler.  Tasks still inject into
+/-- Arithmetic form used by the transient compressed-token scheduler.  Tasks still inject into
 the `n` terminal positions.  Persistent indices together with the one currently transient index
 fit in two copies of those positions, and every open frame is charged to a persistent index. -/
 public theorem framed_cell_count_le_eight_mul_of_index_add_one_le_two_mul
@@ -480,25 +474,6 @@ public theorem framed_cell_count_le_eight_mul_of_index_add_one_le_two_mul
     tasks + indices + 2 * frames + 2 ≤ 8 * n := by
   have hn' : 1 ≤ n := hn
   omega
-
-namespace ScheduleInvariant
-
-/-- The existing scheduler invariant's task and shape fields combine with the sharper
-ephemeral-index and frame bounds to recover the uniform fifteen-cells-per-terminal estimate. -/
-public theorem word_length_le_fifteen_mul_revised
-    {g : IndexedGrammar T} [Fintype g.nt]
-    {input : List T} {cursor : ScheduleCursor g input}
-    (hinv : ScheduleInvariant cursor)
-    (hindex : cursor.indexOwners.length + 1 ≤ 2 * input.length)
-    (hframes : cursor.frameCount ≤ cursor.indexOwners.length)
-    (hinput : 0 < input.length) :
-    cursor.word.length ≤ 15 * input.length := by
-  apply le_trans hinv.shape_bound
-  have h := framed_cell_count_le_eight_mul_of_index_add_one_le_two_mul
-    hinv.taskCount_le hindex hframes hinput
-  omega
-
-end ScheduleInvariant
 
 /-! ## Accounting carried by every compressed-runner edge -/
 
@@ -535,7 +510,7 @@ public def workFrameCount {g : IndexedGrammar T} (c : Config g) : ℕ :=
         right.countP WorkSym.isTaskPayload := by
   cases focus <;>
     simp [workTaskCount, WorkCursor.word, WorkSym.isTaskPayload,
-      List.countP_append, List.countP_cons, Nat.add_assoc, Nat.add_comm] <;> omega
+      List.countP_append, Nat.add_assoc, Nat.add_comm] <;> omega
 
 @[simp] public theorem workIndexCount_config_mk {g : IndexedGrammar T}
     (inputPos : ℕ) (left : List (WorkSym g)) (focus : WorkSym g)
@@ -545,7 +520,7 @@ public def workFrameCount {g : IndexedGrammar T} (c : Config g) : ℕ :=
         right.countP WorkSym.isIndex := by
   cases focus <;>
     simp [workIndexCount, WorkCursor.word, WorkSym.isIndex,
-      List.countP_append, List.countP_cons, Nat.add_assoc, Nat.add_comm] <;> omega
+      List.countP_append, Nat.add_assoc, Nat.add_comm] ; omega
 
 @[simp] public theorem workFrameCount_config_mk {g : IndexedGrammar T}
     (inputPos : ℕ) (left : List (WorkSym g)) (focus : WorkSym g)
@@ -555,7 +530,7 @@ public def workFrameCount {g : IndexedGrammar T} (c : Config g) : ℕ :=
         right.countP WorkSym.isClose := by
   cases focus <;>
     simp [workFrameCount, WorkCursor.word, WorkSym.isClose,
-      List.countP_append, List.countP_cons, Nat.add_assoc, Nat.add_comm] <;> omega
+      List.countP_append, Nat.add_assoc, Nat.add_comm] ; omega
 
 /-- Marking the rightmost index changes no count computed from a mark-insensitive predicate. -/
 public theorem countP_markProductivePrefix_of_index_mark_invariant
@@ -626,7 +601,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
   | nil => simp [wordConfig, WorkSym.isTaskPayload, List.countP_append]
   | cons z zs =>
       cases z <;> simp [wordConfig, WorkSym.isTaskPayload, List.countP_append,
-        List.countP_cons, Nat.add_assoc, Nat.add_comm] <;> omega
+        Nat.add_assoc, Nat.add_comm] <;> omega
 
 @[simp] public theorem workIndexCount_wordConfig {g : IndexedGrammar T}
     (inputPos : ℕ) (alpha word : List (WorkSym g)) :
@@ -636,7 +611,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
   | nil => simp [wordConfig, WorkSym.isIndex, List.countP_append]
   | cons z zs =>
       cases z <;> simp [wordConfig, WorkSym.isIndex, List.countP_append,
-        List.countP_cons, Nat.add_assoc, Nat.add_comm] <;> omega
+        Nat.add_assoc, Nat.add_comm] ; omega
 
 @[simp] public theorem workFrameCount_wordConfig {g : IndexedGrammar T}
     (inputPos : ℕ) (alpha word : List (WorkSym g)) :
@@ -646,7 +621,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
   | nil => simp [wordConfig, WorkSym.isClose, List.countP_append]
   | cons z zs =>
       cases z <;> simp [wordConfig, WorkSym.isClose, List.countP_append,
-        List.countP_cons, Nat.add_assoc, Nat.add_comm] <;> omega
+        Nat.add_assoc, Nat.add_comm] ; omega
 
 @[simp] public theorem workTaskCount_active_plain {g : IndexedGrammar T}
     (inputPos : ℕ) (alpha beta : List (WorkSym g)) (A : g.nt) :
@@ -804,7 +779,7 @@ public theorem of_physical_bounds {g : IndexedGrammar T} [Fintype g.nt]
     CompressedAccounting g input c :=
   ⟨htasks, hindices, hframes, hshape⟩
 
-/-- The revised arithmetic turns a local accounting witness into the physical work-tape bound. -/
+/-- The accounting inequalities turn a local witness into the physical work-tape bound. -/
 public theorem within {g : IndexedGrammar T} [Fintype g.nt]
     {input : List T} {c : Config g} (accounting : CompressedAccounting g input c)
     (hinput : 0 < input.length) : c.Within (15 * input.length) := by
@@ -1001,7 +976,7 @@ public theorem consumeRoute_popContinuation_noBinary_with_consumption
             · intro hd
               have hrest := (hevents d).1 hd
               exact Finset.mem_image.mpr ⟨k + 2 + d, hrest, by
-                simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]⟩
+                simp [Nat.add_comm, Nat.add_left_comm]⟩
             · intro hd
               rcases Finset.mem_image.mp hd with ⟨e, he, hed⟩
               have heq : e = k + 2 + d := by
@@ -1238,7 +1213,7 @@ the end of that first block.  This is the arithmetic fact used to show that a fi
 event-free once depth zero is not productive. -/
 public theorem first_length_le_of_pos {g : IndexedGrammar T} [Fintype g.nt]
     {block : List g.flag} {blocks : List (List g.flag)} {d : ℕ}
-    (hblock : block ≠ []) (boundary : Boundary (block :: blocks) d)
+    (_hblock : block ≠ []) (boundary : Boundary (block :: blocks) d)
     (hd : 0 < d) : block.length ≤ d := by
   rcases boundary with ⟨blockCount, hle, heq⟩
   cases blockCount with
@@ -1528,7 +1503,7 @@ public theorem pushEventPreimage_mem {events : Finset ℕ} {d : ℕ}
   rcases Finset.mem_image.mp hd with ⟨e, he, hpred⟩
   by_cases hd0 : d = 0
   · by_cases hzero : 0 ∈ events
-    · simpa [pushEventPreimage, hd0, hzero] using hzero
+    · simp [pushEventPreimage, hd0, hzero]
     · have heq : e = 1 := by
         cases e with
         | zero => exact False.elim (hzero he)
@@ -1633,7 +1608,7 @@ public def eventOwner
 public theorem eventOwnerNat_injective
     {g : IndexedGrammar T} {A : g.nt} {stack : List g.flag} {w : List T}
     (p : NFParse g A stack w) :
-    ∀ {d e : ℕ} (hd : d ∈ p.eventDepths) (he : e ∈ p.eventDepths),
+    ∀ {d e : ℕ} (_hd : d ∈ p.eventDepths) (_he : e ∈ p.eventDepths),
       p.eventOwnerNat d = p.eventOwnerNat e → d = e := by
   induction p with
   | terminal hr hlhs hc hrhs =>
@@ -2017,8 +1992,7 @@ public theorem eventBlocks_take_flatten_length_eq_getElem
 public theorem eventCuts_nodup
     {g : IndexedGrammar T} {A : g.nt} {stack : List g.flag} {w : List T}
     (p : NFParse g A stack w) : p.eventCuts.Nodup := by
-  simpa [eventCuts] using
-    Finset.sort_nodup (p.eventDepths.erase 0) (fun a b : ℕ => a ≤ b)
+  simp [eventCuts]
 
 /-- Assign a physical block its productive-event-depth owner: the endpoint of that block. -/
 public def eventBlockOwner

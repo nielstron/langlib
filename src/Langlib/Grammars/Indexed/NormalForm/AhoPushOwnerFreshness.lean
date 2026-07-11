@@ -79,7 +79,7 @@ public theorem pushChild_eventOwner_one_eq_parent_iff
     have hcollision : window.pushChild.eventOwner 1 hone =
         window.pushChild.eventOwner 0 hzero := by
       rw [heq, htransport]
-      simpa [hpreimage]
+      simp [hpreimage]
     have := window.pushChild.eventOwner_injective hone hzero hcollision
     omega
   · rintro ⟨rfl, hzero⟩
@@ -92,7 +92,7 @@ public theorem pushChild_eventOwner_one_eq_parent_iff
     have hproof : hd = hparent := Subsingleton.elim _ _
     subst hproof
     rw [htransport]
-    simpa [hpreimage]
+    simp [hpreimage]
 
 /-- The shadow-bank depth-one ticket has the same collision behavior as its primary mate. -/
 public theorem pushChild_shadowEventOwner_one_eq_parent_iff
@@ -435,29 +435,6 @@ public theorem pushChild_eventOwner_one_mem_indexOwners_imp_parent_zero_frame
     rcases hcharacter with ⟨hdepth, hzero⟩
     subst d
     exact ⟨hzero, ⟨hd, heq ▸ hframe⟩⟩
-
-/-- Ledger-level collision consequence used by the transient-owner push branch. -/
-public theorem pushChild_eventOwner_one_mem_indexOwners_imp_child_zero_not_mem
-    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
-    {A B : g.nt} {f : g.flag} {stack : List g.flag} {w : List T}
-    {r : IRule T g.nt g.flag}
-    {hr : r ∈ g.rules} {hlhs : r.lhs = A} {hc : r.consume = none}
-    {hrhs : r.rhs = [IRhsSymbol.nonterminal B (some f)]}
-    {rest : NFParse g B (f :: stack) w}
-    {window : ProductiveOwnerWindow (input := input)
-      (NFParse.push hr hlhs hc hrhs rest)}
-    {cursor : ScheduleCursor g input}
-    (ledger : ScheduleOwnerLedger
-      (NFParse.push hr hlhs hc hrhs rest) window cursor)
-    {blocks : List (List g.flag)}
-    (activeLayout : EventOwnedLayout
-      (NFParse.push hr hlhs hc hrhs rest) window blocks ledger.active)
-    (hfocus : [cursor.focus].filterMap ScheduleAtom.indexOwner? = [])
-    (hone : 1 ∈ rest.eventDepths)
-    (hmem : window.pushChild.eventOwner 1 hone ∈ cursor.indexOwners) :
-    0 ∉ rest.eventDepths :=
-  (ledger.pushChild_eventOwner_one_mem_indexOwners_imp_parent_zero_frame
-    activeLayout hfocus hone hmem).1
 
 end ScheduleOwnerLedger
 

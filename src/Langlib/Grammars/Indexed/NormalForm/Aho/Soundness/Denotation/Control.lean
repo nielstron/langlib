@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoBlockDenotation
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Denotation.Block
 
 @[expose]
 public section
@@ -506,3 +506,4 @@ public theorem finalConfig_represents (g : IndexedGrammar T) [Fintype g.nt] (n :
 end ControlDenotation
 end Aho
 end IndexedGrammar
+

@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoRowTrace
-public import Langlib.Grammars.Indexed.NormalForm.AhoPaddedReach
+public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Trace
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.PaddedReach
 
 set_option maxHeartbeats 800000
 
@@ -72,7 +72,7 @@ private theorem foldThree_flatten
       have hz : zs = [] := List.length_eq_zero_iff.mp (by simpa using hzs)
       subst ys
       subst zs
-      simpa only [List.flatMap_nil, hbigNil, hsmallNil]
+      simp only [List.flatMap_nil, hbigNil, hsmallNil]
   | cons x xs ih =>
       cases ys with
       | nil => simp at hys
@@ -111,3 +111,4 @@ public theorem evalWorkBlocks_eq_evalWorkSlots (g : IndexedGrammar T) [Fintype g
 
 end Aho
 end IndexedGrammar
+
