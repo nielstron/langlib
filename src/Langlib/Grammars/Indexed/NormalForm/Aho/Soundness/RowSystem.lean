@@ -6,6 +6,14 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowWork.FrameRet
 @[expose]
 public section
 
+/-!
+# Soundness and exactness of Aho's certified row system
+
+This is the physical-to-semantic direction. Successful finite-control evaluations are decoded
+into input and work traces, then into semantic padded machine steps. Together with row-system
+completeness, this yields exact language equality and the positive-input LBA recognizer.
+-/
+
 open List Relation Classical
 
 variable {T : Type}
@@ -445,6 +453,8 @@ public theorem ahoRowSystem_rowStep_iff_paddedRowStep
     (ahoRowSystem g).RowStep old new ↔ PaddedRowStep g old new :=
   ⟨paddedRowStep_of_rowStep g, rowStep_of_paddedRowStep g⟩
 
+/-- Soundness converse of `rowReachLanguage_of_paddedReachLanguage`: every accepting physical
+row-system run decodes to semantic bounded reachability. -/
 public theorem paddedReachLanguage_of_rowReachLanguage
     (g : IndexedGrammar T) [Fintype g.nt] :
     ∀ input : List T, input ∈ (ahoRowSystem g).rowReachLanguage →

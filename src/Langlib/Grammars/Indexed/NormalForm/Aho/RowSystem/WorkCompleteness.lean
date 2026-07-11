@@ -5,6 +5,14 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Trace
 @[expose]
 public section
 
+/-!
+# Work-track completeness for Aho's row checker
+
+For every semantic composite certificate, this module constructs the corresponding finite
+logical-slot trace. The constructions cover replacements, one- and two-slot shifts, pop frames,
+frame returns, and the final dispatch theorem producing `WorkTraceAccepts`.
+-/
+
 open List Relation Classical
 
 variable {T : Type}
@@ -2043,4 +2051,3 @@ public theorem workTraceAccepts_of_certStep (g : IndexedGrammar T) [Fintype g.nt
 
 end Aho
 end IndexedGrammar
-

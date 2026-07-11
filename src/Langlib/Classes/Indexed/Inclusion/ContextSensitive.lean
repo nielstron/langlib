@@ -1021,7 +1021,8 @@ public theorem is_CS_of_is_Indexed {L : Language T}
   is_CS_of_is_Indexed_of_finite_normalForm_LBA_core
     finite_normalForm_indexed_language_is_LBA_pos hL
 
-/-- Indexed languages form a subclass of the context-sensitive languages. -/
+/-- Class-level capstone: the finite normal-form Aho LBA core, together with the preceding
+finite-support normalization and empty-word reduction, places every indexed language in `CS`. -/
 public theorem Indexed_subclass_CS :
     (Indexed : Set (Language T)) ⊆ (CS : Set (Language T)) := by
   intro L hL

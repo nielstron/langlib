@@ -30,7 +30,7 @@ Each class of the (extended) hierarchy is charaterized as grammar or automaton (
 | Context-free languages | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | PDA languages (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStack.lean)) |
 | ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊊ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictContextSensitive.lean))|  | ⊊ |
 | Indexed languages | ⇔ | Nested Stack Automata |
-| ⊊ |  | ⊊ |
+| ⊆ [🔗](src/Langlib/Classes/Indexed/Inclusion/ContextSensitive.lean) |  | ⊆ |
 | Context-sensitive languages (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ [🔗](src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) | LBA languages (DLBA ⊆ [🔗](src/Langlib/Automata/DeterministicLinearBounded/Inclusion/LinearBounded.lean) LBA, LBA ⊆? DLBA) |
 | ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) |  | ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
 | Recursive languages | ≝ [🔗](src/Langlib/Classes/Recursive/Definition.lean) | Turing-machine languages (Mathlib), with halting deciders |

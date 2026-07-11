@@ -10,8 +10,9 @@ public section
 # Certified row checker for Aho's machine
 
 The packed rows in `Aho.Machine.PaddedRows` retain the active work-head bit. Consequently every
-composite move is a regular relation on two aligned rows.  Insertions and deletions only shift the remaining
-suffix by at most two slots: the checker below remembers the preceding two old and new slots.
+composite move is a regular relation on two aligned rows. Insertions and deletions only shift the
+remaining suffix by at most two slots: the checker below remembers the preceding two old and new
+slots.
 
 The per-cell certificate chooses the finite composite rule and the phase reached after each of the
 twenty-one logical slots in that cell. Phase choices only resolve regular-expression boundaries; all
@@ -909,4 +910,3 @@ public theorem final_ahoRowSystem_iff (g : IndexedGrammar T) [Fintype g.nt]
 
 end Aho
 end IndexedGrammar
-

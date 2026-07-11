@@ -5,6 +5,14 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Checker
 @[expose]
 public section
 
+/-!
+# Logical-slot traces for Aho's row checker
+
+This module gives the proof-relevant trace relation behind the finite checker. A trace records
+every aligned old/new logical slot and scan phase, enforces canonical `some* none*` padding on
+both tracks, and connects accepting traces to the executable slot evaluator.
+-/
+
 open List Relation Classical
 
 variable {T : Type}
@@ -189,4 +197,3 @@ public theorem evalWorkSlots_of_accepts (g : IndexedGrammar T) [Fintype g.nt]
 
 end Aho
 end IndexedGrammar
-

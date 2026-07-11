@@ -7,6 +7,14 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowInput
 @[expose]
 public section
 
+/-!
+# Completeness of Aho's certified row system
+
+This is the semantic-to-physical direction. It combines the input-track and work-track trace
+constructors, packs them into physical cells, and proves that every semantic `PaddedRowStep` is
+accepted as a `CertifiedRowSystem.RowStep`.
+-/
+
 open List Relation Classical
 
 variable {T : Type}
@@ -408,6 +416,8 @@ public theorem rowStep_of_certStep (g : IndexedGrammar T) [Fintype g.nt]
   · simp only [ahoRowSystem, rowStepDone, Bool.and_eq_true]
     exact ⟨by simpa [inputResult, oldCells, newCells] using hinputDone, hworkDone⟩
 
+/-- Every semantic composite padded-row edge is accepted by the certified row system;
+initialization is handled separately by `rowStep_of_paddedRowStep`. -/
 public theorem rowStep_of_paddedCompositeStep (g : IndexedGrammar T) [Fintype g.nt]
     {old new : List (RowCell g)} (h : PaddedCompositeStep g old new) :
     (ahoRowSystem g).RowStep old new := by
@@ -436,4 +446,3 @@ public theorem rowReachLanguage_of_paddedReachLanguage
 
 end Aho
 end IndexedGrammar
-

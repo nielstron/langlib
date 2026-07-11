@@ -2,7 +2,7 @@
 title: "⊊ Recursive"
 description: "Formal Lean 4 proofs that every context-sensitive language is recursive (CS ⊆ Recursive), and that the inclusion is strict (CS ⊊ Recursive), by diagonalization."
 parent: "Context-sensitive"
-nav_order: 4
+nav_order: 5
 ---
 
 # Context-sensitive languages and recursiveness (CS ⊆ Recursive, strictly)

@@ -32,7 +32,8 @@ public theorem is_LBA_pos_language_of_bounded_complete
   rw [language_eq_paddedReachLanguage_of_bounded_complete hNF hcomplete]
   exact is_LBA_pos_paddedReachLanguage g
 
-/-- Every finite normal-form indexed grammar is recognized by a positive-input LBA. -/
+/-- Every finite normal-form indexed grammar is recognized by a positive-input LBA. The proof
+combines the uniform `complete_bounded` schedule with certified-row exactness and compilation. -/
 public theorem is_LBA_pos_language
     {g : IndexedGrammar T} [Fintype T] [DecidableEq T]
     [Fintype g.nt] [Fintype g.flag] [DecidableEq g.nt]

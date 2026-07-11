@@ -8,6 +8,14 @@ set_option maxHeartbeats 800000
 @[expose]
 public section
 
+/-!
+# Evaluation lemmas for Aho's packed row checker
+
+Physical input cells contain blocks of twenty-one logical work slots. This module bridges the
+certified row system's cell-by-cell evaluator to the flattened input and work-track evaluators
+used by the completeness and soundness proofs.
+-/
+
 set_option maxHeartbeats 0
 set_option synthInstance.maxHeartbeats 0
 
@@ -111,4 +119,3 @@ public theorem evalWorkBlocks_eq_evalWorkSlots (g : IndexedGrammar T) [Fintype g
 
 end Aho
 end IndexedGrammar
-
