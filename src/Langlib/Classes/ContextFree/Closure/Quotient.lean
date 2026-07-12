@@ -8,6 +8,7 @@ public import Langlib.Examples.UnaryA2PowSucc
 public import Mathlib.Computability.ContextFreeGrammar
 public import Mathlib.Order.BourbakiWitt
 import Langlib.Classes.ContextFree.Closure.IntersectionRegular
+import Langlib.Classes.ContextFree.Closure.Bijection
 import Langlib.Classes.ContextFree.Closure.Substitution
 import Langlib.Classes.ContextFree.Closure.Union
 import Langlib.Classes.ContextFree.Examples.A2nBnPosStar
@@ -697,5 +698,46 @@ theorem CF_notClosedUnderRightQuotient :
   intro hclosed
   exact notCF_quotient
     (hclosed quotientNumerator quotientDenominator CF_quotientNumerator CF_quotientDenominator)
+
+private theorem Language.map_rightQuotient_injective {α β : Type} {f : α → β}
+    (hf : Function.Injective f) (L R : Language α) :
+    Language.map f (Language.rightQuotient L R) =
+      Language.rightQuotient (Language.map f L) (Language.map f R) := by
+  ext w
+  constructor
+  · rintro ⟨u, ⟨v, hvR, huvL⟩, rfl⟩
+    exact ⟨v.map f, ⟨v, hvR, rfl⟩, ⟨u ++ v, huvL, by simp⟩⟩
+  · rintro ⟨v, ⟨v₀, hv₀R, hv⟩, ⟨z, hzL, hz⟩⟩
+    subst v
+    have hz' : z.map f = w ++ v₀.map f := by simpa using hz
+    obtain ⟨w₀, v₁, hz_eq, hw₀, hv₁⟩ := List.map_eq_append_iff.mp hz'
+    have hv₁_eq : v₁ = v₀ := List.map_injective_iff.mpr hf hv₁
+    subst v₁
+    rw [← hw₀]
+    exact ⟨w₀, ⟨v₀, hv₀R, by simpa [hz_eq] using hzL⟩, rfl⟩
+
+/-- CFLs are not closed under right quotient over any alphabet into which the binary
+witness alphabet embeds. -/
+public theorem CF_notClosedUnderRightQuotient_of_embedding {α : Type}
+    (e : Bool ↪ α) :
+    ¬ ClosedUnderRightQuotient (α := α) is_CF := by
+  intro hclosed
+  apply CF_notClosedUnderRightQuotient
+  intro L R hL hR
+  have hq := hclosed (Language.map e L) (Language.map e R)
+    (CF_of_map_CF e L hL) (CF_of_map_CF e R hR)
+  rw [← Language.map_rightQuotient_injective e.injective] at hq
+  exact CF_of_map_injective_CF_rev e.injective _ hq
+
+/-- CFLs are not closed under right quotient over any finite alphabet with at least
+two symbols. -/
+public theorem CF_notClosedUnderRightQuotient_of_card {α : Type} [Fintype α]
+    (hα : 2 ≤ Fintype.card α) :
+    ¬ ClosedUnderRightQuotient (α := α) is_CF := by
+  let πB : Bool ≃ Fin (Fintype.card Bool) := Fintype.equivFin Bool
+  let πA : α ≃ Fin (Fintype.card α) := Fintype.equivFin α
+  have hBA : Fintype.card Bool ≤ Fintype.card α := by simpa using hα
+  exact CF_notClosedUnderRightQuotient_of_embedding
+    (πB.toEmbedding.trans ((Fin.castLEEmb hBA).trans πA.symm.toEmbedding))
 
 end
