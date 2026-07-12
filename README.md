@@ -14,7 +14,7 @@
 The goal of this library is to encapsulate some core results of the (extended) Chomsky hierarchy: inclusions, closures and decidability.
 The following gives a rough overview over the contents in highly condensed form.
 
-The tables contain standard results, `🔗` indicates that this repository contains a corresponding proof file (possibly to a weaker variant of the result, e.g. ⊊  vs. ⊆  and ⇔ vs. ⇒)
+The tables contain standard results. `🔗` indicates that this repository contains a corresponding definition or proof file (possibly for a weaker variant of the result, e.g. ⊊ vs. ⊆ and ⇔ vs. ⇒).
 More detailed results and developed tooling (e.g., Pumping lemmas, Totalizations) can be found in the [documentation](https://nielstron.github.io/langlib/).
 
 ### Hierarchy And Equivalences
@@ -23,19 +23,19 @@ Each class of the (extended) hierarchy is charaterized as grammar or automaton (
 
 | Class Name | Grammar | Relation | Automaton |
 | --- | --- | --- | --- |
-| Regular | Regular (Left-regular ⇔[🔗](src/Langlib/Grammars/LeftRegular/Equivalence/RightRegular.lean) Right-regular) | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/Regular.lean)| Finite Automata (NFA ⇔ DFA) |
+| Regular | Regular (Left-regular [🔗](src/Langlib/Grammars/LeftRegular/Definition.lean) ⇔[🔗](src/Langlib/Grammars/LeftRegular/Equivalence/RightRegular.lean) Right-regular [🔗](src/Langlib/Grammars/RightRegular/Definition.lean)) | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/Regular.lean)| Finite Automata [🔗](src/Langlib/Automata/FiniteState/Definition.lean) (NFA ⇔ DFA) |
 | | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLR.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean) |
-| Deterministic context-free | LR(k) [🔗](src/Langlib/Grammars/LR/Definition.lean) | ⇔ | Deterministic Pushdown Automata [🔗](src/Langlib/Classes/DeterministicContextFree/Definition.lean) |
+| Deterministic context-free | LR(k) [🔗](src/Langlib/Grammars/LR/Definition.lean) | ⇔ | Deterministic Pushdown Automata [🔗](src/Langlib/Automata/DeterministicPushdown/Definition.lean) |
 | | ⊊ (⊆ [🔗](src/Langlib/Grammars/LR/Inclusion/ContextFree.lean)) |  | ⊊ [🔗](src/Langlib/Automata/DeterministicPushdown/Inclusion/StrictPushdown.lean) |
-| Context-free | Context-free | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | Pushdown Automata (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStack.lean)) |
+| Context-free | Context-free [🔗](src/Langlib/Grammars/ContextFree/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | Pushdown Automata [🔗](src/Langlib/Automata/Pushdown/Definition.lean) (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStack.lean)) |
 | | ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊊ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictContextSensitive.lean))|  | ⊊ |
-| Indexed | Indexed | ⇔ | Nested Stack Automata |
+| Indexed | Indexed [🔗](src/Langlib/Grammars/Indexed/Definition.lean) | ⇔ | Nested Stack Automata |
 | | ⊊ [🔗](src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean) |  | ⊊ |
-| Context-sensitive | Context-sensitive (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ [🔗](src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) | Linear Bounded Automaton (DLBA ⊆ [🔗](src/Langlib/Automata/DeterministicLinearBounded/Inclusion/LinearBounded.lean) LBA, LBA ⊆? DLBA) |
+| Context-sensitive | Context-sensitive [🔗](src/Langlib/Grammars/ContextSensitive/Definition.lean) (Non-erasing ⇔ Non-contracting [🔗](src/Langlib/Grammars/NonContracting/Definition.lean) (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ [🔗](src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) | Linear Bounded Automaton [🔗](src/Langlib/Automata/LinearBounded/Definition.lean) (DLBA [🔗](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean) ⊆ [🔗](src/Langlib/Automata/DeterministicLinearBounded/Inclusion/LinearBounded.lean) LBA, LBA ⊆? DLBA) |
 |  |  | ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
-| Recursive |  ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) | | Turing-machines with halting deciders |
+| Recursive |  ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) | | Turing-machines with halting deciders [🔗](src/Langlib/Classes/Recursive/Definition.lean) |
 | |  |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean)  |
-| Recursively Enumerable | Unrestricted | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machines |
+| Recursively Enumerable | Unrestricted [🔗](src/Langlib/Grammars/Unrestricted/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machines [🔗](src/Langlib/Automata/Turing/Definition.lean) |
 
 The strict inclusion Indexed ⊊ CS is formalized for finite alphabets with at least two
 symbols. The underlying inclusion Indexed ⊆ CS
