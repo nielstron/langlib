@@ -1,11 +1,15 @@
 module
 
 public import Langlib.Classes.ContextSensitive.Closure.IntersectionRegular
+public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
+public import Langlib.Classes.Recursive.Closure.IntersectionRegular
+public import Langlib.Classes.Recursive.Closure.InverseHomomorphism
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Inclusion.StrictRecursivelyEnumerable
 public import Langlib.Classes.RecursivelyEnumerable.Examples.Halting
 public import Langlib.Classes.Regular.Closure.Concatenation
+public import Langlib.Classes.Regular.Closure.Homomorphism
 public import Langlib.Classes.Regular.Closure.Star
 public import Langlib.Classes.Regular.Examples.SingletonWord
 public import Langlib.Grammars.NonContracting.ErasingImage
@@ -190,5 +194,93 @@ public theorem CS_notClosedUnderRightQuotientWithRegular :
     exact hexposed
   exact haltingUnaryLanguage_not_Recursive
     (recursive_of_recursive_map_some (is_Recursive_of_is_CS hmapped))
+
+private theorem CS_of_map {α β : Type} (f : α → β) (L : Language α)
+    (hL : is_CS L) : is_CS (Language.map f L) := by
+  have h := is_CS_homomorphicImage_epsfree L (fun a => [f a]) (fun _ => by simp) hL
+  rwa [Language.homomorphicImage, Language.subst_singletons_eq_map] at h
+
+private theorem Language.map_rightQuotient_injective {α β : Type} {f : α → β}
+    (hf : Function.Injective f) (L R : Language α) :
+    Language.map f (Language.rightQuotient L R) =
+      Language.rightQuotient (Language.map f L) (Language.map f R) := by
+  ext w
+  constructor
+  · rintro ⟨u, ⟨v, hvR, huvL⟩, rfl⟩
+    exact ⟨v.map f, ⟨v, hvR, rfl⟩, ⟨u ++ v, huvL, by simp⟩⟩
+  · rintro ⟨v, ⟨v₀, hv₀R, hv⟩, ⟨z, hzL, hz⟩⟩
+    subst v
+    have hz' : z.map f = w ++ v₀.map f := by simpa using hz
+    obtain ⟨w₀, v₁, hz_eq, hw₀, hv₁⟩ := List.map_eq_append_iff.mp hz'
+    have hv₁_eq : v₁ = v₀ := List.map_injective_iff.mpr hf hv₁
+    subst v₁
+    rw [← hw₀]
+    exact ⟨w₀, ⟨v₀, hv₀R, by simpa [hz_eq] using hzL⟩, rfl⟩
+
+private theorem recursive_of_recursive_map_injective {α β : Type}
+    [Fintype α] [Fintype β] {f : α → β} (hf : Function.Injective f)
+    (L : Language α) (h : is_Recursive (Language.map f L)) :
+    is_Recursive L := by
+  have hpre := is_Recursive_inverseHomomorphism
+    (Language.map f L) (fun a => [f a]) h
+  have hflat : ∀ w : List α, w.flatMap (fun a => [f a]) = w.map f := by
+    intro w
+    induction w with
+    | nil => rfl
+    | cons a w ih => simp [ih]
+  have heq : ({w : List α | w.flatMap (fun a => [f a]) ∈ Language.map f L} : Language α) =
+      L := by
+    ext w
+    change w.flatMap (fun a => [f a]) ∈ Language.map f L ↔ w ∈ L
+    rw [hflat]
+    constructor
+    · rintro ⟨v, hv, hmap⟩
+      have : v = w := List.map_injective_iff.mpr hf hmap
+      simpa [this] using hv
+    · intro hw
+      exact ⟨w, hw, rfl⟩
+  rwa [heq] at hpre
+
+/-- Context-sensitive languages are not closed under regular right quotient over any
+finite alphabet into which the binary witness alphabet embeds. -/
+public theorem CS_notClosedUnderRightQuotientWithRegular_of_embedding {α : Type}
+    [Fintype α] (e : Option Unit ↪ α) :
+    ¬ ClosedUnderRightQuotientWithRegular (α := α) is_CS := by
+  letI : DecidableEq α := Classical.decEq α
+  letI : Primcodable α :=
+    Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
+  intro hclosed
+  obtain ⟨g, hg⟩ := haltingUnaryLanguage_RE
+  have hnum : is_CS (Language.map e (paddedNumerator g)) :=
+    CS_of_map e (paddedNumerator g) (paddedNumerator_is_CS g)
+  have hden : (Language.map e noneStar).IsRegular := noneStar_regular.map e
+  have hquot : is_CS
+      (Language.rightQuotient (Language.map e (paddedNumerator g))
+        (Language.map e noneStar)) :=
+    hclosed _ hnum _ hden
+  rw [← Language.map_rightQuotient_injective e.injective] at hquot
+  have hbase : is_Recursive (Language.rightQuotient (paddedNumerator g) noneStar) :=
+    recursive_of_recursive_map_injective e.injective _
+      (is_Recursive_of_is_CS hquot)
+  have hexposed : is_Recursive
+      (Language.rightQuotient (paddedNumerator g) noneStar ⊓ someStar) :=
+    Recursive_closedUnderIntersectionWithRegular _ hbase _ someStar_regular
+  have hmapped : is_Recursive (Language.map some haltingUnaryLanguage) := by
+    rw [← hg, ← exposed_padded_eq_map]
+    exact hexposed
+  exact haltingUnaryLanguage_not_Recursive
+    (recursive_of_recursive_map_some hmapped)
+
+/-- Context-sensitive languages are not closed under regular right quotient over any
+finite alphabet with at least two symbols. -/
+public theorem CS_notClosedUnderRightQuotientWithRegular_of_card {α : Type}
+    [Fintype α] (hα : 2 ≤ Fintype.card α) :
+    ¬ ClosedUnderRightQuotientWithRegular (α := α) is_CS := by
+  let πW : Option Unit ≃ Fin (Fintype.card (Option Unit)) :=
+    Fintype.equivFin (Option Unit)
+  let πA : α ≃ Fin (Fintype.card α) := Fintype.equivFin α
+  have hWA : Fintype.card (Option Unit) ≤ Fintype.card α := by simpa using hα
+  exact CS_notClosedUnderRightQuotientWithRegular_of_embedding
+    (πW.toEmbedding.trans ((Fin.castLEEmb hWA).trans πA.symm.toEmbedding))
 
 end
