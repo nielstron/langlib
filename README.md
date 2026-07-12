@@ -27,7 +27,7 @@ Each class of the (extended) hierarchy is charaterized as grammar or automaton (
 | | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLR.lean) |  | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean) |
 | Deterministic context-free | LR(k) [🔗](src/Langlib/Grammars/LR/Definition.lean) | ⇔ | Deterministic Pushdown Automata [🔗](src/Langlib/Automata/DeterministicPushdown/Definition.lean) |
 | | ⊊ (⊆ [🔗](src/Langlib/Grammars/LR/Inclusion/ContextFree.lean)) |  | ⊊ [🔗](src/Langlib/Automata/DeterministicPushdown/Inclusion/StrictPushdown.lean) |
-| Context-free | Context-free [🔗](src/Langlib/Grammars/ContextFree/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | Pushdown Automata [🔗](src/Langlib/Automata/Pushdown/Definition.lean) (Final State ⇔ Empty Stack [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStack.lean)) |
+| Context-free | Context-free [🔗](src/Langlib/Grammars/ContextFree/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | Pushdown Automata [🔗](src/Langlib/Automata/Pushdown/Definition.lean) (Final State ⇔ [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStack.lean) Empty Stack) |
 | | ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊊ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictContextSensitive.lean))|  | ⊊ |
 | Indexed | Indexed [🔗](src/Langlib/Grammars/Indexed/Definition.lean) | ⇔ | Nested Stack Automata |
 | | ⊊ [🔗](src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean) |  | ⊊ |
