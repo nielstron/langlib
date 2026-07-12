@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoIndexTickets
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.IndexTickets
 
 @[expose]
 public section

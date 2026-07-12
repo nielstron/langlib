@@ -1,11 +1,11 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoEventCompatibility
-public import Langlib.Grammars.Indexed.NormalForm.AhoScheduleMoves
-public import Langlib.Grammars.Indexed.NormalForm.AhoScheduleResources
-public import Langlib.Grammars.Indexed.NormalForm.AhoPushOwnerFreshness
-public import Langlib.Grammars.Indexed.NormalForm.AhoTicketSeal
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayMode
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.EventCompatibility
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.Moves
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.RunResources
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Ownership.PushFreshness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.TicketSeal
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Interface
 
 @[expose]
 public section

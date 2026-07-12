@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoEventOwnerFrames
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Ownership.EventFrames
 
 @[expose]
 public section

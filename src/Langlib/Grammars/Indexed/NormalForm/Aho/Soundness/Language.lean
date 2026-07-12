@@ -2,7 +2,7 @@ module
 
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.PaddedReach
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Acceptance
-public import Langlib.Grammars.Indexed.NormalForm.AhoCertificate
+public import Langlib.Grammars.Indexed.NormalForm.Aho.ParseCertificate
 
 @[expose]
 public section

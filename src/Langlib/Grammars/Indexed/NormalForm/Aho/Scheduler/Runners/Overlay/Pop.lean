@@ -1,9 +1,9 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoEventCompatibility
-public import Langlib.Grammars.Indexed.NormalForm.AhoScheduleMoves
-public import Langlib.Grammars.Indexed.NormalForm.AhoTicketSeal
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayMode
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.EventCompatibility
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.Moves
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.TicketSeal
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Interface
 
 @[expose]
 public section

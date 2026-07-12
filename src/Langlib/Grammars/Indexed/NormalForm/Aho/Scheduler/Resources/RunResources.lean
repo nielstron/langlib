@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoShadowOwners
-public import Langlib.Grammars.Indexed.NormalForm.AhoIndexTickets
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Ownership.Shadow
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.IndexTickets
 
 @[expose]
 public section

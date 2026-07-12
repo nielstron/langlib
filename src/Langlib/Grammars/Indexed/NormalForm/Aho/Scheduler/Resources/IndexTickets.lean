@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoShadowOwners
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Ownership.Shadow
 public import Mathlib.Data.List.Nodup
 
 @[expose]
@@ -362,7 +362,7 @@ public def ScheduleCursor.indexTickets
 
 /-- Replace only the owner annotation of a compressed index.  This local copy deliberately
 does not import the later physical-owner relabelling module, so ticket resources remain usable
-by `AhoScheduleResources` without an import cycle. -/
+by `Scheduler.Resources.RunResources` without an import cycle. -/
 public def ScheduleIndex.withTicketOwner
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     (idx : ScheduleIndex g input) (owner : Fin (10 * input.length)) :

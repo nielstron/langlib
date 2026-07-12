@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoBoundedCompleteness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.BoundedAccounting
 
 @[expose]
 public section

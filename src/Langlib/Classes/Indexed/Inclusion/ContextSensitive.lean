@@ -7,7 +7,7 @@ public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.Indexed.Basics.FiniteSupport
 public import Langlib.Grammars.Indexed.NormalForm.BoundedStackGrammar
 public import Langlib.Grammars.Indexed.NormalForm.Shrinking
-public import Langlib.Grammars.Indexed.NormalForm.AhoInclusion
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Inclusion
 @[expose]
 public section
 

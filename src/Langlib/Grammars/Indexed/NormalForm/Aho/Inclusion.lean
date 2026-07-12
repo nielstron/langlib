@@ -2,7 +2,7 @@ module
 
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Language
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowSystem
-public import Langlib.Grammars.Indexed.NormalForm.AhoRunnerTop
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Completeness
 
 @[expose]
 public section

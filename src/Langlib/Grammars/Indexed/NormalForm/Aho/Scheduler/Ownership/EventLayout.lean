@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoEventCompatibility
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.EventCompatibility
 
 @[expose]
 public section

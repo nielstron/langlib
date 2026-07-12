@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoGhostLayout
-public import Langlib.Grammars.Indexed.NormalForm.AhoProductiveOwners
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.GhostLayout
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Ownership.Productive
 
 @[expose]
 public section

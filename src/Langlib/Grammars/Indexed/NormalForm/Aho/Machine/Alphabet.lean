@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoCompression
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Compression
 public import Mathlib.Data.Fintype.Prod
 
 @[expose]
@@ -154,4 +154,3 @@ public def markProductivePrefix {g : IndexedGrammar T}
 
 end Aho
 end IndexedGrammar
-

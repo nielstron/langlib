@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoProtectedRunner
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Protected.Atomic
 
 @[expose]
 public section

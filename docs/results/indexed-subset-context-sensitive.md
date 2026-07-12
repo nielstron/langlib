@@ -72,6 +72,41 @@ indexed language L
   → context-sensitive L
 ```
 
+## Scope and placement
+
+In this development, **Aho** names the finite normal-form indexed-grammar-to-LBA
+construction, not a new general-purpose automaton model. Its work alphabet,
+configurations, transition certificates, scheduler tasks, and row cells are all
+parameterized by a concrete `IndexedGrammar`; parse-directed completeness additionally
+uses the four constructors of `NFParse` supplied by indexed-grammar normal form.
+
+The construction therefore lives under
+`Langlib.Grammars.Indexed.NormalForm.Aho`. The genuinely reusable automata layer is
+`CertifiedRowSystem`, which remains under `Langlib.Automata.LinearBounded`; `ahoRowSystem`
+is the grammar-specific instance compiled through that abstraction. The class-level
+principle for arbitrary indexed languages is `Indexed_subclass_CS`, kept separately under
+`Langlib.Classes.Indexed.Inclusion` because it also performs finite-support normalization,
+homomorphic transport, and empty-word restoration.
+
+The source hierarchy mirrors the proof dependencies:
+
+```text
+Aho/
+├── Compression, ParseCertificate
+├── Machine/
+├── Scheduler/
+│   ├── Accounting, ParseRoutes, Invariant, Pop, Moves, Execution
+│   ├── BoundedAccounting, GhostLayout, CompressedState
+│   ├── EventCompatibility
+│   ├── Ownership/
+│   ├── Resources/
+│   ├── Runners/{Plain, Protected, Overlay}/
+│   └── Completeness
+├── RowSystem/
+├── Soundness/
+└── Inclusion
+```
+
 ## Aho's compressed machine
 
 An indexed grammar carries an unbounded stack of flags, so a direct simulation would
@@ -278,14 +313,16 @@ nonempty inputs; the class-level theorem separately handles epsilon.
 
 A productive reading order is:
 
-1. `AhoCompression` and `AhoCertificate`;
+1. `Aho.Compression` and `Aho.ParseCertificate`;
 2. `Machine.Alphabet` and `Machine.Transitions`;
-3. `Scheduler.ParseRoutes`, `Scheduler.Invariant`, and `AhoScheduleResources`;
-4. the plain, protected, and overlay runners, ending at `AhoRunnerTop`;
+3. `Scheduler.ParseRoutes`, `Scheduler.Invariant`, and
+   `Scheduler.Resources.RunResources`;
+4. `Scheduler.Runners.Plain` and the protected and overlay runner subtrees, ending at
+   `Scheduler.Completeness`;
 5. the block and control denotations;
 6. certificate and acceptance soundness;
 7. the row-system completeness and soundness directions;
-8. `AhoInclusion` and the class-level capstone.
+8. `Aho.Inclusion` and the class-level capstone.
 
 The central maintenance boundaries are:
 
@@ -301,7 +338,7 @@ The central maintenance boundaries are:
 The focused development and its class-level capstone can be checked with:
 
 ```sh
-lake build Langlib.Grammars.Indexed.NormalForm.AhoInclusion
+lake build Langlib.Grammars.Indexed.NormalForm.Aho.Inclusion
 lake build Langlib.Classes.Indexed.Inclusion.ContextSensitive
 ```
 

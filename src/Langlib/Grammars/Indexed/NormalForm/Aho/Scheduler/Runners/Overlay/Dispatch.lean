@@ -1,10 +1,10 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayBinary
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayPushCompress
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayPushFresh
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayRunner
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayTerminal
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Binary
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.PushCompress
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.PushFresh
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Pop
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Terminal
 
 @[expose]
 public section

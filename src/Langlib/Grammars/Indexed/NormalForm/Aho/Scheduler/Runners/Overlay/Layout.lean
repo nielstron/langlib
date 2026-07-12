@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoGhostLayout
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.GhostLayout
 
 @[expose]
 public section

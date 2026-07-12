@@ -22,6 +22,7 @@ public import Langlib.Automata.DeterministicPushdown.Totalization.StackSummary
 public import Langlib.Automata.DeterministicPushdown.Totalization
 public import Langlib.Automata.FiniteState.Definition
 public import Langlib.Automata.FiniteState.Equivalence.Regular
+public import Langlib.Automata.LinearBounded.CertifiedRowSystem
 public import Langlib.Automata.LinearBounded.Definition
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Completeness
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Construction

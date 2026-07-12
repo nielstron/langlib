@@ -1,8 +1,8 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayStructural
-public import Langlib.Grammars.Indexed.NormalForm.AhoPlainRunner
-public import Langlib.Grammars.Indexed.NormalForm.AhoProtectedStructural
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Dispatch
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Plain
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Protected.Structural
 
 @[expose]
 public section

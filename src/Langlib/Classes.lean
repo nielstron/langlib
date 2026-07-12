@@ -78,6 +78,7 @@ public import Langlib.Classes.ContextSensitive.Closure.Bijection
 public import Langlib.Classes.ContextSensitive.Closure.Concatenation
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
+public import Langlib.Classes.ContextSensitive.Closure.FiniteLanguage
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
 public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization

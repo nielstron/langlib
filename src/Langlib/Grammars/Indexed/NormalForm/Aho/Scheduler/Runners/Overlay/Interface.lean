@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayLayout
-public import Langlib.Grammars.Indexed.NormalForm.AhoScheduleResources
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Layout
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.RunResources
 
 @[expose]
 public section

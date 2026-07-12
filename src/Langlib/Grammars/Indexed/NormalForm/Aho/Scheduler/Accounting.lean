@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoCertificate
+public import Langlib.Grammars.Indexed.NormalForm.Aho.ParseCertificate
 
 @[expose]
 public section

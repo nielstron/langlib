@@ -1,8 +1,8 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoScheduleResources
-public import Langlib.Grammars.Indexed.NormalForm.AhoPushOwnerFreshness
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayParking
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Resources.RunResources
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Ownership.PushFreshness
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Parking
 
 @[expose]
 public section

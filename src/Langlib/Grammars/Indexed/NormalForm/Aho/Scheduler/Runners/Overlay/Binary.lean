@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoOverlayMode
-public import Langlib.Grammars.Indexed.NormalForm.AhoProtectedStructural
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Overlay.Interface
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Protected.Structural
 
 @[expose]
 public section

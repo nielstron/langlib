@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.AhoCertificate
-public import Langlib.Grammars.Indexed.NormalForm.AhoAccounting
+public import Langlib.Grammars.Indexed.NormalForm.Aho.ParseCertificate
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Accounting
 
 @[expose]
 public section
