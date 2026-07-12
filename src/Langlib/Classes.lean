@@ -85,6 +85,7 @@ public import Langlib.Classes.ContextSensitive.Closure.IntersectionRegular
 public import Langlib.Classes.ContextSensitive.Closure.Quotient
 public import Langlib.Classes.ContextSensitive.Closure.QuotientRegular
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
+public import Langlib.Classes.ContextSensitive.Closure.Star
 public import Langlib.Classes.ContextSensitive.Closure.Substitution
 public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization
