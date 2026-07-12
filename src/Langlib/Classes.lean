@@ -82,6 +82,7 @@ public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Closure.FiniteLanguage
 public import Langlib.Classes.ContextSensitive.Closure.Homomorphism
 public import Langlib.Classes.ContextSensitive.Closure.IntersectionRegular
+public import Langlib.Classes.ContextSensitive.Closure.Quotient
 public import Langlib.Classes.ContextSensitive.Closure.QuotientRegular
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
 public import Langlib.Classes.ContextSensitive.Closure.Substitution
