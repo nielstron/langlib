@@ -69,6 +69,12 @@ We define abstract closure predicates (`ClosedUnderUnion`, `ClosedUnderHomomorph
 | Right quotient | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | No [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/Quotient.lean) | No [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) | No | No [🔗](src/Langlib/Classes/ContextSensitive/Closure/Quotient.lean) | No [🔗](src/Langlib/Classes/Recursive/Closure/Quotient.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Quotient.lean) |
 | Right quotient with a regular language | Yes [🔗](src/Langlib/Classes/Regular/Closure/Quotient.lean) | Yes [🔗](src/Langlib/Classes/DeterministicContextFree/Closure/QuotientRegular.lean) | Yes [🔗](src/Langlib/Classes/ContextFree/Closure/Quotient.lean) | Yes [🔗](src/Langlib/Classes/Indexed/Closure/QuotientRegular.lean) | No [🔗](src/Langlib/Classes/ContextSensitive/Closure/QuotientRegular.lean) | No [🔗](src/Langlib/Classes/Recursive/Closure/QuotientRegular.lean) | Yes [🔗](src/Langlib/Classes/RecursivelyEnumerable/Closure/Quotient.lean) |
 
+For a negative closure entry, `No` means that closure fails over some finite
+alphabet; it does not claim failure over every alphabet.  The linked files expose
+embedding/cardinality variants (for example, `_of_embedding` and `_of_card`) giving
+the proved sufficient alphabet-size bounds.  Positive entries are stated uniformly
+over the finite alphabet assumptions required by their definitions.
+
 
 Additional DCFL results:
 

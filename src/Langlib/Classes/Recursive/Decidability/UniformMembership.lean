@@ -71,8 +71,8 @@ private theorem recursiveDiagonal_isRecursive
         simpa using iff_of_eq this
       cases hfval : f (c, w) <;> simp_all
 
-/-- There is no adequate presentation of all recursive languages over `Unit` with
-uniformly computable membership. -/
+/-- Over any nonempty finite computably encoded alphabet, there is no adequate
+presentation of all recursive languages with uniformly computable membership. -/
 public theorem Recursive_notComputableMembership
     {T Code : Type} [DecidableEq T] [Fintype T] [Primcodable T] [Nonempty T]
     [Primcodable Code] (languageOf : Code → Language T) :
