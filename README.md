@@ -95,13 +95,15 @@ Each column refers to the corresponding uniform computability predicate
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
 | Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
-| Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
+| Deterministic context-free | — | — | — | — |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
 | Recursive | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/UniformMembership.lean) | — | — | — |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
-The Recursive row has no fixed effective presentation for the last three columns.
+The DCFL row has no fixed effective `EncodedDPDA` presentation, so the standard
+algorithmic results have not yet been instantiated as the uniform predicates above.
+The Recursive row likewise has no fixed effective presentation for the last three columns.
 Under the encoding-parametric predicates above, emptiness, universality, and
 equivalence are presentation-dependent; `—` therefore avoids asserting an unsupported
 encoding-independent result.  Uniform membership is different: the linked diagonal
