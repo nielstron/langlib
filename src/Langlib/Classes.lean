@@ -163,6 +163,7 @@ public import Langlib.Classes.Recursive.Closure.Star
 public import Langlib.Classes.Recursive.Closure.Substitution
 public import Langlib.Classes.Recursive.Closure.Union
 public import Langlib.Classes.Recursive.Decidability.Membership
+public import Langlib.Classes.Recursive.Decidability.UniformMembership
 public import Langlib.Classes.Recursive.Definition
 public import Langlib.Classes.Recursive.Examples.SingletonWord
 public import Langlib.Classes.Recursive.Inclusion.ByTapeFromComputable

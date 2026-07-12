@@ -98,7 +98,7 @@ Each column refers to the corresponding uniform computability predicate
 | Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
-| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ | ✗ | ✗ |
+| Recursive | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/UniformMembership.lean) | ✗ | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
 ## How To Use The Library
