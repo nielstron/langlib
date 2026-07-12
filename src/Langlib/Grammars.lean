@@ -89,6 +89,7 @@ public import Langlib.Grammars.LeftRegular.Definition
 public import Langlib.Grammars.LeftRegular.Equivalence.RightRegular
 public import Langlib.Grammars.NonContracting.Definition
 public import Langlib.Grammars.NonContracting.Equivalence.ContextSensitive
+public import Langlib.Grammars.NonContracting.ErasingImage
 public import Langlib.Grammars.RightRegular.Definition
 public import Langlib.Grammars.RightRegular.UnrestrictedCharacterization
 public import Langlib.Grammars.Unrestricted.Definition

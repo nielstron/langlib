@@ -1,15 +1,15 @@
 ---
-title: "Indexed ⊆ context-sensitive"
-description: "A formal Lean 4 proof that every indexed language is context-sensitive, via Aho's finite compression, a linear-space scheduler, and a certified row system."
+title: "Indexed ⊊ context-sensitive"
+description: "Formal Lean 4 proofs that indexed languages form a strict subclass of the context-sensitive languages: inclusion via Aho's linear-space simulation, and strictness via an erasing homomorphism."
 parent: "Context-sensitive"
 nav_order: 3
 ---
 
-# Every indexed language is context-sensitive
+# Indexed languages form a strict subclass of context-sensitive languages
 
-## Statement
+## Statements
 
-Every indexed language is context-sensitive:
+The inclusion holds over every terminal type:
 
 ```lean
 public theorem Indexed_subclass_CS :
@@ -20,14 +20,48 @@ The pointwise form is `is_CS_of_is_Indexed`. Both statements hold for an arbitra
 terminal type `T`: the final theorem assumes no finite alphabet, decidable equality,
 inhabitedness, or epsilon-freeness.
 
+Strictness is proved over every finite alphabet with at least two symbols:
+
+```lean
+public theorem Indexed_strict_subclass_CS {T : Type} [Fintype T]
+    (hT : 2 ≤ Fintype.card T) :
+    (Indexed : Set (Language T)) ⊂ (CS : Set (Language T))
+```
+
+The cardinality hypothesis belongs only to the strictness theorem. The development makes
+no unary-alphabet strictness claim; the inclusion theorem above remains completely
+alphabet-independent.
+
+## Why the inclusion is strict
+
+Strictness uses an erasing-image argument rather than a pumping lemma. The padding
+construction `is_RE_exists_CS_homomorphicImage` says that every recursively enumerable
+language over a finite alphabet is the homomorphic image of a context-sensitive language
+over `Option T`: `none` is an extra padding terminal, and `erasePadding` deletes it.
+
+Apply this construction to `haltingUnaryLanguage`. It supplies a context-sensitive
+language `K` over the binary alphabet `Option Unit` whose image under `erasePadding` is
+the unary halting language. If `K` were indexed, `is_Indexed_homomorphicImage` would make
+its erasing image indexed as well. The Aho inclusion would then make the halting language
+context-sensitive, and `is_Recursive_of_is_CS` would make it recursive, contradicting
+`haltingUnaryLanguage_not_Recursive`. Thus `K` is context-sensitive but not indexed.
+
+For a finite alphabet `T` with `2 ≤ Fintype.card T`, the binary witness is relabelled
+along an embedding `Option Unit ↪ T`. Epsilon-free homomorphic closure preserves its
+context-sensitivity, while `Indexed_of_map_injective_Indexed_rev` reflects indexedness
+back along the same embedding. This yields `Indexed_strict_subclass_CS`. The related
+theorem `CS_notClosedUnderHomomorphism` packages the underlying closure mismatch:
+indexed languages are closed under arbitrary homomorphisms, but context-sensitive
+languages are not.
+
+## Aho inclusion in Lean
+
 The constructive core is `finite_normalForm_indexed_language_is_LBA_pos`. For a
 finite normal-form indexed grammar, it constructs a marker-free positive-input linear
 bounded automaton. The class-level reduction then removes the finiteness and normal-form
 assumptions and handles the possible empty word.
 
-## In Lean
-
-The final declaration chain is:
+The final inclusion declaration chain is:
 
 1. `IndexedGrammar.Aho.complete_bounded` gives a uniformly bounded accepting run for
    every concrete normal-form parse.
@@ -90,6 +124,13 @@ derivations used to extract parse certificates live separately in
 indexed languages is `Indexed_subclass_CS`, kept under
 `Langlib.Classes.Indexed.Inclusion` because it also performs finite-support normalization,
 homomorphic transport, and empty-word restoration.
+
+The strictness argument is independent of the Aho machine and lives in
+`Langlib.Classes.Indexed.Inclusion.StrictContextSensitive`; its padded-grammar support is
+kept in `Langlib.Grammars.NonContracting.ErasingImage` and
+`Langlib.Classes.ContextSensitive.Basics.ErasingImage`. The resulting non-closure theorem
+for context-sensitive languages is packaged separately in
+`Langlib.Classes.ContextSensitive.Closure.Homomorphism`.
 
 The source hierarchy mirrors the proof dependencies:
 
@@ -348,6 +389,7 @@ The focused development and its class-level capstone can be checked with:
 ```sh
 lake build Langlib.Grammars.Indexed.NormalForm.Aho.Inclusion
 lake build Langlib.Classes.Indexed.Inclusion.ContextSensitive
+lake build Langlib.Classes.Indexed.Inclusion.StrictContextSensitive
 ```
 
 The complete repository is checked with:
@@ -364,8 +406,9 @@ python3 scripts/link_theorems.py --check
 
 ## Keywords / also known as
 
-indexed languages are context-sensitive, Indexed subset CSL, Aho indexed grammar
+indexed languages are context-sensitive, Indexed proper subset CSL, Aho indexed grammar
 simulation, indexed grammar to linear bounded automaton, finite compression of index
-stacks, nested stack language inclusion, `Indexed_subclass_CS`.
+stacks, nested stack language inclusion, erasing homomorphism, `Indexed_subclass_CS`,
+`Indexed_strict_subclass_CS`.
 
 Formalized in Lean 4 with Mathlib, in [Langlib](https://github.com/nielstron/langlib).

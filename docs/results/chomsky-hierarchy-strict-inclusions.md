@@ -1,6 +1,6 @@
 ---
 title: "Chomsky hierarchy"
-description: "Lean 4 proofs of the formalized Chomsky-hierarchy inclusions: Regular ⊊ DCFL ⊊ CFL ⊊ Indexed ⊆ CS ⊊ Recursive ⊊ RE."
+description: "Lean 4 proofs of the formalized Chomsky-hierarchy inclusions: Regular ⊊ DCFL ⊊ CFL ⊊ Indexed ⊊ CS ⊊ Recursive ⊊ RE."
 nav_order: 2
 ---
 
@@ -12,9 +12,12 @@ Langlib formalizes the following strict inclusions and the currently available b
 between the grammar classes:
 
 - **Regular ⊊ Deterministic context-free ⊊ Context-free**
-- **Context-free ⊊ Indexed ⊆ Context-sensitive**
-- **Context-free ⊆ Context-sensitive ⊊ Recursive ⊊ Recursively enumerable**
+- **Context-free ⊊ Indexed ⊊ Context-sensitive ⊊ Recursive ⊊ Recursively enumerable**
 - **Regular ⊊ Linear ⊊ CFL**
+
+The displayed chains are class-level shorthand. The per-alphabet strictness theorems carry
+the hypotheses listed below. In particular, `Indexed ⊊ CS` is proved for finite alphabets
+with at least two symbols, whereas `Indexed ⊆ CS` holds over every terminal type.
 
 ## In Lean
 
@@ -22,7 +25,7 @@ between the grammar classes:
 - Regular ⊊ Linear: `RG_strict_subclass_Linear`; Linear ⊊ CF: [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean), separated by `{0ⁿ1ⁿ2ᵐ3ᵐ}` via the [linear pumping lemma](linear-pumping-lemma.html).
 - DCFL ⊊ CFL: `is_CF_of_is_DCF` / `DCF_subclass_CF` (strictness via `DPDA_strict_subclass_PDA`).
 - CFL ⊊ Indexed: [`CF_strict_subclass_Indexed`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) and [`CF_subclass_Indexed_and_exists_strict`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean).
-- Indexed ⊆ CS: `Indexed_subclass_CS`; see the [Aho simulation development](indexed-subset-context-sensitive.html).
+- Indexed ⊊ CS: [`Indexed_strict_subclass_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean), for a finite alphabet `T` satisfying `2 ≤ Fintype.card T`. Its inclusion half is the arbitrary-alphabet theorem `Indexed_subclass_CS`; see the [Aho simulation development](indexed-subset-context-sensitive.html).
 - CF ⊆ CS: `CF_subclass_CS`.
 - CS ⊊ Recursive: [`CS_strict_subclass_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — by diagonalization; see the [dedicated page](context-sensitive-strict-subset-recursive.html).
 - Recursive ⊊ RE: see the [dedicated page](recursive-strict-subset-re.html).
@@ -52,9 +55,16 @@ mismatch* where the two classes differ on a closure operation.
 - **CFL ⊊ Indexed** (`CF_strict_subclass_Indexed`): the separating language is
   `{aⁿbⁿcⁿ}`, indexed (an indexed grammar with a stack-bottom marker forcing each
   nonterminal to consume exactly as many flags as were pushed) but not context-free.
-- **Indexed ⊆ CS** (`Indexed_subclass_CS`): Aho's finite compression is scheduled in
-  linear logical space and compiled through an exact finite row checker; see the
-  [dedicated page](indexed-subset-context-sensitive.html).
+- **Indexed ⊊ CS** combines two independent arguments. The inclusion
+  (`Indexed_subclass_CS`) is Aho's finite compression, scheduled in linear logical space
+  and compiled through an exact finite row checker. Strictness starts from the unary
+  halting language. `is_RE_exists_CS_homomorphicImage` constructs a context-sensitive
+  language over `Option Unit` whose padding-erasing homomorphic image is that halting
+  language. If the padded language were indexed, closure of indexed languages under
+  arbitrary homomorphism would make the halting language indexed, hence context-sensitive
+  and recursive, contradicting `haltingUnaryLanguage_not_Recursive`. This binary witness
+  is transported along an alphabet embedding to every finite `T` with
+  `2 ≤ Fintype.card T`; see the [dedicated page](indexed-subset-context-sensitive.html).
 - **CS ⊊ Recursive** (`CS_strict_subclass_Recursive`): by diagonalization over an
   effective enumeration of context-sensitive grammars; see the
   [dedicated page](context-sensitive-strict-subset-recursive.html).
@@ -64,7 +74,7 @@ mismatch* where the two classes differ on a closure operation.
 ## Keywords / also known as
 
 Chomsky hierarchy strict, regular proper subset context-free, DCFL proper subset
-CFL, context-free proper subset indexed, indexed subset context-sensitive, recursive proper subset recursively
+CFL, context-free proper subset indexed, indexed proper subset context-sensitive, recursive proper subset recursively
 enumerable, language class separations, proper containment Chomsky hierarchy.
 
 Formalized in Lean 4 with Mathlib, in [Langlib](https://github.com/nielstron/langlib).
