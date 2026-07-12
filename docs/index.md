@@ -15,6 +15,7 @@ This page is a catalog of the library's results.
 
 - [Deterministic context-free languages are closed under complement](results/dcfl-closed-under-complement.html)
 - [DPDA totalization: every DPDA has an equivalent always-halting deciding DPDA](results/dpda-totalization.html)
+- [Every indexed language is context-sensitive](results/indexed-subset-context-sensitive.html)
 - [Every context-sensitive language is recursive — and strictly so (CS ⊊ Recursive)](results/context-sensitive-strict-subset-recursive.html)
 - [Membership in context-sensitive languages is computable](results/context-sensitive-membership-computable.html)
 - [Post's theorem (RE ∩ co-RE = recursive)](results/posts-theorem.html)
@@ -74,6 +75,7 @@ This page is a catalog of the library's results.
 
 - `{aⁿbⁿcⁿ}` is indexed: `is_Indexed_lang_eq_eq` (see [the separating-example page](results/anbncn-not-context-free.html)).
 - CFL ⊊ Indexed: `CF_strict_subclass_Indexed`.
+- [Every indexed language is context-sensitive](results/indexed-subset-context-sensitive.html), via Aho's finite compression and a certified linear-space row checker.
 - Closure: union, concatenation, homomorphism, inverse homomorphism, reverse — **Yes** (see the [closure table](#closure-properties)).
 
 ## Context-sensitive languages (CSL)
@@ -82,6 +84,7 @@ This page is a catalog of the library's results.
 - [Membership in context-sensitive languages is computable](results/context-sensitive-membership-computable.html).
 - [Non-contracting and non-erasing context-sensitive grammars](results/noncontracting-equals-context-sensitive.html) — Langlib defines CS as non-contracting; the equivalence with the non-erasing form is only partially formalized.
 - [CSL = LBA: context-sensitive grammars and linear bounded automata recognize the same languages](results/lba-context-sensitive.html) (the Myhill–Kuroda theorem).
+- [Indexed ⊆ context-sensitive](results/indexed-subset-context-sensitive.html) — the finite normal-form Aho simulation and its `21|w|` scheduler bound.
 - CF ⊆ CS: `CF_subclass_CS`.
 - Closure: ε-free homomorphism — `CS_closedUnderEpsFreeHomomorphism`; reverse — `CS_closedUnderReverse`; terminal bijections — `CS_bijemap_iff_CS`.
 

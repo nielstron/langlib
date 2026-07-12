@@ -72,11 +72,13 @@ public import Langlib.Classes.ContextFree.Pumping.TerminalRestriction
 public import Langlib.Classes.ContextFree.Pumping.UnitElimination
 public import Langlib.Classes.ContextFree.Pumping.Utils
 public import Langlib.Classes.ContextFree.Pumping.toMathlib
+public import Langlib.Classes.ContextSensitive.Basics.FiniteAlphabet
 public import Langlib.Classes.ContextSensitive.Basics.NonContracting
 public import Langlib.Classes.ContextSensitive.Closure.Bijection
 public import Langlib.Classes.ContextSensitive.Closure.Concatenation
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
+public import Langlib.Classes.ContextSensitive.Closure.FiniteLanguage
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
 public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization
@@ -110,6 +112,9 @@ public import Langlib.Classes.DeterministicContextFree.Examples.BnAnPosStarB
 public import Langlib.Classes.DeterministicContextFree.Examples.SingletonWord
 public import Langlib.Classes.DeterministicContextFree.Inclusion.ContextFree
 public import Langlib.Classes.DeterministicContextFree.Inclusion.StrictContextFree
+public import Langlib.Classes.Indexed.Basics.Elementary
+public import Langlib.Classes.Indexed.Basics.FiniteAlphabet
+public import Langlib.Classes.Indexed.Basics.FiniteSupport
 public import Langlib.Classes.Indexed.Closure.Concatenation
 public import Langlib.Classes.Indexed.Closure.Homomorphism
 public import Langlib.Classes.Indexed.Closure.Injection
@@ -118,6 +123,7 @@ public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition
 public import Langlib.Classes.Indexed.Examples.AnBnCn
 public import Langlib.Classes.Indexed.Examples.SingletonWord
+public import Langlib.Classes.Indexed.Inclusion.ContextSensitive
 public import Langlib.Classes.LR.Closure.Bijection
 public import Langlib.Classes.LR.Examples.AnBn
 public import Langlib.Classes.Linear.Basics.Map

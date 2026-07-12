@@ -1,6 +1,6 @@
 ---
 title: "Chomsky hierarchy"
-description: "Lean 4 proofs that each level of the Chomsky hierarchy strictly contains the level below: Regular ⊊ DCFL ⊊ CFL ⊊ Indexed, CS ⊊ Recursive, and Recursive ⊊ RE."
+description: "Lean 4 proofs of the formalized Chomsky-hierarchy inclusions: Regular ⊊ DCFL ⊊ CFL ⊊ Indexed ⊆ CS ⊊ Recursive ⊊ RE."
 nav_order: 2
 ---
 
@@ -8,11 +8,12 @@ nav_order: 2
 
 ## Statement
 
-Each language class in the Chomsky hierarchy strictly contains the one below it.
-Langlib already formalizes the following strict inclusions:
+Langlib formalizes the following strict inclusions and the currently available bridges
+between the grammar classes:
 
-- **Regular ⊊ Deterministic context-free ⊊ Context-free ⊊ Context Sensitive ⊊ Recursive ⊊ Recursively enumerable**
-- **Context-free ⊊ Indexed**
+- **Regular ⊊ Deterministic context-free ⊊ Context-free**
+- **Context-free ⊊ Indexed ⊆ Context-sensitive**
+- **Context-free ⊆ Context-sensitive ⊊ Recursive ⊊ Recursively enumerable**
 - **Regular ⊊ Linear ⊊ CFL**
 
 ## In Lean
@@ -21,6 +22,7 @@ Langlib already formalizes the following strict inclusions:
 - Regular ⊊ Linear: `RG_strict_subclass_Linear`; Linear ⊊ CF: [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean), separated by `{0ⁿ1ⁿ2ᵐ3ᵐ}` via the [linear pumping lemma](linear-pumping-lemma.html).
 - DCFL ⊊ CFL: `is_CF_of_is_DCF` / `DCF_subclass_CF` (strictness via `DPDA_strict_subclass_PDA`).
 - CFL ⊊ Indexed: [`CF_strict_subclass_Indexed`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) and [`CF_subclass_Indexed_and_exists_strict`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean).
+- Indexed ⊆ CS: `Indexed_subclass_CS`; see the [Aho simulation development](indexed-subset-context-sensitive.html).
 - CF ⊆ CS: `CF_subclass_CS`.
 - CS ⊊ Recursive: [`CS_strict_subclass_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — by diagonalization; see the [dedicated page](context-sensitive-strict-subset-recursive.html).
 - Recursive ⊊ RE: see the [dedicated page](recursive-strict-subset-re.html).
@@ -50,6 +52,9 @@ mismatch* where the two classes differ on a closure operation.
 - **CFL ⊊ Indexed** (`CF_strict_subclass_Indexed`): the separating language is
   `{aⁿbⁿcⁿ}`, indexed (an indexed grammar with a stack-bottom marker forcing each
   nonterminal to consume exactly as many flags as were pushed) but not context-free.
+- **Indexed ⊆ CS** (`Indexed_subclass_CS`): Aho's finite compression is scheduled in
+  linear logical space and compiled through an exact finite row checker; see the
+  [dedicated page](indexed-subset-context-sensitive.html).
 - **CS ⊊ Recursive** (`CS_strict_subclass_Recursive`): by diagonalization over an
   effective enumeration of context-sensitive grammars; see the
   [dedicated page](context-sensitive-strict-subset-recursive.html).
@@ -59,7 +64,7 @@ mismatch* where the two classes differ on a closure operation.
 ## Keywords / also known as
 
 Chomsky hierarchy strict, regular proper subset context-free, DCFL proper subset
-CFL, context-free proper subset indexed, recursive proper subset recursively
+CFL, context-free proper subset indexed, indexed subset context-sensitive, recursive proper subset recursively
 enumerable, language class separations, proper containment Chomsky hierarchy.
 
 Formalized in Lean 4 with Mathlib, in [Langlib](https://github.com/nielstron/langlib).

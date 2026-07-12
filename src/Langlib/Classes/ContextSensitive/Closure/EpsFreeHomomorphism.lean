@@ -87,10 +87,17 @@ private theorem hom_grammar_context_sensitive (g : grammar α) (h : α → List 
       rcases hε with ⟨_, hN, _, _⟩
       simp [hom_grammar, homExpandRule] at hN
 
+/-- Context-sensitive languages are closed under ε-free string homomorphism, without requiring
+the ambient terminal types themselves to be finite. -/
+public theorem is_CS_homomorphicImage_epsfree (L : Language α) (h : α → List β)
+    (heps : IsEpsFreeHomomorphism h) (hL : is_CS L) :
+    is_CS (L.homomorphicImage h) := by
+  obtain ⟨g, hcs, hgL⟩ := hL
+  exact ⟨hom_grammar g h, hom_grammar_context_sensitive g h heps hcs,
+    by rw [hom_grammar_language_epsfree g h heps, hgL]⟩
+
 /-- Context-sensitive languages are closed under ε-free string homomorphism. -/
 public theorem CS_closedUnderEpsFreeHomomorphism :
     ClosedUnderEpsFreeHomomorphism is_CS := by
   intro α β _ _ L h heps hL
-  obtain ⟨g, hcs, hgL⟩ := hL
-  exact ⟨hom_grammar g h, hom_grammar_context_sensitive g h heps hcs,
-    by rw [hom_grammar_language_epsfree g h heps, hgL]⟩
+  exact is_CS_homomorphicImage_epsfree L h heps hL

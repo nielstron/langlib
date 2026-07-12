@@ -1,56 +1,49 @@
 module
 
 public import Langlib.Grammars.Indexed.Definition
-import Mathlib.Algebra.Order.Floor.Extended
-import Mathlib.Algebra.Order.Floor.Semifield
-import Mathlib.Algebra.Order.Interval.Basic
-import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
-import Mathlib.Analysis.SpecialFunctions.Bernstein
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
-import Mathlib.CategoryTheory.Category.Init
-import Mathlib.Combinatorics.Enumerative.DyckWord
-import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
-import Mathlib.Data.NNRat.Floor
-import Mathlib.Data.Nat.Factorial.DoubleFactorial
-import Mathlib.Geometry.Euclidean.Altitude
-import Mathlib.NumberTheory.Height.Basic
-import Mathlib.NumberTheory.LucasLehmer
-import Mathlib.NumberTheory.SelbergSieve
-import Mathlib.Tactic.NormNum.BigOperators
-import Mathlib.Tactic.NormNum.Irrational
-import Mathlib.Tactic.NormNum.IsCoprime
-import Mathlib.Tactic.NormNum.IsSquare
-import Mathlib.Tactic.NormNum.LegendreSymbol
-import Mathlib.Tactic.NormNum.ModEq
-import Mathlib.Tactic.NormNum.NatFactorial
-import Mathlib.Tactic.NormNum.NatFib
-import Mathlib.Tactic.NormNum.NatLog
-import Mathlib.Tactic.NormNum.NatSqrt
-import Mathlib.Tactic.NormNum.Ordinal
-import Mathlib.Tactic.NormNum.Parity
-import Mathlib.Tactic.NormNum.Prime
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Topology.Sheaves.Init
+public import Langlib.Grammars.Indexed.Basics.FiniteSupport
+import Langlib.Grammars.Indexed.NormalForm.FreshStart
+import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
+import Langlib.Grammars.Indexed.NormalForm.TerminalIsolation
+import Langlib.Grammars.Indexed.NormalForm.FlagSeparation
+import Langlib.Grammars.Indexed.NormalForm.Binarization
 @[expose]
 public section
 
 
-
 /-! # Normal Form for Indexed Grammars
 
-This file defines the normal form for indexed grammars following Aho (1968), and states
-the equivalence theorem that every indexed grammar can be converted to an equivalent
-one in normal form.
+This file assembles the normal form theorem for indexed grammars following Aho (1968).
 
-An indexed grammar is in **normal form** if:
-1. The start symbol does not appear on the right-hand side of any production.
-2. There are no ε-productions (except possibly S → ε).
-3. Each production has one of the four forms:
-   - `A → BC` (binary split, no flag consumed)
-   - `Af → B` (flag consumption)
-   - `A → Bf` (flag push)
-   - `A → a` (terminal production)
+An indexed grammar is in **normal form** if every production has one of the four forms:
+
+1. `A → BC` — binary split, no flag consumed, no flag pushed
+2. `Af → B` — flag consumption (pop)
+3. `A → Bf` — flag push
+4. `A → a` — terminal production
+
+and the start symbol does not appear on the right-hand side of any production.
+
+## Main results
+
+- `IndexedGrammar.exists_normalForm_all` — every ε-free indexed grammar has an equivalent
+  grammar in normal form
+- `IndexedGrammar.exists_normalForm` — compatibility wrapper for non-empty words
+- `IndexedGrammar.exists_finiteSupport_normalForm_nonempty` — every indexed grammar has a
+  finite-support normal-form grammar preserving all non-empty words
+
+## Proof outline
+
+The proof proceeds by a sequence of language-preserving transformations:
+
+1. **Fresh start** (`FreshStart.lean`, fully proved): introduce a new start symbol
+   that does not appear on any right-hand side.
+2. **ε-free pass-through** (`EpsilonElim.lean`): use the explicit ε-free hypothesis.
+3. **Terminal isolation** (`TerminalIsolation.lean`, fully proved): replace terminals in
+   multi-symbol right-hand sides with dedicated nonterminals.
+4. **Flag separation** (`FlagSeparation.lean`): split rules with complex flag operations.
+5. **Binarization** (`Binarization.lean`): replace right-hand sides of length ≥ 3 with
+   chains of binary rules.
 
 ## References
 
@@ -63,45 +56,148 @@ variable {T : Type}
 
 namespace IndexedGrammar
 
-/-- A production rule is in normal form with respect to a start symbol `s` if it has one of
-the four canonical forms:
-- `A → BC` (binary split)
-- `Af → B` (flag consumption)
-- `A → Bf` (flag push)
-- `A → a` (terminal production)
-and no nonterminal on the right-hand side is the start symbol `s`. -/
-def IRule.IsNF [DecidableEq N] (r : IRule T N F) (s : N) : Prop :=
-  -- A → BC
-  (r.consume = none ∧
-    ∃ B C : N, r.rhs = [IRhsSymbol.nonterminal B none, IRhsSymbol.nonterminal C none] ∧
-      B ≠ s ∧ C ≠ s) ∨
-  -- Af → B
-  (∃ f : F, r.consume = some f ∧
-    ∃ B : N, r.rhs = [IRhsSymbol.nonterminal B none] ∧ B ≠ s) ∨
-  -- A → Bf
-  (r.consume = none ∧
-    ∃ B : N, ∃ f : F, r.rhs = [IRhsSymbol.nonterminal B (some f)] ∧ B ≠ s) ∨
-  -- A → a
-  (r.consume = none ∧ ∃ a : T, r.rhs = [IRhsSymbol.terminal a])
+/-! ## Aho's Normal Form Theorem -/
 
-/-- An indexed grammar is in **normal form** if every production rule is in normal form
-with respect to the start symbol. -/
-def IsNormalForm (g : IndexedGrammar T) [DecidableEq g.nt] : Prop :=
-  ∀ r ∈ g.rules, IRule.IsNF r g.initial
+/-- Before ε-elimination is available, any indexed grammar can still be made
+terminal-isolated and flag-separated without changing its language. This is the structural
+preprocessing target for the arbitrary-ε part of the normal-form construction. -/
+theorem exists_terminalIsolated_flagsSeparated_all (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T,
+      g'.TerminalsIsolated ∧ g'.FlagsSeparated ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₁, hg₁_ti, hg₁_fresh_of, hg₁_lang⟩ := g.exists_terminalsIsolated_all
+  obtain ⟨g₂, hg₂_ti, hg₂_fs, hg₂_fresh_of, hg₂_lang⟩ :=
+    g₁.exists_flagsSeparated_all hg₁_ti
+  exact ⟨g₂, hg₂_ti, hg₂_fs, fun hfresh => hg₂_fresh_of (hg₁_fresh_of hfresh),
+    fun w => by
+      rw [hg₂_lang w, hg₁_lang w]⟩
 
-/- **Aho's Normal Form Theorem** (1968): Every indexed grammar can be converted to an
-equivalent grammar in normal form. The proof involves:
-1. Eliminating ε-productions
-2. Eliminating unit productions
-3. Removing the start symbol from right-hand sides
-4. Converting remaining productions to binary form
+/-- It is enough to prove ε-elimination after terminal isolation and flag separation.
+The preprocessing is language-preserving and can be run before the ε-free invariant exists. -/
+theorem exists_noEpsilon_of_exists_noEpsilon_terminalIsolated_flagsSeparated
+    (helim : ∀ g₀ : IndexedGrammar T,
+      g₀.TerminalsIsolated → g₀.FlagsSeparated →
+        ∃ g' : IndexedGrammar T,
+          g'.NoEpsilon' ∧
+          (g₀.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+          ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g₀.Generates w))
+    (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧
+      (g.StartNotOnRhs' → g'.StartNotOnRhs') ∧
+      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, hg₀_ti, hg₀_fs, hg₀_fresh_of, hg₀_lang⟩ :=
+    g.exists_terminalIsolated_flagsSeparated_all
+  obtain ⟨g', hne', hfresh', hlang'⟩ := helim g₀ hg₀_ti hg₀_fs
+  exact ⟨g', hne', fun hfresh => hfresh' (hg₀_fresh_of hfresh), fun w hw => by
+    rw [hlang' w hw, hg₀_lang w]⟩
 
-This is a standard result in formal language theory.
-theorem exists_normalForm (g : IndexedGrammar T) :
+/-- Every indexed grammar has an ε-free grammar preserving all non-empty generated words.
+
+The construction first makes the grammar flag-separated, restricts to finite support, and
+then applies the exact finite nullable-summary ε-elimination. -/
+theorem exists_noEpsilon_preserving_nonempty (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T,
+      g'.NoEpsilon' ∧
+      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, _hg₀_ti, hg₀_fs, _hg₀_fresh_of, hg₀_lang⟩ :=
+    g.exists_terminalIsolated_flagsSeparated_all
+  let gf := g₀.toFiniteSupport
+  haveI : Fintype gf.nt := by
+    dsimp [gf]
+    infer_instance
+  have hgf_fs : gf.FlagsSeparated := by
+    simpa [gf] using g₀.toFiniteSupport_flagsSeparated hg₀_fs
+  obtain ⟨g', hne', hlang'⟩ :=
+    IndexedGrammar.exists_noEpsilon_of_fintype_flagsSeparated (g := gf) hgf_fs
+  refine ⟨g', hne', ?_⟩
+  intro w hw
+  have hgf_lang : gf.Language = g₀.Language := by
+    simpa [gf] using IndexedGrammar.toFiniteSupport_language g₀
+  have hgf_gen : gf.Generates w ↔ g₀.Generates w := by
+    change w ∈ gf.Language ↔ w ∈ g₀.Language
+    rw [hgf_lang]
+  rw [hlang' w hw, hgf_gen, hg₀_lang w]
+
+/-- Normal-form theorem for ε-free indexed grammars. For every indexed grammar `g`
+with no ε-productions, there exists an indexed grammar `g'` in normal form such that
+`g'` generates exactly the same words as `g`. -/
+theorem exists_normalForm_all [Inhabited T] (g : IndexedGrammar T) (hne : g.NoEpsilon') :
     ∃ g' : IndexedGrammar T,
       (∃ _ : DecidableEq g'.nt, g'.IsNormalForm) ∧
-      g'.Language = g.Language := by
+      ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
+  -- Step 1: Fresh start — introduce a new start symbol not on any RHS.
+  let g₁ := g.freshStart
+  have hg₁_lang : ∀ w : List T, w ∈ g₁.Language ↔ w ∈ g.Language :=
+    fun w => ⟨freshStart_language_backward g, freshStart_language_forward g⟩
+  have hg₁_fresh : g₁.StartNotOnRhs' := freshStart_startNotOnRhs g
+  have hg₁_ne : g₁.NoEpsilon' := freshStart_noEpsilon g hne
+  -- Step 2: ε-free pass-through
+  obtain ⟨g₂, hg₂_ne, hg₂_fresh_of, hg₂_lang⟩ := exists_noEpsilon_all g₁ hg₁_ne
+  have hg₂_fresh : g₂.StartNotOnRhs' := hg₂_fresh_of hg₁_fresh
+  -- Step 3: Terminal isolation (fully proved)
+  obtain ⟨g₃, hg₃_ne, hg₃_ti, hg₃_fresh_of, hg₃_lang⟩ :=
+    exists_terminalsIsolated g₂ hg₂_ne
+  have hg₃_fresh : g₃.StartNotOnRhs' := hg₃_fresh_of hg₂_fresh
+  -- Step 4: Flag separation
+  obtain ⟨g₄, hg₄_ne, hg₄_ti, hg₄_fs, hg₄_fresh_of, hg₄_lang⟩ :=
+    exists_flagsSeparated g₃ hg₃_ne hg₃_ti
+  -- Step 5: Binarization + final NF assembly
+  have hg₄_fresh : g₄.StartNotOnRhs' := hg₄_fresh_of hg₃_fresh
+  obtain ⟨g₅, hg₅_nf, hg₅_lang⟩ :=
+    exists_normalForm_from_separated g₄ hg₄_ne hg₄_ti hg₄_fs hg₄_fresh
+  exact ⟨g₅, hg₅_nf, fun w => by
+    rw [hg₅_lang w, hg₄_lang w, hg₃_lang w, hg₂_lang w]
+    exact hg₁_lang w⟩
 
- -/
+/-- Compatibility form of the normal-form theorem, preserving all non-empty words. -/
+theorem exists_normalForm [Inhabited T] (g : IndexedGrammar T) (hne : g.NoEpsilon') :
+    ∃ g' : IndexedGrammar T,
+      (∃ _ : DecidableEq g'.nt, g'.IsNormalForm) ∧
+      ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g', hNF, hlang⟩ := g.exists_normalForm_all hne
+  exact ⟨g', hNF, fun w _ => hlang w⟩
+
+/-- Every ε-free indexed grammar has a finite-support normal-form grammar preserving all
+generated words. -/
+theorem exists_finiteSupport_normalForm_all [Inhabited T] (g : IndexedGrammar T)
+    (hne : g.NoEpsilon') :
+    ∃ g' : IndexedGrammar T, ∃ _ : Fintype g'.nt, ∃ _ : Fintype g'.flag,
+      ∃ _ : DecidableEq g'.nt, g'.IsNormalForm ∧
+        ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, ⟨hdec, hNF⟩, hlang⟩ := g.exists_normalForm_all hne
+  let g' := g₀.toFiniteSupport
+  haveI := hdec
+  have hdec' : DecidableEq g'.nt := Classical.decEq _
+  refine ⟨g', inferInstance, inferInstance, hdec', ?_, ?_⟩
+  · exact g₀.toFiniteSupport_isNormalForm hNF
+  · intro w
+    change w ∈ g₀.toFiniteSupport.Language ↔ w ∈ g.Language
+    rw [g₀.toFiniteSupport_language]
+    exact hlang w
+
+/-- Compatibility form of the finite-support normal-form theorem, preserving all non-empty
+generated words. -/
+theorem exists_finiteSupport_normalForm [Inhabited T] (g : IndexedGrammar T)
+    (hne : g.NoEpsilon') :
+    ∃ g' : IndexedGrammar T, ∃ _ : Fintype g'.nt, ∃ _ : Fintype g'.flag,
+      ∃ _ : DecidableEq g'.nt, g'.IsNormalForm ∧
+        ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g', hnt, hflag, hdec, hNF, hlang⟩ := g.exists_finiteSupport_normalForm_all hne
+  exact ⟨g', hnt, hflag, hdec, hNF, fun w _ => hlang w⟩
+
+/-- Every indexed grammar has a finite-support normal-form grammar preserving all non-empty
+generated words. The empty word is intentionally omitted: normal-form grammars are ε-free. -/
+theorem exists_finiteSupport_normalForm_nonempty [Inhabited T] (g : IndexedGrammar T) :
+    ∃ g' : IndexedGrammar T, ∃ _ : Fintype g'.nt, ∃ _ : Fintype g'.flag,
+      ∃ _ : DecidableEq g'.nt, g'.IsNormalForm ∧
+        ∀ w : List T, w ≠ [] → (g'.Generates w ↔ g.Generates w) := by
+  obtain ⟨g₀, hg₀_ne, hg₀_lang⟩ := g.exists_noEpsilon_preserving_nonempty
+  obtain ⟨g', hnt, hflag, hdec, hNF, hlang⟩ :=
+    g₀.exists_finiteSupport_normalForm hg₀_ne
+  refine ⟨g', hnt, hflag, hdec, hNF, ?_⟩
+  intro w hw
+  rw [hlang w hw, hg₀_lang w hw]
 
 end IndexedGrammar

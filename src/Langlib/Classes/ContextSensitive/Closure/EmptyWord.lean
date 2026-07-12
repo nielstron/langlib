@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Classes.ContextSensitive.Definition
+public import Langlib.Classes.ContextSensitive.Basics.NonContracting
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.RecursivelyEnumerable.Basics.Lifting
 import Langlib.Grammars.NonContracting.Definition
@@ -195,3 +196,78 @@ theorem is_CS_insert_empty_of_CS_grammar {T : Type} (g : CS_grammar T) :
     (CS_language_eq_grammar_language g).symm
   have := is_CS_insert_empty_of_noncontracting (grammar_of_csg g) hnc
   rwa [hlang] at this
+
+/-- **Adjoining `ε` to an ε-free context-sensitive language stays context-sensitive.**
+
+This variant starts from the broad `is_CS` predicate rather than an explicit
+context-preserving grammar witness. It removes the optional empty-word rule using
+`exists_noncontracting_offEmpty_of_CS`, then re-adds `ε` with a fresh start symbol. -/
+theorem is_CS_insert_empty_of_is_CS_not_nil {T : Type} {L : Language T}
+    (hL : is_CS L) (hne : [] ∉ L) :
+    is_CS (fun w => w = [] ∨ L w) := by
+  obtain ⟨g, hg, hlang⟩ := hL
+  obtain ⟨g₀, _hfin, hnc, hlang₀⟩ := exists_noncontracting_offEmpty_of_CS g hg
+  have hnonempty : grammar_language g₀ = L := by
+    rw [hlang₀, hlang]
+    ext w
+    constructor
+    · intro hw
+      exact hw.1
+    · intro hw
+      refine ⟨hw, ?_⟩
+      intro hwε
+      rw [Set.mem_singleton_iff] at hwε
+      exact hne (by simpa [hwε] using hw)
+  have hAdd := is_CS_insert_empty_of_noncontracting g₀ hnc
+  convert hAdd using 1
+  rw [hnonempty]
+
+/-- **Adjoining `ε` to any context-sensitive language stays context-sensitive.**
+
+If `ε` is already present this is just the same language; otherwise it is the ε-free
+case above. -/
+theorem is_CS_insert_empty_of_is_CS {T : Type} {L : Language T} (hL : is_CS L) :
+    is_CS (fun w => w = [] ∨ L w) := by
+  by_cases hε : ([] : List T) ∈ L
+  · have hEq : (fun w => w = [] ∨ L w) = L := by
+      ext w
+      constructor
+      · rintro (rfl | hw)
+        · exact hε
+        · exact hw
+      · intro hw
+        exact Or.inr hw
+    rwa [hEq]
+  · exact is_CS_insert_empty_of_is_CS_not_nil hL hε
+
+/-- If the nonempty part of a language is context-sensitive, then the whole language is
+context-sensitive. The only possible difference is the empty word, which context-sensitive
+languages can adjoin. -/
+theorem is_CS_of_diff_empty_of_is_CS {T : Type} {L : Language T}
+    (hL : is_CS (L \ ({[]} : Set (List T)))) :
+    is_CS L := by
+  by_cases hε : ([] : List T) ∈ L
+  · have hAdd := is_CS_insert_empty_of_is_CS hL
+    have hEq :
+        (fun w : List T => w = [] ∨ (L \ ({[]} : Set (List T))) w) = L := by
+      ext w
+      constructor
+      · rintro (rfl | hw)
+        · exact hε
+        · exact hw.1
+      · intro hw
+        by_cases hnil : w = []
+        · exact Or.inl hnil
+        · exact Or.inr ⟨hw, by simpa [Set.mem_singleton_iff] using hnil⟩
+    rwa [hEq] at hAdd
+  · have hEq : L \ ({[]} : Set (List T)) = L := by
+      ext w
+      constructor
+      · intro hw
+        exact hw.1
+      · intro hw
+        refine ⟨hw, ?_⟩
+        intro hnil
+        rw [Set.mem_singleton_iff] at hnil
+        exact hε (by simpa [hnil] using hw)
+    rwa [hEq] at hL
