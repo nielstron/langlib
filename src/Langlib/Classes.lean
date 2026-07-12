@@ -127,6 +127,7 @@ public import Langlib.Classes.Indexed.Closure.Concatenation
 public import Langlib.Classes.Indexed.Closure.Homomorphism
 public import Langlib.Classes.Indexed.Closure.Injection
 public import Langlib.Classes.Indexed.Closure.IntersectionRegular
+public import Langlib.Classes.Indexed.Closure.InverseHomomorphism
 public import Langlib.Classes.Indexed.Closure.QuotientRegular
 public import Langlib.Classes.Indexed.Closure.Reverse
 public import Langlib.Classes.Indexed.Closure.Star
