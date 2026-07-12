@@ -1097,6 +1097,34 @@ private lemma markedUnion_merge_leftQuotient_eq_union
 
 end DPDA
 
+/-- A disjoint, prefix-marked choice between two languages.  The leading Boolean
+selects the source language and every payload symbol is injected with `Sum.inr`.
+
+Unlike ordinary union, this operation is deterministic: a DPDA chooses the source
+machine from the first input symbol. -/
+@[expose]
+public def markedChoice (L₁ L₂ : Language T) : Language (Bool ⊕ T) :=
+  {x |
+    (∃ w, x = Sum.inl false :: w.map Sum.inr ∧ w ∈ L₁) ∨
+    (∃ w, x = Sum.inl true :: w.map Sum.inr ∧ w ∈ L₂)}
+
+/-- Prefix-marked choice preserves deterministic context-freeness. -/
+public theorem DCF_markedChoice {L₁ L₂ : Language T}
+    (hL₁ : is_DCF L₁) (hL₂ : is_DCF L₂) :
+    is_DCF (markedChoice L₁ L₂) := by
+  rcases hL₁ with ⟨Q₁, S₁, hQ₁, hS₁, M₁, hM₁⟩
+  rcases hL₂ with ⟨Q₂, S₂, hQ₂, hS₂, M₂, hM₂⟩
+  let M := DPDA.markedUnion M₁ M₂
+  refine ⟨_, _, inferInstance, inferInstance, M, ?_⟩
+  ext x
+  rw [DPDA.markedUnion_accepts_iff]
+  change
+    ((∃ w, x = Sum.inl false :: w.map Sum.inr ∧ w ∈ M₁.acceptsByFinalState) ∨
+      (∃ w, x = Sum.inl true :: w.map Sum.inr ∧ w ∈ M₂.acceptsByFinalState)) ↔
+    ((∃ w, x = Sum.inl false :: w.map Sum.inr ∧ w ∈ L₁) ∨
+      (∃ w, x = Sum.inl true :: w.map Sum.inr ∧ w ∈ L₂))
+  rw [hM₁, hM₂]
+
 public theorem DCF_leftQuotient_singleton {A : Type} [Fintype A]
     {L : Language A} (a : A) (hL : is_DCF L) :
     is_DCF ([a] \\ L) := by

@@ -105,6 +105,7 @@ public import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegul
 public import Langlib.Classes.DeterministicContextFree.Closure.InverseHomomorphism
 public import Langlib.Classes.DeterministicContextFree.Closure.Quotient
 public import Langlib.Classes.DeterministicContextFree.Closure.QuotientRegular
+public import Langlib.Classes.DeterministicContextFree.Closure.Reverse
 public import Langlib.Classes.DeterministicContextFree.Closure.Star
 public import Langlib.Classes.DeterministicContextFree.Closure.Substitution
 public import Langlib.Classes.DeterministicContextFree.Closure.Union
