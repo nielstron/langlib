@@ -15,7 +15,7 @@ This page is a catalog of the library's results.
 
 - [Deterministic context-free languages are closed under complement](results/dcfl-closed-under-complement.html)
 - [DPDA totalization: every DPDA has an equivalent always-halting deciding DPDA](results/dpda-totalization.html)
-- [Every indexed language is context-sensitive](results/indexed-subset-context-sensitive.html)
+- [Indexed languages form a strict subclass of context-sensitive languages (Indexed ⊊ CS)](results/indexed-subset-context-sensitive.html)
 - [Every context-sensitive language is recursive — and strictly so (CS ⊊ Recursive)](results/context-sensitive-strict-subset-recursive.html)
 - [Membership in context-sensitive languages is computable](results/context-sensitive-membership-computable.html)
 - [Post's theorem (RE ∩ co-RE = recursive)](results/posts-theorem.html)
@@ -36,7 +36,7 @@ This page is a catalog of the library's results.
 
 ## Hierarchy: strict inclusions
 
-- [The Chomsky hierarchy is strict](results/chomsky-hierarchy-strict-inclusions.html): Regular ⊊ DCFL ⊊ CFL ⊊ Indexed, Regular ⊊ Linear ⊊ CFL, CF ⊆ CS ⊊ Recursive ⊊ RE.
+- [The Chomsky hierarchy is strict](results/chomsky-hierarchy-strict-inclusions.html): Regular ⊊ DCFL ⊊ CFL ⊊ Indexed ⊊ CS ⊊ Recursive ⊊ RE, and Regular ⊊ Linear ⊊ CFL, under the alphabet hypotheses stated on the result page.
 - [CS ⊊ Recursive: context-sensitive languages are a strict subset of the recursive languages](results/context-sensitive-strict-subset-recursive.html) — by diagonalization (no closure shortcut exists).
 - [{aⁿbⁿcⁿ} is indexed and context-sensitive but not context-free](results/anbncn-not-context-free.html) — the classic separating example.
 
@@ -75,6 +75,8 @@ This page is a catalog of the library's results.
 
 - `{aⁿbⁿcⁿ}` is indexed: `is_Indexed_lang_eq_eq` (see [the separating-example page](results/anbncn-not-context-free.html)).
 - CFL ⊊ Indexed: `CF_strict_subclass_Indexed`.
+- Indexed ⊊ CS over every finite alphabet with at least two symbols:
+  `Indexed_strict_subclass_CS`.
 - [Every indexed language is context-sensitive](results/indexed-subset-context-sensitive.html), via Aho's finite compression and a certified linear-space row checker.
 - Closure: union, concatenation, homomorphism, inverse homomorphism, reverse — **Yes** (see the [closure table](#closure-properties)).
 
@@ -86,7 +88,7 @@ This page is a catalog of the library's results.
 - [CSL = LBA: context-sensitive grammars and linear bounded automata recognize the same languages](results/lba-context-sensitive.html) (the Myhill–Kuroda theorem).
 - [Indexed ⊆ context-sensitive](results/indexed-subset-context-sensitive.html) — the finite normal-form Aho simulation and its `21|w|` scheduler bound.
 - CF ⊆ CS: `CF_subclass_CS`.
-- Closure: ε-free homomorphism — `CS_closedUnderEpsFreeHomomorphism`; reverse — `CS_closedUnderReverse`; terminal bijections — `CS_bijemap_iff_CS`.
+- Closure: ε-free homomorphism — `CS_closedUnderEpsFreeHomomorphism`; arbitrary homomorphism — **No** (`CS_notClosedUnderHomomorphism`); reverse — `CS_closedUnderReverse`; terminal bijections — `CS_bijemap_iff_CS`.
 
 ## Recursive (decidable) languages
 

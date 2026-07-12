@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.Indexed.Definition
+public import Langlib.Classes.Indexed.Closure.Homomorphism
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -37,9 +37,16 @@ public section
 
 
 
-/-! # Indexed Languages Under Injective Terminal Maps
+/-! # Indexed languages under injective terminal maps
 
-This file proves that indexed languages are preserved by injective terminal maps.
+This file proves that indexed languages are both preserved and reflected by injective
+terminal maps.
+
+## Main declarations
+
+* `IndexedGrammar.language_mapTerminals`
+* `Indexed_of_map_injective_Indexed`
+* `Indexed_of_map_injective_Indexed_rev`
 -/
 
 variable {T₁ T₂ : Type}
@@ -242,6 +249,7 @@ private lemma derives_inv_mapTerminals [Nonempty T₁] {f : T₁ → T₂}
   | refl => exact Relation.ReflTransGen.refl
   | tail _ ht ih => exact ih.tail (transforms_inv_mapTerminals hf g ht)
 
+/-- Mapping an indexed grammar along an injective terminal map maps its language exactly. -/
 public theorem language_mapTerminals [Nonempty T₁] {f : T₁ → T₂} (hf : Function.Injective f)
     (g : IndexedGrammar T₁) :
     (g.mapTerminals f).Language = Language.map f g.Language := by
@@ -259,9 +267,23 @@ public theorem language_mapTerminals [Nonempty T₁] {f : T₁ → T₂} (hf : F
 
 end IndexedGrammar
 
+/-- Indexedness is preserved by an injective terminal map. -/
 public theorem Indexed_of_map_injective_Indexed [Nonempty T₁] {f : T₁ → T₂}
     (hf : Function.Injective f) (L : Language T₁) :
     is_Indexed L → is_Indexed (Language.map f L) := by
   intro hL
   obtain ⟨g, hg⟩ := hL
   exact ⟨g.mapTerminals f, by rw [IndexedGrammar.language_mapTerminals hf, hg]⟩
+
+/-- Indexedness is reflected along an injective terminal map. -/
+public theorem Indexed_of_map_injective_Indexed_rev [Nonempty T₁] {f : T₁ → T₂}
+    (hf : Function.Injective f) (L : Language T₁)
+    (hL : is_Indexed (Language.map f L)) : is_Indexed L := by
+  have hback :=
+    is_Indexed_homomorphicImage (Language.map f L)
+      (fun t => [Function.invFun f t]) hL
+  rw [Language.homomorphicImage, Language.subst_singletons_eq_map,
+    Language.map_map] at hback
+  rwa [show Function.invFun f ∘ f = id from
+      funext (Function.leftInverse_invFun hf),
+    Language.map_id] at hback
