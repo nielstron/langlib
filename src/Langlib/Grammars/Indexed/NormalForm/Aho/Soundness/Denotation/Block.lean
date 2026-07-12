@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.LocalEdits
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.Transitions
 
 @[expose]
 public section

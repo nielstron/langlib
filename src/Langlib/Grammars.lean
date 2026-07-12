@@ -18,7 +18,6 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.Inclusion
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.Alphabet
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.BoundaryScans
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.InputSafety
-public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.LocalEdits
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.PaddedReach
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.PaddedRows
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.Reachability
@@ -29,7 +28,6 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Completeness
 public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Evaluation
 public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Trace
 public import Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.WorkCompleteness
-public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Accounting
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.BoundedAccounting
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Completeness
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.CompressedState
@@ -63,7 +61,6 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Plain
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Protected.Atomic
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Scheduler.Runners.Protected.Structural
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Acceptance
-public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Block
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Certificates
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Control
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Denotation.Block
@@ -78,7 +75,7 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowWork.Replacem
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowWork.RightShift
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowWork.Trace
 public import Langlib.Grammars.Indexed.NormalForm.Binarization
-public import Langlib.Grammars.Indexed.NormalForm.Bounds
+public import Langlib.Grammars.Indexed.NormalForm.Derivation
 public import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
 public import Langlib.Grammars.Indexed.NormalForm.FlagSeparation
 public import Langlib.Grammars.Indexed.NormalForm.FreshStart

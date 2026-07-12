@@ -2,7 +2,7 @@ module
 
 public import Mathlib
 public import Langlib.Grammars.Indexed.Definition
-public import Langlib.Grammars.Indexed.NormalForm.Bounds
+public import Langlib.Grammars.Indexed.NormalForm.Derivation
 @[expose]
 public section
 

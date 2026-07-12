@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.Transitions
+public import Langlib.Automata.LinearBounded.Packing
 
 @[expose]
 public section
@@ -375,4 +376,3 @@ public def FinalRow (g : IndexedGrammar T) (row : List (RowCell g)) : Prop :=
 
 end Aho
 end IndexedGrammar
-

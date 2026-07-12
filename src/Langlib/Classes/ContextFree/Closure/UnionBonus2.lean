@@ -37,6 +37,8 @@ import Mathlib.Topology.Sheaves.Init
 public section
 
 
+
+
 /-! # Auxiliary CFG-to-RE Union Construction
 
 This file records an alternate union proof for context-free languages via unrestricted grammars.
@@ -47,7 +49,7 @@ This file records an alternate union proof for context-free languages via unrest
 - `bonus_CF_of_CF_u_CF`
 -/
 
-variable {T : Type}
+variable {_T : Type}
 
 private def lift_CF_rule₁ {N₁ : Type} (N₂ : Type) (r : (N₁ × List (symbol T N₁))) :
   (Option (N₁ ⊕ N₂)) × List (symbol T (Option (N₁ ⊕ N₂))) :=

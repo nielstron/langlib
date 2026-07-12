@@ -4,6 +4,8 @@ public import Mathlib.Computability.Language
 @[expose]
 public section
 
+
+
 /-! # Unrestricted Grammar Definitions
 
 This file defines unrestricted grammars and their derivations.
@@ -15,6 +17,8 @@ This file defines unrestricted grammars and their derivations.
 - `grammar_derives`
 - `grammar_language`
 -/
+
+open Relation
 
 /-- The type of symbols is the disjoint union of terminals and nonterminals. -/
 public inductive symbol (T : Type) (N : Type) where

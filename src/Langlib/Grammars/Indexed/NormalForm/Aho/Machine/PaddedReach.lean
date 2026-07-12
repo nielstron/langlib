@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.InputSafety
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Machine.PaddedRows
 
 @[expose]
 public section
@@ -203,4 +204,3 @@ public theorem mem_paddedReachLanguage_iff_boundedReaches
 
 end Aho
 end IndexedGrammar
-

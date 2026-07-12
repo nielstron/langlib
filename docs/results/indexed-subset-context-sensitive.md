@@ -82,9 +82,12 @@ uses the four constructors of `NFParse` supplied by indexed-grammar normal form.
 
 The construction therefore lives under
 `Langlib.Grammars.Indexed.NormalForm.Aho`. The genuinely reusable automata layer is
-`CertifiedRowSystem`, which remains under `Langlib.Automata.LinearBounded`; `ahoRowSystem`
-is the grammar-specific instance compiled through that abstraction. The class-level
-principle for arbitrary indexed languages is `Indexed_subclass_CS`, kept separately under
+`CertifiedRowSystem`, together with the fixed-width `PackedBlock` and `packedTape`
+operations, which remain under `Langlib.Automata.LinearBounded`; `ahoRowSystem` is the
+grammar-specific instance compiled through those abstractions. Counted normal-form
+derivations used to extract parse certificates live separately in
+`Langlib.Grammars.Indexed.NormalForm.Derivation`. The class-level principle for arbitrary
+indexed languages is `Indexed_subclass_CS`, kept under
 `Langlib.Classes.Indexed.Inclusion` because it also performs finite-support normalization,
 homomorphic transport, and empty-word restoration.
 
@@ -95,7 +98,7 @@ Aho/
 ├── Compression, ParseCertificate
 ├── Machine/
 ├── Scheduler/
-│   ├── Accounting, ParseRoutes, Invariant, Pop, Moves, Execution
+│   ├── ParseRoutes, Invariant, Pop, Moves, Execution
 │   ├── BoundedAccounting, GhostLayout, CompressedState
 │   ├── EventCompatibility
 │   ├── Ownership/
@@ -141,9 +144,9 @@ The machine modules are deliberately layered:
   configurations, certificates, and semantic steps.
 - `Langlib.Grammars.Indexed.NormalForm.Aho.Machine.PaddedRows` defines the
   fixed-width encoding.
-- `Langlib.Grammars.Indexed.NormalForm.Aho.Machine.BoundaryScans` and
-  `Langlib.Grammars.Indexed.NormalForm.Aho.Machine.LocalEdits` give finite scans for
-  boundary rows and local edits.
+- `Langlib.Grammars.Indexed.NormalForm.Aho.Machine.BoundaryScans` recognizes the
+  initialized and accepting boundary rows; the finite adjacent-row transition scan is
+  defined later by `Langlib.Grammars.Indexed.NormalForm.Aho.RowSystem.Checker`.
 - `Langlib.Grammars.Indexed.NormalForm.Aho.Machine.Reachability`,
   `Langlib.Grammars.Indexed.NormalForm.Aho.Machine.InputSafety`, and
   `Langlib.Grammars.Indexed.NormalForm.Aho.Machine.PaddedReach` package the bounded
@@ -232,9 +235,8 @@ The soundness layers are:
   blocks, hidden decorations, segments, and nested frames;
 - `Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Denotation.Control` for the
   whole-tape control interpretation;
-- `Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Block` and
-  `Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Control` for the grammar effect
-  of local and structural edits;
+- `Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Control` for the grammar effect
+  of local and structural control moves;
 - `Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Certificates` for the
   certificate-by-certificate `StepEffect` theorem;
 - `Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Acceptance` for the forward
@@ -304,6 +306,12 @@ homomorphisms, so the nonempty part of the original language is context-sensitiv
 If the terminal type is empty, every word is empty and every language is finite, so the
 result follows from finite-language context-sensitivity. This is why
 `Indexed_subclass_CS` needs no `Inhabited T` or `Fintype T` assumption.
+
+The independent theorem `is_CS_finite_terminal_support` records the complementary,
+generally useful fact that every context-sensitive language uses terminals from some
+finite set. The accompanying finite-alphabet image equivalences are kept in
+`Langlib.Classes.ContextSensitive.Basics.FiniteAlphabet`; the inclusion proof does not
+need to import them.
 
 The positive-input LBA core and the empty-word lift should not be conflated:
 `is_LBA_pos` has exactly `|w|` physical cells and therefore recognizes only

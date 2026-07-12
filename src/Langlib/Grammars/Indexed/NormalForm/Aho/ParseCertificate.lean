@@ -73,6 +73,12 @@ public def toNFYield {g : IndexedGrammar T} {A : g.nt} {σ : List g.flag} {w : L
   | .terminal hr hlhs hc hrhs =>
       NFYield.terminal hr hlhs hc hrhs
 
+/-- Every data-carrying normal-form parse has a nonempty terminal yield. -/
+public theorem yield_length_pos
+    {g : IndexedGrammar T} {A : g.nt} {σ : List g.flag} {w : List T}
+    (p : NFParse g A σ w) : 0 < w.length :=
+  NFYield.yield_length_pos p.toNFYield
+
 /-- Every proposition-valued normal-form parse has a data-carrying representative. -/
 public theorem nonempty_of_nfyield
     {g : IndexedGrammar T} {A : g.nt} {σ : List g.flag} {w : List T}

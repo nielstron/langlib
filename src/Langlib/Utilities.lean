@@ -13,6 +13,7 @@ public import Langlib.Utilities.PrimrecHelpers
 public import Langlib.Utilities.Tactics
 public import Langlib.Utilities.WordEnumeration
 public import Langlib.Utilities.WrittenByOthers.ListTakeJoin
+public import Langlib.Utilities.WrittenByOthers.PrintSorries
 public import Langlib.Utilities.WrittenByOthers.TrimAssoc
 @[expose]
 public section

@@ -1,6 +1,8 @@
 module
 
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Compression
+public import Mathlib.Data.Fintype.Option
+public import Mathlib.Data.Fintype.Pi
 public import Mathlib.Data.Fintype.Prod
 
 @[expose]

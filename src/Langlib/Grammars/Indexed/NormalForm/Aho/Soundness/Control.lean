@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Block
+public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.Denotation.Control
 
 @[expose]
 public section
@@ -20,6 +20,48 @@ namespace Aho
 namespace ControlDenotation
 
 open BlockDenotation
+
+/-- Read a delimiter-free suffix split uniquely from the right. -/
+private theorem append_delimiter_unique
+    {α : Type} [DecidableEq α] {delimiter : α}
+    {left₁ left₂ right₁ right₂ : List α}
+    (hfree₁ : delimiter ∉ right₁) (hfree₂ : delimiter ∉ right₂)
+    (heq : left₁ ++ delimiter :: right₁ = left₂ ++ delimiter :: right₂) :
+    left₁ = left₂ ∧ right₁ = right₂ := by
+  have hrev : right₁.reverse ++ delimiter :: left₁.reverse =
+      right₂.reverse ++ delimiter :: left₂.reverse := by
+    simpa [List.reverse_append] using congrArg List.reverse heq
+  have first_unique : ∀ {xs ys p q : List α},
+      delimiter ∉ xs → delimiter ∉ ys →
+      xs ++ delimiter :: p = ys ++ delimiter :: q → xs = ys ∧ p = q := by
+    intro xs
+    induction xs with
+    | nil =>
+        intro ys p q hxs hys heq
+        cases ys with
+        | nil => simpa using heq
+        | cons y ys =>
+            simp only [List.nil_append, List.cons_append, List.cons.injEq] at heq
+            exact False.elim (hys (by simp [heq.1]))
+    | cons x xs ih =>
+        intro ys p q hxs hys heq
+        cases ys with
+        | nil =>
+            simp only [List.cons_append, List.nil_append, List.cons.injEq] at heq
+            exact False.elim (hxs (by simp [heq.1]))
+        | cons y ys =>
+            simp only [List.cons_append, List.cons.injEq] at heq
+            have hxs' : delimiter ∉ xs :=
+              fun hm => hxs (List.mem_cons_of_mem x hm)
+            have hys' : delimiter ∉ ys :=
+              fun hm => hys (List.mem_cons_of_mem y hm)
+            rcases ih hxs' hys' heq.2 with
+              ⟨hxy, hpq⟩
+            exact ⟨by simp [heq.1, hxy], hpq⟩
+  rcases first_unique (by simpa using hfree₁) (by simpa using hfree₂) hrev with
+    ⟨hright, hleft⟩
+  exact ⟨by simpa using congrArg List.reverse hleft,
+    by simpa using congrArg List.reverse hright⟩
 
 /-! ## Local grammar effects in the execution-order denotation -/
 
@@ -455,7 +497,7 @@ public theorem ExecRep.returnFrameSound
         alpha' ++ WorkSym.dollar :: Z' :: beta' := by
     apply List.append_cancel_right (bs := [WorkSym.dollar])
     simpa [List.append_assoc] using hleft
-  rcases BlockDenotation.append_delimiter_unique
+  rcases append_delimiter_unique
       hsuffix hsuffix' hwithoutLast with ⟨halpha, hsaved⟩
   simp only [List.cons.injEq] at hsaved
   rcases hsaved with ⟨hZeq, hbeta⟩
