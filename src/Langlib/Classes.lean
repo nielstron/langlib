@@ -98,6 +98,7 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Concatenation
 public import Langlib.Classes.DeterministicContextFree.Closure.Homomorphism
 public import Langlib.Classes.DeterministicContextFree.Closure.Intersection
 public import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
+public import Langlib.Classes.DeterministicContextFree.Closure.InverseHomomorphism
 public import Langlib.Classes.DeterministicContextFree.Closure.Quotient
 public import Langlib.Classes.DeterministicContextFree.Closure.Star
 public import Langlib.Classes.DeterministicContextFree.Closure.Substitution
