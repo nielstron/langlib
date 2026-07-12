@@ -126,6 +126,7 @@ public import Langlib.Classes.Indexed.Basics.FiniteSupport
 public import Langlib.Classes.Indexed.Closure.Concatenation
 public import Langlib.Classes.Indexed.Closure.Homomorphism
 public import Langlib.Classes.Indexed.Closure.Injection
+public import Langlib.Classes.Indexed.Closure.IntersectionRegular
 public import Langlib.Classes.Indexed.Closure.Reverse
 public import Langlib.Classes.Indexed.Closure.Star
 public import Langlib.Classes.Indexed.Closure.Substitution
