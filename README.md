@@ -98,8 +98,15 @@ Each column refers to the corresponding uniform computability predicate
 | Deterministic context-free | ✓ | ✓ | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
-| Recursive | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/UniformMembership.lean) | ✗ | ✗ | ✗ |
+| Recursive | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/UniformMembership.lean) | — | — | — |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
+
+The Recursive row has no fixed effective presentation for the last three columns.
+Under the encoding-parametric predicates above, emptiness, universality, and
+equivalence are presentation-dependent; `—` therefore avoids asserting an unsupported
+encoding-independent result.  Uniform membership is different: the linked diagonal
+argument proves that no adequate presentation of all recursive languages can make it
+uniformly computable (over any nonempty finite alphabet).
 
 ## How To Use The Library
 
