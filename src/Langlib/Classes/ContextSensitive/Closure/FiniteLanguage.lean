@@ -2,7 +2,6 @@ module
 
 public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Examples.SingletonWord
-import Mathlib.Tactic
 @[expose]
 public section
 
@@ -25,16 +24,10 @@ public theorem emptyLanguage_is_CS (T : Type) : is_CS (⊥ : Language T) := by
     constructor
     · intro hw
       change grammar_derives g [symbol.nonterminal g.initial] (List.map symbol.terminal w) at hw
-      rw [grammar_derives_iff_exists_derivesIn] at hw
-      rcases hw with ⟨n, hn⟩
-      induction n generalizing w with
-      | zero =>
-          cases w <;> simp [g] at hn
-      | succ n ih =>
-          rw [grammar_derivesIn_succ] at hn
-          rcases hn with ⟨mid, _hprev, hstep⟩
-          rcases hstep with ⟨r, hr, _⟩
-          simp [g] at hr
+      rcases Relation.ReflTransGen.cases_tail hw with heq | ⟨_mid, _hprev, hstep⟩
+      · cases w <;> simp [g] at heq
+      · rcases hstep with ⟨r, hr, _⟩
+        simp [g] at hr
     · intro hw
       exact False.elim hw
 

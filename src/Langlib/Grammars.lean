@@ -78,15 +78,12 @@ public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowWork.Replacem
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowWork.RightShift
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Soundness.RowWork.Trace
 public import Langlib.Grammars.Indexed.NormalForm.Binarization
-public import Langlib.Grammars.Indexed.NormalForm.BoundedStackGrammar
 public import Langlib.Grammars.Indexed.NormalForm.Bounds
 public import Langlib.Grammars.Indexed.NormalForm.EpsilonElim
 public import Langlib.Grammars.Indexed.NormalForm.FlagSeparation
 public import Langlib.Grammars.Indexed.NormalForm.FreshStart
 public import Langlib.Grammars.Indexed.NormalForm.NormalForm
 public import Langlib.Grammars.Indexed.NormalForm.ParseTree
-public import Langlib.Grammars.Indexed.NormalForm.ParseTreeShrinking
-public import Langlib.Grammars.Indexed.NormalForm.Shrinking
 public import Langlib.Grammars.Indexed.NormalForm.TerminalIsolation
 public import Langlib.Grammars.LR.Definition
 public import Langlib.Grammars.LR.Inclusion.ContextFree
