@@ -33,7 +33,7 @@ Each class of the (extended) hierarchy is charaterized as grammar or automaton (
 | ⊊ (⊆ [🔗](src/Langlib/Classes/Indexed/Inclusion/ContextSensitive.lean)) |  | ⊊ |
 | Context-sensitive (Non-erasing ⇔ Non-contracting (⇒ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitive.lean))) | ⇔ [🔗](src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) | LBA languages (DLBA ⊆ [🔗](src/Langlib/Automata/DeterministicLinearBounded/Inclusion/LinearBounded.lean) LBA, LBA ⊆? DLBA) |
 |  |  | ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) (⊆ RE [🔗](src/Langlib/Automata/LinearBounded/Inclusion/TuringMachine.lean)) |
-|  ⊊ (⊆ [🔗][src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean]) | | Turing-machine languages (Mathlib), with halting deciders |
+|  ⊊ (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) | | Turing-machine languages (Mathlib), with halting deciders |
 |  |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean)  |
 | Unrestricted | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machine languages (Mathlib) |
 
