@@ -122,6 +122,7 @@ public import Langlib.Classes.Indexed.Closure.Concatenation
 public import Langlib.Classes.Indexed.Closure.Homomorphism
 public import Langlib.Classes.Indexed.Closure.Injection
 public import Langlib.Classes.Indexed.Closure.Reverse
+public import Langlib.Classes.Indexed.Closure.Star
 public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition
 public import Langlib.Classes.Indexed.Examples.AnBnCn
