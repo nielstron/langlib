@@ -111,7 +111,7 @@ equivalence problems for the indicated standard presentation.
 | Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Emptiness.lean) | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
-| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/DeciderCode.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Equivalence.lean) |
+| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Equivalence.lean) |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
 For Recursive membership, the input program is promised to be an always-halting
