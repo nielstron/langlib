@@ -87,4 +87,5 @@ theorem recursivelyEnumerable_computableUniversality_undecidable :
     ¬ComputableUniversality RE partrecCodeDomainLanguageOf := by
   intro h
   apply RE_universality_undecidable
-  exact h.2.2.of_eq fun c => partrecCodeDomainLanguage_universal_iff c
+  exact (h.2.2.toComputablePred fun _ ↦ trivial).of_eq fun c ↦
+    partrecCodeDomainLanguage_universal_iff c

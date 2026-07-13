@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Classes.Recursive.Decidability.Membership
+public import Langlib.Utilities.ComputabilityPredicates
 public import Langlib.Utilities.PromiseComputability
 
 @[expose]
@@ -26,6 +27,8 @@ decidable (it is not), nor does it package those codes as a `Primcodable` subtyp
   membership predicates by valid codes.
 * `RecursiveDeciderCode.exists_valid_iff_is_Recursive` specializes that
   characterization to the repository's `is_Recursive` language class.
+* `RecursiveDeciderCode.recursive_computableMembership` packages the intended
+  encoded-device-and-word result using `ComputableMembership` itself.
 -/
 
 namespace RecursiveDeciderCode
@@ -73,6 +76,14 @@ public theorem eval_decidesMembership :
       (evalBool : Nat.Partrec.Code → List T →. Bool)
       (fun c w => w ∈ language (T := T) c) := by
   exact ⟨⟨evalBool_partrec₂, fun c hc w => hc w⟩, fun _ _ _ => Iff.rfl⟩
+
+/-- Raw decider-code membership is uniformly recursively enumerable, even away
+from the totality promise: simulate the program and return exactly when its Boolean
+result is `true`.  This is the effectivity condition preventing `language` from
+hiding noncomputable information in the decoding map. -/
+public theorem language_membershipSemiDecidable :
+    MembershipSemiDecidable (language (T := T)) :=
+  evalBool_partrec₂.true_mem_re
 
 /-- A language has a computable membership predicate exactly when it is denoted by
 some valid raw partial-recursive decider code. -/
@@ -130,5 +141,23 @@ public theorem exists_valid_iff_is_Recursive
     obtain ⟨f, hf, hspec⟩ := ComputablePred.computable_iff.mp hL
     exact is_Recursive_of_computable_decide L f hf fun w => iff_of_eq (congrFun hspec w)
   · exact Recursive_membership_computable
+
+/-- **Membership for recursive languages is uniformly computable from an encoded
+always-halting decider and a word.**
+
+Raw program syntax is `Primcodable`; `Valid` is the semantic promise that the
+program halts on every encoded word.  The universal evaluator is partial-recursive
+on all raw codes and total/correct on valid codes, while the valid codes denote
+exactly all recursive languages. -/
+public theorem recursive_computableMembership
+    [DecidableEq T] [Fintype T] :
+    ComputableMembership Recursive (language (T := T))
+      (valid := Valid (T := T)) := by
+  refine ⟨?_, language_membershipSemiDecidable, ?_⟩
+  · intro L
+    exact (exists_valid_iff_is_Recursive L).symm
+  · refine ⟨fun p ↦ evalBool p.1 p.2, evalBool_partrec₂, ?_⟩
+    intro p hp
+    exact ⟨hp p.2, Iff.rfl⟩
 
 end RecursiveDeciderCode

@@ -101,4 +101,5 @@ theorem recursivelyEnumerable_computableEquivalence_undecidable :
     ¬ComputableEquivalence RE partrecCodeGraphLanguageOf := by
   intro h
   apply RE_equivalence_undecidable
-  exact h.2.2.of_eq fun p => partrecCodeGraphLanguage_eq_iff p
+  exact (h.2.2.toComputablePred fun _ ↦ ⟨trivial, trivial⟩).of_eq fun p ↦
+    partrecCodeGraphLanguage_eq_iff p

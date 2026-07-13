@@ -378,7 +378,7 @@ right-regular grammars are an adequate, effective presentation
 (`regularLanguageOf_characterizes`) with uniformly decidable equivalence. -/
 public theorem regular_computableEquivalence [Fintype T] [DecidableEq T] [Primcodable T] :
     ComputableEquivalence RG (regularLanguageOf : EncodedRG T → Language T) :=
-  ⟨regularLanguageOf_characterizes, regular_membership_computablePred.to_re,
-    regular_equivalence_computablePred⟩
+  ⟨regularLanguageOf_characterizes.onTrue, regular_membership_computablePred.to_re,
+    ComputablePredOnPromise.ofComputablePred regular_equivalence_computablePred⟩
 
 end Regular.EncodedRG

@@ -197,7 +197,7 @@ right-regular grammars are an adequate, effective presentation
 (`regularLanguageOf_characterizes`) with uniformly decidable emptiness. -/
 public theorem regular_computableEmptiness [Fintype T] [DecidableEq T] [Primcodable T] :
     ComputableEmptiness RG (regularLanguageOf : EncodedRG T → Language T) :=
-  ⟨regularLanguageOf_characterizes, regular_membership_computablePred.to_re,
-    regular_emptiness_computablePred⟩
+  ⟨regularLanguageOf_characterizes.onTrue, regular_membership_computablePred.to_re,
+    ComputablePredOnPromise.ofComputablePred regular_emptiness_computablePred⟩
 
 end Regular.EncodedRG

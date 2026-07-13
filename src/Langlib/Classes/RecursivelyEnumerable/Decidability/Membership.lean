@@ -110,4 +110,5 @@ partial-recursive recognizer codes is not uniformly computable. -/
 theorem recursivelyEnumerable_computableMembership_undecidable :
     ¬ComputableMembership RE partrecCodeDomainLanguageOf := by
   intro h
-  exact recursivelyEnumerable_membership_not_computable h.2.2
+  exact recursivelyEnumerable_membership_not_computable
+    (h.2.2.toComputablePred fun _ ↦ trivial)

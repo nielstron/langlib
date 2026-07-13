@@ -1065,7 +1065,8 @@ context-free grammars are an adequate, effective presentation
 (`ComputableMembership`). -/
 public theorem contextFree_computableMembership [Primcodable T] :
     ComputableMembership CF (contextFreeLanguageOf : EncodedCFG T → Language T) :=
-  ⟨ContextFree.EncodedCFG.contextFreeLanguageOf_characterizes,
-    contextFree_membership_computablePred.to_re, contextFree_membership_computablePred⟩
+  ⟨ContextFree.EncodedCFG.contextFreeLanguageOf_characterizes.onTrue,
+    contextFree_membership_computablePred.to_re,
+    ComputablePredOnPromise.ofComputablePred contextFree_membership_computablePred⟩
 
 end CFComputablePred

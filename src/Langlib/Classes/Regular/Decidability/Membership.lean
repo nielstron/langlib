@@ -123,7 +123,7 @@ right-regular grammars are an adequate, effective presentation
 (`regularLanguageOf_characterizes`) with uniformly decidable membership. -/
 public theorem regular_computableMembership [Fintype T] [DecidableEq T] [Primcodable T] :
     ComputableMembership RG (regularLanguageOf : EncodedRG T → Language T) :=
-  ⟨regularLanguageOf_characterizes, regular_membership_computablePred.to_re,
-    regular_membership_computablePred⟩
+  ⟨regularLanguageOf_characterizes.onTrue, regular_membership_computablePred.to_re,
+    ComputablePredOnPromise.ofComputablePred regular_membership_computablePred⟩
 
 end Regular.EncodedRG

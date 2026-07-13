@@ -26,6 +26,8 @@ membership on the promised DCFL codes in particular.
   inputs to one uniform membership procedure, correct under `DCFEncodedCFG.Valid`.
 - `DCFEncodedCFG.exists_valid_iff_is_DCF` – the valid encoded grammars present
   exactly the deterministic context-free languages.
+- `DCFEncodedCFG.dcf_computableMembership` – the complete result packaged by the
+  promise-aware `ComputableMembership` predicate.
 - `dcf_membership_computable` – membership in a fixed deterministic context-free
   language is a `ComputablePred`.
 -/
@@ -87,6 +89,19 @@ public theorem eval_decidesMembership :
   · intro G _ w
     simpa only [evalMembership, Part.mem_some_iff, contextFreeLanguageOf, eq_comm] using
       (checkMembershipEncoded_correct G w).symm
+
+/-- **DCFL membership is uniformly computable from an encoded grammar and a
+word.**  Valid encoded CFGs present exactly the deterministic context-free
+languages, raw CFG membership is effective, and the joint CYK evaluator is total
+and correct (in fact on every raw CFG code). -/
+public theorem dcf_computableMembership :
+    ComputableMembership DCF (contextFreeLanguageOf : EncodedCFG T → Language T)
+      (valid := Valid) := by
+  refine ⟨?_, contextFree_membership_computablePred.to_re, ?_⟩
+  · intro L
+    exact (exists_valid_iff_is_DCF L).symm
+  · exact ComputablePredOnPromise.ofComputablePred
+      contextFree_membership_computablePred
 
 end Effective
 

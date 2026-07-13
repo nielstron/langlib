@@ -12,9 +12,9 @@ public section
 Every individual recursive language has decidable membership, but there is no
 adequate computable numbering of *all* recursive languages whose membership
 relation is uniformly decidable.  This distinction matters for
-`ComputableMembership`, which deliberately asks for a uniform algorithm taking a
-language code as an input and terminating on every element of a `Primcodable` code
-type.
+`ComputableMembership` with its default trivial validity promise, which asks for a
+uniform algorithm taking a language code as an input and terminating on every
+element of a `Primcodable` code type.
 
 This does not contradict the usual uniform word problem for an encoded decider.
 There the raw program is accompanied by the semantic promise that it halts on every
@@ -85,8 +85,9 @@ public theorem Recursive_notComputableMembership
     ¬ ComputableMembership Recursive languageOf := by
   intro h
   have hdiag : is_Recursive (recursiveDiagonal languageOf) :=
-    recursiveDiagonal_isRecursive languageOf h.2.2
-  obtain ⟨c, hc⟩ := (h.1 (recursiveDiagonal languageOf)).mp hdiag
+    recursiveDiagonal_isRecursive languageOf
+      (h.2.2.toComputablePred fun _ ↦ trivial)
+  obtain ⟨c, _, hc⟩ := (h.1 (recursiveDiagonal languageOf)).mp hdiag
   let w : List T := List.replicate (encode c) (Classical.arbitrary T)
   have hdecode : decode (α := Code) w.length = some c := by
     simp [w]

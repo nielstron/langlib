@@ -1008,7 +1008,8 @@ context-free grammars are an adequate, effective presentation
 (`ComputableEmptiness`). -/
 public theorem contextFree_computableEmptiness :
     ComputableEmptiness CF (contextFreeLanguageOf : EncodedCFG T → Language T) :=
-  ⟨ContextFree.EncodedCFG.contextFreeLanguageOf_characterizes,
-    contextFree_membership_computablePred.to_re, contextFree_emptiness_computablePred⟩
+  ⟨ContextFree.EncodedCFG.contextFreeLanguageOf_characterizes.onTrue,
+    contextFree_membership_computablePred.to_re,
+    ComputablePredOnPromise.ofComputablePred contextFree_emptiness_computablePred⟩
 
 end ContextFree

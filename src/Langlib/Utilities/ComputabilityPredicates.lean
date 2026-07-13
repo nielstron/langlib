@@ -2,6 +2,7 @@ module
 
 public import Mathlib.Computability.Halting
 public import Mathlib.Computability.Language
+public import Langlib.Utilities.PromiseComputability
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -55,24 +56,28 @@ only say that one already-chosen language has computable membership. The definit
 below express a uniform algorithm for a whole encoded presentation class.
 
 Each predicate is stated for a *language class* `C : Set (Language α)` together with
-an encoding `languageOf : Code → Language α`, and bundles three obligations:
+raw encoded syntax `Code`, a semantics `languageOf : Code → Language α`, and a
+validity promise `valid : Code → Prop`.  It bundles three obligations:
 
-1. `Characterizes C languageOf` — the encoding is **adequate**: its range is exactly
-   `C` (sound: every code denotes a member of `C`; complete: every member of `C` is
-   denoted by some code).
+1. `CharacterizesOn C valid languageOf` — the valid codes are **adequate**: their
+   range is exactly `C`.
 2. `MembershipSemiDecidable languageOf` — the encoding is **effective**: membership is
-   uniformly recursively enumerable.
-3. The relevant decision predicate is `ComputablePred`.
+   uniformly recursively enumerable from the raw code, so `languageOf` cannot hide
+   noncomputable semantic information in the decoding map.
+3. The relevant predicate is `ComputablePredOnPromise`: one partial-recursive
+   evaluator must halt and answer correctly on every valid code.  It may diverge on
+   invalid syntax, and `valid` itself need not be decidable.
 
 Adequacy and effectivity make both the positive results (e.g. "regular emptiness is
 decidable") and the negative ones (e.g. "r.e. emptiness is not decidable") genuine
-statements about the *class*: without (1)–(2), `¬ComputableEmptiness` could be made
-vacuous or trivially true by an adversarial encoding.
+statements about the supplied effective presentation.  Without (1)–(2), a result
+could instead be vacuous or rely on an arbitrary, non-effective semantic map.
 
 ## Main definitions
 
 - `MembershipSemiDecidable`
 - `Characterizes`
+- `CharacterizesOn`
 - `ComputableMembership`
 - `ComputableEmptiness`
 - `ComputableUniversality`
@@ -84,8 +89,9 @@ variable {α Code : Type}
 /-- The encoding has **semi-decidable (r.e.) uniform membership**: the relation
 "`w ∈ languageOf c`" is recursively enumerable in the pair `(c, w)`.
 
-This ensures that the language of `c` can actually be computed from `c`, i.e. the
-encoding does not "smuggle" information about the language into the code.
+This ensures that the language of `c` can actually be recognized from `c`; in
+particular, the semantic map cannot smuggle a non-r.e. membership oracle into the
+meaning of a raw code.
 
 The counterexample this rules out is an encoding over codes `Bool × Code`, where
 `e (false, c)` denotes the empty language and `e (true, c)` denotes the language of
@@ -112,6 +118,30 @@ Completeness (left-to-right): every language in `C` is denoted by some code. -/
 public def Characterizes (C : Set (Language α)) (languageOf : Code → Language α) : Prop :=
   ∀ L, L ∈ C ↔ ∃ c, languageOf c = L
 
+/-- The valid codes characterize `C`: every valid code denotes a language in `C`,
+and every language in `C` has at least one valid code.
+
+The promise may be semantic.  For example, raw program syntax is computably
+encoded while `valid c` says that program `c` halts on every word. -/
+@[expose]
+public def CharacterizesOn (C : Set (Language α)) (valid : Code → Prop)
+    (languageOf : Code → Language α) : Prop :=
+  ∀ L, L ∈ C ↔ ∃ c, valid c ∧ languageOf c = L
+
+/-- With the trivial promise, `CharacterizesOn` is the original range
+characterization. -/
+public theorem characterizesOn_true_iff
+    (C : Set (Language α)) (languageOf : Code → Language α) :
+    CharacterizesOn C (fun _ ↦ True) languageOf ↔ Characterizes C languageOf := by
+  simp only [CharacterizesOn, Characterizes, true_and]
+
+/-- An ordinary characterization supplies a characterization under the trivial
+promise. -/
+public theorem Characterizes.onTrue {C : Set (Language α)}
+    {languageOf : Code → Language α} (h : Characterizes C languageOf) :
+    CharacterizesOn C (fun _ ↦ True) languageOf :=
+  (characterizesOn_true_iff C languageOf).2 h
+
 /-- Uniform computability of **membership** for the class `C` under the encoding
 `languageOf`: the encoding is an adequate, effective presentation of `C` and
 membership is uniformly decidable.
@@ -120,34 +150,41 @@ The input to the decision predicate is a pair `(c, w)`, with `c` the encoded
 presentation and `w` the candidate word. -/
 @[expose]
 public def ComputableMembership [Primcodable Code] [Primcodable α]
-    (C : Set (Language α)) (languageOf : Code → Language α) : Prop :=
-  Characterizes C languageOf ∧ MembershipSemiDecidable languageOf ∧
-    ComputablePred (fun p : Code × List α => p.2 ∈ languageOf p.1)
+    (C : Set (Language α)) (languageOf : Code → Language α)
+    (valid : Code → Prop := fun _ ↦ True) : Prop :=
+  CharacterizesOn C valid languageOf ∧ MembershipSemiDecidable languageOf ∧
+    ComputablePredOnPromise (fun p : Code × List α ↦ valid p.1)
+      (fun p ↦ p.2 ∈ languageOf p.1)
 
 /-- Uniform computability of **emptiness** for the class `C` under the encoding
 `languageOf`: the encoding is an adequate, effective presentation of `C` and
 "`languageOf c = ∅`" is uniformly decidable in the code `c`. -/
 @[expose]
 public def ComputableEmptiness [Primcodable Code] [Primcodable α]
-    (C : Set (Language α)) (languageOf : Code → Language α) : Prop :=
-  Characterizes C languageOf ∧ MembershipSemiDecidable languageOf ∧
-    ComputablePred (fun c : Code => languageOf c = (∅ : Set (List α)))
+    (C : Set (Language α)) (languageOf : Code → Language α)
+    (valid : Code → Prop := fun _ ↦ True) : Prop :=
+  CharacterizesOn C valid languageOf ∧ MembershipSemiDecidable languageOf ∧
+    ComputablePredOnPromise valid
+      (fun c : Code ↦ languageOf c = (∅ : Set (List α)))
 
 /-- Uniform computability of **universality** for the class `C` under the encoding
 `languageOf`: the encoding is an adequate, effective presentation of `C` and
 "`languageOf c = univ`" is uniformly decidable in the code `c`. -/
 @[expose]
 public def ComputableUniversality [Primcodable Code] [Primcodable α]
-    (C : Set (Language α)) (languageOf : Code → Language α) : Prop :=
-  Characterizes C languageOf ∧ MembershipSemiDecidable languageOf ∧
-    ComputablePred (fun c : Code => languageOf c = Set.univ)
+    (C : Set (Language α)) (languageOf : Code → Language α)
+    (valid : Code → Prop := fun _ ↦ True) : Prop :=
+  CharacterizesOn C valid languageOf ∧ MembershipSemiDecidable languageOf ∧
+    ComputablePredOnPromise valid
+      (fun c : Code ↦ languageOf c = Set.univ)
 
 /-- Uniform computability of **equivalence** for the class `C` under the encoding
 `languageOf`: the encoding is an adequate, effective presentation of `C` and
 "`languageOf c₁ = languageOf c₂`" is uniformly decidable in the pair of codes. -/
 @[expose]
 public def ComputableEquivalence [Primcodable Code] [Primcodable α]
-    (C : Set (Language α)) (languageOf : Code → Language α) : Prop :=
-  Characterizes C languageOf ∧ MembershipSemiDecidable languageOf ∧
-    ComputablePred (fun p : Code × Code => languageOf p.1 = languageOf p.2)
-
+    (C : Set (Language α)) (languageOf : Code → Language α)
+    (valid : Code → Prop := fun _ ↦ True) : Prop :=
+  CharacterizesOn C valid languageOf ∧ MembershipSemiDecidable languageOf ∧
+    ComputablePredOnPromise (fun p : Code × Code ↦ valid p.1 ∧ valid p.2)
+      (fun p ↦ languageOf p.1 = languageOf p.2)

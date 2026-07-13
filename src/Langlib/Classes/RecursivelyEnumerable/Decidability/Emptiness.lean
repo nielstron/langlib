@@ -95,4 +95,5 @@ theorem recursivelyEnumerable_computableEmptiness_undecidable :
     ¬ComputableEmptiness RE partrecCodeDomainLanguageOf := by
   intro h
   apply RE_emptiness_undecidable
-  exact h.2.2.of_eq fun c => partrecCodeDomainLanguage_empty_iff c
+  exact (h.2.2.toComputablePred fun _ ↦ trivial).of_eq fun c ↦
+    partrecCodeDomainLanguage_empty_iff c

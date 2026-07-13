@@ -272,8 +272,8 @@ class `CS`: the context-sensitive codes form an adequate, effective presentation
 uniformly decidable membership. -/
 public theorem contextSensitive_computableMembership :
     ComputableMembership CS (contextSensitiveLanguageOf' : CSCode T → Language T) :=
-  ⟨characterizes_CS, contextSensitive_membership_computablePred'.to_re,
-    contextSensitive_membership_computablePred'⟩
+  ⟨characterizes_CS.onTrue, contextSensitive_membership_computablePred'.to_re,
+    ComputablePredOnPromise.ofComputablePred contextSensitive_membership_computablePred'⟩
 
 end Bundle
 

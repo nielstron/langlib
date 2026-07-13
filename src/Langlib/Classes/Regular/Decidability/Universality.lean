@@ -253,7 +253,7 @@ right-regular grammars are an adequate, effective presentation
 (`regularLanguageOf_characterizes`) with uniformly decidable universality. -/
 public theorem regular_computableUniversality [Fintype T] [DecidableEq T] [Primcodable T] :
     ComputableUniversality RG (regularLanguageOf : EncodedRG T → Language T) :=
-  ⟨regularLanguageOf_characterizes, regular_membership_computablePred.to_re,
-    regular_universality_computablePred⟩
+  ⟨regularLanguageOf_characterizes.onTrue, regular_membership_computablePred.to_re,
+    ComputablePredOnPromise.ofComputablePred regular_universality_computablePred⟩
 
 end Regular.EncodedRG
