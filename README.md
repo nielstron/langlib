@@ -111,14 +111,16 @@ equivalence problems for the indicated standard presentation.
 | Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
-| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/DeciderCode.lean) | ✗ | ✗ | ✗ |
+| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/DeciderCode.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
 For Recursive membership, the input program is promised to be an always-halting
 decider.  The linked theorem supplies one universal evaluator taking the raw program
 code and word jointly, proves that it halts and is correct under that promise, and
 shows that valid codes present exactly the recursive languages over every finite
-computably encoded alphabet.  The separate diagonal result
+computably encoded alphabet.  Emptiness is undecidable for this presentation over
+every nonempty computably encoded alphabet; nonemptiness is optimal because an
+empty alphabet has only the empty word.  The separate diagonal result
 [🔗](src/Langlib/Classes/Recursive/Decidability/UniformMembership.lean) says that
 these semantically valid programs cannot instead be replaced by an adequate
 `Primcodable` type on which membership is total for every raw code; that is a
