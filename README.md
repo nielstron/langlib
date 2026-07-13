@@ -107,7 +107,7 @@ equivalence problems for the indicated standard presentation.
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
 | Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
-| Deterministic context-free | — | — | — | — |
+| Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
 | Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/DeciderCode.lean) | ✗ | ✗ | ✗ |
