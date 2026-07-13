@@ -112,6 +112,7 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Star
 public import Langlib.Classes.DeterministicContextFree.Closure.Substitution
 public import Langlib.Classes.DeterministicContextFree.Closure.Union
 public import Langlib.Classes.DeterministicContextFree.Closure.UnionRegular
+public import Langlib.Classes.DeterministicContextFree.Decidability.Emptiness
 public import Langlib.Classes.DeterministicContextFree.Decidability.Membership
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Classes.DeterministicContextFree.Examples.A2nBnPosStar
