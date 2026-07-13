@@ -97,6 +97,15 @@ theorem Recursive_strict_subclass_RE_of_nonempty {T : Type} [DecidableEq T] [Fin
     Recursive_closedUnderComplement
     RE_notClosedUnderComplement_of_nonempty
 
+/-- Recursive languages form a strict subclass of recursively enumerable languages
+over every finite alphabet with at least one symbol. -/
+public theorem Recursive_strict_subclass_RE_of_card {T : Type} [Fintype T]
+    (hT : 1 ≤ Fintype.card T) :
+    (Recursive : Set (Language T)) ⊂ (RE : Set (Language T)) := by
+  letI : Nonempty T := Fintype.card_pos_iff.mp (by omega)
+  letI : DecidableEq T := Classical.decEq T
+  exact Recursive_strict_subclass_RE_of_nonempty
+
 /-- Recursive languages are included in RE for every finite alphabet, and the inclusion
 is strict for at least one alphabet. -/
 theorem Recursive_subclass_RE_and_exists_strict :

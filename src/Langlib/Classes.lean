@@ -81,10 +81,13 @@ public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Closure.FiniteLanguage
 public import Langlib.Classes.ContextSensitive.Closure.Homomorphism
+public import Langlib.Classes.ContextSensitive.Closure.Intersection
 public import Langlib.Classes.ContextSensitive.Closure.IntersectionRegular
+public import Langlib.Classes.ContextSensitive.Closure.InverseHomomorphism
 public import Langlib.Classes.ContextSensitive.Closure.Quotient
 public import Langlib.Classes.ContextSensitive.Closure.QuotientRegular
 public import Langlib.Classes.ContextSensitive.Closure.Reverse
+public import Langlib.Classes.ContextSensitive.Closure.Star
 public import Langlib.Classes.ContextSensitive.Closure.Substitution
 public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization
@@ -103,6 +106,8 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Intersection
 public import Langlib.Classes.DeterministicContextFree.Closure.IntersectionRegular
 public import Langlib.Classes.DeterministicContextFree.Closure.InverseHomomorphism
 public import Langlib.Classes.DeterministicContextFree.Closure.Quotient
+public import Langlib.Classes.DeterministicContextFree.Closure.QuotientRegular
+public import Langlib.Classes.DeterministicContextFree.Closure.Reverse
 public import Langlib.Classes.DeterministicContextFree.Closure.Star
 public import Langlib.Classes.DeterministicContextFree.Closure.Substitution
 public import Langlib.Classes.DeterministicContextFree.Closure.Union
@@ -125,6 +130,9 @@ public import Langlib.Classes.Indexed.Basics.FiniteSupport
 public import Langlib.Classes.Indexed.Closure.Concatenation
 public import Langlib.Classes.Indexed.Closure.Homomorphism
 public import Langlib.Classes.Indexed.Closure.Injection
+public import Langlib.Classes.Indexed.Closure.IntersectionRegular
+public import Langlib.Classes.Indexed.Closure.InverseHomomorphism
+public import Langlib.Classes.Indexed.Closure.QuotientRegular
 public import Langlib.Classes.Indexed.Closure.Reverse
 public import Langlib.Classes.Indexed.Closure.Star
 public import Langlib.Classes.Indexed.Closure.Substitution
@@ -163,6 +171,7 @@ public import Langlib.Classes.Recursive.Closure.Star
 public import Langlib.Classes.Recursive.Closure.Substitution
 public import Langlib.Classes.Recursive.Closure.Union
 public import Langlib.Classes.Recursive.Decidability.Membership
+public import Langlib.Classes.Recursive.Decidability.UniformMembership
 public import Langlib.Classes.Recursive.Definition
 public import Langlib.Classes.Recursive.Examples.SingletonWord
 public import Langlib.Classes.Recursive.Inclusion.ByTapeFromComputable

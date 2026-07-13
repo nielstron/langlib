@@ -420,4 +420,32 @@ public theorem DCF_notClosedUnderKleeneStar :
       (lang_not_eq_any_pos + lang_not_any_eq_pos) hQuot
   exact notDCF_not_pos_union hUnion
 
+/-- DCFLs are not closed under Kleene star over any finite alphabet into which the
+five-symbol witness alphabet embeds. -/
+public theorem DCF_notClosedUnderKleeneStar_of_embedding {α : Type} [Fintype α]
+    (e : (Bool ⊕ Fin 3) ↪ α) :
+    ¬ ClosedUnderKleeneStar (α := α) is_DCF := by
+  intro hclosed
+  apply DCF_notClosedUnderKleeneStar
+  intro L hL
+  have hmapped : is_DCF (Language.map e L) :=
+    DCF_of_map_injective_DCF e.injective L hL
+  have hstar : is_DCF (KStar.kstar (Language.map e L)) :=
+    hclosed (Language.map e L) hmapped
+  rw [← Language.map_kstar] at hstar
+  exact DCF_of_map_injective_DCF_rev e.injective _ hstar
+
+/-- DCFLs are not closed under Kleene star over any finite alphabet with at least
+five symbols. -/
+public theorem DCF_notClosedUnderKleeneStar_of_card {α : Type} [Fintype α]
+    (hα : 5 ≤ Fintype.card α) :
+    ¬ ClosedUnderKleeneStar (α := α) is_DCF := by
+  let πW : (Bool ⊕ Fin 3) ≃ Fin (Fintype.card (Bool ⊕ Fin 3)) :=
+    Fintype.equivFin (Bool ⊕ Fin 3)
+  let πA : α ≃ Fin (Fintype.card α) := Fintype.equivFin α
+  have hWA : Fintype.card (Bool ⊕ Fin 3) ≤ Fintype.card α := by
+    simpa using hα
+  exact DCF_notClosedUnderKleeneStar_of_embedding
+    (πW.toEmbedding.trans ((Fin.castLEEmb hWA).trans πA.symm.toEmbedding))
+
 end DCFStar

@@ -1553,4 +1553,33 @@ public theorem DCF_notClosedUnderConcatenation :
       (M₁.acceptsByFinalState + M₂.acceptsByFinalState) hQuot
   simpa [hM₁, hM₂] using hUnion
 
+/-- DCFLs are not closed under concatenation over any finite alphabet into which the
+five-symbol witness alphabet embeds. -/
+public theorem DCF_notClosedUnderConcatenation_of_embedding {α : Type} [Fintype α]
+    (e : (Bool ⊕ Fin 3) ↪ α) :
+    ¬ ClosedUnderConcatenation (α := α) is_DCF := by
+  intro hclosed
+  apply DCF_notClosedUnderConcatenation
+  intro L R hL hR
+  have hmL : is_DCF (Language.map e L) :=
+    DCF_of_map_injective_DCF e.injective L hL
+  have hmR : is_DCF (Language.map e R) :=
+    DCF_of_map_injective_DCF e.injective R hR
+  have hcat := hclosed (Language.map e L) (Language.map e R) hmL hmR
+  rw [← map_mul] at hcat
+  exact DCF_of_map_injective_DCF_rev e.injective _ hcat
+
+/-- DCFLs are not closed under concatenation over any finite alphabet with at least
+five symbols. -/
+public theorem DCF_notClosedUnderConcatenation_of_card {α : Type} [Fintype α]
+    (hα : 5 ≤ Fintype.card α) :
+    ¬ ClosedUnderConcatenation (α := α) is_DCF := by
+  let πW : (Bool ⊕ Fin 3) ≃ Fin (Fintype.card (Bool ⊕ Fin 3)) :=
+    Fintype.equivFin (Bool ⊕ Fin 3)
+  let πA : α ≃ Fin (Fintype.card α) := Fintype.equivFin α
+  have hWA : Fintype.card (Bool ⊕ Fin 3) ≤ Fintype.card α := by
+    simpa using hα
+  exact DCF_notClosedUnderConcatenation_of_embedding
+    (πW.toEmbedding.trans ((Fin.castLEEmb hWA).trans πA.symm.toEmbedding))
+
 end DCFConcatenation

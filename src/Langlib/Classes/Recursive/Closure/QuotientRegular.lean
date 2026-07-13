@@ -1,7 +1,10 @@
 module
 
 public import Langlib.Classes.Recursive.Decidability.Membership
+public import Langlib.Classes.Recursive.Closure.EpsFreeHomomorphism
+public import Langlib.Classes.Recursive.Closure.InverseHomomorphism
 public import Langlib.Classes.Recursive.Inclusion.StrictRecursivelyEnumerable
+public import Langlib.Classes.Regular.Closure.Homomorphism
 public import Langlib.Classes.Regular.Closure.Star
 public import Langlib.Classes.Regular.Examples.SingletonWord
 import Langlib.Utilities.PrimrecHelpers
@@ -251,5 +254,77 @@ public theorem Recursive_notClosedUnderRightQuotientWithRegular :
       simpa using (iff_of_eq (congrFun hs (encodeHaltingWord w)))
     exact (encode_mem_quotient_iff_halting w).symm.trans hq
   exact haltingUnaryLanguage_not_Recursive hrec
+
+private theorem Recursive_of_map {α β : Type} [Fintype α] [Fintype β]
+    (f : α → β) (L : Language α) (hL : is_Recursive L) :
+    is_Recursive (Language.map f L) := by
+  have h := is_Recursive_epsFreeHomomorphism L (fun a => [f a]) (fun _ => by simp) hL
+  rwa [Language.homomorphicImage, Language.subst_singletons_eq_map] at h
+
+private theorem recursive_of_recursive_map_injective {α β : Type}
+    [Fintype α] [Fintype β] {f : α → β} (hf : Function.Injective f)
+    (L : Language α) (h : is_Recursive (Language.map f L)) :
+    is_Recursive L := by
+  have hpre := is_Recursive_inverseHomomorphism
+    (Language.map f L) (fun a => [f a]) h
+  have hflat : ∀ w : List α, w.flatMap (fun a => [f a]) = w.map f := by
+    intro w
+    induction w with
+    | nil => rfl
+    | cons a w ih => simp [ih]
+  have heq : ({w : List α | w.flatMap (fun a => [f a]) ∈ Language.map f L} : Language α) =
+      L := by
+    ext w
+    change w.flatMap (fun a => [f a]) ∈ Language.map f L ↔ w ∈ L
+    rw [hflat]
+    constructor
+    · rintro ⟨v, hv, hmap⟩
+      have : v = w := List.map_injective_iff.mpr hf hmap
+      simpa [this] using hv
+    · intro hw
+      exact ⟨w, hw, rfl⟩
+  rwa [heq] at hpre
+
+private theorem Language.map_rightQuotient_injective {α β : Type} {f : α → β}
+    (hf : Function.Injective f) (L R : Language α) :
+    Language.map f (Language.rightQuotient L R) =
+      Language.rightQuotient (Language.map f L) (Language.map f R) := by
+  ext w
+  constructor
+  · rintro ⟨u, ⟨v, hvR, huvL⟩, rfl⟩
+    exact ⟨v.map f, ⟨v, hvR, rfl⟩, ⟨u ++ v, huvL, by simp⟩⟩
+  · rintro ⟨v, ⟨v₀, hv₀R, hv⟩, ⟨z, hzL, hz⟩⟩
+    subst v
+    have hz' : z.map f = w ++ v₀.map f := by simpa using hz
+    obtain ⟨w₀, v₁, hz_eq, hw₀, hv₁⟩ := List.map_eq_append_iff.mp hz'
+    have hv₁_eq : v₁ = v₀ := List.map_injective_iff.mpr hf hv₁
+    subst v₁
+    rw [← hw₀]
+    exact ⟨w₀, ⟨v₀, hv₀R, by simpa [hz_eq] using hzL⟩, rfl⟩
+
+/-- Recursive languages are not closed under regular right quotient over any finite
+alphabet into which the binary witness alphabet embeds. -/
+public theorem Recursive_notClosedUnderRightQuotientWithRegular_of_embedding
+    {α : Type} [Fintype α] (e : Bool ↪ α) :
+    ¬ ClosedUnderRightQuotientWithRegular (α := α) is_Recursive := by
+  intro hclosed
+  apply Recursive_notClosedUnderRightQuotientWithRegular
+  intro L hL R hR
+  have hmL : is_Recursive (Language.map e L) := Recursive_of_map e L hL
+  have hmR : (Language.map e R).IsRegular := hR.map e
+  have hq := hclosed (Language.map e L) hmL (Language.map e R) hmR
+  rw [← Language.map_rightQuotient_injective e.injective] at hq
+  exact recursive_of_recursive_map_injective e.injective _ hq
+
+/-- Recursive languages are not closed under regular right quotient over any finite
+alphabet with at least two symbols. -/
+public theorem Recursive_notClosedUnderRightQuotientWithRegular_of_card
+    {α : Type} [Fintype α] (hα : 2 ≤ Fintype.card α) :
+    ¬ ClosedUnderRightQuotientWithRegular (α := α) is_Recursive := by
+  let πB : Bool ≃ Fin (Fintype.card Bool) := Fintype.equivFin Bool
+  let πA : α ≃ Fin (Fintype.card α) := Fintype.equivFin α
+  have hBA : Fintype.card Bool ≤ Fintype.card α := by simpa using hα
+  exact Recursive_notClosedUnderRightQuotientWithRegular_of_embedding
+    (πB.toEmbedding.trans ((Fin.castLEEmb hBA).trans πA.symm.toEmbedding))
 
 end
