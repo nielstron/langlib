@@ -112,6 +112,7 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Star
 public import Langlib.Classes.DeterministicContextFree.Closure.Substitution
 public import Langlib.Classes.DeterministicContextFree.Closure.Union
 public import Langlib.Classes.DeterministicContextFree.Closure.UnionRegular
+public import Langlib.Classes.DeterministicContextFree.Decidability.Membership
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Classes.DeterministicContextFree.Examples.A2nBnPosStar
 public import Langlib.Classes.DeterministicContextFree.Examples.AbcPositive
@@ -170,6 +171,7 @@ public import Langlib.Classes.Recursive.Closure.Reverse
 public import Langlib.Classes.Recursive.Closure.Star
 public import Langlib.Classes.Recursive.Closure.Substitution
 public import Langlib.Classes.Recursive.Closure.Union
+public import Langlib.Classes.Recursive.Decidability.DeciderCode
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Decidability.UniformMembership
 public import Langlib.Classes.Recursive.Definition

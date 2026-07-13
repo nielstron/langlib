@@ -93,28 +93,35 @@ Additional CSL results:
 
 ### Decidability
 
-Each column refers to the corresponding uniform computability predicate
-(`ComputableMembership`, `ComputableEmptiness`, `ComputableUniversality`,
-`ComputableEquivalence`) defined in
-[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean).
+Membership is the uniform word problem for a concrete presentation: the input is a
+valid encoded automaton or grammar together with a word.  Syntactically effective
+presentations are packaged by `ComputableMembership` in
+[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean).  When validity is a
+semantic promise (notably, a program promised to halt on every input), the same
+code-and-input notion is expressed by `DecidesOnPromise` in
+[🔗](src/Langlib/Utilities/PromiseComputability.lean).
+
+The remaining columns use the corresponding uniform emptiness, universality, and
+equivalence problems for the indicated standard presentation.
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
 | Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
-| Deterministic context-free | — | — | — | — |
+| Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ | ✓ | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
-| Recursive | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/UniformMembership.lean) | — | — | — |
+| Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/DeciderCode.lean) | ✗ | ✗ | ✗ |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 
-The DCFL row has no fixed effective `EncodedDPDA` presentation, so the standard
-algorithmic results have not yet been instantiated as the uniform predicates above.
-The Recursive row likewise has no fixed effective presentation for the last three columns.
-Under the encoding-parametric predicates above, emptiness, universality, and
-equivalence are presentation-dependent; `—` therefore avoids asserting an unsupported
-encoding-independent result.  Uniform membership is different: the linked diagonal
-argument proves that no adequate presentation of all recursive languages can make it
-uniformly computable (over any nonempty finite alphabet).
+For Recursive membership, the input program is promised to be an always-halting
+decider.  The linked theorem supplies one universal evaluator taking the raw program
+code and word jointly, proves that it halts and is correct under that promise, and
+shows that valid codes present exactly the recursive languages over every finite
+computably encoded alphabet.  The separate diagonal result
+[🔗](src/Langlib/Classes/Recursive/Decidability/UniformMembership.lean) says that
+these semantically valid programs cannot instead be replaced by an adequate
+`Primcodable` type on which membership is total for every raw code; that is a
+different, stronger requirement.
 
 ## How To Use The Library
 

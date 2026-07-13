@@ -58,6 +58,10 @@ which is the formal content of the statement "membership is undecidable for RE l
   not computably decidable.
 - `RE_membership_undecidable'` — the halting predicate (for input `0`) is RE but not
   computably decidable.
+- `recursivelyEnumerable_membership_not_computable` — there is no uniform decider
+  taking both a partial-recursive recognizer code and an input word.
+- `recursivelyEnumerable_computableMembership_undecidable` — the corresponding
+  bundled `ComputableMembership` statement.
 -/
 
 open Nat.Partrec
@@ -78,14 +82,20 @@ theorem RE_membership_undecidable :
     ∃ (p : Code → Prop), REPred p ∧ ¬ComputablePred p :=
   ⟨_, RE_membership_undecidable'.1, RE_membership_undecidable'.2⟩
 
-/-- Membership for RE codes is not uniformly computable. -/
-theorem recursivelyEnumerable_computableMembership_undecidable :
-    ¬ComputableMembership RE partrecCodeDomainLanguageOf := by
+/-- There is no algorithm which, given a partial-recursive recognizer code `c` and a
+word `w`, decides whether `w` belongs to the language recognized by `c`.
+
+Here words are over the one-letter alphabet `Unit`, and their lengths are the inputs
+to the encoded partial-recursive recognizer.  Thus the predicate below directly has
+the usual uniform-membership inputs: an encoding of a language and a word. -/
+theorem recursivelyEnumerable_membership_not_computable :
+    ¬ComputablePred (fun p : Code × List Unit =>
+      p.2 ∈ partrecCodeDomainLanguageOf p.1) := by
   intro h
   apply RE_membership_undecidable'.2
   have h_nil : ComputablePred
       (fun c : Code => ([] : List Unit) ∈ partrecCodeDomainLanguageOf c) := by
-    obtain ⟨-, -, dec, hcomp⟩ := h
+    obtain ⟨dec, hcomp⟩ := h
     letI : DecidablePred
         (fun c : Code => ([] : List Unit) ∈ partrecCodeDomainLanguageOf c) :=
       fun c => dec (c, ([] : List Unit))
@@ -94,3 +104,10 @@ theorem recursivelyEnumerable_computableMembership_undecidable :
   exact h_nil.of_eq fun c => by
     change (c.eval 0).Dom ↔ (c.eval 0).Dom
     rfl
+
+/-- Membership for the standard effective presentation of RE languages by
+partial-recursive recognizer codes is not uniformly computable. -/
+theorem recursivelyEnumerable_computableMembership_undecidable :
+    ¬ComputableMembership RE partrecCodeDomainLanguageOf := by
+  intro h
+  exact recursivelyEnumerable_membership_not_computable h.2.2
