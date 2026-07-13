@@ -94,12 +94,13 @@ Additional CSL results:
 ### Decidability
 
 Membership is the uniform word problem for a concrete presentation: the input is a
-valid encoded automaton or grammar together with a word.  Syntactically effective
-presentations are packaged by `ComputableMembership` in
-[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean).  When validity is a
-semantic promise (notably, a program promised to halt on every input), the same
-code-and-input notion is expressed by `DecidesOnPromise` in
-[🔗](src/Langlib/Utilities/PromiseComputability.lean).
+valid encoded automaton or grammar together with a word.  `ComputableMembership`
+[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean) takes an optional validity
+promise, requires valid codes to present exactly the stated language class, and
+requires one partial-recursive evaluator to halt and answer correctly on every
+valid code-and-word pair.  It separately requires raw encoded membership to be
+uniformly recursively enumerable; this prevents the semantic decoding map itself
+from hiding a non-r.e. membership oracle.
 
 The remaining columns use the corresponding uniform emptiness, universality, and
 equivalence problems for the indicated standard presentation.
