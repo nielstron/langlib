@@ -173,6 +173,7 @@ public import Langlib.Classes.Recursive.Closure.Substitution
 public import Langlib.Classes.Recursive.Closure.Union
 public import Langlib.Classes.Recursive.Decidability.DeciderCode
 public import Langlib.Classes.Recursive.Decidability.Emptiness
+public import Langlib.Classes.Recursive.Decidability.Equivalence
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Decidability.Reduction
 public import Langlib.Classes.Recursive.Decidability.UniformMembership
