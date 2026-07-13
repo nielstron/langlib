@@ -176,6 +176,7 @@ public import Langlib.Classes.Recursive.Decidability.Emptiness
 public import Langlib.Classes.Recursive.Decidability.Membership
 public import Langlib.Classes.Recursive.Decidability.Reduction
 public import Langlib.Classes.Recursive.Decidability.UniformMembership
+public import Langlib.Classes.Recursive.Decidability.Universality
 public import Langlib.Classes.Recursive.Definition
 public import Langlib.Classes.Recursive.Examples.SingletonWord
 public import Langlib.Classes.Recursive.Inclusion.ByTapeFromComputable
