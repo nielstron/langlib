@@ -7,13 +7,19 @@ public import Langlib.Utilities.ComputabilityPredicates
 public section
 
 /-!
-# No uniform membership algorithm for all recursive languages
+# No effective total numbering of all recursive languages
 
 Every individual recursive language has decidable membership, but there is no
 adequate computable numbering of *all* recursive languages whose membership
 relation is uniformly decidable.  This distinction matters for
 `ComputableMembership`, which deliberately asks for a uniform algorithm taking a
-language code as an input.
+language code as an input and terminating on every element of a `Primcodable` code
+type.
+
+This does not contradict the usual uniform word problem for an encoded decider.
+There the raw program is accompanied by the semantic promise that it halts on every
+input, and the universal evaluator need only terminate on codes satisfying that
+promise; see `Recursive.Decidability.DeciderCode`.
 
 The proof is the usual diagonal argument.  Given a proposed presentation
 `languageOf`, encode a code `c` by the unary word of length `encode c` and define a
