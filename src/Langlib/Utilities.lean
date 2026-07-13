@@ -10,6 +10,7 @@ public import Langlib.Utilities.Homomorphism
 public import Langlib.Utilities.LanguageOperations
 public import Langlib.Utilities.ListUtils
 public import Langlib.Utilities.PrimrecHelpers
+public import Langlib.Utilities.PromiseComputability
 public import Langlib.Utilities.Tactics
 public import Langlib.Utilities.WordEnumeration
 public import Langlib.Utilities.WrittenByOthers.ListTakeJoin
