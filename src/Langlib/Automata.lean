@@ -23,6 +23,8 @@ public import Langlib.Automata.DeterministicPushdown.Totalization
 public import Langlib.Automata.FiniteState.Definition
 public import Langlib.Automata.FiniteState.Equivalence.Determinization
 public import Langlib.Automata.FiniteState.Equivalence.Regular
+public import Langlib.Automata.FiniteState.Inclusion.DeterministicPushdown
+public import Langlib.Automata.FiniteState.Inclusion.StrictDeterministicPushdown
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.BootCorrectness
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.CanonicalRows
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.CanonicalRuns
