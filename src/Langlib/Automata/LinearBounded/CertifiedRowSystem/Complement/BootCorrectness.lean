@@ -62,6 +62,88 @@ private theorem evalBoot_bad_ne_done
             RowNumeral.DigitCodec.oneStep]
           exact ih _ news
 
+private theorem evalBoot_scan_done_properties
+    {A : Type*} [Fintype A] [Nonempty A] [DecidableEq A]
+    (one : RowNumeral.OneState) (ok : Bool) (old new : ProtocolRow A)
+    (h : evalBoot (.scan one ok) old new (List.replicate old.length .boot) =
+      some (.scan .rest true)) :
+    ok = true ∧ old.length = new.length ∧
+      HasPhase .input old ∧ HasPhase .roundStart new := by
+  induction old generalizing one ok new with
+  | nil =>
+      cases new <;> cases one <;> cases ok <;>
+        simp [evalBoot, HasPhase] at h ⊢
+  | cons old olds ih =>
+      cases new with
+      | nil => simp [evalBoot] at h
+      | cons new news =>
+          have htail := ih
+            ((countCodec A).oneStep (countRadix_gt_one A) one new.counter.oldCount)
+            (ok && bootLocalOK old new) news (by
+              simpa [List.length_cons, List.replicate_succ, evalBoot,
+                bootStepCell] using h)
+          have hoklocal : ok = true ∧ bootLocalOK old new = true := by
+            simpa only [Bool.and_eq_true] using htail.1
+          have hok : ok = true := hoklocal.1
+          have hlocal : bootLocalOK old new = true := hoklocal.2
+          have hfields := bootLocalOK_eq_true_iff.mp hlocal
+          refine ⟨hok, by simp [htail.2.1], ?_, ?_⟩
+          · intro cell hcell
+            rcases List.mem_cons.mp hcell with rfl | hmem
+            · exact hfields.1
+            · exact htail.2.2.1 cell hmem
+          · intro cell hcell
+            rcases List.mem_cons.mp hcell with rfl | hmem
+            · exact hfields.2.1
+            · exact htail.2.2.2 cell hmem
+
+private theorem evalBoot_start_done_properties
+    {A : Type*} [Fintype A] [Nonempty A] [DecidableEq A]
+    (old new : ProtocolRow A)
+    (h : evalBoot .start old new (List.replicate old.length .boot) =
+      some (.scan .rest true)) :
+    HasPhase .input old ∧ HasPhase .roundStart new ∧
+      old.length = new.length := by
+  cases old with
+  | nil =>
+      cases new <;> simp [evalBoot] at h
+  | cons old olds =>
+      cases new with
+      | nil => simp [evalBoot] at h
+      | cons new news =>
+          have htail := evalBoot_scan_done_properties
+            ((countCodec A).oneStep (countRadix_gt_one A) .first new.counter.oldCount)
+            (bootLocalOK old new) olds news (by
+              simpa [List.length_cons, List.replicate_succ, evalBoot,
+                bootStepCell] using h)
+          have hlocal : bootLocalOK old new = true := htail.1
+          have hfields := bootLocalOK_eq_true_iff.mp hlocal
+          refine ⟨?_, ?_, by simp [htail.2.1]⟩
+          · intro cell hcell
+            rcases List.mem_cons.mp hcell with rfl | hmem
+            · exact hfields.1
+            · exact htail.2.2.1 cell hmem
+          · intro cell hcell
+            rcases List.mem_cons.mp hcell with rfl | hmem
+            · exact hfields.2.1
+            · exact htail.2.2.2 cell hmem
+
+/-- Any successful boot scan starts in the replicated input phase, ends in the
+replicated round-start phase, and preserves row width. -/
+public theorem isBoot_phases_length
+    {A : Type*} [Fintype A] [Nonempty A] [DecidableEq A]
+    {old new : ProtocolRow A} (hboot : IsBoot old new) :
+    HasPhase .input old ∧ HasPhase .roundStart new ∧ old.length = new.length := by
+  rcases hboot with ⟨out, heval, hdone⟩
+  have hout : out = .scan .rest true := by
+    cases out with
+    | start => simp [bootDone] at hdone
+    | bad => simp [bootDone] at hdone
+    | scan one ok =>
+        cases one <;> cases ok <;> simp [bootDone] at hdone ⊢
+  subst out
+  exact evalBoot_start_done_properties old new heval
+
 private theorem evalBoot_rest_unique
     {I A : Type*} [Fintype A] [Nonempty A] [DecidableEq A]
     (sourceCell : I → A) (input : List I) (new : ProtocolRow A)
