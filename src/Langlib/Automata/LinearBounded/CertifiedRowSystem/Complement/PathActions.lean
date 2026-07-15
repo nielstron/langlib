@@ -40,15 +40,61 @@ public def notePhase : Option ProtocolPhase → ProtocolPhase → Option Protoco
 @[simp] public theorem notePhase_none (phase : ProtocolPhase) :
     notePhase none phase = some phase := rfl
 
+/-- State of a uniform-value scan.  `bad` is distinct from the initially unset state,
+so a disagreement cannot be erased by a later matching cell. -/
+public inductive UniformScan (X : Type*) where
+  | start
+  | value (expected : X)
+  | bad
+  deriving DecidableEq, Fintype
+
+/-- Extend a uniform-value scan by one element. -/
+public def UniformScan.step [DecidableEq X] : UniformScan X → X → UniformScan X
+  | .start, x => .value x
+  | .value expected, x => if x = expected then .value expected else .bad
+  | .bad, _ => .bad
+
 /-- Scan a replicated Boolean track. -/
-public def scanBits : Option Bool → List Bool → Option Bool
+public def scanBits : UniformScan Bool → List Bool → UniformScan Bool
   | q, [] => q
-  | q, bit :: bits => scanBits (noteBit q bit) bits
+  | q, bit :: bits => scanBits (q.step bit) bits
 
 /-- Scan a replicated phase track. -/
-public def scanPhases : Option ProtocolPhase → List ProtocolPhase → Option ProtocolPhase
+public def scanPhases :
+    UniformScan ProtocolPhase → List ProtocolPhase → UniformScan ProtocolPhase
   | q, [] => q
-  | q, phase :: phases => scanPhases (notePhase q phase) phases
+  | q, phase :: phases => scanPhases (q.step phase) phases
+
+@[simp] public theorem scanBits_bad (bits : List Bool) :
+    scanBits .bad bits = .bad := by
+  induction bits <;> simp [scanBits, UniformScan.step, *]
+
+@[simp] public theorem scanPhases_bad (phases : List ProtocolPhase) :
+    scanPhases .bad phases = .bad := by
+  induction phases <;> simp [scanPhases, UniformScan.step, *]
+
+/-- A disagreement is an absorbing rejection for the replicated-bit scanner. -/
+@[simp] public theorem scanBits_mismatch
+    (expected bit : Bool) (bits : List Bool) (h : bit ≠ expected) :
+    scanBits (.value expected) (bit :: bits) = .bad := by
+  simp [scanBits, UniformScan.step, h]
+
+/-- A disagreement is an absorbing rejection for the replicated-phase scanner. -/
+@[simp] public theorem scanPhases_mismatch
+    (expected phase : ProtocolPhase) (phases : List ProtocolPhase)
+    (h : phase ≠ expected) :
+    scanPhases (.value expected) (phase :: phases) = .bad := by
+  simp [scanPhases, UniformScan.step, h]
+
+/-- Regression test: a later matching bit cannot erase an earlier disagreement. -/
+@[simp] public theorem scanBits_true_false_true :
+    scanBits .start [true, false, true] = .bad := by
+  simp [scanBits, UniformScan.step]
+
+/-- Regression test: a later matching phase cannot erase an earlier disagreement. -/
+@[simp] public theorem scanPhases_path_choose_path :
+    scanPhases .start [.path, .chooseInner, .path] = .bad := by
+  simp [scanPhases, UniformScan.step]
 
 /-- Equality accumulator for an aligned pair of tracks. -/
 public def noteEq [DecidableEq A] (ok : Bool) (old new : A) : Bool :=
@@ -521,9 +567,9 @@ public structure FinishWitnessVerifier (Q : Type*) where
   innerOuter : Bool
   seenSucc : RowNumeral.CarryState
   innerSucc : RowNumeral.CarryState
-  oldFound : Option Bool
-  newFound : Option Bool
-  newPhase : Option ProtocolPhase
+  oldFound : UniformScan Bool
+  newFound : UniformScan Bool
+  newPhase : UniformScan ProtocolPhase
   localOK : Bool
   deriving DecidableEq
 
@@ -545,9 +591,9 @@ public def finishWitnessStart (D : CertifiedRowSystem I A Unit Q F) :
   innerOuter := true
   seenSucc := .carry
   innerSucc := .carry
-  oldFound := none
-  newFound := none
-  newPhase := none
+  oldFound := .start
+  newFound := .start
+  newPhase := .start
   localOK := true
 
 /-- Persistent and reset conditions of counting-round witness completion. -/
@@ -591,9 +637,9 @@ public noncomputable def finishWitnessCell
   seenSucc := (countCodec A).succStep q.seenSucc
     old.counter.seenCount new.counter.seenCount
   innerSucc := (vertexCodec A).succStep q.innerSucc old.vertex.inner new.vertex.inner
-  oldFound := noteBit q.oldFound old.found
-  newFound := noteBit q.newFound new.found
-  newPhase := notePhase q.newPhase new.phase
+  oldFound := q.oldFound.step old.found
+  newFound := q.newFound.step new.found
+  newPhase := q.newPhase.step new.phase
   localOK := q.localOK && finishWitnessLocalOK old new
 
 /-- Successful witness completion.  The phase is determined by whether advancing the
@@ -602,11 +648,11 @@ public def finishWitnessDone (D : CertifiedRowSystem I A Unit Q F)
     (q : FinishWitnessVerifier Q) : Bool :=
   q.localOK && q.pathInner && q.fuelDepth && decide (q.seenSucc = .done) &&
     decide (
-      (q.innerSucc = .done ∧ q.newPhase = some .chooseInner) ∨
-      (q.innerSucc = .carry ∧ q.newPhase = some .finishOuter)) &&
+      (q.innerSucc = .done ∧ q.newPhase = .value .chooseInner) ∨
+      (q.innerSucc = .carry ∧ q.newPhase = .value .finishOuter)) &&
     decide (
       ∃ oldFound newFound,
-        q.oldFound = some oldFound ∧ q.newFound = some newFound ∧
+        q.oldFound = .value oldFound ∧ q.newFound = .value newFound ∧
         newFound = (oldFound || q.innerOuter || D.stepDone q.edgeState))
 
 /-- Run counting-round witness completion on aligned rows. -/
@@ -700,9 +746,9 @@ public def IsFinishWitness
       some innerState ∧
     ((innerState = .done ∧ newPhase = .chooseInner) ∨
       (innerState = .carry ∧ newPhase = .finishOuter)) ∧
-    scanBits none (old.map (·.found)) = some oldFound ∧
-    scanBits none (new.map (·.found)) = some newFound ∧
-    scanPhases none (new.map (·.phase)) = some newPhase ∧
+    scanBits .start (old.map (·.found)) = .value oldFound ∧
+    scanBits .start (new.map (·.found)) = .value newFound ∧
+    scanPhases .start (new.map (·.phase)) = .value newPhase ∧
     newFound =
       (oldFound || decide (innerTrack old = outerTrack old) || D.stepDone edgeState)
 
@@ -753,7 +799,7 @@ public theorem evalFinishWitness_done_iff
     rcases hdone with ⟨⟨⟨⟨⟨hlocalDone, hpathDone⟩, hfuelDone⟩, hseenDone⟩,
       hphaseDone⟩, hfoundDone⟩
     obtain ⟨oldFound, newFound, holdSome, hnewSome, hfound⟩ := hfoundDone
-    obtain ⟨newPhase, hphaseSome⟩ : ∃ phase, out.newPhase = some phase := by
+    obtain ⟨newPhase, hphaseSome⟩ : ∃ phase, out.newPhase = .value phase := by
       rcases hphaseDone with h | h
       · exact ⟨.chooseInner, h.2⟩
       · exact ⟨.finishOuter, h.2⟩
@@ -772,8 +818,8 @@ public theorem evalFinishWitness_done_iff
     · simpa [finishWitnessStart, hseenDone] using hseen
     · simpa [finishWitnessStart] using hinner
     · rcases hphaseDone with h | h
-      · exact Or.inl ⟨h.1, Option.some.inj (hphaseSome.symm.trans h.2)⟩
-      · exact Or.inr ⟨h.1, Option.some.inj (hphaseSome.symm.trans h.2)⟩
+      · exact Or.inl ⟨h.1, UniformScan.value.inj (hphaseSome.symm.trans h.2)⟩
+      · exact Or.inr ⟨h.1, UniformScan.value.inj (hphaseSome.symm.trans h.2)⟩
     · exact holdFound.symm.trans holdSome
     · exact hnewFound.symm.trans hnewSome
     · exact hphase.symm.trans hphaseSome
@@ -790,9 +836,9 @@ public theorem evalFinishWitness_done_iff
         innerOuter := decide (innerTrack old = outerTrack old)
         seenSucc := .done
         innerSucc := innerState
-        oldFound := some oldFound
-        newFound := some newFound
-        newPhase := some newPhase
+        oldFound := .value oldFound
+        newFound := .value newFound
+        newPhase := .value newPhase
         localOK := true }
     refine ⟨out, ?_, ?_⟩
     · rw [evalFinishWitness_eq_some_iff]
@@ -819,7 +865,7 @@ public structure FinalWitnessVerifier (F : Type*) where
   fuelDepth : Bool
   seenSucc : RowNumeral.CarryState
   innerSucc : RowNumeral.CarryState
-  newPhase : Option ProtocolPhase
+  newPhase : UniformScan ProtocolPhase
   localOK : Bool
   deriving DecidableEq
 
@@ -840,7 +886,7 @@ public def finalWitnessStart (D : CertifiedRowSystem I A Unit Q F) :
   fuelDepth := true
   seenSucc := .carry
   innerSucc := .carry
-  newPhase := none
+  newPhase := .start
   localOK := true
 
 /-- Persistent/reset conditions for final witness completion. -/
@@ -885,7 +931,7 @@ public noncomputable def finalWitnessCell
   seenSucc := (countCodec A).succStep q.seenSucc
     old.counter.seenCount new.counter.seenCount
   innerSucc := (vertexCodec A).succStep q.innerSucc old.vertex.inner new.vertex.inner
-  newPhase := notePhase q.newPhase new.phase
+  newPhase := q.newPhase.step new.phase
   localOK := q.localOK && finalWitnessLocalOK old new
 
 /-- Successful final witness completion also requires the witnessed source row to be
@@ -894,8 +940,8 @@ public def finalWitnessDone (D : CertifiedRowSystem I A Unit Q F)
     (q : FinalWitnessVerifier F) : Bool :=
   q.localOK && q.pathInner && q.fuelDepth && decide (q.seenSucc = .done) &&
     decide (
-      (q.innerSucc = .done ∧ q.newPhase = some .finalChoose) ∨
-      (q.innerSucc = .carry ∧ q.newPhase = some .finalFinish)) &&
+      (q.innerSucc = .done ∧ q.newPhase = .value .finalChoose) ∨
+      (q.innerSucc = .carry ∧ q.newPhase = .value .finalFinish)) &&
     decide (D.finalDone q.finalState = false)
 
 /-- Run final witness completion on aligned rows. -/
@@ -976,7 +1022,7 @@ public def IsFinalWitness
       some innerState ∧
     ((innerState = .done ∧ newPhase = .finalChoose) ∨
       (innerState = .carry ∧ newPhase = .finalFinish)) ∧
-    scanPhases none (new.map (·.phase)) = some newPhase ∧
+    scanPhases .start (new.map (·.phase)) = .value newPhase ∧
     D.finalDone finalState = false
 
 /-- Persistent/reset-track projection of final witness completion. -/
@@ -1025,7 +1071,7 @@ public theorem evalFinalWitness_done_iff
     simp only [finalWitnessDone, Bool.and_eq_true, decide_eq_true_eq] at hdone
     rcases hdone with ⟨⟨⟨⟨⟨hlocalDone, hpathDone⟩, hfuelDone⟩,
       hseenDone⟩, hphaseDone⟩, hfinalDone⟩
-    obtain ⟨newPhase, hphaseSome⟩ : ∃ phase, out.newPhase = some phase := by
+    obtain ⟨newPhase, hphaseSome⟩ : ∃ phase, out.newPhase = .value phase := by
       rcases hphaseDone with h | h
       · exact ⟨.finalChoose, h.2⟩
       · exact ⟨.finalFinish, h.2⟩
@@ -1044,8 +1090,8 @@ public theorem evalFinalWitness_done_iff
     · simpa [finalWitnessStart, hseenDone] using hseen
     · simpa [finalWitnessStart] using hinner
     · rcases hphaseDone with h | h
-      · exact Or.inl ⟨h.1, Option.some.inj (hphaseSome.symm.trans h.2)⟩
-      · exact Or.inr ⟨h.1, Option.some.inj (hphaseSome.symm.trans h.2)⟩
+      · exact Or.inl ⟨h.1, UniformScan.value.inj (hphaseSome.symm.trans h.2)⟩
+      · exact Or.inr ⟨h.1, UniformScan.value.inj (hphaseSome.symm.trans h.2)⟩
     · exact hphase.symm.trans hphaseSome
     · exact hfinalDone
   · rintro ⟨finalState, innerState, newPhase, hlocal, hfinal,
@@ -1056,7 +1102,7 @@ public theorem evalFinalWitness_done_iff
         fuelDepth := true
         seenSucc := .done
         innerSucc := innerState
-        newPhase := some newPhase
+        newPhase := .value newPhase
         localOK := true }
     refine ⟨out, ?_, ?_⟩
     · rw [evalFinalWitness_eq_some_iff]
