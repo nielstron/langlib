@@ -259,6 +259,20 @@ public theorem countNumeral_injective_of_le_rowCapacity {n i j : Nat}
   · exact lt_of_le_of_lt hi (rowCapacity_lt_countCapacity hn)
   · exact lt_of_le_of_lt hj (rowCapacity_lt_countCapacity hn)
 
+/-- The first successor of the zero count row is the boot scanner's LSD-first numeral
+one. -/
+public theorem countNumeral_one {n : Nat} (hn : 0 < n) :
+    countNumeral (A := A) n 1 =
+      (countCodec A).oneRow (countRadix_gt_one A) n := by
+  apply (countCodec A).value_injective_of_length_eq
+  · simp
+  · rw [value_countNumeral]
+    · rw [(countCodec A).value_oneRow (countRadix_gt_one A) hn]
+    · have hcap := rowCapacity_lt_countCapacity (A := A) hn
+      have hone : 1 ≤ Fintype.card A ^ n := by
+        exact Nat.one_le_pow _ _ Fintype.card_pos
+      exact lt_of_le_of_lt hone hcap
+
 /-! ## Prefixes of the canonical vertex enumeration -/
 
 /-- The first `i` ranked vertices. -/
