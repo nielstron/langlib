@@ -73,6 +73,40 @@ theorem reached_mono_nat {i j : Nat} (hij : i ≤ j) :
   | base => exact Finset.Subset.rfl
   | succ j hij ih => exact ih.trans (reached_mono edge source j)
 
+/-- An exactly fuel-indexed path in the reflexive closure of `edge`.  Stuttering
+allows a path of at most `k` genuine edges to be padded to exactly `k` verifier
+steps without changing its endpoint. -/
+inductive PaddedPath : Nat → V → Prop
+  | zero : PaddedPath 0 source
+  | succ {k : Nat} {old new : V} :
+      PaddedPath k old → (old = new ∨ edge old new) → PaddedPath (k + 1) new
+
+/-- Bounded reachability is exactly existence of a fuel-indexed padded path. -/
+theorem mem_reached_iff_paddedPath {k : Nat} {v : V} :
+    v ∈ reached edge source k ↔ PaddedPath edge source k v := by
+  induction k generalizing v with
+  | zero =>
+      constructor
+      · intro hv
+        have : v = source := by simpa [reached] using hv
+        subst v
+        exact .zero
+      · intro h
+        cases h
+        simp [reached]
+  | succ k ih =>
+      rw [reached_succ, mem_grow]
+      constructor
+      · rintro (hv | ⟨u, hu, huv⟩)
+        · exact .succ (ih.mp hv) (Or.inl rfl)
+        · exact .succ (ih.mp hu) (Or.inr huv)
+      · intro h
+        cases h with
+        | succ hpath hstep =>
+            rcases hstep with rfl | hedge
+            · exact Or.inl (ih.mpr hpath)
+            · exact Or.inr ⟨_, ih.mpr hpath, hedge⟩
+
 /-- Every bounded-reachable vertex is reachable in the ordinary relational sense. -/
 theorem reached_sound {k : Nat} {v : V} (hv : v ∈ reached edge source k) :
     ReflTransGen edge source v := by
