@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.Recursive.Decidability.DeciderCode
+public import Langlib.Classes.Recursive.Decidability.Membership
 
 @[expose]
 public section

@@ -19,7 +19,7 @@ element of a `Primcodable` code type.
 This does not contradict the usual uniform word problem for an encoded decider.
 There the raw program is accompanied by the semantic promise that it halts on every
 input, and the universal evaluator need only terminate on codes satisfying that
-promise; see `Recursive.Decidability.DeciderCode`.
+promise; see `Recursive.Decidability.Membership`.
 
 The proof is the usual diagonal argument.  Given a proposed presentation
 `languageOf`, encode a code `c` by the unary word of length `encode c` and define a

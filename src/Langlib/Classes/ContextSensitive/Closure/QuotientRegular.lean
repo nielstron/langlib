@@ -5,7 +5,7 @@ public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 public import Langlib.Classes.Recursive.Closure.IntersectionRegular
 public import Langlib.Classes.Recursive.Closure.InverseHomomorphism
-public import Langlib.Classes.Recursive.Decidability.Membership
+public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Inclusion.StrictRecursivelyEnumerable
 public import Langlib.Classes.RecursivelyEnumerable.Examples.Halting
 public import Langlib.Classes.Regular.Closure.Concatenation

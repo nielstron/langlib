@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.Recursive.Decidability.Membership
+public import Langlib.Classes.Recursive.Basics.Post
 
 /-!
 # Recursive Closure Under Intersection

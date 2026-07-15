@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.Recursive.Decidability.Membership
+public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Closure.EpsFreeHomomorphism
 public import Langlib.Classes.Recursive.Closure.InverseHomomorphism
 public import Langlib.Classes.Recursive.Inclusion.StrictRecursivelyEnumerable

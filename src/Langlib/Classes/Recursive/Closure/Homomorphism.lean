@@ -1,6 +1,6 @@
 module
 
-public import Langlib.Classes.Recursive.Decidability.Membership
+public import Langlib.Classes.Recursive.Basics.Post
 public import Langlib.Classes.Recursive.Inclusion.StrictRecursivelyEnumerable
 import Langlib.Utilities.PrimrecHelpers
 import Mathlib.Tactic

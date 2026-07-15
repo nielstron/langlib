@@ -76,6 +76,7 @@ public import Langlib.Classes.ContextSensitive.Basics.ErasingImage
 public import Langlib.Classes.ContextSensitive.Basics.FiniteAlphabet
 public import Langlib.Classes.ContextSensitive.Basics.NonContracting
 public import Langlib.Classes.ContextSensitive.Closure.Bijection
+public import Langlib.Classes.ContextSensitive.Closure.Complement
 public import Langlib.Classes.ContextSensitive.Closure.Concatenation
 public import Langlib.Classes.ContextSensitive.Closure.EmptyWord
 public import Langlib.Classes.ContextSensitive.Closure.EpsFreeHomomorphism

@@ -2,6 +2,8 @@ module
 
 public import Langlib.Classes.RecursivelyEnumerable.Definition
 public import Langlib.Classes.Recursive.Definition
+public import Langlib.Classes.Recursive.Inclusion.RecursivelyEnumerable
+public import Langlib.Classes.Recursive.Closure.Complement
 public import Langlib.Classes.Recursive.Inclusion.ByTapeFromComputable
 public import Mathlib.Computability.Halting
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipComputability
@@ -25,6 +27,8 @@ computable decider, which yields an always-halting TM0 decider.
 - `REPred_mem_of_is_RE` — membership in an RE language is an `REPred`.
 - `computablePred_of_isRE_of_isRE_compl` — RE ∩ co-RE ⟹ computable membership.
 - `is_Recursive_of_isRE_of_isRE_compl` — RE ∩ co-RE ⟹ recursive.
+- `Recursive_membership_computable` — the fixed-language corollary that every
+  recursive language has a computable membership predicate.
 -/
 
 variable {T : Type}
@@ -103,3 +107,17 @@ public theorem is_Recursive_of_isRE_of_isRE_compl
     ComputablePred.computable_iff.mp (computablePred_of_isRE_of_isRE_compl h1 h2)
   exact is_Recursive_of_computable_decide L f hf
     (fun w => iff_of_eq (congrFun hfe w))
+
+/-- Every recursive language has a computable membership predicate.
+
+This is a fixed-language consequence of Post's theorem and is useful when building
+closure constructions from already-given recursive languages.  It is not the
+uniform encoded-device membership property; that property is proved from raw
+decider codes in `Recursive.Decidability.Membership`. -/
+public theorem Recursive_membership_computable
+    [DecidableEq T] [Fintype T] [Primcodable T]
+    {L : Language T} (hL : is_Recursive L) :
+    ComputablePred (fun w : List T => w ∈ L) :=
+  computablePred_of_isRE_of_isRE_compl
+    (is_Recursive_implies_is_RE hL)
+    (is_Recursive_implies_is_RE (is_Recursive_complement hL))
