@@ -38,7 +38,7 @@ classes.
 | Indexed | Indexed [🔗](src/Langlib/Grammars/Indexed/Definition.lean) | ⇔ | Nested Stack Automata |
 | | ⊊ [🔗](src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean) |  | ⊊ |
 | Context-sensitive | Context-sensitive [🔗](src/Langlib/Grammars/ContextSensitive/Definition.lean) (Non-erasing ⇔ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitiveGeneral.lean) Non-contracting [🔗](src/Langlib/Grammars/NonContracting/Definition.lean)) | ⇔ [🔗](src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) | Linear Bounded Automaton [🔗](src/Langlib/Automata/LinearBounded/Definition.lean) (DLBA [🔗](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean) ⇔? NLBA (⊆ [🔗](src/Langlib/Automata/DeterministicLinearBounded/Inclusion/LinearBounded.lean))) |
-|  |  |  | ⊊ [🔗](src/Langlib/Automata/LinearBounded/Inclusion/Recursive.lean) (⊆ [🔗](src/Langlib/Automata/LinearBounded/Inclusion/Recursive.lean)) (⊆ RE) |
+|  |  |  | ⊊ [🔗](src/Langlib/Automata/LinearBounded/Inclusion/Recursive.lean) |
 | Recursive |  ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursivelyEnumerable.lean) (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) | | Turing-machines with halting deciders [🔗](src/Langlib/Classes/Recursive/Definition.lean) |
 |  |  |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean)  |
 | Recursively Enumerable | Unrestricted [🔗](src/Langlib/Grammars/Unrestricted/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machines [🔗](src/Langlib/Automata/Turing/Definition.lean) |
