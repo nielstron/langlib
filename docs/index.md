@@ -13,6 +13,7 @@ This page is a catalog of the library's results.
 
 ## Main results
 
+- [LR(k) languages are exactly DPDA languages](results/lr-equals-dpda.html)
 - [Deterministic context-free languages are closed under complement](results/dcfl-closed-under-complement.html)
 - [DPDA totalization: every DPDA has an equivalent always-halting deciding DPDA](results/dpda-totalization.html)
 - [Indexed languages form a strict subclass of context-sensitive languages (Indexed ⊊ CS)](results/indexed-subset-context-sensitive.html)
@@ -28,6 +29,7 @@ This page is a catalog of the library's results.
 
 ## Grammar ⇔ automaton equivalences
 
+- [LR(k) = DPDA](results/lr-equals-dpda.html) — for every fixed positive `k`, and for the existential finite-lookahead class.
 - [Regular grammars = DFA languages](results/regular-equals-dfa.html) — and left-regular ⇔ right-regular grammars.
 - [PDA = CFG](results/pda-equals-cfg.html) — pushdown automata recognize exactly the context-free languages; final-state vs. empty-stack acceptance agree.
 - [CSL = LBA](results/lba-context-sensitive.html) — context-sensitive grammars and linear bounded automata recognize exactly the same languages (the Myhill–Kuroda theorem); plus NLBA languages ⊆ Turing-machine languages.
@@ -50,6 +52,7 @@ This page is a catalog of the library's results.
 
 ## Deterministic context-free languages (DCFL)
 
+- [LR(k) = DPDA](results/lr-equals-dpda.html) — a direct equivalence between the grammar and automaton presentations.
 - [DCFL is closed under complement](results/dcfl-closed-under-complement.html) — the marquee result.
 - [DPDA totalization](results/dpda-totalization.html) — the always-halting deciding-DPDA construction that powers it.
 - DCFL ⊊ CFL: `DCF_subclass_CF`.

@@ -6,11 +6,13 @@ module -- shake: keep-all
 public import Langlib.Automata.DeterministicLinearBounded.Definition
 public import Langlib.Automata.DeterministicLinearBounded.Inclusion.LinearBounded
 public import Langlib.Automata.DeterministicLinearBounded.Inclusion.TuringMachine
+public import Langlib.Automata.DeterministicPushdown.Basics.Determinism
 public import Langlib.Automata.DeterministicPushdown.Basics.Total
 public import Langlib.Automata.DeterministicPushdown.ClosureProperties.Complement
 public import Langlib.Automata.DeterministicPushdown.Definition
 public import Langlib.Automata.DeterministicPushdown.Inclusion.Pushdown
 public import Langlib.Automata.DeterministicPushdown.Inclusion.StrictPushdown
+public import Langlib.Automata.DeterministicPushdown.Normalization.FirstFinal
 public import Langlib.Automata.DeterministicPushdown.Totalization.AnnotatedStack
 public import Langlib.Automata.DeterministicPushdown.Totalization.Construction
 public import Langlib.Automata.DeterministicPushdown.Totalization.Definition

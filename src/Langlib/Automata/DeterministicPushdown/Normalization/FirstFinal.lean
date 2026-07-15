@@ -365,6 +365,42 @@ private theorem firstFinal_seen_true_of_reaches_same_input (M : DPDA Q T S)
     have hbSeen := M.firstFinal_step_sets_seen_of_same_input hab habInput (Or.inl haSeen)
     exact ih hbInput hbSeen
 
+/-- A same-input computation cannot pass through a normalized final state and
+then return nontrivially to the state from which it started.  Before the final
+state the first-final marker is either already set, contradicting finality, or
+it is clear; in the latter case leaving the final state sets it and the
+nonempty return cannot restore the original clear marker. -/
+public theorem firstFinal_no_return_through_final (M : DPDA Q T S)
+    {q p : Q × Bool} {input output : List T} {γ δ γ' : List S}
+    (hbefore : M.firstFinal.toPDA.Reaches
+      ⟨q, input, γ⟩ ⟨p, output, δ⟩)
+    (hfinal : p ∈ M.firstFinal.final_states)
+    (hafter : Relation.TransGen
+      (@PDA.Reaches₁ _ _ _ _ _ _ M.firstFinal.toPDA)
+      ⟨p, output, δ⟩ ⟨q, input, γ'⟩) : False := by
+  have houtput : output = input := M.firstFinal_intermediate_input_eq
+    hbefore hafter.to_reflTransGen rfl
+  change p.2 = false ∧ p.1 ∈ M.final_states at hfinal
+  cases hqseen : q.2 with
+  | true =>
+      have hpseen := M.firstFinal_seen_true_of_reaches_same_input
+        hbefore houtput.symm hqseen
+      exact Bool.noConfusion (hfinal.1.symm.trans hpseen)
+  | false =>
+      obtain ⟨after, hfirst, hrest⟩ :=
+        Relation.TransGen.head'_iff.mp hafter
+      have hafterInput : after.input = input :=
+        M.firstFinal_intermediate_input_eq
+          (Relation.ReflTransGen.single hfirst) hrest houtput
+      have hfirstInput :
+          (⟨p, output, δ⟩ : PDA.conf M.firstFinal.toPDA).input =
+            after.input := houtput.trans hafterInput.symm
+      have hafterSeen := M.firstFinal_step_sets_seen_of_same_input
+        hfirst hfirstInput (Or.inr hfinal.2)
+      have hqseen' := M.firstFinal_seen_true_of_reaches_same_input
+        hrest hafterInput hafterSeen
+      exact Bool.noConfusion (hqseen.symm.trans hqseen')
+
 /-- No nonempty run starting in a normalized final configuration and consuming
 no input can end in another normalized final configuration.  Stating the path
 with `Relation.TransGen` excludes the reflexive zero-step path. -/
