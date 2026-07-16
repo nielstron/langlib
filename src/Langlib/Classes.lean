@@ -92,6 +92,8 @@ public import Langlib.Classes.ContextSensitive.Closure.Star
 public import Langlib.Classes.ContextSensitive.Closure.Substitution
 public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization
+public import Langlib.Classes.ContextSensitive.Decidability.Emptiness
+public import Langlib.Classes.ContextSensitive.Decidability.Equivalence
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
 public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.ContextSensitive.Examples.AnBnCn
