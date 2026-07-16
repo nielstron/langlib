@@ -34,7 +34,9 @@ private theorem homExpandRule_noncontracting (h : α → List β)
   simp [grule_noncontracting, homExpandRule]
   exact List.length_pos_iff.mpr (heps a)
 
-private theorem hom_grammar_context_sensitive (g : grammar α) (h : α → List β)
+/-- The concrete two-phase homomorphic-image grammar remains context-sensitive
+for every epsilon-free homomorphism. -/
+public theorem hom_grammar_context_sensitive (g : grammar α) (h : α → List β)
     (heps : IsEpsFreeHomomorphism h) (hg : grammar_context_sensitive g) :
     grammar_context_sensitive (hom_grammar g h) := by
   refine ⟨fun r hr => ?_, ?_⟩
