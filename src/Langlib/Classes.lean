@@ -131,9 +131,12 @@ public import Langlib.Classes.DeterministicContextFree.Inclusion.StrictContextFr
 public import Langlib.Classes.Indexed.Basics.Elementary
 public import Langlib.Classes.Indexed.Basics.FiniteAlphabet
 public import Langlib.Classes.Indexed.Basics.FiniteSupport
+public import Langlib.Classes.Indexed.Basics.Shrinking
+public import Langlib.Classes.Indexed.Closure.Complement
 public import Langlib.Classes.Indexed.Closure.Concatenation
 public import Langlib.Classes.Indexed.Closure.Homomorphism
 public import Langlib.Classes.Indexed.Closure.Injection
+public import Langlib.Classes.Indexed.Closure.Intersection
 public import Langlib.Classes.Indexed.Closure.IntersectionRegular
 public import Langlib.Classes.Indexed.Closure.InverseHomomorphism
 public import Langlib.Classes.Indexed.Closure.QuotientRegular
@@ -143,6 +146,8 @@ public import Langlib.Classes.Indexed.Closure.Substitution
 public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition
 public import Langlib.Classes.Indexed.Examples.AnBnCn
+public import Langlib.Classes.Indexed.Examples.DiagonalNotIndexed
+public import Langlib.Classes.Indexed.Examples.IntersectionWitness
 public import Langlib.Classes.Indexed.Examples.SingletonWord
 public import Langlib.Classes.Indexed.Inclusion.ContextSensitive
 public import Langlib.Classes.Indexed.Inclusion.StrictContextSensitive
