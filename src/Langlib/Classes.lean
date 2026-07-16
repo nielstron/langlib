@@ -38,6 +38,7 @@ public import Langlib.Classes.ContextFree.Decidability.Helper
 public import Langlib.Classes.ContextFree.Decidability.Membership
 public import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep
 public import Langlib.Classes.ContextFree.Decidability.UniformMembership
+public import Langlib.Classes.ContextFree.Decidability.Universality
 public import Langlib.Classes.ContextFree.Definition
 public import Langlib.Classes.ContextFree.Examples.A2nBn
 public import Langlib.Classes.ContextFree.Examples.A2nBnPos
