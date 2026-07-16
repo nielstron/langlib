@@ -34,6 +34,7 @@ public import Langlib.Classes.ContextFree.Closure.UnionBonus
 public import Langlib.Classes.ContextFree.Closure.UnionBonus2
 public import Langlib.Classes.ContextFree.Decidability.Characterization
 public import Langlib.Classes.ContextFree.Decidability.Emptiness
+public import Langlib.Classes.ContextFree.Decidability.Equivalence
 public import Langlib.Classes.ContextFree.Decidability.Helper
 public import Langlib.Classes.ContextFree.Decidability.Membership
 public import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep

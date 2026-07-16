@@ -188,3 +188,37 @@ public def ComputableEquivalence [Primcodable Code] [Primcodable α]
   CharacterizesOn C valid languageOf ∧ MembershipSemiDecidable languageOf ∧
     ComputablePredOnPromise (fun p : Code × Code ↦ valid p.1 ∧ valid p.2)
       (fun p ↦ languageOf p.1 = languageOf p.2)
+
+/-- A uniform equivalence procedure decides universality by comparison with
+any fixed valid code for the universal language. -/
+public theorem ComputableEquivalence.computableUniversality
+    [Primcodable Code] [Primcodable α]
+    {C : Set (Language α)} {languageOf : Code → Language α}
+    {valid : Code → Prop}
+    (h : ComputableEquivalence C languageOf valid)
+    (universalCode : Code) (hvalid : valid universalCode)
+    (hlanguage : languageOf universalCode = Set.univ) :
+    ComputableUniversality C languageOf valid := by
+  refine ⟨h.1, h.2.1, ?_⟩
+  obtain ⟨evalEquivalent, hevalPartrec, hevalSpec⟩ := h.2.2
+  let evalUniversal : Code →. Bool :=
+    fun c => evalEquivalent (c, universalCode)
+  refine ⟨evalUniversal, ?_, ?_⟩
+  · exact hevalPartrec.comp
+      (Computable.pair Computable.id (Computable.const universalCode))
+  · intro c hc
+    have hrun := hevalSpec (c, universalCode) ⟨hc, hvalid⟩
+    refine ⟨hrun.1, ?_⟩
+    simpa only [evalUniversal, hlanguage] using hrun.2
+
+/-- If the presented class contains the universal language, equivalence
+computability entails universality computability for the same presentation. -/
+public theorem ComputableEquivalence.computableUniversality_of_univ_mem
+    [Primcodable Code] [Primcodable α]
+    {C : Set (Language α)} {languageOf : Code → Language α}
+    {valid : Code → Prop}
+    (h : ComputableEquivalence C languageOf valid)
+    (huniv : (Set.univ : Language α) ∈ C) :
+    ComputableUniversality C languageOf valid := by
+  obtain ⟨universalCode, hvalid, hlanguage⟩ := (h.1 Set.univ).mp huniv
+  exact h.computableUniversality universalCode hvalid hlanguage
