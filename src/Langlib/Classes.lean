@@ -139,6 +139,7 @@ public import Langlib.Classes.Indexed.Closure.Injection
 public import Langlib.Classes.Indexed.Closure.Intersection
 public import Langlib.Classes.Indexed.Closure.IntersectionRegular
 public import Langlib.Classes.Indexed.Closure.InverseHomomorphism
+public import Langlib.Classes.Indexed.Closure.Quotient
 public import Langlib.Classes.Indexed.Closure.QuotientRegular
 public import Langlib.Classes.Indexed.Closure.Reverse
 public import Langlib.Classes.Indexed.Closure.Star
@@ -146,6 +147,7 @@ public import Langlib.Classes.Indexed.Closure.Substitution
 public import Langlib.Classes.Indexed.Closure.Union
 public import Langlib.Classes.Indexed.Definition
 public import Langlib.Classes.Indexed.Examples.AnBnCn
+public import Langlib.Classes.Indexed.Examples.CopyQuotientWitness
 public import Langlib.Classes.Indexed.Examples.DiagonalNotIndexed
 public import Langlib.Classes.Indexed.Examples.IntersectionWitness
 public import Langlib.Classes.Indexed.Examples.SingletonWord
