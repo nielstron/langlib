@@ -47,6 +47,16 @@ classes.
 |  |  |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean)  |
 | Recursively Enumerable | Unrestricted [🔗](src/Langlib/Grammars/Unrestricted/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machines [🔗](src/Langlib/Automata/Turing/Definition.lean) |
 
+The `DLBA ⇔? NLBA` entry is the **first LBA problem**, which remains open:
+in complexity terminology it asks whether deterministic and nondeterministic
+linear space have the same power.  Langlib proves the easy `DLBA ⊆ NLBA`
+direction above and the machine-level converse for an NLBA whose transition
+relation is already single-valued
+[🔗](src/Langlib/Automata/LinearBounded/Functional.lean).  The
+Immerman–Szelepcsényi complement construction does not settle this question:
+it constructs another nondeterministic linear-space machine rather than a
+deterministic one.
+
 The strict hierarchy results are uniform over every finite alphabet meeting the
 displayed result's sharp or currently proved size bound: Regular ⊊ LR(k)/DPDA
 requires at least two symbols; LR(k)/DPDA ⊊ CF, CF ⊊ Indexed, and CF ⊊ CS
