@@ -146,6 +146,20 @@ theorem computable₂_flatMap_eq_finite {α β : Type} [DecidableEq β]
 
 end PrimrecFiniteHomomorphism
 
+section PrimrecNatListFoldl
+
+/-- A fully specialized form of `Primrec.list_foldl` for natural-number
+lists and accumulators.  Keeping the list element and accumulator types fixed
+avoids repeatedly elaborating the generic coding witness at large call sites. -/
+public lemma primrec_nat_list_foldl
+    {f : ℕ → List ℕ} {g : ℕ → ℕ} {h : ℕ → ℕ × ℕ → ℕ}
+    (hf : Primrec f) (hg : Primrec g) (hh : Primrec₂ h) :
+    Primrec fun code => (f code).foldl
+      (fun state value => h code (state, value)) (g code) :=
+  Primrec.list_foldl hf hg hh
+
+end PrimrecNatListFoldl
+
 section PrimrecListAny
 
 variable {α : Type} [Primcodable α]

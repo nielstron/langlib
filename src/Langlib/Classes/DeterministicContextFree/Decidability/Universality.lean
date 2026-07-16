@@ -4239,6 +4239,28 @@ private theorem dataLeastSummaryRelation_primrec :
   intro d
   rfl
 
+/-- The least finite pushdown-summary relation is primitive recursive in the
+raw encoded transition table. -/
+public theorem leastSummaryRelation_primrec :
+    Primrec
+      (leastSummaryRelation : EncodedDPDA T → List SummaryTriple) := by
+  have hdata : Primrec (fun c : EncodedDPDA T =>
+      dataLeastSummaryRelation (effectiveSaturationData c).1) :=
+    dataLeastSummaryRelation_primrec.comp
+      (Primrec.fst.comp effectiveSaturationData_primrec)
+  apply hdata.of_eq
+  intro c
+  rfl
+
+/-- The least finite pushdown-summary relation is a total computable function
+of the raw encoded transition table.  This public projection is useful to
+effective preprocessing passes which need the summary itself, rather than only
+the final universality bit computed from it. -/
+public theorem leastSummaryRelation_computable :
+    Computable
+      (leastSummaryRelation : EncodedDPDA T → List SummaryTriple) :=
+  leastSummaryRelation_primrec.to_comp
+
 private abbrev DataReachPointContext (T : Type) :=
   SaturationData T × ℕ
 
