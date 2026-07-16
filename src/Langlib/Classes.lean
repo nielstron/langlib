@@ -102,6 +102,7 @@ public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.ContextSensitive.Inclusion.StrictRecursive
 public import Langlib.Classes.ContextSensitive.Inclusion.StrictRecursivelyEnumerable
+public import Langlib.Classes.DeterministicContextFree.Basics.EncodedDPDA
 public import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 public import Langlib.Classes.DeterministicContextFree.Closure.Complement
 public import Langlib.Classes.DeterministicContextFree.Closure.Concatenation
@@ -118,6 +119,7 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Union
 public import Langlib.Classes.DeterministicContextFree.Closure.UnionRegular
 public import Langlib.Classes.DeterministicContextFree.Decidability.Emptiness
 public import Langlib.Classes.DeterministicContextFree.Decidability.Membership
+public import Langlib.Classes.DeterministicContextFree.Decidability.Universality
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Classes.DeterministicContextFree.Examples.A2nBnPosStar
 public import Langlib.Classes.DeterministicContextFree.Examples.AbcPositive

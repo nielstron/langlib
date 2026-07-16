@@ -14,12 +14,16 @@
 The goal of this library is to encapsulate some core results of the (extended) Chomsky hierarchy: inclusions, closures and decidability.
 The following gives a rough overview over the contents in highly condensed form.
 
-The tables contain standard results. `🔗` indicates that this repository contains a corresponding definition or proof file (possibly for a weaker variant of the result, e.g. ⊊ vs. ⊆ and ⇔ vs. ⇒).
+The tables contain standard results. `🔗` indicates that the linked file
+contains a corresponding definition or theorem stated explicitly for the displayed
+language or presentation classes.
 More detailed results and developed tooling (e.g., Pumping lemmas, Totalizations) can be found in the [documentation](https://nielstron.github.io/langlib/).
 
 ### Hierarchy And Equivalences
 
-Each class of the (extended) hierarchy is charaterized as grammar or automaton (or both, and variants thereof). We show (strict) inclusions of the classes and equivalences between different characterizations.
+Each class of the (extended) hierarchy is characterized as a grammar or automaton
+(or both, and variants thereof). We show (strict) inclusions of the classes and
+equivalences between different characterizations.
 
 In an inclusion row, a link is attached only when the cited file states a theorem
 explicitly for the language or presentation classes displayed in that column. The
@@ -114,12 +118,14 @@ uniformly recursively enumerable; this prevents the semantic decoding map itself
 from hiding a non-r.e. membership oracle.
 
 The remaining columns use the corresponding uniform emptiness, universality, and
-equivalence problems for the indicated standard presentation.
+equivalence problems for the concrete presentation named by each linked theorem.
+In particular, the deterministic context-free membership and emptiness proofs use
+encoded grammars, while its universality proof uses promised-total encoded DPDAs.
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
 | Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
-| Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Emptiness.lean) | ✓ | ✓ |
+| Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Universality.lean) | ✓ |
 | Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
 | Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Emptiness.lean) | ✗ | ✗ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Equivalence.lean) |
 | Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Equivalence.lean) |
