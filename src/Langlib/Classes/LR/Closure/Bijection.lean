@@ -77,13 +77,14 @@ private lemma map_CF_grammar_derivesRightmost_reflect (g : CF_grammar T₁)
       exact Relation.ReflTransGen.tail ih
         (map_CF_grammar_producesRightmost_reflect g hfg step)
 
-/-- Relabelling a grammar by an injective terminal map preserves the LR(k) condition. -/
-public theorem map_CF_grammar_isLRk_of_injective [Nonempty T₁] (g : CF_grammar T₁)
+/-- Relabelling a grammar by an injective terminal map preserves the unaugmented
+LR(k) handle condition. -/
+private theorem map_CF_grammar_coreIsLRk_of_injective [Nonempty T₁] (g : CF_grammar T₁)
     {f : T₁ → T₂} (hf : Function.Injective f) {k : ℕ}
-    (hg : g.IsLRk k) : (map_CF_grammar g f).IsLRk k := by
+    (hg : g.CoreIsLRk k) : (map_CF_grammar g f).CoreIsLRk k := by
   let g' : T₂ → T₁ := Function.invFun f
   have hfg : Function.LeftInverse g' f := Function.leftInverse_invFun hf
-  intro r₁ r₂ hr₁ hr₂ p₁ p₂ core s₁ s₂ hd₁ hd₂ hc₁ hc₂ hlook
+  intro r₁ r₂ hr₁ hr₂ p₁ p₂ s₁ s₂ y hd₁ hd₂ hform hlook
   obtain ⟨r₁', hr₁', rfl⟩ := List.mem_map.mp hr₁
   obtain ⟨r₂', hr₂', rfl⟩ := List.mem_map.mp hr₂
   have hd₁' :
@@ -98,31 +99,50 @@ public theorem map_CF_grammar_isLRk_of_injective [Nonempty T₁] (g : CF_grammar
           (s₂.map g').map symbol.terminal) := by
     have h := map_CF_grammar_derivesRightmost_reflect g hfg hd₂
     simpa [map_CF_grammar, map_CF_rule, List.map_append, map_symbol_fn, List.map_map] using h
-  have hc₁' : p₁.map (map_symbol_fn g') ++ r₁'.2 = core.map (map_symbol_fn g') := by
-    have h := congrArg (List.map (map_symbol_fn g')) hc₁
+  have hform' :
+      p₂.map (map_symbol_fn g') ++ r₂'.2 ++
+          (s₂.map g').map symbol.terminal =
+        p₁.map (map_symbol_fn g') ++ r₁'.2 ++
+          (y.map g').map symbol.terminal := by
+    have h := congrArg (List.map (map_symbol_fn g')) hform
     have hleft : map_symbol_fn g' ∘ map_symbol_fn f = @id (symbol T₁ g.nt) := by
       funext s
       exact map_symbol_fn_leftInverse hfg s
-    simpa [map_CF_rule, List.map_append, List.map_map, hleft] using h
-  have hc₂' : p₂.map (map_symbol_fn g') ++ r₂'.2 = core.map (map_symbol_fn g') := by
-    have h := congrArg (List.map (map_symbol_fn g')) hc₂
-    have hleft : map_symbol_fn g' ∘ map_symbol_fn f = @id (symbol T₁ g.nt) := by
-      funext s
-      exact map_symbol_fn_leftInverse hfg s
-    simpa [map_CF_rule, List.map_append, List.map_map, hleft] using h
+    simpa [map_CF_rule, List.map_append, List.map_map, map_symbol_fn, hleft] using h
   have hlook' : CF_grammar.lrLookahead k (s₁.map g') =
-      CF_grammar.lrLookahead k (s₂.map g') := by
+      CF_grammar.lrLookahead k (y.map g') := by
     simpa [CF_grammar.lrLookahead, List.map_take] using congrArg (List.map g') hlook
-  obtain ⟨_, hrules⟩ :=
+  obtain ⟨hprefix', hrules⟩ :=
     hg r₁' r₂' hr₁' hr₂' (p₁.map (map_symbol_fn g')) (p₂.map (map_symbol_fn g'))
-      (core.map (map_symbol_fn g')) (s₁.map g') (s₂.map g') hd₁' hd₂' hc₁' hc₂' hlook'
+      (s₁.map g') (s₂.map g') (y.map g') hd₁' hd₂' hform' hlook'
   have hprefix : p₁ = p₂ := by
-    apply List.append_cancel_right
-    calc
-      p₁ ++ r₁'.2.map (map_symbol_fn f) = core := hc₁
-      _ = p₂ ++ r₂'.2.map (map_symbol_fn f) := hc₂.symm
-      _ = p₂ ++ r₁'.2.map (map_symbol_fn f) := by rw [hrules]
+    have hlen : p₁.length = p₂.length := by
+      simpa using congrArg List.length hprefix'
+    have hsides :
+        p₂ ++ r₁'.2.map (map_symbol_fn f) =
+          p₁ ++ r₁'.2.map (map_symbol_fn f) := by
+      have := (List.append_inj hform (by simp [hrules, hlen])).1
+      simpa [hrules] using this
+    exact (List.append_cancel_right hsides).symm
   exact ⟨hprefix, by rw [hrules]⟩
+
+/-- Terminal relabelling commutes with fresh-start augmentation. -/
+private theorem map_CF_grammar_augment (g : CF_grammar T₁) (f : T₁ → T₂) :
+    map_CF_grammar g.augment f = (map_CF_grammar g f).augment := by
+  cases g with
+  | mk N initial rules =>
+      simp [map_CF_grammar, CF_grammar.augment, CF_grammar.augmentStartRule,
+        CF_grammar.augmentRule, CF_grammar.augmentString, map_CF_rule,
+        List.map_map, Function.comp_def, map_symbol_fn]
+      intro _ _ _ s _
+      cases s <;> rfl
+
+/-- Relabelling a grammar by an injective terminal map preserves the LR(k) condition. -/
+public theorem map_CF_grammar_isLRk_of_injective [Nonempty T₁] (g : CF_grammar T₁)
+    {f : T₁ → T₂} (hf : Function.Injective f) {k : ℕ}
+    (hg : g.IsLRk k) : (map_CF_grammar g f).IsLRk k := by
+  rw [CF_grammar.IsLRk, ← map_CF_grammar_augment]
+  exact map_CF_grammar_coreIsLRk_of_injective g.augment hf hg
 
 /-- LR(k) languages are closed under injective terminal maps. -/
 public theorem is_LRk_map_injective [Nonempty T₁] {f : T₁ → T₂}

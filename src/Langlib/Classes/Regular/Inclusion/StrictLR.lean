@@ -20,7 +20,7 @@ public section
 
 This file proves that regular languages form a strict subclass of LR languages.
 
-The witness is the language `{aⁿbⁿ}`, which is LR(0) (via `cfg_anbn`) but not
+The witness is the language `{aⁿbⁿ}`, which is LR(1) (via `cfg_anbn`) but not
 regular (by the pumping lemma). Combined with the already-established inclusion
 `RG ⊆ LR`, this gives strict containment.
 

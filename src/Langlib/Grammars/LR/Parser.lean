@@ -9,9 +9,9 @@ This file defines the table-driven parser side of LR parsing.  It is intentional
 separate from `Langlib.Grammars.LR.Definition`, which contains the grammar-side
 LR(k) predicate.
 
-The definitions here are the parser object that the LR(k)-to-DPDA direction will
-use: a deterministic action/goto table, stack configurations, and the induced
-one-step parser transition.
+The definitions here are the parser object used by the LR(k)-to-DPDA
+construction: a deterministic action/goto table, stack configurations, and the
+induced one-step parser transition.
 
 As elsewhere in this development, a context-free rule is a pair
 `rule : N × List (symbol T N)` whose first component `rule.1` is the left-hand
