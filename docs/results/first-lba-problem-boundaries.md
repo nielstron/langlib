@@ -878,6 +878,27 @@ promised linear-`2`-diforest instances would imply `L = NL`.  This is an
 explicit-input hardness barrier, not a separation of the compressed LBA
 language classes.
 
+The fixed-slot version of that reduction is now checked in
+`LinearTwoDiforestReachability`.  For an `N`-vertex numbered graph it gives
+every original vertex `N` outgoing ports, `N` incoming ports, and three phases
+per port, for exactly `6N²` vertices.  An original edge uses its dedicated
+outgoing and incoming ports.  The remaining edges rotate through the ports of
+one original vertex.  The packaged theorem
+`finiteReachability_twoLinearTwoDiforests` proves exact reachability between
+canonical representatives, both directed degree bounds, a unique two-color
+cover, biuniqueness of both colors, path-component length at most one in the
+first color and at most two in the second.  Fixed ports also make isolated
+vertices total; the literal incidence-count presentation has no `v₀₀`
+representative when a vertex has degree zero.
+
+This sharpening deliberately does not merge with the acyclic normal form.
+`positiveCycle` proves that every original vertex in the fixed-slot gadget
+lies on a nonempty directed cycle, independently of the input edges, and
+`not_acyclic_of_neZero` packages the resulting failure of global acyclicity.
+Thus the two checked reductions establish genuinely different restrictions:
+short components inside each supplied color here, versus a globally acyclic
+union in the scan serializer above.
+
 The four-color theorem remains useful because it needs neither a finite graph
 nor a global component traversal.  The optimal generic theorem instead
 uses a spanning forest of the conflict graph and is correspondingly
@@ -1126,6 +1147,56 @@ logspace isolation would first place the problem in `UL`; `UL = L` remains
 open.  See [Reinhardt and
 Allender](https://doi.org/10.1137/S0097539798339041) and [van Melkebeek and
 Prakriya](https://doi.org/10.1137/17M1130538).
+
+The linear-space version separates two still-unresolved tasks.  Writing
+
+$$
+D=\mathrm{DSPACE}(O(n)),\qquad
+U=\mathrm{USPACE}(O(n)),\qquad
+N=\mathrm{NSPACE}(O(n)),
+$$
+
+one always has `D ⊆ U ⊆ N`.  Disambiguation asks for `N ⊆ U`; removing
+the remaining unique accepting choice asks for `U ⊆ D`.  Li, Pyne, and Tell
+obtain `NSPACE(O(n)) = USPACE(O(n))` under their stated uniform exponential
+circuit-hardness hypothesis ([Theorem
+6.4](https://eccc.weizmann.ac.il/report/2024/139/download)).  Doron, Pyne,
+Tell, and Williams replace this by a stated hardness hypothesis against
+uniform polynomial-size oracle circuits ([Theorem
+6.12](https://eccc.weizmann.ac.il/report/2025/077/download)).  These are
+conditional disambiguation theorems, not unconditional simulations.  Even
+granting either hypothesis settles only `N ⊆ U`; the inclusion `U ⊆ D`
+remains the scaled-up analogue of the open `UL ⊆ L` problem.  The 2026
+[low-space hardness-versus-randomness
+survey](https://eccc.weizmann.ac.il/report/2026/045/) records a cleaned
+combined conditional form and does not claim an unconditional linear-space
+disambiguation.
+
+The checked unambiguous-run development makes this factorization precise in
+the canonical endmarker model.  `Machine.AcceptingRun` stores every chosen
+transition triple as data; it does not try to distinguish proofs of the
+propositional `Reaches` predicate.  This distinction also preserves two
+different moves that happen to produce the same clamped-boundary
+configuration.  Runs stop at their first accepting configuration, and
+`nonempty_acceptingRun_iff` proves
+that existence of such a run is exactly the repository's existing LBA
+acceptance predicate.  Functional transition tables have a subsingleton type
+of accepting runs by `acceptingRun_subsingleton_of_functional`.
+
+The class theorems then prove, over every finite input alphabet,
+
+$$
+\mathrm{DLBA}\subseteq\mathrm{ULBA}\subseteq\mathrm{LBA}.
+$$
+
+The first inclusion is `DLBA_subset_ULBA`; the second is
+`ULBA_subset_LBA`.  Finally,
+`lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` proves the
+unconditional exact factorization of the first LBA problem into `LBA ⊆ ULBA`
+and `ULBA ⊆ DLBA`.  Under a supplied disambiguation hypothesis, the
+corollary `lba_eq_dlba_iff_ulba_subset_dlba_of_lba_subset_ulba` leaves exactly
+the second inclusion.  Neither of these reverse inclusions is assumed or
+inferred from the recent conditional literature in the checked development.
 
 Immerman--Szelepcsényi counting avoids the large-output problem by counting
 reachable *vertices*, a number at most `N` and therefore representable in

@@ -104,6 +104,7 @@ public import Langlib.Automata.LinearBounded.Functional
 public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.LinearBounded.LayeredReachability
+public import Langlib.Automata.LinearBounded.LinearTwoDiforestReachability
 public import Langlib.Automata.LinearBounded.LocalityHypercube
 public import Langlib.Automata.LinearBounded.Packing
 public import Langlib.Automata.LinearBounded.PartialBijectionDecomposition
@@ -114,6 +115,7 @@ public import Langlib.Automata.LinearBounded.RowNumeral
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
 public import Langlib.Automata.LinearBounded.StrictClockLayering
 public import Langlib.Automata.LinearBounded.TwoLayerReachability
+public import Langlib.Automata.LinearBounded.Unambiguous
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 public import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStack
 public import Langlib.Automata.Pushdown.Basics.Leftmost

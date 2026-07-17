@@ -101,6 +101,20 @@ solution to the open problem:
   `acyclic_iff` records the latter equivalence.  The arbitrary-type numbering
   uses `Fintype.equivFin`, so this checked theorem is structural rather than a
   formalized logspace reduction.
+- `finiteReachability_twoLinearTwoDiforests` checks a fixed-slot version of
+  the complementary Bhadra--Tewari reduction on numbered finite graphs.  It
+  has exactly `6n²` vertices, preserves reachability exactly, and supplies a
+  unique two-layer cover whose first layer has path components of length at
+  most one and whose second has length at most two.  `positiveCycle` proves
+  that every nonempty vertex gadget is cyclic, so this theorem does not add
+  the global DAG promise from the preceding normal form.
+- `DLBA_subset_ULBA` and `ULBA_subset_LBA` formalize the sandwich through
+  unambiguous linear space using labeled, first-final accepting runs.
+  `lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` factors the first LBA
+  problem exactly into the two still-open inclusions `LBA ⊆ ULBA` and
+  `ULBA ⊆ DLBA`.  The run type retains transition triples as data, including
+  distinct moves that reach the same clamped-boundary configuration; it does
+  not misuse proof identity as computation identity.
 
 The strongest normal-form result is thus:
 
@@ -136,12 +150,20 @@ open problem.
   exact coloring and graph properties do not provide a deterministic
   reachability algorithm, and its noncomputable arbitrary-type numbering is
   not claimed to be an effective complexity reduction.
+- The linear-`2`-diforest theorem is an effective formula on numbered finite
+  graphs, not a same-width LBA-to-DLBA compiler.  Its short layer components
+  coexist with forced cycles in their union.
+- No unconditional `LBA ⊆ ULBA` or `ULBA ⊆ DLBA` theorem is claimed.
+  Current linear-space disambiguation results cited in the research ledger
+  either use superlinear space or require explicit circuit-hardness
+  hypotheses; even conditional disambiguation leaves unambiguous
+  determinization open.
 
 ## Verification
 
-The result was checked from a clean build:
+The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,857 jobs completed successfully;
+- `lake build`: 8,859 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

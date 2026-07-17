@@ -71,6 +71,14 @@ indegree and outdegree at most two, equipped with those two biunique layers,
 recognize exactly `LBA`
 [🔗](src/Langlib/Automata/LinearBounded/AcyclicClock/LanguageEquivalence.lean).
 This is a nondeterministic normal form, not a DLBA construction.
+Labeled first-final runs also give the checked sandwich
+`DLBA ⊆ ULBA ⊆ LBA` and factor the open equality into disambiguating LBAs
+and then determinizing the unambiguous class
+[🔗](src/Langlib/Automata/LinearBounded/Unambiguous.lean).
+At the explicit finite-graph level, the complementary fixed-slot reduction
+preserves reachability with two supplied linear `2`-diforests, while proving
+that its vertex gadgets are necessarily cyclic
+[🔗](src/Langlib/Automata/LinearBounded/LinearTwoDiforestReachability.lean).
 The checked two-layer reachability recurrence and ordered-fork construction
 also show why selecting a canonical successful color would already solve the
 underlying reachability instance; total permutation layers form a reversible
