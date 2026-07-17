@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 17 July 2026.
+Last updated: 18 July 2026.
 
 ## First LBA problem
 
@@ -59,6 +59,19 @@ solution to the open problem:
   `AcyclicDegreeTwoBiUniqueLBA_eq_LBA` shows that global acyclicity, both
   degree bounds, and those two partial-bijection layers can all be required
   simultaneously without weakening `LBA`.
+- `AcyclicDegreeTwoShortBiUniqueLBA_eq_LBA` strengthens the same machine
+  normal form so that neither supplied layer contains a path of three edges.
+  The local four-phase compiler expands a color-`c` edge with the word
+  `c, opposite(c), 0, 1`; it preserves the source tape alphabet and width and
+  is sound on every raw configuration.
+- `AcyclicDegreeTwoThreeMatchingLBA_eq_LBA` gives an alternative sharp form:
+  every LBA language has a globally acyclic degree-two presentation whose
+  complete configuration relation is covered exactly by three directed
+  matchings.  Its input/output phase split also preserves tape width.
+- `lba_eq_dlba_iff_acyclicDegreeTwoShortBiUniqueLBA_subset` and
+  `lba_eq_dlba_iff_acyclicDegreeTwoThreeMatchingLBA_subset` show that
+  determinizing either restricted machine class is exactly the full first
+  LBA problem.
 - `lba_eq_dlba_iff_certifiedRowReach`,
   `lba_eq_dlba_iff_unitCertificateRowReach`, and
   `lba_eq_dlba_iff_acyclicDegreeTwoUnitCertificateRowReach` reduce the full
@@ -108,6 +121,20 @@ solution to the open problem:
   most one and whose second has length at most two.  `positiveCycle` proves
   that every nonempty vertex gadget is cyclic, so this theorem does not add
   the global DAG promise from the preceding normal form.
+- `finiteReachability_singleTarget_twoLinearTwoDiforests` closes that gap by
+  composing the designated-target acyclic serializer with a generic
+  three-edge recoloring.  Arbitrary finite reachability is thereby preserved
+  in one globally acyclic degree-two graph with an exact supplied cover by two
+  partial bijections, and every monochromatic path has length at most two.
+  The construction exposes a strict natural rank and has
+  `K + 2K²` vertices when the input serializer has `K` vertices.
+- `finiteReachability_designated_threeMatchings` gives a second acyclic
+  boundary: arbitrary finite reachability is preserved after splitting every
+  serialized vertex into input/output copies, with all edges partitioned into
+  three directed matchings.  Conversely, `successor_eq_of_incoming` and
+  `not_branches_of_reaches_of_ne_source` prove that an exact union of only two
+  directed matchings cannot branch anywhere along a path except at its initial
+  vertex.
 - `DLBA_subset_ULBA` and `ULBA_subset_LBA` formalize the sandwich through
   unambiguous linear space using labeled, first-final accepting runs.
   `lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` factors the first LBA
@@ -116,15 +143,17 @@ solution to the open problem:
   distinct moves that reach the same clamped-boundary configuration; it does
   not misuse proof identity as computation identity.
 
-The strongest normal-form result is thus:
+The strongest two-layer normal-form result is thus:
 
 > Every LBA language is accepted by a same-width, globally acyclic LBA whose
 > configuration graph has indegree and outdegree at most two and whose entire
-> step relation is partitioned by two width-uniform partial-bijection layers.
+> step relation is partitioned by two width-uniform partial-bijection layers,
+> with no monochromatic path containing three edges.
 
-This remains a nondeterministic normal form. Showing that all machines in
-this restricted class can be simulated by DLBAs would solve the original
-open problem.
+Equivalently rigid in a different parameter, three width-uniform matching
+layers suffice.  Both remain nondeterministic normal forms. Showing that all
+machines in either restricted class can be simulated by DLBAs would solve the
+original open problem.
 
 ## What is not claimed
 
@@ -150,9 +179,16 @@ open problem.
   exact coloring and graph properties do not provide a deterministic
   reachability algorithm, and its noncomputable arbitrary-type numbering is
   not claimed to be an effective complexity reduction.
-- The linear-`2`-diforest theorem is an effective formula on numbered finite
-  graphs, not a same-width LBA-to-DLBA compiler.  Its short layer components
-  coexist with forced cycles in their union.
+- The original fixed-slot linear-`2`-diforest theorem is an effective formula
+  on numbered finite graphs, but its short layer components coexist with
+  forced cycles in their union.  The later generic subdivision removes that
+  cyclicity restriction structurally; its arbitrary-type wrapper inherits a
+  noncomputable `Fintype.equivFin` numbering and is still not a same-width
+  LBA-to-DLBA compiler or a formalized logspace reduction.
+- The machine-level short-layer compilers are genuine finite-control,
+  same-width LBA transformations, but they retain the original global path
+  choice.  Short monochromatic components or three matching colors do not
+  make the union relation functional.
 - No unconditional `LBA ⊆ ULBA` or `ULBA ⊆ DLBA` theorem is claimed.
   Current linear-space disambiguation results cited in the research ledger
   either use superlinear space or require explicit circuit-hardness
@@ -163,7 +199,7 @@ open problem.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,859 jobs completed successfully;
+- `lake build`: 8,872 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

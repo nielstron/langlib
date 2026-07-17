@@ -342,6 +342,61 @@ two-biunique-layer family.  This is only a normalization of nondeterministic
 runs: it does not choose a path through the resulting acyclic graph and
 therefore does not imply `LBA = DLBA`.
 
+The layers can now be made short **at the machine level**, without an
+all-pairs configuration encoding.  The literal finite subdivision described
+later has `N + 2N²` vertices at a fixed width and therefore cannot be
+represented by a constant-factor extension of finite control over the same
+tape alphabet.  `Machine.shortLayers` instead uses the local four-phase
+quotient
+
+```text
+core u → chosen(u, move) → landed v → pad v → core v
+ colors       c                opposite(c)       0       1.
+```
+
+`chosen` retains only one finite transition triple; `landed` and `pad` are
+canonical for the target configuration.  The three dummy steps rewrite the
+currently read symbol and use the model's stay direction, so the tape alphabet
+and tape width do not change.  Malformed `chosen` states are gated by both the
+saved read symbol and membership of the saved move in the source transition
+table.
+
+Retaining a transition triple exposes one subtlety that an unlabeled edge
+relation hides: two different triples can occasionally produce the same
+clamped-boundary successor.  `Machine.StepLabelInjective` states that every
+source/target configuration edge has at most one such operational label.
+`serializeIncoming_stepLabelInjective` proves this globally for the incoming
+degree serializer—its written state stores the complete move tag—and hence
+`boundedDegree_stepLabelInjective` supplies the property for the simultaneous
+degree serializer.  This is used exactly where the compiled layer proofs must
+identify two `chosen` labels; proof identity is not being treated as an
+operational label.
+
+The color word `c, opposite(c), 0, 1` has no monochromatic run of three edges,
+including across macro boundaries.  `step_iff_existsUnique_stepLayer`,
+`stepLayer_biUnique`, and `stepLayer_pathLengthAtMostTwo` prove exact cover,
+both partial-bijection directions, and the short-path property on the whole
+raw configuration graph.  A source rank `r` lifts to phase potentials
+`4r+3`, `4r+4`, `4r'+1`, and `4r'+2`; the genuine middle step raises `r`, so
+`shortLayers_configurationAcyclic` preserves global acyclicity.
+
+The resulting class theorem
+`AcyclicDegreeTwoShortBiUniqueLBA_eq_LBA` says that globally acyclic,
+degree-two LBAs with two width-uniform linear-`2`-diforest layers still
+recognize exactly `LBA`.  The exact frontier statement
+`lba_eq_dlba_iff_acyclicDegreeTwoShortBiUniqueLBA_subset` says that
+determinizing just this short-layer class would solve the first LBA problem.
+
+There is a still simpler three-color alternative.  `Machine.threeMatchings`
+replaces every state by input/output copies.  The symbol-preserving stay edge
+`input(q) → output(q)` receives fresh color `2`, and each genuine old edge
+`output(u) → input(v)` retains old color `0` or `1`.  Every color is therefore
+a directed matching, while projection preserves runs exactly and the rank
+lift `2r, 2r+1` preserves global acyclicity.  The final theorems
+`AcyclicDegreeTwoThreeMatchingLBA_eq_LBA` and
+`lba_eq_dlba_iff_acyclicDegreeTwoThreeMatchingLBA_subset` establish the
+corresponding full-power normal form and exact determinization frontier.
+
 The valid-start clock idea is classical for space bounds at least logarithmic.
 Sipser explicitly credits Hopcroft and Ullman with the extra-track counter
 construction; his own exact-space theorem is deterministic and uses backward
@@ -403,11 +458,14 @@ formally exactly strict time-unrolling; it does not erase or resolve a source
 branch.  This is a relational characterization, not a formal graph-minor or
 subdivision theorem for the unquotiented configuration graph.
 
-Consequently `lba_eq_dlba_iff_acyclicDegreeTwoBiUniqueLBA_subset` states the
-remaining open problem in its strongest machine normal form here:
+Consequently
+`lba_eq_dlba_iff_acyclicDegreeTwoShortBiUniqueLBA_subset` states the remaining
+open problem in the strongest two-layer machine normal form here:
 determinizing all globally acyclic LBAs of configuration indegree and
 outdegree at most two whose edges are already partitioned into two explicit
-partial bijections is equivalent to determinizing all LBAs.
+linear `2`-diforests is equivalent to determinizing all LBAs.  The independent
+three-matching equivalence gives the same boundary with three linear
+`1`-diforests instead.
 
 The restriction can be made syntactic rather than merely semantic.
 `lba_eq_dlba_iff_clockDegreeSerializedLanguages` quantifies only over machines
@@ -891,13 +949,55 @@ first color and at most two in the second.  Fixed ports also make isolated
 vertices total; the literal incidence-count presentation has no `v₀₀`
 representative when a vertex has degree zero.
 
-This sharpening deliberately does not merge with the acyclic normal form.
-`positiveCycle` proves that every original vertex in the fixed-slot gadget
+The fixed-slot gadget itself deliberately does not merge with the acyclic
+normal form.  `positiveCycle` proves that every original vertex in that gadget
 lies on a nonempty directed cycle, independently of the input edges, and
 `not_acyclic_of_neZero` packages the resulting failure of global acyclicity.
-Thus the two checked reductions establish genuinely different restrictions:
-short components inside each supplied color here, versus a globally acyclic
-union in the scan serializer above.
+This is a property of that particular port-rotation construction, not a
+general incompatibility between acyclicity and short supplied layers.
+
+Indeed, `ShortLayerSubdivision` now gives a generic three-edge repair.  If an
+old edge of color `c` is `u → v`, it is replaced by
+
+```text
+core u -c→ enter(u,v) -opposite(c)→ exit(u,v) -c→ core v.
+```
+
+The two auxiliary vertices are allocated for every ordered pair, so no
+decidable-adjacency assumption is needed.  Exact color coverage is retained,
+both colors remain partial bijections, and the only possible two-edge
+monochromatic chain is `exit → core → enter`; it cannot extend to a third
+edge.  Projection commits the represented old edge only on the middle step.
+Ranks `3r`, `3r+1`, and `3r+2` therefore preserve acyclicity whenever `r`
+strictly ranks the input relation.
+
+Composing this repair with the designated-target clock serializer yields the
+checked theorem
+`finiteReachability_singleTarget_twoLinearTwoDiforests`.  It simultaneously
+provides exact source-to-target reachability, a global DAG, both directed
+degree bounds at two, an exact supplied two-color cover, biuniqueness of both
+colors, and monochromatic path length at most two.  If the clock serializer
+has `K` vertices, the all-pairs subdivision has exactly `K + 2K²` vertices.
+The arbitrary finite-type wrapper remains structural and noncomputable for
+the same `Fintype.equivFin` reason as the serializer it uses.
+
+There is also a sharp matching-layer comparison.  In
+`ThreeMatchingReachability`, every old vertex `v` is replaced by
+`input(v) → output(v)` in a fresh third color, while an old color-`c` edge
+becomes `output(u) → input(v)` in color `c`.  The theorem
+`finiteReachability_designated_threeMatchings` proves that arbitrary finite
+reachability still has a designated-source/target, globally acyclic,
+degree-two presentation whose three supplied layers are all directed
+matchings.  The construction uses only twice as many vertices as its input.
+
+With only **two** matching layers, however, an incoming edge consumes one
+color and the matching condition forbids an outgoing edge of that color.  All
+outgoing edges must use the sole remaining color, whose functionality makes
+the successor unique.  This is formalized by
+`successor_eq_of_incoming`, `no_predecessor_of_branches`, and
+`not_branches_of_reaches_of_ne_source`: along a path rooted at `s`, a genuine
+branch can occur only at `s` itself.  These are relational theorems; the
+repository does not turn them into a claimed complexity-class upper bound.
 
 The four-color theorem remains useful because it needs neither a finite graph
 nor a global component traversal.  The optimal generic theorem instead

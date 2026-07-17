@@ -64,20 +64,28 @@ At the machine level, every LBA also has an equivalent presentation whose
 configuration graph has both directed degrees at most two
 [🔗](src/Langlib/Automata/LinearBounded/BoundedDegree.lean).  A guarded
 same-width clock compiler strengthens this to a globally acyclic
-presentation, and the degree serializers preserve that property.  The same
-serializer has a width-uniform syntactic partition of its edges into two
-partial bijections.  Thus even globally acyclic configuration graphs of
-indegree and outdegree at most two, equipped with those two biunique layers,
-recognize exactly `LBA`
-[🔗](src/Langlib/Automata/LinearBounded/AcyclicClock/LanguageEquivalence.lean).
+presentation, and the degree serializers preserve that property.  A further
+same-width four-phase compiler gives two partial-bijection layers whose
+monochromatic paths have length at most two; alternatively, a two-phase split
+gives three directed matching layers.  Both globally acyclic, degree-two
+normal forms still recognize exactly `LBA`
+[🔗](src/Langlib/Automata/LinearBounded/MachineShortLayers/LanguageEquivalence.lean)
+[🔗](src/Langlib/Automata/LinearBounded/MachineThreeMatchings/NormalForm.lean).
 This is a nondeterministic normal form, not a DLBA construction.
 Labeled first-final runs also give the checked sandwich
 `DLBA ⊆ ULBA ⊆ LBA` and factor the open equality into disambiguating LBAs
 and then determinizing the unambiguous class
 [🔗](src/Langlib/Automata/LinearBounded/Unambiguous.lean).
-At the explicit finite-graph level, the complementary fixed-slot reduction
-preserves reachability with two supplied linear `2`-diforests, while proving
-that its vertex gadgets are necessarily cyclic
+At the explicit finite-graph level, arbitrary reachability has a
+single-designated-target, globally acyclic, degree-two presentation with two
+supplied linear `2`-diforests
+[🔗](src/Langlib/Automata/LinearBounded/ShortLayerSubdivisionReachability.lean).
+A separate vertex split gives three supplied matching layers, also in a DAG,
+while two matching layers have no reachable branch away from the initial
+vertex
+[🔗](src/Langlib/Automata/LinearBounded/ThreeMatchingReachability.lean).
+The complementary fixed-slot reduction remains as a fully explicit numbered
+construction whose own vertex gadgets are necessarily cyclic
 [🔗](src/Langlib/Automata/LinearBounded/LinearTwoDiforestReachability.lean).
 The checked two-layer reachability recurrence and ordered-fork construction
 also show why selecting a canonical successful color would already solve the

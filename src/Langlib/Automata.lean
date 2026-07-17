@@ -97,6 +97,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Completeness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Soundness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
 public import Langlib.Automata.LinearBounded.ExplicitDegreeTwoReachability
+public import Langlib.Automata.LinearBounded.FiniteAcyclicRank
 public import Langlib.Automata.LinearBounded.FiniteDAGPathDecomposition
 public import Langlib.Automata.LinearBounded.FiniteReachabilityCounting
 public import Langlib.Automata.LinearBounded.ForkReachabilityBarrier
@@ -106,6 +107,15 @@ public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.LinearBounded.LayeredReachability
 public import Langlib.Automata.LinearBounded.LinearTwoDiforestReachability
 public import Langlib.Automata.LinearBounded.LocalityHypercube
+public import Langlib.Automata.LinearBounded.MachineShortLayers.Acyclicity
+public import Langlib.Automata.LinearBounded.MachineShortLayers.Construction
+public import Langlib.Automata.LinearBounded.MachineShortLayers.LanguageEquivalence
+public import Langlib.Automata.LinearBounded.MachineShortLayers.Layering
+public import Langlib.Automata.LinearBounded.MachineShortLayers.StepLabelInjective
+public import Langlib.Automata.LinearBounded.MachineThreeMatchings.Construction
+public import Langlib.Automata.LinearBounded.MachineThreeMatchings.Layering
+public import Langlib.Automata.LinearBounded.MachineThreeMatchings.NormalForm
+public import Langlib.Automata.LinearBounded.MachineThreeMatchings.Structural
 public import Langlib.Automata.LinearBounded.Packing
 public import Langlib.Automata.LinearBounded.PartialBijectionDecomposition
 public import Langlib.Automata.LinearBounded.PermutationReachability
@@ -113,7 +123,10 @@ public import Langlib.Automata.LinearBounded.Positive
 public import Langlib.Automata.LinearBounded.RowEnumeration
 public import Langlib.Automata.LinearBounded.RowNumeral
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
+public import Langlib.Automata.LinearBounded.ShortLayerSubdivision
+public import Langlib.Automata.LinearBounded.ShortLayerSubdivisionReachability
 public import Langlib.Automata.LinearBounded.StrictClockLayering
+public import Langlib.Automata.LinearBounded.ThreeMatchingReachability
 public import Langlib.Automata.LinearBounded.TwoLayerReachability
 public import Langlib.Automata.LinearBounded.Unambiguous
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
