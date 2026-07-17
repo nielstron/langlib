@@ -64,8 +64,10 @@ At the machine level, every LBA also has an equivalent presentation whose
 configuration graph has both directed degrees at most two
 [🔗](src/Langlib/Automata/LinearBounded/BoundedDegree.lean).  A guarded
 same-width clock compiler strengthens this to a globally acyclic
-presentation, and the degree serializers preserve that property.  Thus even
-globally acyclic configuration graphs of indegree and outdegree at most two
+presentation, and the degree serializers preserve that property.  The same
+serializer has a width-uniform syntactic partition of its edges into two
+partial bijections.  Thus even globally acyclic configuration graphs of
+indegree and outdegree at most two, equipped with those two biunique layers,
 recognize exactly `LBA`
 [🔗](src/Langlib/Automata/LinearBounded/AcyclicClock/LanguageEquivalence.lean).
 This is a nondeterministic normal form, not a DLBA construction.

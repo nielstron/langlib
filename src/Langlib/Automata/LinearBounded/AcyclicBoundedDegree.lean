@@ -437,6 +437,25 @@ public def is_AcyclicBoundedDegreeLBA
       M.ConfigurationDegreeAtMostTwo ∧
       LBA.LanguageEnd M = L
 
+/-- Languages having a globally acyclic, degree-two LBA presentation together with a single
+two-partial-bijection partition family for all tape widths. -/
+public def is_AcyclicDegreeTwoBiUniqueLBA
+    {T : Type} [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
+  ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
+    (_ : DecidableEq Γ) (_ : DecidableEq Λ)
+    (M : LBA.Machine (LBA.EndAlpha T Γ) Λ),
+    M.ConfigurationAcyclic ∧
+      M.ConfigurationDegreeAtMostTwo ∧
+      M.HasTwoBiUniqueStepPartition ∧
+      LBA.LanguageEnd M = L
+
+/-- The class of languages with a globally acyclic, degree-two, two-biunique-layer LBA
+presentation. -/
+public def AcyclicDegreeTwoBiUniqueLBA
+    {T : Type} [Fintype T] [DecidableEq T] :
+    Set (Language T) :=
+  setOf is_AcyclicDegreeTwoBiUniqueLBA
+
 /-- Forgetting the global acyclicity witness gives an ordinary LBA presentation. -/
 public theorem is_LBA_of_is_AcyclicLBA
     {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
@@ -453,6 +472,16 @@ public theorem is_LBA_of_is_AcyclicBoundedDegreeLBA
     is_LBA L := by
   rcases hL with
     ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, _hacyclic, _hdegree, hM⟩
+  exact ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, hM⟩
+
+/-- Forgetting all three structural witnesses gives an ordinary LBA presentation. -/
+public theorem is_LBA_of_is_AcyclicDegreeTwoBiUniqueLBA
+    {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
+    (hL : is_AcyclicDegreeTwoBiUniqueLBA L) :
+    is_LBA L := by
+  rcases hL with
+    ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M,
+      _hacyclic, _hdegree, _hlayers, hM⟩
   exact ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, hM⟩
 
 /-- Once a language has a globally acyclic LBA presentation, simultaneously imposing
@@ -474,6 +503,29 @@ public theorem is_AcyclicLBA_iff_is_AcyclicBoundedDegreeLBA
       M.boundedDegree_configurationDegreeAtMostTwo, ?_⟩
     exact M.languageEnd_boundedDegree_eq.trans hM
   · rintro ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, hacyclic, _hdegree, hM⟩
+    exact ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, hacyclic, hM⟩
+
+/-- Acyclic LBA languages are unchanged when the degree-two compiler's explicit uniform
+two-partial-bijection partition is required as well. -/
+public theorem is_AcyclicLBA_iff_is_AcyclicDegreeTwoBiUniqueLBA
+    {T : Type} [Fintype T] [DecidableEq T] (L : Language T) :
+    is_AcyclicLBA L ↔ is_AcyclicDegreeTwoBiUniqueLBA L := by
+  constructor
+  · rintro ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, hacyclic, hM⟩
+    letI := hΓ
+    letI := hΛ
+    letI := hdecΓ
+    letI := hdecΛ
+    refine ⟨Γ,
+      LBA.IncomingState (LBA.EndAlpha T Γ)
+        (LBA.BinaryBranchState (LBA.EndAlpha T Γ) Λ),
+      hΓ, inferInstance, hdecΓ, inferInstance, M.boundedDegree,
+      LBA.AcyclicBoundedDegree.configurationAcyclic_boundedDegree M hacyclic,
+      M.boundedDegree_configurationDegreeAtMostTwo,
+      M.boundedDegree_hasTwoBiUniqueStepPartition, ?_⟩
+    exact M.languageEnd_boundedDegree_eq.trans hM
+  · rintro ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M,
+      hacyclic, _hdegree, _hlayers, hM⟩
     exact ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, hacyclic, hM⟩
 
 end

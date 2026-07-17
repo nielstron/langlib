@@ -3,6 +3,7 @@ module
 public import Langlib.Automata.LinearBounded.BinaryBranching
 public import Langlib.Automata.DeterministicLinearBounded.Inclusion.LinearBounded
 public import Mathlib.Data.Set.Card
+public import Mathlib.Logic.Relator
 import Mathlib.Tactic
 
 @[expose]
@@ -1079,6 +1080,213 @@ public theorem Machine.languageViaEmbed_boundedDegree_eq
     (M.binaryBranch.languageViaEmbed_serializeIncoming_eq embed).trans
       (M.languageViaEmbed_binaryBranch_eq embed)
 
+/-! ## A uniform two-partial-bijection structure
+
+The simultaneous serializer does more than bound both directed degrees.  Its phases carry a
+fixed two-coloring of every configuration edge.  At base configurations the color distinguishes
+the binary serializer's scan and apply targets; at written configurations it distinguishes a
+clamped move that preserves the head position from one that changes it; and the remaining arrival
+and merge phases use opposite colors.
+-/
+
+/-- The syntactic color of an edge of the simultaneous degree serializer.  Its value away from
+actual edges is irrelevant. -/
+public def Machine.boundedDegreeStepColor
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (_M : Machine Γ Λ) {n : ℕ}
+    (old new : DLBA.Cfg Γ (IncomingState Γ (BinaryBranchState Γ Λ)) n) : Fin 2 :=
+  match old.state with
+  | .base _ =>
+      match new.state with
+      | .written target _ => target.edgeColor
+      | _ => 0
+  | .written _ _ =>
+      if old.tape.head = new.tape.head then 0 else 1
+  | .arrived _ _ => 0
+  | .merge _ _ => 1
+
+/-- One of the two syntactic edge layers of the simultaneous degree serializer. -/
+public def Machine.boundedDegreeStepLayer
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (M : Machine Γ Λ) {n : ℕ} (color : Fin 2) :
+    DLBA.Cfg Γ (IncomingState Γ (BinaryBranchState Γ Λ)) n →
+      DLBA.Cfg Γ (IncomingState Γ (BinaryBranchState Γ Λ)) n → Prop :=
+  fun old new =>
+    Step M.boundedDegree old new ∧ M.boundedDegreeStepColor old new = color
+
+/-- Every edge of the simultaneous serializer belongs to exactly one syntactic layer, and the
+layers contain no nonedges. -/
+public theorem Machine.boundedDegreeStepLayer_partition
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (M : Machine Γ Λ) {n : ℕ} :
+    (∀ old new, Step M.boundedDegree old new ↔
+      ∃! color, M.boundedDegreeStepLayer (n := n) color old new) ∧
+      (∀ color old new,
+        M.boundedDegreeStepLayer (n := n) color old new →
+          Step M.boundedDegree old new) := by
+  constructor
+  · intro old new
+    constructor
+    · intro hstep
+      refine ⟨M.boundedDegreeStepColor old new, ⟨hstep, rfl⟩, ?_⟩
+      intro color hcolor
+      exact hcolor.2.symm
+    · rintro ⟨_, hstep, _⟩
+      exact hstep.1
+  · intro color old new hlayer
+    exact hlayer.1
+
+private theorem Machine.boundedDegreeStepLayer_rightUnique
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (M : Machine Γ Λ) {n : ℕ} (color : Fin 2) :
+    Relator.RightUnique (M.boundedDegreeStepLayer (n := n) color) := by
+  intro source left right hleft hright
+  rcases hleft with ⟨hstepLeft, hcolorLeft⟩
+  rcases hright with ⟨hstepRight, hcolorRight⟩
+  rcases source with ⟨state, tape⟩
+  rcases hstepLeft with
+    ⟨nextLeft, writtenLeft, directionLeft, hmemLeft, rfl⟩
+  rcases hstepRight with
+    ⟨nextRight, writtenRight, directionRight, hmemRight, rfl⟩
+  cases state with
+  | base sourceState =>
+      simp only [Machine.boundedDegree, Machine.serializeIncoming] at hmemLeft hmemRight
+      obtain ⟨moveLeft, hmoveLeft, htripleLeft⟩ := hmemLeft
+      obtain ⟨moveRight, hmoveRight, htripleRight⟩ := hmemRight
+      simp only [Prod.mk.injEq] at htripleLeft htripleRight
+      rcases htripleLeft with ⟨rfl, rfl, rfl⟩
+      rcases htripleRight with ⟨rfl, rfl, rfl⟩
+      have hmoveColor : moveLeft.1.edgeColor = moveRight.1.edgeColor := by
+        exact hcolorLeft.trans hcolorRight.symm
+      have hmove :=
+        M.binaryBranch_transition_unique_of_edgeColor_eq
+          sourceState tape.read hmoveLeft hmoveRight hmoveColor
+      subst moveRight
+      rfl
+  | written target tag =>
+      simp only [Machine.boundedDegree, Machine.serializeIncoming] at hmemLeft hmemRight
+      split at hmemLeft <;> simp_all
+  | arrived target tag =>
+      simp only [Machine.boundedDegree, Machine.serializeIncoming,
+        Set.mem_singleton_iff, Prod.mk.injEq] at hmemLeft hmemRight
+      simp_all
+  | merge target index =>
+      simp only [Machine.boundedDegree, Machine.serializeIncoming] at hmemLeft hmemRight
+      split at hmemLeft <;> simp_all
+
+private theorem Machine.boundedDegreeStepLayer_leftUnique
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (M : Machine Γ Λ) {n : ℕ} (color : Fin 2) :
+    Relator.LeftUnique (M.boundedDegreeStepLayer (n := n) color) := by
+  intro left right target hleft hright
+  rcases hleft with ⟨hstepLeft, hcolorLeft⟩
+  rcases hright with ⟨hstepRight, hcolorRight⟩
+  rcases target with ⟨targetState, tape⟩
+  cases targetState with
+  | written target tag =>
+      exact
+        ((M.binaryBranch).predecessor_written_eq hstepLeft).trans
+          ((M.binaryBranch).predecessor_written_eq hstepRight).symm
+  | arrived target tag =>
+      rcases (M.binaryBranch).predecessor_arrived_eq_or_eq hstepLeft with
+        hleftFirst | hleftSecond <;>
+      rcases (M.binaryBranch).predecessor_arrived_eq_or_eq hstepRight with
+        hrightFirst | hrightSecond
+      · exact hleftFirst.trans hrightFirst.symm
+      · subst left
+        subst right
+        by_cases hhead :
+            (tape.moveHead (oppositeDir tag.direction)).head = tape.head
+        · cases tape
+          simp_all [DLBA.BoundedTape.moveHead]
+        · have hcolors := hcolorLeft.trans hcolorRight.symm
+          simp [Machine.boundedDegreeStepColor, hhead] at hcolors
+      · subst left
+        subst right
+        by_cases hhead :
+            (tape.moveHead (oppositeDir tag.direction)).head = tape.head
+        · cases tape
+          simp_all [DLBA.BoundedTape.moveHead]
+        · have hcolors := hcolorLeft.trans hcolorRight.symm
+          simp [Machine.boundedDegreeStepColor, hhead] at hcolors
+      · exact hleftSecond.trans hrightSecond.symm
+  | merge target index =>
+      rcases (M.binaryBranch).predecessor_merge_eq_or_eq hstepLeft with
+        hleftArrival | hleftMerge <;>
+      rcases (M.binaryBranch).predecessor_merge_eq_or_eq hstepRight with
+        hrightArrival | hrightMerge
+      · exact hleftArrival.trans hrightArrival.symm
+      · subst left
+        subst right
+        have hcolors := hcolorLeft.trans hcolorRight.symm
+        simp [Machine.boundedDegreeStepColor] at hcolors
+      · subst left
+        subst right
+        have hcolors := hcolorLeft.trans hcolorRight.symm
+        simp [Machine.boundedDegreeStepColor] at hcolors
+      · exact hleftMerge.trans hrightMerge.symm
+  | base target =>
+      exact
+        ((M.binaryBranch).predecessor_base_eq hstepLeft).trans
+          ((M.binaryBranch).predecessor_base_eq hstepRight).symm
+
+/-- Each syntactic edge layer of the simultaneous degree serializer is both functional and
+cofunctional. -/
+public theorem Machine.boundedDegreeStepLayer_biUnique
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (M : Machine Γ Λ) {n : ℕ} (color : Fin 2) :
+    Relator.BiUnique (M.boundedDegreeStepLayer (n := n) color) :=
+  ⟨M.boundedDegreeStepLayer_leftUnique color,
+    M.boundedDegreeStepLayer_rightUnique color⟩
+
+/-- At every tape width, the simultaneous degree serializer has one fixed syntactic partition
+of its entire configuration relation into two partial bijections.
+
+Unlike a classically selected finite-graph coloring, `boundedDegreeStepLayer` is a single local
+definition that is uniform in the tape width. -/
+public theorem Machine.exists_two_biUnique_boundedDegree_step_partition
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (M : Machine Γ Λ) (n : ℕ) :
+    ∃ layer : Fin 2 →
+        DLBA.Cfg Γ (IncomingState Γ (BinaryBranchState Γ Λ)) n →
+        DLBA.Cfg Γ (IncomingState Γ (BinaryBranchState Γ Λ)) n → Prop,
+      (∀ source target,
+        Step M.boundedDegree source target ↔
+          ∃! color, layer color source target) ∧
+        (∀ color source target,
+          layer color source target → Step M.boundedDegree source target) ∧
+        ∀ color, Relator.BiUnique (layer color) := by
+  refine ⟨M.boundedDegreeStepLayer, ?_, ?_, ?_⟩
+  · exact M.boundedDegreeStepLayer_partition.1
+  · exact M.boundedDegreeStepLayer_partition.2
+  · exact M.boundedDegreeStepLayer_biUnique
+
+/-- A single family of two edge layers partitions every fixed-width configuration relation of a
+machine into partial bijections.  This is a structural property; by itself it does not assert that
+an arbitrary witness is computable by a finite transition table. -/
+public def Machine.HasTwoBiUniqueStepPartition (M : Machine Γ Λ) : Prop :=
+  ∃ layer : (n : ℕ) → Fin 2 →
+      DLBA.Cfg Γ Λ n → DLBA.Cfg Γ Λ n → Prop,
+    (∀ n source target,
+      Step M source target ↔ ∃! color, layer n color source target) ∧
+      (∀ n color source target,
+        layer n color source target → Step M source target) ∧
+      ∀ n color, Relator.BiUnique (layer n color)
+
+/-- The simultaneous degree serializer has a concrete, syntactically defined two-layer
+partial-bijection partition uniform over all tape widths. -/
+public theorem Machine.boundedDegree_hasTwoBiUniqueStepPartition
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (M : Machine Γ Λ) :
+    M.boundedDegree.HasTwoBiUniqueStepPartition := by
+  refine ⟨fun n => M.boundedDegreeStepLayer (n := n), ?_, ?_, ?_⟩
+  · intro n
+    exact M.boundedDegreeStepLayer_partition.1
+  · intro n
+    exact M.boundedDegreeStepLayer_partition.2
+  · intro n
+    exact M.boundedDegreeStepLayer_biUnique
+
 end LBA
 
 /-- Languages recognized by canonical endmarker LBAs whose configuration graphs have both
@@ -1095,6 +1303,21 @@ public def BoundedDegreeLBA
     {T : Type} [Fintype T] [DecidableEq T] :
     Set (Language T) :=
   setOf is_BoundedDegreeLBA
+
+/-- Languages recognized by an LBA whose full fixed-width configuration relations share a
+two-partial-bijection layer family. -/
+public def is_TwoBiUniqueLBA
+    {T : Type} [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
+  ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
+    (_ : DecidableEq Γ) (_ : DecidableEq Λ)
+    (M : LBA.Machine (LBA.EndAlpha T Γ) Λ),
+    M.HasTwoBiUniqueStepPartition ∧ LBA.LanguageEnd M = L
+
+/-- The class of languages recognized by two-partial-bijection LBAs. -/
+public def TwoBiUniqueLBA
+    {T : Type} [Fintype T] [DecidableEq T] :
+    Set (Language T) :=
+  setOf is_TwoBiUniqueLBA
 
 /-- Every finite LBA has an equivalent presentation, over the same tape alphabet and tape width,
 whose configuration graph has both directed degrees at most two. -/
@@ -1123,6 +1346,33 @@ public theorem BoundedDegreeLBA_eq_LBA
   ext L
   exact (is_LBA_iff_is_BoundedDegreeLBA L).symm
 
+/-- Every LBA language has an equivalent same-width presentation whose configuration relation is
+partitioned, uniformly over tape widths, into two partial bijections. -/
+public theorem is_LBA_iff_is_TwoBiUniqueLBA
+    {T : Type} [Fintype T] [DecidableEq T] (L : Language T) :
+    is_LBA L ↔ is_TwoBiUniqueLBA L := by
+  constructor
+  · rintro ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, hM⟩
+    letI := hΓ
+    letI := hΛ
+    letI := hdecΓ
+    letI := hdecΛ
+    refine ⟨Γ,
+      LBA.IncomingState (LBA.EndAlpha T Γ)
+        (LBA.BinaryBranchState (LBA.EndAlpha T Γ) Λ),
+      hΓ, inferInstance, hdecΓ, inferInstance, M.boundedDegree,
+      M.boundedDegree_hasTwoBiUniqueStepPartition, ?_⟩
+    exact M.languageEnd_boundedDegree_eq.trans hM
+  · rintro ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, _hlayers, hM⟩
+    exact ⟨Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, M, hM⟩
+
+/-- Two-partial-bijection configuration relations recognize exactly the full LBA class. -/
+public theorem TwoBiUniqueLBA_eq_LBA
+    {T : Type} [Fintype T] [DecidableEq T] :
+    (TwoBiUniqueLBA : Set (Language T)) = LBA := by
+  ext L
+  exact (is_LBA_iff_is_TwoBiUniqueLBA L).symm
+
 /-- The first LBA problem is exactly the question whether all degree-two LBA languages are
 deterministic. -/
 public theorem lba_eq_dlba_iff_boundedDegreeLBA_subset
@@ -1130,6 +1380,19 @@ public theorem lba_eq_dlba_iff_boundedDegreeLBA_subset
     ((LBA : Set (Language T)) = DLBA) ↔
       ((BoundedDegreeLBA : Set (Language T)) ⊆ DLBA) := by
   rw [BoundedDegreeLBA_eq_LBA]
+  constructor
+  · intro heq
+    rw [heq]
+  · intro hsubset
+    exact Set.Subset.antisymm hsubset DLBA_subset_LBA
+
+/-- The first LBA problem is equivalently the question whether all LBAs equipped with two
+biunique step layers recognize deterministic languages. -/
+public theorem lba_eq_dlba_iff_twoBiUniqueLBA_subset
+    {T : Type} [Fintype T] [DecidableEq T] :
+    ((LBA : Set (Language T)) = DLBA) ↔
+      ((TwoBiUniqueLBA : Set (Language T)) ⊆ DLBA) := by
+  rw [TwoBiUniqueLBA_eq_LBA]
   constructor
   · intro heq
     rw [heq]

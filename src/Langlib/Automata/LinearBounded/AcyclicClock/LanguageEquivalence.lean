@@ -12,7 +12,8 @@ public section
 The operational clock compiler is globally acyclic on every raw configuration and recognizes
 exactly the source language.  Consequently every LBA language has a presentation whose complete
 configuration graph is acyclic at every tape width.  Composing with the degree serializers gives
-the same result while simultaneously bounding indegree and outdegree by two.
+the same result while simultaneously bounding indegree and outdegree by two and exposing a
+width-uniform partition of the step relation into two partial bijections.
 
 These are nondeterministic normal forms.  They do not choose a successful branch and therefore do
 not turn an LBA into a DLBA.  Indeed, the final equivalences show that determinizing even either
@@ -80,6 +81,14 @@ public theorem is_LBA_iff_is_AcyclicBoundedDegreeLBA
   rw [is_LBA_iff_is_AcyclicLBA,
     is_AcyclicLBA_iff_is_AcyclicBoundedDegreeLBA]
 
+/-- Every LBA language has an equivalent globally acyclic, degree-two presentation whose entire
+configuration relation is partitioned by two uniform biunique layers. -/
+public theorem is_LBA_iff_is_AcyclicDegreeTwoBiUniqueLBA
+    {T : Type} [Fintype T] [DecidableEq T] (L : Language T) :
+    is_LBA L ↔ is_AcyclicDegreeTwoBiUniqueLBA L := by
+  rw [is_LBA_iff_is_AcyclicLBA,
+    is_AcyclicLBA_iff_is_AcyclicDegreeTwoBiUniqueLBA]
+
 /-- Globally acyclic LBAs recognize exactly `LBA`. -/
 public theorem AcyclicLBA_eq_LBA
     {T : Type} [Fintype T] [DecidableEq T] :
@@ -93,6 +102,14 @@ public theorem AcyclicBoundedDegreeLBA_eq_LBA
     (AcyclicBoundedDegreeLBA : Set (Language T)) = LBA := by
   ext L
   exact (is_LBA_iff_is_AcyclicBoundedDegreeLBA L).symm
+
+/-- Globally acyclic, degree-two LBAs with a two-biunique-layer partition recognize exactly
+`LBA`. -/
+public theorem AcyclicDegreeTwoBiUniqueLBA_eq_LBA
+    {T : Type} [Fintype T] [DecidableEq T] :
+    (AcyclicDegreeTwoBiUniqueLBA : Set (Language T)) = LBA := by
+  ext L
+  exact (is_LBA_iff_is_AcyclicDegreeTwoBiUniqueLBA L).symm
 
 /-- The first LBA problem is unchanged when restricted to globally acyclic LBA
 presentations. -/
@@ -114,6 +131,19 @@ public theorem lba_eq_dlba_iff_acyclicBoundedDegreeLBA_subset
     ((LBA : Set (Language T)) = DLBA) ↔
       ((AcyclicBoundedDegreeLBA : Set (Language T)) ⊆ DLBA) := by
   rw [AcyclicBoundedDegreeLBA_eq_LBA]
+  constructor
+  · intro heq
+    rw [heq]
+  · intro hsubset
+    exact Set.Subset.antisymm hsubset DLBA_subset_LBA
+
+/-- The first LBA problem remains unchanged even after requiring global acyclicity, both degree
+bounds, and the explicit two-partial-bijection layer family supplied by the compiler. -/
+public theorem lba_eq_dlba_iff_acyclicDegreeTwoBiUniqueLBA_subset
+    {T : Type} [Fintype T] [DecidableEq T] :
+    ((LBA : Set (Language T)) = DLBA) ↔
+      ((AcyclicDegreeTwoBiUniqueLBA : Set (Language T)) ⊆ DLBA) := by
+  rw [AcyclicDegreeTwoBiUniqueLBA_eq_LBA]
   constructor
   · intro heq
     rw [heq]

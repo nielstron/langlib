@@ -62,6 +62,12 @@ public def BinaryBranchState.original : BinaryBranchState Γ Λ → Λ
   | .ready q => q
   | .scan q _ _ => q
 
+/-- The two syntactic kinds of outgoing edges in the binary-branching serializer.  Scan targets
+are color zero and ready targets are color one. -/
+public def BinaryBranchState.edgeColor : BinaryBranchState Γ Λ → Fin 2
+  | .scan _ _ _ => 0
+  | .ready _ => 1
+
 /-- Canonically select the head of a finite set's list representation. -/
 public noncomputable def pickMove [DecidableEq Γ] [DecidableEq Λ]
     (remaining : Finset (Move Γ Λ)) : Option (Move Γ Λ) :=
@@ -317,6 +323,40 @@ private theorem Machine.mem_binaryBranch_scan_iff
         · simp [Machine.binaryBranch, hpick, henabled]
         · simp [Machine.binaryBranch, hpick, henabled]
   · simp [Machine.binaryBranch, hsymbol]
+
+/-- At a fixed source state and scanned symbol, two serialized local moves with the same target
+color are equal.  A scan source has at most its canonical skip move (color zero) and its canonical
+apply move (color one); a ready source has only its initialization move. -/
+public theorem Machine.binaryBranch_transition_unique_of_edgeColor_eq
+    [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+    (M : Machine Γ Λ) (source : BinaryBranchState Γ Λ) (symbol : Γ)
+    {left right : BinaryBranchState Γ Λ × Γ × DLBA.Dir}
+    (hleft : left ∈ M.binaryBranch.transition source symbol)
+    (hright : right ∈ M.binaryBranch.transition source symbol)
+    (hcolor : left.1.edgeColor = right.1.edgeColor) :
+    left = right := by
+  cases source with
+  | ready q =>
+      exact
+        ((M.mem_binaryBranch_ready_iff q symbol left).1 hleft).trans
+          ((M.mem_binaryBranch_ready_iff q symbol right).1 hright).symm
+  | scan q expected remaining =>
+      obtain ⟨_, leftMove, hleftPick, hleftCase⟩ :=
+        (M.mem_binaryBranch_scan_iff q expected symbol remaining left).1 hleft
+      obtain ⟨_, rightMove, hrightPick, hrightCase⟩ :=
+        (M.mem_binaryBranch_scan_iff q expected symbol remaining right).1 hright
+      have hmove : leftMove = rightMove := by
+        exact Option.some.inj (hleftPick.symm.trans hrightPick)
+      subst rightMove
+      rcases hleftCase with hleftSkip | ⟨_, hleftApply⟩
+      · rcases hrightCase with hrightSkip | ⟨_, hrightApply⟩
+        · exact hleftSkip.trans hrightSkip.symm
+        · rw [hleftSkip, hrightApply] at hcolor
+          simp [BinaryBranchState.edgeColor] at hcolor
+      · rcases hrightCase with hrightSkip | ⟨_, hrightApply⟩
+        · rw [hleftApply, hrightSkip] at hcolor
+          simp [BinaryBranchState.edgeColor] at hcolor
+        · exact hleftApply.trans hrightApply.symm
 
 /-- Projecting one simulator step either stutters or produces one genuine original step. -/
 private theorem Machine.binaryProjectCfg_step

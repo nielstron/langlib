@@ -225,6 +225,17 @@ has at most two distinct successors and at most two distinct predecessors.
 The exact class results are `BoundedDegreeLBA_eq_LBA` and
 `lba_eq_dlba_iff_boundedDegreeLBA_subset`.
 
+The serializer has more structure than the cardinality bound alone records.
+`boundedDegreeStepColor` is one definition, independent of tape width, that
+colors every serialized edge with `Fin 2`.  Scan and apply targets receive
+different colors, the two possible inverse clamped moves are separated by
+whether the head position changed, and arrival and merge predecessors receive
+opposite colors.  `boundedDegreeStepLayer_biUnique` proves that each color is
+both functional and cofunctional, while
+`boundedDegreeStepLayer_partition` proves exact unique coverage and excludes
+nonedges.  Consequently `TwoBiUniqueLBA_eq_LBA` shows that requiring a
+two-partial-bijection configuration relation still recognizes all of `LBA`.
+
 These two restrictions can also be imposed simultaneously at the finite
 reachability-instance level.  The strict clock construction used by
 `reaches_iff_exists_strictLayer_reaches` replaces an edge `u → v` by
@@ -298,10 +309,12 @@ $$
 
 the number of source configurations.  A shortest accepting source path is
 simple and therefore fits before overflow.  The formal theorems
-`AcyclicLBA_eq_LBA` and `AcyclicBoundedDegreeLBA_eq_LBA` give the resulting
-class equalities.  This is only a normalization of nondeterministic runs: it
-does not choose a path through the resulting acyclic graph and therefore does
-not imply `LBA = DLBA`.
+`AcyclicLBA_eq_LBA`, `AcyclicBoundedDegreeLBA_eq_LBA`, and
+`AcyclicDegreeTwoBiUniqueLBA_eq_LBA` give the resulting class equalities.  The
+last combines global acyclicity, both degree-two bounds, and the explicit
+two-biunique-layer family.  This is only a normalization of nondeterministic
+runs: it does not choose a path through the resulting acyclic graph and
+therefore does not imply `LBA = DLBA`.
 
 The valid-start clock idea is classical for space bounds at least logarithmic.
 Sipser explicitly credits Hopcroft and Ullman with the extra-track counter
@@ -364,10 +377,11 @@ formally exactly strict time-unrolling; it does not erase or resolve a source
 branch.  This is a relational characterization, not a formal graph-minor or
 subdivision theorem for the unquotiented configuration graph.
 
-Consequently `lba_eq_dlba_iff_acyclicBoundedDegreeLBA_subset` states the
+Consequently `lba_eq_dlba_iff_acyclicDegreeTwoBiUniqueLBA_subset` states the
 remaining open problem in its strongest machine normal form here:
 determinizing all globally acyclic LBAs of configuration indegree and
-outdegree at most two is equivalent to determinizing all LBAs.
+outdegree at most two whose edges are already partitioned into two explicit
+partial bijections is equivalent to determinizing all LBAs.
 
 The restriction can be made syntactic rather than merely semantic.
 `lba_eq_dlba_iff_clockDegreeSerializedLanguages` quantifies only over machines
@@ -754,19 +768,32 @@ theorem `exists_four_biUnique_decomposition` proves, without assuming a finite
 ambient vertex type, that every relation with at most two successors and at
 most two predecessors is exactly the union of four `Relator.BiUnique`
 relations.  The stronger `exists_four_biUnique_partition` assigns every edge
-exactly one color.  It colors an edge by independently chosen two-valued ports
-at its source and target.  The theorem
-`Machine.exists_four_biUnique_step_partition` applies this directly to every
-fixed-width configuration graph of a
-`ConfigurationDegreeAtMostTwo` LBA.  On an acyclic graph every color is
-consequently a disjoint union of directed paths when the graph is finite, but
-the number of path components can grow with the graph.  Thus the degree-two
-hard core already has a constant partial-bijection decomposition; the
-unresolved information lies in unbounded switching among its components.
-The formal construction is structural: its classically chosen port maps may
-depend on the tape width and it does not provide a uniform component
-enumerator.  The hardness below is stronger in a different direction because
-the layer decomposition is included in the explicit input.
+exactly one color by independently choosing two-valued ports at its source and
+target.
+
+For finite vertex types the checked optimal bound is two.
+`edgeConflictGraph_isCycle_even` proves that every simple cycle in the
+edge-conflict graph is even; `edgeConflictGraph_colorable_two` converts this
+to a proper two-coloring; and `exists_two_biUnique_partition` turns that
+coloring into an exact partition of the original relation into two
+`Relator.BiUnique` layers.  The theorem
+`Machine.exists_two_biUnique_step_partition` applies this to every fixed-width
+configuration graph of a finite-alphabet `ConfigurationDegreeAtMostTwo` LBA.
+On an acyclic directed graph every layer is consequently a disjoint union of
+directed paths, but the number of path components can grow with the graph.
+Thus the degree-two hard core already has an optimal constant
+partial-bijection decomposition; the unresolved information lies in
+unbounded switching among its components.  This generic construction is
+structural: its classically chosen spanning forest and coloring may depend on
+the tape width and it does not provide a uniform component enumerator.
+
+The actual LBA degree serializer avoids that nonuniformity.
+`Machine.boundedDegree_hasTwoBiUniqueStepPartition` supplies the concrete
+width-independent layer definition described above, and
+`AcyclicDegreeTwoBiUniqueLBA_eq_LBA` shows that this same syntactic partition
+survives the strongest acyclic normal form.  This still leaves a choice
+between the two partial functions after every step; it does not select the
+successful color sequence.
 
 In fact, explicit reachability remains `NL`-complete for **acyclic** graphs
 when a decomposition into two partial bijections is supplied.  One direct
@@ -792,11 +819,11 @@ partial-bijection DAGs would therefore imply `L = NL`.
 This is an explicit-input hardness barrier, not a separation of the
 compressed LBA language classes.
 
-The formal four-color theorem is deliberately a simpler, nonoptimal
-decomposition: independent two-valued ports at the source and target give
-four local color pairs without needing a finite graph or a global component
-traversal.  Finite degree-two graphs need only the two matching colors above;
-that sharper statement is not currently formalized here.
+The four-color theorem remains useful because it needs neither a finite graph
+nor a global component traversal.  The optimal generic finite theorem instead
+uses a spanning forest of the conflict graph and is correspondingly
+noncomputable as currently stated; the separate serializer theorem is local
+and uniform because its gadget phases already encode a valid coloring.
 
 There is a different positive frontier when the number of paths in a directed
 edge decomposition is bounded.  Given an `N`-vertex graph whose edges are
@@ -921,8 +948,10 @@ bounded-degree `N`-vertex DAGs can still contain exponentially many directed
 paths.  The theorem `diamondChain_obstruction` formalizes the sharp elementary
 witness: a `k`-diamond chain has `3k+1`
 vertices, is acyclic with both directed degrees at most two, and has exactly
-`2^k` explicit source-to-target paths.  The exact count is separately exposed
-by `card_stPaths`.
+`2^k` explicit source-to-target paths.  Moreover `edgeLayer_exact` and
+`edgeLayer_biUnique` give the chain an exact two-partial-bijection partition.
+Thus exponentially many color sequences survive even in the newly isolated
+normal form.  The exact path count is separately exposed by `card_stPaths`.
 
 One announced result cannot currently be used to improve that bound.  The
 [STOC 2026 accepted-papers
@@ -1622,13 +1651,20 @@ the regular collapses above cannot extend to the unrestricted model.
   `configurationAcyclic_boundedDegree` additionally proves that both
   serializers preserve global acyclicity.
 - **A constant number of partial-bijection layers:** this is automatic in the
-  degree-two core: `exists_four_biUnique_partition` partitions every such
-  edge relation into four functional-and-cofunctional layers.  At the
-  explicit-graph level, even acyclic reachability with a supplied
+  finite degree-two core: `exists_two_biUnique_partition` optimally partitions
+  every such edge relation into two functional-and-cofunctional layers, and
+  `Machine.exists_two_biUnique_step_partition` gives the fixed-width LBA
+  corollary.  More strongly, `boundedDegreeStepLayer` gives the actual degree
+  serializer one syntactic layer family uniform over all tape widths, and
+  `AcyclicDegreeTwoBiUniqueLBA_eq_LBA` proves that the globally acyclic
+  two-layer restriction still equals `LBA`.  At the explicit-graph level,
+  even acyclic reachability with a supplied
   two-partial-bijection decomposition is `NL`-complete by the paper reduction
-  above.  What does give a positive frontier is a constant number of whole
-  paths in an edge decomposition, not a constant number of layers with
-  unboundedly many path components.
+  above.  The formal `diamondChain_obstruction` now includes an exact
+  two-biunique-layer partition while retaining `2^k` paths.  What does give a
+  positive frontier is a constant number of whole paths in an edge
+  decomposition, not a constant number of layers with unboundedly many path
+  components.
 - **One-tape locality:** it does not force a low-width configuration graph.  A
   single fixed two-state LBA over a binary tape alphabet (with local outdegree
   at most three) has disjoint connected fibers indexed by Boolean tape

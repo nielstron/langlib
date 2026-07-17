@@ -1,6 +1,7 @@
 module
 
 public import Mathlib.Data.Set.Card
+public import Mathlib.Logic.Relator
 import Mathlib.Tactic
 
 @[expose]
@@ -179,6 +180,69 @@ public theorem indegreeAtMostTwo (k : ℕ) :
       rw [Set.encard_univ, ENat.card_eq_coe_fintype_card, Fintype.card_bool]
       norm_num
 
+/-! ## Two explicit partial-bijection layers -/
+
+/-- Color both halves of a diamond branch by its Boolean branch tag.  Values on nonedges are
+irrelevant. -/
+@[expose]
+public def edgeColor {k : ℕ} : Vertex k → Vertex k → Bool
+  | .inl _, .inr (_, bit) => bit
+  | .inr (_, bit), .inl _ => bit
+  | _, _ => false
+
+/-- One Boolean edge layer of the diamond chain. -/
+@[expose]
+public def edgeLayer (k : ℕ) (color : Bool) (old new : Vertex k) : Prop :=
+  Edge k old new ∧ edgeColor old new = color
+
+/-- Every diamond edge has exactly one Boolean layer color. -/
+public theorem edgeLayer_exact (k : ℕ) (old new : Vertex k) :
+    Edge k old new ↔ ∃! color, edgeLayer k color old new := by
+  constructor
+  · intro hedge
+    refine ⟨edgeColor old new, ⟨hedge, rfl⟩, ?_⟩
+    intro color hcolor
+    exact hcolor.2.symm
+  · rintro ⟨_, hcolor, _⟩
+    exact hcolor.1
+
+/-- A diamond layer contains only genuine diamond edges. -/
+public theorem edgeLayer_sub_edge (k : ℕ) (color : Bool) (old new : Vertex k)
+    (hlayer : edgeLayer k color old new) :
+    Edge k old new :=
+  hlayer.1
+
+/-- Each Boolean layer of the diamond chain is a partial bijection. -/
+public theorem edgeLayer_biUnique (k : ℕ) (color : Bool) :
+    Relator.BiUnique (edgeLayer k color) := by
+  constructor
+  · intro left right new hleft hright
+    rcases hleft with ⟨hleft, hleftColor⟩
+    rcases hright with ⟨hright, hrightColor⟩
+    rcases new with newJunction | ⟨newBranch, newBit⟩ <;>
+      rcases left with leftJunction | ⟨leftBranch, leftBit⟩ <;>
+      rcases right with rightJunction | ⟨rightBranch, rightBit⟩ <;>
+      simp only [Edge, edgeColor] at hleft hright hleftColor hrightColor
+    · apply congrArg Sum.inr
+      apply Prod.ext
+      · exact Fin.succ_inj.mp (hleft.symm.trans hright)
+      · exact hleftColor.trans hrightColor.symm
+    · apply congrArg Sum.inl
+      exact hleft.trans hright.symm
+  · intro old left right hleft hright
+    rcases hleft with ⟨hleft, hleftColor⟩
+    rcases hright with ⟨hright, hrightColor⟩
+    rcases old with oldJunction | ⟨oldBranch, oldBit⟩ <;>
+      rcases left with leftJunction | ⟨leftBranch, leftBit⟩ <;>
+      rcases right with rightJunction | ⟨rightBranch, rightBit⟩ <;>
+      simp only [Edge, edgeColor] at hleft hright hleftColor hrightColor
+    · apply congrArg Sum.inr
+      apply Prod.ext
+      · exact Fin.castSucc_inj.mp (hleft.symm.trans hright)
+      · exact hleftColor.trans hrightColor.symm
+    · apply congrArg Sum.inl
+      exact hleft.trans hright.symm
+
 /-- An explicit source-to-target path through a chain of diamonds.
 
 The fields record all `2 * k + 1` visited vertices in alternating form, together with each of
@@ -312,17 +376,22 @@ public theorem exponentiallyManyDistinctPaths (k : ℕ) :
   ⟨pathOfBits, pathOfBits_injective k⟩
 
 /-- The complete diamond-chain obstruction in one statement: linearly many vertices,
-acyclicity, degree at most two in both directions, exactly `2 ^ k` source-to-target paths, and
-their explicit injective bit-vector enumeration. -/
+acyclicity, degree at most two in both directions, an exact partition into two partial
+bijections, exactly `2 ^ k` source-to-target paths, and their explicit injective bit-vector
+enumeration. -/
 public theorem diamondChain_obstruction (k : ℕ) :
     Fintype.card (Vertex k) = k + k + k + 1 ∧
       (∀ vertex : Vertex k, ¬ TransGen (Edge k) vertex vertex) ∧
       OutdegreeAtMostTwo (Edge k) ∧
       IndegreeAtMostTwo (Edge k) ∧
+      (∀ old new, Edge k old new ↔ ∃! color, edgeLayer k color old new) ∧
+      (∀ color old new, edgeLayer k color old new → Edge k old new) ∧
+      (∀ color, Relator.BiUnique (edgeLayer k color)) ∧
       Fintype.card (Fin k → Bool) = Nat.pow 2 k ∧
       Nat.card (STPath k) = Nat.pow 2 k ∧
       ∃ paths : (Fin k → Bool) → STPath k, Function.Injective paths :=
   ⟨card_vertex k, acyclic k, outdegreeAtMostTwo k, indegreeAtMostTwo k,
+    edgeLayer_exact k, edgeLayer_sub_edge k, edgeLayer_biUnique k,
     card_bitVectors k, card_stPaths k, exponentiallyManyDistinctPaths k⟩
 
 end DiamondPaths
