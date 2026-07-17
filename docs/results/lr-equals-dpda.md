@@ -38,7 +38,8 @@ The machine reads an explicit fresh endmarker. The automata-level theorem
 `CF_grammar.LRk.Buffered.marked_machine_correct` proves that it accepts a
 properly marked word exactly when the original grammar generates the word.
 Intersection with the regular language of well-formed marked inputs, regular
-right quotient, and injective renaming then remove that implementation marker.
+right quotient, and inverse injective renaming then remove that implementation
+marker.
 Zero-lookahead grammars are covered by monotonicity from LR(0) to LR(1).
 
 ## DPDA to LR(1) grammar
@@ -59,9 +60,9 @@ and the fresh augmented start rule.
 ## Source
 
 The public equivalence and class equalities are in
-[`Langlib.Grammars.LR.Equivalence`](../../api/Langlib/Grammars/LR/Equivalence.html).
-The two construction directions are exposed by `LRkToDPDA.lean` and
-`DPDAToLR.lean` in the same source directory.
+[`Langlib.Grammars.LR.Equivalence`](../api/Langlib/Grammars/LR/Equivalence.html).
+The two construction directions are exposed by `is_DPDA_of_is_LRk` and
+`is_LRk_one_of_is_DPDA`.
 
 ## Keywords
 

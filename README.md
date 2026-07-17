@@ -55,7 +55,23 @@ relation is already single-valued
 [🔗](src/Langlib/Automata/LinearBounded/Functional.lean).  The
 Immerman–Szelepcsényi complement construction does not settle this question:
 it constructs another nondeterministic linear-space machine rather than a
-deterministic one.
+deterministic one.  The reverse inclusion is equivalent to deterministic
+reachability for finite fixed-width row systems even when their local edge
+verifier is deterministic, the row graph is acyclic, and every row has both
+indegree and outdegree at most two
+[🔗](src/Langlib/Automata/LinearBounded/CertifiedRowSystem/StrictDegreeCharacterization.lean).
+At the machine level, every LBA also has an equivalent presentation whose
+configuration graph has both directed degrees at most two
+[🔗](src/Langlib/Automata/LinearBounded/BoundedDegree.lean).  A guarded
+same-width clock compiler strengthens this to a globally acyclic
+presentation, and the degree serializers preserve that property.  Thus even
+globally acyclic configuration graphs of indegree and outdegree at most two
+recognize exactly `LBA`
+[🔗](src/Langlib/Automata/LinearBounded/AcyclicClock/LanguageEquivalence.lean).
+This is a nondeterministic normal form, not a DLBA construction.
+The [first-LBA boundary note](docs/results/first-lba-problem-boundaries.md)
+records the exact equivalences, restricted positive cases, failed proof
+routes, and current literature status.
 
 The strict hierarchy results are uniform over every finite alphabet meeting the
 displayed result's sharp or currently proved size bound: Regular ⊊ LR(k)/DPDA
@@ -119,18 +135,20 @@ Additional CSL results:
 ### Decidability
 
 Membership is the uniform word problem for a concrete presentation: the input is a
-valid encoded automaton or grammar together with a word.  `ComputableMembership`
-[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean) takes an optional validity
-promise, requires valid codes to present exactly the stated language class, and
-requires one partial-recursive evaluator to halt and answer correctly on every
-valid code-and-word pair.  It separately requires raw encoded membership to be
-uniformly recursively enumerable; this prevents the semantic decoding map itself
-from hiding a non-r.e. membership oracle.
+valid encoded automaton, grammar, or program together with a word.
+`ComputableMembership`
+[🔗](src/Langlib/Utilities/ComputabilityPredicates.lean) takes an optional
+validity promise, requires valid codes to present exactly the stated language
+class, and requires one partial-recursive evaluator to halt and answer correctly
+on every valid code-and-word pair.  It separately requires raw encoded membership
+to be uniformly recursively enumerable; this prevents the semantic decoding map
+itself from hiding a non-r.e. membership oracle.
 
 The remaining columns use the corresponding uniform emptiness, universality, and
 equivalence problems for the concrete presentation named by each linked theorem.
 In particular, the deterministic context-free membership and emptiness proofs use
-encoded grammars, while its universality proof uses promised-total encoded DPDAs.
+encoded grammars, while its universality and equivalence proofs use promised-total
+encoded DPDAs.
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |

@@ -33,10 +33,8 @@ but that DLBA totalization/model-equivalence bridge is not yet formalized here.
 
 ## The verified deterministic boundary
 
-The file
-[`Automata/LinearBounded/Functional.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/Functional.lean)
-proves the complete machine-level converse when the LBA's local transition
-relation is already single-valued:
+The theorem `LBA.Machine.accepts_toDLBA_iff` proves the complete machine-level
+converse when the LBA's local transition relation is already single-valued:
 
 - `LBA.Machine.Functional` says that every state/symbol pair has at most one
   outgoing move.
@@ -77,21 +75,30 @@ implicit configuration graph.
   nondeterministically, so it constructs another NLBA, not a DLBA.
 
 The usual separation attempt also fails at the linear bound.  A universal
-machine simulating an input-encoded target needs an overhead depending on the
-target's number of states and tape symbols.  Those quantities are unbounded
-over all encoded DLBAs, so the overhead is not one fixed constant times the
-input length.  This is precisely the defect in published diagonalization
-claims purporting to resolve the problem.
+machine simulating an input-encoded target must represent each source tape
+symbol, costing a per-cell factor depending on the target tape alphabet.
+That alphabet is unbounded over all encoded DLBAs, so the overhead is not one
+fixed constant times the input length.  Program and state descriptions are
+additive code data; they are not the same-length capacity obstruction.  The
+unbounded per-cell factor is the defect in published diagonalization claims
+purporting to resolve the problem.
 
-Langlib makes the underlying same-length capacity issue explicit in
-[`Automata/LinearBounded/ConfigurationEncoding.lean`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Automata/LinearBounded/ConfigurationEncoding.lean):
-if a source tape alphabet is strictly larger than a fixed target tape
-alphabet, no fixed target state type can injectively encode every source tape
-using the same number of cells at every length
-(`DLBA.no_uniform_same_length_boundedTape_encoding`).  This is a static
-information-capacity obstruction, not a language-class separation; it does not
-rule out semantic simulations or simulations using a constant-factor larger
-tape.
+Langlib makes the underlying configuration-capacity issue explicit in
+`DLBA.no_uniform_same_length_boundedTape_encoding`: if a source tape alphabet
+is strictly larger than a fixed target tape alphabet, no fixed target state
+type can injectively encode every source tape using the same number of cells
+at every length.  More generally,
+`DLBA.exists_fin_no_uniform_affineExpansion_boundedTape_encoding` proves that
+for every fixed target alphabet, state set, positive cell-expansion factor,
+and additive cell allowance, some finite source alphabet defeats every
+uniform injective configuration encoding with that affine bound.  These are
+static information-capacity obstructions, not a language-class separation;
+they do not rule out semantic language simulations.
+
+The [first-LBA boundary note](first-lba-problem-boundaries.html) gives the
+formal certified-row equivalences, the exact globally acyclic degree-two LBA
+normal form, the countable-union uniformity obstruction, and the strongest
+unary one-counter restrictions found in the accompanying audit.
 
 ## References
 

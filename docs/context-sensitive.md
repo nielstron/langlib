@@ -18,5 +18,6 @@ linear space is the open first LBA problem.
 
 Key developments include [CSL = LBA](results/lba-context-sensitive.html), computable
 membership, the [functional LBA-to-DLBA
-conversion](results/functional-lba-dlba.html), and the strict inclusion into
-recursive languages.
+conversion](results/functional-lba-dlba.html), the [exact formal and restricted
+boundaries of the first LBA problem](results/first-lba-problem-boundaries.html),
+and the strict inclusion into recursive languages.

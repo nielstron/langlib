@@ -278,7 +278,7 @@ theorem is_DLBA_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : _root_
   funext w
   simp only [DLBA.LanguageRecognized, LBA.LanguageRecognized, key]
 
-theorem DLBA_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
+public theorem DLBA_subset_LBA {T : Type} [Fintype T] [DecidableEq T] :
     (DLBA : Set (Language T)) ⊆ LBA := by
   intro L hL
   simp [DLBA] at hL
