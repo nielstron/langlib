@@ -73,10 +73,25 @@ solution to the open problem:
   nondeterminism, cofunctional reachability, acyclic layering, degree-two
   diamond paths, schedule capacity, unary regular languages, monotone
   countable unions, and direct configuration encoding.  In particular,
-  `exists_two_biUnique_partition` proves the optimal finite combinatorial
-  bound: every relation of indegree and outdegree at most two is exactly
-  partitioned into two partial bijections.  The fixed-width LBA corollary is
-  `Machine.exists_two_biUnique_step_partition`.
+  `exists_two_biUnique_partition` proves the optimal combinatorial bound over
+  an arbitrary vertex type: every relation of indegree and outdegree at most
+  two is exactly partitioned into two partial bijections.  The fixed-width LBA
+  corollary is `Machine.exists_two_biUnique_step_partition`.
+- `canReach_iff_twoLayers` and `not_canReach_iff_twoLayers` expose the exact
+  reachability and nonreachability recurrences over two partial functions.
+  `first_successful_child_decides` shows that choosing the first successful
+  branch already decides arbitrary reachability; the ordered-fork witness
+  preserves acyclicity, degree two, and exact two-biunique layers under the
+  necessary no-incoming-source hypothesis.
+- `generator_reaches_symmetric` proves the positive total-permutation
+  frontier.  The auxiliary-vertex theorem
+  `no_reachability_preserving_permutation_encoding_of_oneWay` proves that a
+  genuinely one-way partial bijection cannot be totalized into finite
+  permutations while preserving and reflecting its directed reachability.
+- `exists_twoBiUnique_strictLayering` packages the finite-graph restricted
+  reduction from degree-two reachability to acyclic degree-two reachability
+  with exact two-biunique layers.  Its target ranges over clock copies, so it
+  is explicitly a multi-target result.
 
 The strongest normal-form result is thus:
 
@@ -97,7 +112,7 @@ open problem.
   combinatorial components, but the graph-minor contraction discussed in the
   report remains paper-level.
 - The generic optimal two-layer theorem chooses a spanning forest separately
-  for each finite relation. The degree serializer now has a separate local,
+  for each relation. The degree serializer now has a separate local,
   width-uniform coloring theorem, but choosing between its two layers remains
   nondeterministic and gives no LBA-to-DLBA compiler.
 - The bounded-nondeterminism and cofunctional developments prove semantic and
@@ -105,12 +120,15 @@ open problem.
 - Acyclicity, degree two, local deterministic edge checking, and unit
   certificates do not by themselves remove the global nondeterministic path
   choice.
+- The two-layer recurrence, ordered-fork obstruction, and permutation-orbit
+  results are relational theorems. They do not formalize Reingold's algorithm
+  or turn the partial-bijection hard core into a deterministic LBA.
 
 ## Verification
 
 The result was checked from a clean build:
 
-- `lake build`: 8,852 jobs completed successfully;
+- `lake build`: 8,856 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

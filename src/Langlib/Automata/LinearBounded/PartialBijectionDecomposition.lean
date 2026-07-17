@@ -122,19 +122,20 @@ public theorem exists_four_biUnique_decomposition_eq
     exists_four_biUnique_decomposition edge hout hin
   exact ⟨layer, funext fun source => funext fun target => propext (hcover source target), hunique⟩
 
-/-! ## The finite two-layer frontier
+/-! ## The two-layer frontier
 
-For a finite relation, the optimal bound is two rather than four.  The incidence graph is
-bipartite and has maximum degree two, so each of its path and even-cycle components admits an
-alternating edge coloring.  The next definitions and degree theorem isolate the first formal
-step of that argument: the conflict graph on relation edges itself has maximum degree two.
+For a relation whose incoming and outgoing fibers have cardinality at most two, the optimal
+bound is two rather than four.  The incidence graph is bipartite and has maximum degree two, so
+each of its path and even-cycle components admits an alternating edge coloring.  The proof does
+not require a finite ambient vertex type; the finite conflict-degree theorem below is a separate
+corollary used for explicit finite configuration graphs.
 -/
 
 section Finite
 
 variable [Fintype V] [DecidableEq V]
 
-/-- An edge of a finite directed relation, retaining both endpoints. -/
+/-- An edge of a directed relation, retaining both endpoints. -/
 public abbrev FiniteEdge (edge : V → V → Prop) :=
   { endpoints : V × V // edge endpoints.1 endpoints.2 }
 
@@ -158,7 +159,7 @@ public instance instDecidableEdgeConflict {edge : V → V → Prop} :
   unfold EdgeConflict
   infer_instance
 
-/-- The conflict graph of a finite relation.  Its vertices are relation edges, and adjacency
+/-- The conflict graph of a relation.  Its vertices are relation edges, and adjacency
 means that two distinct edges cannot occur in the same partial-bijection layer. -/
 public def edgeConflictGraph (edge : V → V → Prop) :
     SimpleGraph (FiniteEdge edge) where
@@ -420,7 +421,8 @@ public theorem edgeConflictGraph_isCycle_even
         (walk.getVert (walk.length - 1)) (walk.getVert walk.length) (walk.getVert 1)
         hlast hfirst houter
 
-/-- The conflict graph of a finite relation with at most two incoming and two outgoing edges at
+omit [Fintype V] in
+/-- The conflict graph of a relation with at most two incoming and two outgoing edges at
 each vertex is two-colorable.  Equivalently, its relation edges admit two colors such that edges
 sharing a source or a target always receive different colors. -/
 public theorem edgeConflictGraph_colorable_two
@@ -608,8 +610,9 @@ public theorem exists_two_biUnique_partition_of_conflictColorable
         ∀ color, Relator.BiUnique (layer color) := by
   exact exists_biUnique_partition_of_conflictColoring edge hcolorable.some
 
-/-- Every finite directed relation with at most two successors and at most two predecessors at
-each vertex is partitioned into two bi-unique relations.
+omit [Fintype V] [DecidableEq V] in
+/-- Every directed relation on an arbitrary vertex type with at most two successors and at most
+two predecessors at each vertex is partitioned into two bi-unique relations.
 
 The two layers are optimal in general: a vertex with two distinct outgoing edges forces those
 edges into different layers. -/
@@ -620,8 +623,9 @@ public theorem exists_two_biUnique_partition
     ∃ layer : Fin 2 → V → V → Prop,
       (∀ source target, edge source target ↔ ∃! color, layer color source target) ∧
         (∀ color source target, layer color source target → edge source target) ∧
-        ∀ color, Relator.BiUnique (layer color) :=
-  exists_two_biUnique_partition_of_conflictColorable edge
+        ∀ color, Relator.BiUnique (layer color) := by
+  classical
+  exact exists_two_biUnique_partition_of_conflictColorable edge
     (edgeConflictGraph_colorable_two edge hout hin)
 
 end Finite

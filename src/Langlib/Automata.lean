@@ -47,6 +47,7 @@ public import Langlib.Automata.LinearBounded.AcyclicClock.ReadySkeleton
 public import Langlib.Automata.LinearBounded.AcyclicClock.SemanticCheckpoint
 public import Langlib.Automata.LinearBounded.AcyclicClock.SimulationLift
 public import Langlib.Automata.LinearBounded.AcyclicClock.SoundnessLift
+public import Langlib.Automata.LinearBounded.AcyclicTwoLayerReachability
 public import Langlib.Automata.LinearBounded.BinaryBranching
 public import Langlib.Automata.LinearBounded.BoundedDegree
 public import Langlib.Automata.LinearBounded.BoundedNondeterminism
@@ -97,6 +98,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Soundness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
 public import Langlib.Automata.LinearBounded.FiniteDAGPathDecomposition
 public import Langlib.Automata.LinearBounded.FiniteReachabilityCounting
+public import Langlib.Automata.LinearBounded.ForkReachabilityBarrier
 public import Langlib.Automata.LinearBounded.Functional
 public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
@@ -104,11 +106,13 @@ public import Langlib.Automata.LinearBounded.LayeredReachability
 public import Langlib.Automata.LinearBounded.LocalityHypercube
 public import Langlib.Automata.LinearBounded.Packing
 public import Langlib.Automata.LinearBounded.PartialBijectionDecomposition
+public import Langlib.Automata.LinearBounded.PermutationReachability
 public import Langlib.Automata.LinearBounded.Positive
 public import Langlib.Automata.LinearBounded.RowEnumeration
 public import Langlib.Automata.LinearBounded.RowNumeral
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
 public import Langlib.Automata.LinearBounded.StrictClockLayering
+public import Langlib.Automata.LinearBounded.TwoLayerReachability
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 public import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStack
 public import Langlib.Automata.Pushdown.Basics.Leftmost

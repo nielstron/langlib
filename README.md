@@ -71,6 +71,11 @@ indegree and outdegree at most two, equipped with those two biunique layers,
 recognize exactly `LBA`
 [🔗](src/Langlib/Automata/LinearBounded/AcyclicClock/LanguageEquivalence.lean).
 This is a nondeterministic normal form, not a DLBA construction.
+The checked two-layer reachability recurrence and ordered-fork construction
+also show why selecting a canonical successful color would already solve the
+underlying reachability instance; total permutation layers form a reversible
+positive frontier, but even one one-way partial-bijection edge cannot be
+totalized while reflecting directed reachability.
 The [first-LBA boundary note](docs/results/first-lba-problem-boundaries.md)
 records the exact equivalences, restricted positive cases, failed proof
 routes, and current literature status.
