@@ -96,6 +96,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.EndmarkerToFlag
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Completeness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Soundness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
+public import Langlib.Automata.LinearBounded.ExplicitDegreeTwoReachability
 public import Langlib.Automata.LinearBounded.FiniteDAGPathDecomposition
 public import Langlib.Automata.LinearBounded.FiniteReachabilityCounting
 public import Langlib.Automata.LinearBounded.ForkReachabilityBarrier

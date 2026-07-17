@@ -92,6 +92,15 @@ solution to the open problem:
   reduction from degree-two reachability to acyclic degree-two reachability
   with exact two-biunique layers.  Its target ranges over clock copies, so it
   is explicitly a multi-target result.
+- `finiteReachability_singleTarget_twoBiUnique` removes both restrictions at
+  the finite relational level.  It sends arbitrary finite directed
+  reachability to reachability between one designated source and one
+  designated target in an acyclic graph of directed degree at most two, with
+  an exact supplied partition into two partial bijections.  The underlying
+  serializer preserves core-to-core reachability and acyclicity exactly;
+  `acyclic_iff` records the latter equivalence.  The arbitrary-type numbering
+  uses `Fintype.equivFin`, so this checked theorem is structural rather than a
+  formalized logspace reduction.
 
 The strongest normal-form result is thus:
 
@@ -123,12 +132,16 @@ open problem.
 - The two-layer recurrence, ordered-fork obstruction, and permutation-orbit
   results are relational theorems. They do not formalize Reingold's algorithm
   or turn the partial-bijection hard core into a deterministic LBA.
+- The finite designated-target serializer is also a relational theorem.  Its
+  exact coloring and graph properties do not provide a deterministic
+  reachability algorithm, and its noncomputable arbitrary-type numbering is
+  not claimed to be an effective complexity reduction.
 
 ## Verification
 
 The result was checked from a clean build:
 
-- `lake build`: 8,856 jobs completed successfully;
+- `lake build`: 8,857 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

@@ -253,10 +253,36 @@ Reachability of `t` becomes reachability of `(t,i)` at some layer
 after the bounded-degree serializer, every individual bounded configuration
 reachability instance is thus equivalent to an acyclic *multi-target*
 instance of directed indegree and outdegree at most two, where the target
-predicate accepts every clocked copy of `t`.  The formal construction does not
-add a single-target collector gadget.  This statement is deliberately at the
-finite-graph level.  The concrete compiler described below supplies the
-corresponding uniform same-width machine theorem.
+predicate accepts every clocked copy of `t`.
+
+A second checked construction removes that multi-target qualification at the
+finite-graph level.  First use padded clock edges
+
+$$
+(u,i)\longrightarrow(v,i+1)
+\quad\text{when}\quad u=v\ \text{or}\ u\longrightarrow v.
+$$
+
+This reaches the one fixed top copy of `t`.  Padding can raise the local
+degree, so `clockSerializedEdge` then applies an explicit pair of finite
+scans.  A source core scans all possible targets, traverses a private bridge
+only for an enabled old edge, and enters the corresponding position of the
+target's incoming merge scan.  Scan edges have color zero and the two bridge
+edges have color one.  Theorems `reaches_iff_clockSerialized`,
+`clockSerialized_acyclic`, and
+`clockSerialized_directedDegreeAtMostTwo` prove exact designated-endpoint
+reachability, global acyclicity, and both degree bounds.  The exact unique
+coloring and its two partial-bijection properties are
+`clockSerialized_edge_iff_existsUnique_layer`,
+`clockSerialized_layer_sub_edge`, and
+`clockSerialized_layer_biUnique`.  The single packaged result is
+`finiteReachability_singleTarget_twoBiUnique`.
+
+The endpoints are designated vertices, not the graph's only source and sink.
+Moreover, the arbitrary-finite-type statement chooses a numbering with
+`Fintype.equivFin`; it is a structural theorem and does not claim that this
+numbering is computed in logspace.  This finite relational construction is
+separate from the uniform same-width LBA compiler described below.
 
 At the machine level, the serializers themselves do preserve global
 acyclicity.  The theorem `configurationAcyclic_boundedDegree` combines an
@@ -825,29 +851,32 @@ two-biunique partition.  Its target is any clock copy of the original target,
 so this is a multi-target theorem rather than the single-target reduction
 described next.
 
-In fact, explicit reachability remains `NL`-complete for **acyclic** graphs
-when a decomposition into two partial bijections is supplied.  One direct
-paper-level reduction starts from ordinary directed reachability, replaces
-large incoming and outgoing fans by binary merge and splitter trees, and then
-lets `N` be the number of vertices in the resulting degree-two graph and
-unrolls it for `N` steps.  Delete the ordinary
-outgoing edges of every time copy of the target and feed all those copies into
-a binary merge tree.  The result is a DAG of indegree and outdegree at most
-two, and its final merge root is reachable exactly when the original target
-is reachable; `N` steps suffice because a reachable target has a simple path.
-For any finite degree-two directed relation, make a bipartite incidence graph
-with a source copy and a target copy of every vertex.  Its maximum degree is
-two, so every component is a path or an even cycle and its edges alternate
-between two matchings.  Those matchings are precisely two partial-bijection
-layers.  A canonical alternating coloring is computable in logspace: choose
-the least edge in each line-graph component using
-[undirected connectivity](https://doi.org/10.1145/1391289.1391291) and
-determine the alternating parity in its bipartite double cover.  Thus the
-reduction can output the two layers, rather than merely promise their
-existence.  A deterministic logspace algorithm for constant-layer
-partial-bijection DAGs would therefore imply `L = NL`.
-This is an explicit-input hardness barrier, not a separation of the
-compressed LBA language classes.
+In fact, arbitrary finite reachability already has this **acyclic,
+single-designated-target, two-partial-bijection** normal form.  The checked
+theorem `finiteReachability_singleTarget_twoBiUnique` packages the complete
+construction.  On an explicitly numbered `N`-vertex graph, padded clocking
+first produces `N(N+1)` vertices.  If this number is `K`, the scan serializer
+has exactly `3K²+3K` vertices by
+`ExplicitDegreeTwoReachability.card_vertex`, still polynomial in `N`.
+Every edge and its color are determined directly from its endpoint phases and
+at most one query to the old edge relation.  The rank theorem
+`liftedRank_lt_of_edge` proves acyclicity, while `acyclic_iff` more strongly
+shows that the scan serializer itself preserves and reflects directed cycles.
+
+Langlib's arbitrary-type wrapper deliberately uses the noncomputable
+equivalence `Fintype.equivFin`, so the machine-checked theorem establishes the
+finite relational normal form, not the logspace uniformity of a reduction.
+For already numbered explicit graphs, the displayed clock and scan formulas
+give the corresponding effective polynomial-size construction.  Independently,
+Bhadra and Tewari prove the complementary complexity result that reachability is
+`NL`-hard even when the input is supplied as the union of two linear
+`2`-diforests.  In particular, every supplied layer is a partial bijection and
+all of its path components have length at most two.  Their theorem does not
+add a global DAG promise, so it is stronger in its layer-local restriction and
+weaker in that separate respect.  A deterministic logspace algorithm for the
+promised linear-`2`-diforest instances would imply `L = NL`.  This is an
+explicit-input hardness barrier, not a separation of the compressed LBA
+language classes.
 
 The four-color theorem remains useful because it needs neither a finite graph
 nor a global component traversal.  The optimal generic theorem instead
@@ -1705,9 +1734,13 @@ the regular collapses above cannot extend to the unrestricted model.
   serializer one syntactic layer family uniform over all tape widths, and
   `AcyclicDegreeTwoBiUniqueLBA_eq_LBA` proves that the globally acyclic
   two-layer restriction still equals `LBA`.  At the explicit-graph level,
-  even acyclic reachability with a supplied
-  two-partial-bijection decomposition is `NL`-complete by the paper reduction
-  above.  The formal `diamondChain_obstruction` now includes an exact
+  `finiteReachability_singleTarget_twoBiUnique` gives a checked structural
+  reduction of arbitrary reachability to an acyclic instance with one
+  designated target and a supplied two-partial-bijection decomposition;
+  Bhadra and Tewari's complementary effective result remains `NL`-hard under
+  the stronger layer-local linear-`2`-diforest promise, but does not include a
+  global DAG promise.  The formal
+  `diamondChain_obstruction` also includes an exact
   two-biunique-layer partition while retaining `2^k` paths.  What does give a
   positive frontier is a constant number of whole paths in an edge
   decomposition, not a constant number of layers with unboundedly many path
