@@ -162,6 +162,27 @@ cell type and width.  For Boolean rows, `clog_card_bitRows` computes the depth
 exactly and `bitRows_reaches_iff_savitchReach` states the resulting depth-`n`
 equivalence, including `n = 0`.
 
+The midpoint search is now executable as well as propositional.
+`finiteSavitchBool_clog_eq_true_iff` enumerates the finite midpoint type,
+short-circuits the two recursive halves and the midpoint disjunction, and
+proves that the returned Boolean decides directed reachability at saturated
+depth.  `savitchEval` instruments exactly the depth-recursive calls which this
+control flow actually demands; it does not charge calls hidden in skipped
+branches or count a merely syntactic expansion of the recurrence.
+
+That concrete evaluator has a checked worst case.  On the empty edge relation
+and distinct endpoints, every midpoint must be considered.  At a midpoint
+different from the source the left query is false; at the source midpoint the
+left query is true and the right query repeats the original false pair.
+`savitchEval_empty_false_calls_ge_pow` therefore proves, independently of the
+enumeration order, at least `|V|^d` recursive calls at depth `d`.  The fully
+specified theorem `concrete_empty_evaluation_superpolynomial` takes
+`V = Fin (2^n)`, depth `n`, and endpoints zero and one.  It forces at least
+`2^(n*n)` calls and exceeds `|V|^degree` whenever `degree < n`.  This proves a
+superpolynomial worst case for this implementation, not a time lower bound
+for directed reachability or for every possible reorganization of Savitch's
+recurrence.
+
 The two elementary resource interfaces are checked independently in
 `SavitchRecomputationBarrier`.  For arbitrary finite frame and row types,
 `frameStacks_le_rowCapacity_of_injective` proves the exact necessary
@@ -727,12 +748,16 @@ reachability relation, would already be a solution of the first LBA problem.
 One-tape locality also gives no polynomial-in-`d` generic separator-size or
 width bound.  For `d` physical cells, the fixed machine
 `LBA.LocalityHypercube.machine` has `2d·2^d` configurations.
-The formal theorems `fixedContents_reaches`, `phaseCfg_eq_imp_contents_eq`,
-and `step_flip` give disjoint connected fixed-tape fibers and every cube edge
-between them.  Contracting those fibers is a paper-level graph-minor step, not
-yet a Langlib graph-minor theorem; it shows that the underlying undirected
-configuration graph contains the Boolean cube `Q_d` as a minor.  Standard
-minor monotonicity and the known cube bounds then give
+The generic structure `Relation.BranchSetMinorModel` records the usual
+nonempty, pairwise-disjoint connected branch sets and the edge joining each
+adjacent pair, after taking the underlying undirected relation.
+`hypercubeBranchSetMinor` supplies those data for every positive `d`:
+`fixedContents_connectedWithinFiber` keeps each connecting path inside its
+fixed-tape fiber, `fiber_disjoint` separates distinct Boolean contents, and
+`step_flip` supplies every cube edge between fibers.  Thus the contraction to
+the Boolean cube `Q_d` is now machine-checked for this fixed machine.  Standard
+minor monotonicity and the known cube bounds, which are not formalized here,
+then give
 
 $$
 \operatorname{tw},\operatorname{pw}
@@ -750,7 +775,7 @@ reachability lower bound.  It rules out deriving polynomial width, planar
 structure, or small genus solely from one-tape local updates.
 
 At paper level, the same obstruction can be put inside the literal hard
-compiler image; the graph-minor contraction in this paragraph is not yet a
+compiler image; the graph-minor contraction in this paragraph is still not a
 Langlib theorem.  Take the endmarker-alphabet analogue of the preceding fixed
 machine and add an identity stay move at every state and symbol.  Its selected
 binary-tape configurations still have the `Q_d` minor, and now every source
@@ -1105,6 +1130,29 @@ genuine two-matching phenomenon; merely allowing a third matching permits a
 linearly growing number of relevant choices.  The family is a structural
 witness, not a lower bound against algorithms that recompute or collectively
 resolve those choices.
+
+The same graph now has an exact finite-choice accounting.
+`choiceGraph_edge_iff` uses the three matching colors as choice names and
+proves that they generate precisely the existing split-diamond relation.
+The generic progress invariant
+`FiniteChoiceGraph.BranchTrace.length_add_progress_eq` charges nothing on
+each deterministic stretch and one on each genuine branch.  Its
+specializations `branchTrace_length_eq` and `replayTrace_length_eq` show that
+every designated source-to-target trace consumes exactly `k` choices, while
+`acceptsWithChoices_acceptTarget_iff` proves that target-only bounded replay
+succeeds exactly when `k ≤ budget`.  These statements include `k=0`; they are
+exact for this presentation and do not exclude a different presentation or
+collective recomputation.
+
+Nor is a linear number of branch events an artifact of using a linearly large
+vertex name.  `succinct_exactThreeMatching_relevantBranch_obstruction`
+instantiates `k = 2^w`.  The resulting DAG has exactly `6*2^w+2` vertices and
+`2^w` ordered, source-to-target-relevant branches, yet the explicit
+canonical-numeral map `encodeVertex` injects every vertex into
+`Fin 8 × (Fin w → Bool)`.  This includes `w=0`.  The theorem supplies succinct
+names only: it neither implements the encoded edge relation by local tape
+moves nor gives an effective machine-description reduction or an LBA
+compiler.
 
 The machine-level development now turns that obstruction into a genuine
 restricted determinization theorem.  `Machine.HasTwoMatchingStepPartition`
@@ -2362,8 +2410,12 @@ the regular collapses above cannot extend to the unrestricted model.
   midpoint semantics is checked by `reaches_iff_savitchReach_clog`; the
   independent-stack capacity and deterministic first-acceptance bounds are
   checked by `squareConfigurationStacks_le_rowCapacity_of_injective` and
-  `firstSatisfying_steps_lt_rowCapacity_of_injective`.  They exclude literal
-  stack materialization or full replay, not a reorganized search.
+  `firstSatisfying_steps_lt_rowCapacity_of_injective`.  The executable
+  `finiteSavitchBool_clog_eq_true_iff` now checks the actual midpoint search,
+  and `concrete_empty_evaluation_superpolynomial` gives it an explicit
+  `2^(n*n)`-call empty-graph family under genuine short-circuit control flow.
+  These results exclude literal stack materialization or this full recursive
+  search/replay, not a reorganized reachability algorithm.
 - **Immerman--Szelepcsényi counting:** counters fit in linear space, but
   reachability witnesses are still chosen nondeterministically.  The checked
   row compiler makes this failure exact: every certified-row language rejects
@@ -2390,9 +2442,13 @@ the regular collapses above cannot extend to the unrestricted model.
   while preserving the acyclic degree-two two-biunique hard core.
 - **Literal path schedules:** `2^k` distinct `k`-bit schedules require
   `2^k ≤ |A|^W` to inject into one width-`W` fixed-alphabet row, as formalized
-  by `bitVectors_le_rowCapacity_of_injective`.  A run may contain
-  `k = 2^{Theta(W)}` branch events.  This obstructs exhaustive path replay,
-  not collective or recomputing algorithms.
+  by `bitVectors_le_rowCapacity_of_injective`.
+  `acceptsWithChoices_acceptTarget_iff` proves that the split `k`-diamond
+  presentation really consumes exactly `k` choices on every target-reaching
+  trace, and `encodeVertex` fits its `k=2^W` instance into constant control
+  plus one `W`-bit row.  The latter is only a succinct structural naming
+  theorem, not a local LBA implementation.  Together these obstruct literal
+  exhaustive path replay, not collective or recomputing algorithms.
 - **Reversible simulation:** Lange--McKenzie--Tapp removes irreversible merges
   from an already deterministic computation in the same asymptotic space; it
   does not choose a branch of an LBA.  It is therefore relevant to the reverse
@@ -2461,14 +2517,14 @@ the regular collapses above cannot extend to the unrestricted model.
 - **One-tape locality:** it does not force a low-width configuration graph.  A
   single fixed two-state LBA over a binary tape alphabet (with local outdegree
   at most three) has disjoint connected fibers indexed by Boolean tape
-  contents and realizes every hypercube edge between the fibers, as formalized
-  by `fixedContents_reaches`, `phaseCfg_eq_imp_contents_eq`, and `step_flip`.
-  Contracting those fibers gives Boolean-hypercube minors as an immediate
-  paper-level corollary; Langlib does not yet contain that graph-minor theorem.
-  The resulting standard minor bounds allow exponential treewidth and linear
-  genus, even though every step changes at most one tape cell.  Full clock
-  sweeps also allow
-  exponential crossing sequences on globally acyclic runs.  The paper
+  contents and realizes every hypercube edge between the fibers.
+  `hypercubeBranchSetMinor` now formalizes the complete branch-set certificate,
+  including connectivity paths restricted to each fiber and pairwise
+  disjointness, for every positive dimension.  The resulting standard minor
+  bounds allow exponential treewidth and linear genus, even though every step
+  changes at most one tape cell; those numerical graph-parameter bounds remain
+  external corollaries.  Full clock sweeps also allow exponential crossing
+  sequences on globally acyclic runs.  The paper
   contraction above strengthens both obstructions to the literal globally
   acyclic degree-two clock-and-serializer image; the Ready-skeleton and degree
   facts are formal, while that final graph-minor contraction is not.

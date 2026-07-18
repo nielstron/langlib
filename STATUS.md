@@ -349,6 +349,22 @@ solution to the open problem:
   constant-one branch-event proof for two matching layers cannot extend to
   three merely by changing the number of colors.  This witness is not a
   deterministic-space lower bound and does not exclude recomputing choices.
+- `choiceGraph_edge_iff` presents that same split-diamond relation as a
+  `FiniteChoiceGraph` whose three choice names are exactly the matching
+  colors.  The progress theorems `branchTrace_length_eq` and
+  `replayTrace_length_eq` prove that every designated source-to-target trace
+  consumes exactly `k` genuine choices, and
+  `acceptsWithChoices_acceptTarget_iff` gives the exact target-only budget
+  threshold `k ≤ budget`, including `k = 0`.  This is a lower bound for that
+  presentation, not for algorithms which recompute or aggregate choices.
+- `succinct_exactThreeMatching_relevantBranch_obstruction` strengthens the
+  structural witness to the LBA scale.  At every row width `w`, including
+  zero, the `k = 2^w` split-diamond DAG has `6*2^w+2` vertices and `2^w`
+  ordered relevant branches, while `encodeVertex` injects every vertex into
+  `Fin 8 × (Fin w → Bool)`.  The encoder is an explicit composition of the
+  canonical sum/product/function numeral equivalences, not an arbitrary
+  finite-type numbering, but it supplies only succinct vertex names: no local
+  encoded edge test or same-width automaton compiler is claimed.
 - `reaches_comparable_of_incoming` strengthens that obstruction from one step
   to the complete forward cone: after a vertex has any incoming edge, every
   two descendants are comparable by reachability.  The explicit four-vertex
@@ -422,6 +438,16 @@ solution to the open problem:
   `row_reaches_iff_savitchReach_clog` specializes uniformly to rows over any
   finite cell type, while `bitRows_reaches_iff_savitchReach` records the exact
   depth-`n` form for all `n`-bit row types, including `n = 0`.
+  `finiteSavitchBool_clog_eq_true_iff` now implements the midpoint recurrence
+  as a finite short-circuiting Boolean search and proves its answer correct.
+  Its instrumented evaluator counts recursive calls actually executed, not a
+  fully expanded recurrence tree.  On the empty relation with distinct
+  endpoints, `savitchEval_empty_false_calls_ge_pow` proves the
+  order-independent lower bound `|V|^d` at depth `d`; the concrete family
+  `concrete_empty_evaluation_superpolynomial` uses `|V| = 2^n`, depth `n`,
+  and endpoints zero and one to force at least `2^(n*n)` calls and more than
+  every fixed `|V|^degree` once `degree < n`.  This is a worst case for this
+  evaluator, not a lower bound for directed reachability algorithms.
   `frameStacks_le_rowCapacity_of_injective` then gives the
   exact necessary inequality `|Frame|^depth ≤ |Cell|^width` for injectively
   storing all independent continuation stacks.  Its configuration
@@ -442,6 +468,15 @@ solution to the open problem:
   block materializing arbitrary Savitch stacks or replaying that full
   traversal; they do not rule out an algorithm which aggregates or
   reorganizes the search.
+- `hypercubeBranchSetMinor` packages the one-tape locality example as a
+  genuine branch-set certificate.  For every positive cube dimension, one
+  fixed two-state binary LBA has nonempty, pairwise-disjoint configuration
+  fibers, paths connecting each fiber internally, and a raw transition for
+  every Boolean-cube edge between the corresponding fibers.  The generic
+  `Relation.BranchSetMinorModel` states exactly the usual branch-set data for
+  the underlying undirected relation.  This checks the contraction itself;
+  standard minor-monotonicity, treewidth, and genus bounds remain external
+  graph-theory corollaries and do not become reachability lower bounds.
 - `DLBA_subset_ULBA` and `ULBA_subset_LBA` formalize the sandwich through
   unambiguous linear space using labeled, first-final accepting runs.
   `lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` factors the first LBA
@@ -517,9 +552,10 @@ inclusion above.
 - No general LBA-to-DLBA compiler is constructed.
 - The affine configuration-capacity theorems rule out a particular direct,
   fixed-alphabet encoding strategy; they are not language-class lower bounds.
-- The locality hypercube and finite-DAG developments formalize their stated
-  combinatorial components, but the graph-minor contraction discussed in the
-  report remains paper-level.
+- The locality hypercube contraction for the fixed machine is now formalized
+  as `hypercubeBranchSetMinor`.  The stronger contractions through the full
+  clock/serializer compiler image, and the subsequent treewidth and genus
+  consequences, remain paper-level.
 - The generic optimal two-layer theorem chooses a spanning forest separately
   for each relation. The degree serializer now has a separate local,
   width-uniform coloring theorem, but choosing between its two layers remains
@@ -575,7 +611,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,945 jobs completed successfully;
+- `lake build`: 8,950 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

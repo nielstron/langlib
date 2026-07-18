@@ -73,6 +73,7 @@ public import Langlib.Automata.LinearBounded.BoundaryShuttle.Structural
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.TwoMatching
 public import Langlib.Automata.LinearBounded.BoundedDegree
 public import Langlib.Automata.LinearBounded.BoundedNondeterminism
+public import Langlib.Automata.LinearBounded.BranchSetMinor
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Acyclicize
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.BoundedDegree
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Characterization
@@ -162,6 +163,7 @@ public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.LinearBounded.LayeredReachability
 public import Langlib.Automata.LinearBounded.LinearTwoDiforestReachability
 public import Langlib.Automata.LinearBounded.LocalityHypercube
+public import Langlib.Automata.LinearBounded.LocalityHypercubeMinor
 public import Langlib.Automata.LinearBounded.MachineShortLayers.Acyclicity
 public import Langlib.Automata.LinearBounded.MachineShortLayers.Construction
 public import Langlib.Automata.LinearBounded.MachineShortLayers.LanguageEquivalence
@@ -190,13 +192,16 @@ public import Langlib.Automata.LinearBounded.PermutationReachability
 public import Langlib.Automata.LinearBounded.Positive
 public import Langlib.Automata.LinearBounded.RowEnumeration
 public import Langlib.Automata.LinearBounded.RowNumeral
+public import Langlib.Automata.LinearBounded.SavitchBooleanEvaluator
 public import Langlib.Automata.LinearBounded.SavitchReachability
 public import Langlib.Automata.LinearBounded.SavitchRecomputationBarrier
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivision
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivisionReachability
 public import Langlib.Automata.LinearBounded.StrictClockLayering
+public import Langlib.Automata.LinearBounded.SuccinctThreeMatchingDiamonds
 public import Langlib.Automata.LinearBounded.ThreeMatchingDiamondBranches
+public import Langlib.Automata.LinearBounded.ThreeMatchingDiamondChoiceLowerBound
 public import Langlib.Automata.LinearBounded.ThreeMatchingReachability
 public import Langlib.Automata.LinearBounded.TwoLayerReachability
 public import Langlib.Automata.LinearBounded.TwoMatchingChoiceBound
