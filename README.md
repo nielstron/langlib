@@ -100,15 +100,33 @@ Thus two exact matching layers are determinizable, whereas the three-matching
 normal form above already presents every LBA language.  This does not resolve
 `LBA = DLBA`, because no reduction from the universal three-layer form to two
 layers is proved.
-For the reverse route, Langlib now checks the exact structural bridge that a
-configuration-reversible LBA—one whose complete raw step relation is
-functional and cofunctional at every width—phase-splits into two directed
-matchings
-[🔗](src/Langlib/Automata/LinearBounded/MachineTwoMatchings/Reversible.lean).
-This does not establish `DLBA ⊆ TwoMatchingLBA`: the existing DLBA embedding
-is functional but can still merge configurations.  Completing that inclusion
-requires a same-width reversible simulation that is cofunctional even on
-malformed tapes and under the repository's clamped head movement.
+The converse deterministic compiler is now checked directly.  It refines a
+fixed-slot Euler traversal into a marked, clamping-safe raw LBA: immutable
+boundary information detects blocked moves before departure, every unavoidable
+double-predecessor landing is terminal, and an explicit microphase flips on
+every edge.  Exact macro simulation and reflection hold between boundary-coded
+canonical configurations, and canonical initialization proves that invariant
+for every word, including the genuine two-cell empty input.  Independently,
+raw indegree two and the terminal-double-merge theorem quantify over all raw
+configurations and all widths, including malformed tapes and width zero.
+Consequently `DLBA ⊆ TwoMatchingLBA`, and together with the compiler above,
+
+> `TwoMatchingLBA = DLBA`.
+
+The class equality and the exact remaining frontier are stated directly in
+[🔗](src/Langlib/Automata/LinearBounded/GraphWalking/MarkedEulerProbe/ClassEquivalence.lean):
+`LBA = DLBA` holds iff the universal acyclic degree-two three-matching class is
+contained in (equivalently, equal to) `TwoMatchingLBA`.  Thus the marked Euler
+construction completes the deterministic side but does not choose a branch of
+an arbitrary nondeterministic LBA.
+
+The older globally cofunctional route remains a useful model warning.  Under
+clamped movement, global raw cofunctionality forces every enabled move to stay,
+so the repository's unusually strong `ReversibleLBA` class is exactly
+`{∅, Set.univ}`
+[🔗](src/Langlib/Automata/LinearBounded/MachineTwoMatchings/ReversibleTriviality.lean).
+The successful marked compiler targets two matchings directly instead of
+claiming global cofunctionality.
 The complementary fixed-slot reduction remains as a fully explicit numbered
 construction whose own vertex gadgets are necessarily cyclic
 [🔗](src/Langlib/Automata/LinearBounded/LinearTwoDiforestReachability.lean).

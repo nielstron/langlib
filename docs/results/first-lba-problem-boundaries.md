@@ -35,12 +35,14 @@ The work recorded here does not assert either equality or separation.  It
 formalizes exact reformulations and concrete obstructions, and it identifies
 restricted cases in which nondeterminism can be removed.
 
-The strongest checked positive case is `TwoMatchingLBA ⊆ DLBA`: no
-acyclicity premise is needed when the complete raw step relation at every
-tape width is exactly partitioned into two directed matchings.  Separately,
-`AcyclicDegreeTwoThreeMatchingLBA = LBA`: three matching layers already
-suffice for every LBA language.  Neither inclusion is claimed strict, and
-this two-versus-three structural boundary does not decide `LBA = DLBA`.
+The strongest checked deterministic characterization is
+`TwoMatchingLBA = DLBA`: no acyclicity premise is needed when the complete
+raw step relation at every tape width is exactly partitioned into two directed
+matchings, and every deterministic LBA has such a boundary-safe presentation.
+Separately, `AcyclicDegreeTwoThreeMatchingLBA = LBA`: three matching layers
+already suffice for every LBA language.  The remaining inclusion from the
+three-matching class to the two-matching class is equivalent to `LBA = DLBA`;
+this two-versus-three structural boundary does not decide that equality.
 
 There is a useful one-way connection with the smaller `L` versus `NL`
 question.  If `L = NL`, the standard exponential-padding translation lifts
@@ -1053,23 +1055,37 @@ functional scheduler to the repository's marker-free DLBA model.  The
 explicit empty-word bit is computed by `DLBA.acceptsBoundedBool`, which runs
 the resulting deterministic finite configuration system up to its cardinality
 bound; it is not obtained by asking whether the source language contains
-`ε`.  The class-facing result is `twoMatchingLBA_subset_DLBA`:
+`ε`.  One class-facing result is `twoMatchingLBA_subset_DLBA`:
 
 ```text
-TwoMatchingLBA ⊆ DLBA ⊆ LBA
+TwoMatchingLBA ⊆ DLBA
 ```
 
-No acyclicity premise is present in the first inclusion.  In contrast,
+No acyclicity premise is present in this inclusion.  In contrast,
 `AcyclicDegreeTwoThreeMatchingLBA_eq_LBA` says that three exact matching
-layers already suffice for every LBA language.  This is a checked structural
-two-versus-three boundary, not a solution of the first LBA problem: no
-language-preserving reduction from three matching layers to two is known or
-claimed here, and the reverse inclusion `DLBA ⊆ TwoMatchingLBA` is not
-established.
+layers already suffice for every LBA language.
 
-There is a checked bridge in the reverse direction, but not yet the needed
-compiler.  `Machine.ConfigurationBiUnique` says that the complete raw step
-relation is a partial bijection at every width.  For such a machine,
+The reverse deterministic inclusion is now checked by the marked Euler
+compiler described below.  `DLBA_subset_twoMatchingLBA` is stated directly
+for those two language classes, and `TwoMatchingLBA_eq_DLBA` combines both
+directions:
+
+```text
+TwoMatchingLBA = DLBA ⊆ LBA.
+```
+
+This is a checked structural two-versus-three boundary, not a solution of the
+first LBA problem: no language-preserving reduction from the universal
+three-matching class to two matching layers is known or claimed.  Theorems
+`lba_eq_dlba_iff_acyclicDegreeTwoThreeMatchingLBA_subset_twoMatchingLBA` and
+`lba_eq_dlba_iff_acyclicDegreeTwoThreeMatchingLBA_eq_twoMatchingLBA` state
+exactly that the missing three-to-two class reduction is equivalent to the
+open problem.
+
+There is also an older checked structural bridge whose source class is known
+to be far more restrictive than the successful marked compiler.
+`Machine.ConfigurationBiUnique` says that the complete raw step relation is a
+partial bijection at every width.  For such a machine,
 `threeMatchings_hasTwoMatchingStepPartition_of_configurationBiUnique` reuses
 the input/output phase split with only two colors: internal copy edges have
 color zero and lifted source edges have color one.  Each color is a directed
@@ -1077,30 +1093,220 @@ matching, and the language and tape width are unchanged.  At class level,
 `reversibleLBA_subset_twoMatchingLBA` gives
 
 ```text
-ReversibleLBA ⊆ TwoMatchingLBA ⊆ DLBA
+ReversibleLBA ⊂ TwoMatchingLBA = DLBA
 ```
 
-This does not prove `DLBA ⊆ TwoMatchingLBA`.  The existing DLBA-to-LBA
-embedding is functional, but need not be cofunctional.  The obstruction is
-already local: if one configuration has two predecessors and an outgoing
-edge, its three incident edges cannot be covered by two directed matchings.
-A standard reversible-TM transition table is also not automatically enough
-for this repository's all-raw-configurations promise.  With clamped movement,
-one right-moving rule can send sources whose heads are at the last two
-positions to the same target on a suitably malformed tape; the analogous
-left-boundary collision also occurs.  A future same-width reversible compiler
-must use a boundary-safe movement protocol and prove cofunctionality globally,
-not merely along canonical runs.
+The strictness holds over every inhabited finite input alphabet.  The reason
+is stronger than a mere gap between two definitions.  On a raw two-cell tape,
+every enabled right-moving rule sends suitably chosen sources at the two right
+positions to the same clamped target; the left-moving case is mirrored.
+Therefore global cofunctionality forces every enabled direction to be
+`stay`.  Since canonical endmarker runs always start on the same left marker,
+their acceptance is input-independent.  The checked theorem
+`reversibleLBA_eq_trivial_languages` consequently identifies this raw
+`ReversibleLBA` exactly with `{∅, Set.univ}`.
 
-At the usual complexity-class level, the missing direction is supported by
+This does **not** say that the standard marked-tape notion of reversible
+computation is trivial.  It says that the marked-tape theorem cannot be
+inserted unchanged into a model whose structural promise quantifies over all
+malformed clamped configurations.  Nor does the clamping collision collapse
+`TwoMatchingLBA`: `is_AcyclicTwoMatchingLBA_firstSymbol` gives an exact raw
+two-color presentation of the language “the first terminal is `chosen`.”  Its
+two clamped incoming edges consume both colors and their common target is a
+sink; the nonclamped target reads the first terminal and continues.  This is
+the local pattern a general compiler must reproduce.
+
+Two abstract ingredients of the completed deterministic route are useful in
+their own right.  First,
+`CanonicalPortSystem.euler_singleOrbit_on_basin` formalizes the Euler contour
+theorem for every finite functional graph: cyclic rotation of incident edge
+ends followed by the edge-end swap has one orbit on the backward basin of a
+terminal vertex.  `eulerAccepts_iff_reaches` gives exact directed acceptance,
+including sound rejection on components containing directed cycles, and the
+accepting-set corollary does not require a preselected final configuration.
+Second, `exists_two_directedMatching_partition_of_alternating` proves over an
+arbitrary decidable vertex type that right uniqueness, indegree at most two,
+terminal double merges, and a phase flipped by every edge suffice for an exact
+two-directed-matching partition.  The theorem permits even cycles and handles
+antiparallel pairs explicitly; its machine wrapper quantifies uniformly over
+all raw tape widths.
+
+The first concrete connection between those graph conditions and clamped head
+movement is also checked.  `Machine.boundaryShuttle` expands an enabled
+directional instruction into four microsteps: tag the departure cell, tag the
+neighbor and return, restore the departure cell and move again, then restore
+the neighbor.  `boundaryShuttle_configurationIndegreeAtMostTwo` and
+`sink_of_two_distinct_predecessors_boundaryShuttle` quantify over every raw
+tape.  At a clamped landing the state rereads the tag it just wrote, which is a
+disjoint constructor from the symbol its row accepts, so the double merge is
+terminal.  Every microstep flips the explicit phase, and
+`boundaryShuttle_hasTwoMatchingStepPartition` consequently supplies the exact
+two matching layers.  On a nonclamped semantic tape,
+`reaches_boundaryShuttle_of_move` proves the intended four-step simulation and
+exact final tape restoration.
+
+Stationary instructions now have their own checked two-step protocol.
+`stationaryShuttle_exact_two_steps_of_move` saves the complete stay
+instruction in a private cell tag and then performs the write, with no head
+movement or boundary premise.  Its raw relation is cofunctional exactly when
+the target state together with the visible written symbol determines the
+enabled stay instruction (`stationaryShuttle_cofunctional_iff`), and
+`stationaryShuttle_hasTwoMatchingStepPartition` gives the resulting exact two
+layers.  This theorem is deliberately standalone.  A shared-normal-state sum
+must additionally prevent a directional final edge and a stationary final
+edge from meeting at the same continuing target; `ShuttleTargetKindDisjoint`
+records a sufficient source condition.
+
+That sum is now checked as `Machine.combinedBoundaryShuttle`.  Its six raw
+edge forms cover every enabled left, right, and stay instruction while keeping
+all protocol tags disjoint.  Under source functionality,
+`DirectionalTargetInjective`, `StationaryTargetWrittenInjective`, and
+`ShuttleTargetKindDisjoint`, it has indegree at most two at every width and
+every genuine double merge is terminal.  Every edge flips the shared phase,
+so `combinedBoundaryShuttle_hasTwoMatchingStepPartition` supplies the exact
+two layers.  The canonical theorems simulate stay instructions in two steps
+without a boundary premise and directional instructions in four steps when
+the physical move does not clamp.  These are sufficient normal-form
+hypotheses for this synchronized protocol, not a claim that an arbitrary
+reversible controller already has them.
+
+The synchronized protocol now has a complete semantic theorem as well.
+`CombinedShuttleRepresents` is an invariant of every raw run from a
+plain/normal embedding.  Its first microedge already represents the source
+successor; later microedges preserve that represented configuration.  If the
+first directional edge clamps, the landing rereads its own departure tag and
+cannot continue.  Hence `reaches_of_reaches_combinedBoundaryShuttle` reflects
+normal-to-normal reachability with no functionality, injectivity, finiteness,
+nonclamping, or width assumption.
+
+Forward language simulation is supplied by the independent endmarker
+invariant.  `EndmarkersIntact` holds for `loadEnd`, including the empty word,
+and an `EndmarkerGuarded` table preserves both endpoints and points inward
+there.  Thus every transition on a canonical-reachable tape is nonclamping,
+and each source edge expands through the combined shuttle.  The theorem
+`combinedBoundaryShuttleLanguageEnd_eq_languageEnd` combines this direction
+with unconditional reflection.  Finally, `combinedShuttleEndEquiv` sends the
+plain blank, terminals, old work symbols, and both markers to their canonical
+`EndAlpha` constructors and sends every protocol tag to a disjoint work
+constructor.  The transported theorem
+`languageEnd_combinedBoundaryShuttleEndmarker_eq_source` is therefore exact
+whole-language equivalence.  This semantic result does not remove the three
+separate source-table hypotheses used for the raw two-matching proof.
+
+The global finite-graph ordering in the first Euler theorem is no longer the
+only checked port construction.  `LocalPort.ofMachine` gives every
+direction-determinate graph walker the same finite ring
+`{anchor, outgoing, incoming sourceState}` at every configuration.  An actual
+incoming candidate is validated with exactly one opposite named memory move,
+one neighboring observation, and one finite transition comparison.  Missing
+candidates are fixed stubs, and `FixedStubRankedTree.eulerReaches_swap_parent`
+proves that they do not disturb the contour induction.  After the standard
+arrival-direction state lift, `directionLift_localEuler_iff_reaches` and
+`directionLift_localEuler_accepting_iff` give exact terminal reachability and
+acceptance for every finite memory graph.  The cyclic order is now only over a
+fixed finite state/slot type, not over the input-dependent configuration
+graph.
+
+An Euler permutation can have odd cycles, so its own edges need not admit an
+alternating two-coloring.  `PhaseDouble` adds one bit and flips it on every
+edge.  The direct theorem
+`phaseDoubledEuler_explicitTwoMatchingPartition` colors by the source bit and
+partitions the doubled Euler relation into exactly two directed matchings.
+It works for every bi-unique relation over an arbitrary vertex type, without
+finiteness or decidable equality; each color is bi-unique and has no two
+composable edges.  The projected terminal and accepting-set reachability
+theorems show that this repair changes no semantic acceptance question.
+
+The named tape operations are concrete as well.
+`BoundedTapeMemory.graph` uses partial left/right successor positions instead
+of `BoundedTape.moveHead`'s clamp.  A departure checks and rewrites the
+current cell before moving; its named arrival inverse first returns to the
+departure cell, checks the written symbol, and restores the old one.
+`move_departure_reverse` proves their exact equivalence, and stationary
+rewrites are paired by swapping their two symbols.
+`BoundedTapeController.machine` translates an ordinary deterministic table
+to these operations.  `step_iff_dlba_step_of_transitionNonclamping` is exact
+when the enabled physical move stays inside the tape, while `reaches_sound`
+holds without that premise.  Terminal acceptance is preserved under an
+explicit source-table hypothesis; it is not silently imposed.
+
+The whole semantic chain is now composed in `BoundedEulerBridge`.
+`controller_reaches_iff_simulator_reaches` is two-sided from every canonical
+input and has an arbitrary target: soundness projects controller steps, while
+the converse uses the endmarker invariant at every deterministic prefix.
+Terminal acceptance passes through the controller and the direction lift.
+The final theorem `sourceLanguage_iff_phaseDoubledLocalEuler` states, for each
+finite marker-free `(machine, acceptEmpty)` presentation and every word, that
+language membership is equivalent to visiting an accepting endpoint in the
+phase-doubled local Euler orbit.  This supplies the semantic specification
+later implemented by the raw marked-Euler compiler.
+
+The decisive raw tape calculation for refining an arrival operation is
+isolated separately.  If the partial predecessor head exists,
+`move_arrival_eq_raw_probe_success` proves that moving there and restoring the
+old symbol is exactly the atomic arrival operation, while
+`rawArrivalProbe_invalid_returns` proves that a failed local test can move
+back to the target without changing any cell.  At a physical boundary,
+however, `rawArrivalCandidate_eq_self_of_previousHead_eq_none` proves that the
+first raw reverse move clamps to the identity.  Therefore the low-level
+compiler has to detect and dispatch this blocked case before executing that
+directional move; discovering it after the clamped step is too late.  The
+marked compiler below uses an immutable boundary track for exactly this
+dispatch.
+
+`MarkedEulerProbe.rawMachine` now supplies that direct same-width boundary-safe
+implementation without the synchronized shuttle's
+`DirectionalTargetInjective` premise.  Every ordinary cell carries immutable
+physical-boundary information.  A blocked direction is dispatched before a
+physical move, an outgoing probe saves both touched cells, and an incoming
+candidate either finishes at the genuine predecessor or restores the failed
+candidate and returns to the target.  The final design retains every value
+needed by a continuing tag-erasure edge; a hostile complete-raw-graph audit
+found and eliminated two earlier forgeable erasures.
+
+`RawTransitionCase` classifies all 25 nonempty table forms.  From a
+well-boundary-coded canonical port, canonical simulation gives the exact
+finite microstep path for each Euler branch,
+including stationary, allowed departure, blocked departure, arrival, valid
+incoming, invalid incoming, and anchor cases.  `FirstCanonicalReturn` and
+`rawReaches_canonical_reflects_euler` prove that arbitrary raw runs between
+canonical endpoints segment only into those genuine macros.  Boundary
+correctness is invariant in both traversal directions, and initialization is
+proved uniformly for all words, including the empty word's two-cell tape.
+
+The complete structural audit does not rely on that canonical invariant.
+`rawMachine_configurationIndegreeAtMostTwo` covers every one of the 14 raw
+control families, every width (including width zero), and arbitrary malformed
+tapes.  Exact canonical targets have at most one predecessor.  If any target
+has two distinct predecessors,
+`sink_of_two_distinct_predecessors_rawMachine` shows that one physical inverse
+candidate clamped and the common landing is terminal.  Every raw row is
+functional and every edge flips the explicit Boolean microphase.  Therefore
+`rawMachine_hasTwoMatchingStepPartition` applies the alternating matching
+criterion to obtain an exact width-uniform two-matching cover.
+
+Finally, `languageEnd_rawMachine_deterministicSimMachine_eq` composes raw
+simulation/reflection with the marker-free deterministic source presentation.
+It has no nonempty-word side condition or cardinality lower bound.
+`is_TwoMatchingLBA_of_is_DLBA` packages the finite work alphabet and state
+types, yielding `DLBA_subset_twoMatchingLBA` and hence
+`TwoMatchingLBA_eq_DLBA`.
+
+At the usual complexity-class level, this deterministic direction is
+motivated by
 Lange, McKenzie, and Tapp's theorem that deterministic space has a reversible
 simulation with the same asymptotic space.  Their linear-space construction
 walks the finite deterministic configuration component reversibly, at an
-exponential time cost.  Constantly many tracks can then be packed into a
-finite product alphabet.  Langlib does not cite that theorem as if it were
-already a machine proof: its marked-boundary model does not by itself establish
-cofunctionality for every malformed clamped tape in this repository.  The
-boundary-safe low-level compiler and its global proof remain the formal gap.
+exponential time cost.  Kunc and Okhotin later factor the same idea through
+graph-walking automata: elementary memory operations are made explicitly
+invertible, then a local finite-state controller backtracks the deterministic
+walk.  Their marked-space Turing-machine specialization has no tape-space or
+work-alphabet overhead.  This factorization identifies the right formal
+interface here.  Those marked-space theorems by themselves do not establish a
+property of every malformed configuration in a clamped raw machine; the
+Langlib refinement above separately discharges exactly that stronger local
+obligation.  None of these deterministic simulations selects a branch of an
+arbitrary nondeterministic LBA.
 
 The four-color theorem remains useful because it needs neither a finite graph
 nor a global component traversal.  The optimal generic theorem instead
@@ -1975,9 +2181,14 @@ the regular collapses above cannot extend to the unrestricted model.
   from an already deterministic computation in the same asymptotic space; it
   does not choose a branch of an LBA.  It is therefore relevant to the reverse
   inclusion `DLBA ⊆ TwoMatchingLBA`, not to the open inclusion
-  `LBA ⊆ DLBA`.  The repository still needs a boundary-safe implementation
-  whose raw clamped configuration relation is globally cofunctional.  Merely
-  adding reverse edges would change directed reachability.
+  `LBA ⊆ DLBA`.  In this repository a moving raw clamped relation cannot be
+  globally cofunctional at all.  The completed adaptation therefore targets
+  exact two matching layers directly: the local-port marked Euler compiler
+  makes unavoidable malformed-boundary merges terminal while preserving and
+  reflecting the ordinary deterministic run.  This proves the stated reverse
+  inclusion, but it supplies no nondeterministic branch-selection mechanism.
+  Merely adding reverse edges to an LBA would still change directed
+  reachability.
 - **Undirected connectivity:** Reingold's theorem does not preserve directed
   acceptance paths.  In the padded layered graph, directed reachability is
   equivalent to the underlying undirected endpoints having distance exactly
@@ -2113,6 +2324,9 @@ asymptotic storage.
 - Klaus-Jörn Lange, Pierre McKenzie, and Alain Tapp,
   [*Reversible Space Equals Deterministic
   Space*](https://doi.org/10.1006/jcss.1999.1672), 2000.
+- Michal Kunc and Alexander Okhotin,
+  [*Reversibility of Computations in Graph-Walking
+  Automata*](https://doi.org/10.1016/j.ic.2020.104631), 2020.
 - Eric Allender and Klaus-Jörn Lange,
   [*RUSPACE(log n) is contained in
   DSPACE(log² n/log log n)*](https://doi.org/10.1007/s002240000102), 1998.
