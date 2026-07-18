@@ -62,9 +62,23 @@ with an NFA, hence a DFA and a DLBA
 [🔗](src/Langlib/Automata/LinearBounded/BoundedCrossingLanguage.lean).  Other
 accepting and rejecting runs remain unrestricted, the accepting head may be
 anywhere, and the proof includes one-cell tapes, clamped endpoint moves, and
-arbitrary finite alphabet/state cardinalities.  Every individual finite run
-has some word-dependent cap; the theorem needs one cap uniform over the whole
-language, so it does not apply to an arbitrary LBA.
+arbitrary finite alphabet/state cardinalities.  The converse is exact: the
+explicit DFA scanner crosses every physical boundary exactly once, so every
+positive fixed at-most-crossing cap, and also the class with an existential
+uniform cap, gives exactly the DFA/NFA/regular languages
+[🔗](src/Langlib/Automata/LinearBounded/BoundedCrossingRegularCharacterization.lean).
+Cap zero is the sole exception: a run cannot leave the left marker, and its
+slice class is exactly `{∅, Set.univ}`
+[🔗](src/Langlib/Automata/LinearBounded/BoundedCrossingZero.lean).
+More generally, after stationary and outward-clamped moves are erased, every
+boundary is crossed at most `head turns + 1` times.  Hence, for every fixed
+`r`, LBAs having one selected accepting run with at most `r` physical head
+reversals recognize exactly the regular languages
+[🔗](src/Langlib/Automata/LinearBounded/HeadTurnCrossing.lean).
+Every individual finite run has some word-dependent cap; the crossing theorem
+needs one cap uniform over the whole language, so it does not apply to an
+arbitrary LBA.  Likewise, the fixed-turn theorem says nothing about a turn
+bound that grows with the input length.
 
 The open reverse inclusion is equivalent to deterministic
 reachability for finite fixed-width row systems even when their local edge
@@ -133,8 +147,11 @@ an arbitrary nondeterministic LBA.
 
 The older globally cofunctional route remains a useful model warning.  Under
 clamped movement, global raw cofunctionality forces every enabled move to stay,
-so the repository's unusually strong `ReversibleLBA` class is exactly
+and the globally cofunctional endmarker-LBA class is exactly
 `{∅, Set.univ}`
+[🔗](src/Langlib/Automata/LinearBounded/Cofunctional/Triviality.lean).
+In particular the repository's still stronger, unusually raw
+`ReversibleLBA` class has the same collapse
 [🔗](src/Langlib/Automata/LinearBounded/MachineTwoMatchings/ReversibleTriviality.lean).
 The successful marked compiler targets two matchings directly instead of
 claiming global cofunctionality.

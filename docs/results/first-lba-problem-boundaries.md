@@ -1070,6 +1070,67 @@ tape-symbol and state types; the class wrappers assume the library's ordinary
 finiteness hypotheses, and the DLBA wrappers additionally expose
 `DecidableEq Terminal`.  None assumes a minimum cardinality or positive cap.
 
+The converse and the cap boundary are now exact.  The canonical DFA
+endmarker machine has a concrete Type-valued trace `DFA.endmarkerTrace`.
+`DFA.crossingCount_endmarkerTrace` proves that this trace crosses every
+physical boundary exactly once: the initial move crosses boundary zero, the
+input scan crosses each remaining boundary once, and the right-marker
+halting move is physically stationary.  This includes `w = []`, whose tape
+`⊢⊣` still has one boundary.  It follows that, for every `c >= 1`,
+`BoundedCrossingSlice_eq_DFA` and `BoundedCrossingSlice_eq_NFA` identify the
+range of all finite-signature at-most-`c` slices exactly with the regular
+languages.  The semantic presentation class carrying an existential uniform
+cap is likewise exactly regular by `UniformBoundedCrossingLBA_eq_DFA`, its
+NFA equality, and `is_UniformBoundedCrossingLBA_iff_isRegular`.  These are
+statements about the named language classes themselves, not merely a chain
+through some translated presentation.
+
+Cap zero is genuinely different.  The replay theorem
+`acceptsWithBound_zero_of_same_left_view` proves that a trace with zero first-
+boundary crossings can be transported to a different tape width with the
+same state and scanned symbol at cell zero.  Since every canonical endmarker
+tape has positive width and begins by reading `⊢`,
+`acceptsWithBound_zero_initCfgEnd_iff` makes zero-cap acceptance independent
+of the input word.  Thus `languageWithBound_zero_eq_empty_or_univ` holds
+without any finiteness assumptions, and the explicit transition-free
+witnesses complete the exact class theorem
+
+$$
+\operatorname{BoundedCrossingSlice}(0)=\{\varnothing,\Sigma^*\}.
+$$
+
+In Lean this is `BoundedCrossingSlice_zero_eq_trivial_languages`; it is
+uniform over every terminal type, even an empty or infinite one, and imposes
+no cardinality lower bound on the finite presentation witnesses.  Combined
+with the positive-cap equalities, it is the complete fixed-cap taxonomy.
+
+There is also a direct constant-head-reversal formulation.
+`LBA.HeadTurns.physicalDirection` compares actual head positions, so explicit
+`stay` moves and outward left/right requests that clamp in place contribute
+no direction.  `movementDirections` erases those events and
+`headTurnCount` counts changes between the remaining left/right directions.
+The potential argument in
+`crossingCount_le_headTurnCount_add_indicator` proves for every concrete
+trace and every boundary
+
+$$
+c_b \leq \operatorname{turns}+\mathbf 1_{\text{the head moves}},
+$$
+
+and hence `c_b <= turns + 1`.  This trace theorem is polymorphic in all
+symbol/state types and valid at width zero.  The weak promise
+`HasUniformAcceptingHeadTurnBound M r` retains the same quantifier order as
+the crossing theorem: every accepted word need only have one selected
+accepting trace with at most `r` turns.  It implies
+`HasUniformAcceptingBound M (r + 1)`.  Conversely the concrete DFA scanner
+moves only right and has turn count exactly zero.  Therefore, for every
+natural number `r`, the class equalities
+`HeadTurnBoundedLBA_eq_DFA`, `HeadTurnBoundedLBA_eq_NFA`, and
+`HeadTurnBoundedLBA_eq_isRegular` show that fixed-`r` selected-accepting-
+head-turn LBAs are exactly the regular languages; the direct corollary
+`HeadTurnBoundedLBA_subset_DLBA` supplies deterministic LBA presentations.
+This does not extend to a reversal bound depending on input length.
+
 The local profile test now also has an explicit executable presentation,
 relative to finite local transition data.  `LBA.Machine.TransitionTable`
 contains a function

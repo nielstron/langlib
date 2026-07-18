@@ -86,7 +86,9 @@ public import Langlib.Automata.LinearBounded.BoundedCrossingLanguage
 public import Langlib.Automata.LinearBounded.BoundedCrossingNonregular
 public import Langlib.Automata.LinearBounded.BoundedCrossingProfileCardinality
 public import Langlib.Automata.LinearBounded.BoundedCrossingProfiles
+public import Langlib.Automata.LinearBounded.BoundedCrossingRegularCharacterization
 public import Langlib.Automata.LinearBounded.BoundedCrossingTraceCertificate
+public import Langlib.Automata.LinearBounded.BoundedCrossingZero
 public import Langlib.Automata.LinearBounded.BoundedDegree
 public import Langlib.Automata.LinearBounded.BoundedDegreeBranchSetMinor
 public import Langlib.Automata.LinearBounded.BoundedDegreeReachability
@@ -183,6 +185,7 @@ public import Langlib.Automata.LinearBounded.GraphWalking.MarkedEulerProbe.TwoMa
 public import Langlib.Automata.LinearBounded.GraphWalking.PhaseDouble
 public import Langlib.Automata.LinearBounded.GraphWalking.PhaseDoubledLocalEuler
 public import Langlib.Automata.LinearBounded.GraphWalking.ReversibleCore
+public import Langlib.Automata.LinearBounded.HeadTurnCrossing
 public import Langlib.Automata.LinearBounded.HistoryDiamondCapacity
 public import Langlib.Automata.LinearBounded.HistoryPortCompilation
 public import Langlib.Automata.LinearBounded.HistoryPortPhaseCapacity

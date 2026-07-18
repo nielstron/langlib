@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Automata.FiniteState.Equivalence.Determinization
+public import Langlib.Automata.LinearBounded.BoundedCrossing
 public import Langlib.Automata.LinearBounded.Equivalence.DeterministicEndmarkerToFlag
 import Mathlib.Tactic
 
@@ -25,6 +26,9 @@ scanner runs from `⊢` directly to `⊣` on the canonical two-cell tape.
 * `DFA.endmarkerLBA` -- the explicit one-way endmarker LBA for a DFA.
 * `DFA.endmarkerLBA_functional` -- its local transition relation is single-valued.
 * `DFA.languageEnd_endmarkerLBA_eq` -- exact language equality, including `[]`.
+* `DFA.endmarkerTrace` -- the concrete one-way scan as a Type-valued LBA trace.
+* `DFA.crossingCount_endmarkerTrace` -- every physical boundary is crossed exactly once.
+* `DFA.endmarkerLBA_hasUniformAcceptingBound_one` -- the scanner's explicit uniform crossing cap.
 * `is_DLBA_of_is_DFA` and `is_DLBA_of_is_NFA` -- class-level inclusions.
 * `DFA_subset_DLBA` and `NFA_subset_DLBA` -- set-theoretic forms.
 -/
@@ -121,7 +125,7 @@ public noncomputable def endmarkerHaltCfg (D : DFA T Q) (word : List T) :
     ⟨(LBA.loadEnd (Γ := Work) word).contents,
       ⟨word.length + 1, by omega⟩⟩⟩
 
-private lemma initial_scan_step (D : DFA T Q) (word : List T) :
+public theorem endmarker_initial_scan_step (D : DFA T Q) (word : List T) :
     LBA.Step (endmarkerLBA (Work := Work) D)
       (LBA.initCfgEnd (endmarkerLBA (Work := Work) D) word)
       (endmarkerScanCfg (Work := Work) D word 0 (Nat.zero_le _)) := by
@@ -140,7 +144,7 @@ private lemma initial_scan_step (D : DFA T Q) (word : List T) :
       simp [LBA.initCfgEnd, LBA.loadEnd, endmarkerScanCfg,
         DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
 
-private lemma scan_step (D : DFA T Q) (word : List T) (index : ℕ)
+public theorem endmarker_scan_step (D : DFA T Q) (word : List T) (index : ℕ)
     (hindex : index < word.length) :
     LBA.Step (endmarkerLBA (Work := Work) D)
       (endmarkerScanCfg (Work := Work) D word index hindex.le)
@@ -184,9 +188,9 @@ private lemma scan_reaches (D : DFA T Q) (word : List T)
   induction index with
   | zero => exact Relation.ReflTransGen.refl
   | succ index ih =>
-      exact (ih (by omega)).tail (scan_step D word index (by omega))
+      exact (ih (by omega)).tail (endmarker_scan_step D word index (by omega))
 
-private lemma scan_right_step (D : DFA T Q) (word : List T) :
+public theorem endmarker_scan_right_step (D : DFA T Q) (word : List T) :
     LBA.Step (endmarkerLBA (Work := Work) D)
       (endmarkerScanCfg (Work := Work) D word word.length le_rfl)
       (endmarkerHaltCfg (Work := Work) D word) := by
@@ -347,9 +351,9 @@ public theorem endmarkerLBA_accepts_iff (D : DFA T Q) (word : List T) :
       exact (DFA.mem_accepts D).mpr hfinal
   · intro haccept
     refine ⟨endmarkerHaltCfg (Work := Work) D word, ?_, ?_⟩
-    · exact (Relation.ReflTransGen.single (initial_scan_step D word)).trans
+    · exact (Relation.ReflTransGen.single (endmarker_initial_scan_step D word)).trans
         ((scan_reaches D word word.length le_rfl).trans
-          (Relation.ReflTransGen.single (scan_right_step D word)))
+          (Relation.ReflTransGen.single (endmarker_scan_right_step D word)))
     · have hfinal : D.eval word ∈ D.accept := (DFA.mem_accepts D).mp haccept
       simpa [endmarkerLBA, endmarkerHaltCfg] using hfinal
 
@@ -358,6 +362,131 @@ public theorem languageEnd_endmarkerLBA_eq (D : DFA T Q) :
     LBA.LanguageEnd (endmarkerLBA (Work := Work) D) = D.accepts := by
   ext word
   exact endmarkerLBA_accepts_iff (Work := Work) D word
+
+/-! ### Exact crossing behavior of the one-way scanner -/
+
+/-- The concrete right-moving scanner trace after `index` input symbols.  It starts with the
+head on the first input cell (or on the right marker for the empty word) and moves once for each
+consumed input symbol. -/
+public noncomputable def endmarkerScanTrace (D : DFA T Q) (word : List T) :
+    (index : Nat) → (hindex : index ≤ word.length) →
+      LBA.StepTrace (endmarkerLBA (Work := Work) D)
+        (endmarkerScanCfg (Work := Work) D word 0 (Nat.zero_le _))
+        (endmarkerScanCfg (Work := Work) D word index hindex)
+  | 0, _ => .refl _
+  | index + 1, hindex =>
+      LBA.StepTrace.append
+        (endmarkerScanTrace D word index (by omega))
+        (LBA.StepTrace.single (endmarker_scan_step D word index (by omega)))
+
+/-- The full concrete scanner trace, including departure from the left marker and the final
+stationary transition on the right marker. -/
+public noncomputable def endmarkerTrace (D : DFA T Q) (word : List T) :
+    LBA.StepTrace (endmarkerLBA (Work := Work) D)
+      (LBA.initCfgEnd (endmarkerLBA (Work := Work) D) word)
+      (endmarkerHaltCfg (Work := Work) D word) :=
+  LBA.StepTrace.append
+    (LBA.StepTrace.single (endmarker_initial_scan_step D word))
+    (LBA.StepTrace.append
+      (endmarkerScanTrace D word word.length le_rfl)
+      (LBA.StepTrace.single (endmarker_scan_right_step D word)))
+
+private theorem crosses_initial_scan_iff (D : DFA T Q) (word : List T)
+    (boundary : Fin (word.length + 1)) :
+    LBA.StepTrace.CrossesBoundary boundary
+      (LBA.initCfgEnd (endmarkerLBA (Work := Work) D) word)
+      (endmarkerScanCfg (Work := Work) D word 0 (Nat.zero_le _)) ↔
+        boundary.val = 0 := by
+  simp only [LBA.StepTrace.CrossesBoundary, LBA.StepTrace.CrossesRight,
+    LBA.StepTrace.CrossesLeft, LBA.StepTrace.HeadAtOrLeft,
+    LBA.StepTrace.HeadRight, LBA.initCfgEnd, LBA.loadEnd,
+    endmarkerScanCfg]
+  omega
+
+private theorem crosses_scan_step_iff (D : DFA T Q) (word : List T)
+    (index : Nat) (hindex : index < word.length)
+    (boundary : Fin (word.length + 1)) :
+    LBA.StepTrace.CrossesBoundary boundary
+      (endmarkerScanCfg (Work := Work) D word index hindex.le)
+      (endmarkerScanCfg (Work := Work) D word (index + 1) hindex) ↔
+        boundary.val = index + 1 := by
+  simp only [LBA.StepTrace.CrossesBoundary, LBA.StepTrace.CrossesRight,
+    LBA.StepTrace.CrossesLeft, LBA.StepTrace.HeadAtOrLeft,
+    LBA.StepTrace.HeadRight, endmarkerScanCfg]
+  omega
+
+private theorem not_crosses_scan_halt (D : DFA T Q) (word : List T)
+    (boundary : Fin (word.length + 1)) :
+    ¬ LBA.StepTrace.CrossesBoundary boundary
+      (endmarkerScanCfg (Work := Work) D word word.length le_rfl)
+      (endmarkerHaltCfg (Work := Work) D word) := by
+  simp only [LBA.StepTrace.CrossesBoundary, LBA.StepTrace.CrossesRight,
+    LBA.StepTrace.CrossesLeft, LBA.StepTrace.HeadAtOrLeft,
+    LBA.StepTrace.HeadRight, endmarkerScanCfg, endmarkerHaltCfg]
+  omega
+
+/-- During the input-cell portion of the scan, boundary `b` has been crossed exactly when it is
+strictly positive and no farther right than the current scan index. -/
+public theorem crossingCount_endmarkerScanTrace (D : DFA T Q) (word : List T)
+    (index : Nat) (hindex : index ≤ word.length)
+    (boundary : Fin (word.length + 1)) :
+    (endmarkerScanTrace (Work := Work) D word index hindex).crossingCount boundary =
+      if 0 < boundary.val ∧ boundary.val ≤ index then 1 else 0 := by
+  induction index with
+  | zero =>
+      rw [show endmarkerScanTrace (Work := Work) D word 0 hindex = .refl _ from rfl,
+        LBA.StepTrace.crossingCount_refl,
+        if_neg (by omega : ¬ (0 < boundary.val ∧ boundary.val ≤ 0))]
+  | succ index ih =>
+      have hlt : index < word.length := by omega
+      rw [endmarkerScanTrace, LBA.StepTrace.crossingCount_append,
+        ih (by omega), LBA.StepTrace.crossingCount_single]
+      simp only [crosses_scan_step_iff (Work := Work) D word index hlt boundary]
+      by_cases hprevious : 0 < boundary.val ∧ boundary.val ≤ index
+      · rw [if_pos hprevious, if_neg (by omega : boundary.val ≠ index + 1),
+          if_pos (by omega : 0 < boundary.val ∧ boundary.val ≤ index + 1)]
+      · rw [if_neg hprevious]
+        by_cases hcurrent : boundary.val = index + 1
+        · rw [if_pos hcurrent,
+            if_pos (by omega : 0 < boundary.val ∧ boundary.val ≤ index + 1)]
+        · rw [if_neg hcurrent,
+            if_neg (by omega : ¬ (0 < boundary.val ∧ boundary.val ≤ index + 1))]
+
+/-- Every physical tape boundary is crossed exactly once by the full DFA scanner trace. -/
+public theorem crossingCount_endmarkerTrace (D : DFA T Q) (word : List T)
+    (boundary : Fin (word.length + 1)) :
+    (endmarkerTrace (Work := Work) D word).crossingCount boundary = 1 := by
+  rw [endmarkerTrace, LBA.StepTrace.crossingCount_append,
+    LBA.StepTrace.crossingCount_single,
+    LBA.StepTrace.crossingCount_append,
+    crossingCount_endmarkerScanTrace,
+    LBA.StepTrace.crossingCount_single]
+  rw [if_neg (not_crosses_scan_halt (Work := Work) D word boundary)]
+  by_cases hzero : boundary.val = 0
+  · rw [if_pos ((crosses_initial_scan_iff (Work := Work) D word boundary).2 hzero)]
+    simp [hzero]
+  · have hpositive : 0 < boundary.val := Nat.pos_of_ne_zero hzero
+    have hle : boundary.val ≤ word.length := by omega
+    rw [if_neg (fun hcross => hzero
+      ((crosses_initial_scan_iff (Work := Work) D word boundary).1 hcross)),
+      if_pos ⟨hpositive, hle⟩]
+
+/-- The one-way endmarker LBA for a DFA has a uniform selected-accepting crossing cap of `1`:
+every accepted word has the explicit scanner trace above, and that trace crosses every boundary
+exactly once.  (For a language with no accepted words, the semantic promise is also vacuously
+true at cap zero.) -/
+public theorem endmarkerLBA_hasUniformAcceptingBound_one (D : DFA T Q) :
+    LBA.BoundedCrossing.HasUniformAcceptingBound
+      (endmarkerLBA (Work := Work) D) 1 := by
+  intro word haccept
+  have hdfa : word ∈ D.accepts :=
+    (endmarkerLBA_accepts_iff (Work := Work) D word).mp haccept
+  refine ⟨endmarkerHaltCfg (Work := Work) D word,
+    endmarkerTrace (Work := Work) D word, ?_, ?_⟩
+  · have hfinal : D.eval word ∈ D.accept := (DFA.mem_accepts D).mp hdfa
+    simpa [endmarkerLBA, endmarkerHaltCfg] using hfinal
+  · intro boundary
+    rw [crossingCount_endmarkerTrace]
 
 end DFA
 

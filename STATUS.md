@@ -452,9 +452,38 @@ solution to the open problem:
   weak selected-run crossing promise actually forces regularity, hence a
   DLBA presentation.  The last implication uses the explicit one-way
   endmarker scanner behind `is_DLBA_of_is_NFA`, including `epsilon`; it does
-  not query source-language membership.  Weak linear accepting time alone
+  not query source-language membership.
+  The converse is now equally explicit.  `DFA.endmarkerTrace` is the
+  scanner's concrete `StepTrace`, and `DFA.crossingCount_endmarkerTrace`
+  proves that it crosses every physical boundary exactly once, including the
+  empty word's sole boundary.  Consequently
+  `BoundedCrossingSlice_eq_DFA` and `BoundedCrossingSlice_eq_NFA` identify
+  every positive fixed at-most-crossing-cap slice class with the regular
+  languages, while `UniformBoundedCrossingLBA_eq_DFA` and its NFA/Mathlib
+  forms identify the existential-uniform-cap presentation class exactly.
+  These class equalities assume only a finite terminal type, including the
+  empty type; the presentation witnesses carry arbitrary finite work and
+  state types with no lower bounds.
+  Weak linear accepting time alone
   remains insufficient, and the separate bounded-choice development still
   stops before a generic same-width schedule enumerator/replayer.
+- `LBA.HeadTurns.physicalDirection` measures actual head displacement, so
+  explicit stationary moves and outward moves clamped at an endpoint are
+  erased.  `crossingCount_le_headTurnCount_add_indicator` proves, for every
+  concrete trace and boundary, that the crossing count is at most the number
+  of physical direction changes plus one, with the additive term improved to
+  zero when the trace never moves.  No finiteness, nonemptiness, or
+  cardinality assumption enters this trace theorem, and width zero is
+  included.  The weak promise
+  `HasUniformAcceptingHeadTurnBound M r` again selects only one accepting
+  trace per accepted word; all other runs are unrestricted.  It implies
+  `HasUniformAcceptingBound M (r + 1)`.  Conversely the explicit DFA scanner
+  has exactly zero head turns.  Thus, for every natural `r`,
+  `HeadTurnBoundedLBA_eq_DFA`, `HeadTurnBoundedLBA_eq_NFA`, and
+  `HeadTurnBoundedLBA_eq_isRegular` characterize the entire fixed-`r` class
+  exactly, and `HeadTurnBoundedLBA_subset_DLBA` gives the deterministic-LBA
+  inclusion.  This is a constant-turn theorem; it makes no claim about a
+  reversal bound growing with the input length.
 - `LanguageWithBound M c` is the fixed-cap slice of one LBA language.
   `languageWithBound_mono` makes the slices increasing, while
   `languageEnd_eq_iUnion_languageWithBound` proves that every accepted word
@@ -480,6 +509,16 @@ solution to the open problem:
   `every_crossingCap_has_strict_larger_slice_of_not_is_NFA` and its direct
   DFA/Mathlib-regular forms show genuine non-stabilization: above every cap
   `c` there is a `d > c` with `LanguageWithBound M c < LanguageWithBound M d`.
+  The exceptional cap zero is classified separately and more tightly.
+  `acceptsWithBound_zero_initCfgEnd_iff` replays a zero-crossing trace across
+  arbitrary tape widths: since even `epsilon` has the boundary immediately
+  right of `⊢`, the head can never leave cell zero.  Hence
+  `languageWithBound_zero_eq_empty_or_univ` proves input independence without
+  any finiteness assumption, and
+  `BoundedCrossingSlice_zero_eq_trivial_languages` identifies the whole
+  cap-zero slice class with `{∅, Set.univ}` over every terminal type,
+  including the empty type.  Together with the positive-cap equalities, this
+  gives the complete fixed-cap taxonomy.
 - The development also contains checked results about bounded
   nondeterminism, cofunctional reachability, acyclic layering, degree-two
   diamond paths, schedule capacity, unary regular languages, monotone
@@ -916,7 +955,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,990 jobs completed successfully;
+- `lake build`: 8,993 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;
