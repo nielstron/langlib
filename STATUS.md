@@ -340,6 +340,15 @@ solution to the open problem:
   `not_branches_of_reaches_of_ne_source` prove that an exact union of only two
   directed matchings cannot branch anywhere along a path except at its initial
   vertex.
+- `exactThreeMatching_relevantBranch_obstruction` makes the contrast uniform
+  over every natural `k`, including zero.  One finite DAG of exactly `6*k+2`
+  vertices has an exact unique cover by three directed matchings, exactly `k`
+  genuine branch vertices, and one designated source-to-target path region in
+  which all `k` branches are relevant and ordered by reachability.
+  `exists_k_relevant_branches` supplies their injective enumeration.  Thus the
+  constant-one branch-event proof for two matching layers cannot extend to
+  three merely by changing the number of colors.  This witness is not a
+  deterministic-space lower bound and does not exclude recomputing choices.
 - `reaches_comparable_of_incoming` strengthens that obstruction from one step
   to the complete forward cone: after a vertex has any incoming edge, every
   two descendants are comparable by reachability.  The explicit four-vertex
@@ -380,6 +389,15 @@ solution to the open problem:
   effective reduction, or a same-width LBA compiler.  For an LBA instance,
   this dependence includes the input word, so the construction is not one
   fixed recognizer for the language.
+  The size cost of this particular presentation is now checked on its actual
+  phase type.  `phaseOfHistory_injective` chooses a distinct visited phase for
+  every rooted history, and `card_history_le_actions_length_add_one` bounds
+  the history count by the number of phases in the generated line.  On the
+  `k`-diamond chain, `twoPow_le_card_historyPhase` and
+  `twoPow_sub_one_le_historyActions_length` therefore force at least `2^k`
+  phases and `2^k - 1` scheduled actions.  This is an exponential-size lower
+  bound for the concrete exhaustive history-port presentation, not for every
+  source-sensitive reduction.
   The whole branch history has moved into the represented vertex.  In
   particular, `historyOfPath_injective` embeds all explicit paths through a
   `k`-diamond chain into the actual rooted `History` type, and
@@ -390,6 +408,40 @@ solution to the open problem:
   contrapositive.  These statements include zero parameters and empty row
   alphabets.  This is a capacity barrier to literal history materialization,
   not to recomputation or a general deterministic simulation.
+  `historyPhases_le_rowCapacity_of_injective` gives the corresponding bound
+  for injectively representing every actual phase of the exhaustive schedule
+  in one row; it likewise ranges over arbitrary finite row alphabets and all
+  widths, including zero.
+- The separate Savitch boundary is now machine-checked at both storage and
+  execution interfaces, after first checking the recurrence itself.
+  `savitchReach_iff_paddedPath` proves that midpoint recursion at depth `d`
+  is exactly reachability by at most `2^d` genuine steps, and
+  `reaches_iff_savitchReach_clog` proves that depth
+  `clog 2 (|V|)` captures all reachability on an arbitrary finite type.  This
+  is propositional semantics, not an executable search.
+  `row_reaches_iff_savitchReach_clog` specializes uniformly to rows over any
+  finite cell type, while `bitRows_reaches_iff_savitchReach` records the exact
+  depth-`n` form for all `n`-bit row types, including `n = 0`.
+  `frameStacks_le_rowCapacity_of_injective` then gives the
+  exact necessary inequality `|Frame|^depth ≤ |Cell|^width` for injectively
+  storing all independent continuation stacks.  Its configuration
+  specialization has exponent `n*n`, and
+  `binarySquare_exceeds_fixedLinearRowCapacity` supplies the explicit failing
+  width `n = |WorkCell|*factor+1` for every finite work alphabet and fixed
+  linear cell factor; `exists_no_injective_binarySquareStacks_fixedLinear`
+  packages the resulting nonexistence statement.  Independently,
+  `orbitPrefix_injective_of_firstSatisfying` proves that every deterministic
+  state through the first visit to an arbitrary accepting set is distinct;
+  `firstSatisfying_steps_lt_card` and
+  `firstSatisfying_steps_lt_rowCapacity_of_injective` bound that time by the
+  finite state or row capacity.  The singleton-target `firstHit` results are
+  direct corollaries.  Finally,
+  `exists_no_binarySquare_firstHit_fixedLinear` supplies a width at which no
+  literal fixed-linear-row orbit first reaches one designated target only
+  after all `2^(n*n)` traversal indices.  These conditional capacity results
+  block materializing arbitrary Savitch stacks or replaying that full
+  traversal; they do not rule out an algorithm which aggregates or
+  reorganizes the search.
 - `DLBA_subset_ULBA` and `ULBA_subset_LBA` formalize the sandwich through
   unambiguous linear space using labeled, first-final accepting runs.
   `lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` factors the first LBA
@@ -523,7 +575,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,941 jobs completed successfully;
+- `lake build`: 8,945 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

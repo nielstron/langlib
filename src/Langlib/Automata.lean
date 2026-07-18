@@ -154,6 +154,7 @@ public import Langlib.Automata.LinearBounded.GraphWalking.PhaseDoubledLocalEuler
 public import Langlib.Automata.LinearBounded.GraphWalking.ReversibleCore
 public import Langlib.Automata.LinearBounded.HistoryDiamondCapacity
 public import Langlib.Automata.LinearBounded.HistoryPortCompilation
+public import Langlib.Automata.LinearBounded.HistoryPortPhaseCapacity
 public import Langlib.Automata.LinearBounded.HistoryUnfolding
 public import Langlib.Automata.LinearBounded.HistoryUnfoldingReachability
 public import Langlib.Automata.LinearBounded.Inclusion.Recursive
@@ -189,10 +190,13 @@ public import Langlib.Automata.LinearBounded.PermutationReachability
 public import Langlib.Automata.LinearBounded.Positive
 public import Langlib.Automata.LinearBounded.RowEnumeration
 public import Langlib.Automata.LinearBounded.RowNumeral
+public import Langlib.Automata.LinearBounded.SavitchReachability
+public import Langlib.Automata.LinearBounded.SavitchRecomputationBarrier
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivision
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivisionReachability
 public import Langlib.Automata.LinearBounded.StrictClockLayering
+public import Langlib.Automata.LinearBounded.ThreeMatchingDiamondBranches
 public import Langlib.Automata.LinearBounded.ThreeMatchingReachability
 public import Langlib.Automata.LinearBounded.TwoLayerReachability
 public import Langlib.Automata.LinearBounded.TwoMatchingChoiceBound

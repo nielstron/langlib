@@ -146,6 +146,67 @@ encoding its recursion stack more compactly would not suffice.  This is a
 barrier to that particular simulation, not a time or space lower bound for
 all possible algorithms.
 
+The recurrence itself is now checked before applying those resource
+observations.  `savitchReach_iff_paddedPath` proves that the depth-`d`
+midpoint predicate is exactly a padded path with `2^d` verifier steps, hence
+at most `2^d` genuine edges.  `PaddedPath.append`, `PaddedPath.split`, and
+`PaddedPath.mono` discharge the exact composition, bisection, and stuttering
+steps.  For every finite vertex type,
+`reaches_iff_savitchReach_clog` proves that depth
+`clog 2 (|V|)` captures the entire reflexive-transitive closure.  The source
+and target terms already imply inhabitation, so no artificial cardinality
+lower bound is present.  This remains a propositional equivalence: its
+existential midpoints are not an executable search or a space analysis.
+The row form `row_reaches_iff_savitchReach_clog` quantifies over every finite
+cell type and width.  For Boolean rows, `clog_card_bitRows` computes the depth
+exactly and `bitRows_reaches_iff_savitchReach` states the resulting depth-`n`
+equivalence, including `n = 0`.
+
+The two elementary resource interfaces are checked independently in
+`SavitchRecomputationBarrier`.  For arbitrary finite frame and row types,
+`frameStacks_le_rowCapacity_of_injective` proves the exact necessary
+inequality
+
+$$
+|\mathit{Frame}|^d \leq |\mathit{Cell}|^W
+$$
+
+for injectively materializing every depth-`d` stack in one width-`W` row.
+`squareConfigurationStacks_le_rowCapacity_of_injective` specializes this to
+the quadratic exponent for depth-`n` stacks of width-`n` configurations, and
+`binarySquare_exceeds_fixedLinearRowCapacity` gives the explicit failing
+width `n = |WorkCell|*factor+1` for every finite work alphabet and fixed
+linear cell factor.  `exists_no_injective_binarySquareStacks_fixedLinear`
+packages the resulting existential nonencoding theorem.
+This premise deliberately concerns arbitrary independent frame values; it is
+not a claim that every possible search method must materialize that family.
+
+At the execution interface,
+`orbitPrefix_injective_of_firstSatisfying` proves that all deterministic
+states through the first visit to an arbitrary accepting set are distinct.
+Hence `firstSatisfying_steps_lt_card` bounds that first-acceptance time by the
+state-space cardinality; accepting states need not be terminal or fixed.
+`firstSatisfying_steps_lt_rowCapacity_of_injective` folds arbitrary finite
+control into any supplied injective row encoding.  The singleton-target
+`firstHit` theorems are direct corollaries.  The explicit result
+`exists_no_binarySquare_firstHit_fixedLinear` gives, for each fixed alphabet
+and linear cell allowance, a width at which no row orbit first hits one target
+only after all `2^{n^2}` putative traversal indices.  A successful
+recomputation route must skip, aggregate, or reorganize those indices; these
+theorems do not exclude such a route.
+
+Reversible pebbling does not improve this literal stack accounting.  A pebble
+on the Savitch dependency tree must still name the represented midpoint
+subproblem.  Complete binary trees of height `h` require `Theta(h)`
+simultaneous pebbles in this model, so `h = Theta(log N)` full vertex labels
+again occupy `Theta(log^2 N)` bits; see [Komarath, Sarma, and
+Sawlani](https://arxiv.org/abs/1604.05510).  This is deliberately only a
+pebbling-model observation.  Lange--McKenzie--Tapp bypass Bennett pebbling for
+an already deterministic computation, but preserves that computation's
+asymptotic space.  Applied after Savitch it therefore preserves
+`O(log^2 N)`, while applying it before Savitch would require the missing
+deterministic branch schedule.
+
 The 2026 catalytic-space advances for directed reachability do not remove this
 obstruction in the ordinary LBA model.  Edenhofer's parameterized algorithm on
 an `N`-vertex graph uses
@@ -512,6 +573,11 @@ that explicit directed reachability remains
 does not bound the number of components.  Each supplied layer is therefore a
 partial bijection, and can still have linearly many separate components.  Such
 graphs have directed indegree and outdegree at most two.
+They also prove `NL`-hardness when the supplied partition consists of three
+linear `1`-diforests, exactly three directed matching layers.  Their theorem
+does not additionally promise a global DAG; Langlib's separate clock and
+serializer construction is what supplies acyclicity in the checked
+three-matching normal form.
 
 ## The synchronized rational-graph interface
 
@@ -1027,6 +1093,19 @@ the successor unique.  This is formalized by
 `not_branches_of_reaches_of_ne_source`: along a path rooted at `s`, a genuine
 branch can occur only at `s` itself.
 
+The contrast is quantitatively sharp for three colors.
+`exactThreeMatching_relevantBranch_obstruction` gives, for every natural
+`k`, one acyclic graph with exactly `6k+2` vertices, an exact unique
+three-matching cover, exactly `k` genuine branch vertices, and designated
+source-to-target reachability.  `exists_k_relevant_branches` injectively names
+all `k` branches, proves each is reachable from the source and can still reach
+the target, and orders them by directed reachability.  All statements include
+`k=0`.  Therefore the constant-one branch-event argument used below is a
+genuine two-matching phenomenon; merely allowing a third matching permits a
+linearly growing number of relevant choices.  The family is a structural
+witness, not a lower bound against algorithms that recompute or collectively
+resolve those choices.
+
 The machine-level development now turns that obstruction into a genuine
 restricted determinization theorem.  `Machine.HasTwoMatchingStepPartition`
 requires one exact, width-uniform two-matching cover of the complete raw step
@@ -1397,6 +1476,21 @@ configuration graph, this instance dependence includes the input word, so it
 does not define one fixed machine recognizing the language.  This
 source-sensitive duplication is also why it does not contradict the
 all-pairs three-fork obstruction above.
+
+The phase-line cost of this particular construction is not merely
+qualitative.  `phaseOfHistory_injective` chooses, for every rooted history, a
+visited phase whose represented port endpoint recovers that history; distinct
+histories therefore require distinct phases.  The general bounds
+`card_history_le_card_phase` and
+`card_history_le_actions_length_add_one` apply to every finite base type
+without a lower-cardinality premise.  On the `k`-diamond chain,
+`twoPow_le_card_historyPhase` forces at least `2^k` phases and
+`twoPow_sub_one_le_historyActions_length` forces at least `2^k-1` actions in
+the actual exhaustive schedule.  If all those phases are injectively stored
+as width-`W` rows over a finite alphabet `A`,
+`historyPhases_le_rowCapacity_of_injective` further forces
+`2^k ≤ |A|^W`.  These are lower bounds for the checked nonuniform history-port
+presentation, not for every effective or recomputing reduction.
 
 The cost is that the return stack has moved into the vertex representation.
 The minimal merge leak for contouring the original graph is
@@ -2264,7 +2358,12 @@ the regular collapses above cannot extend to the unrestricted model.
 
 ## Resource ledger for unsuccessful general approaches
 
-- **Savitch recursion:** `O(n²)` rather than linear space.
+- **Savitch recursion:** `O(n²)` rather than linear space.  The exact
+  midpoint semantics is checked by `reaches_iff_savitchReach_clog`; the
+  independent-stack capacity and deterministic first-acceptance bounds are
+  checked by `squareConfigurationStacks_le_rowCapacity_of_injective` and
+  `firstSatisfying_steps_lt_rowCapacity_of_injective`.  They exclude literal
+  stack materialization or full replay, not a reorganized search.
 - **Immerman--Szelepcsényi counting:** counters fit in linear space, but
   reachability witnesses are still chosen nondeterministically.  The checked
   row compiler makes this failure exact: every certified-row language rejects
@@ -2441,6 +2540,9 @@ asymptotic storage.
 - Klaus-Jörn Lange, Pierre McKenzie, and Alain Tapp,
   [*Reversible Space Equals Deterministic
   Space*](https://doi.org/10.1006/jcss.1999.1672), 2000.
+- Balagopal Komarath, Jayalal Sarma, and Saurabh Sawlani,
+  [*Pebbling Meets Coloring: Reversible Pebble Game on
+  Trees*](https://arxiv.org/abs/1604.05510), 2016.
 - Michal Kunc and Alexander Okhotin,
   [*Reversibility of Computations in Graph-Walking
   Automata*](https://doi.org/10.1016/j.ic.2020.104631), 2020.
