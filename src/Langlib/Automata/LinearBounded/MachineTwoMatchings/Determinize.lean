@@ -69,14 +69,17 @@ public theorem twoMatchingLBA_subset_DLBA
     (TwoMatchingLBA : Set (Language T)) ⊆ DLBA :=
   fun _ hL => is_DLBA_of_is_TwoMatchingLBA hL
 
-/-- Every language with a configuration-reversible LBA presentation is deterministic. -/
+/-- Every language with an all-raw-configuration-biunique LBA presentation is deterministic.
+`ReversibleTriviality.lean` later shows that this particular clamped-model class contains only
+the empty and universal languages; the useful content here is the more general two-matching
+theorem above. -/
 public theorem is_DLBA_of_is_ReversibleLBA
     {T : Type} [Fintype T] [DecidableEq T] {L : Language T}
     (hL : is_ReversibleLBA L) : is_DLBA L :=
   is_DLBA_of_is_TwoMatchingLBA
     (is_TwoMatchingLBA_of_is_ReversibleLBA hL)
 
-/-- Class-level configuration-reversible corollary. -/
+/-- Class-level all-raw-configuration-biunique corollary. -/
 public theorem reversibleLBA_subset_DLBA
     {T : Type} [Fintype T] [DecidableEq T] :
     (ReversibleLBA : Set (Language T)) ⊆ DLBA :=

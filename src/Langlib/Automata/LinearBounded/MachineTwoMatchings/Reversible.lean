@@ -21,9 +21,13 @@ For a configuration-reversible source these two kinds of edges are themselves di
 matchings.  Coloring the internal edges zero and the source edges one therefore gives an exact
 two-matching presentation, at the same tape width and over the same tape alphabet.
 
-This module proves only that reusable structural bridge.  In particular, converting an arbitrary
-DLBA presentation into a configuration-reversible LBA is the separate, nontrivial reversible-space
-simulation problem; no such conversion is assumed or claimed here.
+This module proves only that structural bridge.  Under the repository's clamped movement and
+all-raw-configuration quantification, however, this source promise is much stronger than the
+standard marked-tape notion of a reversible Turing machine: any enabled directional move creates
+a raw boundary collision.  `MachineTwoMatchings/ReversibleTriviality.lean` proves that the
+language class defined below consequently contains only the empty and universal languages.  A
+standard reversible-space simulation must therefore be adapted directly to the weaker exact-two-
+matching target rather than presented as a compiler into `ConfigurationBiUnique`.
 -/
 
 namespace LBA
@@ -193,8 +197,9 @@ end LBA
 
 /-! ## Language classes -/
 
-/-- A language with a canonical endmarker LBA presentation whose complete configuration step
-relation is a partial bijection at every tape width. -/
+/-- A language with a canonical endmarker LBA presentation whose complete **raw clamped**
+configuration step relation is a partial bijection at every tape width.  This is deliberately the
+literal structural property used above, not the usual promise-restricted marked-tape notion. -/
 public def is_ReversibleLBA
     {T : Type} [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
   ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
@@ -202,7 +207,8 @@ public def is_ReversibleLBA
     (M : LBA.Machine (LBA.EndAlpha T Γ) Λ),
     M.ConfigurationBiUnique ∧ LBA.LanguageEnd M = L
 
-/-- Languages with a finite configuration-reversible LBA presentation. -/
+/-- Languages with a finite all-raw-configuration-biunique LBA presentation.  The later theorem
+`reversibleLBA_eq_trivial_languages` characterizes this class exactly. -/
 public def ReversibleLBA
     {T : Type} [Fintype T] [DecidableEq T] : Set (Language T) :=
   setOf is_ReversibleLBA
