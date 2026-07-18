@@ -464,11 +464,35 @@ private def cleanRTape
     DLBA.BoundedTape (TapeAlpha T Γ Λ) n :=
   ⟨fun index => workSymbol (cleanRCell tape digits trails current index), current⟩
 
-private def normalizedTape
+/-- The canonical tape at the right-boundary normalization milestone.  Every cell has had its
+transient Ready trails erased and carries the right-sweep normalization bit; the physical head is
+at the right endpoint. -/
+public def rightBoundaryTape
     {n : ℕ} (tape : DLBA.BoundedTape (SourceAlpha T Γ) n)
     (digits : Fin (n + 1) → ClockDigit T Γ Λ) :
     DLBA.BoundedTape (TapeAlpha T Γ Λ) n :=
-  ⟨fun index => workSymbol (normalizedCell tape digits index), Fin.last n⟩
+  ⟨fun index => workSymbol ((readyCell tape digits index).normalizedRight), Fin.last n⟩
+
+/-- The canonical `.cleanL` configuration reached when rightward normalization first arrives at
+the right boundary.  This is the milestone immediately before the leftward cleanup sweep and,
+therefore, strictly before carry entry. -/
+public def rightBoundaryCfg
+    {n : ℕ} (cfg : DLBA.Cfg (SourceAlpha T Γ) Λ n)
+    (digits : Fin (n + 1) → ClockDigit T Γ Λ) :
+    DLBA.Cfg (TapeAlpha T Γ Λ) (State Λ) n :=
+  ⟨.cleanL cfg.state, rightBoundaryTape cfg.tape digits⟩
+
+@[simp]
+public theorem rightBoundaryTape_head
+    {n : ℕ} (tape : DLBA.BoundedTape (SourceAlpha T Γ) n)
+    (digits : Fin (n + 1) → ClockDigit T Γ Λ) :
+    (rightBoundaryTape tape digits).head = Fin.last n := rfl
+
+@[simp]
+public theorem rightBoundaryCfg_head
+    {n : ℕ} (cfg : DLBA.Cfg (SourceAlpha T Γ) Λ n)
+    (digits : Fin (n + 1) → ClockDigit T Γ Λ) :
+    (rightBoundaryCfg cfg digits).tape.head = Fin.last n := rfl
 
 private theorem cleanRTape_zero_eq_seekTape
     {n : ℕ} (tape : DLBA.BoundedTape (SourceAlpha T Γ) n)
@@ -545,14 +569,14 @@ private theorem cleanR_update_last
         (workSymbol
           (cleanRCell tape digits trails
             (Fin.last n) (Fin.last n)).normalizedRight) =
-      (normalizedTape tape digits).contents := by
+      (rightBoundaryTape tape digits).contents := by
   funext index
   rw [Function.update_apply]
   by_cases heq : index = Fin.last n
   · subst index
     rw [if_pos rfl]
     apply congrArg workSymbol
-    simp [cleanRCell, normalizedCell, seekCell, checkpointCell, readyCell,
+    simp [cleanRCell, seekCell, checkpointCell, readyCell,
       WorkCell.normalizedRight, WorkCell.clearTransient]
   · rw [if_neg heq]
     have hlt : index.val < n := by
@@ -562,9 +586,9 @@ private theorem cleanR_update_last
         exact heq (Fin.ext (by simpa using h))
       omega
     change
-      workSymbol (cleanRCell tape digits trails (Fin.last n) index) =
-        workSymbol (normalizedCell tape digits index)
-    simp [cleanRCell, hlt]
+        workSymbol (cleanRCell tape digits trails (Fin.last n) index) =
+        workSymbol ((readyCell tape digits index).normalizedRight)
+    simp [cleanRCell, normalizedCell, hlt]
 
 private theorem cleanR_step_last
     (M : LBA.Machine (SourceAlpha T Γ) Λ)
@@ -574,7 +598,7 @@ private theorem cleanR_step_last
     (trails : ReadyTrails n) :
     LBA.Step (machine M)
       ⟨.cleanR source, cleanRTape tape digits trails (Fin.last n)⟩
-      ⟨.cleanL source, normalizedTape tape digits⟩ := by
+      ⟨.cleanL source, rightBoundaryTape tape digits⟩ := by
   let last := Fin.last n
   let cell := cleanRCell tape digits trails last last
   refine ⟨.cleanL source, workSymbol cell.normalizedRight, .stay, ?_, ?_⟩
@@ -597,13 +621,13 @@ private theorem cleanR_sweep
     ∀ current : Fin (n + 1),
       LBA.Reaches (machine M)
         ⟨.cleanR source, cleanRTape tape digits trails current⟩
-        ⟨.cleanL source, normalizedTape tape digits⟩ := by
+        ⟨.cleanL source, rightBoundaryTape tape digits⟩ := by
   suffices H :
       ∀ distance, ∀ current : Fin (n + 1),
         n - current.val = distance →
         LBA.Reaches (machine M)
           ⟨.cleanR source, cleanRTape tape digits trails current⟩
-          ⟨.cleanL source, normalizedTape tape digits⟩ from
+          ⟨.cleanL source, rightBoundaryTape tape digits⟩ from
     fun current => H (n - current.val) current rfl
   intro distance
   induction distance with
@@ -641,18 +665,18 @@ private def cleanLTape
     DLBA.BoundedTape (TapeAlpha T Γ Λ) n :=
   ⟨fun index => workSymbol (cleanLCell tape digits current index), current⟩
 
-private theorem cleanLTape_last_eq_normalizedTape
+private theorem cleanLTape_last_eq_rightBoundaryTape
     {n : ℕ} (tape : DLBA.BoundedTape (SourceAlpha T Γ) n)
     (digits : Fin (n + 1) → ClockDigit T Γ Λ) :
-    cleanLTape tape digits (Fin.last n) = normalizedTape tape digits := by
-  simp only [cleanLTape, normalizedTape]
+    cleanLTape tape digits (Fin.last n) = rightBoundaryTape tape digits := by
+  simp only [cleanLTape, rightBoundaryTape]
   congr 1
   funext index
   apply congrArg workSymbol
   have hle : index.val ≤ n := by
     have := index.isLt
     omega
-  simp [cleanLCell, normalizedCell, WorkCell.normalizedRight,
+  simp [cleanLCell, WorkCell.normalizedRight,
     WorkCell.clearTransient, readyCell, hle]
 
 private theorem cleanL_update_left
@@ -790,6 +814,59 @@ private theorem cleanL_sweep
         (cleanL_step_left M source tape digits current hpos)
         (ih previous hprevious)
 
+/-- Starting at the guarded-seek phase of an operational checkpoint, the actual clock machine
+always reaches the canonical right-boundary milestone.  No property of the clock digits or the
+harmless Ready trails is required. -/
+public theorem reaches_rightBoundary_of_seek_checkpoint
+    (M : LBA.Machine (SourceAlpha T Γ) Λ)
+    {n : ℕ} (source : Λ)
+    (tape : DLBA.BoundedTape (SourceAlpha T Γ) n)
+    (digits : Fin (n + 1) → ClockDigit T Γ Λ)
+    (trails : ReadyTrails n) :
+    LBA.Reaches (machine M)
+      ⟨.seek source, checkpointTape tape digits trails⟩
+      (rightBoundaryCfg
+        (⟨source, tape⟩ : DLBA.Cfg (SourceAlpha T Γ) Λ n) digits) := by
+  rw [← seekTape_at_source_head tape digits trails]
+  simpa [rightBoundaryCfg] using
+    (seek_sweep M source tape digits trails tape.head (Nat.le_refl _)).trans
+      (cleanR_sweep M source tape digits trails ⟨0, by omega⟩)
+
+/-- Every genuine source step reaches the canonical normalized right-boundary configuration from
+every operational Ready checkpoint.  The theorem is uniform in the tape width, including
+`n = 0`, and in both the clock row and harmless Ready trails. -/
+public theorem reaches_rightBoundary_checkpoint_of_step
+    (M : LBA.Machine (SourceAlpha T Γ) Λ)
+    {n : ℕ} {cfg cfg' : DLBA.Cfg (SourceAlpha T Γ) Λ n}
+    (digits : Fin (n + 1) → ClockDigit T Γ Λ)
+    (trails : ReadyTrails n)
+    (hstep : LBA.Step M cfg cfg') :
+    LBA.Reaches (machine M)
+      (checkpointCfg cfg digits trails)
+      (rightBoundaryCfg cfg' digits) := by
+  exact (reaches_seek_checkpoint_of_step M digits trails hstep).trans
+    (reaches_rightBoundary_of_seek_checkpoint M cfg'.state cfg'.tape digits
+      ((trails.clearAt cfg.tape.head).clearAt cfg'.tape.head))
+
+/-- From the canonical normalized right-boundary milestone, the leftward cleanup sweep reaches
+the clean carry-entry configuration.  Together with
+`reaches_rightBoundary_checkpoint_of_step`, this factors every source macro prefix through its
+right-boundary crossing point. -/
+public theorem reaches_carry_of_rightBoundary
+    (M : LBA.Machine (SourceAlpha T Γ) Λ)
+    {n : ℕ} (source : Λ)
+    (tape : DLBA.BoundedTape (SourceAlpha T Γ) n)
+    (digits : Fin (n + 1) → ClockDigit T Γ Λ) :
+    LBA.Reaches (machine M)
+      (rightBoundaryCfg
+        (⟨source, tape⟩ : DLBA.Cfg (SourceAlpha T Γ) Λ n) digits)
+      ⟨.carry source, leftHeadReadyTape tape digits⟩ := by
+  change LBA.Reaches (machine M)
+    ⟨.cleanL source, rightBoundaryTape tape digits⟩
+    ⟨.carry source, leftHeadReadyTape tape digits⟩
+  rw [← cleanLTape_last_eq_rightBoundaryTape tape digits]
+  exact cleanL_sweep M source tape digits (Fin.last n)
+
 /-- The complete seek/normalization prefix is total for arbitrary harmless Ready trails.  It
 preserves all source data and clock digits, erases both trail tracks, and positions the physical
 head at the least-significant digit. -/
@@ -802,15 +879,8 @@ public theorem reaches_carry_of_seek_checkpoint
     LBA.Reaches (machine M)
       ⟨.seek source, checkpointTape tape digits trails⟩
       ⟨.carry source, leftHeadReadyTape tape digits⟩ := by
-  rw [← seekTape_at_source_head tape digits trails]
-  exact
-    (seek_sweep M source tape digits trails tape.head (Nat.le_refl _)).trans
-      ((cleanR_sweep M source tape digits trails ⟨0, by omega⟩).trans
-        ((show normalizedTape tape digits =
-              cleanLTape tape digits (Fin.last n) by
-            symm
-            exact cleanLTape_last_eq_normalizedTape tape digits) ▸
-          cleanL_sweep M source tape digits (Fin.last n)))
+  exact (reaches_rightBoundary_of_seek_checkpoint M source tape digits trails).trans
+    (reaches_carry_of_rightBoundary M source tape digits)
 
 /-- Every source step reaches the clean carry-entry configuration from every operational Ready
 checkpoint.  This is the complete write/move/mark/seek/normalize prefix of one source macro. -/

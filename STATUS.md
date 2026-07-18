@@ -287,6 +287,68 @@ solution to the open problem:
   the literal image of the concrete clock compiler is already equivalent to
   solving the full problem. The normalization therefore does not silently
   perform the missing determinization.
+- `Machine.reaches_boundedDegreeLift_iff` strengthens the degree-serializer
+  interface from language preservation to exact fixed-width all-pairs
+  reachability between canonical base/Ready lifts.  The global projection
+  theorem `Machine.reaches_boundedDegreeProjectCfg` also reflects every raw
+  serializer run, including runs whose endpoints are intermediate or
+  malformed protocol configurations.  Composing this with the operational
+  clock simulation and checkpoint reflection gives
+  `reaches_iff_exists_concreteClockBoundedDegreeCheckpoint`: a prescribed
+  source configuration reaches a prescribed target exactly when the literal
+  clock-and-degree pipeline reaches some serializer lift of a checkpoint
+  representing that same target.  These statements include tape parameter
+  zero and impose no artificial alphabet-cardinality or positive-width
+  premise.
+- `LBA.StepTrace` retains the finite configurations of a run rather than
+  forgetting them into propositional `Reaches`.  `StepTrace.append` and
+  `StepTrace.crossingCount_append` make trace concatenation and the number of
+  crossings of each boundary `b : Fin n` additive, while
+  `StepTrace.nonempty_iff_reaches` connects the Type-valued witness back to
+  reachability.  `StepTrace.crossingCount_le_liftByReach` proves that replacing
+  each step by a head-preserving simulator run cannot erase a crossing;
+  `Machine.crossingCount_le_boundedDegreeLiftTrace` specializes this to both
+  actual degree serializers.
+- `rightBoundaryCfg` is now a public exact normalization milestone with its
+  physical head at `Fin.last n`.  The pair
+  `reaches_rightBoundary_checkpoint_of_step` and
+  `reaches_carry_of_rightBoundary` factors every operational source macro
+  through that milestone.  Consequently
+  `exists_incremented_checkpoint_stepTrace_crosses_every_boundary` and its
+  semantic specialization prove that a complete nonoverflowing macro whose
+  represented source head starts at cell zero has one concrete trace crossing
+  every physical boundary at least once.
+- `exists_selfLoop_fullClock_stepTrace_crosses` iterates that construction
+  generically for every finite input/work alphabet and state type, every
+  source machine over the canonical endmarked alphabet, and every fixed-width
+  configuration with a head-zero self-loop.  It returns one
+  bottom-to-top operational trace crossing each boundary at least
+  `|Cfg|` times.  The deterministic one-state specialization
+  `IdentityCrossing.identitySource` has exact configuration count
+  `6^(n+1)*(n+1)` by `card_identityCfgSpace`.
+  `exists_finalMachine_stepTrace_crosses_exact` lifts the resulting run
+  through both serializers without losing crossings, and
+  `exists_finalMachine_stepTrace_crosses_twoPow` gives the simpler
+  `2^(n+1)` lower bound.  The very same fixed final machine is globally raw
+  acyclic, has both directed degrees at most two, and has the width-uniform
+  two-biunique partition, as packaged by
+  `IdentityCrossing.finalMachine_globalProperties`.  This proves existence of
+  one explicit structural run, not that acceptance or every run is forced to
+  cross often, and not a language or determinization lower bound.  At `n=0`
+  the bottom-to-top trace still exists, but the crossing assertion is
+  vacuous because there is no `b : Fin 0`.
+- `exists_boundedDegreeMachine_stepTrace_crosses_exact` applies the same
+  generic construction to the already-certified locality witness, not to a
+  third machine.  Thus the exact fixed `boundedDegreeMachine` whose width-`n`
+  raw graph contains the `(n+1)`-cube also has one actual trace crossing every
+  physical boundary at least `2 * 6^(n+1) * (n+1)` times.  Its simpler
+  `2^(n+1)` corollary is
+  `exists_boundedDegreeMachine_stepTrace_crosses_twoPow`.  Consequently one
+  fixed final machine simultaneously has the cube minors, the exponential
+  crossing witness, global raw acyclicity, both degree-two bounds, and the
+  uniform two-biunique partition.  The locality source is nondeterministic,
+  so this synthesis still asserts existence of one selected self-loop run,
+  not a lower bound on all or accepting runs.
 - The development also contains checked results about bounded
   nondeterminism, cofunctional reachability, acyclic layering, degree-two
   diamond paths, schedule capacity, unary regular languages, monotone
@@ -699,7 +761,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,964 jobs completed successfully;
+- `lake build`: 8,971 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

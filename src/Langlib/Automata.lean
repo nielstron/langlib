@@ -32,6 +32,7 @@ public import Langlib.Automata.LinearBounded.AcyclicClock.AcyclicityReduction
 public import Langlib.Automata.LinearBounded.AcyclicClock.Canonical
 public import Langlib.Automata.LinearBounded.AcyclicClock.CompilerBoundary
 public import Langlib.Automata.LinearBounded.AcyclicClock.Construction
+public import Langlib.Automata.LinearBounded.AcyclicClock.CrossingMacro
 public import Langlib.Automata.LinearBounded.AcyclicClock.CycleCriterion
 public import Langlib.Automata.LinearBounded.AcyclicClock.EffectiveClock
 public import Langlib.Automata.LinearBounded.AcyclicClock.Functional
@@ -74,6 +75,8 @@ public import Langlib.Automata.LinearBounded.BoundaryShuttle.Structural
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.TwoMatching
 public import Langlib.Automata.LinearBounded.BoundedDegree
 public import Langlib.Automata.LinearBounded.BoundedDegreeBranchSetMinor
+public import Langlib.Automata.LinearBounded.BoundedDegreeReachability
+public import Langlib.Automata.LinearBounded.BoundedDegreeTrace
 public import Langlib.Automata.LinearBounded.BoundedNondeterminism
 public import Langlib.Automata.LinearBounded.BranchSetMinor
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Acyclicize
@@ -113,7 +116,9 @@ public import Langlib.Automata.LinearBounded.Cofunctional
 public import Langlib.Automata.LinearBounded.CofunctionalRootReachability
 public import Langlib.Automata.LinearBounded.Complement
 public import Langlib.Automata.LinearBounded.ConcreteClockBoundedDegreeBranchSetMinor
+public import Langlib.Automata.LinearBounded.ConcreteClockBoundedDegreeCrossing
 public import Langlib.Automata.LinearBounded.ConcreteClockBoundedDegreeHypercubeMinor
+public import Langlib.Automata.LinearBounded.ConcreteClockBoundedDegreeReachability
 public import Langlib.Automata.LinearBounded.ConcreteClockBranchSetMinor
 public import Langlib.Automata.LinearBounded.ConcreteClockLocalityHypercubeMinor
 public import Langlib.Automata.LinearBounded.ConfigurationEncoding
@@ -165,6 +170,7 @@ public import Langlib.Automata.LinearBounded.HistoryPortCompilation
 public import Langlib.Automata.LinearBounded.HistoryPortPhaseCapacity
 public import Langlib.Automata.LinearBounded.HistoryUnfolding
 public import Langlib.Automata.LinearBounded.HistoryUnfoldingReachability
+public import Langlib.Automata.LinearBounded.IdentityClockCrossing
 public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.LinearBounded.IncomingSerializerBranchSetMinor
@@ -208,6 +214,7 @@ public import Langlib.Automata.LinearBounded.SavitchRecomputationBarrier
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivision
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivisionReachability
+public import Langlib.Automata.LinearBounded.StepTraceCrossing
 public import Langlib.Automata.LinearBounded.StrictClockBranchSetMinor
 public import Langlib.Automata.LinearBounded.StrictClockLayering
 public import Langlib.Automata.LinearBounded.SuccinctDiamondScheduleCapacity

@@ -545,6 +545,55 @@ shows that every Ready path from a raw canonical target input first passes
 through the exact initialized zero-clock checkpoint.  The final theorem
 `languageEnd_machine_eq` proves exact language preservation.
 
+The degree serializers and the complete pipeline now have exact reachability
+interfaces as well.  `boundedDegreeLiftCfg` is the canonical base/Ready lift,
+and `Machine.reaches_boundedDegreeLift_iff` says, at every fixed tape width,
+
+$$
+  \operatorname{Reach}_{M.\mathrm{boundedDegree}}
+    (\widehat s,\widehat t)
+  \quad\Longleftrightarrow\quad
+  \operatorname{Reach}_M(s,t).
+$$
+
+The reverse direction is not confined to canonical configurations:
+`Machine.reaches_boundedDegreeProjectCfg` projects any raw serialized run,
+including one beginning or ending in an intermediate or malformed protocol
+state, to a source run.  Combining this with the operational clock simulation
+and checkpoint uniqueness yields
+`reaches_iff_exists_concreteClockBoundedDegreeCheckpoint`.  For prescribed
+source configurations `s,t`, it proves that `s` reaches `t` exactly when the
+literal machine `(AcyclicClock.machine M).boundedDegree` reaches, from the
+canonical zero-clock lift of `s`, some canonical serializer lift of a Ready
+checkpoint representing that exact `t`.  Only the clock digits and harmless
+Ready trails are existential.  The theorem is uniform at tape parameter zero
+and has no positive-width or alphabet-cardinality lower-bound premise beyond
+the stated finiteness assumptions.
+
+Finite runs can now be retained rather than immediately truncated to the
+proposition `Reaches`.  `LBA.StepTrace` records every intermediate
+configuration; `StepTrace.nonempty_iff_reaches` relates it exactly to
+reachability, while `StepTrace.append` concatenates witnesses.  For
+`b : Fin n`, the quantity `StepTrace.crossingCount b` counts crossings of the
+boundary between cells `b` and `b+1`, in either direction, and
+`StepTrace.crossingCount_append` proves additivity.  The generic simulation
+theorem `StepTrace.crossingCount_le_liftByReach` says that replacing each
+source edge by any finite target run cannot erase a crossing when the
+configuration embedding preserves head positions.  Its two-serializer
+specialization is `Machine.crossingCount_le_boundedDegreeLiftTrace`.
+
+The operational macro proof now exposes its exact right-boundary milestone.
+`rightBoundaryCfg` has the physical head at `Fin.last n` after the rightward
+normalization sweep.  `reaches_rightBoundary_checkpoint_of_step` reaches it
+from every Ready checkpoint after a genuine source step, with arbitrary clock
+digits and incoming trails; `reaches_carry_of_rightBoundary` continues from
+there through the leftward cleanup to clean carry entry.  Therefore
+`exists_incremented_checkpoint_stepTrace_crosses_every_boundary` produces a
+concrete full macro trace which, whenever the represented source head starts
+at cell zero, crosses every physical boundary at least once.  The theorem
+`exists_semanticCheckpoint_stepTrace_crosses_every_boundary` states the same
+fact for every exact semantic strict-clock edge.
+
 The stronger structural theorem
 `firstReadyMacroStep_represents_iff_strictSourceClockStep` contracts each
 deterministic non-Ready protocol corridor and quotients only the harmless
@@ -845,26 +894,76 @@ not directed matchings.  This closes the structural contraction that was
 previously paper-level, but it is still neither a directed-reachability lower
 bound nor a language separation.
 
-Acyclicity does not by itself force short crossing sequences either.  Every
-completed macro of the concrete clock compiler performs full normalization
-sweeps.  Feeding it a deterministic width-`d` source that runs a binary
-counter for `2^{Theta(d)}` steps therefore yields a run in the globally
-acyclic compiled machine whose crossing sequence at every interior tape
-boundary has exponential length.
-This paper-level witness is deterministic and hence is not a separation; it
-only blocks a lemma asserting that acyclic LBA runs have short literal
-crossing sequences.  Loui's general crossing-sequence simulation gives
+Acyclicity does not by itself force short crossing sequences either, and this
+witness is now fully formal rather than paper-level.
+`exists_selfLoop_stepTrace_to_semanticLayer_crosses` works for arbitrary
+finite input/work alphabets and state types, any source machine, and any
+fixed-width source configuration whose head is at cell zero and which has a
+self-loop.  For every `k <= |Cfg|` it concatenates the first `k` concrete
+semantic macros and returns one trace crossing each boundary at least `k`
+times.  Its full-clock form
+`exists_selfLoop_fullClock_stepTrace_crosses` reaches exact layer `|Cfg|`.
+
+The fixed specialization uses the one-state deterministic machine
+`IdentityCrossing.identitySource`, whose only move writes back the symbol it
+reads and stays in place; `identitySource_step_iff` proves that its complete
+step relation is exactly identity.  Over
+`AcyclicClock.SourceAlpha Unit Bool`, the source alphabet has six elements and
+`card_identityCfgSpace` computes the exact width-`n` configuration count
+
+$$
+N=6^{n+1}(n+1).
+$$
+
+The single machine `IdentityCrossing.finalMachine` is
+`(AcyclicClock.machine identitySource).boundedDegree`, independent of `n`.
+`exists_finalMachine_stepTrace_crosses_exact` gives an actual bottom-to-top
+width-`n` run of this machine with at least `N` crossings at every physical
+boundary; `exists_finalMachine_stepTrace_crosses_twoPow` records the immediate
+lower bound `2^(n+1)`.  Degree serialization cannot remove these crossings by
+`Machine.crossingCount_le_boundedDegreeLiftTrace`.  For this exact same
+machine, `IdentityCrossing.finalMachine_globalProperties` packages global
+acyclicity of every complete raw configuration graph, both directed degree-two
+bounds, and the serializer's one width-uniform exact two-partial-bijection
+partition.
+
+The crossing witness can also be placed in the exact locality machine from
+the preceding cube-minor theorem.  Its endmarked reflexive source has two
+states and six tape symbols, so `card_crossingSourceCfgSpace` gives
+
+$$
+N_{\mathrm{loc}}=2\cdot 6^{n+1}(n+1).
+$$
+
+`exists_boundedDegreeMachine_stepTrace_crosses_exact` proves that the same
+definition `LocalityHypercube.ConcreteClock.boundedDegreeMachine` whose raw
+graph contains the `(n+1)`-cube has one directed trace with at least
+`N_loc` crossings at every boundary;
+`exists_boundedDegreeMachine_stepTrace_crosses_twoPow` gives its
+`2^(n+1)` corollary.  Hence a single fixed machine simultaneously carries the
+undirected cube minors, an exponential directed crossing witness, global raw
+acyclicity, both degree-two bounds, and the width-uniform two-biunique
+partition.  Unlike the one-state identity source, this locality source is
+nondeterministic; the theorem selects its inserted self-loop and still makes
+no assertion about all runs or accepting runs.
+
+For the identity specialization, the existential order matters at tape
+parameter `n=0`: the theorem still constructs a genuine six-macro
+bottom-to-top trace on the one-cell tape, while the statement about every
+`b : Fin 0` is vacuous because there is no physical boundary.  Both
+specializations establish existence of one deliberately constructed run;
+neither says that acceptance, rejection, or every run forces long crossing
+sequences.  They are not language lower bounds, nondeterministic time lower
+bounds, or determinizations.  They only block a lemma asserting that global
+raw acyclicity, even together with degree two and two partial-bijection
+layers, makes all literal crossing sequences short.  Loui's general
+crossing-sequence
+simulation gives
 `(T log T)^{D/(D+1)}` deterministic space for a nondeterministic
 `D`-dimensional one-tape computation of time `T`; in dimension one and at
 exponential LBA time, the bound remains exponential in the tape width.  See
 [*A Space Bound for One-Tape Multidimensional Turing
 Machines*](https://doi.org/10.1016/0304-3975(81)90084-0).
-
-Applying `boundedDegree` does not remove this witness: it replaces a source
-movement by finite-control scan/write/merge gadgets but retains that movement
-as one physical head crossing, adding only stationary gadget steps.  Hence
-the exponential literal crossing sequences also occur in the exact globally
-acyclic degree-two compiler image.
 
 Nor does the explicit clock rank make a one-pass topological sweep
 space-efficient.  An elementary `INDEX` family gives a sharp obstruction.
@@ -2653,8 +2752,13 @@ the regular collapses above cannot extend to the unrestricted model.
   degree serializers into the final complete raw graph, while
   `boundedDegreeMachine_globalProperties` checks global acyclicity, both
   directed degree-two bounds, and the uniform two-partial-bijection partition
-  for that same machine.  Full concrete clock sweeps also allow exponential
-  crossing sequences on globally acyclic runs.  The standard numerical
+  for that same machine.  The theorem
+  `exists_boundedDegreeMachine_stepTrace_crosses_exact` now proves that this
+  identical final machine also has a width-`n` directed trace crossing every
+  physical boundary at least `2 * 6^(n+1) * (n+1)` times; the assertion is
+  vacuous over boundaries at `n=0`, but the trace still exists.  This is one
+  selected self-loop trace, not a bound forced on all or accepting runs.  The
+  standard numerical
   treewidth/pathwidth/genus consequences remain external, and none of these
   undirected-minor facts decides directed reachability.
 - **Linear genuine branch events:** the generic DLBA construction remains
