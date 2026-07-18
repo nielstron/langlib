@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Automata.LinearBounded.Positive
+public import Langlib.Automata.LinearBounded.Sweeping
 import Mathlib.Tactic
 
 @[expose]
@@ -89,7 +90,7 @@ lemma rowStep_length {old new : List A} (h : S.RowStep old new) :
 /-- One physical work cell.  Boundary bits are installed during initialization.  Both row tracks
 are optional only so the finite work alphabet remains inhabited without imposing `Inhabited A`;
 every active track in a well-formed run is populated. -/
-private structure WorkCell (A C : Type*) where
+public structure WorkCell (A C : Type*) where
   left : Bool
   right : Bool
   track0 : Option A
@@ -97,31 +98,31 @@ private structure WorkCell (A C : Type*) where
   cert : Option C
   deriving DecidableEq, Fintype
 
-private inductive Side where
+public inductive Side where
   | zero
   | one
   deriving DecidableEq, Fintype
 
-private def Side.other : Side → Side
+public def Side.other : Side → Side
   | .zero => .one
   | .one => .zero
 
-private def WorkCell.track (s : Side) (c : WorkCell A C) : Option A :=
+public def WorkCell.track (s : Side) (c : WorkCell A C) : Option A :=
   match s with
   | .zero => c.track0
   | .one => c.track1
 
-private def WorkCell.writeOther (s : Side) (a : A) (cert : C)
+public def WorkCell.writeOther (s : Side) (a : A) (cert : C)
     (c : WorkCell A C) : WorkCell A C :=
   match s with
   | .zero => { c with track1 := some a, cert := some cert }
   | .one => { c with track0 := some a, cert := some cert }
 
-private def inputWorkCell (S : CertifiedRowSystem I A C Q F) (left : Bool) (i : I) :
+public def inputWorkCell (S : CertifiedRowSystem I A C Q F) (left : Bool) (i : I) :
     WorkCell A C :=
   ⟨left, false, some (S.inputCell i), none, none⟩
 
-private inductive State (Q F : Type*) where
+public inductive State (Q F : Type*) where
   | initFirst
   | initSweep
   | initBack
@@ -132,7 +133,7 @@ private inductive State (Q F : Type*) where
   | accept
   deriving DecidableEq
 
-private instance [Fintype Q] [Fintype F] : Fintype (State Q F) := by
+public instance [Fintype Q] [Fintype F] : Fintype (State Q F) := by
   classical
   exact Fintype.ofEquiv
     (Unit ⊕ Unit ⊕ Unit ⊕ Side ⊕ (Side × Q) ⊕ (Side × F) ⊕ Side ⊕ Unit)
@@ -158,9 +159,9 @@ private instance [Fintype Q] [Fintype F] : Fintype (State Q F) := by
         rcases x with _|_|_|_| ⟨_, _⟩ | ⟨_, _⟩ | _ | _ <;> rfl
       right_inv := fun x => by cases x <;> rfl }
 
-private abbrev TapeCell (I A C : Type*) := Option (I ⊕ WorkCell A C)
+public abbrev TapeCell (I A C : Type*) := Option (I ⊕ WorkCell A C)
 
-private def stepChoices (S : CertifiedRowSystem I A C Q F) (side : Side) (q : Q)
+public def stepChoices (S : CertifiedRowSystem I A C Q F) (side : Side) (q : Q)
     (w : WorkCell A C) : Set (State Q F × TapeCell I A C × DLBA.Dir) :=
   {z | ∃ old new cert,
     w.track side = some old ∧
@@ -172,7 +173,7 @@ private def stepChoices (S : CertifiedRowSystem I A C Q F) (side : Side) (q : Q)
     else
       z = (.step side q', some (.inr w'), .right)}
 
-private def finalChoice (S : CertifiedRowSystem I A C Q F) (side : Side) (q : F)
+public def finalChoice (S : CertifiedRowSystem I A C Q F) (side : Side) (q : F)
     (w : WorkCell A C) : Set (State Q F × TapeCell I A C × DLBA.Dir) :=
   match w.track side with
   | none => ∅
@@ -182,7 +183,7 @@ private def finalChoice (S : CertifiedRowSystem I A C Q F) (side : Side) (q : F)
         if S.finalDone q' then {(.accept, some (.inr w), .stay)} else ∅
       else {(.final side q', some (.inr w), .right)}
 
-private def transition (S : CertifiedRowSystem I A C Q F) :
+public def transition (S : CertifiedRowSystem I A C Q F) :
     State Q F → TapeCell I A C → Set (State Q F × TapeCell I A C × DLBA.Dir)
   | .initFirst, some (.inl i) =>
       {(.initSweep, some (.inr (inputWorkCell S true i)), .right)}
@@ -211,7 +212,7 @@ private def transition (S : CertifiedRowSystem I A C Q F) :
   | .back _, _ => ∅
   | .accept, _ => ∅
 
-private def machine (S : CertifiedRowSystem I A C Q F) :
+public def machine (S : CertifiedRowSystem I A C Q F) :
     LBA.Machine (TapeCell I A C) (State Q F) where
   transition := transition S
   accept := fun q => match q with | .accept => true | _ => false
@@ -1871,6 +1872,608 @@ private lemma sound_invariant {n : ℕ} (input : Fin (n + 1) → I)
       | accept side a₀ a₁ cert head hpath hfinal =>
           exact sound_accept_step S input side a₀ a₁ cert head hstep
 
+/-! ### Sweeping behavior of every canonical run -/
+
+/-- The genuine direction which can precede each reachable compiler phase.  On a one-cell tape
+there is no physical movement, so every remembered value is harmless; the trace theorem below
+starts that case at `none` and preserves it. -/
+private def previousDirectionCompatible (width : Nat) (state : State Q F)
+    (previous : Option LBA.HeadTurns.Direction) : Prop :=
+  if width = 0 then True else
+    match state with
+    | .initFirst => previous = none
+    | .initSweep => previous = none ∨ previous = some .right
+    | .initBack => previous = none ∨ previous = some .left
+    | .ready _ => previous = none ∨ previous = some .left
+    | .step _ _ => previous = some .right
+    | .final _ _ => previous = some .right
+    | .back _ => previous = none ∨ previous = some .left
+    | .accept => True
+
+private lemma physicalDirection_write_moveHead_stay
+    {Gamma₀ State₀ : Type*} {n : Nat}
+    (cfg : DLBA.Cfg Gamma₀ State₀ n) (state : State₀) (symbol : Gamma₀) :
+    LBA.HeadTurns.physicalDirection cfg
+      ⟨state, (cfg.tape.write symbol).moveHead .stay⟩ = none := by
+  simp [LBA.HeadTurns.physicalDirection, DLBA.BoundedTape.write,
+    DLBA.BoundedTape.moveHead]
+
+private lemma physicalDirection_write_moveHead_right_of_lt
+    {Gamma₀ State₀ : Type*} {n : Nat}
+    (cfg : DLBA.Cfg Gamma₀ State₀ n) (state : State₀) (symbol : Gamma₀)
+    (hhead : cfg.tape.head.val < n) :
+    LBA.HeadTurns.physicalDirection cfg
+      ⟨state, (cfg.tape.write symbol).moveHead .right⟩ = some .right := by
+  simp [LBA.HeadTurns.physicalDirection, DLBA.BoundedTape.write,
+    DLBA.BoundedTape.moveHead, hhead]
+
+private lemma physicalDirection_write_moveHead_right_of_not_lt
+    {Gamma₀ State₀ : Type*} {n : Nat}
+    (cfg : DLBA.Cfg Gamma₀ State₀ n) (state : State₀) (symbol : Gamma₀)
+    (hhead : ¬ cfg.tape.head.val < n) :
+    LBA.HeadTurns.physicalDirection cfg
+      ⟨state, (cfg.tape.write symbol).moveHead .right⟩ = none := by
+  simp [LBA.HeadTurns.physicalDirection, DLBA.BoundedTape.write,
+    DLBA.BoundedTape.moveHead, hhead]
+
+private lemma physicalDirection_write_moveHead_left_of_pos
+    {Gamma₀ State₀ : Type*} {n : Nat}
+    (cfg : DLBA.Cfg Gamma₀ State₀ n) (state : State₀) (symbol : Gamma₀)
+    (hhead : 0 < cfg.tape.head.val) :
+    LBA.HeadTurns.physicalDirection cfg
+      ⟨state, (cfg.tape.write symbol).moveHead .left⟩ = some .left := by
+  simp [LBA.HeadTurns.physicalDirection, DLBA.BoundedTape.write,
+    DLBA.BoundedTape.moveHead, hhead]
+
+private lemma physicalDirection_write_moveHead_left_of_not_pos
+    {Gamma₀ State₀ : Type*} {n : Nat}
+    (cfg : DLBA.Cfg Gamma₀ State₀ n) (state : State₀) (symbol : Gamma₀)
+    (hhead : ¬ 0 < cfg.tape.head.val) :
+    LBA.HeadTurns.physicalDirection cfg
+      ⟨state, (cfg.tape.write symbol).moveHead .left⟩ = none := by
+  simp [LBA.HeadTurns.physicalDirection, DLBA.BoundedTape.write,
+    DLBA.BoundedTape.moveHead, hhead]
+
+/-- One compiler step preserves the phase-indexed soundness invariant. -/
+private lemma SoundClaim.next {n : Nat} (input : Fin (n + 1) → I)
+    {source target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (hsource : SoundClaim S input source)
+    (hstep : LBA.Step (machine S) source target) :
+    SoundClaim S input target := by
+  cases hsource with
+  | initFirst => exact sound_initFirst_step S input hstep
+  | initSweep i head hi hhead =>
+      exact sound_initSweep_step S input i head hi hhead hstep
+  | initBack head => exact sound_initBack_step S input head hstep
+  | ready side a₀ a₁ cert hpath =>
+      exact sound_ready_step S input side a₀ a₁ cert hpath hstep
+  | step side q a₀ a₁ cert head hpath hscan =>
+      exact sound_step_step S input side q a₀ a₁ cert head hpath hscan hstep
+  | final side q a₀ a₁ cert head hpath hscan =>
+      exact sound_final_step S input side q a₀ a₁ cert head hpath hscan hstep
+  | back side a₀ a₁ cert head hpath =>
+      exact sound_back_step S input side a₀ a₁ cert head hpath hstep
+  | accept side a₀ a₁ cert head hpath hfinal =>
+      exact sound_accept_step S input side a₀ a₁ cert head hstep
+
+private lemma sweepingStep_initFirst {n : Nat} (input : Fin (n + 1) → I)
+    {target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (previous : Option LBA.HeadTurns.Direction) (hn : n ≠ 0)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n .initFirst previous)
+    (hstep : LBA.Step (machine S)
+      ⟨.initFirst, ⟨initTapeAt S input 0, 0⟩⟩ target) :
+    LBA.Sweeping.TurnAllowed previous
+        ⟨State.initFirst, ⟨initTapeAt S input 0, 0⟩⟩ target ∧
+      previousDirectionCompatible (Q := Q) (F := F) n target.state
+        (LBA.Sweeping.advanceDirection previous
+          ⟨State.initFirst, ⟨initTapeAt S input 0, 0⟩⟩ target) := by
+  obtain ⟨state, symbol, direction, hmem, rfl⟩ := hstep
+  simp only [machine, DLBA.BoundedTape.read] at hmem
+  simp [initTapeAt, transition] at hmem
+  obtain ⟨rfl, rfl, rfl⟩ := hmem
+  have hright : (0 : Fin (n + 1)).val < n := by
+    simp
+    omega
+  have hdirection := physicalDirection_write_moveHead_right_of_lt
+    (⟨State.initFirst, ⟨initTapeAt S input 0, 0⟩⟩ :
+      DLBA.Cfg (TapeCell I A C) (State Q F) n)
+    State.initSweep (some (.inr (inputWorkCell S true (input 0)))) hright
+  have hpreviousNone : previous = none := by
+    simpa [previousDirectionCompatible, hn] using hprevious
+  subst previous
+  constructor
+  · exact (LBA.Sweeping.turnAllowed_of_physicalDirection_eq_some
+      none _ _ .right hdirection).2 (by simp)
+  · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+      none _ _ .right hdirection]
+    simp [previousDirectionCompatible, hn]
+
+private lemma sweepingStep_initSweep {n : Nat} (input : Fin (n + 1) → I)
+    (i : Nat) (head : Fin (n + 1)) (hi : 1 ≤ i)
+    (hhead : (head.val = i ∧ i ≤ n) ∨ (head.val = n ∧ i = n + 1))
+    {target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (previous : Option LBA.HeadTurns.Direction) (hn : n ≠ 0)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n .initSweep previous)
+    (hstep : LBA.Step (machine S)
+      ⟨.initSweep, ⟨initTapeAt S input i, head⟩⟩ target) :
+    LBA.Sweeping.TurnAllowed previous
+        ⟨State.initSweep, ⟨initTapeAt S input i, head⟩⟩ target ∧
+      previousDirectionCompatible (Q := Q) (F := F) n target.state
+        (LBA.Sweeping.advanceDirection previous
+          ⟨State.initSweep, ⟨initTapeAt S input i, head⟩⟩ target) := by
+  obtain ⟨state, symbol, direction, hmem, rfl⟩ := hstep
+  simp only [machine, DLBA.BoundedTape.read] at hmem
+  rcases hhead with ⟨hhi, hin⟩ | ⟨hhn, hin⟩
+  · have hcell : initTapeAt S input i head = some (.inl (input head)) := by
+      simp [initTapeAt, hhi]
+    rw [hcell, transition] at hmem
+    simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+    obtain ⟨rfl, rfl, rfl⟩ := hmem
+    have hprevious' : previous = none ∨ previous = some .right := by
+      simpa [previousDirectionCompatible, hn] using hprevious
+    by_cases hlt : head.val < n
+    · have hdirection := physicalDirection_write_moveHead_right_of_lt
+        (⟨State.initSweep, ⟨initTapeAt S input i, head⟩⟩ :
+          DLBA.Cfg (TapeCell I A C) (State Q F) n)
+        State.initSweep (some (.inr (inputWorkCell S false (input head)))) hlt
+      constructor
+      · apply (LBA.Sweeping.turnAllowed_of_physicalDirection_eq_some
+          previous _ _ .right hdirection).2
+        rcases hprevious' with rfl | rfl <;> simp
+      · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+          previous _ _ .right hdirection]
+        simp [previousDirectionCompatible, hn]
+    · have hdirection := physicalDirection_write_moveHead_right_of_not_lt
+        (⟨State.initSweep, ⟨initTapeAt S input i, head⟩⟩ :
+          DLBA.Cfg (TapeCell I A C) (State Q F) n)
+        State.initSweep (some (.inr (inputWorkCell S false (input head)))) hlt
+      constructor
+      · exact LBA.Sweeping.turnAllowed_of_physicalDirection_eq_none
+          previous _ _ hdirection
+      · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_none
+          previous _ _ hdirection]
+        simpa [previousDirectionCompatible, hn] using hprevious'
+  · have hcell : initTapeAt S input i head =
+        some (.inr
+          ⟨decide (head.val = 0), false, some (S.inputCell (input head)), none, none⟩) := by
+      simp [initTapeAt, tmpCell, inputWorkCell]
+      omega
+    rw [hcell, transition] at hmem
+    simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+    obtain ⟨rfl, rfl, rfl⟩ := hmem
+    have hpos : 0 < head.val := by omega
+    have hdirection := physicalDirection_write_moveHead_left_of_pos
+      (⟨State.initSweep, ⟨initTapeAt S input i, head⟩⟩ :
+        DLBA.Cfg (TapeCell I A C) (State Q F) n)
+      State.initBack
+        (some (.inr
+          ⟨decide (head.val = 0), true, some (S.inputCell (input head)), none, none⟩))
+      hpos
+    constructor
+    · apply LBA.Sweeping.turnAllowed_of_atEndpoint
+        (previous := previous) (target := _)
+      exact Or.inr hhn
+    · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+        previous _ _ .left hdirection]
+      simp [previousDirectionCompatible, hn]
+
+private lemma sweepingStep_initBack {n : Nat} (input : Fin (n + 1) → I)
+    (head : Fin (n + 1))
+    {target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (previous : Option LBA.HeadTurns.Direction) (hn : n ≠ 0)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n .initBack previous)
+    (hstep : LBA.Step (machine S)
+      ⟨.initBack,
+        ⟨markedTape (I := I) (fun k => some (S.inputCell (input k)))
+          (fun _ => none) (fun _ => none), head⟩⟩ target) :
+    LBA.Sweeping.TurnAllowed previous
+        ⟨State.initBack,
+          ⟨markedTape (I := I) (fun k => some (S.inputCell (input k)))
+            (fun _ => none) (fun _ => none), head⟩⟩ target ∧
+      previousDirectionCompatible (Q := Q) (F := F) n target.state
+        (LBA.Sweeping.advanceDirection previous
+          ⟨State.initBack,
+            ⟨markedTape (I := I) (fun k => some (S.inputCell (input k)))
+              (fun _ => none) (fun _ => none), head⟩⟩ target) := by
+  obtain ⟨state, symbol, direction, hmem, rfl⟩ := hstep
+  simp only [machine, DLBA.BoundedTape.read] at hmem
+  have hprevious' : previous = none ∨ previous = some .left := by
+    simpa [previousDirectionCompatible, hn] using hprevious
+  by_cases hzero : head.val = 0
+  · simp [markedTape, markedCell, transition, hzero] at hmem
+    obtain ⟨rfl, rfl, rfl⟩ := hmem
+    have hdirection := physicalDirection_write_moveHead_stay
+      (⟨State.initBack,
+        ⟨markedTape (I := I) (fun k => some (S.inputCell (input k)))
+          (fun _ => none) (fun _ => none), head⟩⟩ :
+        DLBA.Cfg (TapeCell I A C) (State Q F) n)
+      (State.ready .zero)
+      (some (.inr
+        ⟨true, decide (0 = n), some (S.inputCell (input head)), none, none⟩))
+    constructor
+    · exact LBA.Sweeping.turnAllowed_of_physicalDirection_eq_none
+        previous _ _ hdirection
+    · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_none
+        previous _ _ hdirection]
+      simpa [previousDirectionCompatible, hn] using hprevious'
+  · simp [markedTape, markedCell, transition, hzero] at hmem
+    obtain ⟨rfl, rfl, rfl⟩ := hmem
+    have hpos : 0 < head.val := by omega
+    have hdirection := physicalDirection_write_moveHead_left_of_pos
+      (⟨State.initBack,
+        ⟨markedTape (I := I) (fun k => some (S.inputCell (input k)))
+          (fun _ => none) (fun _ => none), head⟩⟩ :
+        DLBA.Cfg (TapeCell I A C) (State Q F) n)
+      State.initBack
+      (some (.inr
+        ⟨false, decide (head.val = n), some (S.inputCell (input head)), none, none⟩))
+      hpos
+    constructor
+    · apply (LBA.Sweeping.turnAllowed_of_physicalDirection_eq_some
+        previous _ _ .left hdirection).2
+      rcases hprevious' with rfl | rfl <;> simp
+    · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+        previous _ _ .left hdirection]
+      simp [previousDirectionCompatible, hn]
+
+private lemma sweepingStep_ready {n : Nat}
+    (side : Side) (a₀ a₁ : Fin (n + 1) → Option A)
+    (cert : Fin (n + 1) → Option C)
+    {target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (previous : Option LBA.HeadTurns.Direction) (hn : n ≠ 0)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n (.ready side) previous)
+    (hstep : LBA.Step (machine S)
+      ⟨.ready side, ⟨markedTape (I := I) a₀ a₁ cert, 0⟩⟩ target) :
+    LBA.Sweeping.TurnAllowed previous
+        ⟨State.ready side, ⟨markedTape (I := I) a₀ a₁ cert, 0⟩⟩ target ∧
+      previousDirectionCompatible (Q := Q) (F := F) n target.state
+        (LBA.Sweeping.advanceDirection previous
+          ⟨State.ready side, ⟨markedTape (I := I) a₀ a₁ cert, 0⟩⟩ target) := by
+  obtain ⟨state, symbol, direction, hmem, rfl⟩ := hstep
+  simp only [machine, DLBA.BoundedTape.read, markedTape, markedCell,
+    Fin.val_zero, transition] at hmem
+  rw [if_pos (by simp)] at hmem
+  rcases hmem with hchoice | hfinal
+  · simp only [stepChoices, Set.mem_setOf_eq] at hchoice
+    obtain ⟨old, new, c, hactive, hout⟩ := hchoice
+    have h0n : 0 ≠ n := Ne.symm hn
+    rw [if_neg (by simp [h0n])] at hout
+    simp only [Prod.mk.injEq] at hout
+    obtain ⟨rfl, rfl, rfl⟩ := hout
+    have hright : (0 : Fin (n + 1)).val < n := by
+      simp
+      omega
+    have hdirection := physicalDirection_write_moveHead_right_of_lt
+      (⟨State.ready side, ⟨markedTape (I := I) a₀ a₁ cert, 0⟩⟩ :
+        DLBA.Cfg (TapeCell I A C) (State Q F) n)
+      (State.step side (S.stepCell S.stepStart old new c))
+      (some (.inr
+        ((⟨decide True, decide (0 = n), a₀ 0, a₁ 0, cert 0⟩ : WorkCell A C).writeOther
+          side new c)))
+      hright
+    constructor
+    · apply LBA.Sweeping.turnAllowed_of_atEndpoint
+          (previous := previous) (target := _)
+      exact Or.inl rfl
+    · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+        previous _ _ .right hdirection]
+      simp [previousDirectionCompatible, hn]
+  · cases ha : trackFn side a₀ a₁ 0 with
+    | none =>
+        have hw : WorkCell.track side
+            ⟨decide True, decide (0 = n), a₀ 0, a₁ 0, cert 0⟩ = none := by
+          calc
+            _ = trackFn side a₀ a₁ 0 := by cases side <;> rfl
+            _ = none := ha
+        rw [finalChoice, hw] at hfinal
+        simp at hfinal
+    | some old =>
+        have hw : WorkCell.track side
+            ⟨decide True, decide (0 = n), a₀ 0, a₁ 0, cert 0⟩ = some old := by
+          calc
+            _ = trackFn side a₀ a₁ 0 := by cases side <;> rfl
+            _ = some old := ha
+        rw [finalChoice, hw] at hfinal
+        have h0n : 0 ≠ n := Ne.symm hn
+        simp [h0n] at hfinal
+        obtain ⟨rfl, rfl, rfl⟩ := hfinal
+        have hright : (0 : Fin (n + 1)).val < n := by
+          simp
+          omega
+        have hdirection := physicalDirection_write_moveHead_right_of_lt
+          (⟨State.ready side, ⟨markedTape (I := I) a₀ a₁ cert, 0⟩⟩ :
+            DLBA.Cfg (TapeCell I A C) (State Q F) n)
+          (State.final side (S.finalCell S.finalStart old))
+          (some (.inr ⟨true, false, a₀ 0, a₁ 0, cert 0⟩))
+          hright
+        constructor
+        · apply LBA.Sweeping.turnAllowed_of_atEndpoint
+              (previous := previous) (target := _)
+          exact Or.inl rfl
+        · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+            previous _ _ .right hdirection]
+          simp [previousDirectionCompatible, hn]
+
+private lemma sweepingStep_step {n : Nat}
+    (side : Side) (q : Q) (a₀ a₁ : Fin (n + 1) → Option A)
+    (cert : Fin (n + 1) → Option C) (head : Fin (n + 1))
+    {target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (previous : Option LBA.HeadTurns.Direction) (hn : n ≠ 0)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n (.step side q) previous)
+    (hstep : LBA.Step (machine S)
+      ⟨.step side q, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target) :
+    LBA.Sweeping.TurnAllowed previous
+        ⟨State.step side q, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target ∧
+      previousDirectionCompatible (Q := Q) (F := F) n target.state
+        (LBA.Sweeping.advanceDirection previous
+          ⟨State.step side q, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target) := by
+  obtain ⟨state, symbol, direction, hmem, rfl⟩ := hstep
+  simp only [machine, DLBA.BoundedTape.read, markedTape, markedCell, transition] at hmem
+  simp only [stepChoices, Set.mem_setOf_eq] at hmem
+  obtain ⟨old, new, c, hactive, hout⟩ := hmem
+  have hpreviousRight : previous = some .right := by
+    simpa [previousDirectionCompatible, hn] using hprevious
+  by_cases hlast : head.val = n
+  · rw [if_pos (by simp [hlast])] at hout
+    obtain ⟨hdone, hout⟩ := hout
+    simp only [Prod.mk.injEq] at hout
+    obtain ⟨rfl, rfl, rfl⟩ := hout
+    have hpos : 0 < head.val := by omega
+    have hdirection := physicalDirection_write_moveHead_left_of_pos
+      (⟨State.step side q, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ :
+        DLBA.Cfg (TapeCell I A C) (State Q F) n)
+      (State.back side)
+      (some (.inr
+        ((⟨decide (head.val = 0), decide (head.val = n),
+          a₀ head, a₁ head, cert head⟩ : WorkCell A C).writeOther side new c)))
+      hpos
+    constructor
+    · apply LBA.Sweeping.turnAllowed_of_atEndpoint
+          (previous := previous) (target := _)
+      exact Or.inr hlast
+    · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+        previous _ _ .left hdirection]
+      simp [previousDirectionCompatible, hn]
+  · have hlt : head.val < n := by have := head.isLt; omega
+    rw [if_neg (by simp [hlast])] at hout
+    simp only [Prod.mk.injEq] at hout
+    obtain ⟨rfl, rfl, rfl⟩ := hout
+    have hdirection := physicalDirection_write_moveHead_right_of_lt
+      (⟨State.step side q, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ :
+        DLBA.Cfg (TapeCell I A C) (State Q F) n)
+      (State.step side (S.stepCell q old new c))
+      (some (.inr
+        ((⟨decide (head.val = 0), decide (head.val = n),
+          a₀ head, a₁ head, cert head⟩ : WorkCell A C).writeOther side new c)))
+      hlt
+    subst previous
+    constructor
+    · exact (LBA.Sweeping.turnAllowed_of_physicalDirection_eq_some
+        (some .right) _ _ .right hdirection).2 (by simp)
+    · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+        (some .right) _ _ .right hdirection]
+      simp [previousDirectionCompatible, hn]
+
+private lemma sweepingStep_final {n : Nat}
+    (side : Side) (q : F) (a₀ a₁ : Fin (n + 1) → Option A)
+    (cert : Fin (n + 1) → Option C) (head : Fin (n + 1))
+    {target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (previous : Option LBA.HeadTurns.Direction) (hn : n ≠ 0)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n (.final side q) previous)
+    (hstep : LBA.Step (machine S)
+      ⟨.final side q, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target) :
+    LBA.Sweeping.TurnAllowed previous
+        ⟨State.final side q, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target ∧
+      previousDirectionCompatible (Q := Q) (F := F) n target.state
+        (LBA.Sweeping.advanceDirection previous
+          ⟨State.final side q, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target) := by
+  obtain ⟨state, symbol, direction, hmem, rfl⟩ := hstep
+  simp only [machine, DLBA.BoundedTape.read, markedTape, markedCell, transition] at hmem
+  have hpreviousRight : previous = some .right := by
+    simpa [previousDirectionCompatible, hn] using hprevious
+  cases ha : trackFn side a₀ a₁ head with
+  | none =>
+      have hw : WorkCell.track side
+          ⟨decide (head.val = 0), decide (head.val = n),
+            a₀ head, a₁ head, cert head⟩ = none := by
+        calc
+          _ = trackFn side a₀ a₁ head := by cases side <;> rfl
+          _ = none := ha
+      rw [finalChoice, hw] at hmem
+      simp at hmem
+  | some old =>
+      have hw : WorkCell.track side
+          ⟨decide (head.val = 0), decide (head.val = n),
+            a₀ head, a₁ head, cert head⟩ = some old := by
+        calc
+          _ = trackFn side a₀ a₁ head := by cases side <;> rfl
+          _ = some old := ha
+      rw [finalChoice, hw] at hmem
+      let qnew := S.finalCell q old
+      by_cases hlast : head.val = n
+      · have hdone : S.finalDone qnew = true := by
+          by_contra hne
+          simp [hlast, qnew, hne] at hmem
+        simp [hlast, qnew, hdone] at hmem
+        obtain ⟨rfl, rfl, rfl⟩ := hmem
+        have hdirection := physicalDirection_write_moveHead_stay
+          (⟨State.final side q,
+            ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ :
+            DLBA.Cfg (TapeCell I A C) (State Q F) n)
+          State.accept
+          (some (.inr
+            ⟨decide (n = 0), true, a₀ head, a₁ head, cert head⟩))
+        constructor
+        · exact LBA.Sweeping.turnAllowed_of_physicalDirection_eq_none
+            previous _ _ hdirection
+        · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_none
+            previous _ _ hdirection]
+          simp [previousDirectionCompatible, hn]
+      · have hlt : head.val < n := by have := head.isLt; omega
+        simp [hlast] at hmem
+        obtain ⟨rfl, rfl, rfl⟩ := hmem
+        have hdirection := physicalDirection_write_moveHead_right_of_lt
+          (⟨State.final side q,
+            ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ :
+            DLBA.Cfg (TapeCell I A C) (State Q F) n)
+          (State.final side (S.finalCell q old))
+          (some (.inr
+            ⟨decide (head = 0), false, a₀ head, a₁ head, cert head⟩))
+          hlt
+        subst previous
+        constructor
+        · exact (LBA.Sweeping.turnAllowed_of_physicalDirection_eq_some
+            (some .right) _ _ .right hdirection).2 (by simp)
+        · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+            (some .right) _ _ .right hdirection]
+          simp [previousDirectionCompatible, hn]
+
+private lemma sweepingStep_back {n : Nat}
+    (side : Side) (a₀ a₁ : Fin (n + 1) → Option A)
+    (cert : Fin (n + 1) → Option C) (head : Fin (n + 1))
+    {target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (previous : Option LBA.HeadTurns.Direction) (hn : n ≠ 0)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n (.back side) previous)
+    (hstep : LBA.Step (machine S)
+      ⟨.back side, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target) :
+    LBA.Sweeping.TurnAllowed previous
+        ⟨State.back side, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target ∧
+      previousDirectionCompatible (Q := Q) (F := F) n target.state
+        (LBA.Sweeping.advanceDirection previous
+          ⟨State.back side, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ target) := by
+  obtain ⟨state, symbol, direction, hmem, rfl⟩ := hstep
+  simp only [machine, DLBA.BoundedTape.read] at hmem
+  have hprevious' : previous = none ∨ previous = some .left := by
+    simpa [previousDirectionCompatible, hn] using hprevious
+  by_cases hzero : head.val = 0
+  · simp [markedTape, markedCell, transition, hzero] at hmem
+    obtain ⟨rfl, rfl, rfl⟩ := hmem
+    have hdirection := physicalDirection_write_moveHead_stay
+      (⟨State.back side, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ :
+        DLBA.Cfg (TapeCell I A C) (State Q F) n)
+      (State.ready side.other)
+      (some (.inr
+        ⟨true, decide (0 = n), a₀ head, a₁ head, cert head⟩))
+    constructor
+    · exact LBA.Sweeping.turnAllowed_of_physicalDirection_eq_none
+        previous _ _ hdirection
+    · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_none
+        previous _ _ hdirection]
+      simpa [previousDirectionCompatible, hn] using hprevious'
+  · simp [markedTape, markedCell, transition, hzero] at hmem
+    obtain ⟨rfl, rfl, rfl⟩ := hmem
+    have hpos : 0 < head.val := by omega
+    have hdirection := physicalDirection_write_moveHead_left_of_pos
+      (⟨State.back side, ⟨markedTape (I := I) a₀ a₁ cert, head⟩⟩ :
+        DLBA.Cfg (TapeCell I A C) (State Q F) n)
+      (State.back side)
+      (some (.inr
+        ⟨false, decide (head.val = n), a₀ head, a₁ head, cert head⟩))
+      hpos
+    constructor
+    · apply (LBA.Sweeping.turnAllowed_of_physicalDirection_eq_some
+        previous _ _ .left hdirection).2
+      rcases hprevious' with rfl | rfl <;> simp
+    · rw [LBA.Sweeping.advanceDirection_of_physicalDirection_eq_some
+        previous _ _ .left hdirection]
+      simp [previousDirectionCompatible, hn]
+
+/-- Every transition out of a configuration satisfying the compiler invariant obeys the
+sweeping discipline, and records enough phase information to check the following transition. -/
+private lemma sweepingStep_of_soundClaim {n : Nat} (input : Fin (n + 1) → I)
+    {source target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (hsource : SoundClaim S input source)
+    (previous : Option LBA.HeadTurns.Direction)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n source.state previous)
+    (hstep : LBA.Step (machine S) source target) :
+    LBA.Sweeping.TurnAllowed previous source target ∧
+      previousDirectionCompatible (Q := Q) (F := F) n target.state
+        (LBA.Sweeping.advanceDirection previous source target) ∧
+      SoundClaim S input target := by
+  have hnext : SoundClaim S input target := hsource.next S input hstep
+  by_cases hn : n = 0
+  · subst n
+    refine ⟨LBA.Sweeping.turnAllowed_of_physicalDirection_eq_none
+      previous source target (LBA.Sweeping.physicalDirection_width_zero source target), ?_, hnext⟩
+    simp [previousDirectionCompatible]
+  · cases hsource with
+    | initFirst =>
+        obtain ⟨hallowed, hcompatible⟩ :=
+          sweepingStep_initFirst S input previous hn hprevious hstep
+        exact ⟨hallowed, hcompatible, hnext⟩
+    | initSweep i head hi hhead =>
+        obtain ⟨hallowed, hcompatible⟩ :=
+          sweepingStep_initSweep S input i head hi hhead previous hn hprevious hstep
+        exact ⟨hallowed, hcompatible, hnext⟩
+    | initBack head =>
+        obtain ⟨hallowed, hcompatible⟩ :=
+          sweepingStep_initBack S input head previous hn hprevious hstep
+        exact ⟨hallowed, hcompatible, hnext⟩
+    | ready side a₀ a₁ cert hpath =>
+        obtain ⟨hallowed, hcompatible⟩ :=
+          sweepingStep_ready S side a₀ a₁ cert previous hn hprevious hstep
+        exact ⟨hallowed, hcompatible, hnext⟩
+    | step side q a₀ a₁ cert head hpath hscan =>
+        obtain ⟨hallowed, hcompatible⟩ :=
+          sweepingStep_step S side q a₀ a₁ cert head previous hn hprevious hstep
+        exact ⟨hallowed, hcompatible, hnext⟩
+    | final side q a₀ a₁ cert head hpath hscan =>
+        obtain ⟨hallowed, hcompatible⟩ :=
+          sweepingStep_final S side q a₀ a₁ cert head previous hn hprevious hstep
+        exact ⟨hallowed, hcompatible, hnext⟩
+    | back side a₀ a₁ cert head hpath =>
+        obtain ⟨hallowed, hcompatible⟩ :=
+          sweepingStep_back S side a₀ a₁ cert head previous hn hprevious hstep
+        exact ⟨hallowed, hcompatible, hnext⟩
+    | accept side a₀ a₁ cert head hpath hfinal =>
+        obtain ⟨state, symbol, direction, hmem, -⟩ := hstep
+        simp [machine, transition, DLBA.BoundedTape.read] at hmem
+
+/-- The phase invariant proves the sweeping property for an arbitrary finite trace, including
+traces which stop before acceptance and traces which take a rejecting branch. -/
+private theorem sweepingFrom_of_soundClaim {n : Nat} (input : Fin (n + 1) → I)
+    {source target : DLBA.Cfg (TapeCell I A C) (State Q F) n}
+    (trace : LBA.StepTrace (machine S) source target)
+    (hsource : SoundClaim S input source)
+    (previous : Option LBA.HeadTurns.Direction)
+    (hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n source.state previous) :
+    trace.SweepingFrom previous := by
+  induction trace generalizing previous with
+  | refl => trivial
+  | @head source next target hstep rest ih =>
+      obtain ⟨hallowed, hcompatible, hnext⟩ :=
+        sweepingStep_of_soundClaim S input hsource previous hprevious hstep
+      exact (LBA.StepTrace.sweepingFrom_head hstep rest previous).2
+        ⟨hallowed, ih hnext _ hcompatible⟩
+
+/-- Every concrete trace of the compiled row-system machine is sweeping.  The quantification in
+`SweepingViaEmbed` includes traces ending in rejecting configurations and the one-cell tape. -/
+public theorem machine_sweepingViaEmbed :
+    (machine S).SweepingViaEmbed (fun i => some (.inl i)) := by
+  intro n input target trace
+  have hraw :
+      (fun k => some (.inl (input k)) : Fin (n + 1) → TapeCell I A C) =
+        initTapeAt S input 0 := by
+    funext k
+    simp [initTapeAt]
+  have hsource : SoundClaim S input
+      ⟨State.initFirst, ⟨fun k => some (.inl (input k)), 0⟩⟩ := by
+    rw [hraw]
+    exact SoundClaim.initFirst
+  have hprevious : previousDirectionCompatible (Q := Q) (F := F)
+      n State.initFirst none := by
+    simp [previousDirectionCompatible]
+  exact sweepingFrom_of_soundClaim S input trace hsource none hprevious
+
 private lemma sound_from_fin {n : ℕ} (input : Fin (n + 1) → I)
     (hacc : LBA.Accepts (machine S)
       ⟨.initFirst, ⟨fun k => some (.inl (input k)), 0⟩⟩) :
@@ -1896,7 +2499,9 @@ private lemma sound_from_fin {n : ℕ} (input : Fin (n + 1) → I)
 
 /-! ## Correctness and the public compiler theorem -/
 
-private theorem machine_language_eq
+/-- The compiled machine recognizes exactly the nonempty row-reachability language of the source
+certified row system. -/
+public theorem languageViaEmbed_machine_eq_rowReachLanguage
     [Fintype I] [DecidableEq I] [Fintype A] [DecidableEq A]
     [Fintype C] [DecidableEq C] [Fintype Q] [DecidableEq Q]
     [Fintype F] [DecidableEq F] :
@@ -1991,6 +2596,6 @@ public theorem is_LBA_pos_rowReachLanguage
     is_LBA_pos S₀.rowReachLanguage := by
   refine ⟨WorkCell A₀ C₀, State Q₀ F₀, inferInstance, inferInstance, inferInstance,
     inferInstance, machine S₀, ?_⟩
-  exact machine_language_eq S₀
+  exact languageViaEmbed_machine_eq_rowReachLanguage S₀
 
 end CertifiedRowSystem

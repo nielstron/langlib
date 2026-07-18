@@ -70,6 +70,13 @@ uniform cap, gives exactly the DFA/NFA/regular languages
 Cap zero is the sole exception: a run cannot leave the left marker, and its
 slice class is exactly `{∅, Set.univ}`
 [🔗](src/Langlib/Automata/LinearBounded/BoundedCrossingZero.lean).
+The sharp lattice is stated directly for all named classes
+[🔗](src/Langlib/Automata/LinearBounded/BoundedCrossingCapHierarchy.lean):
+cap zero is contained in every positive cap, DFA, NFA, regular, uniform-crossing,
+and fixed-head-turn class, and each inclusion is strict exactly when the terminal
+type is nonempty.  Thus one terminal symbol is necessary and sufficient; over an
+empty terminal type all these classes contain only the two possible languages and
+coincide.
 More generally, after stationary and outward-clamped moves are erased, every
 boundary is crossed at most `head turns + 1` times.  Hence, for every fixed
 `r`, LBAs having one selected accepting run with at most `r` physical head
@@ -79,6 +86,44 @@ Every individual finite run has some word-dependent cap; the crossing theorem
 needs one cap uniform over the whole language, so it does not apply to an
 arbitrary LBA.  Likewise, the fixed-turn theorem says nothing about a turn
 bound that grows with the input length.
+
+Sweeping, without a uniform bound on the number of sweeps, is instead an exact
+nondeterministic normal form.  Here the promise covers every finite trace from
+every canonical input in the relevant model (nonempty in the marker-free
+model), including nonaccepting branches and arbitrary finite prefixes: after
+stationary and outward-clamped moves are ignored, a genuine
+change of head direction may occur only when its source head is at a physical
+endpoint
+[🔗](src/Langlib/Automata/LinearBounded/Sweeping.lean).  The marker-free and
+canonical-endmarker class equalities are respectively
+`SweepingLBA_pos = LBA_pos`
+[🔗](src/Langlib/Automata/LinearBounded/SweepingCharacterization.lean) and
+`SweepingLBA = LBA`
+[🔗](src/Langlib/Automata/LinearBounded/SweepingEndmarkerCharacterization.lean).
+The latter treats `epsilon` on its actual two-cell `⊢⊣` tape rather than
+through a separately chosen acceptance bit.  The theorem statements impose no
+`Nonempty` typeclass or cardinality lower bound on the terminal, work, or state
+types.  The certified-row construction remains nondeterministic and can make
+unboundedly many endpoint turns; it proves neither `LBA = DLBA` nor a
+deterministic sweeping normal-form equality.
+
+For a finite ambient terminal type with a chosen primitive-codable presentation,
+the effective interface now also covers internal signatures encoded at runtime.
+The bounded-crossing raw code stores numeric work/state cardinalities, an
+initial state, a crossing cap, accepting states, and a finite local transition
+table; the query word is a separate input.  One primitive-recursive evaluator
+decides the pair `(code, word)`, and the range of these varying-internal-signature,
+varying-cap codes is exactly the DFA/NFA/regular class
+[🔗](src/Langlib/Automata/LinearBounded/BoundedCrossingVaryingEncodedMembership.lean).
+For ordinary LBAs, a separate five-field code omits the crossing cap as well as
+the word.  Its evaluator computes the finite configuration bound from the code
+and query word and enumerates bounded schedules; semantic loop erasure proves
+that this search decides ordinary membership.  The resulting presentation
+characterizes exactly `LBA`
+[🔗](src/Langlib/Automata/LinearBounded/EncodedMembership.lean).  This is an
+external exhaustive bounded-schedule search, justified by finiteness of the
+configuration graph, with no promised linear-space bound; it does not turn an
+encoded NLBA into a DLBA and has no bearing on the open equality.
 
 The open reverse inclusion is equivalent to deterministic
 reachability for finite fixed-width row systems even when their local edge

@@ -76,6 +76,7 @@ public import Langlib.Automata.LinearBounded.BoundaryShuttle.StationaryTwoMatchi
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.Structural
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.TwoMatching
 public import Langlib.Automata.LinearBounded.BoundedCrossing
+public import Langlib.Automata.LinearBounded.BoundedCrossingCapHierarchy
 public import Langlib.Automata.LinearBounded.BoundedCrossingCertificate
 public import Langlib.Automata.LinearBounded.BoundedCrossingCertificateExactSoundness
 public import Langlib.Automata.LinearBounded.BoundedCrossingCertificateSoundness
@@ -88,6 +89,8 @@ public import Langlib.Automata.LinearBounded.BoundedCrossingProfileCardinality
 public import Langlib.Automata.LinearBounded.BoundedCrossingProfiles
 public import Langlib.Automata.LinearBounded.BoundedCrossingRegularCharacterization
 public import Langlib.Automata.LinearBounded.BoundedCrossingTraceCertificate
+public import Langlib.Automata.LinearBounded.BoundedCrossingTransport
+public import Langlib.Automata.LinearBounded.BoundedCrossingVaryingEncodedMembership
 public import Langlib.Automata.LinearBounded.BoundedCrossingZero
 public import Langlib.Automata.LinearBounded.BoundedDegree
 public import Langlib.Automata.LinearBounded.BoundedDegreeBranchSetMinor
@@ -142,6 +145,7 @@ public import Langlib.Automata.LinearBounded.ConfigurationEncoding
 public import Langlib.Automata.LinearBounded.CrossingSequence
 public import Langlib.Automata.LinearBounded.Definition
 public import Langlib.Automata.LinearBounded.DiamondPaths
+public import Langlib.Automata.LinearBounded.EncodedMembership
 public import Langlib.Automata.LinearBounded.EndmarkerWord
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Completeness
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Construction
@@ -242,6 +246,9 @@ public import Langlib.Automata.LinearBounded.StrictClockLayering
 public import Langlib.Automata.LinearBounded.SuccinctDiamondScheduleCapacity
 public import Langlib.Automata.LinearBounded.SuccinctDiamondTemporalEnumeration
 public import Langlib.Automata.LinearBounded.SuccinctThreeMatchingDiamonds
+public import Langlib.Automata.LinearBounded.Sweeping
+public import Langlib.Automata.LinearBounded.SweepingCharacterization
+public import Langlib.Automata.LinearBounded.SweepingEndmarkerCharacterization
 public import Langlib.Automata.LinearBounded.TemporalEnumerationBarrier
 public import Langlib.Automata.LinearBounded.ThreeMatchingDiamondBranches
 public import Langlib.Automata.LinearBounded.ThreeMatchingDiamondChoiceLowerBound

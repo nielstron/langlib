@@ -44,6 +44,48 @@ already suffice for every LBA language.  The remaining inclusion from the
 three-matching class to the two-matching class is equivalent to `LBA = DLBA`;
 this two-versus-three structural boundary does not decide that equality.
 
+## Sweeping is an exact nondeterministic normal form
+
+The [sweeping trace predicate](../../src/Langlib/Automata/LinearBounded/Sweeping.lean)
+uses physical head movement.  It remembers the most recent genuine direction,
+and a change from leftward to rightward movement or conversely is permitted
+only when the source configuration's head is at cell `0` or at the physical
+right endpoint.  An explicit `stay` step and an outward move that is clamped
+at an endpoint are physically stationary: both are ignored, neither counts as
+a turn, and neither overwrites the remembered direction.
+
+The promise is deliberately stronger than existence of one well-behaved
+accepting computation.  It quantifies over every finite `StepTrace`, from
+every canonical input in the relevant model to every target; marker-free
+inputs are nonempty, while the endmarker form separately covers every word,
+including `epsilon`.  It therefore covers nonaccepting branches and traces
+stopped at arbitrary finite prefixes.  It is a promise at canonical sources,
+however, not a global predicate on traces starting from every malformed raw
+configuration.
+
+The marker-free theorem
+[`SweepingLBA_pos_eq_LBA_pos`](../../src/Langlib/Automata/LinearBounded/SweepingCharacterization.lean)
+states that this restriction loses no marker-free LBA languages.  Its reverse
+inclusion exposes the original machine as a certified row system and applies
+the sweeping row-system compiler.  The canonical-endmarker theorem
+[`SweepingLBA_eq_LBA`](../../src/Langlib/Automata/LinearBounded/SweepingEndmarkerCharacterization.lean)
+then transports bracket words over `Bool ⊕ T` through an exact tape-alphabet
+equivalence.  In particular, `epsilon` is represented and processed on the
+actual two-cell `⊢⊣` tape; it is not restored by a separately selected
+semantic acceptance bit.
+
+Both class equalities are uniform over every finite terminal type, including
+the empty type, and impose no `Nonempty` or cardinality lower bound on the
+finite work or state types.  This does not conflict with the bounded-turn
+regularity theorem: a sweeping run may make an unbounded number of complete
+passes, with the bound depending on the computation and input.
+
+Finally, this is a nondeterministic normalization.  The certified-row machine
+still chooses the path through the row graph, so the result neither constructs
+a DLBA nor proves `LBA = DLBA`.  No deterministic sweeping normal-form
+equality is claimed here; that is a separate question from the two checked
+nondeterministic class equalities.
+
 There is a useful one-way connection with the smaller `L` versus `NL`
 question.  If `L = NL`, the standard exponential-padding translation lifts
 the equality to every constructible space bound at least logarithmic, in
@@ -1010,6 +1052,18 @@ configuration cycles from an arbitrary concrete trace, preserves both
 endpoints, and can only decrease its length and every individual crossing
 count, so the bound does not hide a shortest-run assumption.
 
+The crossing-free fallback is now explicit too.  For every simple trace,
+`length_add_one_le_card_cfg` proves
+
+$$
+L+1\le |Q|\,|\Gamma|^{n+1}(n+1),
+$$
+
+the cardinality of the complete width-`n+1` configuration space.
+`exists_simple_acceptingTrace_of_accepts` applies the same loop erasure to an
+ordinary accepting run and retains its accepting endpoint.  These theorems
+include `n=0` and require no nonemptiness or cardinality lower bound.
+
 `BoundedCrossing.HasUniformAcceptingBound` packages the weak existential
 promise on canonical endmarker inputs.  Its checked consequences currently
 include a simple accepting witness via
@@ -1070,6 +1124,19 @@ tape-symbol and state types; the class wrappers assume the library's ordinary
 finiteness hypotheses, and the DLBA wrappers additionally expose
 `DecidableEq Terminal`.  None assumes a minimum cardinality or positive cap.
 
+This fixed-cap result should not be conflated with Chytil's classical
+[crossing-versus-tape theorem](https://www.kybernetika.cz/content/1976/2/76/paper.pdf).
+His one-tape off-line model has an unbounded tape, and Theorem 14 identifies
+nondeterministic crossing-bound and tape-bound classes for functions
+`f(n) >= n`.  Its history-copying simulations may occupy tape beyond the
+input segment.  The checked result here instead starts with an LBA that is
+physically confined to its canonical input-sized tape and assumes one
+*constant* crossing cap on selected accepting runs; it concludes regularity
+without enlarging that source tape model.  Chytil's Section 4 also decomposes
+the deterministic tape/crossing questions around the LBA problem, but it does
+not supply the still-open nondeterministic-to-deterministic linear-space
+compiler.
+
 The converse and the cap boundary are now exact.  The canonical DFA
 endmarker machine has a concrete Type-valued trace `DFA.endmarkerTrace`.
 `DFA.crossingCount_endmarkerTrace` proves that this trace crosses every
@@ -1103,6 +1170,18 @@ In Lean this is `BoundedCrossingSlice_zero_eq_trivial_languages`; it is
 uniform over every terminal type, even an empty or infinite one, and imposes
 no cardinality lower bound on the finite presentation witnesses.  Combined
 with the positive-cap equalities, it is the complete fixed-cap taxonomy.
+
+`BoundedCrossingCapHierarchy` makes the taxonomy assumption-sharp and direct.
+Cap zero is included directly in each positive slice, DFA, NFA,
+Mathlib-regular, existential-uniform-crossing, and fixed-head-turn class.  All
+these inclusions are strict exactly when the terminal type is nonempty: the
+singleton language `{epsilon}` is already outside cap zero, and one chosen
+terminal supplies a nonempty word proving that it is not universal.  Hence
+the finite cardinal criterion is exactly `1 <= Fintype.card T`, not a
+two-symbol assumption.  If `T` is empty, `List T` is a singleton and every
+language is empty or universal, so cap zero is directly equal to every named
+class.  The file also supplies direct pairwise equalities throughout the
+positive-cap, uniform-crossing, and fixed-head-turn regular region.
 
 There is also a direct constant-head-reversal formulation.
 `LBA.HeadTurns.physicalDirection` compares actual head positions, so explicit
@@ -1156,11 +1235,11 @@ The same effective interface reaches the profile automaton itself.
 start, transition, and accepting sets of `profileNFA`; existential profile
 choices are enumerated over their finite types.  No checker receives the
 input word or asks whether it belongs to `LanguageEnd M`, so there is no
-language-membership oracle in this construction.  This is a relative
-executable API, not yet a uniformly encoded compiler: the caller supplies an
-explicit `TransitionTable` and its exactness proof.  In particular, these
-local-checker definitions do not synthesize a table from an arbitrary semantic
-`Set`-valued transition field.
+language-membership oracle in this construction.  By itself this is a relative
+executable API: the caller supplies an explicit `TransitionTable` and its
+exactness proof.  In particular, these local-checker definitions do not
+synthesize a table from an arbitrary semantic `Set`-valued transition field;
+the numeric raw-code layer below supplies the separate uniform interface.
 
 The separate fixed-signature layer `LBA.Machine.FiniteCode` closes the
 code-and-word gap at a fixed crossing cap.  A code contains only an initial
@@ -1180,12 +1259,62 @@ type is internal to the finite code domain.  No word or semantic
 language-membership oracle is present, and no nonempty-type or cardinality
 lower bound is assumed.
 
-This is deliberately not an encoding of the whole varying-signature LBA
-class.  The terminal, work, and state types and the cap `c` are parameters of
-the theorem, not fields of the code.  The finite code type is serialized by a
-noncanonical `Fintype.equivFin` chosen after those component types are fixed;
-the construction neither makes their cardinalities part of one universal
-machine code nor compiles arbitrary semantic `Set` transitions.
+That fixed-signature layer is now complemented by the primitive-codable raw
+[`BoundedCrossingVaryingEncodedMembership`](../../src/Langlib/Automata/LinearBounded/BoundedCrossingVaryingEncodedMembership.lean)
+presentation, whose internal signatures and cap are numeric.  Its code has six
+finite local fields: work and state counts, an initial-state index, a crossing
+cap, accepting-state indices, and explicit transition rows.  The terminal
+alphabet remains the fixed ambient query alphabet, but both internal
+signatures and the cap are runtime numbers.  The unbounded query word is a
+separate argument and no field contains a program,
+semantic set, or language-membership oracle.  Invalid work indices and rows
+are ignored; a zero state count denotes the empty language, while zero work
+symbols and an empty terminal type remain valid cases.
+
+`membershipBool` enumerates schedules of stored transition rows up to the
+checked simple-trace bound, replays each schedule with a latest-write-wins
+finite log, and verifies every physical boundary count.  Its head history has
+one entry per trace vertex, so the executable counts coincide exactly with
+`StepTrace.crossingCount`.  `membershipBool_eq_true_iff` identifies the
+Boolean answer with the total raw `languageOf` semantics: positive state
+counts reduce to `LanguageWithBound`, while zero states denote the empty
+language.  For a finite ambient terminal alphabet with a chosen
+primitive-codable presentation, the complete dependency chain is primitive
+recursive jointly in `(code, word)`.  The noncomputable compiler used for
+range adequacy enumerates arbitrary finite semantic work/state signatures,
+accepting sets, and `Set`-valued transition relations; it is not called by the
+evaluator.  The direct characterization theorems show
+that the range of all such varying-signature, varying-cap codes is exactly
+DFA, exactly NFA, and exactly Mathlib-regular.  In particular,
+`varyingBoundedCrossing_computableMembership` is a genuine uniform encoded
+membership theorem for that named class.
+
+The separate
+[`LBA.EncodedMembership`](../../src/Langlib/Automata/LinearBounded/EncodedMembership.lean)
+code deliberately has only five fields: work and state counts, the initial
+index, accepting indices, and transition rows.  It contains neither a crossing
+cap nor the query word.  Given `(code, word)`, its evaluator computes
+
+$$
+|Q|\,|\Gamma|^{|w|+2}(|w|+2),
+$$
+
+the full configuration count on the canonical endmarker tape, and supplies
+that number as an auxiliary cap to the bounded evaluator.  Loop erasure gives
+an accepting trace with `length + 1` at most this count, while every boundary
+crossing count is at most the trace length.  This proves exact ordinary LBA
+acceptance and, under the same finite primitive-coded ambient-terminal
+assumption, joint primitive recursiveness.  The cap-erasing adequacy compiler
+covers every arbitrary finite LBA signature, so
+`languageOf_characterizes_LBA` and `LBA_computableMembership` state the result
+directly for the repository's named `LBA` class.
+
+This ordinary decision procedure is an external exhaustive bounded-schedule
+search justified by finiteness of the configuration graph.  Its schedule space
+can be enormous and no linear-space implementation is claimed.  In
+particular, uniform decidability from an encoded LBA and a word neither
+constructs a same-width deterministic machine nor changes the open equality
+`LBA = DLBA`.
 
 The finite-state cost is exact.  `Profile.card` proves
 
@@ -3135,6 +3264,8 @@ asymptotic storage.
   in the Theory of Computing*](https://hdl.handle.net/1813/6015), 1973.
 - Ivan H. Sudborough, [*On tape-bounded complexity classes and multi-head
   finite automata*](https://doi.org/10.1109/SWAT.1973.20), 1973.
+- Michal P. Chytil, [*Crossing-Bounded Computations and their Relation to the
+  LBA-Problem*](https://www.kybernetika.cz/content/1976/2/76/paper.pdf), 1976.
 - Burkhard Monien, [*The LBA-Problem and the Deterministic Tape Complexity of
   Two-Way One-Counter Languages over a One-Letter
   Alphabet*](https://digital.ub.uni-paderborn.de/hsx/download/pdf/42059), 1977.

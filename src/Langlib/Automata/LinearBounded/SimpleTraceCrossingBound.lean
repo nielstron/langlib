@@ -416,6 +416,93 @@ theorem exists_simple_crossingCount_le
   exact ⟨eraseLoops trace, eraseLoops_simple trace,
     length_eraseLoops_le trace, crossingCount_eraseLoops_le trace⟩
 
+/-! ## The unrestricted finite-configuration bound -/
+
+/-- A simple trace visits at most every configuration once.
+
+This is the configuration-space counterpart of the finer crossing bounds below.  It makes no
+assumption about head movement and remains valid for a one-cell tape (`n = 0`) and for empty
+finite symbol or state types. -/
+theorem length_add_one_le_card_cfg
+    [Fintype Γ] [Fintype Λ]
+    (trace : LBA.StepTrace M source target) (hsimple : trace.Simple) :
+    trace.length + 1 ≤ Fintype.card (DLBA.Cfg Γ Λ n) := by
+  rw [← vertices_length]
+  exact hsimple.length_le_card
+
+/-- The unrestricted simple-trace bound with the configuration cardinality expanded into its
+state, tape-content, and head-position factors. -/
+theorem length_add_one_le_card_mul_pow_mul
+    [Fintype Γ] [Fintype Λ]
+    (trace : LBA.StepTrace M source target) (hsimple : trace.Simple) :
+    trace.length + 1 ≤
+      Fintype.card Λ * Fintype.card Γ ^ (n + 1) * (n + 1) := by
+  simpa only [DLBA.card_cfg] using length_add_one_le_card_cfg trace hsimple
+
+/-- Every concrete run has a same-endpoint simple subrun whose number of visited configurations
+is at most the full finite configuration-space cardinality.
+
+The shortened run is no longer than the original one.  No crossing, acyclicity, or determinism
+hypothesis is needed. -/
+theorem exists_simple_length_add_one_le_card_cfg
+    [Fintype Γ] [Fintype Λ]
+    (trace : LBA.StepTrace M source target) :
+    ∃ shortened : LBA.StepTrace M source target,
+      shortened.Simple ∧
+        shortened.length ≤ trace.length ∧
+        shortened.length + 1 ≤ Fintype.card (DLBA.Cfg Γ Λ n) := by
+  obtain ⟨shortened, hsimple, hlength, _hcross⟩ :=
+    exists_simple_crossingCount_le trace
+  exact ⟨shortened, hsimple, hlength,
+    length_add_one_le_card_cfg shortened hsimple⟩
+
+/-- Every concrete run has a same-endpoint simple subrun satisfying the expanded finite
+configuration-space bound. -/
+theorem exists_simple_length_add_one_le_card_mul_pow_mul
+    [Fintype Γ] [Fintype Λ]
+    (trace : LBA.StepTrace M source target) :
+    ∃ shortened : LBA.StepTrace M source target,
+      shortened.Simple ∧
+        shortened.length ≤ trace.length ∧
+        shortened.length + 1 ≤
+          Fintype.card Λ * Fintype.card Γ ^ (n + 1) * (n + 1) := by
+  obtain ⟨shortened, hsimple, hlength, _hbound⟩ :=
+    exists_simple_length_add_one_le_card_cfg trace
+  exact ⟨shortened, hsimple, hlength,
+    length_add_one_le_card_mul_pow_mul shortened hsimple⟩
+
+/-- Ordinary nondeterministic LBA acceptance has an accepting simple trace bounded by the full
+finite configuration space. -/
+theorem exists_simple_acceptingTrace_of_accepts
+    [Fintype Γ] [Fintype Λ]
+    (haccept : LBA.Accepts M source) :
+    ∃ final : DLBA.Cfg Γ Λ n,
+      ∃ trace : LBA.StepTrace M source final,
+        M.accept final.state = true ∧
+          trace.Simple ∧
+          trace.length + 1 ≤ Fintype.card (DLBA.Cfg Γ Λ n) := by
+  obtain ⟨final, hreach, hfinal⟩ := haccept
+  obtain ⟨trace⟩ := nonempty_iff_reaches.mpr hreach
+  obtain ⟨shortened, hsimple, _hlength, hbound⟩ :=
+    exists_simple_length_add_one_le_card_cfg trace
+  exact ⟨final, shortened, hfinal, hsimple, hbound⟩
+
+/-- Ordinary nondeterministic LBA acceptance has an accepting simple trace with the full
+configuration cardinality written explicitly. -/
+theorem exists_simple_acceptingTrace_card_mul_pow_mul_of_accepts
+    [Fintype Γ] [Fintype Λ]
+    (haccept : LBA.Accepts M source) :
+    ∃ final : DLBA.Cfg Γ Λ n,
+      ∃ trace : LBA.StepTrace M source final,
+        M.accept final.state = true ∧
+          trace.Simple ∧
+          trace.length + 1 ≤
+            Fintype.card Λ * Fintype.card Γ ^ (n + 1) * (n + 1) := by
+  obtain ⟨final, trace, hfinal, hsimple, _hbound⟩ :=
+    exists_simple_acceptingTrace_of_accepts haccept
+  exact ⟨final, trace, hfinal, hsimple,
+    length_add_one_le_card_mul_pow_mul trace hsimple⟩
+
 end LBA.StepTrace
 
 namespace LBA.StepTrace

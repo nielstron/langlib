@@ -45,6 +45,23 @@ solution to the open problem:
 
 - `DLBA_subset_LBA` proves the unconditional deterministic-to-nondeterministic
   inclusion.
+- `SweepingLBA_pos_eq_LBA_pos`
+  [🔗](src/Langlib/Automata/LinearBounded/SweepingCharacterization.lean)
+  and `SweepingLBA_eq_LBA`
+  [🔗](src/Langlib/Automata/LinearBounded/SweepingEndmarkerCharacterization.lean)
+  prove exact marker-free and canonical-endmarker sweeping normal forms.
+  The underlying strong predicate
+  [🔗](src/Langlib/Automata/LinearBounded/Sweeping.lean) quantifies over
+  every finite trace from every canonical input in the relevant model to every
+  target (nonempty inputs in the marker-free model), not just a selected
+  accepting run.  A change between genuine physical movement
+  directions is allowed only when the source head is at cell `0` or the right
+  endpoint; explicit `stay` steps and outward moves clamped at an endpoint are
+  ignored and retain the previous genuine direction.  Thus rejecting branches
+  and arbitrary finite prefixes satisfy the promise too.  The endmarker
+  theorem includes `epsilon` through its actual two-cell `⊢⊣` tape.
+  Neither equality assumes `Nonempty` nor a
+  cardinality lower bound on the finite terminal, work, or state types.
 - `BinaryBranchingLBA_eq_LBA` and `BoundedDegreeLBA_eq_LBA` show that every
   LBA language has a same-width presentation with configuration indegree and
   outdegree at most two.
@@ -380,6 +397,12 @@ solution to the open problem:
   `StepTrace.eraseLoops` strengthens the result from already-simple traces to
   arbitrary concrete traces: it retains both endpoints while never
   increasing length or any individual boundary count.
+  Independently of crossings, `length_add_one_le_card_cfg` bounds every simple
+  trace by the full finite configuration space, and
+  `exists_simple_acceptingTrace_of_accepts` packages loop erasure for ordinary
+  nondeterministic LBA acceptance.  The expanded bound is
+  `|State| * |TapeAlphabet|^(n+1) * (n+1)` for a tape with `n+1` cells,
+  including `n = 0` and with no cardinality lower bound.
 - `BoundedCrossing.HasUniformAcceptingBound` formalizes the intended weak
   quantifier order: one constant `c` works for every accepted word, and each
   such word merely has to possess one accepting trace meeting the cap.  Other
@@ -433,10 +456,37 @@ solution to the open problem:
   `fixedSignatureBoundedSlice_computableMembership` packages the result as
   genuine `ComputableMembership` for the exact range of these fixed-signature,
   fixed-cap codes, with no nonempty-type or cardinality-lower-bound premise.
-  This does not encode the whole varying-signature LBA class: the component
-  types and cap remain outside the code, and the code's `Primcodable` instance
-  uses a noncanonical `Fintype.equivFin` serialization local to those fixed
-  types.  No word or language-membership oracle is supplied.
+  This fixed-signature layer alone does not encode the whole varying-signature
+  class: its component types and cap remain outside the code, and its
+  `Primcodable` instance uses a noncanonical `Fintype.equivFin` serialization
+  local to those fixed types.
+  `BoundedCrossingVaryingEncodedMembership` closes that remaining gap with one
+  primitive-codable raw code whose internal signatures and cap are numeric.
+  Its six finite local fields are the runtime work and state counts,
+  initial-state index, crossing cap, accepting-state list, and transition-row
+  list; the unbounded query word is supplied separately.
+  Invalid rows are ignored, zero states denote the empty language, and zero
+  work symbols and an empty terminal type are supported.  The schedule replay
+  and its finite enumeration are primitive recursive jointly in `(code, word)`.
+  `membershipBool_eq_true_iff` proves exact total raw-code semantics (the
+  positive-state case is `LanguageWithBound`, while zero states denote the
+  empty language).  For a finite ambient terminal type with a chosen
+  primitive-codable presentation,
+  `varyingBoundedCrossing_computableMembership` packages the exact range as
+  DFA; direct NFA and Mathlib-regular forms are also stated.
+  `LBA.EncodedMembership` then uses a separate five-field code containing only
+  ordinary local automaton data: it omits both the cap and the word.  From that
+  code and the query word, the evaluator computes the full finite configuration
+  count, invokes the bounded checker at that auxiliary cap, and uses loop
+  erasure for completeness.  `LBA_computableMembership` proves that this
+  presentation characterizes exactly `LBA` and has jointly decidable
+  membership, again under a chosen primitive-codable presentation of the
+  finite ambient terminal alphabet.  The adequacy compilers noncomputably
+  enumerate arbitrary finite semantic signatures, accepting sets, and
+  `Set`-valued transition relations; the actual evaluators inspect only the
+  resulting raw finite rows.  This external exhaustive bounded-schedule search
+  is justified by the finite configuration graph but has no linear-space
+  guarantee and is not an LBA-to-DLBA compiler.
   The exact finite-state sizes are also checked.  `Profile.card` gives
   `|Profile State c| = sum_{i=0}^c |State|^i`, and `card_scanState` gives
   `|ScanState Gamma State c| = 1 + |Gamma| +
@@ -519,6 +569,17 @@ solution to the open problem:
   cap-zero slice class with `{∅, Set.univ}` over every terminal type,
   including the empty type.  Together with the positive-cap equalities, this
   gives the complete fixed-cap taxonomy.
+  `BoundedCrossingCapHierarchy` states the remaining pairs directly.  Cap
+  zero is contained in every positive slice and directly in the DFA, NFA,
+  Mathlib-regular, existential-uniform-crossing, and every fixed-head-turn
+  class.  Each inclusion is strict exactly under `Nonempty T`; the witness is
+  `{epsilon}`, so the finite-cardinality criterion is exactly
+  `1 <= Fintype.card T`.  Under `IsEmpty T`, every word is `epsilon`, every
+  language is empty or universal, and cap zero is directly equal to all of
+  those named classes.  The positive-cap, uniform-crossing, and head-turn
+  classes also have direct pairwise equality theorems.  These sharp statements
+  introduce no two-symbol convention and no hidden finiteness assumption in
+  the arbitrary-terminal inclusions.
 - The development also contains checked results about bounded
   nondeterminism, cofunctional reachability, acyclic layering, degree-two
   diamond paths, schedule capacity, unary regular languages, monotone
@@ -882,6 +943,11 @@ inclusion above.
 ## What is not claimed
 
 - No general LBA-to-DLBA compiler is constructed.
+- The sweeping equalities are nondeterministic normal forms.  Their
+  certified-row construction can choose a successor row and may perform an
+  unbounded number of endpoint-to-endpoint passes.  They do not establish a
+  deterministic sweeping normal-form equality or otherwise change the first
+  LBA problem.
 - The affine configuration-capacity theorems rule out a particular direct,
   fixed-alphabet encoding strategy; they are not language-class lower bounds.
 - The locality hypercube contraction for the fixed machine, its semantic
@@ -955,11 +1021,15 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,993 jobs completed successfully;
-- `lake test`: passed;
+- `lake build`: 9,000 jobs completed successfully;
+- `lake test`: passed (3,115 jobs);
+- the ordinary encoded-membership target built successfully (3,318 jobs),
+  and its warning-as-error direct compile completed without diagnostics;
 - generated import-hub check: passed;
 - theorem-link check: passed;
-- staged-diff and proof-hole scans: passed.
+- diff and proof-hole scans: passed;
+- axiom audits for the varying-cap and ordinary encoded-membership headline
+  theorems report only `propext`, `Classical.choice`, and `Quot.sound`.
 
 The detailed mathematical and literature ledger is in
 [docs/results/first-lba-problem-boundaries.md](docs/results/first-lba-problem-boundaries.md).
