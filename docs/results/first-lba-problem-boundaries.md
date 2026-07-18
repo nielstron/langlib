@@ -44,7 +44,7 @@ already suffice for every LBA language.  The remaining inclusion from the
 three-matching class to the two-matching class is equivalent to `LBA = DLBA`;
 this two-versus-three structural boundary does not decide that equality.
 
-## Sweeping is an exact nondeterministic normal form
+## Sweeping normal forms
 
 The [sweeping trace predicate](../../src/Langlib/Automata/LinearBounded/Sweeping.lean)
 uses physical head movement.  It remembers the most recent genuine direction,
@@ -80,11 +80,54 @@ finite work or state types.  This does not conflict with the bounded-turn
 regularity theorem: a sweeping run may make an unbounded number of complete
 passes, with the bound depending on the computation and input.
 
-Finally, this is a nondeterministic normalization.  The certified-row machine
+The two equalities above are nondeterministic normalizations.  The certified-row machine
 still chooses the path through the row graph, so the result neither constructs
-a DLBA nor proves `LBA = DLBA`.  No deterministic sweeping normal-form
-equality is claimed here; that is a separate question from the two checked
-nondeterministic class equalities.
+a DLBA nor proves `LBA = DLBA`.
+
+The deterministic side has a separate, direct normal form.  The compiler in
+[`DeterministicSweeping`](../../src/Langlib/Automata/LinearBounded/DeterministicSweeping/Definition.lean)
+starts with a `DLBA.Machine`, not an arbitrary LBA.  It preserves the number of
+tape cells, enlarges only the finite alphabet and finite control, and first
+installs sound left/right endpoint bits together with a unique encoded source
+head.  Each source transition is then carried out during complete sweeps.  A
+source-left move in the interior is recorded and resolved by the returning
+leftward pass; the physical right-endpoint case is resolved immediately, since
+the returning pass would otherwise have already passed that request.
+
+Exact initialization, positive-length source-step macros, and two-sided
+acceptance are composed in `machine_languageViaEmbed`.  Independently, an
+endpoint/phase invariant proves `machine_sweepingViaEmbed` for every finite
+prefix, including rejecting halts and the stationary accepting bridge added
+by the standard `toLBA'` view.  The one-cell tape is included: its only cell is
+marked as both endpoints and every physical move is clamped.  At class level,
+[`SweepingDLBA_eq_DLBA`](../../src/Langlib/Automata/LinearBounded/DeterministicSweeping/Characterization.lean)
+retains the original Boolean decision for `epsilon` and states the exact
+equality
+
+$$
+\mathrm{SweepingDLBA}=\mathrm{DLBA}.
+$$
+
+The actual-endmarker companion
+[`SweepingEndDLBA_eq_DLBA`](../../src/Langlib/Automata/LinearBounded/DeterministicSweeping/EndmarkerCharacterization.lean)
+eliminates the separately supplied `epsilon` bit.  It first turns that bit
+into an ordinary deterministic computation, applies the same sweeping
+compiler to the bracket-token word, and transports the result back to a
+genuine `⊢w⊣` tape.  Thus `epsilon` is decided by the target machine on the
+two-cell tape `⊢⊣`.  Both deterministic equalities hold for every finite
+terminal type and require no nonemptiness or lower-cardinality assumption on
+any component type.
+
+This is consistent with the standard deterministic sweeping normalization;
+for example, Kutrib, Malcher, and Wendlandt explicitly use the fact that a
+deterministic linearly space-bounded one-tape machine may be assumed sweeping
+in [*States and Heads Do Count for Unary Multi-Head Finite Automata*, §5](https://fg-afs.gi.de/fileadmin/FG/AFS/Tagungsbaende/2012-Theorietag22-Prag.pdf).
+Their syntactic convention also removes stationary moves, whereas Langlib's
+semantic sweeping predicate ignores physically stationary moves.  The checked
+compiler proves exactly the latter predicate.  Most importantly, because its
+source is already deterministic, this equality supplies no branch-selection
+method for an arbitrary LBA and does not advance the open inclusion
+`LBA ⊆ DLBA`.
 
 There is a useful one-way connection with the smaller `L` versus `NL`
 question.  If `L = NL`, the standard exponential-padding translation lifts

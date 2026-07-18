@@ -144,6 +144,11 @@ public import Langlib.Automata.LinearBounded.ConcreteClockLocalityHypercubeMinor
 public import Langlib.Automata.LinearBounded.ConfigurationEncoding
 public import Langlib.Automata.LinearBounded.CrossingSequence
 public import Langlib.Automata.LinearBounded.Definition
+public import Langlib.Automata.LinearBounded.DeterministicSweeping.Characterization
+public import Langlib.Automata.LinearBounded.DeterministicSweeping.Definition
+public import Langlib.Automata.LinearBounded.DeterministicSweeping.EndmarkerCharacterization
+public import Langlib.Automata.LinearBounded.DeterministicSweeping.Simulation
+public import Langlib.Automata.LinearBounded.DeterministicSweeping.Sweeping
 public import Langlib.Automata.LinearBounded.DiamondPaths
 public import Langlib.Automata.LinearBounded.EncodedMembership
 public import Langlib.Automata.LinearBounded.EndmarkerWord

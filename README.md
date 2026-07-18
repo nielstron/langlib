@@ -87,8 +87,8 @@ needs one cap uniform over the whole language, so it does not apply to an
 arbitrary LBA.  Likewise, the fixed-turn theorem says nothing about a turn
 bound that grows with the input length.
 
-Sweeping, without a uniform bound on the number of sweeps, is instead an exact
-nondeterministic normal form.  Here the promise covers every finite trace from
+Sweeping, without a uniform bound on the number of sweeps, is an exact normal
+form.  On the nondeterministic side, the promise covers every finite trace from
 every canonical input in the relevant model (nonempty in the marker-free
 model), including nonaccepting branches and arbitrary finite prefixes: after
 stationary and outward-clamped moves are ignored, a genuine
@@ -105,7 +105,23 @@ through a separately chosen acceptance bit.  The theorem statements impose no
 `Nonempty` typeclass or cardinality lower bound on the terminal, work, or state
 types.  The certified-row construction remains nondeterministic and can make
 unboundedly many endpoint turns; it proves neither `LBA = DLBA` nor a
-deterministic sweeping normal-form equality.
+determinization theorem.
+
+There is also a separate direct deterministic normal form.
+`SweepingDLBA = DLBA`
+[🔗](src/Langlib/Automata/LinearBounded/DeterministicSweeping/Characterization.lean)
+is proved by a same-width compiler which stores the simulated source head and
+state in the finite tape alphabet and executes each deterministic source step
+during endpoint-to-endpoint passes.  The construction handles the one-cell
+tape and both clamped source moves uniformly, preserves the named DLBA class's
+explicit `epsilon` bit, and satisfies the same all-finite-prefix sweeping
+predicate after viewing the deterministic machine as an LBA.  This compiler
+starts from an already deterministic machine, so it does not supply the open
+inclusion `LBA ⊆ DLBA`.
+The actual-endmarker form `SweepingEndDLBA = DLBA`
+[🔗](src/Langlib/Automata/LinearBounded/DeterministicSweeping/EndmarkerCharacterization.lean)
+removes that external bit: its deterministic machine decides every word on
+the genuine tape `⊢w⊣`, including the two-cell tape `⊢⊣` for `epsilon`.
 
 For a finite ambient terminal type with a chosen primitive-codable presentation,
 the effective interface now also covers internal signatures encoded at runtime.

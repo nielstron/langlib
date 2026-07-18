@@ -62,6 +62,28 @@ solution to the open problem:
   theorem includes `epsilon` through its actual two-cell `⊢⊣` tape.
   Neither equality assumes `Nonempty` nor a
   cardinality lower bound on the finite terminal, work, or state types.
+- `SweepingDLBA_eq_DLBA`
+  [🔗](src/Langlib/Automata/LinearBounded/DeterministicSweeping/Characterization.lean)
+  proves the corresponding exact deterministic normal form by a direct
+  same-width compiler.  An initialization pass installs immutable physical
+  endpoint bits and one simulated source-head tag.  Thereafter rightward and
+  leftward scans simulate each deterministic source transition; an interior
+  source-left move is delayed until the returning scan, while a left move
+  from the physical right endpoint is performed immediately so that its
+  request is not skipped.  Width one, both clamped source directions, source
+  `stay`, rejecting halts, and the stationary accepting bridge in `toLBA'`
+  are included.  The theorem retains the original `acceptEmpty` bit and its
+  strong promise covers every finite prefix from every canonical nonempty
+  input.  It normalizes machines already in `DLBA`; it does not determinize
+  an LBA or change the first LBA problem.
+- `SweepingEndDLBA_eq_DLBA`
+  [🔗](src/Langlib/Automata/LinearBounded/DeterministicSweeping/EndmarkerCharacterization.lean)
+  gives the same exact deterministic normal form on actual canonical
+  endmarker tapes.  Here there is no external empty-word bit: the compiled
+  deterministic machine decides `epsilon` while running on the genuine
+  two-cell tape `⊢⊣`.  Like the marker-free theorem, it is uniform over every
+  finite terminal type and imposes no nonemptiness or cardinality hypothesis
+  on the terminal, work, or state types.
 - `BinaryBranchingLBA_eq_LBA` and `BoundedDegreeLBA_eq_LBA` show that every
   LBA language has a same-width presentation with configuration indegree and
   outdegree at most two.
@@ -943,11 +965,12 @@ inclusion above.
 ## What is not claimed
 
 - No general LBA-to-DLBA compiler is constructed.
-- The sweeping equalities are nondeterministic normal forms.  Their
+- The `SweepingLBA` equalities are nondeterministic normal forms.  Their
   certified-row construction can choose a successor row and may perform an
-  unbounded number of endpoint-to-endpoint passes.  They do not establish a
-  deterministic sweeping normal-form equality or otherwise change the first
-  LBA problem.
+  unbounded number of endpoint-to-endpoint passes.  The separate checked
+  equalities `SweepingDLBA = DLBA` and `SweepingEndDLBA = DLBA` start from an
+  already deterministic machine; none of these sweeping results establishes
+  `LBA ⊆ DLBA` or otherwise changes the first LBA problem.
 - The affine configuration-capacity theorems rule out a particular direct,
   fixed-alphabet encoding strategy; they are not language-class lower bounds.
 - The locality hypercube contraction for the fixed machine, its semantic
@@ -1021,15 +1044,19 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 9,000 jobs completed successfully;
+- `lake build`: 9,005 jobs completed successfully;
 - `lake test`: passed (3,115 jobs);
 - the ordinary encoded-membership target built successfully (3,318 jobs),
   and its warning-as-error direct compile completed without diagnostics;
+- all five deterministic-sweeping modules compile directly with warnings as
+  errors and no diagnostics;
 - generated import-hub check: passed;
 - theorem-link check: passed;
 - diff and proof-hole scans: passed;
 - axiom audits for the varying-cap and ordinary encoded-membership headline
-  theorems report only `propext`, `Classical.choice`, and `Quot.sound`.
+  theorems, as well as deterministic-sweeping language preservation,
+  all-prefix sweeping, and both deterministic-sweeping class equalities,
+  report only `propext`, `Classical.choice`, and `Quot.sound`.
 
 The detailed mathematical and literature ledger is in
 [docs/results/first-lba-problem-boundaries.md](docs/results/first-lba-problem-boundaries.md).
