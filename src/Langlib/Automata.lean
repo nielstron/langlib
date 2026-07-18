@@ -51,6 +51,7 @@ public import Langlib.Automata.LinearBounded.AcyclicClock.SoundnessLift
 public import Langlib.Automata.LinearBounded.AcyclicTwoLayerReachability
 public import Langlib.Automata.LinearBounded.AlphabetTransport
 public import Langlib.Automata.LinearBounded.BinaryBranching
+public import Langlib.Automata.LinearBounded.BinaryBranchingBranchSetMinor
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.Canonical
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.CombinedCanonical
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.CombinedDefinition
@@ -72,6 +73,7 @@ public import Langlib.Automata.LinearBounded.BoundaryShuttle.StationaryTwoMatchi
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.Structural
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.TwoMatching
 public import Langlib.Automata.LinearBounded.BoundedDegree
+public import Langlib.Automata.LinearBounded.BoundedDegreeBranchSetMinor
 public import Langlib.Automata.LinearBounded.BoundedNondeterminism
 public import Langlib.Automata.LinearBounded.BranchSetMinor
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Acyclicize
@@ -110,6 +112,8 @@ public import Langlib.Automata.LinearBounded.Cofunctional.Resources
 public import Langlib.Automata.LinearBounded.Cofunctional
 public import Langlib.Automata.LinearBounded.CofunctionalRootReachability
 public import Langlib.Automata.LinearBounded.Complement
+public import Langlib.Automata.LinearBounded.ConcreteClockBoundedDegreeBranchSetMinor
+public import Langlib.Automata.LinearBounded.ConcreteClockBoundedDegreeHypercubeMinor
 public import Langlib.Automata.LinearBounded.ConcreteClockBranchSetMinor
 public import Langlib.Automata.LinearBounded.ConcreteClockLocalityHypercubeMinor
 public import Langlib.Automata.LinearBounded.ConfigurationEncoding
@@ -163,6 +167,7 @@ public import Langlib.Automata.LinearBounded.HistoryUnfolding
 public import Langlib.Automata.LinearBounded.HistoryUnfoldingReachability
 public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
+public import Langlib.Automata.LinearBounded.IncomingSerializerBranchSetMinor
 public import Langlib.Automata.LinearBounded.LayeredReachability
 public import Langlib.Automata.LinearBounded.LinearTwoDiforestReachability
 public import Langlib.Automata.LinearBounded.LocalityHypercube

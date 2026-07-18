@@ -816,19 +816,34 @@ is a branch-set minor of the complete raw graph of one fixed concrete
 simultaneously records global acyclicity on all raw configurations, including
 malformed protocol configurations.
 
-The serializer contractions are similarly explicit.  Assign its outgoing
-`scan` and incoming-serializer `written` configurations to the represented
-source configuration, and assign `arrived` and `merge` configurations to the
-represented target.  The tagged scan/merge corridors make each branch set
-connected and keep distinct represented configurations disjoint; the one
-apply/movement edge is the required edge between them.  Consequently the
-paper contraction predicts that the final globally acyclic, indegree-two,
-outdegree-two clock-and-serializer output still has `Q_d` minors for all
-positive `d`.  The disjoint concrete clock branch sets are now formal, as are
-the exact Ready-skeleton quotient, global acyclicity, and the two degree
-bounds.  The subsequent serializer branch-set contraction remains a paper
-proof rather than a Langlib graph-minor theorem.  This is still only a
-structural obstruction, not a language separation.
+The serializer contractions are now checked too.
+`binaryBranchStepBranchSetMinorModel` assigns the outgoing serializer's Ready
+configuration and every well-formed `scan` configuration over the same source
+state and tape to one branch set.  Every remaining-move set drains to the
+empty set through skip edges, and the singleton containing a chosen move
+supplies the apply edge between the source and target branch sets.
+`IncomingSerializer.branchSetMinorModel` assigns only genuinely adjacent
+`written` configurations to their source, while every `arrived` and `merge`
+configuration belongs to the fiber of its projected target.  The latter
+ownership is what keeps clamped predecessor collisions disjoint; malformed
+written configurations are unused.  Both theorems quantify over every tape
+parameter, including parameter zero (the one-cell graph), and over the
+complete raw target graphs.
+
+`boundedDegreeStepBranchSetMinorModel` composes the two corridor models for
+the literal `Machine.boundedDegree` implementation, and
+`concreteClockBoundedDegreeBranchSetMinorModel` gives the general full
+pipeline contraction for every reflexive fixed-width source graph.  Applying
+that theorem to the concrete-clock certificate gives
+`boundedDegreeHypercubeBranchSetMinor`: for every positive `d`, `Q_d` is a
+branch-set minor of the complete raw graph of one fixed actual
+clock-and-degree-serialized machine.  `boundedDegreeMachine_globalProperties`
+proves that this exact same final machine is globally acyclic on all raw
+configurations, has both directed degrees at most two at every width, and has
+one width-uniform exact partition into two partial bijections.  The layers are
+not directed matchings.  This closes the structural contraction that was
+previously paper-level, but it is still neither a directed-reachability lower
+bound nor a language separation.
 
 Acyclicity does not by itself force short crossing sequences either.  Every
 completed macro of the concrete clock compiler performs full normalization
@@ -2633,11 +2648,15 @@ the regular collapses above cannot extend to the unrestricted model.
   external corollaries.  `strictClockHypercubeBranchSetMinor` carries the
   certificate through the full semantic acyclic strict clock, and
   `concreteClockHypercubeBranchSetMinor` carries it through the raw graph of
-  the actual one-tape clock protocol.  Full concrete clock sweeps also allow
-  exponential crossing sequences on globally acyclic runs.  The remaining
-  paper contraction above transports the minor through the subsequent degree
-  serializer; that final globally acyclic degree-two graph-minor statement is
-  not yet formalized.
+  the actual one-tape clock protocol.
+  `boundedDegreeHypercubeBranchSetMinor` then carries it through both concrete
+  degree serializers into the final complete raw graph, while
+  `boundedDegreeMachine_globalProperties` checks global acyclicity, both
+  directed degree-two bounds, and the uniform two-partial-bijection partition
+  for that same machine.  Full concrete clock sweeps also allow exponential
+  crossing sequences on globally acyclic runs.  The standard numerical
+  treewidth/pathwidth/genus consequences remain external, and none of these
+  undirected-minor facts decides directed reachability.
 - **Linear genuine branch events:** the generic DLBA construction remains
   paper-level; its exhaustive-schedule replay semantics and same-width
   resources are formalized by

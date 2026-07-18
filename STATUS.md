@@ -535,8 +535,32 @@ solution to the open problem:
   `concreteClockHypercubeBranchSetMinor` composes the certificates: every
   positive-dimensional cube is a minor of the complete raw graph of one fixed
   concrete acyclic-clock machine.  That complete raw graph is globally
-  acyclic, including malformed protocol configurations.  The later
-  degree-serializer contraction is still not formalized.
+  acyclic, including malformed protocol configurations.
+- `binaryBranchStepBranchSetMinorModel` and
+  `IncomingSerializer.branchSetMinorModel` now contract the two actual degree
+  serializers separately at every tape width.  The outgoing branch set owns
+  its Ready configuration and every well-formed scan set; all scans drain to
+  the empty scan, while a singleton scan supplies the represented apply edge.
+  The incoming branch set owns only valid source-side written configurations,
+  but owns every projected target-side arrival and merge configuration.  This
+  makes clamped predecessor collisions target-owned and leaves malformed
+  written configurations outside all branch sets.  The tape parameter zero
+  (the one-cell graph) is covered, with no lower-cardinality assumptions on
+  the finite types.
+- `boundedDegreeStepBranchSetMinorModel` composes those two contractions for
+  the complete raw `boundedDegree` machine, and
+  `concreteClockBoundedDegreeBranchSetMinorModel` proves the general full
+  pipeline theorem for every fixed-width reflexive source graph.  Finally,
+  `boundedDegreeHypercubeBranchSetMinor` proves that every
+  positive-dimensional Boolean cube is a branch-set minor of one fixed
+  concrete clock-and-degree-serialized machine.  The *same* final machine is
+  globally acyclic on all raw configurations, has indegree and outdegree at
+  most two at every width, and has the serializer's single width-uniform
+  partition into two partial bijections, as packaged by
+  `boundedDegreeMachine_globalProperties`.  The two layers are not directed
+  matchings.  This closes the structural clock-plus-serializer contraction;
+  it remains a graph obstruction rather than a reachability lower bound or a
+  determinization.
 - `DLBA_subset_ULBA` and `ULBA_subset_LBA` formalize the sandwich through
   unambiguous linear space using labeled, first-final accepting runs.
   `lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` factors the first LBA
@@ -613,11 +637,13 @@ inclusion above.
 - The affine configuration-capacity theorems rule out a particular direct,
   fixed-alphabet encoding strategy; they are not language-class lower bounds.
 - The locality hypercube contraction for the fixed machine, its semantic
-  strict clock, and the actual one-tape acyclic-clock protocol are formalized
+  strict clock, the actual one-tape acyclic-clock protocol, and both actual
+  degree serializers are formalized
   by `hypercubeBranchSetMinor`, `strictClockHypercubeBranchSetMinor`, and
-  `concreteClockHypercubeBranchSetMinor`.  The further contraction through
-  the degree serializer, and the numerical treewidth and genus consequences,
-  remain paper-level.
+  `boundedDegreeHypercubeBranchSetMinor`.  Standard numerical treewidth,
+  pathwidth, and genus consequences of the certified cube minor remain
+  external graph-theory corollaries; none is a directed-reachability lower
+  bound.
 - The generic optimal two-layer theorem chooses a spanning forest separately
   for each relation. The degree serializer now has a separate local,
   width-uniform coloring theorem, but choosing between its two layers remains
@@ -673,7 +699,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,959 jobs completed successfully;
+- `lake build`: 8,964 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;
