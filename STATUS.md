@@ -349,6 +349,66 @@ solution to the open problem:
   uniform two-biunique partition.  The locality source is nondeterministic,
   so this synthesis still asserts existence of one selected self-loop run,
   not a lower bound on all or accepting runs.
+- `StepTrace.length_add_one_le_card_mul_totalCrossingCount_add_one` gives the
+  general upper bound for every simple width-`n + 1` trace:
+  `length + 1 ≤ (card State * card TapeSymbol) * (totalCrossingCount + 1)`.
+  A physically moving step crosses exactly one boundary; `stay` and outward
+  clamped endpoint moves cross none.  The proof partitions the run into
+  constant-head blocks and injects each block into the finite local views
+  `(state, read symbol)`.  Its per-boundary-cap corollary is
+  `length + 1 ≤ (card State * card TapeSymbol) * (n * c + 1)`, including
+  `n = 0` and with no inhabitedness or cardinality-lower-bound assumption.
+  `StepTrace.eraseLoops` strengthens the result from already-simple traces to
+  arbitrary concrete traces: it retains both endpoints while never
+  increasing length or any individual boundary count.
+- `BoundedCrossing.HasUniformAcceptingBound` formalizes the intended weak
+  quantifier order: one constant `c` works for every accepted word, and each
+  such word merely has to possess one accepting trace meeting the cap.  Other
+  accepting and rejecting runs are unrestricted.
+  `hasLinearAcceptingStepBound_of_hasUniformAcceptingBound` derives an
+  accepting trace of linear length, with per-cell constant
+  `card State * card TapeAlphabet * max c 1`.
+  `hasLinearAcceptingChoiceBound_of_hasUniformAcceptingBound` further derives
+  the existing semantic `HasLinearAcceptingChoiceBound` promise for genuine
+  branch events.  The stronger crossing-profile route is now complete:
+  `terminalProfileNFA_accepts_eq_languageEnd_of_hasUniformAcceptingBound`
+  constructs a profile NFA and proves exact language equality; when the
+  source alphabet, work alphabet, and state types are finite, its state type
+  is finite as well.
+  `CellRun` checks writes, stationary and physically clamped moves, genuine
+  left/right crossings, and an accepting event at an arbitrary final head;
+  neighboring cells share the same chronological bounded profile.
+  `accepts_of_active_row` synchronizes those local histories into a genuine
+  global run by a decreasing sum of constructor sizes.  Both directions
+  include the one-cell tape and make no cardinality-lower-bound assumption.
+  The strengthened theorem
+  `mem_profileNFA_iff_acceptsWithBound_initialCfgFn` reconstructs an actual
+  `StepTrace` and proves that each boundary is crossed no more often than the
+  shared profile length, so NFA soundness preserves the advertised cap rather
+  than merely ordinary acceptance.
+  The direct class theorems
+  `is_NFA_languageEnd_of_hasUniformAcceptingBound`,
+  `is_DFA_languageEnd_of_hasUniformAcceptingBound`, and
+  `is_DLBA_languageEnd_of_hasUniformAcceptingBound` therefore show that this
+  weak selected-run crossing promise actually forces regularity, hence a
+  DLBA presentation.  The last implication uses the explicit one-way
+  endmarker scanner behind `is_DLBA_of_is_NFA`, including `epsilon`; it does
+  not query source-language membership.  Weak linear accepting time alone
+  remains insufficient, and the separate bounded-choice development still
+  stops before a generic same-width schedule enumerator/replayer.
+- `LanguageWithBound M c` is the fixed-cap slice of one LBA language.
+  `languageWithBound_mono` makes the slices increasing, while
+  `languageEnd_eq_iUnion_languageWithBound` proves that every accepted word
+  lies in some finite slice.  The exact theorem
+  `terminalProfileNFA_accepts_eq_languageWithBound` and its class corollaries
+  `is_NFA_languageWithBound`, `is_DFA_languageWithBound`, and
+  `is_DLBA_languageWithBound` prove that every fixed slice is regular and has
+  a deterministic-LBA presentation.  This countable increasing union of
+  regular slices deliberately does not produce one uniform `c`; allowing the
+  bound to depend on the word is therefore still vacuous for the whole-language
+  regularity theorem.
+  `languageWithBound_eq_languageEnd_iff_hasUniformAcceptingBound` states the
+  exact missing stabilization condition.
 - The development also contains checked results about bounded
   nondeterminism, cofunctional reachability, acyclic layering, degree-two
   diamond paths, schedule capacity, unary regular languages, monotone

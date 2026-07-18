@@ -965,6 +965,144 @@ exponential LBA time, the bound remains exponential in the tape width.  See
 [*A Space Bound for One-Tape Multidimensional Turing
 Machines*](https://doi.org/10.1016/0304-3975(81)90084-0).
 
+### Uniformly bounded accepting crossings
+
+The complementary positive hypothesis is a single constant bound on every
+boundary of one selected accepting run.  The quantifier order is essential:
+for one fixed machine there must be a `c` such that every accepted word has
+some accepting trace crossing each physical boundary at most `c` times.
+Other accepting runs and every rejecting run may behave arbitrarily.  Allowing
+`c` to depend on the word would be vacuous.
+
+The local combinatorial bound is now checked directly for the repository's
+clamped bounded-tape model.  For a simple trace of length `L`, put
+
+$$
+H=\sum_b c_b,
+\qquad
+K=|Q|\,|\Gamma|,
+$$
+
+where `c_b` is the crossing count at boundary `b`.  Every physical head move
+crosses exactly one boundary, while `stay` and outward endpoint moves that
+clamp in place cross none.  The `H` moving steps split the trace into `H+1`
+constant-head blocks.  Inside one block all off-head cells are frozen, so a
+configuration is determined by `(state, scanned symbol)` and the block has at
+most `K` configurations.  The machine-checked theorem
+`StepTrace.length_add_one_le_card_mul_totalCrossingCount_add_one` is therefore
+
+$$
+L+1\le K(H+1).
+$$
+
+If a width-`n+1` trace has `c_b <= c` at every one of its `n` boundaries,
+`StepTrace.length_add_one_le_card_mul_boundaryCap_add_one` gives the
+subtraction-free form
+
+$$
+L+1\le K(nc+1).
+$$
+
+This includes the one-cell case `n=0`, where there is no boundary and a
+simple stationary trace contains at most `K` local views.  No inhabitedness or
+alphabet-cardinality lower bound is assumed.  `StepTrace.eraseLoops` removes
+configuration cycles from an arbitrary concrete trace, preserves both
+endpoints, and can only decrease its length and every individual crossing
+count, so the bound does not hide a shortest-run assumption.
+
+`BoundedCrossing.HasUniformAcceptingBound` packages the weak existential
+promise on canonical endmarker inputs.  Its checked consequences currently
+include a simple accepting witness via
+`exists_simple_acceptingTrace_of_acceptsWithBound`, a selected accepting
+witness of linear length via
+`hasLinearAcceptingStepBound_of_hasUniformAcceptingBound`, and the existing
+`BoundedNondeterminism.HasLinearAcceptingChoiceBound`.  The two quantitative
+whole-language bounds use the per-cell constant
+
+$$
+|Q|\,|\Gamma|\max(c,1).
+$$
+
+The stronger classical consequence is regularity.  Pighizzini's
+[Theorem 1](https://arxiv.org/abs/0905.1271) constructs an NFA whose states
+are bounded crossing sequences and proves this for the same weak measure.
+That route is now checked for Langlib's concrete clamped LBA model.
+`StepTrace.crossingSequence` records the target control states in literal
+chronological order.  A bounded `Profile State c` packages every such list of
+length at most `c`, and `CellRun` checks a complete one-cell history including
+writes, genuine exits and entries, `stay`, outward endpoint moves that clamp,
+and an accepting event at an arbitrary final head.  Equality of bare state
+lists alone would not have been sufficient.
+
+`profileNFA` scans the physical cells from left to right.  It guesses one
+shared profile at every internal boundary and verifies a `CellRun` on both
+sides.  Its delayed final-cell state is what distinguishes a genuine right
+exit from a physically clamped right move.  The path theorem
+`mem_profileNFA_iff_nonempty_cellCertificate` is exact for every nonempty
+width, including one cell.  In the forward semantic direction,
+`nonempty_cellCertificate_of_accepting_trace` projects one concrete accepting
+trace to those shared profiles and proves that exactly one cell contains the
+terminal event.  In the converse direction, `accepts_of_active_row`
+synchronizes all local histories into one global computation.  A stationary
+or clamped step consumes one local constructor; a genuine crossing consumes
+the matching exit and entry constructors in two adjacent cells.  The sum of
+all constructor counts strictly decreases, so the recursion is well founded.
+The strengthened recursion retains the concrete `StepTrace`: at every
+boundary its crossing count is at most the length of that boundary's initial
+shared profile.  Thus
+`mem_profileNFA_iff_acceptsWithBound_initialCfgFn` is an exact equivalence at
+the same cap, not merely a soundness implication to ordinary acceptance.
+
+The fixed prefix/suffix construction `terminalProfileNFA` supplies `⊢`,
+embeds the input word, and supplies `⊣`.  The exact
+theorem
+`terminalProfileNFA_accepts_eq_languageEnd_of_hasUniformAcceptingBound` says
+that, under one uniform selected-accepting cap, this NFA recognizes the
+source LBA language.  Consequently
+`is_NFA_languageEnd_of_hasUniformAcceptingBound` and
+`is_DFA_languageEnd_of_hasUniformAcceptingBound` prove regularity directly,
+and `is_DLBA_languageEnd_of_hasUniformAcceptingBound` supplies the requested
+deterministic-LBA consequence.  The latter uses the separate explicit
+one-way endmarker machine behind `is_DLBA_of_is_NFA`; its empty input is the
+genuine two-cell tape `⊢⊣`, and no language-membership
+oracle is used.  All machine-level stitching theorems are polymorphic in the
+tape-symbol and state types; the class wrappers assume the library's ordinary
+finiteness hypotheses, and the DLBA wrappers additionally expose
+`DecidableEq Terminal`.  None assumes a minimum cardinality or positive cap.
+
+There is one representation-level distinction to keep explicit.  Mathlib's
+`NFA` transition field, like Langlib's LBA transition field, is a semantic
+set-valued relation.  Here its `CellCompatible` query concerns one cell and
+two profiles of the fixed bounded length; it is independent of the rest of
+the input word and therefore cannot hide a query to `LanguageEnd M`.
+The current files do not additionally package that local finite-graph
+reachability test as executable code.  Such a checker would strengthen the
+effective-encoding API, but it is not an assumption in the semantic NFA
+correctness theorem.
+
+For a fixed source machine, `LanguageWithBound M c` names the words with one
+accepting trace meeting cap `c`.
+`terminalProfileNFA_accepts_eq_languageWithBound` identifies that slice
+exactly with the bounded-profile automaton, and `is_NFA_languageWithBound` /
+`is_DFA_languageWithBound` prove that every fixed slice is regular;
+`is_DLBA_languageWithBound` gives its deterministic-LBA presentation.  The
+slices are increasing, and `languageEnd_eq_iUnion_languageWithBound` proves
+
+$$
+L(M)=\bigcup_{c\in\mathbb N} L_c(M).
+$$
+
+This does not supply a uniform cap: every finite accepting trace belongs to
+some word-dependent slice.  The uniform hypothesis is precisely the stronger
+assertion that one fixed slice already equals the whole language, as stated
+exactly by
+`languageWithBound_eq_languageEnd_iff_hasUniformAcceptingBound`.
+
+Weak linear accepting time by itself is a false shortcut: nondeterministic
+one-tape machines can accept nonregular, even suitably padded NP-complete,
+languages in linear time under the weak measure.  The constant *maximum
+crossing-sequence* bound is the stronger finite-state lever.
+
 Nor does the explicit clock rank make a one-pass topological sweep
 space-efficient.  An elementary `INDEX` family gives a sharp obstruction.
 Take a complete binary tree with `m` leaves, include the final edge into leaf

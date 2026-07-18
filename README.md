@@ -55,7 +55,18 @@ relation is already single-valued
 [🔗](src/Langlib/Automata/LinearBounded/Functional.lean).  The
 Immerman–Szelepcsényi complement construction does not settle this question:
 it constructs another nondeterministic linear-space machine rather than a
-deterministic one.  The reverse inclusion is equivalent to deterministic
+deterministic one.  A separate positive boundary is now checked directly.  If one constant
+bounds every tape boundary of one selected accepting run for each accepted
+word, the finite crossing-profile construction recognizes the same language
+with an NFA, hence a DFA and a DLBA
+[🔗](src/Langlib/Automata/LinearBounded/BoundedCrossingLanguage.lean).  Other
+accepting and rejecting runs remain unrestricted, the accepting head may be
+anywhere, and the proof includes one-cell tapes, clamped endpoint moves, and
+arbitrary finite alphabet/state cardinalities.  Every individual finite run
+has some word-dependent cap; the theorem needs one cap uniform over the whole
+language, so it does not apply to an arbitrary LBA.
+
+The open reverse inclusion is equivalent to deterministic
 reachability for finite fixed-width row systems even when their local edge
 verifier is deterministic, the row graph is acyclic, and every row has both
 indegree and outdegree at most two

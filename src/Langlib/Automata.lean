@@ -25,6 +25,8 @@ public import Langlib.Automata.DeterministicPushdown.Totalization
 public import Langlib.Automata.FiniteState.Definition
 public import Langlib.Automata.FiniteState.Equivalence.Determinization
 public import Langlib.Automata.FiniteState.Equivalence.Regular
+public import Langlib.Automata.FiniteState.FixedContext
+public import Langlib.Automata.FiniteState.Inclusion.DeterministicLinearBounded
 public import Langlib.Automata.FiniteState.Inclusion.DeterministicPushdown
 public import Langlib.Automata.FiniteState.Inclusion.StrictDeterministicPushdown
 public import Langlib.Automata.LinearBounded.AcyclicBoundedDegree
@@ -73,6 +75,14 @@ public import Langlib.Automata.LinearBounded.BoundaryShuttle.StationaryStructura
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.StationaryTwoMatching
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.Structural
 public import Langlib.Automata.LinearBounded.BoundaryShuttle.TwoMatching
+public import Langlib.Automata.LinearBounded.BoundedCrossing
+public import Langlib.Automata.LinearBounded.BoundedCrossingCertificate
+public import Langlib.Automata.LinearBounded.BoundedCrossingCertificateExactSoundness
+public import Langlib.Automata.LinearBounded.BoundedCrossingCertificateSoundness
+public import Langlib.Automata.LinearBounded.BoundedCrossingChoice
+public import Langlib.Automata.LinearBounded.BoundedCrossingLanguage
+public import Langlib.Automata.LinearBounded.BoundedCrossingProfiles
+public import Langlib.Automata.LinearBounded.BoundedCrossingTraceCertificate
 public import Langlib.Automata.LinearBounded.BoundedDegree
 public import Langlib.Automata.LinearBounded.BoundedDegreeBranchSetMinor
 public import Langlib.Automata.LinearBounded.BoundedDegreeReachability
@@ -122,8 +132,10 @@ public import Langlib.Automata.LinearBounded.ConcreteClockBoundedDegreeReachabil
 public import Langlib.Automata.LinearBounded.ConcreteClockBranchSetMinor
 public import Langlib.Automata.LinearBounded.ConcreteClockLocalityHypercubeMinor
 public import Langlib.Automata.LinearBounded.ConfigurationEncoding
+public import Langlib.Automata.LinearBounded.CrossingSequence
 public import Langlib.Automata.LinearBounded.Definition
 public import Langlib.Automata.LinearBounded.DiamondPaths
+public import Langlib.Automata.LinearBounded.EndmarkerWord
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Completeness
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Construction
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Soundness
@@ -214,6 +226,7 @@ public import Langlib.Automata.LinearBounded.SavitchRecomputationBarrier
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivision
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivisionReachability
+public import Langlib.Automata.LinearBounded.SimpleTraceCrossingBound
 public import Langlib.Automata.LinearBounded.StepTraceCrossing
 public import Langlib.Automata.LinearBounded.StrictClockBranchSetMinor
 public import Langlib.Automata.LinearBounded.StrictClockLayering
