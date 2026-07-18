@@ -1098,8 +1098,33 @@ input word or asks whether it belongs to `LanguageEnd M`, so there is no
 language-membership oracle in this construction.  This is a relative
 executable API, not yet a uniformly encoded compiler: the caller supplies an
 explicit `TransitionTable` and its exactness proof.  In particular, these
-files do not define a `Primcodable` serialization of machines or synthesize a
-table from an arbitrary semantic `Set`-valued transition field.
+local-checker definitions do not synthesize a table from an arbitrary semantic
+`Set`-valued transition field.
+
+The separate fixed-signature layer `LBA.Machine.FiniteCode` closes the
+code-and-word gap at a fixed crossing cap.  A code contains only an initial
+state, one accepting bit per state, and finite move sets for each state and
+tape symbol.  `boundedSliceMembershipBool_eq_true_iff` proves that its Boolean
+profile-NFA evaluation accepts exactly `LanguageWithBound code.toMachine c`.
+More importantly, `boundedSliceMembershipBool_computable` treats
+`(code, word)` as the input of one computation.  Local queries use finite
+domains, while the unbounded input word is processed by the explicit
+`Primrec.list_foldl` evaluation of the subset automaton.
+`boundedSliceMembership_computablePred` and
+`fixedSignatureBoundedSlice_computableMembership` therefore give a genuine
+joint decidability predicate and `ComputableMembership` package for the exact
+range of fixed-signature, fixed-cap codes.  The theorem assumes chosen
+`Primcodable` presentations for the fixed terminal and work types; the state
+type is internal to the finite code domain.  No word or semantic
+language-membership oracle is present, and no nonempty-type or cardinality
+lower bound is assumed.
+
+This is deliberately not an encoding of the whole varying-signature LBA
+class.  The terminal, work, and state types and the cap `c` are parameters of
+the theorem, not fields of the code.  The finite code type is serialized by a
+noncanonical `Fintype.equivFin` chosen after those component types are fixed;
+the construction neither makes their cardinalities part of one universal
+machine code nor compiles arbitrary semantic `Set` transitions.
 
 The finite-state cost is exact.  `Profile.card` proves
 
@@ -1621,10 +1646,27 @@ is stronger than a mere gap between two definitions.  On a raw two-cell tape,
 every enabled right-moving rule sends suitably chosen sources at the two right
 positions to the same clamped target; the left-moving case is mirrored.
 Therefore global cofunctionality forces every enabled direction to be
-`stay`.  Since canonical endmarker runs always start on the same left marker,
-their acceptance is input-independent.  The checked theorem
-`reversibleLBA_eq_trivial_languages` consequently identifies this raw
-`ReversibleLBA` exactly with `{∅, Set.univ}`.
+`stay`.  `Machine.languageEnd_iff_of_cofunctional` proves the resulting
+input independence exactly: for any two canonical endmarker words, one is
+accepted if and only if the other is, with no finiteness or nonemptiness
+assumption on the machine's component types.
+
+The class theorem `cofunctionalLBA_eq_trivial_languages` consequently
+identifies globally cofunctional endmarker-LBA languages with
+`{∅, Set.univ}`.  The reverse direction is not inferred from the collapse:
+`Machine.trivialCofunctional` is an explicit transition-free one-state LBA,
+and its false and true accepting bits recognize the empty and universal
+languages.  `DLBA.Machine.trivialHalt` supplies the corresponding
+transition-free deterministic witnesses, so
+`cofunctionalLBA_subset_DLBA` proves the direct inclusion.  All three class
+statements quantify over arbitrary finite terminal types, including the empty
+type, and impose no cardinality lower bound.  They concern the repository's
+literal complete raw clamped relation; they do not apply to cofunctionality
+restricted to well-formed configurations or to an unclamped model.
+
+Since `ReversibleLBA` additionally requires functionality, the checked theorem
+`reversibleLBA_eq_trivial_languages` identifies that raw class with the same
+two languages.
 
 This does **not** say that the standard marked-tape notion of reversible
 computation is trivial.  It says that the marked-tape theorem cannot be
@@ -1962,11 +2004,15 @@ compiler was supposed to implement.
 
 These port theorems are semantic finite-graph results, not a new LBA-class
 inclusion.  Langlib's global `Machine.Cofunctional` promise ranges over every
-raw clamped configuration; the checked clamping obstruction forces every
-enabled direction of such a machine to be `stay`.  A useful machine compiler
-would instead need cofunctionality only on its well-formed rooted encodings,
-plus a raw protocol whose malformed configurations satisfy the required
-two-matching conditions.
+raw clamped configuration.  The exact theorems
+`Machine.languageEnd_iff_of_cofunctional` and
+`cofunctionalLBA_eq_trivial_languages` prove that such acceptance is
+input-independent and that the finite-terminal language class is precisely
+`{∅, Set.univ}`; `cofunctionalLBA_subset_DLBA` uses explicit transition-free
+deterministic witnesses.  A useful nontrivial moving compiler would instead
+need cofunctionality only on its well-formed rooted encodings, plus a raw
+protocol whose malformed configurations satisfy the required two-matching
+conditions.
 
 There is a different positive frontier when the number of paths in a directed
 edge decomposition is bounded.  Given an `N`-vertex graph whose edges are
@@ -2002,18 +2048,26 @@ can make more than `min(d^-,d^+)` such continuations at a vertex.  This direct
 argument is independent of the older arXiv version, whose minimal-DAG-path
 statement is not present in version 2.
 
-Langlib formalizes the canonical-pairing half of this argument.  The theorems
-`next_eq_some_implies_adjacent` and `next_rightUnique` show that the selected
-continuations join adjacent edges without merging two predecessors;
-`next_link_acyclic` projects any cycle of continuations to a cycle of the
-original graph.  Finally,
-`card_startEdges_eq_card_edges_sub_sum_min` and
-`card_startEdges_eq_sum_outdegree_sub_indegree` prove that its initial edges
-(those with no selected predecessor) have exactly the two cardinalities
-displayed above.  The
-minimum-over-all-path-partitions conclusion remains the elementary paper-level
-corollary here; the formal file deliberately does not introduce a separate
-finite path-cover type or advertise a minimization theorem.
+Langlib now formalizes the full minimization statement in a successor-link
+representation.  An `EdgePathPartition edge` assigns each edge occurrence an
+optional next edge.  A link must join adjacent occurrences, two occurrences
+cannot link into the same successor, and the successor relation is acyclic;
+`existsUnique_start_reaches` proves the representation adequate by placing
+every occurrence on a successor chain from exactly one predecessor-free
+start.  Its `pathCount` is the number of those starts.  For every such
+partition,
+`card_edges_sub_sum_min_le_pathCount` and
+`sum_outdegree_sub_indegree_le_pathCount` prove the two lower bounds above.
+
+For an acyclic relation, `canonicalPathPartition` turns the existing local
+incoming/outgoing pairing into an `EdgePathPartition`.
+`canonicalPathPartition_pathCount_eq_minimumPathCount` proves it optimal, and
+`minimumPathCount_eq_card_edges_sub_sum_min` together with
+`minimumPathCount_eq_sum_outdegree_sub_indegree` gives both displayed closed
+forms for the actual minimum over every successor-link partition.  These
+theorems quantify over arbitrary finite vertex types, including the empty
+type, with no cardinality lower bound.  They remain finite combinatorics: no
+uniform path enumerator or same-width `DLBA.Machine` compiler is claimed.
 
 Consequently, a paper-level DLBA simulation follows under the exact global
 promise that, for one fixed acyclic LBA, there is a constant `p` such that the
@@ -2038,18 +2092,15 @@ The [functional LBA conversion](functional-lba-dlba.html) proves a full
 machine-level determinization when each state/symbol pair has at most one
 outgoing move.
 
-The theorem `Machine.accepts_iff_exists_backtrack_le_card` studies the dual
-finite-graph restriction: every configuration has at most one predecessor.
-It proves that reachability is equivalent to following this unique
-predecessor for at most the number of bounded configurations, and
+The theorem `Machine.accepts_iff_exists_backtrack_le_card` studies the
+abstract finite-graph restriction in which every bounded configuration has at
+most one predecessor.  It proves that reachability is equivalent to following
+this unique predecessor for at most the number of bounded configurations, and
 `acceptsByExhaustiveBacktracking` packages exhaustive target enumeration and
-bounded backtracking.
-
-The accompanying paper construction also determinizes this dual restriction
-in linear space.  Preserve the input and current configuration on fixed
-tracks, enumerate every accepting target, and find each predecessor by
-enumerating all configurations.  A target configuration, a predecessor
-candidate, and a counter up to
+bounded backtracking.  The accompanying resource argument preserves the input
+and current configuration on fixed tracks, enumerates accepting targets, and
+finds a predecessor by enumerating configurations.  A target configuration, a
+predecessor candidate, and a counter up to
 
 $$
 |\Lambda|\,|\Gamma|^n n
@@ -2061,15 +2112,33 @@ the marker-free nonempty input using `n + 2 ≤ 3n`, and the empty word is set
 by the explicit bit.  The formal development proves the finite-search
 semantics; `card_cfg_lt_fuelCapacity` supplies the same-width configuration
 and fuel-capacity inequality, and `sameWidthWitness_iff_accepts` joins these
-facts into an exact same-width witness specification.  The
-low-level compilation of that search into a concrete `DLBA.Machine` is not yet
-mechanized.
+facts into an exact same-width witness specification.
+
+Those semantics and capacity lemmas are useful as an abstract
+unique-predecessor interface, for example if a future compiler can enforce the
+promise only on well-formed encodings.  They are not needed to decide the
+repository's actual globally cofunctional raw-machine class.
+`not_cofunctional_of_mem_transition_left` and its right-moving analogue show
+that clamping gives every enabled directional instruction two predecessors of
+one raw target; hence global raw `Machine.Cofunctional` forces every enabled
+direction to be `stay`.  More than this structural inference is now checked:
+`Machine.languageEnd_iff_of_cofunctional` proves exact input independence,
+`cofunctionalLBA_eq_trivial_languages` identifies the class with
+`{∅, Set.univ}`, and `cofunctionalLBA_subset_DLBA` uses explicit
+transition-free witnesses for its deterministic inclusion.  These class
+results hold for every finite terminal type, including the empty type, with no
+cardinality lower bound.  Nested target/predecessor enumeration sweeps are
+therefore unnecessary for that actual raw-clamped class, and the resource
+lemmas do not claim a concrete `DLBA.Machine` implementing the more abstract
+search.
 
 These results isolate two different issues:
 
 - functional machines have no forward path choice and directly become DLBAs;
-- cofunctional machines can enumerate target configurations and follow their
-  unique backward paths in deterministic linear space;
+- abstract finite unique-predecessor relations admit bounded target
+  enumeration and backward-following semantics with same-width resource
+  bounds; the repository's globally raw-cofunctional class is exactly
+  `{∅, Set.univ}` by `cofunctionalLBA_eq_trivial_languages`;
 - exact-two-matching machines may branch initially, but cannot branch again
   along the chosen path; the checked scheduler determinizes this finite union
   of pinned initial branches;
@@ -2875,8 +2944,11 @@ the regular collapses above cannot extend to the unrestricted model.
   does not choose a branch of an LBA.  It is therefore relevant to the reverse
   inclusion `DLBA ⊆ TwoMatchingLBA`, not to the open inclusion
   `LBA ⊆ DLBA`.  In this repository a moving raw clamped relation cannot be
-  globally cofunctional at all.  The completed adaptation therefore targets
-  exact two matching layers directly: the local-port marked Euler compiler
+  globally cofunctional at all; `cofunctionalLBA_eq_trivial_languages` proves
+  the resulting class is exactly `{∅, Set.univ}`, and
+  `cofunctionalLBA_subset_DLBA` uses transition-free witnesses rather than a
+  simulation sweep.  The completed adaptation therefore targets exact two
+  matching layers directly: the local-port marked Euler compiler
   makes unavoidable malformed-boundary merges terminal while preserving and
   reflecting the ordinary deterministic run.  This proves the stated reverse
   inclusion, but it supplies no nondeterministic branch-selection mechanism.

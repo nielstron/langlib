@@ -81,6 +81,7 @@ public import Langlib.Automata.LinearBounded.BoundedCrossingCertificateExactSoun
 public import Langlib.Automata.LinearBounded.BoundedCrossingCertificateSoundness
 public import Langlib.Automata.LinearBounded.BoundedCrossingChoice
 public import Langlib.Automata.LinearBounded.BoundedCrossingEffective
+public import Langlib.Automata.LinearBounded.BoundedCrossingEncodedMembership
 public import Langlib.Automata.LinearBounded.BoundedCrossingLanguage
 public import Langlib.Automata.LinearBounded.BoundedCrossingNonregular
 public import Langlib.Automata.LinearBounded.BoundedCrossingProfileCardinality
@@ -125,6 +126,7 @@ public import Langlib.Automata.LinearBounded.ClockedLocalityHypercubeMinor
 public import Langlib.Automata.LinearBounded.Cofunctional.ClampedObstruction
 public import Langlib.Automata.LinearBounded.Cofunctional.Determinize
 public import Langlib.Automata.LinearBounded.Cofunctional.Resources
+public import Langlib.Automata.LinearBounded.Cofunctional.Triviality
 public import Langlib.Automata.LinearBounded.Cofunctional
 public import Langlib.Automata.LinearBounded.CofunctionalRootReachability
 public import Langlib.Automata.LinearBounded.Complement
@@ -153,6 +155,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
 public import Langlib.Automata.LinearBounded.ExplicitDegreeTwoReachability
 public import Langlib.Automata.LinearBounded.FiniteAcyclicRank
 public import Langlib.Automata.LinearBounded.FiniteDAGPathDecomposition
+public import Langlib.Automata.LinearBounded.FiniteDAGPathDecompositionMinimum
 public import Langlib.Automata.LinearBounded.FiniteReachabilityCounting
 public import Langlib.Automata.LinearBounded.ForkReachabilityBarrier
 public import Langlib.Automata.LinearBounded.Functional

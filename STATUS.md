@@ -84,6 +84,25 @@ solution to the open problem:
   enabled directional rule has two distinct predecessors of one width-two
   target.  Consequently global configuration cofunctionality forces every
   enabled direction to be `stay`.
+  `Machine.languageEnd_iff_of_cofunctional` turns this into the exact
+  input-independence theorem: any two canonical endmarker inputs have the same
+  acceptance answer, without finiteness or nonemptiness assumptions on the
+  component types.  At class level,
+  `cofunctionalLBA_eq_trivial_languages` proves that globally cofunctional
+  endmarker LBAs recognize exactly `{∅, Set.univ}`, and
+  `cofunctionalLBA_subset_DLBA` gives the direct deterministic inclusion.
+  The converse and inclusion use the explicit transition-free witnesses
+  `Machine.trivialCofunctional` and `DLBA.Machine.trivialHalt`, with their
+  rejecting and accepting bits.  These class theorems hold over every finite
+  terminal type, including the empty type, with no cardinality lower bound,
+  and concern the repository's complete raw clamped relation rather than a
+  well-formed-only or unclamped promise.
+  Thus this actual global raw `Cofunctional` class does not require a nested
+  target/predecessor sweep:
+  the separate exhaustive-backtracking semantics and same-width capacity
+  lemmas describe an abstract finite unique-predecessor relation, useful for
+  a possible well-formed subgraph promise, rather than a nontrivial moving
+  class under this raw predicate.
 - `reversibleLBA_eq_trivial_languages` therefore characterizes the currently
   defined all-raw-configuration `ReversibleLBA` class exactly as
   `{∅, Set.univ}`.  The structural phase-split theorem
@@ -400,8 +419,24 @@ solution to the open problem:
   three semantic fields of `profileNFA`.  These procedures receive no input
   word or language-membership oracle.  This is deliberately a relative API:
   the caller supplies the finite local table and its exactness proof; the
-  development does not yet define a `Primcodable` machine format or a
-  uniformly encoded compiler from arbitrary semantic `Set` transitions.
+  layer itself does not synthesize finite syntax from an arbitrary semantic
+  `Set` transition.
+  `LBA.Machine.FiniteCode` separately supplies the missing code-and-word
+  interface for every fixed choice of finite terminal, work, and state types,
+  with chosen `Primcodable` presentations for the terminal and work types.  It
+  stores only an initial state, accepting bits, and finite local move sets.
+  For each fixed cap, `boundedSliceMembershipBool_eq_true_iff` identifies its
+  Boolean answer exactly with `LanguageWithBound`, while
+  `boundedSliceMembershipBool_computable` proves joint computability in the
+  pair `(code, word)`.  The unbounded word is traversed explicitly by
+  `Primrec.list_foldl`; it is not hidden in a finite-domain argument.
+  `fixedSignatureBoundedSlice_computableMembership` packages the result as
+  genuine `ComputableMembership` for the exact range of these fixed-signature,
+  fixed-cap codes, with no nonempty-type or cardinality-lower-bound premise.
+  This does not encode the whole varying-signature LBA class: the component
+  types and cap remain outside the code, and the code's `Primcodable` instance
+  uses a noncanonical `Fintype.equivFin` serialization local to those fixed
+  types.  No word or language-membership oracle is supplied.
   The exact finite-state sizes are also checked.  `Profile.card` gives
   `|Profile State c| = sum_{i=0}^c |State|^i`, and `card_scanState` gives
   `|ScanState Gamma State c| = 1 + |Gamma| +
@@ -498,6 +533,22 @@ solution to the open problem:
   `not_branches_of_reaches_of_ne_source` prove that an exact union of only two
   directed matchings cannot branch anywhere along a path except at its initial
   vertex.
+- `EdgePathPartition` gives the exact finite-DAG path-decomposition minimum in
+  a successor-link representation on edge occurrences.  Each link joins
+  adjacent edges, no edge has two linked predecessors, and the link relation
+  is acyclic; `existsUnique_start_reaches` verifies that every edge occurrence
+  lies on a successor chain from exactly one predecessor-free start, and paths
+  are counted by those starts.
+  `card_edges_sub_sum_min_le_pathCount` proves the universal lower bound, and
+  `canonicalPathPartition_pathCount_eq_minimumPathCount` proves that the
+  canonical local incoming/outgoing pairing attains it.  Consequently
+  `minimumPathCount_eq_card_edges_sub_sum_min` and
+  `minimumPathCount_eq_sum_outdegree_sub_indegree` establish
+  `min p = |E| - sum_v min(d^-(v), d^+(v)) =
+  sum_v (d^+(v) - d^-(v))` for every finite acyclic relation.  The result
+  includes empty vertex types and imposes no cardinality lower bound.  It is
+  a finite combinatorial theorem, not a construction of a same-width DLBA or
+  a uniform enumerator for the canonical paths.
 - `exactThreeMatching_relevantBranch_obstruction` makes the contrast uniform
   over every natural `k`, including zero.  One finite DAG of exactly `6*k+2`
   vertices has an exact unique cover by three directed matchings, exactly `k`
@@ -806,8 +857,16 @@ inclusion above.
   for each relation. The degree serializer now has a separate local,
   width-uniform coloring theorem, but choosing between its two layers remains
   nondeterministic and gives no LBA-to-DLBA compiler.
-- The bounded-nondeterminism and cofunctional developments prove semantic and
-  resource lemmas. They do not hide a completed low-level DLBA compiler.
+- The bounded-nondeterminism development proves semantic and resource lemmas;
+  it does not hide a completed low-level DLBA compiler.  Likewise, the
+  exhaustive-backtracking and same-width resource lemmas for a finite
+  unique-predecessor relation are abstract.  For the repository's actual
+  all-raw-configuration `Cofunctional` predicate,
+  `Machine.languageEnd_iff_of_cofunctional` and
+  `cofunctionalLBA_eq_trivial_languages` prove exact input independence and
+  collapse to `{∅, Set.univ}`.  Nested enumeration sweeps are therefore
+  neither necessary nor a missing compiler for that class.  This uses raw
+  clamping and says nothing about a well-formed-only cofunctionality promise.
 - Acyclicity, degree two, local deterministic edge checking, and unit
   certificates do not by themselves remove the global nondeterministic path
   choice.
@@ -857,7 +916,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,971 jobs completed successfully;
+- `lake build`: 8,990 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;
