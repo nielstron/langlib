@@ -774,46 +774,61 @@ nothing, so this is deliberately a structural counterexample, not a
 reachability lower bound.  It rules out deriving polynomial width, planar
 structure, or small genus solely from one-tape local updates.
 
-At paper level, the same obstruction can be put inside the literal hard
-compiler image; the graph-minor contraction in this paragraph is still not a
-Langlib theorem.  Take the endmarker-alphabet analogue of the preceding fixed
-machine and add an identity stay move at every state and symbol.  Its selected
-binary-tape configurations still have the `Q_d` minor, and now every source
-configuration has a self-loop.  In two consecutive nonoverflowing levels of
-the strict time-unrolling, use the two time copies of a source configuration,
-joined by its identity edge, as one branch set.  Every source edge then gives
-an edge between the corresponding branch sets, so the whole source
-configuration graph is a minor of this two-level unrolling.
+The semantic strict-clock part of the same obstruction is now checked rather
+than paper-level.  `reflexiveMachine` adds an identity stay move at every state
+and symbol of the preceding fixed machine;
+`step_reflexiveMachine_self` proves reflexivity on every raw bounded
+configuration.  `BranchSetMinorModel.trans` composes branch-set certificates,
+while `mapLargeEmbedding` transports one along an injective edge-preserving
+map.  Consequently `twoLevelClockHypercubeBranchSetMinor` contracts the two
+time copies of every source configuration in the exact two-level unrolling,
+and `strictClockHypercubeBranchSetMinor` transports the resulting `Q_d`
+certificate into the first two layers of the full semantic strict clock.
+`strictClock_reflexiveMachine_acyclic` proves that the complete full clock
+graph is acyclic.  These statements cover every positive dimension and are
+still semantic relation theorems, not a contraction through the concrete
+one-tape compiler.
 
-The concrete compiler needs one extra point of care because its Ready
-checkpoints carry harmless `post`/`scan` trails.  The constructed endpoint
-trails in `reaches_incremented_checkpoint_afterReady` depend only on the
-target tape and the clock carry stop, not on the predecessor or its incoming
-trails.  Fix clear trails at the lower level.  For each source configuration
-`v`, let `x_v` be its lower checkpoint and `y_v` that common constructed
-upper checkpoint.  Make the branch set for `v` from `x_v`, the complete
-identity-macro corridor from `x_v` to `y_v`, and, for every non-loop source
-edge ending at `v`, its macro corridor after the first edge.  These pieces
-meet at `y_v`.  Corridors assigned to distinct targets cannot intersect: from
-an intersection the non-Ready protocol is deterministic, so both would have
-the same first Ready endpoint.  The branch sets are therefore disjoint, and
-the omitted first edge of each `u -> v` corridor joins the branch sets for
-`u` and `v`.
+The corresponding contraction through the concrete one-tape clock protocol
+is now checked as well.  `concreteClockBranchSetMinorModel` applies to every
+fixed-width endmarker-alphabet source machine whose complete source relation
+has a self-loop at every configuration.  The branch set for a source vertex
+`v` contains its bottom-clock Ready checkpoint and the complete stopped
+non-Ready predecessor cone of the clean carry entry for `v`.
+`bottomCheckpoint_to_cleanCarry_beforeReady_of_step` proves that, after the
+first raw protocol edge for any source step, the remaining corridor lies in
+the target's cone.  Right uniqueness of the stopped protocol makes two clean
+carry endpoints comparable if their cones intersect; their equal phase
+potential then forces equality, and `cleanCarry_injective` recovers equality
+of represented source configurations.  Ready/carry phase separation handles
+checkpoint--cone intersections.  These facts give nonempty, connected,
+pairwise-disjoint branch sets and a correctly oriented raw edge for every
+symmetrized source edge.
+
+`endmarkedReflexiveMachine` embeds the fixed Boolean locality machine into the
+compiler's `EndAlpha Unit Bool` source alphabet and inserts a self-loop on
+every state/symbol pair.  The configuration embedding is injective and
+preserves every locality transition.  Composing its transported cube
+certificate with the generic concrete corridor theorem gives
+`concreteClockHypercubeBranchSetMinor`: for every positive dimension, `Q_d`
+is a branch-set minor of the complete raw graph of one fixed concrete
+`AcyclicClock.machine`.  `concreteClock_endmarkedReflexiveMachine_acyclic`
+simultaneously records global acyclicity on all raw configurations, including
+malformed protocol configurations.
 
 The serializer contractions are similarly explicit.  Assign its outgoing
 `scan` and incoming-serializer `written` configurations to the represented
 source configuration, and assign `arrived` and `merge` configurations to the
 represented target.  The tagged scan/merge corridors make each branch set
 connected and keep distinct represented configurations disjoint; the one
-apply/movement edge is the required edge between them.  Consequently this
-fixed globally acyclic, indegree-two, outdegree-two clock-and-serializer
-output has `Q_d` minors for all positive `d`.  What is formalized is the exact
-Ready-skeleton quotient
-(`firstReadyMacroStep_represents_iff_strictSourceClockStep`), global
-acyclicity, and the two degree bounds; the disjoint branch sets and serializer
-contractions just described remain a paper proof rather than a Langlib
-graph-minor theorem.  This is still only a structural obstruction, not a
-language separation.
+apply/movement edge is the required edge between them.  Consequently the
+paper contraction predicts that the final globally acyclic, indegree-two,
+outdegree-two clock-and-serializer output still has `Q_d` minors for all
+positive `d`.  The disjoint concrete clock branch sets are now formal, as are
+the exact Ready-skeleton quotient, global acyclicity, and the two degree
+bounds.  The subsequent serializer branch-set contraction remains a paper
+proof rather than a Langlib graph-minor theorem.  This is still only a
+structural obstruction, not a language separation.
 
 Acyclicity does not by itself force short crossing sequences either.  Every
 completed macro of the concrete clock compiler performs full normalization
@@ -944,18 +959,57 @@ symbols, a fixed row alphabet can injectively hold all schedules only while
 frontier; it is not a lower bound on simulations that recompute choices or
 avoid representing paths individually.
 
-Literal enumeration also meets a time barrier.  If the source configuration
-graph has `N=2^{Theta(W)}` vertices, a width-`W` target DLBA has only
-`N^{O(1)}` configurations.  The formal finite-orbit theorem
-`DLBA.accepts_iff_bounded` says that every accepting deterministic run already
-accepts within its configuration-space cardinality; after a repeated
-configuration, its unique future only repeats.  A diamond chain can expose
-`2^{Theta(N)}` distinct branch schedules.  Trying them one by one therefore
-cannot be the run of a fixed width-`W` DLBA, independently of how compactly
-the current schedule is generated.  A successful simulation would have to
-aggregate, prune, or otherwise reason about many schedules collectively.
-This is a barrier to literal enumeration, not a lower bound against such a
-collective algorithm.
+The succinct three-matching family makes the next scale exact on the actual
+replay interfaces.  With `k=2^w`, `card_succinctDiamondPaths` gives exactly
+`2^(2^w)` explicit source-to-target paths.  The equivalences behind
+`card_targetBranchSchedules`, `card_targetReplaySchedules`, and
+`card_targetBoundedReplaySchedules` show that there are exactly as many valid
+target-reaching choice lists, bounded replay lists, and records in the
+repository's budget-`2^w` `Schedule (Fin 3)` type.  These subtypes count the
+choice-list data, not proofs of one propositional reachability fact, and every
+represented target trace has length exactly `2^w`.
+
+For every finite row alphabet `A` and fixed linear factor `c`, the explicit
+width
+
+$$
+w=2(|A|c)
+$$
+
+satisfies `|A|^(cw) < 2^(2^w)`.  The theorem
+`exists_no_injective_targetBoundedReplaySchedules_fixedLinear` therefore
+rules out an injective encoding of even the valid target-reaching schedule
+records into `cw` cells.  The proof includes empty and singleton alphabets,
+`c=0`, and `w=0`; no artificial alphabet lower bound is hidden.  As before,
+this is a capacity theorem for literal path-by-path representation, not a
+lower bound against recomputation or collective reasoning.
+
+Literal enumeration now has a matching formal time statement.
+`card_items_le_steps_of_emitted_before` allows a deterministic orbit state to
+emit either one item or nothing; skipped emissions and repeated items are
+allowed.  If every item occurs strictly before time `t`, then `|Item| ≤ t`.
+When time `t` is the first visit to a halting predicate,
+`card_items_add_one_le_card_of_firstSatisfying_emission` combines that bound
+with first-hit prefix injectivity to obtain
+
+$$
+|Item| + 1 \le |State|.
+$$
+
+The theorem includes an empty item type and `t=0`; the halt-time output is not
+counted.  Its designated-target forms make no terminal or fixed-point
+assumption about the target.
+
+At the same explicit width `w=2(|A|c)`, the specialization
+`no_firstSatisfying_emits_all_targetSchedules_fixedLinear` combines that
+orbit bound with the exact target-schedule count.  No deterministic
+computation whose **complete** state injects into `cw` cells over `A` can emit
+all valid target-reaching schedules, one optional item per pre-halt state,
+before its first halt.  The encoding covers finite control, head position,
+and all other retained data.  A successful simulation may still aggregate
+many schedules in one state, prune them, or reason about reachability without
+enumerating them.  The result is therefore a barrier to literal temporal
+enumeration, not a deterministic-space or language-class lower bound.
 
 ## A path-decomposition frontier
 
@@ -1153,6 +1207,31 @@ canonical-numeral map `encodeVertex` injects every vertex into
 names only: it neither implements the encoded edge relation by local tape
 moves nor gives an effective machine-description reduction or an LBA
 compiler.
+
+A separate witness now supplies the missing local presentation rather than
+merely naming the same asymptotic scale.  The single finite-state verifier
+`OdometerDiamondRowSystem.system`, independent of `w`, stores one binary
+odometer digit and a repeated finite-control phase in each row cell.  At every
+positive width, `rowStep_iff_exists_encoded_edge` characterizes **all** of its
+accepted width-`w` row steps as exactly the edges of a chain of `2^w`
+diamonds.  Thus noncanonical rows in the ambient fixed-width row type are
+isolated, as stated directly by `not_fixedWidthActive_iff_isolated`.
+`edge_iff_existsUnique_layer`, `layer_biUnique`, and
+`layer_pathLengthAtMostOne` give an exact unique cover by three directed
+matchings; the explicit rank proves acyclicity; and
+`exists_twoPow_relevant_branches` orders all `2^w` source-to-target-relevant
+branch junctions.
+
+`complete_nonempty_width_threeMatching` pulls that cover back to the complete
+row type at width `n+1`, including all malformed rows, so the user-facing
+statement ranges over every physical nonempty width without an extra lower
+bound on `n`.  `rowReachLanguage_is_LBA_pos` gives the fixed row system's
+reachability language an input-sized LBA presentation.  This does not assert
+that the compiler's initialization and verification sweeps retain the
+three-matching cover.  Nor is the example computationally hard: its two
+Boolean choices merge immediately.  It is a locally verified presentation
+with exponentially many sequential branch events, not a deterministic-space
+lower bound.
 
 The machine-level development now turns that obstruction into a genuine
 restricted determinization theorem.  `Machine.HasTwoMatchingStepPartition`
@@ -1786,6 +1865,34 @@ original modular-logspace developments of
 [Buntrock, Damm, Hertrampf, and
 Meinel](https://doi.org/10.1007/BF01374526), and
 [Edenhofer](https://arxiv.org/abs/2602.21088).
+
+Two February 2026 catalytic tradeoffs improve the explicit-graph frontier but
+still miss the LBA resource target after substitution.  Edenhofer's general
+parameter `k` uses
+
+$$
+O(\log N\log k+\log N)
+\quad\text{ordinary bits and}\quad
+O((N/k)\log^2 N)
+\quad\text{catalytic bits}.
+$$
+
+At `k=N` both advertised quantities become `O(log² N)`; keeping the first at
+`O(log N)` instead leaves an exponentially large catalyst when
+`N=2^{Theta(n)}`.  Chmel, Dudeja, Koucký, Mertz, and Rajgopal give a
+polynomial-time directed-connectivity algorithm with `O(log N)` ordinary
+workspace and
+
+$$
+N/2^{\Theta(\sqrt{\log N})}
+$$
+
+catalytic bits.  On an LBA configuration graph this is
+`2^{Theta(n)-Theta(sqrt(n))}`, still far above linear space.  Moreover a
+catalyst is an additional initially arbitrary memory required to be restored;
+it is not an ordinary `O(n)` DLBA tape.  Thus neither theorem supplies the
+missing determinization.  See [*Frontier Space-Time Algorithms Using Only Full
+Memory*](https://arxiv.org/abs/2602.21089).
 
 Exact DAG path counting is `#L`-complete, while integer determinant is
 complete for `GapL`.  Logspace-uniform `NC²` determinant and matrix-powering
@@ -2523,11 +2630,14 @@ the regular collapses above cannot extend to the unrestricted model.
   disjointness, for every positive dimension.  The resulting standard minor
   bounds allow exponential treewidth and linear genus, even though every step
   changes at most one tape cell; those numerical graph-parameter bounds remain
-  external corollaries.  Full clock sweeps also allow exponential crossing
-  sequences on globally acyclic runs.  The paper
-  contraction above strengthens both obstructions to the literal globally
-  acyclic degree-two clock-and-serializer image; the Ready-skeleton and degree
-  facts are formal, while that final graph-minor contraction is not.
+  external corollaries.  `strictClockHypercubeBranchSetMinor` carries the
+  certificate through the full semantic acyclic strict clock, and
+  `concreteClockHypercubeBranchSetMinor` carries it through the raw graph of
+  the actual one-tape clock protocol.  Full concrete clock sweeps also allow
+  exponential crossing sequences on globally acyclic runs.  The remaining
+  paper contraction above transports the minor through the subsequent degree
+  serializer; that final globally acyclic degree-two graph-minor statement is
+  not yet formalized.
 - **Linear genuine branch events:** the generic DLBA construction remains
   paper-level; its exhaustive-schedule replay semantics and same-width
   resources are formalized by

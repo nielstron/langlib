@@ -103,12 +103,15 @@ public import Langlib.Automata.LinearBounded.CertifiedRowSystem.LBA
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.StrictAcyclicize
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.StrictDegreeCharacterization
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem
+public import Langlib.Automata.LinearBounded.ClockedLocalityHypercubeMinor
 public import Langlib.Automata.LinearBounded.Cofunctional.ClampedObstruction
 public import Langlib.Automata.LinearBounded.Cofunctional.Determinize
 public import Langlib.Automata.LinearBounded.Cofunctional.Resources
 public import Langlib.Automata.LinearBounded.Cofunctional
 public import Langlib.Automata.LinearBounded.CofunctionalRootReachability
 public import Langlib.Automata.LinearBounded.Complement
+public import Langlib.Automata.LinearBounded.ConcreteClockBranchSetMinor
+public import Langlib.Automata.LinearBounded.ConcreteClockLocalityHypercubeMinor
 public import Langlib.Automata.LinearBounded.ConfigurationEncoding
 public import Langlib.Automata.LinearBounded.Definition
 public import Langlib.Automata.LinearBounded.DiamondPaths
@@ -186,6 +189,8 @@ public import Langlib.Automata.LinearBounded.MachineTwoMatchings.ReversibleTrivi
 public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnion
 public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnionInitialization
 public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnionLanguage
+public import Langlib.Automata.LinearBounded.OdometerDiamondFixedWidth
+public import Langlib.Automata.LinearBounded.OdometerDiamondRowSystem
 public import Langlib.Automata.LinearBounded.Packing
 public import Langlib.Automata.LinearBounded.PartialBijectionDecomposition
 public import Langlib.Automata.LinearBounded.PermutationReachability
@@ -198,8 +203,12 @@ public import Langlib.Automata.LinearBounded.SavitchRecomputationBarrier
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivision
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivisionReachability
+public import Langlib.Automata.LinearBounded.StrictClockBranchSetMinor
 public import Langlib.Automata.LinearBounded.StrictClockLayering
+public import Langlib.Automata.LinearBounded.SuccinctDiamondScheduleCapacity
+public import Langlib.Automata.LinearBounded.SuccinctDiamondTemporalEnumeration
 public import Langlib.Automata.LinearBounded.SuccinctThreeMatchingDiamonds
+public import Langlib.Automata.LinearBounded.TemporalEnumerationBarrier
 public import Langlib.Automata.LinearBounded.ThreeMatchingDiamondBranches
 public import Langlib.Automata.LinearBounded.ThreeMatchingDiamondChoiceLowerBound
 public import Langlib.Automata.LinearBounded.ThreeMatchingReachability

@@ -365,6 +365,46 @@ solution to the open problem:
   canonical sum/product/function numeral equivalences, not an arbitrary
   finite-type numbering, but it supplies only succinct vertex names: no local
   encoded edge test or same-width automaton compiler is claimed.
+- A separate fixed local witness closes that presentation gap without changing
+  the open class question.  `OdometerDiamondRowSystem.system` is one
+  finite-state certified row verifier, independent of the width.  For every
+  positive `w`, `rowStep_iff_exists_encoded_edge` proves that its complete
+  width-`w` relation is exactly an encoded chain of `2^w` sequential
+  diamonds; `not_fixedWidthActive_iff_isolated` makes explicit that malformed
+  rows have no incident step.  The semantic relation has
+  an exact unique three-matching cover, is acyclic, and has exactly `2^w`
+  ordered source-to-target-relevant branches.  The pulled-back theorem
+  `complete_nonempty_width_threeMatching` states these properties directly
+  on the complete type of rows of width `n+1`, so no artificial lower bound on
+  the physical width parameter remains; the row alphabet is explicitly fixed.
+  `rowReachLanguage_is_LBA_pos` gives this one row system an input-sized LBA
+  presentation.  It does not say that the compiler's administrative raw
+  configuration graph retains the matching cover, and the two choices in
+  each diamond immediately merge.
+- `card_succinctDiamondPaths`, `card_targetBranchSchedules`,
+  `card_targetReplaySchedules`, and
+  `card_targetBoundedReplaySchedules` make the resulting scale exact: the
+  `k = 2^w` witness has precisely `2^(2^w)` explicit source-to-target paths,
+  valid target-reaching choice lists, replay lists, and actual budget-exact
+  schedule records.  Every such trace consumes exactly `2^w` choices.  For
+  every finite row alphabet `A` and every fixed cell factor, including empty
+  or singleton `A`, factor zero, and width zero,
+  `exists_no_injective_targetBoundedReplaySchedules_fixedLinear` supplies an
+  explicit width at which those valid records cannot inject into the
+  fixed-linear row family.  This blocks literal injective schedule
+  materialization for this presentation, not recomputation, aggregation, or
+  a language-level deterministic simulation.
+- `card_items_lt_card_of_firstSatisfying_emission` supplies the corresponding
+  temporal statement: if a deterministic finite-state orbit first halts after
+  `t` steps and emits at most one item per state, complete pre-halt coverage
+  forces `|Item| ≤ t < |State|`.  Skipped and repeated emissions, the empty
+  item type, and `t=0` are included.  At the explicit diamond obstruction
+  width, `no_firstSatisfying_emits_all_targetSchedules_fixedLinear` proves
+  that no orbit whose complete state injects into a fixed-linear row can emit
+  every valid target-reaching schedule before its first halt.  The state
+  encoding includes finite control, head position, and all retained data.
+  This blocks literal one-schedule-per-state enumeration, not states which
+  aggregate many schedules or a different reachability algorithm.
 - `reaches_comparable_of_incoming` strengthens that obstruction from one step
   to the complete forward cone: after a vertex has any incoming edge, every
   two descendants are comparable by reachability.  The explicit four-vertex
@@ -477,6 +517,26 @@ solution to the open problem:
   the underlying undirected relation.  This checks the contraction itself;
   standard minor-monotonicity, treewidth, and genus bounds remain external
   graph-theory corollaries and do not become reachability lower bounds.
+- `BranchSetMinorModel.trans` and `mapLargeEmbedding` make the next semantic
+  contraction compositional.  After adding one explicit identity `stay`
+  instruction at every state/symbol pair of that same fixed machine,
+  `strictClockHypercubeBranchSetMinor` proves that every positive-dimensional
+  Boolean cube remains a branch-set minor of its full semantic strict-clock
+  graph.  `strictClock_reflexiveMachine_acyclic` proves that complete clock
+  graph is acyclic.  The construction is uniform in the tape parameter and
+  uses the canonical first-two-layer embedding.
+- `concreteClockBranchSetMinorModel` now performs the corresponding
+  contraction through the actual one-tape clock protocol.  For every
+  endmarker-alphabet source machine whose fixed-width raw relation is
+  reflexive, stopped non-Ready predecessor cones of clean carry entries form
+  pairwise-disjoint connected branch sets representing the symmetrized source
+  graph.  `endmarkedReflexiveMachine` supplies the exact alphabet bridge for
+  the fixed locality witness, and
+  `concreteClockHypercubeBranchSetMinor` composes the certificates: every
+  positive-dimensional cube is a minor of the complete raw graph of one fixed
+  concrete acyclic-clock machine.  That complete raw graph is globally
+  acyclic, including malformed protocol configurations.  The later
+  degree-serializer contraction is still not formalized.
 - `DLBA_subset_ULBA` and `ULBA_subset_LBA` formalize the sandwich through
   unambiguous linear space using labeled, first-final accepting runs.
   `lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` factors the first LBA
@@ -552,10 +612,12 @@ inclusion above.
 - No general LBA-to-DLBA compiler is constructed.
 - The affine configuration-capacity theorems rule out a particular direct,
   fixed-alphabet encoding strategy; they are not language-class lower bounds.
-- The locality hypercube contraction for the fixed machine is now formalized
-  as `hypercubeBranchSetMinor`.  The stronger contractions through the full
-  clock/serializer compiler image, and the subsequent treewidth and genus
-  consequences, remain paper-level.
+- The locality hypercube contraction for the fixed machine, its semantic
+  strict clock, and the actual one-tape acyclic-clock protocol are formalized
+  by `hypercubeBranchSetMinor`, `strictClockHypercubeBranchSetMinor`, and
+  `concreteClockHypercubeBranchSetMinor`.  The further contraction through
+  the degree serializer, and the numerical treewidth and genus consequences,
+  remain paper-level.
 - The generic optimal two-layer theorem chooses a spanning forest separately
   for each relation. The degree serializer now has a separate local,
   width-uniform coloring theorem, but choosing between its two layers remains
@@ -611,7 +673,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,950 jobs completed successfully;
+- `lake build`: 8,959 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;
