@@ -1070,15 +1070,56 @@ tape-symbol and state types; the class wrappers assume the library's ordinary
 finiteness hypotheses, and the DLBA wrappers additionally expose
 `DecidableEq Terminal`.  None assumes a minimum cardinality or positive cap.
 
-There is one representation-level distinction to keep explicit.  Mathlib's
-`NFA` transition field, like Langlib's LBA transition field, is a semantic
-set-valued relation.  Here its `CellCompatible` query concerns one cell and
-two profiles of the fixed bounded length; it is independent of the rest of
-the input word and therefore cannot hide a query to `LanguageEnd M`.
-The current files do not additionally package that local finite-graph
-reachability test as executable code.  Such a checker would strengthen the
-effective-encoding API, but it is not an assumption in the semantic NFA
-correctness theorem.
+The local profile test now also has an explicit executable presentation,
+relative to finite local transition data.  `LBA.Machine.TransitionTable`
+contains a function
+
+$$
+Q\mathbin{\to}\Gamma\mathbin{\to}
+  \operatorname{Finset}(Q\mathbin{\times}\Gamma\mathbin{\times}\mathrm{Dir})
+$$
+
+and its `mem_next_iff` field proves that each such finite set contains exactly
+the moves in the source machine's semantic transition set.  For two fixed
+profiles, `LocalVertex` remembers an encoded local phase and a suffix of each
+profile.  `LocalStep` is the finite graph of stationary moves, exits, and
+entries, and `HasCheckedRun` uses `FiniteReachabilityCounting.reached` to
+saturate that graph through its full vertex cardinality.
+`hasCheckedRun_iff_nonempty_cellRun` proves that this search is equivalent to
+the semantic `CellRun` type.  The exposed Boolean correctness theorems are
+`cellRunBool_eq_true_iff` and `cellCompatibleBool_eq_true_iff`.
+
+The same effective interface reaches the profile automaton itself.
+`profileStartBool_eq_true_iff`, `profileStepBool_eq_true_iff`, and
+`profileAcceptBool_eq_true_iff` prove Boolean membership equivalent to the
+start, transition, and accepting sets of `profileNFA`; existential profile
+choices are enumerated over their finite types.  No checker receives the
+input word or asks whether it belongs to `LanguageEnd M`, so there is no
+language-membership oracle in this construction.  This is a relative
+executable API, not yet a uniformly encoded compiler: the caller supplies an
+explicit `TransitionTable` and its exactness proof.  In particular, these
+files do not define a `Primcodable` serialization of machines or synthesize a
+table from an arbitrary semantic `Set`-valued transition field.
+
+The finite-state cost is exact.  `Profile.card` proves
+
+$$
+|\operatorname{Profile}(Q,c)|
+  = \sum_{i=0}^{c}|Q|^i,
+$$
+
+while `card_scanState` and `card_scanState_expanded` prove
+
+$$
+|\operatorname{ScanState}(\Gamma,Q,c)|
+  = 1+|\Gamma|+2|\Gamma|\,|\operatorname{Profile}(Q,c)|
+  = 1+|\Gamma|+2|\Gamma|\sum_{i=0}^{c}|Q|^i.
+$$
+
+For `c = 0`, `Profile.card_zero` gives one profile and
+`card_scanState_zero` gives `1 + 3|Gamma|` scan states.  These identities hold
+for arbitrary finite state and tape-symbol types, including empty types, and
+make no positive-bound or cardinality-lower-bound assumption.
 
 For a fixed source machine, `LanguageWithBound M c` names the words with one
 accepting trace meeting cap `c`.
@@ -1097,6 +1138,27 @@ some word-dependent slice.  The uniform hypothesis is precisely the stronger
 assertion that one fixed slice already equals the whole language, as stated
 exactly by
 `languageWithBound_eq_languageEnd_iff_hasUniformAcceptingBound`.
+Conversely, `every_crossingCap_misses_of_not_is_NFA`,
+`every_crossingCap_misses_of_not_is_DFA`, and
+`every_crossingCap_misses_of_not_isRegular` state the exact obstruction:
+if the whole language is nonregular, then for every `c` there is an accepted
+word outside `L_c(M)`.  The corresponding `every_languageWithBound_ssubset_*`
+theorems say directly that every fixed slice is a proper subset of the whole
+language.  These statements require only finiteness of the terminal, work,
+and state types, with no nonemptiness or cardinality lower bound.
+At trace level,
+`not_acceptsWithBound_iff_every_acceptingTrace_exceeds` identifies failure of
+bounded acceptance exactly with every accepting trace exceeding the cap at
+some boundary.  This equivalence is valid even for a zero-boundary tape, where
+the existential boundary forces the absence of accepting traces.  Its direct
+NFA, DFA, and Mathlib-regular corollaries are the
+`every_crossingCap_exceeded_on_all_acceptingTraces_of_not_is*` theorems.
+The exact non-stabilization is stronger still:
+`every_crossingCap_has_strict_larger_slice_of_not_is_NFA` and its direct
+DFA/Mathlib-regular forms prove that for every `c` there is a `d > c` with
+`L_c(M) < L_d(M)`.  The generic construction chooses an accepted word outside
+`L_c(M)`, obtains a finite accepting cap `e`, and takes
+`d = max (c + 1) e`.
 
 Weak linear accepting time by itself is a false shortcut: nondeterministic
 one-tape machines can accept nonregular, even suitably padded NP-complete,

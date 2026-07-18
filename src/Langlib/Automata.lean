@@ -80,7 +80,10 @@ public import Langlib.Automata.LinearBounded.BoundedCrossingCertificate
 public import Langlib.Automata.LinearBounded.BoundedCrossingCertificateExactSoundness
 public import Langlib.Automata.LinearBounded.BoundedCrossingCertificateSoundness
 public import Langlib.Automata.LinearBounded.BoundedCrossingChoice
+public import Langlib.Automata.LinearBounded.BoundedCrossingEffective
 public import Langlib.Automata.LinearBounded.BoundedCrossingLanguage
+public import Langlib.Automata.LinearBounded.BoundedCrossingNonregular
+public import Langlib.Automata.LinearBounded.BoundedCrossingProfileCardinality
 public import Langlib.Automata.LinearBounded.BoundedCrossingProfiles
 public import Langlib.Automata.LinearBounded.BoundedCrossingTraceCertificate
 public import Langlib.Automata.LinearBounded.BoundedDegree

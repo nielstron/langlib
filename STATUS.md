@@ -386,6 +386,30 @@ solution to the open problem:
   `StepTrace` and proves that each boundary is crossed no more often than the
   shared profile length, so NFA soundness preserves the advertised cap rather
   than merely ordinary acceptance.
+  The local checks now also have a relative executable presentation.
+  `LBA.Machine.TransitionTable` supplies, for each control state and scanned
+  symbol, an explicit `Finset` of moves together with `mem_next_iff`, which
+  proves that this finite table contains exactly the moves in the machine's
+  semantic transition set.  `HasCheckedRun` saturates the resulting finite
+  one-cell graph; its vertices retain the local phase and suffixes of the two
+  fixed profiles.  `hasCheckedRun_iff_nonempty_cellRun` proves this search
+  exact, and `cellRunBool_eq_true_iff` and
+  `cellCompatibleBool_eq_true_iff` expose Boolean correctness.  Finally,
+  `profileStartBool_eq_true_iff`, `profileStepBool_eq_true_iff`, and
+  `profileAcceptBool_eq_true_iff` give executable membership tests for all
+  three semantic fields of `profileNFA`.  These procedures receive no input
+  word or language-membership oracle.  This is deliberately a relative API:
+  the caller supplies the finite local table and its exactness proof; the
+  development does not yet define a `Primcodable` machine format or a
+  uniformly encoded compiler from arbitrary semantic `Set` transitions.
+  The exact finite-state sizes are also checked.  `Profile.card` gives
+  `|Profile State c| = sum_{i=0}^c |State|^i`, and `card_scanState` gives
+  `|ScanState Gamma State c| = 1 + |Gamma| +
+  2 * |Gamma| * |Profile State c|`; `card_scanState_expanded` substitutes the
+  geometric sum.  At `c = 0`, the counts specialize to `1` profile and
+  `1 + 3 * |Gamma|` scan states.  The formulas hold for arbitrary finite
+  types, including empty types, and require neither a positive cap nor a
+  cardinality lower bound.
   The direct class theorems
   `is_NFA_languageEnd_of_hasUniformAcceptingBound`,
   `is_DFA_languageEnd_of_hasUniformAcceptingBound`, and
@@ -408,7 +432,19 @@ solution to the open problem:
   bound to depend on the word is therefore still vacuous for the whole-language
   regularity theorem.
   `languageWithBound_eq_languageEnd_iff_hasUniformAcceptingBound` states the
-  exact missing stabilization condition.
+  exact missing stabilization condition.  Its exact contrapositives
+  `every_crossingCap_misses_of_not_is_NFA` (and the direct DFA/Mathlib-regular
+  forms) show that for a nonregular finite LBA language every cap omits some
+  accepted word; equivalently every fixed slice is a proper subset of the
+  whole language.  The generic trace equivalence
+  `not_acceptsWithBound_iff_every_acceptingTrace_exceeds` and the direct
+  `every_crossingCap_exceeded_on_all_acceptingTraces_of_not_is_NFA` family
+  strengthen the omitted-word statement: on the selected word, every
+  accepting trace exceeds the cap at some physical boundary.  The generic
+  equivalence includes the zero-boundary tape.  Moreover,
+  `every_crossingCap_has_strict_larger_slice_of_not_is_NFA` and its direct
+  DFA/Mathlib-regular forms show genuine non-stabilization: above every cap
+  `c` there is a `d > c` with `LanguageWithBound M c < LanguageWithBound M d`.
 - The development also contains checked results about bounded
   nondeterminism, cofunctional reachability, acyclic layering, degree-two
   diamond paths, schedule capacity, unary regular languages, monotone

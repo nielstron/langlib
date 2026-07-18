@@ -43,6 +43,32 @@ def AcceptsWithBound (M : LBA.Machine Gamma State)
       M.accept target.state = true ∧
         ∀ b : Fin n, trace.crossingCount b ≤ bound
 
+/-- Exact trace-level negation of bounded acceptance: every accepting trace must exceed the
+proposed cap at some physical boundary.
+
+This includes `n = 0`.  In that case there is no boundary, so the right-hand side says that
+there can be no accepting trace, exactly as the vacuous boundary bound in `AcceptsWithBound`
+requires. -/
+theorem not_acceptsWithBound_iff_every_acceptingTrace_exceeds
+    (M : LBA.Machine Gamma State) (source : DLBA.Cfg Gamma State n) (bound : Nat) :
+    ¬ AcceptsWithBound M source bound ↔
+      ∀ (target : DLBA.Cfg Gamma State n)
+        (trace : LBA.StepTrace M source target),
+        M.accept target.state = true →
+          ∃ boundary : Fin n, bound < trace.crossingCount boundary := by
+  constructor
+  · intro hnotBounded target trace hfinal
+    by_contra hnotExceeds
+    apply hnotBounded
+    refine ⟨target, trace, hfinal, ?_⟩
+    intro boundary
+    exact Nat.le_of_not_gt fun hexceeds ↦
+      hnotExceeds ⟨boundary, hexceeds⟩
+  · intro hexceeds hbounded
+    obtain ⟨target, trace, hfinal, hcross⟩ := hbounded
+    obtain ⟨boundary, hboundary⟩ := hexceeds target trace hfinal
+    exact (Nat.not_lt_of_ge (hcross boundary)) hboundary
+
 /-- Increasing the crossing cap preserves a bounded accepting witness. -/
 theorem AcceptsWithBound.mono {smaller larger : Nat}
     (haccept : AcceptsWithBound M source smaller) (hbound : smaller ≤ larger) :

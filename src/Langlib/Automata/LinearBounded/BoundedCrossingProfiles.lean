@@ -175,7 +175,7 @@ inductive ScanState (Gamma : Type u) (State : Type v) (bound : Nat)
   | first (symbol : Gamma)
   | pending (symbol : Gamma) (left : Profile State bound)
       (seenTerminal : Bool)
-deriving Fintype
+deriving DecidableEq, Fintype
 
 /-- NFA that guesses bounded boundary profiles and validates one complete local history per
 physical tape cell.
