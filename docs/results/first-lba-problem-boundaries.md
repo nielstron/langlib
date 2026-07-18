@@ -1329,6 +1329,70 @@ multi-step gadgets while reflecting reachability between the original
 vertices.  Chain endpoints, not merely failure to name inverses, retain the
 directed information.
 
+There is now an analogous sharp obstruction at the exact two-matching
+boundary.  `reaches_comparable_of_incoming` proves, over arbitrary vertex
+types, that once a vertex in an exact union of two directed matchings has an
+incoming edge, every two vertices in its complete forward cone are comparable
+by directed reachability.  The four-vertex relation `ThreeForkEdge` consists
+of an edge into a junction followed by two terminal children.  Its three
+edges have an explicit exact partition into three directed matchings, but the
+children are incomparable.  Therefore
+`threeFork_no_injective_allPairs_encoding_into_twoMatchings` rules out every
+injective vertexwise encoding of this fork into an exact two-matching graph
+that preserves and reflects reachability between all represented pairs.  The
+target is allowed arbitrary auxiliary vertices and multi-step paths.
+
+This does not rule out the open compiler.  A language transformation may be
+specialized to the designated input source, represent the same source
+configuration differently in different search contexts, and preserve only
+existence of a path to an accepting set.  In particular, the theorem is a
+barrier to canonical all-pairs state expansions, not a language-class lower
+bound.
+
+The strongest direct source-sensitive repair is to unfold the configuration
+DAG into the tree of complete path histories.  It duplicates every merge, so
+each nonroot history has a unique predecessor and an ordinary deterministic
+contour can backtrack through all choices.  The relational core of that
+observation is now checked independently:
+`weakReaches_root_iff_reaches` says that for any cofunctional relation whose
+designated root has no predecessor, weak connectivity from the root is
+exactly forward directed reachability.  It needs neither finiteness nor
+acyclicity.  `accepts_iff_weakReaches` proves that the finite exhaustive
+reversible port schedule visits exactly a weak component, and
+`accepts_iff_reaches_of_cofunctional_root` therefore gives exact forward
+target reachability in the rooted cofunctional case without requiring a
+terminal target.
+
+The cost is that the return stack has moved into the vertex representation.
+The minimal merge leak for contouring the original graph is
+`r -> m <- u -> a`: its undirected symmetrization is a tree connecting `r`
+to `a`, while no directed path goes from `r` to `a`.  Remembering only the
+last port can identify the current merge entry, but after descending below a
+later merge it has overwritten the parent needed to resume the earlier fork.
+At the end of a `k`-diamond chain, `card_stPaths` gives `2^k` distinct complete
+histories even though all of them project to the same configuration.  If a
+literal history unfolding represents each of those contexts by one
+width-`W` row over a fixed alphabet `A`,
+`diamondPaths_le_rowCapacity_of_injective` forces
+`2^k ≤ |A|^W`.  Thus, whenever `2^k > |A|^W`, these facts block literal
+same-width history materialization; they do not rule out recomputing context
+or a different collective search algorithm.
+
+Nor can the lost parent simply be selected by asking which continuation will
+succeed.  `first_successful_child_decides` makes that circularity exact: the
+first successful child characterizes reachability, while its ordered-fork
+companion preserves acyclicity and the exact two-partial-bijection hard core.
+Such pruning has performed the directed-reachability decision that the
+compiler was supposed to implement.
+
+These port theorems are semantic finite-graph results, not a new LBA-class
+inclusion.  Langlib's global `Machine.Cofunctional` promise ranges over every
+raw clamped configuration; the checked clamping obstruction forces every
+enabled direction of such a machine to be `stay`.  A useful machine compiler
+would instead need cofunctionality only on its well-formed rooted encodings,
+plus a raw protocol whose malformed configurations satisfy the required
+two-matching conditions.
+
 There is a different positive frontier when the number of paths in a directed
 edge decomposition is bounded.  Given an `N`-vertex graph whose edges are
 supplied as the union of `p` directed paths, keep the earliest known reachable
@@ -2162,7 +2226,20 @@ the regular collapses above cannot extend to the unrestricted model.
 
 - **Savitch recursion:** `O(n²)` rather than linear space.
 - **Immerman--Szelepcsényi counting:** counters fit in linear space, but
-  reachability witnesses are still chosen nondeterministically.
+  reachability witnesses are still chosen nondeterministically.  The checked
+  row compiler makes this failure exact: every certified-row language rejects
+  the empty word, and, for an inhabited row alphabet,
+  `rowReachLanguage_complementSystem_twice` proves that two applications of
+  its positive complement construction recover the original language.  Hence
+  `lba_eq_dlba_iff_everyComplementSystemRowReachLanguageIsDLBA` says that
+  determinizing only complement-compiler outputs is already equivalent to
+  `LBA = DLBA`.  Via `TwoMatchingLBA = DLBA`, the direct theorem
+  `lba_eq_dlba_iff_everyComplementSystemRowReachLanguageIsTwoMatchingLBA`
+  gives the same equivalence for compiling those outputs to exact two-matching
+  presentations.  The class equivalence handles an empty source-row alphabet
+  separately and imposes no lower-cardinality premise on the finite terminal
+  alphabet.  The counting protocol is not a smaller determinization normal
+  form.
 - **Algebraic path counting:** exact counts on degree-two DAGs may require
   `Theta(N)` bits.  Cofactor and matrix-powering formulations live at the
   `#L`/`GapL` and `O(log² N)`-space scale.  Modular residues avoid the large

@@ -269,6 +269,19 @@ solution to the open problem:
   `lba_eq_dlba_iff_acyclicDegreeTwoUnitCertificateRowReach` reduce the full
   problem exactly to increasingly restricted certified-row reachability
   systems.
+- `rowReachLanguage_complementSystem_twice` shows that the checked
+  Immerman--Szelepcsényi row compiler is involutive on certified-row
+  languages with a finite inhabited row alphabet: every certified-row
+  language excludes `epsilon`, so positive complementation twice recovers it
+  exactly under that hypothesis.  Consequently
+  `lba_eq_dlba_iff_everyComplementSystemRowReachLanguageIsDLBA` shows that
+  determinizing only outputs of this complement compiler is already the full
+  first LBA problem.  Its direct matching form,
+  `lba_eq_dlba_iff_everyComplementSystemRowReachLanguageIsTwoMatchingLBA`,
+  says exactly the same for compiling only those outputs to exact
+  two-matching presentations.  The statements handle an empty source-row
+  alphabet separately and impose no cardinality condition on the finite
+  terminal alphabet.
 - `lba_eq_dlba_iff_clockCompiledLanguages` and
   `lba_eq_dlba_iff_clockDegreeSerializedLanguages` show that determinizing
   the literal image of the concrete clock compiler is already equivalent to
@@ -327,6 +340,33 @@ solution to the open problem:
   `not_branches_of_reaches_of_ne_source` prove that an exact union of only two
   directed matchings cannot branch anywhere along a path except at its initial
   vertex.
+- `reaches_comparable_of_incoming` strengthens that obstruction from one step
+  to the complete forward cone: after a vertex has any incoming edge, every
+  two descendants are comparable by reachability.  The explicit four-vertex
+  `ThreeForkEdge` has an incoming binary fork, is covered exactly by three
+  directed matchings, and
+  `threeFork_no_injective_allPairs_encoding_into_twoMatchings` proves that it
+  has no injective vertexwise encoding into any exact two-matching graph that
+  preserves and reflects reachability for all represented pairs, even when
+  the target may use arbitrary auxiliary vertices.  This is an obstruction
+  to all-pairs state expansions, not to a source-specific language compiler.
+- `weakReaches_root_iff_reaches` identifies the corresponding positive
+  source-sensitive case.  In any cofunctional relation, if the designated
+  root has no predecessor, its weakly connected component is exactly its
+  directed forward cone; no finiteness or acyclicity premise is needed.
+  `accepts_iff_reaches_of_cofunctional_root` packages this as exact target
+  reachability under the finite exhaustive reversible port schedule, without
+  requiring the target to be terminal.
+  Unfolding a nondeterministic computation DAG into its history tree creates
+  precisely this situation, but it makes the whole branch history part of a
+  vertex.  `card_stPaths` and
+  `diamondPaths_le_rowCapacity_of_injective` force the necessary bound
+  `2^k ≤ |A|^W` for injectively storing all `k`-diamond histories in one
+  width-`W` row over `A`; literal row storage therefore fails whenever that
+  inequality is violated.  This is a capacity barrier to history
+  materialization, not to recomputation or a general deterministic
+  simulation; the port schedule is semantic rather than a checked raw-LBA
+  compiler.
 - `DLBA_subset_ULBA` and `ULBA_subset_LBA` formalize the sandwich through
   unambiguous linear space using labeled, first-final accepting runs.
   `lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` factors the first LBA
@@ -455,7 +495,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,934 jobs completed successfully;
+- `lake build`: 8,937 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

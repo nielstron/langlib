@@ -82,6 +82,7 @@ public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.Canon
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.Construction
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.Correctness
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.Definition
+public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.DeterminizationFrontier
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.EndToEnd
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.EnumerationActions
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Complement.EnumerationScannerCorrectness
@@ -105,6 +106,7 @@ public import Langlib.Automata.LinearBounded.Cofunctional.ClampedObstruction
 public import Langlib.Automata.LinearBounded.Cofunctional.Determinize
 public import Langlib.Automata.LinearBounded.Cofunctional.Resources
 public import Langlib.Automata.LinearBounded.Cofunctional
+public import Langlib.Automata.LinearBounded.CofunctionalRootReachability
 public import Langlib.Automata.LinearBounded.Complement
 public import Langlib.Automata.LinearBounded.ConfigurationEncoding
 public import Langlib.Automata.LinearBounded.Definition
@@ -190,6 +192,7 @@ public import Langlib.Automata.LinearBounded.StrictClockLayering
 public import Langlib.Automata.LinearBounded.ThreeMatchingReachability
 public import Langlib.Automata.LinearBounded.TwoLayerReachability
 public import Langlib.Automata.LinearBounded.TwoMatchingChoiceBound
+public import Langlib.Automata.LinearBounded.TwoMatchingEmbeddingBarrier
 public import Langlib.Automata.LinearBounded.Unambiguous
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 public import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStack
