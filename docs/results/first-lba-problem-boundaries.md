@@ -1350,10 +1350,12 @@ barrier to canonical all-pairs state expansions, not a language-class lower
 bound.
 
 The strongest direct source-sensitive repair is to unfold the configuration
-DAG into the tree of complete path histories.  It duplicates every merge, so
-each nonroot history has a unique predecessor and an ordinary deterministic
-contour can backtrack through all choices.  The relational core of that
-observation is now checked independently:
+graph into the tree of complete simple path histories.  It duplicates every
+merge, so each nonroot history has a unique predecessor and an ordinary
+deterministic contour can backtrack through all choices.  Cycles do not need
+to be excluded: a finite accepting walk can be loop-erased before it is
+represented.  The relational core of that observation is now checked
+independently:
 `weakReaches_root_iff_reaches` says that for any cofunctional relation whose
 designated root has no predecessor, weak connectivity from the root is
 exactly forward directed reachability.  It needs neither finiteness nor
@@ -1363,6 +1365,39 @@ reversible port schedule visits exactly a weak component, and
 target reachability in the rooted cofunctional case without requiring a
 terminal target.
 
+The history construction itself is also checked.  A `History` retains its
+duplicate-free vertex sequence as data, not as a proof of reachability.
+`History.extension_leftUnique` and `History.root_no_predecessor` give the
+rooted cofunctional tree, while `History.edge_endpoint_of_extension` projects
+each extension to a genuine source edge.  Conversely,
+`exists_history_endpoint_of_reaches` performs directed loop erasure, so
+`reaches_iff_exists_history` preserves and reflects reachability from the
+designated source for an arbitrary relation, including a cyclic one.  No
+finiteness premise is needed for that equivalence.  When the base vertex type
+is finite, the type of simple histories is finite and
+`visits_length_add_one_le_card` bounds each history length by the base
+cardinality; there is no cardinality lower-bound hypothesis.
+
+Finally, `sourceReachability_exact_twoMatching_phasePresentation` composes the
+finite history tree with canonical edge-end ports and the exhaustive
+reversible schedule.  For every finite graph, source, and accepting
+predicate, its scheduled phase line visits an accepting endpoint exactly when
+the original graph reaches one.  Coloring a line edge by the parity of its
+source phase gives an exact two-layer partition; both layers are bi-unique
+and contain no two composable edges.
+
+The last relation is the unary phase line of one precomputed schedule, with
+`portAt` labeling its phases.  It is not an injective embedding of source
+vertices, and it preserves only the designated source's existential
+acceptance question.  Its history type, canonical port order, phase type, and
+schedule depend on the complete finite instance and use finite choice.  Thus
+it is a nonuniform semantic finite presentation, not an effective graph
+reduction, an automaton, or a same-width LBA compiler.  Applied to an LBA
+configuration graph, this instance dependence includes the input word, so it
+does not define one fixed machine recognizing the language.  This
+source-sensitive duplication is also why it does not contradict the
+all-pairs three-fork obstruction above.
+
 The cost is that the return stack has moved into the vertex representation.
 The minimal merge leak for contouring the original graph is
 `r -> m <- u -> a`: its undirected symmetrization is a tree connecting `r`
@@ -1370,13 +1405,18 @@ to `a`, while no directed path goes from `r` to `a`.  Remembering only the
 last port can identify the current merge entry, but after descending below a
 later merge it has overwritten the parent needed to resume the earlier fork.
 At the end of a `k`-diamond chain, `card_stPaths` gives `2^k` distinct complete
-histories even though all of them project to the same configuration.  If a
-literal history unfolding represents each of those contexts by one
-width-`W` row over a fixed alphabet `A`,
-`diamondPaths_le_rowCapacity_of_injective` forces
-`2^k ≤ |A|^W`.  Thus, whenever `2^k > |A|^W`, these facts block literal
-same-width history materialization; they do not rule out recomputing context
-or a different collective search algorithm.
+path contexts even though all of them project to the same configuration.
+`historyOfPath_injective` now connects those data to the construction above:
+every explicit diamond path gives a distinct value of the actual rooted
+`History` type.  Consequently `twoPow_le_card_history` proves that the history
+type has at least `2^k` elements.  If a literal history unfolding represents
+every such value by one width-`W` row over a fixed alphabet `A`,
+`histories_le_rowCapacity_of_injective` forces
+`2^k ≤ |A|^W`; `not_injective_histories_of_capacity_lt` formalizes the
+contrapositive.  These statements also cover zero widths and empty row
+alphabets.  Thus, whenever `2^k > |A|^W`, they block literal same-width
+history materialization; they do not rule out recomputing context or a
+different collective search algorithm.
 
 Nor can the lost parent simply be selected by asking which continuation will
 succeed.  `first_successful_child_decides` makes that circularity exact: the

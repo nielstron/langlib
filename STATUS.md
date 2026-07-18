@@ -357,16 +357,39 @@ solution to the open problem:
   `accepts_iff_reaches_of_cofunctional_root` packages this as exact target
   reachability under the finite exhaustive reversible port schedule, without
   requiring the target to be terminal.
-  Unfolding a nondeterministic computation DAG into its history tree creates
-  precisely this situation, but it makes the whole branch history part of a
-  vertex.  `card_stPaths` and
-  `diamondPaths_le_rowCapacity_of_injective` force the necessary bound
-  `2^k ≤ |A|^W` for injectively storing all `k`-diamond histories in one
-  width-`W` row over `A`; literal row storage therefore fails whenever that
-  inequality is violated.  This is a capacity barrier to history
-  materialization, not to recomputation or a general deterministic
-  simulation; the port schedule is semantic rather than a checked raw-LBA
-  compiler.
+  `reaches_iff_exists_history` now checks the source-sensitive repair itself:
+  every finite directed walk, even in a cyclic relation, can be loop-erased
+  to a duplicate-free rooted `History`; one-vertex `History.Extension` is
+  cofunctional, its empty root has no predecessor, and endpoint projection
+  preserves and reflects designated-source reachability.  Over a finite base
+  type the history type is finite, and `visits_length_add_one_le_card` bounds
+  each stored simple history by the number of base vertices.  No lower bound
+  on the finite base type is assumed.
+- `sourceReachability_exact_twoMatching_phasePresentation` composes that
+  unfolding with the exhaustive canonical port schedule.  For every finite
+  directed graph, source, and accepting predicate, the resulting finite phase
+  line encounters an accepting endpoint exactly when the source graph does;
+  its edges have an explicit exact parity partition into two directed
+  matchings.  `phaseLine_biUnique_acyclic_terminating` also records that this
+  line is bi-unique, acyclic, reaches its last phase, and has no edge out of
+  that phase.
+  This is deliberately a nonuniform semantic finite presentation.  The phase
+  type and its `portAt` labeling encode one precomputed exhaustive trace and
+  depend on the complete instance; finite choice selects the schedule.  It is
+  not a vertexwise source-graph embedding, an automaton construction, an
+  effective reduction, or a same-width LBA compiler.  For an LBA instance,
+  this dependence includes the input word, so the construction is not one
+  fixed recognizer for the language.
+  The whole branch history has moved into the represented vertex.  In
+  particular, `historyOfPath_injective` embeds all explicit paths through a
+  `k`-diamond chain into the actual rooted `History` type, and
+  `twoPow_le_card_history` proves that this type has at least `2^k` elements.
+  `histories_le_rowCapacity_of_injective` therefore forces the necessary
+  bound `2^k ≤ |A|^W` for injectively storing every such history in one
+  width-`W` row over `A`; `not_injective_histories_of_capacity_lt` gives the
+  contrapositive.  These statements include zero parameters and empty row
+  alphabets.  This is a capacity barrier to literal history materialization,
+  not to recomputation or a general deterministic simulation.
 - `DLBA_subset_ULBA` and `ULBA_subset_LBA` formalize the sandwich through
   unambiguous linear space using labeled, first-final accepting runs.
   `lba_eq_dlba_iff_lba_subset_ulba_and_ulba_subset_dlba` factors the first LBA
@@ -485,6 +508,11 @@ inclusion above.
   is not treated as an effective LBA program.  The separate `LocalPort` and
   marked-Euler development removes that nonlocality and implements the
   resulting fixed finite-control ring as a concrete raw LBA compiler.
+- The exact-two-matching history phase line is likewise a semantic,
+  source-and-input-specific finite trace.  Its checked exponential capacity
+  obstruction concerns injectively materializing every history as one row;
+  neither the positive phase presentation nor that obstruction supplies a
+  uniform LBA determinization or a language-class separation.
 - No unconditional `LBA ⊆ ULBA` or `ULBA ⊆ DLBA` theorem is claimed.
   Current linear-space disambiguation results cited in the research ledger
   either use superlinear space or require explicit circuit-hardness
@@ -495,7 +523,7 @@ inclusion above.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,937 jobs completed successfully;
+- `lake build`: 8,941 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

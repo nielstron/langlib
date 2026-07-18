@@ -152,6 +152,10 @@ public import Langlib.Automata.LinearBounded.GraphWalking.MarkedEulerProbe.TwoMa
 public import Langlib.Automata.LinearBounded.GraphWalking.PhaseDouble
 public import Langlib.Automata.LinearBounded.GraphWalking.PhaseDoubledLocalEuler
 public import Langlib.Automata.LinearBounded.GraphWalking.ReversibleCore
+public import Langlib.Automata.LinearBounded.HistoryDiamondCapacity
+public import Langlib.Automata.LinearBounded.HistoryPortCompilation
+public import Langlib.Automata.LinearBounded.HistoryUnfolding
+public import Langlib.Automata.LinearBounded.HistoryUnfoldingReachability
 public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.LinearBounded.LayeredReachability
