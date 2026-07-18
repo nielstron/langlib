@@ -68,6 +68,26 @@ solution to the open problem:
   every LBA language has a globally acyclic degree-two presentation whose
   complete configuration relation is covered exactly by three directed
   matchings.  Its input/output phase split also preserves tape width.
+- `twoMatchingLBA_subset_DLBA` proves the complementary positive theorem:
+  every LBA presentation whose complete step relation at every width is
+  exactly the union of two directed matchings recognizes a `DLBA` language.
+  No source acyclicity promise is needed.  The construction pins the only
+  possible genuine choice, applies the guarded clock to each resulting
+  functional branch, runs the finitely many clocked branches sequentially
+  while restoring an immutable input track, and finally folds the functional
+  endmarker machine into the marker-free DLBA model.  The explicit empty-word
+  bit is computed by the bounded finite simulation `DLBA.acceptsBoundedBool`;
+  it is not selected from a semantic language-membership query.
+- `reversibleLBA_subset_twoMatchingLBA` proves that every presentation whose
+  complete raw configuration step relation is a partial bijection at every
+  width becomes an exact-two-matching presentation after the same-width
+  input/output phase split.  Thus configuration-reversible LBAs lie on the
+  checked positive side as well.
+- `hasLinearAcceptingChoiceBound_one_of_twoMatchings` and
+  `acceptsWithChoiceEventsSearch_one_eq_true_iff` expose the corresponding
+  width-independent semantic bound: one genuine branch event suffices, and
+  budget-one finite search decides acceptance from every bounded
+  configuration.
 - `lba_eq_dlba_iff_acyclicDegreeTwoShortBiUniqueLBA_subset` and
   `lba_eq_dlba_iff_acyclicDegreeTwoThreeMatchingLBA_subset` show that
   determinizing either restricted machine class is exactly the full first
@@ -155,6 +175,35 @@ layers suffice.  Both remain nondeterministic normal forms. Showing that all
 machines in either restricted class can be simulated by DLBAs would solve the
 original open problem.
 
+The word "matching" is crucial here.  The two layers in the strongest
+two-layer normal form above are partial bijections whose monochromatic paths
+may contain two edges; they are not directed matchings.  Under the more
+restrictive machine promise of two actual matching layers, the checked
+compiler proves `TwoMatchingLBA ⊆ DLBA`.  Together with the three-matching
+normal form this gives a checked structural boundary:
+
+> Two exact directed-matching layers admit deterministic simulation, whereas
+> three exact directed-matching layers already suffice to present every LBA
+> language.
+
+This is not a separation of `DLBA` from `LBA`: the repository neither reduces
+the universal three-matching presentation to two matchings nor proves that
+every DLBA language has a two-matching presentation.
+
+The reverse route is now isolated more precisely.  The checked inclusion is
+
+> `ReversibleLBA ⊆ TwoMatchingLBA ⊆ DLBA`.
+
+The first step uses `Machine.threeMatchings` with only two phase colors.  What
+is missing for `DLBA ⊆ TwoMatchingLBA` is a concrete same-width reversible
+compiler.  A merely functional machine is insufficient: a configuration with
+two predecessors and one successor has three incident edges, which two
+directed matchings cannot cover.  Moreover, standard syntactic reversible-TM
+rules do not automatically satisfy the repository's stronger promise on all
+raw configurations, because a clamped boundary move can merge two head
+positions.  Any future reversible compiler must guard those malformed-tape
+boundary cases explicitly.
+
 ## What is not claimed
 
 - No general LBA-to-DLBA compiler is constructed.
@@ -189,6 +238,10 @@ original open problem.
   same-width LBA transformations, but they retain the original global path
   choice.  Short monochromatic components or three matching colors do not
   make the union relation functional.
+- `TwoMatchingLBA ⊆ DLBA` does not imply `LBA ⊆ DLBA`: the checked
+  all-LBA normal form uses three matching layers, and no language-preserving
+  reduction from three layers to two is claimed.  Nor is the reverse
+  inclusion `DLBA ⊆ TwoMatchingLBA` claimed.
 - No unconditional `LBA ⊆ ULBA` or `ULBA ⊆ DLBA` theorem is claimed.
   Current linear-space disambiguation results cited in the research ledger
   either use superlinear space or require explicit circuit-hardness
@@ -199,7 +252,7 @@ original open problem.
 
 The current integrated result was checked by the full build/test gates:
 
-- `lake build`: 8,872 jobs completed successfully;
+- `lake build`: 8,883 jobs completed successfully;
 - `lake test`: passed;
 - generated import-hub check: passed;
 - theorem-link check: passed;

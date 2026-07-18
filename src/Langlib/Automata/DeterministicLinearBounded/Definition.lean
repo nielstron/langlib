@@ -78,6 +78,7 @@ the infinite `Turing.Tape` with a fixed-length `BoundedTape`.
 * `DLBA.halts_iff_haltsWithin` — A DLBA halts iff it halts within `Fintype.card Cfg` steps
 * `DLBA.decidableHalts` — The halting problem for DLBAs is decidable
 * `DLBA.decidableAccepts` — Acceptance for DLBAs is decidable
+* `DLBA.acceptsBoundedBool` — An explicit bounded Boolean acceptance simulation
 
 ## References
 
@@ -564,6 +565,32 @@ theorem card_boundedTape :
   rw [ Fintype.card_congr h_iso, Fintype.card_prod, Fintype.card_pi ] ; simp +decide
 
 end Cardinality
+
+/-! ### Executable Bounded Acceptance -/
+
+section BoundedAcceptance
+
+variable {Γ : Type*} {Λ : Type*} {n : ℕ}
+  [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
+
+/-- Decide acceptance by simulating the deterministic machine for the cardinality of its
+bounded configuration space.
+
+The bound is written as the explicit state/tape cardinality formula, so evaluating this Boolean
+uses only the encoded transition function, finite alphabets, and the starting configuration. -/
+public def acceptsBoundedBool (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) : Bool :=
+  decide (∃ k ≤ Fintype.card Λ * Fintype.card Γ ^ (n + 1) * (n + 1),
+    iterateStep M cfg (k + 1) = none ∧
+      ∃ target, iterateStep M cfg k = some target ∧ M.accept target.state = true)
+
+/-- The explicit bounded Boolean simulation decides deterministic-LBA acceptance. -/
+public theorem acceptsBoundedBool_eq_true_iff (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) :
+    acceptsBoundedBool M cfg = true ↔ Accepts M cfg := by
+  simp only [acceptsBoundedBool, decide_eq_true_eq]
+  rw [← card_cfg]
+  exact (accepts_iff_bounded M cfg).symm
+
+end BoundedAcceptance
 
 end DLBA
 

@@ -1,6 +1,7 @@
 module
 
 public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
 public import Mathlib.Logic.Relation
 import Mathlib.Tactic
 
@@ -33,6 +34,11 @@ public noncomputable def ancestors (edge : V → V → Prop) (target : V) : Fins
 /-- The ancestor-count rank of a vertex. -/
 public noncomputable def rank (edge : V → V → Prop) (target : V) : ℕ :=
   (ancestors edge target).card
+
+/-- Ancestor rank never exceeds the size of the finite vertex space. -/
+public theorem rank_le_card (edge : V → V → Prop) (target : V) :
+    rank edge target ≤ Fintype.card V := by
+  exact Finset.card_le_card (Finset.filter_subset _ _)
 
 @[simp]
 public theorem mem_ancestors_iff {edge : V → V → Prop} {source target : V} :
@@ -79,6 +85,34 @@ public theorem exists_strictRank
     ∃ rank : V → ℕ,
       ∀ ⦃source target⦄, edge source target → rank source < rank target := by
   exact ⟨rank edge, fun {_ _} hstep => rank_lt_of_edge hacyclic hstep⟩
+
+/-- Every vertex of a finite acyclic relation reaches a sink. -/
+public theorem exists_reachable_sink
+    {edge : V → V → Prop}
+    (hacyclic : ∀ vertex, ¬ TransGen edge vertex vertex)
+    (source : V) :
+    ∃ target, ReflTransGen edge source target ∧ ∀ next, ¬ edge target next := by
+  let measure : V → ℕ := fun vertex => Fintype.card V - rank edge vertex
+  suffices h : ∀ fuel vertex, measure vertex = fuel →
+      ∃ target, ReflTransGen edge vertex target ∧ ∀ next, ¬ edge target next by
+    exact h (measure source) source rfl
+  intro fuel
+  induction fuel using Nat.strong_induction_on with
+  | h fuel ih =>
+      intro vertex hmeasure
+      by_cases hout : ∃ next, edge vertex next
+      · obtain ⟨next, hstep⟩ := hout
+        have hrank : rank edge vertex < rank edge next :=
+          rank_lt_of_edge hacyclic hstep
+        have hnextMeasure : measure next < fuel := by
+          rw [← hmeasure]
+          dsimp only [measure]
+          have hbound := rank_le_card edge next
+          omega
+        obtain ⟨target, hreach, hsink⟩ :=
+          ih (measure next) hnextMeasure next rfl
+        exact ⟨target, ReflTransGen.head hstep hreach, hsink⟩
+      · exact ⟨vertex, .refl, fun next hstep => hout ⟨next, hstep⟩⟩
 
 omit [Fintype V] in
 /-- A strict natural-valued rank rules out every nonempty directed cycle. -/

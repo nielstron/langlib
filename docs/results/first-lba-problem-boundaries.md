@@ -35,6 +35,13 @@ The work recorded here does not assert either equality or separation.  It
 formalizes exact reformulations and concrete obstructions, and it identifies
 restricted cases in which nondeterminism can be removed.
 
+The strongest checked positive case is `TwoMatchingLBA ⊆ DLBA`: no
+acyclicity premise is needed when the complete raw step relation at every
+tape width is exactly partitioned into two directed matchings.  Separately,
+`AcyclicDegreeTwoThreeMatchingLBA = LBA`: three matching layers already
+suffice for every LBA language.  Neither inclusion is claimed strict, and
+this two-versus-three structural boundary does not decide `LBA = DLBA`.
+
 There is a useful one-way connection with the smaller `L` versus `NL`
 question.  If `L = NL`, the standard exponential-padding translation lifts
 the equality to every constructible space bound at least logarithmic, in
@@ -236,6 +243,11 @@ both functional and cofunctional, while
 nonedges.  Consequently `TwoBiUniqueLBA_eq_LBA` shows that requiring a
 two-partial-bijection configuration relation still recognizes all of `LBA`.
 
+Here `Relator.BiUnique` alone does not make a layer a directed matching:
+consecutive edges of the same color may still occur.  A directed matching
+additionally has no monochromatic path of two edges.  That stronger promise
+is the positive two-layer case treated below.
+
 These two restrictions can also be imposed simultaneously at the finite
 reachability-instance level.  The strict clock construction used by
 `reaches_iff_exists_strictLayer_reaches` replaces an edge `u → v` by
@@ -396,6 +408,10 @@ lift `2r, 2r+1` preserves global acyclicity.  The final theorems
 `AcyclicDegreeTwoThreeMatchingLBA_eq_LBA` and
 `lba_eq_dlba_iff_acyclicDegreeTwoThreeMatchingLBA_subset` establish the
 corresponding full-power normal form and exact determinization frontier.
+This does not conflict with the positive exact-two-matching theorem below:
+the two partial-bijection layers in the other full-power normal form may each
+contain paths of two edges, while the universal matching form uses three
+colors.
 
 The valid-start clock idea is classical for space bounds at least logarithmic.
 Sipser explicitly credits Hopcroft and Ullman with the extra-track counter
@@ -465,7 +481,10 @@ determinizing all globally acyclic LBAs of configuration indegree and
 outdegree at most two whose edges are already partitioned into two explicit
 linear `2`-diforests is equivalent to determinizing all LBAs.  The independent
 three-matching equivalence gives the same boundary with three linear
-`1`-diforests instead.
+`1`-diforests instead.  Requiring only two linear `1`-diforest layers is a
+more restrictive machine promise and lies on the checked positive side:
+`twoMatchingLBA_subset_DLBA` supplies its deterministic simulation.  No
+strict separation between the resulting language classes is asserted.
 
 The restriction can be made syntactic rather than merely semantic.
 `lba_eq_dlba_iff_clockDegreeSerializedLanguages` quantifies only over machines
@@ -847,7 +866,8 @@ collective algorithm.
 
 ## A path-decomposition frontier
 
-A constant number of functional/cofunctional *colors* is not enough.  The
+A constant number of unrestricted functional/cofunctional *colors*, with no
+bound on monochromatic path length, is not enough.  The
 theorem `exists_four_biUnique_decomposition` proves, without assuming a finite
 ambient vertex type, that every relation with at most two successors and at
 most two predecessors is exactly the union of four `Relator.BiUnique`
@@ -870,6 +890,13 @@ partial-bijection decomposition; the unresolved information lies in
 unbounded switching among its components.  This generic construction is
 structural: its classically chosen spanning forest and coloring may depend on
 the tape width and it does not provide a uniform component enumerator.
+
+The distinction from matching layers is decisive.  A partial-bijection layer
+may enter and leave the same vertex, so after an incoming edge both colors can
+again offer outgoing edges.  With only two directed-matching colors, the
+incoming color is unavailable and functionality of the other color leaves at
+most one successor.  The resulting one-choice property is what the concrete
+two-matching scheduler exploits.
 
 The actual LBA degree serializer avoids that nonuniformity.
 `Machine.boundedDegree_hasTwoBiUniqueStepPartition` supplies the concrete
@@ -996,8 +1023,84 @@ outgoing edges must use the sole remaining color, whose functionality makes
 the successor unique.  This is formalized by
 `successor_eq_of_incoming`, `no_predecessor_of_branches`, and
 `not_branches_of_reaches_of_ne_source`: along a path rooted at `s`, a genuine
-branch can occur only at `s` itself.  These are relational theorems; the
-repository does not turn them into a claimed complexity-class upper bound.
+branch can occur only at `s` itself.
+
+The machine-level development now turns that obstruction into a genuine
+restricted determinization theorem.  `Machine.HasTwoMatchingStepPartition`
+requires one exact, width-uniform two-matching cover of the complete raw step
+relation.  `Machine.accepts_iff_exists_accepts_pinFirst` shows that acceptance
+is exactly the finite union obtained by pinning one possible first transition
+triple.  Each pinned machine is locally functional.  To prevent a rejecting
+branch from looping forever and blocking later trials, the construction
+applies the guarded acyclic clock separately to every pinned machine;
+`AcyclicClock.machine_functional` proves that this clocking preserves
+functionality.  `ClockedBranchUnion.machine` packages the resulting finite
+family over one common alphabet and state type and is globally acyclic on all
+raw configurations.
+
+The functional machine `MachineTwoMatchings.sequentialUnion` then tries the
+clocked branches in a fixed finite order.  Every physical cell carries a
+mutable simulated symbol and an immutable copy of the canonical input.
+After a rejecting branch reaches its acyclic sink, deterministic left/right
+sweeps restore the mutable track before launching the next branch.  The
+soundness proof compares the unique scheduler run with the terminal exhausted
+run; it does not claim that the scheduler itself is globally acyclic on
+malformed tapes.  Canonical initialization includes the empty word's genuine
+two-cell endmarker tape.
+
+Finally, the deterministic endmarker-folding construction transfers the
+functional scheduler to the repository's marker-free DLBA model.  The
+explicit empty-word bit is computed by `DLBA.acceptsBoundedBool`, which runs
+the resulting deterministic finite configuration system up to its cardinality
+bound; it is not obtained by asking whether the source language contains
+`ε`.  The class-facing result is `twoMatchingLBA_subset_DLBA`:
+
+```text
+TwoMatchingLBA ⊆ DLBA ⊆ LBA
+```
+
+No acyclicity premise is present in the first inclusion.  In contrast,
+`AcyclicDegreeTwoThreeMatchingLBA_eq_LBA` says that three exact matching
+layers already suffice for every LBA language.  This is a checked structural
+two-versus-three boundary, not a solution of the first LBA problem: no
+language-preserving reduction from three matching layers to two is known or
+claimed here, and the reverse inclusion `DLBA ⊆ TwoMatchingLBA` is not
+established.
+
+There is a checked bridge in the reverse direction, but not yet the needed
+compiler.  `Machine.ConfigurationBiUnique` says that the complete raw step
+relation is a partial bijection at every width.  For such a machine,
+`threeMatchings_hasTwoMatchingStepPartition_of_configurationBiUnique` reuses
+the input/output phase split with only two colors: internal copy edges have
+color zero and lifted source edges have color one.  Each color is a directed
+matching, and the language and tape width are unchanged.  At class level,
+`reversibleLBA_subset_twoMatchingLBA` gives
+
+```text
+ReversibleLBA ⊆ TwoMatchingLBA ⊆ DLBA
+```
+
+This does not prove `DLBA ⊆ TwoMatchingLBA`.  The existing DLBA-to-LBA
+embedding is functional, but need not be cofunctional.  The obstruction is
+already local: if one configuration has two predecessors and an outgoing
+edge, its three incident edges cannot be covered by two directed matchings.
+A standard reversible-TM transition table is also not automatically enough
+for this repository's all-raw-configurations promise.  With clamped movement,
+one right-moving rule can send sources whose heads are at the last two
+positions to the same target on a suitably malformed tape; the analogous
+left-boundary collision also occurs.  A future same-width reversible compiler
+must use a boundary-safe movement protocol and prove cofunctionality globally,
+not merely along canonical runs.
+
+At the usual complexity-class level, the missing direction is supported by
+Lange, McKenzie, and Tapp's theorem that deterministic space has a reversible
+simulation with the same asymptotic space.  Their linear-space construction
+walks the finite deterministic configuration component reversibly, at an
+exponential time cost.  Constantly many tracks can then be packed into a
+finite product alphabet.  Langlib does not cite that theorem as if it were
+already a machine proof: its marked-boundary model does not by itself establish
+cofunctionality for every malformed clamped tape in this repository.  The
+boundary-safe low-level compiler and its global proof remain the formal gap.
 
 The four-color theorem remains useful because it needs neither a finite graph
 nor a global component traversal.  The optimal generic theorem instead
@@ -1122,6 +1225,9 @@ These results isolate two different issues:
 - functional machines have no forward path choice and directly become DLBAs;
 - cofunctional machines can enumerate target configurations and follow their
   unique backward paths in deterministic linear space;
+- exact-two-matching machines may branch initially, but cannot branch again
+  along the chosen path; the checked scheduler determinizes this finite union
+  of pinned initial branches;
 - allowing both multiple successors and multiple predecessors leaves the full
   directed-reachability problem.
 
@@ -1146,7 +1252,9 @@ vertices, is acyclic with both directed degrees at most two, and has exactly
 `2^k` explicit source-to-target paths.  Moreover `edgeLayer_exact` and
 `edgeLayer_biUnique` give the chain an exact two-partial-bijection partition.
 Thus exponentially many color sequences survive even in the newly isolated
-normal form.  The exact path count is separately exposed by `card_stPaths`.
+normal form.  These layers are not directed matchings: every diamond creates
+another branch later on the same path, which the exact two-matching promise
+forbids.  The exact path count is separately exposed by `card_stPaths`.
 
 One announced result cannot currently be used to improve that bound.  The
 [STOC 2026 accepted-papers
@@ -1863,8 +1971,13 @@ the regular collapses above cannot extend to the unrestricted model.
   by `bitVectors_le_rowCapacity_of_injective`.  A run may contain
   `k = 2^{Theta(W)}` branch events.  This obstructs exhaustive path replay,
   not collective or recomputing algorithms.
-- **Reversible simulation:** stores or regenerates an unbounded branch
-  history; merely adding reverse edges changes directed reachability.
+- **Reversible simulation:** Lange--McKenzie--Tapp removes irreversible merges
+  from an already deterministic computation in the same asymptotic space; it
+  does not choose a branch of an LBA.  It is therefore relevant to the reverse
+  inclusion `DLBA ⊆ TwoMatchingLBA`, not to the open inclusion
+  `LBA ⊆ DLBA`.  The repository still needs a boundary-safe implementation
+  whose raw clamped configuration relation is globally cofunctional.  Merely
+  adding reverse edges would change directed reachability.
 - **Undirected connectivity:** Reingold's theorem does not preserve directed
   acceptance paths.  In the padded layered graph, directed reachability is
   equivalent to the underlying undirected endpoints having distance exactly
@@ -1910,12 +2023,14 @@ the regular collapses above cannot extend to the unrestricted model.
   designated target and a supplied two-partial-bijection decomposition;
   Bhadra and Tewari's complementary effective result remains `NL`-hard under
   the stronger layer-local linear-`2`-diforest promise, but does not include a
-  global DAG promise.  The formal
-  `diamondChain_obstruction` also includes an exact
-  two-biunique-layer partition while retaining `2^k` paths.  What does give a
-  positive frontier is a constant number of whole paths in an edge
-  decomposition, not a constant number of layers with unboundedly many path
-  components.
+  global DAG promise.  The formal `diamondChain_obstruction` also includes an
+  exact two-biunique-layer partition while retaining `2^k` paths.  Thus a
+  constant number of unrestricted partial-bijection layers is not enough.
+  There are two distinct positive frontiers: a constant number of supplied
+  whole paths admits the path-marker algorithm above, while an exact union of
+  two directed matching layers admits the machine-level compiler
+  `twoMatchingLBA_subset_DLBA`.  Three matching layers already recover all of
+  `LBA`; no strict language-class separation is claimed.
 - **One-tape locality:** it does not force a low-width configuration graph.  A
   single fixed two-state LBA over a binary tape alphabet (with local outdegree
   at most three) has disjoint connected fibers indexed by Boolean tape
@@ -1930,10 +2045,13 @@ the regular collapses above cannot extend to the unrestricted model.
   contraction above strengthens both obstructions to the literal globally
   acyclic degree-two clock-and-serializer image; the Ready-skeleton and degree
   facts are formal, while that final graph-minor contraction is not.
-- **Linear genuine branch events:** a paper-level DLBA construction determinizes
-  this restriction by exhaustive schedule replay, with its replay semantics and same-width
-  resources formalized by
+- **Linear genuine branch events:** the generic DLBA construction remains
+  paper-level; its exhaustive-schedule replay semantics and same-width
+  resources are formalized by
   `acceptsWithChoiceEventsSearch_linear_eq_true_iff` and `packLinearSchedule`.
+  Exact two matching layers force the constant bound one, and this special
+  case now has the fully checked low-level compiler
+  `twoMatchingLBA_subset_DLBA`.
   Therefore a separating language would force an unbounded
   branch-events/input-length ratio for every one of its LBA presentations.
 - **Isolation or unambiguity:** known isolation either uses advice exponential
@@ -1992,6 +2110,9 @@ asymptotic storage.
 - Meena Mahajan and V. Vinay, [*Determinant: Combinatorics, Algorithms, and
   Complexity*](https://eccc.weizmann.ac.il/eccc-reports/1997/TR97-036/index.html),
   1997.
+- Klaus-Jörn Lange, Pierre McKenzie, and Alain Tapp,
+  [*Reversible Space Equals Deterministic
+  Space*](https://doi.org/10.1006/jcss.1999.1672), 2000.
 - Eric Allender and Klaus-Jörn Lange,
   [*RUSPACE(log n) is contained in
   DSPACE(log² n/log log n)*](https://doi.org/10.1007/s002240000102), 1998.

@@ -71,7 +71,10 @@ gives three directed matching layers.  Both globally acyclic, degree-two
 normal forms still recognize exactly `LBA`
 [🔗](src/Langlib/Automata/LinearBounded/MachineShortLayers/LanguageEquivalence.lean)
 [🔗](src/Langlib/Automata/LinearBounded/MachineThreeMatchings/NormalForm.lean).
-This is a nondeterministic normal form, not a DLBA construction.
+These are nondeterministic normal forms, not DLBA constructions.  They should
+not be confused with the more restrictive exact-two-matching presentation
+promise below: the first form permits monochromatic paths of two edges, while
+the second uses three colors.
 Labeled first-final runs also give the checked sandwich
 `DLBA ⊆ ULBA ⊆ LBA` and factor the open equality into disambiguating LBAs
 and then determinizing the unambiguous class
@@ -84,6 +87,28 @@ A separate vertex split gives three supplied matching layers, also in a DAG,
 while two matching layers have no reachable branch away from the initial
 vertex
 [🔗](src/Langlib/Automata/LinearBounded/ThreeMatchingReachability.lean).
+That one-branch obstruction is the combinatorial core of the checked
+machine-level consequence: every LBA presentation
+whose complete fixed-width step relation is exactly the union of two directed
+matchings recognizes a `DLBA` language, with no acyclicity premise
+[🔗](src/Langlib/Automata/LinearBounded/MachineTwoMatchings/Determinize.lean).
+The compiler pins the initial choice, clocks each functional branch, and tries
+the finite branches sequentially while restoring the canonical input.  Its
+explicit empty-word bit is obtained by bounded simulation of the resulting
+finite deterministic machine, rather than by consulting language membership.
+Thus two exact matching layers are determinizable, whereas the three-matching
+normal form above already presents every LBA language.  This does not resolve
+`LBA = DLBA`, because no reduction from the universal three-layer form to two
+layers is proved.
+For the reverse route, Langlib now checks the exact structural bridge that a
+configuration-reversible LBA—one whose complete raw step relation is
+functional and cofunctional at every width—phase-splits into two directed
+matchings
+[🔗](src/Langlib/Automata/LinearBounded/MachineTwoMatchings/Reversible.lean).
+This does not establish `DLBA ⊆ TwoMatchingLBA`: the existing DLBA embedding
+is functional but can still merge configurations.  Completing that inclusion
+requires a same-width reversible simulation that is cofunctional even on
+malformed tapes and under the repository's clamped head movement.
 The complementary fixed-slot reduction remains as a fully explicit numbered
 construction whose own vertex gadgets are necessarily cyclic
 [🔗](src/Langlib/Automata/LinearBounded/LinearTwoDiforestReachability.lean).

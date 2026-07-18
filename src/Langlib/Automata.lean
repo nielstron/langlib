@@ -34,6 +34,7 @@ public import Langlib.Automata.LinearBounded.AcyclicClock.CompilerBoundary
 public import Langlib.Automata.LinearBounded.AcyclicClock.Construction
 public import Langlib.Automata.LinearBounded.AcyclicClock.CycleCriterion
 public import Langlib.Automata.LinearBounded.AcyclicClock.EffectiveClock
+public import Langlib.Automata.LinearBounded.AcyclicClock.Functional
 public import Langlib.Automata.LinearBounded.AcyclicClock.Initialization
 public import Langlib.Automata.LinearBounded.AcyclicClock.InitializationSoundness
 public import Langlib.Automata.LinearBounded.AcyclicClock.IntervalIncrement
@@ -91,6 +92,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Construction
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Soundness
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA
 public import Langlib.Automata.LinearBounded.Equivalence.ContextSensitive
+public import Langlib.Automata.LinearBounded.Equivalence.DeterministicEndmarkerToFlag
 public import Langlib.Automata.LinearBounded.Equivalence.EndmarkerTape
 public import Langlib.Automata.LinearBounded.Equivalence.EndmarkerToFlag
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Completeness
@@ -116,6 +118,14 @@ public import Langlib.Automata.LinearBounded.MachineThreeMatchings.Construction
 public import Langlib.Automata.LinearBounded.MachineThreeMatchings.Layering
 public import Langlib.Automata.LinearBounded.MachineThreeMatchings.NormalForm
 public import Langlib.Automata.LinearBounded.MachineThreeMatchings.Structural
+public import Langlib.Automata.LinearBounded.MachineTwoMatchings.BranchFunctional
+public import Langlib.Automata.LinearBounded.MachineTwoMatchings.ClockedBranchUnion
+public import Langlib.Automata.LinearBounded.MachineTwoMatchings.Definition
+public import Langlib.Automata.LinearBounded.MachineTwoMatchings.Determinize
+public import Langlib.Automata.LinearBounded.MachineTwoMatchings.Reversible
+public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnion
+public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnionInitialization
+public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnionLanguage
 public import Langlib.Automata.LinearBounded.Packing
 public import Langlib.Automata.LinearBounded.PartialBijectionDecomposition
 public import Langlib.Automata.LinearBounded.PermutationReachability
@@ -128,6 +138,7 @@ public import Langlib.Automata.LinearBounded.ShortLayerSubdivisionReachability
 public import Langlib.Automata.LinearBounded.StrictClockLayering
 public import Langlib.Automata.LinearBounded.ThreeMatchingReachability
 public import Langlib.Automata.LinearBounded.TwoLayerReachability
+public import Langlib.Automata.LinearBounded.TwoMatchingChoiceBound
 public import Langlib.Automata.LinearBounded.Unambiguous
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 public import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStack
