@@ -230,6 +230,7 @@ public import Langlib.Automata.LinearBounded.MachineTwoMatchings.ReversibleTrivi
 public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnion
 public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnionInitialization
 public import Langlib.Automata.LinearBounded.MachineTwoMatchings.SequentialUnionLanguage
+public import Langlib.Automata.LinearBounded.MatchingLayerHierarchy
 public import Langlib.Automata.LinearBounded.OdometerDiamondFixedWidth
 public import Langlib.Automata.LinearBounded.OdometerDiamondRowSystem
 public import Langlib.Automata.LinearBounded.Packing
