@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Automata.LinearBounded.AcyclicClock.CrossingMacro
+public import Langlib.Automata.LinearBounded.AcyclicClock.Functional
 public import Langlib.Automata.LinearBounded.BoundedDegreeTrace
 public import Langlib.Automata.LinearBounded.AcyclicClock.AcyclicityReduction
 public import Langlib.Automata.LinearBounded.AcyclicBoundedDegree
@@ -21,10 +22,11 @@ alphabet, and tape widths.
 
 The second section instantiates the result with a one-state deterministic identity machine over
 `AcyclicClock.SourceAlpha Unit Bool`.  Its width-`n` configuration space has exactly
-`6 ^ (n + 1) * (n + 1)` elements.  The same single clocked-and-degree-serialized machine thus has
-an actual width-`n` run crossing every boundary at least that many times, while its complete raw
-configuration graph is globally acyclic, has both directed degrees at most two, and has the
-serializer's width-uniform two-partial-bijection partition.
+`6 ^ (n + 1) * (n + 1)` elements.  The operational clock machine itself is proved functional and
+globally acyclic while retaining the exponential crossing trace.  Applying the degree serializers
+to that same clocked machine retains the trace and separately yields a complete raw graph that is
+globally acyclic, has both directed degrees at most two, and has the serializer's width-uniform
+two-partial-bijection partition.
 
 This is a structural witness run from a deliberately self-looping deterministic source.  It is
 not a claim that acceptance or rejection forces an arbitrary computation to make these
@@ -137,6 +139,24 @@ public theorem identitySource_step_self {n : ℕ}
   refine ⟨(), cfg.tape.read, .stay, ?_, ?_⟩
   · simp [identitySource]
   · simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
+
+/-- The one-state identity source has a single-valued local transition table. -/
+public theorem identitySource_functional : identitySource.Functional := by
+  intro state symbol left hleft right hright
+  simp only [identitySource, Set.mem_singleton_iff] at hleft hright
+  exact hleft.trans hright.symm
+
+/-- The actual operational clock machine used by the first crossing witness is functional, not
+merely compiled from a deterministic semantic source. -/
+public theorem identityClockMachine_functional :
+    (machine identitySource).Functional :=
+  machine_functional identitySource identitySource_functional
+
+/-- The same functional operational clock machine is globally acyclic on all raw configurations
+at every width. -/
+public theorem identityClockMachine_configurationAcyclic :
+    (machine identitySource).ConfigurationAcyclic :=
+  machine_configurationAcyclic identitySource
 
 /-- Conversely, the identity source has no step other than the self-step. -/
 public theorem identitySource_step_iff {n : ℕ}

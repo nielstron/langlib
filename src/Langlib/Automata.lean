@@ -165,6 +165,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Soundness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
 public import Langlib.Automata.LinearBounded.ExplicitDegreeTwoReachability
 public import Langlib.Automata.LinearBounded.FiniteAcyclicRank
+public import Langlib.Automata.LinearBounded.FiniteConfigurationPumpingBarrier
 public import Langlib.Automata.LinearBounded.FiniteDAGPathDecomposition
 public import Langlib.Automata.LinearBounded.FiniteDAGPathDecompositionMinimum
 public import Langlib.Automata.LinearBounded.FiniteReachabilityCounting
@@ -205,6 +206,7 @@ public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.LinearBounded.IncomingSerializerBranchSetMinor
 public import Langlib.Automata.LinearBounded.LayeredReachability
+public import Langlib.Automata.LinearBounded.LinearChoiceLanguage
 public import Langlib.Automata.LinearBounded.LinearTwoDiforestReachability
 public import Langlib.Automata.LinearBounded.LocalityHypercube
 public import Langlib.Automata.LinearBounded.LocalityHypercubeMinor
@@ -243,6 +245,7 @@ public import Langlib.Automata.LinearBounded.SavitchBooleanEvaluator
 public import Langlib.Automata.LinearBounded.SavitchReachability
 public import Langlib.Automata.LinearBounded.SavitchRecomputationBarrier
 public import Langlib.Automata.LinearBounded.ScheduleCapacity
+public import Langlib.Automata.LinearBounded.SeparationCandidates
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivision
 public import Langlib.Automata.LinearBounded.ShortLayerSubdivisionReachability
 public import Langlib.Automata.LinearBounded.SimpleTraceCrossingBound
@@ -263,6 +266,7 @@ public import Langlib.Automata.LinearBounded.TwoLayerReachability
 public import Langlib.Automata.LinearBounded.TwoMatchingChoiceBound
 public import Langlib.Automata.LinearBounded.TwoMatchingEmbeddingBarrier
 public import Langlib.Automata.LinearBounded.Unambiguous
+public import Langlib.Automata.LinearBounded.WordPumpingBarrier
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 public import Langlib.Automata.Pushdown.Basics.FinalStateEmptyStack
 public import Langlib.Automata.Pushdown.Basics.Leftmost

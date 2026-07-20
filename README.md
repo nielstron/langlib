@@ -226,7 +226,10 @@ positive frontier, but even one one-way partial-bijection edge cannot be
 totalized while reflecting directed reachability.
 The [first-LBA boundary note](docs/results/first-lba-problem-boundaries.md)
 records the exact equivalences, restricted positive cases, failed proof
-routes, and current literature status.
+routes, and current literature status.  The shorter
+[pumping/candidate note](docs/results/dlba-pumping-separation-candidates.md)
+separates proved pumping barriers from the exact candidate-language families
+and conjectural invariants that could support a future separation.
 
 The strict hierarchy results are uniform over every finite alphabet meeting the
 displayed result's sharp or currently proved size bound: Regular ⊊ LR(k)/DPDA

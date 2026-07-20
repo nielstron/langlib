@@ -1,10 +1,13 @@
 # Project status
 
-Last updated: 19 July 2026.
+Last updated: 20 July 2026.
 
 This is the high-level research map.  The proof-level construction history,
 quantitative bounds, failed routes, and literature notes live in the
 [detailed first-LBA-problem ledger](docs/results/first-lba-problem-boundaries.md).
+The shorter
+[pumping and candidate-language note](docs/results/dlba-pumping-separation-candidates.md)
+isolates the current separation program and its exact missing steps.
 
 ## Open problem
 
@@ -60,6 +63,7 @@ The principal identities and inclusions are:
 | Trivial | For every `k ≤ 1`, `KMatchingLBA k`; the zero-crossing slice; complete-raw `CofunctionalLBA`; and complete-raw `ReversibleLBA` are exactly `{∅, Set.univ}`. |
 | Regular | Every positive fixed crossing-cap class, the existential uniform-crossing class, and every fixed head-turn class equal DFA, NFA, and the regular languages. |
 | Deterministic linear space | `KMatchingLBA 2 = TwoMatchingLBA = SweepingDLBA = SweepingEndDLBA = DLBA`. |
+| Linearly bounded accepting choice | `DLBA ⊆ LinearChoiceLBA ⊆ LBA`; the first inclusion has a functional canonical-endmarker presentation with zero genuine branch events. Neither inclusion is known strict. |
 | Unambiguous linear space | `DLBA ⊆ ULBA ⊆ LBA`; neither reverse inclusion is proved. |
 | Nondeterministic linear space | For every `k ≥ 3`, `KMatchingLBA k = LBA`; also `SweepingLBA = LBA` and all the acyclic/degree-two normal forms below equal `LBA`. |
 | Context-sensitive | `CS = LBA`, and `CS` is closed under complement. |
@@ -163,6 +167,14 @@ Equivalent checked formulations of the same unresolved step include:
 - determinizing only outputs of the concrete clock/degree serializers;
 - proving both `LBA ⊆ ULBA` and `ULBA ⊆ DLBA`.
 
+`SeparationCandidates` packages the negative direction without asserting a
+witness.  A separator exists exactly when one of the adequate numeric
+`EncodedMembership.languageOf` instances is outside DLBA, exactly when a
+three-matching language requires its third layer, and exactly when a language
+in the acyclic degree-two unit-certificate row family is outside DLBA.  The
+encoded objects form a family of languages; the external joint code-and-word
+membership evaluator is not itself claimed to be one LBA-complete language.
+
 ## Other checked boundaries
 
 - The deterministic-to-two-matching compiler is complete.  It locally
@@ -179,6 +191,12 @@ Equivalent checked formulations of the same unresolved step include:
   regularity.  Every fixed crossing slice is regular, but their increasing
   union is the whole LBA language; for a nonregular language those slices
   never stabilize.
+- Deleting a repeated complete configuration is shared by both sides:
+  arbitrary LBA paths admit same-endpoint loop erasure with the same finite
+  configuration bound that constrains a terminal functional orbit.  Conversely,
+  one fixed deterministic clock construction has exponentially many crossings.
+  Full-configuration repetition and raw crossing length therefore do not
+  distinguish DLBA from LBA.
 - Savitch midpoint reachability is formalized propositionally and as an
   executable finite Boolean search.  Literal continuation stacks require a
   quadratic number of bits, and the checked evaluator has a corresponding
@@ -211,17 +229,21 @@ conflict with decidability of membership for one encoded language and one word.
 
 ## Proposed next variants
 
-The following are research targets, not claimed theorems.  They are ordered by
-how directly they reuse the checked infrastructure.
+The definitions and inclusions explicitly described as checked below are now
+formalized; the stated converses and construction targets remain open.  The
+variants are ordered by how directly they reuse the checked infrastructure.
 
-1. **Linear-choice LBA.**  Package one fixed finite presentation and the
-   existing `HasLinearAcceptingChoiceBound`: one fixed constant `c` must give
+1. **Linear-choice LBA.**  `is_LinearChoiceLBA`, `LinearChoiceLBA`, and
+   `RequiresSuperlinearChoice` now package one fixed finite presentation and
+   `HasLinearAcceptingChoiceBound`: one fixed constant `c` must give
    every accepted word an accepting labeled trace with at most
    `c · (|w| + 2)` genuine branch configurations.  Branching means two
    distinct successor configurations, while schedule entries retain the
-   transition triples.  There is no promise on rejected words.  A functional
-   presentation gives `DLBA ⊆ LinearChoiceLBA` with `c = 0`; the real target is
-   `LinearChoiceLBA ⊆ DLBA`.  Its compiler must pack the input copy, current
+   transition triples.  There is no promise on rejected words.  The checked
+   functional presentation gives `DLBA ⊆ LinearChoiceLBA` with `c = 0`, and
+   forgetting the promise gives `LinearChoiceLBA ⊆ LBA`.  A language satisfying
+   `RequiresSuperlinearChoice` is therefore a separator.  The real positive
+   target is `LinearChoiceLBA ⊆ DLBA`.  Its compiler must pack the input copy, current
    configuration, schedule and cursor, stretch counter, enumeration state,
    and the empty/endmarker cases.  The checked bounded search is the semantic
    specification, not yet that low-level one-tape enumerator/replayer.
@@ -323,16 +345,17 @@ first lemma.
   decidable encoded membership do not select a nondeterministic branch.
 - Capacity, schedule, crossing, and graph-minor results rule out only the
   stated literal strategies; none is a general linear-space lower bound.
-- The proposed variants above have not yet been promoted to checked language
-  classes or inclusions.
+- The remaining proposed structural variants have not yet been promoted to
+  checked language classes or inclusions.
 
 ## Verification
 
 The integrated repository passes:
 
-- `lake build`: 9,006 jobs;
+- `lake build`: 9,010 jobs;
 - `lake test`: 3,115 jobs;
-- warning-as-error direct compilation of the matching-hierarchy module;
+- warning-as-error direct compilation of the pumping/candidate modules and
+  the generated automata import hub;
 - warning-as-error direct compilation of the ordinary encoded-membership target
   and all deterministic-sweeping modules;
 - generated import-hub and theorem-link checks;
