@@ -30,18 +30,18 @@ namespace DCFEncodedDPDA
 
 namespace EncodedDPDA
 
-variable {Action : Type} [Fintype Action] [Primcodable Action]
-  [DecidableEq Action]
+variable {T : Type} [Fintype T] [Primcodable T]
+  [DecidableEq T]
 
-public abbrev EquivalenceInput (Action : Type) :=
-  EncodedDPDA Action × EncodedDPDA Action
+public abbrev EquivalenceInput (T : Type) :=
+  EncodedDPDA T × EncodedDPDA T
 
 @[expose] public def EquivalenceInput.Valid
-    (input : EquivalenceInput Action) : Prop :=
+    (input : EquivalenceInput T) : Prop :=
   input.1.Valid ∧ input.2.Valid
 
 @[expose] public def EquivalenceInput.LanguageEquivalent
-    (input : EquivalenceInput Action) : Prop :=
+    (input : EquivalenceInput T) : Prop :=
   language input.1 = language input.2
 
 /-- Pull a promise-computable first-order trace-equivalence predicate back
@@ -51,7 +51,7 @@ public theorem languageEquivalence_computablePredOnPromise_of_traceCompiler
     {TraceAction : Type} [Primcodable TraceAction] [DecidableEq TraceAction]
     {traceValid :
       EncodedFirstOrderGrammar.TracePair TraceAction → Prop}
-    (compile : EquivalenceInput Action →
+    (compile : EquivalenceInput T →
       EncodedFirstOrderGrammar.TracePair TraceAction)
     (compileComputable : Computable compile)
     (compileValid : ∀ input, input.Valid →
@@ -66,12 +66,12 @@ public theorem languageEquivalence_computablePredOnPromise_of_traceCompiler
         (fun input : EncodedFirstOrderGrammar.TracePair TraceAction =>
           input.1.TraceEquivalent input.2.1 input.2.2)) :
     ComputablePredOnPromise
-      (fun input : EquivalenceInput Action => input.Valid)
-      (fun input : EquivalenceInput Action =>
+      (fun input : EquivalenceInput T => input.Valid)
+      (fun input : EquivalenceInput T =>
         input.LanguageEquivalent) := by
   have hpullback : ComputablePredOnPromise
-      (fun input : EquivalenceInput Action => input.Valid)
-      (fun input : EquivalenceInput Action =>
+      (fun input : EquivalenceInput T => input.Valid)
+      (fun input : EquivalenceInput T =>
         (compile input).1.TraceEquivalent
           (compile input).2.1 (compile input).2.2) :=
     traceEquivalence.pullbackOnPromise compileComputable compileValid
@@ -86,7 +86,7 @@ public theorem dcf_computableEquivalence_of_traceCompiler
     {TraceAction : Type} [Primcodable TraceAction] [DecidableEq TraceAction]
     {traceValid :
       EncodedFirstOrderGrammar.TracePair TraceAction → Prop}
-    (compile : EquivalenceInput Action →
+    (compile : EquivalenceInput T →
       EncodedFirstOrderGrammar.TracePair TraceAction)
     (compileComputable : Computable compile)
     (compileValid : ∀ input, input.Valid →
@@ -100,7 +100,7 @@ public theorem dcf_computableEquivalence_of_traceCompiler
         (fun input : EncodedFirstOrderGrammar.TracePair TraceAction =>
           input.1.TraceEquivalent input.2.1 input.2.2)) :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) :=
   ⟨language_characterizesOn, language_membershipSemiDecidable,
     languageEquivalence_computablePredOnPromise_of_traceCompiler
@@ -113,7 +113,7 @@ equivalence, and discharge the structured ordinary/marker stair theorem on
 exposing grammars. -/
 public theorem dcf_computableEquivalence_of_exposingTraceCompiler
     {TraceAction : Type} [Primcodable TraceAction] [DecidableEq TraceAction]
-    (compile : EquivalenceInput Action →
+    (compile : EquivalenceInput T →
       EncodedFirstOrderGrammar.TracePair TraceAction)
     (compileComputable : Computable compile)
     (compileValid : ∀ input, input.Valid →
@@ -129,7 +129,7 @@ public theorem dcf_computableEquivalence_of_exposingTraceCompiler
           g.HasUniformMarkerStableWitnessedRegularActiveStairBase
             criticalWidth) :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) := by
   apply dcf_computableEquivalence_of_traceCompiler
     compile compileComputable compileValid compileCorrect
@@ -144,7 +144,7 @@ are independent of the semantic/progress repair. -/
 public theorem
     dcf_computableEquivalence_of_exposingTraceCompiler_of_structuredPivotBounds
     {TraceAction : Type} [Primcodable TraceAction] [DecidableEq TraceAction]
-    (compile : EquivalenceInput Action →
+    (compile : EquivalenceInput T →
       EncodedFirstOrderGrammar.TracePair TraceAction)
     (compileComputable : Computable compile)
     (compileValid : ∀ input, input.Valid →
@@ -165,7 +165,7 @@ public theorem
         g.HasUniformMarkerStableWitnessedRegularActiveStairBase
           criticalWidth) :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) := by
   apply dcf_computableEquivalence_of_exposingTraceCompiler
     compile compileComputable compileValid compileCorrect
@@ -179,48 +179,48 @@ public theorem
       hg hnormal hbound hexposureBound actionBound hm2,
     hcriticalStair⟩
 
-/-- A duplicate-free exhaustive list of a finite action type. -/
-public noncomputable def canonicalAlphabet : List Action :=
-  (Finset.univ : Finset Action).toList
+/-- A duplicate-free exhaustive list of a finite alphabet type. -/
+public noncomputable def canonicalAlphabet : List T :=
+  (Finset.univ : Finset T).toList
 
 /-- The canonical compressed exposing trace pair produced from two encoded
-DPDAs using the duplicate-free enumeration of the finite action type. -/
+DPDAs using the duplicate-free enumeration of the finite alphabet. -/
 @[expose] public noncomputable def equivalenceExposingTracePair
-    (input : EquivalenceInput Action) :
-    EncodedFirstOrderGrammar.TracePair (Option Action) :=
+    (input : EquivalenceInput T) :
+    EncodedFirstOrderGrammar.TracePair (Option T) :=
   DPDANormalization.pairExposingTraceData input.1 input.2
-    (canonicalAlphabet (Action := Action))
+    (canonicalAlphabet (T := T))
 
 /-- The canonical compressed DPDA-pair compiler is total computable. -/
 public theorem equivalenceExposingTracePair_computable :
-    Computable (equivalenceExposingTracePair (Action := Action)) := by
-  have hinput : Computable (fun input : EquivalenceInput Action =>
-      (input.1, input.2, canonicalAlphabet (Action := Action))) :=
+    Computable (equivalenceExposingTracePair (T := T)) := by
+  have hinput : Computable (fun input : EquivalenceInput T =>
+      (input.1, input.2, canonicalAlphabet (T := T))) :=
     Computable.pair Computable.fst
       (Computable.pair Computable.snd
-        (Computable.const (canonicalAlphabet (Action := Action))))
+        (Computable.const (canonicalAlphabet (T := T))))
   apply ((DPDANormalization.pairExposingTraceData_computable
-    (Action := Action)).comp hinput).of_eq
+    (Action := T)).comp hinput).of_eq
   intro input
   simp [equivalenceExposingTracePair]
 
-omit [Primcodable Action] in
+omit [Primcodable T] in
 /-- Valid encoded DPDAs compile to a valid exposing-normal-form first-order
 grammar with two ground initial terms. -/
 public theorem equivalenceExposingTracePair_valid
-    (input : EquivalenceInput Action) (hvalid : input.Valid) :
+    (input : EquivalenceInput T) (hvalid : input.Valid) :
     EncodedFirstOrderGrammar.ValidExposingTracePair
       (equivalenceExposingTracePair input) := by
   simpa [equivalenceExposingTracePair] using
     DPDANormalization.pairExposingTraceData_valid
-      input.1 input.2 (canonicalAlphabet (Action := Action))
+      input.1 input.2 (canonicalAlphabet (T := T))
       hvalid.1 hvalid.2 (Finset.nodup_toList _)
       (by intro action; simp [canonicalAlphabet])
 
-omit [Primcodable Action] in
+omit [Primcodable T] in
 /-- Correctness of the canonical compressed effective reduction. -/
 public theorem equivalenceExposingTracePair_traceEquivalent_iff
-    (input : EquivalenceInput Action) (hvalid : input.Valid) :
+    (input : EquivalenceInput T) (hvalid : input.Valid) :
     (equivalenceExposingTracePair input).1.TraceEquivalent
         (equivalenceExposingTracePair input).2.1
         (equivalenceExposingTracePair input).2.2 ↔
@@ -228,7 +228,7 @@ public theorem equivalenceExposingTracePair_traceEquivalent_iff
   simpa [equivalenceExposingTracePair,
     EquivalenceInput.LanguageEquivalent] using
     DPDANormalization.pairExposingTraceData_traceEquivalent_iff_language_eq
-      input.1 input.2 (canonicalAlphabet (Action := Action))
+      input.1 input.2 (canonicalAlphabet (T := T))
       hvalid.1 hvalid.2 (Finset.nodup_toList _)
       (by intro action; simp [canonicalAlphabet])
 
@@ -236,66 +236,66 @@ public theorem equivalenceExposingTracePair_traceEquivalent_iff
 witnessed ordinary and marker-stable stair theorem on exposing grammars. -/
 public theorem
     dcf_computableEquivalence_of_exposingWitnessedAndMarkerStableStairBases
-    (hstair : ∀ g : EncodedFirstOrderGrammar (Option Action),
+    (hstair : ∀ g : EncodedFirstOrderGrammar (Option T),
       g.WellFormed → g.ExposingNormalForm →
       ∃ queryWidth criticalWidth,
         g.HasWitnessedRegularActiveStairBase queryWidth ∧
           g.HasUniformMarkerStableWitnessedRegularActiveStairBase
             criticalWidth) :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) :=
   dcf_computableEquivalence_of_exposingTraceCompiler
-    (equivalenceExposingTracePair (Action := Action))
-    (equivalenceExposingTracePair_computable (Action := Action))
+    (equivalenceExposingTracePair (T := T))
+    (equivalenceExposingTracePair_computable (T := T))
     equivalenceExposingTracePair_valid
     equivalenceExposingTracePair_traceEquivalent_iff hstair
 
 /-- The proof-free first-order trace pair produced from two encoded DPDAs,
-using the canonical duplicate-free enumeration of the finite action type. -/
+using the canonical duplicate-free enumeration of the finite alphabet. -/
 @[expose] public noncomputable def equivalenceTracePair
-    (input : EquivalenceInput Action) :
-    EncodedFirstOrderGrammar.TracePair (Option Action) :=
+    (input : EquivalenceInput T) :
+    EncodedFirstOrderGrammar.TracePair (Option T) :=
   DPDANormalization.pairTraceData input.1 input.2
-    (canonicalAlphabet (Action := Action))
+    (canonicalAlphabet (T := T))
 
 /-- The canonical DPDA-pair-to-trace-pair compiler is total computable. -/
 public theorem equivalenceTracePair_computable :
-    Computable (equivalenceTracePair (Action := Action)) := by
-  have hinput : Computable (fun input : EquivalenceInput Action =>
-      (input.1, input.2, canonicalAlphabet (Action := Action))) :=
+    Computable (equivalenceTracePair (T := T)) := by
+  have hinput : Computable (fun input : EquivalenceInput T =>
+      (input.1, input.2, canonicalAlphabet (T := T))) :=
     (Computable.pair Computable.fst
       (Computable.pair Computable.snd
-        (Computable.const (canonicalAlphabet (Action := Action)))))
+        (Computable.const (canonicalAlphabet (T := T)))))
   apply ((DPDANormalization.pairTraceData_computable
-    (Action := Action)).comp hinput).of_eq
+    (Action := T)).comp hinput).of_eq
   intro input
   simp [equivalenceTracePair]
 
-omit [Primcodable Action] in
+omit [Primcodable T] in
 /-- Valid encoded DPDAs compile to a valid deterministic first-order grammar
 with two ground initial terms. -/
 public theorem equivalenceTracePair_valid
-    (input : EquivalenceInput Action) (hvalid : input.Valid) :
+    (input : EquivalenceInput T) (hvalid : input.Valid) :
     EncodedFirstOrderGrammar.ValidTracePair
       (equivalenceTracePair input) := by
   simpa [equivalenceTracePair] using
     DPDANormalization.pairTraceData_valid
-      input.1 input.2 (canonicalAlphabet (Action := Action))
+      input.1 input.2 (canonicalAlphabet (T := T))
       hvalid.1 hvalid.2 (Finset.nodup_toList _)
       (by intro action; simp [canonicalAlphabet])
 
-omit [Primcodable Action] in
+omit [Primcodable T] in
 /-- Correctness of the canonical effective reduction. -/
 public theorem equivalenceTracePair_traceEquivalent_iff
-    (input : EquivalenceInput Action) (hvalid : input.Valid) :
+    (input : EquivalenceInput T) (hvalid : input.Valid) :
     (equivalenceTracePair input).1.TraceEquivalent
         (equivalenceTracePair input).2.1
         (equivalenceTracePair input).2.2 ↔
       input.LanguageEquivalent := by
   simpa [equivalenceTracePair, EquivalenceInput.LanguageEquivalent] using
     DPDANormalization.pairTraceData_traceEquivalent_iff_language_eq
-      input.1 input.2 (canonicalAlphabet (Action := Action))
+      input.1 input.2 (canonicalAlphabet (T := T))
       hvalid.1 hvalid.2 (Finset.nodup_toList _)
       (by intro action; simp [canonicalAlphabet])
 
@@ -306,17 +306,17 @@ public theorem languageEquivalence_computablePredOnPromise_of_traceEquivalence
     (traceEquivalence :
       ComputablePredOnPromise
         (EncodedFirstOrderGrammar.ValidTracePair
-          (Action := Option Action))
+          (Action := Option T))
         (fun input :
-          EncodedFirstOrderGrammar.TracePair (Option Action) =>
+          EncodedFirstOrderGrammar.TracePair (Option T) =>
           input.1.TraceEquivalent input.2.1 input.2.2)) :
     ComputablePredOnPromise
-      (fun input : EquivalenceInput Action => input.Valid)
-      (fun input : EquivalenceInput Action =>
+      (fun input : EquivalenceInput T => input.Valid)
+      (fun input : EquivalenceInput T =>
         input.LanguageEquivalent) :=
   languageEquivalence_computablePredOnPromise_of_traceCompiler
-    (equivalenceTracePair (Action := Action))
-    (equivalenceTracePair_computable (Action := Action))
+    (equivalenceTracePair (T := T))
+    (equivalenceTracePair_computable (T := T))
     equivalenceTracePair_valid equivalenceTracePair_traceEquivalent_iff
     traceEquivalence
 
@@ -327,12 +327,12 @@ public theorem dcf_computableEquivalence_of_traceEquivalence
     (traceEquivalence :
       ComputablePredOnPromise
         (EncodedFirstOrderGrammar.ValidTracePair
-          (Action := Option Action))
+          (Action := Option T))
         (fun input :
-          EncodedFirstOrderGrammar.TracePair (Option Action) =>
+          EncodedFirstOrderGrammar.TracePair (Option T) =>
           input.1.TraceEquivalent input.2.1 input.2.2)) :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) :=
   ⟨language_characterizesOn, language_membershipSemiDecidable,
     languageEquivalence_computablePredOnPromise_of_traceEquivalence
@@ -343,10 +343,10 @@ first-order grammars imply computable equivalence of deterministic
 context-free languages in the concrete encoded-DPDA presentation. -/
 public theorem dcf_computableEquivalence_of_completeOpenSoundBounds
     (complete : ∀ g :
-      EncodedFirstOrderGrammar (Option Action),
+      EncodedFirstOrderGrammar (Option T),
       g.WellFormed → g.HasCompleteOpenSoundBound) :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) := by
   apply dcf_computableEquivalence_of_traceEquivalence
   exact
@@ -359,14 +359,14 @@ counterpart. -/
 public theorem
     dcf_computableEquivalence_of_witnessedAndMarkerStableStairBases
     (hstair : ∀ g :
-      EncodedFirstOrderGrammar (Option Action),
+      EncodedFirstOrderGrammar (Option T),
       g.WellFormed →
       ∃ queryWidth criticalWidth,
         g.HasWitnessedRegularActiveStairBase queryWidth ∧
           g.HasUniformMarkerStableWitnessedRegularActiveStairBase
             criticalWidth) :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) := by
   apply dcf_computableEquivalence_of_traceEquivalence
   exact
@@ -384,17 +384,17 @@ the resulting trace-equivalence procedure back to encoded DPDAs. -/
 public theorem
     dcf_computableEquivalence_of_uniformMarkerStableRootFiniteWindowsOnExposing
     (hrootWindows : ∀ g :
-      EncodedFirstOrderGrammar (Option Action),
+      EncodedFirstOrderGrammar (Option T),
       g.WellFormed → ∀ hnormal : g.ExposingNormalForm,
       ∃ bound,
         g.exposureBound hnormal ≤ bound ∧
           g.HasUniformMarkerStableRootFiniteWindows bound) :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) := by
   apply dcf_computableEquivalence_of_traceCompiler
-    (equivalenceExposingTracePair (Action := Action))
-    (equivalenceExposingTracePair_computable (Action := Action))
+    (equivalenceExposingTracePair (T := T))
+    (equivalenceExposingTracePair_computable (T := T))
     equivalenceExposingTracePair_valid
     equivalenceExposingTracePair_traceEquivalent_iff
   apply
@@ -410,7 +410,7 @@ public theorem
 uniformly computable on the validity promise. -/
 public theorem dcf_computableEquivalence :
     ComputableEquivalence DCF
-      (language : EncodedDPDA Action → Language Action)
+      (language : EncodedDPDA T → Language T)
       (valid := Valid) := by
   apply
     dcf_computableEquivalence_of_uniformMarkerStableRootFiniteWindowsOnExposing

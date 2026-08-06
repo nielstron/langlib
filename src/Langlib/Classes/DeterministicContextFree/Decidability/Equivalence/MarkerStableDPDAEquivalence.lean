@@ -65,8 +65,8 @@ public theorem
       (language : EncodedDPDA Action → Language Action)
       (valid := Valid) :=
   dcf_computableEquivalence_of_exposingTraceCompiler_of_uniformMarkerStableStairBases
-    (equivalenceExposingTracePair (Action := Action))
-    (equivalenceExposingTracePair_computable (Action := Action))
+    (equivalenceExposingTracePair (T := Action))
+    (equivalenceExposingTracePair_computable (T := Action))
     equivalenceExposingTracePair_valid
     equivalenceExposingTracePair_traceEquivalent_iff
     hstair
