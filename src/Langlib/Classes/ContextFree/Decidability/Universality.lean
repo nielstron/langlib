@@ -1,6 +1,7 @@
 module
 
 public import Langlib.Classes.ContextFree.Decidability.MalformedHistories.InitialErrorCompiler
+public import Langlib.Classes.ContextFree.Decidability.BinaryEncoding
 
 @[expose]
 public section
@@ -324,37 +325,47 @@ theorem exists_nativeHistoryCompiler :
     intro hw
     exact hnonhalting ((hM c).mp ⟨w, hw⟩)
 
-/-- **Universality of encoded context-free grammars is not computable over
-any sufficiently large finite terminal alphabet.**  The bound is the size of
-the one fixed native history alphabet; larger alphabets are handled by an
-injective relabelling together with a fixed grammar accepting every word that
-leaves the embedded alphabet. -/
-theorem contextFree_computableUniversality_undecidable :
-    ∃ n : Nat, ∀ (T : Type) (_ : Fintype T),
-      n ≤ Fintype.card T →
-      letI : DecidableEq T := Classical.decEq T
-      letI : Primcodable T :=
-        Primcodable.ofEquiv (Fin (Fintype.card T))
-          (Fintype.truncEquivFin T).out
-      ¬ ComputableUniversality (CF : Set (Language T))
-        (contextFreeLanguageOf : EncodedCFG T → Language T) := by
-  obtain ⟨A, hA, hnA, hdA, hpA, core, hcorePrim, -, hcoreSpec⟩ :=
+/-- The fixed native malformed-history reduction can be compiled once to the
+binary alphabet while retaining epsilon-free cores and its universality
+specification. -/
+theorem exists_binaryHistoryCompiler :
+    ∃ core : PartrecCode → EncodedCFG Bool,
+      Primrec core ∧ (∀ c, NoEmptyRHS (core c)) ∧
+        ∀ c, contextFreeLanguageOf (addEpsilonStart (core c)) = Set.univ ↔
+          ¬ (c.eval 0).Dom := by
+  obtain ⟨A, hA, hnA, hdA, hpA, nativeCore, hnativePrim,
+      hnativeFree, hnativeSpec⟩ :=
     exists_nativeHistoryCompiler
   letI : Fintype A := hA
   letI : Nonempty A := hnA
   letI : DecidableEq A := hdA
   letI : Primcodable A := hpA
-  refine ⟨Fintype.card A, ?_⟩
-  intro T hT hcard
-  letI : Fintype T := hT
-  letI : DecidableEq T := Classical.decEq T
-  letI : Primcodable T :=
-    Primcodable.ofEquiv (Fin (Fintype.card T))
-      (Fintype.truncEquivFin T).out
-  obtain ⟨e⟩ := Function.Embedding.nonempty_of_card_le hcard
+  obtain ⟨encode, hencodePrim, hencodeFree, hencodeSpec⟩ :=
+    ContextFree.BinaryEncoding.exists_binaryEncoding (A := A)
+  let core : PartrecCode → EncodedCFG Bool := fun c => encode (nativeCore c)
+  refine ⟨core, hencodePrim.comp hnativePrim, ?_, ?_⟩
+  · intro c
+    exact hencodeFree (nativeCore c) (hnativeFree c)
+  · intro c
+    simpa [core] using
+      (hencodeSpec (nativeCore c)).trans (hnativeSpec c)
+
+/-- **Universality of encoded context-free grammars is not computable over
+any finite terminal alphabet with at least two letters.** -/
+theorem contextFree_computableUniversality_undecidable
+    {T : Type} [Fintype T] [Primcodable T]
+    (hcard : 2 ≤ Fintype.card T) :
+    ¬ ComputableUniversality (CF : Set (Language T))
+      (contextFreeLanguageOf : EncodedCFG T → Language T) := by
+  letI : DecidableEq T := Encodable.decidableEqOfEncodable T
+  obtain ⟨core, hcorePrim, -, hcoreSpec⟩ :=
+    exists_binaryHistoryCompiler
+  have hBoolCard : Fintype.card Bool ≤ Fintype.card T := by
+    simpa using hcard
+  obtain ⟨e⟩ := Function.Embedding.nonempty_of_card_le hBoolCard
   let compile : PartrecCode → EncodedCFG T := fun c =>
     completeAlphabet e (addEpsilonStart (core c))
-  have hePrim : Primrec (e : A → T) := Primrec.dom_finite e
+  have hePrim : Primrec (e : Bool → T) := Primrec.dom_finite e
   have hcompilePrim : Primrec compile :=
     (completeAlphabet_primrec hePrim).comp
       (addEpsilonStart_primrec.comp hcorePrim)

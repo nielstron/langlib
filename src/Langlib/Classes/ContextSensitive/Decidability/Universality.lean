@@ -89,29 +89,23 @@ theorem not_computableUniversality_of_cfg_reduction
   exact hspec c
 
 /-- Context-sensitive universality is undecidable over every effectively
-encoded finite alphabet large enough to contain the one fixed history
-alphabet.  The bound is independent of the target alphabet. -/
-theorem contextSensitive_computableUniversality_undecidable_of_encoding :
-    ∃ n : Nat, ∀ (T : Type) [Fintype T] [DecidableEq T]
-      [Primcodable T], n ≤ Fintype.card T →
-        ¬ ComputableUniversality (CS : Set (Language T))
-          (ContextSensitive.contextSensitiveLanguageOf' :
-            ContextSensitive.CSCode T → Language T) := by
-  obtain ⟨A, hA, hneA, hdA, hpA, core, hcore, hfree, hspec⟩ :=
-    ContextFreeUniversality.exists_nativeHistoryCompiler
-  refine ⟨Fintype.card A, ?_⟩
-  intro B hB hdB hpB hcard
-  letI : Fintype A := hA
-  letI : Nonempty A := hneA
-  letI : DecidableEq A := hdA
-  letI : Primcodable A := hpA
-  let e : A ↪ B := Classical.choice
-    (Function.Embedding.nonempty_of_card_le hcard)
-  let f : A → B := e
-  let g : B → A := Function.invFun f
+encoded finite alphabet with at least two letters. -/
+theorem contextSensitive_computableUniversality_undecidable_of_encoding
+    [Fintype T] (hcard : 2 ≤ Fintype.card T) :
+    ¬ ComputableUniversality (CS : Set (Language T))
+      (ContextSensitive.contextSensitiveLanguageOf' :
+        ContextSensitive.CSCode T → Language T) := by
+  obtain ⟨core, hcore, hfree, hspec⟩ :=
+    ContextFreeUniversality.exists_binaryHistoryCompiler
+  have hBoolCard : Fintype.card Bool ≤ Fintype.card T := by
+    simpa using hcard
+  let e : Bool ↪ T := Classical.choice
+    (Function.Embedding.nonempty_of_card_le hBoolCard)
+  let f : Bool → T := e
+  let g : T → Bool := Function.invFun f
   have hgf : Function.LeftInverse g f :=
     Function.leftInverse_invFun e.injective
-  let liftedCore : PartrecCode → EncodedCFG B :=
+  let liftedCore : PartrecCode → EncodedCFG T :=
     fun c ↦ completeAlphabet f (core c)
   apply not_computableUniversality_of_cfg_reduction liftedCore
   · exact (completeAlphabet_primrec
@@ -124,28 +118,12 @@ theorem contextSensitive_computableUniversality_undecidable_of_encoding :
     exact hspec c
 
 /-- **Universality of encoded context-sensitive grammars is not computable
-over any sufficiently large finite terminal alphabet.**  Every finite target
-type receives its canonical finite code, so no additional alphabet encoding
-assumption appears in the headline statement. -/
-theorem contextSensitive_computableUniversality_undecidable :
-    ∃ n : Nat, ∀ (T : Type) (_ : Fintype T),
-      n ≤ Fintype.card T →
-      letI : DecidableEq T := Classical.decEq T
-      letI : Primcodable T :=
-        Primcodable.ofEquiv (Fin (Fintype.card T))
-          (Fintype.truncEquivFin T).out
-      ¬ ComputableUniversality (CS : Set (Language T))
-        (ContextSensitive.contextSensitiveLanguageOf' :
-          ContextSensitive.CSCode T → Language T) := by
-  obtain ⟨n, hundecidable⟩ :=
-    contextSensitive_computableUniversality_undecidable_of_encoding
-  refine ⟨n, ?_⟩
-  intro T hT hcard
-  letI : Fintype T := hT
-  letI : DecidableEq T := Classical.decEq T
-  letI : Primcodable T :=
-    Primcodable.ofEquiv (Fin (Fintype.card T))
-      (Fintype.truncEquivFin T).out
-  exact hundecidable T hcard
+over any finite terminal alphabet with at least two letters.** -/
+theorem contextSensitive_computableUniversality_undecidable
+    [Fintype T] (hcard : 2 ≤ Fintype.card T) :
+    ¬ ComputableUniversality (CS : Set (Language T))
+      (ContextSensitive.contextSensitiveLanguageOf' :
+        ContextSensitive.CSCode T → Language T) :=
+  contextSensitive_computableUniversality_undecidable_of_encoding hcard
 
 end ContextSensitiveUniversality

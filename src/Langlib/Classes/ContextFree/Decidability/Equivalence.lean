@@ -53,28 +53,13 @@ theorem computableEquivalence_implies_computableUniversality
   exact h.computableUniversality_of_univ_mem universalLanguage_is_CF
 
 /-- **Equivalence of encoded context-free grammars is not computable over any
-sufficiently large finite terminal alphabet.**  The alphabet bound is exactly
-the fixed bound supplied by the native universality reduction. -/
-theorem contextFree_computableEquivalence_undecidable :
-    ∃ n : Nat, ∀ (T : Type) (_ : Fintype T),
-      n ≤ Fintype.card T →
-      letI : DecidableEq T := Classical.decEq T
-      letI : Primcodable T :=
-        Primcodable.ofEquiv (Fin (Fintype.card T))
-          (Fintype.truncEquivFin T).out
-      ¬ ComputableEquivalence (CF : Set (Language T))
-        (contextFreeLanguageOf : EncodedCFG T → Language T) := by
-  obtain ⟨n, huniversality⟩ :=
-    ContextFreeUniversality.contextFree_computableUniversality_undecidable
-  refine ⟨n, ?_⟩
-  intro T hT hcard
-  letI : Fintype T := hT
-  letI : DecidableEq T := Classical.decEq T
-  letI : Primcodable T :=
-    Primcodable.ofEquiv (Fin (Fintype.card T))
-      (Fintype.truncEquivFin T).out
+finite terminal alphabet with at least two letters.** -/
+theorem contextFree_computableEquivalence_undecidable
+    [Fintype T] [Primcodable T] (hcard : 2 ≤ Fintype.card T) :
+    ¬ ComputableEquivalence (CF : Set (Language T))
+      (contextFreeLanguageOf : EncodedCFG T → Language T) := by
   intro hequivalence
-  exact huniversality T hT hcard
+  exact ContextFreeUniversality.contextFree_computableUniversality_undecidable hcard
     (computableEquivalence_implies_computableUniversality hequivalence)
 
 end ContextFreeEquivalence
