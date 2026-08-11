@@ -49,8 +49,8 @@ mismatch* where the two classes differ on a closure operation.
   this differing closure property into proper containment.
   `DPDA_strict_subclass_PDA` transfers this to the automaton classes.
 - **Linear ⊊ CFL** (`Linear_strict_subclass_CF`): the separating language is
-  `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` (`L4`), context-free (`L4_is_CF`, a concatenation of two
-  `{aⁿbⁿ}` blocks) but not linear (`L4_not_is_Linear`, via the
+  `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` (`anbncmdm`), context-free (`anbncmdm_is_CF`, a
+  concatenation of two `{aⁿbⁿ}` blocks) but not linear (`anbncmdm_not_is_Linear`, via the
   [linear pumping lemma](linear-pumping-lemma.html)).
 - **CFL ⊊ Indexed** (`CF_strict_subclass_Indexed`): the separating language is
   `{aⁿbⁿcⁿ}`, indexed (an indexed grammar with a stack-bottom marker forcing each

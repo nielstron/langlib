@@ -1,7 +1,7 @@
 module
 
 public import Langlib.Classes.ContextFree.Definition
-public import Langlib.Examples.L4
+public import Langlib.Examples.AnBnCmDm
 public import Langlib.Examples.AnBn
 import Langlib.Classes.ContextFree.Examples.AnBn
 import Langlib.Classes.ContextFree.Closure.Concatenation
@@ -13,10 +13,11 @@ public section
 
 /-! # `{0ⁿ1ⁿ2ᵐ3ᵐ}` is context-free
 
-`L4` is context-free as a concatenation of two context-free factors `map f4 {aⁿbⁿ}` and
+`anbncmdm` is context-free as a concatenation of two context-free factors
+`map f4 {aⁿbⁿ}` and
 `map g4 {aⁿbⁿ}`. The generic lemma `map_anbn_is_CF` and the membership characterizations
 `mem_map_anbn` / `eq_of_mem_map_anbn` for `map f {aⁿbⁿ}` are exposed because the
-not-linear proof in `Langlib.Classes.Linear.Examples.L4` reuses them.
+not-linear proof in `Langlib.Classes.Linear.Examples.AnBnCmDm` reuses them.
 -/
 
 open Language
@@ -34,7 +35,7 @@ public theorem map_anbn_is_CF (f : Bool → T) : is_CF (Language.map f anbn) := 
   simpa [Language.subst_singletons_eq_map] using hsubst
 
 /-- `{0ⁿ1ⁿ2ᵐ3ᵐ}` is context-free. -/
-public theorem L4_is_CF : is_CF L4 :=
+public theorem anbncmdm_is_CF : is_CF anbncmdm :=
   CF_of_CF_c_CF _ _ ⟨map_anbn_is_CF f4, map_anbn_is_CF g4⟩
 
 /-- `(f false)ᵏ (f true)ᵏ ∈ map f {aⁿbⁿ}`. -/
@@ -50,10 +51,11 @@ public theorem eq_of_mem_map_anbn {f : Bool → T} {s : List T} (hs : s ∈ Lang
   exact ⟨k, by simp [List.map_append, List.map_replicate]⟩
 
 /-- The `Fin 4` witness, relabelled along an embedding, is context-free. -/
-public theorem Lwit_is_CF (e : Fin 4 ↪ T) : is_CF (Language.map e L4) := by
-  have hrw : Language.map e L4
+public theorem map_anbncmdm_is_CF (e : Fin 4 ↪ T) :
+    is_CF (Language.map e anbncmdm) := by
+  have hrw : Language.map e anbncmdm
       = Language.map (e ∘ f4) anbn * Language.map (e ∘ g4) anbn := by
-    rw [L4, map_mul, Language.map_map, Language.map_map]
+    rw [anbncmdm, map_mul, Language.map_map, Language.map_map]
   rw [hrw]
   exact CF_of_CF_c_CF _ _ ⟨map_anbn_is_CF _, map_anbn_is_CF _⟩
 

@@ -60,8 +60,8 @@ and the fresh augmented start rule.
 
 The public equivalence and class equalities are in
 [`Langlib.Grammars.LR.Equivalence`](../../api/Langlib/Grammars/LR/Equivalence.html).
-The two construction directions are exposed by `LRkToDPDA.lean` and
-`DPDAToLR.lean` in the same source directory.
+The two construction directions are exposed by `is_DPDA_of_is_LRk` and
+`is_LRk_one_of_is_DPDA`.
 
 ## Keywords
 

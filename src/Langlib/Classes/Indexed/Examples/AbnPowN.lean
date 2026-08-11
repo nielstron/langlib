@@ -1,7 +1,7 @@
 module
 
-public import Langlib.Classes.Indexed.Examples.IntersectionWitness
 public import Langlib.Classes.Indexed.Basics.Shrinking
+public import Langlib.Examples.AbnPowN
 import Mathlib.Data.List.SplitOn
 import Mathlib.Data.List.Flatten
 
@@ -9,7 +9,7 @@ import Mathlib.Data.List.Flatten
 public section
 
 /-!
-# The diagonal intersection witness is not indexed
+# The diagonal language `{(a b^n)^n | n > 0}` is not indexed
 
 This file applies the one-factor indexed-language shrinking theorem to the
 language `{(a b^n)^n | n > 0}`.  Splitting a word at `a` exposes all complete
@@ -20,8 +20,6 @@ the resulting diagonal word, contradicting the strict decrease in length.
 -/
 
 open List
-
-namespace IndexedIntersectionWitness
 
 private def isA (b : Bool) : Bool := !b
 
@@ -216,15 +214,15 @@ private lemma length_blockPower (n m : Nat) :
       omega
 
 /-- The diagonal language `{(a b^n)^n | n > 0}` is not indexed. -/
-public theorem indexedIntersectionH_notIndexed :
-    ¬ is_Indexed indexedIntersectionH := by
+public theorem abnPowN_not_is_Indexed :
+    ¬ is_Indexed abnPowN := by
   intro hIndexed
   obtain ⟨k, hk, hshrink⟩ :=
     exists_indexedScopedOneFactorShrinking hIndexed
   let n := k + 1
   have hn : 0 < n := by simp [n]
   have hn_gt_k : k < n := by simp [n]
-  have hword : blockPower n n ∈ indexedIntersectionH :=
+  have hword : blockPower n n ∈ abnPowN :=
     ⟨n, hn, rfl⟩
   have hlong : k ≤ (blockPower n n).length := by
     rw [length_blockPower]
@@ -277,7 +275,7 @@ public theorem indexedIntersectionH_notIndexed :
         kept <+ shrinking.factors ∧
         kept.length < shrinking.factors.length ∧
         shrinking.leftContext ++ kept.flatten ++ shrinking.rightContext ∈
-          indexedIntersectionH ∧
+          abnPowN ∧
         factor <:+:
           (shrinking.leftContext ++ kept.flatten ++ shrinking.rightContext) := by
     rcases hfactorCases with hleft | hmiddle | hright
@@ -328,4 +326,4 @@ public theorem indexedIntersectionH_notIndexed :
   subst q
   exact (Nat.ne_of_lt hnewLengthLt) (congrArg List.length hshape)
 
-end IndexedIntersectionWitness
+

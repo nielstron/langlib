@@ -1,7 +1,9 @@
 module
 
 public import Langlib.Classes.Indexed.Closure.Injection
-public import Langlib.Classes.Indexed.Examples.DiagonalNotIndexed
+public import Langlib.Classes.Indexed.Examples.AbnAbStarPowPredN
+public import Langlib.Classes.Indexed.Examples.AbnPowM
+public import Langlib.Classes.Indexed.Examples.AbnPowN
 public import Langlib.Utilities.ClosurePredicates
 import Mathlib.Data.Fintype.EquivFin
 
@@ -13,16 +15,14 @@ public section
 
 Over `Bool`, the indexed languages
 
-* `indexedIntersectionA = {(a b^n)^m | n,m > 0}` and
-* `indexedIntersectionB = {a b^n (a b*)^(n-1) | n > 0}`
+* `abnPowM = {(a b^n)^m | n,m > 0}` and
+* `abnAbStarPowPredN = {a b^n (a b*)^(n-1) | n > 0}`
 
 intersect in the non-indexed diagonal language
-`indexedIntersectionH = {(a b^n)^n | n > 0}`.  Injective terminal relabelling
+`abnPowN = {(a b^n)^n | n > 0}`.  Injective terminal relabelling
 transports this counterexample to every alphabet containing two distinct
 symbols.
 -/
-
-open IndexedIntersectionWitness
 
 namespace IndexedIntersectionNonclosure
 
@@ -45,10 +45,10 @@ intersection. -/
 public theorem Indexed_notClosedUnderIntersection :
     ¬ ClosedUnderIntersection (α := Bool) is_Indexed := by
   intro hclosed
-  apply indexedIntersectionH_notIndexed
-  rw [← indexedIntersectionA_inter_indexedIntersectionB]
-  exact hclosed indexedIntersectionA indexedIntersectionB
-    indexedIntersectionA_isIndexed indexedIntersectionB_isIndexed
+  apply abnPowN_not_is_Indexed
+  rw [← abnPowM_inter_abnAbStarPowPredN]
+  exact hclosed abnPowM abnAbStarPowPredN
+    abnPowM_is_Indexed abnAbStarPowPredN_is_Indexed
 
 /-- An injection of the binary alphabet transports failure of indexed
 intersection closure to the target alphabet. -/
