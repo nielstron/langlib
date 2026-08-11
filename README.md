@@ -14,12 +14,16 @@
 The goal of this library is to encapsulate some core results of the (extended) Chomsky hierarchy: inclusions, closures and decidability.
 The following gives a rough overview over the contents in highly condensed form.
 
-The tables contain standard results. `🔗` indicates that this repository contains a corresponding definition or proof file (possibly for a weaker variant of the result, e.g. ⊊ vs. ⊆ and ⇔ vs. ⇒).
+The tables contain standard results. `🔗` indicates that the linked file
+contains a corresponding definition or theorem stated explicitly for the displayed
+language or presentation classes.
 More detailed results and developed tooling (e.g., Pumping lemmas, Totalizations) can be found in the [documentation](https://nielstron.github.io/langlib/).
 
 ### Hierarchy And Equivalences
 
-Each class of the (extended) hierarchy is charaterized as grammar or automaton (or both, and variants thereof). We show (strict) inclusions of the classes and equivalences between different characterizations.
+Each class of the (extended) hierarchy is characterized as a grammar or automaton
+(or both, and variants thereof). We show (strict) inclusions of the classes and
+equivalences between different characterizations.
 
 In an inclusion row, a link is attached only when the cited file states a theorem
 explicitly for the language or presentation classes displayed in that column. The
@@ -31,7 +35,7 @@ classes.
 | --- | --- | --- | --- |
 | Regular | Regular (Left-regular [🔗](src/Langlib/Grammars/LeftRegular/Definition.lean) ⇔[🔗](src/Langlib/Grammars/LeftRegular/Equivalence/RightRegular.lean) Right-regular [🔗](src/Langlib/Grammars/RightRegular/Definition.lean)) | ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/Regular.lean)| Finite Automata [🔗](src/Langlib/Automata/FiniteState/Definition.lean) (NFA ⇔ [🔗](src/Langlib/Automata/FiniteState/Equivalence/Determinization.lean) DFA) |
 | | ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLR.lean) |  | ⊊ [🔗](src/Langlib/Automata/FiniteState/Inclusion/StrictDeterministicPushdown.lean) |
-| Deterministic context-free | LR(k) [🔗](src/Langlib/Grammars/LR/Definition.lean) | ⇔ [🔗](src/Langlib/Grammars/LR/Equivalence.lean) | Deterministic Pushdown Automata [🔗](src/Langlib/Automata/DeterministicPushdown/Definition.lean) |
+| Deterministic context-free | LR(k), `k > 0` [🔗](src/Langlib/Grammars/LR/Definition.lean) | ⇔ [🔗](src/Langlib/Grammars/LR/Equivalence.lean) | Deterministic Pushdown Automata [🔗](src/Langlib/Automata/DeterministicPushdown/Definition.lean) |
 | | ⊊ [🔗](src/Langlib/Grammars/LR/Inclusion/StrictContextFree.lean) |  | ⊊ [🔗](src/Langlib/Automata/DeterministicPushdown/Inclusion/StrictPushdown.lean) |
 | Context-free | Context-free [🔗](src/Langlib/Grammars/ContextFree/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean) | Pushdown Automata [🔗](src/Langlib/Automata/Pushdown/Definition.lean) (Final State ⇔ [🔗](src/Langlib/Automata/Pushdown/Basics/FinalStateEmptyStack.lean) Empty Stack) |
 | | ⊊ [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) (⊊ CS [🔗](src/Langlib/Classes/ContextFree/Inclusion/StrictContextSensitive.lean))|  | ⊊ |
@@ -39,12 +43,27 @@ classes.
 | | ⊊ [🔗](src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean) |  | ⊊ |
 | Context-sensitive | Context-sensitive [🔗](src/Langlib/Grammars/ContextSensitive/Definition.lean) (Non-erasing ⇔ [🔗](src/Langlib/Grammars/NonContracting/Equivalence/ContextSensitiveGeneral.lean) Non-contracting [🔗](src/Langlib/Grammars/NonContracting/Definition.lean)) | ⇔ [🔗](src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean) | Linear Bounded Automaton [🔗](src/Langlib/Automata/LinearBounded/Definition.lean) (DLBA [🔗](src/Langlib/Automata/DeterministicLinearBounded/Definition.lean) ⇔? NLBA (⊆ [🔗](src/Langlib/Automata/DeterministicLinearBounded/Inclusion/LinearBounded.lean))) |
 |  |  |  | ⊊ [🔗](src/Langlib/Automata/LinearBounded/Inclusion/Recursive.lean) |
-| Recursive |  ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursivelyEnumerable.lean) (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/RecursivelyEnumerable.lean)) | | Turing-machines with halting deciders [🔗](src/Langlib/Classes/Recursive/Definition.lean) |
+| Recursive |  ⊊ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) (⊆ [🔗](src/Langlib/Classes/ContextSensitive/Inclusion/Recursive.lean)) | | Turing-machines with halting deciders [🔗](src/Langlib/Classes/Recursive/Definition.lean) |
 |  |  |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean)  |
 | Recursively Enumerable | Unrestricted [🔗](src/Langlib/Grammars/Unrestricted/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machines [🔗](src/Langlib/Automata/Turing/Definition.lean) |
 
-The strict inclusion Indexed ⊊ CS is formalized for finite alphabets with at least two
-symbols. The underlying inclusion Indexed ⊆ CS
+The `DLBA ⇔? NLBA` entry is the **first LBA problem**, which remains open:
+in complexity terminology it asks whether deterministic and nondeterministic
+linear space have the same power.  Langlib proves the easy `DLBA ⊆ NLBA`
+direction above and the machine-level converse for an NLBA whose transition
+relation is already single-valued
+[🔗](src/Langlib/Automata/LinearBounded/Functional.lean).  The
+Immerman–Szelepcsényi complement construction does not settle this question:
+it constructs another nondeterministic linear-space machine rather than a
+deterministic one.
+
+The strict hierarchy results are uniform over every finite alphabet meeting the
+displayed result's sharp or currently proved size bound: Regular ⊊ LR(k)/DPDA
+requires at least two symbols; LR(k)/DPDA ⊊ CF, CF ⊊ Indexed, and CF ⊊ CS
+are proved for at least three; Indexed ⊊ CS requires at least two; and the
+strict inclusions CS/LBA ⊊ Recursive, CS ⊊ RE, and Recursive ⊊ RE require
+a nonempty alphabet.
+The underlying inclusion Indexed ⊆ CS
 [🔗](src/Langlib/Classes/Indexed/Inclusion/ContextSensitive.lean) holds over every
 terminal type.
 
@@ -109,14 +128,16 @@ uniformly recursively enumerable; this prevents the semantic decoding map itself
 from hiding a non-r.e. membership oracle.
 
 The remaining columns use the corresponding uniform emptiness, universality, and
-equivalence problems for the indicated standard presentation.
+equivalence problems for the concrete presentation named by each linked theorem.
+In particular, the deterministic context-free membership and emptiness proofs use
+encoded grammars, while its universality proof uses promised-total encoded DPDAs.
 
 | Language | Membership | Emptiness | Universality | Equivalence |
 | --- | --- | --- | --- | --- |
 | Regular | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/Regular/Decidability/Equivalence.lean) |
-| Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Emptiness.lean) | ✓ | ✓ |
-| Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ | ✗ |
-| Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ | ✗ | ✗ |
+| Deterministic context-free | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Emptiness.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Universality.lean) | ✓ [🔗](src/Langlib/Classes/DeterministicContextFree/Decidability/Equivalence.lean) |
+| Context-free | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Membership.lean) | ✓ [🔗](src/Langlib/Classes/ContextFree/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/ContextFree/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/ContextFree/Decidability/Equivalence.lean) |
+| Context-sensitive | ✓ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Characterization.lean) | ✗ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/ContextSensitive/Decidability/Equivalence.lean) |
 | Recursive | ✓ [🔗](src/Langlib/Classes/Recursive/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/Recursive/Decidability/Equivalence.lean) |
 | Recursively enumerable | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Membership.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Emptiness.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Universality.lean) | ✗ [🔗](src/Langlib/Classes/RecursivelyEnumerable/Decidability/Equivalence.lean) |
 

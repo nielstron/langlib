@@ -34,10 +34,12 @@ public import Langlib.Classes.ContextFree.Closure.UnionBonus
 public import Langlib.Classes.ContextFree.Closure.UnionBonus2
 public import Langlib.Classes.ContextFree.Decidability.Characterization
 public import Langlib.Classes.ContextFree.Decidability.Emptiness
+public import Langlib.Classes.ContextFree.Decidability.Equivalence
 public import Langlib.Classes.ContextFree.Decidability.Helper
 public import Langlib.Classes.ContextFree.Decidability.Membership
 public import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep
 public import Langlib.Classes.ContextFree.Decidability.UniformMembership
+public import Langlib.Classes.ContextFree.Decidability.Universality
 public import Langlib.Classes.ContextFree.Definition
 public import Langlib.Classes.ContextFree.Examples.A2nBn
 public import Langlib.Classes.ContextFree.Examples.A2nBnPos
@@ -93,7 +95,10 @@ public import Langlib.Classes.ContextSensitive.Closure.Star
 public import Langlib.Classes.ContextSensitive.Closure.Substitution
 public import Langlib.Classes.ContextSensitive.Closure.Union
 public import Langlib.Classes.ContextSensitive.Decidability.Characterization
+public import Langlib.Classes.ContextSensitive.Decidability.Emptiness
+public import Langlib.Classes.ContextSensitive.Decidability.Equivalence
 public import Langlib.Classes.ContextSensitive.Decidability.Membership
+public import Langlib.Classes.ContextSensitive.Decidability.Universality
 public import Langlib.Classes.ContextSensitive.Definition
 public import Langlib.Classes.ContextSensitive.Examples.AnBnCn
 public import Langlib.Classes.ContextSensitive.Examples.SingletonWord
@@ -101,6 +106,7 @@ public import Langlib.Classes.ContextSensitive.Inclusion.Recursive
 public import Langlib.Classes.ContextSensitive.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.ContextSensitive.Inclusion.StrictRecursive
 public import Langlib.Classes.ContextSensitive.Inclusion.StrictRecursivelyEnumerable
+public import Langlib.Classes.DeterministicContextFree.Basics.EncodedDPDA
 public import Langlib.Classes.DeterministicContextFree.Closure.Bijection
 public import Langlib.Classes.DeterministicContextFree.Closure.Complement
 public import Langlib.Classes.DeterministicContextFree.Closure.Concatenation
@@ -116,7 +122,9 @@ public import Langlib.Classes.DeterministicContextFree.Closure.Substitution
 public import Langlib.Classes.DeterministicContextFree.Closure.Union
 public import Langlib.Classes.DeterministicContextFree.Closure.UnionRegular
 public import Langlib.Classes.DeterministicContextFree.Decidability.Emptiness
+public import Langlib.Classes.DeterministicContextFree.Decidability.Equivalence
 public import Langlib.Classes.DeterministicContextFree.Decidability.Membership
+public import Langlib.Classes.DeterministicContextFree.Decidability.Universality
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Classes.DeterministicContextFree.Examples.A2nBnPosStar
 public import Langlib.Classes.DeterministicContextFree.Examples.AbcPositive

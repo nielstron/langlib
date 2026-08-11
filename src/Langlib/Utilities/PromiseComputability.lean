@@ -94,6 +94,56 @@ public theorem ComputablePredOnPromise.toComputablePred
     rw [← htrue]
     exact Part.get_mem (hdom c)
 
+/-- Pull a promise-computable predicate back along a computable map whose
+outputs all satisfy the promise.  The source predicate is ordinarily
+computable because the promised evaluator is total on every compiled input. -/
+public theorem ComputablePredOnPromise.pullback
+    [Primcodable Code] [Primcodable Input]
+    {valid predicate : Code → Prop}
+    (h : ComputablePredOnPromise valid predicate)
+    {compile : Input → Code} (hcompile : Computable compile)
+    (hvalid : ∀ x, valid (compile x)) :
+    ComputablePred (fun x ↦ predicate (compile x)) := by
+  obtain ⟨eval, heval, hspec⟩ := h
+  let run : Input →. Bool := fun x ↦ eval (compile x)
+  have hrun : Partrec run := heval.comp hcompile
+  have hdom (x : Input) : (run x).Dom :=
+    (hspec (compile x) (hvalid x)).1
+  let decide : Input → Bool := fun x ↦ (run x).get (hdom x)
+  have hdecide : Computable decide :=
+    hrun.of_eq_tot fun x ↦ Part.get_mem (hdom x)
+  apply ComputablePred.computable_iff.mpr
+  refine ⟨decide, hdecide, ?_⟩
+  funext x
+  apply propext
+  rw [(hspec (compile x) (hvalid x)).2]
+  constructor
+  · intro htrue
+    exact Part.mem_unique (Part.get_mem (hdom x)) htrue
+  · intro htrue
+    rw [← htrue]
+    exact Part.get_mem (hdom x)
+
+/-- A computable family of promised codes on which the target predicate is
+equivalent to nonhalting rules out a promise decision procedure.  This is the
+standard reduction pattern used by the semantic decision-problem results. -/
+public theorem ComputablePredOnPromise.not_of_computable_nonhalting_reduction
+    [Primcodable Code]
+    {valid predicate : Code → Prop}
+    (compile : Nat.Partrec.Code → Code) (hcompile : Computable compile)
+    (hvalid : ∀ c, valid (compile c)) (input : ℕ)
+    (hspec : ∀ c, predicate (compile c) ↔ ¬ (c.eval input).Dom) :
+    ¬ ComputablePredOnPromise valid predicate := by
+  intro hdecide
+  have hcompiled : ComputablePred (fun c : Nat.Partrec.Code ↦
+      predicate (compile c)) :=
+    hdecide.pullback hcompile hvalid
+  have hnonhalting : ComputablePred (fun c : Nat.Partrec.Code ↦
+      ¬ (c.eval input).Dom) :=
+    hcompiled.of_eq hspec
+  apply ComputablePred.halting_problem input
+  exact hnonhalting.not.of_eq fun _ ↦ not_not
+
 /-- With the trivial promise, `ComputablePredOnPromise` is exactly
 `ComputablePred`. -/
 public theorem computablePredOnPromise_true_iff

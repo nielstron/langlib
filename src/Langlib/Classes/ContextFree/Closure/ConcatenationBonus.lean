@@ -1004,6 +1004,15 @@ by
       exact lift_deri hv
 
 
+/-- The direct combined grammar denotes exactly language concatenation. -/
+theorem CF_language_combined_grammar (g₁ g₂ : CF_grammar T) :
+    CF_language (combined_grammar g₁ g₂) =
+      CF_language g₁ * CF_language g₂ := by
+  ext w
+  constructor
+  · exact in_concatenated_of_in_combined
+  · exact in_combined_of_in_concatenated
+
 /-- An explicit grammar construction witnessing closure of context-free languages under
 concatenation. -/
 theorem bonus_CF_of_CF_c_CF (L₁ : Language T) (L₂ : Language T) :

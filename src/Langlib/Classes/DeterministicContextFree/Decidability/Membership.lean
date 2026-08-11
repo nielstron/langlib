@@ -14,11 +14,11 @@ public section
 
 /-! # Computability of Membership for Deterministic Context-Free Languages
 
-Membership here is the joint problem specified by a grammar code and a word.  Since
-the repository does not yet have an `EncodedDPDA`, we use raw `EncodedCFG` codes and
-the semantic promise that the grammar's language is deterministic context-free.  The
-existing CYK algorithm is total on every encoded CFG, and therefore uniformly decides
-membership on the promised DCFL codes in particular.
+Membership here is the joint problem specified by a grammar code and a word.  We use
+raw `EncodedCFG` codes with the semantic promise that the grammar's language is
+deterministic context-free.  (The separate automaton-level universality development
+uses `EncodedDPDA`.)  The existing CYK algorithm is total on every encoded CFG, and
+therefore uniformly decides membership on the promised DCFL codes in particular.
 
 ## Main results
 

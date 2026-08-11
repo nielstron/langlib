@@ -50,6 +50,7 @@ public import Langlib.Automata.LinearBounded.CertifiedRowSystem.Determinize
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem.LBA
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem
 public import Langlib.Automata.LinearBounded.Complement
+public import Langlib.Automata.LinearBounded.ConfigurationEncoding
 public import Langlib.Automata.LinearBounded.Definition
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Completeness
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Construction
@@ -62,6 +63,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Completeness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Soundness
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG
 public import Langlib.Automata.LinearBounded.FiniteReachabilityCounting
+public import Langlib.Automata.LinearBounded.Functional
 public import Langlib.Automata.LinearBounded.Inclusion.Recursive
 public import Langlib.Automata.LinearBounded.Inclusion.TuringMachine
 public import Langlib.Automata.LinearBounded.Packing
