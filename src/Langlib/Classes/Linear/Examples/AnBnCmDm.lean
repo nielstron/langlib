@@ -3,8 +3,8 @@ module
 public import Langlib.Classes.Linear.Inclusion.ContextFree
 public import Langlib.Classes.Linear.Pumping.Pumping
 public import Langlib.Classes.Linear.Basics.Map
-public import Langlib.Examples.L4
-public import Langlib.Classes.ContextFree.Examples.L4
+public import Langlib.Examples.AnBnCmDm
+public import Langlib.Classes.ContextFree.Examples.AnBnCmDm
 import Mathlib.Tactic.FinCases
 import Mathlib.Logic.Embedding.Basic
 @[expose]
@@ -14,7 +14,8 @@ public section
 
 The linear pumping lemma confines the pumped pieces to the two ends of the witness
 `{0ⁿ1ⁿ2ᵐ3ᵐ}`, so pumping breaks one of the two independent `aⁿbⁿ` matchings
-(`L4_not_is_Linear`). The relabelled version `Lwit_not_is_Linear` follows because
+(`anbncmdm_not_is_Linear`). The relabelled version `map_anbncmdm_not_is_Linear`
+follows because
 linearity reflects along injective terminal maps.
 -/
 
@@ -23,13 +24,13 @@ open Language List
 variable {T : Type}
 
 /-- `{0ⁿ1ⁿ2ᵐ3ᵐ}` is not linear. -/
-public theorem L4_not_is_Linear : ¬ is_Linear L4 := by
+public theorem anbncmdm_not_is_Linear : ¬ is_Linear anbncmdm := by
   intro hLin
   obtain ⟨p, hp⟩ := is_Linear.pumping hLin
   set w : List (Fin 4) :=
     List.replicate p 0 ++ List.replicate p 1 ++ List.replicate p 2 ++ List.replicate p 3 with hw
   -- the witness word is in the language
-  have hwmem : w ∈ L4 := by
+  have hwmem : w ∈ anbncmdm := by
     have hsplit : w = (List.replicate p 0 ++ List.replicate p 1) ++
         (List.replicate p 2 ++ List.replicate p 3) := by rw [hw]; simp [List.append_assoc]
     rw [hsplit]
@@ -77,7 +78,7 @@ public theorem L4_not_is_Linear : ¬ is_Linear L4 := by
     have hmem : e ∈ (y ++ z).reverse := List.mem_reverse.2 (List.mem_append.2 (Or.inl he))
     exact List.eq_of_mem_replicate (heq ▸ hmem)
   -- the pumped-down word and its membership
-  have huxz : u ++ x ++ z ∈ L4 := by
+  have huxz : u ++ x ++ z ∈ anbncmdm := by
     have := hpump 0
     simpa [nTimes] using this
   obtain ⟨s, hs, t, ht, hst⟩ := Language.mem_mul.1 huxz
@@ -120,8 +121,9 @@ public theorem L4_not_is_Linear : ¬ is_Linear L4 := by
   have hvy' : v.length + y.length > 0 := by simpa [List.length_append] using hvy
   omega
 
-/-- The relabelled witness is not linear: linearity would reflect back to `L4`. -/
-public theorem Lwit_not_is_Linear (e : Fin 4 ↪ T) : ¬ is_Linear (Language.map e L4) :=
-  fun h => L4_not_is_Linear (is_Linear_of_map_injective e.injective h)
+/-- The relabelled witness is not linear: linearity would reflect back to `anbncmdm`. -/
+public theorem map_anbncmdm_not_is_Linear (e : Fin 4 ↪ T) :
+    ¬ is_Linear (Language.map e anbncmdm) :=
+  fun h => anbncmdm_not_is_Linear (is_Linear_of_map_injective e.injective h)
 
 end

@@ -26,7 +26,7 @@ of a linear grammar produces.
 
 - [`is_Linear.pumping`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Pumping/Pumping.lean) — the pumping lemma.
 - [`Spine`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Pumping/Spine.lean) — the reified single-nonterminal derivation, with soundness/completeness against `grammar_derives`.
-- [`L4_not_is_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) — the concrete witness `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` is not linear.
+- [`anbncmdm_not_is_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Examples/AnBnCmDm.lean) — the concrete witness `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` is not linear.
 - [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) and [`Linear_strict_subclass_CF_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) — `Linear ⊊ CF` over `Fin 4`, and over any alphabet with `4 ≤ Fintype.card T`.
 - [`Linear_not_closedUnderConcatenation`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Closure/Concatenation.lean) — corollary: `Linear` is not closed under concatenation (`{0ⁿ1ⁿ}·{2ᵐ3ᵐ}` is not linear).
 
@@ -50,13 +50,13 @@ The segment between them is the self-embedding `C ⇒* v·C·y`; `pump_derives`
 iterates it, and reassembling the top/inner derivations gives
 `u vⁱ x yⁱ z ∈ L`. The bound `cnt j ≤ p` is exactly `|u v y z| ≤ p`.
 
-To separate `Linear` from `CF`, the witness `L4 = {0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` is
-defined as `map f4 anbn * map g4 anbn` and is context-free (`L4_is_CF`, closure of
+To separate `Linear` from `CF`, the witness `anbncmdm = {0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` is
+defined as `map f4 anbn * map g4 anbn` and is context-free (`anbncmdm_is_CF`, closure of
 `CF` under concatenation). Applying the pumping lemma to `0ᵖ1ᵖ2ᵖ3ᵖ`, the outer
 bound `|u v y z| ≤ p` confines `v` to the leading `0`-block and `y` to the trailing
 `3`-block (`hv0`, `hy3`). Pumping down to `i = 0` deletes `v` and `y` while leaving
 the `1`- and `2`-blocks untouched, so the symbol counts force `|v| = 0` and
-`|y| = 0`, contradicting `v y` nonempty (`L4_not_is_Linear`). The result transports
+`|y| = 0`, contradicting `v y` nonempty (`anbncmdm_not_is_Linear`). The result transports
 to any alphabet with `4 ≤ Fintype.card T` by relabelling along an embedding
 (`Linear_strict_subclass_CF_of_card`, using `is_Linear_of_map_injective`).
 This concrete witness also shows that linear languages are not closed under concatenation, since {0ⁿ1ⁿ} and {2ᵐ3ᵐ} are both linear.

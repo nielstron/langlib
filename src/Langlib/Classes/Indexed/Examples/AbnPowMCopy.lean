@@ -1,20 +1,28 @@
 module
 
-public import Langlib.Classes.Indexed.Examples.IntersectionWitness
+public import Langlib.Classes.Indexed.Closure.Concatenation
+public import Langlib.Classes.Indexed.Closure.Injection
+public import Langlib.Classes.Indexed.Closure.Reverse
+public import Langlib.Classes.Indexed.Examples.AbnAbStarPowPredN
+public import Langlib.Classes.Indexed.Examples.SingletonWord
+public import Langlib.Examples.AbnPowMCopy
 import Langlib.Utilities.Tactics
 
 @[expose]
 public section
 
 /-!
-# A balanced-copy indexed language for the quotient counterexample
+# The balanced-copy quotient witnesses are indexed
 
 Let `A = {(a b^n)^m | n,m > 0}` be the first intersection witness.  This
 file constructs an indexed grammar for
 
 `{ code(w) # reverse(code(w)) | w ∈ A }`.
 
-The grammar chooses the common `b`-run length on its flag stack.  A recursive
+The numerator and denominator languages are defined in
+`Langlib.Examples.AbnPowMCopy`.  This file proves that both are
+indexed.  For the numerator, the grammar chooses the common `b`-run length
+on its flag stack.  A recursive
 nonterminal then emits matched block generators on the two sides of the
 separator.  Every nonterminal created by an indexed production receives the
 same stack, so the two halves agree without putting an oracle into the
@@ -22,28 +30,6 @@ language representation.
 -/
 
 open List
-
-namespace IndexedIntersectionWitness
-
-/-- Three-letter alphabet used to separate the copied halves. -/
-public inductive CopyLetter where
-  | a | b | separator
-deriving DecidableEq, Fintype, Inhabited
-
-/-- Embed the binary witness alphabet into the copy alphabet. -/
-public def copyCode : Bool → CopyLetter
-  | false => .a
-  | true => .b
-
-public theorem copyCode_injective : Function.Injective copyCode := by
-  intro x y h
-  cases x <;> cases y <;> simp [copyCode] at h ⊢
-
-/-- The numerator of the indexed right-quotient witness. -/
-public def indexedCopyNumerator : Language CopyLetter := fun w =>
-  ∃ n m : Nat, 0 < n ∧ 0 < m ∧
-    w = (blockPower n m).map copyCode ++
-      [.separator] ++ (blockPower n m).reverse.map copyCode
 
 public inductive CopyNT where
   | S | X | Z | W | Y | P | Q
@@ -54,7 +40,7 @@ public inductive CopyFlag where
 deriving DecidableEq
 
 /-- Indexed grammar producing a word from `A`, a separator, and its reversal. -/
-public def grammarIndexedCopyNumerator : IndexedGrammar CopyLetter where
+public def grammarAbnPowMCopy : IndexedGrammar CopyLetter where
   nt := CopyNT
   flag := CopyFlag
   initial := .S
@@ -82,7 +68,7 @@ public def grammarIndexedCopyNumerator : IndexedGrammar CopyLetter where
     { lhs := .Q, consume := some .bottom, rhs := [.terminal .a] }
   ]
 
-private abbrev CG := grammarIndexedCopyNumerator
+private abbrev CG := grammarAbnPowMCopy
 private abbrev cS (s : List CopyFlag) : CG.ISym := .indexed .S s
 private abbrev cX (s : List CopyFlag) : CG.ISym := .indexed .X s
 private abbrev cZ (s : List CopyFlag) : CG.ISym := .indexed .Z s
@@ -130,20 +116,20 @@ private lemma reverse_map_copyCode_blockPower (n m : Nat) :
 private lemma cStepS : CG.Transforms [cS []] [cX (cStack 0)] := by
   refine ⟨⟨.S, none, [.nonterminal .X (some .bottom)]⟩,
     [], [], [], ?_, rfl, ?_⟩
-  · simp [grammarIndexedCopyNumerator]
+  · simp [grammarAbnPowMCopy]
   · simp [IndexedGrammar.expandRhs, cStack]
 
 private lemma cStepX : CG.Transforms [cX (cStack 0)] [cZ (cStack 1)] := by
   refine ⟨⟨.X, none, [.nonterminal .Z (some .count)]⟩,
     [], [], cStack 0, ?_, rfl, ?_⟩
-  · simp [grammarIndexedCopyNumerator]
+  · simp [grammarAbnPowMCopy]
   · simp [IndexedGrammar.expandRhs, cStack, replicate_succ]
 
 private lemma cPushZ (n : Nat) :
     CG.Transforms [cZ (cStack n)] [cZ (cStack (n + 1))] := by
   refine ⟨⟨.Z, none, [.nonterminal .Z (some .count)]⟩,
     [], [], cStack n, ?_, rfl, ?_⟩
-  · simp [grammarIndexedCopyNumerator]
+  · simp [grammarAbnPowMCopy]
   · simp [IndexedGrammar.expandRhs, cStack_succ]
 
 private lemma cPushZMany (n : Nat) :
@@ -157,7 +143,7 @@ private lemma cStartPairs (n : Nat) :
       [cY (cStack n), cW (cStack n), cQ (cStack n)] := by
   refine ⟨⟨.Z, none, [.nonterminal .Y none, .nonterminal .W none,
     .nonterminal .Q none]⟩, [], [], cStack n, ?_, rfl, ?_⟩
-  · simp [grammarIndexedCopyNumerator]
+  · simp [grammarAbnPowMCopy]
   · simp [IndexedGrammar.expandRhs]
 
 private lemma cExpandW (n : Nat) :
@@ -165,7 +151,7 @@ private lemma cExpandW (n : Nat) :
       [cY (cStack n), cW (cStack n), cQ (cStack n)] := by
   refine ⟨⟨.W, none, [.nonterminal .Y none, .nonterminal .W none,
     .nonterminal .Q none]⟩, [], [], cStack n, ?_, rfl, ?_⟩
-  · simp [grammarIndexedCopyNumerator]
+  · simp [grammarAbnPowMCopy]
   · simp [IndexedGrammar.expandRhs]
 
 private lemma cExpandWMany (n k : Nat) :
@@ -191,7 +177,7 @@ private lemma cStopW (n : Nat) :
     CG.Transforms [cW (cStack n)] [csep] := by
   refine ⟨⟨.W, none, [.terminal .separator]⟩,
     [], [], cStack n, ?_, rfl, ?_⟩
-  · simp [grammarIndexedCopyNumerator]
+  · simp [grammarAbnPowMCopy]
   · simp [IndexedGrammar.expandRhs]
 
 private lemma cConsumeP (n : Nat) :
@@ -200,14 +186,14 @@ private lemma cConsumeP (n : Nat) :
   | zero =>
       exact Relation.ReflTransGen.single
         ⟨⟨.P, some .bottom, []⟩, [], [], [], by
-          simp [grammarIndexedCopyNumerator], by simp [cStack], by
+          simp [grammarAbnPowMCopy], by simp [cStack], by
           simp [IndexedGrammar.expandRhs]⟩
   | succ n ih =>
       apply IndexedGrammar.deri_of_tran_deri
       · refine ⟨⟨.P, some .count,
           [.terminal .b, .nonterminal .P none]⟩,
           [], [], cStack n, ?_, ?_, rfl⟩
-        · simp [grammarIndexedCopyNumerator]
+        · simp [grammarAbnPowMCopy]
         · simp [cStack_succ]
       · convert IndexedGrammar.deri_with_prefix [cb] ih using 1 <;>
           simp [replicate_succ]
@@ -218,14 +204,14 @@ private lemma cConsumeQ (n : Nat) :
   | zero =>
       exact Relation.ReflTransGen.single
         ⟨⟨.Q, some .bottom, [.terminal .a]⟩,
-          [], [], [], by simp [grammarIndexedCopyNumerator], by simp [cStack], by
+          [], [], [], by simp [grammarAbnPowMCopy], by simp [cStack], by
           simp [IndexedGrammar.expandRhs]⟩
   | succ n ih =>
       apply IndexedGrammar.deri_of_tran_deri
       · refine ⟨⟨.Q, some .count,
           [.terminal .b, .nonterminal .Q none]⟩,
           [], [], cStack n, ?_, ?_, rfl⟩
-        · simp [grammarIndexedCopyNumerator]
+        · simp [grammarAbnPowMCopy]
         · simp [cStack_succ]
       · convert IndexedGrammar.deri_with_prefix [cb] ih using 1 <;>
           simp [replicate_succ, List.append_assoc]
@@ -236,7 +222,7 @@ private lemma cGenerateY (n : Nat) :
   apply IndexedGrammar.deri_of_tran_deri
   · refine ⟨⟨.Y, none, [.terminal .a, .nonterminal .P none]⟩,
       [], [], cStack n, ?_, rfl, rfl⟩
-    · simp [grammarIndexedCopyNumerator]
+    · simp [grammarAbnPowMCopy]
   · convert IndexedGrammar.deri_with_prefix [ca] (cConsumeP n) using 1 <;>
       simp [copiedBlock, replicate_succ]
 
@@ -331,8 +317,8 @@ private lemma cGeneratePairForm (n m : Nat) :
     (by simpa [left, List.append_assoc] using hleft)
     (by simpa [left, right, List.map_append, List.append_assoc] using hright)
 
-private lemma indexedCopyNumerator_subset_grammar :
-    indexedCopyNumerator ≤ CG.Language := by
+private lemma abnPowMCopy_subset_grammar :
+    abnPowMCopy ≤ CG.Language := by
   rintro w ⟨n, m, hn, hm, rfl⟩
   obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hn)
   obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hm)
@@ -456,7 +442,7 @@ private lemma cRuleSound (r : IRule CopyLetter CopyNT CopyFlag)
     (h : cFormSem (CG.expandRhs r.rhs s) w) :
     cSymSem (.indexed r.lhs
       (match r.consume with | none => s | some f => f :: s)) w := by
-  simp only [grammarIndexedCopyNumerator, List.mem_cons, List.not_mem_nil,
+  simp only [grammarAbnPowMCopy, List.mem_cons, List.not_mem_nil,
     or_false] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl
@@ -594,8 +580,8 @@ private lemma cDerives_sound {x y : List CG.ISym}
   | refl => exact hy
   | tail _ ht ih => exact ih (cTransforms_sound ht hy)
 
-private lemma grammar_subset_indexedCopyNumerator :
-    CG.Language ≤ indexedCopyNumerator := by
+private lemma grammar_subset_abnPowMCopy :
+    CG.Language ≤ abnPowMCopy := by
   intro w hw
   have hs := cDerives_sound hw (cFormSem_terminals w)
   rw [cFormSem_singleton] at hs
@@ -605,14 +591,21 @@ private lemma grammar_subset_indexedCopyNumerator :
   exact ⟨n, m, by omega, hm, rfl⟩
 
 /-- The balanced-copy grammar generates exactly the numerator witness. -/
-public theorem grammarIndexedCopyNumerator_language :
-    grammarIndexedCopyNumerator.Language = indexedCopyNumerator := by
-  exact le_antisymm grammar_subset_indexedCopyNumerator
-    indexedCopyNumerator_subset_grammar
+public theorem grammarAbnPowMCopy_language :
+    grammarAbnPowMCopy.Language = abnPowMCopy := by
+  exact le_antisymm grammar_subset_abnPowMCopy
+    abnPowMCopy_subset_grammar
 
 /-- The balanced-copy numerator is indexed. -/
-public theorem indexedCopyNumerator_isIndexed :
-    is_Indexed indexedCopyNumerator :=
-  ⟨grammarIndexedCopyNumerator, grammarIndexedCopyNumerator_language⟩
+public theorem abnPowMCopy_is_Indexed :
+    is_Indexed abnPowMCopy :=
+  ⟨grammarAbnPowMCopy, grammarAbnPowMCopy_language⟩
 
-end IndexedIntersectionWitness
+/-- The quotient denominator is indexed. -/
+public theorem abnPowMCopyDenominator_is_Indexed :
+    is_Indexed abnPowMCopyDenominator := by
+  apply Indexed_closedUnderConcatenation
+  · exact singletonWordLanguage_is_Indexed [CopyLetter.separator]
+  · apply Indexed_closedUnderReverse
+    exact Indexed_of_map_injective_Indexed copyCode_injective
+      abnAbStarPowPredN abnAbStarPowPredN_is_Indexed
