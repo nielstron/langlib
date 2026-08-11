@@ -227,7 +227,7 @@ def is_path_like(s: str) -> bool:
 
 def linkable(name: str, index: dict) -> bool:
     """A token is linkable iff it names a declaration unambiguously and is not a bare
-    single-letter variable. Multi-character declarations (CS, LBA, RE, CF, L4, ...) link;
+    single-letter variable. Multi-character declarations (CS, LBA, RE, CF, anbncmdm, ...) link;
     single letters (M, D, f, R, L, ...) — almost always bound variables — do not."""
     if name not in index or is_path_like(name):
         return False

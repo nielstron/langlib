@@ -12,6 +12,7 @@ public import Langlib.Grammars.ContextSensitive.Definition
 public import Langlib.Grammars.ContextSensitive.Toolbox
 public import Langlib.Grammars.Indexed.Basics.FiniteSupport
 public import Langlib.Grammars.Indexed.Basics.Higman
+public import Langlib.Grammars.Indexed.Basics.MarkedHigman
 public import Langlib.Grammars.Indexed.Definition
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Compression
 public import Langlib.Grammars.Indexed.NormalForm.Aho.Inclusion
@@ -82,6 +83,10 @@ public import Langlib.Grammars.Indexed.NormalForm.FreshStart
 public import Langlib.Grammars.Indexed.NormalForm.NormalForm
 public import Langlib.Grammars.Indexed.NormalForm.ParseTree
 public import Langlib.Grammars.Indexed.NormalForm.TerminalIsolation
+public import Langlib.Grammars.Indexed.Shrinking.Basis
+public import Langlib.Grammars.Indexed.Shrinking.Critical
+public import Langlib.Grammars.Indexed.Shrinking.Scope
+public import Langlib.Grammars.Indexed.Shrinking.Shrinking
 public import Langlib.Grammars.LR.Definition
 public import Langlib.Grammars.LR.Equivalence.Automaton
 public import Langlib.Grammars.LR.Equivalence.BufferCorrectness
