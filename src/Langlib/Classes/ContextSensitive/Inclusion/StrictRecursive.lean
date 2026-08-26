@@ -7,6 +7,7 @@ public section
 
 
 
+
 /-! # Strict Inclusion: CS ⊊ Recursive
 
 Context-sensitive languages form a *strict* subclass of the recursive languages.
@@ -61,7 +62,9 @@ public theorem diagonal_strict
     obtain ⟨u, hu⟩ := hsurj D hCS
     have hfu : f u = cond (mem u u) false true := by rw [hf_def]
     have key : u ∈ D ↔ u ∉ e u := by
-      rw [hD_def, Set.mem_setOf_eq, hfu, ← hmem u u]
+      rw [hD_def]
+      change (f u = true) ↔ u ∉ e u
+      rw [hfu, ← hmem u u]
       cases mem u u <;> simp
     rw [hu] at key
     exact iff_not_self key
@@ -113,7 +116,10 @@ public theorem enum_covers_CS [DecidableEq T] [Fintype T] [Primcodable T] [Nonem
   obtain ⟨u, hu⟩ := decodeCode_surj c
   refine ⟨u, ?_⟩
   have h1 : enumLang u = {v | memCode c v = true} := by
-    rw [enumLang]; ext w; rw [Set.mem_setOf_eq, Set.mem_setOf_eq, memOracle, hu]
+    rw [enumLang]
+    ext w
+    change (memOracle u w = true) ↔ memCode c w = true
+    rw [memOracle, hu]
   rw [h1]
   ext v
   exact ⟨fun hm => memCode_sound c v hm, fun hv => memCode_complete c v hcs hv⟩

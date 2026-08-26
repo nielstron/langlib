@@ -108,7 +108,8 @@ public theorem splitRightInterval_of_anchor_data (M : DPDA Q T S)
   have hprefix' := (PDA.unconsumed_input_N
     (pda := emptyStackPDA M) leftWord).mp hprefix
   subst completedWord
-  simpa [PDA.conf.appendInput, List.append_assoc] using hprefix'
+  simpa [PDA.conf.appendInput, spineCutState, spineCutStack,
+    List.append_assoc] using hprefix'
 
 /-- The exhaustive relative order of two positive half-open return
 intervals `[start, start + length]`.  Equal starts and equal finishes are

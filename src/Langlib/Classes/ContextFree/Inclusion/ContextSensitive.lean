@@ -62,6 +62,7 @@ def CF_no_epsilon' (g : CF_grammar T) : Prop :=
 
 /-- Convert a context-free grammar without ε-productions to a context-sensitive grammar.
     The CS rules have empty context (α = β = []) and γ = rule output. -/
+@[reducible]
 def csg_of_cfg (g : CF_grammar T) (hne : CF_no_epsilon' g) : CS_grammar T where
   nt := g.nt
   initial := g.initial
@@ -78,7 +79,7 @@ private lemma grammar_of_cfg_well_defined (g : CF_grammar T) (hne : CF_no_epsilo
 by
   cases g with
   | mk nt initial rules =>
-    simp [grammar_of_csg, csg_of_cfg, grammar_of_cfg, List.map_map, List.append_nil]
+    simp [grammar_of_csg, csg_of_cfg, grammar_of_cfg, List.map_map]
 
 lemma CF_language_eq_CS_language (g : CF_grammar T) (hne : CF_no_epsilon' g) :
   CF_language g = CS_language (csg_of_cfg g hne) :=
@@ -111,10 +112,8 @@ by
           show _ ∈ (csg_of_cfg g hne).rules
           change _ ∈ List.map _ g.rules
           exact List.mem_map.mpr ⟨r, rin, rfl⟩
-        ·
-          simpa [List.append_nil] using bef
-        ·
-          simpa [List.append_nil] using aft
+        · exact bef.trans (by simp)
+        · exact aft.trans (by simp)
     exact indu (List.map symbol.terminal w)
   ·
     have indu :
@@ -136,8 +135,8 @@ by
         rw [← r_eq] at bef aft
         simp at bef aft
         refine ⟨r₀, u, w, r₀_in, ?_, ?_⟩
-        · simpa [List.singleton_append] using bef
-        · simpa [List.append_assoc] using aft
+        · exact bef.trans (by simp)
+        · exact aft.trans (by simp)
     exact indu (List.map symbol.terminal w)
 
 /-- Context-free languages are context-sensitive.
@@ -152,11 +151,13 @@ theorem is_CS_of_is_CF {L : Language T} (h : is_CF L) : is_CS L := by
   obtain ⟨g, rfl⟩ := h
   -- An ε-free context-free grammar for `g.language \ {[]}`, as a Langlib `CF_grammar`.
   have heps : CF_no_epsilon' (cfg_of_mathlib_cfg g.eliminateEmpty) := by
+    unfold CF_no_epsilon' cfg_of_mathlib_cfg ContextFreeGrammar.eliminateEmpty
     intro r hr
-    simp only [cfg_of_mathlib_cfg, ContextFreeGrammar.eliminateEmpty, List.mem_map,
-      Finset.mem_toList] at hr
-    obtain ⟨r', hr', rfl⟩ := hr
-    have hne : r'.output ≠ [] := ContextFreeGrammar.output_mem_removeNullables hr'
+    obtain ⟨r', hr', rfl⟩ := List.mem_map.mp hr
+    change r' ∈ (ContextFreeGrammar.removeNullables g.computeNullables).toList at hr'
+    have hne : r'.output ≠ [] :=
+      ContextFreeGrammar.output_mem_removeNullables (g := g) (p := g.computeNullables)
+        ((Finset.mem_toList (s := ContextFreeGrammar.removeNullables g.computeNullables)).mp hr')
     simpa [lssymbol_of_lsSymbol] using hne
   set csg := csg_of_cfg (cfg_of_mathlib_cfg g.eliminateEmpty) heps with hcsg
   have hcsg_lang : CS_language csg = g.language \ {[]} := by
@@ -165,7 +166,14 @@ theorem is_CS_of_is_CF {L : Language T} (h : is_CF L) : is_CS L := by
   have hmem : ∀ w, CS_language csg w ↔ (g.language w ∧ w ≠ []) := by
     intro w
     have hw := Set.ext_iff.mp hcsg_lang w
-    simpa [Set.mem_diff, Set.mem_singleton_iff] using hw
+    constructor
+    · intro hcs
+      rcases (Set.mem_sdiff w).mp (hw.mp hcs) with ⟨hgw, hne⟩
+      exact ⟨hgw, fun hEq => hne (Set.mem_singleton_iff.mpr hEq)⟩
+    · rintro ⟨hgw, hne⟩
+      apply hw.mpr
+      exact (Set.mem_sdiff w).mpr
+        ⟨hgw, fun hmem => hne (Set.mem_singleton_iff.mp hmem)⟩
   by_cases hε : ([] : List T) ∈ g.language
   · -- `g.language = (g.language \ {[]}) ∪ {ε}`
     have hins := is_CS_insert_empty_of_CS_grammar csg

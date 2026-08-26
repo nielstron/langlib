@@ -34,7 +34,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -123,9 +122,60 @@ public theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
         TM1.Cfg (Γ' K' (fun _ => Γ'))
           (Λ' K' (fun _ => Γ') PartrecToTM2.Λ' (Option Γ'))
           (Option Γ')).Tape = Tape.mk' ∅ (addBottom L) := by
-    simp +decide [TM1.init, trInit, L]
-    unfold addBottom
-    cases h : (trList v).reverse <;> aesop
+    let xs : List (K' → Option PartrecToTM2.Γ') :=
+      (List.map (fun a => Function.update (fun _ => none) K'.main (some a))
+        (trList v)).reverse
+    have hLxs : L = ListBlank.mk xs := rfl
+    rw [hLxs]
+    have haddBottom (ys : List (K' → Option PartrecToTM2.Γ')) :
+        addBottom (ListBlank.mk ys) =
+          ListBlank.mk
+            (((true, ys.headI) : Γ' K' (fun _ => PartrecToTM2.Γ')) ::
+              ys.tail.map (fun y =>
+                ((false, y) : Γ' K' (fun _ => PartrecToTM2.Γ')))) := by
+      unfold addBottom
+      rw [ListBlank.head_mk, ListBlank.tail_mk, ListBlank.map_mk]
+      change ListBlank.cons
+        ((true, ys.headI) : Γ' K' (fun _ => PartrecToTM2.Γ'))
+        (ListBlank.mk (ys.tail.map (fun y =>
+          ((false, y) : Γ' K' (fun _ => PartrecToTM2.Γ'))))) =
+            ListBlank.mk
+              (((true, ys.headI) : Γ' K' (fun _ => PartrecToTM2.Γ')) ::
+                ys.tail.map (fun y =>
+                  ((false, y) : Γ' K' (fun _ => PartrecToTM2.Γ'))))
+      exact ListBlank.cons_mk _ _
+    rw [haddBottom]
+    have hinit :
+        trInit (Γ := fun _ : K' => PartrecToTM2.Γ') K'.main
+            (PartrecToTM2.trList v) =
+          ((true, xs.headI) : Γ' K' (fun _ => PartrecToTM2.Γ')) ::
+            xs.tail.map (fun y =>
+              ((false, y) : Γ' K' (fun _ => PartrecToTM2.Γ'))) := by
+      dsimp only [trInit, xs]
+      rw [← List.map_reverse]
+      cases h : (trList v).reverse with
+      | nil =>
+          simp only [h, List.map, List.headI_nil, List.tail_nil]
+          congr
+      | cons head tail =>
+          simp only [h, List.map]
+          change
+            ((true, Function.update (fun _ => none) K'.main (some head)) :
+                Γ' K' (fun _ => PartrecToTM2.Γ')) ::
+                tail.map (fun a =>
+                  ((false, Function.update (fun _ => none) K'.main (some a)) :
+                    Γ' K' (fun _ => PartrecToTM2.Γ'))) =
+              ((true, Function.update (fun _ => none) K'.main (some head)) :
+                Γ' K' (fun _ => PartrecToTM2.Γ')) ::
+                (tail.map (fun a => Function.update (fun _ => none) K'.main (some a))).map
+                  (fun y => ((false, y) : Γ' K' (fun _ => PartrecToTM2.Γ')))
+          rw [List.map_map]
+          rfl
+    change Tape.mk₁
+      (trInit (Γ := fun _ : K' => PartrecToTM2.Γ') K'.main
+        (PartrecToTM2.trList v)) = _
+    rw [hinit]
+    rfl
   rw [htape]
   simpa [PartrecToTM2.init, S] using hmk
 

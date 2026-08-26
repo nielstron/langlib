@@ -443,7 +443,8 @@ private lemma rewind_zero_step
     have hcell := congrFun hcontents ⟨0, by omega⟩
     change view₂ (t.contents ⟨0, by omega⟩) =
       (LBA.loadEnd (T := T) (Γ := Γ₂) w).contents ⟨0, by omega⟩ at hcell
-    simpa [loadEnd_left_iff_zero] using hcell
+    exact hcell.trans ((loadEnd_left_iff_zero
+      (T := T) (Γ₂ := Γ₂) w ⟨0, by omega⟩).mpr rfl)
   refine ⟨.run₂ M₂.initial, t.contents ⟨0, by omega⟩, .stay, ?_, ?_⟩
   · change _ ∈ interTransition M₁ M₂ .rewind (t.contents ⟨0, by omega⟩)
     simp only [interTransition]
@@ -537,7 +538,7 @@ private lemma interInv_step
         exact hcontents
       · apply Fin.ext
         change ((c.tape.write c.tape.read).moveHead .stay).head.val = 0
-        simpa only [DLBA.BoundedTape.moveHead] using hhead
+        exact (congrArg (fun t => t.head.val) (write_read_same c.tape)).trans hhead
     · simp only [interTransition, if_neg hleft, Set.mem_singleton_iff] at hmem
       rcases hmem with ⟨rfl, rfl, rfl⟩
       right; left

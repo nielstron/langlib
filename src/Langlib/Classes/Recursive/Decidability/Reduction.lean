@@ -83,7 +83,8 @@ public theorem evalBool_compileBool
     (a : A) (w : List T) :
     evalBool (compileBool test htest a) w = Part.some (test a w) := by
   rw [evalBool, compileBool_eval]
-  cases test a w <;> rfl
+  simp only [Part.map_some]
+  rw [show Nat.bodd (encode (test a w)) = test a w by cases test a w <;> rfl]
 
 /-- Every code produced by `compileBool` satisfies the always-halting promise. -/
 public theorem compileBool_valid

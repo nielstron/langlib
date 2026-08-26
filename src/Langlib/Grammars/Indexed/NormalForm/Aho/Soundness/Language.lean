@@ -47,7 +47,8 @@ public theorem language_eq_paddedReachLanguage_of_bounded_complete
     have hbounded := boundedReaches_of_mem_paddedReachLanguage hmem
     have hreach : ReflTransGen (CompositeStep g input)
         (initialConfig g) (finalConfig g input.length) :=
-      hbounded.2.mono fun _ _ hstep => hstep.1
+      (@Relation.ReflTransGen.mono _ _ _
+        (fun _ _ hstep => hstep.1)) _ _ hbounded.2
     exact ControlDenotation.ahoMachine_sound hreach
 
 end Aho

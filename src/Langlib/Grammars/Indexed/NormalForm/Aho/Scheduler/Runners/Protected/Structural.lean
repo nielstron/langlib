@@ -300,7 +300,7 @@ private theorem ScheduleBlockLayout.splitAtBoundaryCurrent
         layout.erase.take_flatten_take boundary.blockCount
   simpa only [htake] using hprefix
 
-private def IndexOwnerPool.transportProtectedStructural
+@[reducible] private def IndexOwnerPool.transportProtectedStructural
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {old new : ScheduleCursor g input} (pool : IndexOwnerPool old)
     (hindices : new.indexOwners = old.indexOwners) : IndexOwnerPool new where
@@ -309,7 +309,7 @@ private def IndexOwnerPool.transportProtectedStructural
   all_perm := by simpa [hindices] using pool.all_perm
 
 /-- Reindex resources along propositional equality of ghost cursors. -/
-private def ScheduleRunResources.rebaseCursor
+@[reducible] private def ScheduleRunResources.rebaseCursor
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w} {pre : List T}
@@ -371,6 +371,37 @@ private theorem ScheduleRunResources.rebaseCursor_parkingBelow
   cases h
   exact hbelow
 
+@[simp] private theorem IndexTicketLedger.transport_semanticOwnerOf_structural
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    {old new : ScheduleCursor g input} (ledger : IndexTicketLedger old)
+    (hindices : new.indexOwners.Perm old.indexOwners) :
+    (ledger.transport hindices).semanticOwnerOf = ledger.semanticOwnerOf := rfl
+
+@[simp] private theorem IndexTicketLedger.transport_semanticOwners_structural
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    {old new : ScheduleCursor g input} (ledger : IndexTicketLedger old)
+    (hindices : new.indexOwners.Perm old.indexOwners)
+    (owners : List (Fin (10 * input.length))) :
+    (ledger.transport hindices).semanticOwners owners =
+      ledger.semanticOwners owners := rfl
+
+@[simp] private theorem ScheduleOwnerLedger.transport_active_structural
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    {A B : g.nt} {stack stack' : List g.flag} {w w' : List T}
+    {parse : NFParse g A stack w} {residual : NFParse g B stack' w'}
+    {window : ProductiveOwnerWindow (input := input) parse}
+    {old new : ScheduleCursor g input}
+    (ledger : ScheduleOwnerLedger parse window old)
+    (residualWindow : ProductiveOwnerWindow (input := input) residual)
+    (hright : new.right.filterMap ScheduleAtom.indexOwner? =
+      ledger.active ++ ledger.outside)
+    (houtside : ∀ owner ∈ ledger.outside,
+      OutsideProductiveWindow residualWindow owner)
+    (hframes : EventOwnedFrames residual residualWindow new.frameOwners)
+    (hprefix : PrefixFrameLedger new) :
+    (ledger.transport residualWindow hright houtside hframes hprefix).active =
+      ledger.active := rfl
+
 @[simp] private theorem ScheduleRunResources.rebaseCursor_semanticOwners
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
@@ -407,7 +438,7 @@ private theorem ScheduleRunResources.rebaseCursor_parkingBelow
 
 /-- Resource view for the left child of a binary fork.  The pending right child is classified
 after the left yield interval; all inherited task owners retain their parent classification. -/
-private def ScheduleRunResources.binaryLeftProtected
+@[reducible] private def ScheduleRunResources.binaryLeftProtected
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {stack : List g.flag} {u v : List T}
     {parent : NFParse g A stack (u ++ v)} {leftParse : NFParse g B stack u}
@@ -477,7 +508,7 @@ private def ScheduleRunResources.binaryLeftProtected
           omega))
 
 /-- Resource view for the right child after the left task has disappeared. -/
-private def ScheduleRunResources.binaryRightProtected
+@[reducible] private def ScheduleRunResources.binaryRightProtected
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A C : g.nt} {stack : List g.flag} {u v : List T}
     {parent : NFParse g A stack (u ++ v)} {rightParse : NFParse g C stack v}
@@ -740,19 +771,17 @@ public theorem protectedScheduleRun_binary_atOrBelow
       parentTask leftTask rightTask hleftOwner hrightFresh hstart'
   have hindicesFork : forkCursor.indexOwners = startCursor.indexOwners := by
     simp [forkCursor, startCursor, ScheduleCursor.indexOwners,
-      ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_append]
+      ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_append,
+      List.filterMap_cons]
   let startLedger : ScheduleOwnerLedger parent resources.window startCursor := by
-    simpa [startCursor, parentTask, parent, liveScheduleCursor] using
-      resources.ownerLedger
+    exact resources.ownerLedger
   let startTickets : IndexTicketLedger startCursor := by
-    simpa [startCursor, parentTask, parent, liveScheduleCursor] using
-      resources.tickets
+    exact resources.tickets
   let forkTickets : IndexTicketLedger forkCursor :=
     startTickets.transport (by rw [hindicesFork])
   have startParkingAtOrBelow :
       startTickets.ParkingAtOrBelow resources.window := by
-    simpa [startTickets, startCursor, parentTask, parent, liveScheduleCursor] using
-      parkingAtOrBelow
+    exact parkingAtOrBelow
   have forkParkingAtOrBelow :
       forkTickets.ParkingAtOrBelow resources.window := by
     exact startParkingAtOrBelow.transport (by rw [hindicesFork])
@@ -763,40 +792,34 @@ public theorem protectedScheduleRun_binary_atOrBelow
       omega)
   let startTicketOwnerLedger : startTickets.SemanticScheduleOwnerLedger
       parent resources.window := by
-    simpa [startTickets, startCursor, parentTask, parent, liveScheduleCursor] using
-      resources.ticketOwnerLedger
+    exact resources.ticketOwnerLedger
   let startTicketShadowLedger : startTickets.SemanticShadowOwnerLedger
       parent resources.window := by
-    simpa [startTickets, startCursor, parentTask, parent, liveScheduleCursor] using
-      resources.ticketShadowLedger
+    exact resources.ticketShadowLedger
   have startActive : startLedger.active = owners := by
-    simpa [startLedger, startCursor, parentTask, parent, liveScheduleCursor] using
-      hactive
+    exact hactive
   have startTicketActive : startTicketOwnerLedger.active =
       startTickets.semanticOwners owners := by
     have hbase : startTicketOwnerLedger.active =
         startTickets.semanticOwners startLedger.active := by
-      simpa [startTicketOwnerLedger, startTickets, startLedger, startCursor,
-        parentTask, parent, liveScheduleCursor] using resources.ticket_active_eq
+      exact resources.ticket_active_eq
     exact hbase.trans (congrArg startTickets.semanticOwners startActive)
   have startTicketShadowActive : startTicketShadowLedger.active =
       startTickets.semanticOwners resources.ticketShadowOwners := by
-    simpa [startTicketShadowLedger, startTickets, startCursor, parentTask, parent,
-      liveScheduleCursor] using resources.ticket_shadow_active_eq
+    exact resources.ticket_shadow_active_eq
   let startOwnerLayout : EventOwnedLayout parent resources.window blocks owners := by
-    simpa [parent] using ownerLayout
+    exact ownerLayout
   let startTicketOwnerLayout : startTickets.EventTicketLayout parent
       resources.window blocks owners := by
-    simpa [startTickets, startCursor, parentTask, parent, liveScheduleCursor] using
-      ticketOwnerLayout
+    exact ticketOwnerLayout
   let startTicketShadowLayout : startTickets.ShadowTicketLayout parent
       resources.window resources.ticketShadowBlocks
         resources.ticketShadowOwners := by
-    simpa [startTickets, startCursor, parentTask, parent, liveScheduleCursor] using
-      resources.ticketShadowLayout
+    exact resources.ticketShadowLayout
   have hframesFork : forkCursor.frameOwners = startCursor.frameOwners := by
     simp [forkCursor, startCursor, ScheduleCursor.frameOwners,
-      ScheduleCursor.word, ScheduleAtom.closeOwner?, List.filterMap_append]
+      ScheduleCursor.word, ScheduleAtom.closeOwner?, List.filterMap_append,
+      List.filterMap_cons]
   have leftPrefixLedger : PrefixFrameLedger forkCursor :=
     startLedger.prefixLedger.transport
       (by simp [forkCursor, startCursor])
@@ -805,7 +828,8 @@ public theorem protectedScheduleRun_binary_atOrBelow
       resources.window.binaryLeft forkCursor :=
     startLedger.transport resources.window.binaryLeft
       (by
-        simpa [forkCursor, startCursor, ScheduleAtom.indexOwner?] using
+        simpa [forkCursor, startCursor, ScheduleAtom.indexOwner?,
+          List.filterMap_cons, List.filterMap_nil] using
           startLedger.right_eq)
       (fun owner howner =>
         EventOwnedLayout.outside_binaryLeft resources.window
@@ -848,13 +872,22 @@ public theorem protectedScheduleRun_binary_atOrBelow
             startTickets.semanticOwnerOf := by
           funext owner
           rfl
-        simpa [forkCursor, startCursor, hfun] using hright)
+        rw [hfun]
+        simpa [forkCursor, startCursor, ScheduleAtom.indexOwner?,
+          List.filterMap_cons, List.filterMap_nil] using hright)
       (fun owner howner =>
         EventOwnedLayout.outside_binaryLeft resources.window
           (startTicketOwnerLedger.outside_at owner howner))
       (by
-        simpa [forkTickets, startTickets, forkCursor, startCursor] using
-          startTicketOwnerLedger.frames.binaryLeft)
+        have hframes := startTicketOwnerLedger.frames.binaryLeft
+        rw [startTickets.semanticCursor_frameOwners] at hframes
+        rw [forkTickets.semanticCursor_frameOwners]
+        have hfun : forkTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        rw [hfun, hframesFork]
+        exact hframes)
       leftTicketPrefixLedger
   let leftTicketShadowLedger : forkTickets.SemanticShadowOwnerLedger
       leftParse resources.window.binaryLeft :=
@@ -867,12 +900,21 @@ public theorem protectedScheduleRun_binary_atOrBelow
             startTickets.semanticOwnerOf := by
           funext owner
           rfl
-        simpa [forkCursor, startCursor, hfun] using hright)
+        rw [hfun]
+        simpa [forkCursor, startCursor, ScheduleAtom.indexOwner?,
+          List.filterMap_cons, List.filterMap_nil] using hright)
       (fun owner howner => OutsideShadowWindow.binaryLeft resources.window
         (startTicketShadowLedger.outside_at owner howner))
       (by
-        simpa [forkTickets, startTickets, forkCursor, startCursor] using
-          startTicketShadowLedger.frames.binaryLeft)
+        have hframes := startTicketShadowLedger.frames.binaryLeft
+        rw [startTickets.semanticCursor_frameOwners] at hframes
+        rw [forkTickets.semanticCursor_frameOwners]
+        have hfun : forkTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        rw [hfun, hframesFork]
+        exact hframes)
       leftTicketPrefixLedger
   have transientFreeStart : ∀ hinput : 0 < input.length,
       ProductiveOwnerWindow.transientOwner (g := g) hinput ∉
@@ -937,22 +979,47 @@ public theorem protectedScheduleRun_binary_atOrBelow
       forkTickets.semanticOwners startLedger.active
     have hbase := startTicketActive
     rw [← startActive] at hbase
-    simpa [forkTickets, startTickets, IndexTicketLedger.transport,
-      IndexTicketLedger.semanticOwners, IndexTicketLedger.semanticOwnerOf] using hbase
+    simp only [IndexTicketLedger.semanticOwners]
+    have hfun : forkTickets.semanticOwnerOf =
+        startTickets.semanticOwnerOf := by
+      funext owner
+      rfl
+    rw [hfun]
+    exact hbase
   have leftTicketShadowActiveEq : leftTicketShadowLedger.active =
       forkTickets.semanticOwners resources.ticketShadowOwners := by
     change startTicketShadowLedger.active =
       forkTickets.semanticOwners resources.ticketShadowOwners
     have hbase := startTicketShadowActive
-    simpa [forkTickets, startTickets, IndexTicketLedger.transport,
-      IndexTicketLedger.semanticOwners, IndexTicketLedger.semanticOwnerOf] using hbase
+    simp only [IndexTicketLedger.semanticOwners]
+    have hfun : forkTickets.semanticOwnerOf =
+        startTickets.semanticOwnerOf := by
+      funext owner
+      rfl
+    rw [hfun]
+    exact hbase
   let leftTicketOwnerLayout : forkTickets.EventTicketLayout leftParse
       resources.window.binaryLeft blocks owners := by
-    simpa [forkTickets, startTickets] using startTicketOwnerLayout.binaryLeft
+    change EventOwnedLayout leftParse resources.window.binaryLeft blocks
+      (forkTickets.semanticOwners owners)
+    have hfun : forkTickets.semanticOwnerOf =
+        startTickets.semanticOwnerOf := by
+      funext owner
+      rfl
+    simp only [IndexTicketLedger.semanticOwners, hfun]
+    exact startTicketOwnerLayout.binaryLeft
   let leftTicketShadowLayout : forkTickets.ShadowTicketLayout leftParse
       resources.window.binaryLeft resources.ticketShadowBlocks
         resources.ticketShadowOwners := by
-    simpa [forkTickets, startTickets] using startTicketShadowLayout.binaryLeft
+    change ShadowStartLayout leftParse resources.window.binaryLeft
+      resources.ticketShadowBlocks
+        (forkTickets.semanticOwners resources.ticketShadowOwners)
+    have hfun : forkTickets.semanticOwnerOf =
+        startTickets.semanticOwnerOf := by
+      funext owner
+      rfl
+    simp only [IndexTicketLedger.semanticOwners, hfun]
+    exact startTicketShadowLayout.binaryLeft
   have leftTicketShadowOwnersSubset : resources.ticketShadowOwners ⊆
       forkCursor.indexOwners := by
     intro owner howner
@@ -1041,9 +1108,9 @@ public theorem protectedScheduleRun_binary_atOrBelow
     have hleftFrames : List.Disjoint owners
         (liveScheduleCursor leftParse leftUsed pre (v ++ post) leftInputEq alpha
           (.task rightTask :: word)).frameOwners := by
-      simpa [liveScheduleCursor, forkCursor, leftTask, leftMode, hml0,
-        ScheduleCursor.frameOwners, ScheduleCursor.word,
-        ScheduleAtom.closeOwner?, List.filterMap_append] using hframes
+      simpa only [liveScheduleCursor, ScheduleCursor.frameOwners_mk,
+        ScheduleAtom.closeOwner?, List.filterMap_cons, List.filterMap_nil,
+        List.append_nil] using hframes
     have hleftCursorEq :
         liveScheduleCursor leftParse leftUsed pre (v ++ post) leftInputEq alpha
           (.task rightTask :: word) = forkCursor := by
@@ -1117,8 +1184,11 @@ public theorem protectedScheduleRun_binary_atOrBelow
         (scheduleStateOfCursor (pre ++ u).length (by
           rw [input_eq]
           simp) rightCursor hrightInv) := by
-      simpa [forkState, forkCursor, rightCursor, scheduleStateOfCursor,
-        liveScheduleCursor, leftTask, leftMode, hml0] using hleftRun
+      exact ScheduleReaches.congr_config hleftRun
+        (by
+          simp only [forkState, scheduleStateOfCursor, ScheduleState.config]
+          rw [hleftCursorEq])
+        (by rfl)
     have hindicesRight : rightCursor.indexOwners = startCursor.indexOwners := by
       simp only [rightCursor, startCursor, ScheduleCursor.indexOwners_mk,
         ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
@@ -1130,7 +1200,7 @@ public theorem protectedScheduleRun_binary_atOrBelow
       simp only [forkCursor, rightCursor, ScheduleCursor.taskOwners_mk,
         ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
       rw [layout.taskOwners_eq]
-      simpa only [List.append_assoc] using
+      simpa only [List.append_assoc, List.singleton_append] using
         (List.perm_middle
           (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap
             ScheduleAtom.taskOwner?)
@@ -1164,7 +1234,8 @@ public theorem protectedScheduleRun_binary_atOrBelow
           exact startLedger.frames.binaryRight)
         rightPrefixLedger
     have rightFullActive : rightFullLedger.active = owners := by
-      simpa [rightFullLedger] using startActive
+      change startLedger.active = owners
+      exact startActive
     let rightFullLayout : EventOwnedLayout rightParse
         resources.window.binaryRight blocks owners :=
       startOwnerLayout.binaryRight
@@ -1263,22 +1334,47 @@ public theorem protectedScheduleRun_binary_atOrBelow
         rightTickets.semanticOwners startLedger.active
       have hbase := startTicketActive
       rw [← startActive] at hbase
-      simpa [rightTickets, startTickets, IndexTicketLedger.transport,
-        IndexTicketLedger.semanticOwners, IndexTicketLedger.semanticOwnerOf] using hbase
+      simp only [IndexTicketLedger.semanticOwners]
+      have hfun : rightTickets.semanticOwnerOf =
+          startTickets.semanticOwnerOf := by
+        funext owner
+        rfl
+      rw [hfun]
+      exact hbase
     have rightFullTicketShadowActive : rightFullTicketShadowLedger.active =
         rightTickets.semanticOwners resources.ticketShadowOwners := by
       change startTicketShadowLedger.active =
         rightTickets.semanticOwners resources.ticketShadowOwners
       have hbase := startTicketShadowActive
-      simpa [rightTickets, startTickets, IndexTicketLedger.transport,
-        IndexTicketLedger.semanticOwners, IndexTicketLedger.semanticOwnerOf] using hbase
+      simp only [IndexTicketLedger.semanticOwners]
+      have hfun : rightTickets.semanticOwnerOf =
+          startTickets.semanticOwnerOf := by
+        funext owner
+        rfl
+      rw [hfun]
+      exact hbase
     let rightFullTicketLayout : rightTickets.EventTicketLayout rightParse
         resources.window.binaryRight blocks owners := by
-      simpa [rightTickets, startTickets] using startTicketOwnerLayout.binaryRight
+      change EventOwnedLayout rightParse resources.window.binaryRight blocks
+        (rightTickets.semanticOwners owners)
+      have hfun : rightTickets.semanticOwnerOf =
+          startTickets.semanticOwnerOf := by
+        funext owner
+        rfl
+      simp only [IndexTicketLedger.semanticOwners, hfun]
+      exact startTicketOwnerLayout.binaryRight
     let rightFullTicketShadowLayout : rightTickets.ShadowTicketLayout rightParse
         resources.window.binaryRight resources.ticketShadowBlocks
           resources.ticketShadowOwners := by
-      simpa [rightTickets, startTickets] using startTicketShadowLayout.binaryRight
+      change ShadowStartLayout rightParse resources.window.binaryRight
+        resources.ticketShadowBlocks
+          (rightTickets.semanticOwners resources.ticketShadowOwners)
+      have hfun : rightTickets.semanticOwnerOf =
+          startTickets.semanticOwnerOf := by
+        funext owner
+        rfl
+      simp only [IndexTicketLedger.semanticOwners, hfun]
+      exact startTicketShadowLayout.binaryRight
     have rightTicketShadowOwnersSubset : resources.ticketShadowOwners ⊆
         rightCursor.indexOwners := by
       intro owner howner
@@ -1681,24 +1777,29 @@ public theorem protectedScheduleRun_binary_atOrBelow
           (scheduleStateOfCursor (pre ++ u).length (by
             rw [input_eq]
             simp) rightCursor hrightInv) := by
-        simpa [forkState, forkCursor, rightCursor, scheduleStateOfCursor,
-          plainScheduleCursor, leftTask, leftMode, hml0] using hleftRun
+        exact ScheduleReaches.congr_config hleftRun
+          (by
+            simp only [forkState, scheduleStateOfCursor, ScheduleState.config]
+            rw [hleftCursorEq])
+          (by rfl)
       have hindicesRight : rightCursor.indexOwners = startCursor.indexOwners := by
-        simp [rightCursor, startCursor, ScheduleCursor.indexOwners,
-          ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_append]
+        simp only [rightCursor, startCursor, ScheduleCursor.indexOwners_mk,
+          ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
+          List.append_nil]
       have hfinishPerm : forkCursor.taskOwners.Perm
           (leftTask.owner :: rightCursor.taskOwners) := by
         simp only [forkCursor, rightCursor, ScheduleCursor.taskOwners_mk,
           ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
-        simpa only [List.append_assoc] using
+        simpa only [List.append_assoc, List.singleton_append] using
           (List.perm_middle
             (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap
               ScheduleAtom.taskOwner?)
             (l₂ := rightTask.owner :: word.filterMap ScheduleAtom.taskOwner?)
             (a := leftTask.owner))
       have hframesRight : rightCursor.frameOwners = startCursor.frameOwners := by
-        simp [rightCursor, startCursor, ScheduleCursor.frameOwners,
-          ScheduleCursor.word, ScheduleAtom.closeOwner?, List.filterMap_append]
+        simp only [rightCursor, startCursor, ScheduleCursor.frameOwners_mk,
+          ScheduleAtom.closeOwner?, List.filterMap_cons, List.filterMap_nil,
+          List.append_nil]
       have rightPrefixLedger : PrefixFrameLedger rightCursor :=
         startLedger.prefixLedger.transport
           (by simp [rightCursor, startCursor])
@@ -1717,7 +1818,8 @@ public theorem protectedScheduleRun_binary_atOrBelow
             exact startLedger.frames.binaryRight)
           rightPrefixLedger
       have rightActive : rightOwnerLedger.active = owners := by
-        simpa [rightOwnerLedger] using startActive
+        change startLedger.active = owners
+        exact startActive
       let rightTickets : IndexTicketLedger rightCursor :=
         startTickets.transport (by rw [hindicesRight])
       have rightParkingBelow :
@@ -1805,22 +1907,47 @@ public theorem protectedScheduleRun_binary_atOrBelow
           rightTickets.semanticOwners startLedger.active
         have hbase := startTicketActive
         rw [← startActive] at hbase
-        simpa [rightTickets, startTickets, IndexTicketLedger.transport,
-          IndexTicketLedger.semanticOwners, IndexTicketLedger.semanticOwnerOf] using hbase
+        simp only [IndexTicketLedger.semanticOwners]
+        have hfun : rightTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        rw [hfun]
+        exact hbase
       have rightTicketShadowActive : rightTicketShadowLedger.active =
           rightTickets.semanticOwners resources.ticketShadowOwners := by
         change startTicketShadowLedger.active =
           rightTickets.semanticOwners resources.ticketShadowOwners
         have hbase := startTicketShadowActive
-        simpa [rightTickets, startTickets, IndexTicketLedger.transport,
-          IndexTicketLedger.semanticOwners, IndexTicketLedger.semanticOwnerOf] using hbase
+        simp only [IndexTicketLedger.semanticOwners]
+        have hfun : rightTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        rw [hfun]
+        exact hbase
       let rightTicketOwnerLayout : rightTickets.EventTicketLayout rightParse
           resources.window.binaryRight blocks owners := by
-        simpa [rightTickets, startTickets] using startTicketOwnerLayout.binaryRight
+        change EventOwnedLayout rightParse resources.window.binaryRight blocks
+          (rightTickets.semanticOwners owners)
+        have hfun : rightTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        simp only [IndexTicketLedger.semanticOwners, hfun]
+        exact startTicketOwnerLayout.binaryRight
       let rightTicketShadowLayout : rightTickets.ShadowTicketLayout rightParse
           resources.window.binaryRight resources.ticketShadowBlocks
             resources.ticketShadowOwners := by
-        simpa [rightTickets, startTickets] using startTicketShadowLayout.binaryRight
+        change ShadowStartLayout rightParse resources.window.binaryRight
+          resources.ticketShadowBlocks
+            (rightTickets.semanticOwners resources.ticketShadowOwners)
+        have hfun : rightTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        simp only [IndexTicketLedger.semanticOwners, hfun]
+        exact startTicketShadowLayout.binaryRight
       have rightTicketShadowOwnersSubset : resources.ticketShadowOwners ⊆
           rightCursor.indexOwners := by
         intro owner howner
@@ -1867,9 +1994,9 @@ public theorem protectedScheduleRun_binary_atOrBelow
       have hrightFrames : List.Disjoint owners
           (liveScheduleCursor rightParse rightUsed (pre ++ u) post rightInputEq
             alpha word).frameOwners := by
-        simpa [liveScheduleCursor, startCursor, rightTask, rightMode, hmr0,
-          ScheduleCursor.frameOwners, ScheduleCursor.word,
-          ScheduleAtom.closeOwner?, List.filterMap_append] using hframes
+        simpa only [liveScheduleCursor, ScheduleCursor.frameOwners_mk,
+          ScheduleAtom.closeOwner?, List.filterMap_cons, List.filterMap_nil,
+          List.append_nil] using hframes
       have hrightRun := rightRuns.2 (input := input) visible hidden blocks owners
         word used hstack hne (by simpa [hrightFull, n] using hallRight)
         (by simpa [hrightFull, n] using hfirstRight) layout rightCompatible
@@ -2124,8 +2251,11 @@ public theorem protectedScheduleRun_binary_atOrBelow
           (scheduleStateOfCursor (pre ++ u).length (by
             rw [input_eq]
             simp) rightCursor hrightInv) := by
-        simpa [forkState, forkCursor, rightCursor, scheduleStateOfCursor,
-          liveScheduleCursor, leftTask, leftMode, hml0] using hleftRun
+        exact ScheduleReaches.congr_config hleftRun
+          (by
+            simp only [forkState, scheduleStateOfCursor, ScheduleState.config]
+            rw [hleftCursorEq])
+          (by rfl)
       have hindicesRight : rightCursor.indexOwners = startCursor.indexOwners := by
         simp only [rightCursor, startCursor, ScheduleCursor.indexOwners_mk,
           ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
@@ -2137,7 +2267,7 @@ public theorem protectedScheduleRun_binary_atOrBelow
         simp only [forkCursor, rightCursor, ScheduleCursor.taskOwners_mk,
           ScheduleAtom.taskOwner?, List.filterMap_cons, List.filterMap_nil]
         rw [prefixLayout.taskOwners_eq]
-        simpa only [List.append_assoc] using
+        simpa only [List.append_assoc, List.singleton_append] using
           (List.perm_middle
             (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap
               ScheduleAtom.taskOwner?)
@@ -2172,7 +2302,8 @@ public theorem protectedScheduleRun_binary_atOrBelow
             exact startLedger.frames.binaryRight)
           rightPrefixLedger
       have rightActive : rightOwnerLedger.active = owners := by
-        simpa [rightOwnerLedger] using startActive
+        change startLedger.active = owners
+        exact startActive
       let rightTickets : IndexTicketLedger rightCursor :=
         startTickets.transport (by rw [hindicesRight])
       have rightParkingBelow :
@@ -2270,22 +2401,47 @@ public theorem protectedScheduleRun_binary_atOrBelow
           rightTickets.semanticOwners startLedger.active
         have hbase := startTicketActive
         rw [← startActive] at hbase
-        simpa [rightTickets, startTickets, IndexTicketLedger.transport,
-          IndexTicketLedger.semanticOwners, IndexTicketLedger.semanticOwnerOf] using hbase
+        simp only [IndexTicketLedger.semanticOwners]
+        have hfun : rightTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        rw [hfun]
+        exact hbase
       have rightTicketShadowActive : rightTicketShadowLedger.active =
           rightTickets.semanticOwners resources.ticketShadowOwners := by
         change startTicketShadowLedger.active =
           rightTickets.semanticOwners resources.ticketShadowOwners
         have hbase := startTicketShadowActive
-        simpa [rightTickets, startTickets, IndexTicketLedger.transport,
-          IndexTicketLedger.semanticOwners, IndexTicketLedger.semanticOwnerOf] using hbase
+        simp only [IndexTicketLedger.semanticOwners]
+        have hfun : rightTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        rw [hfun]
+        exact hbase
       let rightTicketOwnerLayout : rightTickets.EventTicketLayout rightParse
           resources.window.binaryRight blocks owners := by
-        simpa [rightTickets, startTickets] using startTicketOwnerLayout.binaryRight
+        change EventOwnedLayout rightParse resources.window.binaryRight blocks
+          (rightTickets.semanticOwners owners)
+        have hfun : rightTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        simp only [IndexTicketLedger.semanticOwners, hfun]
+        exact startTicketOwnerLayout.binaryRight
       let rightTicketShadowLayout : rightTickets.ShadowTicketLayout rightParse
           resources.window.binaryRight resources.ticketShadowBlocks
             resources.ticketShadowOwners := by
-        simpa [rightTickets, startTickets] using startTicketShadowLayout.binaryRight
+        change ShadowStartLayout rightParse resources.window.binaryRight
+          resources.ticketShadowBlocks
+            (rightTickets.semanticOwners resources.ticketShadowOwners)
+        have hfun : rightTickets.semanticOwnerOf =
+            startTickets.semanticOwnerOf := by
+          funext owner
+          rfl
+        simp only [IndexTicketLedger.semanticOwners, hfun]
+        exact startTicketShadowLayout.binaryRight
       have rightTicketShadowOwnersSubset : resources.ticketShadowOwners ⊆
           rightCursor.indexOwners := by
         intro owner howner

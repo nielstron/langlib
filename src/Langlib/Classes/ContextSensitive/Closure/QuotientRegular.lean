@@ -139,6 +139,7 @@ private theorem exposed_padded_eq_map (g : grammar Unit) :
     rcases (symbolStar_mem_iff_replicate none).mp hv with ⟨k, rfl⟩
     have hproject := erasingImageGrammar_generates_project g hxv.1
     have hw : w ∈ grammar_language g := by
+      change grammar_generates g w
       simpa [List.flatMap_append, flatMap_map_some, flatMap_replicate_none] using hproject
     exact ⟨w, hw, rfl⟩
   · rintro ⟨w, hw, rfl⟩
@@ -169,7 +170,8 @@ private theorem recursive_of_recursive_map_some
     · rintro ⟨v, hv, heq⟩
       have hvw : v = w := by
         exact List.map_injective_iff.mpr (Option.some_injective Unit) heq
-      simpa [hvw] using hv
+      subst v
+      exact hv
   have hdec : w.map some ∈ Language.map some haltingUnaryLanguage ↔
       f (w.map some) = true := by
     exact iff_of_eq (congrFun hs (w.map some))
@@ -215,7 +217,10 @@ private theorem Language.map_rightQuotient_injective {α β : Type} {f : α → 
     have hv₁_eq : v₁ = v₀ := List.map_injective_iff.mpr hf hv₁
     subst v₁
     rw [← hw₀]
-    exact ⟨w₀, ⟨v₀, hv₀R, by simpa [hz_eq] using hzL⟩, rfl⟩
+    have hwv : w₀ ++ v₀ ∈ L := by
+      rw [← hz_eq]
+      exact hzL
+    exact ⟨w₀, ⟨v₀, hv₀R, hwv⟩, rfl⟩
 
 private theorem recursive_of_recursive_map_injective {α β : Type}
     [Fintype α] [Fintype β] {f : α → β} (hf : Function.Injective f)
@@ -236,7 +241,8 @@ private theorem recursive_of_recursive_map_injective {α β : Type}
     constructor
     · rintro ⟨v, hv, hmap⟩
       have : v = w := List.map_injective_iff.mpr hf hmap
-      simpa [this] using hv
+      subst v
+      exact hv
     · intro hw
       exact ⟨w, hw, rfl⟩
   rwa [heq] at hpre

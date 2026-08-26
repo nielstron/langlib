@@ -17,6 +17,7 @@ public section
 
 
 
+
 /-!
 # Context-Sensitive Languages = LBA Languages (`CS = LBA`)
 
@@ -119,7 +120,15 @@ theorem is_LBA_pos_of_isCS_not_nil {L : Language T} (hCS : is_CS L) (hne : [] �
     KurodaConstruction.noncontracting_finite_to_LBA g₀ hfin hnc
   -- `LanguageViaEmbed M = grammar_language g₀ = grammar_language g \ {[]} = grammar_language g`.
   rw [hlang] at hM
-  exact ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M, by rw [hM, Set.diff_singleton_eq_self hne]⟩
+  refine ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M, ?_⟩
+  rw [hM]
+  change (show Set (List T) from grammar_language g) \ {[]} =
+    (show Set (List T) from grammar_language g)
+  apply Set.diff_singleton_eq_self
+  intro hempty
+  apply hne
+  change [] ∈ (show Set (List T) from grammar_language g)
+  exact hempty
 
 /-! ## The characterization -/
 
@@ -157,13 +166,20 @@ theorem CS_subset_LBA : (CS : Set (Language T)) ⊆ LBA := by
     · rintro (⟨hb, _⟩ | hv)
       · exact of_decide_eq_true hb
       · obtain ⟨hne, -⟩ := hv; simp at hne
-    · intro hmem; exact Or.inl ⟨by simpa using hmem, rfl⟩
+    · intro hmem
+      have hmem' : [] ∈ grammar_language g := by
+        change grammar_language g []
+        exact hmem
+      exact Or.inl ⟨decide_eq_true hmem', rfl⟩
   · constructor
     · rintro (⟨_, h0⟩ | hv)
       · exact absurd h0 hw
       · exact ((congrFun hM w) ▸ hv).1
     · intro hmem
-      exact Or.inr (by rw [congrFun hM w]; exact ⟨hmem, by simpa using hw⟩)
+      have hw' : w ∉ ({[]} : Set (List T)) := by
+        intro hwmem
+        exact hw (Set.mem_singleton_iff.mp hwmem)
+      exact Or.inr (by rw [congrFun hM w]; exact ⟨hmem, hw'⟩)
 
 /-- **LBA ⊆ CS.** Every endmarker-LBA language is context-sensitive: its non-empty part is the
 bounded-tape language `LanguageViaEmbed (flagMachine M')` (context-sensitive via Myhill), and `ε`

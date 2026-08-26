@@ -47,8 +47,6 @@ uniform computability predicates used by the RE decidability files.
 
 open Nat.Partrec
 
-set_option backward.isDefEq.respectTransparency false
-
 /-- The domain language of a partial-recursive code, represented over `Unit`.
 
 The word length is the program input. -/

@@ -3,7 +3,7 @@ module
 public import Langlib.Automata.Recursive.Equivalence.TapeCharacterization
 public import Langlib.Automata.Turing.DSL.PartrecCodeToTM0
 public import Langlib.Automata.Turing.DSL.CodeToTMDirect
-public import Mathlib.Computability.TMToPartrec
+public import Mathlib.Computability.TuringMachine.ToPartrec
 @[expose]
 public section
 
@@ -68,6 +68,10 @@ theorem bitCode₀_eval (f : List T → Bool) (hf : Computable f) (n : ℕ) :
     (bitCode₀ f hf).eval [n] = Part.some [bitFn f n] := by
   have hspec := (Code.exists_code (partrec_bitFn f hf)).choose_spec
   have := hspec (n ::ᵥ List.Vector.nil)
+  have hv : (n ::ᵥ (List.Vector.nil : List.Vector ℕ 0)).1 = [n] := by
+    change (n ::ᵥ (List.Vector.nil : List.Vector ℕ 0)).toList = [n]
+    rw [List.Vector.toList_cons, List.Vector.toList_nil]
+  rw [hv, List.Vector.head_cons] at this
   simpa [bitCode₀] using this
 
 /-! ## Output shaping: bit → `[]` / `[0]`
@@ -118,10 +122,10 @@ theorem composedCode_outWord (f : List T → Bool) (hf : Computable f) (w : List
 omit [DecidableEq T] [Fintype T] in
 theorem tm2_eval_halt_composed (f : List T → Bool) (hf : Computable f) (w : List T) :
     PartrecToTM2.halt (outWord f w) ∈
-      Turing.eval (TM2.step PartrecToTM2.tr)
+      StateTransition.eval (TM2.step PartrecToTM2.tr)
         (PartrecToTM2.init (composedCode (deciderCode f hf)) (shiftedEncoding w)) := by
   rw [PartrecToTM2.tr_eval, composedCode_outWord]
-  simp
+  exact Part.mem_map _ (Part.mem_some _)
 
 /-! ## Generic chain tape descent (TM2 `halt v` → TM0 tape)
 
@@ -142,25 +146,26 @@ abbrev chainTM1Init (c : Code) (v : List ℕ) :
 where `vIn` is the input and `vOut` the reached output. -/
 theorem tm1_descent (c : Code) (vIn vOut : List ℕ)
     (hhalt : PartrecToTM2.halt vOut ∈
-      Turing.eval (TM2.step PartrecToTM2.tr) (PartrecToTM2.init c vIn)) :
+      StateTransition.eval (TM2.step PartrecToTM2.tr) (PartrecToTM2.init c vIn)) :
     ∃ cfg₁ : TM1.Cfg ChainΓ ChainΛ_TM1 (Option PartrecToTM2.Γ'),
       TM2to1.TrCfg (PartrecToTM2.halt vOut) cfg₁ ∧
-      cfg₁ ∈ Turing.eval (TM1.step ChainTM1) (chainTM1Init c vIn) := by
+      cfg₁ ∈ StateTransition.eval (TM1.step ChainTM1) (chainTM1Init c vIn) := by
   have hresp := TM2to1.tr_respects (M := PartrecToTM2.tr)
-  obtain ⟨cfg₁, htr, hmem⟩ := Turing.tr_eval hresp (partrec_init_trCfg c vIn) hhalt
+  obtain ⟨cfg₁, htr, hmem⟩ :=
+    StateTransition.tr_eval hresp (partrec_init_trCfg c vIn) hhalt
   exact ⟨cfg₁, htr, hmem⟩
 
 /-- TM0 descent: the chain TM0 reaches a config whose tape is the TM1 final tape,
 starting from `TM1to0.trCfg ChainTM1 (chainTM1Init c v)`. -/
 theorem tm0_descent (c : Code) (v : List ℕ)
     (cfg₁ : TM1.Cfg ChainΓ ChainΛ_TM1 (Option PartrecToTM2.Γ'))
-    (hmem : cfg₁ ∈ Turing.eval (TM1.step ChainTM1) (chainTM1Init c v)) :
+    (hmem : cfg₁ ∈ StateTransition.eval (TM1.step ChainTM1) (chainTM1Init c v)) :
     (TM1to0.trCfg ChainTM1 cfg₁) ∈
-      Turing.eval (TM0.step ChainTM0)
+      StateTransition.eval (TM0.step ChainTM0)
         (TM1to0.trCfg ChainTM1 (chainTM1Init c v)) := by
   have hresp := TM1to0.tr_respects (M := ChainTM1)
   obtain ⟨cfg₀, htr, hmem₀⟩ :=
-    Turing.tr_eval hresp (a₁ := chainTM1Init c v)
+    StateTransition.tr_eval hresp (a₁ := chainTM1Init c v)
       (a₂ := TM1to0.trCfg ChainTM1 (chainTM1Init c v)) rfl hmem
   rw [← htr] at hmem₀
   exact hmem₀
@@ -174,15 +179,15 @@ transports a final config of known tape. -/
 reaches a final config with tape `T` from `⟨q₀, Tape.mk₁ l⟩`. -/
 theorem reroot_eval_tape {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (q₀ : Λ) (l : List Γ) (cf : TM0.Cfg Γ Λ)
-    (hmem : cf ∈ Turing.eval (TM0.step M) (⟨q₀, Tape.mk₁ l⟩ : TM0.Cfg Γ Λ)) :
+    (hmem : cf ∈ StateTransition.eval (TM0.step M) (⟨q₀, Tape.mk₁ l⟩ : TM0.Cfg Γ Λ)) :
     ∃ cf' : TM0.Cfg Γ (ParrecToTM0.Rooted Λ q₀),
       cf'.Tape = cf.Tape ∧
-      cf' ∈ Turing.eval
+      cf' ∈ StateTransition.eval
         (ParrecToTM0.tm0Reroot M q₀ |> @TM0.step Γ (ParrecToTM0.Rooted Λ q₀) ⟨⟨q₀⟩⟩ _)
         (@TM0.init Γ (ParrecToTM0.Rooted Λ q₀) ⟨⟨q₀⟩⟩ _ l) := by
   have hresp := ParrecToTM0.tm0Reroot_respects M q₀
   obtain ⟨cf', hrel, hmem'⟩ :=
-    Turing.tr_eval hresp
+    StateTransition.tr_eval hresp
       (show (fun c₁ c₂ => c₁.q = c₂.q.val ∧ c₁.Tape = c₂.Tape)
         (⟨q₀, Tape.mk₁ l⟩ : TM0.Cfg Γ Λ)
         (⟨⟨q₀⟩, Tape.mk₁ l⟩ : TM0.Cfg Γ (ParrecToTM0.Rooted Λ q₀)) from ⟨rfl, rfl⟩)
@@ -193,28 +198,28 @@ theorem reroot_eval_tape {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
 theorem restrict_eval_tape {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S) (l : List Γ)
     (cf : TM0.Cfg Γ Λ)
-    (hmem : cf ∈ Turing.eval (TM0.step M) (TM0.init l)) :
+    (hmem : cf ∈ StateTransition.eval (TM0.step M) (TM0.init l)) :
     ∃ cf' : TM0.Cfg Γ {q : Λ // q ∈ S},
       cf'.Tape = cf.Tape ∧
-      cf' ∈ @Turing.eval _ (@TM0.step Γ _ ⟨⟨default, hS.1⟩⟩ _ (Turing.TM0.restrict M S hS))
+      cf' ∈ @StateTransition.eval _ (@TM0.step Γ _ ⟨⟨default, hS.1⟩⟩ _ (Turing.TM0.restrict M S hS))
         (@TM0.init Γ _ ⟨⟨default, hS.1⟩⟩ _ l) := by
   have hresp := Turing.TM0.restrict_respects M S hS
   obtain ⟨cf', hrel, hmem'⟩ :=
-    Turing.tr_eval hresp (Turing.TM0.restrict_init_rel M S hS l) hmem
+    StateTransition.tr_eval hresp (Turing.TM0.restrict_init_rel M S hS l) hmem
   exact ⟨cf', hrel.2.symm, hmem'⟩
 
 /-- Restrict+reroot TM0: tape-tracking version of `tm0RestrictReroot_eval_dom`. -/
 theorem restrictReroot_eval_tape {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S)
     (q₀ : Λ) (hq₀ : q₀ ∈ S) (l : List Γ) (cf : TM0.Cfg Γ Λ)
-    (hmem : cf ∈ Turing.eval (TM0.step M) (⟨q₀, Tape.mk₁ l⟩ : TM0.Cfg Γ Λ)) :
+    (hmem : cf ∈ StateTransition.eval (TM0.step M) (⟨q₀, Tape.mk₁ l⟩ : TM0.Cfg Γ Λ)) :
     letI : Inhabited
         { q : ParrecToTM0.Rooted Λ q₀ // q ∈ S.map (ParrecToTM0.rootedEmbFn (q₀ := q₀)) } :=
       ⟨⟨⟨q₀⟩, by rw [Finset.mem_map]; exact ⟨q₀, hq₀, rfl⟩⟩⟩
     ∃ cf' : TM0.Cfg Γ
         { q : ParrecToTM0.Rooted Λ q₀ // q ∈ S.map (ParrecToTM0.rootedEmbFn (q₀ := q₀)) },
       cf'.Tape = cf.Tape ∧
-      cf' ∈ Turing.eval
+      cf' ∈ StateTransition.eval
         (TM0.step (ParrecToTM0.tm0RestrictReroot M S hS q₀ hq₀))
         (TM0.init l) := by
   obtain ⟨cf₁, hcf₁tape, hcf₁mem⟩ := reroot_eval_tape M q₀ l cf hmem
@@ -230,13 +235,13 @@ theorem lift_eval_tape {Γ Γ₂ : Type} [Inhabited Γ] [Inhabited Γ₂] {Λ : 
     (M : TM0.Machine Γ Λ) (emb : Γ → Γ₂) (inv : Γ₂ → Γ)
     (hemb : ∀ a, inv (emb a) = a) (hemb_default : emb default = default)
     (l : List Γ) (cf : TM0.Cfg Γ Λ)
-    (hmem : cf ∈ Turing.eval (TM0.step M) (TM0.init l)) :
+    (hmem : cf ∈ StateTransition.eval (TM0.step M) (TM0.init l)) :
     ∃ cf' : TM0.Cfg Γ₂ Λ,
       cf'.Tape = cf.Tape.map (TM0AlphabetSim.embPM emb hemb_default) ∧
-      cf' ∈ Turing.eval (TM0.step (TM0AlphabetSim.liftMachine M emb inv)) (TM0.init (l.map emb)) := by
+      cf' ∈ StateTransition.eval (TM0.step (TM0AlphabetSim.liftMachine M emb inv)) (TM0.init (l.map emb)) := by
   have hresp := TM0AlphabetSim.lift_respects M emb inv hemb hemb_default
   obtain ⟨cf', hrel, hmem'⟩ :=
-    Turing.tr_eval hresp
+    StateTransition.tr_eval hresp
       (TM0AlphabetSim.lift_init_rel emb inv hemb hemb_default l) hmem
   exact ⟨cf', hrel.2, hmem'⟩
 
@@ -253,11 +258,13 @@ theorem trCfg_halt_head (v : List ℕ)
         some).reverse.headI) := by
   rcases htr with @⟨q, var, S, L, hL⟩
   -- The TM1 config is ⟨none, none, Tape.mk' ∅ (addBottom L)⟩; its head = (addBottom L).head.
-  simp only [TM2to1.addBottom] at *
   rw [Tape.mk'_head]
-  rw [show (ListBlank.cons (true, L.head)
-      (L.tail.map ⟨Prod.mk false, rfl⟩)).head = (true, L.head) from
-    ListBlank.head_cons _ _]
+  have hhead : (TM2to1.addBottom L).head = ((true, L.head) : ChainΓ) := by
+    apply Prod.ext
+    · exact TM2to1.addBottom_head_fst L
+    · rw [← ListBlank.nth_zero (TM2to1.addBottom L),
+        ← ListBlank.nth_zero L, TM2to1.addBottom_nth_snd]
+  rw [hhead]
   congr 1
   funext k
   have hk := congrArg ListBlank.head (hL k)
@@ -318,13 +325,13 @@ theorem code_to_tm0_tape (c : Code) :
       (M : TM0.Machine ChainΓ ΛTy),
       ∀ (vIn vOut : List ℕ),
         PartrecToTM2.halt vOut ∈
-          Turing.eval (TM2.step PartrecToTM2.tr) (PartrecToTM2.init c vIn) →
+          StateTransition.eval (TM2.step PartrecToTM2.tr) (PartrecToTM2.init c vIn) →
         ∃ cf : TM0.Cfg ChainΓ ΛTy,
-          cf ∈ Turing.eval (TM0.step M)
+          cf ∈ StateTransition.eval (TM0.step M)
             (TM0.init (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList vIn))) ∧
           ∀ (cfg₁ : TM1.Cfg ChainΓ ChainΛ_TM1 (Option PartrecToTM2.Γ')),
             TM2to1.TrCfg (PartrecToTM2.halt vOut) cfg₁ →
-            cfg₁ ∈ Turing.eval (TM1.step ChainTM1) (chainTM1Init c vIn) →
+            cfg₁ ∈ StateTransition.eval (TM1.step ChainTM1) (chainTM1Init c vIn) →
             cf.Tape = cfg₁.Tape := by
   letI inhΛ' : Inhabited PartrecToTM2.Λ' :=
     ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
@@ -391,7 +398,7 @@ theorem is_Recursive_byTape_of_computable_decide
       ∃ cfg₁ : TM1.Cfg ChainΓ ChainΛ_TM1 (Option PartrecToTM2.Γ'),
         TM2to1.TrCfg (PartrecToTM2.halt (outWord f w)) cfg₁ ∧
         ∃ cf : TM0.Cfg (Option (T ⊕ ChainΓ)) (Λ_conv ⊕ Λ₀),
-          cf ∈ Turing.eval (TM0.step (TM0Seq.compose M_conv (directEmbedTM0 (T := T) M)))
+          cf ∈ StateTransition.eval (TM0.step (TM0Seq.compose M_conv (directEmbedTM0 (T := T) M)))
             (TM0.init (w.map fun t => some (Sum.inl t))) ∧
           cf.Tape.head = directBlankEmb (T := T) cfg₁.Tape.head := by
     intro w
@@ -428,9 +435,10 @@ theorem is_Recursive_byTape_of_computable_decide
     have hcomp_dom :
         (TM0Seq.evalCfg (TM0Seq.compose M_conv (directEmbedTM0 (T := T) M))
           (w.map fun t => some (Sum.inl t))).Dom :=
-      (TM0Seq.compose_dom_iff' M_conv (directEmbedTM0 (T := T) M)
-        (w.map fun t => some (Sum.inl t)) midList hconv_dom' hconv_tape').2
-        (by simpa [TM0Seq.evalCfg] using hL2_dom)
+      (TM0Seq.evalCfg_dom_iff _ _).mpr <|
+        (TM0Seq.compose_dom_iff' M_conv (directEmbedTM0 (T := T) M)
+          (w.map fun t => some (Sum.inl t)) midList hconv_dom' hconv_tape').2 <|
+          (TM0Seq.evalCfg_dom_iff _ _).mp hL2_dom
     -- composition final tape = lifted machine final tape on midList.
     have hcomp_tape :
         ((TM0Seq.evalCfg (TM0Seq.compose M_conv (directEmbedTM0 (T := T) M))
@@ -463,7 +471,7 @@ theorem is_Recursive_byTape_of_computable_decide
     exact Part.dom_iff_mem.mpr ⟨cf, hcf_mem⟩
   · obtain ⟨cfg₁, htr, cf, hcf_mem, hcf_head⟩ := hcore w
     have hget :
-        (Turing.eval (TM0.step (TM0Seq.compose M_conv (directEmbedTM0 (T := T) M)))
+        (StateTransition.eval (TM0.step (TM0Seq.compose M_conv (directEmbedTM0 (T := T) M)))
           (TM0.init (w.map fun t => some (Sum.inl t)))).get h = cf :=
       Part.get_eq_of_mem hcf_mem h
     rw [hget, hcf_head, hL]

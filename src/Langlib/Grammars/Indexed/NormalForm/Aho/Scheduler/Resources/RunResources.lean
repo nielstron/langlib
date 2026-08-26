@@ -417,7 +417,7 @@ namespace ScheduleRunResources
 
 /-- Release a private overlay owner before running a same-yield residual parse. One charged
 owner becomes one free owner, so the productive-event credit is preserved exactly. -/
-public def releaseOwned
+@[reducible] public def releaseOwned
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {stack residualStack : List g.flag} {w : List T}
     {parse : NFParse g A stack w} {residual : NFParse g B residualStack w}

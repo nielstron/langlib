@@ -22,6 +22,101 @@ namespace IndexedGrammar
 namespace Aho
 namespace ScheduleInvariant
 
+/- Explicit constructor equations keep owner accounting stable across module-boundary
+transparency changes. -/
+@[simp] private theorem taskOwner_task
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (task : ScheduleTask g input) :
+    ScheduleAtom.taskOwner? (.task task) = some task.owner := rfl
+
+@[simp] private theorem taskOwner_terminal
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (owner : Fin input.length) (a : T) :
+    ScheduleAtom.taskOwner? (.terminal owner a : ScheduleAtom g input) = some owner := rfl
+
+@[simp] private theorem taskOwner_index
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (idx : ScheduleIndex g input) :
+    ScheduleAtom.taskOwner? (.index idx) = none := rfl
+
+@[simp] private theorem taskOwner_dollar
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T} :
+    ScheduleAtom.taskOwner? (.dollar : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem taskOwner_close
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (owner : Fin (10 * input.length)) :
+    ScheduleAtom.taskOwner? (.close owner : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem taskOwner_hash
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T} :
+    ScheduleAtom.taskOwner? (.hash : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem indexOwner_task
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (task : ScheduleTask g input) :
+    ScheduleAtom.indexOwner? (.task task) = none := rfl
+
+@[simp] private theorem indexOwner_terminal
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (owner : Fin input.length) (a : T) :
+    ScheduleAtom.indexOwner? (.terminal owner a : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem indexOwner_index
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (idx : ScheduleIndex g input) :
+    ScheduleAtom.indexOwner? (.index idx) = some idx.owner := rfl
+
+@[simp] private theorem indexOwner_dollar
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T} :
+    ScheduleAtom.indexOwner? (.dollar : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem indexOwner_close
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (owner : Fin (10 * input.length)) :
+    ScheduleAtom.indexOwner? (.close owner : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem indexOwner_hash
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T} :
+    ScheduleAtom.indexOwner? (.hash : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem closeOwner_task
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (task : ScheduleTask g input) :
+    ScheduleAtom.closeOwner? (.task task) = none := rfl
+
+@[simp] private theorem closeOwner_terminal
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (owner : Fin input.length) (a : T) :
+    ScheduleAtom.closeOwner? (.terminal owner a : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem closeOwner_index
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (idx : ScheduleIndex g input) :
+    ScheduleAtom.closeOwner? (.index idx) = none := rfl
+
+@[simp] private theorem closeOwner_dollar
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T} :
+    ScheduleAtom.closeOwner? (.dollar : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem closeOwner_close
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (owner : Fin (10 * input.length)) :
+    ScheduleAtom.closeOwner? (.close owner : ScheduleAtom g input) = some owner := rfl
+
+@[simp] private theorem closeOwner_hash
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T} :
+    ScheduleAtom.closeOwner? (.hash : ScheduleAtom g input) = none := rfl
+
+@[simp] private theorem markUsed_owner
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    (idx : ScheduleIndex g input) : idx.markUsed.owner = idx.owner := rfl
+
+private theorem filterMap_cons_eq_singleton_append
+    {α β : Type} (f : α → Option β) (x : α) (xs : List α) :
+    (x :: xs).filterMap f = [x].filterMap f ++ xs.filterMap f := by
+  cases h : f x <;> simp [h]
+
 /-! ## Generic owner insertion and deletion -/
 
 /-- Insert one fresh task/terminal owner while adding exactly one ghost square. -/
@@ -237,8 +332,10 @@ public theorem replaceTask_sameOwner
     ScheduleInvariant ⟨left, .task newTask, right⟩ := by
   apply ScheduleInvariant.of_ownerFields_eq hinv
   · simp [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?, howner]
-  · simp [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?]
-  · simp [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?]
+  · simp only [ScheduleCursor.indexOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, indexOwner_task, List.append_nil]
+  · simp only [ScheduleCursor.frameOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, closeOwner_task, List.append_nil]
   · simp [ScheduleCursor.word]
 
 /-- The plain binary move replaces one task by its two ordered children.  The left child keeps
@@ -259,8 +356,10 @@ public theorem plainBinary
     simpa only [List.append_assoc, List.append_nil] using
       (List.perm_middle (l₁ := left.filterMap ScheduleAtom.taskOwner? ++ [parent.owner])
         (l₂ := right.filterMap ScheduleAtom.taskOwner?) (a := rightTask.owner))
-  · simp [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?]
-  · simp [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?]
+  · simp only [ScheduleCursor.indexOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, indexOwner_task, List.append_nil]
+  · simp only [ScheduleCursor.frameOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, closeOwner_task, List.append_nil]
   · simp [ScheduleCursor.word]
     omega
 
@@ -289,13 +388,16 @@ public theorem plainPushUse
     (hinv : ScheduleInvariant ⟨left, .task parent, right⟩) :
     ScheduleInvariant ⟨left, .task child, .index idx :: right⟩ := by
   apply ScheduleInvariant.insertIndexOwner hinv idx.owner hindexFresh hcapacity
-  · simp [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?, htaskOwner]
+  · simp only [ScheduleCursor.taskOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, taskOwner_task, taskOwner_index, htaskOwner]
   · simp only [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?,
       List.filterMap_cons, List.filterMap_nil, List.append_nil]
     simpa only [List.append_assoc, List.append_nil] using
       (List.perm_middle (l₁ := left.filterMap ScheduleAtom.indexOwner?)
         (l₂ := right.filterMap ScheduleAtom.indexOwner?) (a := idx.owner))
-  · simp [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?]
+  · simp only [ScheduleCursor.frameOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, closeOwner_task, closeOwner_index,
+      List.append_nil]
   · simp [ScheduleCursor.word]
     omega
 
@@ -312,12 +414,15 @@ public theorem livePushCompress
       ⟨left, .task parent, .index oldIndex :: right⟩) :
     ScheduleInvariant ⟨left, .task child, .index newIndex :: right⟩ := by
   apply ScheduleInvariant.of_ownerFields_eq hinv
-  · simp [ScheduleCursor.taskOwners, ScheduleCursor.word,
-      ScheduleAtom.taskOwner?, List.filterMap_append, htaskOwner]
-  · simp [ScheduleCursor.indexOwners, ScheduleCursor.word,
-      ScheduleAtom.indexOwner?, List.filterMap_append, hindexOwner]
-  · simp [ScheduleCursor.frameOwners, ScheduleCursor.word,
-      ScheduleAtom.closeOwner?, List.filterMap_append]
+  · simp only [ScheduleCursor.taskOwners, ScheduleCursor.word,
+      List.filterMap_append, List.filterMap_cons,
+      taskOwner_task, taskOwner_index, htaskOwner]
+  · simp only [ScheduleCursor.indexOwners, ScheduleCursor.word,
+      List.filterMap_append, List.filterMap_cons,
+      indexOwner_task, indexOwner_index, hindexOwner]
+  · simp only [ScheduleCursor.frameOwners, ScheduleCursor.word,
+      List.filterMap_append, List.filterMap_cons,
+      closeOwner_task, closeOwner_index]
   · simp [ScheduleCursor.word]
 
 /-- Emitting the terminal of a plain leaf preserves its task owner exactly. -/
@@ -329,8 +434,12 @@ public theorem plainTerminal
     ScheduleInvariant ⟨left, .terminal task.owner a, right⟩ := by
   apply ScheduleInvariant.of_ownerFields_eq hinv
   · simp [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?]
-  · simp [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?]
-  · simp [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?]
+  · simp only [ScheduleCursor.indexOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, indexOwner_terminal, indexOwner_task,
+      List.append_nil]
+  · simp only [ScheduleCursor.frameOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, closeOwner_terminal, closeOwner_task,
+      List.append_nil]
   · simp [ScheduleCursor.word]
 
 /-- Matching an emitted terminal removes its owner and focuses the following square. -/
@@ -344,24 +453,26 @@ public theorem matchTerminal
       (next :: right).filterMap ScheduleAtom.taskOwner? =
         [next].filterMap ScheduleAtom.taskOwner? ++
           right.filterMap ScheduleAtom.taskOwner? := by
-    cases next <;> simp [ScheduleAtom.taskOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   have hindexNext :
       (next :: right).filterMap ScheduleAtom.indexOwner? =
         [next].filterMap ScheduleAtom.indexOwner? ++
           right.filterMap ScheduleAtom.indexOwner? := by
-    cases next <;> simp [ScheduleAtom.indexOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   have hframeNext :
       (next :: right).filterMap ScheduleAtom.closeOwner? =
         [next].filterMap ScheduleAtom.closeOwner? ++
           right.filterMap ScheduleAtom.closeOwner? := by
-    cases next <;> simp [ScheduleAtom.closeOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   apply ScheduleInvariant.removeTaskOwner hinv owner
-  · simp only [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?, htaskNext,
+  · simp only [ScheduleCursor.taskOwners_mk, taskOwner_terminal, htaskNext,
       List.filterMap_cons, List.filterMap_nil]
-    simpa only [List.append_assoc, List.append_nil] using
-      (List.perm_middle (l₁ := left.filterMap ScheduleAtom.taskOwner?)
-        (l₂ := [next].filterMap ScheduleAtom.taskOwner? ++
-          right.filterMap ScheduleAtom.taskOwner?) (a := owner))
+    cases hnext : ScheduleAtom.taskOwner? next <;>
+      simpa only [List.append_assoc, List.append_nil, List.singleton_append,
+        List.filterMap_cons, List.filterMap_nil, List.nil_append, hnext] using
+        (List.perm_middle (l₁ := left.filterMap ScheduleAtom.taskOwner?)
+          (l₂ := [next].filterMap ScheduleAtom.taskOwner? ++
+            right.filterMap ScheduleAtom.taskOwner?) (a := owner))
   · simp only [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?, hindexNext,
       List.filterMap_cons, List.filterMap_nil, List.append_nil]
     exact List.append_assoc _ _ _
@@ -383,24 +494,26 @@ public theorem finishTask
       (next :: right).filterMap ScheduleAtom.taskOwner? =
         [next].filterMap ScheduleAtom.taskOwner? ++
           right.filterMap ScheduleAtom.taskOwner? := by
-    cases next <;> simp [ScheduleAtom.taskOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   have hindexNext :
       (next :: right).filterMap ScheduleAtom.indexOwner? =
         [next].filterMap ScheduleAtom.indexOwner? ++
           right.filterMap ScheduleAtom.indexOwner? := by
-    cases next <;> simp [ScheduleAtom.indexOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   have hframeNext :
       (next :: right).filterMap ScheduleAtom.closeOwner? =
         [next].filterMap ScheduleAtom.closeOwner? ++
           right.filterMap ScheduleAtom.closeOwner? := by
-    cases next <;> simp [ScheduleAtom.closeOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   apply ScheduleInvariant.removeTaskOwner hinv task.owner
-  · simp only [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?, htaskNext,
+  · simp only [ScheduleCursor.taskOwners_mk, taskOwner_task, htaskNext,
       List.filterMap_cons, List.filterMap_nil]
-    simpa only [List.append_assoc] using
-      (List.perm_middle (l₁ := left.filterMap ScheduleAtom.taskOwner?)
-        (l₂ := [next].filterMap ScheduleAtom.taskOwner? ++
-          right.filterMap ScheduleAtom.taskOwner?) (a := task.owner))
+    cases hnext : ScheduleAtom.taskOwner? next <;>
+      simpa only [List.append_assoc, List.singleton_append,
+        List.filterMap_cons, List.filterMap_nil, hnext] using
+        (List.perm_middle (l₁ := left.filterMap ScheduleAtom.taskOwner?)
+          (l₂ := [next].filterMap ScheduleAtom.taskOwner? ++
+            right.filterMap ScheduleAtom.taskOwner?) (a := task.owner))
   · simp only [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?, hindexNext,
       List.filterMap_cons, List.filterMap_nil, List.append_nil]
     exact List.append_assoc _ _ _
@@ -427,7 +540,8 @@ public theorem popErase
       ⟨alpha ++ [.dollar], .task task, .index idx :: tail⟩) :
     ScheduleInvariant ⟨alpha ++ [.dollar], .task residual, tail⟩ := by
   apply ScheduleInvariant.removeIndexOwner hinv idx.owner hunframed
-  · simp [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?, htaskOwner]
+  · simp only [ScheduleCursor.taskOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, taskOwner_task, taskOwner_index, htaskOwner]
   · simp only [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?,
       List.filterMap_cons, List.filterMap_nil, List.append_nil]
     simpa only [List.append_assoc] using
@@ -435,7 +549,9 @@ public theorem popErase
         (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap
           ScheduleAtom.indexOwner?)
         (l₂ := tail.filterMap ScheduleAtom.indexOwner?) (a := idx.owner))
-  · simp [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?]
+  · simp only [ScheduleCursor.frameOwners_mk, List.filterMap_cons,
+      List.filterMap_nil, closeOwner_task, closeOwner_index,
+      List.append_nil]
   · simp [ScheduleCursor.word]
     omega
 
@@ -464,16 +580,19 @@ public theorem popFrame
     let b := gap.filterMap ScheduleAtom.taskOwner?
     let c := tail.filterMap ScheduleAtom.taskOwner?
     have hnew : a ++ b ++ task.owner :: c ~ task.owner :: (a ++ b ++ c) := by
-      simpa only [List.append_assoc] using
+      simpa only [List.append_assoc, List.cons_append] using
         (List.perm_middle (l₁ := a ++ b) (l₂ := c) (a := task.owner))
     have hold : a ++ task.owner :: b ++ c ~ task.owner :: (a ++ b ++ c) := by
-      simpa only [List.append_assoc] using
+      simpa only [List.append_assoc, List.cons_append] using
         (List.perm_middle (l₁ := a) (l₂ := b ++ c) (a := task.owner))
-    simpa only [a, b, c, List.append_assoc, List.singleton_append] using
+    simpa only [a, b, c, List.append_assoc, List.singleton_append,
+      List.cons_append, List.nil_append] using
       hnew.trans hold.symm
-  · simp [ScheduleCursor.word,
-      ScheduleCursor.indexOwners, ScheduleAtom.indexOwner?,
-      ScheduleIndex.markUsed, List.filterMap_append, List.append_assoc]
+  · simp only [ScheduleCursor.word, ScheduleCursor.indexOwners,
+      List.filterMap_append, List.filterMap_cons, List.filterMap_nil,
+      indexOwner_dollar, indexOwner_index, indexOwner_task, indexOwner_close,
+      markUsed_owner, List.append_assoc,
+      List.singleton_append]
   · simp only [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?,
       List.filterMap_append, List.filterMap_cons, List.filterMap_nil,
       List.append_nil]
@@ -482,8 +601,11 @@ public theorem popFrame
         (l₁ := alpha.filterMap ScheduleAtom.closeOwner? ++
           gap.filterMap ScheduleAtom.closeOwner?)
         (l₂ := tail.filterMap ScheduleAtom.closeOwner?) (a := idx.owner))
-  · simp [ScheduleCursor.indexOwners, ScheduleCursor.word,
-      ScheduleAtom.indexOwner?, List.filterMap_append]
+  · simp only [ScheduleCursor.indexOwners, ScheduleCursor.word,
+      List.filterMap_append, List.filterMap_cons, List.filterMap_nil,
+      indexOwner_dollar, indexOwner_index, indexOwner_task, indexOwner_close,
+      markUsed_owner, List.mem_append, List.mem_cons,
+      List.append_nil, true_or, or_true]
   · simp [ScheduleCursor.word]
     omega
 
@@ -497,23 +619,27 @@ public theorem returnFrame
       ⟨alpha ++ [.dollar, next] ++ gap ++ [.dollar], .close owner, tail⟩) :
     ScheduleInvariant ⟨alpha ++ [.dollar], next, gap ++ tail⟩ := by
   apply ScheduleInvariant.removeFrameOwner hinv owner
-  · cases next <;>
-      simp [ScheduleCursor.taskOwners, ScheduleCursor.word,
-        ScheduleAtom.taskOwner?, List.filterMap_append, List.append_assoc]
-  · cases next <;>
-      simp [ScheduleCursor.indexOwners, ScheduleCursor.word,
-        ScheduleAtom.indexOwner?, List.filterMap_append, List.append_assoc]
+  · simp only [ScheduleCursor.taskOwners, ScheduleCursor.word,
+      List.filterMap_append, List.filterMap_cons, List.filterMap_nil,
+      taskOwner_dollar, taskOwner_close, List.nil_append,
+      List.append_assoc]
+    cases hnext : ScheduleAtom.taskOwner? next <;> simp
+  · simp only [ScheduleCursor.indexOwners, ScheduleCursor.word,
+      List.filterMap_append, List.filterMap_cons, List.filterMap_nil,
+      indexOwner_dollar, indexOwner_close, List.nil_append,
+      List.append_assoc]
+    cases hnext : ScheduleAtom.indexOwner? next <;> simp
   · simp only [ScheduleCursor.frameOwners, ScheduleCursor.word,
-      List.filterMap_append, ScheduleAtom.closeOwner?, List.filterMap_cons,
-      List.filterMap_nil, List.append_nil]
+      List.filterMap_append, List.filterMap_cons,
+      List.filterMap_nil]
     let a := alpha.filterMap ScheduleAtom.closeOwner?
     let n := [next].filterMap ScheduleAtom.closeOwner?
     let b := gap.filterMap ScheduleAtom.closeOwner?
     let c := tail.filterMap ScheduleAtom.closeOwner?
-    cases next <;>
-      simpa only [a, n, b, c, ScheduleAtom.closeOwner?, List.filterMap_cons,
-        List.filterMap_nil, List.append_nil, List.append_assoc,
-        List.singleton_append] using
+    cases hnext : ScheduleAtom.closeOwner? next <;>
+      simpa only [a, n, b, c, List.filterMap_cons, List.filterMap_nil, hnext,
+        closeOwner_dollar, closeOwner_close, List.nil_append, List.append_nil,
+        List.append_assoc, List.singleton_append, List.cons_append] using
         (List.perm_middle (l₁ := a ++ n ++ b) (l₂ := c) (a := owner))
   · simp [ScheduleCursor.word]
     omega
@@ -532,27 +658,33 @@ public theorem prepareReturnFrame
     ScheduleInvariant
       ⟨alpha ++ [.dollar, next] ++ gap ++ [.dollar], .close owner, tail⟩ := by
   apply ScheduleInvariant.insertFrameOwner hinv owner hfresh
-  · cases next <;>
-      simp [ScheduleCursor.taskOwners, ScheduleCursor.word,
-        ScheduleAtom.taskOwner?, List.filterMap_append, List.append_assoc]
-  · cases next <;>
-      simp [ScheduleCursor.indexOwners, ScheduleCursor.word,
-        ScheduleAtom.indexOwner?, List.filterMap_append, List.append_assoc]
+  · simp only [ScheduleCursor.taskOwners, ScheduleCursor.word,
+      List.filterMap_append, List.filterMap_cons, List.filterMap_nil,
+      taskOwner_dollar, taskOwner_close, List.nil_append,
+      List.append_assoc]
+    cases hnext : ScheduleAtom.taskOwner? next <;> simp
+  · simp only [ScheduleCursor.indexOwners, ScheduleCursor.word,
+      List.filterMap_append, List.filterMap_cons, List.filterMap_nil,
+      indexOwner_dollar, indexOwner_close, List.nil_append,
+      List.append_assoc]
+    cases hnext : ScheduleAtom.indexOwner? next <;> simp
   · simp only [ScheduleCursor.frameOwners, ScheduleCursor.word,
-      List.filterMap_append, ScheduleAtom.closeOwner?, List.filterMap_cons,
-      List.filterMap_nil, List.append_nil]
+      List.filterMap_append, List.filterMap_cons,
+      List.filterMap_nil]
     let a := alpha.filterMap ScheduleAtom.closeOwner?
     let n := [next].filterMap ScheduleAtom.closeOwner?
     let b := gap.filterMap ScheduleAtom.closeOwner?
     let c := tail.filterMap ScheduleAtom.closeOwner?
-    cases next <;>
-      simpa only [a, n, b, c, ScheduleAtom.closeOwner?, List.filterMap_cons,
-        List.filterMap_nil, List.append_nil, List.append_assoc,
-        List.singleton_append] using
+    cases hnext : ScheduleAtom.closeOwner? next <;>
+      simpa only [a, n, b, c, List.filterMap_cons, List.filterMap_nil, hnext,
+        closeOwner_dollar, closeOwner_close, List.nil_append, List.append_nil,
+        List.append_assoc, List.singleton_append, List.cons_append] using
         (List.perm_middle (l₁ := a ++ n ++ b) (l₂ := c) (a := owner))
-  · cases next <;>
-      simpa [ScheduleCursor.indexOwners, ScheduleCursor.word,
-        ScheduleAtom.indexOwner?, List.filterMap_append, List.append_assoc] using howned
+  · cases hnext : ScheduleAtom.indexOwner? next <;>
+      simpa only [ScheduleCursor.indexOwners, ScheduleCursor.word,
+        List.filterMap_append, List.filterMap_cons, List.filterMap_nil, hnext,
+        indexOwner_dollar, indexOwner_close, List.nil_append, List.append_nil,
+        List.append_assoc, List.singleton_append] using howned
   · simp [ScheduleCursor.word]
     omega
 
@@ -571,28 +703,30 @@ public theorem eraseIndex
       (next :: tail).filterMap ScheduleAtom.taskOwner? =
         [next].filterMap ScheduleAtom.taskOwner? ++
           tail.filterMap ScheduleAtom.taskOwner? := by
-    cases next <;> simp [ScheduleAtom.taskOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   have hindexNext :
       (next :: tail).filterMap ScheduleAtom.indexOwner? =
         [next].filterMap ScheduleAtom.indexOwner? ++
           tail.filterMap ScheduleAtom.indexOwner? := by
-    cases next <;> simp [ScheduleAtom.indexOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   have hframeNext :
       (next :: tail).filterMap ScheduleAtom.closeOwner? =
         [next].filterMap ScheduleAtom.closeOwner? ++
           tail.filterMap ScheduleAtom.closeOwner? := by
-    cases next <;> simp [ScheduleAtom.closeOwner?]
+    exact filterMap_cons_eq_singleton_append _ _ _
   apply ScheduleInvariant.removeIndexOwner hinv idx.owner hunframed
   · simp only [ScheduleCursor.taskOwners_mk, ScheduleAtom.taskOwner?, htaskNext,
       List.filterMap_cons, List.filterMap_nil, List.append_nil]
     exact List.append_assoc _ _ _
-  · simp only [ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?, hindexNext,
+  · simp only [ScheduleCursor.indexOwners_mk, indexOwner_index, hindexNext,
       List.filterMap_cons, List.filterMap_nil]
-    simpa only [List.append_assoc] using
-      (List.perm_middle
-        (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap ScheduleAtom.indexOwner?)
-        (l₂ := [next].filterMap ScheduleAtom.indexOwner? ++
-          tail.filterMap ScheduleAtom.indexOwner?) (a := idx.owner))
+    cases hnext : ScheduleAtom.indexOwner? next <;>
+      simpa only [List.append_assoc, List.singleton_append,
+        List.filterMap_cons, List.filterMap_nil, hnext] using
+        (List.perm_middle
+          (l₁ := (alpha ++ [ScheduleAtom.dollar]).filterMap ScheduleAtom.indexOwner?)
+          (l₂ := [next].filterMap ScheduleAtom.indexOwner? ++
+            tail.filterMap ScheduleAtom.indexOwner?) (a := idx.owner))
   · simp only [ScheduleCursor.frameOwners_mk, ScheduleAtom.closeOwner?, hframeNext,
       List.filterMap_cons, List.filterMap_nil, List.append_nil]
     exact List.append_assoc _ _ _

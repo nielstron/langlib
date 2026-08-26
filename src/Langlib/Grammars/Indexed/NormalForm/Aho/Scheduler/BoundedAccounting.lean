@@ -147,20 +147,14 @@ public def truncate
     {g : IndexedGrammar T} {A : g.nt} {stack : List g.flag} {w : List T}
     {p : NFParse g A stack w} {k : ℕ} (route : ConsumeRoute g p k)
     (j : ℕ) (hjk : j ≤ k) : ConsumeRoute g p j :=
-  match route with
-  | .binaryLeft inner => .binaryLeft (inner.truncate j hjk)
-  | .binaryRight inner => .binaryRight (inner.truncate j hjk)
-  | .popHere => by
-      have hj : j = 0 := Nat.eq_zero_of_le_zero hjk
-      subst j
-      exact .popHere
-  | .popTail inner => by
-      cases j with
-      | zero => exact .popHere
-      | succ j =>
-          exact .popTail (inner.truncate j (by omega))
-  | .push inner =>
-      .push (inner.truncate (j + 1) (by omega))
+  match route, j with
+  | .binaryLeft inner, j => .binaryLeft (inner.truncate j hjk)
+  | .binaryRight inner, j => .binaryRight (inner.truncate j hjk)
+  | .popHere, 0 => .popHere
+  | .popHere, _ + 1 => False.elim (by omega)
+  | .popTail _, 0 => .popHere
+  | .popTail inner, j + 1 => .popTail (inner.truncate j (by omega))
+  | .push inner, j => .push (inner.truncate (j + 1) (by omega))
 termination_by sizeOf route
 
 /-- Truncating a binary-free route to a shallower occurrence remains binary-free. -/
@@ -175,14 +169,14 @@ public theorem truncate_noBinary
   | popHere =>
       have hj : j = 0 := Nat.eq_zero_of_le_zero hjk
       subst j
-      simp [truncate, barrierOwners]
+      simp only [truncate, NoBinary]
   | popTail inner ih =>
       cases j with
-      | zero => simp [truncate, barrierOwners]
+      | zero => simp only [truncate, NoBinary]
       | succ j =>
-          simpa [truncate, NoBinary] using ih hroute j (by omega)
+          simpa only [truncate, NoBinary] using ih hroute j (by omega)
   | push inner ih =>
-      simpa [truncate, NoBinary] using ih hroute (j + 1) (by omega)
+      simpa only [truncate, NoBinary] using ih hroute (j + 1) (by omega)
 
 /-- Truncation keeps an initial segment of the original route's barrier charges.  In particular,
 it neither invents a binary barrier nor changes the owner assigned to a barrier it retains. -/
@@ -510,7 +504,7 @@ public def workFrameCount {g : IndexedGrammar T} (c : Config g) : ℕ :=
         right.countP WorkSym.isTaskPayload := by
   cases focus <;>
     simp [workTaskCount, WorkCursor.word, WorkSym.isTaskPayload,
-      List.countP_append, Nat.add_assoc, Nat.add_comm] <;> omega
+      List.countP_append, List.countP_cons, Nat.add_assoc, Nat.add_comm] <;> omega
 
 @[simp] public theorem workIndexCount_config_mk {g : IndexedGrammar T}
     (inputPos : ℕ) (left : List (WorkSym g)) (focus : WorkSym g)
@@ -520,7 +514,7 @@ public def workFrameCount {g : IndexedGrammar T} (c : Config g) : ℕ :=
         right.countP WorkSym.isIndex := by
   cases focus <;>
     simp [workIndexCount, WorkCursor.word, WorkSym.isIndex,
-      List.countP_append, Nat.add_assoc, Nat.add_comm] ; omega
+      List.countP_append, List.countP_cons, Nat.add_assoc, Nat.add_comm] ; omega
 
 @[simp] public theorem workFrameCount_config_mk {g : IndexedGrammar T}
     (inputPos : ℕ) (left : List (WorkSym g)) (focus : WorkSym g)
@@ -530,7 +524,7 @@ public def workFrameCount {g : IndexedGrammar T} (c : Config g) : ℕ :=
         right.countP WorkSym.isClose := by
   cases focus <;>
     simp [workFrameCount, WorkCursor.word, WorkSym.isClose,
-      List.countP_append, Nat.add_assoc, Nat.add_comm] ; omega
+      List.countP_append, List.countP_cons, Nat.add_assoc, Nat.add_comm] ; omega
 
 /-- Marking the rightmost index changes no count computed from a mark-insensitive predicate. -/
 public theorem countP_markProductivePrefix_of_index_mark_invariant
@@ -601,7 +595,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
   | nil => simp [wordConfig, WorkSym.isTaskPayload, List.countP_append]
   | cons z zs =>
       cases z <;> simp [wordConfig, WorkSym.isTaskPayload, List.countP_append,
-        Nat.add_assoc, Nat.add_comm] <;> omega
+        List.countP_cons, Nat.add_assoc, Nat.add_comm] <;> omega
 
 @[simp] public theorem workIndexCount_wordConfig {g : IndexedGrammar T}
     (inputPos : ℕ) (alpha word : List (WorkSym g)) :
@@ -611,7 +605,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
   | nil => simp [wordConfig, WorkSym.isIndex, List.countP_append]
   | cons z zs =>
       cases z <;> simp [wordConfig, WorkSym.isIndex, List.countP_append,
-        Nat.add_assoc, Nat.add_comm] ; omega
+        List.countP_cons, Nat.add_assoc, Nat.add_comm] ; omega
 
 @[simp] public theorem workFrameCount_wordConfig {g : IndexedGrammar T}
     (inputPos : ℕ) (alpha word : List (WorkSym g)) :
@@ -621,7 +615,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
   | nil => simp [wordConfig, WorkSym.isClose, List.countP_append]
   | cons z zs =>
       cases z <;> simp [wordConfig, WorkSym.isClose, List.countP_append,
-        Nat.add_assoc, Nat.add_comm] ; omega
+        List.countP_cons, Nat.add_assoc, Nat.add_comm] ; omega
 
 @[simp] public theorem workTaskCount_active_plain {g : IndexedGrammar T}
     (inputPos : ℕ) (alpha beta : List (WorkSym g)) (A : g.nt) :
@@ -680,7 +674,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
         .plain B, .close :: gamma⟩⟩ : Config g) =
       alpha.countP WorkSym.isIndex + beta.countP WorkSym.isIndex +
         gamma.countP WorkSym.isIndex + 1 := by
-  simp [List.countP_append, WorkSym.isIndex]
+  simp [List.countP_append, List.countP_cons, WorkSym.isIndex]
   omega
 
 @[simp] public theorem workFrameCount_popOpen_plain {g : IndexedGrammar T}
@@ -691,7 +685,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
         .plain B, .close :: gamma⟩⟩ : Config g) =
       alpha.countP WorkSym.isClose + beta.countP WorkSym.isClose +
         gamma.countP WorkSym.isClose + 1 := by
-  simp [List.countP_append, WorkSym.isClose]
+  simp [List.countP_append, List.countP_cons, WorkSym.isClose]
   omega
 
 @[simp] public theorem workTaskCount_popOpen_live {g : IndexedGrammar T}
@@ -713,7 +707,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
         .live B, .close :: gamma⟩⟩ : Config g) =
       alpha.countP WorkSym.isIndex + beta.countP WorkSym.isIndex +
         gamma.countP WorkSym.isIndex + 1 := by
-  simp [List.countP_append, WorkSym.isIndex]
+  simp [List.countP_append, List.countP_cons, WorkSym.isIndex]
   omega
 
 @[simp] public theorem workFrameCount_popOpen_live {g : IndexedGrammar T}
@@ -724,7 +718,7 @@ public theorem countP_markProductivePrefix_of_index_mark_invariant
         .live B, .close :: gamma⟩⟩ : Config g) =
       alpha.countP WorkSym.isClose + beta.countP WorkSym.isClose +
         gamma.countP WorkSym.isClose + 1 := by
-  simp [List.countP_append, WorkSym.isClose]
+  simp [List.countP_append, List.countP_cons, WorkSym.isClose]
   omega
 
 /-- Returning a frame preserves task and index counts and removes exactly its closing marker. -/
@@ -735,7 +729,8 @@ public theorem workTaskCount_returnFrame_eq {g : IndexedGrammar T}
         Config g) =
     workTaskCount
       (⟨inputPos, ⟨alpha ++ [.dollar], Z, beta ++ gamma⟩⟩ : Config g) := by
-  cases Z <;> simp [List.countP_append, WorkSym.isTaskPayload] <;> omega
+  cases Z <;>
+    simp [List.countP_append, List.countP_cons, WorkSym.isTaskPayload] <;> omega
 
 public theorem workIndexCount_returnFrame_eq {g : IndexedGrammar T}
     (inputPos : ℕ) (alpha beta gamma : List (WorkSym g)) (Z : WorkSym g) :
@@ -744,7 +739,7 @@ public theorem workIndexCount_returnFrame_eq {g : IndexedGrammar T}
         Config g) =
     workIndexCount
       (⟨inputPos, ⟨alpha ++ [.dollar], Z, beta ++ gamma⟩⟩ : Config g) := by
-  cases Z <;> simp [List.countP_append, WorkSym.isIndex] <;> omega
+  cases Z <;> simp [List.countP_append, List.countP_cons, WorkSym.isIndex] <;> omega
 
 public theorem workFrameCount_returnFrame_eq_add_one {g : IndexedGrammar T}
     (inputPos : ℕ) (alpha beta gamma : List (WorkSym g)) (Z : WorkSym g) :
@@ -753,7 +748,7 @@ public theorem workFrameCount_returnFrame_eq_add_one {g : IndexedGrammar T}
         Config g) =
     workFrameCount
       (⟨inputPos, ⟨alpha ++ [.dollar], Z, beta ++ gamma⟩⟩ : Config g) + 1 := by
-  cases Z <;> simp [List.countP_append, WorkSym.isClose] <;> omega
+  cases Z <;> simp [List.countP_append, List.countP_cons, WorkSym.isClose] <;> omega
 
 /-- Accounting for one concrete compressed-runner configuration. Every count is computed from
 the physical word itself; event-depth invariants prove the count bounds, while `shape_bound`
@@ -799,7 +794,8 @@ public theorem initialConfig_compressedAccounting
   apply CompressedAccounting.of_physical_bounds
   all_goals
     simp [workTaskCount, workIndexCount, workFrameCount, initialConfig,
-      WorkCursor.word, WorkSym.isTaskPayload, WorkSym.isIndex, WorkSym.isClose]
+      WorkCursor.word, WorkSym.isTaskPayload, WorkSym.isIndex, WorkSym.isClose,
+      List.countP_cons]
   all_goals omega
 
 /-- The final work word has no task, index, or frame payload. -/
@@ -858,7 +854,7 @@ public theorem target_accounting {g : IndexedGrammar T} [Fintype g.nt]
 public theorem toReflTransGen {g : IndexedGrammar T} [Fintype g.nt]
     {input : List T} {c c' : Config g} (run : CompressedReaches g input c c') :
     Relation.ReflTransGen (CompositeStep g input) c c' :=
-  run.2.mono fun _ _ edge => edge.1
+  (@Relation.ReflTransGen.mono _ _ _ (fun _ _ edge => edge.1)) _ _ run.2
 
 /-- Every accounted compressed trace is a bounded composite trace at the desired linear bound. -/
 public theorem toBoundedReaches {g : IndexedGrammar T} [Fintype g.nt]
@@ -866,8 +862,9 @@ public theorem toBoundedReaches {g : IndexedGrammar T} [Fintype g.nt]
     (run : CompressedReaches g input c c') :
     BoundedReaches g input (15 * input.length) c c' := by
   refine ⟨run.1.within hinput, ?_⟩
-  exact run.2.mono fun _ _ edge =>
-    ⟨edge.1, edge.2.1.within hinput, edge.2.2.within hinput⟩
+  exact (@Relation.ReflTransGen.mono _ _ _
+    (fun _ _ edge =>
+      ⟨edge.1, edge.2.1.within hinput, edge.2.2.within hinput⟩)) _ _ run.2
 
 end CompressedReaches
 
@@ -1300,14 +1297,14 @@ public theorem exists_selectedPrefixes {g : IndexedGrammar T} [Fintype g.nt]
           cases z <;> simp [WorkSym.isIndex]
           rename_i relation mark
           exact hindex relation mark hz
-        simp [List.countP_append, WorkSym.isIndex, hbeta, hcount]
+        simp [List.countP_append, List.countP_cons, WorkSym.isIndex, hbeta, hcount]
       · have hbeta : beta.countP WorkSym.isIndex = 0 := by
           apply List.countP_eq_zero.mpr
           intro z hz
           cases z <;> simp [WorkSym.isIndex]
           rename_i relation mark
           exact hindex relation mark hz
-        simp [List.countP_append, WorkSym.isIndex, hbeta, hcountUsed]
+        simp [List.countP_append, List.countP_cons, WorkSym.isIndex, hbeta, hcountUsed]
 
 /-- Consequently the physical selected-index count is exactly the number of concrete blocks. -/
 public theorem exists_selectedPrefix_indexCount_eq_blockCount

@@ -71,8 +71,8 @@ public def evalMembership (G : EncodedCFG T) (w : List T) : Part Bool :=
 grammar code and the input word. -/
 public theorem evalMembership_partrec₂ :
     Partrec₂ (evalMembership : EncodedCFG T → List T →. Bool) := by
-  simpa [evalMembership] using
-    (checkMembershipEncoded_computable' (T := T)).to₂.partrec₂
+  unfold evalMembership
+  exact (checkMembershipEncoded_computable' (T := T)).to₂.partrec₂
 
 /-- A single evaluator decides membership from an encoded grammar and a word, under
 the promise that the encoded grammar presents a deterministic context-free language.

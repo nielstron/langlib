@@ -223,7 +223,7 @@ public theorem EpsilonSplitTailData.splitRightIntervalResidual
             have hcycle := transGen_append_input_exact_residual hcycle₀
               (childWord ++ epsilonSuffix)
             exact emptyStack_no_useful_cycle M
-              (by simpa [PDA.conf.appendInput] using hcycle)
+              (by simpa [PDA.conf.appendInput, spineCutState, spineCutStack] using hcycle)
               epsilonUseful
           have gammaLength : gamma.length ≤
               PDA_to_CFG.max_push (emptyStackPDA M) := by

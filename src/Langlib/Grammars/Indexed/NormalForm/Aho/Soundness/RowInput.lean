@@ -472,7 +472,7 @@ public theorem clearInputBlocks_encodeRunCellsFrom
       have hsub : pos - cell - 1 = pos - (cell + 1) := by omega
       simp only [encodeRunCellsFrom, clearInputBlocks, List.map_cons,
         RunCell.clearBlock, inputPositionCells, hbit, List.cons.injEq]
-      simpa [hsub] using ih (cell + 1)
+      simpa [clearInputBlocks, hsub] using ih (cell + 1)
 
 @[simp] public theorem clearInputBlocks_encodeRunCells
     (g : IndexedGrammar T) (input : List T) (c : Config g) :
@@ -902,4 +902,3 @@ public theorem evalInputBlocks_encodeRunCells_sound
 
 end Aho
 end IndexedGrammar
-

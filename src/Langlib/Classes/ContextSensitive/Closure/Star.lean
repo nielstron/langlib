@@ -256,7 +256,8 @@ private lemma locate_monochromatic_occurrence
               obtain ⟨pre, found, post, left, right, htailEq, hfound,
                   hu', hv'⟩ := ih halt.2 (by
                     intro c hc
-                    exact hchunks c (by simp [hc])) (by simpa [tailWord] using huvTail)
+                    exact hchunks c (by simp [hc]))
+                (by simpa [tailWord, tailChunks] using huvTail)
               refine ⟨ch :: pre, found, post, left, right, ?_, hfound, ?_, hv'⟩
               · simp at htailEq ⊢
                 exact htailEq
@@ -307,7 +308,7 @@ private def stopRule (g : grammar T) (c : Bool) :
     grule (Bool × T) (StarNT g.nt) :=
   ⟨[], Sum.inr c, [], [tagSym c (.nonterminal g.initial)]⟩
 
-private def alternatingGrammar (g : grammar T) : grammar (Bool × T) where
+@[reducible] private def alternatingGrammar (g : grammar T) : grammar (Bool × T) where
   nt := StarNT g.nt
   initial := Sum.inr false
   rules := [continueRule g false, stopRule g false,
@@ -410,7 +411,8 @@ private lemma startForms_derives_taggedWords (g : grammar T) (c : Bool)
       have hrest := ih (!c) (fun x hx => hws x (by simp [hx]))
       have hsecond := grammar_deri_with_prefix
         (w.map (fun t => symbol.terminal (c, t))) hrest
-      exact grammar_deri_of_deri_deri hfirst (by simpa [taggedWords] using hsecond)
+      exact grammar_deri_of_deri_deri hfirst
+        (by simpa [taggedWords, Function.comp_def] using hsecond)
 
 private lemma alternatingGrammar_complete (g : grammar T)
     {ws : List (List T)} (hws0 : ws ≠ [])
@@ -874,7 +876,6 @@ private lemma goodForm_continue_step
   · rw [hafter, hu, hv]
     simp [newBase, initialChunk, renderChunks, generatorChunk, List.map_append,
       List.flatten_append, List.append_assoc]
-    rfl
 
 private lemma goodForm_stop_step
     (g : grammar T) (c : Bool)
@@ -896,7 +897,6 @@ private lemma goodForm_stop_step
     · exact initialChunk_source g c
   · rw [hafter, hu, hv]
     simp [initialChunk, renderChunks, List.map_append, List.flatten_append]
-    rfl
 
 private lemma goodForm_step (g : grammar T) (hg : grammar_noncontracting g)
     {before after : List (symbol (Bool × T) (StarNT g.nt))}
@@ -1093,8 +1093,8 @@ private lemma alternating_image_eq_star_diff_empty (g : grammar T)
       | nil => simp at hlen
       | cons x xs => simp [forgetColour] at hempty
   · rintro ⟨hw, hw0⟩
-    rw [Language.mem_kstar] at hw
-    obtain ⟨words, rfl, hwords⟩ := hw
+    have hw' : w ∈ (KStar.kstar (grammar_language g) : Language T) := hw
+    obtain ⟨words, rfl, hwords⟩ := Language.mem_kstar.mp hw'
     have hwords0 : words ≠ [] := by
       intro hnil
       subst words
@@ -1162,6 +1162,7 @@ public theorem CS_closedUnderKleeneStar :
   have heq :
       (grammar_language (alternatingGrammar g₀)).homomorphicImage forgetColour =
         KStar.kstar L \ ({[]} : Set (List T)) := by
-    rw [alternating_image_eq_star_diff_empty g₀ hnc, hlang₀, hlang,
-      kstar_remove_empty]
+    rw [alternating_image_eq_star_diff_empty g₀ hnc, hlang₀, hlang]
+    exact congrArg (fun K : Language T => K \ ({[]} : Set (List T)))
+      (kstar_remove_empty L)
   rwa [← heq]

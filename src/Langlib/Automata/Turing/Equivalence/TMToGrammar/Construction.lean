@@ -231,7 +231,7 @@ public noncomputable def cleanupRules (M : Turing.TM0.Machine (Option T) Λ) :
       [.nonterminal (haltCell orig)]⟩ : grule T (TMtoGrammarNT T Λ)))
 
 /-- The grammar simulating TM0 machine `M`. -/
-@[expose]
+@[expose, reducible]
 public noncomputable def tmToGrammar (M : Turing.TM0.Machine (Option T) Λ) :
     grammar T where
   nt := TMtoGrammarNT T Λ

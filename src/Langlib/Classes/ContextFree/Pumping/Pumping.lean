@@ -81,7 +81,7 @@ public lemma pumping_string {u v : List (Symbol T g.NT)} {n : g.NT}
     g.Derives [Symbol.nonterminal n] (u^+^i ++ [Symbol.nonterminal n] ++ v^+^i) := by
   induction i with
   | zero =>
-    simpa using Derives.refl [Symbol.nonterminal n]
+    simpa [nTimes] using Derives.refl [Symbol.nonterminal n]
   | succ n ih =>
     apply ih.trans
     apply ((hg.append_left _).append_right _).trans

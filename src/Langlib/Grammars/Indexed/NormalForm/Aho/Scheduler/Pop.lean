@@ -104,7 +104,8 @@ public theorem derives {g : IndexedGrammar T} {A B : g.nt} {flags : List g.flag}
   | @cons A B C f flags edge rest ih =>
       have hfirst := augPop_derives edge (flags ++ suffix)
       have hrest := ih suffix
-      simpa [List.append_assoc] using hfirst.trans hrest
+      simpa [List.append_assoc] using
+        IndexedGrammar.deri_of_deri_deri hfirst hrest
 
 /-- Split the first edge from a path known to contain at least two concrete flags. -/
 public theorem uncons {g : IndexedGrammar T} {A C : g.nt}
@@ -393,4 +394,3 @@ public theorem cflagBase_edge_of_nfparse_pop
 
 end Aho
 end IndexedGrammar
-

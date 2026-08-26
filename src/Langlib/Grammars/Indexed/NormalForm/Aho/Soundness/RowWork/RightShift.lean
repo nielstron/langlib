@@ -18,6 +18,23 @@ variable {T : Type}
 namespace IndexedGrammar
 namespace Aho
 
+private theorem WorkCursor.map_some_slots_rightShift {g : IndexedGrammar T}
+    (c : WorkCursor g) :
+    c.slots.map some =
+      c.left.map inactive ++ active c.focus :: c.right.map inactive := by
+  have map_inactive (xs : List (WorkSym g)) :
+      xs.map (fun z => some (WorkSlot.mk false z)) = xs.map inactive := by
+    induction xs with
+    | nil => rfl
+    | cons z zs ih =>
+        simp only [List.map_cons]
+        rw [ih]
+        rfl
+  simp only [WorkCursor.slots, List.map_append, List.map_cons, List.map_map,
+    Function.comp_def]
+  rw [map_inactive, map_inactive]
+  rfl
+
 /-! ## One-slot right shifts -/
 
 private theorem insertOne_suffixPlus1_iff
@@ -124,13 +141,19 @@ public theorem WorkTrace.decodePlus1Some
               rcases ih symbol rfl (by simp [advanceWorkState, updateHistory, inactive])
                   (by simp [advanceWorkState, inactive, holdEnded]) hdone with
                 ⟨beta, k, holdTail, hnewTail⟩
+              have holdTail' : rows.map (fun r => r.1) =
+                  beta.map inactive ++ List.replicate (k + 1) none := by
+                simpa only [oldProjection] using holdTail
+              have hnewTail' : rows.map (fun r => r.2.1) =
+                  inactive symbol :: beta.map inactive ++ List.replicate k none := by
+                simpa only [newProjection] using hnewTail
               refine ⟨symbol :: beta, k, ?_, ?_⟩
               · simp only [oldProjection, List.map_cons, List.map_cons]
                 simpa [inactive] using
-                  congrArg (fun xs => inactive symbol :: xs) holdTail
+                  congrArg (fun xs => inactive symbol :: xs) holdTail'
               · simp only [newProjection, List.map_cons, List.map_cons]
                 simpa [inactive] using
-                  congrArg (fun xs => inactive z :: xs) hnewTail
+                  congrArg (fun xs => inactive z :: xs) hnewTail'
 
 private theorem insertOne_stage1_iff
     (productive : Bool) (oldFocus newFocus inserted : WorkSym g)
@@ -184,7 +207,7 @@ private theorem WorkTrace.decodeInsertAfterStage
         · exact hfalse
         · simp [active] at hnone
       cases tail₁ with
-      | nil => simp [workScanDone, advanceWorkState] at hdone
+      | nil => exact (of_decide_eq_true hdone).elim
       | @cons _stage₂ carry new₂ next₂ suffixRows result hedge₂ htail =>
           let stage₂ := advanceWorkState stage (active oldFocus) (active newFocus) .stage2
           have hw₂ := (hshape stage₂.phase next₂ stage₂.history carry new₂).mp
@@ -373,10 +396,10 @@ public theorem workTraceAccepts_plainBinary_sound
   let newCursor : WorkCursor g := ⟨markProductivePrefix alpha ++ [.dollar],
     .plain B, .plain C :: beta⟩
   refine ⟨oldCursor, newCursor, kOld, kNew, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨hbinary, alpha, beta, rfl, rfl⟩
 
 public theorem workTraceAccepts_plainPushUse_sound
@@ -402,10 +425,10 @@ public theorem workTraceAccepts_plainPushUse_sound
   let newCursor : WorkCursor g := ⟨alpha ++ [.dollar], .live B,
     .index (cflagBase g f) .firstPending :: beta⟩
   refine ⟨oldCursor, newCursor, kOld, kNew, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨hpush, alpha, beta, rfl, rfl⟩
 
 public theorem workTraceAccepts_livePushFresh_sound
@@ -432,10 +455,10 @@ public theorem workTraceAccepts_livePushFresh_sound
   let newCursor : WorkCursor g := ⟨alpha ++ [.dollar], .live B,
     .index (cflagBase g f) .laterPending :: Z :: gamma⟩
   refine ⟨oldCursor, newCursor, kOld, kNew, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨hpush, alpha, Z, gamma, rfl, rfl⟩
 
 public theorem workTraceAccepts_liveBinaryBoth_sound
@@ -460,10 +483,10 @@ public theorem workTraceAccepts_liveBinaryBoth_sound
   let newCursor : WorkCursor g := ⟨markProductivePrefix alpha ++ [.dollar],
     .live B, .live C :: Z :: beta⟩
   refine ⟨oldCursor, newCursor, kOld, kNew, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨hbinary, alpha, Z, beta, rfl, rfl⟩
 
 public theorem workTraceAccepts_liveBinaryLeft_sound
@@ -488,10 +511,10 @@ public theorem workTraceAccepts_liveBinaryLeft_sound
   let newCursor : WorkCursor g := ⟨markProductivePrefix alpha ++ [.dollar],
     .live B, .plain C :: Z :: beta⟩
   refine ⟨oldCursor, newCursor, kOld, kNew, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨hbinary, alpha, Z, beta, rfl, rfl⟩
 
 public theorem workTraceAccepts_liveBinaryRight_sound
@@ -516,10 +539,10 @@ public theorem workTraceAccepts_liveBinaryRight_sound
   let newCursor : WorkCursor g := ⟨markProductivePrefix alpha ++ [.dollar],
     .plain B, .live C :: Z :: beta⟩
   refine ⟨oldCursor, newCursor, kOld, kNew, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots_rightShift]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨hbinary, alpha, Z, beta, rfl, rfl⟩
 
 end Aho

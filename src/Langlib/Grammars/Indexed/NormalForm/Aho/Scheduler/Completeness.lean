@@ -21,20 +21,21 @@ namespace IndexedGrammar
 namespace Aho
 
 /-- Initially every productive-event owner is free. -/
-public def initialIndexOwnerPool
+@[reducible] public def initialIndexOwnerPool
     {g : IndexedGrammar T} [Fintype g.nt]
     {input : List T} (parse : NFParse g g.initial [] input) :
     IndexOwnerPool (initialScheduleCursor parse) where
   free := genericOwnerRange g input
   all_nodup := by
-    simpa [initialScheduleCursor, initialScheduleTask,
-      ScheduleCursor.indexOwners, ScheduleCursor.word,
-      ScheduleAtom.indexOwner?] using
+    simpa only [initialScheduleCursor, ScheduleCursor.indexOwners_mk,
+      ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
+      List.append_nil, List.nil_append] using
       (genericOwnerRange_nodup g input)
   all_perm := by
-    simp [initialScheduleCursor, initialScheduleTask,
-      ScheduleCursor.indexOwners, ScheduleCursor.word,
-      ScheduleAtom.indexOwner?]
+    simpa only [initialScheduleCursor, ScheduleCursor.indexOwners_mk,
+      ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
+      List.append_nil, List.nil_append] using
+        (List.Perm.refl (genericOwnerRange g input))
 
 @[simp] public theorem initialIndexOwnerPool_free
     {g : IndexedGrammar T} [Fintype g.nt]
@@ -44,14 +45,14 @@ public def initialIndexOwnerPool
 
 /-- The root cursor has no persistent owners, so its logical ticket ledger is the unique
 empty live assignment. -/
-public def initialIndexTicketLedger
+@[reducible] public def initialIndexTicketLedger
     {g : IndexedGrammar T} [Fintype g.nt]
     {input : List T} (parse : NFParse g g.initial [] input) :
     IndexTicketLedger (initialScheduleCursor parse) :=
   IndexTicketLedger.ofEmpty parse.yield_length_pos (by
-    simp [initialScheduleCursor, initialScheduleTask,
-      ScheduleCursor.indexOwners, ScheduleCursor.word,
-      ScheduleAtom.indexOwner?])
+    simp only [initialScheduleCursor, ScheduleCursor.indexOwners_mk,
+      ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
+      List.append_nil])
 
 /-- The empty root ledger satisfies the strict window-addressed parking invariant. -/
 public theorem initialParkingBelow
@@ -63,28 +64,28 @@ public theorem initialParkingBelow
   apply IndexTicketLedger.parkingBelow_ofEmpty
 
 /-- Productive-owner provenance on the root's empty logical projection. -/
-public def initialTicketOwnerLedger
+@[reducible] public def initialTicketOwnerLedger
     {g : IndexedGrammar T} [Fintype g.nt]
     {input : List T} (parse : NFParse g g.initial [] input) :
     (initialIndexTicketLedger parse).SemanticScheduleOwnerLedger parse
       (ProductiveOwnerWindow.root parse) := by
-  simpa [initialIndexTicketLedger, IndexTicketLedger.semanticCursor,
-    ScheduleCursor.relabelTicketOwners, initialScheduleCursor,
-    initialScheduleTask] using ScheduleOwnerLedger.root parse
+  change ScheduleOwnerLedger parse (ProductiveOwnerWindow.root parse)
+    (initialScheduleCursor parse)
+  exact ScheduleOwnerLedger.root parse
 
 /-- Shadow-owner provenance on the same empty root projection. -/
-public def initialTicketShadowLedger
+@[reducible] public def initialTicketShadowLedger
     {g : IndexedGrammar T} [Fintype g.nt]
     {input : List T} (parse : NFParse g g.initial [] input) :
     (initialIndexTicketLedger parse).SemanticShadowOwnerLedger parse
       (ProductiveOwnerWindow.root parse) := by
-  simpa [initialIndexTicketLedger, IndexTicketLedger.semanticCursor,
-    ScheduleCursor.relabelTicketOwners, initialScheduleCursor,
-    initialScheduleTask] using ShadowOwnerLedger.root parse
+  change ShadowOwnerLedger parse (ProductiveOwnerWindow.root parse)
+    (initialScheduleCursor parse)
+  exact ShadowOwnerLedger.root parse
 
 /-- The root task begins with the exact full productive-event credit and owns the whole input
 interval. -/
-public def initialScheduleRunResources
+@[reducible] public def initialScheduleRunResources
     {g : IndexedGrammar T} [Fintype g.nt]
     {input : List T} (parse : NFParse g g.initial [] input) :
   ScheduleRunResources parse [] (initialScheduleCursor parse) where
@@ -95,34 +96,38 @@ public def initialScheduleRunResources
   ownerLedger := ScheduleOwnerLedger.root parse
   ticketOwnerLedger := initialTicketOwnerLedger parse
   ticket_active_eq := by
-    simp [initialTicketOwnerLedger, ScheduleOwnerLedger.root,
-      IndexTicketLedger.semanticOwners]
+    change ([] : List (Fin (10 * input.length))) =
+      (initialIndexTicketLedger parse).semanticOwners []
+    simp only [IndexTicketLedger.semanticOwners, List.map_nil]
   ticketShadowBlocks := []
   ticketShadowOwners := []
   ticketShadowOwners_subset := by simp
   ticketShadowOwners_nodup := by simp
   ticketShadowLedger := initialTicketShadowLedger parse
   ticket_shadow_active_eq := by
-    change ([] : List (Fin (10 * input.length))) = []
-    rfl
+    change ([] : List (Fin (10 * input.length))) =
+      (initialIndexTicketLedger parse).semanticOwners []
+    simp only [IndexTicketLedger.semanticOwners, List.map_nil]
   ticketShadowLayout := ShadowStartLayout.nil
   shadowLedger := ShadowOwnerLedger.root parse
   shadow_active_eq := rfl
   charged := 0
   charged_eq_indices := by
-    simp [initialScheduleCursor, initialScheduleTask,
-      ScheduleCursor.indexOwners, ScheduleCursor.word,
-      ScheduleAtom.indexOwner?]
+    simp only [initialScheduleCursor, ScheduleCursor.indexOwners_mk,
+      ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
+      List.append_nil, List.length_nil]
   charged_le_indices := Nat.zero_le _
   productive_le_credit := by
     rw [parse.productiveCount_eq_twice_yield_length_sub_one]
-    simp
+    change 2 * input.length - 1 ≤ 0 + (genericOwnerRange g input).length
+    rw [genericOwnerRange_length]
     omega
   task_locality := by
     intro owner howner
     simp [initialScheduleCursor, initialScheduleTask,
       ScheduleCursor.taskOwners, ScheduleCursor.word,
-      ScheduleAtom.taskOwner?, ScheduleTask.owner] at howner
+      ScheduleAtom.taskOwner?, ScheduleTask.owner, List.filterMap_cons,
+      List.filterMap_nil] at howner
     exact Or.inl (by simpa using congrArg Fin.val howner)
 
 /-- Ordinary protected/plain execution and copy-on-write overlay execution are constructed
@@ -159,36 +164,42 @@ public theorem parseScheduled_of_completeScheduleRuns
     ([] : List T) [] (by simp) [] (.hash : ScheduleAtom g input) []
     (stablePrefix_nil g)
     (initialScheduleCursor_invariant parse)
-    (by simpa [scheduleWordCursor] using
-      finalScheduleCursor_invariant (g := g) input)
+    (by
+      change ScheduleInvariant (finalScheduleCursor g input)
+      exact finalScheduleCursor_invariant (g := g) input)
     (initialScheduleRunResources parse)
     (by
+      change genericOwnerRange g input ≠ []
       intro hnil
       have hlength := congrArg List.length hnil
-      simp [initialScheduleRunResources, initialIndexOwnerPool] at hlength
+      simp only [genericOwnerRange_length, List.length_nil] at hlength
       have hpositive := parse.yield_length_pos
       omega)
     (initialParkingBelow parse)
-    (by simp [initialScheduleRunResources, ScheduleOwnerLedger.root])
+    (by
+      change ([] : List (Fin (10 * input.length))) = []
+      rfl)
     (ShadowStartLayout.nil)
     (by
       intro _hinput hmem
-      simp [plainScheduleCursor, ScheduleCursor.indexTickets,
-        ScheduleCursor.indexOwners, ScheduleCursor.word,
-        ScheduleAtom.indexOwner?] at hmem)
+      simp only [plainScheduleCursor, ScheduleCursor.indexTickets,
+        ScheduleCursor.indexOwners_mk, ScheduleAtom.indexOwner?,
+        List.filterMap_cons, List.filterMap_nil, List.append_nil,
+        List.nil_append, List.map_nil, List.not_mem_nil] at hmem)
     (by
       intro _hinput hmem
-      simp [plainScheduleCursor,
-        ScheduleCursor.indexOwners, ScheduleCursor.word,
-        ScheduleAtom.indexOwner?] at hmem)
+      simp only [plainScheduleCursor, ScheduleCursor.indexOwners_mk,
+        ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
+        List.append_nil, List.nil_append, List.not_mem_nil] at hmem)
     (by
       intro _hinput hmem
-      simp [plainScheduleCursor,
-        ScheduleCursor.indexOwners, ScheduleCursor.word,
-        ScheduleAtom.indexOwner?] at hmem)
+      simp only [plainScheduleCursor, ScheduleCursor.indexOwners_mk,
+        ScheduleAtom.indexOwner?, List.filterMap_cons, List.filterMap_nil,
+        List.append_nil, List.nil_append, List.not_mem_nil] at hmem)
   simpa [ParseScheduled, initialScheduleState, finalScheduleState,
-    initialScheduleCursor, plainScheduleCursor, scheduleWordCursor,
-    scheduleStateOfCursor] using run
+    initialScheduleCursor, initialScheduleTask, finalScheduleCursor,
+    plainScheduleCursor, scheduleWordCursor, scheduleStateOfCursor,
+    scheduleTaskOfParse] using run
 
 /-- The invariant-carrying mutual runner implies the concrete `21|w|` completeness theorem. -/
 public theorem complete_bounded_of_completeScheduleRuns

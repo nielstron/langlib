@@ -93,7 +93,9 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
               · simp [hε] at hbad
           | none =>
               cases ht : M.transition q a Z with
-              | none => simp [hε, ht] at hstep
+              | none =>
+                  simp [hε, ht] at hstep
+                  exact ((Set.mem_empty_iff_false _).mp hstep).elim
               | some tr =>
                   simp [hε, ht] at hstep
                   rcases hstep with ⟨β, rfl, rfl⟩
@@ -103,30 +105,40 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
           simp [PDA.Reaches₁, PDA.step, leftQuotientSingleton, DPDA.toPDA] at hstep
           cases hε : M.epsilon_transition q Z with
           | some eps =>
-              rcases hstep with hstep | hbad
-              ·
-                rcases hstep with ⟨p, β, hp, rfl⟩
-                have hp' : ((false, p), β) = ((false, eps.1), eps.2) := by
-                  simpa [hε] using hp
-                injection hp' with hpq hβ
-                cases hpq
-                cases hβ
+              rcases hstep with hbad | hstep
+              · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+              · simp [hε] at hstep
+                change c' =
+                  (⟨(false, eps.1), x :: xs, eps.2 ++ γ⟩ :
+                    PDA.conf (leftQuotientSingleton M a).toPDA) at hstep
+                subst c'
                 exact Relation.ReflTransGen.single
                   (Set.mem_union_right _ ⟨eps.1, eps.2, by simp [DPDA.toPDA, hε], rfl⟩)
-              · simp [hε] at hbad
           | none =>
               cases ht : M.transition q a Z with
-              | none => simp [hε, ht] at hstep
+              | none =>
+                  simp [hε, ht] at hstep
+                  rcases hstep with hbad | hbad
+                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
               | some tr =>
                   simp [hε, ht] at hstep
-                  rcases hstep with ⟨β, rfl, rfl⟩
-                  exact Relation.ReflTransGen.single
-                    (Set.mem_union_left _ ⟨tr.1, tr.2, by simp [DPDA.toPDA, ht], rfl⟩)
+                  rcases hstep with hbad | hstep
+                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                  · have hc' : c' =
+                        (⟨(true, tr.1), x :: xs, tr.2 ++ γ⟩ :
+                          PDA.conf (leftQuotientSingleton M a).toPDA) :=
+                        Set.mem_singleton_iff.mp hstep
+                    subst c'
+                    exact Relation.ReflTransGen.single
+                      (Set.mem_union_left _ ⟨tr.1, tr.2, by simp [DPDA.toPDA, ht], rfl⟩)
       · cases input with
         | nil =>
             simp [PDA.Reaches₁, PDA.step, leftQuotientSingleton, DPDA.toPDA] at hstep
             cases hε : M.epsilon_transition q Z with
-            | none => simp [hε] at hstep
+            | none =>
+                simp [hε] at hstep
+                exact ((Set.mem_empty_iff_false _).mp hstep).elim
             | some eps =>
                 simp [hε] at hstep
                 rcases hstep with ⟨β, rfl, rfl⟩
@@ -136,14 +148,18 @@ private lemma leftQuotient_step_sound {Q A S : Type} [Fintype Q] [Fintype A] [Fi
             simp [PDA.Reaches₁, PDA.step, leftQuotientSingleton, DPDA.toPDA] at hstep
             rcases hstep with hstep | hstep
             · cases ht : M.transition q x Z with
-              | none => simp [ht] at hstep
+              | none =>
+                  simp [ht] at hstep
+                  exact ((Set.mem_empty_iff_false _).mp hstep).elim
               | some tr =>
                   simp [ht] at hstep
                   rcases hstep with ⟨β, rfl, rfl⟩
                   exact Relation.ReflTransGen.single
                     (Set.mem_union_left _ ⟨tr.1, tr.2, by simp [DPDA.toPDA, ht], rfl⟩)
             · cases hε : M.epsilon_transition q Z with
-              | none => simp [hε] at hstep
+              | none =>
+                  simp [hε] at hstep
+                  exact ((Set.mem_empty_iff_false _).mp hstep).elim
               | some eps =>
                   simp [hε] at hstep
                   rcases hstep with ⟨β, rfl, rfl⟩
@@ -709,9 +725,25 @@ private lemma left_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
       · simp [PDA.step] at hstep'
       · cases Z with
         | bottom =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | right Z₂ =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | left Z₁ =>
             cases x with
             | nil =>
@@ -797,9 +829,25 @@ private lemma right_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DP
       · simp [PDA.step] at hstep'
       · cases Z with
         | bottom =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | left Z₁ =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, markedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | right Z₂ =>
             cases x with
             | nil =>
@@ -927,6 +975,7 @@ private lemma markedUnion_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q�
       | nil =>
           unfold PDA.Reaches₁ PDA.step at hstep
           simp [DPDA.toPDA, markedUnion] at hstep
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
       | cons a xs =>
           cases a with
           | inr a =>
@@ -950,7 +999,7 @@ private lemma markedUnion_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q�
                         (markedUnion M₁ M₂).toPDA
                         (leftConf M₁ M₂ ⟨M₁.initial_state, w, [M₁.start_symbol]⟩)
                         ⟨qf, [], γ⟩ := by
-                    simpa [leftConf, hxs] using hrest
+                    simpa [PDA.Reaches, leftConf, hxs] using hrest
                   rcases left_reaches_unmap M₁ M₂ hrest' with ⟨c', hc', hM⟩
                   rcases c' with ⟨q', w', γ'⟩
                   simp [leftConf] at hc'
@@ -973,7 +1022,7 @@ private lemma markedUnion_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q�
                         (markedUnion M₁ M₂).toPDA
                         (rightConf M₁ M₂ ⟨M₂.initial_state, w, [M₂.start_symbol]⟩)
                         ⟨qf, [], γ⟩ := by
-                    simpa [rightConf, hxs] using hrest
+                    simpa [PDA.Reaches, rightConf, hxs] using hrest
                   rcases right_reaches_unmap M₁ M₂ hrest' with ⟨c', hc', hM⟩
                   rcases c' with ⟨q', w', γ'⟩
                   simp [rightConf] at hc'
@@ -995,16 +1044,18 @@ private lemma mem_prod_singletons_iff {α β : Type} (h : α → List β)
   | nil =>
       exact Set.mem_singleton_iff
   | cons a x ih =>
-      rw [List.map_cons, List.prod_cons, Language.mul_def, Set.mem_image2]
+      rw [List.map_cons, List.prod_cons, Language.mem_mul]
       constructor
       · rintro ⟨u₁, hu₁, u₂, hu₂, rfl⟩
-        rw [Set.mem_singleton_iff] at hu₁
+        change u₁ = h a at hu₁
         subst u₁
         rw [(ih u₂).mp hu₂]
         rfl
       · intro hu
         subst hu
-        exact ⟨h a, Set.mem_singleton (h a), x.flatMap h, (ih _).mpr rfl, rfl⟩
+        refine ⟨h a, ?_, x.flatMap h, (ih _).mpr rfl, rfl⟩
+        change h a = h a
+        rfl
 
 private lemma mem_homomorphicImage_iff_flatMap {α β : Type} (L : Language α)
     (h : α → List β) (u : List β) :
@@ -1036,8 +1087,20 @@ private lemma markedUnion_hom_eq_union (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q�
     rcases hw with ⟨x, hx, rfl⟩
     rw [markedUnion_accepts_iff M₁ M₂] at hx
     rcases hx with ⟨u, rfl, hu⟩ | ⟨u, rfl, hu⟩
-    · simpa [eraseMarker, Language.add_def, flatMap_erase_payload] using Or.inl hu
-    · simpa [eraseMarker, Language.add_def, flatMap_erase_payload] using Or.inr hu
+    · simp only [List.flatMap_cons, eraseMarker, flatMap_erase_payload,
+        List.nil_append]
+      rw [Language.add_def]
+      apply Or.inl
+      change u ∈ (show Set (List T) from M₁.acceptsByFinalState)
+      change u ∈ (show Set (List T) from M₁.acceptsByFinalState) at hu
+      exact hu
+    · simp only [List.flatMap_cons, eraseMarker, flatMap_erase_payload,
+        List.nil_append]
+      rw [Language.add_def]
+      apply Or.inr
+      change u ∈ (show Set (List T) from M₂.acceptsByFinalState)
+      change u ∈ (show Set (List T) from M₂.acceptsByFinalState) at hu
+      exact hu
   · intro hw
     rw [mem_homomorphicImage_iff_flatMap]
     rw [Language.add_def] at hw

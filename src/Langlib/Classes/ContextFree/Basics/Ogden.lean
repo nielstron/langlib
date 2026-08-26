@@ -660,11 +660,14 @@ lemma ogdens_cnf {w : List T} (hwg : w ∈ g.language) (P : ℕ → Prop) [Decid
     have h_deriv : g.Derives [Symbol.nonterminal g.initial] (u₀.map Symbol.terminal ++ [Symbol.nonterminal n'] ++ z₀.map Symbol.terminal) := by
       convert hq.2.2.2 using 1 ; simp +decide [ List.append_assoc ]
     have h_deriv' : g.Derives [Symbol.nonterminal n'] ((u' ++ v ^+^ i ++ x ++ y ^+^ i ++ z').map Symbol.terminal) := by
-      grind
-    exact (by
-    convert h_deriv.trans _ using 1
-    generalize_proofs at *; (
-    grind +suggestions))
+      simpa only [List.map_append, List.append_assoc] using hq'.2.2.2 i
+    have h_context :=
+      (h_deriv'.append_right (z₀.map Symbol.terminal)).append_left
+        (u₀.map Symbol.terminal)
+    have h_total := h_deriv.trans (by
+      simpa only [List.append_assoc] using h_context)
+    simpa only [ChomskyNormalFormGrammar.Generates, List.map_append,
+      List.append_assoc] using h_total
 
 end parseTree
 end ChomskyNormalFormGrammar

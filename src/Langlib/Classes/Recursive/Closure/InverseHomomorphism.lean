@@ -32,7 +32,8 @@ public theorem is_Recursive_inverseHomomorphism {α β : Type}
     (fun w => f (w.flatMap h))
     (hf.comp (primrec_flatMap_finite h).to_comp) ?_
   intro w
-  simpa using (iff_of_eq (congrFun hs (w.flatMap h)))
+  change w.flatMap h ∈ L ↔ f (w.flatMap h) = true
+  exact iff_of_eq (congrFun hs (w.flatMap h))
 
 /-- The class of recursive languages is closed under inverse string homomorphism. -/
 public theorem Recursive_closedUnderInverseHomomorphism :

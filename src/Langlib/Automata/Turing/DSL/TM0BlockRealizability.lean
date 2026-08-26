@@ -36,7 +36,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -484,7 +483,12 @@ public theorem tape_write_move_left_mk₁ {Γ : Type} [Inhabited Γ]
   cases l <;> simp [Tape.mk₁, Tape.move, Tape.write];
   · unfold Tape.mk₂;
     unfold Tape.mk'; simp +decide [ ListBlank.mk ] ;
-    exact ⟨ rfl, rfl, rfl ⟩;
+    congr
+    change (ListBlank.mk ([] : List Γ)).tail.cons (ListBlank.mk []).head =
+      (ListBlank.mk [c]).tail
+    rw [ListBlank.cons_head_tail]
+    change ListBlank.mk ([] : List Γ) = ListBlank.tail (ListBlank.mk [c])
+    exact (ListBlank.tail_mk ([c] : List Γ)).symm
   · congr
 
 public theorem consSimpleMachine_eval_eq {Γ : Type} [Inhabited Γ] [DecidableEq Γ]

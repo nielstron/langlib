@@ -53,7 +53,8 @@ public theorem RE_notClosedUnderComplement_of_nonempty {T : Type} [Fintype T] [N
     ext w
     change (w.flatMap h ∈ (Language.map f haltingUnaryLanguage)ᶜ) ↔
       w ∈ haltingUnaryLanguageᶜ
-    rw [Set.mem_compl_iff, Set.mem_compl_iff]
+    change (¬ w.flatMap h ∈ Language.map f haltingUnaryLanguage) ↔
+      ¬ w ∈ haltingUnaryLanguage
     have hflat : w.flatMap h = w.map f := by
       simpa [h, f, Function.comp_def] using (List.flatMap_pure_eq_map f w)
     rw [hflat]
@@ -64,7 +65,11 @@ public theorem RE_notClosedUnderComplement_of_nonempty {T : Type} [Fintype T] [N
       have huw : u = w := by
         apply List.map_injective_iff.mpr hf
         simpa using humap
-      exact hnot (by simpa [huw] using hu)
+      have hu' : w ∈ haltingUnaryLanguage := by
+        change w ∈ (show Set (List Unit) from haltingUnaryLanguage)
+        change u ∈ (show Set (List Unit) from haltingUnaryLanguage) at hu
+        simpa [huw] using hu
+      exact hnot hu'
   exact haltingUnary_complement_not_RE (by simpa [heq] using hpre)
 
 end

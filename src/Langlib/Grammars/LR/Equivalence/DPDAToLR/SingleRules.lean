@@ -57,7 +57,28 @@ public theorem reaches_of_characteristic_derives_list (M : DPDA Q T S)
   have hmath := mathlib_derives_of_characteristic M
     (CF_grammar.derives_of_derivesRightmost hderive)
   apply reaches_of_mathlib_derives_list M hgamma
-  simpa [lsSymbol_of_lssymbol, List.map_map] using hmath
+  have hleft :
+      lsSymbol_of_lssymbol
+          [symbol.nonterminal (T := T)
+            (PDA_to_CFG.N.list q gamma p :
+              PDA_to_CFG.N (emptyStackPDA M))] =
+        [Symbol.nonterminal (T := T)
+          (PDA_to_CFG.N.list q gamma p :
+            PDA_to_CFG.N (emptyStackPDA M))] := by
+    rfl
+  have hright :
+      lsSymbol_of_lssymbol
+          (w.map (symbol.terminal (N := PDA_to_CFG.N (emptyStackPDA M)))) =
+        w.map (Symbol.terminal (N := PDA_to_CFG.N (emptyStackPDA M))) := by
+    clear hmath hderive hleft
+    induction w with
+    | nil => rfl
+    | cons a w ih =>
+        simp only [List.map_cons, lsSymbol_of_lssymbol, Symbol_of_symbol]
+        exact congrArg (fun tail => Symbol.terminal a :: tail)
+          (by simpa only [lsSymbol_of_lssymbol] using ih)
+  have htype := congrArg₂ (mathlibCharacteristicGrammar M).Derives hleft hright
+  exact htype.mp hmath
 
 /-- An exact terminal completion of a retained `single` nonterminal realizes
 the corresponding one-symbol net-pop computation. -/
@@ -73,7 +94,28 @@ public theorem reaches_of_characteristic_derives_single (M : DPDA Q T S)
   have hsingle' : (mathlibCharacteristicGrammar M).Derives
       [Symbol.nonterminal (PDA_to_CFG.N.single q Z p)]
       (w.map Symbol.terminal) := by
-    simpa [lsSymbol_of_lssymbol, List.map_map] using hsingle
+    have hleft :
+        lsSymbol_of_lssymbol
+            [symbol.nonterminal (T := T)
+              (PDA_to_CFG.N.single q Z p :
+                PDA_to_CFG.N (emptyStackPDA M))] =
+          [Symbol.nonterminal (T := T)
+            (PDA_to_CFG.N.single q Z p :
+              PDA_to_CFG.N (emptyStackPDA M))] := by
+      rfl
+    have hright :
+        lsSymbol_of_lssymbol
+            (w.map (symbol.terminal (N := PDA_to_CFG.N (emptyStackPDA M)))) =
+          w.map (Symbol.terminal (N := PDA_to_CFG.N (emptyStackPDA M))) := by
+      clear hsingle hderive hleft
+      induction w with
+      | nil => rfl
+      | cons a w ih =>
+          simp only [List.map_cons, lsSymbol_of_lssymbol, Symbol_of_symbol]
+          exact congrArg (fun tail => Symbol.terminal a :: tail)
+            (by simpa only [lsSymbol_of_lssymbol] using ih)
+    have htype := congrArg₂ (mathlibCharacteristicGrammar M).Derives hleft hright
+    exact htype.mp hsingle
   have hsplit : (mathlibCharacteristicGrammar M).Derives
       [Symbol.nonterminal (PDA_to_CFG.N.list q [Z] p)]
       [Symbol.nonterminal (PDA_to_CFG.N.single q Z p),

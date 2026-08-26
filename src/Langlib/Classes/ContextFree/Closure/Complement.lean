@@ -54,6 +54,13 @@ law. This contradicts the explicit non-closure result for intersection.
 - `nnyCF_of_complement_CF`
 -/
 
+private theorem compl_union_compl_eq_inter {T : Type}
+    (L₁ L₂ : Language T) : (L₁ᶜ + L₂ᶜ)ᶜ = L₁ ⊓ L₂ := by
+  ext w
+  simp only [Language.add_def]
+  change (¬ (w ∉ L₁ ∨ w ∉ L₂)) ↔ w ∈ L₁ ∧ w ∈ L₂
+  tauto
+
 /-- The class of context-free languages isn't closed under complement. -/
 public theorem nnyCF_of_complement_CF : ¬ (∀ L : Language (Fin 3),
     is_CF L  →  is_CF (Lᶜ)
@@ -67,8 +74,7 @@ by
   have hu := CF_of_CF_u_CF (L₁ᶜ) (L₂ᶜ) ⟨h L₁ hL₁, h L₂ hL₂⟩
   have contra := h (L₁ᶜ + L₂ᶜ) hu
   apply hyp_neg
-  -- golfed by Eric Wieser
-  rwa [Language.add_def, Set.compl_union, compl_compl, compl_compl] at contra
+  rwa [compl_union_compl_eq_inter] at contra
 
 /-- Context-free languages over `Fin 3` are not closed under complement. -/
 public theorem CF_notClosedUnderComplement :
@@ -90,7 +96,7 @@ public theorem CF_notClosedUnderComplement_of_three {α : Type}
   have hc₂ := hcomp L₂ hL₂
   have hunion := CF_of_CF_u_CF L₁ᶜ L₂ᶜ ⟨hc₁, hc₂⟩
   have hcc := hcomp (L₁ᶜ + L₂ᶜ) hunion
-  rwa [Language.add_def, Set.compl_union, compl_compl, compl_compl] at hcc
+  rwa [compl_union_compl_eq_inter] at hcc
 
 /-- Context-free languages are not closed under complement for any finite alphabet with
     at least three symbols. -/

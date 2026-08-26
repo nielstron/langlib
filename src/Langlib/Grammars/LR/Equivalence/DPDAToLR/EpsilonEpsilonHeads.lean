@@ -424,7 +424,8 @@ public theorem concreteEpsilonEpsilon_heads_eq_of_zeroVisibleTail
           ⟨final₂, [], []⟩ :=
         (Relation.ReflTransGen.single parentStep₂).trans childUseful₂
       exact False.elim <| emptyStack_no_useful_cycle M
-        (by simpa [PDA.conf.appendInput] using hcycle) parentUseful₂
+        (by simpa [PDA.conf.appendInput, spineCutState, spineCutStack] using hcycle)
+        parentUseful₂
     · obtain ⟨restSteps, htailSteps⟩ :=
         Nat.exists_eq_succ_of_ne_zero hzero
       subst tailSteps
@@ -432,7 +433,7 @@ public theorem concreteEpsilonEpsilon_heads_eq_of_zeroVisibleTail
           (1 + restSteps)
           ⟨q₁, [], Z₁ :: context₁⟩
           ⟨q₂, [], Z₂ :: context₂⟩ := by
-        simpa [Nat.add_comm] using retainedTail
+        simpa [Nat.add_comm, spineCutState, spineCutStack] using retainedTail
       obtain ⟨firstState, firstInput, firstUpper, first, rest⟩ :=
         retainedTail'.split_add
       have hfirstInput : firstInput = [] := by
@@ -450,7 +451,7 @@ public theorem concreteEpsilonEpsilon_heads_eq_of_zeroVisibleTail
         have hlift := (PDA.unconsumed_input
           (pda := emptyStackPDA M) (childWord ++ suffix₁)).mp
           (PDA.reaches_of_reachesIn parentRun)
-        simpa [PDA.conf.appendInput] using hlift
+        simpa [PDA.conf.appendInput, spineCutState, spineCutStack] using hlift
       have global₂ : (emptyStackPDA M).Reaches
           ⟨(emptyStackPDA M).initial_state,
             preWord ++ (childWord ++ suffix₂),
@@ -459,7 +460,7 @@ public theorem concreteEpsilonEpsilon_heads_eq_of_zeroVisibleTail
         have hlift := (PDA.unconsumed_input
           (pda := emptyStackPDA M) (childWord ++ suffix₂)).mp
           (PDA.reaches_of_reachesIn parentRun)
-        simpa [PDA.conf.appendInput] using hlift
+        simpa [PDA.conf.appendInput, spineCutState, spineCutStack] using hlift
       have firstStep₀ : (emptyStackPDA M).Reaches₁
           ⟨q₁, [], Z₁ :: context₁⟩
           ⟨firstState, [], firstUpper ++ context₁⟩ :=

@@ -247,7 +247,7 @@ def restrictRule [DecidableEq T] (g : grammar T)
 
 /-- The same grammar, with terminals restricted to the finite set syntactically appearing
 in its rules. -/
-def finiteAlphabetGrammar [DecidableEq T] (g : grammar T) :
+@[reducible] def finiteAlphabetGrammar [DecidableEq T] (g : grammar T) :
     grammar {t : T // t ∈ grammarTerminalSet g} where
   nt := g.nt
   initial := g.initial
@@ -266,16 +266,20 @@ private lemma initial_epsilon_of_restrictRule [DecidableEq T] {g : grammar T}
     (hε : initial_epsilon_rule (finiteAlphabetGrammar g) (restrictRule g r hr)) :
     initial_epsilon_rule g r := by
   rcases hε with ⟨hL, hN, hR, hO⟩
+  dsimp only [restrictRule] at hL hR hO
   refine ⟨?_, hN, ?_, ?_⟩
   · have hlen := congrArg List.length hL
-    simp [restrictRule, restrictStringOfSupported_length] at hlen
-    exact hlen
+    have hrestrict := restrictStringOfSupported_length (grammarTerminalSet g) r.input_L
+      (rule_input_L_supported hr)
+    exact List.eq_nil_of_length_eq_zero (hrestrict.symm.trans hlen)
   · have hlen := congrArg List.length hR
-    simp [restrictRule, restrictStringOfSupported_length] at hlen
-    exact hlen
+    have hrestrict := restrictStringOfSupported_length (grammarTerminalSet g) r.input_R
+      (rule_input_R_supported hr)
+    exact List.eq_nil_of_length_eq_zero (hrestrict.symm.trans hlen)
   · have hlen := congrArg List.length hO
-    simp [restrictRule, restrictStringOfSupported_length] at hlen
-    exact hlen
+    have hrestrict := restrictStringOfSupported_length (grammarTerminalSet g) r.output_string
+      (rule_output_supported hr)
+    exact List.eq_nil_of_length_eq_zero (hrestrict.symm.trans hlen)
 
 private theorem finiteAlphabetGrammar_context_sensitive [DecidableEq T] (g : grammar T)
     (hg : grammar_context_sensitive g) :
@@ -286,8 +290,18 @@ private theorem finiteAlphabetGrammar_context_sensitive [DecidableEq T] (g : gra
     rcases hg.1 r₀.1 r₀.2 with hε | hnc
     · exact Or.inl (restrictRule_initial_epsilon hε)
     · exact Or.inr (by
-        simpa [grule_noncontracting, restrictRule, restrictStringOfSupported_length]
-          using hnc)
+        have hnc' : grule_noncontracting (restrictRule g r₀.1 r₀.2) := by
+          unfold grule_noncontracting restrictRule
+          calc
+            (restrictStringOfSupported (grammarTerminalSet g) r₀.1.output_string _).length =
+                r₀.1.output_string.length :=
+              restrictStringOfSupported_length _ _ (rule_output_supported r₀.2)
+            _ ≥ r₀.1.input_L.length + 1 + r₀.1.input_R.length := hnc
+            _ = (restrictStringOfSupported (grammarTerminalSet g) r₀.1.input_L _).length +
+                  1 + (restrictStringOfSupported (grammarTerminalSet g) r₀.1.input_R _).length := by
+              rw [restrictStringOfSupported_length _ _ (rule_input_L_supported r₀.2),
+                restrictStringOfSupported_length _ _ (rule_input_R_supported r₀.2)]
+        exact hnc')
   · rintro ⟨r, hr, hε⟩
     obtain ⟨r₀, _hr₀, rfl⟩ := List.mem_map.mp hr
     have hε₀ := initial_epsilon_of_restrictRule hε
@@ -307,14 +321,19 @@ private theorem finiteAlphabetGrammar_transforms_unrestrict [DecidableEq T] (g :
     {w₁ w₂ : List (symbol {t : T // t ∈ grammarTerminalSet g} (finiteAlphabetGrammar g).nt)}
     (h : grammar_transforms (finiteAlphabetGrammar g) w₁ w₂) :
     grammar_transforms g (w₁.map unrestrictSymbol) (w₂.map unrestrictSymbol) := by
+  unfold grammar_transforms at h ⊢
+  dsimp only [finiteAlphabetGrammar] at h
   rcases h with ⟨r, hr, u, v, hw₁, hw₂⟩
   obtain ⟨r₀, _hr₀, rfl⟩ := List.mem_map.mp hr
+  dsimp only [restrictRule] at hw₁ hw₂
   refine ⟨r₀.1, r₀.2, u.map unrestrictSymbol, v.map unrestrictSymbol, ?_, ?_⟩
   · have hw₁' := congrArg (List.map unrestrictSymbol) hw₁
-    simpa [List.map_append, restrictRule, unrestrict_restrictStringOfSupported,
+    simpa [finiteAlphabetGrammar, List.map_append, restrictRule,
+      unrestrict_restrictStringOfSupported,
       unrestrictSymbol, List.append_assoc] using hw₁'
   · have hw₂' := congrArg (List.map unrestrictSymbol) hw₂
-    simpa [List.map_append, restrictRule, unrestrict_restrictStringOfSupported,
+    simpa [finiteAlphabetGrammar, List.map_append, restrictRule,
+      unrestrict_restrictStringOfSupported,
       unrestrictSymbol, List.append_assoc] using hw₂'
 
 private theorem finiteAlphabetGrammar_derives_unrestrict [DecidableEq T] (g : grammar T)
@@ -334,6 +353,8 @@ private theorem grammar_transforms_restrict [DecidableEq T] (g : grammar T)
       (restrictStringOfSupported (grammarTerminalSet g) w₁ h₁)
       (restrictStringOfSupported (grammarTerminalSet g) w₂
         (grammar_transforms_supported g h₁ h)) := by
+  unfold grammar_transforms at h ⊢
+  dsimp only [finiteAlphabetGrammar]
   rcases h with ⟨r, hr, u, v, hw₁, hw₂⟩
   subst w₁
   subst w₂
@@ -346,14 +367,39 @@ private theorem grammar_transforms_restrict [DecidableEq T] (g : grammar T)
     exact h₁ s (by simp [hs])
   refine ⟨restrictRule g r hr, ?_, restrictStringOfSupported S u hu,
     restrictStringOfSupported S v hv, ?_, ?_⟩
-  · unfold finiteAlphabetGrammar
-    exact List.mem_map.mpr ⟨⟨r, hr⟩, by simp, rfl⟩
+  · exact List.mem_map.mpr ⟨⟨r, hr⟩, by simp, rfl⟩
   · apply List.map_injective_iff.mpr unrestrictSymbol_injective
-    simp [S, List.map_append, restrictRule, unrestrict_restrictStringOfSupported,
-      unrestrictSymbol, List.append_assoc]
+    dsimp only [restrictRule]
+    have hwhole := unrestrict_restrictStringOfSupported (grammarTerminalSet g)
+      (u ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v) h₁
+    have hu' := unrestrict_restrictStringOfSupported S u hu
+    have hL' := unrestrict_restrictStringOfSupported S r.input_L
+      (rule_input_L_supported hr)
+    have hR' := unrestrict_restrictStringOfSupported S r.input_R
+      (rule_input_R_supported hr)
+    have hv' := unrestrict_restrictStringOfSupported S v hv
+    rw [hwhole]
+    simp only [List.map_append]
+    rw [hu', hL', hR', hv']
+    simp [unrestrictSymbol, List.append_assoc]
   · apply List.map_injective_iff.mpr unrestrictSymbol_injective
-    simp [S, List.map_append, restrictRule, unrestrict_restrictStringOfSupported,
-      List.append_assoc]
+    dsimp only [restrictRule]
+    have hout : sententialSupported S (u ++ r.output_string ++ v) := by
+      intro s hs
+      rcases List.mem_append.mp hs with hleft | hs_v
+      · rcases List.mem_append.mp hleft with hs_u | hs_out
+        · exact hu s hs_u
+        · exact rule_output_supported hr s hs_out
+      · exact hv s hs_v
+    have hwhole := unrestrict_restrictStringOfSupported (grammarTerminalSet g)
+      (u ++ r.output_string ++ v) hout
+    have hu' := unrestrict_restrictStringOfSupported S u hu
+    have hO' := unrestrict_restrictStringOfSupported S r.output_string
+      (rule_output_supported hr)
+    have hv' := unrestrict_restrictStringOfSupported S v hv
+    rw [hwhole]
+    simp only [List.map_append]
+    rw [hu', hO', hv']
 
 private theorem grammar_derives_restrict [DecidableEq T] (g : grammar T)
     {w₁ w₂ : List (symbol T g.nt)}
@@ -365,14 +411,13 @@ private theorem grammar_derives_restrict [DecidableEq T] (g : grammar T)
         (grammar_derives_supported_of_supported g h₁ h)) := by
   induction h with
   | refl =>
-      convert (Relation.ReflTransGen.refl :
-        grammar_derives (finiteAlphabetGrammar g)
-          (restrictStringOfSupported (grammarTerminalSet g) w₁ h₁)
-          (restrictStringOfSupported (grammarTerminalSet g) w₁ h₁)) using 1
+      unfold grammar_derives
+      exact Relation.ReflTransGen.refl
   | tail hprev hstep ih =>
       let hmid := grammar_derives_supported_of_supported g h₁ hprev
       have hstep' := grammar_transforms_restrict g hmid hstep
-      convert ih.tail hstep' using 1
+      unfold grammar_derives at ih ⊢
+      exact ih.tail hstep'
 
 /-- Restrict a language to words over a finite terminal set. -/
 def finiteAlphabetRestriction (S : Finset T) (L : Language T) :
@@ -388,9 +433,9 @@ theorem grammar_language_finiteAlphabetGrammar [DecidableEq T] (g : grammar T) :
     change grammar_derives (finiteAlphabetGrammar g) [symbol.nonterminal g.initial]
       (w.map symbol.terminal) at hw
     have hder := finiteAlphabetGrammar_derives_unrestrict g hw
-    change (w.map (fun t => t.1)) ∈ grammar_language g
-    simpa [grammar_language, grammar_generates, finiteAlphabetGrammar, unrestrictSymbol,
-      List.map_map] using hder
+    change grammar_generates g (w.map (fun t => t.1))
+    unfold grammar_generates
+    simpa [finiteAlphabetGrammar, unrestrictSymbol, List.map_map] using hder
   · intro hw
     change (w.map (fun t => t.1)) ∈ grammar_language g at hw
     let S := grammarTerminalSet g
@@ -402,12 +447,15 @@ theorem grammar_language_finiteAlphabetGrammar [DecidableEq T] (g : grammar T) :
     have hder :
         grammar_derives g [symbol.nonterminal g.initial]
           ((w.map (fun t => t.1)).map symbol.terminal) := by
-      simpa [grammar_language, grammar_generates] using hw
+      change grammar_generates g (w.map (fun t => t.1)) at hw
+      unfold grammar_generates at hw
+      exact hw
     have hlift := grammar_derives_restrict g hstart hder
     change grammar_derives (finiteAlphabetGrammar g) [symbol.nonterminal g.initial]
       (w.map symbol.terminal)
     convert hlift using 1
-    exact (restrictStringOfSupported_terminal_values (N := g.nt) S w _).symm
+    · exact (restrictStringOfSupported_initial S g.initial hstart).symm
+    · exact (restrictStringOfSupported_terminal_values (N := g.nt) S w _).symm
 
 theorem finiteAlphabetRestriction_is_CS [DecidableEq T] (g : grammar T)
     (hg : grammar_context_sensitive g) :
@@ -423,7 +471,9 @@ theorem grammar_language_supported [DecidableEq T] (g : grammar T)
   intro t ht
   have hder :
       grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal) := by
-    simpa [grammar_language, grammar_generates] using hw
+    change grammar_generates g w at hw
+    unfold grammar_generates at hw
+    exact hw
   have hsupp := grammar_derives_supported g hder
   exact hsupp (symbol.terminal t) (List.mem_map.mpr ⟨t, ht, rfl⟩)
 

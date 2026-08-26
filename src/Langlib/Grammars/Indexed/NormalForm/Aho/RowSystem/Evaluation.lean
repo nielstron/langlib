@@ -49,10 +49,20 @@ public theorem evalStep_rowTriples (g : IndexedGrammar T) [Fintype g.nt]
 public theorem packedBlockList_flatten (g : IndexedGrammar T)
     (work : List (WorkSlot g)) (n : ℕ) :
     (packedBlockList g work 0 n).flatMap List.ofFn = paddedWork n work := by
-  unfold packedBlockList paddedWork List.flatMap
-  rw [List.map_ofFn]
-  simpa only [Function.comp_apply, packedCell, Nat.zero_add] using
-    (List.ofFn_mul (fun i : Fin (n * workWidth) => work[i.val]?)).symm
+  unfold packedBlockList paddedWork
+  rw [List.flatMap_def, ← List.ofFn_comp']
+  have hblocks :
+      (fun i : Fin n => List.ofFn (packedCell workWidth work i.val)) =
+        (fun i : Fin n => List.ofFn fun j : Fin workWidth =>
+          work[i.val * workWidth + j.val]?) := by
+    funext i
+    apply List.ofFn_inj.mpr
+    funext j
+    rfl
+  simp only [Nat.zero_add]
+  rw [hblocks]
+  exact (List.ofFn_mul
+    (fun i : Fin (n * workWidth) => work[i.val]?)).symm
 
 private theorem foldThree_flatten
     {S X Y Z O N P : Type}

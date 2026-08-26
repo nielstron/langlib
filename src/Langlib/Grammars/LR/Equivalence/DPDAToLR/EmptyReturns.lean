@@ -587,7 +587,7 @@ public theorem EmptyBaseEdge.prefixCompletion (M : DPDA Q T S)
       have ha : (characteristicGrammar M).DerivesRightmost
           [symbol.terminal a]
           ([a].map symbol.terminal) := Relation.ReflTransGen.refl
-      simpa [List.map_append] using hbefore.append_to_terminals ha
+      exact hbefore.append_to_terminals ha
   | @epsilon base suffix source Z q hparent htransition hrule =>
       exact prehandle_prefix_completion M hrule
         (hparent.derivesRightmost M)
@@ -596,12 +596,12 @@ public theorem EmptyBaseEdge.prefixCompletion (M : DPDA Q T S)
         prehandle_prefix_completion M hrule (hparent.derivesRightmost M)
       have hproductive : productive (characteristicGrammar M)
           (PDA_to_CFG.N.single source Z q) :=
-        characteristic_rule_rhs_productive_reduced M hrule (by simp)
+        characteristic_rule_rhs_productive_reduced M hrule
+          (List.mem_cons_self ..)
       obtain ⟨segmentWord, hsegment⟩ := hproductive
       have hsegment' := CF_grammar.derivesRightmost_of_derives hsegment
       refine ⟨beforeWord ++ segmentWord, ?_⟩
-      simpa [List.map_append] using
-        hbefore.append_to_terminals hsegment'
+      exact hbefore.append_to_terminals hsegment'
 
 /-- A chosen terminal completion of the visible prefix upgrades a normalized
 empty edge to its exact-context concrete form. -/

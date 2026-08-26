@@ -40,6 +40,7 @@ public section
 
 
 
+
 /-! # Decidability of Universality
 
 This file proves that universality is decidable for
@@ -60,7 +61,7 @@ variable {α : Type*}
 noncomputable def regular_universality_decidable
     [Fintype α] [DecidableEq α] (L : Language α) (hL : L.IsRegular) :
     Decidable (L = (⊤ : Set (List α))) := by
-  change Decidable (L = (Set.univ : Set (List α)))
+  change Decidable ((show Set (List α) from L) = Set.univ)
   rw [← Set.compl_empty_iff]
   exact regular_emptiness_decidable Lᶜ hL.compl
 

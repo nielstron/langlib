@@ -68,6 +68,22 @@ private lemma write_read_same {A : Type*} {n : ℕ} (t : DLBA.BoundedTape A n) :
   simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.read]
   exact Function.update_eq_self _ _
 
+private lemma write_moveHead_right_head_val_of_lt {A : Type*} {n : ℕ}
+    (t : DLBA.BoundedTape A n) (a : A) (hlt : t.head.val < n) :
+    ((t.write a).moveHead .right).head.val = t.head.val + 1 := by
+  rw [LBA.moveHead_right_head_val]
+  have hlt' : (t.write a).head.val < n := by
+    simpa only [LBA.write_head] using hlt
+  rw [if_pos hlt', LBA.write_head]
+
+private lemma write_moveHead_left_head_val_of_pos {A : Type*} {n : ℕ}
+    (t : DLBA.BoundedTape A n) (a : A) (hpos : 0 < t.head.val) :
+    ((t.write a).moveHead .left).head.val = t.head.val - 1 := by
+  rw [LBA.moveHead_left_head_val]
+  have hpos' : 0 < (t.write a).head.val := by
+    simpa only [LBA.write_head] using hpos
+  rw [if_pos hpos', LBA.write_head]
+
 @[simp] private lemma loadEnd_zero (w : List T) :
     (LBA.loadEnd (Γ := Γ) w).contents ⟨0, by omega⟩ = LBA.leftMark := by
   simp [LBA.loadEnd]
@@ -138,8 +154,10 @@ private lemma scan_step (D : DFA T Q)
         symm; exact loadEnd_input (Γ := Γ) w i hi,
         Function.update_eq_self]
     · apply Fin.ext
-      simp only [scanCfg, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
-      rw [dif_pos (by omega)]
+      rw [write_moveHead_right_head_val_of_lt]
+      · rfl
+      · simp only [scanCfg]
+        omega
 
 private lemma scan_reach (D : DFA T Q)
     (M : LBA.Machine (LBA.EndAlpha T Γ) Λ) (w : List T)
@@ -338,8 +356,10 @@ private lemma interInv_step (D : DFA T Q)
           symm; exact loadEnd_input (Γ := Γ) w i hi',
           Function.update_eq_self]
       · apply Fin.ext
-        simp only [scanCfg, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
-        rw [dif_pos (by omega)]
+        rw [write_moveHead_right_head_val_of_lt]
+        · rfl
+        · simp only [scanCfg]
+          omega
   · rcases hrewind with ⟨hD, i, hi, hci⟩
     rw [← hci] at hmem ⊢
     rcases i with _ | i
@@ -384,9 +404,11 @@ private lemma interInv_step (D : DFA T Q)
           symm; exact loadEnd_input (Γ := Γ) w i hi',
           Function.update_eq_self]
       · apply Fin.ext
-        simp only [rewindCfg, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
-        rw [dif_pos (by omega)]
-        simp
+        rw [write_moveHead_left_head_val_of_pos]
+        · simp only [rewindCfg]
+          omega
+        · simp only [rewindCfg]
+          omega
   · rcases hrun with ⟨hD, cM, hreach, hci⟩
     rw [← hci] at hmem ⊢
     change (q', a, d) ∈ interTransition D M (.run cM.state) cM.tape.read at hmem

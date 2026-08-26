@@ -34,7 +34,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -120,6 +119,13 @@ private lemma gEnc_encode_eq {T : Type} {α : Type} [Primcodable T] [Primcodable
 @[simp] private lemma vector_head_singleton (n : ℕ) :
     List.Vector.head (⟨[n], rfl⟩ : List.Vector ℕ 1) = n := rfl
 
+private theorem rfind_some_dom_iff (p : ℕ → Bool) :
+    (Nat.rfind (fun k => Part.some (p k))).Dom ↔ ∃ k, p k = true := by
+  let q : ℕ →. Bool := fun k => Part.some (p k)
+  change (Nat.rfind q).Dom ↔ ∃ k, p k = true
+  rw [Nat.rfind_dom]
+  simp [q]
+
 /-- **Sub-problem 1** (PROVED): The µ-search over a computable test is Partrec. -/
 public theorem search_is_partrec {T : Type} {α : Type}
     [Primcodable T] [Primcodable α]
@@ -144,9 +150,11 @@ public theorem search_is_partrec {T : Type} {α : Type}
   have hf : Partrec (fun m => Nat.rfind (fun k => Part.some (gEnc test m k))) :=
     Partrec.rfind hg.partrec
   -- Step 3: Convert to Nat.Partrec'
-  rw [← Nat.Partrec'.part_iff₁] at hf
+  have hf' : @Nat.Partrec' 1
+      (fun v => Nat.rfind (fun k => Part.some (gEnc test v.head k))) :=
+    Nat.Partrec'.part_iff₁.mpr hf
   -- Step 4: Get Code via exists_code
-  obtain ⟨c, hc'⟩ := ToPartrec.Code.exists_code hf
+  obtain ⟨c, hc'⟩ := ToPartrec.Code.exists_code hf'
   refine ⟨c, fun w => ?_⟩
   -- Step 5: Show Dom equivalence
   have key : (c.eval [Encodable.encode w]).Dom ↔
@@ -155,7 +163,7 @@ public theorem search_is_partrec {T : Type} {α : Type}
     simp [vector_head_singleton] at h
     rw [show [Encodable.encode w] =
         (⟨[Encodable.encode w], rfl⟩ : List.Vector ℕ 1).val from rfl, h]
-    simp [Nat.rfind_dom]
+    exact rfind_some_dom_iff _
   rw [key]
   constructor
   · rintro ⟨a, ha⟩
@@ -193,6 +201,7 @@ theorem code_to_tm0 (c : ToPartrec.Code) :
        (TM1.init (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n])) :
          TM1.Cfg ChainΓ ChainΛ_TM1 (Option PartrecToTM2.Γ')).Tape⟩).q := by
     simp [q₀, TM1to0.trCfg, PartrecToTM2.init]
+    rfl
   rw [hq]
   exact code_to_tm0_halts c [n]
 

@@ -196,7 +196,7 @@ public theorem retained_start_target_eq_drain (M : DPDA Q T S)
         (emptyStackPDA M).initial_state
         [(emptyStackPDA M).start_symbol] target) ∈ r.2 := by
     rw [hrule]
-    simp
+    exact List.mem_cons_self
   have hprod := characteristic_rule_rhs_productive M hr hmem
   obtain ⟨w, hreach⟩ := reaches_of_productive_list M (by simp) hprod
   exact emptyStack_accepting_state_eq_drain M hreach

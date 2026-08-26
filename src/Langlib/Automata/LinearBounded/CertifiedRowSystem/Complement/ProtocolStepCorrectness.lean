@@ -339,7 +339,7 @@ public theorem deterministicComplementSystem_rowStep_iff_exists_action
                 have heval' :
                     (deterministicComplementSystem D).evalStep firstState
                       olds news actions = some out := by
-                  simpa [firstState, protocolStepCell] using heval
+                  simpa [firstState, protocolStepCell, deterministicComplementSystem] using heval
                 have hlive := evalProtocol_live_of_accept D firstState out
                   olds news actions heval' hdone
                 have hselected := selectedAction_startProtocolAction_of_live
@@ -421,7 +421,8 @@ public theorem evalProtocol_from_startPath
               CertifiedRowSystem.evalStep, deterministicComplementSystem,
               protocolStepCell, Bool.false_eq_true, ite_false, ite_true,
               evalStartPath]
-            simpa using ih (q := startPathStepCell _ _ q old new) (new := news)
+            simpa [deterministicComplementSystem] using
+              ih (q := startPathStepCell _ _ q old new) (new := news)
 
 /-- A selected path-extension scanner remains in its tagged summand. -/
 public theorem evalProtocol_from_pathStep
@@ -444,7 +445,8 @@ public theorem evalProtocol_from_pathStep
               CertifiedRowSystem.evalStep, deterministicComplementSystem,
               protocolStepCell, Bool.false_eq_true, ite_false, ite_true,
               evalPathStep]
-            simpa using ih (q := pathStepCell D _ q old new) (new := news)
+            simpa [deterministicComplementSystem] using
+              ih (q := pathStepCell D _ q old new) (new := news)
 
 /-- A selected counting-round witness-completion scanner remains tagged. -/
 public theorem evalProtocol_from_finishWitness
@@ -501,7 +503,7 @@ private theorem protocol_boot_eval_of_ne
           simp only [List.length_cons, List.replicate_succ,
             CertifiedRowSystem.evalStep, deterministicComplementSystem,
             protocolStepCell, startProtocolAction, evalBoot]
-          simpa using evalProtocol_from_boot D
+          simpa [deterministicComplementSystem] using evalProtocol_from_boot D
             (bootStepCell .start old new .boot) olds news
             (List.replicate olds.length .boot)
 
@@ -526,7 +528,7 @@ private theorem protocol_enumeration_eval_of_ne
             CertifiedRowSystem.evalStep, deterministicComplementSystem,
             protocolStepCell, evalEnumeration]
           rw [hroute]
-          simpa using evalProtocol_from_enumeration D
+          simpa [deterministicComplementSystem] using evalProtocol_from_enumeration D
             (enumerationStepCell enumerationStart old new action) olds news
             (List.replicate olds.length action)
 
@@ -570,9 +572,13 @@ private theorem protocol_startPath_eval_of_ne
             simp only [List.length_cons, List.replicate_succ,
               CertifiedRowSystem.evalStep, deterministicComplementSystem,
               evalStartPath, ite_true]
-          · simpa using evalProtocol_from_startPath D false
+          · simpa [deterministicComplementSystem, protocolStepCell,
+              startProtocolAction] using
+              evalProtocol_from_startPath D false
               (startPathCell true old new) olds news
-          · simpa using evalProtocol_from_startPath D true
+          · simpa [deterministicComplementSystem, protocolStepCell,
+              startProtocolAction] using
+              evalProtocol_from_startPath D true
               (finalStartPathCell true old new) olds news
 
 private theorem protocol_pathStep_eval_of_ne
@@ -594,9 +600,13 @@ private theorem protocol_pathStep_eval_of_ne
             simp only [List.length_cons, List.replicate_succ,
               CertifiedRowSystem.evalStep, deterministicComplementSystem,
               evalPathStep, ite_true]
-          · simpa using evalProtocol_from_pathStep D false
+          · simpa [deterministicComplementSystem, protocolStepCell,
+              startProtocolAction] using
+              evalProtocol_from_pathStep D false
               (countingPathStepCell D (pathStepStart D) old new) olds news
-          · simpa using evalProtocol_from_pathStep D true
+          · simpa [deterministicComplementSystem, protocolStepCell,
+              startProtocolAction] using
+              evalProtocol_from_pathStep D true
               (finalPathStepCell D (pathStepStart D) old new) olds news
 
 private theorem protocol_finishWitness_eval_of_ne
@@ -614,7 +624,9 @@ private theorem protocol_finishWitness_eval_of_ne
           simp only [List.length_cons, List.replicate_succ,
             CertifiedRowSystem.evalStep, deterministicComplementSystem,
             evalFinishWitness]
-          simpa using evalProtocol_from_finishWitness D
+          simpa [deterministicComplementSystem, protocolStepCell,
+            startProtocolAction] using
+            evalProtocol_from_finishWitness D
             (finishWitnessCell D (finishWitnessStart D) old new) olds news
 
 private theorem protocol_finalWitness_eval_of_ne
@@ -632,7 +644,9 @@ private theorem protocol_finalWitness_eval_of_ne
           simp only [List.length_cons, List.replicate_succ,
             CertifiedRowSystem.evalStep, deterministicComplementSystem,
             evalFinalWitness]
-          simpa using evalProtocol_from_finalWitness D
+          simpa [deterministicComplementSystem, protocolStepCell,
+            startProtocolAction] using
+            evalProtocol_from_finalWitness D
             (finalWitnessCell D (finalWitnessStart D) old new) olds news
 
 /-- Integrated correctness of the initialization action. -/

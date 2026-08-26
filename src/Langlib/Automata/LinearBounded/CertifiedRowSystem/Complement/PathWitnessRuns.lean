@@ -270,7 +270,10 @@ private theorem exists_countingPath_step
           (rankRow input.length next) :=
         (rankEdge_iff D input.length current next).1 (by simpa [current] using hedge)
       rw [show pathTrack old = rankRow input.length current by
-        simpa [current] using hinv.path_eq]
+        calc
+          pathTrack old = vertexNumeral input.length pathIndex := hinv.path_eq
+          _ = rankRow input.length current := by
+            simp only [current, rankRow, vertexNumeral]]
       rw [show pathTrack new = rankRow input.length next by simp [new, tracks]]
       exact hedge'
   have hspec : IsPathStep D .path old new :=
@@ -388,7 +391,10 @@ private theorem exists_finalPath_step
           (rankRow input.length next) :=
         (rankEdge_iff D input.length current next).1 (by simpa [current] using hedge)
       rw [show pathTrack old = rankRow input.length current by
-        simpa [current] using hinv.path_eq]
+        calc
+          pathTrack old = vertexNumeral input.length pathIndex := hinv.path_eq
+          _ = rankRow input.length current := by
+            simp only [current, rankRow, vertexNumeral]]
       rw [show pathTrack new = rankRow input.length next by simp [new, tracks]]
       exact hedge'
   have hspec : IsPathStep D .finalPath old new :=

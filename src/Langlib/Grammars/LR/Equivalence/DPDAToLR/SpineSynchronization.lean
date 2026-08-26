@@ -209,7 +209,9 @@ public theorem ListIntroduction.prefixCompletion (M : DPDA Q T S)
       have ha : (characteristicGrammar M).DerivesRightmost
           [symbol.terminal a] ([a].map symbol.terminal) :=
         Relation.ReflTransGen.refl
-      simpa [List.map_append] using hbefore.append_to_terminals ha
+      have hcombined := hbefore.append_to_terminals ha
+      rw [List.map_append] at hcombined ⊢
+      exact hcombined
   | @epsilon p suffix q target next Z gamma hparent htransition hrule =>
       exact prehandle_prefix_completion M hrule
         (hparent.derivesRightmost M)
@@ -218,12 +220,13 @@ public theorem ListIntroduction.prefixCompletion (M : DPDA Q T S)
         prehandle_prefix_completion M hrule (hparent.derivesRightmost M)
       have hproductive : productive (characteristicGrammar M)
           (PDA_to_CFG.N.single q Z middle) :=
-        characteristic_rule_rhs_productive_reduced M hrule (by simp)
+        characteristic_rule_rhs_productive_reduced M hrule List.mem_cons_self
       obtain ⟨leftWord, hleft⟩ := hproductive
       have hleft' := CF_grammar.derivesRightmost_of_derives hleft
       refine ⟨beforeWord ++ leftWord, ?_⟩
-      simpa [List.map_append] using
-        hbefore.append_to_terminals hleft'
+      have hcombined := hbefore.append_to_terminals hleft'
+      rw [List.map_append] at hcombined ⊢
+      exact hcombined
   | start hparent hrule =>
       have hnil := (hparent.start_eq_nil M).1
       subst childPrefix
@@ -296,7 +299,8 @@ public theorem retainedChild_completion (M : DPDA Q T S)
         [symbol.nonterminal A] (w.map symbol.terminal) := by
   apply derivesRightmost_terminal_of_all_productive
   intro B hB
-  have hBA : B = A := by simpa using hB
+  have hBA : B = A :=
+    symbol.nonterminal.inj (List.mem_singleton.mp hB)
   subst B
   exact characteristic_rule_rhs_productive_reduced M hr hA
 
@@ -873,7 +877,9 @@ public theorem activeRead_epsilon_false (M : DPDA Q T S)
   have hchildCompletion : (characteristicGrammar M).DerivesRightmost
       childPrefix ((beforeWord ++ [a]).map symbol.terminal) := by
     rw [← hprefix]
-    simpa [List.map_append] using hbefore.append_to_terminals hterminal
+    have hcombined := hbefore.append_to_terminals hterminal
+    rw [List.map_append] at hcombined ⊢
+    exact hcombined
   obtain ⟨readContext, concreteReadParent⟩ :=
     concreteOperationalSpine_of_activeSpine M readParent hbefore
   obtain ⟨epsilonContext, concreteEpsilonParent⟩ :=

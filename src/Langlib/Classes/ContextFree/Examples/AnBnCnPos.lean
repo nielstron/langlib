@@ -32,7 +32,7 @@ private lemma lang_eq_eq_eq_pos_union_epsilon :
     rcases hw with hw | hw
     · obtain ⟨n, rfl⟩ := hw
       exact ⟨n + 1, rfl⟩
-    · rw [Set.mem_singleton_iff] at hw
+    · change w = [] at hw
       subst w
       exact ⟨0, by simp⟩
 

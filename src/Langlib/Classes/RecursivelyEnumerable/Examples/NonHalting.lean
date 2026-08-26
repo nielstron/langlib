@@ -6,7 +6,6 @@ public import Langlib.Classes.RecursivelyEnumerable.Definition
 public import Mathlib.Computability.Halting
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipComputability
 import Langlib.Grammars.Unrestricted.FiniteNonterminals
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -94,7 +93,8 @@ public theorem REPred_codeUnaryWord_preimage {L : Language Unit} (hL : is_RE L) 
       simp [Nat.rfind_dom]
       constructor
       · rintro ⟨n, hn⟩
-        exact ⟨Denumerable.ofNat (List (ℕ × ℕ)) n, hn⟩
+        exact ⟨Denumerable.ofNat (List (ℕ × ℕ)) n,
+          (Part.mem_some_iff.mp hn.1).symm⟩
       · rintro ⟨seq, hseq⟩
         exact ⟨Encodable.encode seq, by simpa [Denumerable.ofNat_encode] using hseq⟩
   exact hpart.of_eq fun c => by
@@ -119,7 +119,9 @@ public theorem haltingUnary_complement_not_RE : ¬ is_RE haltingUnaryLanguageᶜ
   have hpre := REPred_codeUnaryWord_preimage hcomp
   have hnot : REPred (fun c : PartrecCode => ¬(c.eval 0).Dom) :=
     hpre.of_eq fun c => by
-      rw [Set.mem_compl_iff, codeUnaryWord_mem_haltingUnaryLanguage]
+      change (¬codeUnaryWord c ∈
+        (show Set (List Unit) from haltingUnaryLanguage)) ↔ ¬(c.eval 0).Dom
+      exact not_congr (codeUnaryWord_mem_haltingUnaryLanguage c)
   exact ComputablePred.halting_problem_not_re 0 hnot
 
 /-- The unary non-halting language is not recursively enumerable. -/

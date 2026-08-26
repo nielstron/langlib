@@ -42,7 +42,6 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -70,7 +69,7 @@ derivation followed by a right derivation, hence the generated language is
 
 -- new nonterminal type
 @[expose]
-public def nnn (T N₁ N₂ : Type) : Type :=
+public abbrev nnn (T N₁ N₂ : Type) : Type :=
 Option (N₁ ⊕ N₂) ⊕ (T ⊕ T)
 
 -- new symbol type
@@ -266,8 +265,7 @@ by
           refine' ih.tail _;
           use grule.mk (List.map (wrap_symbol₂ g₁.nt) r.input_L) (Sum.inl (some (Sum.inr r.input_N))) (List.map (wrap_symbol₂ g₁.nt) r.input_R) (List.map (wrap_symbol₂ g₁.nt) r.output_string);
           unfold big_grammar; aesop;
-      unfold grammar_derives
-      simpa using
+      exact
         (grammar_deri_with_postfix _ (h_derive hw₁) |>.trans
           (grammar_deri_with_prefix _ (h_derive₂ hw₂)))
     exact grammar_deri_of_deri_deri ( grammar_deri_of_tran ( first_transformation ) ) h_derive;
@@ -281,7 +279,8 @@ by
           have := grammar_generates_only_legit_terminals hw ht; aesop;);
         specialize h_term hw₁ (symbol.terminal t);
         unfold all_used_terminals; aesop;
-      unfold rules_for_terminals₁; aesop;
+      apply List.mem_append_left
+      exact List.mem_map.mpr ⟨t, h_term, rfl⟩
     have h_subst : ∀ t ∈ w₂, (grule.mk [] (Sum.inr (Sum.inr t)) [] [symbol.terminal t]) ∈ (rules_for_terminals₁ g₂.nt g₁ ++ rules_for_terminals₂ g₁.nt g₂) := by
       intro t ht
       have h_subst : t ∈ all_used_terminals g₂ := by
@@ -291,7 +290,8 @@ by
             have := grammar_generates_only_legit_terminals hw hs; aesop;
           unfold all_used_terminals; aesop;
         exact h_subst hw₂ _ ( List.mem_map.mpr ⟨ t, ht, rfl ⟩ ) rfl
-      simp [rules_for_terminals₂, h_subst];
+      apply List.mem_append_right
+      exact List.mem_map.mpr ⟨t, h_subst, rfl⟩
     convert grammar_deri_with_postfix _ ( substitute_terminals _ ) |> grammar_deri_of_deri_deri <| grammar_deri_with_prefix _ ( substitute_terminals _ ) using 1;
     rotate_left;
     use fun t => Sum.inl t;
@@ -676,8 +676,7 @@ public lemma rule_in_first_half
     corresponding_strings_length ih_concat
   have hpattern :
       u.length + r₁.input_L.length + 1 + r₁.input_R.length ≤ a.length := by
-    rw [bef]
-    simp only [List.length_append, List.length_map, List.length_cons, List.length_nil]
+    simp [bef]
     omega
   have hget := (List.forall₂_iff_get.mp ih_concat).2
   have hcenter : u.length + r₁.input_L.length < x.length := by
@@ -686,7 +685,7 @@ public lemma rule_in_first_half
     have hp_source :
         u.length + r₁.input_L.length <
           (List.map (wrap_symbol₁ N₂) x ++ List.map (wrap_symbol₂ N₁) y).length := by
-      simpa [hlen] using hp_a
+      omega
     have hp_corr := hget (u.length + r₁.input_L.length) hp_source hp_a
     simp [bef, List.getElem_append, hnot] at hp_corr
     exact no_wrap₂_corr_sum_inl_inl hp_corr
@@ -700,7 +699,7 @@ public lemma rule_in_first_half
   have hi_a : i < a.length := by dsimp [i]; omega
   have hi_source :
       i < (List.map (wrap_symbol₁ N₂) x ++ List.map (wrap_symbol₂ N₁) y).length := by
-    simpa [hlen] using hi_a
+    omega
   have hi_corr := hget i hi_source hi_a
   dsimp [i] at hi_corr hi_x
   have hi_not_x :
@@ -733,8 +732,9 @@ public lemma rule_in_second_half
     x.length ≤ u.length := by
       have h_p_le_x : u.length < x.length → False := by
         intro h_lt_x
-        have h_p_le_x : corresponding_symbols (wrap_symbol₁ N₂ (x.get ⟨u.length, h_lt_x⟩)) (a.get ⟨u.length, by
-          simp +arith +decide [ bef ]⟩) := by
+        have hu_a : u.length < a.length := by
+          simp [bef]
+        have h_p_le_x : corresponding_symbols (wrap_symbol₁ N₂ (x.get ⟨u.length, h_lt_x⟩)) (a.get ⟨u.length, hu_a⟩) := by
           have := List.forall₂_iff_get.mp ih_concat;
           grind
         generalize_proofs at *;
@@ -952,8 +952,7 @@ lemma no_none_in_wrapped₁ {N₁ N₂ : Type} (s : symbol T N₁) :
 
 lemma no_none_in_wrapped₂ {N₁ N₂ : Type} (s : symbol T N₂) :
     wrap_symbol₂ N₁ s ≠ symbol.nonterminal (Sum.inl none) := by
-  cases s <;> simp_all +decide [ wrap_symbol₂ ];
-  grind +ring
+  cases s <;> simp_all +decide [wrap_symbol₂]
 
 public lemma induction_step_for_terminal_rule₁
     {g₁ g₂ : grammar T}
@@ -1044,35 +1043,140 @@ public lemma big_induction
       (grammar_derives g₂ [symbol.nonterminal g₂.initial] y) ∧
       (corresponding_strings (List.map (wrap_symbol₁ g₂.nt) x ++ List.map (wrap_symbol₂ g₁.nt) y) w) :=
 by
-  have h_ind : ∀ {w : List (nst T g₁.nt g₂.nt)}, grammar_derives (big_grammar g₁ g₂) [symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))), symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))] w →
-    ∃ x y : List (symbol T g₁.nt), ∃ y' : List (symbol T g₂.nt),
-      (grammar_derives g₁ [symbol.nonterminal g₁.initial] x ∧
-        grammar_derives g₂ [symbol.nonterminal g₂.initial] y' ∧
-          corresponding_strings
-            (List.map (wrap_symbol₁ g₂.nt) x ++ List.map (wrap_symbol₂ g₁.nt) y' : List (nst T g₁.nt g₂.nt))
-            w) := by
-              intros w hw; induction' hw with w₁ w₂ hw₁ hw₂ ih₁ ih₂; simp_all +decide [  ] ;
-              · exact ⟨ [ symbol.nonterminal g₁.initial ], by tauto, [ symbol.nonterminal g₂.initial ], by tauto, by tauto ⟩;
-              · obtain ⟨ x, y, y', hx, hy, hxy ⟩ := ih₁
-                obtain ⟨ r, hr, u, v, bef, aft ⟩ := hw₂
-                by_cases hr₁ : r ∈ List.map (wrap_grule₁ g₂.nt) g₁.rules ∨ r ∈ List.map (wrap_grule₂ g₁.nt) g₂.rules ∨ r ∈ rules_for_terminals₁ g₂.nt g₁ ∨ r ∈ rules_for_terminals₂ g₁.nt g₂ <;> simp_all +decide [ List.mem_map ];
-                · rcases hr₁ with ( ⟨ a, ha, rfl ⟩ | ⟨ a, ha, rfl ⟩ | hr₁ | hr₁ ) <;> simp_all +decide [ big_grammar ] ;
-                  · have := induction_step_for_lifted_rule_from_g₁ ( show wrap_grule₁ g₂.nt a ∈ List.map ( wrap_grule₁ g₂.nt ) g₁.rules from List.mem_map.mpr ⟨ a, ha, rfl ⟩ ) ( by aesop ) ( by aesop ) hx hy hxy; aesop;
-                  · obtain ⟨ y'', hy'', hxy'' ⟩ := induction_step_for_lifted_rule_from_g₂ ( List.mem_map.mpr ⟨ a, ha, rfl ⟩ ) ( by aesop ) ( by aesop ) hx hy hxy; use x, hx, y''; aesop;
-                  · unfold rules_for_terminals₁ at hr₁; simp_all +decide [ List.mem_map ] ;
-                    obtain ⟨ a, ha, rfl ⟩ := hr₁; exact ⟨ x, hx, y', hy, by simpa using induction_step_for_terminal_rule₁ ha ( by aesop ) ( by aesop ) hxy ⟩ ;
-                  · unfold rules_for_terminals₂ at hr₁; simp_all +decide [ List.mem_map ] ;
-                    obtain ⟨ a, ha, rfl ⟩ := hr₁; exact ⟨ x, hx, y', hy, by simpa using induction_step_for_terminal_rule₂ ha ( by aesop ) ( by aesop ) hxy ⟩ ;
-                · unfold big_grammar at hr; simp_all +decide [ List.mem_append, List.mem_map ] ;
-                  rcases hr with ( rfl | ⟨ a, ha, rfl ⟩ | ⟨ a, ha, rfl ⟩ ) <;> simp_all +decide [ wrap_grule₁, wrap_grule₂ ];
-                  · have := hxy; ( have := List.forall₂_iff_get.mp this; simp_all +decide [  ] ; );
-                    have := this.2 ( u.length ) ( by linarith ) ( by linarith ) ; simp_all +decide [ List.getElem_append ] ;
-                    split_ifs at this <;> simp_all +decide [ wrap_symbol₁, wrap_symbol₂ ] ;
-                    · cases h : x[u.length] <;> simp_all +decide [ corresponding_symbols ];
-                    · cases h : y'[u.length - x.length] <;> simp_all +decide [ corresponding_symbols ];
-                  · exact False.elim <| hr₁.1 a ha rfl rfl rfl rfl;
-                  · exact False.elim <| hr₁.2.1 a ha rfl rfl rfl rfl;
-  exact Exists.elim ( h_ind ass ) fun x hx => Exists.elim hx fun y hy => Exists.elim hy fun z hz => ⟨ x, z, hz.1, hz.2.1, hz.2.2 ⟩
+  have h_ind : ∀ {w : List (nst T g₁.nt g₂.nt)},
+      grammar_derives (big_grammar g₁ g₂)
+        [symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))),
+         symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))] w →
+      ∃ x : List (symbol T g₁.nt), ∃ y : List (symbol T g₂.nt),
+        grammar_derives g₁ [symbol.nonterminal g₁.initial] x ∧
+        grammar_derives g₂ [symbol.nonterminal g₂.initial] y ∧
+        corresponding_strings
+          (List.map (wrap_symbol₁ g₂.nt) x ++ List.map (wrap_symbol₂ g₁.nt) y) w := by
+    intro w hw
+    induction hw with
+    | refl =>
+        refine ⟨[symbol.nonterminal g₁.initial], [symbol.nonterminal g₂.initial],
+          grammar_deri_self, grammar_deri_self, ?_⟩
+        exact corresponding_strings_self
+    | @tail b c hder hstep ih =>
+        obtain ⟨x, y, hx, hy, hxy⟩ := ih
+        dsimp [big_grammar] at hstep
+        obtain ⟨r, hr, u, v, bef, aft⟩ := hstep
+        dsimp [big_grammar] at b c r u v bef aft hxy
+        change r ∈
+          (grule.mk [] (Sum.inl none) []
+            [symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))),
+             symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))]) ::
+          ((List.map (wrap_grule₁ g₂.nt) g₁.rules ++
+            List.map (wrap_grule₂ g₁.nt) g₂.rules) ++
+            (rules_for_terminals₁ g₂.nt g₁ ++ rules_for_terminals₂ g₁.nt g₂)) at hr
+        rcases List.mem_cons.mp hr with hstart | hrest
+        · subst r
+          dsimp at bef aft hxy
+          have hxy' : corresponding_strings
+              (List.map (wrap_symbol₁ g₂.nt) x ++ List.map (wrap_symbol₂ g₁.nt) y)
+              (u ++ [symbol.nonterminal (Sum.inl none)] ++ v) := by
+            rw [bef] at hxy
+            have hlist :
+                u ++ [] ++ [symbol.nonterminal (Sum.inl none)] ++ [] ++ v =
+                  u ++ [symbol.nonterminal (Sum.inl none)] ++ v := by
+              simp
+            rw [hlist] at hxy
+            exact hxy
+          have hlen := corresponding_strings_length hxy'
+          have hu_target : u.length < (u ++ [symbol.nonterminal (Sum.inl none)] ++ v).length := by
+            simp
+          have hu_source : u.length <
+              (List.map (wrap_symbol₁ g₂.nt) x ++ List.map (wrap_symbol₂ g₁.nt) y).length := by
+            omega
+          have hcorr := corresponding_strings_nth_le hu_source hu_target hxy'
+          by_cases hu_x : u.length < x.length
+          · have hsource_eq :
+                (List.map (wrap_symbol₁ g₂.nt) x ++ List.map (wrap_symbol₂ g₁.nt) y).nthLe
+                    u.length hu_source =
+                  wrap_symbol₁ g₂.nt (x.nthLe u.length hu_x) := by
+              rw [List.nthLe_append (by simpa using hu_x), List.nthLe_map]
+            have htarget_eq :
+                (u ++ [symbol.nonterminal (Sum.inl none)] ++ v).nthLe u.length hu_target =
+                  symbol.nonterminal (Sum.inl none) := by
+              have hu_prefix : u.length < (u ++ [symbol.nonterminal (Sum.inl none)]).length := by
+                simp
+              rw [List.nthLe_append hu_prefix hu_target]
+              rw [List.nthLe_append_right (Nat.le_refl _) hu_prefix]
+              simp [List.nthLe]
+            rw [hsource_eq, htarget_eq] at hcorr
+            have hnone : ¬ corresponding_symbols
+                (wrap_symbol₁ g₂.nt (x.nthLe u.length hu_x))
+                (symbol.nonterminal (Sum.inl none)) := by
+              cases x.nthLe u.length hu_x <;>
+                simp [wrap_symbol₁, corresponding_symbols]
+            exact False.elim (hnone hcorr)
+          · have hu_x_le : x.length ≤ u.length := Nat.le_of_not_gt hu_x
+            have hy_index : u.length - x.length < y.length := by
+              simp only [List.length_append, List.length_map] at hu_source
+              omega
+            have hsource_eq :
+                (List.map (wrap_symbol₁ g₂.nt) x ++ List.map (wrap_symbol₂ g₁.nt) y).nthLe
+                    u.length hu_source =
+                  wrap_symbol₂ g₁.nt (y.nthLe (u.length - x.length) hy_index) := by
+              rw [List.nthLe_append_right (by simpa using hu_x_le) hu_source,
+                List.nthLe_map]
+              simp only [List.length_map]
+            have htarget_eq :
+                (u ++ [symbol.nonterminal (Sum.inl none)] ++ v).nthLe u.length hu_target =
+                  symbol.nonterminal (Sum.inl none) := by
+              have hu_prefix : u.length < (u ++ [symbol.nonterminal (Sum.inl none)]).length := by
+                simp
+              rw [List.nthLe_append hu_prefix hu_target]
+              rw [List.nthLe_append_right (Nat.le_refl _) hu_prefix]
+              simp [List.nthLe]
+            rw [hsource_eq, htarget_eq] at hcorr
+            have hnone : ¬ corresponding_symbols
+                (wrap_symbol₂ g₁.nt (y.nthLe (u.length - x.length) hy_index))
+                (symbol.nonterminal (Sum.inl none)) := by
+              cases y.nthLe (u.length - x.length) hy_index <;>
+                simp [wrap_symbol₂, corresponding_symbols]
+            exact False.elim (hnone hcorr)
+        · rcases List.mem_append.mp hrest with hlifted | hterminals
+          · rcases List.mem_append.mp hlifted with h₁ | h₂
+            · obtain ⟨x', hx', hy', hcorr⟩ :=
+                induction_step_for_lifted_rule_from_g₁ h₁ bef aft hx hy hxy
+              exact ⟨x', y, hx', hy', hcorr⟩
+            · obtain ⟨y', hx', hy', hcorr⟩ :=
+                induction_step_for_lifted_rule_from_g₂ h₂ bef aft hx hy hxy
+              exact ⟨x, y', hx', hy', hcorr⟩
+          · rcases List.mem_append.mp hterminals with h₁ | h₂
+            · unfold rules_for_terminals₁ at h₁
+              obtain ⟨t, ht, rfl⟩ := List.mem_map.mp h₁
+              dsimp at bef aft
+              refine ⟨x, y, hx, hy, ?_⟩
+              exact induction_step_for_terminal_rule₁ (u := u) (v := v) ht
+                (by
+                  have hlist :
+                      u ++ [] ++ [symbol.nonterminal (Sum.inr (Sum.inl t))] ++ [] ++ v =
+                        u ++ [symbol.nonterminal (Sum.inr (Sum.inl t))] ++ v := by
+                    simp
+                  rw [hlist] at bef
+                  exact bef)
+                (by
+                  rw [← List.append_assoc] at aft
+                  exact aft) hxy
+            · unfold rules_for_terminals₂ at h₂
+              obtain ⟨t, ht, rfl⟩ := List.mem_map.mp h₂
+              dsimp at bef aft
+              refine ⟨x, y, hx, hy, ?_⟩
+              exact induction_step_for_terminal_rule₂ (u := u) (v := v) ht
+                (by
+                  have hlist :
+                      u ++ [] ++ [symbol.nonterminal (Sum.inr (Sum.inr t))] ++ [] ++ v =
+                        u ++ [symbol.nonterminal (Sum.inr (Sum.inr t))] ++ v := by
+                    simp
+                  rw [hlist] at bef
+                  exact bef)
+                (by
+                  rw [← List.append_assoc] at aft
+                  exact aft) hxy
+  exact h_ind ass
 
 set_option maxHeartbeats 800000 in
 public lemma in_concatenated_of_in_big
@@ -1098,6 +1202,7 @@ by
         cases w <;> simp +decide [ hw'.2 ] at hw' ⊢;
       have h_initial_rule : ∀ r ∈ (big_grammar g₁ g₂).rules, r.input_N = (big_grammar g₁ g₂).initial → r.input_L = [] ∧ r.input_R = [] ∧ r.output_string = [symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))), symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))] := by
         grind +locals;
+      dsimp [big_grammar] at hw''
       rcases hw''.1 with ⟨r, hr, u, v, hbef, haft⟩
       have hlen := congrArg List.length hbef
       simp only [List.length_cons, List.length_nil, List.length_append] at hlen
@@ -1113,7 +1218,7 @@ by
       rw [hu, hv, hout] at haft
       simp only [List.nil_append, List.append_nil] at haft
       refine ⟨w', ?_, hw'.2⟩
-      rw [← haft]
+      rw [haft] at hw''
       exact hw''.2
     rcases big_induction hw' with ⟨x, y, hx, hy, hcorr⟩
     subst w'

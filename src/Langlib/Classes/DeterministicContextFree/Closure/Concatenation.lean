@@ -406,9 +406,25 @@ private lemma left_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
       · simp [PDA.step] at hstep'
       · cases Z with
         | bottom =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | right Z₂ =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | left Z₁ =>
             cases x with
             | nil =>
@@ -494,9 +510,25 @@ private lemma right_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DP
       · simp [PDA.step] at hstep'
       · cases Z with
         | bottom =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | left Z₁ =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | right Z₂ =>
             cases x with
             | nil =>
@@ -602,38 +634,41 @@ private lemma optional_accepts_right (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
           exact ⟨rfl, hq⟩, [OptionalStack.bottom], Relation.ReflTransGen.refl⟩
       · unfold PDA.Reaches₁ PDA.step at hstep
         simp [DPDA.toPDA, hnoε] at hstep
+        exact ((Set.mem_empty_iff_false _).mp hstep).elim
   | cons a w =>
       rcases Relation.ReflTransGen.cases_head hreach with heq | ⟨c, hstep, hrest⟩
       · cases heq
       · rcases c with ⟨p, input, stack⟩
         unfold PDA.Reaches₁ PDA.step at hstep
         simp [DPDA.toPDA, hnoε] at hstep
-        rcases hstep with ⟨hp, hinput⟩
-        subst input
-        cases ht : M₂.transition M₂.initial_state a M₂.start_symbol with
-        | none => simp [ht] at hp
-        | some pβ =>
-            rcases pβ with ⟨p0, β0⟩
-            simp [ht] at hp
-            rcases hp with ⟨rfl, rfl⟩
-            refine ⟨OptionalState.right q, ?_, γ.map OptionalStack.right, ?_⟩
-            · right
-              right
-              exact ⟨q, hq, rfl⟩
-            · have hfirst :
-                  @PDA.Reaches₁ (OptionalState Q₁ Q₂) (Bool ⊕ T) (OptionalStack S₁ S₂) _ _ _
-                    (optionalMarkedUnion M₁ M₂).toPDA
-                    ⟨(optionalMarkedUnion M₁ M₂).initial_state,
-                      Sum.inr a :: w.map Sum.inr,
-                      [(optionalMarkedUnion M₁ M₂).start_symbol]⟩
-                    (rightConf M₁ M₂ ⟨p, w, stack⟩) := by
-                unfold PDA.Reaches₁ PDA.step
-                left
-                refine ⟨OptionalState.right p, stack.map OptionalStack.right, ?_, ?_⟩
-                · simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht]
-                · simp [rightConf]
-              exact Relation.ReflTransGen.trans (Relation.ReflTransGen.single hfirst)
-                (right_reaches_map M₁ M₂ hrest)
+        rcases hstep with hstep | hbad
+        · rcases hstep with ⟨p', β', hp, hcfg⟩
+          cases hcfg
+          cases ht : M₂.transition M₂.initial_state a M₂.start_symbol with
+          | none => simp [ht] at hp
+          | some pβ =>
+              rcases pβ with ⟨p0, β0⟩
+              simp [ht] at hp
+              rcases hp with ⟨rfl, rfl⟩
+              refine ⟨OptionalState.right q, ?_, γ.map OptionalStack.right, ?_⟩
+              · right
+                right
+                exact ⟨q, hq, rfl⟩
+              · have hfirst :
+                    @PDA.Reaches₁ (OptionalState Q₁ Q₂) (Bool ⊕ T) (OptionalStack S₁ S₂) _ _ _
+                      (optionalMarkedUnion M₁ M₂).toPDA
+                      ⟨(optionalMarkedUnion M₁ M₂).initial_state,
+                        Sum.inr a :: w.map Sum.inr,
+                        [(optionalMarkedUnion M₁ M₂).start_symbol]⟩
+                      (rightConf M₁ M₂ ⟨p, w, stack⟩) := by
+                  unfold PDA.Reaches₁ PDA.step
+                  left
+                  refine ⟨OptionalState.right p, stack.map OptionalStack.right, ?_, ?_⟩
+                  · simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht]
+                  · simp [rightConf]
+                exact Relation.ReflTransGen.trans (Relation.ReflTransGen.single hfirst)
+                  (right_reaches_map M₁ M₂ hrest)
+        · exact ((Set.mem_empty_iff_false _).mp hbad).elim
 
 private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
     (hnoε : M₂.epsilon_transition M₂.initial_state M₂.start_symbol = none)
@@ -655,6 +690,7 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
       | nil =>
           unfold PDA.Reaches₁ PDA.step at hstep
           simp [DPDA.toPDA, optionalMarkedUnion] at hstep
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
       | cons a xs =>
           cases a with
           | inl b =>
@@ -671,6 +707,7 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
                         (optionalMarkedUnion M₁ M₂).toPDA
                         (leftConf M₁ M₂ ⟨M₁.initial_state, w, [M₁.start_symbol]⟩)
                         ⟨qf, [], γ⟩ := by
+                    unfold PDA.Reaches
                     simpa [leftConf, hxs] using hrest
                   rcases left_reaches_unmap M₁ M₂ hrest' with ⟨c', hc', hM⟩
                   rcases c' with ⟨q', w', γ'⟩
@@ -714,6 +751,7 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
                           (optionalMarkedUnion M₁ M₂).toPDA
                           (rightConf M₁ M₂ ⟨p0, w, β0⟩)
                           ⟨qf, [], γ⟩ := by
+                      unfold PDA.Reaches
                       simpa [rightConf, hxs] using hrest
                     rcases right_reaches_unmap M₁ M₂ hrest' with ⟨c', hc', hM⟩
                     rcases c' with ⟨q', w', γ'⟩
@@ -1242,6 +1280,7 @@ private lemma optionalQuot_accepts_marker_payload (M₁ : DPDA Q₁ T S₁) (M�
               (optionalMarkedUnionQuot M₁ M₂).toPDA
               (quotLeftConf M₁ M₂ ⟨M₁.initial_state, w, [M₁.start_symbol]⟩)
               ⟨qf, [], γ⟩ := by
+          unfold PDA.Reaches
           simpa [quotLeftConf] using hrest
         rcases quot_left_reaches_unmap M₁ M₂ hrest' with ⟨c', hc', hM⟩
         rcases c' with ⟨q', w', γ'⟩
@@ -1283,6 +1322,7 @@ private lemma optionalQuot_accepts_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
               cases hbad
         · unfold PDA.Reaches₁ PDA.step at hstep
           simp [DPDA.toPDA, optionalMarkedUnionQuot] at hstep
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
     | cons a w =>
         rcases h with ⟨qf, hfinal, γ, hreach⟩
         rcases Relation.ReflTransGen.cases_head hreach with heq | ⟨c, hstep, hrest⟩
@@ -1300,6 +1340,7 @@ private lemma optionalQuot_accepts_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
                   (quotRightConf M₁ M₂ a ⟨(quotientM M₂ a).initial_state, w,
                     [(quotientM M₂ a).start_symbol]⟩)
                   ⟨qf, [], γ⟩ := by
+              unfold PDA.Reaches
               simpa [quotRightConf] using hrest
             rcases quot_right_reaches_unmap M₁ M₂ a hrest' with ⟨c', hc', hM⟩
             rcases c' with ⟨q', w', γ'⟩
@@ -1353,7 +1394,8 @@ private lemma markerStar_singleton_mem {T : Type} :
   rw [markerStar, Language.mem_kstar]
   refine ⟨[[marker]], by simp, ?_⟩
   intro y hy
-  simpa using hy
+  change y = [marker]
+  exact List.mem_singleton.mp hy
 
 private lemma markerStar_all_marker {T : Type} {p : List (Bool ⊕ T)}
     (hp : p ∈ markerStar T) :
@@ -1364,7 +1406,7 @@ private lemma markerStar_all_marker {T : Type} {p : List (Bool ⊕ T)}
   rw [List.mem_flatten] at ha
   rcases ha with ⟨block, hblock, ha⟩
   have hblock' := hblocks block hblock
-  rw [Set.mem_singleton_iff] at hblock'
+  change block = [marker] at hblock'
   subst block
   simpa using ha
 
@@ -1380,7 +1422,7 @@ private lemma mem_oneMarkerPayload_iff {T : Type} {x : List (Bool ⊕ T)} :
   rw [oneMarkerPayload, Language.mem_mul]
   constructor
   · rintro ⟨u, hu, v, hv, rfl⟩
-    rw [Set.mem_singleton_iff] at hu
+    change u = [marker] at hu
     subst u
     rcases hv with ⟨w, _hw, rfl⟩
     exact ⟨w, rfl⟩
@@ -1421,7 +1463,8 @@ public theorem DCF_optional_marked_union
       change x ∈ oneMarkerPayload T + payloadOnly T at hshape
       rw [Language.add_def] at hshape
       rcases hshape with hmarked | hunmarked
-      · rw [mem_oneMarkerPayload_iff] at hmarked
+      · change x ∈ (oneMarkerPayload T : Language (Bool ⊕ T)) at hmarked
+        rw [mem_oneMarkerPayload_iff] at hmarked
         rcases hmarked with ⟨w, rfl⟩
         left
         refine ⟨w, rfl, ?_⟩
@@ -1436,6 +1479,8 @@ public theorem DCF_optional_marked_union
         · change marker :: w.map Sum.inr ∈ oneMarkerPayload T + payloadOnly T
           rw [Language.add_def]
           left
+          change marker :: w.map Sum.inr ∈
+            (oneMarkerPayload T : Language (Bool ⊕ T))
           rw [mem_oneMarkerPayload_iff]
           exact ⟨w, rfl⟩
       · constructor
@@ -1506,19 +1551,32 @@ private theorem optional_concat_slice_eq_union
       ((markerStar T * (DPDA.optionalMarkedUnionQuot M₁ M₂).acceptsByFinalState) ⊓
         oneMarkerPayload T) at hx
     rcases hx with ⟨hcat, hone⟩
+    change marker :: x ∈ (oneMarkerPayload T : Language (Bool ⊕ T)) at hone
     rw [mem_oneMarkerPayload_iff] at hone
     rcases hone with ⟨w, hshape⟩
     cases hshape
+    change marker :: w.map Sum.inr ∈
+      (markerStar T * (DPDA.optionalMarkedUnionQuot M₁ M₂).acceptsByFinalState :
+        Language (Bool ⊕ T)) at hcat
     rw [marker_payload_mem_concat_iff M₁ M₂] at hcat
-    exact ⟨w, by simpa [Language.add_def] using hcat, rfl⟩
+    refine ⟨w, ?_, rfl⟩
+    change w ∈ (M₁.acceptsByFinalState + M₂.acceptsByFinalState : Language T)
+    exact (Language.mem_add _ _ _).mpr hcat
   · rintro ⟨w, hw, rfl⟩
     change (marker : Bool ⊕ T) :: w.map Sum.inr ∈
       ((markerStar T * (DPDA.optionalMarkedUnionQuot M₁ M₂).acceptsByFinalState) ⊓
         oneMarkerPayload T)
     constructor
-    · rw [marker_payload_mem_concat_iff M₁ M₂]
-      simpa [Language.add_def] using hw
-    · rw [mem_oneMarkerPayload_iff]
+    · change marker :: w.map Sum.inr ∈
+        (markerStar T * (DPDA.optionalMarkedUnionQuot M₁ M₂).acceptsByFinalState :
+          Language (Bool ⊕ T))
+      rw [marker_payload_mem_concat_iff M₁ M₂]
+      change w ∈ (M₁.acceptsByFinalState + M₂.acceptsByFinalState) at hw
+      rw [Language.mem_add] at hw
+      exact hw
+    · change marker :: w.map Sum.inr ∈
+        (oneMarkerPayload T : Language (Bool ⊕ T))
+      rw [mem_oneMarkerPayload_iff]
       exact ⟨w, rfl⟩
 
 /-- Deterministic context-free languages over `Bool ⊕ Fin 3` are not closed

@@ -14,8 +14,6 @@ reversal routine and `M` halt, and it accepts exactly when `M` accepts
 `w.reverse`, which is the definition of membership in `L.reverse`.
 -/
 
-set_option backward.isDefEq.respectTransparency false
-
 open StateTransition Turing
 
 namespace RecursiveReverse

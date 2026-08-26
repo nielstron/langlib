@@ -54,8 +54,6 @@ tape as a sequence of `cell`/`headCell` nonterminals flanked by boundary markers
 
 open Turing StateTransition TMtoGrammarNT
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {T : Type} [DecidableEq T] [Fintype T]
          {Λ : Type} [Inhabited Λ] [DecidableEq Λ] [Fintype Λ]
 
@@ -121,7 +119,7 @@ public theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : Li
       exact ⟨ Or.inl <| List.mem_cons_self, [ ], [ ], rfl, rfl ⟩;
     exact .single h1 |> Relation.ReflTransGen.trans <| .single <| by
       use ⟨[], genMore, [.nonterminal rightBound], [.nonterminal (headCell (default : Λ) none none), .nonterminal rightBound]⟩; simp +decide [ encodeTwoTrack, initTwoTrack ] ;
-      exact ⟨ by unfold tmToGrammar; simp +decide [ generationRules ], [ symbol.nonterminal leftBound ], [], by simp, by simp ⟩;
+      exact ⟨ by simp +decide [generationRules], [symbol.nonterminal leftBound], [], by simp, by simp ⟩;
   · -- Apply the induction hypothesis to the tail of the list.
     have h_ind : ∀ (ts : List T), grammar_derives (tmToGrammar T Λ M) [symbol.nonterminal start] ([symbol.nonterminal leftBound, symbol.nonterminal genMore] ++ ts.map (fun t => symbol.nonterminal (cell (some t) (some t))) ++ [symbol.nonterminal rightBound]) := by
       intro ts
@@ -204,7 +202,7 @@ public theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
     apply Relation.ReflTransGen.single
     use ⟨[], leftBound, [.nonterminal rightBound], []⟩
     simp;
-    unfold tmToGrammar; simp +decide [ cleanupRules ] ;
+    simp +decide [cleanupRules]
   · have h_transform : grammar_transforms (tmToGrammar T Λ M) ([symbol.nonterminal leftBound] ++ [symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest ++ [symbol.nonterminal rightBound]) ([symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest ++ [symbol.nonterminal rightBound]) := by
       -- Apply the rule that removes the left bound.
       use ⟨[], leftBound, [symbol.nonterminal (haltCell orig)], [symbol.nonterminal (haltCell orig)]⟩;
@@ -215,7 +213,10 @@ public theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
     have h_transform : grammar_transforms (tmToGrammar T Λ M) ([symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest ++ [symbol.nonterminal rightBound]) ([symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest) := by
       use ⟨[.nonterminal (haltCell (List.getLast! (orig :: rest)))] , rightBound, [], [.nonterminal (haltCell (List.getLast! (orig :: rest)))]⟩; simp_all +decide [ List.getLast! ] ;
       constructor;
-      · apply_rules [ List.mem_append_right ];
+      · right
+        right
+        unfold cleanupRules
+        apply_rules [ List.mem_append_right ];
         simp +decide [ allOptT ];
         cases h : ( orig :: rest ).getLast ( by simp +decide ) <;> aesop;
       · induction rest using List.reverseRecOn <;> simp_all +decide [ List.getLast ];

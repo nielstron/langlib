@@ -553,7 +553,7 @@ public theorem concreteReadEmptyReturn_samePrefix_state_eq
     have ha : (characteristicGrammar M).DerivesRightmost
         [symbol.terminal a]
         ([a].map symbol.terminal) := Relation.ReflTransGen.refl
-    simpa [List.map_append] using hpBase.append_to_terminals ha
+    exact hpBase.append_to_terminals ha
   let anchor₁ : VisibleSpineAnchor M
       (base ++ [symbol.terminal a])
       (PDA_to_CFG.N.list q₁ [] q₁) suffix₁
@@ -728,7 +728,7 @@ public theorem concreteReadEmptyReturn_no_strictTerminalExtension
     have ha : (characteristicGrammar M).DerivesRightmost
         [symbol.terminal a]
         ([a].map symbol.terminal) := Relation.ReflTransGen.refl
-    simpa [List.map_append] using hpBase.append_to_terminals ha
+    exact hpBase.append_to_terminals ha
   obtain ⟨alignedContext, alignedParent⟩ :=
     concreteOperationalSpine_of_activeSpine M
       ((otherParent.operationalSpine M).activeSpine M) hp
@@ -861,7 +861,7 @@ public theorem concreteEmptyReturn_forward_displacement
   have hp₂' : (characteristicGrammar M).DerivesRightmost p₂
       ((completion ++ z).map symbol.terminal) := by
     rw [hp₂]
-    simpa [List.map_append] using hp₁.append_to_terminals hzDerives
+    exact hp₁.append_to_terminals hzDerives
   obtain ⟨context₁, child₁⟩ :=
     edge₁.exists_childSpineAtCompletion M hp₁
   obtain ⟨context₂, child₂⟩ :=
@@ -914,7 +914,7 @@ public theorem concreteEmptyReturn_backward_displacement
   have hp₁' : (characteristicGrammar M).DerivesRightmost p₁
       ((completion ++ z).map symbol.terminal) := by
     rw [hp₁]
-    simpa [List.map_append] using hp₂.append_to_terminals hzDerives
+    exact hp₂.append_to_terminals hzDerives
   obtain ⟨context₁, child₁⟩ :=
     edge₁.exists_childSpineAtCompletion M hp₁'
   obtain ⟨context₂, child₂⟩ :=

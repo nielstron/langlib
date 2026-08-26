@@ -502,7 +502,7 @@ public def cons
     · exact layout.block_nonempty candidate htail
   owner_at i := by
     refine Fin.cases ?_ (fun j => ?_) i
-    · simpa [blockOwnerAt] using head_owner
+    · simpa [blockStart, blockOwnerAt] using head_owner
     · rcases layout.owner_at j with hlocal | hout
       · rcases hlocal with ⟨hd, howner⟩
         rcases ticket_shift j hd with ⟨hd', hshift⟩
@@ -674,7 +674,7 @@ public def reownerHead
   block_nonempty := layout.block_nonempty
   owner_at i := by
     refine Fin.cases ?_ (fun j => ?_) i
-    · simpa [blockOwnerAt] using head_owner
+    · simpa [blockStart, blockOwnerAt] using head_owner
     · simpa [blockOwnerAt] using layout.owner_at (Fin.succ j)
 
 /-- A local shadow event absent from every represented block start is absent from all selected

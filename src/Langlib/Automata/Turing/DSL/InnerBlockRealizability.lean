@@ -33,7 +33,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -228,7 +227,11 @@ public inductive BoundaryReplaceSt where
   | goLeft
   | rewind
   | done
-  deriving DecidableEq, Fintype
+  deriving DecidableEq
+
+public instance : Fintype BoundaryReplaceSt where
+  elems := {.scan, .goLeft, .rewind, .done}
+  complete q := by cases q <;> simp
 
 instance : Inhabited BoundaryReplaceSt := ⟨.scan⟩
 

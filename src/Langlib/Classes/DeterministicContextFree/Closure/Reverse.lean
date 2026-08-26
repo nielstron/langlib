@@ -52,7 +52,7 @@ private theorem reverse_markedChoice_quotient (L₁ L₂ : Language T) :
       ({[Sum.inl false]} : Language (Bool ⊕ T)) + {[Sum.inl true]} at hv
     rw [Language.mem_add] at hv
     rcases hv with hv | hv
-    · have hv' : v = [Sum.inl false] := by simpa using hv
+    · have hv' : v = [Sum.inl false] := Set.mem_singleton_iff.mp hv
       subst v
       change (x ++ [Sum.inl false]).reverse ∈ markedChoice L₁ L₂ at hxv
       simp only [List.reverse_append, List.reverse_singleton, List.singleton_append] at hxv
@@ -63,7 +63,7 @@ private theorem reverse_markedChoice_quotient (L₁ L₂ : Language T) :
         change x.reverse ∈ Language.map Sum.inr L₁
         exact ⟨w, hw, List.cons.inj hwEq |>.2.symm⟩
       · cases List.cons.inj hwEq |>.1
-    · have hv' : v = [Sum.inl true] := by simpa using hv
+    · have hv' : v = [Sum.inl true] := Set.mem_singleton_iff.mp hv
       subst v
       change (x ++ [Sum.inl true]).reverse ∈ markedChoice L₁ L₂ at hxv
       simp only [List.reverse_append, List.reverse_singleton, List.singleton_append] at hxv
@@ -122,10 +122,16 @@ private theorem inverse_tagged_union (L₁ L₂ : Language T) :
   · rintro (⟨u, hu, heq⟩ | ⟨u, hu, heq⟩)
     · left
       have : u = w := List.map_injective_iff.mpr Sum.inr_injective heq
-      simpa [this] using hu
+      subst u
+      change w ∈ (L₁ : Set (List T)) at hu
+      change w ∈ (L₁ : Set (List T))
+      exact hu
     · right
       have : u = w := List.map_injective_iff.mpr Sum.inr_injective heq
-      simpa [this] using hu
+      subst u
+      change w ∈ (L₂ : Set (List T)) at hu
+      change w ∈ (L₂ : Set (List T))
+      exact hu
   · rintro (hw | hw)
     · exact Or.inl ⟨w, hw, rfl⟩
     · exact Or.inr ⟨w, hw, rfl⟩

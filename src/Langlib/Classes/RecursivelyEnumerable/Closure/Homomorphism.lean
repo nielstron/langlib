@@ -95,19 +95,19 @@ open Turing
 section construction
 
 /-- Map a symbol by replacing terminals with nonterminal placeholders. -/
-@[expose]
+@[expose, reducible]
 public def homLiftSym {N : Type} : symbol α N → symbol β (N ⊕ α)
   | symbol.terminal a    => symbol.nonterminal (Sum.inr a)
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)
 
 /-- Lift an entire string to placeholder form. -/
-@[expose]
+@[expose, reducible]
 public def homLiftStr {N : Type} (s : List (symbol α N)) :
     List (symbol β (N ⊕ α)) :=
   s.map homLiftSym
 
 /-- Lift a rule to phase 1 form. -/
-@[expose]
+@[expose, reducible]
 public def homLiftRule {N : Type} (r : grule α N) : grule β (N ⊕ α) :=
   ⟨homLiftStr r.input_L,
    Sum.inl r.input_N,
@@ -115,12 +115,12 @@ public def homLiftRule {N : Type} (r : grule α N) : grule β (N ⊕ α) :=
    homLiftStr r.output_string⟩
 
 /-- Create a phase 2 rule for terminal `a`. -/
-@[expose]
+@[expose, reducible]
 public def homExpandRule {N : Type} (h : α → List β) (a : α) : grule β (N ⊕ α) :=
   ⟨[], Sum.inr a, [], (h a).map symbol.terminal⟩
 
 /-- The two-phase grammar for the homomorphic image. -/
-@[expose]
+@[expose, reducible]
 public def hom_grammar (g : grammar α) (h : α → List β) : grammar β :=
   ⟨g.nt ⊕ α,
    Sum.inl g.initial,
@@ -149,7 +149,7 @@ public lemma mem_prod_singletons_iff_flatMap (w : List α) (h : α → List β) 
     simp only [List.map_cons, List.prod_cons, Language.mul_def]
     constructor
     · rintro ⟨u₁, hu₁, u₂, hu₂, rfl⟩
-      rw [Set.mem_singleton_iff] at hu₁
+      change u₁ = h a at hu₁
       rw [hu₁, List.flatMap_cons]
       congr 1; exact (ih u₂).mp hu₂
     · intro hu
@@ -169,9 +169,12 @@ variable {g : grammar α} {h : α → List β}
 private lemma phase1_transforms {w₁ w₂ : List (symbol α g.nt)}
     (ht : grammar_transforms g w₁ w₂) :
     grammar_transforms (hom_grammar g h) (homLiftStr w₁) (homLiftStr w₂) := by
-  obtain ⟨r, hr, u, v, hw₁, hw₂⟩ := ht
-  use homLiftRule r, by unfold hom_grammar; aesop, homLiftStr u, homLiftStr v
-  unfold homLiftStr homLiftRule; aesop
+  rcases ht with ⟨r, hr, u, v, rfl, rfl⟩
+  refine ⟨homLiftRule r, ?_, homLiftStr u, homLiftStr v, ?_, ?_⟩
+  · exact List.mem_append_left _ (List.mem_map.mpr ⟨r, hr, rfl⟩)
+  · simp only [homLiftStr, homLiftSym, List.map_append,
+      List.map_cons, List.map_nil, List.append_assoc]
+  · simp only [homLiftStr, List.map_append, List.append_assoc]
 
 private lemma phase1_derives {w₁ w₂ : List (symbol α g.nt)}
     (hd : grammar_derives g w₁ w₂) :
@@ -208,7 +211,9 @@ private lemma phase2_step (a : α) (ha : a ∈ all_used_terminals g)
       (u ++ (h a).map symbol.terminal ++ v) :=
   ⟨homExpandRule h a,
     List.mem_append_right _ (List.mem_map.mpr ⟨a, ha, rfl⟩),
-    u, v, by simp [homExpandRule], by simp [homExpandRule]⟩
+    u, v,
+    by simp only [List.append_nil],
+    rfl⟩
 
 private lemma phase2_expand_all (w : List α)
     (hw : ∀ a ∈ w, a ∈ all_used_terminals g) :
@@ -227,7 +232,7 @@ private lemma phase2_expand_all (w : List α)
           w.map (fun a => (symbol.nonterminal (Sum.inr a) : symbol β (g.nt ⊕ α))))
         ((h a).map symbol.terminal ++
           w.map (fun a => (symbol.nonterminal (Sum.inr a) : symbol β (g.nt ⊕ α)))) := by
-      simpa using phase2_step a ha [] _
+      simpa only [List.nil_append, List.singleton_append] using phase2_step a ha [] _
     exact grammar_deri_of_tran_deri step1
       (grammar_deri_with_prefix ((h a).map symbol.terminal) (ih hw'))
 
@@ -337,12 +342,30 @@ private lemma dsym_flatMap_split_at_nonterminal (_heps : ∀ a, h a ≠ [])
       · grind +locals;
     · intro h_eq
       obtain ⟨u', hu'⟩ : ∃ u', u = (h ‹_›).map symbol.terminal ++ u' := by
-        have h_prefix : (h ‹_›).map symbol.terminal ++ flatMap (dToHom' h) ds = u ++ symbol.nonterminal x :: v := by
+        have h_eq_prefix : (h ‹_›).map symbol.terminal ++ flatMap (dToHom' h) ds = u ++ symbol.nonterminal x :: v := by
           exact h_eq;
-        have h_prefix : ∀ {l₁ l₂ l₃ : List (symbol β (g.nt ⊕ α))}, l₁ ++ l₂ = l₃ ++ symbol.nonterminal x :: v → (∀ y ∈ l₁, y ≠ symbol.nonterminal x) → ∃ u', l₃ = l₁ ++ u' := by
-          intros l₁ l₂ l₃ h_eq h_no_x; induction' l₁ with a l₁ ih generalizing l₃ <;> simp_all +decide;
-          rcases l₃ with ( _ | ⟨ b, l₃ ⟩ ) <;> simp_all +decide;
-        grind;
+        have prefix_before : ∀ {l₁ l₂ l₃ : List (symbol β (g.nt ⊕ α))}, l₁ ++ l₂ = l₃ ++ symbol.nonterminal x :: v → (∀ y ∈ l₁, y ≠ symbol.nonterminal x) → ∃ u', l₃ = l₁ ++ u' := by
+          intro l₁
+          induction l₁ with
+          | nil =>
+              intro l₂ l₃ _ _
+              exact ⟨l₃, rfl⟩
+          | cons y l₁ ih =>
+              intro l₂ l₃ h_eq h_no_x
+              cases l₃ with
+              | nil =>
+                  have hyx : y = symbol.nonterminal x := (List.cons.inj h_eq).1
+                  exact (h_no_x y List.mem_cons_self hyx).elim
+              | cons z l₃ =>
+                  obtain ⟨hyz, htail⟩ := List.cons.inj h_eq
+                  subst z
+                  obtain ⟨u', hu'⟩ := ih (l₂ := l₂) (l₃ := l₃) htail
+                    (fun q hq => h_no_x q (List.mem_cons_of_mem y hq))
+                  exact ⟨u', by simp only [List.cons_append, hu']⟩
+        apply prefix_before h_eq_prefix
+        intro y hy hyx
+        obtain ⟨b, _, rfl⟩ := List.mem_map.mp hy
+        cases hyx
       specialize ih u' v;
       simp_all +decide [ List.append_assoc ];
       obtain ⟨ ds₁, d, ds₂, rfl, hd, hu', hv ⟩ := ih ( by simpa [ dToHom' ] using h_eq ) ; use DSym.expanded ‹_› :: ds₁, d, ds₂; aesop;
@@ -415,8 +438,9 @@ private lemma valid_step' (heps : ∀ a, h a ≠ [])
     ValidForm' g h s₂ := by
   rcases ht with ⟨ r, hr, u, v, rfl, rfl ⟩;
   unfold hom_grammar at hr; simp_all +decide [ List.mem_append, List.mem_map ] ;
-  rcases hr with ( ⟨ r, hr, rfl ⟩ | ⟨ a, ha, rfl ⟩ ) <;> simp_all +decide [ homLiftRule, homExpandRule ];
-  · obtain ⟨ ds, hds₁, hds₂ ⟩ := hv;
+  rcases hr with ( ⟨ r, hr, rfl ⟩ | ⟨ a, ha, rfl ⟩ )
+  · simp_all +decide
+    obtain ⟨ ds, hds₁, hds₂ ⟩ := hv;
     -- Use `dsym_flatMap_split_at_nonterminal` to split `ds` into `ds_L`, `d_mid`, and `ds_R`.
     obtain ⟨ds_L, d_mid, ds_R, hds_split⟩ : ∃ ds_L d_mid ds_R, ds = ds_L ++ [d_mid] ++ ds_R ∧ dToHom' h d_mid = [symbol.nonterminal (Sum.inl r.input_N)] ∧ ds_L.flatMap (dToHom' h) = u ++ homLiftStr r.input_L ∧ ds_R.flatMap (dToHom' h) = homLiftStr r.input_R ++ v := by
       have := dsym_flatMap_split_at_nonterminal heps ds ( u ++ homLiftStr r.input_L ) ( homLiftStr r.input_R ++ v ) ( Sum.inl r.input_N ) ?_;
@@ -437,14 +461,14 @@ private lemma valid_step' (heps : ∀ a, h a ≠ [])
         exact ⟨ by rw [ show dToOrig' ∘ liftDSym = id from funext fun x => by cases x <;> rfl ] ; simp +decide, by rw [ show dToOrig' ∘ liftDSym = id from funext fun x => by cases x <;> rfl ] ; simp +decide ⟩;
       · cases hds_split.2.1;
       · cases h : h ‹_› <;> simp_all +decide [ dToHom' ];
-  · obtain ⟨ ds, hds₁, hds₂ ⟩ := hv;
+  · simp_all +decide
+    obtain ⟨ ds, hds₁, hds₂ ⟩ := hv;
     -- Use dsym_flatMap_split_at_nonterminal to split ds into ds₁, d, ds₂.
     obtain ⟨ds₁, d, ds₂, hds_split⟩ : ∃ ds₁ d ds₂, ds = ds₁ ++ [d] ++ ds₂ ∧ dToHom' h d = [symbol.nonterminal (Sum.inr a)] ∧ ds₁.flatMap (dToHom' h) = u ∧ ds₂.flatMap (dToHom' h) = v := by
       apply dsym_flatMap_split_at_nonterminal heps ds u v (Sum.inr a);
       simpa using hds₁.symm;
     use ds₁ ++ [DSym.expanded a] ++ ds₂;
-    cases d <;> simp_all +decide [ dToHom', dToOrig' ];
-    cases hds₁ ; aesop
+    cases d <;> simp_all +decide [ dToHom', dToOrig' ]
 
 private lemma valid_derives' (heps : ∀ a, h a ≠ [])
     {s : List (symbol β (g.nt ⊕ α))}

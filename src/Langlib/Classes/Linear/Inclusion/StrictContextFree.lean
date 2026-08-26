@@ -24,7 +24,7 @@ The language `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` (`anbncmdm`) is context-free
 (`anbncmdm_not_is_Linear`, in `Langlib.Classes.Linear.Examples.AnBnCmDm`). This file
 assembles those two facts into the
 strict inclusion over every finite alphabet with at least 4 elements by
-relabelling along an embedding `e : Fin 4 ↪ T`.
+transporting the counterexample to the target alphabet.
 
 ## Main results
 
@@ -39,7 +39,7 @@ variable {T : Type}
 /-! ## Arbitrary alphabets with at least 4 elements -/
 
 /-- Linear languages are a strict subclass of context-free languages over any alphabet with
-at least 4 elements, as exhibited by an embedding `Fin 4 ↪ T`. -/
+at least 4 elements. -/
 public theorem Linear_strict_subclass_CF_of_embedding (e : Fin 4 ↪ T) :
     (Linear : Set (Language T)) ⊂ (CF : Set (Language T)) := by
   refine ⟨Linear_subclass_CF, fun hsub => ?_⟩

@@ -136,11 +136,10 @@ public theorem focused_of_derivation (M : DPDA Q T S)
       cases p with
       | cons X p => simp at hshape
       | nil =>
-          simp only [List.nil_append, List.cons_append,
-            List.cons.injEq] at hshape
-          obtain ⟨hA, hrightNil⟩ := hshape
-          have hA : A = PDA_to_CFG.N.start :=
-            (symbol.nonterminal.inj hA).symm
+          have hdecomp := decompose_one_nonterminal
+            (T := T) (N := Nonterminal M) (A := A)
+            (B := PDA_to_CFG.N.start) (left := []) (right := right) hshape
+          obtain ⟨_, hA, hrightNil⟩ := hdecomp
           subst A
           have hpNil : preWord = [] := by
             have hp' : (characteristicGrammar M).DerivesRightmost
@@ -150,7 +149,7 @@ public theorem focused_of_derivation (M : DPDA Q T S)
             exact (terminal_word_eq_of_derives
               (characteristicGrammar M) hp').symm
           have hsNil : postWord = [] := by
-            rw [← hrightNil] at hright
+            rw [hrightNil] at hright
             have hright' : (characteristicGrammar M).DerivesRightmost
                 (([] : List T).map symbol.terminal)
                 (postWord.map symbol.terminal) := by
@@ -161,10 +160,8 @@ public theorem focused_of_derivation (M : DPDA Q T S)
           subst postWord
           exact Focused.start
   | @tail before form hprevious hstep ih =>
-      have hstep' : (characteristicGrammar M).ProducesRightmost before
-          (p ++ [symbol.nonterminal A] ++ right) := by
-        rw [← hshape]
-        exact hstep
+      have hstep' := hstep
+      rw [hshape] at hstep'
       rcases hstep'.preimage_nonterminal with hsurvives | hintroduced
       · rcases hsurvives with ⟨right₀, hbefore, hrightStep⟩
         exact ih hbefore hp (hrightStep.single.trans hright)
@@ -192,7 +189,11 @@ public theorem focused_of_derivation (M : DPDA Q T S)
         rcases characteristicGrammar_rule_shape M hr with
           hbase | hread | hepsilon | hsplit | hstart
         · rcases hbase with ⟨q, rfl⟩
-          simp at hrhs
+          exfalso
+          have hlen := congrArg List.length hrhs
+          simp only [Prod.snd, List.length_nil, List.length_append,
+            List.length_singleton] at hlen
+          omega
         · rcases hread with
             ⟨q, target, q', a, Z, alpha, htransition, rfl⟩
           obtain ⟨hleftShape, hA, hbetaShape⟩ :=

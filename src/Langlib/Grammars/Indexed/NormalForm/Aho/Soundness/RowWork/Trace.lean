@@ -251,10 +251,12 @@ public theorem WorkTrace.decodeSuffixSame
           refine ⟨slot.symbol :: beta, k, ?_, ?_⟩
           · simp only [oldProjection, List.map_cons, List.map_cons]
             rw [hslot]
-            simpa [inactive] using congrArg (fun xs => (some ⟨false, slot.symbol⟩) :: xs) hold
+            simpa [inactive, oldProjection] using
+              congrArg (fun xs => (some ⟨false, slot.symbol⟩) :: xs) hold
           · simp only [newProjection, List.map_cons, List.map_cons]
             rw [hslot]
-            simpa [inactive] using congrArg (fun xs => (some ⟨false, slot.symbol⟩) :: xs) hnew
+            simpa [inactive, newProjection] using
+              congrArg (fun xs => (some ⟨false, slot.symbol⟩) :: xs) hnew
 
 end Aho
 end IndexedGrammar

@@ -492,7 +492,9 @@ public theorem eventOwner_pop_succ
     (window : ProductiveOwnerWindow (input := input)
       (NFParse.pop hr hlhs hc hrhs rest))
     {d : ℕ} (hd : d ∈ rest.eventDepths) :
-    window.eventOwner (d + 1) (Finset.mem_image.mpr ⟨d, hd, by omega⟩) =
+    window.eventOwner (d + 1) (by
+        change d + 1 ∈ rest.eventDepths.image Nat.succ
+        exact Finset.mem_image.mpr ⟨d, hd, by omega⟩) =
       window.popChild.eventOwner d hd := by
   apply Fin.ext
   simp only [eventOwner_val, popChild_base]
@@ -527,7 +529,9 @@ public theorem eventOwner_push_pos
     (window : ProductiveOwnerWindow (input := input)
       (NFParse.push hr hlhs hc hrhs rest))
     {d : ℕ} (hdpos : 0 < d) (hd : d + 1 ∈ rest.eventDepths) :
-    window.eventOwner d (Finset.mem_image.mpr ⟨d + 1, hd, by simp⟩) =
+    window.eventOwner d (by
+        change d ∈ rest.eventDepths.image Nat.pred
+        exact Finset.mem_image.mpr ⟨d + 1, hd, by simp⟩) =
       window.pushChild.eventOwner (d + 1) hd := by
   apply Fin.ext
   simp only [eventOwner_val, pushChild_base]

@@ -380,7 +380,7 @@ private theorem emptyStack_epsilon_view_for_positions (M : DPDA Q T S)
         | none =>
             left
             simpa [emptyStackPDA, PDA_FS_to_ES_pda,
-              PDA_FS_to_ES_eps] using h
+              PDA_FS_to_ES_eps, DPDA.toPDA] using h
         | some Z =>
             simp [emptyStackPDA, PDA_FS_to_ES_pda,
               PDA_FS_to_ES_eps] at h

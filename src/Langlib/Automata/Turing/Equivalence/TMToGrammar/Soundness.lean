@@ -34,7 +34,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -138,8 +137,9 @@ public theorem terminalContent_rule_preserved
       · rcases hr with ( ⟨ a, ha, b, hb, c, hc, rfl ⟩ | ⟨ a, ha, rfl ⟩ ) <;> simp_all +decide [ List.filterMap ];
         · cases a <;> cases b <;> cases c <;> rfl;
         · cases a <;> cases γ <;> rfl;
-    · rcases hr with ⟨ a, _, rfl ⟩ ; simp +decide ;
-      cases a <;> cases ‹Option T› <;> simp +decide [ symbolOriginal ] at *;
+    · rcases hr with ⟨a, _, rfl⟩
+      cases a <;> simp only [List.filterMap_cons, List.filterMap_nil,
+        symbolOriginal, List.nil_append]
   · revert hr;
     unfold cleanupRules;
     simp +decide [ allOptT ] at * ; aesop ( simp_config := { decide := true } ) ;
@@ -316,7 +316,7 @@ public theorem GI_preserved_initial (M : Turing.TM0.Machine (Option T) Λ)
   obtain ⟨ r, hr, u, v, h ⟩ := htrans;
   rcases u with ( _ | ⟨ a, u ⟩ ) <;> simp_all +decide [ List.append_assoc ];
   rcases r with ⟨ L, N, R, S ⟩ ; rcases L with ( _ | ⟨ a, L ⟩ ) <;> rcases R with ( _ | ⟨ b, R ⟩ ) <;> simp_all +decide [  ] ;
-  rcases h with ⟨ ⟨ rfl, rfl ⟩, rfl ⟩ ; simp_all +decide [ tmToGrammar ] ;
+  rcases h with ⟨⟨rfl, rfl⟩, rfl⟩
   rcases hr with ( hr | hr | hr );
   · unfold generationRules at hr; simp_all +decide [ List.append_assoc ] ;
     exact GI.generating [ ];
@@ -399,8 +399,13 @@ public theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
   obtain ⟨ r, hr, u, v, heq, rfl ⟩ := htrans;
   -- Show that r.input_N must be one of the nonterminals in the sentential form.
   have h_nonterminals : r.input_N = leftBound ∨ r.input_N = genMore ∨ (∃ t, r.input_N = cell (some t) (some t)) ∨ r.input_N = rightBound := by
-    replace heq := congr_arg ( fun x => symbol.nonterminal r.input_N ∈ x ) heq ; simp_all +decide [ List.mem_append ] ;
-    grind;
+    have hmem : symbol.nonterminal r.input_N ∈
+        u ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v := by
+      simp
+    rw [← heq] at hmem
+    simp only [List.mem_append, List.mem_cons, List.mem_map,
+      symbol.nonterminal.injEq] at hmem
+    grind
   rcases h_nonterminals with ( h | h | ⟨ t, h ⟩ | h );
   · have := no_leftBound_rule_genMore_context M r hr h; simp_all +decide ;
     rcases u with ( _ | ⟨ _, _ | u ⟩ ) <;> simp_all +decide;
@@ -418,9 +423,20 @@ public theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
           simp only [List.mem_append, List.mem_cons, true_or, or_true]
       simp +decide at hmem
   · rcases u with ( _ | ⟨ a, _ | ⟨ b, u ⟩ ⟩ ) <;> simp_all +decide;
-    · have := genMore_rules_classification M r hr ‹_›; aesop;
+    · have hr_mem : r ∈ (tmToGrammar T Λ M).rules := by
+        change r ∈ generationRules T Λ M ++ simulationRules T Λ M ++ cleanupRules T Λ M
+        rcases hr with hr | hr | hr
+        · exact List.mem_append_left _ (List.mem_append_left _ hr)
+        · exact List.mem_append_left _ (List.mem_append_right _ hr)
+        · exact List.mem_append_right _ hr
+      have := genMore_rules_classification M r hr_mem ‹_›; aesop;
     · have h_genMore_rules : r.input_L = [] ∧ r.input_R = [] ∧ (∃ t : T, r.output_string = [symbol.nonterminal genMore, symbol.nonterminal (cell (some t) (some t))]) ∨ r.input_L = [] ∧ r.input_R = [] ∧ (∃ t : T, r.output_string = [symbol.nonterminal (headCell (default : Λ) (some t) (some t))]) ∨ r.input_L = [] ∧ r.input_R = [symbol.nonterminal rightBound] ∧ r.output_string = [symbol.nonterminal (headCell (default : Λ) none none), symbol.nonterminal rightBound] := by
-        apply genMore_rules_classification M r hr h;
+        apply genMore_rules_classification M r (by
+          change r ∈ generationRules T Λ M ++ simulationRules T Λ M ++ cleanupRules T Λ M
+          rcases hr with hr | hr | hr
+          · exact List.mem_append_left _ (List.mem_append_left _ hr)
+          · exact List.mem_append_left _ (List.mem_append_right _ hr)
+          · exact List.mem_append_right _ hr) h;
       rcases h_genMore_rules with ( ⟨ h₁, h₂, t, h₃ ⟩ | ⟨ h₁, h₂, t, h₃ ⟩ | ⟨ h₁, h₂, h₃ ⟩ ) <;> simp_all +decide;
       · convert GI.generating ( t :: ts ) using 1;
         aesop;
@@ -825,8 +841,10 @@ public theorem terminalContent_encodeTwoTrack (tc : @TwoTrackConfig T Λ) :
       · cases l_notionCells <;> cases l_notionCell <;> simp_all +decide [ symbolOriginal ];
       · cases l_notionCells <;> cases l_notionCell <;> simp_all +decide [ symbolOriginal ];
   · cases cell.1 <;> simp_all +decide [ extractInput ];
-    · simpa [symbolOriginal] using ih t_notion l_notionCells l_notionCell
-    · simpa [symbolOriginal] using ih t_notion l_notionCells l_notionCell)
+    · simpa only [List.filterMap_cons, symbolOriginal] using
+        ih t_notion l_notionCells l_notionCell
+    · simpa only [List.filterMap_cons, symbolOriginal] using
+        congrArg (List.cons ‹T›) (ih t_notion l_notionCells l_notionCell))
 
 omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-

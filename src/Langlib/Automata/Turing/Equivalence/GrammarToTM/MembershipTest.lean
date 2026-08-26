@@ -57,8 +57,6 @@ as a search procedure.
 
 open Relation
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {T : Type} [DecidableEq T]
 
 /-! ### Computable rule application -/

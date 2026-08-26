@@ -131,16 +131,23 @@ private theorem source_epsilon_step
     (hε : M.epsilon_transition q Z = some (q', γ)) :
     @PDA.Reaches₁ _ β S _ _ _ M.toPDA
       ⟨q, input, Z :: rest⟩ ⟨q', input, γ ++ rest⟩ := by
-  cases input <;> simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+  cases input with
+  | nil =>
+      unfold PDA.Reaches₁ PDA.step
+      exact ⟨q', γ, by simp [DPDA.toPDA, hε], rfl⟩
+  | cons b input =>
+      unfold PDA.Reaches₁ PDA.step
+      exact Set.mem_union_right _ ⟨q', γ, by simp [DPDA.toPDA, hε], rfl⟩
 
 private theorem source_input_step
     (M : DPDA Q β S) (q q' : Q) (b : β) (input : List β)
     (Z : S) (rest γ : List S)
-    (hε : M.epsilon_transition q Z = none)
+    (_hε : M.epsilon_transition q Z = none)
     (hδ : M.transition q b Z = some (q', γ)) :
     @PDA.Reaches₁ _ β S _ _ _ M.toPDA
       ⟨q, b :: input, Z :: rest⟩ ⟨q', input, γ ++ rest⟩ := by
-  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨q', γ, by simp [DPDA.toPDA, hδ], rfl⟩
 
 private theorem inverseHomomorphism_ready_step
     (M : DPDA Q β S) (h : α → List β)
@@ -151,8 +158,15 @@ private theorem inverseHomomorphism_ready_step
       ⟨(q, none), a :: w, Z :: rest⟩ ⟨(q, buffer), w, Z :: rest⟩ := by
   dsimp
   by_cases hlen : 0 < (h a).length
-  · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, DPDA.inverseHomomorphism, hlen]
-  · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, DPDA.inverseHomomorphism, hlen]
+  · simp only [dif_pos hlen]
+    unfold PDA.Reaches₁ PDA.step
+    exact Set.mem_union_left _
+      ⟨(q, some ⟨a, ⟨0, hlen⟩⟩), [Z], by
+        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hlen], rfl⟩
+  · simp only [dif_neg hlen]
+    unfold PDA.Reaches₁ PDA.step
+    exact Set.mem_union_left _
+      ⟨(q, none), [Z], by simp [DPDA.toPDA, DPDA.inverseHomomorphism, hlen], rfl⟩
 
 private theorem inverseHomomorphism_epsilon_step
     (M : DPDA Q β S) (h : α → List β)
@@ -162,8 +176,15 @@ private theorem inverseHomomorphism_epsilon_step
     @PDA.Reaches₁ _ α S _ _ _ (M.inverseHomomorphism h).toPDA
       ⟨(q, some ⟨a, k⟩), w, Z :: rest⟩
       ⟨(q', some ⟨a, k⟩), w, γ ++ rest⟩ := by
-  cases w <;>
-    simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, DPDA.inverseHomomorphism, hε]
+  cases w with
+  | nil =>
+      unfold PDA.Reaches₁ PDA.step
+      exact ⟨(q', some ⟨a, k⟩), γ, by
+        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hε], rfl⟩
+  | cons b w =>
+      unfold PDA.Reaches₁ PDA.step
+      exact Set.mem_union_right _ ⟨(q', some ⟨a, k⟩), γ, by
+        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hε], rfl⟩
 
 private theorem inverseHomomorphism_drain_step
     (M : DPDA Q β S) (h : α → List β)
@@ -176,8 +197,15 @@ private theorem inverseHomomorphism_drain_step
       ⟨(q', invHomAdvance h a k), w, γ ++ rest⟩ := by
   have hδ' : M.transition q (h a)[k.val] Z = some (q', γ) := by
     simpa only [List.get_eq_getElem] using hδ
-  cases w <;>
-    simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, DPDA.inverseHomomorphism, hε, hδ']
+  cases w with
+  | nil =>
+      unfold PDA.Reaches₁ PDA.step
+      exact ⟨(q', invHomAdvance h a k), γ, by
+        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hε, hδ'], rfl⟩
+  | cons b w =>
+      unfold PDA.Reaches₁ PDA.step
+      exact Set.mem_union_right _ ⟨(q', invHomAdvance h a k), γ, by
+        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hε, hδ'], rfl⟩
 
 /-- Every inverse-machine step either stutters in, or is one step of, the source
 machine on the represented virtual input. -/
@@ -201,55 +229,108 @@ private theorem inverseHomomorphism_step_projects
       | nil =>
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
             DPDA.inverseHomomorphism] at hstep
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
       | cons a w =>
           by_cases hlen : 0 < (h a).length
           · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
               DPDA.inverseHomomorphism, hlen] at hstep
-            subst c₂
-            simp [invHomBufferRemaining, invHomWord]
-            exact Relation.ReflTransGen.refl
+            rcases hstep with hstep | hbad
+            · change c₂ =
+                (⟨(q, some ⟨a, ⟨0, hlen⟩⟩), w, Z :: rest⟩ :
+                  PDA.conf (M.inverseHomomorphism h).toPDA) at hstep
+              subst c₂
+              simp [invHomBufferRemaining, invHomWord]
+              exact Relation.ReflTransGen.refl
+            · exact ((Set.mem_empty_iff_false _).mp hbad).elim
           · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
               DPDA.inverseHomomorphism, hlen] at hstep
-            subst c₂
-            have ha : h a = [] := List.eq_nil_of_length_eq_zero (by omega)
-            simp [invHomBufferRemaining, invHomWord, ha]
-            exact Relation.ReflTransGen.refl
+            rcases hstep with hstep | hbad
+            · change c₂ =
+                (⟨(q, none), w, Z :: rest⟩ :
+                  PDA.conf (M.inverseHomomorphism h).toPDA) at hstep
+              subst c₂
+              have ha : h a = [] := List.eq_nil_of_length_eq_zero (by omega)
+              simp [invHomBufferRemaining, invHomWord, ha]
+              exact Relation.ReflTransGen.refl
+            · exact ((Set.mem_empty_iff_false _).mp hbad).elim
   | some payload =>
       rcases payload with ⟨a, k⟩
       cases hε : M.epsilon_transition q Z with
       | some out =>
           rcases out with ⟨q', γ⟩
-          cases input <;>
-            simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
-              DPDA.inverseHomomorphism, hε] at hstep
-          all_goals
-            rcases hstep with ⟨rfl, rfl, rfl⟩
-            exact Relation.ReflTransGen.single
-              (source_epsilon_step M q q'
-                (invHomBufferRemaining h (some ⟨a, k⟩) ++ invHomWord h _)
-                Z rest γ hε)
+          cases input with
+          | nil =>
+              simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
+                DPDA.inverseHomomorphism, hε] at hstep
+              change c₂ =
+                (⟨(q', some ⟨a, k⟩), [], γ ++ rest⟩ :
+                  PDA.conf (M.inverseHomomorphism h).toPDA) at hstep
+              subst c₂
+              exact Relation.ReflTransGen.single
+                (source_epsilon_step M q q'
+                  (invHomBufferRemaining h (some ⟨a, k⟩) ++ invHomWord h [])
+                  Z rest γ hε)
+          | cons b w =>
+              simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
+                DPDA.inverseHomomorphism, hε] at hstep
+              rcases hstep with hbad | hstep
+              · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+              · change c₂ =
+                  (⟨(q', some ⟨a, k⟩), b :: w, γ ++ rest⟩ :
+                    PDA.conf (M.inverseHomomorphism h).toPDA) at hstep
+                subst c₂
+                exact Relation.ReflTransGen.single
+                  (source_epsilon_step M q q'
+                    (invHomBufferRemaining h (some ⟨a, k⟩) ++ invHomWord h (b :: w))
+                    Z rest γ hε)
       | none =>
           cases hδ : M.transition q ((h a).get k) Z with
           | none =>
               have hδ' : M.transition q (h a)[k.val] Z = none := by
                 simpa only [List.get_eq_getElem] using hδ
-              cases input <;>
-                simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
-                  DPDA.inverseHomomorphism, hε, hδ'] at hstep
+              cases input with
+              | nil =>
+                  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
+                    DPDA.inverseHomomorphism, hε, hδ'] at hstep
+                  exact ((Set.mem_empty_iff_false _).mp hstep).elim
+              | cons b w =>
+                  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
+                    DPDA.inverseHomomorphism, hε, hδ'] at hstep
+                  rcases hstep with hbad | hbad
+                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
           | some out =>
               rcases out with ⟨q', γ⟩
               have hδ' : M.transition q (h a)[k.val] Z = some (q', γ) := by
                 simpa only [List.get_eq_getElem] using hδ
-              cases input <;>
-                simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
-                  DPDA.inverseHomomorphism, hε, hδ'] at hstep
-              all_goals
-                rcases hstep with ⟨rfl, rfl, rfl⟩
-                rw [bufferRemaining_advance]
-                exact Relation.ReflTransGen.single
-                  (source_input_step M q q' ((h a).get k)
-                    (invHomBufferRemaining h (invHomAdvance h a k) ++ invHomWord h _)
-                    Z rest γ hε hδ)
+              cases input with
+              | nil =>
+                  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
+                    DPDA.inverseHomomorphism, hε, hδ'] at hstep
+                  change c₂ =
+                    (⟨(q', invHomAdvance h a k), [], γ ++ rest⟩ :
+                      PDA.conf (M.inverseHomomorphism h).toPDA) at hstep
+                  subst c₂
+                  rw [bufferRemaining_advance]
+                  exact Relation.ReflTransGen.single
+                    (source_input_step M q q' ((h a).get k)
+                      (invHomBufferRemaining h (invHomAdvance h a k) ++ invHomWord h [])
+                      Z rest γ hε hδ)
+              | cons b w =>
+                  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA,
+                    DPDA.inverseHomomorphism, hε, hδ'] at hstep
+                  rcases hstep with hbad | hstep
+                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                  · change c₂ =
+                      (⟨(q', invHomAdvance h a k), b :: w, γ ++ rest⟩ :
+                        PDA.conf (M.inverseHomomorphism h).toPDA) at hstep
+                    subst c₂
+                    rw [bufferRemaining_advance]
+                    exact Relation.ReflTransGen.single
+                      (source_input_step M q q' ((h a).get k)
+                        (invHomBufferRemaining h (invHomAdvance h a k) ++
+                          invHomWord h (b :: w))
+                        Z rest γ hε hδ)
 
 /-- Projection extends from one step to finite reachability. -/
 private theorem inverseHomomorphism_reaches_projects
@@ -287,8 +368,11 @@ private theorem source_reachesIn_epsilon_first
   | cons b input =>
       have hδnone := M.no_mixed q Z (by simp [hε]) b
       simp [PDA.step, DPDA.toPDA, hε, hδnone] at hone
-      subst c
-      exact hrest
+      rcases hone with hbad | hone
+      · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+      · change c = (⟨qε, b :: input, γε ++ rest⟩ : PDA.conf M.toPDA) at hone
+        subst c
+        exact hrest
 
 private theorem source_reachesIn_input_first
     (M : DPDA Q β S) (n : ℕ)
@@ -302,8 +386,11 @@ private theorem source_reachesIn_input_first
   obtain ⟨c, hone, hrest⟩ := PDA.reachesIn_iff_split_first.mpr hreach
   rw [PDA.reachesIn_one] at hone
   simp [PDA.step, DPDA.toPDA, hε, hδ] at hone
-  subst c
-  exact hrest
+  rcases hone with hone | hbad
+  · change c = (⟨qδ, input, γδ ++ rest⟩ : PDA.conf M.toPDA) at hone
+    subst c
+    exact hrest
+  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
 
 /-- Completeness of the buffered simulation.  The nonempty-stack hypothesis is
 used only to ensure that source letters with empty images can still be consumed.
@@ -429,6 +516,9 @@ private theorem inverseHomomorphism_accept_lift
                     rfl
                   rw [hinputEq] at hone
                   simp [PDA.step, DPDA.toPDA, hε, hδ', List.get_eq_getElem] at hone
+                  rcases hone with hbad | hbad
+                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
               | some out =>
                   rcases out with ⟨qδ, γδ⟩
                   have hfirst := source_input_step M q qδ ((h a).get k)
@@ -488,9 +578,10 @@ public theorem DPDA.inverseHomomorphism_correct
     have hsource : @PDA.Reaches _ β S _ _ _ M.toPDA
         ⟨M.initial_state, invHomWord h w, [M.start_symbol]⟩
         ⟨q, [], stack⟩ := by
-      simpa [invHomBufferRemaining, invHomWord] using hproject
+      simpa [DPDA.inverseHomomorphism, DPDA.toPDA,
+        invHomBufferRemaining, invHomWord] using hproject
     change w.flatMap h ∈ M.acceptsByFinalState
-    exact ⟨q, hq, stack, by simpa [invHomWord] using hsource⟩
+    exact ⟨q, hq, stack, by simpa [DPDA.toPDA, invHomWord] using hsource⟩
   · intro hw
     change w.flatMap h ∈ M.acceptsByFinalState at hw
     obtain ⟨qf, hqf, stackf, hreach⟩ := hw
@@ -507,7 +598,7 @@ public theorem DPDA.inverseHomomorphism_correct
           invHomBufferRemaining h none ++ invHomWord h w,
           [M.start_symbol]⟩
         ⟨qf, [], stackf⟩ := by
-      simpa [invHomBufferRemaining, invHomWord] using hn
+      simpa [DPDA.toPDA, invHomBufferRemaining, invHomWord] using hn
     obtain ⟨q', stack', hq', hlift⟩ :=
       inverseHomomorphism_accept_lift M h hfinal n M.initial_state none w
         [M.start_symbol] qf stackf hqf hn' hne'
@@ -546,7 +637,7 @@ public theorem DCF_closed_under_inverse_homomorphism
 public theorem DCF_closedUnderInverseHomomorphism :
     ClosedUnderInverseHomomorphism is_DCF := by
   intro α β _ _ L h hL
-  simpa [Language.inverseHomomorphicImage] using
+  simpa [Language.inverseHomomorphicImage, extendHom, List.flatMap_def] using
     DCF_closed_under_inverse_homomorphism (L := L) h hL
 
 end

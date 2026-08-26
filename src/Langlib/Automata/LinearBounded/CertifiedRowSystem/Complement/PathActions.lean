@@ -25,6 +25,19 @@ variable {I A Q F : Type*}
 
 /-! ## Small scanner utilities -/
 
+private theorem reassoc_bool_decides (q : Bool) {p r t : Prop}
+    [Decidable p] [Decidable r] [Decidable t] (ht : t ↔ p ∧ r) :
+    ((q && decide p) && decide r) = (q && decide t) := by
+  by_cases hp : p <;> by_cases hr : r
+  · have ht' : t := ht.mpr ⟨hp, hr⟩
+    simp [hp, hr, ht']
+  · have ht' : ¬t := fun htotal => hr (ht.mp htotal).2
+    simp [hp, hr, ht']
+  · have ht' : ¬t := fun htotal => hp (ht.mp htotal).1
+    simp [hp, hr, ht']
+  · have ht' : ¬t := fun htotal => hp (ht.mp htotal).1
+    simp [hp, hr, ht']
+
 /-- Extend a possibly-unset replicated bit, rejecting a disagreement. -/
 public def noteBit : Option Bool → Bool → Option Bool
   | none, bit => some bit
@@ -437,11 +450,13 @@ public theorem evalPathStep_eq_some_iff
           constructor
           · rintro ⟨hsource, hsame, hsucc, hcompare, hlocal⟩
             refine ⟨hsource, ?_, hsucc, hcompare, ?_⟩
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hsame
+            · exact hsame.trans
+                (reassoc_bool_decides q.samePath (by simp only [List.cons.injEq]))
             · simpa only [Bool.and_assoc] using hlocal
           · rintro ⟨hsource, hsame, hsucc, hcompare, hlocal⟩
             refine ⟨hsource, ?_, hsucc, hcompare, ?_⟩
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hsame
+            · exact hsame.trans
+                (reassoc_bool_decides q.samePath (by simp only [List.cons.injEq])).symm
             · simpa only [Bool.and_assoc] using hlocal
 
 /-- List-level semantics of one bounded path extension. -/
@@ -541,7 +556,7 @@ public theorem evalPathStep_done_iff
     · rw [evalPathStep_eq_some_iff]
       refine ⟨?_, rfl, hsucc, ?_, by simp [out, pathStepStart, hlocalBool]⟩
       · simpa [pathStepStart, pathTrack] using hsourceEval
-      · simpa [RowNumeral.DigitCodec.compareRows] using hcompare
+      · simpa [out, pathStepStart, RowNumeral.DigitCodec.compareRows] using hcompare
     · change pathStepDone D out = true
       rcases hsourceDone with hsame | hdone
       · simp [pathStepDone, out, hsame.symm]
@@ -715,17 +730,23 @@ public theorem evalFinishWitness_eq_some_iff
               holdFound, hnewFound, hphase, hlocal⟩
             refine ⟨hsource, ?_, ?_, ?_, hseen, hinner, holdFound, hnewFound,
               hphase, ?_⟩
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hpath
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hfuel
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using houter
+            · exact hpath.trans
+                (reassoc_bool_decides q.pathInner (by simp only [List.cons.injEq]))
+            · exact hfuel.trans
+                (reassoc_bool_decides q.fuelDepth (by simp only [List.cons.injEq]))
+            · exact houter.trans
+                (reassoc_bool_decides q.innerOuter (by simp only [List.cons.injEq]))
             · simpa only [Bool.and_assoc] using hlocal
           · rintro ⟨hsource, hpath, hfuel, houter, hseen, hinner,
               holdFound, hnewFound, hphase, hlocal⟩
             refine ⟨hsource, ?_, ?_, ?_, hseen, hinner, holdFound, hnewFound,
               hphase, ?_⟩
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hpath
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hfuel
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using houter
+            · exact hpath.trans
+                (reassoc_bool_decides q.pathInner (by simp only [List.cons.injEq])).symm
+            · exact hfuel.trans
+                (reassoc_bool_decides q.fuelDepth (by simp only [List.cons.injEq])).symm
+            · exact houter.trans
+                (reassoc_bool_decides q.innerOuter (by simp only [List.cons.injEq])).symm
             · simpa only [Bool.and_assoc] using hlocal
 
 /-- List-level specification of completing a counting-round reachability witness. -/
@@ -996,13 +1017,17 @@ public theorem evalFinalWitness_eq_some_iff
           constructor
           · rintro ⟨hfinal, hpath, hfuel, hseen, hinner, hphase, hlocal⟩
             refine ⟨hfinal, ?_, ?_, hseen, hinner, hphase, ?_⟩
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hpath
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hfuel
+            · exact hpath.trans
+                (reassoc_bool_decides q.pathInner (by simp only [List.cons.injEq]))
+            · exact hfuel.trans
+                (reassoc_bool_decides q.fuelDepth (by simp only [List.cons.injEq]))
             · simpa only [Bool.and_assoc] using hlocal
           · rintro ⟨hfinal, hpath, hfuel, hseen, hinner, hphase, hlocal⟩
             refine ⟨hfinal, ?_, ?_, hseen, hinner, hphase, ?_⟩
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hpath
-            · simpa only [List.cons.injEq, decide_and_bool, Bool.and_assoc] using hfuel
+            · exact hpath.trans
+                (reassoc_bool_decides q.pathInner (by simp only [List.cons.injEq])).symm
+            · exact hfuel.trans
+                (reassoc_bool_decides q.fuelDepth (by simp only [List.cons.injEq])).symm
             · simpa only [Bool.and_assoc] using hlocal
 
 /-- List-level specification of completing one final all-nonfinal witness. -/

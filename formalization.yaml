@@ -334,9 +334,8 @@ alignment:
       module: "Langlib.Classes.Linear.Closure.Concatenation"
       status: "proved"
       note: >-
-        Whenever the terminal alphabet has at least 4 elements, exhibited by
-        an embedding of `Fin 4`, two linear languages have a concatenation that
-        is not linear.
+        Whenever the terminal alphabet has at least 4 elements, two linear
+        languages have a concatenation that is not linear.
     - source: "Classical language-class closure properties"
       lean: "The 91 closure and non-closure declarations listed in comparator.json"
       module: "Langlib.Classes.*.Closure"

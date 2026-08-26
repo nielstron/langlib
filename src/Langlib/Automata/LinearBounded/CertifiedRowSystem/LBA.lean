@@ -2,8 +2,6 @@ module
 
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem
 import Mathlib.Tactic
-set_option backward.isDefEq.respectTransparency false
-
 @[expose]
 public section
 

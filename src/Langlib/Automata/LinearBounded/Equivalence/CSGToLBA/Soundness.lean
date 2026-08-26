@@ -36,6 +36,36 @@ private theorem boundedTape_write_head {Gamma : Type} {n : ℕ}
     (t : DLBA.BoundedTape Gamma n) (a : Gamma) :
     (t.write a).head = t.head := rfl
 
+private theorem boundedTape_write_moveHead_right_head_val_of_lt
+    {Gamma : Type} {n : ℕ} (t : DLBA.BoundedTape Gamma n) (a : Gamma)
+    (hlt : t.head.val < n) :
+    ((t.write a).moveHead DLBA.Dir.right).head.val = t.head.val + 1 := by
+  simp only [DLBA.BoundedTape.moveHead]
+  split
+  · rfl
+  · rename_i hnot
+    exact False.elim (hnot (by simpa only [boundedTape_write_head] using hlt))
+
+private theorem boundedTape_write_moveHead_right_head_val_of_not_lt
+    {Gamma : Type} {n : ℕ} (t : DLBA.BoundedTape Gamma n) (a : Gamma)
+    (hlt : ¬ t.head.val < n) :
+    ((t.write a).moveHead DLBA.Dir.right).head.val = t.head.val := by
+  simp only [DLBA.BoundedTape.moveHead]
+  split
+  · rename_i hpos
+    exact False.elim (hlt (by simpa only [boundedTape_write_head] using hpos))
+  · rfl
+
+private theorem boundedTape_write_moveHead_left_head_val_of_pos
+    {Gamma : Type} {n : ℕ} (t : DLBA.BoundedTape Gamma n) (a : Gamma)
+    (hpos : 0 < t.head.val) :
+    ((t.write a).moveHead DLBA.Dir.left).head.val = t.head.val - 1 := by
+  simp only [DLBA.BoundedTape.moveHead]
+  split
+  · rfl
+  · rename_i hnot
+    exact False.elim (hnot (by simpa only [boundedTape_write_head] using hpos))
+
 /-- Decode one tape cell to the sentential-form symbol it represents: a raw input cell
 `some (inl t)` decodes to `terminal t` (so the decoded form is unchanged during the init sweep),
 a work cell decodes to its work symbol, a blank to nothing. -/
@@ -237,6 +267,10 @@ lemma gotoLeft_check_sound {n : ℕ} {cfgacc : DLBA.Cfg (KCell g₀) (KState g�
           funext k; rw [Function.update_apply]; by_cases hk : k = head
           · subst hk; simp [mkCell]
           · rw [if_neg hk]
+          apply Fin.ext
+          exact boundedTape_write_moveHead_left_head_val_of_pos
+            (⟨fun k => mkCell g₀ k (W k), head⟩ : DLBA.BoundedTape (KCell g₀) n)
+            (some (Sum.inr (decide (head.val = 0), decide (head.val = n), W head))) hpos
         rw [htape] at hrest
         exact ih ⟨head.val - 1, by omega⟩ (by show head.val - 1 = e; omega) hrest
 
@@ -302,10 +336,17 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
           rw [show (some (Sum.inr (true, false, some (symbol.terminal (input b.tape.head))))
                   : KCell g₀) = tmpCell g₀ input b.tape.head from by simp [tmpCell, hh0],
             show cAt g₀ input 0 = cAt g₀ input b.tape.head.val from by rw [hh0], cAt_update, hh0]
-        · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write]
-          split_ifs with hn0
-          · left; exact ⟨by simp [hh0], by omega⟩
-          · right; exact ⟨by omega, by omega⟩
+        · by_cases hn0 : b.tape.head.val < n
+          · left
+            constructor
+            · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hn0]
+              omega
+            · omega
+          · right
+            constructor
+            · rw [boundedTape_write_moveHead_right_head_val_of_not_lt _ _ hn0]
+              omega
+            · omega
       · -- b = initSweep
         rw [hst] at hmem
         simp only [DLBA.BoundedTape.read, hci] at hmem
@@ -330,10 +371,17 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
               by_cases h1 : k.val < i
               · rw [if_pos h1, if_pos (show k.val < i + 1 by omega)]
               · rw [if_neg h1, if_neg (show ¬ k.val < i + 1 by omega)]
-          · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write]
-            split_ifs with hn0
-            · left; exact ⟨by simp [hhi], by omega⟩
-            · right; exact ⟨by omega, by omega⟩
+          · by_cases hn0 : b.tape.head.val < n
+            · left
+              constructor
+              · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hn0]
+                omega
+              · omega
+            · right
+              constructor
+              · rw [boundedTape_write_moveHead_right_head_val_of_not_lt _ _ hn0]
+                omega
+              · omega
         · -- clamp at the right end (cell already converted): enter `sim`
           have hcell : cAt g₀ input i b.tape.head
               = some (Sum.inr (decide (b.tape.head.val = 0), false,
@@ -460,8 +508,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
             refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨W, seen, ?_, rfl, hder, ?_⟩))))
             · simp only [DLBA.BoundedTape.moveHead]
               exact hcon none (by rw [hwh])
-            · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write]
-              rw [dif_pos (show b.tape.head.val < n from hlt)]
+            · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
               show ((List.ofFn W).take (b.tape.head.val + 1)).filterMap id = _
               rw [take_succ_filterMap g₀ W b.tape.head, hacm, hwh]; simp
         · rcases symb with t | N
@@ -491,8 +538,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
                 refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨W, true, ?_, rfl, hder, ?_⟩))))
                 · simp only [DLBA.BoundedTape.moveHead]
                   exact hcon _ (by rw [hwh])
-                · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write]
-                  rw [dif_pos (show b.tape.head.val < n from hlt)]
+                · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
                   show ((List.ofFn W).take (b.tape.head.val + 1)).filterMap id = _
                   rw [take_succ_filterMap g₀ W b.tape.head, hacm, hsf, hwh]; simp
             · -- condition fails: stuck
@@ -524,12 +570,12 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
               · subst hp; simp [mkCell, hwh]
               · rw [if_neg hp]
             · intro p hp
-              simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write, dif_pos hlt] at hp
+              rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt] at hp
               exact hagree p (by omega)
-            · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write, dif_pos hlt]
+            · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
               show ((List.ofFn W).take (b.tape.head.val + 1)).filterMap id = _
               rw [take_succ_filterMap g₀ W b.tape.head, htkW, hwh]; simp
-            · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write, dif_pos hlt]
+            · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
               show ((List.ofFn W₀).take (b.tape.head.val + 1)).filterMap id = _
               rw [take_succ_filterMap g₀ W₀ b.tape.head, htkW₀,
                 show W₀ b.tape.head = none from by
@@ -591,15 +637,15 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
                   update_mkCell]
               · rw [hval]; omega
               · intro p hp
-                simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write, dif_pos hlt] at hp
+                rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt] at hp
                 rw [Function.update_of_ne (fun he => by rw [he] at hp; omega)]
                 exact hagree p (by omega)
-              · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write, dif_pos hlt]
+              · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
                 show ((List.ofFn (Function.update W b.tape.head _)).take
                   (b.tape.head.val + 1)).filterMap id = _
                 rw [take_succ_filterMap g₀ _ b.tape.head, Function.update_self, htkW'eq, hval,
                   List.append_assoc, peel]
-              · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write, dif_pos hlt]
+              · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
                 show ((List.ofFn W₀).take (b.tape.head.val + 1)).filterMap id = _
                 rw [take_succ_filterMap g₀ W₀ b.tape.head, htkW₀, hW₀h, hval, List.append_assoc]
                 congr 1

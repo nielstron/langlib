@@ -804,8 +804,7 @@ theorem Recursive_strict_subclass_RE_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :
     (Recursive : Set (Language T)) ⊂ RE := by sorry
 
-/-- Linear languages are not closed under concatenation when the alphabet has at least 4 elements,
-as exhibited by an embedding `Fin 4 ↪ T`. -/
+/-- Linear languages are not closed under concatenation when the alphabet has at least 4 elements. -/
 theorem Linear_not_closedUnderConcatenation {T : Type} (e : Fin 4 ↪ T) :
     ¬ ClosedUnderConcatenation (@is_Linear T) := by sorry
 

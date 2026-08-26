@@ -20,6 +20,14 @@ variable {T : Type}
 namespace IndexedGrammar
 namespace Aho
 
+@[simp] private theorem inactive_isNone (z : WorkSym g) :
+    (inactive z).isNone = false := by
+  rfl
+
+@[simp] private theorem active_isNone (z : WorkSym g) :
+    (active z).isNone = false := by
+  rfl
+
 public theorem WorkTrace.append (g : IndexedGrammar T) [Fintype g.nt]
     (cert : CompositeCert g) {q r s : WorkScanState g}
     {xs ys : List (Option (WorkSlot g) × Option (WorkSlot g) × WorkPhase)}
@@ -54,7 +62,7 @@ public theorem trace_same_prefix (g : IndexedGrammar T) [Fintype g.nt]
       · refine ⟨by simp, by simp, by simp [paddingOK], by simp [paddingOK], ?_⟩
         rw [workEdge_prefix_iff g cert .prefix .prefix h _ _ (by simp)]
         simp [henabled, prefixEdge, SameInactiveSome]
-      · simpa [advanceWorkState, historySame] using
+      · simpa [advanceWorkState, historySame, samePrefixRows] using
           ih (updateHistory h (inactive z) (inactive z))
 
 public theorem trace_productive_boundary (g : IndexedGrammar T) [Fintype g.nt]
@@ -659,7 +667,8 @@ public theorem accepts_pop (g : IndexedGrammar T) [Fintype g.nt]
     simp [xs, List.map_append, List.append_assoc]
   · unfold workScanDone
     rw [hphase]
-    simpa [lastTwoOldNone] using hlast
+    change decide (lastTwoOldNone result.history) = true
+    exact decide_eq_true hlast
 
 public theorem accepts_popPlain (g : IndexedGrammar T) [Fintype g.nt]
     {R : CFlag g} {d : IndexMark} {A B : g.nt}
@@ -818,7 +827,8 @@ public theorem accepts_insert_one (g : IndexedGrammar T) [Fintype g.nt]
   · simp [focusRow, xs]
   · unfold workScanDone
     rw [hphase]
-    simpa [lastOldNone] using hlast
+    change decide (lastOldNone result.history) = true
+    exact decide_eq_true hlast
 
 @[simp] public theorem firstPad_inactive_padded (g : IndexedGrammar T)
     (beta : List (WorkSym g)) (k : ℕ) :
@@ -1254,7 +1264,8 @@ public theorem accepts_replace_delete_next (g : IndexedGrammar T) [Fintype g.nt]
     simp
   · unfold workScanDone
     rw [hphase]
-    simpa [lastNewNone] using hlast
+    change decide (lastNewNone result.history) = true
+    exact decide_eq_true hlast
 
 /-- Certified adjacent pop-and-erase trace for a plain residual task. -/
 public theorem accepts_popPlainErase (g : IndexedGrammar T) [Fintype g.nt]
@@ -1346,7 +1357,8 @@ public theorem accepts_delete_one (g : IndexedGrammar T) [Fintype g.nt]
     simp
   · unfold workScanDone
     rw [hphase]
-    simpa [lastNewNone] using hlast
+    change decide (lastNewNone result.history) = true
+    exact decide_eq_true hlast
 
 public theorem accepts_matchTerminal (g : IndexedGrammar T) [Fintype g.nt]
     {a : T} {alpha beta : List (WorkSym g)} {Z : WorkSym g} (k : ℕ) :
@@ -1664,7 +1676,8 @@ public theorem accepts_returnFrame (g : IndexedGrammar T) [Fintype g.nt]
     simp
   · unfold workScanDone
     rw [hphase]
-    simpa [lastTwoNewNone] using hlast
+    change decide (lastTwoNewNone result.history) = true
+    exact decide_eq_true hlast
 
 public theorem accepts_padded_plainBinary_of_step (g : IndexedGrammar T) [Fintype g.nt]
     (input : List T) {A B C : g.nt} {c c' : Config g} (n : ℕ)

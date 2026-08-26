@@ -90,6 +90,8 @@ public theorem characteristicGrammar_coreIsLR1_of_spine
     (M : DPDA Q T S) (hedges : IntroducingEdgesUnique M)
     (hempty : EmptyListHandlesUnique M) :
     (characteristicGrammar M).CoreIsLRk 1 := by
+  unfold CF_grammar.CoreIsLRk characteristicGrammar rawCharacteristicGrammar
+    mathlibCharacteristicGrammar
   intro r₁ r₂ hr₁ hr₂ p₁ p₂ s₁ s₂ y hd₁ hd₂ hform hlook
   have hp₁ := pendingPrefix_of_characteristic_prehandle M hd₁
   have hp₂ := pendingPrefix_of_characteristic_prehandle M hd₂
@@ -102,7 +104,8 @@ public theorem characteristicGrammar_coreIsLR1_of_spine
   · subst r₁
     subst r₂
     obtain ⟨hp, hq⟩ := hempty q₁ q₂ hr₁ hr₂
-      p₁ p₂ s₁ s₂ y hd₁ hd₂ (by simpa using hform)
+      p₁ p₂ s₁ s₂ y hd₁ hd₂
+      (by simpa using hform)
       (by simpa [CF_grammar.lrLookahead] using hlook)
     subst p₂
     subst q₂

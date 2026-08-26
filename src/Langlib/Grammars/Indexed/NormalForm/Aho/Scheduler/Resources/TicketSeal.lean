@@ -124,7 +124,8 @@ public def pushFreshRotateHead
         have hdepth : blockStart ([f] :: block :: blocks)
             (Fin.succ (0 : Fin (block :: blocks).length)) ∈
               rest.eventDepths := by
-          simpa [hstart] using hone
+          rw [hstart]
+          exact hone
         refine ⟨hdepth, ?_⟩
         have hget : blockOwnerAt (blocks := [f] :: block :: blocks)
             (newHead :: window.pushChild.shadowEventOwner 1 hone :: owners)
@@ -756,7 +757,8 @@ public def sealTransientHead
     intro heq
     apply hheadTarget
     apply IndexTicket.semanticOwner_injective
-    simpa [target, IndexTicketLedger.semanticOwnerOf] using heq.symm
+    rw [ProductiveOwnerWindow.semanticOwner_shadowEventTicket]
+    exact heq.symm
   have hactiveFresh : resources.window.shadowEventOwner 0 hzero ∉
       resources.ticketShadowLedger.active := by
     rcases hcontext with

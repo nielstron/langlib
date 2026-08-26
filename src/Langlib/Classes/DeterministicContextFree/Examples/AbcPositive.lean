@@ -76,13 +76,15 @@ private lemma letterPlus_mem_iff {a : Fin 3} {w : List (Fin 3)} :
   rw [letterPlus, Language.mem_mul]
   constructor
   · rintro ⟨u, hu, v, hv, rfl⟩
-    rw [Set.mem_singleton_iff] at hu
+    change u = [a] at hu
     subst u
     rw [Language.mem_kstar] at hv
     rcases hv with ⟨blocks, rfl, hblocks⟩
     have hblocks_eq : ∀ y ∈ blocks, y = [a] := by
       intro y hy
-      exact Set.mem_singleton_iff.mp (hblocks y hy)
+      have hymem := hblocks y hy
+      change y = [a] at hymem
+      exact hymem
     exact ⟨blocks.length, by simp [flatten_singletons blocks hblocks_eq, List.replicate_succ]⟩
   · rintro ⟨n, rfl⟩
     refine ⟨[a], Set.mem_singleton _, List.replicate n a, ?_, ?_⟩

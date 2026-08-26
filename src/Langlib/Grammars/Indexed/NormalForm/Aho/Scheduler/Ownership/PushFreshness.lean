@@ -140,7 +140,7 @@ public theorem pushChild_shadowEventOwner_one_not_outside
   intro hout
   apply OutsideShadowWindow.shadowEventOwner_not_outside
     window.pushChild hone
-  simpa [ProductiveOwnerWindow.pushChild] using hout
+  exact OutsideShadowWindow.transport window (by rfl) hout
 
 end ProductiveOwnerWindow
 

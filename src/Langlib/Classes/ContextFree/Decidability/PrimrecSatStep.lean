@@ -33,7 +33,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -73,10 +72,23 @@ private lemma triple_list_mem_primrec :
         (Primrec.snd.comp₂ (Primrec.snd.comp₂ Primrec₂.right))
         (Primrec.snd.comp₂ (Primrec.snd.comp₂
           (Primrec.fst.comp₂ Primrec₂.left)))
-    exact Primrec.and.comp₂ h₁ (Primrec.and.comp₂ h₂ h₃)
+    have h₁₂ : Primrec₂ (fun (p : (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ))
+        (trip : ℕ × ℕ × ℕ) =>
+          trip.1 == p.1.1 && trip.2.1 == p.1.2.1) :=
+      Primrec.and.comp₂ h₁ h₂
+    exact Primrec.and.comp₂ h₁₂ h₃
   apply Primrec.of_eq (primrec_list_any (f := Prod.snd) Primrec.snd hp)
-  intro p
-  simp
+  intro ⟨⟨x, y, z⟩, S⟩
+  induction S with
+  | nil => rfl
+  | cons trip S ih =>
+    obtain ⟨a, b, c⟩ := trip
+    have ih' :
+        (S.any fun trip => decide (x = trip.1) &&
+          (decide (y = trip.2.1) && decide (z = trip.2.2))) =
+          decide ((x, y, z) ∈ S) := by
+      simpa [Bool.beq_eq_decide_eq, eq_comm, Bool.and_assoc] using ih
+    simp [Bool.beq_eq_decide_eq, ih', eq_comm, Bool.and_assoc]
 
 /-! ## matchOneSym helper is Primrec -/
 
@@ -148,7 +160,7 @@ private lemma terminal_match_primrec :
   apply Primrec.of_eq
     (Primrec.option_casesOn hget (Primrec.const ([] : List ℕ)) hsome)
   intro p
-  cases h : p.1.1[p.2]? <;> simp [h]
+  cases p.1.1[p.2]? <;> simp
 
 set_option maxHeartbeats 1600000 in
 /-- matchOneSym is Primrec when we express it as a function of bundled parameters.
@@ -193,27 +205,48 @@ private lemma matchOneSym_primrec_bundled :
 matchRHS is Primrec as a function of bundled parameters.
     Takes (nc, w, S, rhs, startPos) bundled appropriately.
 -/
+private lemma matchRHS_matchOneSym_primrec :
+    Primrec₂ (fun
+      (x : ((ℕ × List T × List (ℕ × ℕ × ℕ)) × List (ℕ ⊕ T) × ℕ) ×
+        (List ℕ × (ℕ ⊕ T)))
+      (pos : ℕ) =>
+        matchOneSym x.1.1.2.1 x.1.1.1 x.1.1.2.2 x.2.2 pos) := by
+  unfold Primrec₂
+  have hargs : Primrec (fun p :
+      ((((ℕ × List T × List (ℕ × ℕ × ℕ)) × List (ℕ ⊕ T) × ℕ) ×
+        (List ℕ × (ℕ ⊕ T))) × ℕ) =>
+      (p.1.1.1, p.1.2.2, p.2)) :=
+    Primrec.pair
+      (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))
+      (Primrec.pair
+        (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))
+        Primrec.snd)
+  apply Primrec.of_eq (matchOneSym_primrec_bundled.comp hargs)
+  intro p
+  rfl
+
+omit [Primcodable T] in
+private lemma matchRHS_eq_foldl (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
+    (rhs : List (ℕ ⊕ T)) (startPos : ℕ) :
+    matchRHS w nc S rhs startPos =
+      rhs.foldl (fun positions sym =>
+        positions.flatMap (fun pos => matchOneSym w nc S sym pos)) [startPos] := by
+  unfold matchRHS
+  apply congrArg (fun step => rhs.foldl step [startPos])
+  funext positions sym
+  apply congrArg (fun f => positions.flatMap f)
+  funext pos
+  rfl
+
 private lemma matchRHS_primrec_bundled :
     Primrec (fun (p : (ℕ × List T × List (ℕ × ℕ × ℕ)) × List (ℕ ⊕ T) × ℕ) =>
       matchRHS p.1.2.1 p.1.1 p.1.2.2 p.2.1 p.2.2) := by
   let C := ℕ × List T × List (ℕ × ℕ × ℕ)
   let P := C × List (ℕ ⊕ T) × ℕ
   let D := P × (List ℕ × (ℕ ⊕ T))
-  have hleft : Primrec₂ (fun (x : D) (_ : ℕ) => x) := Primrec₂.left
-  have hp : Primrec₂ (fun (x : D) (_ : ℕ) => x.1) :=
-    Primrec.fst.comp₂ hleft
-  have hctx : Primrec₂ (fun (x : D) (_ : ℕ) => x.1.1) :=
-    Primrec.fst.comp₂ hp
-  have hsym : Primrec₂ (fun (x : D) (_ : ℕ) => x.2.2) :=
-    Primrec.snd.comp₂ (Primrec.snd.comp₂ hleft)
-  have hsympos : Primrec₂ (fun (x : D) (pos : ℕ) => (x.2.2, pos)) :=
-    Primrec.pair hsym Primrec₂.right
-  have hargs : Primrec₂ (fun (x : D) (pos : ℕ) =>
-      (x.1.1, x.2.2, pos)) :=
-    Primrec.pair hctx hsympos
   have hmatch : Primrec₂ (fun (x : D) (pos : ℕ) =>
       matchOneSym x.1.1.2.1 x.1.1.1 x.1.1.2.2 x.2.2 pos) :=
-    matchOneSym_primrec_bundled.comp₂ hargs
+    matchRHS_matchOneSym_primrec
   have hstep : Primrec (fun (x : D) =>
       x.2.1.flatMap (fun pos =>
         matchOneSym x.1.1.2.1 x.1.1.1 x.1.1.2.2 x.2.2 pos)) :=
@@ -232,7 +265,7 @@ private lemma matchRHS_primrec_bundled :
         (Primrec.const ([] : List ℕ)))
       hstep
   · intro p
-    rfl
+    exact (matchRHS_eq_foldl p.1.2.1 p.1.1 p.1.2.2 p.2.1 p.2.2).symm
 
 /-! ## satStep is Primrec -/
 
@@ -426,4 +459,4 @@ public theorem checkMembershipEncoded_computable' [Fintype T] :
     exact Primrec₂.comp triple_list_mem_primrec h_triple h_sat
   · intro p
     simp [checkMembershipEncoded, EncodedCFG.ntCount, EncodedCFG.numNT,
-          EncodedCFG.initialIdx, EncodedCFG.rawRules, satFixpoint]
+          EncodedCFG.initialIdx, EncodedCFG.rawRules, satFixpoint]; rfl

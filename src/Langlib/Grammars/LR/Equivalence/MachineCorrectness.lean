@@ -45,6 +45,7 @@ private theorem input_reachesIn_one {Q A S : Type}
       ⟨p, input, beta ++ stack⟩ := by
   rw [← PDA.reaches₁_iff_reachesIn_one]
   simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h]
+  exact Set.mem_union_left _ (Set.mem_singleton _)
 
 /-- A successful epsilon transition is one step of the embedded PDA. -/
 private theorem epsilon_reachesIn_one {Q A S : Type}
@@ -57,11 +58,14 @@ private theorem epsilon_reachesIn_one {Q A S : Type}
       ⟨p, input, beta ++ stack⟩ := by
   rw [← PDA.reaches₁_iff_reachesIn_one]
   cases input with
-  | nil => simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h]
+  | nil =>
+      simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h]
+      exact Set.mem_singleton _
   | cons a input =>
       have hinput : M.transition q a Z = none :=
         M.no_mixed q Z (by simp [h]) a
       simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h, hinput]
+      exact Set.mem_union_right _ (Set.mem_singleton _)
 
 /-- Pop a list of non-bottom frames and perform the final nonterminal goto.
 The exact count makes the macro usable in the reverse simulation as a
@@ -151,9 +155,23 @@ private theorem no_step_from_accept (G : CF_grammar T) (k : ℕ)
   cases stack with
   | nil => simp [PDA.Reaches₁, PDA.step]
   | cons Z stack =>
-      cases input <;>
-        simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, machine,
-          inputTransition, epsilonTransition]
+      have hepsilon : (machine G k hk).epsilon_transition
+          Control.accept Z = none := by
+        simp [machine, epsilonTransition]
+      have hinput : ∀ a, (machine G k hk).transition
+          Control.accept a Z = none := by
+        intro a
+        simp [machine, inputTransition]
+      cases input with
+      | nil =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
+          exact fun h => h
+      | cons a input =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
+          intro hd
+          rcases Set.mem_or_mem_of_mem_union hd with hd | hd
+          · exact hd
+          · exact hd
 
 /-- The rejecting control has no outgoing transition. -/
 private theorem no_step_from_reject (G : CF_grammar T) (k : ℕ)
@@ -165,9 +183,23 @@ private theorem no_step_from_reject (G : CF_grammar T) (k : ℕ)
   cases stack with
   | nil => simp [PDA.Reaches₁, PDA.step]
   | cons Z stack =>
-      cases input <;>
-        simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, machine,
-          inputTransition, epsilonTransition]
+      have hepsilon : (machine G k hk).epsilon_transition
+          Control.reject Z = none := by
+        simp [machine, epsilonTransition]
+      have hinput : ∀ a, (machine G k hk).transition
+          Control.reject a Z = none := by
+        intro a
+        simp [machine, inputTransition]
+      cases input with
+      | nil =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
+          exact fun h => h
+      | cons a input =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
+          intro hd
+          rcases Set.mem_or_mem_of_mem_union hd with hd | hd
+          · exact hd
+          · exact hd
 
 private theorem reaches_from_accept_eq (G : CF_grammar T) (k : ℕ)
     (hk : 0 < k) {input : List (Option T)}
@@ -290,8 +322,8 @@ private theorem canonical_accepting_of_action (G : CF_grammar T)
   have hcand := reductionItem?_reductionCandidate G k hi
   rw [hstart, ruleAt_startRuleIndex] at hcand
   rcases hcand with ⟨_, p, s, hpre, _, hlook⟩
-  obtain ⟨rfl, rfl⟩ := fresh_prehandle_eq_root G (by
-    simpa [CF_grammar.augmentStartRule] using hpre)
+  unfold CF_grammar.augmentStartRule at hpre
+  obtain ⟨rfl, rfl⟩ := fresh_prehandle_eq_root G hpre
   have hnil : input = [] := by
     apply eq_nil_of_observe_eq_eof k hk
     simpa [eofLookahead, observe] using hlook.symm

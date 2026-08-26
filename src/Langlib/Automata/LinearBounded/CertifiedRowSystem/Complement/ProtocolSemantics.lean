@@ -7,6 +7,7 @@ import Mathlib.Tactic
 @[expose]
 public section
 
+
 /-!
 # Semantic invariants of the streaming complement protocol
 
@@ -154,8 +155,11 @@ public theorem sourceRejects_iff_ranked
     rintro ⟨row, hreach, hfinal⟩
     apply hrejected
     refine ⟨rankRow input.length row, ?_, hfinal⟩
-    simpa [rankRow_protocolSourceRank] using
-      (rankReach_sound D input.length hreach)
+    change Relation.ReflTransGen D.RowStep (protocolSource D input)
+      (rankRow input.length row)
+    have hsound := rankReach_sound D input.length hreach
+    rw [rankRow_protocolSourceRank] at hsound
+    exact hsound
   · intro hranked
     rintro ⟨row, hreach, hfinal⟩
     have hstart : protocolSource D input =
@@ -1086,10 +1090,12 @@ public theorem compiledProtocolAccepts_iff_protocolAccepts
     CompiledProtocolAccepts D input ↔ ProtocolAccepts D input := by
   constructor
   · rintro ⟨row, hreach, hfinal⟩
-    refine ⟨row, hreach.mono (fun old new hstep ↦ ?_), hfinal⟩
+    refine ⟨row, Relation.ReflTransGen.mono (fun old new hstep ↦ ?_)
+      _ _ hreach, hfinal⟩
     exact (deterministicComplementSystem_rowStep_iff D old new).1 hstep
   · rintro ⟨row, hreach, hfinal⟩
-    refine ⟨row, hreach.mono (fun old new hstep ↦ ?_), hfinal⟩
+    refine ⟨row, Relation.ReflTransGen.mono (fun old new hstep ↦ ?_)
+      _ _ hreach, hfinal⟩
     exact (deterministicComplementSystem_rowStep_iff D old new).2 hstep
 
 /-- Membership in the compiled deterministic-source complement is semantic protocol

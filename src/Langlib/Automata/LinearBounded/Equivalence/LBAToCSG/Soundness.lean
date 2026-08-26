@@ -2,7 +2,6 @@ module
 
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Completeness
 import Mathlib.Tactic
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -388,6 +387,58 @@ theorem set_at_length {α : Type} (u : List α) (x y : α) (v : List α) :
   | nil => rfl
   | cons a u' ih => simp only [List.cons_append, List.length_cons, List.set_cons_succ, ih]
 
+/-- The rewritten nonterminal occurs in the source side of every contextual rule instance. -/
+theorem rule_input_mem {T N : Type} (r : csrule T N)
+    (u v : List (symbol T N)) :
+    symbol.nonterminal r.input_nonterminal ∈
+      u ++ r.context_left ++ [symbol.nonterminal r.input_nonterminal] ++ r.context_right ++ v := by
+  simp only [List.mem_append, List.mem_cons, List.not_mem_nil]
+  tauto
+
+/-- Every member of a rule's left context occurs in its instantiated source side. -/
+theorem rule_left_context_mem {T N : Type} (r : csrule T N)
+    (u v : List (symbol T N)) {x : symbol T N} (hx : x ∈ r.context_left) :
+    x ∈ u ++ r.context_left ++ [symbol.nonterminal r.input_nonterminal] ++ r.context_right ++ v := by
+  simp only [List.mem_append, List.mem_cons, List.not_mem_nil]
+  tauto
+
+/-- Every member of a rule's right context occurs in its instantiated source side. -/
+theorem rule_right_context_mem {T N : Type} (r : csrule T N)
+    (u v : List (symbol T N)) {x : symbol T N} (hx : x ∈ r.context_right) :
+    x ∈ u ++ r.context_left ++ [symbol.nonterminal r.input_nonterminal] ++ r.context_right ++ v := by
+  simp only [List.mem_append, List.mem_cons, List.not_mem_nil]
+  tauto
+
+/-- Normalize an instantiated rule with no context and a singleton middle list. -/
+theorem normalize_nil_context_singleton {α : Type} (u v : List α) (x : α) :
+    u ++ [] ++ [x] ++ [] ++ v = u ++ x :: v := by simp
+
+/-- Normalize an instantiated rule with one symbol of right context. -/
+theorem normalize_right_context_singleton {α : Type} (u v : List α) (x y : α) :
+    u ++ [] ++ [x] ++ [y] ++ v = u ++ x :: y :: v := by simp
+
+/-- Normalize an instantiated rule with one symbol of left context. -/
+theorem normalize_left_context_singleton {α : Type} (u v : List α) (p x : α) :
+    u ++ [p] ++ [x] ++ [] ++ v = (u ++ [p]) ++ x :: v := by
+  simp
+
+/-- Normalize an instantiated rule with one symbol on each side. -/
+theorem normalize_both_context_singleton {α : Type} (u v : List α) (p x y : α) :
+    u ++ [p] ++ [x] ++ [y] ++ v = (u ++ [p]) ++ x :: y :: v := by
+  simp
+
+omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
+/-- Expose the concrete nonterminal type in a transformation of the Myhill grammar. -/
+theorem myhill_transforms_iff (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
+    (b c : List (symbol T (MyhillNT T Γ Λ))) :
+    CS_transforms (myhillGrammar M embed) b c ↔
+      ∃ r : csrule T (MyhillNT T Γ Λ), ∃ u v : List (symbol T (MyhillNT T Γ Λ)),
+        r ∈ (myhillGrammar M embed).rules ∧
+        b = u ++ r.context_left ++ [symbol.nonterminal r.input_nonterminal] ++
+          r.context_right ++ v ∧
+        c = u ++ r.context_left ++ r.output_string ++ r.context_right ++ v := by
+  rfl
+
 /-- Setting at index `u.length + 1` of `u ++ p :: x :: v` replaces the second cons head `x`,
 keeping the first (`p`). Used to express a `step2` rewrite (the pending stays, its neighbour
 becomes the new head cell) at the absolute index `head + 1`. -/
@@ -478,7 +529,10 @@ theorem soundInv_step_start (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     (hb : SP_start embed b) (hstep : CS_transforms (myhillGrammar M embed) b c) :
     SoundInv M embed c := by
   obtain ⟨tl, htl, hbeq⟩ := hb
+  rw [myhill_transforms_iff M embed b c] at hstep
   obtain ⟨r, u, v, hr, hb2, hc⟩ := hstep
+  change csrule T (MyhillNT T Γ Λ) at r
+  change List (symbol T (MyhillNT T Γ Λ)) at u v
   rw [hbeq] at hb2
   have key : ∀ y : symbol T (MyhillNT T Γ Λ),
       y ∈ symbol.nonterminal MyhillNT.startAux :: auxCells embed tl →
@@ -490,25 +544,41 @@ theorem soundInv_step_start (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
   have hstartAux_notmem :
       (symbol.nonterminal MyhillNT.startAux : symbol T (MyhillNT T Γ Λ)) ∉ auxCells embed tl := by
     intro hm; obtain ⟨rb, a, t, he⟩ := mem_auxCells embed hm; simp [cellSym] at he
-  have hinput' := key (symbol.nonterminal r.input_nonterminal) (by rw [hb2]; simp)
+  have hinput' := key (symbol.nonterminal r.input_nonterminal) (by
+    rw [hb2]
+    exact rule_input_mem r u v)
   rcases myhill_rule_inv M embed r hr with
     h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h
   · obtain ⟨t, rfl⟩ := h; simp [cellSym] at hinput'
   · obtain ⟨t, rfl⟩ := h; simp [cellSym] at hinput'
   · -- block3 (middle cell): stays in the start phase (start)
     obtain ⟨t, rfl⟩ := h
-    simp only [List.append_nil] at hb2
-    obtain ⟨rfl, rfl⟩ := decomp_head hb2.symm hstartAux_notmem
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput'
+    have hb2' : u ++ [symbol.nonterminal MyhillNT.startAux] ++ v =
+        symbol.nonterminal MyhillNT.startAux :: auxCells embed tl := by
+      have hnorm : u ++ [] ++ [symbol.nonterminal MyhillNT.startAux] ++ [] ++ v =
+          u ++ [symbol.nonterminal MyhillNT.startAux] ++ v := by simp
+      exact hnorm.symm.trans hb2.symm
+    obtain ⟨rfl, rfl⟩ := decomp_head hb2' hstartAux_notmem
     refine Or.inr (Or.inl ⟨t :: tl, by simp, ?_⟩)
-    rw [hc]; simp [auxCells_cons embed t tl htl]
+    exact hc.trans (by simp [auxCells_cons embed t tl htl])
   · -- block4 (head cell): completes to the initial configuration → simulation phase
     obtain ⟨t, rfl⟩ := h
-    simp only [List.append_nil] at hb2
-    obtain ⟨rfl, rfl⟩ := decomp_head hb2.symm hstartAux_notmem
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput'
+    have hb2' : u ++ [symbol.nonterminal MyhillNT.startAux] ++ v =
+        symbol.nonterminal MyhillNT.startAux :: auxCells embed tl := by
+      have hnorm : u ++ [] ++ [symbol.nonterminal MyhillNT.startAux] ++ [] ++ v =
+          u ++ [symbol.nonterminal MyhillNT.startAux] ++ v := by simp
+      exact hnorm.symm.trans hb2.symm
+    obtain ⟨rfl, rfl⟩ := decomp_head hb2' hstartAux_notmem
     refine Or.inr (Or.inr (Or.inl ⟨tl.length, (t :: tl).get,
       ⟨M.initial, ⟨fun i => embed ((t :: tl).get i), ⟨0, Nat.succ_pos _⟩⟩⟩,
       Relation.ReflTransGen.refl, ?_⟩))
-    rw [hc]; simp only [List.nil_append, List.append_nil, List.singleton_append]
+    have hc' : c = cellSym true false (some M.initial) (embed t) t :: auxCells embed tl :=
+      hc.trans (by simp)
+    rw [hc']
     rw [← startCells_cons M embed t tl htl]
     conv_lhs => rw [← List.ofFn_get (t :: tl)]
     rw [startCells_eq_encode]
@@ -520,24 +590,40 @@ theorem soundInv_step_start (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     simp [cellSym] at hinput'
   · -- r-interior step2: needs a `cellPending` left context, absent here
     obtain ⟨q', a', t1, t2, lb1, rb2, bb, rfl⟩ := h
-    rcases key (cellPendingSym lb1 false true q' a' t1) (by rw [hb2]; simp) with h' | ⟨rb, a, t, h'⟩ <;>
+    rcases key (cellPendingSym lb1 false true q' a' t1) (by
+      rw [hb2]
+      apply rule_left_context_mem
+      dsimp only [csrule.context_left]
+      simp) with h' | ⟨rb, a, t, h'⟩ <;>
       simp [cellSym, cellPendingSym] at h'
   · obtain ⟨q, q', a, a', t1, t2, lb1, hi, bb, htrans, rfl⟩ := h; simp [cellSym] at hinput'
   · obtain ⟨q, q', a, a', t1, t2, lb1, hi, bb, rb0, a0, t0, htrans, rfl⟩ := h
     simp [cellSym] at hinput'
   · -- l-interior step2: needs a `cellPending` right context, absent here
     obtain ⟨q', a', t1, t2, lb1, rb2, bb, rfl⟩ := h
-    rcases key (cellPendingSym false rb2 false q' a' t2) (by rw [hb2]; simp) with h' | ⟨rb, a, t, h'⟩ <;>
+    rcases key (cellPendingSym false rb2 false q' a' t2) (by
+      rw [hb2]
+      apply rule_right_context_mem
+      dsimp only [csrule.context_right]
+      simp) with h' | ⟨rb, a, t, h'⟩ <;>
       simp [cellSym, cellPendingSym] at h'
   · obtain ⟨q', a', t, lb, rb, dir, rfl⟩ := h; simp [cellSym] at hinput'
   · obtain ⟨q, a, t, lb, rb, hacc, rfl⟩ := h; simp [cellSym] at hinput'
   · -- left propagation: needs a terminal left context, absent here
     obtain ⟨t1, a, t2, lb, rb, rfl⟩ := h
-    rcases key (symbol.terminal t1) (by rw [hb2]; simp) with h' | ⟨rb', a', t', h'⟩ <;>
+    rcases key (symbol.terminal t1) (by
+      rw [hb2]
+      apply rule_left_context_mem
+      dsimp only [csrule.context_left]
+      simp) with h' | ⟨rb', a', t', h'⟩ <;>
       simp [cellSym] at h'
   · -- right propagation: needs a terminal right context, absent here
     obtain ⟨a, t1, t2, lb, rb, rfl⟩ := h
-    rcases key (symbol.terminal t2) (by rw [hb2]; simp) with h' | ⟨rb', a', t', h'⟩ <;>
+    rcases key (symbol.terminal t2) (by
+      rw [hb2]
+      apply rule_right_context_mem
+      dsimp only [csrule.context_right]
+      simp) with h' | ⟨rb', a', t', h'⟩ <;>
       simp [cellSym] at h'
 
 omit [DecidableEq T] [DecidableEq Γ] [DecidableEq Λ] in
@@ -551,12 +637,17 @@ theorem soundInv_step_sim (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     (hb : SP_sim M embed b) (hstep : CS_transforms (myhillGrammar M embed) b c) :
     SoundInv M embed c := by
   obtain ⟨m, worig, cfg, hreach, hbeq⟩ := hb
+  rw [myhill_transforms_iff M embed b c] at hstep
   obtain ⟨r, u, v, hr, hb2, hc⟩ := hstep
+  change csrule T (MyhillNT T Γ Λ) at r
+  change List (symbol T (MyhillNT T Γ Λ)) at u v
   rw [hbeq] at hb2
   have key : ∀ y : symbol T (MyhillNT T Γ Λ), y ∈ encode worig cfg →
       ∃ lb rb st a t, y = symbol.nonterminal (MyhillNT.cell lb rb st a t) :=
     fun y hy => mem_encode worig cfg hy
-  have hinput := key (symbol.nonterminal r.input_nonterminal) (by rw [hb2]; simp)
+  have hinput := key (symbol.nonterminal r.input_nonterminal) (by
+    rw [hb2]
+    exact rule_input_mem r u v)
   rcases myhill_rule_inv M embed r hr with
     h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h
   · obtain ⟨t, rfl⟩ := h; simp at hinput
@@ -565,53 +656,72 @@ theorem soundInv_step_sim (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
   · obtain ⟨t, rfl⟩ := h; simp at hinput -- (sim)
   · -- sim stay → simulation phase
     obtain ⟨q, q', a, a', t, lb, rb, htrans, rfl⟩ := h
-    simp only [List.append_nil, List.append_assoc, List.singleton_append] at hb2 hc
-    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput
+    have hb2' := hb2.trans
+      (normalize_nil_context_singleton u v (cellSym lb rb (some q) a t))
+    have hc' := hc.trans
+      (normalize_nil_context_singleton u v (cellSym lb rb (some q') a' t))
+    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2'
     refine Or.inr (Or.inr (Or.inl
       ⟨m, worig, ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩, ?_, ?_⟩))
     · refine hreach.tail ⟨q', a', DLBA.Dir.stay, ?_, rfl⟩
       rw [DLBA.BoundedTape.read, ← ha, ← hq]; exact htrans
-    · rw [hc, show cellSym lb rb (some q') a' t = cellSym (decide (cfg.tape.head.val = 0))
+    · rw [hc', show cellSym lb rb (some q') a' t = cellSym (decide (cfg.tape.head.val = 0))
           (decide (cfg.tape.head.val = m)) (some q') a' (worig cfg.tape.head) by rw [hlb, hrb, ht],
-        ← set_at_length u (cellSym lb rb (some q) a t) _ v, ← hb2, hpos]
+        ← set_at_length u (cellSym lb rb (some q) a t) _ v, ← hb2', hpos]
       exact encode_set_head worig cfg q' a'
   · -- sim right-boundary → simulation phase
     obtain ⟨q, q', a, a', t, lb, htrans, rfl⟩ := h
-    simp only [List.append_nil, List.append_assoc, List.singleton_append] at hb2 hc
-    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput
+    have hb2' := hb2.trans
+      (normalize_nil_context_singleton u v (cellSym lb true (some q) a t))
+    have hc' := hc.trans
+      (normalize_nil_context_singleton u v (cellSym lb true (some q') a' t))
+    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2'
     have hbn : cfg.tape.head.val = m := of_decide_eq_true hrb.symm
     refine Or.inr (Or.inr (Or.inl
       ⟨m, worig, ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩, ?_, ?_⟩))
     · refine hreach.tail ⟨q', a', DLBA.Dir.right, ?_, rfl⟩
       rw [DLBA.BoundedTape.read, ← ha, ← hq]; exact htrans
     · rw [moveHead_right_at_right _ (by rw [DLBA.BoundedTape.write]; exact hbn)]
-      rw [hc, show cellSym lb true (some q') a' t = cellSym (decide (cfg.tape.head.val = 0))
+      rw [hc', show cellSym lb true (some q') a' t = cellSym (decide (cfg.tape.head.val = 0))
           (decide (cfg.tape.head.val = m)) (some q') a' (worig cfg.tape.head) by
             rw [hlb, ht]; simp [hbn],
-        ← set_at_length u (cellSym lb true (some q) a t) _ v, ← hb2, hpos]
+        ← set_at_length u (cellSym lb true (some q) a t) _ v, ← hb2', hpos]
       have := encode_set_head worig cfg q' a'
       rwa [moveHead_stay] at this
   · -- sim left-boundary → simulation phase
     obtain ⟨q, q', a, a', t, rb, htrans, rfl⟩ := h
-    simp only [List.append_nil, List.append_assoc, List.singleton_append] at hb2 hc
-    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput
+    have hb2' := hb2.trans
+      (normalize_nil_context_singleton u v (cellSym true rb (some q) a t))
+    have hc' := hc.trans
+      (normalize_nil_context_singleton u v (cellSym true rb (some q') a' t))
+    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2'
     have hb0 : cfg.tape.head.val = 0 := of_decide_eq_true hlb.symm
     refine Or.inr (Or.inr (Or.inl
       ⟨m, worig, ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩, ?_, ?_⟩))
     · refine hreach.tail ⟨q', a', DLBA.Dir.left, ?_, rfl⟩
       rw [DLBA.BoundedTape.read, ← ha, ← hq]; exact htrans
     · rw [moveHead_left_at_left _ (by rw [DLBA.BoundedTape.write]; exact hb0)]
-      rw [hc, show cellSym true rb (some q') a' t = cellSym (decide (cfg.tape.head.val = 0))
+      rw [hc', show cellSym true rb (some q') a' t = cellSym (decide (cfg.tape.head.val = 0))
           (decide (cfg.tape.head.val = m)) (some q') a' (worig cfg.tape.head) by
             rw [hrb, ht]; simp [hb0],
-        ← set_at_length u (cellSym true rb (some q) a t) _ v, ← hb2, hpos]
+        ← set_at_length u (cellSym true rb (some q) a t) _ v, ← hb2', hpos]
       have := encode_set_head worig cfg q' a'
       rwa [moveHead_stay] at this
   · -- r-interior step1 boundary → pending phase (P1, head at left end)
     obtain ⟨q, q', a, a', t1, t2, rb2, hi, bb, htrans, rfl⟩ := h
-    simp only [List.append_nil, List.append_assoc, List.singleton_append]
-      at hb2 hc
-    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput
+    have hb2' := hb2.trans (normalize_right_context_singleton u v
+      (cellSym true false (some q) a t1) (cellSym false rb2 hi bb t2))
+    have hc' := hc.trans (normalize_right_context_singleton u v
+      (cellPendingSym true false true q' a' t1) (cellSym false rb2 hi bb t2))
+    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2'
     have hpe : cellPendingSym (decide (cfg.tape.head.val = 0)) (decide (cfg.tape.head.val = m))
         true q' a' (worig cfg.tape.head) = cellPendingSym true false true q' a' t1 := by
       rw [← hlb, ← hrb, ← ht]
@@ -622,17 +732,19 @@ theorem soundInv_step_sim (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
       have hnem : cfg.tape.head.val ≠ m := by intro he; rw [he] at hrb; simp at hrb
       have := cfg.tape.head.isLt; omega
     · intro he; simp at he
-    · rw [hc, hpe, ← hpos, hb2]
+    · rw [hc', hpe, ← hpos, hb2']
       exact (set_at_length u (cellSym true false (some q) a t1)
         (cellPendingSym true false true q' a' t1) (cellSym false rb2 hi bb t2 :: v)).symm
   · -- r-interior step1 interior → pending phase (P1)
     obtain ⟨q, q', a, a', t1, t2, rb2, hi, bb, lb0, a0, t0, htrans, rfl⟩ := h
-    simp only [List.append_assoc, List.singleton_append]
-      at hb2 hc
-    have hb2' := hb2.trans (List.append_cons u (cellSym lb0 false none a0 t0)
-      (cellSym false false (some q) a t1 :: cellSym false rb2 hi bb t2 :: v))
-    have hc' := hc.trans (List.append_cons u (cellSym lb0 false none a0 t0)
-      (cellPendingSym false false true q' a' t1 :: cellSym false rb2 hi bb t2 :: v))
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput
+    have hb2' := hb2.trans (normalize_both_context_singleton u v
+      (cellSym lb0 false none a0 t0) (cellSym false false (some q) a t1)
+      (cellSym false rb2 hi bb t2))
+    have hc' := hc.trans (normalize_both_context_singleton u v
+      (cellSym lb0 false none a0 t0) (cellPendingSym false false true q' a' t1)
+      (cellSym false rb2 hi bb t2))
     obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2'
     have hpe : cellPendingSym (decide (cfg.tape.head.val = 0)) (decide (cfg.tape.head.val = m))
         true q' a' (worig cfg.tape.head) = cellPendingSym false false true q' a' t1 := by
@@ -651,12 +763,12 @@ theorem soundInv_step_sim (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     simp [cellPendingSym] at he
   · -- l-interior step1 boundary → pending phase (P1, head at right end)
     obtain ⟨q, q', a, a', t1, t2, lb1, hi, bb, htrans, rfl⟩ := h
-    simp only [List.append_nil, List.append_assoc, List.singleton_append]
-      at hb2 hc
-    have hb2' := hb2.trans (List.append_cons u (cellSym lb1 false hi bb t1)
-      (cellSym false true (some q) a t2 :: v))
-    have hc' := hc.trans (List.append_cons u (cellSym lb1 false hi bb t1)
-      (cellPendingSym false true false q' a' t2 :: v))
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput
+    have hb2' := hb2.trans (normalize_left_context_singleton u v
+      (cellSym lb1 false hi bb t1) (cellSym false true (some q) a t2))
+    have hc' := hc.trans (normalize_left_context_singleton u v
+      (cellSym lb1 false hi bb t1) (cellPendingSym false true false q' a' t2))
     obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2'
     have hpe : cellPendingSym (decide (cfg.tape.head.val = 0)) (decide (cfg.tape.head.val = m))
         false q' a' (worig cfg.tape.head) = cellPendingSym false true false q' a' t2 := by
@@ -672,12 +784,14 @@ theorem soundInv_step_sim (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
       exact (set_at_length _ _ _ _).symm
   · -- l-interior step1 interior → pending phase (P1)
     obtain ⟨q, q', a, a', t1, t2, lb1, hi, bb, rb0, a0, t0, htrans, rfl⟩ := h
-    simp only [List.append_assoc, List.singleton_append]
-      at hb2 hc
-    have hb2' := hb2.trans (List.append_cons u (cellSym lb1 false hi bb t1)
-      (cellSym false false (some q) a t2 :: cellSym false rb0 none a0 t0 :: v))
-    have hc' := hc.trans (List.append_cons u (cellSym lb1 false hi bb t1)
-      (cellPendingSym false false false q' a' t2 :: cellSym false rb0 none a0 t0 :: v))
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput
+    have hb2' := hb2.trans (normalize_both_context_singleton u v
+      (cellSym lb1 false hi bb t1) (cellSym false false (some q) a t2)
+      (cellSym false rb0 none a0 t0))
+    have hc' := hc.trans (normalize_both_context_singleton u v
+      (cellSym lb1 false hi bb t1) (cellPendingSym false false false q' a' t2)
+      (cellSym false rb0 none a0 t0))
     obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2'
     have hpe : cellPendingSym (decide (cfg.tape.head.val = 0)) (decide (cfg.tape.head.val = m))
         false q' a' (worig cfg.tape.head) = cellPendingSym false false false q' a' t2 := by
@@ -697,11 +811,16 @@ theorem soundInv_step_sim (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
   · obtain ⟨q', a', t, lb, rb, dir, rfl⟩ := h; simp at hinput
   · -- accept → cleanup phase
     obtain ⟨q, a, t, lb, rb, hacc, rfl⟩ := h
-    simp only [List.append_nil, List.append_assoc, List.singleton_append] at hb2 hc
-    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2
+    dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+      csrule.output_string] at hb2 hc hinput
+    have hb2' := hb2.trans
+      (normalize_nil_context_singleton u v (cellSym lb rb (some q) a t))
+    have hc' := hc.trans
+      (normalize_nil_context_singleton u v (symbol.terminal t))
+    obtain ⟨hpos, hlb, hrb, hq, ha, ht⟩ := encode_head_cell worig cfg hb2'
     have hcset : c = (encode worig cfg).set cfg.tape.head.val
         (symbol.terminal (worig cfg.tape.head)) := by
-      rw [hc, ht, ← set_at_length u (cellSym lb rb (some q) a t) _ v, ← hb2, hpos]
+      rw [hc', ht, ← set_at_length u (cellSym lb rb (some q) a t) _ v, ← hb2', hpos]
     refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
       ⟨m, worig, ⟨cfg, hreach, by rw [← hq]; exact hacc⟩, ?_, ?_⟩))))
     · rw [hcset, List.length_set, encode_length]
@@ -737,7 +856,10 @@ theorem soundInv_step_cleanup (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     (hb : SP_cleanup M embed b) (hstep : CS_transforms (myhillGrammar M embed) b c) :
     SoundInv M embed c := by
   obtain ⟨m, worig, hacc, hlen, hcells⟩ := hb
+  rw [myhill_transforms_iff M embed b c] at hstep
   obtain ⟨r, u, v, hr, hb2, hc⟩ := hstep
+  change csrule T (MyhillNT T Γ Λ) at r
+  change List (symbol T (MyhillNT T Γ Λ)) at u v
   have key : ∀ x ∈ b, (∃ t, x = symbol.terminal t) ∨
       ∃ lb rb a t, x = cellSym lb rb none a t := by
     intro x hx
@@ -747,7 +869,9 @@ theorem soundInv_step_cleanup (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     rcases hc2 with hh | ⟨lb, rb, a, hh⟩
     · exact Or.inl ⟨_, Option.some.inj hh⟩
     · exact Or.inr ⟨lb, rb, a, _, Option.some.inj hh⟩
-  have hin := key (symbol.nonterminal r.input_nonterminal) (by rw [hb2]; simp)
+  have hin := key (symbol.nonterminal r.input_nonterminal) (by
+    rw [hb2]
+    exact rule_input_mem r u v)
   -- A cleanup row's length and the propagation-target rebuilds.
   have hbl : b.length = m + 1 := hlen
   rcases myhill_rule_inv M embed r hr with
@@ -841,7 +965,10 @@ theorem soundInv_step_stuck (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     {b c : List (symbol T (MyhillNT T Γ Λ))}
     (hb : ∀ x ∈ b, ∃ lb rb a t, x = cellSym lb rb none a t)
     (hstep : CS_transforms (myhillGrammar M embed) b c) : False := by
+  rw [myhill_transforms_iff M embed b c] at hstep
   obtain ⟨r, u, v, hr, hb2, hc⟩ := hstep
+  change csrule T (MyhillNT T Γ Λ) at r
+  change List (symbol T (MyhillNT T Γ Λ)) at u v
   have hin := hb (symbol.nonterminal r.input_nonterminal) (by rw [hb2]; simp)
   rcases myhill_rule_inv M embed r hr with
     h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h
@@ -893,7 +1020,10 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
     {b c : List (symbol T (MyhillNT T Γ Λ))}
     (hb : SP_pending M embed b) (hstep : CS_transforms (myhillGrammar M embed) b c) :
     SoundInv M embed c := by
+  rw [myhill_transforms_iff M embed b c] at hstep
   obtain ⟨r, u, v, hr, hb2, hc⟩ := hstep
+  change csrule T (MyhillNT T Γ Λ) at r
+  change List (symbol T (MyhillNT T Γ Λ)) at u v
   rcases hb with ⟨m, worig, cfg, q', a', dir, hreach, htrans, _, _, hbeq⟩ | hGEN | hCLEAN
   · -- **P1.** `b = (encode cfg).set head pend`: a stateless row with one pending at the head.
     have hbel : ∀ x ∈ b, x = cellPendingSym (decide (cfg.tape.head.val = 0))
@@ -1691,26 +1821,40 @@ theorem myhill_sound (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (w : List T)
         rcases ih with hb | hb | hb | hb | hb | hb
         · -- b = [start]: only the start rules apply (input must be `start`)
           subst hb
-          obtain ⟨r, u, v, hr, hb2, hc⟩ := hbc
+          have hbc' := (myhill_transforms_iff M embed
+            ([symbol.nonterminal MyhillNT.start] : List (symbol T (MyhillNT T Γ Λ))) c).mp hbc
+          obtain ⟨r, u, v, hr, hb2, hc⟩ := hbc'
           have hin : symbol.nonterminal r.input_nonterminal
               ∈ ([symbol.nonterminal MyhillNT.start] : List (symbol T (MyhillNT T Γ Λ))) := by
-            rw [hb2]; simp
+            rw [hb2]
+            exact rule_input_mem r u v
           rcases myhill_rule_inv M embed r hr with
             h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h|h
           · -- block1 (single cell) → simulation phase (initial config)
             obtain ⟨t, rfl⟩ := h
-            simp only [List.append_nil] at hb2 hc
-            obtain ⟨rfl, rfl⟩ := decomp_head hb2.symm (by simp)
+            dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+              csrule.output_string] at hb2 hc hin
+            have hb2' : u ++ [symbol.nonterminal MyhillNT.start] ++ v =
+                [symbol.nonterminal MyhillNT.start] := by
+              simpa only [List.append_assoc, List.singleton_append, List.nil_append] using hb2.symm
+            obtain ⟨rfl, rfl⟩ := decomp_head hb2' (by simp)
             refine Or.inr (Or.inr (Or.inl
               ⟨0, fun _ => t, ⟨M.initial, ⟨fun _ => embed t, ⟨0, Nat.succ_pos 0⟩⟩⟩,
                 Relation.ReflTransGen.refl, ?_⟩))
-            rw [hc, encode]; simp [List.ofFn_succ, List.ofFn_zero, cellSym]
+            have hc' : c = [cellSym true true (some M.initial) (embed t) t] :=
+              hc.trans (by simp)
+            rw [hc', encode]
+            simp [List.ofFn_succ, List.ofFn_zero, cellSym]
           · -- block2 (rightmost cell + startAux) → start phase
             obtain ⟨t, rfl⟩ := h
-            simp only [List.append_nil] at hb2 hc
-            obtain ⟨rfl, rfl⟩ := decomp_head hb2.symm (by simp)
+            dsimp only [csrule.context_left, csrule.input_nonterminal, csrule.context_right,
+              csrule.output_string] at hb2 hc hin
+            have hb2' : u ++ [symbol.nonterminal MyhillNT.start] ++ v =
+                [symbol.nonterminal MyhillNT.start] := by
+              simpa only [List.append_assoc, List.singleton_append, List.nil_append] using hb2.symm
+            obtain ⟨rfl, rfl⟩ := decomp_head hb2' (by simp)
             refine Or.inr (Or.inl ⟨[t], by simp, ?_⟩)
-            rw [hc]; simp [auxCells]
+            exact hc.trans (by simp [auxCells])
           · obtain ⟨t, rfl⟩ := h; simp at hin
           · obtain ⟨t, rfl⟩ := h; simp at hin
           · obtain ⟨q, q', a, a', t, lb, rb, _, rfl⟩ := h; simp at hin

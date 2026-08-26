@@ -26,8 +26,8 @@ inclusion, this transports to any alphabet with at least 4 elements.
 ## Main results
 
 - `exists_Linear_concat_not_Linear` — two linear languages whose concatenation is not linear.
-- `Linear_not_closedUnderConcatenation` — `Linear` is not closed under concatenation,
-  with an `_of_card` variant for `4 ≤ Fintype.card T`.
+- `Linear_not_closedUnderConcatenation` — `Linear` is not closed under concatenation over
+  alphabets with at least 4 elements.
 -/
 
 open Language
@@ -52,7 +52,7 @@ theorem map_comp_g4_is_Linear (e : Fin 4 ↪ T) : is_Linear (Language.map (⇑e 
   map_anbn_is_Linear _ (e.injective.comp g4_injective)
 
 /-- There exist linear languages whose concatenation is not linear over any alphabet with at
-least 4 elements, as exhibited by an embedding `Fin 4 ↪ T`. -/
+least 4 elements. -/
 public theorem exists_Linear_concat_not_Linear (e : Fin 4 ↪ T) :
     ∃ L₁ L₂ : Language T, is_Linear L₁ ∧ is_Linear L₂ ∧ ¬ is_Linear (L₁ * L₂) :=
   ⟨Language.map (⇑e ∘ f4) anbn, Language.map (⇑e ∘ g4) anbn,
@@ -60,7 +60,7 @@ public theorem exists_Linear_concat_not_Linear (e : Fin 4 ↪ T) :
     fun hL => map_anbncmdm_not_is_Linear e (map_concat_eq_map_anbncmdm e ▸ hL)⟩
 
 /-- The class of linear languages is **not** closed under concatenation over any alphabet with
-at least 4 elements, as exhibited by an embedding `Fin 4 ↪ T`. -/
+at least 4 elements. -/
 public theorem Linear_not_closedUnderConcatenation (e : Fin 4 ↪ T) :
     ¬ ClosedUnderConcatenation (@is_Linear T) := fun h =>
   map_anbncmdm_not_is_Linear e

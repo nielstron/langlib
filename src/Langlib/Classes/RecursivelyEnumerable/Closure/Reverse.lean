@@ -35,7 +35,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -102,6 +101,7 @@ private lemma derives_reversed (g : grammar T) (v : List (symbol T g.nt)) :
     grammar_derives (reversal_grammar g) [symbol.nonterminal (reversal_grammar g).initial] v →
       grammar_derives g [symbol.nonterminal g.initial] v.reverse := by
   intro hv
+  unfold reversal_grammar at hv
   induction hv with
   | refl =>
       rw [List.reverse_singleton]

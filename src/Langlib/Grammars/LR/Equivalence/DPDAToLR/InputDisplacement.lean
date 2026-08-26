@@ -148,7 +148,7 @@ private theorem emptyStack_global_boot_eq_initial (M : DPDA Q T S)
     (⟨Sum.inr 0, w, [none]⟩ : PDA.conf (emptyStackPDA M))
     ⟨Sum.inr 0, input, stack⟩
     (FSES_Inv_init M.firstFinal.toPDA w)
-    (by simpa [emptyStackPDA] using h)
+    (by simpa [emptyStackPDA, PDA_FS_to_ES_pda] using h)
   rcases hinv with hboot | hsim | hdrain
   · simpa [emptyStackPDA, PDA_FS_to_ES_pda] using hboot
   · rcases hsim with ⟨q, remaining, gamma, heq, hnormalized⟩
@@ -225,7 +225,7 @@ public theorem emptyStack_global_productive_extension
           simpa using congrArg PDA.conf.stack hboot
         subst u
         subst stackOne
-        simpa using hTwo
+        simpa [emptyStackPDA, PDA_FS_to_ES_pda] using hTwo
       · have hsOne : sOne = [] := by
           have hsame := drain_reaches_input_eq M useOne
           simpa using hsame.symm

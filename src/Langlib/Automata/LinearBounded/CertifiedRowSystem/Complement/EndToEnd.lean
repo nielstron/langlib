@@ -472,7 +472,8 @@ public theorem protocolAccepts_complete
   have hbootStep : ProtocolStep D initial initialized :=
     ⟨hinitial, Or.inl hboot⟩
   have hinitialized : RoundStartInvariant D input initialized 0 1 := by
-    simpa only [initialized] using initialized_roundStartInvariant D hinput
+    simpa only [initialized, protocolSource] using
+      initialized_roundStartInvariant D hinput
   obtain ⟨finalChoose, depth, count, hcounting, hfinalChoose⟩ :=
     reachFinalChoose hinput hinitialized
   obtain ⟨accept, hfinalScan, haccept⟩ :=

@@ -310,10 +310,10 @@ private theorem nonempty_list_positions_eq_of_counted_anchors
     trace₁ trace₂ global₁ global₂
   · simpa [LeftmostEpsilonPosition.conf,
       PendingFrontierPosition.cut, PDA.conf.appendInput,
-      List.append_assoc] using useful₁
+      spineCutState, spineCutStack, List.append_assoc] using useful₁
   · simpa [LeftmostEpsilonPosition.conf,
       PendingFrontierPosition.cut, PDA.conf.appendInput,
-      List.append_assoc] using useful₂
+      spineCutState, spineCutStack, List.append_assoc] using useful₂
   · exact hlook
 
 /-- Two productive counted last-visible anchors with the same pending
