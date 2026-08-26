@@ -58,6 +58,8 @@ form a strict subclass of linear languages.
 - `exists_Linear_not_regular_of_nontrivial` — There exists a linear nonregular language over
   any nontrivial alphabet.
 - `RG_strict_subclass_Linear` — Right-regular languages form a strict subclass of linear languages.
+- `RG_strict_subclass_Linear_of_card` — The same strict inclusion over every finite alphabet
+  with at least 2 elements.
 -/
 
 open Language List Relation Classical
@@ -151,5 +153,14 @@ theorem RG_strict_subclass_Linear [Nontrivial T] :
   have hRG : Language.map f anbn ∈ (RG : Set (Language T)) := hLinearsubsetRG hLinear
   have hreg : (Language.map f anbn).IsRegular := isRegular_of_is_RG hRG
   exact anbn_not_isRegular (Language.IsRegular.of_map_injective hf hreg)
+
+/-- Right-regular languages form a strict subclass of linear languages over every finite
+alphabet with at least 2 elements. -/
+public theorem RG_strict_subclass_Linear_of_card {T : Type} [Fintype T]
+    (hT : 2 ≤ Fintype.card T) :
+    (RG : Set (Language T)) ⊂ (Linear : Set (Language T)) := by
+  letI : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
+    (lt_of_lt_of_le (by decide) hT)
+  exact RG_strict_subclass_Linear
 
 end

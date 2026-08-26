@@ -41,7 +41,7 @@ The inclusion `CS ⊆ Recursive`:
 
 The strictness `CS ⊊ Recursive`:
 
-- [`CS_strict_subclass_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the headline `(CS : Set (Language T)) ⊂ Recursive`, for a nonempty finite alphabet `T`.
+- [`CS_strict_subclass_Recursive_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the headline `(CS : Set (Language T)) ⊂ Recursive`, for every finite alphabet with at least 1 element.
 - [`diagonal_strict`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the abstract diagonalization core.
 - [`exists_cs_enumeration`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the effective enumeration of context-sensitive languages with a uniformly computable membership oracle.
 - [`memOracle_computable`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — the membership oracle's joint computability, built on the uniform decider [`memCode`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Decidability/Membership.lean) (`memCode_sound` / `memCode_complete` / `code_of_CS`).

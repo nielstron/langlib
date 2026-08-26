@@ -136,9 +136,11 @@ public def BoundedTape.moveHead {Γ : Type*} {n : ℕ} (t : BoundedTape Γ n) (d
     match d with
     | Dir.stay => t.head
     | Dir.left =>
-      if h : 0 < t.head.val then ⟨t.head.val - 1, by omega⟩ else t.head
+      if h : 0 < t.head.val then
+        ⟨t.head.val - 1, lt_trans (Nat.sub_lt h (Nat.zero_lt_succ 0)) t.head.isLt⟩
+      else t.head
     | Dir.right =>
-      if h : t.head.val < n then ⟨t.head.val + 1, by omega⟩ else t.head }
+      if h : t.head.val < n then ⟨t.head.val + 1, Nat.add_lt_add_right h 1⟩ else t.head }
 
 @[expose]
 public noncomputable instance BoundedTape.instFintype {Γ : Type*} {n : ℕ}

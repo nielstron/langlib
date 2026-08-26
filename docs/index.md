@@ -78,7 +78,7 @@ This page is a catalog of the library's results.
 
 - `{aⁿbⁿcⁿ}` is indexed: `is_Indexed_lang_eq_eq` (see [the separating-example page](results/anbncn-not-context-free.html)).
 - CFL ⊊ Indexed: `CF_strict_subclass_Indexed`.
-- Indexed ⊊ CS over every finite alphabet with at least two symbols:
+- Indexed ⊊ CS over every finite alphabet with at least 2 elements:
   `Indexed_strict_subclass_CS`.
 - [Every indexed language is context-sensitive](results/indexed-subset-context-sensitive.html), via Aho's finite compression and a certified linear-space row checker.
 - Closure: union, concatenation, homomorphism, inverse homomorphism, reverse — **Yes** (see the [closure table](#closure-properties)).

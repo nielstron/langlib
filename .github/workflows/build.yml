@@ -17,3 +17,5 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           check-reservoir-eligibility: true
+      - name: Build Palomar statement and solution modules
+        run: lake build Challenge Solution

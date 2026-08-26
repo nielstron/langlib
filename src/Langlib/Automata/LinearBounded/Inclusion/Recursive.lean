@@ -48,7 +48,7 @@ public theorem LBA_strict_subclass_Recursive
   simpa only [CS_eq_LBA] using (CS_strict_subclass_Recursive (T := T))
 
 /-- LBA-recognizable languages form a strict subclass of recursive languages over
-every finite alphabet containing at least one symbol. -/
+every finite alphabet with at least 1 element. -/
 public theorem LBA_strict_subclass_Recursive_of_card [Fintype T] [DecidableEq T]
     (hT : 1 ≤ Fintype.card T) :
     (LBA : Set (Language T)) ⊂ (Recursive : Set (Language T)) := by

@@ -140,7 +140,7 @@ public theorem CS_strict_subclass_Recursive
   exact diagonal_strict e mem hmem hmem_comp hsurj
 
 /-- Context-sensitive languages form a strict subclass of recursive languages over
-every finite alphabet with at least one symbol.  The finite alphabet supplies the
+every finite alphabet with at least 1 element. The finite alphabet supplies the
 computability encoding internally, so callers need not choose one. -/
 public theorem CS_strict_subclass_Recursive_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :

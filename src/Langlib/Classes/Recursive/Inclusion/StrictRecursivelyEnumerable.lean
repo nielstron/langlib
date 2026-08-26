@@ -55,9 +55,8 @@ complement.
 ## Main declarations
 
 - `haltingUnaryLanguage_not_Recursive` — the unary halting language is RE but not recursive.
-- `Recursive_strict_subclass_RE_unit` — strict inclusion over `Unit`.
-- `Recursive_strict_subclass_RE_of_nonempty` — strict inclusion over any nonempty finite
-  alphabet.
+- `Recursive_strict_subclass_RE_of_card` — strict inclusion over every finite alphabet
+  with at least 1 element.
 - `Recursive_subclass_RE_and_exists_strict` — class-level inclusion plus a strict
   witness alphabet.
 -/
@@ -74,17 +73,6 @@ public theorem haltingUnaryLanguage_not_Recursive :
     Recursive_subset_RE hcompRec
   exact haltingUnary_complement_not_RE hcompRE
 
-/-- Recursive languages over the unary alphabet form a strict subclass of RE. -/
-theorem Recursive_strict_subclass_RE_unit :
-    (Recursive : Set (Language Unit)) ⊂ (RE : Set (Language Unit)) :=
-  strict_subset_of_subset_different_property
-    (P := is_Recursive) (Q := is_RE)
-    (fun _ hL => Recursive_subset_RE hL)
-    (X := ClosedUnderComplement)
-    (fun hiff => ClosedUnderComplement_of_iff hiff)
-    Recursive_closedUnderComplement
-    RE_notClosedUnderComplement
-
 /-- Recursive languages over any nonempty finite alphabet form a strict subclass of RE. -/
 theorem Recursive_strict_subclass_RE_of_nonempty {T : Type} [DecidableEq T] [Fintype T]
     [Nonempty T] :
@@ -98,7 +86,7 @@ theorem Recursive_strict_subclass_RE_of_nonempty {T : Type} [DecidableEq T] [Fin
     RE_notClosedUnderComplement_of_nonempty
 
 /-- Recursive languages form a strict subclass of recursively enumerable languages
-over every finite alphabet with at least one symbol. -/
+over every finite alphabet with at least 1 element. -/
 public theorem Recursive_strict_subclass_RE_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :
     (Recursive : Set (Language T)) ⊂ (RE : Set (Language T)) := by
@@ -112,4 +100,5 @@ theorem Recursive_subclass_RE_and_exists_strict :
     (∀ T : Type, [DecidableEq T] → [Fintype T] →
       (Recursive : Set (Language T)) ⊆ (RE : Set (Language T))) ∧
     (∃ T : Type, (Recursive : Set (Language T)) ⊂ (RE : Set (Language T))) :=
-  ⟨fun _ _ _ => Recursive_subset_RE, ⟨Unit, Recursive_strict_subclass_RE_unit⟩⟩
+  ⟨fun _ _ _ => Recursive_subset_RE,
+    ⟨Unit, Recursive_strict_subclass_RE_of_card (T := Unit) (by simp)⟩⟩

@@ -1,8 +1,7 @@
 {"version": "1.1.0",
  "packagesDir": ".lake/packages",
  "packages":
- [
-  {"url": "https://github.com/leanprover-community/mathlib4.git",
+ [{"url": "https://github.com/leanprover-community/mathlib4.git",
    "type": "git",
    "subDir": null,
    "scope": "",
@@ -92,5 +91,5 @@
    "inputRev": "v4.28.0",
    "inherited": true,
    "configFile": "lakefile.toml"}],
- "name": "grammars",
+ "name": "langlib",
  "lakeDir": ".lake"}

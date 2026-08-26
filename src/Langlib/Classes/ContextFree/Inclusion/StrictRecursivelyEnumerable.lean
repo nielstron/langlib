@@ -83,7 +83,7 @@ theorem CF_subclass_RE_and_exists_strict :
     · intro hREsubsetCF
       exact hnotCF (hREsubsetCF (a := L) hRE)
 
-/-- For any alphabet with at least `3` symbols, context-free languages form a strict subclass
+/-- For every finite alphabet with at least 3 elements, context-free languages form a strict subclass
     of recursively enumerable languages. -/
 theorem CF_strict_subclass_RE {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T) :

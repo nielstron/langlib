@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Classes.Regular.Definition
@@ -56,6 +56,8 @@ form a strict subclass of deterministic context-free languages.
 ## Main results
 
 - `RG_strict_subclass_DCF` — Regular languages are a strict subclass of DCFs.
+- `RG_strict_subclass_DCF_of_card` — The inclusion over every finite alphabet with at
+  least 2 elements.
 -/
 
 /-- Regular languages are a strict subclass of deterministic context-free languages over any
@@ -78,3 +80,12 @@ theorem RG_strict_subclass_DCF {T : Type} [Fintype T] [Nontrivial T] :
       (DCF_of_map_injective_DCF hf anbn anbn_is_DCF)
   have hreg : (Language.map f anbn).IsRegular := isRegular_of_is_RG hRG
   exact anbn_not_isRegular (Language.IsRegular.of_map_injective hf hreg)
+
+/-- Regular languages are a strict subclass of deterministic context-free languages over
+every finite alphabet with at least 2 elements. -/
+public theorem RG_strict_subclass_DCF_of_card {T : Type} [Fintype T]
+    (hT : 2 ≤ Fintype.card T) :
+    (RG : Set (Language T)) ⊂ (DCF : Set (Language T)) := by
+  letI : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
+    (lt_of_lt_of_le (by decide) hT)
+  exact RG_strict_subclass_DCF

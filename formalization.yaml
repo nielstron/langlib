@@ -1,0 +1,357 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+version: "v0.4"
+
+project:
+  name: "Langlib"
+  description: >-
+    A Lean 4 formalization of grammar and automaton presentations of the
+    extended Chomsky hierarchy. Starting from unrestricted-grammar rewriting,
+    it defines regular, linear, context-free, context-sensitive, indexed,
+    deterministic context-free, recursive, and recursively enumerable language
+    classes; relates finite, pushdown, linearly bounded, and Mathlib TM0
+    automata to the corresponding grammar classes; proves strict hierarchy
+    inclusions; and establishes closure or non-closure under thirteen operations
+    for seven major classes. This Palomar configuration selects 112
+    equivalence, inclusion, and closure theorems and deliberately excludes the
+    separate decidability development.
+  authors:
+    - "Niels Mündler"
+    - "Martin Dvořák"
+  license: "BSD-2-Clause"
+  responsible_maintainers:
+    - "Niels Mündler"
+
+licensing:
+  repository_default: "BSD-2-Clause"
+  license_file: "LICENSE.md"
+  notice_file: "NOTICE.md"
+  file_level_exceptions: >-
+    Source files carrying an explicit Apache-2.0 header remain under the
+    Apache License 2.0. Its text is included at licenses/Apache-2.0.txt.
+
+classification:
+  arxiv: ["cs.FL"]
+  msc2020: ["68Q42", "68Q45", "68Q04"]
+
+sources:
+  - title: "Introduction to Automata Theory, Languages, and Computation, 3rd edition"
+    authors:
+      - "John E. Hopcroft"
+      - "Rajeev Motwani"
+      - "Jeffrey D. Ullman"
+    id: "ISBN 978-0321455369"
+    type: "book"
+    location: "Chapters 2-9"
+    relationship: "formalizes"
+    note: >-
+      A standard source for the grammar and automaton models, their principal
+      equivalences, hierarchy relations, and many closure results. Langlib
+      formalizes these results with the precise encodings and qualifications
+      recorded below.
+  - title: "Indexed Grammars—An Extension of Context-Free Grammars"
+    authors:
+      - "Alfred V. Aho"
+    id: "doi:10.1145/321479.321488"
+    type: "paper"
+    location: "Journal of the ACM 15(4), 647-671 (1968)"
+    relationship: "formalizes"
+    note: >-
+      Source for indexed grammars, their placement between context-free and
+      context-sensitive languages, and classical closure properties. The Lean
+      development includes an explicit bounded LBA simulation based on Aho's
+      normal-form construction.
+  - title: "Classes of Languages and Linear-Bounded Automata"
+    authors:
+      - "Sige-Yuki Kuroda"
+    id: "doi:10.1016/S0019-9958(64)90120-2"
+    type: "paper"
+    location: "Information and Control 7(2), 207-223 (1964)"
+    relationship: "formalizes"
+    note: >-
+      Source for the context-sensitive grammar to linear-bounded automaton
+      direction and associated normal-form ideas. Langlib formalizes an
+      endmarker-machine version with explicit empty-word handling.
+  - title: "Linear Bounded Automata"
+    authors:
+      - "John Myhill"
+    id: "WADD Technical Note 60-165"
+    type: "other"
+    location: "Wright Air Development Division (1960)"
+    relationship: "formalizes"
+    note: >-
+      Source for the linear-bounded automaton to context-sensitive grammar
+      direction. Langlib gives a kernel-checked construction for its precise
+      endmarker convention.
+  - title: "On the Translation of Languages from Left to Right"
+    authors:
+      - "Donald E. Knuth"
+    id: "doi:10.1016/S0019-9958(65)90426-2"
+    type: "paper"
+    location: "Information and Control 8(6), 607-639 (1965)"
+    relationship: "formalizes"
+    note: >-
+      Source for the semantic LR(k) condition and its relationship with
+      deterministic languages. Langlib formalizes the LR/DPDA
+      characterization used in the selected theorems.
+
+related_formalizations:
+  - id: "https://github.com/madvorak/grammars"
+    relationship: "adapts"
+    note: >-
+      Langlib began as a Lean 4 port of this earlier Lean formalization and has
+      since substantially extended and reorganized it.
+  - id: "https://github.com/AlexLoitzl/pumping_cfg"
+    relationship: "adapts"
+    note: >-
+      Langlib ports its context-free pumping-lemma proof; pumping results are
+      background to parts of the hierarchy development but are not selected in
+      this Comparator configuration.
+  - id: "https://github.com/shetzl/autth"
+    relationship: "adapts"
+    note: >-
+      The CFG/PDA equivalence development includes a port and adaptation of
+      the PDA branch of this earlier Lean work.
+
+status:
+  scope: >-
+    The selected challenge contains transparent definitions of unrestricted,
+    regular, linear, context-free, context-sensitive, LR, indexed, and
+    automaton-recognized language classes; grammar/automaton equivalences for
+    regular, context-free, deterministic context-free, context-sensitive, and
+    recursively enumerable languages; the strict extended Chomsky hierarchy;
+    and a 13-operation closure/non-closure matrix for regular, deterministic
+    context-free, context-free, indexed, context-sensitive, recursive, and
+    recursively enumerable languages. Decidability and undecidability results
+    in the repository are intentionally excluded. Nested-stack automata and the
+    indexed-grammar equivalence are not formalized. Linear languages have no
+    automaton characterization here. Only DLBA inclusion in NLBA is proved; the
+    reverse inclusion is not claimed. Recursive languages use always-halting
+    Mathlib TM0 machines, and no second tape-machine characterization is
+    selected as an equivalence.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms:
+    - "propext"
+    - "Quot.sound"
+    - "Classical.choice"
+  main_results:
+    - declaration: "RG_eq_DFA"
+      file: "src/Langlib/Automata/FiniteState/Equivalence/Regular.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+    - declaration: "CF_eq_PDA_Class"
+      file: "src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+    - declaration: "is_LR_iff_is_DCF"
+      file: "src/Langlib/Grammars/LR/Equivalence.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+    - declaration: "CS_eq_LBA"
+      file: "src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+    - declaration: "TM_eq_RE"
+      file: "src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+    - declaration: "Indexed_strict_subclass_CS"
+      file: "src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+    - declaration: "CS_strict_subclass_Recursive_of_card"
+      file: "src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+    - declaration: "Recursive_strict_subclass_RE_of_card"
+      file: "src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+
+automation:
+  methods:
+    - method: "manual"
+      models: []
+      framework: "Lean 4 and Mathlib"
+      tool_setup: >-
+        Human-directed theorem design, proof development, review, and ordinary
+        Lean tactics by the named authors and contributors.
+      cost:
+        wall_time: "not reconstructed"
+        spend_usd: "not tracked"
+        hardware: "local development machines"
+      prompting_notes: "n/a"
+    - method: "agent"
+      models: []
+      framework: "Aristotle"
+      tool_setup: >-
+        AI proof assistance for a subset of ambitious proofs, as disclosed in
+        the repository README; the historical model identity was not recorded.
+      cost:
+        wall_time: "not reconstructed"
+        spend_usd: "not tracked"
+        hardware: "hosted service"
+      prompting_notes: "Historical prompts were not retained."
+    - method: "agent"
+      models: ["Claude Opus 4.8 (1M context)"]
+      framework: "not recorded"
+      tool_setup: >-
+        Agent-assisted proof engineering, refactoring, and linter/performance
+        work recorded in Git commit trailers.
+      cost:
+        wall_time: "not reconstructed"
+        spend_usd: "not tracked"
+        hardware: "not reconstructed"
+      prompting_notes: "Historical prompts were not retained."
+    - method: "agent"
+      models: ["GPT-5.6"]
+      framework: "not recorded"
+      tool_setup: >-
+        Closure and equivalence proof development recorded by the repository's
+        closure-gpt-5.6 branch and merge history.
+      cost:
+        wall_time: "not reconstructed"
+        spend_usd: "not tracked"
+        hardware: "not reconstructed"
+      prompting_notes: "Historical prompts were not retained."
+    - method: "copilot"
+      models: []
+      framework: "GitHub Copilot coding agent"
+      tool_setup: >-
+        Limited repository contributions visible in Git history; the precise
+        model identity and prompt record are unavailable.
+      cost:
+        wall_time: "not reconstructed"
+        spend_usd: "not tracked"
+        hardware: "hosted service"
+      prompting_notes: "Historical prompts were not retained."
+    - method: "agent"
+      models: ["OpenAI GPT-5"]
+      framework: "OpenAI Codex"
+      tool_setup: >-
+        Preparation and audit of the Mathlib-only Palomar challenge, Comparator
+        declaration surface, metadata, dependency closure, and build checks.
+      cost:
+        wall_time: "one interactive preparation session"
+        spend_usd: "not tracked"
+        hardware: "hosted model with local shell tooling"
+      prompting_notes: >-
+        The maintainer requested a Palomar-ready challenge covering definitions,
+        automata equivalences, hierarchy inclusions, and closure results while
+        excluding decidability results.
+  spend_usd: "not tracked"
+  notes: >-
+    The development combines human mathematical direction and Lean engineering
+    with several disclosed AI-assisted phases. Exact historical usage totals
+    and prompts were not reconstructed; no novelty claim is made from the use
+    of automation.
+
+fidelity:
+  divergences: >-
+    Langlib makes implementation conventions explicit rather than claiming
+    literal identity with every cited presentation. Its context-sensitive
+    grammar permits the distinguished rule S -> epsilon only when S never
+    occurs on a right-hand side; its equivalent LBA uses explicit endmarkers
+    and handles the empty word on a genuine two-cell tape. Strict inclusions
+    record explicit lower bounds on the number of alphabet elements; no
+    strictness claim is made below a theorem's stated bound. A negative closure
+    theorem records failure on its stated finite witness alphabet, not failure
+    on every alphabet. Indexed
+    languages are grammar-defined with no nested-stack automaton model; linear
+    languages likewise lack an automaton characterization. DLBA = NLBA is not
+    asserted, and the recursive class has no selected second tape-model
+    equivalence. These are known scope limits, not inferred equivalences.
+    Novelty has not been established and is not claimed.
+
+review:
+  status: "agent-reviewed"
+  reviewers:
+    - "OpenAI Codex"
+  notes: >-
+    Submission preparation inventoried every selected declaration, checked
+    theorem axioms and unresolved holes, and compared the Challenge signatures
+    with Langlib. The official pinned Palomar Comparator run passed all 112
+    selected declarations; NanoDa and Lean's default kernel both accepted the
+    exported solution. This is not independent human peer review.
+
+alignment:
+  namespace: "Root namespace, with a few theorem families in descriptive namespaces"
+  statements:
+    - source: "Regular grammars and finite automata"
+      lean: "is_RG_iff_isRegular; RG_eq_DFA; is_NFA_iff_is_DFA; NFA_eq_DFA"
+      module: "Langlib.Automata.FiniteState"
+      status: "proved"
+      note: >-
+        Right-regular unrestricted grammars, Mathlib regular languages, and
+        finite DFA/NFA recognizers define the same language class.
+    - source: "Context-free grammars and pushdown automata"
+      lean: >-
+        is_CF_iff_isContextFree; CF_eq_PDA_Class;
+        is_PDA_finalState_iff_is_PDA_emptyStack;
+        PDA_FinalStateClass_eq_Class
+      module: "Langlib.Automata.Pushdown"
+      status: "proved"
+      note: >-
+        The unrestricted-grammar CFL definition agrees with Mathlib's CFG
+        predicate and with PDA recognition under either acceptance convention.
+    - source: "Knuth's LR(k) languages and deterministic pushdown automata"
+      lean: "is_LR_iff_is_DPDA; is_LR_iff_is_DCF"
+      module: "Langlib.Grammars.LR.Equivalence"
+      status: "proved"
+      note: >-
+        Existential finite-lookahead LR languages coincide with the DPDA-defined
+        deterministic context-free class.
+    - source: "Myhill-Kuroda characterization"
+      lean: "CS_eq_LBA"
+      module: "Langlib.Automata.LinearBounded.Equivalence.ContextSensitive"
+      status: "proved"
+      note: >-
+        Context-sensitive grammars with the controlled empty rule recognize
+        exactly the languages of finite nondeterministic endmarker LBAs.
+    - source: "Unrestricted grammars and Turing machines"
+      lean: "TM_eq_RE"
+      module: "Langlib.Automata.Turing.Equivalence.RecursivelyEnumerable"
+      status: "proved"
+      note: >-
+        Unrestricted grammar generation agrees with recognition by finite-state,
+        finite-work-alphabet Mathlib TM0 machines.
+    - source: "Strict extended Chomsky hierarchy"
+      lean: >-
+        RG_strict_subclass_Linear_of_card;
+        Linear_strict_subclass_CF_of_card;
+        RG_strict_subclass_DCF_of_card;
+        DCF_strict_subclass_CF_of_card;
+        CF_strict_subclass_Indexed; Indexed_strict_subclass_CS;
+        CS_strict_subclass_Recursive_of_card;
+        Recursive_strict_subclass_RE_of_card
+      module: "Langlib.Classes"
+      status: "proved"
+      note: >-
+        The two regular-to-context-free branches and the indexed,
+        context-sensitive, recursive, and RE levels are strict over every
+        finite alphabet with at least the number of elements stated in
+        Challenge.lean.
+    - source: "Linear languages are not closed under concatenation"
+      lean: "Linear_not_closedUnderConcatenation"
+      module: "Langlib.Classes.Linear.Closure.Concatenation"
+      status: "proved"
+      note: >-
+        Whenever 4 distinct elements embed in the terminal alphabet, two
+        linear languages have a concatenation that is not linear.
+    - source: "Classical language-class closure properties"
+      lean: "The 91 closure and non-closure declarations listed in comparator.json"
+      module: "Langlib.Classes.*.Closure"
+      status: "proved"
+      note: >-
+        For seven classes, the selected declarations cover union, intersection,
+        complement, concatenation, star, homomorphism, epsilon-free
+        homomorphism, substitution, inverse homomorphism, reversal,
+        intersection with regular languages, right quotient, and right quotient
+        with a regular language. The README table gives the plain-language
+        yes/no account and links each theorem family.
+
+acknowledgements: >-
+  Built on Lean 4 and Mathlib. The repository credits the earlier
+  madvorak/grammars, AlexLoitzl/pumping_cfg, and shetzl/autth developments and
+  acknowledges the Aristotle proof-assistance system. Additional automated
+  assistance is disclosed under automation.methods above.

@@ -20,3 +20,8 @@ lean_lib Langlib where
 lean_lib LanglibTest where
   srcDir := "test"
   roots := #[`LanglibTest]
+
+-- Palomar builds the statement and proof surfaces as separate modules.
+lean_lib Challenge
+
+lean_lib Solution

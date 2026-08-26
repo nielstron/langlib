@@ -22,7 +22,7 @@ indexed: indexed languages are closed under arbitrary homomorphisms, so erasing 
 would make the halting language indexed, hence context-sensitive and therefore recursive.
 
 The resulting binary witness proves `Indexed ⊊ CS`.  Injective terminal relabelling and
-reflection transport the witness to every finite alphabet with at least two symbols.
+reflection transport the result to every finite alphabet with at least 2 elements.
 
 ## Main declarations
 
@@ -81,7 +81,7 @@ public theorem Indexed_subclass_CS_and_exists_strict :
     ⟨Option Unit, indexedCSStrictWitness,
       indexedCSStrictWitness_is_CS, indexedCSStrictWitness_not_Indexed⟩⟩
 
-/-- For every finite alphabet with at least two symbols, indexed languages form a strict
+/-- For every finite alphabet with at least 2 elements, indexed languages form a strict
 subclass of the context-sensitive languages. -/
 public theorem Indexed_strict_subclass_CS {T : Type} [Fintype T]
     (hT : 2 ≤ Fintype.card T) :

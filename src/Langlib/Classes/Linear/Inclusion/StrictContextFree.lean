@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2026 Niels Mündler. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Classes.Linear.Inclusion.ContextFree
 public import Langlib.Examples.AnBnCmDm
@@ -23,36 +23,30 @@ The language `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` (`anbncmdm`) is context-free
 (`anbncmdm_is_CF`, in `Langlib.Classes.ContextFree.Examples.AnBnCmDm`) but not linear
 (`anbncmdm_not_is_Linear`, in `Langlib.Classes.Linear.Examples.AnBnCmDm`). This file
 assembles those two facts into the
-strict inclusion, transported to an arbitrary alphabet `T` with at least four symbols by
+strict inclusion over every finite alphabet with at least 4 elements by
 relabelling along an embedding `e : Fin 4 ↪ T`.
 
 ## Main results
 
-- `Linear_strict_subclass_CF`         — `Linear ⊊ CF` over `Fin 4`.
-- `Linear_strict_subclass_CF_of_card` — `Linear ⊊ CF` for any `4 ≤ Fintype.card T`.
+- `Linear_strict_subclass_CF_of_card` — `Linear ⊊ CF` over every finite alphabet with
+  at least 4 elements.
 -/
 
 open Language List
 
 variable {T : Type}
 
-/-- Linear languages are a strict subclass of context-free languages over `Fin 4`. -/
-public theorem Linear_strict_subclass_CF :
-    (Linear : Set (Language (Fin 4))) ⊂ (CF : Set (Language (Fin 4))) := by
-  refine ⟨Linear_subclass_CF, fun hsub => ?_⟩
-  exact anbncmdm_not_is_Linear (hsub anbncmdm_is_CF)
-
-/-! ## Transport to an arbitrary alphabet with at least four symbols -/
+/-! ## Arbitrary alphabets with at least 4 elements -/
 
 /-- Linear languages are a strict subclass of context-free languages over any alphabet that
-admits an embedding of four distinct symbols. -/
+admits 4 distinct elements. -/
 public theorem Linear_strict_subclass_CF_of_embedding (e : Fin 4 ↪ T) :
     (Linear : Set (Language T)) ⊂ (CF : Set (Language T)) := by
   refine ⟨Linear_subclass_CF, fun hsub => ?_⟩
   exact map_anbncmdm_not_is_Linear e (hsub (map_anbncmdm_is_CF e))
 
 /-- Linear languages are a strict subclass of context-free languages over any finite alphabet
-with at least four symbols. -/
+with at least 4 elements. -/
 public theorem Linear_strict_subclass_CF_of_card [Fintype T] (hT : 4 ≤ Fintype.card T) :
     (Linear : Set (Language T)) ⊂ (CF : Set (Language T)) :=
   Linear_strict_subclass_CF_of_embedding

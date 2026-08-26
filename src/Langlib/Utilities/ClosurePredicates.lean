@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2026 Langlib Contributors. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Utilities.Homomorphism
 import Mathlib.Algebra.Order.Floor.Extended

@@ -17,8 +17,7 @@ semi-decidable but not decidable.
 ## In Lean
 
 - [`haltingUnaryLanguage_not_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) — a concrete RE language that is not recursive.
-- [`Recursive_strict_subclass_RE_unit`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) — strict inclusion over the unary alphabet.
-- [`Recursive_strict_subclass_RE_of_nonempty`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) — strict inclusion over any nonempty finite alphabet.
+- [`Recursive_strict_subclass_RE_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) — strict inclusion over every finite alphabet with at least 1 element.
 - [`Recursive_subclass_RE_and_exists_strict`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean) — class inclusion plus a strictness witness.
 
 ## Proof idea

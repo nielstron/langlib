@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2024 Tobias Leichtfried. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 Authors: Tobias Leichtfried
 -/
 public import Mathlib.Computability.ContextFreeGrammar
