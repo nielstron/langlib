@@ -11,9 +11,7 @@ project:
     classes; relates finite, pushdown, linearly bounded, and Mathlib TM0
     automata to the corresponding grammar classes; proves strict hierarchy
     inclusions; and establishes closure or non-closure under thirteen operations
-    for seven major classes. This Palomar configuration selects 112
-    equivalence, inclusion, and closure theorems and deliberately excludes the
-    separate decidability development.
+    for seven major classes.
   authors:
     - "Niels Mündler"
     - "Martin Dvořák"
