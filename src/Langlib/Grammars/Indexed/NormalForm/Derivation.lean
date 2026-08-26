@@ -43,7 +43,7 @@ private def sententialNonterminalCount {g : IndexedGrammar T} (w : List g.ISym) 
     (A : g.nt) (σ : List g.flag) (w : List g.ISym) :
     sententialNonterminalCount (ISym.indexed A σ :: w) =
       sententialNonterminalCount w + 1 := by
-  simp [sententialNonterminalCount]
+  exact List.countP_cons_of_pos rfl
 
 /-! ## Counted derivations -/
 

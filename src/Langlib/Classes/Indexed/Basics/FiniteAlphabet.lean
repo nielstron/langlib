@@ -117,6 +117,7 @@ private lemma restrictRhsOfSupported_ne_nil {N F : Type} (S : Finset T)
   exact hne hmap
 
 /-- The same indexed grammar, with terminals restricted to the finite set appearing in rules. -/
+@[reducible]
 def finiteAlphabetGrammar [DecidableEq T] (g : IndexedGrammar T) :
     IndexedGrammar {t : T // t ∈ grammarTerminalSet g} where
   nt := g.nt
@@ -294,7 +295,8 @@ theorem language_supported [DecidableEq T] (g : IndexedGrammar T)
   intro t ht
   have hder : g.Derives [IndexedGrammar.ISym.indexed g.initial []]
       (w.map IndexedGrammar.ISym.terminal) := by
-    simpa [IndexedGrammar.Language, IndexedGrammar.Generates] using hw
+    change g.Generates w at hw
+    exact hw
   have hsupp := derives_supported g hder
   exact hsupp (IndexedGrammar.ISym.terminal t) (List.mem_map.mpr ⟨t, ht, rfl⟩)
 
@@ -403,15 +405,11 @@ private theorem grammar_derives_restrict [DecidableEq T] (g : IndexedGrammar T)
       (restrictStringOfSupported g w₁ h₁)
       (restrictStringOfSupported g w₂ (derives_supported_of_supported g h₁ h)) := by
   induction h with
-  | refl =>
-      convert (Relation.ReflTransGen.refl :
-        (finiteAlphabetGrammar g).Derives
-          (restrictStringOfSupported g w₁ h₁)
-          (restrictStringOfSupported g w₁ h₁)) using 1
+  | refl => exact Relation.ReflTransGen.refl
   | tail hprev hstep ih =>
       let hmid := derives_supported_of_supported g h₁ hprev
       have hstep' := grammar_transforms_restrict g hmid hstep
-      convert ih.tail hstep' using 1
+      exact ih.tail hstep'
 
 /-- Restrict a language to words over a finite terminal set. -/
 def finiteAlphabetRestriction (S : Finset T) (L : Language T) :
@@ -429,8 +427,9 @@ theorem grammar_language_finiteAlphabetGrammar [DecidableEq T] (g : IndexedGramm
       [IndexedGrammar.ISym.indexed g.initial []] (w.map IndexedGrammar.ISym.terminal) at hw
     have hder := finiteAlphabetGrammar_derives_unrestrict g hw
     change (w.map (fun t => t.1)) ∈ g.Language
-    simpa [IndexedGrammar.Language, IndexedGrammar.Generates, finiteAlphabetGrammar,
-      unrestrictISym, List.map_map] using hder
+    change g.Generates (w.map (fun t => t.1))
+    simpa [IndexedGrammar.Generates, finiteAlphabetGrammar, unrestrictISym,
+      List.map_map] using hder
   · intro hw
     change (w.map (fun t => t.1)) ∈ g.Language at hw
     have hstart :
@@ -441,12 +440,14 @@ theorem grammar_language_finiteAlphabetGrammar [DecidableEq T] (g : IndexedGramm
       trivial
     have hder : g.Derives [IndexedGrammar.ISym.indexed g.initial []]
         ((w.map (fun t => t.1)).map IndexedGrammar.ISym.terminal) := by
-      simpa [IndexedGrammar.Language, IndexedGrammar.Generates] using hw
+      change g.Generates (w.map (fun t => t.1)) at hw
+      exact hw
     have hlift := grammar_derives_restrict g hstart hder
     change (finiteAlphabetGrammar g).Derives [IndexedGrammar.ISym.indexed g.initial []]
       (w.map IndexedGrammar.ISym.terminal)
     convert hlift using 1
-    exact (restrictStringOfSupported_terminal_values g w _).symm
+    · simp [restrictStringOfSupported, restrictISymOfSupported]
+    · exact (restrictStringOfSupported_terminal_values g w _).symm
 
 theorem finiteAlphabetRestriction_is_Indexed [DecidableEq T] (g : IndexedGrammar T) :
     is_Indexed (finiteAlphabetRestriction (grammarTerminalSet g) g.Language) :=

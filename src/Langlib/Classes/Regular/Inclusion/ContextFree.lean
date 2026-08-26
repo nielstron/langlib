@@ -62,7 +62,7 @@ noncomputable section
 variable {T : Type}
 
 /-- Convert a right-regular grammar to a context-free grammar. -/
-@[expose]
+@[expose, reducible]
 public def CF_grammar_of_RG (g : RG_grammar T) : CF_grammar T where
   nt := g.nt
   initial := g.initial
@@ -80,9 +80,12 @@ public lemma RG_transforms_of_CF_transforms {g : RG_grammar T}
     (h : CF_transforms (CF_grammar_of_RG g) w₁ w₂) :
     RG_transforms g w₁ w₂ := by
   obtain ⟨r, u, v, hr, hw1, hw2⟩ := h
-  simp only [CF_grammar_of_RG, List.mem_map] at hr
-  obtain ⟨r', hr', rfl⟩ := hr
-  exact ⟨r', hr', u, v, hw1, hw2⟩
+  obtain ⟨r', hr', hrEq⟩ := List.mem_map.mp hr
+  have hL : r'.lhs = r.1 := congrArg Prod.fst hrEq
+  have hO : r'.output = r.2 := congrArg Prod.snd hrEq
+  refine ⟨r', hr', u, v, ?_, ?_⟩
+  · simpa [hL] using hw1
+  · simpa [hO] using hw2
 
 public lemma RG_derives_iff_CF_derives (g : RG_grammar T)
     (w₁ w₂ : List (symbol T g.nt)) :

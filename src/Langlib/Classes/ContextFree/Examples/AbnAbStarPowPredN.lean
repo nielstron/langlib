@@ -23,6 +23,7 @@ public inductive AbnAbStarPowPredNNT where
 deriving DecidableEq
 
 /-- Context-free grammar for `a b^n (a b*)^(n-1)`, `n >= 1`. -/
+@[reducible]
 public def grammarAbnAbStarPowPredN : CF_grammar Bool where
   nt := AbnAbStarPowPredNNT
   initial := .S
@@ -73,7 +74,7 @@ private lemma bGenerateD (n : Nat) :
 private lemma bGenerateC (ns : List Nat) :
     CF_derives BG [bC] ((cWord ns).map symbol.terminal) := by
   induction ns using List.reverseRecOn with
-  | nil => simpa [cWord] using CF_deri_of_tran bStopC
+  | nil => simpa [cWord, varyingBlocks] using CF_deri_of_tran bStopC
   | append_singleton ns q ih =>
       apply CF_deri_of_tran_deri bStepC
       have hc := CF_deri_with_prefix_and_postfix [bb] [ba, bD] ih
@@ -92,8 +93,9 @@ private lemma abnAbStarPowPredN_subset_grammar :
   apply CF_deri_of_tran_deri bStepS
   have hc := CF_deri_with_prefix [ba, bb] (bGenerateC ns)
   convert hc using 1
-  rw [← hlen]
-  simp [cWord, abBlock, List.map_append, replicate_succ]
+  · simp
+  · rw [← hlen]
+    simp [cWord, abBlock, List.map_append, replicate_succ]
 
 /-! ### Compositional soundness for the context-free grammar -/
 

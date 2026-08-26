@@ -121,41 +121,66 @@ private lemma projectAugmentString_eq_map_terminal
 private abbrev anbnFresh : symbol Bool (Option Unit) :=
   symbol.nonterminal none
 
+private lemma anbn_augment_rule_cases
+    {r : cfg_anbn.augment.nt × List (symbol Bool cfg_anbn.augment.nt)}
+    (hr : r ∈ cfg_anbn.augment.rules) :
+    r = (none, [symbol.nonterminal (some ())]) ∨
+      r = (some (),
+        [symbol.terminal false, symbol.nonterminal (some ()), symbol.terminal true]) ∨
+      r = (some (), []) := by
+  change r ∈
+    [(none, [symbol.nonterminal (some ())]),
+      (some (), [symbol.terminal false, symbol.nonterminal (some ()), symbol.terminal true]),
+      (some (), [])] at hr
+  rcases List.mem_cons.mp hr with h | h
+  · exact Or.inl h
+  · rcases List.mem_cons.mp h with h | h
+    · exact Or.inr (Or.inl h)
+    · exact Or.inr (Or.inr (List.mem_singleton.mp h))
+
 /-- The first augmented step consumes the fresh start nonterminal. -/
 private lemma anbn_first_step_no_fresh
     {v : List (symbol Bool (Option Unit))}
     (h : cfg_anbn.augment.ProducesRightmost [anbnFresh] v) :
     anbnFresh ∉ v := by
+  unfold CF_grammar.ProducesRightmost CF_grammar.RewritesRightmost
+    CF_grammar.augment cfg_anbn at h
   rcases h with ⟨r, hr, p, s, hu, hv⟩
-  simp [CF_grammar.augment, CF_grammar.augmentStartRule,
-    CF_grammar.augmentRule, cfg_anbn] at hr
-  rcases hr with rfl | rfl | rfl
+  have hr := anbn_augment_rule_cases hr
+  rcases hr with hr | hr | hr
+  all_goals simp only [hr, Prod.fst, Prod.snd] at hu hv
   · have hl := congrArg List.length hu
-    simp at hl
-    have hp : p = [] := List.eq_nil_of_length_eq_zero (by omega)
+    simp only [List.length_singleton, List.length_append, List.length_map] at hl
+    have hp : p = [] := List.length_eq_zero_iff.mp (by omega)
+    have hs : s = [] := List.length_eq_zero_iff.mp (by omega)
     subst p
-    simp at hu
     subst s
     simp [hv, anbnFresh]
   · have hl := congrArg List.length hu
-    simp at hl
-    have hp : p = [] := List.eq_nil_of_length_eq_zero (by omega)
+    simp only [List.length_singleton, List.length_append, List.length_map] at hl
+    have hp : p = [] := List.length_eq_zero_iff.mp (by omega)
+    have hs : s = [] := List.length_eq_zero_iff.mp (by omega)
     subst p
+    subst s
     simp at hu
   · have hl := congrArg List.length hu
-    simp at hl
-    have hp : p = [] := List.eq_nil_of_length_eq_zero (by omega)
+    simp only [List.length_singleton, List.length_append, List.length_map] at hl
+    have hp : p = [] := List.length_eq_zero_iff.mp (by omega)
+    have hs : s = [] := List.length_eq_zero_iff.mp (by omega)
     subst p
+    subst s
     simp at hu
 
 /-- Once the fresh start has been consumed, no augmented rule can reintroduce it. -/
 private lemma anbn_step_no_fresh
     {u v : List (symbol Bool (Option Unit))} (hu : anbnFresh ∉ u)
     (h : cfg_anbn.augment.ProducesRightmost u v) : anbnFresh ∉ v := by
+  unfold CF_grammar.ProducesRightmost CF_grammar.RewritesRightmost
+    CF_grammar.augment cfg_anbn at h
   rcases h with ⟨r, hr, p, s, hsrc, hv⟩
-  simp [CF_grammar.augment, CF_grammar.augmentStartRule,
-    CF_grammar.augmentRule, cfg_anbn] at hr
-  rcases hr with rfl | rfl | rfl
+  have hr := anbn_augment_rule_cases hr
+  rcases hr with hr | hr | hr
+  all_goals simp only [hr, Prod.fst, Prod.snd] at hsrc hv
   · exfalso
     apply hu
     rw [hsrc]
@@ -169,9 +194,11 @@ private lemma anbn_step_no_fresh
   · intro hf
     rw [hv] at hf
     simp [anbnFresh] at hf
-    apply hu
-    rw [hsrc]
-    simp [anbnFresh, hf]
+    rcases List.mem_append.mp hf with hfp | hnil
+    · apply hu
+      rw [hsrc]
+      simp [anbnFresh, hfp]
+    · exact (List.not_mem_nil hnil).elim
 
 /-- A reachable augmented form is either the untouched fresh start or contains
 no occurrence of it. -/
@@ -194,15 +221,22 @@ private lemma anbn_fresh_config
       (p ++ [anbnFresh] ++ s.map symbol.terminal)) :
     p = [] ∧ s = [] := by
   rcases anbn_reachable_fresh_cases h with heq | hn
-  · have hl := congrArg List.length heq
-    simp at hl
+  · have hl : p.length + 1 + s.length = 1 := by
+      have hl' := congrArg List.length heq
+      change (p ++ [anbnFresh] ++ s.map symbol.terminal).length = 1 at hl'
+      rw [List.length_append, List.length_append, List.length_singleton,
+        List.length_map] at hl'
+      exact hl'
     have hp : p = [] := List.eq_nil_of_length_eq_zero (by omega)
     subst p
-    simp at heq
-    exact ⟨rfl, heq⟩
+    have hslen : s.length = 0 := by omega
+    exact ⟨rfl, List.length_eq_zero_iff.mp hslen⟩
   · exfalso
-    apply hn
-    simp [anbnFresh]
+    have hfresh : anbnFresh ∈ p ++ [anbnFresh] ++ s.map symbol.terminal := by
+      apply List.mem_append_left
+      apply List.mem_append_right
+      simp
+    exact hn hfresh
 
 /-- Projecting an augmented original-start configuration recovers the existing
 rightmost-form classification for `cfg_anbn`. -/
@@ -217,8 +251,22 @@ private lemma anbn_augmented_config
       cfg_anbn.DerivesRightmost [symbol.nonterminal cfg_anbn.initial]
         (cfg_anbn.projectAugmentString p ++ [symbol.nonterminal ()] ++
           s.map symbol.terminal) := by
-    simpa [anbnFresh, CF_grammar.projectAugmentString,
-      CF_grammar.projectAugmentSymbol, List.map_append] using hproject
+    convert hproject using 1
+    · rfl
+    · symm
+      calc
+        cfg_anbn.projectAugmentString
+              (p ++ [symbol.nonterminal (some ())] ++ s.map symbol.terminal) =
+            cfg_anbn.projectAugmentString (p ++ [symbol.nonterminal (some ())]) ++
+              cfg_anbn.projectAugmentString (s.map symbol.terminal) :=
+          cfg_anbn.projectAugmentString_append _ _
+        _ = (cfg_anbn.projectAugmentString p ++
+              cfg_anbn.projectAugmentString [symbol.nonterminal (some ())]) ++
+              s.map symbol.terminal := by
+          rw [cfg_anbn.projectAugmentString_append,
+            cfg_anbn.projectAugmentString_map_terminal]
+        _ = cfg_anbn.projectAugmentString p ++ [symbol.nonterminal ()] ++
+              s.map symbol.terminal := by rfl
   obtain ⟨n, hp, hs⟩ := anbn_rm_config hproject'
   exact ⟨n, projectAugmentString_eq_map_terminal hp, hs⟩
 
@@ -269,30 +317,39 @@ private lemma anbn_recursive_prefix_unique {n m : ℕ} {y : List Bool}
 /-- The grammar `cfg_anbn` is LR(1). -/
 public theorem cfg_anbn_isLRk_one : cfg_anbn.IsLRk 1 := by
   change cfg_anbn.augment.CoreIsLRk 1
+  unfold CF_grammar.augment cfg_anbn
   intro r₁ r₂ hr₁ hr₂ p₁ p₂ s₁ s₂ y hd₁ hd₂ hform hlook
-  simp [CF_grammar.augment, CF_grammar.augmentStartRule,
-    CF_grammar.augmentRule, cfg_anbn] at hr₁ hr₂
-  rcases hr₁ with rfl | rfl | rfl <;> rcases hr₂ with rfl | rfl | rfl
+  have hr₁ := anbn_augment_rule_cases hr₁
+  have hr₂ := anbn_augment_rule_cases hr₂
+  rcases hr₁ with hr₁ | hr₁ | hr₁ <;> rcases hr₂ with hr₂ | hr₂ | hr₂
+  all_goals simp only [hr₁, hr₂, Prod.fst, Prod.snd] at hd₁ hd₂ hform
   · obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₁
     obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₂
-    exact ⟨rfl, rfl⟩
+    exact ⟨rfl, hr₁.trans hr₂.symm⟩
   · obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
     simp only [List.nil_append] at hform
-    cases n₂ <;> simp [replicate_succ] at hform
+    cases n₂ <;> simp [replicate_succ, Function.id_def] at hform
   · obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
     simp only [List.nil_append, List.append_nil] at hform
-    cases n₂ <;> simp [replicate_succ] at hform
+    cases n₂
+    · change
+        (replicate 0 false).map (symbol.terminal (N := Option Unit)) ++
+            ([] : List (symbol Bool (Option Unit))) ++
+            (replicate 0 true).map symbol.terminal =
+          [symbol.nonterminal (some ())] ++ y.map symbol.terminal at hform
+      simp at hform
+    · simp [replicate_succ] at hform
   · obtain ⟨n₁, rfl, rfl⟩ := anbn_augmented_config hd₁
     obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₂
     simp only [List.nil_append] at hform
-    cases n₁ <;> simp [replicate_succ] at hform
+    cases n₁ <;> simp [replicate_succ, Function.id_def] at hform
   · obtain ⟨n₁, rfl, rfl⟩ := anbn_augmented_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
     have hn := anbn_recursive_prefix_unique hform
     subst n₂
-    exact ⟨rfl, rfl⟩
+    exact ⟨rfl, hr₁.trans hr₂.symm⟩
   · obtain ⟨n₁, rfl, rfl⟩ := anbn_augmented_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
     have hmem : symbol.nonterminal (some ()) ∈
@@ -301,20 +358,31 @@ public theorem cfg_anbn_isLRk_one : cfg_anbn.IsLRk 1 := by
           y.map symbol.terminal := by simp
     rw [← hform] at hmem
     simp at hmem
+    rcases List.mem_append.mp hmem with hmem | hmem
+    · simp at hmem
+    · exact (List.not_mem_nil hmem).elim
   · obtain ⟨n₁, rfl, rfl⟩ := anbn_augmented_config hd₁
     obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₂
-    simp only [List.nil_append, List.append_nil] at hform
+    change
+      ([symbol.nonterminal (some ())] : List (symbol Bool (Option Unit))) ++
+          [].map symbol.terminal =
+        (replicate n₁ false).map symbol.terminal ++ [] ++
+          y.map symbol.terminal at hform
+    simp only [List.map_nil, List.nil_append, List.append_nil] at hform
     have hmem :
         (symbol.nonterminal (T := Bool) (some ()) : symbol Bool (Option Unit)) ∈
           [symbol.nonterminal (some ())] := by simp
-    have hform' :
-        ([symbol.nonterminal (some ())] : List (symbol Bool (Option Unit))) =
-          (replicate n₁ false).map symbol.terminal ++ y.map symbol.terminal := by
-      simpa using hform
-    rw [hform'] at hmem
+    rw [hform] at hmem
     simp at hmem
   · obtain ⟨n₁, rfl, rfl⟩ := anbn_augmented_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
+    change
+      (replicate n₂ false).map (symbol.terminal (N := Option Unit)) ++
+          [symbol.terminal false, symbol.nonterminal (some ()), symbol.terminal true] ++
+          (replicate n₂ true).map symbol.terminal =
+        (replicate n₁ false).map symbol.terminal ++ [] ++
+          y.map symbol.terminal at hform
+    simp only [List.nil_append, List.append_nil] at hform
     have hmem : symbol.nonterminal (some ()) ∈
         (replicate n₂ false).map (symbol.terminal (N := Option Unit)) ++
           [symbol.terminal false, symbol.nonterminal (some ()), symbol.terminal true] ++
@@ -323,17 +391,23 @@ public theorem cfg_anbn_isLRk_one : cfg_anbn.IsLRk 1 := by
     simp at hmem
   · obtain ⟨n₁, rfl, rfl⟩ := anbn_augmented_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
+    change
+      (replicate n₂ false).map (symbol.terminal (N := Option Unit)) ++ [] ++
+          (replicate n₂ true).map symbol.terminal =
+        (replicate n₁ false).map symbol.terminal ++ [] ++
+          y.map symbol.terminal at hform
+    simp only [List.nil_append, List.append_nil] at hform
     have hwords : replicate n₂ false ++ replicate n₂ true =
         replicate n₁ false ++ y := by
       have hmap :
           (replicate n₂ false ++ replicate n₂ true).map
               (symbol.terminal (N := Option Unit)) =
             (replicate n₁ false ++ y).map symbol.terminal := by
-        simpa [List.map_append] using hform
+        simpa only [List.map_append] using hform
       exact List.map_injective_iff.mpr (by aesop_cat) hmap
     have hn := anbn_boundary_unique hwords (by simpa [CF_grammar.lrLookahead] using hlook)
     subst n₂
-    exact ⟨rfl, rfl⟩
+    exact ⟨rfl, hr₁.trans hr₂.symm⟩
 
 /-- The language `{aⁿbⁿ}` is generated by an LR(1) grammar. -/
 public theorem anbn_is_LRk_one : is_LRk 1 anbn :=

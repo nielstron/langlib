@@ -160,7 +160,8 @@ public lemma match_in_block {N : Type} {r₀ : grule T N}
       intro s hs; replace hu' := congr_arg ( fun l => s ∈ l ) hu'; simp_all +decide [ List.mem_append, List.mem_map ] ;
       exact hu'.imp fun x hx => hx.2;
     use [], x, u₁, v₁; simp_all +decide [  ] ;
-    exact List.map_injective_iff.mpr ( wrap_sym_injective ) <| by simpa using hu';
+    exact List.map_injective_iff.mpr ( wrap_sym_injective ) <| by
+      simpa [wrap_sym] using hu';
   · by_cases hx : x = [] <;> simp_all +decide [  ];
     grind
 

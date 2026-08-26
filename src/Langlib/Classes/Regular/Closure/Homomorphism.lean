@@ -156,12 +156,12 @@ public theorem isRegular_epsilon : ({[]} : Language γ).IsRegular := by
   use inferInstance;
   fconstructor;
   exact ⟨ fun _ _ => 1, 0, { 0 } ⟩;
-  ext ( _ | w ) <;> simp +decide [ DFA.accepts ];
-  · exact (iff_true_right rfl).mpr rfl;
-  · simp +decide [ DFA.acceptsFrom ];
-    induction ‹List γ› <;> simp_all +decide [ DFA.evalFrom ];
-    · grind +revert;
-    · grind
+  ext w
+  change (List.foldl (fun _ _ => (1 : Fin 2)) 0 w = 0) ↔ w = []
+  have sink : ∀ xs : List γ, List.foldl (fun _ _ => (1 : Fin 2)) 1 xs = 1 := by
+    intro xs
+    induction xs <;> simp_all
+  cases w <;> simp [sink]
 
 /-
 The language `{[a]}` (containing only the single-letter word) is regular.
@@ -172,14 +172,19 @@ public theorem isRegular_singleton_letter (a : γ) : ({[a]} : Language γ).IsReg
   case w => exact Fin 3;
   exact inferInstance;
   refine' { start := 0, step := fun q x => if q = 0 ∧ x = a then 1 else 2, accept := { 1 } };
-  ext w; simp [DFA.accepts];
-  rcases w with ( _ | ⟨ x, _ | ⟨ y, w ⟩ ⟩ ) <;> simp_all +decide [ DFA.acceptsFrom ];
-  · simp +decide [ DFA.evalFrom ];
-    grind +extAll;
-  · grind +suggestions;
-  · induction w <;> simp_all +decide [ DFA.evalFrom ];
-    · grind;
-    · grind
+  ext w
+  change
+    (List.foldl (fun q x => if q = 0 ∧ x = a then (1 : Fin 3) else 2) 0 w = 1) ↔
+      w = [a]
+  have sink : ∀ xs : List γ,
+      List.foldl (fun q x => if q = 0 ∧ x = a then (1 : Fin 3) else 2) 2 xs = 2 := by
+    intro xs
+    induction xs <;> simp_all
+  rcases w with _ | ⟨x, xs⟩
+  · simp
+  · rcases xs with _ | ⟨y, ys⟩
+    · simp
+    · by_cases hx : x = a <;> simp [hx, sink]
 
 /-
 The singleton set `{a :: w}` equals the concatenation `{[a]} * {w}`.

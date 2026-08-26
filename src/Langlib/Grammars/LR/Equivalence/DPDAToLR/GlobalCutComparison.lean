@@ -270,9 +270,7 @@ private theorem useful_simulation_precedes_final (M : DPDA Q T S)
   · exact hsimFinal
   · rcases Relation.reflTransGen_iff_eq_or_transGen.mp hfinalSim with
         heq | hstrict
-    · simpa [heq] using
-        (Relation.ReflTransGen.refl : M.firstFinal.toPDA.Reaches
-          ⟨p, [], delta⟩ ⟨p, [], delta⟩)
+    · rw [← heq]
     · rcases emptyStack_simulation_reaches_classify M huseful with
           ⟨next, output, result, hend, hproject⟩ |
           ⟨hend, next, output, result, hnextFinal, hproject⟩

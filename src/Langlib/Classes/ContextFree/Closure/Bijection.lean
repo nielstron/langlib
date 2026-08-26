@@ -102,7 +102,10 @@ private lemma mem_prod_decodeSingletonMap_iff {f : T₁ → T₂} (hf : Function
           apply hf
           simpa using Classical.choose_spec hx
         have hu₁' : u₁ = [x] := by
-          simpa [decodeSingletonMap, hx, hchoose] using hu₁
+          have hdecode : decodeSingletonMap f (f x) = ({[x]} : Language T₁) := by
+            simp [decodeSingletonMap, hx, hchoose]
+          rw [hdecode] at hu₁
+          exact Set.mem_singleton_iff.mp hu₁
         have hu₂' := (mem_prod_decodeSingletonMap_iff hf xs u₂).1 hu₂
         simp [hu₁', hu₂']
       · intro hu

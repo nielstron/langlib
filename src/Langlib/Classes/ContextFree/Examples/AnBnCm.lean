@@ -243,11 +243,11 @@ public lemma CF_lang_aux_ab : is_CF lang_aux_ab := by
     clear hw
     induction n with
     | zero =>
-      convert_to CF_derives g [symbol.nonterminal g.initial] []
-      apply CF_deri_of_tran
-      use (S_, ([] : List (symbol (Fin 3) (Fin 1))))
-      refine ⟨[], [], ?_, rfl, rfl⟩
-      simp [g]
+      have hstep : CF_transforms g [symbol.nonterminal g.initial] [] := by
+        use (S_, ([] : List (symbol (Fin 3) (Fin 1))))
+        refine ⟨[], [], ?_, rfl, rfl⟩
+        simp [g]
+      simpa using CF_deri_of_tran hstep
     | succ n ih =>
       convert_to
         CF_derives g

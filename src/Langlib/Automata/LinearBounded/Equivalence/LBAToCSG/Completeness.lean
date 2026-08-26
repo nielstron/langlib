@@ -32,6 +32,12 @@ in `LBAToCSG/Soundness.lean`).
 
 namespace MyhillConstruction
 
+-- Lean 4.33 no longer unfolds the result structures of these constructions
+-- when checking dependent grammar-symbol and tape-head types.  Keep the
+-- compatibility workaround local to the proof file.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] myhillGrammar DLBA.BoundedTape.write DLBA.BoundedTape.moveHead
+
 variable {T Γ Λ : Type} {n : ℕ}
 
 /-- Encoding of an LBA configuration as a Myhill sentential form: one `cell` per tape
@@ -265,7 +271,9 @@ theorem preRow (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (mids : List T)
       (symbol.nonterminal MyhillNT.startAux ::
         mids.map (fun t => cellSym false false none (embed t) t) ++ tail) := by
   induction mids with
-  | nil => simpa using Relation.ReflTransGen.refl
+  | nil =>
+      change Relation.ReflTransGen (CS_transforms (myhillGrammar M embed)) _ _
+      exact Relation.ReflTransGen.refl
   | cons t ts ih =>
       refine Relation.ReflTransGen.tail ih ?_
       exact ⟨⟨[], MyhillNT.startAux, [],
@@ -468,14 +476,13 @@ theorem encode_right_interior (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ 
           (cellSym false (decide (cfg.tape.head.val + 1 = n)) (some q')
             (cfg.tape.contents ⟨cfg.tape.head.val + 1, by omega⟩)
             (worig ⟨cfg.tape.head.val + 1, by omega⟩)) := by
-  have hwh : (cfg.tape.write a').head = cfg.tape.head := rfl
   have hheadeq : ((cfg.tape.write a').moveHead DLBA.Dir.right).head
       = (⟨cfg.tape.head.val + 1, by omega⟩ : Fin (n + 1)) := by
     apply Fin.ext
-    rw [moveHead_right_head_lt (cfg.tape.write a') (by rw [hwh]; exact hlt), hwh]
+    simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hlt]
   have hcont : ((cfg.tape.write a').moveHead DLBA.Dir.right).contents
       = Function.update cfg.tape.contents cfg.tape.head a' := by
-    rw [moveHead_contents]; rfl
+    rw [moveHead_contents]
   apply List.ext_getElem
   · simp
   · intro i hi1 _
@@ -503,16 +510,13 @@ theorem encode_left_interior (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n
           (cellSym (decide (m = 0)) false (some q')
             (cfg.tape.contents ⟨m, by omega⟩) (worig ⟨m, by omega⟩)) := by
   have hle : cfg.tape.head.val < n + 1 := cfg.tape.head.isLt
-  have hwh : (cfg.tape.write a').head = cfg.tape.head := rfl
   have hheadeq : ((cfg.tape.write a').moveHead DLBA.Dir.left).head
       = (⟨m, by omega⟩ : Fin (n + 1)) := by
     apply Fin.ext
-    show ((cfg.tape.write a').moveHead DLBA.Dir.left).head.val = m
-    rw [moveHead_left_head_pos (cfg.tape.write a') (by rw [hwh]; omega), hwh]
-    omega
+    simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hm]
   have hcont : ((cfg.tape.write a').moveHead DLBA.Dir.left).contents
       = Function.update cfg.tape.contents cfg.tape.head a' := by
-    rw [moveHead_contents]; rfl
+    rw [moveHead_contents]
   apply List.ext_getElem
   · simp
   · intro i hi1 _

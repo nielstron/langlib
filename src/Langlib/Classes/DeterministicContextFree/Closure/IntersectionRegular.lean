@@ -249,9 +249,15 @@ public theorem productDFA_correct (M : DPDA Q T S) (D : DFA T σ) :
   · intro hw;
     obtain ⟨q', γ', hq', hw'⟩ := hw.left;
     obtain ⟨s', hs'⟩ := productDFA_reaches_lift M D M.toPDA.initial_state D.start w [M.toPDA.start_symbol] q' [] hq' hw';
-    obtain ⟨consumed, hconsumed⟩ := productDFA_reaches_dfa_state M D M.toPDA.initial_state D.start w [M.toPDA.start_symbol] q' s' [] hq' hs';
+    obtain ⟨consumed, hwconsumed, hsconsumed⟩ :=
+      productDFA_reaches_dfa_state M D M.toPDA.initial_state D.start w
+        [M.toPDA.start_symbol] q' s' [] hq' hs';
+    have hcw : consumed = w := by simpa using hwconsumed.symm
+    have hs'eval : s' = D.eval w := by
+      simpa [DFA.eval, DFA.evalFrom, hcw] using hsconsumed
+    have haccept : D.eval w ∈ D.accept := (D.mem_accepts).mp hw.2
     use (q', s');
-    exact ⟨ ⟨ γ', by simpa [ hconsumed ] using hw.2 ⟩, _, hs' ⟩
+    exact ⟨⟨γ', by simpa [hs'eval] using haccept⟩, _, hs'⟩
 
 end DPDA
 

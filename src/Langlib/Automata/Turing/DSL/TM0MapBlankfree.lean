@@ -51,7 +51,7 @@ input block and rewinds to the left edge.
   blank-free list, producing `Tape.mk₁ (l.map f)` as the output tape.
 -/
 
-open Turing
+open StateTransition Turing
 
 namespace TM0BB
 
@@ -66,6 +66,8 @@ inductive MState where
   deriving DecidableEq, Repr
 
 instance : Inhabited MState := ⟨MState.start⟩
+
+@[simp] private theorem default_mstate : (default : MState) = MState.start := rfl
 
 instance : Fintype MState where
   elems := {MState.start, MState.readNext, MState.advance, MState.rewind, MState.done}
@@ -158,20 +160,41 @@ theorem forward_phase_cons {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (mapM f)) (TM0.init (a :: rest))
       ⟨MState.readNext,
        Tape.mk' (ListBlank.mk ((a :: rest).map f).reverse) (ListBlank.mk [])⟩ := by
-  unfold Reaches at *; simp_all +decide ;
-  -- Apply the `readNext_process_one` lemma repeatedly to process each element in `rest`.
-  have h_process_rest : ∀ (rest : List Γ), (∀ x ∈ rest, x ≠ default) → ∀ (l : List Γ), Relation.ReflTransGen (fun a b => TM0.step (mapM f) a = some b) ⟨MState.readNext, ⟨rest.headI, ListBlank.mk l, ListBlank.mk rest.tail⟩⟩ ⟨MState.readNext, ⟨List.headI [], ListBlank.mk (List.reverse (List.map f rest) ++ l), ListBlank.mk []⟩⟩ := by
-    intro rest hrest l; induction' rest with x rest ih generalizing l <;> simp_all +decide [ List.map ] ;
-    · rfl;
-    · have := readNext_process_one f x hrest.1 ( ListBlank.mk l ) ( ListBlank.mk rest ) ; simp_all +decide [ ListBlank.mk ] ;
-      convert this.trans ( ih _ ) using 1;
-  convert Relation.ReflTransGen.trans _ ( h_process_rest rest hrest [ f a ] ) using 1;
-  convert Relation.ReflTransGen.head _ _ using 1;
-  exact ⟨ MState.advance, ⟨ f a, ListBlank.mk [], ListBlank.mk rest ⟩ ⟩;
-  · simp +decide [ TM0.step, TM0.init, mapM ];
-    exact ⟨ ha, rfl ⟩;
-  · convert Relation.ReflTransGen.single _ using 1;
-    cases rest <;> aesop
+  simp only [StateTransition.Reaches, Option.mem_def]
+  -- Apply the `readNext_process_one` lemma repeatedly to process `rest`.
+  have h_process_rest : ∀ (xs : List Γ), (∀ x ∈ xs, x ≠ default) → ∀ (l : List Γ),
+      Relation.ReflTransGen (fun c c' => TM0.step (mapM f) c = some c')
+        ⟨MState.readNext, ⟨xs.headI, ListBlank.mk l, ListBlank.mk xs.tail⟩⟩
+        ⟨MState.readNext,
+          ⟨default, ListBlank.mk ((xs.map f).reverse ++ l), ListBlank.mk []⟩⟩ := by
+    intro xs hxs l
+    induction xs generalizing l with
+    | nil => rfl
+    | cons x xs ih =>
+      have hone := readNext_process_one f x (hxs x (by simp))
+        (ListBlank.mk l) (ListBlank.mk xs)
+      simp only [StateTransition.Reaches, Option.mem_def] at hone
+      have htail := ih (fun y hy => hxs y (by simp [hy])) (f x :: l)
+      simpa [ListBlank.mk, List.map, List.reverse_cons, List.reverse_append] using
+        hone.trans htail
+  let cfgAdvance : TM0.Cfg Γ MState :=
+    ⟨MState.advance, ⟨f a, ListBlank.mk [], ListBlank.mk rest⟩⟩
+  let cfgReadNext : TM0.Cfg Γ MState :=
+    ⟨MState.readNext, ⟨rest.headI, ListBlank.mk [f a], ListBlank.mk rest.tail⟩⟩
+  have hstart : TM0.step (mapM f) (TM0.init (a :: rest)) = some cfgAdvance := by
+    simp [cfgAdvance, TM0.step, TM0.init, mapM, default_mstate, ha, Tape.mk₁, Tape.mk₂, Tape.mk',
+      ListBlank.head_mk, ListBlank.tail_mk]
+  have hadvance : TM0.step (mapM f) cfgAdvance = some cfgReadNext := by
+    simp only [cfgAdvance, cfgReadNext, TM0.step, mapM, Tape.move, Option.map_some,
+      ListBlank.head_mk, ListBlank.tail_mk, ListBlank.cons_mk]
+  have hrun : Relation.ReflTransGen (fun c c' => TM0.step (mapM f) c = some c')
+      (TM0.init (a :: rest)) cfgReadNext :=
+    (Relation.ReflTransGen.single
+      (r := fun c c' => TM0.step (mapM f) c = some c') hstart).tail hadvance
+  have htail := h_process_rest rest hrest [f a]
+  simpa [cfgReadNext, Tape.mk', List.map, List.reverse_cons,
+    ListBlank.head_mk, ListBlank.tail_mk] using
+    hrun.trans htail
 
 /-! ### ListBlank helpers -/
 
@@ -198,6 +221,7 @@ theorem rewind_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (mapM f))
       ⟨MState.rewind, ⟨L.headI, ListBlank.mk L.tail, ListBlank.mk acc⟩⟩
       ⟨MState.rewind, ⟨default, ListBlank.mk [], ListBlank.mk (L.reverse ++ acc)⟩⟩ := by
+  simp only [StateTransition.Reaches, Option.mem_def]
   induction' L with a L ih generalizing acc;
   · constructor;
   · simp +zetaDelta at *;
@@ -221,9 +245,8 @@ theorem rewind_phase {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     ext i; simp [ListBlank.mk];
     cases i <;> simp +decide [ ListBlank.nth ];
   have phase1 : TM0.step (mapM f) ⟨MState.readNext, ⟨default, ListBlank.mk rev_list, ListBlank.mk []⟩⟩ = some ⟨MState.rewind, ⟨rev_list.headI, ListBlank.mk rev_list.tail, ListBlank.mk []⟩⟩ := by
-    simp +decide [ TM0.step ];
-    unfold Tape.move; simp +decide [ ListBlank.mk ] ;
-    exact ⟨ rfl, rfl, listBlank_cons_default_nil ⟩;
+    simp [TM0.step, mapM, Tape.move, ListBlank.head_mk, ListBlank.tail_mk]
+    simpa only [ListBlank.cons_mk] using (listBlank_cons_default_nil (Γ := Γ))
   have phase2 : Reaches (TM0.step (mapM f)) ⟨MState.rewind, ⟨rev_list.headI, ListBlank.mk rev_list.tail, ListBlank.mk []⟩⟩ ⟨MState.rewind, ⟨default, ListBlank.mk [], ListBlank.mk rev_list.reverse⟩⟩ := by
     convert rewind_loop f rev_list hm [] using 1;
     simp +decide [ ListBlank.mk ];

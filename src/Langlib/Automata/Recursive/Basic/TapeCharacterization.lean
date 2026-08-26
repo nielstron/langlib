@@ -1,6 +1,6 @@
 module
 
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 public import Mathlib.Computability.Language
 @[expose]
 public section
@@ -19,7 +19,7 @@ The tape convention matches `is_Recursive` / `is_TM`: the tape alphabet is
 input word `w : List T` written as `w.map (fun t => some (Sum.inl t))`.
 -/
 
-open Turing
+open Turing StateTransition
 
 variable {T : Type}
 
@@ -31,10 +31,10 @@ public def is_Recursive_byTape (L : Language T) : Prop :=
     (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
     (M : TM0.Machine (Option (T ⊕ Γ)) Λ) (acceptSym : Option (T ⊕ Γ)),
     (∀ w : List T,
-      (Turing.eval (TM0.step M) (TM0.init (w.map fun t => some (Sum.inl t)))).Dom) ∧
+      (StateTransition.eval (TM0.step M) (TM0.init (w.map fun t => some (Sum.inl t)))).Dom) ∧
     (∀ w : List T,
-      ∀ h : (Turing.eval (TM0.step M)
+      ∀ h : (StateTransition.eval (TM0.step M)
           (TM0.init (w.map fun t => some (Sum.inl t)))).Dom,
         w ∈ L ↔
-          ((Turing.eval (TM0.step M)
+          ((StateTransition.eval (TM0.step M)
             (TM0.init (w.map fun t => some (Sum.inl t)))).get h).Tape.head = acceptSym)

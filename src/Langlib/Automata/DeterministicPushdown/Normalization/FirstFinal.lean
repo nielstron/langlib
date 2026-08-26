@@ -167,6 +167,7 @@ public theorem firstFinalLift_step (M : DPDA Q T S) (seen : Bool)
               refine ⟨seen || decide (q ∈ M.final_states), ?_, ?_⟩
               · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, firstFinal,
                   firstFinalLift, hM]
+                exact Set.mem_singleton _
               · simp [Bool.or_eq_true]
   | cons a restInput =>
       cases stack with
@@ -265,7 +266,7 @@ public theorem firstFinal_acceptsByFinalState (M : DPDA Q T S) :
     · refine ⟨(q, false), ?_, γ, ?_⟩
       · change false = false ∧ q ∈ M.final_states
         exact ⟨rfl, by simpa [DPDA.toPDA] using hq⟩
-      · simpa [hSeen] using hlift
+      · simpa [hSeen, DPDA.toPDA, firstFinalLift, firstFinal] using hlift
     · obtain ⟨e, hereach, heinput, hefinal⟩ := hseen hSeen
       rcases e with ⟨qe, einput, estack⟩
       simp only at heinput

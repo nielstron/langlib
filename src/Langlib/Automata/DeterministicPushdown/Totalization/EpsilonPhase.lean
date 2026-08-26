@@ -272,15 +272,16 @@ public theorem epsilonStep_of_toPDA_empty_step {M : DPDA Q T S} {q p : Q} {γ γ
   | nil => simp [PDA.Reaches₁, PDA.step] at h
   | cons Z rest =>
       simp [PDA.Reaches₁, PDA.step, DPDA.toPDA] at h
-      obtain ⟨β, hβ, rfl⟩ := h
+      obtain ⟨r, δ, hmem, hcfg⟩ := h
+      obtain ⟨rfl, _, rfl⟩ := PDA.conf.mk.inj hcfg
       cases hε : M.epsilon_transition q Z with
       | none =>
-          simp [hε] at hβ
+          simp [hε] at hmem
       | some out =>
           rcases out with ⟨r, δ⟩
-          simp [hε] at hβ
-          rcases hβ with ⟨rfl, hβ⟩
-          subst β
+          simp [hε] at hmem
+          rcases hmem with ⟨rfl, hδ⟩
+          subst δ
           exact ⟨δ, hε, rfl⟩
 
 public theorem epsilonReaches_of_toPDA_empty_reaches {M : DPDA Q T S} {q p : Q} {γ γ' : List S}
@@ -327,18 +328,21 @@ public theorem stable_reaches_nonempty_decompose {M : DPDA Q T S}
       rw [← PDA.reaches₁_iff_reachesIn_one] at hone
       rcases c with ⟨r, input', stack'⟩
       simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hstable] at hone
-      obtain ⟨β, hβ, rfl, rfl⟩ := hone
-      cases hδ : M.transition q a Z with
-      | none =>
-          simp [hδ] at hβ
-      | some out =>
-          rcases out with ⟨p, δ⟩
-          simp [hδ] at hβ
-          rcases hβ with ⟨hr, hstack⟩
-          subst r
-          subst β
-          refine ⟨p, δ, rfl, ?_⟩
-          exact PDA.reaches_of_reachesIn hrest
+      rcases hone with hread | hempty
+      · obtain ⟨p', β, hβ, hcfg⟩ := hread
+        obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hcfg
+        cases hδ : M.transition q a Z with
+        | none =>
+            simp [hδ] at hβ
+        | some out =>
+            rcases out with ⟨p, δ⟩
+            simp [hδ] at hβ
+            rcases hβ with ⟨hr, hstack⟩
+            subst r
+            subst β
+            refine ⟨p, δ, rfl, ?_⟩
+            exact PDA.reaches_of_reachesIn hrest
+      · exact hempty.elim
 
 public theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
     {c c' : EpsilonConf Q S} {qf : Q} {a : T} {w : List T} {γf : List S}
@@ -367,10 +371,11 @@ public theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
           have hno : M.transition q a Z = none :=
             M.no_mixed q Z (by simp [hε]) a
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hno] at hone
-          rcases hone with ⟨hr, hinput, hstack⟩
-          subst input'
-          subst stack'
-          simpa [hr] using PDA.reaches_of_reachesIn hrest
+          rcases hone with hempty | hone
+          · exact hempty.elim
+          have hcfg := Set.mem_singleton_iff.mp hone
+          obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hcfg
+          exact PDA.reaches_of_reachesIn hrest
 
 public theorem toPDA_reaches_suffix_of_epsilonReaches_nonempty {M : DPDA Q T S}
     {c c' : EpsilonConf Q S} {qf : Q} {a : T} {w : List T} {γf : List S}
@@ -413,14 +418,12 @@ public theorem epsilonStopsAt_of_toPDA_reaches_nonempty {M : DPDA Q T S}
               have hno : M.transition q a Z = none :=
                 M.no_mixed q Z (by simp [hε]) a
               simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hno] at hone
-              rcases hone with ⟨hr, hinput, hstack⟩
-              subst input'
-              subst stack'
-              have hεr : M.epsilon_transition q Z = some (r, β) := by
-                rw [hr]
-                exact hε
+              rcases hone with hempty | hone
+              · exact hempty.elim
+              have hcfg := Set.mem_singleton_iff.mp hone
+              obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hcfg
               have hstep : M.EpsilonStep (q, Z :: γ) (r, β ++ γ) :=
-                ⟨β, hεr, rfl⟩
+                ⟨β, hε, rfl⟩
               exact epsilonStopsAt_of_step hstep (ih hrest)
 
 end DPDA

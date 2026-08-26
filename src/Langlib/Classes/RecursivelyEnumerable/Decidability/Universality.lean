@@ -73,7 +73,7 @@ theorem RE_universality_undecidable :
   intro h
   have rice := ComputablePred.rice {f : ℕ →. ℕ | ∀ n, (f n).Dom}
   have h1 : ComputablePred (fun c : Code => c.eval ∈ {f : ℕ →. ℕ | ∀ n, (f n).Dom}) := by
-    convert h using 1
+    simpa only [Set.mem_ofPred_eq] using h
   -- The everywhere-undefined function is NOT total
   have none_not_total :
       (fun (_ : ℕ) => (Part.none : Part ℕ)) ∉ {f : ℕ →. ℕ | ∀ n, (f n).Dom} :=

@@ -315,7 +315,9 @@ public lemma splitAt_add : ∀ (i d : ℕ) {B : g.nt} {w : List T} (s : Spine g 
             splitAt_cons_succ_inner]
           refine ⟨ihC, ?_, ?_⟩
           · rw [ihu, List.append_assoc]
+            rfl
           · rw [ihy, List.append_assoc]
+            rfl
 
 /-- The root nonterminal of any spine is the input nonterminal of one of its rules. -/
 public lemma root_mem {B : g.nt} {w : List T} (s : Spine g B w) :

@@ -57,6 +57,7 @@ namespace ChomskyNormalFormGrammar
 variable [DecidableEq T]
 
 /-- Translation of `ChomskyNormalFormGrammar` to `ContextFreeGrammar` -/
+@[reducible]
 noncomputable def toCFG (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT] :
     ContextFreeGrammar T where
   NT := g.NT
@@ -113,10 +114,17 @@ variable {T : Type}
 
 /-- Translation of `ContextFreeGrammar` to `ChomskyNormalFormGrammar`, composing the individual
  translation passes -/
-@[expose]
+@[expose, reducible]
 public noncomputable def toCNF [DecidableEq T] (g : ContextFreeGrammar T) [DecidableEq g.NT] :
-    ChomskyNormalFormGrammar T :=
-  g.eliminateEmpty.eliminateUnitRules.restrictTerminals.restrictLength (e := instDecidableEqSum)
+    ChomskyNormalFormGrammar T := by
+  letI : DecidableEq g.eliminateEmpty.NT := by
+    change DecidableEq g.NT
+    infer_instance
+  letI : DecidableEq g.eliminateEmpty.eliminateUnitRules.NT := by
+    change DecidableEq g.NT
+    infer_instance
+  exact g.eliminateEmpty.eliminateUnitRules.restrictTerminals.restrictLength
+    (e := instDecidableEqSum)
 
 variable {g : ContextFreeGrammar T}
 
@@ -224,6 +232,12 @@ public lemma eliminateUnitRules_output_nonUnit : ∀ r ∈ g.eliminateUnitRules.
     split <;> tauto
 
 public theorem toCNF_correct : g.language \ {[]} = g.toCNF.language := by
+  letI : DecidableEq g.eliminateEmpty.NT := by
+    change DecidableEq g.NT
+    infer_instance
+  letI : DecidableEq g.eliminateEmpty.eliminateUnitRules.NT := by
+    change DecidableEq g.NT
+    infer_instance
   unfold toCNF
   rw [eliminateEmpty_correct, eliminateUnitRules_correct, restrictTerminals_correct,
     restrictLength_correct (e := instDecidableEqSum)]

@@ -104,7 +104,7 @@ public def toSymbol (G : EncodedCFG T) : ℕ ⊕ T → symbol T (Fin G.ntCount)
   | .inl k => symbol.nonterminal (G.toNT k)
   | .inr t => symbol.terminal t
 
-@[expose]
+@[expose, reducible]
 public def toCFGrammar (G : EncodedCFG T) : CF_grammar T :=
   { nt := Fin G.ntCount
     initial := G.toNT G.initialIdx

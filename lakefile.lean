@@ -2,13 +2,13 @@ import Lake
 open Lake DSL
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "v4.28.0"
+  "https://github.com/leanprover-community/mathlib4.git" @ "v4.33.0"
 
 -- API documentation generator. Only fetched/built when `-Kdoc=on` is passed
 -- (e.g. in the documentation CI workflow), so the normal build is unaffected.
 meta if get_config? doc = some "on" then
 require «doc-gen4» from git
-  "https://github.com/leanprover/doc-gen4" @ "v4.28.0"
+  "https://github.com/leanprover/doc-gen4" @ "v4.33.0"
 
 package langlib where
   testDriver := "LanglibTest"

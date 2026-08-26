@@ -38,8 +38,8 @@ variable {T : Type}
 
 /-! ## Arbitrary alphabets with at least 4 elements -/
 
-/-- Linear languages are a strict subclass of context-free languages over any alphabet that
-admits 4 distinct elements. -/
+/-- Linear languages are a strict subclass of context-free languages over any alphabet with
+at least 4 elements, as exhibited by an embedding `Fin 4 ↪ T`. -/
 public theorem Linear_strict_subclass_CF_of_embedding (e : Fin 4 ↪ T) :
     (Linear : Set (Language T)) ⊂ (CF : Set (Language T)) := by
   refine ⟨Linear_subclass_CF, fun hsub => ?_⟩

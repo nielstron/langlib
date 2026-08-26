@@ -25,7 +25,7 @@ which records the verdict. The acceptance predicate just reads that Boolean off 
 state.
 -/
 
-open Turing Relation
+open StateTransition Turing Relation
 
 namespace AcceptByTape
 
@@ -74,8 +74,7 @@ public lemma reader_reaches_of_reaches (c c' : TM0.Cfg Γ Λ)
   | refl => constructor
   | tail =>
       rename_i c' hc' ih
-      exact ih.tail (by
-        convert reader_step_of_step M acceptSym _ _ hc')
+      exact ih.tail (Option.mem_def.mpr (reader_step_of_step M acceptSym _ _ hc'))
 
 public lemma reader_halt_step (c : TM0.Cfg Γ Λ) (hstep : TM0.step M c = none) :
     @TM0.step _ _ ⟨Sum.inl default⟩ _ (readerMachine M acceptSym) (liftCfg c) =
@@ -93,18 +92,18 @@ public lemma reader_inr_step (b : Bool) (tape : Tape Γ) :
 /-- The reader halts whenever `M` does, and its final state records whether the
 symbol under the head at `M`'s halting configuration was `acceptSym`. -/
 public lemma reader_eval (l : List Γ)
-    (hdom : (Turing.eval (TM0.step M) (TM0.init l)).Dom) :
-    (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (readerMachine M acceptSym))
+    (hdom : (StateTransition.eval (TM0.step M) (TM0.init l)).Dom) :
+    (@StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (readerMachine M acceptSym))
       (@TM0.init _ _ ⟨Sum.inl default⟩ _ l)).Dom ∧
-    ∀ h : (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (readerMachine M acceptSym))
+    ∀ h : (@StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (readerMachine M acceptSym))
       (@TM0.init _ _ ⟨Sum.inl default⟩ _ l)).Dom,
-      ((@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (readerMachine M acceptSym))
+      ((@StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (readerMachine M acceptSym))
         (@TM0.init _ _ ⟨Sum.inl default⟩ _ l)).get h).q =
-        Sum.inr (decide (((Turing.eval (TM0.step M) (TM0.init l)).get hdom).Tape.head =
+        Sum.inr (decide (((StateTransition.eval (TM0.step M) (TM0.init l)).get hdom).Tape.head =
           acceptSym)) := by
-  set cM := (Turing.eval (TM0.step M) (TM0.init l)).get hdom with hcM
+  set cM := (StateTransition.eval (TM0.step M) (TM0.init l)).get hdom with hcM
   have hmem := Part.get_mem hdom
-  have heval := Turing.mem_eval.mp hmem
+  have heval := StateTransition.mem_eval.mp hmem
   -- The reader reaches `liftCfg cM`, then steps once to the verdict state and halts.
   have hreach := reader_reaches_of_reaches M acceptSym (TM0.init l) cM heval.1
   have hstepHalt := reader_halt_step M acceptSym cM heval.2
@@ -121,9 +120,9 @@ public lemma reader_eval (l : List Γ)
     exact hstepHalt
   have hhalt : @TM0.step _ _ ⟨Sum.inl default⟩ _ (readerMachine M acceptSym) finalCfg = none :=
     reader_inr_step M acceptSym b _
-  have hmem' : finalCfg ∈ @Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
+  have hmem' : finalCfg ∈ @StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
       (readerMachine M acceptSym)) (@TM0.init _ _ ⟨Sum.inl default⟩ _ l) := by
-    rw [Turing.mem_eval]; exact ⟨hreach', hhalt⟩
+    rw [StateTransition.mem_eval]; exact ⟨hreach', hhalt⟩
   refine ⟨Part.dom_iff_mem.mpr ⟨finalCfg, hmem'⟩, fun h => ?_⟩
   have := Part.mem_unique (Part.get_mem h) hmem'
   rw [this]

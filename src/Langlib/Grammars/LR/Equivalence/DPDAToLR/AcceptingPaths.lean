@@ -44,7 +44,7 @@ public theorem emptyStack_reachable_simulation_shape (M : DPDA Q T S)
       (⟨Sum.inr 0, w, [none]⟩ : PDA.conf (emptyStackPDA M))
       ⟨Sum.inl q, input, stack⟩
     · exact FSES_Inv_init M.firstFinal.toPDA w
-    · simpa [emptyStackPDA] using h
+    · simpa [emptyStackPDA, PDA_FS_to_ES_pda] using h
   rcases hinv with hboot | hsim | hdrain
   · have hstate := congrArg PDA.conf.state hboot
     simp at hstate
@@ -69,7 +69,7 @@ public theorem emptyStack_accepting_state_eq_drain (M : DPDA Q T S)
       (⟨Sum.inr 0, w, [none]⟩ : PDA.conf (emptyStackPDA M))
       ⟨q, [], []⟩
     · exact FSES_Inv_init M.firstFinal.toPDA w
-    · simpa [emptyStackPDA] using h
+    · simpa [emptyStackPDA, PDA_FS_to_ES_pda] using h
   rcases hinv with hboot | hsim | hdrain
   · have hstack := congrArg PDA.conf.stack hboot
     simp at hstack

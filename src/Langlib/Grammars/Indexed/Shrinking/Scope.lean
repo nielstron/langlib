@@ -160,10 +160,14 @@ public theorem scopeWord_scopeAt {g : IndexedGrammar T} {A : g.nt}
       simp [scopeAt, ihleft, ihrigh]
   | pop _ _ _ _ rest ih =>
       cases k with
-      | zero => simp [scopeAt]
-      | succ k => simpa [scopeAt] using ih k
+      | zero =>
+          simp [scopeAt, scopeWord, ScopePiece.word]
+      | succ k =>
+          simp only [scopeAt]
+          exact ih k
   | push _ _ _ _ rest ih =>
-      simpa [scopeAt] using ih (k + 1)
+      simp only [scopeAt]
+      exact ih (k + 1)
   | terminal _ _ _ _ =>
       simp [scopeAt]
 
@@ -196,25 +200,29 @@ public theorem derives_scopeForm_scopeAt {g : IndexedGrammar T} {A : g.nt}
     g.Derives [ISym.indexed A sigma] (scopeForm (p.scopeAt k)) := by
   induction p generalizing k with
   | binary hr hlhs hc hrhs left right ihleft ihrigh =>
-      exact (deri_of_tran
+      apply deri_of_deri_deri (deri_of_tran
         (NFYield.transforms_binary_of_rule (g := g) (σ := _)
-          hr hlhs hc hrhs)).trans (by
-        simpa [scopeAt, scopeForm, List.map_append] using
-          derives_append (ihleft k) (ihrigh k))
+          hr hlhs hc hrhs))
+      simpa [scopeAt, scopeForm, List.map_append] using
+        derives_append (ihleft k) (ihrigh k)
   | pop hr hlhs hc hrhs rest ih =>
       cases k with
       | zero =>
-          simpa [scopeAt, scopeForm] using deri_of_tran
-            (NFYield.transforms_pop_of_rule (g := g) (ρ := _)
-              hr hlhs hc hrhs)
+          simpa [scopeAt, scopeForm, ScopePiece.asISym] using
+            deri_of_tran (NFYield.transforms_pop_of_rule
+              (g := g) (ρ := _) hr hlhs hc hrhs)
       | succ k =>
-          exact (deri_of_tran
+          apply deri_of_deri_deri (deri_of_tran
             (NFYield.transforms_pop_of_rule (g := g) (ρ := _)
-              hr hlhs hc hrhs)).trans (by simpa [scopeAt] using ih k)
+              hr hlhs hc hrhs))
+          simp only [scopeAt]
+          exact ih k
   | push hr hlhs hc hrhs rest ih =>
-      exact (deri_of_tran
+      apply deri_of_deri_deri (deri_of_tran
         (NFYield.transforms_push_of_rule (g := g) (σ := _)
-          hr hlhs hc hrhs)).trans (by simpa [scopeAt] using ih (k + 1))
+          hr hlhs hc hrhs))
+      simp only [scopeAt]
+      exact ih (k + 1)
   | terminal hr hlhs hc hrhs =>
       simpa [scopeAt, scopeForm] using deri_of_tran
         (NFYield.transforms_terminal_of_rule (g := g) (σ := _)
@@ -228,27 +236,29 @@ public theorem derives_unstackedForm_scopeAt {g : IndexedGrammar T} {A : g.nt}
       (unstackedForm (scopeSymbols (p.scopeAt k))) := by
   induction p generalizing k with
   | binary hr hlhs hc hrhs left right ihleft ihrigh =>
-      exact (deri_of_tran
+      apply deri_of_deri_deri (deri_of_tran
         (NFYield.transforms_binary_of_rule (g := g) (σ := _)
-          hr hlhs hc hrhs)).trans (by
-        simpa [scopeAt, scopeSymbols, unstackedForm, List.map_append] using
-          derives_append (ihleft k) (ihrigh k))
+          hr hlhs hc hrhs))
+      simpa [scopeAt, scopeSymbols, unstackedForm, List.map_append] using
+        derives_append (ihleft k) (ihrigh k)
   | pop hr hlhs hc hrhs rest ih =>
       cases k with
       | zero =>
-          simpa [scopeAt, scopeSymbols, unstackedForm] using deri_of_tran
-            (NFYield.transforms_pop_of_rule (g := g) (ρ := [])
-              hr hlhs hc hrhs)
+          simpa [scopeAt, scopeSymbols, unstackedForm, ScopePiece.symbol] using
+            deri_of_tran (NFYield.transforms_pop_of_rule
+              (g := g) (ρ := []) hr hlhs hc hrhs)
       | succ k =>
-          exact (deri_of_tran
+          apply deri_of_deri_deri (deri_of_tran
             (NFYield.transforms_pop_of_rule (g := g) (ρ := _)
-              hr hlhs hc hrhs)).trans (by
-                simpa [scopeAt] using ih k)
+              hr hlhs hc hrhs))
+          simp only [scopeAt]
+          exact ih k
   | push hr hlhs hc hrhs rest ih =>
-      exact (deri_of_tran
+      apply deri_of_deri_deri (deri_of_tran
         (NFYield.transforms_push_of_rule (g := g) (σ := _)
-          hr hlhs hc hrhs)).trans (by
-            simpa [scopeAt, Nat.add_assoc] using ih (k + 1))
+          hr hlhs hc hrhs))
+      simp only [scopeAt]
+      exact ih (k + 1)
   | terminal hr hlhs hc hrhs =>
       simpa [scopeAt, scopeSymbols, unstackedForm] using deri_of_tran
         (NFYield.transforms_terminal_of_rule (g := g) (σ := _)
@@ -276,6 +286,7 @@ public def betaPieces {g : IndexedGrammar T} {A : g.nt} {sigma : List g.flag}
     (p : NFParse g A sigma w) :
     scopeSymbols p.betaPieces = p.beta := by
   cases sigma <;> simp [betaPieces, beta, scopeSymbols]
+  rfl
 
 @[simp] public theorem scopeWord_betaPieces {g : IndexedGrammar T}
     {A : g.nt} {sigma : List g.flag} {w : List T}
@@ -283,9 +294,10 @@ public def betaPieces {g : IndexedGrammar T} {A : g.nt} {sigma : List g.flag}
     scopeWord p.betaPieces = w := by
   cases sigma with
   | nil =>
-      simp [betaPieces, scopeWord, List.flatMap_map, Function.comp_def]
+      simp [betaPieces, scopeWord, List.flatMap_map]
   | cons _ _ =>
-      simpa [betaPieces] using p.scopeWord_scopeAt 0
+      change scopeWord (p.scopeAt 0) = w
+      exact p.scopeWord_scopeAt 0
 
 @[simp] public theorem betaPieces_length {g : IndexedGrammar T}
     {A : g.nt} {sigma : List g.flag} {w : List T}
@@ -314,7 +326,11 @@ public theorem derives_beta {g : IndexedGrammar T} {A : g.nt}
   | nil =>
       obtain ⟨_, hcounted⟩ := p.toNFYield.exists_derivesIn
       have hder := derives_of_derivesIn hcounted
-      simpa [betaSource, beta, unstackedForm] using hder
+      simp only [betaSource, beta, unstackedForm, List.map_map]
+      convert hder using 1
+      apply List.map_congr_left
+      intro a _ha
+      rfl
   | cons f suffix =>
       simpa [betaSource, beta] using p.derives_unstackedForm_scopeAt 0
 
@@ -379,7 +395,8 @@ public theorem beta_length_eq_scopeAt_zero_of_stack_ne_nil
     (hrhs : r.rhs = [IRhsSymbol.nonterminal B none])
     (rest : NFParse g B suffix w) :
     (NFParse.pop hr hlhs hc hrhs rest).beta = [Sum.inl B] := by
-  simp [beta, scopeAt, scopeSymbols]
+  change [ScopePiece.symbol (ScopePiece.pending rest)] = [Sum.inl B]
+  rw [ScopePiece.symbol_pending]
 
 @[simp] public theorem beta_terminal {g : IndexedGrammar T}
     {A : g.nt} {sigma : List g.flag} {a : T}
@@ -406,7 +423,8 @@ public theorem beta_length_eq_scopeAt_zero_of_stack_ne_nil
     (rest : NFParse g B (pushed :: top :: suffix) w) :
     (NFParse.push hr hlhs hc hrhs rest).beta.length =
       (rest.scopeAt 1).length := by
-  simp [beta, scopeAt, scopeSymbols]
+  change (scopeSymbols (rest.scopeAt 1)).length = (rest.scopeAt 1).length
+  exact scopeSymbols_length (rest.scopeAt 1)
 
 end NFParse
 

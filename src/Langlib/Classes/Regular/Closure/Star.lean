@@ -405,7 +405,8 @@ private lemma star_forward {w : List α}
         -- Let p = a :: u. Then:
         set p : List α := a :: u
         have hp_accept : p ∈ M.accepts := by
-          convert hu_accept using 1
+          change M.evalFrom M.start p ∈ M.accept
+          simpa [p, DFA.evalFrom] using hu_accept
         have hw_eq_p_v : a :: w = p ++ v := by
           aesop
         have hv_accept : v ∈ (starεNFA M).accepts := by

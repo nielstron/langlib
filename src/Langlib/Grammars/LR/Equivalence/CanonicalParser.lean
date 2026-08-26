@@ -110,7 +110,11 @@ public theorem fresh_not_mem_rule_rhs (G : CF_grammar T)
     (hr : r ∈ G.augment.rules) : symbol.nonterminal none ∉ r.2 := by
   rcases List.mem_cons.mp hr with hstart | hmapped
   · subst r
-    simp [CF_grammar.augmentStartRule]
+    change symbol.nonterminal none ∉
+      [symbol.nonterminal (some G.initial)]
+    intro hmem
+    have heq := symbol.nonterminal.inj (List.mem_singleton.mp hmem)
+    cases heq
   · rcases List.mem_map.mp hmapped with ⟨r, hr, rfl⟩
     exact fresh_not_mem_augmentString G r.2
 
@@ -129,7 +133,8 @@ public theorem fresh_prehandle_eq_root (G : CF_grammar T)
       ⟨r, hr, p₀, alpha, beta, t, z, hrhs, _, _, _, _⟩
     have hmem : symbol.nonterminal none ∈ r.2 := by
       rw [hrhs]
-      simp
+      exact List.mem_append_left _
+        (List.mem_append_right _ List.mem_cons_self)
     exact False.elim (fresh_not_mem_rule_rhs G hr hmem)
 
 /-- A displayed rightmost prehandle exposes its production as a reduction in
@@ -293,9 +298,10 @@ private theorem parses_back_of_derivesRightmostIn_aux
     BackOutcome G k ⟨gamma, input⟩ := by
   induction h generalizing gamma input with
   | refl =>
-      have heq : gamma ++ input.map symbol.terminal =
-          [symbol.nonterminal none] := by
-        rw [← hv, hu]
+      have heq :
+          gamma ++ input.map (symbol.terminal (N := G.augment.nt)) =
+            [symbol.nonterminal (none : G.augment.nt)] := by
+        rw [← hv, hu, CF_grammar.augment_initial]
         rfl
       have hsplit := split_fresh_root G hend heq
       rcases hsplit with ⟨rfl, rfl⟩
@@ -338,7 +344,13 @@ private theorem parses_back_of_derivesRightmostIn_aux
         have hhead : (ruleAt G.augment ri).1 = none := by
           rw [← hchosenRule, hstart, ruleAt_startRuleIndex]
           rfl
-        have hroot := fresh_prehandle_eq_root G (by simpa [hhead] using hpre')
+        have hpreRoot : G.augment.DerivesRightmost
+            [symbol.nonterminal G.augment.initial]
+            (p ++ [symbol.nonterminal none] ++ s.map symbol.terminal) := by
+          rw [← hhead]
+          exact hpre'
+        have hroot := fresh_prehandle_eq_root G
+          (p := p) (s := s) hpreRoot
         rcases hroot with ⟨rfl, rfl⟩
         refine ⟨⟨(ruleAt G.augment ri).2, []⟩, hshifts, Or.inl ?_⟩
         refine ⟨rfl, ?_⟩
@@ -398,10 +410,12 @@ public theorem Step.freshFree {G : CF_grammar T} {k : ℕ}
     FreshFree d := by
   cases h with
   | @shift gamma a w _ =>
-      simp only [FreshFree, List.mem_append, List.mem_singleton] at hc ⊢
-      rintro (hmem | heq)
+      unfold FreshFree at hc ⊢
+      intro hmem
+      rcases List.mem_append.mp hmem with hmem | hmem
       · exact hc hmem
-      · cases heq
+      · have heq := List.mem_singleton.mp hmem
+        cases heq
   | @reduce gamma p w r haction hgamma =>
       obtain ⟨i, _, hnotStart, hir⟩ :=
         (tableAction_reduce_iff G k (scanKernel G k gamma)
@@ -418,9 +432,12 @@ public theorem Step.freshFree {G : CF_grammar T} {k : ℕ}
         apply hc
         rw [hgamma]
         exact List.mem_append_left _ hmem
-      simp only [FreshFree, List.mem_append, List.mem_singleton,
-        symbol.nonterminal.injEq]
-      exact fun hmem => hmem.elim hp (fun heq => hrNotFresh heq.symm)
+      unfold FreshFree
+      intro hmem
+      rcases List.mem_append.mp hmem with hmem | hmem
+      · exact hp hmem
+      · have heq := symbol.nonterminal.inj (List.mem_singleton.mp hmem)
+        exact hrNotFresh heq.symm
 
 public theorem Reaches.freshFree {G : CF_grammar T} {k : ℕ}
     {c d : Config T G} (h : Reaches G k c d) (hc : FreshFree c) :
@@ -443,14 +460,26 @@ public theorem accepts_complete (G : CF_grammar T) (k : ℕ) (hk : 0 < k)
   have hn' : G.augment.DerivesRightmostIn n
       [symbol.nonterminal G.augment.initial]
       ([] ++ w.map (symbol.terminal (N := G.augment.nt))) := by
-    simpa [CF_grammar.augmentString] using hn
+    have hmap :
+        CF_grammar.augmentString
+            (w.map (symbol.terminal (N := G.nt))) =
+          w.map (symbol.terminal (N := G.augment.nt)) :=
+      CF_grammar.augmentString_map_terminal (g := G) w
+    rw [hmap] at hn
+    rw [List.nil_append]
+    exact hn
   have hout := parses_back_of_derivesRightmostIn G k hk hLR hn' (Or.inl rfl)
   rcases hout with ⟨d, hreach, haccept | hroot⟩
   · exact ⟨d, hreach, haccept⟩
   · have hfree : FreshFree d :=
-      hreach.freshFree (by simp [FreshFree, initialConfig])
+      hreach.freshFree (by
+        unfold FreshFree
+        exact List.not_mem_nil)
     rcases hroot with ⟨hstack, _⟩
-    rw [FreshFree, hstack] at hfree
-    simp at hfree
+    unfold FreshFree at hfree
+    exfalso
+    apply hfree
+    rw [hstack]
+    exact List.mem_cons_self
 
 end CF_grammar.LRk.CanonicalParser

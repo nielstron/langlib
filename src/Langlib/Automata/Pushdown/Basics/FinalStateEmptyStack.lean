@@ -149,13 +149,20 @@ public lemma PDA_FS_to_ES_forward {Q S : Type} [Fintype Q] [Fintype S]
     intro q γ hq hγ
     have h_lift : (PDA_FS_to_ES_pda M).Reaches ⟨Sum.inr 0, w, [none]⟩
         ⟨Sum.inl q, [], γ.map some ++ [none]⟩ := by
-      convert PDA.Reaches.trans _ (simulation_reaches M _ _ hγ) using 1
-      constructor
-      aesop
-      apply Set.mem_setOf_eq.mpr
-      cases w <;> simp +decide [liftConf]
-      · exact Or.inl ⟨_, _, by tauto, rfl⟩
-      · exact Or.inr <| Or.inl <| by unfold PDA_FS_to_ES_pda; aesop
+      have h_init : (PDA_FS_to_ES_pda M).Reaches
+          ⟨Sum.inr 0, w, [none]⟩
+          (liftConf M ⟨M.initial_state, w, [M.start_symbol]⟩) := by
+        apply Relation.ReflTransGen.single
+        unfold Reaches₁ step
+        cases w with
+        | nil =>
+            refine ⟨Sum.inl M.initial_state, [some M.start_symbol, none], ?_, rfl⟩
+            exact Set.mem_singleton _
+        | cons a w =>
+            apply Set.mem_union_right
+            refine ⟨Sum.inl M.initial_state, [some M.start_symbol, none], ?_, rfl⟩
+            exact Set.mem_singleton _
+      exact h_init.trans (simulation_reaches M _ _ hγ)
     have h_path : (PDA_FS_to_ES_pda M).Reaches ⟨Sum.inl q, [], γ.map some ++ [none]⟩
         ⟨Sum.inr 1, [], []⟩ := by
       induction' γ with Z γ ih generalizing q <;> simp_all +decide [Reaches]
@@ -183,23 +190,85 @@ lemma reverse_simulation_step {Q S : Type} [Fintype Q] [Fintype S]
     (h : @PDA.Reaches₁ (Q ⊕ Fin 2) T (Option S) _ _ _ (PDA_FS_to_ES_pda M)
       ⟨Sum.inl q₁, w₁, γ₁.map some⟩ ⟨Sum.inl q₂, w₂, γ₂.map some⟩) :
     @PDA.Reaches₁ Q T S _ _ _ M ⟨q₁, w₁, γ₁⟩ ⟨q₂, w₂, γ₂⟩ := by
+  classical
   unfold Reaches₁ at *
   unfold PDA.step at *
-  rcases w₁ with (_ | ⟨a, w₁⟩) <;> simp_all +decide []
-  · rcases γ₁ with (_ | ⟨Z, γ₁⟩) <;> simp_all +decide [PDA_FS_to_ES_pda]
-    rcases h with ⟨β, hβ, rfl, hβ'⟩
-    simp_all +decide [PDA_FS_to_ES_eps]
-    have h_inj : Function.Injective (some : S → Option S) := by
-      exact Option.some_injective _
-    have h_eq : List.map some γ₂ = List.map some (hβ.choose ++ γ₁) := by
-      convert hβ' using 1
-      simp +decide [hβ.choose_spec.2]
-    exact ⟨_, hβ.choose_spec.1, List.map_injective_iff.mpr h_inj h_eq⟩
-  · rcases γ₁ with (_ | ⟨Z, α⟩) <;> simp_all +decide [PDA_FS_to_ES_pda, PDA_FS_to_ES_eps, PDA_FS_to_ES_trans]
-    rcases h with (⟨β, h₁, rfl, h₂⟩ | ⟨β, h₁, rfl, h₂⟩) <;> [left; right] <;>
-      use β <;> simp_all +decide []
-    · exact List.map_injective_iff.mpr (Option.some_injective _) <| by simpa using h₂
-    · exact List.map_injective_iff.mpr (Option.some_injective _) <| by simpa using h₂
+  cases w₁ with
+  | nil =>
+      cases γ₁ with
+      | nil => exact ((Set.mem_empty_iff_false _).mp h).elim
+      | cons Z γ₁ =>
+          rcases h with ⟨p, β, hβ, hc⟩
+          have hp : Sum.inl q₂ = p := congrArg PDA.conf.state hc
+          subst p
+          change (Sum.inl q₂, β) ∈
+            ((fun p : Q × List S => (Sum.inl p.1, p.2.map some)) '' M.transition_fun' q₁ Z) ∪
+              (if q₁ ∈ M.final_states then {(Sum.inr 1, [])} else ∅) at hβ
+          rw [Set.mem_union] at hβ
+          rcases hβ with hβ | hβ
+          · rcases hβ with ⟨⟨q', δ⟩, hδ, hmap⟩
+            have hq' : q' = q₂ := Sum.inl.inj (congrArg Prod.fst hmap)
+            subst q'
+            have hmap' : δ.map some = β := congrArg Prod.snd hmap
+            refine ⟨q₂, δ, hδ, ?_⟩
+            apply PDA.conf.ext
+            · rfl
+            · exact congrArg (fun c : PDA.conf (PDA_FS_to_ES_pda M) => c.input) hc
+            · apply List.map_injective_iff.mpr (Option.some_injective _)
+              calc
+                γ₂.map some = β ++ γ₁.map some := congrArg PDA.conf.stack hc
+                _ = δ.map some ++ γ₁.map some := by rw [← hmap']
+                _ = (δ ++ γ₁).map some := by rw [List.map_append]
+          · by_cases hq : q₁ ∈ M.final_states <;> simp [hq] at hβ
+  | cons a w₁ =>
+      cases γ₁ with
+      | nil => exact ((Set.mem_empty_iff_false _).mp h).elim
+      | cons Z γ₁ =>
+          simp only [List.map_cons] at h
+          rw [Set.mem_union] at h ⊢
+          rcases h with h | h
+          · rcases h with ⟨p, β, hβ, hc⟩
+            have hp : Sum.inl q₂ = p := congrArg PDA.conf.state hc
+            subst p
+            change (Sum.inl q₂, β) ∈
+              (fun p : Q × List S => (Sum.inl p.1, p.2.map some)) '' M.transition_fun q₁ a Z at hβ
+            rcases hβ with ⟨⟨q', δ⟩, hδ, hmap⟩
+            have hq' : q' = q₂ := Sum.inl.inj (congrArg Prod.fst hmap)
+            subst q'
+            have hmap' : δ.map some = β := congrArg Prod.snd hmap
+            left
+            refine ⟨q₂, δ, hδ, ?_⟩
+            apply PDA.conf.ext
+            · rfl
+            · exact congrArg (fun c : PDA.conf (PDA_FS_to_ES_pda M) => c.input) hc
+            · apply List.map_injective_iff.mpr (Option.some_injective _)
+              calc
+                γ₂.map some = β ++ γ₁.map some := congrArg PDA.conf.stack hc
+                _ = δ.map some ++ γ₁.map some := by rw [← hmap']
+                _ = (δ ++ γ₁).map some := by rw [List.map_append]
+          · rcases h with ⟨p, β, hβ, hc⟩
+            have hp : Sum.inl q₂ = p := congrArg PDA.conf.state hc
+            subst p
+            change (Sum.inl q₂, β) ∈
+              ((fun p : Q × List S => (Sum.inl p.1, p.2.map some)) '' M.transition_fun' q₁ Z) ∪
+                (if q₁ ∈ M.final_states then {(Sum.inr 1, [])} else ∅) at hβ
+            rw [Set.mem_union] at hβ
+            rcases hβ with hβ | hβ
+            · rcases hβ with ⟨⟨q', δ⟩, hδ, hmap⟩
+              have hq' : q' = q₂ := Sum.inl.inj (congrArg Prod.fst hmap)
+              subst q'
+              have hmap' : δ.map some = β := congrArg Prod.snd hmap
+              right
+              refine ⟨q₂, δ, hδ, ?_⟩
+              apply PDA.conf.ext
+              · rfl
+              · exact congrArg (fun c : PDA.conf (PDA_FS_to_ES_pda M) => c.input) hc
+              · apply List.map_injective_iff.mpr (Option.some_injective _)
+                calc
+                  γ₂.map some = β ++ γ₁.map some := congrArg PDA.conf.stack hc
+                  _ = δ.map some ++ γ₁.map some := by rw [← hmap']
+                  _ = (δ ++ γ₁).map some := by rw [List.map_append]
+            · by_cases hq : q₁ ∈ M.final_states <;> simp [hq] at hβ
 
 /-- Invariant for configurations reachable from the initial config of the FS→ES PDA.
     Every such configuration is either:
@@ -236,39 +305,189 @@ public lemma FSES_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
     (h_inv : FSES_Inv M w c₁)
     (h_step : PDA.Reaches₁ c₁ c₂) :
     FSES_Inv M w c₂ := by
-  cases' h_inv with h_inv_cases h_inv_cases;
-  · cases' w with w <;> simp_all +decide [ Reaches₁ ];
-    · cases c₂ ; simp_all +decide [ step ];
-      unfold PDA_FS_to_ES_pda at h_step; simp_all +decide [ PDA_FS_to_ES_eps ] ;
-      exact Or.inr <| Or.inl ⟨ M.initial_state, [ ], [ M.start_symbol ], by aesop ⟩;
-    · cases' h_step with p hp;
-      · obtain ⟨ p, β, hp, rfl ⟩ := p; simp_all +decide [ PDA_FS_to_ES_pda ] ;
-        cases hp;
-      · obtain ⟨ p, β, hp, rfl ⟩ := hp; simp_all +decide [ PDA_FS_to_ES_pda ] ;
-        cases p <;> cases β <;> simp_all +decide [ PDA_FS_to_ES_eps ];
-        exact Or.inr <| Or.inl ⟨ M.initial_state, _, _, rfl, by tauto ⟩;
-  · rcases h_inv_cases with ( ⟨ q, w', γ, rfl, h ⟩ | ⟨ h₁, h₂ ⟩ ) <;> simp_all +decide [ FSES_Inv ];
-    · unfold Reaches₁ at h_step;
-      rcases γ with ( _ | ⟨ Z, γ ⟩ ) <;> simp_all +decide [ step ];
-      · rcases w' with ( _ | ⟨ a, w' ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_pda ];
-        · unfold PDA_FS_to_ES_eps at h_step; aesop;
-        · rcases h_step with ( ( ⟨ a', β, h, rfl ⟩ | ⟨ β, h, rfl ⟩ | ⟨ β, h, rfl ⟩ ) | ⟨ a', β, h, rfl ⟩ | ⟨ β, h, rfl ⟩ | ⟨ β, h, rfl ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_trans, PDA_FS_to_ES_eps ];
-      · rcases w' with ( _ | ⟨ a, w' ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_pda ];
-        · unfold PDA_FS_to_ES_eps at h_step; simp_all +decide [ Set.mem_union, Set.mem_image ] ;
-          rcases h_step with ( ⟨ a, b, h₁, rfl ⟩ | ⟨ h₁, rfl ⟩ ) <;> simp_all +decide [ Reaches ];
-          · use b ++ γ; simp_all +decide [ List.map_append ] ;
-            exact h.tail ( by exact ⟨ _, _, h₁, rfl ⟩ );
-          · exact ⟨ q, h₁, Z :: γ, h ⟩;
-        · rcases h_step with ( ( ⟨ q', β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ ) | ⟨ q', β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_trans, PDA_FS_to_ES_eps ];
-          · rcases h₁ with ⟨ b, hb₁, rfl ⟩ ; use b ++ γ; simp_all +decide [ Reaches ] ;
-            exact h.tail ( by exact Set.mem_union_left _ ⟨ q', b, hb₁, rfl ⟩ );
-          · rcases h₁ with ⟨ b, hb₁, rfl ⟩ ; use b ++ γ; simp_all +decide [ Reaches ] ;
-            exact h.trans ( Relation.ReflTransGen.single <| by exact Or.inr ⟨ q', b, hb₁, rfl ⟩ );
-    · rcases c₁ with ⟨ q₁, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ q₂, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ] ;
-      rcases γ₁ with ( _ | ⟨ Z, γ₁ ⟩ ) <;> simp_all +decide [ step ];
-      rcases w₁ with ( _ | ⟨ a, w₁ ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_pda ];
-      · rcases h_step with ( ⟨ a, β, h, rfl, rfl, rfl ⟩ | ⟨ β, h, rfl, rfl, rfl ⟩ | ⟨ β, h, rfl, rfl, rfl ⟩ ) <;> simp_all +decide [ PDA_FS_to_ES_eps ];
-      · rcases h_step with ( ( ⟨ q, β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ ) | ( ⟨ q, β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ | ⟨ β, h₁, rfl, rfl, rfl ⟩ ) ) <;> simp_all +decide [ PDA_FS_to_ES_trans, PDA_FS_to_ES_eps ]
+  classical
+  rcases h_inv with rfl | ⟨q, w', γ, rfl, hreach⟩ | ⟨hstate, hwitness⟩
+  · unfold Reaches₁ step at h_step
+    cases w with
+    | nil =>
+        rcases h_step with ⟨p, β, htrans, hc⟩
+        change (p, β) ∈ ({(Sum.inl M.initial_state,
+          [some M.start_symbol, none])} : Set ((Q ⊕ Fin 2) × List (Option S))) at htrans
+        rw [Set.mem_singleton_iff] at htrans
+        have hp := congrArg Prod.fst htrans
+        have hβ := congrArg Prod.snd htrans
+        simp only at hp hβ
+        subst p
+        subst β
+        subst c₂
+        exact Or.inr <| Or.inl ⟨M.initial_state, [], [M.start_symbol], rfl, Reaches.refl _⟩
+    | cons a w =>
+        rw [Set.mem_union] at h_step
+        rcases h_step with hread | heps
+        · rcases hread with ⟨p, β, htrans, _⟩
+          change (p, β) ∈ (∅ : Set ((Q ⊕ Fin 2) × List (Option S))) at htrans
+          exact ((Set.mem_empty_iff_false _).mp htrans).elim
+        · rcases heps with ⟨p, β, htrans, hc⟩
+          change (p, β) ∈ ({(Sum.inl M.initial_state,
+            [some M.start_symbol, none])} : Set ((Q ⊕ Fin 2) × List (Option S))) at htrans
+          rw [Set.mem_singleton_iff] at htrans
+          have hp := congrArg Prod.fst htrans
+          have hβ := congrArg Prod.snd htrans
+          simp only at hp hβ
+          subst p
+          subst β
+          subst c₂
+          exact Or.inr <| Or.inl ⟨M.initial_state, a :: w, [M.start_symbol], rfl, Reaches.refl _⟩
+  · unfold Reaches₁ step at h_step
+    cases γ with
+    | nil =>
+        simp only [List.map_nil, List.nil_append] at h_step
+        cases w' with
+        | nil =>
+            rcases h_step with ⟨p, β, htrans, hc⟩
+            change (p, β) ∈ PDA_FS_to_ES_eps M (Sum.inl q) none at htrans
+            by_cases hq : q ∈ M.final_states
+            · simp only [PDA_FS_to_ES_eps, if_pos hq] at htrans
+              rw [Set.mem_singleton_iff] at htrans
+              have hp := congrArg Prod.fst htrans
+              have hβ := congrArg Prod.snd htrans
+              simp only at hp hβ
+              subst p
+              subst β
+              subst c₂
+              exact Or.inr <| Or.inr ⟨rfl, fun _ ↦ ⟨q, hq, [], hreach⟩⟩
+            · simp only [PDA_FS_to_ES_eps, if_neg hq] at htrans
+              exact ((Set.mem_empty_iff_false _).mp htrans).elim
+        | cons a w' =>
+            rw [Set.mem_union] at h_step
+            rcases h_step with hread | heps
+            · rcases hread with ⟨p, β, htrans, _⟩
+              change (p, β) ∈ (∅ : Set ((Q ⊕ Fin 2) × List (Option S))) at htrans
+              exact ((Set.mem_empty_iff_false _).mp htrans).elim
+            · rcases heps with ⟨p, β, htrans, hc⟩
+              change (p, β) ∈ PDA_FS_to_ES_eps M (Sum.inl q) none at htrans
+              by_cases hq : q ∈ M.final_states
+              · simp only [PDA_FS_to_ES_eps, if_pos hq] at htrans
+                rw [Set.mem_singleton_iff] at htrans
+                have hp := congrArg Prod.fst htrans
+                have hβ := congrArg Prod.snd htrans
+                simp only at hp hβ
+                subst p
+                subst β
+                subst c₂
+                exact Or.inr <| Or.inr ⟨rfl, by simp⟩
+              · simp only [PDA_FS_to_ES_eps, if_neg hq] at htrans
+                exact ((Set.mem_empty_iff_false _).mp htrans).elim
+    | cons Z γ =>
+        simp only [List.map_cons, List.cons_append] at h_step
+        cases w' with
+        | nil =>
+            rcases h_step with ⟨p, β, htrans, hc⟩
+            change (p, β) ∈
+              ((fun x : Q × List S => (Sum.inl x.1, x.2.map some)) '' M.transition_fun' q Z) ∪
+                (if q ∈ M.final_states then {(Sum.inr 1, [])} else ∅) at htrans
+            rw [Set.mem_union] at htrans
+            rcases htrans with hsim | hfinal
+            · rcases hsim with ⟨⟨q', δ⟩, hδ, hmap⟩
+              have hp := congrArg Prod.fst hmap
+              have hβ := congrArg Prod.snd hmap
+              simp only at hp hβ
+              subst p
+              subst β
+              subst c₂
+              refine Or.inr <| Or.inl ⟨q', [], δ ++ γ, ?_, ?_⟩
+              · simp [List.map_append, List.append_assoc]
+              · exact hreach.tail ⟨q', δ, hδ, rfl⟩
+            · by_cases hq : q ∈ M.final_states
+              · rw [if_pos hq, Set.mem_singleton_iff] at hfinal
+                have hp := congrArg Prod.fst hfinal
+                have hβ := congrArg Prod.snd hfinal
+                simp only at hp hβ
+                subst p
+                subst β
+                subst c₂
+                exact Or.inr <| Or.inr ⟨rfl, fun _ ↦ ⟨q, hq, Z :: γ, hreach⟩⟩
+              · rw [if_neg hq] at hfinal
+                exact ((Set.mem_empty_iff_false _).mp hfinal).elim
+        | cons a w' =>
+            rw [Set.mem_union] at h_step
+            rcases h_step with hread | heps
+            · rcases hread with ⟨p, β, htrans, hc⟩
+              change (p, β) ∈
+                (fun x : Q × List S => (Sum.inl x.1, x.2.map some)) '' M.transition_fun q a Z at htrans
+              rcases htrans with ⟨⟨q', δ⟩, hδ, hmap⟩
+              have hp := congrArg Prod.fst hmap
+              have hβ := congrArg Prod.snd hmap
+              simp only at hp hβ
+              subst p
+              subst β
+              subst c₂
+              refine Or.inr <| Or.inl ⟨q', w', δ ++ γ, ?_, ?_⟩
+              · simp [List.map_append, List.append_assoc]
+              · exact hreach.tail (Set.mem_union_left _ ⟨q', δ, hδ, rfl⟩)
+            · rcases heps with ⟨p, β, htrans, hc⟩
+              change (p, β) ∈
+                ((fun x : Q × List S => (Sum.inl x.1, x.2.map some)) '' M.transition_fun' q Z) ∪
+                  (if q ∈ M.final_states then {(Sum.inr 1, [])} else ∅) at htrans
+              rw [Set.mem_union] at htrans
+              rcases htrans with hsim | hfinal
+              · rcases hsim with ⟨⟨q', δ⟩, hδ, hmap⟩
+                have hp := congrArg Prod.fst hmap
+                have hβ := congrArg Prod.snd hmap
+                simp only at hp hβ
+                subst p
+                subst β
+                subst c₂
+                refine Or.inr <| Or.inl ⟨q', a :: w', δ ++ γ, ?_, ?_⟩
+                · simp [List.map_append, List.append_assoc]
+                · exact hreach.tail (Set.mem_union_right _ ⟨q', δ, hδ, rfl⟩)
+              · by_cases hq : q ∈ M.final_states
+                · rw [if_pos hq, Set.mem_singleton_iff] at hfinal
+                  have hp := congrArg Prod.fst hfinal
+                  have hβ := congrArg Prod.snd hfinal
+                  simp only at hp hβ
+                  subst p
+                  subst β
+                  subst c₂
+                  exact Or.inr <| Or.inr ⟨rfl, by simp⟩
+                · rw [if_neg hq] at hfinal
+                  exact ((Set.mem_empty_iff_false _).mp hfinal).elim
+  · rcases c₁ with ⟨s, u, σ⟩
+    simp only at hstate hwitness h_step ⊢
+    subst s
+    unfold Reaches₁ step at h_step
+    cases σ with
+    | nil =>
+        cases u <;> exact ((Set.mem_empty_iff_false _).mp h_step).elim
+    | cons Z σ =>
+        cases u with
+        | nil =>
+            rcases h_step with ⟨p, β, htrans, hc⟩
+            change (p, β) ∈ ({(Sum.inr 1, [])} : Set ((Q ⊕ Fin 2) × List (Option S))) at htrans
+            rw [Set.mem_singleton_iff] at htrans
+            have hp := congrArg Prod.fst htrans
+            have hβ := congrArg Prod.snd htrans
+            simp only at hp hβ
+            subst p
+            subst β
+            subst c₂
+            exact Or.inr <| Or.inr ⟨rfl, fun _ ↦ hwitness rfl⟩
+        | cons a u =>
+            rw [Set.mem_union] at h_step
+            rcases h_step with hread | heps
+            · rcases hread with ⟨p, β, htrans, _⟩
+              change (p, β) ∈ (∅ : Set ((Q ⊕ Fin 2) × List (Option S))) at htrans
+              exact ((Set.mem_empty_iff_false _).mp htrans).elim
+            · rcases heps with ⟨p, β, htrans, hc⟩
+              change (p, β) ∈ ({(Sum.inr 1, [])} : Set ((Q ⊕ Fin 2) × List (Option S))) at htrans
+              rw [Set.mem_singleton_iff] at htrans
+              have hp := congrArg Prod.fst htrans
+              have hβ := congrArg Prod.snd htrans
+              simp only at hp hβ
+              subst p
+              subst β
+              subst c₂
+              exact Or.inr <| Or.inr ⟨rfl, by simp⟩
 
 /-- The invariant is preserved by multi-step reachability. -/
 public lemma FSES_Inv_reaches {Q S : Type} [Fintype Q] [Fintype S]
@@ -397,23 +616,29 @@ lemma PDA_ES_to_FS_forward {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T)
     (h : w ∈ M.acceptsByEmptyStack) :
     w ∈ (PDA_ES_to_FS_pda M).acceptsByFinalState := by
-      obtain ⟨ q, hq ⟩ := h;
-      use Sum.inr 1;
-      have := ES_simulation_reaches M _ _ hq;
-      refine' ⟨ _, _ ⟩;
-      · exact Set.mem_singleton _;
-      · use [];
-        refine' Relation.ReflTransGen.trans _ _;
-        exact ⟨ Sum.inl M.initial_state, w, [ some M.start_symbol, none ] ⟩;
-        · apply_rules [ Relation.ReflTransGen.single ];
-          unfold Reaches₁ step
-          cases w <;> simp +decide [PDA_ES_to_FS_pda, PDA_ES_to_FS_eps]
-        · refine' Relation.ReflTransGen.trans _ _;
-          exact ⟨ Sum.inl q, [], [ none ] ⟩;
-          · convert this using 1;
-          · apply_rules [ Relation.ReflTransGen.single ];
-            simp +decide [ Reaches₁ ];
-            unfold step; aesop;
+  obtain ⟨q, hq⟩ := h
+  refine ⟨Sum.inr 1, Set.mem_singleton _, [], ?_⟩
+  have h_init : (PDA_ES_to_FS_pda M).Reaches
+      ⟨Sum.inr 0, w, [none]⟩
+      (liftConf_ES M ⟨M.initial_state, w, [M.start_symbol]⟩) := by
+    apply Relation.ReflTransGen.single
+    unfold Reaches₁ step
+    cases w with
+    | nil =>
+        refine ⟨Sum.inl M.initial_state, [some M.start_symbol, none], ?_, rfl⟩
+        exact Set.mem_singleton _
+    | cons a w =>
+        apply Set.mem_union_right
+        refine ⟨Sum.inl M.initial_state, [some M.start_symbol, none], ?_, rfl⟩
+        exact Set.mem_singleton _
+  have h_sim := ES_simulation_reaches M _ _ hq
+  have h_accept : (PDA_ES_to_FS_pda M).Reaches
+      (liftConf_ES M ⟨q, [], []⟩) ⟨Sum.inr 1, [], []⟩ := by
+    apply Relation.ReflTransGen.single
+    unfold Reaches₁ step
+    refine ⟨Sum.inr 1, [], ?_, rfl⟩
+    exact Set.mem_singleton _
+  exact h_init.trans (h_sim.trans h_accept)
 
 /-- Invariant for configurations reachable from the initial config of the ES→FS PDA.
     Every such configuration is either:
@@ -537,8 +762,8 @@ accepted by PDAs via empty-stack acceptance. -/
 theorem PDA_FinalStateClass_eq_EmptyStackClass :
     (PDA.FinalStateClass : Set (Language T)) = PDA.EmptyStackClass := by
   ext L
-  refine Eq.to_iff ?_
-  simp [PDA.FinalStateClass, PDA.EmptyStackClass, Set.mem_setOf_eq]
+  change is_PDA_finalState L ↔ is_PDA L
+  exact is_PDA_finalState_iff_is_PDA
 
 theorem PDA_FinalStateClass_eq_Class :
     (PDA.FinalStateClass : Set (Language T)) = PDA.Class := by

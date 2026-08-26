@@ -57,6 +57,8 @@ as a search procedure.
 
 open Relation
 
+set_option backward.isDefEq.respectTransparency false
+
 variable {T : Type} [DecidableEq T]
 
 /-! ### Computable rule application -/
@@ -138,9 +140,14 @@ public theorem applyRuleSeq_derives (g : grammar T) [DecidableEq g.nt]
             exact Option.ne_none_iff_exists'.mp h'';
           exact ⟨ sf_mid, h_mid, Relation.ReflTransGen.single <| by obtain ⟨ u, v, hu, hv ⟩ := applyRuleAt_correct r init sf_mid seq_data.2 h_mid; exact ⟨ r, by
             exact List.mem_of_getElem? h', u, v, hu, hv ⟩ ⟩;
-      convert Relation.ReflTransGen.trans h_mid.2 ( ‹∀ ( init sf' : List ( symbol T g.nt ) ), applyRuleSeq g.rules init seq_tails = some sf' → grammar_derives g init sf'› _ _ _ ) using 1;
-      convert h using 1;
-      exact h_mid.1.symm ▸ rfl
+      have htail : applyRuleSeq g.rules sf_mid seq_tails = some sf' := by
+        unfold applyRuleSeq
+        rw [← h_mid.1]
+        exact h
+      exact Relation.ReflTransGen.trans h_mid.2
+        (‹∀ (init sf' : List (symbol T g.nt)),
+          applyRuleSeq g.rules init seq_tails = some sf' → grammar_derives g init sf'›
+          sf_mid sf' htail)
 
 /-! ### Terminal checking -/
 

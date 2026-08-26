@@ -56,7 +56,11 @@ public inductive AnyEqState where
   | seenB
   | seenC
   | matched
-  deriving DecidableEq, Fintype
+  deriving DecidableEq
+
+public instance : Fintype AnyEqState :=
+  Fintype.ofList [.start, .seenB, .seenC, .matched]
+    (by intro x; cases x <;> simp)
 
 open AnyEqState ABCStack
 
@@ -97,6 +101,12 @@ public def dpda_any_eq : DPDA AnyEqState (Fin 3) ABCStack where
     | seenC, bottom => some (matched, [bottom])
     | _, _ => none
   no_mixed := by decide
+
+-- Lean 4.33 requires the constructed DPDA to be transparent while checking
+-- dependent `toPDA` configuration and reachability types.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] dpda_any_eq DPDA.toPDA PDA.Reaches PDA.Reaches₁
+  PDA.step
 
 private lemma any_eq_step_read_a_start (rest : List (Fin 3)) :
     @PDA.Reaches₁ AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
@@ -175,11 +185,11 @@ private lemma dpda_any_eq_complete (n m : ℕ) :
     replicate n a_ ++ replicate m b_ ++ replicate m c_ ∈ dpda_any_eq.acceptsByFinalState := by
   rcases m with _ | m
   · use AnyEqState.start
-    refine ⟨by simp [DPDA.toPDA, dpda_any_eq], [bottom], ?_⟩
+    refine ⟨by simp, [bottom], ?_⟩
     simpa [DPDA.toPDA, dpda_any_eq, List.replicate] using any_eq_read_as n []
   · use matched
     constructor
-    · simp [DPDA.toPDA, dpda_any_eq]
+    · simp
     · use [bottom]
       change @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
         ⟨AnyEqState.start,
@@ -197,6 +207,7 @@ private lemma dpda_any_eq_complete (n m : ℕ) :
             ⟨AnyEqState.start, replicate (m + 1) b_ ++ restC, [bottom]⟩
             ⟨AnyEqState.seenB, replicate m b_ ++ restC, [mark, bottom]⟩ := by
         convert Relation.ReflTransGen.single (any_eq_step_read_b_start (replicate m b_ ++ restC)) using 1
+        · simp [List.replicate]
       have h_bs :
           @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
             ⟨AnyEqState.seenB, replicate m b_ ++ restC, [mark, bottom]⟩
@@ -367,9 +378,9 @@ private lemma dpda_any_eq_sound (w : List (Fin 3))
   · rcases hstart with ⟨rfl, rfl, rfl, rfl⟩
     exact ⟨na, 0, by simpa using hw⟩
   · rcases hseenB with ⟨rfl, _, _, _⟩
-    simp [DPDA.toPDA, dpda_any_eq] at hq
+    simp at hq
   · rcases hseenC with ⟨rfl, _, _, _⟩
-    simp [DPDA.toPDA, dpda_any_eq] at hq
+    simp at hq
   · rcases hmatched with ⟨rfl, hnc, rfl⟩
     subst nc
     exact ⟨na, nb, by simpa [List.append_assoc] using hw⟩

@@ -85,7 +85,7 @@ variable [Fintype T] {σ : Type} [Fintype σ] (M : DFA T σ)
 
 /-- The LR grammar for a DFA: the right-regular grammar `RG_of_DFA M`, viewed as a
 context-free grammar (same rules). -/
-private noncomputable def lrGrammar : CF_grammar T := CF_grammar_of_RG (RG_of_DFA M)
+private noncomputable abbrev lrGrammar : CF_grammar T := CF_grammar_of_RG (RG_of_DFA M)
 
 private lemma lrGrammar_initial : (lrGrammar M).initial = M.start := rfl
 
@@ -113,11 +113,20 @@ private lemma RG_of_DFA_rule_cases {rr : RG_rule T σ} (h : rr ∈ (RG_of_DFA M)
 private lemma rule_shape {rule : σ × List (symbol T σ)} (hr : rule ∈ (lrGrammar M).rules) :
     (∃ a, rule = (rule.1, [symbol.terminal a, symbol.nonterminal (M.step rule.1 a)])) ∨
       (rule.1 ∈ M.accept ∧ rule = (rule.1, [])) := by
-  simp only [lrGrammar, CF_grammar_of_RG, List.mem_map] at hr
-  obtain ⟨rr, hrr, rfl⟩ := hr
-  rcases RG_of_DFA_rule_cases M hrr with ⟨q, a, rfl⟩ | ⟨q, hq, rfl⟩
-  · exact Or.inl ⟨a, by simp [RG_rule.lhs, RG_rule.output]⟩
-  · exact Or.inr ⟨by simpa [RG_rule.lhs] using hq, by simp [RG_rule.lhs, RG_rule.output]⟩
+  simp only [lrGrammar, CF_grammar_of_RG] at hr
+  obtain ⟨rr, hrr, heq⟩ := List.mem_map.mp hr
+  rcases RG_of_DFA_rule_cases M hrr with ⟨q, a, hqa⟩ | ⟨q, hq, hqe⟩
+  · have heq' : rule =
+        (q, [symbol.terminal a, symbol.nonterminal (M.step q a)]) := by
+      rw [← heq, hqa]
+      rfl
+    rw [heq']
+    exact Or.inl ⟨a, rfl⟩
+  · have heq' : rule = (q, []) := by
+      rw [← heq, hqe]
+      rfl
+    rw [heq']
+    exact Or.inr ⟨hq, rfl⟩
 
 /-- A rightmost context-free step of the wrapped grammar is, in particular, a
 right-regular derivation step of the underlying grammar, so a rightmost derivation is a
@@ -125,10 +134,12 @@ right-regular derivation. -/
 private lemma derivesRightmost_RG_derives {u v : List (symbol T σ)}
     (h : (lrGrammar M).DerivesRightmost u v) : RG_derives (RG_of_DFA M) u v := by
   refine (RG_derives_iff_CF_derives (RG_of_DFA M) u v).mpr ?_
-  refine Relation.ReflTransGen.mono ?_ h
-  intro a b hab
-  obtain ⟨r, hr, p, la, hu, hv⟩ := hab
-  exact ⟨r, p, la.map symbol.terminal, hr, hu, hv⟩
+  induction h with
+  | refl => exact Relation.ReflTransGen.refl
+  | tail _ hstep ih =>
+      apply Relation.ReflTransGen.tail ih
+      obtain ⟨r, hr, p, la, hu, hv⟩ := hstep
+      exact ⟨r, p, la.map symbol.terminal, hr, hu, hv⟩
 
 /-- Reachable rightmost sentential forms: borrowed directly from the right-regular
 characterisation `RG_of_DFA_derives_inv`. -/
@@ -148,8 +159,12 @@ private lemma config_extract {rule : σ × List (symbol T σ)} {p : List (symbol
   · obtain ⟨hl₂, hp, hX⟩ := eq_map_terminal_append_nt hw
     exact ⟨by simpa using hl₂, w, hp, hX⟩
   · exfalso
-    have : symbol.nonterminal rule.1 ∈ (w.map symbol.terminal) := by rw [← hw]; simp
-    exact nonterminal_not_mem_map_terminal this
+    change p ++ [symbol.nonterminal rule.1] ++ s.map symbol.terminal =
+      w.map (symbol.terminal (N := σ)) at hw
+    have hmem : symbol.nonterminal rule.1 ∈
+        p ++ [symbol.nonterminal rule.1] ++ s.map symbol.terminal := by simp
+    rw [hw] at hmem
+    exact nonterminal_not_mem_map_terminal hmem
 
 /-- Ordinary completed handles of the DFA grammar are unique once their complete
 post-reduction sentential forms agree. -/
@@ -216,20 +231,21 @@ private lemma lrGrammar_post_ne_initial
     (w : List T) :
     w.map symbol.terminal ++ r.2 ≠
       [symbol.nonterminal (lrGrammar M).initial] := by
+  change w.map (symbol.terminal (N := σ)) ++ r.2 ≠
+    [symbol.nonterminal M.start]
   intro heq
   rcases rule_shape M hr with ⟨a, hra⟩ | ⟨_, hre⟩
   · have hout : r.2 =
         [symbol.terminal a, symbol.nonterminal (M.step r.1 a)] :=
       congrArg Prod.snd hra
+    rw [hout] at heq
     have hlen := congrArg List.length heq
-    simp [hout] at hlen
+    simp only [List.length_append, List.length_map, List.length_cons,
+      List.length_nil] at hlen
+    omega
   · have hout : r.2 = [] := congrArg Prod.snd hre
     rw [hout, List.append_nil] at heq
-    have hmem : symbol.nonterminal (lrGrammar M).initial ∈
-        w.map (symbol.terminal (N := σ)) := by
-      rw [heq]
-      simp
-    exact nonterminal_not_mem_map_terminal hmem
+    cases w <;> simp at heq
 
 private lemma project_eq_map_terminal
     {p : List (symbol T (Option σ))} {w : List T}
@@ -238,22 +254,21 @@ private lemma project_eq_map_terminal
     p = w.map (symbol.terminal (N := Option σ)) := by
   induction p generalizing w with
   | nil =>
-      cases w <;> simp [CF_grammar.projectAugmentString] at h ⊢
+      simp [CF_grammar.projectAugmentString] at h ⊢
+      exact h
   | cons a p ih =>
-      cases a with
-      | terminal t =>
-          cases w with
-          | nil => simp [CF_grammar.projectAugmentString] at h
-          | cons u w =>
+      cases w with
+      | nil => simp [CF_grammar.projectAugmentString] at h
+      | cons u w =>
+          cases a with
+          | terminal t =>
               simp only [CF_grammar.projectAugmentString, List.map_cons,
-                CF_grammar.projectAugmentSymbol, List.cons.injEq] at h
-              have htu : t = u := by simpa using h.1
-              subst u
-              simp only [List.map_cons, List.cons.injEq, true_and]
-              exact ih h.2
-      | nonterminal A =>
-          cases A <;> cases w <;> simp [CF_grammar.projectAugmentString,
-            CF_grammar.projectAugmentSymbol] at h
+                CF_grammar.projectAugmentSymbol, symbol.terminal.injEq,
+                List.cons.injEq] at h ⊢
+              exact ⟨h.1, ih h.2⟩
+          | nonterminal A =>
+              cases A <;> simp [CF_grammar.projectAugmentString,
+                CF_grammar.projectAugmentSymbol] at h
 
 private lemma augment_rule_no_fresh
     {r : Option σ × List (symbol T (Option σ))}
@@ -261,12 +276,14 @@ private lemma augment_rule_no_fresh
     symbol.nonterminal none ∉ r.2 := by
   rcases List.mem_cons.mp hr with hstart | hmapped
   · subst r
-    simp [CF_grammar.augmentStartRule]
-  · rcases List.mem_map.mp hmapped with ⟨r₀, _, rfl⟩
+    change symbol.nonterminal none ∉
+      [symbol.nonterminal (some M.start)]
+    simp
+  · rcases List.mem_map.mp hmapped with ⟨r₀, _, heq⟩
+    rw [← heq]
     intro hnone
-    simp only [CF_grammar.augmentRule, CF_grammar.augmentString,
-      List.mem_map] at hnone
-    rcases hnone with ⟨x, _, hx⟩
+    change symbol.nonterminal none ∈ r₀.2.map CF_grammar.augmentSymbol at hnone
+    rcases List.mem_map.mp hnone with ⟨x, _, hx⟩
     cases x <;> simp [CF_grammar.augmentSymbol] at hx
 
 private lemma augment_fresh_invariant
@@ -274,29 +291,48 @@ private lemma augment_fresh_invariant
     (h : (lrGrammar M).augment.DerivesRightmost
       [symbol.nonterminal (lrGrammar M).augment.initial] v) :
     v = [symbol.nonterminal none] ∨ symbol.nonterminal none ∉ v := by
+  unfold CF_grammar.augment at h
   induction h with
   | refl => exact Or.inl rfl
   | tail _ hstep ih =>
       right
       rcases hstep with ⟨r, hr, p, s, hu, hv⟩
+      change Option σ × List (symbol T (Option σ)) at r
+      change List (symbol T (Option σ)) at p
       have hrhs := augment_rule_no_fresh M hr
       rcases ih with hinitial | hnofresh
       · rw [hinitial] at hu
-        have hlen := congrArg List.length hu
-        simp only [List.length_cons, List.length_nil, List.length_append,
-          List.length_map] at hlen
-        have hp : p = [] := List.eq_nil_of_length_eq_zero (by omega)
-        have hs : s = [] := List.eq_nil_of_length_eq_zero (by omega)
+        change ([symbol.nonterminal none] : List (symbol T (Option σ))) =
+          p ++ [symbol.nonterminal r.1] ++ s.map symbol.terminal at hu
+        rw [List.append_assoc] at hu
+        have hu' : p ++ [symbol.nonterminal r.1] ++ s.map symbol.terminal =
+            ([] : List T).map (symbol.terminal (N := Option σ)) ++
+              [symbol.nonterminal none] := by
+          simpa using hu.symm
+        obtain ⟨hsmap, hp, _⟩ :=
+          eq_map_terminal_append_nt (h := hu')
+        have hs : s = [] := by simpa using hsmap
         subst p
         subst s
-        simpa [hv] using hrhs
+        rw [hv]
+        intro hmem
+        rcases List.mem_append.mp hmem with hpre | hterm
+        · rcases List.mem_append.mp hpre with hnil | hrule
+          · exact List.not_mem_nil hnil
+          · exact hrhs hrule
+        · exact nonterminal_not_mem_map_terminal hterm
       · have hp : symbol.nonterminal none ∉ p := by
           intro hmem
           apply hnofresh
           rw [hu]
-          simp [hmem]
+          exact List.mem_append_left _ (List.mem_append_left _ hmem)
         rw [hv]
-        simp [hp, hrhs]
+        intro hmem
+        rcases List.mem_append.mp hmem with hpre | hterm
+        · rcases List.mem_append.mp hpre with hpre | hrule
+          · exact hp hpre
+          · exact hrhs hrule
+        · exact nonterminal_not_mem_map_terminal hterm
 
 /-- Every reachable augmented prehandle either is the untouched fresh start or
 is an ordinary DFA prehandle with a terminal prefix and empty terminal suffix. -/
@@ -318,22 +354,44 @@ private lemma augment_config_extract
           p ++ [symbol.nonterminal rule.1] ++ s.map symbol.terminal := by
         simp [hq]
       rcases hinv with heq | hnone
-      · have hlen := congrArg List.length heq
-        simp only [List.length_append, List.length_cons, List.length_nil,
-          List.length_map] at hlen
+      · rw [hq] at heq
+        change p ++ [symbol.nonterminal none] ++ s.map symbol.terminal =
+          ([symbol.nonterminal none] : List (symbol T (Option σ))) at heq
+        have hlen : p.length + 1 + s.length = 1 := by
+          simpa only [List.length_append, List.length_cons, List.length_nil,
+            List.length_map] using congrArg List.length heq
         have hp : p = [] := List.eq_nil_of_length_eq_zero (by omega)
         have hs : s = [] := List.eq_nil_of_length_eq_zero (by omega)
         exact ⟨hs, Or.inl ⟨rfl, hp⟩⟩
       · exact False.elim (hnone hmem)
   | some q =>
       have hproj := CF_grammar.derivesRightmost_project_augment (lrGrammar M) h
+      rw [hq] at hproj
       have hproj' :
           (lrGrammar M).DerivesRightmost
             [symbol.nonterminal (lrGrammar M).initial]
             ((lrGrammar M).projectAugmentString p ++
               [symbol.nonterminal q] ++ s.map symbol.terminal) := by
-        simpa [CF_grammar.projectAugmentString,
-          CF_grammar.projectAugmentSymbol, List.map_append, hq] using hproj
+        convert hproj using 1
+        · rfl
+        · symm
+          calc
+            (lrGrammar M).projectAugmentString
+                  (p ++ [symbol.nonterminal (some q)] ++ s.map symbol.terminal) =
+                (lrGrammar M).projectAugmentString
+                    (p ++ [symbol.nonterminal (some q)]) ++
+                  (lrGrammar M).projectAugmentString
+                    (s.map symbol.terminal) :=
+              (lrGrammar M).projectAugmentString_append _ _
+            _ = ((lrGrammar M).projectAugmentString p ++
+                    (lrGrammar M).projectAugmentString
+                      [symbol.nonterminal (some q)]) ++
+                  s.map symbol.terminal := by
+              rw [(lrGrammar M).projectAugmentString_append
+                  p [symbol.nonterminal (some q)],
+                (lrGrammar M).projectAugmentString_map_terminal s]
+            _ = (lrGrammar M).projectAugmentString p ++
+                  [symbol.nonterminal q] ++ s.map symbol.terminal := by rfl
       obtain ⟨hs, w, hp, hstate⟩ :=
         config_extract M (rule := (q, [])) hproj'
       exact ⟨hs, Or.inr ⟨q, w, rfl,
@@ -342,6 +400,7 @@ private lemma augment_config_extract
 /-- The deterministic right-linear grammar of a DFA is LR(1). -/
 private theorem lrGrammar_isLR1 : (lrGrammar M).IsLRk 1 := by
   change (lrGrammar M).augment.CoreIsLRk 1
+  unfold CF_grammar.augment
   intro r₁ r₂ hr₁ hr₂ p₁ p₂ s₁ s₂ y hd₁ hd₂ hform hlook
   change List (symbol T (Option (lrGrammar M).nt)) at p₁ p₂
   obtain ⟨hs₁, hc₁⟩ := augment_config_extract M hd₁
@@ -461,13 +520,11 @@ private theorem lrGrammar_isLR1 : (lrGrammar M).IsLRk 1 := by
       (s₁ := []) (s₂ := [])
       (by simpa using hd₁'') (by simpa using hd₂'')
       hcore
-    have hp : p₂ = p₁ := by
-      have hsides :
-          p₂ ++ CF_grammar.augmentString r₁'.2 =
-            p₁ ++ CF_grammar.augmentString r₁'.2 := by
-        simpa [CF_grammar.augmentRule, hrules] using hform
-      exact List.append_cancel_right hsides
-    exact ⟨hp.symm, by simp [hrules]⟩
+    rw [hrules] at hform
+    change p₂ ++ CF_grammar.augmentString r₂'.2 =
+      p₁ ++ CF_grammar.augmentString r₂'.2 at hform
+    have hp : p₂ = p₁ := List.append_cancel_right hform
+    exact ⟨hp.symm, congrArg CF_grammar.augmentRule hrules⟩
 
 /-- The language of the DFA-derived grammar is the DFA's language. -/
 private lemma lrGrammar_language : CF_language (lrGrammar M) = M.accepts := by

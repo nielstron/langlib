@@ -153,7 +153,8 @@ private lemma evalFrom_append (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (u v 
     (substεNFA M τ N).evalFrom ((substεNFA M τ N).evalFrom S u) v := by
   -- By definition of `evalFrom`, we can rewrite the goal using the fold operation and the properties of `εClosure`.
   have h_evalFrom_fold : ∀ (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (w : List β), (substεNFA M τ N).evalFrom S w = (w.foldl (fun T c => (substεNFA M τ N).stepSet T c) ((substεNFA M τ N).εClosure S)) := by
-    grind;
+    intro S w
+    rfl
   rw [ h_evalFrom_fold, h_evalFrom_fold, h_evalFrom_fold, List.foldl_append ];
   convert rfl using 2;
   -- Apply the εClosure_idempotent lemma to conclude the proof.
@@ -338,10 +339,13 @@ private lemma forward_step_analysis (q : σ) (v' : List β) (b : β)
     obtain ⟨w_extra, hw_extra⟩ : ∃ w_extra : List α, M.evalFrom (M.step q₀ a₀) w_extra = q' ∧ [] ∈ (w_extra.map (fun a => (N a).accepts)).prod := by
       have := εClosure_inl_inv ( M.step q₀ a₀ ) x hx'; aesop;
     refine' ⟨ w₀ ++ [ a₀ ] ++ w_extra, _, _ ⟩ <;> simp_all +decide [ DFA.evalFrom ];
-    refine' ⟨ v₁, _, v₂ ++ [ b ], _, _ ⟩ <;> simp_all +decide [ Language.mul_def ];
-    refine' ⟨ v₂ ++ [ b ], _, [ ], _, _ ⟩ <;> simp_all +decide [ DFA.accepts ];
-    convert ht' using 1;
-    simp +decide [ DFA.acceptsFrom, DFA.evalFrom ];
+    apply (Language.mem_mul).mpr
+    refine ⟨v₁, hv₁_prod, v₂ ++ [b], ?_, by simp⟩
+    apply (Language.mem_mul).mpr
+    refine ⟨v₂ ++ [b], ?_, [], hw_extra.2, by simp⟩
+    rw [DFA.mem_accepts]
+    rw [DFA.eval_append_singleton]
+    exact ht'
   · rename_i q' a s hs;
     have hεClosure_cases : x = Sum.inr (q₀, ⟨a₀, (N a₀).step t₀ b⟩) ∨ ( (N a₀).step t₀ b ∈ (N a₀).accept ∧ x ∈ (substεNFA M τ N).εClosure {Sum.inl (M.step q₀ a₀)} ) := by
       apply εClosure_inr_cases; assumption;
@@ -354,8 +358,8 @@ private lemma forward_step_analysis (q : σ) (v' : List β) (b : β)
       · have h_prod : v₁ ++ (v₂ ++ [b]) ∈ ((w₀ ++ [a₀] ++ w).map (fun a => (N a).accepts)).prod := by
           apply step_prod_mem;
           · assumption;
-          · simp_all +decide [ DFA.mem_accepts ];
-            convert h₁ using 1;
+          · rw [DFA.mem_accepts]
+            simpa only [DFA.eval, DFA.evalFrom_append_singleton, ht₀] using h₁
           · exact hw₂;
         grind
 

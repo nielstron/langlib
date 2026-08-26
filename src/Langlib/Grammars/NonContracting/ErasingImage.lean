@@ -127,6 +127,11 @@ public noncomputable def finiteErasingImageGrammar [Fintype T] (g : grammar T)
   rules := g.rules.map paddedRule ++ swapRules (T := T) (N := g.nt) ++
     [finishPaddingRule]
 
+-- Lean 4.33 requires the constructed grammar to be transparent when checking
+-- dependent sentential-form and derivation types involving its projections.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] finiteErasingImageGrammar grammar_derives
+
 @[simp] private theorem liftString_length (w : List (symbol T N)) :
     (liftString w).length = w.length := by
   simp [liftString]
@@ -255,13 +260,11 @@ private theorem project_transforms [Fintype T] (g : grammar T) [Fintype g.nt]
       simp [projectString, projectSymbol, swapRule, liftSymbol, paddingSymbol,
         List.flatMap_append, List.append_assoc]
     rw [heq]
-    exact Relation.ReflTransGen.refl
   · have heq : projectString u = projectString v := by
       rw [hu, hv]
       simp [projectString, projectSymbol, finishPaddingRule, paddingTerminal,
         List.flatMap_append, List.append_assoc]
     rw [heq]
-    exact Relation.ReflTransGen.refl
 
 /-- Every derivation of the padded simulation projects to a source derivation. -/
 private theorem project_derives [Fintype T] (g : grammar T) [Fintype g.nt]
@@ -473,9 +476,18 @@ private theorem finite_generates_padded [Fintype T] (g : grammar T) [Fintype g.n
   have hfinish := grammar_deri_with_prefix
     (liftString (w.map symbol.terminal)) (finish_padding g k)
   have hall := Relation.ReflTransGen.trans hk hfinish
+  have htarget :
+      (paddedTerminalWord w k).map
+          (symbol.terminal : Option T → symbol (Option T) (Option g.nt)) =
+        liftString (N := g.nt)
+            (w.map (symbol.terminal : T → symbol T g.nt)) ++
+          List.replicate k (paddingTerminal (T := T) (N := g.nt)) := by
+    simp [paddedTerminalWord, liftString, liftSymbol, paddingTerminal,
+      List.map_append, List.map_map, Function.comp_def]
   refine ⟨k, ?_⟩
-  simpa [grammar_generates, finiteErasingImageGrammar, paddedTerminalWord,
-    liftString, liftSymbol, paddingTerminal, List.map_append, List.map_map] using hall
+  simp only [grammar_generates]
+  rw [htarget]
+  exact hall
 
 /-- Erasing padding from a generated simulated word yields a word of the source grammar. -/
 private theorem finite_generates_project [Fintype T] (g : grammar T) [Fintype g.nt]
@@ -496,8 +508,10 @@ private theorem mem_prod_singletons_iff_flatMap {A B : Type}
       simp only [List.map_cons, List.prod_cons, Language.mul_def]
       constructor
       · rintro ⟨u₁, hu₁, u₂, hu₂, rfl⟩
-        rw [Set.mem_singleton_iff] at hu₁
-        rw [hu₁, List.flatMap_cons]
+        have hu₁' : u₁ = h a := by
+          change Set.Mem ({h a} : Set (List B)) u₁ at hu₁
+          exact Set.mem_singleton_iff.mp hu₁
+        rw [hu₁', List.flatMap_cons]
         congr 1
         exact (ih u₂).mp hu₂
       · intro hu

@@ -1,7 +1,7 @@
 module
 
 public import Mathlib.CategoryTheory.Category.Basic
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -48,7 +48,7 @@ there exists an injection from `Γ₁` to `Γ₂` that maps default to default.
 - `TM0AlphabetSim.lift_eval_dom` — evaluation preserves Dom under alphabet embedding
 -/
 
-open Turing
+open Turing StateTransition
 
 namespace TM0AlphabetSim
 

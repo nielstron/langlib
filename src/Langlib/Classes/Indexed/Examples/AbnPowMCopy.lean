@@ -40,6 +40,7 @@ public inductive CopyFlag where
 deriving DecidableEq
 
 /-- Indexed grammar producing a word from `A`, a separator, and its reversal. -/
+@[reducible]
 public def grammarAbnPowMCopy : IndexedGrammar CopyLetter where
   nt := CopyNT
   flag := CopyFlag

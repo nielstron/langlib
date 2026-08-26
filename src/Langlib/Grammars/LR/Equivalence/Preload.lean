@@ -87,10 +87,13 @@ private theorem preloadFrom (G : CF_grammar T) (k : ℕ) (hk : 0 < k)
             (finishBuffer (observe k xs) xs.length), [], [none]⟩ := by
         simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, machine,
           inputTransition, hxs]
+        left
+        rfl
       have hfinish := finishBuffer_observe k xs hxs
       have hunread : unreadAfter k xs = [] := by
         unfold unreadAfter
         rw [if_neg (by omega)]
+      rw [PDA.Reaches]
       simpa [hfinish, hunread] using
         (Relation.ReflTransGen.single hstep)
   | cons a ys ih =>
@@ -104,6 +107,8 @@ private theorem preloadFrom (G : CF_grammar T) (k : ℕ) (hk : 0 < k)
               ys.map some ++ [none], [none]⟩ := by
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, machine,
             inputTransition, hxs, hfull]
+          left
+          rfl
         have hprefLen : (xs ++ [a]).length = k := by simp [hfull]
         have hobserve := observe_append_of_length_eq k (xs ++ [a]) ys hprefLen
         have hunread := unreadAfter_append_of_length_eq k (xs ++ [a]) ys hprefLen
@@ -114,6 +119,7 @@ private theorem preloadFrom (G : CF_grammar T) (k : ℕ) (hk : 0 < k)
         have hunread' : unreadAfter k (xs ++ a :: ys) =
             ys.map some ++ [none] := by
           rw [hword, hunread]
+        rw [PDA.Reaches]
         simpa [hobserve', hunread'] using
           (Relation.ReflTransGen.single hstep)
       · have hshort : (xs ++ [a]).length < k := by
@@ -126,8 +132,11 @@ private theorem preloadFrom (G : CF_grammar T) (k : ℕ) (hk : 0 < k)
               (observe k (xs ++ [a])), ys.map some ++ [none], [none]⟩ := by
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, machine,
             inputTransition, hxs, hfull, hbuffer]
+          left
+          rfl
         have htail := ih (xs ++ [a]) hshort
         have hrun := (Relation.ReflTransGen.single hstep).trans htail
+        rw [PDA.Reaches]
         simpa [List.append_assoc] using hrun
 
 /-- Exact preload theorem for a properly endmarked word. -/

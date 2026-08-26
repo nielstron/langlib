@@ -4,6 +4,7 @@ public import Langlib.Automata.LinearBounded.Equivalence.EndmarkerTape
 public import Mathlib.Data.Fintype.Sum
 public import Mathlib.Data.Fintype.Option
 import Mathlib.Tactic
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 

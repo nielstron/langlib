@@ -106,7 +106,7 @@ public def subst_rules_g {α β : Type}
 The substitution grammar is constructed by taking the disjoint union of non-terminals and the union
 of the transformed rules from `g` and the lifted rules from `f`.
 -/
-@[expose]
+@[expose, reducible]
 public def subst {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT] :
@@ -205,9 +205,11 @@ public theorem rule_mem_subst_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (a : α) (ha : a ∈ g.usedTerminals) (r : ContextFreeRule β (f a).NT) (hr : r ∈ (f a).rules) :
     { input := Sum.inr ⟨a, r.input⟩,
       output := r.output.map (g.liftSymbolF f a) } ∈ (g.subst f).rules := by
-  convert Finset.mem_union_right _ ( Finset.mem_sup.mpr ⟨ a, _, ?_ ⟩ )
-  · assumption
-  · exact Finset.mem_map.mpr ⟨ r, hr, rfl ⟩
+  apply Finset.mem_union_right
+  apply Finset.mem_sup.mpr
+  refine ⟨a, ha, ?_⟩
+  refine Finset.mem_map.mpr ⟨r, hr, ?_⟩
+  rfl
 
 /--
 If a substituting grammar `f a` produces `v` from `u`, then the substitution grammar `g.subst f`
@@ -262,10 +264,8 @@ public lemma subst_derives_prod {α β : Type} [DecidableEq α] [DecidableEq β]
         intro i hi; specialize h
         have := h.2 i ( by linarith ) hi
         simp_all only [Derives, forall_true_left, true_and]
-        convert derives_lift_f g f (u[i])
-            (hu _ (by simp)) (h _ hi) using 1
-        unfold liftSymbolF
-        aesop
+        simpa [liftSymbolF, liftSymbolG, List.map_map, Function.comp_def] using
+          derives_lift_f g f (u[i]) (hu _ (by simp)) (h _ hi)
       grind
 
 /--
@@ -337,9 +337,8 @@ public theorem subst_language_subset_1 {α β : Type} [DecidableEq α] [Decidabl
       have h_derives_lift_g : (g.subst f).Derives
           [Symbol.nonterminal (Sum.inl g.initial)]
           (u.map (fun a => g.liftSymbolG f (Symbol.terminal a))) := by
-        convert derives_lift_g g f hu using 1
-        simp only [List.map_map]
-        rfl
+        simpa [liftSymbolG, List.map_map, Function.comp_def] using
+          derives_lift_g g f hu
       have h_subst_derives_prod : (g.subst f).Derives
           (u.map (fun a => g.liftSymbolG f (Symbol.terminal a)))
           (W.flatten.map Symbol.terminal) := by
@@ -1149,7 +1148,14 @@ public theorem isContextFree_univ_unit : Language.IsContextFree (Set.univ : Lang
               Finset.mem_singleton, true_and]
             exact ContextFreeRule.Rewrites.cons (Symbol.terminal ()) h )
       exact Relation.ReflTransGen.trans h_step1 (h_prepend _ _ hu)
-    convert h_add_terminal _ h using 1
+    cases x
+    change (ContextFreeGrammar.mk Unit () {⟨(), []⟩,
+      ⟨(), [Symbol.terminal (), Symbol.nonterminal ()]⟩}).Derives
+        [Symbol.nonterminal ()] (List.map Symbol.terminal (() :: ih))
+    change (ContextFreeGrammar.mk Unit () {⟨(), []⟩,
+      ⟨(), [Symbol.terminal (), Symbol.nonterminal ()]⟩}).Derives
+        [Symbol.nonterminal ()] (List.map Symbol.terminal ih) at h
+    simpa using h_add_terminal _ h
 
 /-- Context free languages are closed under concatenation / multiplication -/
 theorem Language.IsContextFree.mul {α : Type} {L₁ L₂ : Language α}

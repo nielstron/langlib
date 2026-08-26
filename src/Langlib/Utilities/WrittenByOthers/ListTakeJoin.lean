@@ -66,7 +66,7 @@ by
   rcases h₂ with ⟨n, h₂⟩
   induction n with
   | zero =>
-    cases h₂ m (zero_le m) h₁
+    cases h₂ m (Nat.zero_le m) h₁
   | succ n ih =>
     simp_rw [Nat.succ_le_iff] at h₂
     by_cases h₃ : P n
@@ -136,10 +136,8 @@ by
     rintro r hr
     rw [←hP]
     push_neg
-    convert notall'
-    ·
-      have ht : L.take r = L := (List.take_eq_self_iff L).2 hr
-      simp [ht]
+    have ht : L.take r = L := (List.take_eq_self_iff L).2 hr
+    simpa [hN, ht] using notall'
   obtain ⟨hm₁, hm₂⟩ := nat_get_max_spec ⟨0, hP0⟩ ⟨X, hPX⟩
   rw [hm] at hm₁ hm₂
   have hm₃ : ¬P m.succ := hm₂ _ (Nat.lt_succ_self m)
@@ -158,7 +156,6 @@ by
     have hk'' :
         n = (L.get ⟨m, mlt⟩).length + k' + (List.flatten (L.take m)).length := by
       replace hk := congr_arg (fun (x : ℕ) => x + (List.flatten (L.take m)).length) hk
-      dsimp at hk
       rw [Nat.sub_add_cancel hm₁, hk'] at hk
       simpa [add_assoc, add_left_comm, add_comm] using hk
     have htake : L.take m.succ = L.take m ++ [L.get ⟨m, mlt⟩] := by
@@ -226,7 +223,6 @@ by
     rw [hflatten_msucc]
     have : n = (List.flatten (List.take m L)).length + k := by
       have hk' := congr_arg (fun (x : ℕ) => x + (List.flatten (L.take m)).length) hk
-      dsimp at hk'
       have hk'' : n = k + (List.flatten (L.take m)).length := by
         simpa [Nat.sub_add_cancel hn₁, add_comm, add_left_comm, add_assoc, -List.length_flatten]
           using hk'

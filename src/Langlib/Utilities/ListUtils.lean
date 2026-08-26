@@ -91,7 +91,7 @@ section list_replicate
 
 public lemma replicate_succ_eq_singleton_append (s : α) (n : ℕ) :
   List.replicate n.succ s = [s] ++ List.replicate n s := by
-rfl
+  simpa only [Nat.succ_eq_add_one, List.replicate_succ, List.singleton_append]
 
 public lemma replicate_succ_eq_append_singleton (s : α) (n : ℕ) :
   List.replicate n.succ s = List.replicate n s ++ [s] := by
@@ -308,7 +308,9 @@ public theorem get?_eq_nth {l : List α} {n : Nat} : l[n]? = l.nth n := by
   | cons head tail ih =>
       cases n with
       | zero => rfl
-      | succ n => simpa using (ih (n := n))
+      | succ n =>
+          change tail[n]? = tail.nth n
+          exact ih
 
 public theorem nthLe_nth {l : List α} {n : Nat} (h : n < l.length) : l.nth n = some (l.nthLe n h) := by
   induction l generalizing n with
@@ -441,7 +443,7 @@ public theorem nthLe_replicate (a : α) {n i : Nat} (h : i < (List.replicate n a
       | succ i =>
           have h' : i < (List.replicate n a).length := by
             simpa [List.length_replicate] using (Nat.lt_of_succ_lt_succ h)
-          simpa [List.nthLe] using (ih h')
+          simpa only [List.replicate_succ, List.nthLe] using ih h'
 
 public theorem nth_eq_none_iff {l : List α} {n : Nat} : l.nth n = none ↔ l.length ≤ n := by
   induction l generalizing n with

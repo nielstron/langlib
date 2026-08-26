@@ -256,19 +256,17 @@ theorem liftWord_produces (g : ContextFreeGrammar T)
     {u v : List (Symbol T g.UsedNT)}
     (h : g.toFiniteNT.Produces u v) :
     g.Produces (g.liftWord u) (g.liftWord v) := by
-  -- Extract the rule r' from h, use mem_toFiniteNT_rules to get the original rule r, use ContextFreeRule.Rewrites.exists_parts to get p, q.
-  obtain ⟨r', hr', hr''⟩ := h;
-  obtain ⟨r, hr, hr'⟩ := mem_toFiniteNT_rules g r' hr';
-  -- Use the parts p and q from the restricted rule's rewrites to construct the derivation in the original grammar.
-  obtain ⟨p, q, hpq⟩ := hr''.exists_parts;
-  -- Use the parts p and q to construct the derivation in the original grammar.
+  dsimp only [toFiniteNT] at h
+  obtain ⟨r', hr', hr''⟩ := h
+  obtain ⟨r, hr, rfl⟩ := mem_toFiniteNT_rules g r' hr'
+  obtain ⟨p, q, hpq⟩ := hr''.exists_parts
+  rcases hpq with ⟨rfl, rfl⟩
   have h_deriv : g.Produces (g.liftWord p ++ [Symbol.nonterminal r.input] ++ g.liftWord q) (g.liftWord p ++ r.output ++ g.liftWord q) := by
-    constructor;
-    exact ⟨ hr, ContextFreeRule.rewrites_of_exists_parts r ( g.liftWord p ) ( g.liftWord q ) ⟩;
-  convert h_deriv using 1;
-  · unfold ContextFreeGrammar.liftWord; aesop;
-  · rw [ hpq.2, liftWord_append, liftWord_append ];
-    rw [ hr', liftWord_restrictRule_output ]
+    exact ⟨r, hr, ContextFreeRule.rewrites_of_exists_parts r (g.liftWord p) (g.liftWord q)⟩
+  convert h_deriv using 1
+  · rw [liftWord_append, liftWord_append]
+    rfl
+  · rw [liftWord_append, liftWord_append, liftWord_restrictRule_output]
 
 theorem liftWord_derives (g : ContextFreeGrammar T)
     {u v : List (Symbol T g.UsedNT)}
@@ -286,7 +284,7 @@ theorem restrictWord_produces (g : ContextFreeGrammar T)
     g.toFiniteNT.Produces (g.restrictWord u hu) (g.restrictWord v hv) := by
   obtain ⟨ r, hr, h ⟩ := h;
   refine' ⟨ g.restrictRule r hr, _, _ ⟩;
-  · grind +suggestions;
+  · exact g.restrictRule_mem_toFiniteNT r hr
   · obtain ⟨ p, q, hpq ⟩ := h.exists_parts;
     -- By definition of `restrictWord`, we can split the restriction into the restriction of `p`, the restriction of `[nonterminal r.input]`, and the restriction of `q`.
     have h_restrict_split : g.restrictWord u hu = g.restrictWord p (by
@@ -316,19 +314,23 @@ theorem restrictWord_derives (g : ContextFreeGrammar T)
 
 theorem toFiniteNT_language (g : ContextFreeGrammar T) :
     g.toFiniteNT.language = g.language := by
-  apply Set.ext;
+  apply Set.ext
   intro w
-  constructor;
-  · intro hw;
-    convert liftWord_derives _ hw using 1;
-    convert Iff.rfl using 3 ; unfold liftWord ; aesop;
+  constructor
   · intro hw
-    obtain ⟨h_deriv, h_allUsed⟩ : g.Derives [Symbol.nonterminal g.initial] (w.map .terminal) ∧ g.AllUsed [Symbol.nonterminal g.initial] ∧ g.AllUsed (w.map .terminal) := by
-      exact ⟨ hw, allUsed_initial g, allUsed_map_terminal g w ⟩;
-    have h_restrict_deriv : g.toFiniteNT.Derives [Symbol.nonterminal ⟨g.initial, g.initial_mem_usedNT⟩] (g.restrictWord (w.map .terminal) h_allUsed.2) := by
-      convert restrictWord_derives g h_deriv h_allUsed.1 h_allUsed.2 using 1;
-    convert h_restrict_deriv.trans _;
-    rw [ restrictWord_map_terminal ]
+    change g.toFiniteNT.Derives
+      [Symbol.nonterminal g.toFiniteNT.initial] (w.map .terminal) at hw
+    change g.Derives [Symbol.nonterminal g.initial] (w.map .terminal)
+    have h := liftWord_derives g hw
+    dsimp only [toFiniteNT] at h
+    rw [liftWord_map_terminal] at h
+    simpa only [toFiniteNT, liftWord, liftSymbol, List.map_cons, List.map_nil] using h
+  · intro hw
+    change g.Derives [Symbol.nonterminal g.initial] (w.map .terminal) at hw
+    change g.toFiniteNT.Derives
+      [Symbol.nonterminal g.toFiniteNT.initial] (w.map .terminal)
+    have h := restrictWord_derives g hw (allUsed_initial g) (allUsed_map_terminal g w)
+    simpa only [toFiniteNT, restrictWord_initial, restrictWord_map_terminal] using h
 
 public theorem exists_fintype_nt (L : Language T) (hL : L.IsContextFree) :
     ∃ (g : ContextFreeGrammar T) (_ : Fintype g.NT), g.language = L := by

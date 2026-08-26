@@ -76,7 +76,7 @@ theorem RE_emptiness_undecidable :
   have rice := ComputablePred.rice {f : ℕ →. ℕ | ∀ n, ¬(f n).Dom}
   -- Convert our hypothesis to the form expected by Rice
   have h1 : ComputablePred (fun c : Code => c.eval ∈ {f : ℕ →. ℕ | ∀ n, ¬(f n).Dom}) := by
-    convert h using 1
+    simpa only [Set.mem_ofPred_eq] using h
   -- The constant zero function is total, so it is NOT in the empty-domain set
   have pure_zero_not_empty :
       (pure 0 : ℕ →. ℕ) ∉ {f : ℕ →. ℕ | ∀ n, ¬(f n).Dom} :=

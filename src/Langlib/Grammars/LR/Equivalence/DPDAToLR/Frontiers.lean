@@ -25,6 +25,21 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
+private theorem append_pair_split {α : Type} (p : List α) (x y : α)
+    (s : List α) :
+    p ++ [x, y] ++ s = (p ++ [x]) ++ [y] ++ s := by
+  exact congrArg (fun q => q ++ s) (List.append_assoc p [x] [y]).symm
+
+private theorem append_after_single {α : Type} (p : List α) (x : α)
+    (z s : List α) :
+    (p ++ [x] ++ z) ++ [] ++ s = p ++ [x] ++ (z ++ s) := by
+  rw [List.append_nil]
+  exact List.append_assoc (p ++ [x]) z s
+
+private theorem append_empty_middle {α : Type} (p s : List α) :
+    p ++ [] ++ s = p ++ s := by
+  exact congrArg (fun q => q ++ s) (List.append_nil p)
+
 /-- Every nonterminal in a pending prefix is a characteristic `single`
 nonterminal.  Terminals may occur anywhere in the prefix. -/
 @[expose]
@@ -222,33 +237,47 @@ private theorem CharacteristicFrontier.producesRightmost
     rcases hp.lastView M with ⟨w, hw⟩ | ⟨p₀, q₀, t₀, Z₀, z, hp₀, hz⟩
     · right
       left
-      exact ⟨w ++ s, by simp [hw, List.map_append]⟩
+      refine ⟨w ++ s, ?_⟩
+      rw [hw, List.map_append]
+      exact append_empty_middle (w.map symbol.terminal)
+        (s.map symbol.terminal)
     · right
       right
       left
       refine ⟨p₀, q₀, t₀, Z₀, z ++ s, hp₀, ?_⟩
-      simp [hz, List.map_append, List.append_assoc]
+      rw [hz, List.map_append]
+      exact append_after_single p₀
+        (symbol.nonterminal (PDA_to_CFG.N.single q₀ Z₀ t₀))
+        (z.map symbol.terminal) (s.map symbol.terminal)
   · rcases hread with ⟨q, t, q', a, Z, alpha, _, rfl⟩
     rw [htarget]
     right
     right
     right
     refine ⟨p ++ [symbol.terminal a], q', t, alpha, s,
-      ?_, by simp [List.append_assoc]⟩
-    simpa using hp.append_terminals M [a]
+      ?_, by
+        exact append_pair_split p (symbol.terminal a)
+          (symbol.nonterminal (PDA_to_CFG.N.list q' alpha t))
+          (s.map symbol.terminal)⟩
+    change PendingPrefix M (p ++ [symbol.terminal a])
+    exact hp.append_terminals M [a]
   · rcases hepsilonMove with ⟨q, t, q', Z, alpha, _, rfl⟩
     rw [htarget]
     right
     right
     right
-    exact ⟨p, q', t, alpha, s, hp, by simp⟩
+    exact ⟨p, q', t, alpha, s, hp, by simp <;> rfl⟩
   · rcases hsplit with ⟨q, q', t, Z, alpha, _, rfl⟩
     rw [htarget]
     right
     right
     right
     refine ⟨p ++ [symbol.nonterminal (PDA_to_CFG.N.single q Z q')],
-      q', t, alpha, s, ?_, by simp [List.append_assoc]⟩
+      q', t, alpha, s, ?_, by
+        exact append_pair_split p
+          (symbol.nonterminal (PDA_to_CFG.N.single q Z q'))
+          (symbol.nonterminal (PDA_to_CFG.N.list q' alpha t))
+          (s.map symbol.terminal)⟩
     exact hp.append_single M q q' Z
   · rcases hstart with ⟨t, rfl⟩
     rw [htarget]
@@ -256,7 +285,7 @@ private theorem CharacteristicFrontier.producesRightmost
     right
     right
     exact ⟨p, (emptyStackPDA M).initial_state, t,
-      [(emptyStackPDA M).start_symbol], s, hp, by simp⟩
+      [(emptyStackPDA M).start_symbol], s, hp, by simp <;> rfl⟩
 
 /-- Every rightmost-reachable sentential form of the reduced characteristic
 grammar has the frontier shape above. -/
@@ -269,6 +298,7 @@ public theorem derivesRightmost_characteristic_frontier (M : DPDA Q T S)
   | refl =>
       left
       rw [characteristicGrammar_initial]
+      rfl
   | tail _ hstep ih =>
       exact ih.producesRightmost M hstep
 
@@ -304,9 +334,12 @@ public theorem characteristic_prehandle_classification (M : DPDA Q T S)
         (s := s) (t := []) (by simpa using hstart)
     exact ⟨hA, hpNil, hsNil⟩
   · rcases hterminal with ⟨w, hw⟩
-    have hnames := congrArg (nonterminalNames M) hw
-    rw [nonterminalNames_prehandle, nonterminalNames_map_terminal] at hnames
-    simp at hnames
+    have hmem : symbol.nonterminal A ∈ w.map symbol.terminal := by
+      rw [← hw]
+      exact List.mem_append_left _
+        (List.mem_append_right _ (List.mem_singleton_self _))
+    rcases List.mem_map.mp hmem with ⟨a, _, ha⟩
+    cases ha
   · rcases hsingle with ⟨p₀, q, t, Z, z, hp₀, hv⟩
     right
     left

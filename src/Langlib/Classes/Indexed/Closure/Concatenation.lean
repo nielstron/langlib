@@ -33,6 +33,11 @@ private def indexedConcat (g₁ g₂ : IndexedGrammar T) : IndexedGrammar T wher
   initial := UnionNT.start
   rules := [concatStartRule g₁ g₂] ++ g₁.rules.map liftRule1 ++ g₂.rules.map liftRule2
 
+-- Lean 4.33 needs the constructed grammar transparent while checking its
+-- dependent symbol, flag, transformation, and derivation types.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] indexedConcat IndexedGrammar.Derives
+
 private def concatLiftISym1 (g₁ g₂ : IndexedGrammar T) :
     g₁.ISym → (indexedConcat g₁ g₂).ISym
   | .terminal t => .terminal t
@@ -145,7 +150,8 @@ private theorem indexedConcat_generates_append (g₁ g₂ : IndexedGrammar T)
     ((w₁.map IndexedGrammar.ISym.terminal).map (concatLiftISym1 g₁ g₂))
     (concat_lift2_deri g₁ g₂ h₂)
   refine hstart.trans (hleft.trans ?_)
-  simpa [concatLiftISym1, concatLiftISym2, List.map_append, List.map_map] using hright
+  simpa [concatLiftISym1, concatLiftISym2, List.map_append, List.map_map,
+    Function.comp_def] using hright
 
 private theorem indexedConcat_language_subset_product (g₁ g₂ : IndexedGrammar T) :
     Set.Subset (g₁.Language * g₂.Language) (indexedConcat g₁ g₂).Language := by
@@ -275,25 +281,46 @@ private lemma concat_first_step (g₁ g₂ : IndexedGrammar T)
   rcases r with ⟨lhs, consume, rhs⟩
   cases consume with
   | none =>
-      rcases u with (_ | ⟨uh, ut⟩) <;>
-        rcases v with (_ | ⟨vh, vt⟩) <;>
-        simp_all +decide [indexedConcat, concatStartRule, liftRule1, liftRule2,
-          IndexedGrammar.expandRhs, List.append_assoc]
-      obtain ⟨hlhs, hσ⟩ := hu
+      have hlen := congrArg List.length hu
+      simp only [List.length_cons, List.length_nil, List.length_append] at hlen
+      have hu_len : u.length = 0 := by omega
+      have hv_len : v.length = 0 := by omega
+      have hu_nil := List.eq_nil_of_length_eq_zero hu_len
+      have hv_nil := List.eq_nil_of_length_eq_zero hv_len
+      subst u
+      subst v
+      have hcenter :
+          (IndexedGrammar.ISym.indexed UnionNT.start [] :
+            (indexedConcat g₁ g₂).ISym) =
+          IndexedGrammar.ISym.indexed lhs σ := by
+        simpa using hu
+      have hlhsσ : UnionNT.start = lhs ∧ ([] : List (UnionFlag g₁.flag g₂.flag)) = σ := by
+        simpa only [IndexedGrammar.ISym.indexed.injEq] using hcenter
+      rcases hlhsσ with ⟨hlhs, hσ⟩
       subst lhs
       subst σ
-      rcases hr with hr | hleft | hright
-      · rw [hr]
+      have hrhs : rhs =
+          [ IRhsSymbol.nonterminal (UnionNT.inl g₁.initial) none
+          , IRhsSymbol.nonterminal (UnionNT.inr g₂.initial) none ] := by
+        simpa [indexedConcat, concatStartRule, liftRule1, liftRule2] using hr
+      subst rhs
+      simpa [IndexedGrammar.expandRhs] using hv
+  | some f =>
+      have hmem : (IndexedGrammar.ISym.indexed lhs (f :: σ) :
+          (indexedConcat g₁ g₂).ISym) ∈
+          [IndexedGrammar.ISym.indexed UnionNT.start []] := by
+        rw [hu]
         simp
-      · obtain ⟨a, _ha, hstart, _hc, _hrhs⟩ := hleft
-        cases hstart
-      · obtain ⟨a, _ha, hstart, _hc, _hrhs⟩ := hright
-        cases hstart
-      | some f =>
-          rcases u with (_ | ⟨uh, ut⟩) <;>
-            rcases v with (_ | ⟨vh, vt⟩) <;>
-          simp_all +decide [indexedConcat, concatStartRule, liftRule1, liftRule2,
-          List.append_assoc]
+      have heq : (IndexedGrammar.ISym.indexed lhs (f :: σ) :
+          (indexedConcat g₁ g₂).ISym) =
+          IndexedGrammar.ISym.indexed UnionNT.start [] := by
+        simp only [List.mem_singleton] at hmem
+        exact hmem
+      have hstack := congrArg (fun s : (indexedConcat g₁ g₂).ISym =>
+        match s with
+        | .terminal _ => []
+        | .indexed _ stack => stack) heq
+      simp at hstack
 
 private lemma split_mixed_at_lift1_indexed (g₁ g₂ : IndexedGrammar T)
     {xs : List g₁.ISym} {ys : List g₂.ISym}

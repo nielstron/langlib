@@ -321,7 +321,8 @@ public theorem stopSaturationRel_preservesTarget (M : DPDA Q T S) :
         | inr u =>
             cases u
             exact ⟨(q, Z :: δ), Relation.ReflTransGen.refl, by
-              simpa [EpsilonStable] using hbase⟩
+              simpa [stopTargetBase, PAutState.control, PAutState.sink,
+                EpsilonStable] using hbase⟩
     | inr u =>
         cases u
         cases r with
@@ -355,7 +356,7 @@ public theorem stopSaturationDFA_sound (M : DPDA Q T S) (q : Q) (γ : List S) :
   intro h
   obtain ⟨r, hpath⟩ := (stopSaturationDFA_accepts_iff M q γ).1 h
   have htarget := stopSaturationRel_path_sound M hpath (stopTarget_nil M r)
-  simpa [stopTarget] using htarget
+  simpa [stopTarget, PAutState.control] using htarget
 
 public theorem stopSaturationRel_sink_path (M : DPDA Q T S) (γ : List S) :
     RelPath (stopSaturationRel M) (PAutState.sink : PAutState Q) γ PAutState.sink := by
@@ -506,7 +507,7 @@ public theorem finalSaturationDFA_sound (M : DPDA Q T S) (q : Q) (γ : List S) :
   obtain ⟨r, hr, hpath⟩ := (finalSaturationDFA_accepts_iff M q γ).1 h
   have htargetNil : finalTarget M r [] := (finalTarget_nil_iff M r).2 hr
   have htarget := finalSaturationRel_path_sound M hpath htargetNil
-  simpa [finalTarget] using htarget
+  simpa [finalTarget, PAutState.control] using htarget
 
 public theorem finalSaturationRel_sink_path (M : DPDA Q T S) (γ : List S) :
     RelPath (finalSaturationRel M) (PAutState.sink : PAutState Q) γ PAutState.sink := by

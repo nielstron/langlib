@@ -94,7 +94,6 @@ boundary markers prevent the head from leaving the input region.
 
 namespace DLBA
 
-open Fintype in
 /-! ### Direction -/
 
 /-- Direction for head movement. We include `stay` since the head is clamped at tape
@@ -103,7 +102,11 @@ public inductive Dir where
   | left  : Dir
   | right : Dir
   | stay  : Dir
-  deriving DecidableEq, Repr, Fintype, Inhabited
+  deriving DecidableEq, Repr, Inhabited
+
+public instance : Fintype Dir where
+  elems := {Dir.left, Dir.right, Dir.stay}
+  complete := by intro d; cases d <;> simp
 
 /-! ### Bounded Tape -/
 
@@ -398,10 +401,13 @@ theorem complement_language {Γ : Type*} {Λ : Type*} {n : ℕ}
     obtain ⟨k₂, hk₂⟩ := h'w;
     -- Since the machine halts, it must either accept or reject.
     by_cases h_accept : Accepts M (initCfg M w);
-    · exact absurd ( complement_accepts_iff_rejects M ( initCfg M w ) |>.1 ⟨ k₁, hk₁.1, hk₁.2.choose, by
-        convert hk₁.2.choose_spec.1 using 1, by
-        exact hk₁.2.choose_spec.2 ⟩ ) ( by
-        exact fun h => not_accepts_and_rejects M ( initCfg M w ) ⟨ h_accept, h ⟩ );
+    ·
+      apply not_accepts_and_rejects M (initCfg M w)
+      refine ⟨h_accept, (complement_accepts_iff_rejects M (initCfg M w)).1 ?_⟩
+      obtain ⟨cfg', hcfg', haccept⟩ := hk₁.2
+      refine ⟨k₁, ?_, cfg', ?_, haccept⟩
+      · simpa [initCfg, complementMachine] using hk₁.1
+      · simpa [initCfg, complementMachine] using hcfg'
     · exact h_accept ⟨ k₂, hk₂.1, hk₂.2 ⟩;
   · intro hw
     have h_compl : Accepts (complementMachine M) (initCfg M w) := by
@@ -450,7 +456,13 @@ theorem exists_iterate_eq_of_long_run (M : Machine Γ Λ) (cfg : Cfg Γ Λ n)
     have h_subset : Finset.image (fun i : Fin (Fintype.card (Cfg Γ Λ n) + 1) => iterateStep M cfg i) Finset.univ ⊆ Finset.image (fun c : Cfg Γ Λ n => some c) Finset.univ := by
       simp +decide [ Finset.subset_iff ];
       exact fun i => by obtain ⟨ x, hx ⟩ := Option.isSome_iff_exists.mp ( hrun i ( Nat.le_of_lt_succ i.2 ) ) ; exact ⟨ x, hx.symm ⟩ ;
-    exact h_distinct.not_lt ( lt_of_le_of_lt ( Finset.card_le_card h_subset ) ( by simp +decide [ Finset.card_image_of_injective, Function.Injective ] ) );
+    have hcard :
+        (Finset.image (fun c : Cfg Γ Λ n => some c) Finset.univ).card =
+          Fintype.card (Cfg Γ Λ n) := by
+      rw [Finset.card_image_of_injective _ (fun _ _ h => Option.some.inj h), Finset.card_univ]
+    have hle := Finset.card_le_card h_subset
+    rw [h_distinct, hcard] at hle
+    omega
   cases lt_trichotomy i j <;> simp_all +decide;
   · exact ⟨ i, j, by assumption, Nat.le_of_lt_succ j.2, hconfig, hrun i ( Nat.le_of_lt_succ i.2 ) ⟩;
   · exact ⟨ j, i, by assumption, Nat.le_of_lt_succ i.2, hconfig.symm, hrun _ ( Nat.le_of_lt_succ j.2 ) ⟩

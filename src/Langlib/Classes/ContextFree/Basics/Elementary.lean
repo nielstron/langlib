@@ -39,7 +39,7 @@ variable {T : Type}
 
 
 /-- Context-free grammar for the empty Language (i.e., `∈` always gives `false`). -/
-@[expose]
+@[expose, reducible]
 public def cfg_empty_lang : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 []
 
@@ -72,7 +72,7 @@ by
     cases hw
 
 /-- Context-free grammar for the singleton Language that contains `[]` as its only word. -/
-def cfg_empty_word : CF_grammar T :=
+@[reducible] def cfg_empty_word : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 [(0, [])]
 
 /-- Characterization of the singleton Language. -/
@@ -84,6 +84,7 @@ by
   constructor
   ·
     intro hw
+    change w = []
     change
       CF_derives
         (@cfg_empty_word T)
@@ -137,7 +138,7 @@ by
         omega
   ·
     intro hyp
-    rw [Set.mem_singleton_iff] at hyp
+    change w = [] at hyp
     change CF_derives cfg_empty_word [symbol.nonterminal cfg_empty_word.initial]
       (List.map symbol.terminal w)
     apply @CF_deri_of_tran
@@ -147,7 +148,7 @@ by
     · simp [hyp, cfg_empty_word]
 
 /-- Context-free grammar for a Language `{a}.star` where `a` is a given terminal symbol. -/
-@[expose]
+@[expose, reducible]
 public def cfg_symbol_star (a : T) : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 [(0, [symbol.terminal a, symbol.nonterminal 0]), (0, [])]
 
@@ -211,8 +212,9 @@ by
     intro hw
     rcases hw with ⟨n, hwn⟩
     rw [hwn]
-    convert_to CF_generates_str (cfg_symbol_star a) (List.map symbol.terminal (List.replicate n a))
-    unfold CF_generates_str
+    change CF_derives (cfg_symbol_star a)
+      [symbol.nonterminal (cfg_symbol_star a).initial]
+      (List.map symbol.terminal (List.replicate n a))
     clear hwn w
     have comes_to :
       CF_derives

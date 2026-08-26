@@ -490,7 +490,8 @@ lemma accept_from_S {n : ℕ} (W : Fin (n + 1) → KWork g₀) (j : Fin (n + 1))
   · simp only [mkCell]; simp [kTransition]
   · refine (gotoLeft_reaches g₀ (marked_mkTape g₀ W) i).trans ?_
     have hsweep := check_sweep g₀ W j hj hother (0 : Fin (n + 1))
-    simpa using hsweep
+    change Relation.ReflTransGen (LBA.Step (kMachine g₀)) _ _ at hsweep
+    exact hsweep
 
 end Step
 
@@ -625,7 +626,7 @@ lemma init_to_tmpCell {n : ℕ} (input : Fin (n + 1) → T) :
       (b := ⟨KState.initSweep, ⟨cAt g₀ input 1, ⟨1, by omega⟩⟩⟩) ?_ ?_
     · refine ⟨KState.initSweep, tmpCell g₀ input ⟨0, n.succ_pos⟩, DLBA.Dir.right, hmem0, ?_⟩
       simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hn]
-      exact cfg_eq g₀ rfl hupd.symm (Fin.ext rfl)
+      exact cfg_eq g₀ rfl hupd.symm (Fin.ext (by simp [hn]))
     · have h1 : (1 : ℕ) ≤ 1 := le_refl 1
       have hcv := convert_sweep g₀ input ⟨1, by omega⟩ h1
       rwa [cAt_full] at hcv

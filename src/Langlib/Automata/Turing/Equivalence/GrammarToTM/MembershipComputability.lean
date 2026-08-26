@@ -35,6 +35,7 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -149,32 +150,47 @@ public theorem primrec_applyRuleAt {N : Type} [DecidableEq N]
     [Primcodable T] [Primcodable N] :
     Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
       applyRuleAt args.1 args.2.1 args.2.2) := by
-        convert Primrec.ite _ _ _ using 1;
-        · have h_conj : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) => List.take (args.1.input_L ++ [symbol.nonterminal args.1.input_N] ++ args.1.input_R).length (List.drop args.2.2 args.2.1)) := by
-            have h_conj : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) => (args.1.input_L ++ [symbol.nonterminal args.1.input_N] ++ args.1.input_R).length) := by
-              simp +zetaDelta at *;
-              convert Primrec.nat_add.comp ( Primrec.list_length.comp ( primrec_grule_inputL.comp ( Primrec.fst ) ) ) ( Primrec.nat_add.comp ( Primrec.list_length.comp ( primrec_grule_inputR.comp ( Primrec.fst ) ) ) ( Primrec.const 1 ) ) using 1;
-            have h_conj : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) => List.drop args.2.2 args.2.1) := by
-              convert primrec₂_list_drop.comp _ _ using 1;
-              · exact Primrec.snd.comp ( Primrec.snd );
-              · exact Primrec.fst.comp ( Primrec.snd );
-            convert Primrec₂.comp _ _ _ using 1;
-            all_goals try infer_instance;
-            · exact primrec₂_list_take;
-            · assumption;
-            · exact h_conj;
-          convert Primrec.eq.comp h_conj _ using 1;
-          rotate_left;
-          exact fun args => args.1.input_L ++ [ symbol.nonterminal args.1.input_N ] ++ args.1.input_R;
-          · convert Primrec.list_append.comp ( Primrec.list_append.comp ( primrec_grule_inputL.comp ( Primrec.fst ) ) ( Primrec.list_cons.comp ( primrec_symbol_nonterminal.comp ( primrec_grule_inputN.comp ( Primrec.fst ) ) ) ( Primrec.const [ ] ) ) ) ( primrec_grule_inputR.comp ( Primrec.fst ) ) using 1;
-          · grind;
-        · convert Primrec.option_some.comp _ using 1;
-          convert Primrec.list_append.comp _ _ using 1;
-          · exact Primrec.list_append.comp ( primrec₂_list_take.comp ( Primrec.snd.comp Primrec.snd ) ( Primrec.fst.comp Primrec.snd ) ) ( primrec_grule_outputString.comp Primrec.fst );
-          · convert primrec₂_list_drop.comp _ _ using 1;
-            · convert Primrec.comp ( Primrec.list_length ) ( Primrec.list_append.comp ( Primrec.list_append.comp ( primrec_grule_inputL.comp ( Primrec.fst ) ) ( Primrec.list_cons.comp ( primrec_symbol_nonterminal.comp ( primrec_grule_inputN.comp ( Primrec.fst ) ) ) ( Primrec.const [] ) ) ) ( primrec_grule_inputR.comp ( Primrec.fst ) ) ) using 1;
-            · exact primrec₂_list_drop.comp ( Primrec.snd.comp ( Primrec.snd ) ) ( Primrec.fst.comp ( Primrec.snd ) );
-        · exact Primrec.const none
+  let hL : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      args.1.input_L) := primrec_grule_inputL.comp Primrec.fst
+  let hN : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      args.1.input_N) := primrec_grule_inputN.comp Primrec.fst
+  let hR : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      args.1.input_R) := primrec_grule_inputR.comp Primrec.fst
+  have hMid : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      [symbol.nonterminal args.1.input_N]) :=
+    Primrec.list_cons.comp
+      ((primrec_symbol_nonterminal (T := T) (N := N)).comp hN)
+      (Primrec.const ([] : List (symbol T N)))
+  have hPattern : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      args.1.input_L ++ [symbol.nonterminal args.1.input_N] ++ args.1.input_R) :=
+    Primrec.list_append.comp (Primrec.list_append.comp hL hMid) hR
+  have hRest : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      args.2.1.drop args.2.2) :=
+    primrec₂_list_drop.comp (Primrec.snd.comp Primrec.snd)
+      (Primrec.fst.comp Primrec.snd)
+  have hMatched : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      (args.2.1.drop args.2.2).take
+        (args.1.input_L ++ [symbol.nonterminal args.1.input_N] ++ args.1.input_R).length) :=
+    primrec₂_list_take.comp (Primrec.list_length.comp hPattern) hRest
+  have hPrefix : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      args.2.1.take args.2.2) :=
+    primrec₂_list_take.comp (Primrec.snd.comp Primrec.snd)
+      (Primrec.fst.comp Primrec.snd)
+  have hDroppedPattern : Primrec
+      (fun (args : grule T N × List (symbol T N) × ℕ) =>
+        (args.2.1.drop args.2.2).drop
+          (args.1.input_L ++ [symbol.nonterminal args.1.input_N] ++ args.1.input_R).length) :=
+    primrec₂_list_drop.comp (Primrec.list_length.comp hPattern) hRest
+  have hOutput : Primrec (fun (args : grule T N × List (symbol T N) × ℕ) =>
+      args.2.1.take args.2.2 ++ args.1.output_string ++
+        (args.2.1.drop args.2.2).drop
+          (args.1.input_L ++ [symbol.nonterminal args.1.input_N] ++ args.1.input_R).length) :=
+    Primrec.list_append.comp
+      (Primrec.list_append.comp hPrefix (primrec_grule_outputString.comp Primrec.fst))
+      hDroppedPattern
+  exact (Primrec.ite (Primrec.eq.comp hMatched hPattern)
+    (Primrec.option_some.comp hOutput) (Primrec.const none)).of_eq fun args => by
+      simp only [applyRuleAt, beq_iff_eq]
 
 /-! ### extractTerminals is computable -/
 
@@ -182,27 +198,51 @@ omit [DecidableEq T] in
 public theorem computable_extractTerminals {N : Type}
     [Primcodable T] [Primcodable N] :
     Computable (extractTerminals (T := T) (N := N)) := by
-      convert Primrec.to_comp _;
-      convert Primrec.list_foldr _ _ _ using 1;
-      rotate_left;
-      exact symbol T N;
-      exact symbolPrimcodable;
-      exact fun l => l;
-      exact fun _ => some [];
-      exact fun l p => match p.1 with | .terminal t => Option.map ( t :: · ) p.2 | .nonterminal _ => none;
-      · exact Primrec.id;
-      · exact Primrec.const _;
-      · convert primrec_symbol_casesOn _ _ _ using 1;
-        all_goals try infer_instance;
-        · exact Primrec.fst.comp ( Primrec.snd );
-        · convert Primrec.option_map _ _ using 1;
-          exact Primcodable.list;
-          · exact Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) );
-          · exact Primrec.list_cons.comp ( Primrec.snd.comp Primrec.fst ) Primrec.snd;
-        · exact Primrec.const none;
-      · unfold extractTerminals;
-        congr! 2;
-        exact funext fun x => funext fun y => by cases x <;> cases y <;> rfl;
+  have hTerminal : Primrec₂
+      (fun (p : symbol T N × Option (List T)) (t : T) =>
+        p.2.map fun ts => t :: ts) := by
+    apply Primrec₂.mk
+    exact Primrec.option_map
+      (show Primrec
+        (fun q : (symbol T N × Option (List T)) × T => q.1.2) from
+          Primrec.snd.comp Primrec.fst)
+      (show Primrec₂
+        (fun (q : (symbol T N × Option (List T)) × T) (ts : List T) => q.2 :: ts) from
+          (Primrec.list_cons.comp (Primrec.snd.comp Primrec.fst) Primrec.snd).to₂)
+  have hStep : Primrec (fun p : symbol T N × Option (List T) =>
+      match p.1 with
+      | .terminal t => p.2.map fun ts => t :: ts
+      | .nonterminal _ => none) := by
+    apply primrec_symbol_casesOn (T := T) (N := N)
+    · exact Primrec.fst
+    · exact hTerminal
+    · exact Primrec₂.const (none : Option (List T))
+  have hFold : Primrec (fun sf : List (symbol T N) =>
+      sf.foldr
+        (fun s acc => match s with
+          | .terminal t => acc.map fun ts => t :: ts
+          | .nonterminal _ => none)
+        (some ([] : List T))) :=
+    Primrec.list_foldr Primrec.id (Primrec.const (some ([] : List T)))
+      ((hStep.comp Primrec.snd).to₂)
+  have hStepEq : ∀ (s : symbol T N) (acc : Option (List T)),
+      (match s with
+        | .terminal t => acc.map fun ts => t :: ts
+        | .nonterminal _ => none) =
+      (match s, acc with
+        | .terminal t, some ts => some (t :: ts)
+        | _, _ => none) := by
+    intro s acc
+    cases s <;> cases acc <;> rfl
+  apply Computable.of_eq hFold.to_comp
+  intro sf
+  unfold extractTerminals
+  induction sf with
+  | nil => rfl
+  | cons s sf ih =>
+    simp only [List.foldr_cons]
+    rw [ih]
+    exact hStepEq s _
 
 /-! ### applyRuleSeq with fixed args is computable -/
 
@@ -230,45 +270,60 @@ public theorem primrec_applyRuleSeq_step {N : Type} [DecidableEq N]
         match rules[p.2.1]? with
         | none => none
         | some r => applyRuleAt r sf p.2.2) := by
-          have hbind : Primrec (fun (p : Option (List (symbol T N)) × (ℕ × ℕ)) =>
-              p.1.bind (fun sf => (rules[p.2.1]?).bind (fun r => applyRuleAt r sf p.2.2))) := by
-            apply Primrec.option_bind;
-            · exact Primrec.fst;
-            · have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N)) => (rules[p.1.2.1]?).bind (fun r => applyRuleAt r p.2 p.1.2.2)) := by
-                have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N)) => (rules[p.1.2.1]?)) := by
-                  convert Primrec.list_getElem? |> Primrec.comp <| Primrec.const rules |> Primrec.pair <| Primrec.fst.comp ( Primrec.snd.comp Primrec.fst ) using 1;
-                have h_step : Primrec (fun (p : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N) × grule T N) => applyRuleAt p.2.2 p.2.1 p.1.2.2) := by
-                  convert primrec_applyRuleAt.comp _ using 1;
-                  rotate_left;
-                  all_goals try infer_instance;
-                  exact fun p => ( p.2.2, p.2.1, p.1.2.2 );
-                  · exact Primrec.pair ( Primrec.snd.comp ( Primrec.snd ) ) ( Primrec.pair ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) );
-                  · rfl;
-                convert Primrec.option_bind _ _ using 1;
-                all_goals try infer_instance;
-                · grind;
-                · convert h_step.comp ( Primrec.fst.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd ) using 1;
-              exact Primrec₂.mk h_step
-          convert hbind using 1
-          funext p
-          exact step_eq_bind rules p
+  have hGetRule : Primrec
+      (fun q : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N) =>
+        rules[q.1.2.1]?) :=
+    Primrec.list_getElem?.comp (Primrec.const rules)
+      (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
+  have hApply : Primrec₂
+      (fun (q : (Option (List (symbol T N)) × (ℕ × ℕ)) × List (symbol T N))
+        (r : grule T N) => applyRuleAt r q.2 q.1.2.2) := by
+    apply Primrec₂.mk
+    exact (primrec_applyRuleAt (T := T) (N := N)).comp
+      (Primrec.pair Primrec.snd
+        (Primrec.pair (Primrec.snd.comp Primrec.fst)
+          (Primrec.snd.comp (Primrec.snd.comp (Primrec.fst.comp Primrec.fst)))))
+  have hInner : Primrec₂
+      (fun (p : Option (List (symbol T N)) × (ℕ × ℕ))
+        (sf : List (symbol T N)) =>
+          (rules[p.2.1]?).bind fun r => applyRuleAt r sf p.2.2) := by
+    apply Primrec₂.mk
+    exact Primrec.option_bind hGetRule hApply
+  have hBind : Primrec
+      (fun (p : Option (List (symbol T N)) × (ℕ × ℕ)) =>
+        p.1.bind fun sf => (rules[p.2.1]?).bind fun r =>
+          applyRuleAt r sf p.2.2) :=
+    Primrec.option_bind Primrec.fst hInner
+  exact hBind.of_eq fun p => (step_eq_bind rules p).symm
 
 public theorem computable_applyRuleSeq {N : Type} [DecidableEq N]
     [Primcodable T] [Primcodable N]
     (rules : List (grule T N)) (init : List (symbol T N)) :
     Computable (fun seq => applyRuleSeq rules init seq) := by
-      apply Computable.of_eq;
-      convert Primrec.to_comp _;
-      exact fun seq => List.foldl ( fun acc step => match acc with | none => none | some sf => match rules[step.1]? with | none => none | some r => applyRuleAt r sf step.2 ) ( some init ) seq;
-      · convert Primrec.list_foldl _ _ _;
-        rotate_left;
-        exact Primcodable.prod;
-        exact fun _ p => match p.1 with | none => none | some sf => match rules[p.2.1]? with | none => none | some r => applyRuleAt r sf p.2.2;
-        · exact Primrec.id;
-        · exact Primrec.const _;
-        · convert primrec_applyRuleSeq_step rules |> Primrec.comp <| Primrec.snd using 1;
-        · rfl;
-      · exact fun _ => rfl
+  have hStep : Primrec₂
+      (fun (_seq : List (ℕ × ℕ))
+        (p : Option (List (symbol T N)) × (ℕ × ℕ)) =>
+        match p.1 with
+        | none => none
+        | some sf =>
+          match rules[p.2.1]? with
+          | none => none
+          | some r => applyRuleAt r sf p.2.2) :=
+    ((primrec_applyRuleSeq_step rules).comp Primrec.snd).to₂
+  have hFold : Primrec (fun seq : List (ℕ × ℕ) =>
+      seq.foldl
+        (fun acc step =>
+          match acc with
+          | none => none
+          | some sf =>
+            match rules[step.1]? with
+            | none => none
+            | some r => applyRuleAt r sf step.2)
+        (some init)) :=
+    Primrec.list_foldl Primrec.id (Primrec.const (some init)) hStep
+  apply Computable.of_eq hFold.to_comp
+  intro seq
+  rfl
 
 /-! ### Main result -/
 

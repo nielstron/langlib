@@ -141,7 +141,7 @@ public def restrictLengthRules [DecidableEq T] [DecidableEq g.NT] (l : List (Con
 end RestrictLength
 
 /-- Construct a `ChomskyNormalGrammar` corresponding to the original `ContextFreeGrammar` -/
-@[expose]
+@[expose, reducible]
 public noncomputable def restrictLength [DecidableEq T] (g : ContextFreeGrammar T)
     [e : DecidableEq g.NT] :=
   ChomskyNormalFormGrammar.mk g.NT' (Sum.inl g.initial) (restrictLengthRules g.rules.toList)

@@ -1,7 +1,7 @@
 module
 
 public import Mathlib.Computability.Language
-public import Mathlib.Computability.TMToPartrec
+public import Mathlib.Computability.TuringMachine.ToPartrec
 import Langlib.Automata.Turing.DSL.PartrecCodeToTM0
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
@@ -34,6 +34,7 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 

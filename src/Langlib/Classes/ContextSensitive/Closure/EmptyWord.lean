@@ -32,7 +32,7 @@ variable {T : Type}
 
 /-- `g₀` with a fresh start symbol `none`, plus rules `none → ε` and `none → S₀`,
 the original rules lifted along `some`. -/
-@[expose]
+@[expose, reducible]
 def addEmpty_grammar (g₀ : grammar T) : grammar T :=
   grammar.mk (Option g₀.nt) none (
     ⟨[], none, [], []⟩ ::
@@ -40,7 +40,7 @@ def addEmpty_grammar (g₀ : grammar T) : grammar T :=
     List.map (lift_rule_ some) g₀.rules)
 
 /-- `g₀` lifts into `addEmpty_grammar g₀` along `some`, with `id` as the (total) sink. -/
-@[expose]
+@[expose, reducible]
 def lg (g₀ : grammar T) : lifted_grammar_ T where
   g₀ := g₀
   g := addEmpty_grammar g₀
@@ -165,7 +165,8 @@ theorem disj_of_mem_addEmpty {g₀ : grammar T} {w : List T}
           simp only [List.mem_singleton] at ha
           subst ha
           exact ⟨g₀.initial, rfl⟩)
-        exact (sink_string_map_terminal_ (lg g₀).sink_nt w).symm
+        · simp [lg, sink_string_, sink_symbol_]
+        · exact (sink_string_map_terminal_ (lg g₀).sink_nt w).symm
       · -- A lifted rule cannot rewrite `S' = none`.
         exact absurd same_nt (by simp [lift_rule_])
 
@@ -216,8 +217,9 @@ theorem is_CS_insert_empty_of_is_CS_not_nil {T : Type} {L : Language T}
     · intro hw
       refine ⟨hw, ?_⟩
       intro hwε
-      rw [Set.mem_singleton_iff] at hwε
-      exact hne (by simpa [hwε] using hw)
+      change w = [] at hwε
+      subst w
+      exact hne hw
   have hAdd := is_CS_insert_empty_of_noncontracting g₀ hnc
   convert hAdd using 1
   rw [hnonempty]

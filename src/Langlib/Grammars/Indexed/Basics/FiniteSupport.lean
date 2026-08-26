@@ -246,14 +246,30 @@ lemma expandRhs_embed (g : IndexedGrammar T)
     (rhs : List (IRhsSymbol T (UsedNT g) (UsedFlag g))) (σ : List (UsedFlag g)) :
     (g.toFiniteSupport.expandRhs rhs σ).map (embedISym g) =
       g.expandRhs (rhs.map (embedRhsSymbol g)) (σ.map Subtype.val) := by
-  unfold expandRhs
-  rw [List.map_map, List.map_map]
-  apply List.map_congr_left
-  intro s _hs
-  cases s with
-  | terminal t => rfl
-  | nonterminal n push =>
-      cases push <;> rfl
+  induction rhs with
+  | nil => rfl
+  | cons s rhs ih =>
+      cases s with
+      | terminal t =>
+          change ISym.terminal t ::
+              (g.toFiniteSupport.expandRhs rhs σ).map (embedISym g) =
+            ISym.terminal t ::
+              g.expandRhs (rhs.map (embedRhsSymbol g)) (σ.map Subtype.val)
+          rw [ih]
+      | nonterminal n push =>
+          cases push with
+          | none =>
+              change ISym.indexed n.1 (σ.map Subtype.val) ::
+                  (g.toFiniteSupport.expandRhs rhs σ).map (embedISym g) =
+                ISym.indexed n.1 (σ.map Subtype.val) ::
+                  g.expandRhs (rhs.map (embedRhsSymbol g)) (σ.map Subtype.val)
+              rw [ih]
+          | some f =>
+              change ISym.indexed n.1 (f.1 :: σ.map Subtype.val) ::
+                  (g.toFiniteSupport.expandRhs rhs σ).map (embedISym g) =
+                ISym.indexed n.1 (f.1 :: σ.map Subtype.val) ::
+                  g.expandRhs (rhs.map (embedRhsSymbol g)) (σ.map Subtype.val)
+              rw [ih]
 
 lemma expandRhs_restrict (g : IndexedGrammar T) (r : IRule T g.nt g.flag)
     (hr : r ∈ g.rules) (σ : List (UsedFlag g)) :
@@ -502,7 +518,7 @@ lemma embedISym_injective (g : IndexedGrammar T) : Function.Injective (embedISym
   · exact h
   · obtain ⟨hn, hσ⟩ := h
     constructor
-    · exact hn
+    · exact Subtype.ext hn
     · exact List.map_injective_iff.mpr Subtype.val_injective hσ
 
 lemma restrictSF_terminal (g : IndexedGrammar T) (w : List T)
@@ -515,7 +531,8 @@ lemma restrictSF_initial (g : IndexedGrammar T) :
     restrictSF g [ISym.indexed g.initial []] (sententialSupported_initial g) =
       [(ISym.indexed ⟨g.initial, initial_mem_usedNTs g⟩ [] : g.toFiniteSupport.ISym)] := by
   apply List.map_injective_iff.mpr (embedISym_injective g)
-  simp [embed_restrictSF, embedISym]
+  rw [embed_restrictSF]
+  rfl
 
 /-! ## Derivation correspondence -/
 
@@ -525,6 +542,7 @@ theorem transforms_embed {g : IndexedGrammar T}
     g.Transforms (w₁.map (embedISym g)) (w₂.map (embedISym g)) := by
   obtain ⟨r', u, v, σ, hr', hw₁, hw₂⟩ := h
   obtain ⟨r, hr, rfl⟩ := mem_toFiniteSupport_rules g hr'
+  change List (UsedFlag g) at σ
   refine ⟨r, u.map (embedISym g), v.map (embedISym g), σ.map Subtype.val, hr, ?_, ?_⟩
   · cases hc' : restrictConsume g r hr with
     | none =>
@@ -534,7 +552,11 @@ theorem transforms_embed {g : IndexedGrammar T}
         simpa using hmap
       simp [restrictRule, hc'] at hw₁
       have hw₁' := congrArg (List.map (embedISym g)) hw₁
-      simpa [List.map_append, embedISym, hc] using hw₁'
+      simp only [List.map_append, List.map_cons, embedISym] at hw₁'
+      change List.map (embedISym g) w₁ =
+        List.map (embedISym g) u ++
+          ISym.indexed r.lhs (σ.map Subtype.val) :: List.map (embedISym g) v at hw₁'
+      simpa [hc] using hw₁'
     | some f =>
       have hc : r.consume = some f.1 := by
         have hmap := congrArg (Option.map Subtype.val) hc'
@@ -542,9 +564,15 @@ theorem transforms_embed {g : IndexedGrammar T}
         simpa using hmap
       simp [restrictRule, hc'] at hw₁
       have hw₁' := congrArg (List.map (embedISym g)) hw₁
-      simpa [List.map_append, embedISym, hc] using hw₁'
+      simp only [List.map_append, List.map_cons, embedISym] at hw₁'
+      change List.map (embedISym g) w₁ =
+        List.map (embedISym g) u ++
+          ISym.indexed r.lhs (f.1 :: σ.map Subtype.val) :: List.map (embedISym g) v at hw₁'
+      simpa [hc] using hw₁'
   · have hw₂' := congrArg (List.map (embedISym g)) hw₂
-    simpa [List.map_append, List.append_assoc, expandRhs_restrict] using hw₂'
+    simp only [List.map_append] at hw₂'
+    rw [expandRhs_restrict] at hw₂'
+    simpa [List.append_assoc] using hw₂'
 
 theorem derives_embed {g : IndexedGrammar T}
     {w₁ w₂ : List g.toFiniteSupport.ISym}
@@ -598,7 +626,9 @@ theorem transforms_restrict {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
         simp [restrictRule, hc']
         apply List.map_injective_iff.mpr (embedISym_injective g)
         rw [hc] at hw₁
-        simp [List.map_append, embed_restrictSF, embedISym, unattach_restrictStack, hw₁]
+        simp only [List.map_append, List.map_cons, embed_restrictSF, embedISym]
+        rw [map_val_restrictStack]
+        simpa using hw₁
     | some f =>
         have hc : r.consume = some f.1 := by
           have hmap := congrArg (Option.map Subtype.val) hc'
@@ -607,7 +637,11 @@ theorem transforms_restrict {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
         simp [restrictRule, hc']
         apply List.map_injective_iff.mpr (embedISym_injective g)
         rw [hc] at hw₁
-        simp [List.map_append, embed_restrictSF, embedISym, unattach_restrictStack, hw₁]
+        simp only [List.map_append, List.map_cons, embed_restrictSF, embedISym]
+        change w₁ = u ++
+          ISym.indexed r.lhs (f.1 :: (restrictStack g σ hσ).map Subtype.val) :: v
+        rw [map_val_restrictStack]
+        simpa using hw₁
   · apply List.map_injective_iff.mpr (embedISym_injective g)
     simp [List.map_append, List.append_assoc, embed_restrictSF,
       expandRhs_restrict, unattach_restrictStack]
@@ -618,13 +652,11 @@ theorem derives_restrict {g : IndexedGrammar T} {w₁ w₂ : List g.ISym}
       (restrictSF g w₁ hsupp)
       (restrictSF g w₂ (derives_supported h hsupp)) := by
   induction h with
-  | refl =>
-      convert (Relation.ReflTransGen.refl :
-        g.toFiniteSupport.Derives (restrictSF g w₁ hsupp) (restrictSF g w₁ hsupp)) using 1
+  | refl => exact Relation.ReflTransGen.refl
   | tail hprev hstep ih =>
       let hmid := derives_supported hprev hsupp
       have hstep' := transforms_restrict hstep hmid
-      convert ih.tail hstep' using 1
+      exact ih.tail hstep'
 
 /-! ## Language equality -/
 
@@ -636,14 +668,28 @@ theorem toFiniteSupport_language (g : IndexedGrammar T) :
     change g.toFiniteSupport.Derives
       [ISym.indexed ⟨g.initial, initial_mem_usedNTs g⟩ []] (w.map ISym.terminal) at hw
     have hder := derives_embed hw
-    simpa [Language, Generates, toFiniteSupport, embedISym] using hder
+    change g.Derives [ISym.indexed g.initial []] (w.map ISym.terminal)
+    have hstart :
+        ([ISym.indexed ⟨g.initial, initial_mem_usedNTs g⟩ []] :
+            List g.toFiniteSupport.ISym).map (embedISym g) =
+          [ISym.indexed g.initial []] := by
+      change [ISym.indexed g.initial (([] : List (UsedFlag g)).map Subtype.val)] = _
+      rfl
+    have hterminal :
+        (w.map (fun t => (ISym.terminal t : g.toFiniteSupport.ISym))).map (embedISym g) =
+          w.map (fun t => (ISym.terminal t : g.ISym)) := by
+      induction w with
+      | nil => rfl
+      | cons t w ih => simp [embedISym]
+    rw [hstart, hterminal] at hder
+    exact hder
   · intro hw
     change g.Derives [ISym.indexed g.initial []] (w.map ISym.terminal) at hw
     have hder := derives_restrict hw (sententialSupported_initial g)
     change g.toFiniteSupport.Derives
       [ISym.indexed ⟨g.initial, initial_mem_usedNTs g⟩ []] (w.map ISym.terminal)
-    convert hder using 1
-    exact (restrictSF_terminal g w _).symm
+    rw [restrictSF_initial g, restrictSF_terminal g w] at hder
+    exact hder
 
 /-- Every indexed grammar has an equivalent grammar whose nonterminal and flag types are finite. -/
 theorem exists_finiteSupport (g : IndexedGrammar T) :

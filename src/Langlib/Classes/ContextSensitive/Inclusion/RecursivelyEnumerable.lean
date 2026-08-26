@@ -5,6 +5,8 @@ public import Langlib.Classes.RecursivelyEnumerable.Definition
 import Langlib.Grammars.ContextSensitive.Toolbox
 import Langlib.Grammars.Unrestricted.Toolbox
 import Mathlib.Tactic
+
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -37,7 +39,8 @@ by
   unfold CS_language
   unfold grammar_language
   ext1 w
-  rw [Set.mem_setOf_eq]
+  change CS_derives g [symbol.nonterminal g.initial] (List.map symbol.terminal w) ↔
+    grammar_generates (grammar_of_csg g) w
   constructor
   ·
     have indu :

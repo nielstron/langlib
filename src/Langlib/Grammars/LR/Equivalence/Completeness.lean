@@ -73,17 +73,13 @@ public theorem augment_ruleIndex_eq_start_of_fst_eq_none (G : CF_grammar T)
   change i.val = 0
   by_contra hne
   obtain ⟨n, hn⟩ := Nat.exists_eq_succ_of_ne_zero hne
-  have hget : G.augment.rules[i.val]? = some (ruleAt G.augment i) := by
-    apply List.getElem?_eq_some_iff.mpr
-    refine ⟨i.isLt, ?_⟩
-    exact (List.get_eq_getElem (l := G.augment.rules) (i := i)).symm
-  have hfst := congrArg (Option.map Prod.fst) hget
-  rw [hn] at hfst
-  simp [CF_grammar.augment, CF_grammar.augmentRule] at hfst
-  rcases hfst with ⟨a, _, ha⟩
-  change some a = (ruleAt G.augment i).1 at ha
-  rw [h] at ha
-  simp at ha
+  have hnlt : n < G.rules.length := by
+    have hi := i.isLt
+    simp [CF_grammar.augment] at hi
+    omega
+  have hi : i = ⟨n + 1, by simp [CF_grammar.augment]; omega⟩ := Fin.ext hn
+  subst i
+  simp [ruleAt, CF_grammar.augment, CF_grammar.augmentRule] at h
 
 /-- An augmented item at the untouched fresh-start configuration is exactly
 the distinguished start item. -/

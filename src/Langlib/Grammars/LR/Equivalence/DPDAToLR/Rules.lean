@@ -102,12 +102,15 @@ public theorem mathlib_rule_of_characteristic_rule (M : DPDA Q T S)
     (hr : r ∈ (characteristicGrammar M).rules) :
     ∃ R ∈ (mathlibCharacteristicGrammar M).rules,
       r = (R.input, lssymbol_of_lsSymbol R.output) := by
-  simp only [characteristicGrammar, productiveGrammar, List.mem_filter,
-    decide_eq_true_eq] at hr
-  have hrRaw := hr.1
-  simp only [rawCharacteristicGrammar, cfg_of_mathlib_cfg, List.mem_map] at hrRaw
-  obtain ⟨R, hR, rfl⟩ := hrRaw
-  refine ⟨R, ?_, rfl⟩
+  classical
+  change r ∈ List.filter
+    (fun r => decide (fullyProductiveRule (rawCharacteristicGrammar M) r))
+    (rawCharacteristicGrammar M).rules at hr
+  have hrRaw := (List.mem_filter.mp hr).1
+  change r ∈ (mathlibCharacteristicGrammar M).rules.toList.map
+    (fun R => (R.input, lssymbol_of_lsSymbol R.output)) at hrRaw
+  obtain ⟨R, hR, hmap⟩ := List.mem_map.mp hrRaw
+  refine ⟨R, ?_, hmap.symm⟩
   simpa using hR
 
 /-- Every retained rule is fully productive in the unfiltered characteristic
@@ -117,9 +120,11 @@ public theorem characteristic_rule_fullyProductive (M : DPDA Q T S)
       List (symbol T (characteristicGrammar M).nt)}
     (hr : r ∈ (characteristicGrammar M).rules) :
     fullyProductiveRule (rawCharacteristicGrammar M) r := by
-  simp only [characteristicGrammar, productiveGrammar, List.mem_filter,
-    decide_eq_true_eq] at hr
-  exact hr.2
+  classical
+  change r ∈ List.filter
+    (fun r => decide (fullyProductiveRule (rawCharacteristicGrammar M) r))
+    (rawCharacteristicGrammar M).rules at hr
+  exact of_decide_eq_true (List.mem_filter.mp hr).2
 
 /-- The five possible rule forms after translating to Langlib symbols. -/
 @[expose]

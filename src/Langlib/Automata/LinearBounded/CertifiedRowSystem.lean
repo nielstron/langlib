@@ -100,7 +100,11 @@ private structure WorkCell (A C : Type*) where
 private inductive Side where
   | zero
   | one
-  deriving DecidableEq, Fintype
+  deriving DecidableEq
+
+private instance : Fintype Side where
+  elems := {.zero, .one}
+  complete s := by cases s <;> simp
 
 private def Side.other : Side → Side
   | .zero => .one
@@ -217,6 +221,12 @@ private def machine (S : CertifiedRowSystem I A C Q F) :
   accept := fun q => match q with | .accept => true | _ => false
   initial := .initFirst
 
+-- Lean 4.33 needs these structure-valued definitions reducible while checking
+-- their dependent transition and tape projections.  Keep this local to the
+-- compilation proof.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] machine DLBA.BoundedTape.write DLBA.BoundedTape.moveHead
+
 /-! ### Canonical tapes and verifier prefixes -/
 
 private def markedCell {n : ℕ} (k : Fin (n + 1))
@@ -233,6 +243,9 @@ private def trackFn (side : Side) (a₀ a₁ : Fin (n + 1) → Option A) :
   match side with
   | .zero => a₀
   | .one => a₁
+
+set_option allowUnsafeReducibility true in
+attribute [local reducible] WorkCell.track markedCell markedTape trackFn
 
 private def optionRow (a : Fin (n + 1) → Option A) : List A :=
   (List.ofFn a).filterMap id
@@ -482,7 +495,9 @@ private lemma init_to_tmp {n : ℕ} (input : Fin (n + 1) → I) :
       apply cfg_eq rfl hupd.symm
       simp [hn]
     · have hone : (1 : ℕ) ≤ (⟨1, by omega⟩ : Fin (n + 1)).val := by simp
-      simpa [initTapeAt_full] using convert_sweep S input ⟨1, by omega⟩ hone
+      have hcv := convert_sweep S input ⟨1, by omega⟩ hone
+      change Relation.ReflTransGen (LBA.Step (machine S)) _ _ at hcv
+      simpa [initTapeAt_full] using hcv
 
 private lemma tmp_to_marked {n : ℕ} (input : Fin (n + 1) → I) :
     ∃ head : Fin (n + 1),
@@ -1194,6 +1209,9 @@ private def writeCert (cert : Fin (n + 1) → Option C) (head : Fin (n + 1)) (c 
     Fin (n + 1) → Option C :=
   Function.update cert head (some c)
 
+set_option allowUnsafeReducibility true in
+attribute [local reducible] writeTrack0 writeTrack1 writeCert
+
 private lemma update_markedTape_write (side : Side)
     (a₀ a₁ : Fin (n + 1) → Option A) (cert : Fin (n + 1) → Option C)
     (head : Fin (n + 1)) (new : A) (c : C) :
@@ -1460,7 +1478,8 @@ private lemma sound_initBack_step {n : ℕ} (input : Fin (n + 1) → I)
           ⟨true, decide (0 = n), some (S.inputCell (input 0)), none, none⟩) =
         markedTape (I := I) (fun k => some (S.inputCell (input k)))
           (fun _ => none) (fun _ => none) 0 by
-      simp [markedTape, markedCell], Function.update_eq_self]
+      simp [markedTape, markedCell]
+      by_cases hn : 0 = n <;> simp [hn], Function.update_eq_self]
     apply SoundClaim.ready
     simpa [trackFn, optionRow_some] using
       (Relation.ReflTransGen.refl : Relation.ReflTransGen S.RowStep
@@ -1563,17 +1582,31 @@ private lemma sound_ready_step {n : ℕ} (input : Fin (n + 1) → I)
       simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
       have hu : Function.update (markedTape (I := I) a₀ a₁ cert) 0
           (some (.inr
-            ((⟨decide True, decide (0 = n), a₀ 0, a₁ 0, cert 0⟩ : WorkCell A C).writeOther
+            ((⟨decide ((0 : Fin (n + 1)).val = 0),
+                decide ((0 : Fin (n + 1)).val = n), a₀ 0, a₁ 0, cert 0⟩ :
+                WorkCell A C).writeOther
               side new c))) = markedTape (I := I) a₀' a₁' cert' := by
-        simpa [a₀', a₁', cert'] using
+        simpa only [a₀', a₁', cert'] using
           update_markedTape_write (I := I) side a₀ a₁ cert (0 : Fin (n + 1)) new c
-      rw [hu, dif_pos (by simpa using hnpos)]
+      simp only [Fin.val_zero, h0n] at hu ⊢
+      rw [hu]
+      let next : Fin (n + 1) :=
+        if h : (0 : Fin (n + 1)).val < n then
+          ⟨(0 : Fin (n + 1)).val + 1, Nat.add_lt_add_right h 1⟩
+        else 0
+      change SoundClaim S input
+        ⟨.step side qnew, ⟨markedTape (I := I) a₀' a₁' cert', next⟩⟩
+      have hnext : next.val = 1 := by
+        have hraw : (0 : Fin (n + 1)).val < n := by simpa using hnpos
+        dsimp only [next]
+        rw [dif_pos hraw]
+        rfl
       have hsame : trackFn side a₀' a₁' = trackFn side a₀ a₁ := by
         simpa [a₀', a₁'] using
           trackFn_write_same (A := A) side a₀ a₁ (0 : Fin (n + 1)) new
-      exact SoundClaim.step side qnew a₀' a₁' cert' ⟨1, by omega⟩
+      exact SoundClaim.step side qnew a₀' a₁' cert' next
         (by rw [hsame]; exact hpath)
-        (by simpa [a₀', a₁', cert'] using hscanPrefix)
+        (by rw [hnext]; simpa [a₀', a₁', cert'] using hscanPrefix)
   · cases ha : trackFn side a₀ a₁ 0 with
     | none =>
         have hw : WorkCell.track side
@@ -1819,7 +1852,9 @@ private lemma sound_back_step {n : ℕ} (input : Fin (n + 1) → I)
         (some (.inr ⟨true, decide (0 = n), a₀ 0, a₁ 0, cert 0⟩)) =
           markedTape (I := I) a₀ a₁ cert := by
       rw [show some (.inr ⟨true, decide (0 = n), a₀ 0, a₁ 0, cert 0⟩) =
-          markedTape (I := I) a₀ a₁ cert 0 by simp [markedTape, markedCell],
+          markedTape (I := I) a₀ a₁ cert 0 by
+            simp [markedTape, markedCell]
+            by_cases hn : 0 = n <;> simp [hn],
         Function.update_eq_self]
     rw [hu]
     exact SoundClaim.ready side.other a₀ a₁ cert hpath

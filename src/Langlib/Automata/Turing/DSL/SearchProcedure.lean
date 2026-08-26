@@ -179,6 +179,11 @@ def searchNat (test : ℕ → List T → Bool) : SearchProc T where
 theorem searchNat_language (test : ℕ → List T → Bool) :
     (searchNat test).language = { w | ∃ n : ℕ, test n w = true } := by
   ext w; simp [language, accepts, Enum.range, searchNat, Enum.naturals]
+  constructor
+  · rintro ⟨n, -, hn⟩
+    exact ⟨n, hn⟩
+  · rintro ⟨n, hn⟩
+    exact ⟨n, Set.mem_univ n, hn⟩
 
 /-! ### Composition -/
 

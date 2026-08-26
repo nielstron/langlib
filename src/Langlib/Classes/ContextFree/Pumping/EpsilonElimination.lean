@@ -464,7 +464,7 @@ public lemma subset_addNullables (p : Finset g.NT) : p ⊆ (addNullables p) := b
 public lemma generators_limits_nullable {p : Finset g.NT}
     (hpg : p ⊆ g.generators) (hne : p ≠ addNullables p) :
     (g.generators).card - (addNullables p).card < (g.generators).card - p.card := by
-  have hp := HasSubset.Subset.ssubset_of_ne (subset_addNullables p) hne
+  have hp := LE.le.ssubset_of_ne (subset_addNullables p) hne
   apply Nat.sub_lt_sub_left
   · apply Nat.lt_of_lt_of_le
     · exact Finset.card_lt_card hp
@@ -518,6 +518,7 @@ public lemma addNullables_mem_nullableNonTerminal (p : Finset g.NT) (hp : ∀ v 
   | nil => exact hp
   | cons a l ih =>
     simp only [List.foldr_cons, Finset.mem_toList, List.foldr_subtype, addIfNullable]
+    unfold addIfNullable at ih
     split <;> rename_i hd
     · simp only [Finset.mem_insert, forall_eq_or_imp]
       constructor
@@ -793,12 +794,12 @@ public lemma mem_removeNullableRule_nullableRelated [DecidableEq T] {r': Context
 public lemma mem_eliminateEmpty [DecidableEq T] {r : ContextFreeRule T g.NT}
     (hrg : r ∈ g.eliminateEmpty.rules) :
     ∃ r' ∈ g.rules, r.input = r'.input ∧ NullableRelated r.output r'.output := by
-  simp only [eliminateEmpty, removeNullables, List.mem_toFinset, List.mem_flatten, List.mem_map,
-    Finset.mem_toList, exists_exists_and_eq_and] at hrg
-  obtain ⟨r', hgr', hr'⟩ := hrg
-  use r', hgr'
-  apply mem_removeNullableRule_nullableRelated
-  exact hr'
+  change r ∈
+    (g.rules.toList.map (removeNullableRule g.computeNullables)).flatten.toFinset at hrg
+  rw [List.mem_toFinset, List.mem_flatten] at hrg
+  obtain ⟨rs, hrs, hr⟩ := hrg
+  obtain ⟨r', hgr', rfl⟩ := List.mem_map.mp hrs
+  exact ⟨r', Finset.mem_toList.mp hgr', mem_removeNullableRule_nullableRelated (hrg := hr)⟩
 
 public lemma eliminateEmpty_produces_to_derives [DecidableEq T] {u v : List (Symbol T g.NT)}
     (huv : g.eliminateEmpty.Produces u v) :
@@ -920,7 +921,7 @@ public lemma derivesIn_non_empty_to_nullableRelated_derives {u v : List (Symbol 
   cases m with
   | zero =>
     cases huv
-    use u
+    exact ⟨u, NullableRelated.refl u, Derives.refl (g := g.eliminateEmpty) u⟩
   | succ n =>
     obtain ⟨u'', huu'', hvn⟩ := huv.head_of_succ
     obtain ⟨u', hru'', huw'⟩ := derivesIn_non_empty_to_nullableRelated_derives hv hvn
@@ -946,24 +947,33 @@ public lemma derivesIn_to_eliminateEmpty_derives {w : List (Symbol T g.NT)} {n :
     contradiction
 
 public theorem eliminateEmpty_correct : g.language \ {[]} = g.eliminateEmpty.language := by
-  apply Set.eq_of_subset_of_subset <;> intro w hw
-  · rw [Set.mem_diff] at hw
-    obtain ⟨hw', hw''⟩ := hw
+  ext w
+  change (w ∈ g.language ∧ w ∉ ({[]} : Language T)) ↔
+    w ∈ g.eliminateEmpty.language
+  constructor
+  · rintro ⟨hw', hw''⟩
     rw [mem_language_iff, g.derives_iff_derivesIn] at hw'
     obtain ⟨n, hgwn⟩ := hw'
+    rw [mem_language_iff]
     apply derivesIn_to_eliminateEmpty_derives
     · intro hw
-      rw [List.map_eq_nil_iff] at hw
-      rw [hw] at hw''
-      contradiction
+      have hw₀ : w = [] := List.map_eq_nil_iff.mp hw
+      rw [hw₀] at hw''
+      exact hw'' (by
+        change ([] : List T) ∈ ({[]} : Set (List T))
+        simp)
     · exact hgwn
-  · rw [mem_language_iff] at hw
-    rw [Set.mem_diff]
+  · intro hw
+    rw [mem_language_iff] at hw
     constructor
-    · exact eliminateEmpty_derives_to_derives hw
+    · rw [mem_language_iff]
+      exact eliminateEmpty_derives_to_derives hw
     · intro hw'
-      subst hw'
-      simpa using eliminateEmpty_derives_not_empty hw (List.cons_ne_nil _ [])
+      have heq : w = [] := by
+        change w ∈ ({[]} : Set (List T)) at hw'
+        simpa using hw'
+      subst w
+      exact (eliminateEmpty_derives_not_empty hw (List.cons_ne_nil _ [])) rfl
 
 end EliminateEmpty
 

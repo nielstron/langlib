@@ -72,7 +72,7 @@ theorem RE_equivalence_undecidable_fixed :
   intro h
   have rice := ComputablePred.rice {f : ℕ →. ℕ | f = Code.zero.eval}
   have h1 : ComputablePred (fun c : Code => c.eval ∈ {f : ℕ →. ℕ | f = Code.zero.eval}) := by
-    convert h using 1
+    simpa only [Set.mem_ofPred_eq] using h
   -- The everywhere-undefined function is not equal to the constant zero function
   have none_ne : (fun (_ : ℕ) => (Part.none : Part ℕ)) ∉ {f : ℕ →. ℕ | f = Code.zero.eval} := by
     intro heq

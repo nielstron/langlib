@@ -27,7 +27,7 @@ private def homIRule {N F : Type} (h : α → List β) (r : IRule α N F) :
     consume := r.consume
     rhs := r.rhs.flatMap (homIRhsSymbol h) }
 
-private def homIndexedGrammar (g : IndexedGrammar α) (h : α → List β) :
+private abbrev homIndexedGrammar (g : IndexedGrammar α) (h : α → List β) :
     IndexedGrammar β where
   nt := g.nt
   flag := g.flag
@@ -86,7 +86,11 @@ private lemma hom_transforms (g : IndexedGrammar α) (h : α → List β)
         rw [hw₁]
         simp [homIRule, homISym, hc, List.flatMap_append]
   · rw [hw₂]
-    simp [homIRule, List.flatMap_append, hom_expandRhs]
+    simp only [List.flatMap_append]
+    change _ ++ List.flatMap (homISym g h) (g.expandRhs r.rhs σ) ++ _ =
+      _ ++ (homIndexedGrammar g h).expandRhs
+        (r.rhs.flatMap (homIRhsSymbol h)) σ ++ _
+    rw [hom_expandRhs]
 
 private lemma hom_derives (g : IndexedGrammar α) (h : α → List β)
     {w₁ w₂ : List g.ISym} (hd : g.Derives w₁ w₂) :
@@ -104,7 +108,7 @@ private lemma mem_prod_singletons_flatMap (w : List α) (h : α → List β) (u 
       simp only [List.map_cons, List.prod_cons, Language.mul_def]
       constructor
       · rintro ⟨u₁, hu₁, u₂, hu₂, rfl⟩
-        rw [Set.mem_singleton_iff] at hu₁
+        change u₁ = h a at hu₁
         rw [hu₁, List.flatMap_cons]
         exact congrArg (h a ++ ·) ((ih u₂).mp hu₂)
       · intro hu
@@ -173,7 +177,6 @@ private lemma homISym_split_at_indexed (g : IndexedGrammar α) (h : α → List 
       intro hsplit
       have hlen := congrArg List.length hsplit
       simp at hlen
-      omega
   | cons s₀ rest ih =>
       cases s₀ with
       | terminal a =>

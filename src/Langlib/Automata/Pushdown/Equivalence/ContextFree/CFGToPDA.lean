@@ -123,14 +123,12 @@ public theorem M_consumes_nonterminal {r : ContextFreeRule T G.NT} (h : r ∈ G.
   rw [reachesIn_one]
   rcases w with _| ⟨a, w'⟩ <;> dsimp [step]
   · use Q.loop, r.output
-    dsimp [transition_fun']
     refine ⟨?_,?_⟩
     · use r.output
     · rfl
   · rw [Set.mem_union]
     right
     use Q.loop, r.output
-    dsimp [transition_fun']
     refine ⟨?_,?_⟩
     · use r.output
     · rfl
@@ -306,7 +304,7 @@ public theorem G_derives_of_M_reaches {α : List (Symbol T G.NT)} {w : List T}
       contradiction
     · apply M_deterministic_step_of_terminal_stack_cons at h₁
       rw [h₁.1,h₁.2]
-      convert ContextFreeGrammar.Derives.append_left h₂ [terminal a]
+      convert ContextFreeGrammar.Derives.append_left h₂ [terminal a] <;> simp
     · apply G_rule_of_M_consumes_nonterminal at h₁
       obtain ⟨γ,hr,hγ,hw⟩ := h₁
       rw [hw.symm] at h₂
@@ -315,7 +313,7 @@ public theorem G_derives_of_M_reaches {α : List (Symbol T G.NT)} {w : List T}
           apply Produces.single
           use ⟨N,γ⟩, hr
           convert ContextFreeRule.rewrites_of_exists_parts ⟨N,γ⟩ [] []
-          simp
+          all_goals simp
         convert ContextFreeGrammar.Derives.append_right this α'
       exact Derives.trans this h₂
 
@@ -324,16 +322,13 @@ public theorem pda_of_cfg (G : ContextFreeGrammar T)[Fintype G.NT] : G.language 
   ext w
   constructor
   · intro h
-    dsimp [language] at h
-    rw [Set.mem_setOf] at h
-    dsimp [Generates] at h
+    change G.Derives [nonterminal G.initial] (w.map terminal) at h
     rw [←derives_leftmost_iff] at h
     apply M_reaches_off_G_derives at h
-    dsimp [acceptsByEmptyStack]
-    use Q.loop
+    change ∃ q, (M G).Reaches ⟨Q.loop, w, [nonterminal G.initial]⟩ ⟨q, [], []⟩
+    exact ⟨Q.loop, h⟩
   · intro h
-    dsimp [acceptsByEmptyStack] at h
-    rw [Set.mem_setOf] at h
+    change ∃ q, (M G).Reaches ⟨Q.loop, w, [nonterminal G.initial]⟩ ⟨q, [], []⟩ at h
     obtain ⟨_,hr⟩ := h
-    apply G_derives_of_M_reaches at hr
-    simp [hr]
+    change G.Derives [nonterminal G.initial] (w.map terminal)
+    exact G_derives_of_M_reaches hr

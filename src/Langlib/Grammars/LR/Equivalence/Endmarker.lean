@@ -46,7 +46,7 @@ public theorem endmarkedShape_eq :
   · rintro ⟨w, _, rfl⟩
     exact ⟨w.map some, ⟨w, trivial, rfl⟩, [none], rfl, rfl⟩
   · rintro ⟨u, ⟨w, _, rfl⟩, marker, hmarker, rfl⟩
-    have hmarker' : marker = [none] := by simpa using hmarker
+    have hmarker' : marker = [none] := Set.mem_singleton_iff.mp hmarker
     subst marker
     exact ⟨w, trivial, rfl⟩
 
@@ -84,7 +84,7 @@ public theorem endmarked_rightQuotient_marker (L : Language T) :
   ext v
   constructor
   · rintro ⟨marker, hmarker, hv⟩
-    have hmarker' : marker = [none] := by simpa using hmarker
+    have hmarker' : marker = [none] := Set.mem_singleton_iff.mp hmarker
     subst marker
     rcases hv with ⟨w, hw, heq⟩
     have hvmap : v = w.map some := by

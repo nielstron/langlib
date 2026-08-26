@@ -2,6 +2,7 @@ module
 
 public import Langlib.Automata.LinearBounded.Equivalence.LBAToCSG.Completeness
 import Mathlib.Tactic
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 

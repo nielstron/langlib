@@ -75,6 +75,7 @@ def quotientAccept (M : DFA α σ) (R : Language α) : Set σ :=
   { s : σ | ∃ v ∈ R, M.evalFrom s v ∈ M.accept }
 
 /-- A DFA accepting the right quotient of `M`'s language by `R`. -/
+@[reducible]
 def quotientDFA (M : DFA α σ) (R : Language α) : DFA α σ where
   step := M.step
   start := M.start

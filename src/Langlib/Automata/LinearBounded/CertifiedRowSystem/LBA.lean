@@ -2,6 +2,7 @@ module
 
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem
 import Mathlib.Tactic
+set_option backward.isDefEq.respectTransparency false
 
 @[expose]
 public section
@@ -1448,7 +1449,8 @@ public theorem step_of_rowMove_configRow
       | cons x xs => simp [configRow, configCells, hleft, noHeadCells] at hold
   | stay q q' a b left right htrans =>
       have hinv := (configCells_eq_iff (I := I) cfg.state q (leftSymbols cfg) left
-        cfg.tape.read a (rightSymbols cfg) right).1 (by simpa [configRow] using hold)
+        cfg.tape.read a (rightSymbols cfg) right).1
+          (by simpa [configRow, configCells, noHeadCells] using hold)
       rcases hinv with ⟨hstate, hleft, ha, hright⟩
       subst q
       subst left
@@ -1459,7 +1461,8 @@ public theorem step_of_rowMove_configRow
       exact (configRow_write_stay (I := I) cfg q' b).symm
   | leftClamp q q' a b right htrans =>
       have hinv := (configCells_eq_iff (I := I) cfg.state q (leftSymbols cfg) []
-        cfg.tape.read a (rightSymbols cfg) right).1 (by simpa [configRow] using hold)
+        cfg.tape.read a (rightSymbols cfg) right).1
+          (by simpa [configRow, configCells, noHeadCells] using hold)
       rcases hinv with ⟨hstate, hleft, ha, hright⟩
       subst q
       subst a
@@ -1472,7 +1475,8 @@ public theorem step_of_rowMove_configRow
       exact (configRow_write_leftClamp (I := I) cfg q' b hzero).symm
   | rightClamp q q' a b left htrans =>
       have hinv := (configCells_eq_iff (I := I) cfg.state q (leftSymbols cfg) left
-        cfg.tape.read a (rightSymbols cfg) []).1 (by simpa [configRow] using hold)
+        cfg.tape.read a (rightSymbols cfg) []).1
+          (by simpa [configRow, configCells, noHeadCells] using hold)
       rcases hinv with ⟨hstate, hleft, ha, hright⟩
       subst q
       subst left

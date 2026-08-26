@@ -102,12 +102,26 @@ private lemma read_as (k : ℕ) (rest : List Bool) (stk : List Bool) :
     @PDA.Reaches (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
       ⟨1, replicate k false ++ rest, true :: stk⟩
       ⟨1, rest, replicate (k + 1) true ++ stk⟩ := by
-  induction' k with k ih generalizing rest stk
-  · constructor
-  · specialize ih rest (true :: stk)
-    convert ih.head _ using 1
-    · simp +decide [replicate_add]
-    · apply step_read_a
+  induction k generalizing rest stk with
+  | zero => exact Reaches.refl _
+  | succ k ih =>
+      have hfirst := Relation.ReflTransGen.single
+        (step_read_a (replicate k false ++ rest) stk)
+      have hrest := ih rest (true :: stk)
+      have hstack : replicate (k + 1) true ++ true :: stk =
+          replicate (k.succ + 1) true ++ stk := by
+        have hrepl : replicate (k.succ + 1) true =
+            replicate (k + 1) true ++ [true] := by
+          rw [show k.succ + 1 = (k + 1) + 1 by omega, List.replicate_succ']
+        rw [hrepl, List.append_assoc]
+        rfl
+      have hinput : replicate k.succ false ++ rest =
+          false :: (replicate k false ++ rest) := by simp [List.replicate_succ]
+      change Relation.ReflTransGen (@PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA)
+        ⟨1, replicate k.succ false ++ rest, true :: stk⟩
+        ⟨1, rest, replicate (k.succ + 1) true ++ stk⟩
+      rw [hinput, ← hstack]
+      exact hfirst.trans hrest
 
 private lemma read_bs (k : ℕ) (rest : List Bool) (stk : List Bool) :
     @PDA.Reaches (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
@@ -127,16 +141,19 @@ private lemma dpda_anbn_complete (n : ℕ) :
     constructor
     · exact Or.inr rfl
     · use []
-      convert
-        Relation.ReflTransGen.trans (Relation.ReflTransGen.single (step_read_a_init _))
-          (Relation.ReflTransGen.trans (read_as _ _ _) _) using 1
-      convert
-        Relation.ReflTransGen.trans (Relation.ReflTransGen.single (step_read_b_from1 _ _))
-          (Relation.ReflTransGen.trans (read_bs _ _ _) (Relation.ReflTransGen.single step_epsilon_empty))
-        using 1
-      swap
-      · exact n
-      · simp +decide [List.replicate]
+      change Relation.ReflTransGen (@PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA)
+        ⟨0, false :: (replicate n false ++ true :: replicate n true), [false]⟩ ⟨3, [], []⟩
+      have h₁ := Relation.ReflTransGen.single
+        (step_read_a_init (replicate n false ++ replicate (n + 1) true))
+      have h₂ := read_as n (replicate (n + 1) true) [false]
+      have h₃ := Relation.ReflTransGen.single
+        (step_read_b_from1 (replicate n true) (replicate n true ++ [false]))
+      have h₄ : @PDA.Reaches (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
+          ⟨2, replicate n true, replicate n true ++ [false]⟩ ⟨2, [], [false]⟩ := by
+        simpa using read_bs n [] [false]
+      have h₅ := Relation.ReflTransGen.single step_epsilon_empty
+      simpa [List.replicate_succ, List.append_assoc, Nat.succ_eq_add_one] using
+        h₁.trans (h₂.trans (h₃.trans (h₄.trans h₅)))
 
 private def AnBnInv (w : List Bool)
     (c : @PDA.conf (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA) : Prop :=
@@ -180,37 +197,49 @@ private lemma inv_step_state1 (w : List Bool) (na : ℕ) (input : List Bool)
     (hstep : @PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
       ⟨1, input, replicate na true ++ [false]⟩ c') :
     AnBnInv w c' := by
-  cases' input with a input'
-  · rcases na with _ | _ | na <;> simp_all +decide
-    · cases hstep
-      rename_i q hq
-      rcases hq with ⟨β, hβ₁, rfl⟩
-      fin_cases q <;> simp_all +decide
-      · cases hβ₁
-      · cases hβ₁
-      · cases hβ₁
-      · cases hβ₁
-    · cases hstep
-      unfold dpda_anbn at *
-      simp_all +decide
-      rename_i k hk
-      fin_cases k <;> simp_all +decide [DPDA.toPDA]
-  · cases' na with na <;> simp_all +decide [List.replicate]
-    cases' a with a a <;> simp_all +decide [Reaches₁]
-    · unfold step at hstep
-      unfold dpda_anbn at hstep
-      simp_all +decide []
-      unfold DPDA.toPDA at hstep
-      simp_all +decide []
-      use na + 2, 0
-      exact Nat.recOn na (by simp +decide) fun n ihn => by simp +decide [List.replicate] at ihn ⊢; aesop
-    · cases' hstep with h h <;> simp_all +decide []
-      · unfold DPDA.toPDA at h
-        simp_all +decide [dpda_anbn]
-        use na + 1, 1
-        simp +arith +decide [List.replicate]
-      · obtain ⟨p, β, hp, rfl⟩ := h
-        cases hp
+  classical
+  cases na with
+  | zero => omega
+  | succ k =>
+      simp only [List.replicate_succ, List.cons_append] at hstep
+      cases input with
+      | nil =>
+          unfold Reaches₁ step at hstep
+          rcases hstep with ⟨p, β, htrans, _⟩
+          change (p, β) ∈ (∅ : Set ((Fin 4) × List Bool)) at htrans
+          exact ((Set.mem_empty_iff_false _).mp htrans).elim
+      | cons a input' =>
+          unfold Reaches₁ step at hstep
+          rw [Set.mem_union] at hstep
+          rcases hstep with hread | heps
+          · rcases hread with ⟨p, β, htrans, hc⟩
+            cases a
+            · change (p, β) ∈ ({((1 : Fin 4), [true, true])} : Set ((Fin 4) × List Bool)) at htrans
+              rw [Set.mem_singleton_iff] at htrans
+              have hp := congrArg Prod.fst htrans
+              have hβ := congrArg Prod.snd htrans
+              simp only at hp hβ
+              subst p
+              subst β
+              subst c'
+              refine ⟨k + 2, 0, ?_, Or.inr <| Or.inl ⟨rfl, by omega, rfl, ?_⟩⟩
+              · simpa [replicate_add, List.append_assoc] using hw
+              · rw [show k + 2 = 2 + k by omega, replicate_add]
+                simp [List.append_assoc]
+            · change (p, β) ∈ ({((2 : Fin 4), [])} : Set ((Fin 4) × List Bool)) at htrans
+              rw [Set.mem_singleton_iff] at htrans
+              have hp := congrArg Prod.fst htrans
+              have hβ := congrArg Prod.snd htrans
+              simp only at hp hβ
+              subst p
+              subst β
+              subst c'
+              refine ⟨k + 1, 1, ?_, Or.inr <| Or.inr <| Or.inl ⟨rfl, by omega, by omega, ?_⟩⟩
+              · simpa [replicate_add, List.append_assoc] using hw
+              · simp
+          · rcases heps with ⟨p, β, htrans, _⟩
+            change (p, β) ∈ (∅ : Set ((Fin 4) × List Bool)) at htrans
+            exact ((Set.mem_empty_iff_false _).mp htrans).elim
 
 private lemma inv_step_state2 (w : List Bool) (na nb : ℕ) (input : List Bool)
     (c' : @PDA.conf (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA)
@@ -219,24 +248,69 @@ private lemma inv_step_state2 (w : List Bool) (na nb : ℕ) (input : List Bool)
     (hstep : @PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
       ⟨2, input, replicate (na - nb) true ++ [false]⟩ c') :
     AnBnInv w c' := by
-  unfold Reaches₁ at hstep
-  unfold PDA.step at hstep
-  cases input <;> cases h : na - nb <;> simp_all +decide [dpda_anbn]
-  · unfold DPDA.toPDA at hstep
-    simp_all +decide []
-    use nb, nb
-    rw [Nat.sub_eq_iff_eq_add] at h <;> aesop
-  · cases hstep ; simp_all +decide []
-    unfold DPDA.toPDA at *
-    simp_all +decide []
-  · unfold DPDA.toPDA at *
-    exact ⟨na, na, by rw [Nat.sub_eq_iff_eq_add] at h <;> aesop⟩
-  · unfold DPDA.toPDA at hstep
-    simp_all +decide [List.replicate]
-    split_ifs at hstep <;> simp_all +decide [Set.mem_singleton_iff]
-    refine ⟨na, nb + 1, ?_, ?_⟩ <;> simp_all +decide [Nat.sub_succ]
-    · simp +decide [replicate_add, List.append_assoc]
-    · omega
+  classical
+  unfold Reaches₁ step at hstep
+  cases hdiff : na - nb with
+  | zero =>
+      simp only [hdiff, List.replicate_zero, List.nil_append] at hstep
+      have hna : na = nb := by omega
+      cases input with
+      | nil =>
+          rcases hstep with ⟨p, β, htrans, hc⟩
+          change (p, β) ∈ ({((3 : Fin 4), [])} : Set ((Fin 4) × List Bool)) at htrans
+          rw [Set.mem_singleton_iff] at htrans
+          have hp := congrArg Prod.fst htrans
+          have hβ := congrArg Prod.snd htrans
+          simp only at hp hβ
+          subst p
+          subst β
+          subst c'
+          exact ⟨na, nb, hw, Or.inr <| Or.inr <| Or.inr ⟨rfl, hna.symm, rfl⟩⟩
+      | cons a input' =>
+          rw [Set.mem_union] at hstep
+          rcases hstep with hread | heps
+          · rcases hread with ⟨p, β, htrans, _⟩
+            cases a <;> change (p, β) ∈ (∅ : Set ((Fin 4) × List Bool)) at htrans
+            all_goals exact ((Set.mem_empty_iff_false _).mp htrans).elim
+          · rcases heps with ⟨p, β, htrans, hc⟩
+            change (p, β) ∈ ({((3 : Fin 4), [])} : Set ((Fin 4) × List Bool)) at htrans
+            rw [Set.mem_singleton_iff] at htrans
+            have hp := congrArg Prod.fst htrans
+            have hβ := congrArg Prod.snd htrans
+            simp only at hp hβ
+            subst p
+            subst β
+            subst c'
+            exact ⟨na, nb, hw, Or.inr <| Or.inr <| Or.inr ⟨rfl, hna.symm, rfl⟩⟩
+  | succ k =>
+      simp only [hdiff, List.replicate_succ, List.cons_append] at hstep
+      cases input with
+      | nil =>
+          rcases hstep with ⟨p, β, htrans, _⟩
+          change (p, β) ∈ (∅ : Set ((Fin 4) × List Bool)) at htrans
+          exact ((Set.mem_empty_iff_false _).mp htrans).elim
+      | cons a input' =>
+          rw [Set.mem_union] at hstep
+          rcases hstep with hread | heps
+          · rcases hread with ⟨p, β, htrans, hc⟩
+            cases a
+            · change (p, β) ∈ (∅ : Set ((Fin 4) × List Bool)) at htrans
+              exact ((Set.mem_empty_iff_false _).mp htrans).elim
+            · change (p, β) ∈ ({((2 : Fin 4), [])} : Set ((Fin 4) × List Bool)) at htrans
+              rw [Set.mem_singleton_iff] at htrans
+              have hp := congrArg Prod.fst htrans
+              have hβ := congrArg Prod.snd htrans
+              simp only at hp hβ
+              subst p
+              subst β
+              subst c'
+              have hdiff' : na - (nb + 1) = k := by omega
+              refine ⟨na, nb + 1, ?_, Or.inr <| Or.inr <| Or.inl ⟨rfl, by omega, by omega, ?_⟩⟩
+              · simpa [replicate_add, List.append_assoc] using hw
+              · simp [hdiff']
+          · rcases heps with ⟨p, β, htrans, _⟩
+            change (p, β) ∈ (∅ : Set ((Fin 4) × List Bool)) at htrans
+            exact ((Set.mem_empty_iff_false _).mp htrans).elim
 
 private lemma inv_step (w : List Bool)
     (c c' : @PDA.conf (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA)

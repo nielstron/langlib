@@ -77,7 +77,7 @@ variable {T : Type}
 /-! ## Forward direction: RG_grammar → right-regular unrestricted grammar -/
 
 /-- Convert an `RG_rule` into a `grule` (unrestricted grammar rule). -/
-@[expose]
+@[expose, reducible]
 public def grule_of_RG_rule {N : Type} (r : RG_rule T N) : grule T N where
   input_L := []
   input_N := r.lhs
@@ -85,7 +85,7 @@ public def grule_of_RG_rule {N : Type} (r : RG_rule T N) : grule T N where
   output_string := r.output
 
 /-- Build an unrestricted grammar from a right-regular grammar. -/
-@[expose]
+@[expose, reducible]
 public def grammar_of_RG (g : RG_grammar T) : grammar T where
   nt := g.nt
   initial := g.initial
@@ -96,8 +96,10 @@ public def grammar_of_RG (g : RG_grammar T) : grammar T where
 public theorem grammar_of_RG_right_regular (g : RG_grammar T) :
     grammar_right_regular (grammar_of_RG g) := by
   intro r hr
-  simp only [grammar_of_RG, List.mem_map] at hr
-  obtain ⟨rr, _, rfl⟩ := hr
+  change r ∈ List.map grule_of_RG_rule g.rules at hr
+  obtain ⟨rr, _, hrr⟩ := List.mem_map.mp hr
+  clear hr
+  subst r
   refine ⟨rfl, rfl, ?_⟩
   cases rr with
   | cons A a B => exact Or.inl ⟨a, B, rfl⟩
@@ -112,11 +114,16 @@ public lemma grammar_of_RG_transforms {g : RG_grammar T}
     {w₁ w₂ : List (symbol T g.nt)}
     (h : RG_transforms g w₁ w₂) :
     grammar_transforms (grammar_of_RG g) w₁ w₂ := by
-      obtain ⟨ r, hr, u, v, rfl, rfl ⟩ := h;
-      refine' ⟨ _, _, u, v, _ ⟩;
-      exact grule_of_RG_rule r;
-      · exact List.mem_map.mpr ⟨ r, hr, rfl ⟩;
-      · aesop
+  unfold grammar_transforms
+  dsimp only [grammar_of_RG]
+  obtain ⟨r, hr, u, v, h₁, h₂⟩ := h
+  refine ⟨grule_of_RG_rule r, List.mem_map.mpr ⟨r, hr, rfl⟩, u, v, ?_, ?_⟩
+  · change w₁ = u ++ [] ++ [symbol.nonterminal r.lhs] ++ [] ++ v
+    calc
+      w₁ = u ++ [symbol.nonterminal r.lhs] ++ v := h₁
+      _ = u ++ [] ++ [symbol.nonterminal r.lhs] ++ [] ++ v := by simp
+  · change w₂ = u ++ r.output ++ v
+    exact h₂
 
 /-
 A single step in the constructed unrestricted grammar corresponds to a step in the
@@ -126,19 +133,18 @@ public lemma RG_transforms_of_grammar_of_RG {g : RG_grammar T}
     {w₁ w₂ : List (symbol T g.nt)}
     (h : grammar_transforms (grammar_of_RG g) w₁ w₂) :
     RG_transforms g w₁ w₂ := by
-      rcases h with ⟨ r, hr, u, v, h₁, h₂ ⟩;
-      -- By definition of `grammar_of_RG`, there exists an original `RG_rule` `rr` such that `r = grule_of_RG_rule rr`.
-      obtain ⟨rr, hr⟩ : ∃ rr : RG_rule T g.nt, r = grule_of_RG_rule rr := by
-        unfold grammar_of_RG at hr; aesop;
-      unfold grule_of_RG_rule at hr;
-      use rr;
-      constructor;
-      · convert List.mem_map.mp ‹_›;
-        constructor <;> intro h;
-        · exact ⟨ rr, h, hr.symm ⟩;
-        · obtain ⟨ a, ha, rfl ⟩ := h;
-          cases a <;> cases rr <;> cases hr <;> tauto;
-      · grind
+  unfold grammar_transforms at h
+  dsimp only [grammar_of_RG] at h
+  rcases h with ⟨r, hr, u, v, h₁, h₂⟩
+  obtain ⟨rr, hrr, her⟩ := List.mem_map.mp hr
+  clear hr
+  subst r
+  refine ⟨rr, hrr, u, v, ?_, ?_⟩
+  · change w₁ = u ++ [symbol.nonterminal rr.lhs] ++ v
+    calc
+      w₁ = u ++ [] ++ [symbol.nonterminal rr.lhs] ++ [] ++ v := h₁
+      _ = u ++ [symbol.nonterminal rr.lhs] ++ v := by simp
+  · exact h₂
 
 /-- Derivation in the original `RG_grammar` coincides with derivation in the
     constructed unrestricted grammar. -/
@@ -200,7 +206,7 @@ public lemma RG_rule_of_grule_output {N : Type} (r : grule T N)
       cases hr <;> aesop
 
 /-- Construct an `RG_grammar` from a right-regular unrestricted grammar. -/
-@[expose]
+@[expose, reducible]
 public noncomputable def RG_of_grammar (g : grammar T) (hg : grammar_right_regular g) :
     RG_grammar T where
   nt := g.nt
@@ -214,14 +220,37 @@ A single step in the constructed `RG_grammar` corresponds to a step in the origi
 public lemma RG_of_grammar_transforms_iff (g : grammar T) (hg : grammar_right_regular g)
     (w₁ w₂ : List (symbol T g.nt)) :
     RG_transforms (RG_of_grammar g hg) w₁ w₂ ↔ grammar_transforms g w₁ w₂ := by
-      unfold RG_transforms grammar_transforms;
-      simp [RG_of_grammar];
-      constructor;
-      · rintro ⟨ r, hr, u, v, rfl, rfl ⟩;
-        simp [RG_rule_of_grule_lhs, RG_rule_of_grule_output];
-        have := hg r hr; aesop;
-      · rintro ⟨ r, hr, u, v, rfl, rfl ⟩;
-        refine' ⟨ r, hr, u, v, _, _ ⟩ <;> simp +decide [ RG_rule_of_grule_lhs, RG_rule_of_grule_output, hg r hr ]
+  unfold RG_transforms grammar_transforms
+  dsimp only [RG_of_grammar]
+  constructor
+  · intro h
+    rcases h with ⟨rr, hrr, u, v, h₁, h₂⟩
+    obtain ⟨⟨r, hr⟩, _, her⟩ := List.mem_map.mp hrr
+    clear hrr
+    subst rr
+    rcases hg r hr with ⟨hL, hR, hout⟩
+    refine ⟨r, hr, u, v, ?_, ?_⟩
+    · have h₁' : w₁ = u ++ [symbol.nonterminal r.input_N] ++ v := by
+        simpa only [RG_rule_of_grule_lhs] using h₁
+      calc
+        w₁ = u ++ [symbol.nonterminal r.input_N] ++ v := h₁'
+        _ = u ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v := by
+          simp [hL, hR]
+    · simpa only [RG_rule_of_grule_output] using h₂
+  · rintro ⟨r, hr, u, v, h₁, h₂⟩
+    rcases hg r hr with ⟨hL, hR, hout⟩
+    let rr := RG_rule_of_grule r hout
+    refine ⟨rr, ?_, u, v, ?_, ?_⟩
+    · apply List.mem_map.mpr
+      exact ⟨⟨r, hr⟩, List.mem_attach _ _, rfl⟩
+    · dsimp only [rr]
+      have h₁' : w₁ = u ++ [symbol.nonterminal r.input_N] ++ v := by
+        calc
+          w₁ = u ++ r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R ++ v := h₁
+          _ = u ++ [symbol.nonterminal r.input_N] ++ v := by simp [hL, hR]
+      simpa only [RG_rule_of_grule_lhs] using h₁'
+    · dsimp only [rr]
+      simpa only [RG_rule_of_grule_output] using h₂
 
 /-- Derivation in the constructed `RG_grammar` coincides with derivation in the original
     unrestricted grammar. -/

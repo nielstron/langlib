@@ -44,7 +44,7 @@ private def starLoopRule (g : IndexedGrammar T) : IRule T (StarNT g.nt) g.flag :
 private def starStopRule (g : IndexedGrammar T) : IRule T (StarNT g.nt) g.flag :=
   { lhs := StarNT.start, consume := none, rhs := [] }
 
-private def indexedStar (g : IndexedGrammar T) : IndexedGrammar T where
+private abbrev indexedStar (g : IndexedGrammar T) : IndexedGrammar T where
   nt := StarNT g.nt
   flag := g.flag
   initial := StarNT.start
@@ -68,7 +68,7 @@ private lemma starLiftISym_injective (g : IndexedGrammar T) :
       | terminal y => simp [starLiftISym] at h
       | indexed y τ =>
           simp [starLiftISym] at h ⊢
-          exact ⟨by injection h.1, h.2⟩
+          exact h
 
 private lemma star_lift_expandRhs (g : IndexedGrammar T)
     (rhs : List (IRhsSymbol T g.nt g.flag)) (σ : List g.flag) :
@@ -146,8 +146,20 @@ private lemma indexedStar_generates_flatten (g : IndexedGrammar T)
         (star_lift_deri g hw)
       have hrest := IndexedGrammar.deri_with_prefix
         (w.map (IndexedGrammar.ISym.terminal (g := indexedStar g))) (ih htail)
-      exact hstart.trans (hword.trans (by
-        simpa [starLiftISym, List.map_map, List.map_append] using hrest))
+      unfold IndexedGrammar.Derives at hstart hword hrest ⊢
+      have hterm :
+          (w.map (IndexedGrammar.ISym.terminal (g := g))).map (starLiftISym g) =
+            w.map (IndexedGrammar.ISym.terminal (g := indexedStar g)) := by
+        induction w with
+        | nil => rfl
+        | cons a w ih => simp [starLiftISym]
+      have hrest' : Relation.ReflTransGen (indexedStar g).Transforms
+          ((w.map (IndexedGrammar.ISym.terminal (g := g))).map (starLiftISym g) ++
+            [IndexedGrammar.ISym.indexed StarNT.start []])
+          (w.map (IndexedGrammar.ISym.terminal (g := indexedStar g)) ++
+            words.flatten.map (IndexedGrammar.ISym.terminal (g := indexedStar g))) := by
+        simpa [hterm, List.map_flatten] using hrest
+      simpa using hstart.trans (hword.trans hrest')
 
 private lemma map_eq_append_singleton_of_injective {α β : Type} {f : α → β}
     (hf : Function.Injective f) {xs : List α} {x : α} {u v : List β}
@@ -258,10 +270,10 @@ private lemma star_first_step (g : IndexedGrammar T)
               rcases hr with hloop | hstop | hlift
               · left
                 rw [hloop] at hw₂
-                simpa [IndexedGrammar.expandRhs] using hw₂
+                simpa [starLoopRule, IndexedGrammar.expandRhs] using hw₂
               · right
                 rw [hstop] at hw₂
-                simpa [IndexedGrammar.expandRhs] using hw₂
+                simpa [starStopRule, IndexedGrammar.expandRhs] using hw₂
               · obtain ⟨a, _ha, hbad, _hconsume, _hrhs⟩ := hlift
           | cons vh vt => simp at hw₁
       | cons uh ut => simp at hw₁
@@ -318,7 +330,9 @@ private theorem indexedStar_language_subset (g : IndexedGrammar T) :
               change g.Generates w₁
               rw [IndexedGrammar.generates_iff_exists_derivesIn]
               exact ⟨m, by simpa [hendg] using hleftg⟩
-            rw [Language.mem_kstar] at hw₂star ⊢
+            rw [Language.mem_kstar] at hw₂star
+            change ∃ words : List (List T), w = words.flatten ∧
+              ∀ y ∈ words, y ∈ g.Language
             obtain ⟨words, hw₂, hwords⟩ := hw₂star
             refine ⟨w₁ :: words, ?_, ?_⟩
             · simp [hw, hw₂]
@@ -341,7 +355,8 @@ private theorem indexedStar_language (g : IndexedGrammar T) :
   apply Set.Subset.antisymm
   · exact indexedStar_language_subset g
   · intro w hw
-    rw [Language.mem_kstar] at hw
+    change ∃ words : List (List T), w = words.flatten ∧
+      ∀ y ∈ words, y ∈ g.Language at hw
     obtain ⟨words, rfl, hwords⟩ := hw
     exact indexedStar_generates_flatten g words hwords
 

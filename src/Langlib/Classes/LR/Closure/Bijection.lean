@@ -60,11 +60,18 @@ private lemma map_CF_grammar_producesRightmost_reflect (g : CF_grammar T₁)
   have hleft : map_symbol_fn g' ∘ map_symbol_fn f = @id (symbol T₁ g.nt) := by
     funext s
     exact map_symbol_fn_leftInverse hfg s
+  have hterminal :
+      (@map_symbol_fn T₂ T₁ g.nt g') ∘ (@symbol.terminal T₂ g.nt) =
+        (@symbol.terminal T₁ g.nt) ∘ g' := by
+    funext a
+    rfl
   refine ⟨r', hr', p.map (map_symbol_fn g'), lookahead.map g', ?_, ?_⟩
   · have hu' := congrArg (List.map (map_symbol_fn g')) hu
-    simpa [map_CF_grammar, map_CF_rule, List.map_append, List.map_map, map_symbol_fn] using hu'
+    simpa [map_CF_grammar, map_CF_rule, List.map_append, List.map_map, map_symbol_fn,
+      hterminal] using hu'
   · have hv' := congrArg (List.map (map_symbol_fn g')) hv
-    simpa [map_CF_grammar, map_CF_rule, List.map_append, List.map_map, map_symbol_fn, hleft] using hv'
+    simpa [map_CF_grammar, map_CF_rule, List.map_append, List.map_map, map_symbol_fn, hleft,
+      hterminal] using hv'
 
 private lemma map_CF_grammar_derivesRightmost_reflect (g : CF_grammar T₁)
     {f : T₁ → T₂} {g' : T₂ → T₁} (hfg : Function.LeftInverse g' f)
@@ -84,6 +91,11 @@ private theorem map_CF_grammar_coreIsLRk_of_injective [Nonempty T₁] (g : CF_gr
     (hg : g.CoreIsLRk k) : (map_CF_grammar g f).CoreIsLRk k := by
   let g' : T₂ → T₁ := Function.invFun f
   have hfg : Function.LeftInverse g' f := Function.leftInverse_invFun hf
+  have hterminal :
+      (@map_symbol_fn T₂ T₁ g.nt g') ∘ (@symbol.terminal T₂ g.nt) =
+        (@symbol.terminal T₁ g.nt) ∘ g' := by
+    funext a
+    rfl
   intro r₁ r₂ hr₁ hr₂ p₁ p₂ s₁ s₂ y hd₁ hd₂ hform hlook
   obtain ⟨r₁', hr₁', rfl⟩ := List.mem_map.mp hr₁
   obtain ⟨r₂', hr₂', rfl⟩ := List.mem_map.mp hr₂
@@ -92,13 +104,15 @@ private theorem map_CF_grammar_coreIsLRk_of_injective [Nonempty T₁] (g : CF_gr
         (p₁.map (map_symbol_fn g') ++ [symbol.nonterminal r₁'.1] ++
           (s₁.map g').map symbol.terminal) := by
     have h := map_CF_grammar_derivesRightmost_reflect g hfg hd₁
-    simpa [map_CF_grammar, map_CF_rule, List.map_append, map_symbol_fn, List.map_map] using h
+    simpa [map_CF_grammar, map_CF_rule, List.map_append, map_symbol_fn, List.map_map,
+      hterminal] using h
   have hd₂' :
       g.DerivesRightmost [symbol.nonterminal g.initial]
         (p₂.map (map_symbol_fn g') ++ [symbol.nonterminal r₂'.1] ++
           (s₂.map g').map symbol.terminal) := by
     have h := map_CF_grammar_derivesRightmost_reflect g hfg hd₂
-    simpa [map_CF_grammar, map_CF_rule, List.map_append, map_symbol_fn, List.map_map] using h
+    simpa [map_CF_grammar, map_CF_rule, List.map_append, map_symbol_fn, List.map_map,
+      hterminal] using h
   have hform' :
       p₂.map (map_symbol_fn g') ++ r₂'.2 ++
           (s₂.map g').map symbol.terminal =
@@ -108,7 +122,7 @@ private theorem map_CF_grammar_coreIsLRk_of_injective [Nonempty T₁] (g : CF_gr
     have hleft : map_symbol_fn g' ∘ map_symbol_fn f = @id (symbol T₁ g.nt) := by
       funext s
       exact map_symbol_fn_leftInverse hfg s
-    simpa [map_CF_rule, List.map_append, List.map_map, map_symbol_fn, hleft] using h
+    simpa [map_CF_rule, List.map_append, List.map_map, map_symbol_fn, hleft, hterminal] using h
   have hlook' : CF_grammar.lrLookahead k (s₁.map g') =
       CF_grammar.lrLookahead k (y.map g') := by
     simpa [CF_grammar.lrLookahead, List.map_take] using congrArg (List.map g') hlook

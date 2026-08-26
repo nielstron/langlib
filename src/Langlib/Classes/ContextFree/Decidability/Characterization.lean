@@ -126,8 +126,9 @@ theorem encodeCFG_rules {k : ℕ} (g : CF_grammar T) (e : g.nt ≃ Fin (k + 1)) 
     cases s with
     | terminal t => rfl
     | nonterminal m =>
-      show (encodeCFG g e).toSymbol (Sum.inl (e m).val) = symbol.nonterminal (e m)
-      simp [EncodedCFG.toSymbol, toNT_val]
+      change symbol.nonterminal ((encodeCFG g e).toNT (e m).val) =
+        symbol.nonterminal (e m)
+      exact congrArg symbol.nonterminal (toNT_val (G := encodeCFG g e) (e m))
 
 /-! ## Soundness and completeness -/
 

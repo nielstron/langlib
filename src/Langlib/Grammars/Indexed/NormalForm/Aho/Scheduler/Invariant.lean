@@ -376,7 +376,7 @@ public theorem initialScheduleCursor_invariant {g : IndexedGrammar T} [Fintype g
     simp [initialScheduleCursor, initialScheduleTask, ScheduleCursor.taskOwners,
       ScheduleCursor.indexOwners, ScheduleCursor.frameOwners, ScheduleCursor.frameCount,
       ScheduleCursor.word, ScheduleAtom.taskOwner?, ScheduleAtom.indexOwner?,
-      ScheduleAtom.closeOwner?] ;
+      ScheduleAtom.closeOwner?, List.filterMap_cons, List.filterMap_nil] ;
     omega
 
 public theorem finalScheduleCursor_invariant {g : IndexedGrammar T} [Fintype g.nt]
@@ -384,7 +384,8 @@ public theorem finalScheduleCursor_invariant {g : IndexedGrammar T} [Fintype g.n
   constructor <;>
     simp [finalScheduleCursor, ScheduleCursor.taskOwners, ScheduleCursor.indexOwners,
       ScheduleCursor.frameOwners, ScheduleCursor.frameCount, ScheduleCursor.word,
-      ScheduleAtom.taskOwner?, ScheduleAtom.indexOwner?, ScheduleAtom.closeOwner?]
+      ScheduleAtom.taskOwner?, ScheduleAtom.indexOwner?, ScheduleAtom.closeOwner?,
+      List.filterMap_cons, List.filterMap_nil]
 
 /-- Canonical invariant-carrying initial state. -/
 public def initialScheduleState {g : IndexedGrammar T} [Fintype g.nt]

@@ -45,7 +45,15 @@ public inductive WorkPhase where
   | suffixMinus1
   | suffixMinus2
   | dead
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+public instance instFintypeWorkPhase : Fintype WorkPhase where
+  elems := {.prefix, .marked, .stage1, .stage2, .stage3, .popBeta,
+    .returnBeta, .minus1First, .suffixSame, .suffixPlus1, .suffixPlus2,
+    .suffixMinus1, .suffixMinus2, .dead}
+  complete := by
+    intro phase
+    cases phase <;> simp
 
 /-- Two slots of lookbehind on each aligned work track.  The outer option distinguishes "no
 slot has been read" from a previously read padding blank. -/
@@ -546,7 +554,9 @@ public def phaseBlockList (n : ℕ) (phases : Fin (n * workWidth) → WorkPhase)
 public theorem phaseBlockList_flatten (n : ℕ)
     (phases : Fin (n * workWidth) → WorkPhase) :
     (phaseBlockList n phases).flatMap List.ofFn = List.ofFn phases := by
-  simpa [phaseBlockList, List.flatMap] using (List.ofFn_mul phases).symm
+  unfold phaseBlockList
+  rw [List.flatMap_def, ← List.ofFn_comp']
+  exact (List.ofFn_mul phases).symm
 
 /-- The full aligned slot stream of a bounded logical work word. -/
 public def paddedWork (n : ℕ) (work : List (WorkSlot g)) :
@@ -596,7 +606,13 @@ public inductive InputPhase where
   | tail
   | matched
   | dead
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+public instance instFintypeInputPhase : Fintype InputPhase where
+  elems := {.prefix, .tail, .matched, .dead}
+  complete := by
+    intro phase
+    cases phase <;> simp
 
 public noncomputable def inputStep (cert : CompositeCert g) (phase : InputPhase)
     (old new : RunCell g) : InputPhase :=

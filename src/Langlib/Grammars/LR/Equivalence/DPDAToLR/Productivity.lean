@@ -121,9 +121,10 @@ private theorem characteristic_initial_productive_of_prehandle
   · have hmem : symbol.nonterminal (T := T) r.1 ∈
         [symbol.nonterminal (T := T) (characteristicGrammar M).initial] := by
       rw [heq]
-      simp
+      exact List.mem_append_left _
+        (List.mem_append_right _ List.mem_cons_self)
     have hrinit : r.1 = (characteristicGrammar M).initial := by
-      simpa using hmem
+      exact symbol.nonterminal.inj (List.mem_singleton.mp hmem)
     rw [← hrinit]
     exact characteristic_rule_lhs_productive_reduced M hr
   · obtain ⟨v, hfirst, _⟩ := hnonempty
@@ -131,9 +132,10 @@ private theorem characteristic_initial_productive_of_prehandle
     have hmem : symbol.nonterminal (T := T) r₀.1 ∈
         [symbol.nonterminal (T := T) (characteristicGrammar M).initial] := by
       rw [hsource]
-      simp
+      exact List.mem_append_left _
+        (List.mem_append_right _ List.mem_cons_self)
     have hrinit : r₀.1 = (characteristicGrammar M).initial := by
-      simpa using hmem
+      exact symbol.nonterminal.inj (List.mem_singleton.mp hmem)
     rw [← hrinit]
     exact characteristic_rule_lhs_productive_reduced M hr₀
 
@@ -155,7 +157,7 @@ public theorem prehandle_all_nonterminals_productive (M : DPDA Q T S)
     ?_ hderive
   intro A hA
   have hAeq : A = (characteristicGrammar M).initial := by
-    simpa using hA
+    exact symbol.nonterminal.inj (List.mem_singleton.mp hA)
   subst A
   exact characteristic_initial_productive_of_prehandle M hr hderive
 
@@ -173,7 +175,8 @@ public theorem prehandle_prefix_completion (M : DPDA Q T S)
         (w.map symbol.terminal) := by
   apply derivesRightmost_terminal_of_all_productive
   intro A hA
-  exact prehandle_all_nonterminals_productive M hr hderive A (by simp [hA])
+  exact prehandle_all_nonterminals_productive M hr hderive A
+    (List.mem_append_left _ (List.mem_append_left _ hA))
 
 /-- The right side of a retained rule has a terminal rightmost completion. -/
 public theorem characteristic_rule_rhs_completion (M : DPDA Q T S)
@@ -205,9 +208,11 @@ public theorem prehandle_post_completion (M : DPDA Q T S)
   intro A hA
   simp only [List.mem_append] at hA
   rcases hA with (hp | hrhs) | hs
-  · exact prehandle_all_nonterminals_productive M hr hderive A (by simp [hp])
+  · exact prehandle_all_nonterminals_productive M hr hderive A
+      (List.mem_append_left _ (List.mem_append_left _ hp))
   · exact characteristic_rule_rhs_productive_reduced M hr hrhs
-  · simp at hs
+  · rcases List.mem_map.mp hs with ⟨t, _, heq⟩
+    cases heq
 
 end
 

@@ -101,11 +101,14 @@ public theorem mem_paddedReachLanguage_of_boundedReaches
   have hencoded := encode_boundedRun_to_paddedComposite w hw rfl hreach.2
     (initialConfig_inputWithin g w)
   refine ⟨hw, encodeRunRow g w (finalConfig g w.length), ?_, ?_⟩
-  · exact Relation.ReflTransGen.head
+  · have hmono : PaddedCompositeStep g ≤ PaddedRowStep g := by
+      intro a b h
+      exact Or.inr h
+    exact Relation.ReflTransGen.head
       (show PaddedRowStep g (inputRow g w)
           (encodeRunRow g w (initialConfig g)) from
         Or.inl ⟨w, hw, rfl, rfl⟩)
-      (hencoded.1.mono fun _ _ h => Or.inr h)
+      (Relation.ReflTransGen.mono hmono _ _ hencoded.1)
   · exact ⟨w, hw, rfl⟩
 
 /-- A decoded running row reachable from a fixed raw input row. -/

@@ -1,6 +1,6 @@
 module
 
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -61,7 +61,7 @@ produces output tape `Tape.mk₁ l'`, then the composed machine halts on `l`
 iff `M₂` halts on `l'`.
 -/
 
-open Turing
+open Turing StateTransition
 
 namespace TM0Seq
 
@@ -72,7 +72,7 @@ variable {Γ : Type} [Inhabited Γ]
 @[expose]
 public def evalCfg {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (l : List Γ) : Part (TM0.Cfg Γ Λ) :=
-  Turing.eval (TM0.step M) (TM0.init l)
+  StateTransition.eval (TM0.step M) (TM0.init l)
 
 /-- `evalCfg` has the same `Dom` as `TM0.eval`. -/
 public theorem evalCfg_dom_iff {Λ : Type} [Inhabited Λ]
@@ -84,7 +84,7 @@ public theorem evalCfg_dom_iff {Λ : Type} [Inhabited Λ]
 @[expose]
 public def evalFromCfg {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (cfg : TM0.Cfg Γ Λ) : Part (TM0.Cfg Γ Λ) :=
-  Turing.eval (TM0.step M) cfg
+  StateTransition.eval (TM0.step M) cfg
 
 /-- `evalFromCfg` from the initial config equals `evalCfg`. -/
 public theorem evalFromCfg_init {Λ : Type} [Inhabited Λ]
@@ -138,12 +138,14 @@ public theorem compose_phase1_reaches (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.
     Reaches (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
       (@TM0.init Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ l)
       ⟨Sum.inl c₁.q, c₁.Tape⟩ := by
-  induction h;
-  · constructor;
-  · rename_i c₁ c₂ h₁ h₂ h₃;
-    convert h₃.tail _;
-    unfold TM0.step at *;
-    unfold compose; aesop;
+  unfold StateTransition.Reaches at h ⊢
+  simpa only [TM0.init] using h.lift
+    (fun c : TM0.Cfg Γ Λ₁ =>
+      (⟨Sum.inl c.q, c.Tape⟩ : TM0.Cfg Γ (Λ₁ ⊕ Λ₂)))
+    (fun a b hab => by
+      rw [Option.mem_def] at hab
+      simpa only [Function.onFun, Option.mem_def] using
+        compose_step_inl M₁ M₂ a b hab)
 
 /-
 When M₁ halts, compose's transition matches M₂'s first step.
@@ -188,7 +190,7 @@ the composed machine from `⟨Sum.inr default, T⟩` halts. -/
 theorem compose_phase2_dom (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (T : Tape Γ) :
     (evalFromCfg M₂ ⟨default, T⟩).Dom ↔
-    (Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _
+    (StateTransition.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _
       (compose M₁ M₂)) ⟨Sum.inr default, T⟩).Dom := by
   exact (tr_eval_dom (compose_phase2_respects M₁ M₂) ⟨rfl, rfl⟩).symm
 
@@ -204,11 +206,11 @@ The composed machine's eval from init l equals its eval from M₁'s halting stat
 public theorem compose_eval_split (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (l : List Γ) (h₁ : (evalCfg M₁ l).Dom) :
     let c₁ := (evalCfg M₁ l).get h₁
-    Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
+    StateTransition.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
       (@TM0.init Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ l) =
-    Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
+    StateTransition.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
       ⟨Sum.inl c₁.q, c₁.Tape⟩ := by
-  have := Turing.mem_eval.mp ( Part.get_mem h₁ );
+  have := StateTransition.mem_eval.mp ( Part.get_mem h₁ );
   obtain ⟨c₁, hc₁⟩ := this;
   have := compose_phase1_reaches M₁ M₂ ( ( evalCfg M₁ l ).get h₁ ) l c₁;
   exact let c₁ := (evalCfg M₁ l).get h₁; reaches_eval this
@@ -219,34 +221,30 @@ At M₁'s halting state, the composed machine's eval equals M₂'s eval
 -/
 public theorem compose_eval_at_halt (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂)
     (q₁ : Λ₁) (T : Tape Γ) (h : TM0.step M₁ ⟨q₁, T⟩ = none) :
-    (Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
+    (StateTransition.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂))
       ⟨Sum.inl q₁, T⟩).Dom ↔
     (evalFromCfg M₂ ⟨default, T⟩).Dom := by
   by_cases h₂ : TM0.step M₂ ⟨ default, T ⟩ = none <;> simp_all +decide [ evalFromCfg ];
   · constructor <;> intro h₃;
-    · convert Turing.mem_eval.mpr ⟨ Relation.ReflTransGen.refl, _ ⟩ using 1;
-      any_goals exact h₂;
-      rw [ Turing.mem_eval ];
-      constructor <;> intro <;> simp_all +decide [ Part.dom_iff_mem ];
-      · constructor;
-      · exact ⟨ _, Turing.mem_eval.mpr ⟨ Relation.ReflTransGen.refl, by tauto ⟩ ⟩;
-    · rw [ Turing.eval ];
-      convert Part.dom_iff_mem.mpr _;
-      use ⟨ Sum.inl q₁, T ⟩;
-      rw [ PFun.mem_fix_iff ];
-      simp +decide [ h, h₂, compose_step_on_halt ];
+    · exact Part.dom_iff_mem.mpr ⟨⟨default, T⟩,
+        StateTransition.mem_eval.mpr ⟨Relation.ReflTransGen.refl, h₂⟩⟩
+    · refine Part.dom_iff_mem.mpr ⟨⟨Sum.inl q₁, T⟩, ?_⟩
+      apply StateTransition.mem_eval.mpr
+      refine ⟨Relation.ReflTransGen.refl, ?_⟩
+      rw [compose_step_on_halt M₁ M₂ q₁ T h, h₂]
+      rfl
   · obtain ⟨ c₂, hc₂ ⟩ := Option.ne_none_iff_exists'.mp h₂;
-    rw [ Turing.reaches_eval, Turing.reaches_eval ];
+    rw [ StateTransition.reaches_eval, StateTransition.reaches_eval ];
     rotate_left;
     rotate_left;
     exact ⟨ Sum.inr c₂.q, c₂.Tape ⟩;
     exact ⟨ Sum.inr c₂.q, c₂.Tape ⟩;
     · exact Relation.ReflTransGen.single ( by rw [ compose_step_on_halt M₁ M₂ q₁ T h ] ; aesop );
     · rw [ show eval ( TM0.step M₂ ) { q := default, Tape := T } = eval ( TM0.step M₂ ) c₂ from ?_ ];
-      · apply Turing.tr_eval_dom;
+      · apply StateTransition.tr_eval_dom;
         apply compose_phase2_respects;
         exact ⟨ rfl, rfl ⟩;
-      · apply Turing.reaches_eval;
+      · apply StateTransition.reaches_eval;
         exact Relation.ReflTransGen.single hc₂;
     · constructor
 
@@ -264,7 +262,7 @@ public theorem compose_dom_of_parts (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Ma
   exact ( evalCfg M₁ l |> Part.get ) h₁ |> fun c => c.q;
   exact ( evalCfg M₁ l |> Part.get ) h₁ |> fun c => c.Tape;
   · have := Part.get_mem h₁;
-    convert Turing.mem_eval.mp this |>.2;
+    convert StateTransition.mem_eval.mp this |>.2;
   · rw [ ← compose_eval_split M₁ M₂ l h₁ ];
     unfold TM0.eval; aesop;
 
@@ -286,7 +284,7 @@ theorem compose_dom_left (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ
     have h_halt : (evalCfg M₁ l).Dom := by
       apply_rules [ Part.dom_iff_mem.mpr ];
       use c;
-      apply_rules [ Turing.mem_eval.mpr ];
+      apply_rules [ StateTransition.mem_eval.mpr ];
       exact ⟨ hc, h_halt_c ⟩
     exact h h_halt;
   -- By definition of `eval`, if M₁ does not halt, then the composed machine also does not halt.
@@ -302,7 +300,7 @@ theorem compose_dom_left (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ
       cases hc.symm.trans h_compose_step ; tauto;
   intro h_dom;
   obtain ⟨c, hc⟩ : ∃ c : TM0.Cfg Γ (Λ₁ ⊕ Λ₂), Reaches (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) (@TM0.init Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ l) c ∧ @TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂) c = none := by
-    obtain ⟨c, hc⟩ : ∃ c : TM0.Cfg Γ (Λ₁ ⊕ Λ₂), c ∈ Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) (@TM0.init Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ l) := by
+    obtain ⟨c, hc⟩ : ∃ c : TM0.Cfg Γ (Λ₁ ⊕ Λ₂), c ∈ StateTransition.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) (@TM0.init Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ l) := by
       exact Part.dom_iff_mem.mp h_dom
     use c;
     exact mem_eval.mp hc;
@@ -324,13 +322,7 @@ public theorem compose_dom_right (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machi
   rotate_left;
   exact ( evalCfg M₁ l |> Part.get <| h₁ ) |> fun x => x.q;
   exact ( evalCfg M₁ l |> Part.get <| h₁ ) |> fun x => x.Tape;
-  · have h_step : ∀ c, c ∈ Turing.eval (TM0.step M₁) (TM0.init l) → TM0.step M₁ c = none := by
-      intro c hc;
-      have := Turing.mem_eval.mp hc;
-      exact this.2;
-    convert h_step _ _;
-    convert Part.get_mem _;
-    convert h₁ using 1;
+  · exact (StateTransition.mem_eval.mp (Part.get_mem h₁)).2
   · have := compose_eval_split M₁ M₂ l h₁;
     unfold TM0.eval at *; aesop;
 
@@ -371,7 +363,7 @@ public theorem evalCfg_step_none
     (M : TM0.Machine Γ Λ) (l : List Γ)
     (h : (evalCfg M l).Dom) :
     TM0.step M ((evalCfg M l).get h) = none := by
-  have := @Turing.mem_eval;
+  have := @StateTransition.mem_eval;
   exact this.mp ( Part.get_mem _ ) |>.2
 
 public theorem compose_eval_from_halt_tape
@@ -381,48 +373,43 @@ public theorem compose_eval_from_halt_tape
     (h_halt : TM0.step M₁ ⟨q₁, T⟩ = none)
     (h₂ : (evalFromCfg M₂ ⟨default, T⟩).Dom) :
     ∃ c : TM0.Cfg Γ (Λ₁ ⊕ Λ₂),
-      c ∈ @Turing.eval (TM0.Cfg Γ (Λ₁ ⊕ Λ₂))
+      c ∈ @StateTransition.eval (TM0.Cfg Γ (Λ₁ ⊕ Λ₂))
         (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _
           (compose M₁ M₂))
         ⟨Sum.inl q₁, T⟩ ∧
       c.Tape = ((evalFromCfg M₂ ⟨default, T⟩).get h₂).Tape := by
   by_cases h₂' : TM0.step M₂ ⟨ default, T ⟩ = none;
   · have h_c₂ : (evalFromCfg M₂ ⟨default, T⟩).get h₂ = ⟨default, T⟩ := by
-      have h_c₂ : ∀ c ∈ eval (TM0.step M₂) ⟨default, T⟩, c = ⟨default, T⟩ := by
-        intro c hc; exact (by
-        exact (by
-          have := hc;
-          rw [ eval ] at this;
-          rw [ PFun.mem_fix_iff ] at this;
-          aesop
-        ));
-      exact h_c₂ _ ( Part.get_mem _ );
-    use ⟨Sum.inl q₁, T⟩;
-    rw [ Turing.eval ];
-    rw [ PFun.mem_fix_iff ];
-    rw [ compose_step_on_halt ] <;> aesop;
+      apply Part.mem_unique (Part.get_mem h₂)
+      exact StateTransition.mem_eval.mpr ⟨Relation.ReflTransGen.refl, h₂'⟩
+    refine ⟨⟨Sum.inl q₁, T⟩, ?_, ?_⟩
+    · apply StateTransition.mem_eval.mpr
+      refine ⟨Relation.ReflTransGen.refl, ?_⟩
+      rw [compose_step_on_halt M₁ M₂ q₁ T h_halt, h₂']
+      rfl
+    · rw [h_c₂]
   · obtain ⟨ c₂', hc₂' ⟩ := Option.ne_none_iff_exists'.mp h₂';
     have h_reaches : evalFromCfg M₂ ⟨ default, T ⟩ = evalFromCfg M₂ c₂' := by
-      apply Turing.reaches_eval;
+      apply StateTransition.reaches_eval;
       exact Relation.ReflTransGen.single hc₂';
     have h_tr_eval : ∀ {c₂ : TM0.Cfg Γ Λ₂} {c : TM0.Cfg Γ (Λ₁ ⊕ Λ₂)},
       c₂.Tape = c.Tape →
       c.q = Sum.inr c₂.q →
       ∀ {c₂_final : TM0.Cfg Γ Λ₂},
-        c₂_final ∈ Turing.eval (TM0.step M₂) c₂ →
+        c₂_final ∈ StateTransition.eval (TM0.step M₂) c₂ →
         ∃ b₂ : TM0.Cfg Γ (Λ₁ ⊕ Λ₂),
-          b₂.Tape = c₂_final.Tape ∧ b₂ ∈ Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) c := by
+          b₂.Tape = c₂_final.Tape ∧ b₂ ∈ StateTransition.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) c := by
             intros c₂ c hc₂ hc q₂ hq₂;
             have := compose_phase2_respects M₁ M₂;
             have := tr_eval this ⟨ hc, hc₂.symm ⟩ hq₂;
             exact ⟨ this.choose, this.choose_spec.1.2, this.choose_spec.2 ⟩;
     obtain ⟨c₂_final, hc₂_final⟩ : ∃ c₂_final : TM0.Cfg Γ Λ₂,
-        c₂_final ∈ Turing.eval (TM0.step M₂) c₂' ∧
+        c₂_final ∈ StateTransition.eval (TM0.step M₂) c₂' ∧
         c₂_final.Tape = ((evalFromCfg M₂ { q := default, Tape := T }).get h₂).Tape := by
                                             use (evalFromCfg M₂ { q := default, Tape := T }).get h₂;
                                             simp [h_reaches];
                                             exact Part.get_mem _;
-    have h_reaches : Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) ⟨Sum.inl q₁, T⟩ = Turing.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) ⟨Sum.inr c₂'.q, c₂'.Tape⟩ := by
+    have h_reaches : StateTransition.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) ⟨Sum.inl q₁, T⟩ = StateTransition.eval (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ (compose M₁ M₂)) ⟨Sum.inr c₂'.q, c₂'.Tape⟩ := by
       apply reaches_eval;
       apply Relation.ReflTransGen.single;
       rw [ compose_step_on_halt ] <;> aesop;
@@ -436,7 +423,7 @@ public theorem compose_eval_tape_mem
     (h₁_tape : ((evalCfg M₁ l).get h₁).Tape = Tape.mk₁ l')
     (h₂ : (evalCfg M₂ l').Dom) :
     ∃ c : TM0.Cfg Γ (Λ₁ ⊕ Λ₂),
-      c ∈ @Turing.eval (TM0.Cfg Γ (Λ₁ ⊕ Λ₂))
+      c ∈ @StateTransition.eval (TM0.Cfg Γ (Λ₁ ⊕ Λ₂))
         (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _
           (compose M₁ M₂))
         (@TM0.init Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ l) ∧

@@ -60,6 +60,12 @@ main results
 - `grammar_language_subset_csg_of_noncontracting` — forward correctness of the translation
 -/
 
+-- Lean 4.33 requires these grammar and derivation definitions to be
+-- transparent while checking dependent sentential-form types.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] grammar_of_csg grammar_derives grammar_generates
+  CS_derives CS_transforms
+
 /-- The unrestricted grammar obtained from a context-sensitive grammar (via `grammar_of_csg`)
     is non-contracting. -/
 theorem CS_is_noncontracting (g : CS_grammar T) :
@@ -229,6 +235,11 @@ noncomputable def csg_of_noncontracting (g : grammar T) (hg : grammar_noncontrac
     · exact nc_unliftRules_output_nonempty g r hr_unlift
     · have hmem : grule ∈ g.rules := (List.of_mem_zip hgrule).2
       exact nc_simRules_output_nonempty g hg ri grule hmem r hr_sim
+
+-- Lean 4.33 requires the constructed grammar to be transparent when checking
+-- dependent sentential-form and derivation types involving its projections.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] csg_of_noncontracting
 
 /-! ### Helper lemmas for language equivalence -/
 
@@ -656,7 +667,6 @@ lemma nc_sim_pattern (g : grammar T) (hg : grammar_noncontracting g)
       intro k hk;
       induction' hk : n - 1 - k with m ih generalizing k <;> simp_all +decide [ Nat.sub_sub ];
       · rw [ show k = n - 1 by omega ];
-        constructor;
       · convert ih ( k + 1 ) ( by omega ) ( by omega ) |> fun h => h.trans ( h_phase2_rest k ( by omega ) ) using 1;
     exact h_phase1.trans ( h_phase2_0.trans ( h_phase2_rest_seq 0 bot_le ) ) |> fun h => h.trans ( by aesop )
 
@@ -749,8 +759,8 @@ lemma nc_forward (g : grammar T) (hg : grammar_noncontracting g)
   obtain ⟨hw₁, hw₂⟩ : grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal) ∧ ∀ t ∈ w, t ∈ nc_grammarTerminals g := by
     exact ⟨ hw, fun t ht => nc_derived_terminal_in_grammarTerminals g w hw t ht ⟩;
   have h_map : CS_derives (csg_of_noncontracting g hg) (List.map symbol.nonterminal (List.cons (Sum.inl g.initial) [])) (List.map symbol.nonterminal (List.map (fun t => Sum.inr (Sum.inl t)) w)) := by
-    convert nc_sim_derives g hg hw₁ using 1;
-    unfold nc_liftSym; aesop;
+    convert nc_sim_derives g hg hw₁ using 1 <;>
+      simp [nc_liftSym, nc_symToNT, List.map_map, Function.comp_def]
   have h_unlift : CS_derives (csg_of_noncontracting g hg) (List.map symbol.nonterminal (List.map (fun t => Sum.inr (Sum.inl t)) w)) (List.map symbol.terminal w) := by
     convert nc_unlift_all g hg w hw₂ using 1;
     rw [ List.map_map ];
@@ -903,6 +913,10 @@ noncomputable def locked_csg_of_noncontracting (g : grammar T)
     rcases hr with hr_unlift | ⟨ri, grule, _hgrule, hr_sim⟩
     · exact nc_locked_unliftRules_output_nonempty g r hr_unlift
     · exact nc_locked_simRules_output_nonempty g ri grule r hr_sim
+
+-- The locked construction has the same projection-transparency requirement.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] locked_csg_of_noncontracting
 
 /-- A locked simulation rule is a rule of the locked constructed CS grammar. -/
 lemma nc_locked_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)
@@ -1310,8 +1324,9 @@ lemma nc_locked_forward (g : grammar T) (hg : grammar_noncontracting g)
   have hmap : CS_derives (locked_csg_of_noncontracting g hg)
       [symbol.nonterminal (NC_LockedNT.orig g.initial)]
       (w.map (fun t => symbol.nonterminal (NC_LockedNT.term t))) := by
-    convert nc_locked_sim_derives g hg hderive using 1 ;
-      simp [nc_locked_liftSym, nc_locked_symToNT, List.map_map]
+    convert nc_locked_sim_derives g hg hderive using 1 <;>
+      simp [nc_locked_liftSym, nc_locked_symToNT, List.map_map,
+        Function.comp_def]
   have hunlift : CS_derives (locked_csg_of_noncontracting g hg)
       (w.map (fun t => symbol.nonterminal (NC_LockedNT.term t)))
       (w.map symbol.terminal) :=
@@ -1517,7 +1532,6 @@ lemma nc_locked_clean_step_grammar_derives (g : grammar T)
     (hclean₁ : nc_locked_is_clean g s₁) (hclean₂ : nc_locked_is_clean g s₂) :
     grammar_derives g (nc_locked_proj g s₁) (nc_locked_proj g s₂) := by
   rw [nc_locked_clean_step_proj_eq g hg h hclean₁ hclean₂]
-  exact grammar_deri_self
 
 lemma nc_locked_clean_step_dirty_mark_zero_shape (g : grammar T)
     (hg : grammar_noncontracting g)
@@ -2535,7 +2549,8 @@ lemma nc_locked_transform_added_mark_preserves_source_mark (g : grammar T)
   · simp [hmark]
   · simp [hmark]
   · have hclean := nc_locked_liftSym_clean g (pattern.getD targetK dflt)
-    exact ((hclean (nc_locked_mark (g := g) ri k) (by simpa [pattern, dflt] using hmark)).1
+    exact ((hclean (nc_locked_mark (g := g) ri k)
+      (by simpa [pattern, dflt, nc_locked_liftSym] using hmark)).1
       ri k rfl).elim
   · have hclean := nc_locked_map_liftSym_clean g (pattern.drop (targetK + 1))
     exact ((hclean (nc_locked_mark (g := g) ri k) (by simpa [pattern, dflt] using hmark)).1
@@ -4865,7 +4880,8 @@ lemma CS_language_subset_locked_csg_of_noncontracting_of_dirty_interval_macro
       grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal) := by
     simpa [locked_csg_of_noncontracting, nc_locked_proj_initial,
       nc_locked_proj_terminal] using hproj
-  simpa [grammar_language, grammar_generates] using hproj'
+  change grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal)
+  exact hproj'
 
 /-- Language equality for the locked construction, reduced to the local
 dirty-interval grouping property. -/
@@ -6070,8 +6086,8 @@ lemma nc_locked_clean_macro_trace_terminal_mem_grammar_language
       (w.map symbol.terminal)) :
     w ∈ grammar_language g := by
   have hproj := nc_locked_clean_macro_trace_grammar_derives g hg h
-  simpa [grammar_language, grammar_generates, nc_locked_proj_initial,
-    nc_locked_proj_terminal] using hproj
+  change grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal)
+  simpa [nc_locked_proj_initial, nc_locked_proj_terminal] using hproj
 
 /-- Terminal words reached by locked clean-only traces are generated by the
 original non-contracting grammar. -/
@@ -6872,7 +6888,8 @@ private lemma nc_clean_trace_terminal_mem_grammar_language
       (w.map symbol.terminal)) :
     w ∈ grammar_language g := by
   have hproj := nc_clean_trace_grammar_derives g hg h
-  simpa [grammar_language, grammar_generates, nc_proj_initial, nc_proj_terminal] using hproj
+  change grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal)
+  simpa [nc_proj_initial, nc_proj_terminal] using hproj
 
 /-- A terminal word reached by a clean macro trace of the constructed CS grammar is
 generated by the original non-contracting grammar. -/
@@ -6883,7 +6900,8 @@ private lemma nc_clean_macro_trace_terminal_mem_grammar_language
       (w.map symbol.terminal)) :
     w ∈ grammar_language g := by
   have hproj := nc_clean_macro_trace_grammar_derives g hg h
-  simpa [grammar_language, grammar_generates, nc_proj_initial, nc_proj_terminal] using hproj
+  change grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal)
+  simpa [nc_proj_initial, nc_proj_terminal] using hproj
 
 -- TODO complete the dirty-phase grouping proof and use it to show that
 -- `csg_of_noncontracting` has exactly the original grammar language.

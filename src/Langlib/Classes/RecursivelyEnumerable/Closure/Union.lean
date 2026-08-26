@@ -38,6 +38,7 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -191,15 +192,19 @@ by
       rcases List.mem_cons.1 rin with rfl | rin
       · -- First rule: initial → g₁.initial
         left; rw [aft] at deri; dsimp only at deri
-        convert sink_deri_ lg₁ deri (by
-          unfold good_string_; simp only [List.mem_singleton, forall_eq]; exact ⟨g₁.initial, rfl⟩)
-        exact (sink_string_map_terminal_ lg₁.sink_nt w).symm
+        have hsink := sink_deri_ lg₁ deri (by
+          unfold good_string_; simp only [List.mem_singleton, forall_eq];
+          exact ⟨g₁.initial, rfl⟩)
+        rw [sink_string_map_terminal_ lg₁.sink_nt w] at hsink
+        simpa [lg₁, sink_string_, sink_symbol_, oN₁_of_N] using hsink
       rcases List.mem_cons.1 rin with rfl | rin
       · -- Second rule: initial → g₂.initial
         right; rw [aft] at deri; dsimp only at deri
-        convert sink_deri_ lg₂ deri (by
-          unfold good_string_; simp only [List.mem_singleton, forall_eq]; exact ⟨g₂.initial, rfl⟩)
-        exact (sink_string_map_terminal_ lg₂.sink_nt w).symm
+        have hsink := sink_deri_ lg₂ deri (by
+          unfold good_string_; simp only [List.mem_singleton, forall_eq];
+          exact ⟨g₂.initial, rfl⟩)
+        rw [sink_string_map_terminal_ lg₂.sink_nt w] at hsink
+        simpa [lg₂, sink_string_, sink_symbol_, oN₂_of_N] using hsink
       · -- Impossible: initial can't match any lifted rule
         exfalso
         rcases List.mem_append.1 rin with rin | rin <;> {

@@ -44,23 +44,15 @@ public def subst {α β : Type} (L : Language α) (f : α → Language β) : Lan
 
 public theorem subst_pair_eq_mul {β : Type} (f : Bool → Language β) :
     ({[false, true]} : Language Bool).subst f = f false * f true := by
-  apply Set.ext
-  intro u
-  simp only [subst, Set.mem_setOf_eq, Language.mul_def, Set.mem_image2]
-  simp only [List.prod]
+  ext u
   constructor
-  ·
-    simp [Language.mul_def, Language.one_def] at *
-    grind
-  ·
-    intro h
-    obtain ⟨a, ha, b, hb, hab⟩ := h
-    use [false, true]
-    constructor
-    · exact rfl
-    ·
-      simp only [List.map_cons, List.map_nil, List.foldr_cons, List.foldr_nil, mul_one]
-      exact ⟨a, ha, b, hb, hab⟩
+  · rintro ⟨x, hx, hu⟩
+    change x = [false, true] at hx
+    subst x
+    simpa only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one] using hu
+  · intro hu
+    refine ⟨[false, true], rfl, ?_⟩
+    simpa only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one] using hu
 
 public theorem subst_singletons_eq_add {β : Type}
     (f : Bool → Language β) :
@@ -98,11 +90,13 @@ public theorem subst_univ_unit_eq_kstar {β : Type} (f : Unit → Language β) :
     use List.replicate L.length ()
     induction L with
     | nil => trivial
-    | cons _ tail ih =>
+    | cons head tail ih =>
         have ih' := ih (List.forall_mem_cons.mp hL).2
         refine ⟨Set.mem_univ _, ?_⟩
-        simpa [List.replicate_succ, List.prod_cons, List.prod_nil, mul_one] using
-          (Set.mem_image2_of_mem (List.forall_mem_cons.mp hL).1 ih'.2)
+        simp only [List.length_cons, List.replicate_succ, List.map_cons,
+          List.prod_cons, List.flatten_cons]
+        rw [Language.mul_def]
+        exact Set.mem_image2_of_mem (List.forall_mem_cons.mp hL).1 ih'.2
 
 public lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
     ∀ w : List α, ∀ u : List β,
@@ -118,7 +112,9 @@ public lemma mem_prod_singletons_iff {α β : Type} (f : α → β) :
         rw [Language.mul_def] at hu
         rcases hu with ⟨u₁, hu₁, u₂, hu₂, rfl⟩
         have hu₂' := (mem_prod_singletons_iff f xs u₂).1 hu₂
-        have hu₁' : u₁ = [f x] := by simpa using hu₁
+        have hu₁' : u₁ = [f x] := by
+          change u₁ = [f x] at hu₁
+          exact hu₁
         simp [hu₁', hu₂']
       · intro hu
         subst hu
@@ -306,7 +302,7 @@ theorem reverse_leftQuotient_eq_rightQuotient_reverse_singleton
     change (w ++ x.reverse).reverse ∈ L
     simpa [List.reverse_append] using h
   · rintro ⟨v, hv, hvw⟩
-    rw [Set.mem_singleton_iff] at hv
+    change v = x.reverse at hv
     subst hv
     change x ++ w.reverse ∈ L
     change (w ++ x.reverse).reverse ∈ L at hvw
@@ -325,7 +321,7 @@ theorem leftQuotient_eq_reverse_rightQuotient_reverse_singleton
   · intro h
     change ∃ v ∈ ({x.reverse} : Language α), w.reverse ++ v ∈ L.reverse at h
     rcases h with ⟨v, hv, hvw⟩
-    rw [Set.mem_singleton_iff] at hv
+    change v = x.reverse at hv
     subst hv
     change x ++ w ∈ L
     change (w.reverse ++ x.reverse).reverse ∈ L at hvw

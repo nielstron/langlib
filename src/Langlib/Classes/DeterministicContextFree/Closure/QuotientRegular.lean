@@ -83,7 +83,7 @@ private def suffixTargetBase (M : DPDA Q T S) (D : DFA T sigma) :
   | .inr (), _, .inr () => True
   | _, _, _ => False
 
-private def suffixTargetAccept (M : DPDA Q T S) (D : DFA T sigma) :
+@[reducible] private def suffixTargetAccept (M : DPDA Q T S) (D : DFA T sigma) :
     Set (DPDA.PAutState (Q × sigma))
   | .inl c => c.1 ∈ M.final_states /\ c.2 ∈ D.accept
   | .inr () => True
@@ -99,7 +99,7 @@ private def suffixDFA (M : DPDA Q T S) (D : DFA T sigma) (q : Q) (d : sigma) :
     (DPDA.PAutState.control (q, d)) (suffixTargetAccept M D)
 
 /-- Semantic meaning of a state in the continuation P-automaton. -/
-private def SuffixTarget (M : DPDA Q T S) (D : DFA T sigma) :
+@[reducible] private def SuffixTarget (M : DPDA Q T S) (D : DFA T sigma) :
     DPDA.PAutState (Q × sigma) -> List S -> Prop
   | .inl (q, d), gamma =>
       exists y qf gammaf,
@@ -118,7 +118,8 @@ private theorem suffixTarget_nil_iff (M : DPDA Q T S) (D : DFA T sigma)
       · rintro ⟨y, qf, gammaf, hreach, hD, hqf⟩
         have hempty := PDA.reaches_on_empty_stack (pda := M.toPDA) hreach
         rcases hempty with ⟨rfl, rfl, rfl⟩
-        simpa using And.intro hqf hD
+        change q ∈ M.final_states ∧ d ∈ D.accept
+        exact And.intro hqf hD
       · rintro ⟨hq, hd⟩
         exact ⟨[], q, [], Relation.ReflTransGen.refl, by simpa, hq⟩
   | inr u =>
@@ -168,11 +169,18 @@ private theorem suffixRel_preservesTarget (M : DPDA Q T S) (D : DFA T sigma) :
     rcases hrule with hε | ⟨a, ha, hd'⟩
     · rcases hε with ⟨hε, rfl⟩
       refine ⟨y, qf, gammaf, Relation.ReflTransGen.head ?_ hreach, hD, hqf⟩
-      cases y <;> simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+      cases y with
+      | nil =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+          exact Set.mem_singleton _
+      | cons a y =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+          exact Set.mem_union_right _ (Set.mem_singleton _)
     · change d' = D.step d a at hd'
       subst d'
       refine ⟨a :: y, qf, gammaf, Relation.ReflTransGen.head ?_ hreach, ?_, hqf⟩
       · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, ha]
+        exact Set.mem_union_left _ (Set.mem_singleton _)
       · simpa [DFA.evalFrom] using hD
   exact hrel semanticRel hbase hsat delta htarget
 
@@ -195,7 +203,13 @@ private theorem suffixDFA_sound (M : DPDA Q T S) (D : DFA T sigma)
   intro h
   obtain ⟨r, hr, hpath⟩ := (DPDA.relDFA_accepts_iff (R := suffixSaturationRel M D)).1 h
   have ht : SuffixTarget M D r [] := (suffixTarget_nil_iff M D r).2 hr
-  simpa [SuffixTarget] using suffixRel_path_sound M D hpath ht
+  have hs := suffixRel_path_sound M D hpath ht
+  rw [List.append_nil] at hs
+  change ∃ y qf gammaf,
+    @PDA.Reaches Q T S _ _ _ M.toPDA
+      ⟨q, y, gamma⟩ ⟨qf, [], gammaf⟩ ∧
+    D.evalFrom d y ∈ D.accept ∧ qf ∈ M.final_states at hs
+  exact hs
 
 private theorem suffixPath_of_final (M : DPDA Q T S) (D : DFA T sigma)
     {q : Q} {d : sigma} {gamma : List S}
@@ -437,7 +451,7 @@ private theorem acceptsContinuation_correct (M : DPDA Q T S) (D : DFA T sigma)
 
 /-- The quotient DPDA.  Its Boolean control component is the continuation query
 for the current source state and annotated stack. -/
-private def quotientDPDA (M : DPDA Q T S) (D : DFA T sigma) :
+@[reducible] private def quotientDPDA (M : DPDA Q T S) (D : DFA T sigma) :
     DPDA (Q × Bool) T (AnnSymbol Q S sigma) where
   initial_state :=
     (M.initial_state,
@@ -504,7 +518,10 @@ private theorem step_projects (M : DPDA Q T S) (D : DFA T sigma)
               simpa only [quotientDPDA, DPDA.toPDA, ht, Set.mem_singleton_iff] using hmem
             rcases hout with ⟨rfl, rfl⟩
             simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, ht]
-            simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+            have herase : List.map Prod.fst (annotate M D below beta) = beta := by
+              simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+            rw [herase]
+            exact Set.mem_union_left _ (Set.mem_singleton _)
       · subst c'
         cases hε : M.epsilon_transition q Z with
         | none => simp [quotientDPDA, DPDA.toPDA, hε] at hmem
@@ -515,9 +532,19 @@ private theorem step_projects (M : DPDA Q T S) (D : DFA T sigma)
                   annotate M D below beta) := by
               simpa only [quotientDPDA, DPDA.toPDA, hε, Set.mem_singleton_iff] using hmem
             rcases hout with ⟨rfl, rfl⟩
-            cases input <;>
-              simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
-            all_goals simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+            cases input with
+            | nil =>
+                simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+                have herase : List.map Prod.fst (annotate M D below beta) = beta := by
+                  simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+                rw [herase]
+                exact Set.mem_singleton _
+            | cons a input =>
+                simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+                have herase : List.map Prod.fst (annotate M D below beta) = beta := by
+                  simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+                rw [herase]
+                exact Set.mem_union_right _ (Set.mem_singleton _)
 
 private theorem reaches_projects (M : DPDA Q T S) (D : DFA T sigma)
     {c c' : PDA.conf (quotientDPDA M D).toPDA}
@@ -612,6 +639,7 @@ private theorem step_lifts (M : DPDA Q T S) (D : DFA T sigma)
             (⟨(q, b), a :: input', (Z, below) :: rest⟩ :
               PDA.conf (quotientDPDA M D).toPDA) c' := by
           simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, ht]
+          exact Set.mem_union_left _ (Set.mem_singleton _)
         refine ⟨c', hs, ?_, step_preserves_good M D hc hs⟩
         apply PDA.conf.ext <;> simp [c', projectConf, eraseAnn]
         simpa only [eraseAnn] using eraseAnn_annotate M D below beta
@@ -624,7 +652,13 @@ private theorem step_lifts (M : DPDA Q T S) (D : DFA T sigma)
         have hs : PDA.Reaches₁
             (⟨(q, b), input, (Z, below) :: rest⟩ :
               PDA.conf (quotientDPDA M D).toPDA) c' := by
-          cases input <;> simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, hε]
+          cases input with
+          | nil =>
+              simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, hε]
+              exact Set.mem_singleton _
+          | cons a input =>
+              simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, hε]
+              exact Set.mem_union_right _ (Set.mem_singleton _)
         refine ⟨c', hs, ?_, step_preserves_good M D hc hs⟩
         apply PDA.conf.ext <;> simp [c', projectConf, eraseAnn]
         simpa only [eraseAnn] using eraseAnn_annotate M D below beta
@@ -744,7 +778,7 @@ private theorem quotientDPDA_correct (M : DPDA Q T S) (D : DFA T sigma) :
         ⟨y, qf, gammaf, by simpa [herase] using hsuffix, hy, hqf⟩
     have hb : bmid = true := by
       exact hgood.2.trans ((acceptBit_eq_true_iff M D qm _).2 hcont)
-    refine ⟨(qm, bmid), ?_, stackmid, by simpa [c0] using hlift⟩
+    refine ⟨(qm, bmid), ?_, stackmid, by simpa [c0, DPDA.toPDA] using hlift⟩
     change bmid = true
     exact hb
 

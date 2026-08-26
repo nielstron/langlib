@@ -208,7 +208,11 @@ public inductive OneState where
   | first
   | rest
   | bad
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, Repr
+
+public instance : Fintype OneState where
+  elems := {OneState.first, OneState.rest, OneState.bad}
+  complete := by intro s; cases s <;> simp
 
 /-- Check one digit of the canonical positive-width numeral one. -/
 public def DigitCodec.oneStep [DecidableEq D] (E : DigitCodec D) (h : 1 < E.radix) :
@@ -285,7 +289,11 @@ public inductive CarryState where
   | carry
   | done
   | bad
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, Repr
+
+public instance : Fintype CarryState where
+  elems := {CarryState.carry, CarryState.done, CarryState.bad}
+  complete := by intro s; cases s <;> simp
 
 /-- Check one aligned pair of digits while propagating a carry from left to right. -/
 public def DigitCodec.succStep [DecidableEq D]

@@ -34,6 +34,7 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -61,7 +62,7 @@ The key insight is that `cleanup` uses `terminalContent` instead of tracking a d
 to a terminal form. This avoids the non-confluence issue in the cleanup phase.
 -/
 
-open Turing TMtoGrammarNT Relation
+open StateTransition Turing TMtoGrammarNT Relation
 
 variable {T : Type} [DecidableEq T] [Fintype T]
          {Λ : Type} [Inhabited Λ] [DecidableEq Λ] [Fintype Λ]
@@ -107,11 +108,8 @@ omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 public theorem terminalContent_terminal_map (w : List T) :
     terminalContent (Λ := Λ) (w.map symbol.terminal) = w := by
   induction w with
-  | nil => simp only [terminalContent, List.map_nil, List.filterMap_nil]
-  | cons t ts ih =>
-    simp only [terminalContent, List.map_cons, List.filterMap_cons, symbolOriginal]
-    simp only [terminalContent] at ih
-    simp only [ih]
+  | nil => rfl
+  | cons t ts ih => simpa [terminalContent, symbolOriginal] using congrArg (List.cons t) ih
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -157,13 +155,44 @@ public theorem terminalContent_preserved
     (hns : ∀ s ∈ sf, s ≠ symbol.nonterminal start)
     (hng : ∀ s ∈ sf, s ≠ symbol.nonterminal genMore) :
     terminalContent sf' = terminalContent sf := by
-  obtain ⟨ r, hr, u, v, hu, hv ⟩ := htrans;
-  -- By `terminalContent_rule_preserved`, the terminal content of `r.input_L ++ [nonterminal r.input_N] ++ r.input_R` is equal to the terminal content of `r.output_string`.
-  have h_term_content : terminalContent (r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R) = terminalContent r.output_string := by
-    apply terminalContent_rule_preserved; assumption; exact (by
-    contrapose! hns; aesop;); exact (by
-    grind);
-  grind +locals
+  unfold tmToGrammar at htrans
+  obtain ⟨r, hr, u, v, hu, hv⟩ := htrans
+  have hNmem : symbol.nonterminal r.input_N ∈ sf := by
+    rw [hu]
+    simp
+  have hns' : r.input_N ≠ start := by
+    intro h
+    exact hns _ hNmem (by simp [h])
+  have hng' : r.input_N ≠ genMore := by
+    intro h
+    exact hng _ hNmem (by simp [h])
+  have hterm := terminalContent_rule_preserved r hr hns' hng'
+  have hu' : sf = u ++
+      ((r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R) ++ v) := by
+    simpa only [List.append_assoc] using hu
+  have hv' : sf' = u ++ (r.output_string ++ v) := by
+    simpa only [List.append_assoc] using hv
+  calc
+    terminalContent sf' = terminalContent (u ++ (r.output_string ++ v)) :=
+      congrArg terminalContent hv'
+    _ = terminalContent u ++ terminalContent (r.output_string ++ v) :=
+      terminalContent_append u (r.output_string ++ v)
+    _ = terminalContent u ++ (terminalContent r.output_string ++ terminalContent v) :=
+      congrArg (fun x => terminalContent u ++ x) (terminalContent_append r.output_string v)
+    _ = terminalContent u ++
+        (terminalContent (r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R) ++
+          terminalContent v) :=
+      congrArg (fun x => terminalContent u ++ (x ++ terminalContent v)) hterm.symm
+    _ = terminalContent u ++
+        terminalContent ((r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R) ++ v) :=
+      congrArg (fun x => terminalContent u ++ x)
+        (terminalContent_append
+          (r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R) v).symm
+    _ = terminalContent
+        (u ++ ((r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R) ++ v)) :=
+      (terminalContent_append u
+        ((r.input_L ++ [symbol.nonterminal r.input_N] ++ r.input_R) ++ v)).symm
+    _ = terminalContent sf := congrArg terminalContent hu'.symm
 
 /-! ### Terminal-only forms can't be transformed -/
 
@@ -224,7 +253,7 @@ public inductive GI (M : Turing.TM0.Machine (Option T) Λ) :
             [symbol.nonterminal rightBound])
   | simulating (tc : @TwoTrackConfig T Λ) (tmCfg : Turing.TM0.Cfg (Option T) Λ)
       (hcorr : TMCorresponds tc tmCfg)
-      (hreach : Turing.Reaches (Turing.TM0.step M)
+      (hreach : StateTransition.Reaches (Turing.TM0.step M)
         (Turing.TM0.init ((extractInput (twoTrackOriginals tc)).map some)) tmCfg) :
       GI M (encodeTwoTrack tc)
   | cleanup (sf : List (symbol T (TMtoGrammarNT T Λ))) (w : List T)
@@ -375,7 +404,12 @@ public theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
   rcases h_nonterminals with ( h | h | ⟨ t, h ⟩ | h );
   · have := no_leftBound_rule_genMore_context M r hr h; simp_all +decide ;
     rcases u with ( _ | ⟨ _, _ | u ⟩ ) <;> simp_all +decide;
-    · grind;
+    · exfalso
+      rcases this.2 with hR | ⟨orig, hR⟩
+      · rw [hR] at heq
+        cases (List.cons.inj heq).1
+      · rw [hR] at heq
+        cases (List.cons.inj heq).1
     · have hmem :
           symbol.nonterminal leftBound ∈
             (((List.map (fun t => symbol.nonterminal (cell (some t) (some t))) ts) ++
@@ -401,7 +435,6 @@ public theorem GI_preserved_generating (M : Turing.TM0.Machine (Option T) Λ)
           exact fun _ _ => True;
           exact Turing.TM0.init ( List.map some ( t :: ts ) );
           simp +decide [ extractInput, twoTrackOriginals, initTwoTrack ];
-          simp +decide [ Function.comp_def ];
           exact iff_of_true ( Relation.ReflTransGen.refl ) ( Relation.ReflTransGen.refl );
         · unfold encodeTwoTrack initTwoTrack; aesop;
       · rcases ts with ( _ | ⟨ t, ts ⟩ ) <;> simp_all +decide [ List.map ];
@@ -766,7 +799,7 @@ public theorem tm_eval_dom_of_reaches_halt
     (M : Turing.TM0.Machine (Option T) Λ)
     (l : List (Option T))
     (tmCfg : Turing.TM0.Cfg (Option T) Λ)
-    (hreach : Turing.Reaches (Turing.TM0.step M) (Turing.TM0.init l) tmCfg)
+    (hreach : StateTransition.Reaches (Turing.TM0.step M) (Turing.TM0.init l) tmCfg)
     (hhalt : Turing.TM0.step M tmCfg = none) :
     (Turing.TM0.eval M l).Dom := by
   convert hhalt using 1;
@@ -792,8 +825,8 @@ public theorem terminalContent_encodeTwoTrack (tc : @TwoTrackConfig T Λ) :
       · cases l_notionCells <;> cases l_notionCell <;> simp_all +decide [ symbolOriginal ];
       · cases l_notionCells <;> cases l_notionCell <;> simp_all +decide [ symbolOriginal ];
   · cases cell.1 <;> simp_all +decide [ extractInput ];
-    · convert ih t_notion l_notionCells l_notionCell using 1;
-    · convert congr_arg ( fun x => ‹T› :: x ) ( ih t_notion l_notionCells l_notionCell ) using 1)
+    · simpa [symbolOriginal] using ih t_notion l_notionCells l_notionCell
+    · simpa [symbolOriginal] using ih t_notion l_notionCells l_notionCell)
 
 omit [DecidableEq T] [Fintype T] [Inhabited Λ] [DecidableEq Λ] [Fintype Λ] in
 /-
@@ -869,7 +902,7 @@ omit [DecidableEq T] [DecidableEq Λ] in
 public theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
     (tc : @TwoTrackConfig T Λ) (tmCfg : Turing.TM0.Cfg (Option T) Λ)
     (hcorr : TMCorresponds tc tmCfg)
-    (hreach : Turing.Reaches (Turing.TM0.step M)
+    (hreach : StateTransition.Reaches (Turing.TM0.step M)
       (Turing.TM0.init ((extractInput (twoTrackOriginals tc)).map some)) tmCfg)
     (sf' : List (symbol T (TMtoGrammarNT T Λ)))
     (htrans : grammar_transforms (tmToGrammar T Λ M) (encodeTwoTrack tc) sf') :
@@ -925,7 +958,12 @@ public theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
           unfold encodeTwoTrack at h_no_genMore; aesop;);
         · intros s hs q orig cur h_eq
           have h_headCell_in_parts : s ∈ u ∨ s ∈ v := by
-            grind +ring
+            simp only [List.mem_append, List.mem_singleton] at hs
+            rcases hs with (hs | hs) | hs
+            · exact Or.inl hs
+            · rw [h_eq] at hs
+              simp at hs
+            · exact Or.inr hs
           generalize_proofs at *; (
           exact encodeTwoTrack_no_headCell_in_parts tc u v ( by aesop ) s h_headCell_in_parts q orig cur ( by aesop ))
       generalize_proofs at *; (
@@ -937,10 +975,14 @@ public theorem GI_preserved_simulating (M : Turing.TM0.Machine (Option T) Λ)
       obtain ⟨tmCfg', h_tm_step⟩ : ∃ tmCfg', Turing.TM0.step M tmCfg = some tmCfg' := by
         exact tm_step_some_of_corresponds M tc tmCfg hcorr q' action h_Mqc;
       -- Apply the GI.simulating constructor with the given parameters.
-      apply GI.simulating tc' tmCfg' (by
-      have := corresponds_step_some M tc tmCfg tmCfg' hcorr h_tm_step; aesop;) (by
-      convert Relation.ReflTransGen.tail hreach h_tm_step using 1;
-      rw [ stepTwoTrack_preserves_extractInput M tc tc' hstep ])
+      apply GI.simulating tc' tmCfg'
+      · obtain ⟨tc'', hstep'', hcorr'⟩ :=
+          corresponds_step_some M tc tmCfg tmCfg' hcorr h_tm_step
+        have htc : tc'' = tc' := Option.some.inj (hstep''.symm.trans hstep)
+        simpa [htc] using hcorr'
+      · unfold StateTransition.Reaches at hreach ⊢
+        rw [stepTwoTrack_preserves_extractInput M tc tc' hstep]
+        exact Relation.ReflTransGen.tail hreach h_tm_step
   · -- rightBound: contradiction
     have hN : r.input_N = rightBound := by
       have := h_rb; simp only [symbol.nonterminal.injEq] at this; exact this
@@ -967,6 +1009,18 @@ public theorem GI_preserved_cleanup (M : Turing.TM0.Machine (Option T) Λ)
   obtain ⟨hr₁, u, v, hu, hv⟩ := hr
   have hr₂ : r ∈ (tmToGrammar T Λ M).rules := by
     exact hr₁
+  have hNmem : symbol.nonterminal r.input_N ∈ sf := by
+    rw [hu]
+    simp
+  have hN_not_start : r.input_N ≠ start := by
+    intro hEq
+    exact hno_start _ hNmem (congrArg symbol.nonterminal hEq)
+  have hN_not_genMore : r.input_N ≠ genMore := by
+    intro hEq
+    exact hno_genMore _ hNmem (congrArg symbol.nonterminal hEq)
+  have hN_not_headCell : ∀ q orig cur, r.input_N ≠ headCell q orig cur := by
+    intro q orig cur hEq
+    exact hno_headCell _ hNmem q orig cur (congrArg symbol.nonterminal hEq)
   have hr₃ : r ∈ (generationRules T Λ M) ∨ r ∈ (simulationRules T Λ M) ∨ r ∈ (cleanupRules T Λ M) := by
     exact by rw [ show ( tmToGrammar T Λ M ).rules = ( generationRules T Λ M ) ++ ( simulationRules T Λ M ) ++ ( cleanupRules T Λ M ) by rfl ] at hr₂; aesop;
   rcases hr₃ with (hr₃ | hr₃ | hr₃);
@@ -981,7 +1035,7 @@ public theorem GI_preserved_cleanup (M : Turing.TM0.Machine (Option T) Λ)
     · grind;
   · -- Since $r$ is in the cleanupRules, we know that $r.input_N$ is a nonterminal that is not start, genMore, or headCell.
     have hr₄ : r.input_N ≠ start ∧ r.input_N ≠ genMore ∧ ∀ q orig cur, r.input_N ≠ headCell q orig cur := by
-      grind +ring;
+      exact ⟨hN_not_start, hN_not_genMore, hN_not_headCell⟩
     -- Since $r$ is in the cleanupRules, we know that $r.output_string$ does not contain any start, genMore, or headCell nonterminals.
     have hr₅ : ∀ s ∈ r.output_string, s ≠ symbol.nonterminal start ∧ s ≠ symbol.nonterminal genMore ∧ ∀ q orig cur, s ≠ symbol.nonterminal (headCell q orig cur) := by
       unfold cleanupRules at hr₃; simp +decide at hr₃;
@@ -989,36 +1043,62 @@ public theorem GI_preserved_cleanup (M : Turing.TM0.Machine (Option T) Λ)
       all_goals subst_vars; simp +decide at hr₄ ⊢;
       cases h : M a b <;> simp +decide [ h ] at hr₃ ⊢;
       grind +ring;
-    by_cases h : ∃ s ∈ u ++ r.output_string ++ v, isNonterminal s <;> simp_all +decide [  ];
-    · apply GI.cleanup;
-      exact hhalt;
-      · rw [ ← hcontent, terminalContent_append, terminalContent_append ];
-        rw [ ← terminalContent_append, ← terminalContent_append ];
-        apply terminalContent_preserved;
-        any_goals assumption;
-        · exact ⟨ r, hr₂, u, v, by aesop ⟩;
-        · grind +ring;
-        · grind +ring;
-      · exact ⟨ h.choose, by simpa using h.choose_spec.1, h.choose_spec.2 ⟩;
-      · grind +ring;
-      · grind +ring;
-      · grind +splitIndPred;
-    · convert GI.done w hhalt using 1;
-      have h_terminalContent : terminalContent (u ++ (r.output_string ++ v)) = w := by
-        have h_terminalContent : terminalContent (u ++ (r.output_string ++ v)) = terminalContent (u ++ (r.input_L ++ symbol.nonterminal r.input_N :: (r.input_R ++ v))) := by
-          apply terminalContent_preserved;
-          any_goals assumption;
-          · exact ⟨ r, hr₂, u, v, by simp +decide [ List.append_assoc ] ⟩;
-          · grind +ring;
-          · grind;
-        exact h_terminalContent.trans hcontent;
-      have h_terminalContent : ∀ s ∈ u ++ (r.output_string ++ v), ∃ t : T, s = symbol.terminal t := by
-        intro s hs; specialize h s; rcases s with ( _ | _ ) <;> simp_all +decide ;
-        grind +locals;
-      have h_terminalContent : ∀ {l : List (symbol T (TMtoGrammarNT T Λ))}, (∀ s ∈ l, ∃ t : T, s = symbol.terminal t) → l = List.map symbol.terminal (terminalContent l) := by
-        intros l hl; induction' l with s l ih <;> simp +decide [ *, terminalContent ] ;
-        rcases hl s ( by simp +decide ) with ⟨ t, rfl ⟩ ; simp +decide [ symbolOriginal ] ; exact ih fun s hs => hl s ( by simp +decide [ hs ] ) ;
-      grind
+    have htrans' : grammar_transforms (tmToGrammar T Λ M) sf sf' :=
+      ⟨r, hr₂, u, v, hu, hv⟩
+    have hcontent' : terminalContent sf' = w :=
+      (terminalContent_preserved sf sf' htrans' hno_start hno_genMore).trans hcontent
+    have hcontext_mem {s : symbol T (TMtoGrammarNT T Λ)}
+        (hs : s ∈ u ∨ s ∈ v) : s ∈ sf := by
+      rw [hu]
+      simp only [List.mem_append, List.mem_singleton]
+      tauto
+    have hout_cases {s : symbol T (TMtoGrammarNT T Λ)}
+        (hs : s ∈ sf') : s ∈ u ∨ s ∈ r.output_string ∨ s ∈ v := by
+      rw [hv] at hs
+      simp only [List.mem_append] at hs
+      tauto
+    have hno_start' : ∀ s ∈ sf', s ≠ symbol.nonterminal start := by
+      intro s hs
+      rcases hout_cases hs with hs | hs | hs
+      · exact hno_start s (hcontext_mem (Or.inl hs))
+      · exact (hr₅ s hs).1
+      · exact hno_start s (hcontext_mem (Or.inr hs))
+    have hno_genMore' : ∀ s ∈ sf', s ≠ symbol.nonterminal genMore := by
+      intro s hs
+      rcases hout_cases hs with hs | hs | hs
+      · exact hno_genMore s (hcontext_mem (Or.inl hs))
+      · exact (hr₅ s hs).2.1
+      · exact hno_genMore s (hcontext_mem (Or.inr hs))
+    have hno_headCell' : ∀ s ∈ sf', ∀ q orig cur,
+        s ≠ symbol.nonterminal (headCell q orig cur) := by
+      intro s hs q orig cur
+      rcases hout_cases hs with hs | hs | hs
+      · exact hno_headCell s (hcontext_mem (Or.inl hs)) q orig cur
+      · exact (hr₅ s hs).2.2 q orig cur
+      · exact hno_headCell s (hcontext_mem (Or.inr hs)) q orig cur
+    by_cases hnt : ∃ s, s ∈ sf' ∧ isNonterminal s
+    · exact GI.cleanup sf' w hhalt hcontent' hnt hno_start' hno_genMore' hno_headCell'
+    · have hall_terminal : ∀ s ∈ sf', ∃ t : T, s = symbol.terminal t := by
+        intro s hs
+        cases s with
+        | terminal t => exact ⟨t, rfl⟩
+        | nonterminal n =>
+            exact False.elim (hnt ⟨symbol.nonterminal n, hs, by trivial⟩)
+      have hmap : ∀ {l : List (symbol T (TMtoGrammarNT T Λ))},
+          (∀ s ∈ l, ∃ t : T, s = symbol.terminal t) →
+          l = List.map symbol.terminal (terminalContent l) := by
+        intro l hl
+        induction l with
+        | nil => rfl
+        | cons s l ih =>
+            obtain ⟨t, rfl⟩ := hl s (by simp)
+            simp only [terminalContent, List.filterMap_cons, symbolOriginal,
+              List.map_cons, List.cons.injEq, true_and]
+            exact ih fun s hs => hl s (by simp [hs])
+      have hsf' := hmap hall_terminal
+      rw [hcontent'] at hsf'
+      rw [hsf']
+      exact GI.done w hhalt
 
 omit [DecidableEq Λ] in
 omit [DecidableEq T] in

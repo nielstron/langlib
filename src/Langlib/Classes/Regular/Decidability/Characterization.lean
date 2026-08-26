@@ -37,6 +37,7 @@ open EncodedCFG
 
 /-- The right-regular grammar denoted by an encoded right-regular grammar: it reads
 each rule body back as a right-regular rule over the nonterminals `Fin (toCFG c).ntCount`. -/
+@[reducible]
 public def rgRuleOf (c : EncodedRG T) (r : ℕ × Option (T × Option ℕ)) :
     RG_rule T (Fin (toCFG c).ntCount) :=
   match r.2 with
@@ -45,6 +46,7 @@ public def rgRuleOf (c : EncodedRG T) (r : ℕ × Option (T × Option ℕ)) :
   | some (a, some B) => RG_rule.cons ((toCFG c).toNT r.1) a ((toCFG c).toNT B)
 
 /-- Decode an encoded right-regular grammar to a `RG_grammar`. -/
+@[reducible]
 public def toRG (c : EncodedRG T) : RG_grammar T where
   nt := Fin (toCFG c).ntCount
   initial := (toCFG c).toNT (toCFG c).initialIdx

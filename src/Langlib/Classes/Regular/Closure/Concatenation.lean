@@ -76,7 +76,7 @@ variable {σ₁ σ₂ : Type*} [Fintype σ₁] [Fintype σ₂]
 
 States are `σ₁ ⊕ σ₂`. On the left side we simulate `M₁`; on the right, `M₂`.
 Accepting states of `M₁` get an ε-transition to `M₂`'s start state. -/
-@[expose]
+@[expose, reducible]
 public noncomputable def concatεNFA (M₁ : DFA α σ₁) (M₂ : DFA α σ₂) : εNFA α (σ₁ ⊕ σ₂) where
   step := fun s c =>
     match s, c with
@@ -107,7 +107,8 @@ Processing a word from a single `Sum.inr` state follows `M₂` exactly.
 private lemma evalFrom_inr (q : σ₂) (w : List α) :
     (concatεNFA M₁ M₂).evalFrom {Sum.inr q} w = {Sum.inr (M₂.evalFrom q w)} := by
       induction' w using List.reverseRecOn with w a ih;
-      · convert εClosure_inr M₁ M₂ q;
+      · rw [εNFA.evalFrom_nil, DFA.evalFrom_nil]
+        exact εClosure_inr M₁ M₂ q
       · simp_all +decide [ εNFA.stepSet ];
         convert εClosure_inr M₁ M₂ ( M₂.step ( M₂.evalFrom q w ) a ) using 1
 
@@ -166,7 +167,18 @@ evalFrom is monotone in the starting set.
 -/
 private lemma evalFrom_mono (S T : Set (σ₁ ⊕ σ₂)) (w : List α) (h : S ⊆ T) :
     (concatεNFA M₁ M₂).evalFrom S w ⊆ (concatεNFA M₁ M₂).evalFrom T w := by
-      grind +suggestions
+  induction w using List.reverseRecOn generalizing S T with
+  | nil =>
+      rw [εNFA.evalFrom_nil, εNFA.evalFrom_nil]
+      intro x hx
+      induction hx with
+      | base s hs => exact εNFA.εClosure.base _ (h hs)
+      | step s t hst _ ih => exact εNFA.εClosure.step _ _ hst ih
+  | append_singleton w a ih =>
+      rw [εNFA.evalFrom_append_singleton, εNFA.evalFrom_append_singleton]
+      intro x hx
+      obtain ⟨s, hs, hxs⟩ := εNFA.mem_stepSet_iff.mp hx
+      exact εNFA.mem_stepSet_iff.mpr ⟨s, ih S T h hs, hxs⟩
 
 omit [Fintype σ₁] [Fintype σ₂] in
 /-
@@ -274,17 +286,15 @@ private lemma inr_reachable_split (q : σ₁) (w : List α) (q₂ : σ₂)
         · simp +decide [ εNFA.stepSet ];
           constructor;
           · intro x hx;
-            rw [ show ( concatεNFA M₁ M₂ ).step ( Sum.inl x ) ( some a ) = { Sum.inl ( M₁.step x a ) } from ?_ ];
-            · rw [ show ( concatεNFA M₁ M₂ ).εClosure { Sum.inl ( M₁.step x a ) } = if M₁.step x a ∈ M₁.accept then { Sum.inl ( M₁.step x a ), Sum.inr M₂.start } else { Sum.inl ( M₁.step x a ) } from ?_ ];
-              · split_ifs <;> simp +decide;
-                specialize h ( w ++ [ a ] ) [ ] ; simp_all +decide;
-                exact h ( by rw [ ← h_path _ _ hx ] ; assumption );
-              · split_ifs with h;
-                · exact εClosure_inl_accept M₁ M₂ (M₁.step x a) h;
-                · exact εClosure_inl_not_accept M₁ M₂ _ h;
-            · grind;
+            rw [ show ( concatεNFA M₁ M₂ ).εClosure { Sum.inl ( M₁.step x a ) } = if M₁.step x a ∈ M₁.accept then { Sum.inl ( M₁.step x a ), Sum.inr M₂.start } else { Sum.inl ( M₁.step x a ) } from ?_ ];
+            · split_ifs <;> simp +decide;
+              specialize h ( w ++ [ a ] ) [ ] ; simp_all +decide;
+              exact h ( by rw [ ← h_path _ _ hx ] ; assumption );
+            · split_ifs with h;
+              · exact εClosure_inl_accept M₁ M₂ (M₁.step x a) h;
+              · exact εClosure_inl_not_accept M₁ M₂ _ h;
           · intro x hx;
-            rw [ show ( concatεNFA M₁ M₂ ).step ( Sum.inr x ) ( some a ) = { Sum.inr ( M₂.step x a ) } by rfl ];
+            rw [εClosure_inr]
             grind +suggestions
 
 /-

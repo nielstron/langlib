@@ -166,9 +166,12 @@ public lemma matchRHS_sound (G : EncodedCFG T) (w : List T)
       obtain ⟨ h₁, h₂, h₃ ⟩ := hk startPos x hstart hx;
       obtain ⟨ h₄, h₅, h₆ ⟩ := hS _ _ _ hxS;
       refine' ⟨ by linarith, h₆.1, _ ⟩;
-      convert CF_deri_with_postfix _ h₃ |> CF_deri_of_deri_deri <| CF_deri_with_prefix _ h₆.2 using 1;
-      rw [ show endPos - startPos = ( x - startPos ) + ( endPos - x ) by omega, List.take_add ];
-      simp +decide [ List.drop_drop, h₁ ];
+      convert CF_deri_with_postfix _ h₃ |> CF_deri_of_deri_deri <|
+        CF_deri_with_prefix _ h₆.2 using 1
+      · simp [EncodedCFG.toSymbol, EncodedCFG.toNT]
+      · rw [show endPos - startPos = (x - startPos) + (endPos - x) by omega,
+          List.take_add]
+        simp +decide [List.drop_drop, h₁]
     · rename_i h;
       intro x hx hx';
       rcases hstart' : w[x]? with ( _ | c ) <;> simp +decide [ hstart' ] at hx' ⊢;
@@ -515,16 +518,34 @@ public lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
       exact terminal_concat_split huv;
     rcases sym with ( k | t ) <;> simp_all +decide [ matchRHS_cons ];
     · obtain ⟨bound₁, hbound₁⟩ : ∃ bound₁, (k % G.ntCount, startPos, startPos + w₁.length) ∈ satFixpoint G.ntCount G.rawRules w bound₁ := by
-        convert ih_outer n₁ ( by linarith ) ( G.toNT k ) startPos ( startPos + w₁.length ) _ _ _ using 1;
-        · exact Nat.le_add_right _ _;
-        · replace hw₁₂ := congr_arg List.length hw₁₂ ; simp_all +decide [ List.length_append ];
-          omega;
-        · convert hu using 1;
-          convert congr_arg ( map symbol.terminal ) ( congr_arg ( take w₁.length ) hw₁₂ ) using 1;
-          · simp +decide [ List.take_take ];
-            replace hw₁₂ := congr_arg List.length hw₁₂ ; simp_all +decide [ List.length_take, List.length_drop ];
-            exact le_trans ( Nat.le_add_right _ _ ) ( hw₁₂ ▸ min_le_right _ _ );
-          · simp +decide;
+        have hw₁_le_span : w₁.length ≤ endPos - startPos := by
+          calc
+            w₁.length ≤ (w₁ ++ w₂).length := by simp
+            _ = (take (endPos - startPos) (drop startPos w)).length := by rw [hw₁₂]
+            _ ≤ endPos - startPos := List.length_take_le _ _
+        have hprefix : startPos ≤ startPos + w₁.length := Nat.le_add_right _ _
+        have hprefix_end : startPos + w₁.length ≤ w.length := by
+          omega
+        let term : T → symbol T G.toCFGrammar.nt := symbol.terminal
+        have hword :
+            take (startPos + w₁.length - startPos)
+                (drop startPos (map term w)) =
+              map term w₁ := by
+          have htake := congr_arg (take w₁.length) hw₁₂
+          rw [List.take_take, Nat.min_eq_left hw₁_le_span,
+            List.take_append_of_le_length (le_refl _), List.take_length] at htake
+          have hmap := congr_arg (map term) htake
+          simpa only [List.map_take, List.map_drop,
+            show startPos + w₁.length - startPos = w₁.length by omega] using hmap
+        have hu' : CF_derives_in G.toCFGrammar n₁
+            [symbol.nonterminal (G.toNT k)]
+            (take (startPos + w₁.length - startPos)
+              (drop startPos (map term w))) := by
+          rw [hword]
+          simpa only [EncodedCFG.toSymbol] using hu
+        simpa only [EncodedCFG.toNT, term] using
+          ih_outer n₁ (by linarith) (G.toNT k) startPos
+            (startPos + w₁.length) hprefix hprefix_end hu'
       obtain ⟨bound₂, hbound₂⟩ : ∃ bound₂, endPos ∈ matchRHS w G.ntCount (satFixpoint G.ntCount G.rawRules w bound₂) rhs (startPos + w₁.length) := by
         apply ih (startPos + w₁.length) endPos (by
         replace hw₁₂ := congr_arg List.length hw₁₂ ; simp_all +decide [ List.length_append ] ; omega;) (by
@@ -549,9 +570,10 @@ public lemma matchRHS_in_satFixpoint (G : EncodedCFG T) (w : List T) (n : ℕ)
       obtain ⟨ bound, hbound ⟩ := ih ( startPos + 1 ) endPos ( by
         cases hstart.eq_or_lt <;> simp_all +decide [  ] ) ( by
         linarith ) n₂ ( by linarith ) ( by
-        convert hv using 1;
-        convert congr_arg ( fun x => x.tail.map symbol.terminal ) hw₁₂ using 1;
-        grind +extAll );
+        convert hv using 1
+        convert congr_arg (fun x => x.tail.map symbol.terminal) hw₁₂ using 1
+        · grind +extAll
+        · simp );
       exact ⟨ bound, startPos + 1, by aesop ⟩
 
 /-
@@ -764,6 +786,9 @@ public theorem checkMembershipEncoded_correct [Fintype T] (G : EncodedCFG T) (w 
     unfold CF_language; aesop;
   · intro hw
     obtain ⟨hnt, hstart, hend, hder⟩ : ∃ hnt : G.initialIdx % G.ntCount < G.ntCount, 0 ≤ w.length ∧ w.length ≤ w.length ∧ CF_derives G.toCFGrammar [symbol.nonterminal ⟨G.initialIdx % G.ntCount, hnt⟩] ((w.drop 0 |>.take (w.length - 0)).map symbol.terminal) := by
-      exact ⟨ Nat.mod_lt _ G.ntCount_pos, Nat.zero_le _, le_rfl, by simpa using hw ⟩;
+      refine ⟨Nat.mod_lt _ G.ntCount_pos, Nat.zero_le _, le_rfl, ?_⟩
+      change CF_generates G.toCFGrammar w at hw
+      simpa [CF_generates, CF_generates_str, EncodedCFG.toCFGrammar,
+        EncodedCFG.toNT] using hw
     have := satFixpoint_complete G w ⟨ G.initialIdx % G.ntCount, hnt ⟩ 0 w.length ( by linarith ) ( by linarith ) hder;
     exact decide_eq_true ( satFixpoint_converges _ _ _ ( G.ntCount_pos ) _ this )

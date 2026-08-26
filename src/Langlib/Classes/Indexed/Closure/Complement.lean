@@ -31,7 +31,14 @@ private theorem intersection_closed_of_complement_closed {α : Type}
     Indexed_closedUnderUnion L₁ᶜ L₂ᶜ hcomp₁ hcomp₂
   have hdouble : is_Indexed (L₁ᶜ + L₂ᶜ)ᶜ :=
     hcomp (L₁ᶜ + L₂ᶜ) hunion
-  rwa [Language.add_def, Set.compl_union, compl_compl, compl_compl] at hdouble
+  have heq : (L₁ᶜ + L₂ᶜ)ᶜ = L₁ ⊓ L₂ := by
+    apply funext
+    intro w
+    apply propext
+    change (¬ ((¬ L₁ w) ∨ (¬ L₂ w))) ↔ L₁ w ∧ L₂ w
+    tauto
+  rw [heq] at hdouble
+  exact hdouble
 
 /-- Indexed languages over the binary alphabet are not closed under
 complement. -/

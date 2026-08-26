@@ -100,7 +100,7 @@ def fsSingleRule (i : Nat) (r : IRule T g.nt g.flag) :
       mainRule :: pushRules
 
 /-- The flag-separated grammar. -/
-def flagSeparate : IndexedGrammar T where
+abbrev flagSeparate : IndexedGrammar T where
   nt := g.nt ⊕ (Nat × Nat)
   flag := g.flag
   initial := Sum.inl g.initial
@@ -468,7 +468,16 @@ theorem fsSingleRule_flagsSeparated (i : Nat) (r : IRule T g.nt g.flag)
         rcases hx with ( rfl | hx );
         · apply fsSingleRule_fs_mainRule;
           exact hti.resolve_left fun ⟨ a, ha ⟩ => hnp <| by simp +decide [ ha, IndexedGrammar.hasPush ] ;
-        · grind +suggestions
+        · rcases List.mem_filterMap.mp hx with ⟨⟨s, j⟩, _hs, heq⟩
+          cases s with
+          | terminal t => simp at heq
+          | nonterminal n fopt =>
+              cases fopt with
+              | none => simp at heq
+              | some f =>
+                  simp at heq
+                  subst r'
+                  exact fsSingleRule_fs_pushRule g n f (Sum.inr (i, j))
 
 theorem flagSeparate_flagsSeparated (hti : g.TerminalsIsolated) :
     (g.flagSeparate).FlagsSeparated := by
@@ -770,7 +779,8 @@ theorem fsLift_rule_simulation (r : IRule T g.nt g.flag) (i : Nat)
           simp [hpushFalse]
         · simp
       have hstrip := fsStripPushRhsSym_eq_fsLiftRhsSym_of_noPush g rhs hpushFalse
-      simpa [hstrip] using h₁.trans h₂
+      rw [hstrip] at h₂
+      exact h₁.trans h₂
     · have hpushTrue : rhs.any g.hasPush = true := by
         cases h : rhs.any g.hasPush <;> simp [h] at hpushFalse ⊢
       have h₁ :
@@ -816,7 +826,6 @@ theorem fsLift_rule_simulation (r : IRule T g.nt g.flag) (i : Nat)
                 apply rule_mem
                 unfold fsSingleRule
                 simp [hpushTrue]
-                right
                 exact ⟨IRhsSymbol.nonterminal n (some fp), j, hmem, rfl⟩
       exact h₁.trans (h₂.trans (resolveIntermediates g rhs i 1 hpushRules σ))
   · have hconsume : consume = none := by

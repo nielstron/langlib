@@ -19,7 +19,7 @@ variable {T : Type}
 private def reverseIRule {N F : Type} (r : IRule T N F) : IRule T N F :=
   { lhs := r.lhs, consume := r.consume, rhs := r.rhs.reverse }
 
-private def reverseIndexedGrammar (g : IndexedGrammar T) : IndexedGrammar T where
+private abbrev reverseIndexedGrammar (g : IndexedGrammar T) : IndexedGrammar T where
   nt := g.nt
   flag := g.flag
   initial := g.initial
@@ -90,7 +90,7 @@ private theorem reverseIndexedGrammar_generates (g : IndexedGrammar T) (w : List
     change (reverseIndexedGrammar g).Generates w.reverse
     change g.Generates w at hw
     unfold IndexedGrammar.Generates at hw ⊢
-    simpa [reverseISym_initial, reverseISym_terminals] using reverse_derives g hw
+    simpa [reverseISym, Function.comp_def] using reverse_derives g hw
 
 private theorem reverseIndexedGrammar_language (g : IndexedGrammar T) :
     (reverseIndexedGrammar g).Language = g.Language.reverse := by

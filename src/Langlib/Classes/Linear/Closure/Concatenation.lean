@@ -21,7 +21,7 @@ A corollary of the [linear pumping lemma](../Pumping/Pumping.lean): the witness
 `{0ⁿ1ⁿ2ᵐ3ᵐ}` is the concatenation of the two **linear** languages `{0ⁿ1ⁿ}` and
 `{2ᵐ3ᵐ}`, yet it is itself not linear. Hence the class of linear languages is not
 closed under concatenation (unlike the context-free languages). As with the strict
-inclusion, this transports to any alphabet with at least four symbols.
+inclusion, this transports to any alphabet with at least 4 elements.
 
 ## Main results
 
@@ -51,24 +51,24 @@ theorem map_comp_f4_is_Linear (e : Fin 4 ↪ T) : is_Linear (Language.map (⇑e 
 theorem map_comp_g4_is_Linear (e : Fin 4 ↪ T) : is_Linear (Language.map (⇑e ∘ g4) anbn) :=
   map_anbn_is_Linear _ (e.injective.comp g4_injective)
 
-/-- There exist linear languages whose concatenation is not linear, over any alphabet that
-admits an embedding of four distinct symbols. -/
+/-- There exist linear languages whose concatenation is not linear over any alphabet with at
+least 4 elements, as exhibited by an embedding `Fin 4 ↪ T`. -/
 public theorem exists_Linear_concat_not_Linear (e : Fin 4 ↪ T) :
     ∃ L₁ L₂ : Language T, is_Linear L₁ ∧ is_Linear L₂ ∧ ¬ is_Linear (L₁ * L₂) :=
   ⟨Language.map (⇑e ∘ f4) anbn, Language.map (⇑e ∘ g4) anbn,
     map_comp_f4_is_Linear e, map_comp_g4_is_Linear e,
     fun hL => map_anbncmdm_not_is_Linear e (map_concat_eq_map_anbncmdm e ▸ hL)⟩
 
-/-- The class of linear languages is **not** closed under concatenation, over any alphabet that
-admits an embedding of four distinct symbols. -/
+/-- The class of linear languages is **not** closed under concatenation over any alphabet with
+at least 4 elements, as exhibited by an embedding `Fin 4 ↪ T`. -/
 public theorem Linear_not_closedUnderConcatenation (e : Fin 4 ↪ T) :
     ¬ ClosedUnderConcatenation (@is_Linear T) := fun h =>
   map_anbncmdm_not_is_Linear e
     (map_concat_eq_map_anbncmdm e ▸
       h _ _ (map_comp_f4_is_Linear e) (map_comp_g4_is_Linear e))
 
-/-- The class of linear languages is not closed under concatenation, over any finite alphabet
-with at least four symbols. -/
+/-- The class of linear languages is not closed under concatenation over any finite alphabet
+with at least 4 elements. -/
 public theorem Linear_not_closedUnderConcatenation_of_card [Fintype T]
     (hT : 4 ≤ Fintype.card T) : ¬ ClosedUnderConcatenation (@is_Linear T) :=
   Linear_not_closedUnderConcatenation

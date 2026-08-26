@@ -37,6 +37,7 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -59,7 +60,7 @@ up to (and including) the first `sep`, repeating until no `sep` remains.
 - `tm0_takeWhileNeSep'`: realizes `List.takeWhile (· ≠ sep)` by TM0.
 -/
 
-open Turing
+open StateTransition Turing
 
 /-! ### Mathematical lemmas -/
 
@@ -243,6 +244,7 @@ theorem dfl_scan_right {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (dflMachine sep))
       ⟨.scan, Tape.mk₂ L (pfx ++ rest)⟩
       ⟨.scan, Tape.mk₂ (pfx.reverse ++ L) rest⟩ := by
+  unfold StateTransition.Reaches
   induction' pfx with c pfx ih generalizing L;
   · constructor;
   · have h_step : TM0.step (dflMachine sep) ⟨DFLState.scan, Tape.mk₂ L (c :: pfx ++ rest)⟩ = some ⟨DFLState.scan, Tape.mk₂ (c :: L) (pfx ++ rest)⟩ := by
@@ -265,6 +267,7 @@ theorem dfl_goBack_after_left {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (dflMachine sep))
       ⟨.goBack, Tape.move Dir.left (Tape.mk₂ L R)⟩
       ⟨.erase, Tape.mk₁ (L.reverse ++ R)⟩ := by
+  unfold StateTransition.Reaches
   induction' L with x L ih generalizing R <;> simp_all +decide [ Tape.mk₂ ];
   · refine' Relation.ReflTransGen.single _;
     unfold dflMachine; simp +decide [ Tape.mk₁, Tape.mk' ] ;
@@ -287,6 +290,7 @@ theorem dfl_erase_loop {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (dflMachine sep))
       ⟨.erase, Tape.mk₁ (pfx ++ sep :: rest)⟩
       ⟨.scan, Tape.mk₁ rest⟩ := by
+  unfold StateTransition.Reaches
   have h_erase : ∀ (c : Γ) (rest : List Γ), c ≠ sep → c ≠ default → Reaches (TM0.step (dflMachine sep)) ⟨.erase, Tape.mk₁ (c :: rest)⟩ ⟨.erase, Tape.mk₁ rest⟩ := by
     intros c rest hc hc';
     constructor;
@@ -322,6 +326,7 @@ theorem dfl_rewind_after_left {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (dflMachine sep))
       ⟨.rewind, Tape.move Dir.left (Tape.mk₂ L R)⟩
       ⟨.done, Tape.mk₁ (L.reverse ++ R)⟩ := by
+  unfold StateTransition.Reaches
   induction' L with x L ih generalizing R;
   · convert Relation.ReflTransGen.single _;
     convert Set.mem_singleton _ using 1;
@@ -353,6 +358,7 @@ theorem dfl_one_cycle {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (dflMachine sep))
       ⟨.scan, Tape.mk₁ (block' ++ default :: suffix)⟩
       ⟨.scan, Tape.mk₁ (dropUntilFirstSep sep block' ++ default :: suffix)⟩ := by
+  unfold StateTransition.Reaches
   obtain ⟨ pfx, rest, h₁, h₂, h₃ ⟩ := block_first_sep_decomp sep block' hmem;
   have h_scan : Reaches (TM0.step (dflMachine sep)) ⟨DFLState.scan, Tape.mk₁ ((pfx ++ sep :: rest) ++ default :: suffix)⟩ ⟨DFLState.scan, Tape.mk₂ pfx.reverse (sep :: rest ++ default :: suffix)⟩ := by
     convert dfl_scan_right sep hsep [] pfx ( sep :: rest ++ default :: suffix ) _ _ using 1 <;> simp +decide [ * ];
@@ -360,22 +366,26 @@ theorem dfl_one_cycle {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     · assumption;
     · exact fun g hg => hblock g <| h₁.symm ▸ List.mem_append_left _ hg;
   have h_goBack : Reaches (TM0.step (dflMachine sep)) ⟨DFLState.scan, Tape.mk₂ pfx.reverse (sep :: rest ++ default :: suffix)⟩ ⟨DFLState.erase, Tape.mk₁ (pfx ++ sep :: rest ++ default :: suffix)⟩ := by
-    have h_goBack : Reaches (TM0.step (dflMachine sep)) ⟨DFLState.scan, Tape.mk₂ pfx.reverse (sep :: rest ++ default :: suffix)⟩ ⟨DFLState.goBack, Tape.move Dir.left (Tape.mk₂ pfx.reverse (sep :: rest ++ default :: suffix))⟩ := by
+    have h_to_left : Reaches (TM0.step (dflMachine sep)) ⟨DFLState.scan, Tape.mk₂ pfx.reverse (sep :: rest ++ default :: suffix)⟩ ⟨DFLState.goBack, Tape.move Dir.left (Tape.mk₂ pfx.reverse (sep :: rest ++ default :: suffix))⟩ := by
       apply Relation.ReflTransGen.single;
       simp +decide [ TM0.step, dflMachine ];
       use TM0.Stmt.move Dir.left;
       simp +decide [ Tape.mk₂ ];
-    convert h_goBack.trans _;
-    convert dfl_goBack_after_left sep pfx.reverse ( sep :: rest ++ default :: suffix ) _ using 1;
-    · simp +decide [ List.reverse_reverse ];
-    · grind;
+    have hpfx_rev_nd : ∀ g ∈ pfx.reverse, g ≠ (default : Γ) := by
+      intro g hg
+      exact hblock g (h₁.symm ▸ List.mem_append_left _ (List.mem_reverse.mp hg))
+    have h_back := dfl_goBack_after_left sep pfx.reverse
+      (sep :: rest ++ default :: suffix) hpfx_rev_nd
+    unfold StateTransition.Reaches at h_to_left h_back ⊢
+    simpa [List.reverse_reverse, List.append_assoc] using h_to_left.trans h_back
   have h_erase : Reaches (TM0.step (dflMachine sep)) ⟨DFLState.erase, Tape.mk₁ (pfx ++ sep :: rest ++ default :: suffix)⟩ ⟨DFLState.scan, Tape.mk₁ (rest ++ default :: suffix)⟩ := by
     convert dfl_erase_loop sep hsep pfx ( rest ++ default :: suffix ) h₂ _ using 1;
     · simp +decide [ List.append_assoc ];
     · exact fun g hg => hblock g <| h₁.symm ▸ List.mem_append_left _ hg;
-  convert h_scan.trans ( h_goBack.trans h_erase ) using 1;
-  · rw [ h₁ ];
-  · rw [ h₃ ]
+  unfold StateTransition.Reaches at h_scan h_goBack h_erase
+  have hdrop : dropUntilFirstSep sep (pfx ++ sep :: rest) = rest :=
+    dropUntilFirstSep_append_cons sep pfx rest h₂
+  simpa [h₁, hdrop] using h_scan.trans (h_goBack.trans h_erase)
 
 /-
 No-sep cycle: if `sep ∉ block'`, the machine scans through and halts.
@@ -388,12 +398,12 @@ theorem dfl_no_sep_cycle {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (dflMachine sep))
       ⟨.scan, Tape.mk₁ (block' ++ default :: suffix)⟩
       ⟨.done, Tape.mk₁ (block' ++ default :: suffix)⟩ := by
+  unfold StateTransition.Reaches
   -- Apply `dfl_scan_right` with L=[], prefix=block', and rest=(default :: suffix).
   have h_scan : Reaches (TM0.step (dflMachine sep)) ⟨.scan, Tape.mk₁ (block' ++ default :: suffix)⟩ ⟨.scan, Tape.mk₂ block'.reverse (default :: suffix)⟩ := by
-    convert dfl_scan_right sep hsep [] block' ( default :: suffix ) _ _ using 1;
-    · rw [ List.append_nil ];
-    · exact fun g hg => fun h => hnot <| h ▸ hg;
-    · assumption;
+    have hscan := dfl_scan_right sep hsep [] block' (default :: suffix)
+      (fun g hg hgeq => hnot (hgeq ▸ hg)) hblock
+    simpa [RevBlock.mk₂_nil_eq_mk₁] using hscan
   refine' h_scan.trans _;
   have h_scan_default : TM0.step (dflMachine sep) ⟨.scan, Tape.mk₂ block'.reverse (default :: suffix)⟩ = some ⟨.rewind, Tape.move Dir.left (Tape.mk₂ block'.reverse (default :: suffix))⟩ := by
     unfold dflMachine; simp +decide [ *, TM0.step ] ;
@@ -404,7 +414,21 @@ theorem dfl_no_sep_cycle {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
   have h_rewind : Reaches (TM0.step (dflMachine sep)) ⟨.rewind, Tape.move Dir.left (Tape.mk₂ block'.reverse (default :: suffix))⟩ ⟨.done, Tape.mk₁ (block'.reverse.reverse ++ default :: suffix)⟩ := by
     apply dfl_rewind_after_left;
     aesop;
-  simpa using Relation.ReflTransGen.head ( by simp +decide [ h_scan_default ] ) h_rewind
+  unfold StateTransition.Reaches at h_scan h_rewind
+  have h_one :
+      (⟨DFLState.rewind,
+        Tape.move Dir.left (Tape.mk₂ block'.reverse (default :: suffix))⟩ :
+          TM0.Cfg Γ DFLState) ∈
+        TM0.step (dflMachine sep)
+          ⟨DFLState.scan, Tape.mk₂ block'.reverse (default :: suffix)⟩ :=
+    Option.mem_def.mpr h_scan_default
+  have htail : Relation.ReflTransGen
+      (fun a b : TM0.Cfg Γ DFLState => b ∈ TM0.step (dflMachine sep) a)
+      ⟨DFLState.scan, Tape.mk₂ block'.reverse (default :: suffix)⟩
+      ⟨DFLState.done, Tape.mk₁ (block'.reverse.reverse ++ default :: suffix)⟩ :=
+    @Relation.ReflTransGen.head (TM0.Cfg Γ DFLState)
+      (fun a b => b ∈ TM0.step (dflMachine sep) a) _ _ _ h_one h_rewind
+  simpa using htail
 
 /-! ### Full computation -/
 
@@ -424,16 +448,27 @@ theorem dfl_full_reaches {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     Reaches (TM0.step (dflMachine sep))
       (TM0.init (block ++ default :: suffix))
       ⟨DFLState.done, Tape.mk₁ (dropFromLastSep sep block ++ default :: suffix)⟩ := by
+  unfold StateTransition.Reaches
   induction' n : block.length using Nat.strong_induction_on with n ih generalizing block;
+  have init_eq (l : List Γ) :
+      (TM0.init l : TM0.Cfg Γ DFLState) =
+        ⟨DFLState.scan, Tape.mk₁ l⟩ := rfl
   by_cases h : sep ∈ block;
-  · have h_ind : Reaches (TM0.step (dflMachine sep)) (⟨.scan, Tape.mk₁ (dropUntilFirstSep sep block ++ default :: suffix)⟩) ⟨.done, Tape.mk₁ (dropFromLastSep sep (dropUntilFirstSep sep block) ++ default :: suffix)⟩ := by
-      convert ih _ _ _ _ rfl using 1;
-      · exact n ▸ dropUntilFirstSep_length_lt sep block h;
-      · exact fun g a => dropUntilFirstSep_ne_default sep block hblock g a;
-    convert dfl_one_cycle sep hsep block suffix hblock h |> fun h => h.trans h_ind using 1;
-    rw [ dropFromLastSep_eq_of_dropUntilFirstSep sep block h ];
-  · rw [ dropFromLastSep_not_mem _ _ h ];
-    convert dfl_no_sep_cycle sep hsep block suffix hblock h using 1
+  · have hdrop_nd : ∀ g ∈ dropUntilFirstSep sep block, g ≠ (default : Γ) :=
+      dropUntilFirstSep_ne_default sep block hblock
+    have h_ind := ih (dropUntilFirstSep sep block).length (by
+      rw [← n]
+      exact dropUntilFirstSep_length_lt sep block h)
+      (dropUntilFirstSep sep block) hdrop_nd rfl
+    rw [init_eq] at h_ind
+    have h_cycle := dfl_one_cycle sep hsep block suffix hblock h
+    unfold StateTransition.Reaches at h_cycle
+    rw [init_eq, dropFromLastSep_eq_of_dropUntilFirstSep sep block h]
+    exact h_cycle.trans h_ind
+  · have h_no := dfl_no_sep_cycle sep hsep block suffix hblock h
+    unfold StateTransition.Reaches at h_no
+    rw [init_eq, dropFromLastSep_not_mem _ _ h]
+    exact h_no
 
 /-! ### Main results -/
 
@@ -445,9 +480,9 @@ theorem tm0_dropFromLastSep_direct {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [
   intro block suffix hblock hsuffix hfblock
   have h_reaches := dfl_full_reaches sep hsep block suffix hblock hsuffix
   constructor
-  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨h_reaches, dfl_step_done sep _⟩⟩
+  · exact Part.dom_iff_mem.mpr ⟨_, StateTransition.mem_eval.mpr ⟨h_reaches, dfl_step_done sep _⟩⟩
   · intro h
-    have h_mem := Turing.mem_eval.mpr ⟨h_reaches, dfl_step_done sep _⟩
+    have h_mem := StateTransition.mem_eval.mpr ⟨h_reaches, dfl_step_done sep _⟩
     exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
 
 /-- `takeWhile (· ≠ sep)` is block-realizable. -/

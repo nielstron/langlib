@@ -60,7 +60,7 @@ Rules:
   S → aSb   (i.e., [] S [] → [a, S, b])
   S → ε     (i.e., [] S [] → [])
 -/
-@[expose]
+@[expose, reducible]
 public def linear_grammar_anbn : grammar Bool where
   nt := Unit
   initial := ()

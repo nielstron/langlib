@@ -1,7 +1,7 @@
 module
 
 public import Langlib.Automata.Turing.DSL.TM0ChainInfrastructure
-public import Mathlib.Computability.TMToPartrec
+public import Mathlib.Computability.TuringMachine.ToPartrec
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -34,6 +34,7 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -54,7 +55,7 @@ evaluated by a TM0 machine.
   realizations for unary and list inputs
 -/
 
-open Turing PartrecToTM2 TM2to1
+open StateTransition Turing PartrecToTM2 TM2to1
 
 /-! ### Stack Equality -/
 
@@ -76,20 +77,28 @@ public theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
        (TM1.init (trInit K'.main (PartrecToTM2.trList v)) :
          TM1.Cfg (Γ' K' (fun _ => Γ'))
            (Λ' K' (fun _ => Γ') PartrecToTM2.Λ' (Option Γ')) (Option Γ')).Tape⟩ := by
-  convert TM2to1.TrCfg.mk _ _;
-  simp +decide [ TM1.init, trInit ];
-  rotate_left;
-  exact ListBlank.mk ( List.map ( fun a => Function.update ( fun _ => none ) K'.main ( some a ) ) ( trList v ) |> List.reverse );
-  · intro k; cases k <;> simp +decide [ ListBlank.map ] ;
+  let L : ListBlank (K' → Option PartrecToTM2.Γ') :=
+    ListBlank.mk
+      (List.map (fun a => Function.update (fun _ => none) K'.main (some a))
+        (trList v) |>.reverse)
+  let S : K' → List PartrecToTM2.Γ' := K'.elim (trList v) [] [] []
+  have hL : ∀ k : K', ListBlank.map (proj k) L =
+      ListBlank.mk (List.map some (S k)).reverse := by
+    intro k; cases k <;> simp +decide [L, S, ListBlank.map] ;
     · simp +decide [ ListBlank.liftOn, proj ];
       erw [ Quotient.liftOn'_mk ] ; aesop;
     · simp +decide [ proj ];
       erw [ Quotient.eq'' ];
       simp +decide [ BlankRel.setoid ];
-      induction ( trList v ) <;> simp_all +decide [ BlankRel ];
-      · exact BlankExtends.refl [];
-      · simp_all +decide [ BlankExtends ];
-        rcases ‹_› with ( rfl | ⟨ n, hn ⟩ ) <;> [ exact ⟨ 1, by simp +decide ⟩ ; exact ⟨ n + 1, by simp +decide [ hn, List.replicate_add ] ⟩ ];
+      induction (trList v) <;> simp_all +decide [BlankRel, BlankExtends]
+      rename_i head tail ih
+      change BlankRel _ [] at ih ⊢
+      simp only [BlankRel, BlankExtends] at ih ⊢
+      have hdefault : (default : Option PartrecToTM2.Γ') = none := rfl
+      rcases ih with ⟨n, hn⟩ | ⟨n, hn⟩
+      · have hempty := (List.append_eq_nil_iff.mp hn.symm).1
+        exact Or.inr ⟨1, by simp [hempty, hdefault]⟩
+      · exact Or.inr ⟨n + 1, by simp [hn, hdefault, List.replicate_add]⟩
     · simp +decide [ ListBlank.liftOn ];
       erw [ Quotient.liftOn'_mk ];
       simp +decide [ ListBlank.ext_iff ];
@@ -106,8 +115,19 @@ public theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
       erw [ Quotient.liftOn'_mk, Quotient.liftOn'_mk ];
       simp +decide [ List.getI ];
       rw [ List.getElem?_replicate ] ; aesop;
-  · unfold addBottom;
-    cases h : ( trList v ).reverse <;> aesop
+  have hmk := @TM2to1.TrCfg.mk K' (fun _ : K' => PartrecToTM2.Γ')
+    PartrecToTM2.Λ' (Option PartrecToTM2.Γ')
+    (some (PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt)) none S L hL
+  have htape :
+      (TM1.init (trInit K'.main (PartrecToTM2.trList v)) :
+        TM1.Cfg (Γ' K' (fun _ => Γ'))
+          (Λ' K' (fun _ => Γ') PartrecToTM2.Λ' (Option Γ'))
+          (Option Γ')).Tape = Tape.mk' ∅ (addBottom L) := by
+    simp +decide [TM1.init, trInit, L]
+    unfold addBottom
+    cases h : (trList v).reverse <;> aesop
+  rw [htape]
+  simpa [PartrecToTM2.init, S] using hmk
 
 /-! ### Chain Type Abbreviations -/
 

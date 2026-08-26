@@ -352,6 +352,7 @@ public theorem edge_derives {g : IndexedGrammar T} [Fintype g.nt]
       rcases (cflagComp_apply _ _ _ _).mp hedge with ⟨C, hAC, hCB⟩
       have hfirst := ihR hAC (gs ++ suffix)
       have hsecond := ihS hCB suffix
+      unfold IndexedGrammar.Derives at hfirst hsecond ⊢
       simpa [List.append_assoc] using hfirst.trans hsecond
 
 end Denotes

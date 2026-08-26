@@ -115,6 +115,7 @@ by
       unfold lift_string at *
       rw [List.map_append_append] at lift_bef
       convert lift_bef
+      rfl
     ·
       have lift_aft := congrArg (lift_string lg.lift_nt) aft
       unfold lift_string at *

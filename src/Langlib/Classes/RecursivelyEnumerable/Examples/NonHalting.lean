@@ -6,6 +6,7 @@ public import Langlib.Classes.RecursivelyEnumerable.Definition
 public import Mathlib.Computability.Halting
 import Langlib.Automata.Turing.Equivalence.GrammarToTM.MembershipComputability
 import Langlib.Grammars.Unrestricted.FiniteNonterminals
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 

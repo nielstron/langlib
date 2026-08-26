@@ -66,7 +66,7 @@ private lemma mem_prod_singleton_words_iff {α β : Type} (h : α → List β) :
         rw [Language.mul_def] at hu
         rcases hu with ⟨u₁, hu₁, u₂, hu₂, rfl⟩
         have hu₂' := (mem_prod_singleton_words_iff h xs u₂).1 hu₂
-        have hu₁' : u₁ = h x := by simpa using hu₁
+        have hu₁' : u₁ = h x := Set.mem_singleton_iff.mp hu₁
         simp [hu₁', hu₂']
       · intro hu
         subst hu

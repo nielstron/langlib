@@ -1,6 +1,6 @@
 module
 
-public import Mathlib.Computability.TMConfig
+public import Mathlib.Computability.TuringMachine.Config
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -62,26 +62,41 @@ open Turing ToPartrec
 
 namespace Langlib.TMCodeListEncode
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! ### Code for `Nat.pair` -/
 
 /-- A `ToPartrec.Code` computing `Nat.pair` on two-element inputs. -/
 @[expose]
 public noncomputable def pairCode : Code :=
-  (Code.exists_code (n := 2) (Nat.Partrec'.prim (Nat.Primrec'.of_prim
+  (Code.exists_code (n := 2)
+    (f := fun v => pure (Nat.pair v[0]! v[1]!))
+    (Nat.Partrec'.prim (Nat.Primrec'.of_prim
     (Primrec₂.natPair.comp
       (Primrec.vector_get.comp .id (.const 0))
       (Primrec.vector_get.comp .id (.const 1)))))).choose
 
 public theorem pairCode_eval (a b : ℕ) :
     pairCode.eval [a, b] = Part.some [Nat.pair a b] := by
-  have hExists :=
+  let hex :=
     Code.exists_code (n := 2)
       (f := fun v => pure (Nat.pair v[0]! v[1]!))
       (Nat.Partrec'.prim (Nat.Primrec'.of_prim
         (Primrec₂.natPair.comp
           (Primrec.vector_get.comp .id (.const 0))
           (Primrec.vector_get.comp .id (.const 1)))))
-  convert hExists.choose_spec (List.Vector.ofFn fun i => if i = 0 then a else b)
+  have hcode : pairCode = hex.choose := by
+    unfold pairCode hex
+    congr
+  rw [hcode]
+  let v : List.Vector ℕ 2 := ⟨[a, b], by simp⟩
+  have hv := hex.choose_spec v
+  have hv_val : v.1 = [a, b] := rfl
+  have hv_zero : v[0]! = a := rfl
+  have hv_one : v[1]! = b := rfl
+  have hpure : (pure (Nat.pair a b) : List ℕ) = [Nat.pair a b] := rfl
+  simpa only [hv_val, hv_zero, hv_one, Part.map_eq_map, Part.pure_eq_some,
+    Part.map_some, PFun.coe_val, hpure] using hv
 
 /-! ### Code for the right-fold list encoder -/
 
@@ -104,7 +119,7 @@ public noncomputable def extract2 : Code :=
 public theorem extract2_eval (a b : ℕ) (rest : List ℕ) :
     extract2.eval (a :: b :: rest) = Part.some [a, b] := by
   unfold extract2
-  simp +decide [ToPartrec.Code.eval]
+  simp +decide [ToPartrec.Code.eval, Part.bind_eq_bind]
 
 /-- One fold step: process an element and update the accumulator. -/
 @[expose]
@@ -121,7 +136,7 @@ public theorem foldStep_eval (e acc : ℕ) (rest : List ℕ) :
   unfold foldStep
   have hpair := pairCode_eval e acc
   have hextract := extract2_eval e acc rest
-  simp_all +decide [Code.eval]
+  simp_all +decide [Code.eval, Part.bind_eq_bind]
 
 /-- Done case: return `[0, acc]`, so `Code.fix` terminates with `[acc]`. -/
 @[expose]
@@ -159,7 +174,7 @@ public theorem foldAcc_append (es₁ es₂ : List ℕ) (acc : ℕ) :
 public theorem foldBody_eval_zero (acc : ℕ) :
     foldBody.eval [acc, 0] = Part.some [0, acc] := by
   unfold foldBody foldDone swap12
-  simp_all +decide [Code.eval]
+  simp_all +decide [Code.eval, Part.bind_eq_bind]
 
 public theorem foldBody_eval_succ (e acc : ℕ) (rest : List ℕ) :
     foldBody.eval (acc :: (e + 1) :: rest) =
@@ -221,7 +236,7 @@ public theorem composedCode_eval (c : Code) (w : List ℕ) :
     c.eval [Encodable.encode w] := by
   simp only [composedCode, Code.comp_eval]
   rw [listEncodeCode_eval]
-  simp [Part.bind_some]
+  simp [Part.bind_eq_bind, Part.bind_some]
 
 /-- The finite-symbol-friendly input expected by `composedCode`. -/
 @[expose]

@@ -105,12 +105,14 @@ def LG_rule_of_RG_rule {N : Type} : RG_rule T N → LG_rule T N
   | .epsilon A    => .epsilon A
 
 /-- Convert a left-regular grammar to a right-regular grammar. -/
+@[reducible]
 def RG_of_LG (g : LG_grammar T) : RG_grammar T where
   nt := g.nt
   initial := g.initial
   rules := g.rules.map RG_rule_of_LG_rule
 
 /-- Convert a right-regular grammar to a left-regular grammar. -/
+@[reducible]
 def LG_of_RG (g : RG_grammar T) : LG_grammar T where
   nt := g.nt
   initial := g.initial

@@ -487,7 +487,11 @@ namespace DLBA
 
 /-- A bounded-tape head can move left, right, or stay. -/
 public inductive Dir where | left | right | stay
-deriving DecidableEq, Repr, Fintype, Inhabited
+deriving DecidableEq, Repr, Inhabited
+
+instance : Fintype Dir where
+  elems := {Dir.left, Dir.right, Dir.stay}
+  complete d := by cases d <;> simp
 
 /-- A tape of `n + 1` cells with a head position. -/
 public structure BoundedTape (Gamma : Type*) (n : Nat) where
@@ -603,11 +607,12 @@ def is_Recursive {T : Type} (L : Language T) : Prop :=
     (Lambda : Type) (_ : Inhabited Lambda) (_ : Fintype Lambda)
     (M : TM0.Machine (Option (T ⊕ Gamma)) Lambda) (accept : Lambda -> Bool),
     (forall w : List T,
-      (Turing.eval (TM0.step M) (TM0.init (w.map fun t => some (Sum.inl t)))).Dom) ∧
+      (StateTransition.eval (TM0.step M)
+        (TM0.init (w.map fun t => some (Sum.inl t)))).Dom) ∧
     (forall w : List T,
-      forall h : (Turing.eval (TM0.step M)
+      forall h : (StateTransition.eval (TM0.step M)
         (TM0.init (w.map fun t => some (Sum.inl t)))).Dom,
-      w ∈ L ↔ accept ((Turing.eval (TM0.step M)
+      w ∈ L ↔ accept ((StateTransition.eval (TM0.step M)
         (TM0.init (w.map fun t => some (Sum.inl t)))).get h).q = true)
 
 /-- The recursive (decidable-language) class. -/
@@ -799,7 +804,8 @@ theorem Recursive_strict_subclass_RE_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :
     (Recursive : Set (Language T)) ⊂ RE := by sorry
 
-/-- Linear languages are not closed under concatenation when 4 distinct elements embed in the alphabet. -/
+/-- Linear languages are not closed under concatenation when the alphabet has at least 4 elements,
+as exhibited by an embedding `Fin 4 ↪ T`. -/
 theorem Linear_not_closedUnderConcatenation {T : Type} (e : Fin 4 ↪ T) :
     ¬ ClosedUnderConcatenation (@is_Linear T) := by sorry
 
@@ -813,7 +819,11 @@ finite alphabet; it does not claim failure over every alphabet.
 /-- Three-letter alphabet used by the indexed right-quotient counterexample. -/
 inductive CopyLetter where
   | a | b | separator
-deriving DecidableEq, Fintype, Inhabited
+deriving DecidableEq, Inhabited
+
+instance : Fintype CopyLetter where
+  elems := {CopyLetter.a, CopyLetter.b, CopyLetter.separator}
+  complete c := by cases c <;> simp
 
 -- Regular languages
 theorem RG_closedUnderUnion {alpha : Type} [Fintype alpha] : ClosedUnderUnion (@is_RG alpha) := by sorry

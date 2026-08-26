@@ -149,7 +149,7 @@ public noncomputable def restrictTerminalRules {N : Type*} [DecidableEq T] [Deci
 
 /-- Construct new grammar, using the lifted rules. Each rule's output is either a single terminal
  or only nonterminals -/
-@[expose]
+@[expose, reducible]
 public noncomputable def restrictTerminals [DecidableEq T] (g : ContextFreeGrammar T)
     [DecidableEq g.NT] :=
   ContextFreeGrammar.mk (g.NT ⊕ T) (Sum.inl g.initial) (restrictTerminalRules g.rules.toList)
@@ -330,15 +330,19 @@ public lemma derives_restrictTerminals_derives_embedString {u v : List (Symbol T
         use r
 
 public theorem restrictTerminals_correct : g.language = g.restrictTerminals.language := by
-  apply Set.eq_of_subset_of_subset <;>
-    intro w hw <;>
-      rw [mem_language_iff] at hw ⊢
-  · apply derives_restrictTerminals_derives_embedString at hw
-    rwa [embedString_terminals] at hw
-  · apply restrictTerminals_derives_derives_projectString at hw
-    rw [projectString_terminals] at hw
-    unfold restrictTerminals projectString at hw
-    rwa [List.map_cons, List.map_nil, projectSymbol_nonterminal] at hw
+  apply Set.eq_of_subset_of_subset
+  · intro w hw
+    have hd := (mem_language_iff g w).mp hw
+    apply (mem_language_iff g.restrictTerminals w).mpr
+    apply derives_restrictTerminals_derives_embedString at hd
+    rwa [embedString_terminals] at hd
+  · intro w hw
+    have hd := (mem_language_iff g.restrictTerminals w).mp hw
+    apply (mem_language_iff g w).mpr
+    apply restrictTerminals_derives_derives_projectString at hd
+    rw [projectString_terminals] at hd
+    unfold restrictTerminals projectString at hd
+    rwa [List.map_cons, List.map_nil, projectSymbol_nonterminal] at hd
 
 end CorrectnessProof
 

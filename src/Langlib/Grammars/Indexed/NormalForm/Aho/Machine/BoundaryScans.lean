@@ -25,7 +25,10 @@ public inductive BoundaryScanState where
   | first
   | tail
   | dead
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+public instance : Fintype BoundaryScanState :=
+  Fintype.ofList [.first, .tail, .dead] (by intro x; cases x <;> simp)
 
 /-- The canonical initialized cell at the first input position. -/
 public def initialFirstCell (g : IndexedGrammar T) (a : T) : RowCell g :=
@@ -42,6 +45,11 @@ public def finalFirstCell (g : IndexedGrammar T) (a : T) : RowCell g :=
 /-- A canonical blank-tail final cell. -/
 public def finalTailCell (g : IndexedGrammar T) (a : T) : RowCell g :=
   .run { input := a, consumed := true, block := blankBlock g }
+
+-- Lean 4.33 needs these cell constructors transparent when reconciling maps
+-- of the named functions with maps of their expanded record constructors.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] initialTailCell finalTailCell
 
 /-- Cell transition for the exact synchronized initialization scan. -/
 public noncomputable def initScanCell (g : IndexedGrammar T) :
@@ -177,7 +185,7 @@ public theorem evalInitScan_iff_paddedInitStep (g : IndexedGrammar T)
                   refine ⟨a :: w, by simp, ?_, ?_⟩
                   · simp [inputRow, hold]
                   · rw [encodeRunRow_initial_cons]
-                    simp [initialFirstCell, initialTailCell, hnew]
+                    simp [initialFirstCell, hnew]
                 · simp [evalInitScan, initScanCell, hnew] at h
   · rintro ⟨w, hw, rfl, rfl⟩
     cases w with
@@ -247,7 +255,7 @@ public theorem evalFinalScan_iff_finalRow (g : IndexedGrammar T) (row : List (Ro
               rcases h with ⟨w, hrow⟩
               refine ⟨c.input :: w, by simp, ?_⟩
               rw [encodeRunRow_final_cons]
-              simp [finalFirstCell, finalTailCell, hcell, hrow]
+              simp [finalFirstCell, hcell, hrow]
             · simp [evalFinalScan, finalScanCell, hcell] at h
   · rintro ⟨w, hw, rfl⟩
     cases w with
@@ -261,4 +269,3 @@ public theorem evalFinalScan_iff_finalRow (g : IndexedGrammar T) (row : List (Ro
 
 end Aho
 end IndexedGrammar
-

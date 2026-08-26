@@ -1,6 +1,6 @@
 module
 
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -48,7 +48,7 @@ equivalent TM0 machine whose state type is a subtype, hence `Fintype`.
 - `Turing.TM0.restrict_eval_dom_iff` — the restricted machine halts iff the original does
 -/
 
-open Turing
+open Turing StateTransition
 
 namespace Turing.TM0
 
@@ -79,7 +79,7 @@ The step functions respect the bisimulation relation.
 -/
 theorem restrict_respects (M : Machine Γ Λ) (S : Finset Λ)
     (hS : Supports M ↑S) :
-    Turing.Respects
+    StateTransition.Respects
       (@step Γ Λ _ _ M)
       (@step Γ _ ⟨⟨default, hS.1⟩⟩ _ (restrict M S hS))
       (fun c₁ c₂ => restrictRel S c₂ c₁) := by
@@ -114,6 +114,6 @@ public theorem restrict_eval_dom_iff (M : Machine Γ Λ) (S : Finset Λ)
     (@eval Γ Λ _ _ M l).Dom ↔
     (@eval Γ _ ⟨⟨default, hS.1⟩⟩ _ (restrict M S hS) l).Dom := by
   simp only [eval]
-  exact (Turing.tr_eval_dom (restrict_respects M S hS) (restrict_init_rel M S hS l)).symm
+  exact (StateTransition.tr_eval_dom (restrict_respects M S hS) (restrict_init_rel M S hS l)).symm
 
 end Turing.TM0

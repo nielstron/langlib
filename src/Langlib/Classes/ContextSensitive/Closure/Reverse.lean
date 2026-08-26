@@ -44,7 +44,9 @@ private theorem reversal_grammar_context_sensitive (g : grammar T)
     obtain ⟨r₀', hr₀', rfl⟩ := List.mem_map.mp hr'
     have := hrhs r₀' hr₀'
     -- `S ∈ out.reverse ↔ S ∈ out`.
-    simpa [reversal_grammar, reversal_grule, List.mem_reverse] using this
+    change symbol.nonterminal g.initial ∉ r₀'.output_string.reverse
+    intro hmem
+    exact this (List.mem_reverse.mp hmem)
 
 /-- The class of context-sensitive languages is closed under reversal. -/
 public theorem CS_of_reverse_CS (L : Language T) :
@@ -70,4 +72,3 @@ public theorem CS_of_reverse_CS_rev (L : Language T) :
 /-- The class of context-sensitive languages is closed under reversal. -/
 public theorem CS_closedUnderReverse : ClosedUnderReverse (α := T) is_CS :=
   fun L hL => CS_of_reverse_CS L hL
-

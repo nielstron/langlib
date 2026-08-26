@@ -45,7 +45,7 @@ def collectTerminals : List T :=
 /-- The terminal-isolation grammar. Every terminal in a rule's RHS is replaced with a
     fresh nonterminal `Sum.inr t`, and for each such terminal a rule `Sum.inr t → t`
     is added. -/
-def termIsolate : IndexedGrammar T where
+abbrev termIsolate : IndexedGrammar T where
   nt := g.nt ⊕ T
   flag := g.flag
   initial := Sum.inl g.initial
@@ -132,8 +132,7 @@ theorem termIsolate_inr_derives_terminal (t : T) (ht : t ∈ collectTerminals g)
   apply deri_of_tran;
   -- Apply the terminal rule to transform [ISym.indexed (Sum.inr t) []] into [ISym.terminal t].
   use ⟨Sum.inr t, none, [IRhsSymbol.terminal t]⟩, [], [], []
-  simp;
-  exact ⟨ List.mem_append_right _ ( List.mem_map.mpr ⟨ t, ht, rfl ⟩ ), by rfl ⟩
+  simp [termIsolate, ht, expandRhs]
 
 /-
 Every terminal in the RHS of a rule that's in g.rules is in collectTerminals.
@@ -166,8 +165,8 @@ theorem termIsolate_resolve_inr (rhs : List (IRhsSymbol T g.nt g.flag))
     · constructor;
     · convert deri_of_deri_deri _ _ using 1;
       exact map g.tiLiftISym ( g.expandRhs [ s ] σ ) ++ g.termIsolate.expandRhs ( map g.tiLiftRhsSym l ) σ;
-      · convert deri_with_suffix _ hl.1 using 1;
-      · convert deri_with_prefix _ ih using 1;
+      · convert deri_with_suffix _ hl.1 using 1; simp [expandRhs]
+      · convert deri_with_prefix _ ih using 1; simp [expandRhs]
   exact h_expand this
 
 /-
@@ -275,10 +274,10 @@ theorem termIsolate_proj_transforms {w₁ w₂ : List (g.termIsolate).ISym}
       use List.map g.tiProjISym u, List.map g.tiProjISym v, σ;
       simp +decide [ h ];
       exact ⟨ by assumption, rfl, tiProjSF_expandRhs_transformed g r' σ ⟩;
-  · unfold termIsolate at hr; simp_all +decide ;
+  · simp_all +decide [termIsolate] ;
     rcases hr with ⟨ a, ha, rfl ⟩ ; simp_all +decide [ IndexedGrammar.expandRhs ] ;
-    simp +decide [ IndexedGrammar.tiProjSF ];
-    convert deri_self _ _ using 1
+    simpa [IndexedGrammar.tiProjSF, IndexedGrammar.tiProjISym] using
+      (deri_self g (List.map g.tiProjISym u ++ ISym.terminal a :: List.map g.tiProjISym v))
 
 /-
 Backward: multi-step derivation projection.

@@ -190,6 +190,11 @@ public noncomputable def prefixPDA (M : PDA Q T S) : PDA (Q ⊕ Q) T S where
         · exact (M.finite' q Z).image _
         · exact Set.finite_iUnion (fun a => (M.finite q a Z).image _)
 
+-- Lean 4.33 requires the constructed PDA to be transparent while checking
+-- dependent configuration and transition types involving its projections.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] prefixPDA
+
 -- ══════════════════════════════════════════════════════════════════
 -- § 3  Forward direction :  prefixLang L ⊆ prefixPDA.acceptsByEmptyStack
 -- ══════════════════════════════════════════════════════════════════
@@ -228,9 +233,7 @@ private theorem switch_step {q : Q} {w : List T} {Z : S} {β : List S} :
     (prefixPDA M).Reaches₁ ⟨Sum.inl q, w, Z :: β⟩ ⟨Sum.inr q, w, Z :: β⟩ := by
   cases' w with a w' <;> simp +decide [ *, Reaches₁ ];
   · simp +decide [ step ];
-    unfold prefixPDA; aesop;
   · simp +decide [ step ];
-    unfold prefixPDA; aesop;
 
 /-
 If `M` reaches `⟨p, [], []⟩` from `⟨q, v, γ⟩`, then in verification mode
@@ -253,7 +256,8 @@ private theorem verify_reaches_of_M_reaches
         generalize_proofs at *; (
         cases' x₁ with a₁ x₁ <;> cases' Z₁ with Z₁ α₁ <;> simp_all +decide [ step ];
         · obtain ⟨ β, hβ₁, hβ₂, hβ₃ ⟩ := h_step; use β; simp_all +decide [ prefixPDA ] ;
-        · rcases h_step with ( ⟨ β, hβ, rfl, rfl ⟩ | ⟨ β, hβ, rfl, rfl ⟩ ) <;> [ exact ⟨ β, by unfold prefixPDA; aesop ⟩ ; exact ⟨ β, by unfold prefixPDA; aesop ⟩ ] ;);
+        · rcases h_step with ( ⟨ β, hβ, rfl, rfl ⟩ | ⟨ β, hβ, rfl, rfl ⟩ ) <;>
+            [ exact ⟨β, by aesop⟩; exact ⟨β, by aesop⟩ ] ;);
       exact h₃.trans ( h_step _ _ h₂ |> fun h => Relation.ReflTransGen.single h );
   obtain ⟨ n, hn ⟩ := reaches_iff_reachesIn.mp h; specialize h_ind n ⟨ q, v, γ ⟩ ⟨ p, [], [] ⟩ hn; aesop;
 
@@ -342,8 +346,8 @@ private theorem inr_input_invariant {n : ℕ} {q : Q} {w : List T}
         obtain ⟨ q', hq' ⟩ := ih; rcases c₁ with ⟨ s₁, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ s₂, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ] ;
         cases γ₁ <;> simp_all +decide [ step ];
         cases w₁ <;> simp_all +decide [  ];
-        · unfold prefixPDA at hc₂; aesop;
-        · unfold prefixPDA at hc₂; aesop;
+        · aesop;
+        · aesop;
       apply h_last_step;
       exact reaches_of_reachesIn hc₁;
     obtain ⟨c'', hc₃, hc₄⟩ : ∃ c'', ReachesIn 1 ⟨Sum.inr q', w, c'.stack⟩ c'' ∧ c'' = c := by
@@ -370,7 +374,7 @@ private theorem inl_step_cases {c : (prefixPDA M).conf}
   cases w <;> cases α <;> simp_all +decide [ Reaches₁ ];
   · unfold step at h; aesop;
   · unfold step at h;
-    unfold prefixPDA at h; simp_all +decide [ Set.mem_setOf_eq ] ;
+    unfold prefixPDA at h; simp_all +decide;
     unfold step; aesop;
   · unfold step at h; aesop;
   · cases h <;> simp_all +decide [ step ];

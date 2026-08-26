@@ -2,6 +2,7 @@ module
 
 public import Langlib.Automata.LinearBounded.Equivalence.CSGToLBA.Construction
 import Mathlib.Tactic
+set_option backward.isDefEq.respectTransparency false
 @[expose]
 public section
 
@@ -510,7 +511,8 @@ lemma list_split_filterMap {α : Type*} (L : List (Option α)) (u z : List α)
             simp only [List.cons_append, List.cons.injEq] at h
             obtain ⟨p, hp, ht, hd⟩ := ih u' h.2
             refine ⟨p + 1, by simp only [List.length_cons]; omega, ?_, ?_⟩
-            · simp only [List.take_succ_cons, List.filterMap_cons, id, h.1]; rw [ht]
+            · simp only [List.take_succ_cons, List.filterMap_cons, id, h.1]
+              exact congrArg (List.cons b) ht
             · simp only [List.drop_succ_cons]; exact hd
 
 /-- **One backward derivation step.** If the work track decodes to `u ++ output ++ v` for some

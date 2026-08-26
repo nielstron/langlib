@@ -126,11 +126,9 @@ public theorem allowedNonterminals_finite : (AllowedNonterminals : Set (N M)).Fi
     dsimp [S₂]
     induction' max_push M using WithBot.recBotCoe with n
     · simp
-    · convert_to {α : List S| α.length ≤ n}.Finite
-      · ext
-        simp [Set.mem_setOf_eq]
-        convert WithBot.coe_le_coe
-      · apply List.finite_length_le
+    · apply (List.finite_length_le S n).subset
+      intro α hα
+      exact WithBot.coe_le_coe.mp hα
   have h_s₃ : S₃.Finite := by
     repeat (apply Set.finite_iUnion; intro)
     apply Set.Finite.biUnion h_s₂
@@ -242,11 +240,9 @@ public theorem ruleSet_finite : (RuleSet : Set (ContextFreeRule T (N M))).Finite
     dsimp [epsilon_rule]
     apply Set.finite_singleton
   · repeat (apply Set.finite_iUnion; intro)
-    dsimp [compute_rule]
     apply Set.Finite.image
     apply M.finite
   · repeat (apply Set.finite_iUnion; intro)
-    dsimp [compute_rule]
     apply Set.Finite.image
     apply M.finite'
   · apply Set.finite_iUnion
@@ -705,5 +701,5 @@ public theorem cfg_of_pda (M : PDA Q T S) : (G M).language  = M.acceptsByEmptySt
         simp [r, start_rule]
       use r, hr
       apply ContextFreeRule.Rewrites.head
-    rw [language, Set.mem_setOf]
+    change (G M).Derives [nonterminal N.start] (w.map terminal)
     exact Derives.trans this h

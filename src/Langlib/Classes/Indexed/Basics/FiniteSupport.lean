@@ -148,6 +148,7 @@ public theorem is_Indexed_exists_fintype_normalForm_nonempty_image [Inhabited T]
       haveI := hdec
       have hu_ne : u ≠ [] := by
         intro hu
+        change g'.Generates u at hgu
         have hnil : g'.Generates [] := by simpa [hu] using hgu
         exact (g'.not_generates_nil_of_noEpsilon
           (g'.noEpsilon_of_isNormalForm hNF)) hnil

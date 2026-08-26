@@ -98,6 +98,11 @@ def enc {n : ℕ} (c : Fin (n + 1) → Option (T ⊕ Γ)) : Fin (n + 3) → EndA
 /-- Shift a marker-free head position `h` into the endmarker interior (cell `h + 1`). -/
 def encHead {n : ℕ} (h : Fin (n + 1)) : Fin (n + 3) := ⟨h.val + 1, by have := h.isLt; omega⟩
 
+-- Lean 4.33 needs these structure-valued definitions reducible while checking
+-- the dependent proofs carried by the encoded and moved head positions.
+set_option allowUnsafeReducibility true in
+attribute [local reducible] encHead DLBA.BoundedTape.write DLBA.BoundedTape.moveHead
+
 /-- Package an `M`-configuration as the corresponding `run`-phase simulator configuration. -/
 def φ {n : ℕ} (cfg : DLBA.Cfg (Option (T ⊕ Γ)) Λ n) :
     DLBA.Cfg (EndAlpha T Γ) (SimState Λ) (n + 2) :=
@@ -244,7 +249,7 @@ theorem forward_step {n : ℕ} {cfg cfg' : DLBA.Cfg (Option (T ⊕ Γ)) Λ n}
         · apply Fin.ext
           simp only [hZ, hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead
             ]
-          split_ifs <;> simp_all ; omega
+          split_ifs <;> simp_all
       exact Relation.ReflTransGen.head hstep1 (hZeq ▸ Relation.ReflTransGen.single hstep2)
   · -- `Dir.right`
     by_cases hb : cfg.tape.head.val < n
@@ -282,7 +287,7 @@ theorem forward_step {n : ℕ} {cfg cfg' : DLBA.Cfg (Option (T ⊕ Γ)) Λ n}
         · apply Fin.ext
           simp only [hZ, hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead
             ]
-          split_ifs <;> simp_all ; omega
+          split_ifs <;> simp_all
       exact Relation.ReflTransGen.head hstep1 (hZeq ▸ Relation.ReflTransGen.single hstep2)
   · -- `Dir.stay`
     have hh : Y1.tape.head = (φ cfg').tape.head := by

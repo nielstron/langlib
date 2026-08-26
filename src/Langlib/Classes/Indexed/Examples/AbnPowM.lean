@@ -27,6 +27,7 @@ public inductive AbnPowMFlag where
 deriving DecidableEq
 
 /-- Indexed grammar which chooses a positive common run length and duplicates its stack. -/
+@[reducible]
 public def grammarAbnPowM : IndexedGrammar Bool where
   nt := AbnPowMNT
   flag := AbnPowMFlag
@@ -68,20 +69,20 @@ private lemma aStack_succ (n : Nat) : aStack (n + 1) = .count :: aStack n := by
 
 private lemma aStepS : AG.Transforms [aS []] [aX (aStack 0)] := by
   refine ⟨⟨.S, none, [.nonterminal .X (some .bottom)]⟩, [], [], [], ?_, rfl, ?_⟩
-  · simp [grammarAbnPowM]
+  · simp
   · simp [IndexedGrammar.expandRhs, aStack]
 
 private lemma aStepX : AG.Transforms [aX (aStack 0)] [aZ (aStack 1)] := by
   refine ⟨⟨.X, none, [.nonterminal .Z (some .count)]⟩,
     [], [], aStack 0, ?_, rfl, ?_⟩
-  · simp [grammarAbnPowM]
+  · simp
   · simp [IndexedGrammar.expandRhs, aStack, replicate_succ]
 
 private lemma aPushZ (n : Nat) :
     AG.Transforms [aZ (aStack n)] [aZ (aStack (n + 1))] := by
   refine ⟨⟨.Z, none, [.nonterminal .Z (some .count)]⟩,
     [], [], aStack n, ?_, rfl, ?_⟩
-  · simp [grammarAbnPowM]
+  · simp
   · simp [IndexedGrammar.expandRhs, aStack_succ]
 
 private lemma aPushZMany (n : Nat) :
@@ -93,7 +94,7 @@ private lemma aPushZMany (n : Nat) :
 private lemma aStepZY (n : Nat) :
     AG.Transforms [aZ (aStack n)] [aY (aStack n)] := by
   refine ⟨⟨.Z, none, [.nonterminal .Y none]⟩, [], [], aStack n, ?_, rfl, ?_⟩
-  · simp [grammarAbnPowM]
+  · simp
   · simp [IndexedGrammar.expandRhs]
 
 private lemma aSplitY (n k : Nat) :
@@ -104,32 +105,34 @@ private lemma aSplitY (n k : Nat) :
       apply IndexedGrammar.deri_of_tran_deri
       · refine ⟨⟨.Y, none, [.nonterminal .Y none, .nonterminal .Y none]⟩,
           [], [], aStack n, ?_, rfl, rfl⟩
-        · simp [grammarAbnPowM]
-      · convert IndexedGrammar.deri_with_prefix [aY (aStack n)] ih using 1
+        · simp
+      · convert IndexedGrammar.deri_with_prefix [aY (aStack n)] ih using 1 <;>
+          simp [IndexedGrammar.expandRhs, replicate_succ]
 
 private lemma aConsumeP (n : Nat) :
     AG.Derives [aP (aStack n)] (replicate n ab) := by
   induction n with
   | zero =>
       exact Relation.ReflTransGen.single ⟨⟨.P, some .bottom, []⟩, [], [], [], by
-        simp [grammarAbnPowM], by simp [aStack], by
+        simp, by simp [aStack], by
         simp [IndexedGrammar.expandRhs]⟩
   | succ n ih =>
       apply IndexedGrammar.deri_of_tran_deri
       · refine ⟨⟨.P, some .count, [.terminal true, .nonterminal .P none]⟩,
           [], [], aStack n, ?_, ?_, rfl⟩
-        · simp [grammarAbnPowM]
+        · simp
         · simp [aStack_succ]
-      · convert IndexedGrammar.deri_with_prefix [ab] ih using 1
+      · convert IndexedGrammar.deri_with_prefix [ab] ih using 1 <;>
+          simp [IndexedGrammar.expandRhs, replicate_succ]
 
 private lemma aGenerateBlock (n : Nat) :
     AG.Derives [aY (aStack n)] ((abBlock n).map IndexedGrammar.ISym.terminal) := by
   apply IndexedGrammar.deri_of_tran_deri
   · refine ⟨⟨.Y, none, [.terminal false, .nonterminal .P none]⟩,
       [], [], aStack n, ?_, rfl, rfl⟩
-    · simp [grammarAbnPowM]
-  · convert IndexedGrammar.deri_with_prefix [aa] (aConsumeP n) using 1
-    simp [abBlock]
+    · simp
+  · convert IndexedGrammar.deri_with_prefix [aa] (aConsumeP n) using 1 <;>
+      simp [IndexedGrammar.expandRhs, abBlock]
 
 private lemma aGenerateBlocks (n m : Nat) :
     AG.Derives (replicate m (aY (aStack n)))
@@ -230,7 +233,7 @@ private lemma aRuleSound (r : IRule Bool AbnPowMNT AbnPowMFlag)
     (hr : r ∈ AG.rules) (s : List AbnPowMFlag) (w : List Bool)
     (h : aFormSem (AG.expandRhs r.rhs s) w) :
     aSymSem (.indexed r.lhs (match r.consume with | none => s | some f => f :: s)) w := by
-  simp only [grammarAbnPowM, List.mem_cons, List.not_mem_nil,
+  simp only [List.mem_cons, List.not_mem_nil,
     or_false] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · have h' : aSymSem (aX (.bottom :: s)) w := by
