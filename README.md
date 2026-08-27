@@ -104,22 +104,21 @@ Additional CSL results:
 
 ### Palomar challenge
 
-The repository root contains a Palomar statement/proof split:
+This branch contains the strict-inclusion Palomar statement/proof split:
 
 - [`Challenge.lean`](Challenge.lean) imports only Mathlib and gives transparent
-  definitions plus the theorem statements for the grammar hierarchy, automata
-  characterizations, strict inclusions, and the closure table above.
-- [`Solution.lean`](Solution.lean) imports `Langlib`, whose existing declarations
-  supply the proofs registered in [`comparator.json`](comparator.json).
+  grammar definitions plus eight strict inclusions in the extended Chomsky
+  hierarchy.
+- [`Solution.lean`](Solution.lean) imports `Langlib` and gives thin namespaced
+  wrappers around its existing proofs; the regular-to-LR wrapper additionally
+  packages the result with an explicit cardinality hypothesis.
 
-The challenge intentionally excludes the decidability results for this submission.
-Its scope also reflects the current limits of the library: indexed languages are
-defined by indexed grammars, but nested-stack automata and their characterization
-are not yet formalized; linear languages currently have only their grammar
-characterization; deterministic LBAs are included in nondeterministic LBAs, but the
-reverse inclusion is not claimed; and the recursive-language class is presented by
-always-halting Mathlib `TM0` machines rather than by a second, proved-equivalent
-tape-machine model.
+Every inclusion is stated for an arbitrary finite terminal alphabet with at
+least the required number of elements. Deterministic context-free languages use
+their LR-grammar presentation, so the Challenge declares no local finite,
+pushdown, or linearly bounded machine model. The separate equivalence submission
+proves that the LR presentation agrees with deterministic pushdown recognition.
+Equivalence, closure, and decidability results are outside this branch.
 
 ### Decidability
 

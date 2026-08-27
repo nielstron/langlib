@@ -4,14 +4,12 @@ version: "v0.4"
 project:
   name: "Langlib"
   description: >-
-    A Lean 4 formalization of grammar and automaton presentations of the
-    extended Chomsky hierarchy. Starting from unrestricted-grammar rewriting,
-    it defines regular, linear, context-free, context-sensitive, indexed,
-    deterministic context-free, recursive, and recursively enumerable language
-    classes; relates finite, pushdown, linearly bounded, and Mathlib TM0
-    automata to the corresponding grammar classes; proves strict hierarchy
-    inclusions; and establishes closure or non-closure under thirteen operations
-    for seven major classes.
+    A Lean 4 formalization of strict inclusions in the extended Chomsky
+    hierarchy. This Palomar selection contains eight arbitrary-finite-alphabet
+    theorems for regular, linear, deterministic context-free (via LR grammars),
+    context-free, indexed, context-sensitive, recursive, and recursively
+    enumerable language classes, with an explicit lower bound on the number of
+    terminal symbols in every result.
   authors:
     - "Niels Mündler"
     - "Martin Dvořák"
@@ -112,20 +110,17 @@ related_formalizations:
 
 status:
   scope: >-
-    The selected challenge contains transparent definitions of unrestricted,
-    regular, linear, context-free, context-sensitive, LR, indexed, and
-    automaton-recognized language classes; grammar/automaton equivalences for
-    regular, context-free, deterministic context-free, context-sensitive, and
-    recursively enumerable languages; the strict extended Chomsky hierarchy;
-    and a 13-operation closure/non-closure matrix for regular, deterministic
-    context-free, context-free, indexed, context-sensitive, recursive, and
-    recursively enumerable languages. Decidability and undecidability results
-    in the repository are intentionally excluded. Nested-stack automata and the
-    indexed-grammar equivalence are not formalized. Linear languages have no
-    automaton characterization here. Only DLBA inclusion in NLBA is proved; the
-    reverse inclusion is not claimed. Recursive languages use always-halting
-    Mathlib TM0 machines, and no second tape-machine characterization is
-    selected as an equivalence.
+    The selected challenge contains transparent grammar definitions and eight
+    strict hierarchy inclusions. Deterministic context-free languages use the
+    LR-grammar presentation; the separate equivalence submission relates it to
+    deterministic pushdown automata. The challenge declares no local finite,
+    pushdown, linearly bounded, or unrestricted Turing-machine structure.
+    Recursive languages use the existing always-halting Mathlib TM0
+    presentation. Every theorem quantifies over an arbitrary finite terminal
+    alphabet with at least the stated number of elements: 2 for RG < Linear,
+    4 for Linear < CF, 2 for RG < LR, 3 for LR < CF and CF < Indexed, 2 for
+    Indexed < CS, and 1 for CS < Recursive and Recursive < RE. Equivalence,
+    closure, and decidability results are outside this submission.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms:
@@ -133,36 +128,36 @@ status:
     - "Quot.sound"
     - "Classical.choice"
   main_results:
-    - declaration: "RG_eq_DFA"
-      file: "src/Langlib/Automata/FiniteState/Equivalence/Regular.lean"
+    - declaration: "ChomskyHierarchy.RG_strict_subclass_Linear_of_card"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "CF_eq_PDA_Class"
-      file: "src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean"
+    - declaration: "ChomskyHierarchy.Linear_strict_subclass_CF_of_card"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "is_LR_iff_is_DCF"
-      file: "src/Langlib/Grammars/LR/Equivalence.lean"
+    - declaration: "ChomskyHierarchy.RG_strict_subclass_LR_of_card"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "CS_eq_LBA"
-      file: "src/Langlib/Automata/LinearBounded/Equivalence/ContextSensitive.lean"
+    - declaration: "ChomskyHierarchy.LR_strict_subclass_CF_of_card"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "TM_eq_RE"
-      file: "src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean"
+    - declaration: "ChomskyHierarchy.CF_strict_subclass_Indexed"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "Indexed_strict_subclass_CS"
-      file: "src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean"
+    - declaration: "ChomskyHierarchy.Indexed_strict_subclass_CS"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "CS_strict_subclass_Recursive_of_card"
-      file: "src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean"
+    - declaration: "ChomskyHierarchy.CS_strict_subclass_Recursive_of_card"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "Recursive_strict_subclass_RE_of_card"
-      file: "src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean"
+    - declaration: "ChomskyHierarchy.Recursive_strict_subclass_RE_of_card"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
 
@@ -234,9 +229,9 @@ automation:
         spend_usd: "not tracked"
         hardware: "hosted model with local shell tooling"
       prompting_notes: >-
-        The maintainer requested a Palomar-ready challenge covering definitions,
-        automata equivalences, hierarchy inclusions, and closure results while
-        excluding decidability results.
+        The maintainer requested a Palomar-ready challenge containing only the
+        strict hierarchy inclusions, split from the equivalence and closure
+        submissions.
   spend_usd: "not tracked"
   notes: >-
     The development combines human mathematical direction and Lean engineering
@@ -246,19 +241,13 @@ automation:
 
 fidelity:
   divergences: >-
-    Langlib makes implementation conventions explicit rather than claiming
-    literal identity with every cited presentation. Its context-sensitive
-    grammar permits the distinguished rule S -> epsilon only when S never
-    occurs on a right-hand side; its equivalent LBA uses explicit endmarkers
-    and handles the empty word on a genuine two-cell tape. Strict inclusions
-    record explicit lower bounds on the number of alphabet elements; no
-    strictness claim is made below a theorem's stated bound. A negative closure
-    theorem records failure on its stated finite witness alphabet, not failure
-    on every alphabet. Indexed
-    languages are grammar-defined with no nested-stack automaton model; linear
-    languages likewise lack an automaton characterization. DLBA = NLBA is not
-    asserted, and the recursive class has no selected second tape-model
-    equivalence. These are known scope limits, not inferred equivalences.
+    The deterministic context-free level is stated through its LR-grammar
+    presentation; its equivalence with deterministic pushdown recognition is a
+    separate submission. Recursive languages retain the always-halting Mathlib
+    TM0 definition. Every strictness theorem records a sufficient lower bound
+    on the number of terminal symbols and applies to every finite alphabet
+    meeting that bound; no strictness claim is made below it. Indexed languages
+    are grammar-defined because nested-stack automata are not formalized.
     Novelty has not been established and is not claimed.
 
 review:
@@ -266,87 +255,32 @@ review:
   reviewers:
     - "OpenAI Codex"
   notes: >-
-    Submission preparation inventoried every selected declaration, checked
-    theorem axioms and unresolved holes, and compared the Challenge signatures
-    with Langlib. The official pinned Palomar Comparator run passed all 112
-    selected declarations; NanoDa and Lean's default kernel both accepted the
+    Submission preparation inventoried the eight selected declarations, checked
+    theorem axioms and unresolved holes, and matched the Mathlib-only Challenge
+    signatures with the Langlib Solution. The pinned Comparator accepted all
+    eight declarations, and both NanoDa and Lean's default kernel accepted the
     exported solution. This is not independent human peer review.
 
 alignment:
-  namespace: "Root namespace, with a few theorem families in descriptive namespaces"
+  namespace: "ChomskyHierarchy"
   statements:
-    - source: "Regular grammars and finite automata"
-      lean: "is_RG_iff_isRegular; RG_eq_DFA; is_NFA_iff_is_DFA; NFA_eq_DFA"
-      module: "Langlib.Automata.FiniteState"
-      status: "proved"
-      note: >-
-        Right-regular unrestricted grammars, Mathlib regular languages, and
-        finite DFA/NFA recognizers define the same language class.
-    - source: "Context-free grammars and pushdown automata"
-      lean: >-
-        is_CF_iff_isContextFree; CF_eq_PDA_Class;
-        is_PDA_finalState_iff_is_PDA_emptyStack;
-        PDA_FinalStateClass_eq_Class
-      module: "Langlib.Automata.Pushdown"
-      status: "proved"
-      note: >-
-        The unrestricted-grammar CFL definition agrees with Mathlib's CFG
-        predicate and with PDA recognition under either acceptance convention.
-    - source: "Knuth's LR(k) languages and deterministic pushdown automata"
-      lean: "is_LR_iff_is_DPDA; is_LR_iff_is_DCF"
-      module: "Langlib.Grammars.LR.Equivalence"
-      status: "proved"
-      note: >-
-        Existential finite-lookahead LR languages coincide with the DPDA-defined
-        deterministic context-free class.
-    - source: "Myhill-Kuroda characterization"
-      lean: "CS_eq_LBA"
-      module: "Langlib.Automata.LinearBounded.Equivalence.ContextSensitive"
-      status: "proved"
-      note: >-
-        Context-sensitive grammars with the controlled empty rule recognize
-        exactly the languages of finite nondeterministic endmarker LBAs.
-    - source: "Unrestricted grammars and Turing machines"
-      lean: "TM_eq_RE"
-      module: "Langlib.Automata.Turing.Equivalence.RecursivelyEnumerable"
-      status: "proved"
-      note: >-
-        Unrestricted grammar generation agrees with recognition by finite-state,
-        finite-work-alphabet Mathlib TM0 machines.
     - source: "Strict extended Chomsky hierarchy"
       lean: >-
         RG_strict_subclass_Linear_of_card;
         Linear_strict_subclass_CF_of_card;
-        RG_strict_subclass_DCF_of_card;
-        DCF_strict_subclass_CF_of_card;
-        CF_strict_subclass_Indexed; Indexed_strict_subclass_CS;
+        RG_strict_subclass_LR_of_card;
+        LR_strict_subclass_CF_of_card;
+        CF_strict_subclass_Indexed;
+        Indexed_strict_subclass_CS;
         CS_strict_subclass_Recursive_of_card;
         Recursive_strict_subclass_RE_of_card
-      module: "Langlib.Classes"
+      module: "Langlib.Classes and Langlib.Grammars.LR"
       status: "proved"
       note: >-
-        The two regular-to-context-free branches and the indexed,
-        context-sensitive, recursive, and RE levels are strict over every
-        finite alphabet with at least the number of elements stated in
-        Challenge.lean.
-    - source: "Linear languages are not closed under concatenation"
-      lean: "Linear_not_closedUnderConcatenation"
-      module: "Langlib.Classes.Linear.Closure.Concatenation"
-      status: "proved"
-      note: >-
-        Whenever the terminal alphabet has at least 4 elements, two linear
-        languages have a concatenation that is not linear.
-    - source: "Classical language-class closure properties"
-      lean: "The 91 closure and non-closure declarations listed in comparator.json"
-      module: "Langlib.Classes.*.Closure"
-      status: "proved"
-      note: >-
-        For seven classes, the selected declarations cover union, intersection,
-        complement, concatenation, star, homomorphism, epsilon-free
-        homomorphism, substitution, inverse homomorphism, reversal,
-        intersection with regular languages, right quotient, and right quotient
-        with a regular language. The README table gives the plain-language
-        yes/no account and links each theorem family.
+        These are strict inclusions over every finite terminal alphabet with at
+        least the number of elements stated in Challenge.lean. LR grammars give
+        the deterministic context-free level without declaring a machine model
+        in this challenge.
 
 acknowledgements: >-
   Built on Lean 4 and Mathlib. The repository credits the earlier

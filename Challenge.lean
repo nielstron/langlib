@@ -5,27 +5,22 @@ public import Mathlib
 public section
 
 /-!
-# Langlib: the extended Chomsky hierarchy
+# Strict inclusions in the extended Chomsky hierarchy
 
-This is the independent, Mathlib-only statement surface for the Palomar Registry.
-It records the ordinary unrestricted-grammar definitions of the language classes,
-the finite, pushdown, linearly bounded, and Turing automaton presentations, the
-strict hierarchy (with explicit alphabet-size hypotheses), the proved
-grammar/automaton equivalences, and the closure and non-closure results.
+This Mathlib-only Palomar challenge states eight strict inclusions between
+grammar-defined language classes. Each theorem ranges over an arbitrary finite
+terminal alphabet having at least the stated number of elements.
 
-The wider repository also proves decidability and undecidability results.  Those
-results are deliberately outside this challenge.
-
-The definitions below are transparent copies of the definitions proved about in
-`Langlib`.  In particular, a context-sensitive grammar may have the distinguished
-rule `S -> epsilon`, provided `S` never occurs on a right-hand side. The strict
-inclusions range over arbitrary finite alphabets with explicit lower bounds on
-their size; no strictness claim is made below the stated bound.
+Deterministic context-free languages use their LR-grammar presentation here; the
+separate class-equivalence challenge proves that this agrees with deterministic
+pushdown-automaton recognition. No finite, pushdown, or linearly bounded machine
+definition is part of this challenge. Recursive languages retain the standard
+always-halting Mathlib TM0 presentation.
 -/
 
 open Relation Turing
 
-/-! ## Unrestricted grammars and grammar-defined language classes -/
+/-! ## Grammar-defined language classes -/
 
 /-- A grammar symbol is either a terminal or a nonterminal. -/
 inductive symbol (T : Type) (N : Type) where
@@ -143,156 +138,6 @@ def is_RE (L : Language T) : Prop :=
 
 /-- The class of recursively enumerable languages. -/
 def RE : Set (Language T) := Set.ofPred is_RE
-
-/-! ## Automata and the remaining extended-hierarchy classes -/
-
-/-- Recognition by a finite-state Mathlib deterministic automaton. -/
-def is_DFA (L : Language T) : Prop :=
-  exists sigma : Type, exists _ : Fintype sigma, exists M : DFA T sigma, M.accepts = L
-
-/-- The class recognized by Mathlib deterministic finite automata. -/
-def DFA.Class : Set (Language T) := Set.ofPred is_DFA
-
-/-- Recognition by a finite-state Mathlib nondeterministic automaton. -/
-def is_NFA (L : Language T) : Prop :=
-  exists sigma : Type, exists _ : Fintype sigma, exists M : NFA T sigma, M.accepts = L
-
-/-- The class recognized by Mathlib nondeterministic finite automata. -/
-def NFA.Class : Set (Language T) := Set.ofPred is_NFA
-
-/-- A nondeterministic pushdown automaton with input and epsilon transitions. -/
-structure PDA (Q T S : Type) [Fintype Q] [Fintype T] [Fintype S] where
-  initial_state : Q
-  start_symbol : S
-  final_states : Set Q
-  transition_fun : Q -> T -> S -> Set (Q × List S)
-  transition_fun' : Q -> S -> Set (Q × List S)
-  finite (q : Q) (a : T) (Z : S) : (transition_fun q a Z).Finite
-  finite' (q : Q) (Z : S) : (transition_fun' q Z).Finite
-
-namespace PDA
-
-variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
-
-/-- A PDA configuration records state, unread input, and stack. -/
-structure conf (p : PDA Q T S) where
-  state : Q
-  input : List T
-  stack : List S
-
-variable {pda : PDA Q T S}
-
-/-- The set of one-step PDA successors. -/
-def step (r1 : conf pda) : Set (conf pda) :=
-  match r1 with
-  | ⟨q, a :: w, Z :: alpha⟩ =>
-      {r2 | exists p beta, (p, beta) ∈ pda.transition_fun q a Z ∧
-        r2 = ⟨p, w, beta ++ alpha⟩} ∪
-      {r2 | exists p beta, (p, beta) ∈ pda.transition_fun' q Z ∧
-        r2 = ⟨p, a :: w, beta ++ alpha⟩}
-  | ⟨q, [], Z :: alpha⟩ =>
-      {r2 | exists p beta, (p, beta) ∈ pda.transition_fun' q Z ∧
-        r2 = ⟨p, [], beta ++ alpha⟩}
-  | ⟨_, _, []⟩ => ∅
-
-/-- One PDA transition. -/
-def Reaches₁ (r1 r2 : conf pda) : Prop := r2 ∈ step r1
-
-/-- Zero or more PDA transitions. -/
-def Reaches : conf pda -> conf pda -> Prop := Relation.ReflTransGen Reaches₁
-
-/-- Empty-stack acceptance after consuming the whole input. -/
-def acceptsByEmptyStack (pda : PDA Q T S) : Language T :=
-  {w | exists q : Q,
-    Reaches (⟨pda.initial_state, w, [pda.start_symbol]⟩ : conf pda) ⟨q, [], []⟩}
-
-/-- Final-state acceptance after consuming the whole input. -/
-def acceptsByFinalState (pda : PDA Q T S) : Language T :=
-  {w | exists q, q ∈ pda.final_states ∧ exists gamma : List S,
-    Reaches (⟨pda.initial_state, w, [pda.start_symbol]⟩ : conf pda) ⟨q, [], gamma⟩}
-
-variable {T : Type} [Fintype T]
-
-/-- Recognition by a finite-state, finite-stack-alphabet PDA using empty-stack acceptance. -/
-def is_PDA_emptyStack (L : Language T) : Prop :=
-  exists (Q S : Type) (_ : Fintype Q) (_ : Fintype S),
-    exists M : PDA Q T S, M.acceptsByEmptyStack = L
-
-/-- The default PDA recognizability predicate uses empty-stack acceptance. -/
-abbrev is_PDA (L : Language T) : Prop := is_PDA_emptyStack L
-
-/-- Recognition by a PDA using final-state acceptance. -/
-def is_PDA_finalState (L : Language T) : Prop :=
-  exists (Q S : Type) (_ : Fintype Q) (_ : Fintype S),
-    exists M : PDA Q T S, M.acceptsByFinalState = L
-
-/-- The PDA class under empty-stack acceptance. -/
-def EmptyStackClass : Set (Language T) := Set.ofPred is_PDA
-
-/-- The default PDA-recognizable class. -/
-alias Class := PDA.EmptyStackClass
-
-/-- The PDA class under final-state acceptance. -/
-def FinalStateClass : Set (Language T) := Set.ofPred is_PDA_finalState
-
-end PDA
-
-/-- A deterministic PDA has partial functional transitions and forbids mixed epsilon/input moves. -/
-structure DPDA (Q T S : Type) [Fintype Q] [Fintype T] [Fintype S] where
-  initial_state : Q
-  start_symbol : S
-  final_states : Set Q
-  transition : Q -> T -> S -> Option (Q × List S)
-  epsilon_transition : Q -> S -> Option (Q × List S)
-  no_mixed : forall q Z, epsilon_transition q Z ≠ none -> forall a, transition q a Z = none
-
-namespace DPDA
-
-variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
-
-/-- Forget determinism, viewing each optional transition as an empty set or singleton. -/
-@[reducible]
-noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
-  initial_state := M.initial_state
-  start_symbol := M.start_symbol
-  final_states := M.final_states
-  transition_fun q a Z :=
-    match M.transition q a Z with
-    | some p => {p}
-    | none => ∅
-  transition_fun' q Z :=
-    match M.epsilon_transition q Z with
-    | some p => {p}
-    | none => ∅
-  finite q a Z := by
-    cases M.transition q a Z with
-    | none => exact Set.toFinite ∅
-    | some p => exact Set.toFinite {p}
-  finite' q Z := by
-    cases M.epsilon_transition q Z with
-    | none => exact Set.toFinite ∅
-    | some p => exact Set.toFinite {p}
-
-/-- A DPDA accepts by final state through its underlying PDA. -/
-def acceptsByFinalState (M : DPDA Q T S) : Language T := M.toPDA.acceptsByFinalState
-
-end DPDA
-
-variable {T : Type} [Fintype T]
-
-/-- Recognition by a DPDA using final-state acceptance. -/
-def is_DPDA (L : Language T) : Prop :=
-  exists (Q S : Type) (_ : Fintype Q) (_ : Fintype S) (M : DPDA Q T S),
-    M.acceptsByFinalState = L
-
-/-- The DPDA-recognizable class. -/
-def DPDA.Class : Set (Language T) := Set.ofPred is_DPDA
-
-/-- Deterministic context-free languages are precisely DPDA-recognizable languages. -/
-def is_DCF (L : Language T) : Prop := is_DPDA L
-
-/-- The deterministic context-free language class. -/
-def DCF : Set (Language T) := DPDA.Class
 
 /-! ### LR grammars -/
 
@@ -462,126 +307,6 @@ def is_Indexed (L : Language T) : Prop :=
 /-- The indexed language class. -/
 def Indexed : Set (Language T) := Set.ofPred is_Indexed
 
-/-! ### Linearly bounded and unrestricted Turing automata -/
-
-namespace DLBA
-
-/-- A bounded-tape head can move left, right, or stay. -/
-public inductive Dir where | left | right | stay
-deriving DecidableEq, Repr, Inhabited
-
-instance : Fintype Dir where
-  elems := {Dir.left, Dir.right, Dir.stay}
-  complete d := by cases d <;> simp
-
-/-- A tape of `n + 1` cells with a head position. -/
-public structure BoundedTape (Gamma : Type*) (n : Nat) where
-  contents : Fin (n + 1) -> Gamma
-  head : Fin (n + 1)
-deriving DecidableEq
-
-/-- Read the bounded tape under its head. -/
-@[simp]
-public def BoundedTape.read {Gamma : Type*} {n : Nat} (t : BoundedTape Gamma n) : Gamma :=
-  t.contents t.head
-
-/-- Write the bounded tape under its head. -/
-@[reducible]
-public def BoundedTape.write {Gamma : Type*} {n : Nat} (t : BoundedTape Gamma n) (a : Gamma) :
-    BoundedTape Gamma n := {t with contents := Function.update t.contents t.head a}
-
-/-- Move the head while clamping it to the tape boundaries. -/
-@[reducible]
-public def BoundedTape.moveHead {Gamma : Type*} {n : Nat} (t : BoundedTape Gamma n) (d : Dir) :
-    BoundedTape Gamma n := {t with head := match d with
-      | Dir.stay => t.head
-      | Dir.left => if h : 0 < t.head.val then
-          ⟨t.head.val - 1, lt_trans (Nat.sub_lt h (Nat.zero_lt_succ 0)) t.head.isLt⟩
-        else t.head
-      | Dir.right => if h : t.head.val < n then
-          ⟨t.head.val + 1, Nat.add_lt_add_right h 1⟩
-        else t.head}
-
-/-- A bounded-machine configuration is a state and bounded tape. -/
-public structure Cfg (Gamma : Type*) (Lambda : Type*) (n : Nat) where
-  state : Lambda
-  tape : BoundedTape Gamma n
-deriving DecidableEq
-
-end DLBA
-
-namespace LBA
-
-/-- A nondeterministic linearly bounded machine. -/
-structure Machine (Gamma : Type*) (Lambda : Type*) where
-  transition : Lambda -> Gamma -> Set (Lambda × Gamma × DLBA.Dir)
-  accept : Lambda -> Bool
-  initial : Lambda
-
-/-- One nondeterministic bounded-tape transition. -/
-def Step {Gamma Lambda : Type*} {n : Nat}
-    (M : Machine Gamma Lambda) (cfg cfg' : DLBA.Cfg Gamma Lambda n) : Prop :=
-  exists q' a d, (q', a, d) ∈ M.transition cfg.state cfg.tape.read ∧
-    cfg' = ⟨q', (cfg.tape.write a).moveHead d⟩
-
-/-- Zero or more bounded-tape transitions. -/
-def Reaches {Gamma Lambda : Type*} {n : Nat}
-    (M : Machine Gamma Lambda) : DLBA.Cfg Gamma Lambda n -> DLBA.Cfg Gamma Lambda n -> Prop :=
-  Relation.ReflTransGen (Step M)
-
-/-- An LBA accepts when some run reaches a state marked accepting. -/
-def Accepts {Gamma Lambda : Type*} {n : Nat}
-    (M : Machine Gamma Lambda) (cfg : DLBA.Cfg Gamma Lambda n) : Prop :=
-  exists cfg' : DLBA.Cfg Gamma Lambda n, Reaches M cfg cfg' ∧ M.accept cfg'.state = true
-
-variable {T Gamma : Type*}
-
-/-- Endmarker tape alphabet: interior symbols plus distinct left and right markers. -/
-abbrev EndAlpha (T Gamma : Type*) : Type _ := Option (T ⊕ Gamma) ⊕ Bool
-
-/-- The left endmarker. -/
-abbrev leftMark : EndAlpha T Gamma := Sum.inr false
-
-/-- The right endmarker. -/
-abbrev rightMark : EndAlpha T Gamma := Sum.inr true
-
-/-- Load `left-marker, input, right-marker` on a bounded tape. -/
-noncomputable def loadEnd (w : List T) : DLBA.BoundedTape (EndAlpha T Gamma) (w.length + 1) :=
-  ⟨fun k => if k.val = 0 then leftMark
-    else if h : k.val - 1 < w.length then Sum.inl (some (Sum.inl (w.get ⟨k.val - 1, h⟩)))
-    else rightMark, ⟨0, Nat.succ_pos _⟩⟩
-
-/-- Initial endmarker-LBA configuration, with the head on the left marker. -/
-noncomputable def initCfgEnd {Lambda : Type*} (M : Machine (EndAlpha T Gamma) Lambda)
-    (w : List T) : DLBA.Cfg (EndAlpha T Gamma) Lambda (w.length + 1) :=
-  ⟨M.initial, loadEnd w⟩
-
-/-- The language accepted by an endmarker LBA, including its ordinary run on the empty word. -/
-noncomputable def LanguageEnd {Lambda : Type*} (M : Machine (EndAlpha T Gamma) Lambda) :
-    Language T := fun w => Accepts M (initCfgEnd M w)
-
-end LBA
-
-/-- Recognition by a finite nondeterministic endmarker LBA. -/
-def is_LBA {T : Type} [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
-  exists (Gamma Lambda : Type) (_ : Fintype Gamma) (_ : Fintype Lambda)
-    (_ : DecidableEq Gamma) (_ : DecidableEq Lambda)
-    (M : LBA.Machine (LBA.EndAlpha T Gamma) Lambda), LBA.LanguageEnd M = L
-
-/-- The linearly bounded automaton language class. -/
-def LBA {T : Type} [Fintype T] [DecidableEq T] : Set (Language T) := Set.ofPred is_LBA
-
-/-- Turing recognition uses Mathlib's TM0 over a finite work alphabet and halting acceptance. -/
-def is_TM {T : Type} [Fintype T] (L : Language T) : Prop :=
-  exists (Gamma : Type) (_ : Fintype Gamma)
-    (Lambda : Type) (_ : Inhabited Lambda) (_ : Fintype Lambda)
-    (M : Turing.TM0.Machine (Option (T ⊕ Gamma)) Lambda),
-    forall w : List T,
-      w ∈ L ↔ (Turing.TM0.eval M (w.map fun t => some (Sum.inl t))).Dom
-
-/-- The Turing-recognizable language class. -/
-def TM {T : Type} [Fintype T] : Set (Language T) := Set.ofPred is_TM
-
 /-- A recursive language has an always-halting Mathlib TM0 decider with Boolean accepting states. -/
 def is_Recursive {T : Type} (L : Language T) : Prop :=
   exists (Gamma : Type) (_ : Fintype Gamma)
@@ -599,143 +324,9 @@ def is_Recursive {T : Type} (L : Language T) : Prop :=
 /-- The recursive (decidable-language) class. -/
 def Recursive : Set (Language T) := Set.ofPred is_Recursive
 
-/-! ## Language operations and abstract closure predicates -/
-
-namespace Language
-
-/-- Substitution replaces every letter by a word from its assigned language. -/
-def subst {alpha beta : Type} (L : Language alpha) (f : alpha -> Language beta) : Language beta :=
-  {u | exists w, w ∈ L ∧ u ∈ (w.map f).prod}
-
-/-- The right quotient contains `w` when `w ++ v` is in `L` for some `v` in `R`. -/
-def rightQuotient {alpha : Type*} (L R : Language alpha) : Language alpha :=
-  {w | exists v, v ∈ R ∧ w ++ v ∈ L}
-
-/-- The direct image of a language under the word homomorphism induced by `h`. -/
-def homomorphicImage {alpha beta : Type} (L : Language alpha) (h : alpha -> List beta) :
-    Language beta := L.subst (fun a => ({h a} : Language beta))
-
-end Language
-
-/-- A word homomorphism is epsilon-free when no letter maps to the empty word. -/
-def IsEpsFreeHomomorphism {alpha beta : Type} (h : alpha -> List beta) : Prop :=
-  forall a, h a ≠ []
-
-variable {alpha : Type*}
-
-/-- Closure under union. -/
-def ClosedUnderUnion (P : Language alpha -> Prop) : Prop :=
-  forall L1 L2, P L1 -> P L2 -> P (L1 + L2)
-
-/-- Closure under intersection. -/
-def ClosedUnderIntersection (P : Language alpha -> Prop) : Prop :=
-  forall L1 L2, P L1 -> P L2 -> P (L1 ⊓ L2)
-
-/-- Closure under complement. -/
-def ClosedUnderComplement (P : Language alpha -> Prop) : Prop :=
-  forall L, P L -> P Lᶜ
-
-/-- Closure under language concatenation. -/
-def ClosedUnderConcatenation (P : Language alpha -> Prop) : Prop :=
-  forall L1 L2, P L1 -> P L2 -> P (L1 * L2)
-
-/-- Closure under Kleene star. -/
-def ClosedUnderKleeneStar (P : Language alpha -> Prop) : Prop :=
-  forall L, P L -> P (KStar.kstar L)
-
-/-- Closure under word reversal. -/
-def ClosedUnderReverse (P : Language alpha -> Prop) : Prop :=
-  forall L, P L -> P L.reverse
-
-/-- Closure under intersection with a regular language. -/
-def ClosedUnderIntersectionWithRegular (P : Language alpha -> Prop) : Prop :=
-  forall L, P L -> forall R, R.IsRegular -> P (L ⊓ R)
-
-/-- Closure under right quotient by another language in the class. -/
-def ClosedUnderRightQuotient (P : Language alpha -> Prop) : Prop :=
-  forall L1 L2, P L1 -> P L2 -> P (Language.rightQuotient L1 L2)
-
-/-- Closure under right quotient by a regular language. -/
-def ClosedUnderRightQuotientWithRegular (P : Language alpha -> Prop) : Prop :=
-  forall L, P L -> forall R, R.IsRegular -> P (Language.rightQuotient L R)
-
-/-- Uniform finite-alphabet closure under word homomorphism. -/
-def ClosedUnderHomomorphism
-    (isP : forall {alpha : Type} [Fintype alpha], Language alpha -> Prop) : Prop :=
-  forall {alpha beta : Type} [Fintype alpha] [Fintype beta]
-    (L : Language alpha) (h : alpha -> List beta), isP L -> isP (L.homomorphicImage h)
-
-/-- Uniform finite-alphabet closure under epsilon-free word homomorphism. -/
-def ClosedUnderEpsFreeHomomorphism
-    (isP : forall {alpha : Type} [Fintype alpha], Language alpha -> Prop) : Prop :=
-  forall {alpha beta : Type} [Fintype alpha] [Fintype beta]
-    (L : Language alpha) (h : alpha -> List beta),
-    IsEpsFreeHomomorphism h -> isP L -> isP (L.homomorphicImage h)
-
-/-- Uniform finite-alphabet closure under inverse word homomorphism. -/
-def ClosedUnderInverseHomomorphism
-    (isP : forall {alpha : Type} [Fintype alpha], Language alpha -> Prop) : Prop :=
-  forall {alpha beta : Type} [Fintype alpha] [Fintype beta]
-    (L : Language beta) (h : alpha -> List beta), isP L -> isP {w | w.flatMap h ∈ L}
-
-/-- Uniform finite-alphabet closure under substitution. -/
-def ClosedUnderSubstitution
-    (isP : forall {alpha : Type} [Fintype alpha], Language alpha -> Prop) : Prop :=
-  forall {alpha beta : Type} [Fintype alpha] [Fintype beta]
-    (L : Language alpha) (f : alpha -> Language beta),
-    isP L -> (forall a, isP (f a)) -> isP (L.subst f)
-
-/-! ## Grammar/automaton equivalences -/
-
-/-- Right-regular unrestricted grammars recognize exactly Mathlib-regular languages. -/
-theorem is_RG_iff_isRegular {T : Type} [Fintype T] {L : Language T} :
-    is_RG L ↔ L.IsRegular := by sorry
-
-/-- The grammar-defined regular class equals the Mathlib-DFA class. -/
-theorem RG_eq_DFA {T : Type} [Fintype T] :
-    (RG : Set (Language T)) = DFA.Class := by sorry
-
-/-- Mathlib NFAs and DFAs recognize the same languages. -/
-theorem is_NFA_iff_is_DFA {T : Type} {L : Language T} :
-    is_NFA L ↔ is_DFA L := by sorry
-
-/-- The Mathlib-NFA and Mathlib-DFA language classes coincide. -/
-theorem NFA_eq_DFA {T : Type} :
-    (NFA.Class : Set (Language T)) = DFA.Class := by sorry
-
-/-- Context-free unrestricted grammars agree with Mathlib's context-free grammars. -/
-theorem is_CF_iff_isContextFree {T : Type} {L : Language T} :
-    is_CF L ↔ L.IsContextFree := by sorry
-
-/-- Context-free grammars and nondeterministic PDAs recognize the same class. -/
-theorem CF_eq_PDA_Class {T : Type} [Fintype T] :
-    (CF : Set (Language T)) = PDA.Class := by sorry
-
-/-- PDA final-state and empty-stack acceptance recognize the same languages. -/
-theorem is_PDA_finalState_iff_is_PDA_emptyStack {T : Type} [Fintype T]
-    {L : Language T} : PDA.is_PDA_finalState L ↔ PDA.is_PDA_emptyStack L := by sorry
-
-/-- The PDA classes under final-state and empty-stack acceptance coincide. -/
-theorem PDA_FinalStateClass_eq_Class {T : Type} [Fintype T] :
-    (PDA.FinalStateClass : Set (Language T)) = PDA.Class := by sorry
-
-/-- LR grammars and deterministic PDAs recognize the same languages. -/
-theorem is_LR_iff_is_DPDA {T : Type} [Fintype T] {L : Language T} :
-    is_LR L ↔ is_DPDA L := by sorry
-
-/-- The grammar-side LR class is the deterministic context-free class. -/
-theorem is_LR_iff_is_DCF {T : Type} [Fintype T] {L : Language T} :
-    is_LR L ↔ is_DCF L := by sorry
-
-/-- Context-sensitive grammars and nondeterministic endmarker LBAs recognize the same class. -/
-theorem CS_eq_LBA {T : Type} [Fintype T] [DecidableEq T] :
-    (CS : Set (Language T)) = LBA := by sorry
-
-/-- Unrestricted grammars and Mathlib TM0 recognizers define the same class. -/
-theorem TM_eq_RE {T : Type} [DecidableEq T] [Fintype T] :
-    (TM : Set (Language T)) = RE := by sorry
-
 /-! ## Strict extended Chomsky hierarchy -/
+
+namespace ChomskyHierarchy
 
 /-- Over every finite alphabet with at least 2 elements, regular languages are
 strictly contained in linear languages. -/
@@ -750,16 +341,16 @@ theorem Linear_strict_subclass_CF_of_card {T : Type} [Fintype T]
     (Linear : Set (Language T)) ⊂ CF := by sorry
 
 /-- Over every finite alphabet with at least 2 elements, regular languages are
-strictly contained in deterministic context-free languages. -/
-theorem RG_strict_subclass_DCF_of_card {T : Type} [Fintype T]
+strictly contained in LR languages. -/
+theorem RG_strict_subclass_LR_of_card {T : Type} [Fintype T]
     (hT : 2 ≤ Fintype.card T) :
-    (RG : Set (Language T)) ⊂ DCF := by sorry
+    (RG : Set (Language T)) ⊂ LR := by sorry
 
-/-- Over every finite alphabet with at least 3 elements, deterministic
-context-free languages are a strict subclass of context-free languages. -/
-theorem DCF_strict_subclass_CF_of_card {T : Type} [Fintype T]
+/-- Over every finite alphabet with at least 3 elements, LR languages are a
+strict subclass of context-free languages. -/
+theorem LR_strict_subclass_CF_of_card {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T) :
-    (DCF : Set (Language T)) ⊂ CF := by sorry
+    (LR : Set (Language T)) ⊂ CF := by sorry
 
 /-- Over every finite alphabet with at least 3 elements, context-free languages are
 strictly contained in indexed languages. -/
@@ -785,157 +376,4 @@ theorem Recursive_strict_subclass_RE_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :
     (Recursive : Set (Language T)) ⊂ RE := by sorry
 
-/-- Linear languages are not closed under concatenation when the alphabet has at least 4 elements. -/
-theorem Linear_not_closedUnderConcatenation {T : Type} (e : Fin 4 ↪ T) :
-    ¬ ClosedUnderConcatenation (@is_Linear T) := by sorry
-
-/-! ## Closure and non-closure results
-
-Each statement is the full abstract closure property.  A negated statement is
-witnessed in the proof development by concrete languages over the indicated
-finite alphabet; it does not claim failure over every alphabet.
--/
-
-/-- Three-letter alphabet used by the indexed right-quotient counterexample. -/
-inductive CopyLetter where
-  | a | b | separator
-deriving DecidableEq, Inhabited
-
-instance : Fintype CopyLetter where
-  elems := {CopyLetter.a, CopyLetter.b, CopyLetter.separator}
-  complete c := by cases c <;> simp
-
--- Regular languages
-theorem RG_closedUnderUnion {alpha : Type} [Fintype alpha] : ClosedUnderUnion (@is_RG alpha) := by sorry
-theorem RG_closedUnderIntersection {alpha : Type} [Fintype alpha] : ClosedUnderIntersection (@is_RG alpha) := by sorry
-theorem RG_closedUnderComplement {alpha : Type} [Fintype alpha] : ClosedUnderComplement (@is_RG alpha) := by sorry
-theorem RG_closedUnderConcatenation {alpha : Type} [Fintype alpha] : ClosedUnderConcatenation (@is_RG alpha) := by sorry
-theorem RG_closedUnderKleeneStar {alpha : Type} [Fintype alpha] : ClosedUnderKleeneStar (@is_RG alpha) := by sorry
-namespace Language
-theorem RG_closedUnderHomomorphism : ClosedUnderHomomorphism is_RG := by sorry
-theorem RG_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_RG := by sorry
-end Language
-theorem RG_closedUnderSubstitution : ClosedUnderSubstitution is_RG := by sorry
-theorem RG_closedUnderInverseHomomorphism : ClosedUnderInverseHomomorphism is_RG := by sorry
-theorem RG_closedUnderReverse {alpha : Type} [Fintype alpha] : ClosedUnderReverse (@is_RG alpha) := by sorry
-theorem RG_closedUnderIntersectionWithRegular {alpha : Type} [Fintype alpha] : ClosedUnderIntersectionWithRegular (@is_RG alpha) := by sorry
-theorem RG_closedUnderRightQuotient {alpha : Type} [Fintype alpha] : ClosedUnderRightQuotient (@is_RG alpha) := by sorry
-theorem RG_closedUnderRightQuotientWithRegular {alpha : Type} [Fintype alpha] : ClosedUnderRightQuotientWithRegular (@is_RG alpha) := by sorry
-
--- Deterministic context-free languages
-theorem DCF_notClosedUnderUnion : ¬ ClosedUnderUnion (alpha := Fin 3) is_DCF := by sorry
-theorem DCF_notClosedUnderIntersection : ¬ ClosedUnderIntersection (alpha := Fin 3) is_DCF := by sorry
-theorem DCF_closedUnderComplement {T : Type} [Fintype T] :
-    ClosedUnderComplement (alpha := T) is_DCF := by sorry
-namespace DCFConcatenation
-theorem DCF_notClosedUnderConcatenation :
-    ¬ ClosedUnderConcatenation (alpha := Bool ⊕ Fin 3) is_DCF := by sorry
-end DCFConcatenation
-namespace DCFStar
-theorem DCF_notClosedUnderKleeneStar :
-    ¬ ClosedUnderKleeneStar (alpha := Bool ⊕ Fin 3) is_DCF := by sorry
-end DCFStar
-namespace DCFHomomorphism
-theorem DCF_notClosedUnderHomomorphism : ¬ ClosedUnderHomomorphism is_DCF := by sorry
-theorem DCF_notClosedUnderEpsFreeHomomorphism : ¬ ClosedUnderEpsFreeHomomorphism is_DCF := by sorry
-end DCFHomomorphism
-theorem DCF_notClosedUnderSubstitution : ¬ ClosedUnderSubstitution is_DCF := by sorry
-theorem DCF_closedUnderInverseHomomorphism : ClosedUnderInverseHomomorphism is_DCF := by sorry
-theorem DCF_notClosedUnderReverse :
-    ¬ ClosedUnderReverse (alpha := Bool ⊕ Fin 3) is_DCF := by sorry
-theorem DCF_closedUnderIntersectionWithRegular {T : Type} [Fintype T] :
-    ClosedUnderIntersectionWithRegular (alpha := T) is_DCF := by sorry
-theorem DCF_notClosedUnderRightQuotient :
-    ¬ ClosedUnderRightQuotient (alpha := Bool) is_DCF := by sorry
-theorem DCF_closedUnderRightQuotientWithRegular {T : Type} [Fintype T] :
-    ClosedUnderRightQuotientWithRegular (alpha := T) is_DCF := by sorry
-
--- Context-free languages
-theorem CF_closedUnderUnion {T : Type} : ClosedUnderUnion (@is_CF T) := by sorry
-theorem CF_notClosedUnderIntersection : ¬ ClosedUnderIntersection (@is_CF (Fin 3)) := by sorry
-theorem CF_notClosedUnderComplement : ¬ ClosedUnderComplement (@is_CF (Fin 3)) := by sorry
-theorem CF_closedUnderConcatenation {T : Type} : ClosedUnderConcatenation (@is_CF T) := by sorry
-theorem CF_closedUnderKleeneStar {T : Type} : ClosedUnderKleeneStar (@is_CF T) := by sorry
-theorem CF_closedUnderHomomorphism : ClosedUnderHomomorphism is_CF := by sorry
-theorem CF_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_CF := by sorry
-theorem CF_closedUnderSubstitution {alpha : Type} [Fintype alpha] : ClosedUnderSubstitution is_CF := by sorry
-theorem CF_closedUnderInverseHomomorphism : ClosedUnderInverseHomomorphism is_CF := by sorry
-theorem CF_closedUnderReverse {T : Type} : ClosedUnderReverse (@is_CF T) := by sorry
-theorem CF_closedUnderIntersectionWithRegular {T : Type} : ClosedUnderIntersectionWithRegular (@is_CF T) := by sorry
-theorem CF_notClosedUnderRightQuotient :
-    ¬ ClosedUnderRightQuotient (alpha := Bool) is_CF := by sorry
-theorem CF_closedUnderRightQuotientWithRegular {T : Type} : ClosedUnderRightQuotientWithRegular (@is_CF T) := by sorry
-
--- Indexed languages
-theorem Indexed_closedUnderUnion {T : Type} : ClosedUnderUnion (@is_Indexed T) := by sorry
-namespace IndexedIntersectionNonclosure
-theorem Indexed_notClosedUnderIntersection :
-    ¬ ClosedUnderIntersection (alpha := Bool) is_Indexed := by sorry
-end IndexedIntersectionNonclosure
-namespace IndexedComplementNonclosure
-theorem Indexed_notClosedUnderComplement :
-    ¬ ClosedUnderComplement (alpha := Bool) is_Indexed := by sorry
-end IndexedComplementNonclosure
-theorem Indexed_closedUnderConcatenation {T : Type} : ClosedUnderConcatenation (@is_Indexed T) := by sorry
-theorem Indexed_closedUnderKleeneStar {T : Type} : ClosedUnderKleeneStar (@is_Indexed T) := by sorry
-theorem Indexed_closedUnderHomomorphism : ClosedUnderHomomorphism is_Indexed := by sorry
-theorem Indexed_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_Indexed := by sorry
-theorem Indexed_closedUnderSubstitution : ClosedUnderSubstitution is_Indexed := by sorry
-theorem Indexed_closedUnderInverseHomomorphism : ClosedUnderInverseHomomorphism is_Indexed := by sorry
-theorem Indexed_closedUnderReverse {T : Type} : ClosedUnderReverse (@is_Indexed T) := by sorry
-theorem Indexed_closedUnderIntersectionWithRegular {T : Type} [Fintype T] : ClosedUnderIntersectionWithRegular (@is_Indexed T) := by sorry
-theorem Indexed_notClosedUnderRightQuotient :
-    ¬ ClosedUnderRightQuotient (alpha := CopyLetter) is_Indexed := by sorry
-theorem Indexed_closedUnderRightQuotientWithRegular {T : Type} [Fintype T] : ClosedUnderRightQuotientWithRegular (@is_Indexed T) := by sorry
-
--- Context-sensitive languages
-theorem CS_closedUnderUnion {T : Type} : ClosedUnderUnion (@is_CS T) := by sorry
-theorem CS_closedUnderIntersection {T : Type} [Fintype T] [DecidableEq T] : ClosedUnderIntersection (@is_CS T) := by sorry
-theorem CS_closedUnderComplement {T : Type} [Fintype T] : ClosedUnderComplement (@is_CS T) := by sorry
-theorem CS_closedUnderConcatenation {T : Type} : ClosedUnderConcatenation (@is_CS T) := by sorry
-theorem CS_closedUnderKleeneStar {T : Type} : ClosedUnderKleeneStar (@is_CS T) := by sorry
-theorem CS_notClosedUnderHomomorphism : ¬ ClosedUnderHomomorphism is_CS := by sorry
-theorem CS_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_CS := by sorry
-theorem CS_notClosedUnderSubstitution : ¬ ClosedUnderSubstitution is_CS := by sorry
-theorem CS_closedUnderInverseHomomorphism : ClosedUnderInverseHomomorphism is_CS := by sorry
-theorem CS_closedUnderReverse {T : Type} : ClosedUnderReverse (@is_CS T) := by sorry
-theorem CS_closedUnderIntersectionWithRegular {T : Type} [Fintype T] [DecidableEq T] : ClosedUnderIntersectionWithRegular (@is_CS T) := by sorry
-theorem CS_notClosedUnderRightQuotient :
-    ¬ ClosedUnderRightQuotient (alpha := Option Unit) is_CS := by sorry
-theorem CS_notClosedUnderRightQuotientWithRegular :
-    ¬ ClosedUnderRightQuotientWithRegular (alpha := Option Unit) is_CS := by sorry
-
--- Recursive languages
-theorem Recursive_closedUnderUnion {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] : ClosedUnderUnion (@is_Recursive T) := by sorry
-theorem Recursive_closedUnderIntersection {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] : ClosedUnderIntersection (@is_Recursive T) := by sorry
-theorem Recursive_closedUnderComplement {T : Type} : ClosedUnderComplement (@is_Recursive T) := by sorry
-theorem Recursive_closedUnderConcatenation {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] : ClosedUnderConcatenation (@is_Recursive T) := by sorry
-theorem Recursive_closedUnderKleeneStar {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] : ClosedUnderKleeneStar (@is_Recursive T) := by sorry
-theorem Recursive_notClosedUnderHomomorphism : ¬ ClosedUnderHomomorphism is_Recursive := by sorry
-theorem Recursive_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_Recursive := by sorry
-theorem Recursive_notClosedUnderSubstitution : ¬ ClosedUnderSubstitution is_Recursive := by sorry
-theorem Recursive_closedUnderInverseHomomorphism : ClosedUnderInverseHomomorphism is_Recursive := by sorry
-namespace RecursiveReverse
-theorem Recursive_closedUnderReverse {T : Type} [DecidableEq T] [Fintype T] :
-    ClosedUnderReverse (alpha := T) is_Recursive := by sorry
-end RecursiveReverse
-theorem Recursive_closedUnderIntersectionWithRegular {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] : ClosedUnderIntersectionWithRegular (@is_Recursive T) := by sorry
-theorem Recursive_notClosedUnderRightQuotient :
-    ¬ ClosedUnderRightQuotient (alpha := Bool) is_Recursive := by sorry
-theorem Recursive_notClosedUnderRightQuotientWithRegular :
-    ¬ ClosedUnderRightQuotientWithRegular (alpha := Bool) is_Recursive := by sorry
-
--- Recursively enumerable languages
-theorem RE_closedUnderUnion {T : Type} : ClosedUnderUnion (@is_RE T) := by sorry
-theorem RE_closedUnderIntersection {T : Type} [DecidableEq T] [Fintype T] : ClosedUnderIntersection (@is_RE T) := by sorry
-theorem RE_notClosedUnderComplement : ¬ ClosedUnderComplement (@is_RE Unit) := by sorry
-theorem RE_closedUnderConcatenation {T : Type} : ClosedUnderConcatenation (@is_RE T) := by sorry
-theorem RE_closedUnderKleeneStar {T : Type} : ClosedUnderKleeneStar (@is_RE T) := by sorry
-theorem RE_closedUnderHomomorphism : ClosedUnderHomomorphism is_RE := by sorry
-theorem RE_closedUnderEpsFreeHomomorphism : ClosedUnderEpsFreeHomomorphism is_RE := by sorry
-theorem RE_closedUnderSubstitution : ClosedUnderSubstitution is_RE := by sorry
-theorem RE_closedUnderInverseHomomorphism : ClosedUnderInverseHomomorphism is_RE := by sorry
-theorem RE_closedUnderReverse {T : Type} : ClosedUnderReverse (@is_RE T) := by sorry
-theorem RE_closedUnderIntersectionWithRegular {T : Type} [DecidableEq T] [Fintype T] : ClosedUnderIntersectionWithRegular (@is_RE T) := by sorry
-theorem RE_closedUnderRightQuotient {T : Type} [DecidableEq T] [Fintype T] : ClosedUnderRightQuotient (@is_RE T) := by sorry
-theorem RE_closedUnderRightQuotientWithRegular {T : Type} [DecidableEq T] [Fintype T] : ClosedUnderRightQuotientWithRegular (@is_RE T) := by sorry
+end ChomskyHierarchy
