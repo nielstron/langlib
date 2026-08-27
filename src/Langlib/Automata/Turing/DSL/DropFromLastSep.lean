@@ -4,7 +4,7 @@ public import Aesop.BuiltinRules
 public import Mathlib.Tactic.Attr.Core
 public import Mathlib.Tactic.ToAdditive
 public import Mathlib.Tactic.ToDual
-public import Mathlib.Computability.TuringMachine
+public import Mathlib.Computability.TuringMachine.StackTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic

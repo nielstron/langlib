@@ -39,26 +39,27 @@ inductive NT (N : Type) where
   | terminal : A → NT N
 
 /-- Lift every source symbol to a nonterminal over the target terminal alphabet. -/
-def liftSymbol {N : Type} : symbol A N → symbol T (NT (A := A) N)
+@[reducible] def liftSymbol {N : Type} : symbol A N → symbol T (NT (A := A) N)
   | .terminal a => .nonterminal (.terminal a)
   | .nonterminal n => .nonterminal (.source n)
 
 /-- Lift a source context-preserving rule. -/
-def liftRule {N : Type} (r : csrule A N) : csrule T (NT (A := A) N) where
+@[reducible] def liftRule {N : Type} (r : csrule A N) : csrule T (NT (A := A) N) where
   context_left := r.context_left.map liftSymbol
   input_nonterminal := .source r.input_nonterminal
   context_right := r.context_right.map liftSymbol
   output_string := r.output_string.map liftSymbol
 
 /-- Convert one private source-terminal nonterminal to its ambient terminal. -/
-def terminalRule {N : Type} (f : A → T) (a : A) : csrule T (NT (A := A) N) where
+@[reducible] def terminalRule {N : Type} (f : A → T) (a : A) : csrule T (NT (A := A) N) where
   context_left := []
   input_nonterminal := .terminal a
   context_right := []
   output_string := [.terminal (f a)]
 
 /-- Embed a context-preserving grammar along an injective terminal map. -/
-noncomputable def grammar [Fintype A] [DecidableEq A] (g : CS_grammar A) (f : A ↪ T) :
+@[reducible] noncomputable def grammar [Fintype A] [DecidableEq A]
+    (g : CS_grammar A) (f : A ↪ T) :
     CS_grammar T where
   nt := NT (A := A) g.nt
   initial := .source g.initial
@@ -69,7 +70,7 @@ noncomputable def grammar [Fintype A] [DecidableEq A] (g : CS_grammar A) (f : A 
     simp only [List.mem_append, List.mem_map] at hr
     rcases hr with ⟨r, hr, rfl⟩ | ⟨a, _ha, rfl⟩
     · simpa [liftRule] using g.output_nonempty r hr
-    · simp [terminalRule]
+    · simp
 
 private lemma map_liftSymbol_injective {N : Type} :
     Function.Injective (List.map (@liftSymbol A T N)) := by
@@ -86,8 +87,8 @@ private lemma sim_transform [Fintype A] [DecidableEq A]
   obtain ⟨r, u, v, hr, rfl, rfl⟩ := h
   refine ⟨liftRule r, u.map liftSymbol, v.map liftSymbol, ?_, ?_, ?_⟩
   · exact List.mem_append_left _ (List.mem_map.mpr ⟨r, hr, rfl⟩)
-  · simp [liftRule, List.map_append, liftSymbol, List.append_assoc]
-  · simp [liftRule, List.map_append, List.append_assoc]
+  · simp [List.map_append, liftSymbol, List.append_assoc]
+  · simp [List.map_append, List.append_assoc]
 
 /-- A source derivation is simulated by the embedded grammar. -/
 private lemma sim_derives [Fintype A] [DecidableEq A]
@@ -108,8 +109,8 @@ private lemma unlift_one [Fintype A] [DecidableEq A]
   refine ⟨terminalRule (N := g.nt) f a, u, v, ?_, ?_, ?_⟩
   · apply List.mem_append_right
     exact List.mem_map.mpr ⟨a, by simp, rfl⟩
-  · simp [terminalRule, List.append_assoc]
-  · simp [terminalRule, List.append_assoc]
+  · simp [List.append_assoc]
+  · simp [List.append_assoc]
 
 /-- Expose every private terminal in a word. -/
 private lemma unlift_all [Fintype A] [DecidableEq A]
@@ -120,10 +121,20 @@ private lemma unlift_all [Fintype A] [DecidableEq A]
   induction w with
   | nil => exact Relation.ReflTransGen.refl
   | cons a w ih =>
+      change CS_derives (grammar g f)
+        (symbol.nonterminal (NT.terminal a) ::
+          w.map (fun a => symbol.nonterminal (NT.terminal a)))
+        (symbol.terminal (f a) :: (w.map f).map symbol.terminal)
       have hhead := unlift_one g f a []
         (w.map fun a => symbol.nonterminal (NT.terminal a))
       have htail := CS_deri_with_context [symbol.terminal (f a)] [] ih
-      exact (Relation.ReflTransGen.single (by simpa using hhead)).trans (by simpa using htail)
+      exact CS_deri_of_deri_deri
+        (CS_deri_of_tran (by
+          simpa only [List.nil_append, List.append_nil, List.singleton_append]
+            using hhead))
+        (by
+          simpa only [List.nil_append, List.append_nil, List.singleton_append]
+            using htail)
 
 /-- Forward language inclusion for terminal embeddings. -/
 private lemma map_language_subset [Fintype A] [DecidableEq A]
@@ -135,11 +146,18 @@ private lemma map_language_subset [Fintype A] [DecidableEq A]
   have hunlift' : CS_derives (grammar g f)
       ((u.map symbol.terminal).map (@liftSymbol A T g.nt))
       ((u.map f).map symbol.terminal) := by
-    simpa [liftSymbol, List.map_map] using hunlift
+    have hsource :
+        (u.map symbol.terminal).map (@liftSymbol A T g.nt) =
+          u.map (fun a => symbol.nonterminal (NT.terminal a)) := by
+      rw [List.map_map]
+      rfl
+    rw [hsource]
+    exact hunlift
   change CS_derives (grammar g f)
     [symbol.nonterminal (grammar g f).initial]
     ((u.map f).map symbol.terminal)
-  simpa [grammar, liftSymbol, List.map_map] using hsim.trans hunlift'
+  have hcombined := CS_deri_of_deri_deri hsim hunlift'
+  exact hcombined
 
 section Projection
 
@@ -148,7 +166,7 @@ variable [Nonempty A]
 /-- Project an embedded sentential symbol to the source grammar.  Ambient terminals not in
 the embedding's range may be sent to the arbitrary `invFun` default; the support invariant
 below proves that no such terminal is reachable. -/
-noncomputable def projectSymbol {N : Type} (f : A ↪ T) :
+@[reducible] noncomputable def projectSymbol {N : Type} (f : A ↪ T) :
     symbol T (NT (A := A) N) → symbol A N
   | .terminal t => .terminal (Function.invFun f t)
   | .nonterminal (.source n) => .nonterminal n
@@ -180,17 +198,16 @@ private lemma project_transform [Fintype A] [DecidableEq A]
   · apply CS_deri_of_tran
     refine ⟨r₀, u.map (projectSymbol f), v.map (projectSymbol f), hr₀, ?_, ?_⟩
     · rw [hs₁]
-      simp only [liftRule, List.map_append, List.map_cons, List.map_nil]
+      simp only [List.map_append, List.map_cons, List.map_nil]
       rw [project_map_liftSymbol f r₀.context_left,
         project_map_liftSymbol f r₀.context_right]
-      simp [projectSymbol, List.append_assoc]
     · rw [hs₂]
-      simp only [liftRule, List.map_append]
+      simp only [List.map_append]
       rw [project_map_liftSymbol f r₀.context_left,
         project_map_liftSymbol f r₀.output_string,
         project_map_liftSymbol f r₀.context_right]
   · rw [hs₁, hs₂]
-    simp [terminalRule, List.map_append, projectSymbol,
+    simp [List.map_append, projectSymbol,
       Function.leftInverse_invFun f.injective a, List.append_assoc]
     exact CS_deri_self
 
@@ -216,7 +233,7 @@ private lemma supported_initial [Fintype A] [DecidableEq A]
     (g : CS_grammar A) (f : A ↪ T) :
     Supported f [symbol.nonterminal (grammar g f).initial] := by
   intro t ht
-  simp [grammar] at ht
+  simp at ht
 
 omit [Nonempty A] in
 private lemma supported_transform [Fintype A] [DecidableEq A]
@@ -235,7 +252,7 @@ private lemma supported_transform [Fintype A] [DecidableEq A]
       obtain ⟨s, _hs, heq⟩ := hmem
       cases s <;> simp [liftSymbol] at heq
     rw [hs₂] at ht
-    simp only [liftRule, List.mem_append] at ht
+    simp only [List.mem_append] at ht
     have htuv : symbol.terminal t ∈ u ∨ symbol.terminal t ∈ v := by
       rcases ht with (((hu | hcl) | hout) | hcr) | hv
       · exact Or.inl hu
@@ -246,19 +263,19 @@ private lemma supported_transform [Fintype A] [DecidableEq A]
     apply hs t
     rw [hs₁]
     rcases htuv with hu | hv
-    · simp [liftRule, List.mem_append, hu]
-    · simp [liftRule, List.mem_append, hv]
+    · simp [List.mem_append, hu]
+    · simp [List.mem_append, hv]
   · intro t ht
     rw [hs₂] at ht
-    simp [terminalRule, List.mem_append] at ht
+    simp [List.mem_append] at ht
     rcases ht with ht | rfl | ht
     · apply hs t
       rw [hs₁]
-      simp [terminalRule, List.mem_append, ht]
+      simp [List.mem_append, ht]
     · exact ⟨a, rfl⟩
     · apply hs t
       rw [hs₁]
-      simp [terminalRule, List.mem_append, ht]
+      simp [List.mem_append, ht]
 
 omit [Nonempty A] in
 private lemma supported_derives [Fintype A] [DecidableEq A]
@@ -290,7 +307,22 @@ private lemma language_subset_map [Fintype A] [DecidableEq A]
   refine ⟨u, ?_, hleft⟩
   have hproj := project_derives g f hw
   change CS_derives g [symbol.nonterminal g.initial] (u.map symbol.terminal)
-  simpa [grammar, u, projectSymbol, List.map_map] using hproj
+  simp only [u, List.map_map, Function.comp_def]
+  have hstart :
+      ([symbol.nonterminal (grammar g f).initial] :
+        List (symbol T (grammar g f).nt)).map (projectSymbol f) =
+        [symbol.nonterminal g.initial] := by
+    rfl
+  have hend :
+      (w.map (fun t =>
+        (symbol.terminal t : symbol T (NT (A := A) g.nt)))).map
+          (projectSymbol (N := g.nt) f) =
+        w.map (fun t =>
+          (symbol.terminal (Function.invFun f t) : symbol A g.nt)) := by
+    rw [List.map_map]
+    rfl
+  rw [hstart, hend] at hproj
+  exact hproj
 
 end Projection
 
@@ -315,7 +347,12 @@ private lemma nil_not_mem_of_noncontracting_language {L : Language T}
   obtain ⟨g, hnc, hlang⟩ := hL
   intro hnil
   have hder : grammar_derives g [symbol.nonterminal g.initial] [] := by
-    simpa [← hlang, grammar_language, grammar_generates] using hnil
+    have hgen : grammar_generates g [] := by
+      change [] ∈ grammar_language g
+      rw [hlang]
+      exact hnil
+    unfold grammar_generates at hgen
+    simpa only [List.map_nil] using hgen
   have hlen :
       ([symbol.nonterminal g.initial] : List (symbol T g.nt)).length ≤
         ([] : List (symbol T g.nt)).length := by
@@ -338,10 +375,10 @@ private theorem is_CS_via_csg_of_is_noncontracting_finite
     is_LBA_pos_of_isCS_not_nil (is_CS_of_is_noncontracting hL)
       (nil_not_mem_of_noncontracting_language hL)
   obtain ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M, hM⟩ := hpos
-  letI := hΓ
-  letI := hΛ
-  letI := hdΓ
-  letI := hdΛ
+  let := hΓ
+  let := hΛ
+  let := hdΓ
+  let := hdΛ
   let emb : A ↪ Option (A ⊕ Γ) :=
     ⟨fun a => some (Sum.inl a), fun _ _ h => by simpa using h⟩
   refine ⟨MyhillConstruction.myhillGrammar M emb, ?_⟩
@@ -366,12 +403,12 @@ public theorem is_CS_via_csg_of_is_noncontracting {L : Language T}
     obtain ⟨g₀, _hfin, hnc, hcore⟩ := exists_noncontracting_offEmpty_of_CS g hg
     refine ⟨g₀, hnc, ?_⟩
     rw [hcore, hlang]
-    exact Set.diff_singleton_eq_self hnil'
+    exact Set.sdiff_singleton_eq_self hnil'
   let f : {t : T // t ∈ S} ↪ T :=
     ⟨Subtype.val, Subtype.val_injective⟩
   cases isEmpty_or_nonempty {t : T // t ∈ S} with
   | inl hempty =>
-      letI := hempty
+      let := hempty
       let g : CS_grammar T :=
         { nt := Unit
           initial := ()
@@ -396,7 +433,7 @@ public theorem is_CS_via_csg_of_is_noncontracting {L : Language T}
         subst u
         exact (hnil' hu).elim
   | inr hnonempty =>
-      letI := hnonempty
+      let := hnonempty
       obtain ⟨g, hg⟩ := is_CS_via_csg_of_is_noncontracting_finite hnc'
       refine ⟨CSGTerminalEmbedding.grammar g f, ?_⟩
       calc

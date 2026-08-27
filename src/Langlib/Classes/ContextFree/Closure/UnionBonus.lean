@@ -53,6 +53,7 @@ This file records a direct grammar construction for context-free closure under u
 
 variable {T : Type}
 
+@[reducible]
 private def union_grammar (g₁ g₂ : CF_grammar T) : CF_grammar T :=
 CF_grammar.mk (Option (g₁.nt ⊕ g₂.nt)) none (
   (none, [symbol.nonterminal (some (Sum.inl (g₁.initial)))]) ::
@@ -77,6 +78,7 @@ private def oN₂_of_N : (union_grammar g₁ g₂).nt → (Option g₂.nt)
 
 
 
+@[reducible]
 private def g₁g : @lifted_grammar T :=
 lifted_grammar.mk g₁ (union_grammar g₁ g₂) (some ∘ Sum.inl)
   (by intro x y h; cases h; rfl)
@@ -128,6 +130,7 @@ lifted_grammar.mk g₁ (union_grammar g₁ g₂) (some ∘ Sum.inl)
   )
   (by intro; rfl)
 
+@[reducible]
 private def g₂g : @lifted_grammar T :=
 lifted_grammar.mk g₂ (union_grammar g₁ g₂) (some ∘ Sum.inr)
   (by intro x y h; cases h; rfl)
@@ -391,7 +394,8 @@ by
   refine ⟨union_grammar g₁ g₂, ?_⟩
   apply Set.eq_of_subset_of_subset
   · intro w hyp
-    rw [Language.mem_add, ←eq_L₁, ←eq_L₂]
+    change L₁ w ∨ L₂ w
+    rw [←eq_L₁, ←eq_L₂]
     exact in_language_of_in_union w hyp
   · intro w hyp
     cases hyp with

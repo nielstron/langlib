@@ -61,7 +61,11 @@ public theorem ActiveSpine.derivesRightmost (M : DPDA Q T S)
           (p₀ ++ r.2 ++ t.map symbol.terminal) := by
         refine ⟨r, hr, p₀, t, ?_, rfl⟩
         rw [hlhs]
-      have hintroduced := ih.tail hstep
+        rfl
+      have hintroduced : (characteristicGrammar M).DerivesRightmost
+          [symbol.nonterminal (characteristicGrammar M).initial]
+          (p₀ ++ r.2 ++ t.map symbol.terminal) :=
+        ih.tail hstep
       let pre : List (symbol T (Nonterminal M)) :=
         p₀ ++ alpha ++ [symbol.nonterminal child]
       have hintroduced' : (characteristicGrammar M).DerivesRightmost
@@ -69,7 +73,12 @@ public theorem ActiveSpine.derivesRightmost (M : DPDA Q T S)
           (pre ++ (beta ++ t.map symbol.terminal)) := by
         dsimp [pre]
         simpa [hrhs, List.append_assoc] using hintroduced
-      have hfinish := (hbeta.append_terminals_right t).append_left pre
+      have hfinish : (characteristicGrammar M).DerivesRightmost
+          (pre ++ (beta ++ t.map symbol.terminal))
+          (pre ++ (z.map symbol.terminal ++ t.map symbol.terminal)) :=
+        (hbeta.append_terminals_right t).append_left pre
+      change Relation.ReflTransGen
+        (characteristicGrammar M).ProducesRightmost _ _
       simpa [pre, List.map_append, List.append_assoc] using
         hintroduced'.trans hfinish
 

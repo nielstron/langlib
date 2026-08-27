@@ -76,9 +76,11 @@ public lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l
       exact fun pl s => if s.1.1 = 0 then ( 0, s.1.2 ) else ( s.1.1 - 1, s.1.2 ++ [ s.2 ] );
       · exact Primrec.snd;
       · exact Primrec.pair ( Primrec.fst ) ( Primrec.const _ );
-      · convert h_take.comp _ _ using 1;
-        · exact Primrec.fst.comp ( Primrec.snd );
-        · exact Primrec.snd.comp ( Primrec.snd );
+      · exact h_take.comp
+          (show Primrec (fun p : (ℕ × List α) × ((ℕ × List α) × α) => p.2.1) from
+            Primrec.fst.comp Primrec.snd)
+          (show Primrec (fun p : (ℕ × List α) × ((ℕ × List α) × α) => p.2.2) from
+            Primrec.snd.comp Primrec.snd)
       · rfl;
     exact Primrec.snd.comp h_foldl;
   have h_take_eq : ∀ n l, (l.foldl (fun (s : ℕ × List α) (x : α) => if s.1 = 0 then (0, s.2) else (s.1 - 1, s.2 ++ [x])) (n, [])).2 = take n l := by
@@ -93,7 +95,8 @@ public lemma primrec₂_list_take : Primrec₂ (fun (n : ℕ) (l : List α) => l
         intro n x; induction' x using List.reverseRecOn with x l ih <;> simp_all +decide [  ] ;
         lia;
       exact h_foldl n x ▸ Nat.pos_of_ne_zero ‹_›;
-  simpa only [ ← h_take_eq ] using h_take.comp ( Primrec.fst.pair Primrec.snd )
+  change Primrec (fun p : ℕ × List α => take p.1 p.2)
+  simpa only [← h_take_eq] using h_take
 
 /-
 `List.drop` is primitive recursive (as a function of both arguments).
@@ -141,8 +144,8 @@ theorem computable₂_flatMap_eq_finite {α β : Type} [DecidableEq β]
     (h : α → List β) :
     Computable₂ (fun w : List α => fun u : List β => decide (w.flatMap h = u)) := by
   apply Computable₂.mk
-  simpa only [decide_eq_true_eq] using
-    (Primrec.beq.comp ((primrec_flatMap_finite h).comp Primrec.fst) Primrec.snd).to_comp
+  exact (Primrec.eq.decide.comp
+    ((primrec_flatMap_finite h).comp Primrec.fst) Primrec.snd).to_comp
 
 end PrimrecFiniteHomomorphism
 
@@ -161,10 +164,9 @@ public lemma primrec_list_any {f : α → List β} {p : α → β → Bool}
   have hp_step : Primrec (fun (ab : α × (β × Bool)) => p ab.1 ab.2.1 || ab.2.2) := by
     have hp_step : Primrec (fun (ab : α × β) => p ab.1 ab.2) := by
       exact Primrec₂.curry.mp hp;
-    convert Primrec.cond ?_ ?_ ?_ using 1;
-    · exact hp_step.comp ( Primrec.fst.pair ( Primrec.fst.comp Primrec.snd ) );
-    · exact Primrec.const Bool.true;
-    · exact Primrec.snd.comp ( Primrec.snd );
+    exact Primrec.or.comp
+      (hp_step.comp (Primrec.fst.pair (Primrec.fst.comp Primrec.snd)))
+      (Primrec.snd.comp Primrec.snd)
   convert Primrec.list_foldr _ _ _ (f := fun a => f a) using 2;
   rotate_left;
   exact fun _ => Bool.false;

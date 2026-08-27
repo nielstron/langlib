@@ -50,14 +50,12 @@ This file defines the class of indexed languages via indexed grammars.
 variable {T : Type}
 
 /-- Predicate that a language is an indexed language. -/
-@[expose]
 public def is_Indexed (L : Language T) : Prop :=
   ∃ g : IndexedGrammar T, g.Language = L
 
 /-- The class of indexed languages. -/
-@[expose]
 public def Indexed : Set (Language T) :=
-  setOf is_Indexed
+  Set.ofPred is_Indexed
 
 /-- Predicate that a language has an indexed-grammar witness with no ε-productions. -/
 def is_Indexed_noEpsilon (L : Language T) : Prop :=
@@ -65,7 +63,7 @@ def is_Indexed_noEpsilon (L : Language T) : Prop :=
 
 /-- The class of indexed languages with an ε-free indexed-grammar witness. -/
 def IndexedNoEpsilon : Set (Language T) :=
-  setOf is_Indexed_noEpsilon
+  Set.ofPred is_Indexed_noEpsilon
 
 theorem is_Indexed_of_is_Indexed_noEpsilon {L : Language T}
     (h : is_Indexed_noEpsilon L) : is_Indexed L := by

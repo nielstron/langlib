@@ -78,7 +78,6 @@ variable (M : DFA α σ) (τ : α → Type) [inst_fin : ∀ a, Fintype (τ a)]
   (N : (a : α) → DFA β (τ a))
 
 /-- ε-NFA for the substitution of a DFA language by a family of DFA languages. -/
-@[expose]
 public noncomputable def substεNFA : εNFA β (σ ⊕ (σ × (Σ a : α, τ a))) where
   step := fun state c =>
     match state, c with
@@ -153,7 +152,8 @@ private lemma evalFrom_append (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (u v 
     (substεNFA M τ N).evalFrom ((substεNFA M τ N).evalFrom S u) v := by
   -- By definition of `evalFrom`, we can rewrite the goal using the fold operation and the properties of `εClosure`.
   have h_evalFrom_fold : ∀ (S : Set (σ ⊕ (σ × (Σ a : α, τ a)))) (w : List β), (substεNFA M τ N).evalFrom S w = (w.foldl (fun T c => (substεNFA M τ N).stepSet T c) ((substεNFA M τ N).εClosure S)) := by
-    grind;
+    intro S w
+    rfl
   rw [ h_evalFrom_fold, h_evalFrom_fold, h_evalFrom_fold, List.foldl_append ];
   convert rfl using 2;
   -- Apply the εClosure_idempotent lemma to conclude the proof.
@@ -213,7 +213,7 @@ private lemma backward_eval (q : σ) (w : List α) (u : List β)
     Sum.inl (M.evalFrom q w) ∈ (substεNFA M τ N).evalFrom {Sum.inl q} u := by
   induction' w with a w ih generalizing q u;
   · cases hu;
-    exact Set.mem_setOf.mpr ( by tauto );
+    exact Set.mem_ofPred.mpr ( by tauto );
   · obtain ⟨ u₁, u₂, rfl, hu₁, hu₂ ⟩ : ∃ u₁ u₂, u = u₁ ++ u₂ ∧ u₁ ∈ (N a).accepts ∧ u₂ ∈ (List.map (fun a => (N a).accepts) w).prod := by
       rw [ mem_list_prod_iff_forall2 ] at hu;
       rcases hu with ⟨ W, rfl, hW ⟩ ; rcases W with ( _ | ⟨ u₁, W ⟩ ) <;> simp_all +decide [ List.forall₂_cons ] ;
@@ -269,7 +269,7 @@ private lemma εClosure_inr_cases (q : σ) (a : α) (t : τ a)
     rename_i h₁ h₂ h₃;
     rcases h₃ with ( rfl | ⟨ ht, h₃ ⟩ );
     · by_cases h : t ∈ ( N a ).accept <;> simp +decide [ h ] at h₁ ⊢;
-      exact Or.inr ( by exact Set.mem_setOf.mpr <| by tauto );
+      exact Or.inr ( by exact Set.mem_ofPred.mpr <| by tauto );
     · refine' Or.inr ⟨ ht, _ ⟩;
       apply_rules [ εNFA.εClosure.step ]
 
@@ -338,10 +338,13 @@ private lemma forward_step_analysis (q : σ) (v' : List β) (b : β)
     obtain ⟨w_extra, hw_extra⟩ : ∃ w_extra : List α, M.evalFrom (M.step q₀ a₀) w_extra = q' ∧ [] ∈ (w_extra.map (fun a => (N a).accepts)).prod := by
       have := εClosure_inl_inv ( M.step q₀ a₀ ) x hx'; aesop;
     refine' ⟨ w₀ ++ [ a₀ ] ++ w_extra, _, _ ⟩ <;> simp_all +decide [ DFA.evalFrom ];
-    refine' ⟨ v₁, _, v₂ ++ [ b ], _, _ ⟩ <;> simp_all +decide [ Language.mul_def ];
-    refine' ⟨ v₂ ++ [ b ], _, [ ], _, _ ⟩ <;> simp_all +decide [ DFA.accepts ];
-    convert ht' using 1;
-    simp +decide [ DFA.acceptsFrom, DFA.evalFrom ];
+    apply (Language.mem_mul).mpr
+    refine ⟨v₁, hv₁_prod, v₂ ++ [b], ?_, by simp⟩
+    apply (Language.mem_mul).mpr
+    refine ⟨v₂ ++ [b], ?_, [], hw_extra.2, by simp⟩
+    rw [DFA.mem_accepts]
+    rw [DFA.eval_append_singleton]
+    exact ht'
   · rename_i q' a s hs;
     have hεClosure_cases : x = Sum.inr (q₀, ⟨a₀, (N a₀).step t₀ b⟩) ∨ ( (N a₀).step t₀ b ∈ (N a₀).accept ∧ x ∈ (substεNFA M τ N).εClosure {Sum.inl (M.step q₀ a₀)} ) := by
       apply εClosure_inr_cases; assumption;
@@ -354,8 +357,8 @@ private lemma forward_step_analysis (q : σ) (v' : List β) (b : β)
       · have h_prod : v₁ ++ (v₂ ++ [b]) ∈ ((w₀ ++ [a₀] ++ w).map (fun a => (N a).accepts)).prod := by
           apply step_prod_mem;
           · assumption;
-          · simp_all +decide [ DFA.mem_accepts ];
-            convert h₁ using 1;
+          · rw [DFA.mem_accepts]
+            simpa only [DFA.eval, DFA.evalFrom_append_singleton, ht₀] using h₁
           · exact hw₂;
         grind
 
@@ -433,7 +436,7 @@ public theorem IsRegular.subst' {L : Language α} {f : α → Language β}
     (L.subst f).IsRegular := by
   obtain ⟨σ, _, M, rfl⟩ := hL
   choose τ_type τ_fin N_dfa hN using hf
-  haveI := τ_fin
+  have := τ_fin
   rw [show f = fun a => (N_dfa a).accepts from funext (fun a => (hN a).symm)]
   rw [← substεNFA_correct (M := M) (τ := τ_type) (N := N_dfa)]
   exact ⟨_, inferInstance, (substεNFA M τ_type N_dfa).toNFA.toDFA,

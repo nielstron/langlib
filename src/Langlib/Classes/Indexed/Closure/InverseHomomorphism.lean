@@ -60,6 +60,7 @@ private def productBodyRules (g : IndexedGrammar T) (D : DFA T Q) :
       (threadIRhs D g r.rhs p).map fun ⟨out, q⟩ =>
         { lhs := some (p, r.lhs, q), consume := r.consume, rhs := out }
 
+@[reducible]
 private def indexedDFAProduct (g : IndexedGrammar T) (D : DFA T Q) : IndexedGrammar T where
   nt := ProductNT g Q
   flag := g.flag
@@ -242,10 +243,11 @@ private lemma forward_form (g : IndexedGrammar T) (D : DFA T Q) (bound : ℕ)
       subst w
       refine ⟨?_, ?_⟩
       · simpa [List.map_append] using
-          (IndexedGrammar.deri_with_suffix _ hleft).trans
+          IndexedGrammar.deri_of_deri_deri
+            (IndexedGrammar.deri_with_suffix _ hleft)
             (IndexedGrammar.deri_with_prefix
               (u.map fun a => (IndexedGrammar.ISym.terminal a : g.ISym)) hright)
-      · simpa [DFA.evalFrom_of_append, hevalLeft, hevalRight]
+      · simp [DFA.evalFrom_of_append, hevalLeft, hevalRight]
 
 private lemma singleton_eq_append_singleton {X : Type} {a b : X}
     {u v : List X} (h : [a] = u ++ [b] ++ v) :
@@ -275,7 +277,7 @@ private lemma forward_key (g : IndexedGrammar T) (D : DFA T Q)
           have hsplit : (indexedDFAProduct g D).DerivesIn (1 + n)
               [.indexed (some (p, A, q)) σ]
               (w.map fun a => IndexedGrammar.ISym.terminal a) := by
-            convert hder using 1 <;> omega
+            convert hder using 1 ; omega
           rcases IndexedGrammar.derivesIn_split (m := 1) (n := n) hsplit with
             ⟨midForm, hfirst, hrest⟩
           rcases hfirst with ⟨before, hzero, hstep⟩
@@ -428,7 +430,8 @@ private lemma backward_rhs (g : IndexedGrammar T) (D : DFA T Q) (bound : ℕ)
           refine ⟨.nonterminal (some (p, A, mid)) push :: out,
             ThreadsRhs.nonterminal A push hthread, ?_⟩
           have hcombined :=
-            (IndexedGrammar.deri_with_suffix _ hleft).trans
+            IndexedGrammar.deri_of_deri_deri
+              (IndexedGrammar.deri_with_suffix _ hleft)
               (IndexedGrammar.deri_with_prefix
                 (u.map fun a =>
                   (IndexedGrammar.ISym.terminal a : (indexedDFAProduct g D).ISym))
@@ -453,7 +456,7 @@ private lemma backward_key (g : IndexedGrammar T) (D : DFA T Q)
       | succ n =>
           have hsplit : g.DerivesIn (1 + n) [.indexed A σ]
               (w.map fun a => IndexedGrammar.ISym.terminal a) := by
-            convert hder using 1 <;> omega
+            convert hder using 1 ; omega
           rcases IndexedGrammar.derivesIn_split (m := 1) (n := n) hsplit with
             ⟨midForm, hfirst, hrest⟩
           rcases hfirst with ⟨before, hzero, hstep⟩
@@ -568,7 +571,7 @@ private theorem indexedDFAProduct_language (g : IndexedGrammar T) (D : DFA T Q) 
         have hsplit : (indexedDFAProduct g D).DerivesIn (1 + n)
             [.indexed none []]
             (w.map fun a => IndexedGrammar.ISym.terminal a) := by
-          convert hn using 1 <;> omega
+          convert hn using 1 ; omega
         rcases IndexedGrammar.derivesIn_split (m := 1) (n := n) hsplit with
           ⟨midForm, hfirst, hrest⟩
         rcases hfirst with ⟨before, hzero, hstep⟩
@@ -592,13 +595,13 @@ private theorem indexedDFAProduct_language (g : IndexedGrammar T) (D : DFA T Q) 
             D.evalFrom D.start w)) none]⟩ :
           IRule T (ProductNT g Q) g.flag), [], [], [], hstartRule, ?_, rfl⟩
       simp [indexedDFAProduct]
-    · simpa using hbody
+    · simpa [IndexedGrammar.expandRhs] using hbody
 
 private theorem Indexed_inter_regular {L R : Language T}
     (hL : is_Indexed L) (hR : R.IsRegular) : is_Indexed (L ⊓ R) := by
   rcases hL with ⟨g, rfl⟩
   rcases Language.isRegular_iff.mp hR with ⟨Q', instQ', D, rfl⟩
-  letI : Fintype Q' := instQ'
+  let : Fintype Q' := instQ'
   exact ⟨indexedDFAProduct g D, indexedDFAProduct_language g D⟩
 
 private theorem Indexed_fInv {α β : Type} [Fintype α] [Fintype β]
@@ -626,6 +629,6 @@ public theorem Indexed_closedUnderInverseHomomorphism :
     apply Indexed_inter_regular
     · exact Indexed_fInv L hL
     · exact isRegular_dLang h
-  simpa [Language.inverseHomomorphicImage, extendHom] using hInv
+  simpa [Language.inverseHomomorphicImage, extendHom, List.flatMap_def] using hInv
 
 end

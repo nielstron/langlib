@@ -216,7 +216,7 @@ public theorem productiveFirstMove_unique (M : DPDA Q T S)
           rcases hdrain with ⟨rfl, rfl⟩
           have hy : y = [] := by
             have := drain_reaches_input_eq M hreach₂
-            simpa using this.symm
+            simpa [inputAfter] using this.symm
           subst y
           simp at hlook
   | epsilon x p₁ α₁ ht₁ =>
@@ -226,7 +226,7 @@ public theorem productiveFirstMove_unique (M : DPDA Q T S)
           rcases hdrain with ⟨rfl, rfl⟩
           have hx : x = [] := by
             have := drain_reaches_input_eq M hreach₁
-            simpa using this.symm
+            simpa [inputAfter] using this.symm
           subst x
           simp at hlook
       | epsilon y p₂ α₂ ht₂ =>

@@ -104,7 +104,7 @@ theorem exists_noEpsilon_preserving_nonempty (g : IndexedGrammar T) :
   obtain ⟨g₀, _hg₀_ti, hg₀_fs, _hg₀_fresh_of, hg₀_lang⟩ :=
     g.exists_terminalIsolated_flagsSeparated_all
   let gf := g₀.toFiniteSupport
-  haveI : Fintype gf.nt := by
+  have : Fintype gf.nt := by
     dsimp [gf]
     infer_instance
   have hgf_fs : gf.FlagsSeparated := by
@@ -168,7 +168,7 @@ theorem exists_finiteSupport_normalForm_all [Inhabited T] (g : IndexedGrammar T)
         ∀ w : List T, (g'.Generates w ↔ g.Generates w) := by
   obtain ⟨g₀, ⟨hdec, hNF⟩, hlang⟩ := g.exists_normalForm_all hne
   let g' := g₀.toFiniteSupport
-  haveI := hdec
+  have := hdec
   have hdec' : DecidableEq g'.nt := Classical.decEq _
   refine ⟨g', inferInstance, inferInstance, hdec', ?_, ?_⟩
   · exact g₀.toFiniteSupport_isNormalForm hNF

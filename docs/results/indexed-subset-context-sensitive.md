@@ -20,7 +20,7 @@ The pointwise form is `is_CS_of_is_Indexed`. Both statements hold for an arbitra
 terminal type `T`: the final theorem assumes no finite alphabet, decidable equality,
 inhabitedness, or epsilon-freeness.
 
-Strictness is proved over every finite alphabet with at least two symbols:
+Strictness is proved over every finite alphabet with at least 2 elements:
 
 ```lean
 public theorem Indexed_strict_subclass_CS {T : Type} [Fintype T]
@@ -28,7 +28,7 @@ public theorem Indexed_strict_subclass_CS {T : Type} [Fintype T]
     (Indexed : Set (Language T)) ⊂ (CS : Set (Language T))
 ```
 
-The cardinality hypothesis belongs only to the strictness theorem. The development makes
+The alphabet-size hypothesis belongs only to the strictness theorem. The development makes
 no unary-alphabet strictness claim; the inclusion theorem above remains completely
 alphabet-independent.
 
@@ -46,7 +46,7 @@ its erasing image indexed as well. The Aho inclusion would then make the halting
 context-sensitive, and `is_Recursive_of_is_CS` would make it recursive, contradicting
 `haltingUnaryLanguage_not_Recursive`. Thus `K` is context-sensitive but not indexed.
 
-For a finite alphabet `T` with `2 ≤ Fintype.card T`, the binary witness is relabelled
+For any finite alphabet with at least 2 elements, the binary witness is relabelled
 along an embedding `Option Unit ↪ T`. Epsilon-free homomorphic closure preserves its
 context-sensitivity, while `Indexed_of_map_injective_Indexed_rev` reflects indexedness
 back along the same embedding. This yields `Indexed_strict_subclass_CS`. The related

@@ -36,7 +36,6 @@ public inductive LeftmostEpsilonPosition (M : DPDA Q T S)
 
 /-- The concrete PDA configuration represented by a position on a chosen
 unconsumed input tail. -/
-@[expose]
 public def LeftmostEpsilonPosition.conf (M : DPDA Q T S)
     (input : List T) : LeftmostEpsilonPosition M →
       PDA.conf (emptyStackPDA M)
@@ -48,7 +47,6 @@ public def LeftmostEpsilonPosition.conf (M : DPDA Q T S)
 
 /-- Forget the target-state index of a characteristic nonterminal while
 retaining its physical displayed-stack boundary. -/
-@[expose]
 public def leftmostEpsilonPositionOf (M : DPDA Q T S)
     (A : Nonterminal M) (context : List (StackSymbol M)) :
     LeftmostEpsilonPosition M :=
@@ -140,12 +138,12 @@ public theorem LeftmostEpsilonStep.reaches (M : DPDA Q T S)
           [(emptyStackPDA M).start_symbol]⟩
         ⟨(emptyStackPDA M).initial_state, input,
           [(emptyStackPDA M).start_symbol]⟩
-      exact Relation.ReflTransGen.refl
+      exact PDA.Reaches.refl _
   | @split q Z gamma context =>
       change (emptyStackPDA M).Reaches
         ⟨q, input, Z :: gamma ++ context⟩
         ⟨q, input, Z :: (gamma ++ context)⟩
-      simpa using (Relation.ReflTransGen.refl : (emptyStackPDA M).Reaches
+      simpa using (PDA.Reaches.refl _ : (emptyStackPDA M).Reaches
         ⟨q, input, Z :: gamma ++ context⟩
         ⟨q, input, Z :: gamma ++ context⟩)
   | @epsilon q next Z replacement context transition =>
@@ -169,11 +167,15 @@ public theorem LeftmostEpsilonTrace.reaches (M : DPDA Q T S)
     (trace : LeftmostEpsilonTrace M start finish) (input : List T) :
     (emptyStackPDA M).Reaches (start.conf M input) (finish.conf M input) := by
   induction trace with
-  | refl => exact Relation.ReflTransGen.refl
+  | refl => exact PDA.Reaches.refl _
   | head first rest ih => exact (first.reaches M input).trans ih
 
+private theorem reaches_of_reaches₁ {P : PDA Q T S} {a b : PDA.conf P}
+    (h : P.Reaches₁ a b) : P.Reaches a b :=
+  PDA.reaches_iff_reachesIn.mpr
+    ⟨1, PDA.reaches₁_iff_reachesIn_one.mp h⟩
+
 /-- Control state carried by a leftmost epsilon position. -/
-@[expose]
 public def LeftmostEpsilonPosition.state' (M : DPDA Q T S) :
     LeftmostEpsilonPosition M → State M
   | .root => (emptyStackPDA M).initial_state
@@ -181,7 +183,6 @@ public def LeftmostEpsilonPosition.state' (M : DPDA Q T S) :
   | .list q _ _ => q
 
 /-- Stack prefix displayed by a leftmost epsilon position. -/
-@[expose]
 public def LeftmostEpsilonPosition.upper (M : DPDA Q T S) :
     LeftmostEpsilonPosition M → List (StackSymbol M)
   | .root => [(emptyStackPDA M).start_symbol]
@@ -189,7 +190,6 @@ public def LeftmostEpsilonPosition.upper (M : DPDA Q T S) :
   | .list _ gamma _ => gamma
 
 /-- Hidden stack context carried below a leftmost epsilon position. -/
-@[expose]
 public def LeftmostEpsilonPosition.context' (M : DPDA Q T S) :
     LeftmostEpsilonPosition M → List (StackSymbol M)
   | .root => []
@@ -408,8 +408,10 @@ public theorem leftmostEpsilonTrace_productive_comparable
             subst next₂
             subst replacement₂
             apply ih rest₂
-            · simpa [LeftmostEpsilonPosition.conf] using global₁.tail step₁
-            · simpa [LeftmostEpsilonPosition.conf] using global₂.tail step₂
+            · simpa [LeftmostEpsilonPosition.conf] using
+                global₁.trans (reaches_of_reaches₁ step₁)
+            · simpa [LeftmostEpsilonPosition.conf] using
+                global₂.trans (reaches_of_reaches₁ step₂)
             · exact useful₁
             · exact useful₂
 
@@ -510,8 +512,10 @@ private theorem leftmostEpsilonTrace_empty_position_unique
             subst next₂
             subst replacement₂
             apply ih rest₂ empty₁ empty₂
-            · simpa [LeftmostEpsilonPosition.conf] using global₁.tail step₁
-            · simpa [LeftmostEpsilonPosition.conf] using global₂.tail step₂
+            · simpa [LeftmostEpsilonPosition.conf] using
+                global₁.trans (reaches_of_reaches₁ step₁)
+            · simpa [LeftmostEpsilonPosition.conf] using
+                global₂.trans (reaches_of_reaches₁ step₂)
             · exact useful₁
             · exact useful₂
 
@@ -669,9 +673,9 @@ private theorem
                 ⟨next, suffix₂, gamma ++ context₁⟩ := by
               have cycle := Relation.TransGen.tail'
                 (rest.reaches M suffix₂) directStep₂
-              simpa [contextEq] using cycle
+              simpa [LeftmostEpsilonPosition.conf, contextEq] using cycle
             exact False.elim <| emptyStack_no_useful_cycle M hcycle
-              (by simpa [contextEq] using useful₂)
+              (by simpa [LeftmostEpsilonPosition.conf, contextEq] using useful₂)
           · have stripped := retainedAligned.changeFrame
                 ([] : List (StackSymbol M))
             exfalso
@@ -682,7 +686,8 @@ private theorem
             · exact PDA.reaches_of_reachesIn (by
                 simpa using stripped.toReachesIn)
             · exact hadded
-            · simpa [contextEq, List.append_assoc] using useful₂
+            · simpa [LeftmostEpsilonPosition.conf, contextEq,
+                List.append_assoc] using useful₂
 
 /-- Two productive leftmost epsilon traces which converge through epsilon
 transitions to the same displayed list child have equal source state and

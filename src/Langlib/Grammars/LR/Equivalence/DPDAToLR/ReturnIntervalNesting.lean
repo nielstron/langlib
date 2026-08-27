@@ -64,7 +64,7 @@ private theorem retainedFrameRun_eq_zero_of_start_stack
         apply List.append_cancel_right (bs := frame)
         simpa [hc] using hstack.symm
       subst upper
-      simpa [PDA.Reaches₁, PDA.step] using last
+      simp [PDA.Reaches₁, PDA.step] at last
 
 public theorem retainedFrameRun_eq_zero_of_start_at_frame
     {P : PDA Q T S} {frame : List S} {n : ℕ}

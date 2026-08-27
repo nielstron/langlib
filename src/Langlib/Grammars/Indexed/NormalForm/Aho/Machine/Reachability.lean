@@ -57,7 +57,7 @@ public theorem toReflTransGen {g : IndexedGrammar T} [Fintype g.nt] {input : Lis
     {bound : ℕ} {c c' : Config g}
     (h : BoundedReaches g input bound c c') :
     Relation.ReflTransGen (CompositeStep g input) c c' := by
-  exact h.2.mono (fun _ _ hstep => hstep.1)
+  exact (Relation.ReflTransGen.mono (fun _ _ hstep => hstep.1)) _ _ h.2
 
 /-- Increase the available work bound. -/
 public theorem mono {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
@@ -65,8 +65,8 @@ public theorem mono {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     (h : BoundedReaches g input small c c') :
     BoundedReaches g input large c c' := by
   refine ⟨le_trans h.1 hsl, ?_⟩
-  exact h.2.mono (fun _ _ hstep =>
-    ⟨hstep.1, le_trans hstep.2.1 hsl, le_trans hstep.2.2 hsl⟩)
+  exact (Relation.ReflTransGen.mono (fun _ _ hstep =>
+    ⟨hstep.1, le_trans hstep.2.1 hsl, le_trans hstep.2.2 hsl⟩)) _ _ h.2
 
 end BoundedReaches
 

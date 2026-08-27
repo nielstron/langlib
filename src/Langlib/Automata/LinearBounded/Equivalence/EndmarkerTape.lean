@@ -96,7 +96,8 @@ def enc {n : ℕ} (c : Fin (n + 1) → Option (T ⊕ Γ)) : Fin (n + 3) → EndA
            else Sum.inl (c ⟨k.val - 1, by have := k.isLt; omega⟩)
 
 /-- Shift a marker-free head position `h` into the endmarker interior (cell `h + 1`). -/
-def encHead {n : ℕ} (h : Fin (n + 1)) : Fin (n + 3) := ⟨h.val + 1, by have := h.isLt; omega⟩
+@[reducible] def encHead {n : ℕ} (h : Fin (n + 1)) : Fin (n + 3) :=
+  ⟨h.val + 1, by have := h.isLt; omega⟩
 
 /-- Package an `M`-configuration as the corresponding `run`-phase simulator configuration. -/
 def φ {n : ℕ} (cfg : DLBA.Cfg (Option (T ⊕ Γ)) Λ n) :
@@ -112,7 +113,7 @@ def φ {n : ℕ} (cfg : DLBA.Cfg (Option (T ⊕ Γ)) Λ n) :
 @[simp] theorem enc_interior {n : ℕ} (c : Fin (n + 1) → Option (T ⊕ Γ)) (h : Fin (n + 1)) :
     enc c (encHead h) = Sum.inl (c h) := by
   have hlt := h.isLt
-  simp only [enc, encHead]
+  simp only [enc]
   rw [dif_neg (by omega), dif_neg (by omega)]
   apply congrArg; apply congrArg; apply Fin.ext; simp
 
@@ -244,7 +245,7 @@ theorem forward_step {n : ℕ} {cfg cfg' : DLBA.Cfg (Option (T ⊕ Γ)) Λ n}
         · apply Fin.ext
           simp only [hZ, hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead
             ]
-          split_ifs <;> simp_all ; omega
+          split_ifs <;> simp_all
       exact Relation.ReflTransGen.head hstep1 (hZeq ▸ Relation.ReflTransGen.single hstep2)
   · -- `Dir.right`
     by_cases hb : cfg.tape.head.val < n
@@ -282,12 +283,12 @@ theorem forward_step {n : ℕ} {cfg cfg' : DLBA.Cfg (Option (T ⊕ Γ)) Λ n}
         · apply Fin.ext
           simp only [hZ, hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead
             ]
-          split_ifs <;> simp_all ; omega
+          split_ifs <;> simp_all
       exact Relation.ReflTransGen.head hstep1 (hZeq ▸ Relation.ReflTransGen.single hstep2)
   · -- `Dir.stay`
     have hh : Y1.tape.head = (φ cfg').tape.head := by
       apply Fin.ext
-      simp only [hY1, hcfg', φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead]
+      simp only [hY1, hcfg', φ, DLBA.BoundedTape.moveHead, encHead]
     exact (cfg_ext (X := Y1) (Y := φ cfg') rfl hcont hh) ▸ Relation.ReflTransGen.single hstep1
 
 /-- The forward simulation extends to whole computations. -/
@@ -347,7 +348,7 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
     refine Or.inr (Or.inl ⟨rfl, ?_, ?_⟩)
     · show Function.update s.tape.contents s.tape.head leftMark = enc c₀
       rw [hcont, hh0, ← enc_zero c₀ (by omega), Function.update_eq_self]
-    · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hh0]
+    · simp only [hh0]
       split_ifs <;> simp_all
   · -- `s` is the `entry` setup state: read interior cell 1, enter the run phase at `M.initial`.
     have hh1 : s.tape.head = (⟨1, by omega⟩ : Fin (m + 3)) := Fin.ext hhead
@@ -364,7 +365,7 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
     · show Function.update s.tape.contents s.tape.head (Sum.inl (c₀ ⟨0, Nat.succ_pos m⟩)) = enc c₀
       rw [hcont, hh1, ← henc1, Function.update_eq_self]
     · apply Fin.ext
-      simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hh1, encHead]
+      simp only [hh1]
   · -- `s` is in the run phase, decoding to `Mcfg`.
     rcases hpos with hint | ⟨hsh0, hmh0⟩ | ⟨hshn, hmhn⟩
     · -- head on the encoded interior cell: replay `M`'s transition (with a possible bounce).
@@ -372,7 +373,7 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
         show s.tape.contents s.tape.head = _
         rw [hcont, hint]; exact enc_interior Mcfg.tape.contents Mcfg.tape.head
       rw [hs, hread] at hmem
-      simp only [simMachine, simTransition_run_inl, Set.mem_setOf_eq] at hmem
+      simp only [simMachine, simTransition_run_inl, Set.mem_ofPred_eq] at hmem
       obtain ⟨p, hp, hpeq⟩ := hmem
       obtain ⟨pq, pa, pd⟩ := p
       simp only [Prod.mk.injEq] at hpeq
@@ -394,28 +395,28 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
       · -- left
         by_cases hb : 0 < Mcfg.tape.head.val
         · left; apply Fin.ext
-          simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
+          simp only [hMcfg', DLBA.BoundedTape.moveHead, hsheq, encHead]
           split_ifs <;> simp_all ; omega
         · right; left
           refine ⟨?_, ?_⟩
-          · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
+          · simp only [hsheq, encHead]
             split_ifs <;> simp_all
-          · simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+          · simp only [hMcfg', DLBA.BoundedTape.moveHead]
             split_ifs ; simp_all
       · -- right
         by_cases hb : Mcfg.tape.head.val < m
         · left; apply Fin.ext
-          simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
+          simp only [hMcfg', DLBA.BoundedTape.moveHead, hsheq, encHead]
           split_ifs <;> simp_all
         · right; right
           refine ⟨?_, ?_⟩
-          · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
+          · simp only [hsheq, encHead]
             split_ifs <;> simp_all ; omega
-          · simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+          · simp only [hMcfg', DLBA.BoundedTape.moveHead]
             split_ifs ; simp_all ; omega
       · -- stay
         left; apply Fin.ext
-        simp only [hMcfg', DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hsheq, encHead]
+        simp only [hMcfg', DLBA.BoundedTape.moveHead, hsheq, encHead]
     · -- head on `⊢` mid-bounce: read `⊢`, bounce right back to the interior (same `Mcfg`).
       have hh0 : s.tape.head = (⟨0, by omega⟩ : Fin (m + 3)) := Fin.ext hsh0
       have hread : s.tape.read = leftMark := by
@@ -429,7 +430,7 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
         rw [hcont, hh0, ← enc_zero Mcfg.tape.contents (by omega), Function.update_eq_self]
       · apply Fin.ext
         have hmh0' : Mcfg.tape.head = (⟨0, Nat.succ_pos m⟩ : Fin (m + 1)) := Fin.ext hmh0
-        simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hh0, encHead, hmh0']
+        simp only [hh0, hmh0']
         split_ifs <;> simp_all
     · -- head on `⊣` mid-bounce: read `⊣`, bounce left back to the interior (same `Mcfg`).
       have hhn : s.tape.head = (⟨m + 2, by omega⟩ : Fin (m + 3)) := Fin.ext hshn
@@ -444,7 +445,7 @@ theorem good_step {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ))
         rw [hcont, hhn, ← enc_last Mcfg.tape.contents (by omega), Function.update_eq_self]
       · apply Fin.ext
         have hmhn' : Mcfg.tape.head = (⟨m, by omega⟩ : Fin (m + 1)) := Fin.ext hmhn
-        simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hhn, encHead, hmhn']
+        simp only [hhn, hmhn']
         split_ifs <;> simp_all
 
 /-- Every simulator configuration reachable from the start on `⊢ c₀ ⊣` satisfies the invariant. -/
@@ -478,7 +479,7 @@ theorem setup_reaches {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ)) :
       · show (enc c₀) = Function.update (enc c₀) ⟨0, by omega⟩ leftMark
         rw [← hzero, Function.update_eq_self]
       · apply Fin.ext
-        simp only [hS0, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+        simp only [hS0]
         split_ifs <;> simp_all
   have hstep2 : Step (simMachine M b) S1 (φ ⟨M.initial, ⟨c₀, ⟨0, Nat.succ_pos m⟩⟩⟩) := by
     refine ⟨SimState.run M.initial, Sum.inl (c₀ ⟨0, Nat.succ_pos m⟩), DLBA.Dir.stay, ?_, ?_⟩
@@ -491,7 +492,7 @@ theorem setup_reaches {m : ℕ} (c₀ : Fin (m + 1) → Option (T ⊕ Γ)) :
           = Function.update (enc c₀) ⟨1, by omega⟩ (Sum.inl (c₀ ⟨0, Nat.succ_pos m⟩))
         rw [← hone, Function.update_eq_self]
       · apply Fin.ext
-        simp only [hS1, φ, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, encHead]
+        simp only [hS1, φ, encHead]
   exact Relation.ReflTransGen.head hstep1 (Relation.ReflTransGen.head hstep2 Relation.ReflTransGen.refl)
 
 /-- **Key bisimulation.** On the bracketed tape `⊢ c₀ ⊣`, the endmarker simulator accepts iff the
@@ -545,7 +546,7 @@ theorem εGood_step {cfg cfg' : DLBA.Cfg (EndAlpha T Γ) (SimState Λ) 1}
     refine ⟨?_, Or.inr (Or.inl ⟨rfl, ?_⟩)⟩
     · show Function.update cfg.tape.contents cfg.tape.head leftMark = (loadEnd ([] : List T)).contents
       rw [hcont, hh0, ← εc0, Function.update_eq_self]
-    · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hh0]
+    · simp only [hh0]
       split_ifs <;> simp_all
   · -- entry, head 1
     have hh1 : cfg.tape.head = (⟨1, by omega⟩ : Fin 2) := Fin.ext hh
@@ -599,7 +600,7 @@ theorem accepts_empty :
         · show t0.contents = Function.update t0.contents ⟨0, by omega⟩ leftMark
           rw [← εc0, Function.update_eq_self]
         · apply Fin.ext
-          simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, List.length_nil]
+          simp only [List.length_nil]
           split_ifs <;> simp_all [loadEnd]
     have hstep2 : Step (simMachine M b) ⟨SimState.entry, ⟨t0.contents, ⟨1, by omega⟩⟩⟩
         ⟨SimState.acc, ⟨t0.contents, ⟨1, by omega⟩⟩⟩ := by
@@ -613,7 +614,7 @@ theorem accepts_empty :
         · show t0.contents = Function.update t0.contents ⟨1, by omega⟩ rightMark
           rw [← εc1, Function.update_eq_self]
         · apply Fin.ext
-          simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, List.length_nil]
+          simp only
     refine ⟨⟨SimState.acc, ⟨t0.contents, ⟨1, by omega⟩⟩⟩,
       Relation.ReflTransGen.head hstep1 (Relation.ReflTransGen.single hstep2), rfl⟩
 

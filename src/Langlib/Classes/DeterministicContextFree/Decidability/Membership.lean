@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2026 Harmonic, Niels Mündler. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Classes.ContextFree.Decidability.Membership
 public import Langlib.Classes.ContextFree.Decidability.PrimrecSatStep
@@ -38,7 +38,6 @@ namespace DCFEncodedCFG
 
 /-- The semantic promise that a raw encoded context-free grammar presents a
 deterministic context-free language. -/
-@[expose]
 public def Valid (G : EncodedCFG T) : Prop :=
   is_DCF (contextFreeLanguageOf G)
 
@@ -63,7 +62,6 @@ variable [DecidableEq T] [Primcodable T]
 
 /-- Run the existing encoded-CFG membership checker as a partial Boolean evaluator.
 It is in fact total even when the DCFL promise does not hold. -/
-@[expose]
 public def evalMembership (G : EncodedCFG T) (w : List T) : Part Bool :=
   Part.some (checkMembershipEncoded (G, w))
 
@@ -71,8 +69,8 @@ public def evalMembership (G : EncodedCFG T) (w : List T) : Part Bool :=
 grammar code and the input word. -/
 public theorem evalMembership_partrec₂ :
     Partrec₂ (evalMembership : EncodedCFG T → List T →. Bool) := by
-  simpa [evalMembership] using
-    (checkMembershipEncoded_computable' (T := T)).to₂.partrec₂
+  unfold evalMembership
+  exact (checkMembershipEncoded_computable' (T := T)).to₂.partrec₂
 
 /-- A single evaluator decides membership from an encoded grammar and a word, under
 the promise that the encoded grammar presents a deterministic context-free language.

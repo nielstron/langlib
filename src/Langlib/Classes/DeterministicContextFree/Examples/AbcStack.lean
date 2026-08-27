@@ -19,7 +19,10 @@ namespace DCFLIntersection
 public inductive ABCStack where
   | bottom
   | mark
-  deriving DecidableEq, Fintype
+  deriving DecidableEq
+
+public instance : Fintype ABCStack :=
+  Fintype.ofList [.bottom, .mark] (by intro x; cases x <;> simp)
 
 end DCFLIntersection
 

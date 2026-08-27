@@ -40,7 +40,18 @@ macro "cf_step" rule:term "," pref:term "," post:term : tactic =>
   `(tactic| (
     apply CF_deri_of_tran_deri
     · refine ⟨$rule, $pref, $post, ?_, ?_, ?_⟩
-      · simp [gr_add]
+      · change $rule ∈ [
+          (S_, [a, S, c]),
+          (S_, [R]),
+          (R_, [b, R, c]),
+          (R_, [])
+        ]
+        first
+        | exact List.mem_cons_self
+        | exact List.mem_cons_of_mem _ List.mem_cons_self
+        | exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)
+        | exact List.mem_cons_of_mem _
+            (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))
       · rfl
       · rfl
   ))
@@ -52,7 +63,14 @@ example : CF_generates gr_add [a_, a_, b_, c_, c_, c_] := by
   cf_step (R_, [b, R, c]), [a, a], [c, c]
   apply CF_deri_of_tran
   · refine ⟨(R_, []), [a, a, b], [c, c, c], ?_, ?_, ?_⟩
-    · simp [gr_add]
+    · change (R_, []) ∈ [
+        (S_, [a, S, c]),
+        (S_, [R]),
+        (R_, [b, R, c]),
+        (R_, [])
+      ]
+      exact List.mem_cons_of_mem _
+        (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))
     · rfl
     · rfl
 

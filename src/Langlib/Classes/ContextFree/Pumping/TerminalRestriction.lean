@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 Authors: Alexander Loitzl
 -/
 
@@ -29,18 +29,15 @@ section EmbedProject
 variable {N : Type uN}
 
 /-- Intuitive embedding of symbols of the original grammar into symbols of the new grammar's type -/
-@[expose]
 public def embedSymbol (s : Symbol T N) : Symbol T (N ⊕ T) :=
   match s with
   | Symbol.terminal t => Symbol.terminal t
   | Symbol.nonterminal n => Symbol.nonterminal (Sum.inl n)
 
 /-- Intuitive embedding of strings of the original grammar into strings of the new grammar's type -/
-@[expose]
 public abbrev embedString (u : List (Symbol T N)) : List (Symbol T (N ⊕ T)) := u.map embedSymbol
 
 /-- Embedding of symbols of the original grammar into nonterminals of the new grammar -/
-@[expose]
 public def rightEmbedSymbol (s : Symbol T N) : Symbol T (N ⊕ T) :=
   match s with
   | Symbol.terminal t => Symbol.nonterminal (Sum.inr t)
@@ -48,11 +45,9 @@ public def rightEmbedSymbol (s : Symbol T N) : Symbol T (N ⊕ T) :=
 
 /-- Embedding of strings of the original grammar into nonterminal (symbol) strings of the new
 grammar -/
-@[expose]
 public abbrev rightEmbedString (w : List (Symbol T N)) := w.map rightEmbedSymbol
 
 /-- Projection from symbols of the new grammars type into symbols of the original grammar -/
-@[expose]
 public def projectSymbol (s : Symbol T (N ⊕ T)) : Symbol T N :=
   match s with
   | Symbol.terminal t => Symbol.terminal t
@@ -60,7 +55,6 @@ public def projectSymbol (s : Symbol T (N ⊕ T)) : Symbol T N :=
   | Symbol.nonterminal (Sum.inr t) => Symbol.terminal t
 
 /-- Projection from strings of the new grammars type into strings of the original grammar -/
-@[expose]
 public def projectString (u : List (Symbol T (N ⊕ T))) : List (Symbol T N) := u.map projectSymbol
 
 private lemma embedSymbol_nonterminal_eq {nt : N} :
@@ -123,7 +117,6 @@ namespace ContextFreeGrammar
 section RestrictTerminals
 
 /-- Computes rules r' : T -> t, for all terminals t occuring in `r.output`-/
-@[expose]
 public def newTerminalRules {N : Type*} (r : ContextFreeRule T N) : List (ContextFreeRule T (N ⊕ T)) :=
   let terminal_rule (s : Symbol T N) : Option (ContextFreeRule T (N ⊕ T)) :=
     match s with
@@ -134,7 +127,6 @@ public def newTerminalRules {N : Type*} (r : ContextFreeRule T N) : List (Contex
 /-- If `r.output` is a single terminal, we lift the rule to the new grammar, otherwise add new rules
  for each terminal symbol in `r.output` and right-lift the rule, i.e., replace all terminals with
  nonterminals -/
-@[expose]
 public def restrictTerminalRule {N : Type*} (r : ContextFreeRule T N) : List (ContextFreeRule T (N ⊕ T)) :=
   (match r.output with
   | [Symbol.terminal t] => ⟨Sum.inl r.input, [Symbol.terminal t]⟩
@@ -142,14 +134,13 @@ public def restrictTerminalRule {N : Type*} (r : ContextFreeRule T N) : List (Co
   ) :: newTerminalRules r
 
 /-- Compute all lifted rules -/
-@[expose]
 public noncomputable def restrictTerminalRules {N : Type*} [DecidableEq T] [DecidableEq N]
     (l : List (ContextFreeRule T N)) : Finset (ContextFreeRule T (N ⊕ T)) :=
   (l.map restrictTerminalRule).flatten.toFinset
 
 /-- Construct new grammar, using the lifted rules. Each rule's output is either a single terminal
  or only nonterminals -/
-@[expose]
+@[reducible]
 public noncomputable def restrictTerminals [DecidableEq T] (g : ContextFreeGrammar T)
     [DecidableEq g.NT] :=
   ContextFreeGrammar.mk (g.NT ⊕ T) (Sum.inl g.initial) (restrictTerminalRules g.rules.toList)
@@ -330,15 +321,19 @@ public lemma derives_restrictTerminals_derives_embedString {u v : List (Symbol T
         use r
 
 public theorem restrictTerminals_correct : g.language = g.restrictTerminals.language := by
-  apply Set.eq_of_subset_of_subset <;>
-    intro w hw <;>
-      rw [mem_language_iff] at hw ⊢
-  · apply derives_restrictTerminals_derives_embedString at hw
-    rwa [embedString_terminals] at hw
-  · apply restrictTerminals_derives_derives_projectString at hw
-    rw [projectString_terminals] at hw
-    unfold restrictTerminals projectString at hw
-    rwa [List.map_cons, List.map_nil, projectSymbol_nonterminal] at hw
+  apply Set.eq_of_subset_of_subset
+  · intro w hw
+    have hd := (mem_language_iff g w).mp hw
+    apply (mem_language_iff g.restrictTerminals w).mpr
+    apply derives_restrictTerminals_derives_embedString at hd
+    rwa [embedString_terminals] at hd
+  · intro w hw
+    have hd := (mem_language_iff g.restrictTerminals w).mp hw
+    apply (mem_language_iff g w).mpr
+    apply restrictTerminals_derives_derives_projectString at hd
+    rw [projectString_terminals] at hd
+    unfold restrictTerminals projectString at hd
+    rwa [List.map_cons, List.map_nil, projectSymbol_nonterminal] at hd
 
 end CorrectnessProof
 

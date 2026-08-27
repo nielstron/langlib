@@ -18,6 +18,23 @@ variable {T : Type}
 namespace IndexedGrammar
 namespace Aho
 
+private theorem WorkCursor.map_some_slots_leftShift {g : IndexedGrammar T}
+    (c : WorkCursor g) :
+    c.slots.map some =
+      c.left.map inactive ++ active c.focus :: c.right.map inactive := by
+  have map_inactive (xs : List (WorkSym g)) :
+      xs.map (fun z => some (WorkSlot.mk false z)) = xs.map inactive := by
+    induction xs with
+    | nil => rfl
+    | cons z zs ih =>
+        simp only [List.map_cons]
+        rw [ih]
+        rfl
+  simp only [WorkCursor.slots, List.map_append, List.map_cons, List.map_map,
+    Function.comp_def]
+  rw [map_inactive, map_inactive]
+  rfl
+
 /-! ## One-slot left shifts -/
 
 private theorem deleteOne_suffixMinus1_iff
@@ -121,13 +138,19 @@ public theorem WorkTrace.decodeMinus1Some
               rcases ih symbol rfl (by simp [advanceWorkState, updateHistory, inactive])
                   (by simp [advanceWorkState, inactive, hnewEnded]) hdone with
                 ⟨beta, k, holdTail, hnewTail⟩
+              have holdTail' : rows.map (fun r => r.1) =
+                  inactive symbol :: beta.map inactive ++ List.replicate k none := by
+                simpa [oldProjection] using holdTail
+              have hnewTail' : rows.map (fun r => r.2.1) =
+                  beta.map inactive ++ List.replicate (k + 1) none := by
+                simpa [newProjection] using hnewTail
               refine ⟨symbol :: beta, k, ?_, ?_⟩
               · simp only [oldProjection, List.map_cons, List.map_cons]
                 simpa [inactive] using
-                  congrArg (fun xs => inactive z :: xs) holdTail
+                  congrArg (fun xs => inactive z :: xs) holdTail'
               · simp only [newProjection, List.map_cons, List.map_cons]
                 simpa [inactive] using
-                  congrArg (fun xs => inactive symbol :: xs) hnewTail
+                  congrArg (fun xs => inactive symbol :: xs) hnewTail'
 
 private theorem deleteOne_stage1_iff
     (oldFocus : WorkSym g) (next : WorkPhase) (hist : WorkHistory g)
@@ -174,7 +197,7 @@ private theorem WorkTrace.decodeDeleteAfterStage
         · exact hfalse
         · simp [active] at hnone
       cases tail₁ with
-      | nil => simp [workScanDone, advanceWorkState] at hdone
+      | nil => exact (of_decide_eq_true hdone).elim
       | @cons _minus old₂ new₂ next₂ suffixRows result hedge₂ htail =>
           let minusState := advanceWorkState stage (active oldFocus) (active Z) .minus1First
           have hw₂ := (hshape minusState.phase next₂ minusState.history old₂ new₂).mp
@@ -299,10 +322,10 @@ public theorem workTraceAccepts_matchTerminal_sound
   let oldCursor : WorkCursor g := ⟨alpha ++ [.dollar], .terminal a, Z :: beta⟩
   let newCursor : WorkCursor g := ⟨alpha ++ [.dollar], Z, beta⟩
   refine ⟨oldCursor, newCursor, kOld, kNew, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots_leftShift]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots_leftShift]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨alpha, Z, beta, rfl, rfl⟩
 
 public theorem workTraceAccepts_eraseIndex_sound
@@ -325,10 +348,10 @@ public theorem workTraceAccepts_eraseIndex_sound
   let oldCursor : WorkCursor g := ⟨alpha ++ [.dollar], .index R d, Z :: beta⟩
   let newCursor : WorkCursor g := ⟨alpha ++ [.dollar], Z, beta⟩
   refine ⟨oldCursor, newCursor, kOld, kNew, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots_leftShift]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots_leftShift]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨herase, alpha, Z, beta, rfl, rfl⟩
 
 end Aho

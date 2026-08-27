@@ -24,7 +24,13 @@ public inductive EnumerationMode where
   | start
   | scan
   | bad
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, Repr
+
+public instance EnumerationMode.instFintype : Fintype EnumerationMode where
+  elems := {.start, .scan, .bad}
+  complete := by
+    intro x
+    cases x <;> simp
 
 /-- Constant-size accumulator shared by all enumeration actions. -/
 public structure EnumerationAccumulator where

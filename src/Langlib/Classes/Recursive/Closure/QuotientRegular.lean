@@ -39,7 +39,10 @@ private lemma flatten_singleton_false_of_mem :
         blocks.flatten = List.replicate blocks.length false
   | [], _ => by simp
   | b :: bs, hmem => by
-      have hb : b = [false] := by simpa [singletonWordLanguage] using hmem b (by simp)
+      have hb : b = [false] := by
+        have hbmem : b ∈ singletonWordLanguage [false] := hmem b (by simp)
+        change b ∈ ({[false]} : Set (List Bool)) at hbmem
+        exact Set.mem_singleton_iff.mp hbmem
       have hbs : ∀ y ∈ bs, y ∈ singletonWordLanguage [false] := by
         intro y hy
         exact hmem y (by simp [hy])
@@ -59,12 +62,14 @@ private lemma falseStar_mem_iff_replicate {w : List Bool} :
     refine ⟨List.replicate k [false], ?_, ?_⟩
     · have hmem : ∀ y ∈ List.replicate k [false], y ∈ singletonWordLanguage [false] := by
         intro y hy
-        simpa [singletonWordLanguage] using List.eq_of_mem_replicate hy
+        change y = [false]
+        exact List.eq_of_mem_replicate hy
       have hflat := flatten_singleton_false_of_mem (List.replicate k [false]) hmem
       rw [hflat]
       simp
     · intro y hy
-      simpa [singletonWordLanguage] using List.eq_of_mem_replicate hy
+      change y = [false]
+      exact List.eq_of_mem_replicate hy
 
 private def allFalseBool (w : List Bool) : Bool :=
   !(w.any fun b => b)
@@ -107,7 +112,8 @@ private lemma allFalseBool_primrec : Primrec allFalseBool := by
     refine primrec_list_any (f := fun w : List Bool => w) (p := fun _ b => b)
       Primrec.id ?_
     exact Primrec₂.mk Primrec.snd
-  simpa [allFalseBool] using Primrec.not.comp hAny
+  unfold allFalseBool
+  exact Primrec.not.comp hAny
 
 private def boundedHaltingDelimitedTest (w : List Bool) : Bool :=
   let n := w.findIdx id
@@ -142,6 +148,7 @@ private lemma boundedHaltingDelimitedTest_computable :
     convert Nat.Partrec.Code.primrec_evaln.comp
       (((Primrec.list_length.comp hDrop).pair
         ((Primrec.ofNat Nat.Partrec.Code).comp hFind)).pair (Primrec.const 0)) using 1
+    simp only [Nat.Partrec.Code.ofNatCode_eq]
   have hSome : Primrec (fun w : List Bool =>
       (Nat.Partrec.Code.evaln (w.drop (w.findIdx id + 1)).length
         (Nat.Partrec.Code.ofNatCode (w.findIdx id)) 0).isSome) :=
@@ -280,7 +287,8 @@ private theorem recursive_of_recursive_map_injective {α β : Type}
     constructor
     · rintro ⟨v, hv, hmap⟩
       have : v = w := List.map_injective_iff.mpr hf hmap
-      simpa [this] using hv
+      subst v
+      exact hv
     · intro hw
       exact ⟨w, hw, rfl⟩
   rwa [heq] at hpre
@@ -300,7 +308,10 @@ private theorem Language.map_rightQuotient_injective {α β : Type} {f : α → 
     have hv₁_eq : v₁ = v₀ := List.map_injective_iff.mpr hf hv₁
     subst v₁
     rw [← hw₀]
-    exact ⟨w₀, ⟨v₀, hv₀R, by simpa [hz_eq] using hzL⟩, rfl⟩
+    have hwv : w₀ ++ v₀ ∈ L := by
+      rw [← hz_eq]
+      exact hzL
+    exact ⟨w₀, ⟨v₀, hv₀R, hwv⟩, rfl⟩
 
 /-- Recursive languages are not closed under regular right quotient over any finite
 alphabet into which the binary witness alphabet embeds. -/

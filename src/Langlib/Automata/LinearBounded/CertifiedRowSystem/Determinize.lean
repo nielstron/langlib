@@ -2,7 +2,6 @@ module
 
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem
 import Mathlib.Tactic
-
 @[expose]
 public section
 
@@ -196,11 +195,11 @@ public theorem rowReachLanguage_determinize [Fintype C] [DecidableEq Q]
   constructor
   · rintro ⟨hne, row, hreach, hfinal⟩
     refine ⟨hne, row, ?_, hfinal⟩
-    simpa only [determinize] using hreach.mono fun old new hstep =>
-      (S.rowStep_determinize_iff old new).1 hstep
+    simpa only [determinize] using Relation.ReflTransGen.mono
+      (fun old new hstep => (S.rowStep_determinize_iff old new).1 hstep) _ _ hreach
   · rintro ⟨hne, row, hreach, hfinal⟩
     refine ⟨hne, row, ?_, hfinal⟩
-    simpa only [determinize] using hreach.mono fun old new hstep =>
-      (S.rowStep_determinize_iff old new).2 hstep
+    simpa only [determinize] using Relation.ReflTransGen.mono
+      (fun old new hstep => (S.rowStep_determinize_iff old new).2 hstep) _ _ hreach
 
 end CertifiedRowSystem

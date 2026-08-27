@@ -54,21 +54,17 @@ direction), and concludes `is_CF_iff_isContextFree`.
 - `is_CF_iff_isContextFree`
 -/
 
-@[expose]
 public def Symbol_of_symbol {T N : Type} : symbol T N → Symbol T N
 | symbol.terminal t => Symbol.terminal t
 | symbol.nonterminal n => Symbol.nonterminal n
 
-@[expose]
 public def symbol_of_Symbol {T N : Type} : Symbol T N → symbol T N
 | Symbol.terminal t => symbol.terminal t
 | Symbol.nonterminal n => symbol.nonterminal n
 
-@[expose]
 public def lsSymbol_of_lssymbol {T N : Type} : List (symbol T N) → List (Symbol T N) :=
   List.map Symbol_of_symbol
 
-@[expose]
 public def lssymbol_of_lsSymbol {T N : Type} : List (Symbol T N) → List (symbol T N) :=
   List.map symbol_of_Symbol
 
@@ -94,18 +90,17 @@ public def lssymbol_of_lsSymbol {T N : Type} : List (Symbol T N) → List (symbo
   | cons h t ih =>
     simpa [lsSymbol_of_lssymbol, lssymbol_of_lsSymbol, List.map_map] using ih
 
-@[expose]
+@[reducible]
 public noncomputable def mathlib_cfg_of_cfg (g : CF_grammar T) : ContextFreeGrammar T :=
   by
     classical
     exact ⟨g.nt, g.initial, (g.rules.map fun r => ⟨r.fst, lsSymbol_of_lssymbol r.snd⟩).toFinset⟩
 
-@[expose]
+@[reducible]
 public noncomputable def cfg_of_mathlib_cfg (g : ContextFreeGrammar T) : CF_grammar T :=
   ⟨g.NT, g.initial, g.rules.toList.map fun r => (r.input, lssymbol_of_lsSymbol r.output)⟩
 
 /-- A context-free grammar has no ε-productions (every rule has a non-empty right-hand side). -/
-@[expose]
 public def CF_no_epsilon (g : CF_grammar T) : Prop :=
   ∀ r ∈ g.rules, r.snd ≠ []
 
@@ -143,12 +138,13 @@ public lemma CF_language_eq_mathlib_language (g : CF_grammar T) :
               (⟨r.fst, lsSymbol_of_lssymbol r.snd⟩ : ContextFreeRule T g.nt).Rewrites
                 (lsSymbol_of_lssymbol (x ++ [symbol.nonterminal r.fst] ++ y))
                 (lsSymbol_of_lssymbol (x ++ r.snd ++ y)) := by
-            simpa [lsSymbol_of_lssymbol, List.map_append] using
+            simpa [lsSymbol_of_lssymbol, List.map_append, Symbol_of_symbol] using
               (ContextFreeRule.rewrites_of_exists_parts
                 (⟨r.fst, lsSymbol_of_lssymbol r.snd⟩ : ContextFreeRule T g.nt)
                 (lsSymbol_of_lssymbol x) (lsSymbol_of_lssymbol y))
           simpa [bef, aft] using hrew
-    simpa [lsSymbol_of_lssymbol, List.map_map] using indu (List.map symbol.terminal w)
+    simpa [lsSymbol_of_lssymbol, List.map_map, Function.comp_def, Symbol_of_symbol] using
+      indu (List.map symbol.terminal w)
   ·
     have indu :
       ∀ v : List (Symbol T g.nt),
@@ -173,7 +169,7 @@ public lemma CF_language_eq_mathlib_language (g : CF_grammar T) :
           ·
             cases r_eq
             apply congrArg lssymbol_of_lsSymbol at bef
-            simpa [lssymbol_of_lsSymbol, List.map_append] using bef
+            simpa [lssymbol_of_lsSymbol, List.map_append, symbol_of_Symbol] using bef
           ·
             cases r_eq
             have aft' := congrArg lssymbol_of_lsSymbol aft
@@ -183,7 +179,8 @@ public lemma CF_language_eq_mathlib_language (g : CF_grammar T) :
             rw [hm] at aft'
             simpa [lssymbol_of_lsSymbol, List.map_append] using aft'
     intro h
-    simpa [lssymbol_of_lsSymbol, List.map_map] using indu (List.map Symbol.terminal w) h
+    simpa [lssymbol_of_lsSymbol, List.map_map, Function.comp_def, symbol_of_Symbol] using
+      indu (List.map Symbol.terminal w) h
 
 public lemma mathlib_cfg_of_cfg_of_mathlib_cfg (g : ContextFreeGrammar T) :
   mathlib_cfg_of_cfg (cfg_of_mathlib_cfg g) = g := by

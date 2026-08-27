@@ -23,6 +23,7 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
+omit [Fintype T] in
 @[simp]
 private theorem upper_lower_symbols (w : List (Symbol T N)) :
     lsSymbol_of_lssymbol (lssymbol_of_lsSymbol w) = w := by
@@ -33,11 +34,32 @@ private theorem upper_lower_symbols (w : List (Symbol T N)) :
         lsSymbol_of_lssymbol (lssymbol_of_lsSymbol w) = a :: w
       cases a <;> simp [Symbol_of_symbol, symbol_of_Symbol, ih]
 
+omit [Fintype T] in
+@[simp]
+private theorem lower_single_nonterminal {N : Type} (A : N) :
+    lsSymbol_of_lssymbol [symbol.nonterminal (T := T) A] =
+      [Symbol.nonterminal A] := by
+  rfl
+
+omit [Fintype T] in
+@[simp]
+private theorem lower_terminal_string {N : Type} (w : List T) :
+    lsSymbol_of_lssymbol (w.map (symbol.terminal (N := N))) =
+      w.map Symbol.terminal := by
+  induction w with
+  | nil => rfl
+  | cons a w ih =>
+      change Symbol.terminal a ::
+          lsSymbol_of_lssymbol (w.map (symbol.terminal (N := N))) =
+        Symbol.terminal a :: w.map Symbol.terminal
+      rw [ih]
+
+omit [Fintype T] in
 /-- Translate an arbitrary Langlib CFG derivation to the corresponding
 Mathlib CFG derivation.  The library's language-equivalence theorem only
 exposes the special case starting at the initial nonterminal, so the general
 form is recorded here. -/
-public theorem mathlib_derives_of_CF_derives (g : CF_grammar T)
+public theorem mathlib_derives_of_CF_derives [Fintype T] (g : CF_grammar T)
     {u v : List (symbol T g.nt)}
     (h : CF_derives g u v) :
     (mathlib_cfg_of_cfg g).Derives
@@ -52,7 +74,7 @@ public theorem mathlib_derives_of_CF_derives (g : CF_grammar T)
           List.mem_map]
         exact ⟨r, hr, rfl⟩
       · rw [hu, hv]
-        simpa [lsSymbol_of_lssymbol, List.map_append] using
+        simpa [lsSymbol_of_lssymbol, List.map_append, Symbol_of_symbol] using
           (ContextFreeRule.rewrites_of_exists_parts
             (⟨r.1, lsSymbol_of_lssymbol r.2⟩ :
               ContextFreeRule T g.nt)
@@ -77,14 +99,15 @@ public theorem characteristic_mathlib_derives_of_raw (M : DPDA Q T S)
     ext r
     simp [mathlib_cfg_of_cfg, cfg_of_mathlib_cfg, List.mem_map,
       upper_lower_symbols]
-  apply Relation.ReflTransGen.mono (r :=
-    (mathlib_cfg_of_cfg
-      (cfg_of_mathlib_cfg (mathlibCharacteristicGrammar M))).Produces)
-    (p := (mathlibCharacteristicGrammar M).Produces) ?_ hm
-  intro a b hstep
-  rcases hstep with ⟨r, hr, hrewrite⟩
-  rw [hrules] at hr
-  exact ⟨r, hr, hrewrite⟩
+  have hmono :
+      (mathlib_cfg_of_cfg
+          (cfg_of_mathlib_cfg (mathlibCharacteristicGrammar M))).Produces ≤
+        (mathlibCharacteristicGrammar M).Produces := by
+    intro a b hstep
+    rcases hstep with ⟨r, hr, hrewrite⟩
+    rw [hrules] at hr
+    exact ⟨r, hr, hrewrite⟩
+  exact Relation.ReflTransGen.mono hmono _ _ hm
 
 /-- A terminal derivation of a characteristic list nonterminal realizes the
 net-pop computation encoded by that nonterminal. -/
@@ -115,7 +138,16 @@ public theorem reaches_of_productive_list (M : DPDA Q T S)
   obtain ⟨w, hw⟩ := hprod
   have hmath := characteristic_mathlib_derives_of_raw M hw
   refine ⟨w, reaches_of_mathlib_derives_list M hγ ?_⟩
-  simpa [lsSymbol_of_lssymbol, List.map_map] using hmath
+  have hright :
+      lsSymbol_of_lssymbol
+          (w.map (symbol.terminal
+            (N := PDA_to_CFG.N (emptyStackPDA M)))) =
+        w.map Symbol.terminal :=
+    lower_terminal_string w
+  unfold rawCharacteristicGrammar cfg_of_mathlib_cfg at hmath
+  unfold mathlibCharacteristicGrammar at hmath ⊢
+  rw [hright] at hmath
+  exact hmath
 
 /-- Productivity of a single-symbol nonterminal gives its concrete net-pop
 computation.  We reduce this to the existing correctness theorem for list
@@ -131,7 +163,16 @@ public theorem reaches_of_productive_single (M : DPDA Q T S)
   have hsingle' : (mathlibCharacteristicGrammar M).Derives
       [Symbol.nonterminal (PDA_to_CFG.N.single q Z p)]
       (w.map Symbol.terminal) := by
-    simpa [lsSymbol_of_lssymbol, List.map_map] using hsingle
+    have hright :
+        lsSymbol_of_lssymbol
+            (w.map (symbol.terminal
+              (N := PDA_to_CFG.N (emptyStackPDA M)))) =
+          w.map Symbol.terminal :=
+      lower_terminal_string w
+    unfold rawCharacteristicGrammar cfg_of_mathlib_cfg at hsingle
+    unfold mathlibCharacteristicGrammar at hsingle ⊢
+    rw [hright] at hsingle
+    exact hsingle
   have hsplit : (mathlibCharacteristicGrammar M).Derives
       [Symbol.nonterminal (PDA_to_CFG.N.list q [Z] p)]
       [Symbol.nonterminal (PDA_to_CFG.N.single q Z p),

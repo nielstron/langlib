@@ -23,7 +23,6 @@ machine, hence RE.
 open Nat.Partrec
 
 /-- Bounded halting test for the unary language. -/
-@[expose]
 public def haltingUnaryTest (k : ℕ) (w : List Unit) : Bool :=
   (Nat.Partrec.Code.evaln k (Nat.Partrec.Code.ofNatCode w.length) 0).isSome
 
@@ -36,6 +35,8 @@ public theorem haltingUnaryTest_computable₂ :
       ((Primrec.fst.pair
         ((Primrec.ofNat Nat.Partrec.Code).comp (Primrec.list_length.comp Primrec.snd))).pair
         (Primrec.const 0)) using 1
+    funext p
+    rw [← Nat.Partrec.Code.ofNatCode_eq]
   exact (Primrec.option_isSome.comp hEval).to_comp.of_eq (by
     intro p
     rfl)

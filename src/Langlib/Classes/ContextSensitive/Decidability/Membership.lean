@@ -391,7 +391,7 @@ private theorem applyRuleAt_pos_le {N : Type} [DecidableEq T] [DecidableEq N]
     {r : grule T N} {sf sf' : List (symbol T N)} {p : ℕ}
     (h : applyRuleAt r sf p = some sf') : p ≤ sf.length := by
   by_contra hp
-  push_neg at hp
+  push Not at hp
   unfold applyRuleAt at h
   rw [List.drop_eq_nil_of_le (le_of_lt hp)] at h
   simp at h
@@ -587,7 +587,7 @@ public theorem memCode_complete [DecidableEq T] (c : Code T) (v : List T)
       simp only [List.length_map] at hle; omega
     · have hnir : initial_not_on_rhs (ofCode c) := by
         apply hcs.2
-        push_neg at hnc
+        push Not at hnc
         obtain ⟨r, hr, hrnc⟩ := hnc
         rcases hcs.1 r hr with he | hc
         · exact ⟨r, hr, he⟩
@@ -845,7 +845,6 @@ equals the grammar's language (`memCode_sound` / `memCode_complete`); for an arb
 whatever the bounded search accepts — in all cases a *decidable* language. -/
 
 /-- The bounded-search language of a coded grammar. -/
-@[expose]
 public def contextSensitiveLanguageOf [DecidableEq T] (c : Code T) : Language T :=
   {v | memCode c v = true}
 

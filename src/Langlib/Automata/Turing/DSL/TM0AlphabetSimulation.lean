@@ -1,7 +1,7 @@
 module
 
 public import Mathlib.CategoryTheory.Category.Basic
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -48,7 +48,7 @@ there exists an injection from `Γ₁` to `Γ₂` that maps default to default.
 - `TM0AlphabetSim.lift_eval_dom` — evaluation preserves Dom under alphabet embedding
 -/
 
-open Turing
+open Turing StateTransition
 
 namespace TM0AlphabetSim
 
@@ -57,7 +57,6 @@ variable {Λ : Type} [Inhabited Λ]
 
 /-- Lift a TM0 machine from alphabet Γ₁ to Γ₂ via an embedding/inverse pair.
     The inverse maps Γ₂ symbols back to Γ₁ (left inverse of emb). -/
-@[expose]
 public noncomputable def liftMachine (M : TM0.Machine Γ₁ Λ)
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁) :
     TM0.Machine Γ₂ Λ :=
@@ -70,13 +69,11 @@ public noncomputable def liftMachine (M : TM0.Machine Γ₁ Λ)
     | none => none
 
 /-- The PointedMap from the embedding function. -/
-@[expose]
 public noncomputable def embPM (emb : Γ₁ → Γ₂) (hemb_default : emb default = default) :
     PointedMap Γ₁ Γ₂ :=
   ⟨emb, hemb_default⟩
 
 /-- The relation between Γ₁ configs and Γ₂ configs under the alphabet lift. -/
-@[expose]
 public def liftRel (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁)
     (_hemb : ∀ a, inv (emb a) = a)
     (hemb_default : emb default = default) :
@@ -141,7 +138,6 @@ public theorem lift_eval_dom (M : TM0.Machine Γ₁ Λ)
 /-! ## Inverse-default-fiber-preserving lift -/
 
 /-- The PointedMap from an inverse function. -/
-@[expose]
 public noncomputable def invPM (inv : Γ₂ → Γ₁) (hinv_default : inv default = default) :
     PointedMap Γ₂ Γ₁ :=
   ⟨inv, hinv_default⟩
@@ -151,7 +147,6 @@ public noncomputable def invPM (inv : Γ₂ → Γ₁) (hinv_default : inv defau
 When the source writes `default`, target symbols that already map to `default`
 are preserved. This lets the target alphabet carry protected symbols that the
 source machine observes as blanks. -/
-@[expose]
 public noncomputable def liftWritePreserveDefaultFiber
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁) [DecidableEq Γ₁]
     (current : Γ₂) (a : Γ₁) : Γ₂ :=
@@ -162,7 +157,6 @@ public noncomputable def liftWritePreserveDefaultFiber
 
 /-- Lift a TM0 machine while preserving target symbols in the inverse-default
 fiber whenever the source writes `default`. -/
-@[expose]
 public noncomputable def liftMachinePreserveDefaultFiber
     [DecidableEq Γ₁] (M : TM0.Machine Γ₁ Λ)
     (emb : Γ₁ → Γ₂) (inv : Γ₂ → Γ₁) :
@@ -180,7 +174,6 @@ public noncomputable def liftMachinePreserveDefaultFiber
 
 The target tape may contain symbols outside the embedding image; the source
 tape only has to be recovered by mapping target symbols through `inv`. -/
-@[expose]
 public def liftInvRel (inv : Γ₂ → Γ₁) (hinv_default : inv default = default) :
     TM0.Cfg Γ₁ Λ → TM0.Cfg Γ₂ Λ → Prop :=
   fun c₁ c₂ => c₁.q = c₂.q ∧ c₁.Tape = c₂.Tape.map (invPM inv hinv_default)

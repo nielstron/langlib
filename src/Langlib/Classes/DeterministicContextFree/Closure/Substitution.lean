@@ -20,6 +20,9 @@ private theorem DCF_singletons_bool : is_DCF ({[false], [true]} : Language Bool)
   apply is_RG_of_isRegular
   convert (Language.isRegular_singleton_word [false]).add'
     (Language.isRegular_singleton_word [true]) using 1
+  ext w
+  change (w = [false] ∨ w = [true]) ↔ (w = [false] ∨ w = [true])
+  rfl
 
 /-- Deterministic context-free languages are not closed under substitution. -/
 public theorem DCF_notClosedUnderSubstitution :

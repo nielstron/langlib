@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Classes.ContextFree.Decidability.Helper
 public import Langlib.Classes.ContextFree.Basics.Lifting
@@ -38,7 +38,7 @@ namespace ContextFree.EncodedCFG
 
 variable {T : Type}
 
-open EncodedCFG
+open _root_.EncodedCFG
 
 /-! ## Renaming nonterminals preserves the language -/
 
@@ -86,7 +86,6 @@ public theorem cf_language_eq_of_rename {g₀ g : CF_grammar T} (e : g₀.nt ≃
 /-! ## The encoding -/
 
 /-- Encode a symbol over `Fin (k+1)`-valued nonterminals into the raw `ℕ ⊕ T` format. -/
-@[expose]
 public def encodeSymbol {N : Type} {k : ℕ} (f : N → Fin (k + 1)) :
     symbol T N → ℕ ⊕ T
   | symbol.terminal t => Sum.inr t
@@ -94,7 +93,6 @@ public def encodeSymbol {N : Type} {k : ℕ} (f : N → Fin (k + 1)) :
 
 /-- Encode a context-free grammar whose nonterminals are indexed by `Fin (k+1)` (via the
 equivalence `e`) as an `EncodedCFG`. -/
-@[expose]
 public def encodeCFG {k : ℕ} (g : CF_grammar T) (e : g.nt ≃ Fin (k + 1)) : EncodedCFG T :=
   (k, (e g.initial).val,
     g.rules.map (fun r => ((e r.1).val, r.2.map (encodeSymbol (⇑e)))))
@@ -126,8 +124,9 @@ theorem encodeCFG_rules {k : ℕ} (g : CF_grammar T) (e : g.nt ≃ Fin (k + 1)) 
     cases s with
     | terminal t => rfl
     | nonterminal m =>
-      show (encodeCFG g e).toSymbol (Sum.inl (e m).val) = symbol.nonterminal (e m)
-      simp [EncodedCFG.toSymbol, toNT_val]
+      change symbol.nonterminal ((encodeCFG g e).toNT (e m).val) =
+        symbol.nonterminal (e m)
+      exact congrArg symbol.nonterminal (toNT_val (G := encodeCFG g e) (e m))
 
 /-! ## Soundness and completeness -/
 
@@ -159,7 +158,7 @@ public theorem contextFreeLanguageOf_complete (L : Language T) (hL : L ∈ CF) :
   set g : CF_grammar T := cfg_of_mathlib_cfg gml with hg
   have hg_lang : CF_language g = L := by
     rw [hg, ← mathlib_language_eq_CF_language]; exact hlang
-  letI : Fintype g.nt := hfin
+  let : Fintype g.nt := hfin
   have hpos : 0 < Fintype.card g.nt := Fintype.card_pos_iff.mpr ⟨g.initial⟩
   let e : g.nt ≃ Fin (Fintype.card g.nt - 1 + 1) :=
     (Fintype.equivFin g.nt).trans (finCongr (Nat.succ_pred_eq_of_pos hpos).symm)

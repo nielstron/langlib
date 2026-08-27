@@ -89,13 +89,12 @@ reversed input.
 - `tm0Het_fold_blockRealizable'`: block-realizability of the heterogeneous fold.
 -/
 
-open Turing
+open StateTransition Turing
 
 /-! ## While-loop TM0 combinator -/
 
 /-- While-loop TM0 machine. Runs `M` repeatedly; when `M` halts at
 `q_continue`, it restarts `M`. When `M` halts at any other state, it halts. -/
-@[expose]
 public noncomputable def tm0WhileLoop {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     [DecidableEq Λ]
     (M : TM0.Machine Γ Λ) (q_continue : Λ) : TM0.Machine Γ Λ := fun q a =>
@@ -165,7 +164,6 @@ def TM0RealizesBlockCond {Γ : Type} [Inhabited Γ]
 
 /-- Iterate a step function while a condition holds, bounded by fuel.
     Returns the block after at most `n` applications of `step`. -/
-@[expose]
 public def blockIterateWhile {Γ : Type} (step : List Γ → List Γ) (cond : List Γ → Prop)
     [DecidablePred cond] : ℕ → List Γ → List Γ
   | 0, block => block
@@ -202,7 +200,7 @@ public theorem whileLoop_eval_not_cont
       ((TM0Seq.evalCfg (tm0WhileLoop M q_cont) l).get h).Tape =
       ((TM0Seq.evalCfg M l).get h_body_dom).Tape := by
   obtain ⟨c, hc⟩ : ∃ c : TM0.Cfg Γ Λ, Reaches (TM0.step M) (TM0.init l) c ∧ TM0.step M c = none ∧ c.Tape = ((TM0Seq.evalCfg M l).get h_body_dom).Tape ∧ c.q = ((TM0Seq.evalCfg M l).get h_body_dom).q := by
-    have := Turing.mem_eval.mp ( ( TM0Seq.evalCfg M l ).get_mem h_body_dom );
+    have := StateTransition.mem_eval.mp ( ( TM0Seq.evalCfg M l ).get_mem h_body_dom );
     exact ⟨ _, this.1, this.2, rfl, rfl ⟩;
   obtain ⟨h_reaches, h_halt, h_tape, h_q⟩ := hc;
   have h_reaches_while : Reaches (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l) c := by
@@ -212,7 +210,7 @@ public theorem whileLoop_eval_not_cont
     unfold tm0WhileLoop at *;
     grind;
   have h_eval_while : c ∈ TM0Seq.evalCfg (tm0WhileLoop M q_cont) l := by
-    apply Turing.mem_eval.mpr;
+    apply StateTransition.mem_eval.mpr;
     exact ⟨ h_reaches_while, h_halt_while ⟩;
   grind +suggestions
 
@@ -264,10 +262,13 @@ public theorem whileLoop_eval_cont
   have h_reach : Reaches (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l) c := by
     exact tm0WhileLoop_reaches_of_M _ _ _ _ hc.1;
   have h_reach' : TM0.step (tm0WhileLoop M q_cont) c = TM0.step (tm0WhileLoop M q_cont) (TM0.init l') := by
-    convert whileLoop_step_restart_eq M q_cont ( Tape.mk₁ l' ) _;
-    · exact hc.2.2.1;
-    · exact hc.2.2.2;
-    · unfold TM0.step at hc; aesop;
+    have hc_eq : c = ⟨q_cont, Tape.mk₁ l'⟩ := by
+      cases c
+      simp_all
+    subst c
+    have hhalt : M q_cont (Tape.mk₁ l').head = none := by
+      simpa [TM0.step] using hc.2.1
+    simpa [TM0.init] using whileLoop_step_restart_eq M q_cont (Tape.mk₁ l') hhalt
   cases h : TM0.step ( tm0WhileLoop M q_cont ) c <;> simp_all +decide [ TM0Seq.evalCfg ];
   · rw [ eq_comm ] at h_reach';
     have h_eval_eq : ∀ (c₁ c₂ : TM0.Cfg Γ Λ), Reaches (TM0.step (tm0WhileLoop M q_cont)) c₁ c₂ → TM0.step (tm0WhileLoop M q_cont) c₂ = none → (eval (TM0.step (tm0WhileLoop M q_cont)) c₁).Dom ∧ ∀ (h : (eval (TM0.step (tm0WhileLoop M q_cont)) c₁).Dom), ((eval (TM0.step (tm0WhileLoop M q_cont)) c₁).get h) = c₂ := by
@@ -287,9 +288,9 @@ public theorem whileLoop_eval_cont
     have h_reach''' : Reaches (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l') ‹_› := by
       exact Relation.ReflTransGen.single ( by aesop )
     have h_eval_eq : eval (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l) = eval (TM0.step (tm0WhileLoop M q_cont)) ‹_› := by
-      apply_rules [ Turing.reaches_eval ]
+      apply_rules [ StateTransition.reaches_eval ]
     have h_eval_eq' : eval (TM0.step (tm0WhileLoop M q_cont)) (TM0.init l') = eval (TM0.step (tm0WhileLoop M q_cont)) ‹_› := by
-      apply Turing.reaches_eval; assumption;
+      apply StateTransition.reaches_eval; assumption;
     simp_all +decide [  ];
     exact h_eval_eq'.symm ▸ h_W_dom'
 
@@ -316,7 +317,7 @@ theorem tm0RealizesBlock_while {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fint
       ∀ g ∈ result block, g ≠ default) :
     TM0RealizesBlock Γ result := by
   obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
-  haveI : DecidableEq Λ := Classical.decEq Λ
+  have : DecidableEq Λ := Classical.decEq Λ
   refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
   intro block suffix hblock hsuffix hresult
   obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock
@@ -377,7 +378,7 @@ variable {Gamma Tag : Type}
 
 The fold layer only knows how to decode the first cell as a tag.  The body
 already operates on the same alphabet as the tape block. -/
-@[expose]
+@[reducible]
 public noncomputable def prefixFoldStep
     (tagOf : Gamma → Option Tag) (F : Tag → List Gamma → List Gamma) :
     List Gamma → List Gamma
@@ -422,7 +423,6 @@ variable {Gamma Tag Acc : Type}
 
 /-- Generic separated block layout: remaining tags, one explicit separator,
 then accumulator content.  The concrete alphabet is supplied by the embeddings. -/
-@[expose]
 public def separatedMix (tagEmb : Tag → Gamma) (sep : Gamma) (accEmb : Acc → Gamma)
     (tags : List Tag) (acc : List Acc) : List Gamma :=
   tags.map tagEmb ++ [sep] ++ acc.map accEmb
@@ -435,7 +435,7 @@ the result back using `accEmb`.
 
 This is not the fold.  It is the alphabet/layout bridge that turns an
 accumulator-alphabet operation into an ambient-alphabet block operation. -/
-@[expose]
+@[reducible]
 public noncomputable def separatedAccLift
     (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
     (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag) :
@@ -494,19 +494,16 @@ variable {T : Type} [DecidableEq T] [Fintype T]
 variable {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
 
 /-- Check if a het block element is an `inl` tag. -/
-@[expose]
 public def isHetInl (x : Option (T ⊕ Γ₀)) : Bool :=
   match x with | some (Sum.inl _) => true | _ => false
 
 /-- Decode fold tags from the concrete heterogeneous alphabet. -/
-@[expose]
 public def hetTagDecode : Option (T ⊕ Γ₀) → Option T
   | some (Sum.inl t) => some t
   | _ => none
 
 /-- Condition: block starts with an `inl` tag (signals the while loop
     should continue). -/
-@[expose]
 public def hasHetInlHead : List (Option (T ⊕ Γ₀)) → Prop
   | (some (Sum.inl _)) :: _ => True
   | _ => False
@@ -522,36 +519,30 @@ instance : DecidablePred (@hasHetInlHead T Γ₀) := fun block =>
 accumulator.  The accumulator invariant excludes `default : Γ₀`, so
 `some (Sum.inr default)` is fresh for accumulator contents while still being a
 nonblank tape symbol. -/
-@[expose]
 public def hetSep : Option (T ⊕ Γ₀) :=
   some (Sum.inr default)
 
 /-- Embed fold tags into the concrete heterogeneous alphabet. -/
-@[expose]
 public def hetTagEmb (t : T) : Option (T ⊕ Γ₀) :=
   some (Sum.inl t)
 
 /-- Embed accumulator symbols into the concrete heterogeneous alphabet. -/
-@[expose]
 public def hetAccEmb (g : Γ₀) : Option (T ⊕ Γ₀) :=
   some (Sum.inr g)
 
 /-- Decode accumulator cells from the concrete heterogeneous alphabet. -/
-@[expose]
 public def hetAccDecode : Option (T ⊕ Γ₀) → Option Γ₀
   | some (Sum.inr g) => some g
   | _ => none
 
 /-- Mixed het block representation with an explicit separator:
 `inl` tags, then `sep`, then the `inr` accumulator. -/
-@[expose]
 public def hetMixSep (sep : Option (T ⊕ Γ₀)) (ts : List T) (acc : List Γ₀) :
     List (Option (T ⊕ Γ₀)) :=
   separatedMix (hetTagEmb (Γ₀ := Γ₀)) sep (hetAccEmb (T := T)) ts acc
 
 /-- Default concrete het layout separator.  Prefer proving generic facts about
 `hetMixSep` when the separator matters. -/
-@[expose]
 public def hetMix (ts : List T) (acc : List Γ₀) : List (Option (T ⊕ Γ₀)) :=
   hetMixSep (hetSep (T := T) (Γ₀ := Γ₀)) ts acc
 
@@ -562,7 +553,7 @@ public def hetMix (ts : List T) (acc : List Γ₀) : List (Option (T ⊕ Γ₀))
     The fact that `F t` preserves the remaining tags and updates only the
     accumulator is a function-level obligation, not part of this generic fold
     construction. -/
-@[expose]
+@[reducible]
 public noncomputable def hetFoldStep
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))) :
     List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
@@ -574,7 +565,6 @@ public noncomputable def hetFoldStep
     This directly models what the `tm0WhileLoop` machine computes:
     iterate `hetFoldStep` while `hasHetInlHead`, stopping when no more
     `inl` tags remain at the head. -/
-@[expose]
 public noncomputable def hetFoldWhile
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (block : List (Option (T ⊕ Γ₀))) : List (Option (T ⊕ Γ₀)) :=
@@ -587,7 +577,7 @@ public noncomputable def hetFoldWhile
 This is intentionally not part of the generic fold theorem.  Any machine
 realizability proof for this adapter must account for the alphabet/layout
 boundary explicitly. -/
-@[expose]
+@[reducible]
 public noncomputable def hetFoldAdaptSep
     (sep : Option (T ⊕ Γ₀))
     (f : T → List Γ₀ → List Γ₀) (t : T) :
@@ -597,7 +587,7 @@ public noncomputable def hetFoldAdaptSep
     (hetAccDecode (T := T)) (hetAccEmb (T := T)) f t
 
 /-- Concrete default separator instantiation of `hetFoldAdaptSep`. -/
-@[expose]
+@[reducible]
 public noncomputable def hetFoldAdapt
     (f : T → List Γ₀ → List Γ₀) (t : T) :
     List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
@@ -646,24 +636,35 @@ public theorem hetFoldStep_hetMix
     (hF : ∀ t ts acc, F t (hetMix (T := T) (Γ₀ := Γ₀) ts acc) = hetMix ts (f t acc))
     (t : T) (ts : List T) (acc : List Γ₀) :
     hetFoldStep F (hetMix (t :: ts) acc) = hetMix ts (f t acc) := by
-  simp [hetFoldStep, hetMix, hetMixSep, separatedMix, hetTagEmb]
-  simpa [hetMix, hetMixSep, separatedMix, hetTagEmb, hetAccEmb] using hF t ts acc
+  simpa [hetFoldStep, prefixFoldStep, hetTagDecode, hetMix, hetMixSep,
+    separatedMix, hetTagEmb, hetAccEmb] using hF t ts acc
 
 omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
 public theorem hetFoldAdapt_hetMix
     (f : T → List Γ₀ → List Γ₀) (t : T) (ts : List T) (acc : List Γ₀) :
     hetFoldAdapt f t (hetMix ts acc) = hetMix ts (f t acc) := by
-  have hdecode : List.filterMap (hetAccDecode (T := T) ∘ hetAccEmb (T := T)) acc = acc := by
+  have hdecode : List.filterMap
+      (fun x => hetAccDecode (T := T) (hetAccEmb (T := T) x)) acc = acc := by
     induction acc with
     | nil => simp
-    | cons g acc ih => simp [Function.comp, hetAccDecode, hetAccEmb, ih]
+    | cons g acc ih => simp [hetAccDecode, hetAccEmb]
   induction ts with
   | nil =>
       simp [hetFoldAdapt, hetFoldAdaptSep, separatedAccLift, hetMix, hetMixSep,
         separatedMix, hetSep, isHetInl, hdecode]
   | cons t' ts ih =>
-      simp [hetFoldAdapt, hetFoldAdaptSep, separatedAccLift, hetMix, hetMixSep,
-        separatedMix, hetTagEmb, hetSep, isHetInl, hdecode]
+      have hmix : hetMix (T := T) (Γ₀ := Γ₀) (t' :: ts) acc =
+          hetTagEmb (T := T) (Γ₀ := Γ₀) t' :: hetMix ts acc := by
+        simp [hetMix, hetMixSep, separatedMix, hetTagEmb]
+      rw [hmix]
+      have hcons :
+          hetFoldAdapt f t (hetTagEmb (T := T) (Γ₀ := Γ₀) t' :: hetMix ts acc) =
+            hetTagEmb t' :: hetFoldAdapt f t (hetMix ts acc) := by
+        unfold hetFoldAdapt hetFoldAdaptSep separatedAccLift
+        rw [List.takeWhile_cons_of_pos (by rfl), List.dropWhile_cons_of_pos (by rfl)]
+        rfl
+      rw [hcons, ih]
+      simp [hetMix, hetMixSep, separatedMix, hetTagEmb]
 
 omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
 /-
@@ -674,7 +675,12 @@ public theorem takeWhile_isHetInl_hetMix (ts : List T) (acc : List Γ₀) :
       (isHetInl (T := T) (Γ₀ := Γ₀)) = ts.map (some ∘ Sum.inl) := by
   induction' ts with t ts ih
   · simp [hetMix, hetMixSep, separatedMix, hetSep, isHetInl]
-  · simp [hetMix, hetMixSep, separatedMix, hetTagEmb, hetSep, isHetInl]
+  · have hmix : hetMix (T := T) (Γ₀ := Γ₀) (t :: ts) acc =
+        hetTagEmb (T := T) (Γ₀ := Γ₀) t :: hetMix ts acc := by
+      simp [hetMix, hetMixSep, separatedMix, hetTagEmb]
+    rw [hmix]
+    rw [List.takeWhile_cons_of_pos (by rfl), ih]
+    rfl
 
 omit [DecidableEq T] [Fintype T] [DecidableEq Γ₀] [Fintype Γ₀] in
 /-- `hetFoldWhile` is correct on `hetMix`: computes `foldl`. -/
@@ -766,7 +772,7 @@ public theorem hetFoldStep_ne_default
     | some s =>
       cases s with
       | inl t =>
-          simpa [hetFoldStep] using
+          simpa [hetFoldStep, prefixFoldStep, hetTagDecode] using
             hF_nd t rest (fun g hg => hblock g (List.mem_cons_of_mem _ hg))
       | inr g => cases hcond
 
@@ -806,7 +812,6 @@ public theorem hetFoldWhile_ne_default
     `inr` payloads are properly separated. Keeping the suffix empty
     prevents the block machine contract from needing to preserve unrelated
     heterogeneous tape cells beyond the active block. -/
-@[expose]
 public def TM0RealizesBlockCondInv {Γ : Type} [Inhabited Γ]
     (step : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
     (blockInv : List Γ → Prop) : Prop :=
@@ -829,7 +834,6 @@ public def TM0RealizesBlockCondInv {Γ : Type} [Inhabited Γ]
 /-- Well-formedness predicate for het blocks: the block is of the form
     `hetMix ts acc` for some tag list `ts` and accumulator `acc` with
     all accumulator elements non-default. -/
-@[expose]
 public def isWellFormedHetBlock (block : List (Option (T ⊕ Γ₀))) : Prop :=
   ∃ (ts : List T) (acc : List Γ₀), block = hetMix ts acc ∧
     ∀ g ∈ acc, g ≠ (default : Γ₀)
@@ -839,7 +843,6 @@ public def isWellFormedHetBlock (block : List (Option (T ⊕ Γ₀))) : Prop :=
 This is intentionally weaker than `TM0RealizesBlock`: the fold step erases
 one leading tag and then invokes the tag-specific body on the remaining
 `hetMix ts acc`. It never invokes that body on arbitrary malformed blocks. -/
-@[expose]
 public def TM0RealizesHetFoldBody
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))) : Prop :=
   ∃ (Λ : T → Type) (_ : ∀ t, Inhabited (Λ t)) (_ : ∀ t, Fintype (Λ t))
@@ -886,7 +889,7 @@ public theorem tm0RealizesBlock_while_inv {Γ : Type} [Inhabited Γ] [DecidableE
           ((TM0Seq.evalCfg M (block ++ [default])).get h).Tape =
             Tape.mk₁ (result block ++ [default]) := by
   obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
-  haveI : DecidableEq Λ := Classical.decEq Λ
+  have : DecidableEq Λ := Classical.decEq Λ
   refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
   intro block hblockInv hblock hresult
   obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock hblockInv
@@ -939,25 +942,20 @@ public theorem tm0RealizesBlock_while_inv {Γ : Type} [Inhabited Γ] [DecidableE
 
 /-! ## Block Realizability -/
 
-@[expose]
 public abbrev HetFoldStepState (T : Type) (Λ : T → Type) :=
   Unit ⊕ Unit ⊕ T ⊕ (Σ t, Λ t)
 
 namespace HetFoldStepState
 
-@[expose]
 public def start {T : Type} {Λ : T → Type} : HetFoldStepState T Λ :=
   Sum.inl ()
 
-@[expose]
 public def cont {T : Type} {Λ : T → Type} : HetFoldStepState T Λ :=
   Sum.inr (Sum.inl ())
 
-@[expose]
 public def move {T : Type} {Λ : T → Type} (t : T) : HetFoldStepState T Λ :=
   Sum.inr (Sum.inr (Sum.inl t))
 
-@[expose]
 public def run {T : Type} {Λ : T → Type} (t : T) (q : Λ t) : HetFoldStepState T Λ :=
   Sum.inr (Sum.inr (Sum.inr ⟨t, q⟩))
 
@@ -966,7 +964,6 @@ instance {T : Type} {Λ : T → Type} : Inhabited (HetFoldStepState T Λ) :=
 
 end HetFoldStepState
 
-@[expose]
 public noncomputable def tm0HetFoldStepMachine
     {T Γ₀ : Type} [DecidableEq T]
     (Λ : T → Type) [∀ t, Inhabited (Λ t)]
@@ -1050,7 +1047,7 @@ public theorem tm0RealizesBlockCond_hetFoldStep
       constructor
       · apply Part.dom_iff_mem.mpr
         refine ⟨⟨HetFoldStepState.start, Tape.mk₁ (hetMix ([] : List T) acc ++ [default])⟩,
-          Turing.mem_eval.mpr ⟨Relation.ReflTransGen.refl, ?_⟩⟩
+          StateTransition.mem_eval.mpr ⟨Relation.ReflTransGen.refl, ?_⟩⟩
         simp [TM0.step, tm0HetFoldStepMachine, HetFoldStepState.start,
           hetMix, hetMixSep, separatedMix, hetSep, Tape.mk₁, Tape.mk₂, Tape.mk']
       · intro h
@@ -1061,7 +1058,7 @@ public theorem tm0RealizesBlockCond_hetFoldStep
               TM0Seq.evalCfg
                 (tm0HetFoldStepMachine (T := T) (Γ₀ := Γ₀) Λ M)
                 (hetMix (T := T) (Γ₀ := Γ₀) ([] : List T) acc ++ [default]) := by
-          exact Turing.mem_eval.mpr ⟨Relation.ReflTransGen.refl, by
+          exact StateTransition.mem_eval.mpr ⟨Relation.ReflTransGen.refl, by
             simp [TM0.step, tm0HetFoldStepMachine, HetFoldStepState.start,
               hetMix, hetMixSep, separatedMix, hetSep, Tape.mk₁, Tape.mk₂, Tape.mk']⟩
         rw [Part.mem_unique hmem hhalt]
@@ -1088,7 +1085,7 @@ public theorem tm0RealizesBlockCond_hetFoldStep
         (TM0Seq.evalCfg (M t) (rest ++ [default])).get hbody_dom
       have hbody_mem : bodyCfg ∈ TM0Seq.evalCfg (M t) (rest ++ [default]) :=
         Part.get_mem hbody_dom
-      obtain ⟨hbody_reach, hbody_halt⟩ := Turing.mem_eval.mp hbody_mem
+      obtain ⟨hbody_reach, hbody_halt⟩ := StateTransition.mem_eval.mp hbody_mem
       have hbody_tape' : bodyCfg.Tape = Tape.mk₁ (F t rest ++ [default]) :=
         hbody_tape hbody_dom
       have hstart :
@@ -1152,13 +1149,13 @@ public theorem tm0RealizesBlockCond_hetFoldStep
       constructor
       · apply Part.dom_iff_mem.mpr
         exact ⟨⟨HetFoldStepState.cont, bodyCfg.Tape⟩,
-          Turing.mem_eval.mpr ⟨hreach, hhalt⟩⟩
+          StateTransition.mem_eval.mpr ⟨hreach, hhalt⟩⟩
       · intro h
         have hmem := Part.get_mem h
         have htarget :
             ⟨HetFoldStepState.cont, bodyCfg.Tape⟩ ∈
               TM0Seq.evalCfg Mstep input :=
-          Turing.mem_eval.mpr ⟨hreach, hhalt⟩
+          StateTransition.mem_eval.mpr ⟨hreach, hhalt⟩
         rw [Part.mem_unique hmem htarget]
         simp [hasHetInlHead, HetFoldStepState.cont, hbody_tape',
           hetFoldStep, prefixFoldStep, hetTagDecode, rest, hetMix,
@@ -1321,9 +1318,9 @@ public theorem tm0Het_fold_blockRealizable'
   obtain ⟨Λ₃, hΛ₃i, hΛ₃f, M₃, hM₃⟩ :=
     tm0_dropUntilFirstSep_block sep hsep_nd
 
-  letI : Inhabited (Λ₂ ⊕ Λ₃) := ⟨Sum.inl default⟩
+  let : Inhabited (Λ₂ ⊕ Λ₃) := ⟨Sum.inl default⟩
   let M₂₃ : TM0.Machine Γ (Λ₂ ⊕ Λ₃) := TM0Seq.compose M₂ M₃
-  letI : Inhabited (Λ₁ ⊕ (Λ₂ ⊕ Λ₃)) := ⟨Sum.inl default⟩
+  let : Inhabited (Λ₁ ⊕ (Λ₂ ⊕ Λ₃)) := ⟨Sum.inl default⟩
   let M : TM0.Machine Γ (Λ₁ ⊕ (Λ₂ ⊕ Λ₃)) := TM0Seq.compose M₁ M₂₃
 
   refine ⟨Λ₁ ⊕ (Λ₂ ⊕ Λ₃), inferInstance, inferInstance, M, ?_⟩

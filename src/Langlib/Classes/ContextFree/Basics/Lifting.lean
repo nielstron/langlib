@@ -38,27 +38,22 @@ This file lifts context-free grammars across embeddings of nonterminal types and
 
 variable {T : Type}
 
-@[expose]
 public def lift_symbol {N₀ N : Type} (lift_N : N₀ → N) : symbol T N₀ → symbol T N
 | symbol.terminal t    => symbol.terminal t
 | symbol.nonterminal n => symbol.nonterminal (lift_N n)
 
-@[expose]
 public def sink_symbol {N₀ N : Type} (sink_N : N → Option N₀) : symbol T N → Option (symbol T N₀)
 | symbol.terminal t    => some (symbol.terminal t)
 | symbol.nonterminal n => Option.map symbol.nonterminal (sink_N n)
 
-@[expose]
 public def lift_string {N₀ N : Type} (lift_N : N₀ → N) :
   List (symbol T N₀) → List (symbol T N) :=
 List.map (lift_symbol lift_N)
 
-@[expose]
 public def sink_string {N₀ N : Type} (sink_N : N → Option N₀) :
   List (symbol T N) → List (symbol T N₀) :=
 List.filterMap (sink_symbol sink_N)
 
-@[expose]
 public def lift_rule {N₀ N : Type} (lift_N : N₀ → N) :
   N₀ × (List (symbol T N₀)) → N × (List (symbol T N)) :=
 fun r => (lift_N r.fst, lift_string lift_N r.snd)
@@ -115,6 +110,7 @@ by
       unfold lift_string at *
       rw [List.map_append_append] at lift_bef
       convert lift_bef
+      rfl
     ·
       have lift_aft := congrArg (lift_string lg.lift_nt) aft
       unfold lift_string at *
@@ -134,12 +130,10 @@ by
       · exact lift_tran step
 
 
-@[expose]
 public def good_letter {lg : lifted_grammar T} : symbol T lg.g.nt → Prop
 | (symbol.terminal _t)    => True
 | (symbol.nonterminal n) => (∃ n₀ : lg.g₀.nt, lg.sink_nt n = some n₀)
 
-@[expose]
 public def good_string {lg : lifted_grammar T} (s : List (symbol T lg.g.nt)) :=
 ∀ a ∈ s, good_letter a
 
@@ -334,35 +328,29 @@ macro "five_steps" : tactic =>
 variable {g₁ g₂ : CF_grammar T}
 
 /-- similar to `lift_symbol (Option.some ∘ sum.inl)` -/
-@[expose]
 public def sTN_of_sTN₁ : (symbol T g₁.nt) → (symbol T (Option (g₁.nt ⊕ g₂.nt)))
 | (symbol.terminal st) => (symbol.terminal st)
 | (symbol.nonterminal snt) => (symbol.nonterminal (some (Sum.inl snt)))
 
 /-- similar to `lift_symbol (Option.some ∘ sum.inr)` -/
-@[expose]
 public def sTN_of_sTN₂ : (symbol T g₂.nt) → (symbol T (Option (g₁.nt ⊕ g₂.nt)))
 | (symbol.terminal st) => (symbol.terminal st)
 | (symbol.nonterminal snt) => (symbol.nonterminal (some (Sum.inr snt)))
 
 /-- similar to `lift_string (Option.some ∘ sum.inl)` -/
-@[expose]
 public def lsTN_of_lsTN₁ : List (symbol T g₁.nt) → List (symbol T (Option (g₁.nt ⊕ g₂.nt))) :=
 List.map sTN_of_sTN₁
 
 /-- similar to `lift_string (Option.some ∘ sum.inr)` -/
-@[expose]
 public def lsTN_of_lsTN₂ : List (symbol T g₂.nt) → List (symbol T (Option (g₁.nt ⊕ g₂.nt))) :=
 List.map sTN_of_sTN₂
 
 /-- similar to `lift_rule (Option.some ∘ sum.inl)` -/
-@[expose]
 public def rule_of_rule₁ (r : g₁.nt × (List (symbol T g₁.nt))) :
   ((Option (g₁.nt ⊕ g₂.nt)) × (List (symbol T (Option (g₁.nt ⊕ g₂.nt))))) :=
 (some (Sum.inl (Prod.fst r)), lsTN_of_lsTN₁ (Prod.snd r))
 
 /-- similar to `lift_rule (Option.some ∘ sum.inr)` -/
-@[expose]
 public def rule_of_rule₂ (r : g₂.nt × (List (symbol T g₂.nt))) :
   ((Option (g₁.nt ⊕ g₂.nt)) × (List (symbol T (Option (g₁.nt ⊕ g₂.nt))))) :=
 (some (Sum.inr (Prod.fst r)), lsTN_of_lsTN₂ (Prod.snd r))

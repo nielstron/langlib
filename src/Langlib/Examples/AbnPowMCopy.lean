@@ -30,7 +30,11 @@ open List
 /-- Three-letter alphabet used to separate the copied halves. -/
 public inductive CopyLetter where
   | a | b | separator
-deriving DecidableEq, Fintype, Inhabited
+deriving DecidableEq, Inhabited
+
+public instance : Fintype CopyLetter where
+  elems := {.a, .b, .separator}
+  complete x := by cases x <;> simp
 
 /-- Embed the binary witness alphabet into the copy alphabet. -/
 public def copyCode : Bool → CopyLetter
@@ -61,7 +65,8 @@ private lemma mem_abnPowMCopyDenominator_iff {w : List CopyLetter} :
     rw [abnPowMCopyDenominator, Language.mul_def] at hw
     obtain ⟨left, hleft, right, hright, rfl⟩ := hw
     have hleft_eq : left = [CopyLetter.separator] := by
-      simpa [singletonWordLanguage] using hleft
+      change left = [CopyLetter.separator] at hleft
+      exact hleft
     subst left
     change right.reverse ∈ Language.map copyCode abnAbStarPowPredN at hright
     obtain ⟨v, hv, hmap⟩ := hright
@@ -74,8 +79,9 @@ private lemma mem_abnPowMCopyDenominator_iff {w : List CopyLetter} :
       (v.map copyCode).reverse, ?_, rfl⟩
     change ((v.map copyCode).reverse).reverse ∈
       Language.map copyCode abnAbStarPowPredN
-    simpa using (⟨v, hv, rfl⟩ : v.map copyCode ∈
-      Language.map copyCode abnAbStarPowPredN)
+    simp only [List.reverse_reverse]
+    change ∃ u ∈ abnAbStarPowPredN, List.map copyCode u = List.map copyCode v
+    exact ⟨v, hv, rfl⟩
 
 private lemma separator_not_mem_map_copyCode (w : List Bool) :
     CopyLetter.separator ∉ w.map copyCode := by

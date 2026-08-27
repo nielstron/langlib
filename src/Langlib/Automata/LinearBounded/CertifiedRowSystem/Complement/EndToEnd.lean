@@ -24,6 +24,7 @@ namespace CertifiedRowSystem.Complement
 
 variable {I A Q F : Type*} [Fintype A] [Nonempty A] [DecidableEq A]
 
+omit [DecidableEq A] in
 private theorem input_hasPhase
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) :
     HasPhase .input (input.map (inputProtocolCell D.inputCell)) := by
@@ -32,6 +33,7 @@ private theorem input_hasPhase
   obtain ⟨symbol, _, rfl⟩ := hcell
   rfl
 
+omit [DecidableEq A] in
 private theorem canonicalSelected_succ_of_mem
     (D : CertifiedRowSystem I A Unit Q F) (input : List I)
     {depth innerIndex : Nat}
@@ -49,6 +51,7 @@ private theorem canonicalSelected_succ_of_mem
     simp [hmem]
   · simp [hcurrent]
 
+omit [DecidableEq A] in
 private theorem canonicalSelected_succ_of_not_mem
     (D : CertifiedRowSystem I A Unit Q F) (input : List I)
     {depth innerIndex : Nat}
@@ -65,6 +68,7 @@ private theorem canonicalSelected_succ_of_not_mem
     simp [hmem]
   · simp [hcurrent]
 
+omit [DecidableEq A] in
 @[simp]
 private theorem canonicalSelected_capacity
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) (depth : Nat) :
@@ -73,6 +77,7 @@ private theorem canonicalSelected_capacity
       protocolReached D input depth := by
   simp
 
+omit [DecidableEq A] in
 private theorem not_rankFinal_of_sourceRejects_of_mem
     (D : CertifiedRowSystem I A Unit Q F) (input : List I)
     (hrejects : SourceRejects D input) {depth : Nat}
@@ -82,7 +87,7 @@ private theorem not_rankFinal_of_sourceRejects_of_mem
   intro hfinal
   apply (sourceRejects_iff_ranked D input).1 hrejects
   refine ⟨vertex, ?_, hfinal⟩
-  letI : DecidableRel (rankEdge D input.length) := Classical.decRel _
+  let : DecidableRel (rankEdge D input.length) := Classical.decRel _
   exact FiniteReachabilityCounting.reached_sound
     (rankEdge D input.length) (protocolSourceRank D input) hmem
 
@@ -472,7 +477,8 @@ public theorem protocolAccepts_complete
   have hbootStep : ProtocolStep D initial initialized :=
     ⟨hinitial, Or.inl hboot⟩
   have hinitialized : RoundStartInvariant D input initialized 0 1 := by
-    simpa only [initialized] using initialized_roundStartInvariant D hinput
+    simpa only [initialized, protocolSource] using
+      initialized_roundStartInvariant D hinput
   obtain ⟨finalChoose, depth, count, hcounting, hfinalChoose⟩ :=
     reachFinalChoose hinput hinitialized
   obtain ⟨accept, hfinalScan, haccept⟩ :=
@@ -498,8 +504,6 @@ public theorem rowReachLanguage_deterministicComplementSystem
     (deterministicComplementSystem D).rowReachLanguage =
       D.rowReachLanguageᶜ \ ({[]} : Set (List I)) := by
   ext input
-  change input ∈ (deterministicComplementSystem D).rowReachLanguage ↔
-    input ∈ D.rowReachLanguageᶜ \ ({[]} : Set (List I))
   rw [mem_deterministicComplementSystem_iff_protocolAccepts]
   change (input ≠ [] ∧ ProtocolAccepts D input) ↔
     input ∉ D.rowReachLanguage ∧ input ≠ []

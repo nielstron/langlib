@@ -67,19 +67,26 @@ public theorem accepts_sound (G : CF_grammar T) (k : ℕ) {w : List T}
   have hcand := reductionItem?_reductionCandidate G k hi
   rw [hirule, ruleAt_startRuleIndex] at hcand
   rcases hcand with ⟨_, p, s, hpre, hgamma, _⟩
+  unfold CF_grammar.augmentStartRule at hpre hgamma
   have hroot : p = [] ∧ s = [] :=
-    fresh_prehandle_eq_root G (by
-      simpa [CF_grammar.augmentStartRule] using hpre)
+    fresh_prehandle_eq_root G hpre
   rcases hroot with ⟨rfl, rfl⟩
   have hgamma' :
       gamma = [symbol.nonterminal (some G.initial)] := by
-    simpa [CF_grammar.augmentStartRule] using hgamma
-  subst gamma
+    change gamma = [symbol.nonterminal (some G.initial)] at hgamma
+    exact hgamma
   have hder := Reaches.form_derives hreach
+  change G.augment.DerivesRightmost
+    (gamma ++ ([] : List T).map
+      (symbol.terminal (N := G.augment.nt)))
+    (([] : List (symbol T G.augment.nt)) ++
+      w.map (symbol.terminal (N := G.augment.nt))) at hder
+  rw [hgamma'] at hder
+  simp only [List.map_nil, List.nil_append] at hder
   have hder' : G.augment.DerivesRightmost
       [symbol.nonterminal (some G.initial)]
       (w.map (symbol.terminal (N := G.augment.nt))) := by
-    simpa [Config.form, initialConfig] using hder
+    exact hder
   have hfull : G.augment.DerivesRightmost
       [symbol.nonterminal G.augment.initial]
       (w.map (symbol.terminal (N := G.augment.nt))) :=

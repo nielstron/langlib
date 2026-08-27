@@ -75,13 +75,13 @@ private def my_grammar : CS_grammar Te :=
         rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
           simp [r₁, r₂, r₃, r₃', r₃'', r₄, r₄', r₄'', r₅, r₅', r₅'', r₆])
 
-
 -- A macro for performing one context-sensitive derivation step (with continuation).
 macro "CS_step" rule:term "," pref:term "," post:term : tactic =>
   `(tactic| (
     apply CS_deri_of_tran_deri
     · refine ⟨$rule, $pref, $post, ?_, ?_, ?_⟩
-      · simp [my_grammar]
+      · change $rule ∈ [r₁, r₂, r₃, r₃', r₃'', r₄, r₄', r₄'', r₅, r₅', r₅'', r₆]
+        simp only [List.mem_cons, List.mem_nil_iff, or_false, true_or, or_true]
       · rfl
       · rfl
   ))
@@ -94,7 +94,8 @@ example : [Te.a_, Te.b_, Te.c_] ∈ CS_language my_grammar := by
   CS_step r₅', [a], []
   apply CS_deri_of_tran
   · refine ⟨r₅'', [a], [], ?_, ?_, ?_⟩
-    · simp [my_grammar]
+    · change r₅'' ∈ [r₁, r₂, r₃, r₃', r₃'', r₄, r₄', r₄'', r₅, r₅', r₅'', r₆]
+      simp only [List.mem_cons, List.mem_nil_iff, or_false, true_or, or_true]
     · rfl
     · rfl
 

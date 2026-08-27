@@ -67,7 +67,6 @@ the preimage `{w | w.flatMap h ∈ L}`.
 open Turing
 
 /-- Search test for the inverse homomorphic image of a grammar language. -/
-@[expose]
 public def reInverseHomomorphismTest {α β : Type} [DecidableEq β]
     (g : grammar β) [DecidableEq g.nt] (h : α → List β)
     (seq : List (ℕ × ℕ)) (w : List α) : Bool :=
@@ -88,17 +87,17 @@ public theorem RE_of_inverseHomomorphism_RE {α β : Type}
     [Fintype α] [Fintype β] (L : Language β) (h : α → List β) :
     is_RE L → is_RE { w : List α | w.flatMap h ∈ L } := by
   intro hL
-  haveI : DecidableEq α := Classical.decEq _
-  haveI : DecidableEq β := Classical.decEq _
+  have : DecidableEq α := Classical.decEq _
+  have : DecidableEq β := Classical.decEq _
   obtain ⟨g, hg⟩ := hL
   obtain ⟨g', _hfin, hlang⟩ := grammar_equivalent_finiteNT g
-  haveI : Fintype g'.nt := Fintype.ofFinite _
-  haveI : DecidableEq g'.nt := Classical.decEq _
-  haveI : Primcodable α :=
+  have : Fintype g'.nt := Fintype.ofFinite _
+  have : DecidableEq g'.nt := Classical.decEq _
+  have : Primcodable α :=
     Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
-  haveI : Primcodable β :=
+  have : Primcodable β :=
     Primcodable.ofEquiv (Fin (Fintype.card β)) (Fintype.truncEquivFin β).out
-  haveI : Primcodable g'.nt :=
+  have : Primcodable g'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g'.nt)) (Fintype.truncEquivFin g'.nt).out
   let test := reInverseHomomorphismTest g' h
   have hcomp : Computable₂ test := reInverseHomomorphismTest_computable₂ g' h

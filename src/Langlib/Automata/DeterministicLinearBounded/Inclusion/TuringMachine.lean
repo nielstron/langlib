@@ -1,7 +1,7 @@
 module
 
 public import Langlib.Automata.DeterministicLinearBounded.Definition
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -53,10 +53,10 @@ definitions.
 
 ## Strategy
 
-### Part 1: `Turing.eval` characterization
+### Part 1: `StateTransition.eval` characterization
 
-We show that `DLBA.Accepts` is equivalent to Mathlib's `Turing.eval` halting in an
-accepting state. Since `Turing.eval` is the common foundation underlying all Mathlib TM
+We show that `DLBA.Accepts` is equivalent to Mathlib's `StateTransition.eval` halting in an
+accepting state. Since `StateTransition.eval` is the common foundation underlying all Mathlib TM
 models (`TM0`, `TM1`, `TM2`), this connects the DLBA framework directly to Mathlib's
 notion of Turing computation.
 
@@ -73,34 +73,34 @@ The TM0 halts if and only if the DLBA accepts the input.
 
 ## Main Results
 
-* `DLBA.iterateStep_reaches` — `iterateStep` implies `Turing.Reaches`
-* `DLBA.reaches_iterateStep` — `Turing.Reaches` implies `iterateStep`
-* `DLBA.accepts_iff_eval` — DLBA acceptance ↔ `Turing.eval` halts with accepting state
+* `DLBA.iterateStep_reaches` — `iterateStep` implies `StateTransition.Reaches`
+* `DLBA.reaches_iterateStep` — `StateTransition.Reaches` implies `iterateStep`
+* `DLBA.accepts_iff_eval` — DLBA acceptance ↔ `StateTransition.eval` halts with accepting state
 * `DLBA.lba_language_subset_tm0_language` — Every word accepted by the DLBA is accepted
   by the simulating TM0 machine
 -/
 
 namespace DLBA
 
-open Turing
+open StateTransition Turing
 
-/-! ## Part 1: Connecting DLBA to `Turing.eval` -/
+/-! ## Part 1: Connecting DLBA to `StateTransition.eval` -/
 
-/-- If `iterateStep M cfg k = some cfg'`, then `Turing.Reaches (step M) cfg cfg'`. -/
+/-- If `iterateStep M cfg k = some cfg'`, then `StateTransition.Reaches (step M) cfg cfg'`. -/
 theorem iterateStep_reaches {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg cfg' : Cfg Γ Λ n) {k : ℕ}
     (hk : iterateStep M cfg k = some cfg') :
-    Turing.Reaches (step M) cfg cfg' := by
+    StateTransition.Reaches (step M) cfg cfg' := by
   induction' k with k ih generalizing cfg cfg'
   · cases hk; tauto
   · cases h : iterateStep M cfg k <;> simp_all +decide [iterateStep_succ]
     exact Relation.ReflTransGen.tail (ih _ _ h) (by aesop)
 
-/-- If `Turing.Reaches (step M) cfg cfg'`, then there exists `k` such that
+/-- If `StateTransition.Reaches (step M) cfg cfg'`, then there exists `k` such that
 `iterateStep M cfg k = some cfg'`. -/
 theorem reaches_iterateStep {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg cfg' : Cfg Γ Λ n)
-    (hr : Turing.Reaches (step M) cfg cfg') :
+    (hr : StateTransition.Reaches (step M) cfg cfg') :
     ∃ k, iterateStep M cfg k = some cfg' := by
   induction hr
   · exact ⟨0, rfl⟩
@@ -108,25 +108,25 @@ theorem reaches_iterateStep {Γ : Type*} {Λ : Type*} {n : ℕ}
     use k + 1
     rw [iterateStep_succ, hk]; aesop
 
-/-- DLBA acceptance is equivalent to `Turing.eval` halting in an accepting state.
-This connects the DLBA directly to Mathlib's `Turing.eval` framework, which underlies
+/-- DLBA acceptance is equivalent to `StateTransition.eval` halting in an accepting state.
+This connects the DLBA directly to Mathlib's `StateTransition.eval` framework, which underlies
 all TM models (`TM0`, `TM1`, `TM2`). -/
 theorem accepts_iff_eval {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) :
     Accepts M cfg ↔
-      ∃ c, c ∈ Turing.eval (step M) cfg ∧ M.accept c.state = true := by
+      ∃ c, c ∈ StateTransition.eval (step M) cfg ∧ M.accept c.state = true := by
   constructor
   · rintro ⟨k, hk, cfg', hk', hk''⟩
     refine ⟨cfg', ?_, hk''⟩
-    rw [Turing.mem_eval]
+    rw [StateTransition.mem_eval]
     exact ⟨iterateStep_reaches M cfg cfg' hk',
       by rw [show iterateStep M cfg (k + 1) = (iterateStep M cfg k).bind (step M) from rfl] at hk
          aesop⟩
   · rintro ⟨c, hc⟩
-    obtain ⟨k, hk⟩ := reaches_iterateStep M cfg c (by rw [Turing.mem_eval] at hc; aesop)
+    obtain ⟨k, hk⟩ := reaches_iterateStep M cfg c (by rw [StateTransition.mem_eval] at hc; aesop)
     use k
     rw [iterateStep_succ]
-    rw [Turing.mem_eval] at hc; aesop
+    rw [StateTransition.mem_eval] at hc; aesop
 
 /-! ## Part 2: Concrete TM0 Simulation -/
 
@@ -198,13 +198,14 @@ After moving right `k` times from `Tape.mk₁ l`, the head is `l.getI k`.
 theorem tape_mk1_move_right_head {Γ : Type*} [Inhabited Γ]
     (l : List Γ) (k : ℕ) :
     ((Turing.Tape.move Turing.Dir.right)^[k] (Turing.Tape.mk₁ l)).head = l.getI k := by
-  convert tape_iter_move_right_nth _ _ _ using 1;
-  any_goals exact ( Tape.mk' ( ListBlank.mk [] ) ( ListBlank.mk l ) );
-  convert rfl;
-  convert Tape.nth_zero _;
-  simp +decide [ Tape.mk', ListBlank.mk ];
-  simp +decide [ ListBlank.head, ListBlank.tail, Tape.nth ];
-  cases l <;> cases k <;> simp +decide [ List.getI ]
+  calc
+    ((Turing.Tape.move Turing.Dir.right)^[k] (Turing.Tape.mk₁ l)).head =
+        ((Turing.Tape.move Turing.Dir.right)^[k] (Turing.Tape.mk₁ l)).nth 0 :=
+      (Tape.nth_zero _).symm
+    _ = (Turing.Tape.mk₁ l).nth (0 + k) := tape_iter_move_right_nth _ _ _
+    _ = (Turing.Tape.mk₁ l).nth (k : ℤ) := by norm_num
+    _ = l.getI k := by
+      simp only [Tape.mk₁, Tape.mk₂, Tape.mk'_nth_nat, ListBlank.nth_mk]
 
 /-
 The head of `Tape.mk₁ l` is `l.headI`.
@@ -279,7 +280,7 @@ first `k` elements of `List.ofFn w` and the tape head is at position `k`.
 -/
 theorem reading_phase_k_steps {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) (k : ℕ) (hk : k ≤ n + 1) :
-    Turing.Reaches (tm0Step M n) (tm0Init M w)
+    StateTransition.Reaches (tm0Step M n) (tm0Init M w)
       (⟨.reading (List.take k (List.ofFn w)),
         (Turing.Tape.move Turing.Dir.right)^[k]
           (Turing.Tape.mk₁ (encodeInput w))⟩ : SimCfg Γ Λ n) := by
@@ -303,10 +304,10 @@ simulation phase with the correct initial DLBA configuration.
 -/
 theorem reading_phase_complete {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableEq Γ]
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) :
-    ∃ T, Turing.Reaches (tm0Step M n) (tm0Init M w)
+    ∃ T, StateTransition.Reaches (tm0Step M n) (tm0Init M w)
       (⟨.simulating (initCfg M w), T⟩ : SimCfg Γ Λ n) := by
   -- By definition of `tm0Init`, we know that after reading all n+1 symbols, we reach the simulation phase.
-  have h_reaches : Turing.Reaches (tm0Step M n) (tm0Init M w) (⟨.reading (List.ofFn w), (Turing.Tape.move Turing.Dir.right)^[n + 1] (Turing.Tape.mk₁ (encodeInput w))⟩ : SimCfg Γ Λ n) := by
+  have h_reaches : StateTransition.Reaches (tm0Step M n) (tm0Init M w) (⟨.reading (List.ofFn w), (Turing.Tape.move Turing.Dir.right)^[n + 1] (Turing.Tape.mk₁ (encodeInput w))⟩ : SimCfg Γ Λ n) := by
     convert reading_phase_k_steps M w ( n + 1 ) ( Nat.le_refl _ ) using 1;
     rw [ List.take_of_length_le ( by simp +decide ) ];
   -- By definition of `tm0Step`, we know that after reading all n+1 symbols, we reach the simulation phase.
@@ -351,12 +352,12 @@ theorem tm0_halts_of_lba_accepts {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableE
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n)
     (T : @Turing.Tape (Option Γ) ⟨none⟩)
     (hacc : Accepts M cfg) :
-    (Turing.eval (tm0Step M n)
+    (StateTransition.eval (tm0Step M n)
       (⟨.simulating cfg, T⟩ : SimCfg Γ Λ n)).Dom := by
   -- Let's obtain the witness `k` from the `Accepts` definition.
   obtain ⟨k, hk⟩ := hacc;
   -- By induction on $k$, we can show that the simulation preserves the steps of the DLBA.
-  have h_ind : ∀ k, ∀ cfg cfg', iterateStep M cfg k = some cfg' → ∀ T, ∃ T', Turing.Reaches (tm0Step M n) (⟨.simulating cfg, T⟩ : SimCfg Γ Λ n) (⟨.simulating cfg', T'⟩ : SimCfg Γ Λ n) := by
+  have h_ind : ∀ k, ∀ cfg cfg', iterateStep M cfg k = some cfg' → ∀ T, ∃ T', StateTransition.Reaches (tm0Step M n) (⟨.simulating cfg, T⟩ : SimCfg Γ Λ n) (⟨.simulating cfg', T'⟩ : SimCfg Γ Λ n) := by
     intro k cfg cfg' hk T; induction' k with k ih generalizing cfg cfg' T <;> simp_all +decide [ iterateStep ] ;
     · exact ⟨ T, by constructor ⟩;
     · rcases h : iterateStep M cfg k with ( _ | cfg'' ) <;> simp_all +decide [ Reaches ];
@@ -364,27 +365,24 @@ theorem tm0_halts_of_lba_accepts {Γ : Type*} {Λ : Type*} {n : ℕ} [DecidableE
       obtain ⟨ T'', hT'' ⟩ := simulation_preserves_step M cfg'' cfg' T' hk; exact ⟨ T'', hT'.trans ( Relation.ReflTransGen.single hT'' ) ⟩ ;
   obtain ⟨cfg', hcfg', hacc⟩ := hk.2
   obtain ⟨T', hT'⟩ := h_ind k cfg cfg' hcfg' T
-  have h_dom : (eval (tm0Step M n) { q := SimState.simulating cfg', Tape := T' }).Dom := by
-                                      have h_dom : step M cfg' = none := by
-                                        rw [ show iterateStep M cfg ( k + 1 ) = ( iterateStep M cfg k ).bind ( step M ) from rfl ] at hk ; aesop;
-                                      convert simulation_halts_on_accept M cfg' T' h_dom hacc using 1;
-                                      constructor <;> intro h <;> simp_all +decide [ Turing.eval ];
-                                      · convert simulation_halts_on_accept M cfg' T' h_dom hacc using 1;
-                                      · convert Part.dom_iff_mem.mpr _;
-                                        use ⟨.simulating cfg', T'⟩;
-                                        rw [ PFun.mem_fix_iff ] ; aesop;
-  exact (by
-    have h_reaches : Turing.Reaches (tm0Step M n) { q := SimState.simulating cfg, Tape := T } { q := SimState.simulating cfg', Tape := T' } := by
-                                                                                                  grind +revert
-    grind +suggestions
-  )
+  have h_lba_halt : step M cfg' = none := by
+    have hhaltIter := hk.1
+    rw [show iterateStep M cfg (k + 1) = (iterateStep M cfg k).bind (step M) from rfl]
+      at hhaltIter
+    rw [hcfg'] at hhaltIter
+    exact hhaltIter
+  have h_tm_halt : tm0Step M n (⟨.simulating cfg', T'⟩ : SimCfg Γ Λ n) = none :=
+    simulation_halts_on_accept M cfg' T' h_lba_halt hacc
+  exact Part.dom_iff_mem.mpr
+    ⟨⟨.simulating cfg', T'⟩,
+      StateTransition.mem_eval.mpr ⟨hT', h_tm_halt⟩⟩
 
 /-
-If `Turing.Reaches f a b` and `(Turing.eval f b).Dom`, then `(Turing.eval f a).Dom`.
+If `StateTransition.Reaches f a b` and `(StateTransition.eval f b).Dom`, then `(StateTransition.eval f a).Dom`.
 -/
 theorem eval_dom_of_reaches {σ : Type*} (f : σ → Option σ) (a b : σ)
-    (hr : Turing.Reaches f a b) (hb : (Turing.eval f b).Dom) :
-    (Turing.eval f a).Dom := by
+    (hr : StateTransition.Reaches f a b) (hb : (StateTransition.eval f b).Dom) :
+    (StateTransition.eval f a).Dom := by
   grind +suggestions
 
 /-! ### Main Theorem -/
@@ -397,7 +395,7 @@ theorem lba_language_subset_tm0_language
     [DecidableEq Γ] [Fintype Γ] [DecidableEq Λ] [Fintype Λ]
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ)
     (hw : w ∈ Language M n) :
-    (Turing.eval (tm0Step M n) (tm0Init M w)).Dom := by
+    (StateTransition.eval (tm0Step M n) (tm0Init M w)).Dom := by
   -- Step 1: The reading phase reaches the simulation phase
   obtain ⟨T, hreach⟩ := reading_phase_complete M w
   -- Step 2: The simulation phase halts because the DLBA accepts

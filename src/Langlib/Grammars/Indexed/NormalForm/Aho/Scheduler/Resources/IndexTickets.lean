@@ -710,8 +710,9 @@ public def semanticCursor
   change
     [cursor.focus.relabelTicketOwner ledger.semanticOwnerOf].filterMap
       ScheduleAtom.indexOwner? = _
-  cases cursor.focus <;>
-    simp [ScheduleAtom.relabelTicketOwner, ScheduleAtom.indexOwner?]
+  simpa only [List.map_singleton] using
+    ScheduleAtom.filterMap_indexOwner_relabelTicketOwner
+      ledger.semanticOwnerOf [cursor.focus]
 
 /-- Membership in the virtual semantic cursor is exactly membership of the corresponding
 logical ticket in the physical cursor. -/
@@ -928,7 +929,7 @@ public theorem allocate_preserves_fresh
 
 /-- Transport tickets across a cursor change which preserves physical owners up to
 permutation. -/
-public def transport
+@[reducible] public def transport
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {old new : ScheduleCursor g input} (ledger : IndexTicketLedger old)
     (hindices : new.indexOwners.Perm old.indexOwners) :
@@ -944,7 +945,7 @@ public def transport
       simpa [ScheduleCursor.indexTickets] using hmem)
 
 /-- Releasing one physical owner preserves injectivity on the remaining owners. -/
-public def release
+@[reducible] public def release
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {old new : ScheduleCursor g input} (ledger : IndexTicketLedger old)
     (owner : Fin (10 * input.length))

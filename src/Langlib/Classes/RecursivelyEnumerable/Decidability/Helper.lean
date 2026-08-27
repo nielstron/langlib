@@ -50,7 +50,6 @@ open Nat.Partrec
 /-- The domain language of a partial-recursive code, represented over `Unit`.
 
 The word length is the program input. -/
-@[expose]
 public def partrecCodeDomainLanguageOf (c : Code) : Language Unit :=
   fun w => (c.eval w.length).Dom
 
@@ -58,7 +57,6 @@ public def partrecCodeDomainLanguageOf (c : Code) : Language Unit :=
 
 Only singleton words are meaningful: `[(n, y)]` means that the code returns `y` on
 input `n`. -/
-@[expose]
 public def partrecCodeGraphLanguageOf (c : Code) : Language (ℕ × ℕ)
   | [(n, y)] => y ∈ c.eval n
   | _ => False
@@ -71,14 +69,14 @@ public theorem partrecCodeDomainLanguage_empty_iff (c : Code) :
     have hw : (List.replicate n ()) ∈ partrecCodeDomainLanguageOf c := by
       change (c.eval (List.replicate n ()).length).Dom
       simpa using hn
-    have : (List.replicate n ()) ∈ (∅ : Set (List Unit)) := by
-      simpa [h] using hw
-    exact this
+    rw [h] at hw
+    exact (Set.mem_empty_iff_false _).mp hw
   · intro h
     ext w
     constructor
     · intro hw
-      exact False.elim (h w.length (by simpa [partrecCodeDomainLanguageOf] using hw))
+      change (c.eval w.length).Dom at hw
+      exact False.elim (h w.length hw)
     · intro hw
       exact False.elim hw
 
@@ -98,7 +96,8 @@ public theorem partrecCodeDomainLanguage_universal_iff (c : Code) :
     · intro _
       trivial
     · intro _
-      simpa [partrecCodeDomainLanguageOf] using h w.length
+      change (c.eval w.length).Dom
+      exact h w.length
 
 public theorem partrecCodeGraphLanguage_eq_iff (p : Code × Code) :
     partrecCodeGraphLanguageOf p.1 = partrecCodeGraphLanguageOf p.2 ↔
@@ -111,16 +110,18 @@ public theorem partrecCodeGraphLanguage_eq_iff (p : Code × Code) :
     constructor
     · intro hy
       have hw : [(n, y)] ∈ partrecCodeGraphLanguageOf p.1 := by
-        simpa [partrecCodeGraphLanguageOf] using hy
-      have hw' : [(n, y)] ∈ partrecCodeGraphLanguageOf p.2 := by
-        simpa [h] using hw
-      simpa [partrecCodeGraphLanguageOf] using hw'
+        change y ∈ p.1.eval n
+        exact hy
+      rw [h] at hw
+      change y ∈ p.2.eval n at hw
+      exact hw
     · intro hy
       have hw : [(n, y)] ∈ partrecCodeGraphLanguageOf p.2 := by
-        simpa [partrecCodeGraphLanguageOf] using hy
-      have hw' : [(n, y)] ∈ partrecCodeGraphLanguageOf p.1 := by
-        simpa [h] using hw
-      simpa [partrecCodeGraphLanguageOf] using hw'
+        change y ∈ p.2.eval n
+        exact hy
+      rw [← h] at hw
+      change y ∈ p.1.eval n at hw
+      exact hw
   · intro h
     ext w
     cases w with
@@ -136,4 +137,3 @@ public theorem partrecCodeGraphLanguage_eq_iff (p : Code × Code) :
         | cons head' tail' =>
             change False ↔ False
             simp
-

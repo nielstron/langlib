@@ -2,7 +2,6 @@ module
 
 public import Langlib.Automata.LinearBounded.CertifiedRowSystem
 import Mathlib.Tactic
-
 @[expose]
 public section
 
@@ -401,7 +400,7 @@ private lemma scanAccepts_rightClamp_iff [DecidableEq I] [DecidableEq Γ] [Decid
       cases oldHead with
       | raw i =>
           cases new <;> cases cert <;>
-            simp [scanAccepts_cons, RowScan.scanCell, noHeadCells] <;> aesop
+            simp [scanAccepts_cons, RowScan.scanCell, noHeadCells]
       | cfg a h r =>
           cases h <;> cases new with
           | nil => cases cert <;> simp [scanAccepts, CertifiedRowSystem.evalStep, noHeadCells]
@@ -409,13 +408,13 @@ private lemma scanAccepts_rightClamp_iff [DecidableEq I] [DecidableEq Γ] [Decid
               cases newHead with
               | raw i =>
                   cases cert <;>
-                    simp [scanAccepts_cons, RowScan.scanCell, noHeadCells] <;> aesop
+                    simp [scanAccepts_cons, RowScan.scanCell, noHeadCells]
               | cfg b h' r' =>
                   cases h' <;> cases cert with
                   | nil => simp [scanAccepts, CertifiedRowSystem.evalStep, noHeadCells]
                   | cons c certTail =>
                       cases c <;>
-                        simp [scanAccepts_cons, RowScan.scanCell, noHeadCells, ih, and_assoc] <;>
+                        simp [scanAccepts_cons, RowScan.scanCell, noHeadCells, and_assoc] <;>
                           aesop
 
 private lemma scanAccepts_expectRight_iff
@@ -664,14 +663,14 @@ private lemma scanAccepts_before_of_configMove
         .plain :: .head .left :: List.replicate right.length .plain, ?_⟩
       rw [scanAccepts_before_prefix]
       simp [scanAccepts_cons, RowScan.scanCell, RowScan.scanBefore,
-        RowScan.transitionOK, hstep, noHeadCells] <;>
+        RowScan.transitionOK, hstep, noHeadCells];
         exact ⟨right, rfl, rfl, rfl⟩
   | right a b x left right hstep =>
       refine ⟨List.replicate left.length .plain ++
         .head .right :: .plain :: List.replicate right.length .plain, ?_⟩
       rw [scanAccepts_before_prefix]
       simp [scanAccepts_cons, RowScan.scanCell, RowScan.scanBefore,
-        RowScan.transitionOK, hstep, noHeadCells] <;>
+        RowScan.transitionOK, hstep, noHeadCells];
         exact ⟨right, rfl, rfl, rfl⟩
 
 private lemma configMove_of_scanAccepts_before
@@ -701,8 +700,8 @@ private lemma configMove_of_scanAccepts_before
                         by_contra hn
                         have hbad : r ≠ q ∨ r' ≠ q' := by tauto
                         have hbadAcc : scanAccepts M embed .bad oldTail newTail certTail := by
-                          simpa [scanAccepts_cons, RowScan.scanCell, RowScan.scanBefore,
-                            hbad] using hacc
+                          simp [scanAccepts_cons, RowScan.scanCell, RowScan.scanBefore,
+                            hbad] at hacc
                         exact (not_scanAccepts_bad M embed _ _ _ hbadAcc).elim
                       rcases hstates with ⟨hr, hr'⟩
                       subst r
@@ -721,12 +720,12 @@ private lemma configMove_of_scanAccepts_before
                                         RowScan.scanBefore] using hacc
                                     exact (ih newTail certTail htail).prepend M q q' a
                                   · exfalso
-                                    simpa [scanAccepts_cons, RowScan.scanCell,
-                                      RowScan.scanBefore, hab, not_scanAccepts_bad] using hacc
+                                    simp [scanAccepts_cons, RowScan.scanCell,
+                                      RowScan.scanBefore, hab, not_scanAccepts_bad] at hacc
                               | head d =>
                                   exfalso
-                                  cases d <;> simpa [scanAccepts_cons, RowScan.scanCell,
-                                    RowScan.scanBefore, not_scanAccepts_bad] using hacc
+                                  cases d <;> simp [scanAccepts_cons, RowScan.scanCell,
+                                    RowScan.scanBefore, not_scanAccepts_bad] at hacc
                           | true =>
                               cases c with
                               | plain =>
@@ -741,30 +740,30 @@ private lemma configMove_of_scanAccepts_before
                                     simpa [noHeadCells] using
                                       (ConfigMove.left (I := I) a a' b' [] xs htrans)
                                   · exfalso
-                                    simpa [scanAccepts_cons, RowScan.scanCell,
-                                      RowScan.scanBefore, hab, not_scanAccepts_bad] using hacc
+                                    simp [scanAccepts_cons, RowScan.scanCell,
+                                      RowScan.scanBefore, hab, not_scanAccepts_bad] at hacc
                               | head d =>
                                   exfalso
-                                  cases d <;> simpa [scanAccepts_cons, RowScan.scanCell,
-                                    RowScan.scanBefore, not_scanAccepts_bad] using hacc
+                                  cases d <;> simp [scanAccepts_cons, RowScan.scanCell,
+                                    RowScan.scanBefore, not_scanAccepts_bad] at hacc
                       | true =>
                           cases newMarked with
                           | false =>
                               cases c with
                               | plain =>
                                   exfalso
-                                  simpa [scanAccepts_cons, RowScan.scanCell,
-                                    RowScan.scanBefore, not_scanAccepts_bad] using hacc
+                                  simp [scanAccepts_cons, RowScan.scanCell,
+                                    RowScan.scanBefore, not_scanAccepts_bad] at hacc
                               | head d =>
                                   cases d with
                                   | left =>
                                       exfalso
-                                      simpa [scanAccepts_cons, RowScan.scanCell,
-                                        RowScan.scanBefore, not_scanAccepts_bad] using hacc
+                                      simp [scanAccepts_cons, RowScan.scanCell,
+                                        RowScan.scanBefore, not_scanAccepts_bad] at hacc
                                   | stay =>
                                       exfalso
-                                      simpa [scanAccepts_cons, RowScan.scanCell,
-                                        RowScan.scanBefore, not_scanAccepts_bad] using hacc
+                                      simp [scanAccepts_cons, RowScan.scanCell,
+                                        RowScan.scanBefore, not_scanAccepts_bad] at hacc
                                   | right =>
                                       by_cases htrans :
                                           (q', b, .right) ∈ M.transition q a
@@ -778,21 +777,21 @@ private lemma configMove_of_scanAccepts_before
                                         simpa [noHeadCells] using
                                           (ConfigMove.right (I := I) a b x [] xs htrans)
                                       · exfalso
-                                        simpa [scanAccepts_cons, RowScan.scanCell,
+                                        simp [scanAccepts_cons, RowScan.scanCell,
                                           RowScan.scanBefore, RowScan.transitionOK, htrans,
-                                          not_scanAccepts_bad] using hacc
+                                          not_scanAccepts_bad] at hacc
                           | true =>
                               cases c with
                               | plain =>
                                   exfalso
-                                  simpa [scanAccepts_cons, RowScan.scanCell,
-                                    RowScan.scanBefore, not_scanAccepts_bad] using hacc
+                                  simp [scanAccepts_cons, RowScan.scanCell,
+                                    RowScan.scanBefore, not_scanAccepts_bad] at hacc
                               | head d =>
                                   cases d with
                                   | left =>
                                       exfalso
-                                      simpa [scanAccepts_cons, RowScan.scanCell,
-                                        RowScan.scanBefore, not_scanAccepts_bad] using hacc
+                                      simp [scanAccepts_cons, RowScan.scanCell,
+                                        RowScan.scanBefore, not_scanAccepts_bad] at hacc
                                   | right =>
                                       by_cases htrans :
                                           (q', b, .right) ∈ M.transition q a
@@ -806,9 +805,9 @@ private lemma configMove_of_scanAccepts_before
                                         simpa [noHeadCells] using
                                           (ConfigMove.rightClamp (I := I) a b [] htrans)
                                       · exfalso
-                                        simpa [scanAccepts_cons, RowScan.scanCell,
+                                        simp [scanAccepts_cons, RowScan.scanCell,
                                           RowScan.scanBefore, RowScan.transitionOK, htrans,
-                                          not_scanAccepts_bad] using hacc
+                                          not_scanAccepts_bad] at hacc
                                   | stay =>
                                       by_cases htrans :
                                           (q', b, .stay) ∈ M.transition q a
@@ -822,9 +821,9 @@ private lemma configMove_of_scanAccepts_before
                                         simpa [noHeadCells] using
                                           (ConfigMove.stay (I := I) a b [] xs htrans)
                                       · exfalso
-                                        simpa [scanAccepts_cons, RowScan.scanCell,
+                                        simp [scanAccepts_cons, RowScan.scanCell,
                                           RowScan.scanBefore, RowScan.transitionOK, htrans,
-                                          not_scanAccepts_bad] using hacc
+                                          not_scanAccepts_bad] at hacc
 
 private lemma rowMove_of_scanAccepts_start
     [DecidableEq I] [DecidableEq Γ] [DecidableEq Λ]
@@ -871,8 +870,8 @@ private lemma rowMove_of_scanAccepts_start
                                 simpa [rawCells] using
                                   (RowMove.init (M := M) (embed := embed) i w)
                               · exfalso
-                                simpa [scanAccepts_cons, RowScan.scanCell, hinit,
-                                  not_scanAccepts_bad] using hacc
+                                simp [scanAccepts_cons, RowScan.scanCell, hinit,
+                                  not_scanAccepts_bad] at hacc
               | cfg a oldMarked r =>
                   cases newHead with
                   | raw i => simp [scanAccepts_cons, RowScan.scanCell] at hacc
@@ -893,12 +892,12 @@ private lemma rowMove_of_scanAccepts_start
                                       ((configMove_of_scanAccepts_before M embed r r'
                                         oldTail newTail certTail htail).prepend M r r' a)
                                   · exfalso
-                                    simpa [scanAccepts_cons, RowScan.scanCell,
-                                      RowScan.scanFirst, hab, not_scanAccepts_bad] using hacc
+                                    simp [scanAccepts_cons, RowScan.scanCell,
+                                      RowScan.scanFirst, hab, not_scanAccepts_bad] at hacc
                               | head d =>
                                   exfalso
-                                  cases d <;> simpa [scanAccepts_cons, RowScan.scanCell,
-                                    RowScan.scanFirst, not_scanAccepts_bad] using hacc
+                                  cases d <;> simp [scanAccepts_cons, RowScan.scanCell,
+                                    RowScan.scanFirst, not_scanAccepts_bad] at hacc
                           | true =>
                               cases c with
                               | plain =>
@@ -914,30 +913,30 @@ private lemma rowMove_of_scanAccepts_start
                                       (RowMove.left (M := M) (embed := embed) r r' a a' b'
                                         [] xs htrans)
                                   · exfalso
-                                    simpa [scanAccepts_cons, RowScan.scanCell,
-                                      RowScan.scanFirst, hab, not_scanAccepts_bad] using hacc
+                                    simp [scanAccepts_cons, RowScan.scanCell,
+                                      RowScan.scanFirst, hab, not_scanAccepts_bad] at hacc
                               | head d =>
                                   exfalso
-                                  cases d <;> simpa [scanAccepts_cons, RowScan.scanCell,
-                                    RowScan.scanFirst, not_scanAccepts_bad] using hacc
+                                  cases d <;> simp [scanAccepts_cons, RowScan.scanCell,
+                                    RowScan.scanFirst, not_scanAccepts_bad] at hacc
                       | true =>
                           cases newMarked with
                           | false =>
                               cases c with
                               | plain =>
                                   exfalso
-                                  simpa [scanAccepts_cons, RowScan.scanCell,
-                                    RowScan.scanFirst, not_scanAccepts_bad] using hacc
+                                  simp [scanAccepts_cons, RowScan.scanCell,
+                                    RowScan.scanFirst, not_scanAccepts_bad] at hacc
                               | head d =>
                                   cases d with
                                   | left =>
                                       exfalso
-                                      simpa [scanAccepts_cons, RowScan.scanCell,
-                                        RowScan.scanFirst, not_scanAccepts_bad] using hacc
+                                      simp [scanAccepts_cons, RowScan.scanCell,
+                                        RowScan.scanFirst, not_scanAccepts_bad] at hacc
                                   | stay =>
                                       exfalso
-                                      simpa [scanAccepts_cons, RowScan.scanCell,
-                                        RowScan.scanFirst, not_scanAccepts_bad] using hacc
+                                      simp [scanAccepts_cons, RowScan.scanCell,
+                                        RowScan.scanFirst, not_scanAccepts_bad] at hacc
                                   | right =>
                                       by_cases htrans :
                                           (r', b, .right) ∈ M.transition r a
@@ -952,15 +951,15 @@ private lemma rowMove_of_scanAccepts_start
                                           (RowMove.right (M := M) (embed := embed) r r' a b x
                                             [] xs htrans)
                                       · exfalso
-                                        simpa [scanAccepts_cons, RowScan.scanCell,
+                                        simp [scanAccepts_cons, RowScan.scanCell,
                                           RowScan.scanFirst, RowScan.transitionOK, htrans,
-                                          not_scanAccepts_bad] using hacc
+                                          not_scanAccepts_bad] at hacc
                           | true =>
                               cases c with
                               | plain =>
                                   exfalso
-                                  simpa [scanAccepts_cons, RowScan.scanCell,
-                                    RowScan.scanFirst, not_scanAccepts_bad] using hacc
+                                  simp [scanAccepts_cons, RowScan.scanCell,
+                                    RowScan.scanFirst, not_scanAccepts_bad] at hacc
                               | head d =>
                                   cases d with
                                   | left =>
@@ -977,9 +976,9 @@ private lemma rowMove_of_scanAccepts_start
                                           (RowMove.leftClamp (M := M) (embed := embed)
                                             r r' a b xs htrans)
                                       · exfalso
-                                        simpa [scanAccepts_cons, RowScan.scanCell,
+                                        simp [scanAccepts_cons, RowScan.scanCell,
                                           RowScan.scanFirst, RowScan.transitionOK, htrans,
-                                          not_scanAccepts_bad] using hacc
+                                          not_scanAccepts_bad] at hacc
                                   | right =>
                                       by_cases htrans :
                                           (r', b, .right) ∈ M.transition r a
@@ -994,9 +993,9 @@ private lemma rowMove_of_scanAccepts_start
                                           (RowMove.rightClamp (M := M) (embed := embed)
                                             r r' a b [] htrans)
                                       · exfalso
-                                        simpa [scanAccepts_cons, RowScan.scanCell,
+                                        simp [scanAccepts_cons, RowScan.scanCell,
                                           RowScan.scanFirst, RowScan.transitionOK, htrans,
-                                          not_scanAccepts_bad] using hacc
+                                          not_scanAccepts_bad] at hacc
                                   | stay =>
                                       by_cases htrans :
                                           (r', b, .stay) ∈ M.transition r a
@@ -1011,9 +1010,9 @@ private lemma rowMove_of_scanAccepts_start
                                           (RowMove.stay (M := M) (embed := embed)
                                             r r' a b [] xs htrans)
                                       · exfalso
-                                        simpa [scanAccepts_cons, RowScan.scanCell,
+                                        simp [scanAccepts_cons, RowScan.scanCell,
                                           RowScan.scanFirst, RowScan.transitionOK, htrans,
-                                          not_scanAccepts_bad] using hacc
+                                          not_scanAccepts_bad] at hacc
 
 private lemma scanAccepts_start_of_prefixed_configMove
     [DecidableEq I] [DecidableEq Γ] [DecidableEq Λ]
@@ -1056,7 +1055,7 @@ private lemma scanAccepts_start_of_rowMove
             (ConfigMove.stay (I := I) a b left right hstep)
   | leftClamp q q' a b right hstep =>
       refine ⟨.head .left :: List.replicate right.length .plain, ?_⟩
-      simp only [noHeadCells, List.map_nil, List.nil_append]
+      simp only [noHeadCells]
       rw [scanAccepts_cons]
       rw [show RowScan.scanCell M embed .start (.cfg a true q)
           (.cfg b true q') (.head .left) = .after q q' by
@@ -1236,7 +1235,7 @@ private lemma tapeList_write_move {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
     (q' : Λ) (b : Γ) (d : DLBA.Dir) :
     tapeList (⟨q', (cfg.tape.write b).moveHead d⟩ : DLBA.Cfg Γ Λ n) =
       (tapeList cfg).set cfg.tape.head.val b := by
-  simp only [tapeList, DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+  simp only [tapeList]
   exact ofFn_update cfg.tape.contents cfg.tape.head b
 
 private lemma tapeList_set_head {n : ℕ} (cfg : DLBA.Cfg Γ Λ n) (b : Γ) :
@@ -1284,7 +1283,7 @@ public theorem rowMove_configRow_of_step
   cases d with
   | stay =>
       have hhead : next.tape.head.val = (leftSymbols cfg).length := by
-        simp [next, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
+        simp [next]
       have hnew := configRow_eq_of_split (I := I) next (leftSymbols cfg) b
         (rightSymbols cfg) htape hhead
       change RowMove M embed
@@ -1299,7 +1298,7 @@ public theorem rowMove_configRow_of_step
           apply List.eq_nil_of_length_eq_zero
           simp [hzero]
         have hhead : next.tape.head.val = 0 := by
-          simp [next, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hzero]
+          simp [next, hzero]
         have hnew := configRow_eq_of_split (I := I) next [] b
           (rightSymbols cfg) (by simpa [hleft] using htape) (by simpa using hhead)
         change RowMove M embed
@@ -1325,7 +1324,7 @@ public theorem rowMove_configRow_of_step
           rw [htape, hleft]
           simp
         have hhead : next.tape.head.val = left.length := by
-          simp [next, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hpos, hlen]
+          simp [next, hlen]
         have hnew := configRow_eq_of_split (I := I) next left x
           (b :: rightSymbols cfg) htape' hhead
         change RowMove M embed
@@ -1341,7 +1340,7 @@ public theorem rowMove_configRow_of_step
           apply List.eq_nil_of_length_eq_zero
           simp [hlast]
         have hhead : next.tape.head.val = (leftSymbols cfg).length := by
-          simp [next, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hlast]
+          simp [next, hlast]
         have hnew := configRow_eq_of_split (I := I) next (leftSymbols cfg) b []
           (by simpa [hright] using htape) hhead
         change RowMove M embed
@@ -1362,7 +1361,7 @@ public theorem rowMove_configRow_of_step
               rw [htape, hright]
               simp
             have hhead : next.tape.head.val = (leftSymbols cfg ++ [b]).length := by
-              simp [next, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hlt]
+              simp [next, hlt]
             have hnew := configRow_eq_of_split (I := I) next
               (leftSymbols cfg ++ [b]) x right htape' hhead
             change RowMove M embed
@@ -1378,7 +1377,7 @@ private lemma configRow_write_stay {n : ℕ} (cfg : DLBA.Cfg Γ Λ n) (q' : Λ) 
       configCells q' (leftSymbols cfg) b (rightSymbols cfg) := by
   apply configRow_eq_of_split
   · rw [tapeList_write_move, tapeList_set_head]
-  · simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
+  · simp
 
 private lemma configRow_write_leftClamp {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
     (q' : Λ) (b : Γ) (hzero : cfg.tape.head.val = 0) :
@@ -1389,7 +1388,7 @@ private lemma configRow_write_leftClamp {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
     simp [hzero]
   apply configRow_eq_of_split
   · rw [tapeList_write_move, tapeList_set_head, hleft]
-  · simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hzero]
+  · simp [hzero]
 
 private lemma configRow_write_rightClamp {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
     (q' : Λ) (b : Γ) (hlast : cfg.tape.head.val = n) :
@@ -1400,7 +1399,7 @@ private lemma configRow_write_rightClamp {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
     simp [hlast]
   apply configRow_eq_of_split
   · rw [tapeList_write_move, tapeList_set_head, hright]
-  · simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hlast]
+  · simp [hlast]
 
 private lemma configRow_write_left {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
     (q' : Λ) (b x : Γ) (left : List Γ)
@@ -1416,7 +1415,7 @@ private lemma configRow_write_left {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
   apply configRow_eq_of_split
   · rw [tapeList_write_move, tapeList_set_head, hleft]
     simp
-  · simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hpos, hlen]
+  · simp [hlen]
 
 private lemma configRow_write_right {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
     (q' : Λ) (b x : Γ) (right : List Γ)
@@ -1431,7 +1430,7 @@ private lemma configRow_write_right {n : ℕ} (cfg : DLBA.Cfg Γ Λ n)
   apply configRow_eq_of_split
   · rw [tapeList_write_move, tapeList_set_head, hright]
     simp
-  · simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hlt]
+  · simp [hlt]
 
 /-- Soundness of semantic row moves from a well-formed configuration row. -/
 public theorem step_of_rowMove_configRow
@@ -1448,7 +1447,8 @@ public theorem step_of_rowMove_configRow
       | cons x xs => simp [configRow, configCells, hleft, noHeadCells] at hold
   | stay q q' a b left right htrans =>
       have hinv := (configCells_eq_iff (I := I) cfg.state q (leftSymbols cfg) left
-        cfg.tape.read a (rightSymbols cfg) right).1 (by simpa [configRow] using hold)
+        cfg.tape.read a (rightSymbols cfg) right).1
+          (by simpa [configRow, configCells, noHeadCells] using hold)
       rcases hinv with ⟨hstate, hleft, ha, hright⟩
       subst q
       subst left
@@ -1459,7 +1459,8 @@ public theorem step_of_rowMove_configRow
       exact (configRow_write_stay (I := I) cfg q' b).symm
   | leftClamp q q' a b right htrans =>
       have hinv := (configCells_eq_iff (I := I) cfg.state q (leftSymbols cfg) []
-        cfg.tape.read a (rightSymbols cfg) right).1 (by simpa [configRow] using hold)
+        cfg.tape.read a (rightSymbols cfg) right).1
+          (by simpa [configRow, configCells, noHeadCells] using hold)
       rcases hinv with ⟨hstate, hleft, ha, hright⟩
       subst q
       subst a
@@ -1472,7 +1473,8 @@ public theorem step_of_rowMove_configRow
       exact (configRow_write_leftClamp (I := I) cfg q' b hzero).symm
   | rightClamp q q' a b left htrans =>
       have hinv := (configCells_eq_iff (I := I) cfg.state q (leftSymbols cfg) left
-        cfg.tape.read a (rightSymbols cfg) []).1 (by simpa [configRow] using hold)
+        cfg.tape.read a (rightSymbols cfg) []).1
+          (by simpa [configRow, configCells, noHeadCells] using hold)
       rcases hinv with ⟨hstate, hleft, ha, hright⟩
       subst q
       subst left
@@ -1575,7 +1577,7 @@ private lemma tapeList_initCfgList (M : LBA.Machine Γ Λ) (w : List Γ) (hw : w
     have := List.length_pos_of_ne_nil hw
     omega
   rw [List.ofFn_congr hlen]
-  simpa using List.ofFn_get w
+  simp
 
 /-- The canonical initial configuration row is the initialization target of the raw input row. -/
 public theorem configRow_initCfgList

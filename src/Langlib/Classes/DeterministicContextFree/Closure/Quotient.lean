@@ -49,7 +49,11 @@ private theorem Language.map_rightQuotient_injective {α β : Type} {f : α → 
     have hv₁_eq : v₁ = v₀ := List.map_injective_iff.mpr hf hv₁
     subst v₁
     rw [← hw₀]
-    exact ⟨w₀, ⟨v₀, hv₀R, by simpa [hz_eq] using hzL⟩, rfl⟩
+    have hzL' : w₀ ++ v₀ ∈ L := by
+      change (w₀ ++ v₀) ∈ (show Set (List α) from L)
+      change z ∈ (show Set (List α) from L) at hzL
+      simpa [hz_eq] using hzL
+    exact ⟨w₀, ⟨v₀, hv₀R, hzL'⟩, rfl⟩
 
 /-- DCFLs are not closed under right quotient over any finite alphabet into which the
 binary witness alphabet embeds. -/

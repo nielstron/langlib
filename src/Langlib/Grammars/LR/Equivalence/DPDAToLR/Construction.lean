@@ -32,25 +32,21 @@ noncomputable section
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- The normalized PDA accepting by empty stack. -/
-@[expose]
 public noncomputable def emptyStackPDA (M : DPDA Q T S) :
     PDA ((Q × Bool) ⊕ Fin 2) T (Option S) :=
   PDA_FS_to_ES_pda M.firstFinal.toPDA
 
 /-- Mathlib's characteristic grammar for the normalized empty-stack PDA. -/
-@[expose]
 public noncomputable def mathlibCharacteristicGrammar (M : DPDA Q T S) :
     ContextFreeGrammar T :=
   PDA_to_CFG.G (emptyStackPDA M)
 
 /-- The same characteristic grammar in Langlib's `CF_grammar` representation. -/
-@[expose]
 public noncomputable def rawCharacteristicGrammar (M : DPDA Q T S) :
     CF_grammar T :=
   cfg_of_mathlib_cfg (mathlibCharacteristicGrammar M)
 
 /-- The reduced characteristic grammar used for the LR(1) proof. -/
-@[expose]
 public noncomputable def characteristicGrammar (M : DPDA Q T S) :
     CF_grammar T :=
   productiveGrammar (rawCharacteristicGrammar M)

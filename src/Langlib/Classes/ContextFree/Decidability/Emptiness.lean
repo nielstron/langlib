@@ -43,8 +43,6 @@ import Mathlib.Topology.Sheaves.Presheaf
 @[expose]
 public section
 
-
-
 /-! # Encoded Context-Free Grammars and Uniform Computability of Emptiness
 
 Shows a computability theorem for CFG emptiness where the grammar itself is the argument.
@@ -279,9 +277,11 @@ omit [DecidableEq T] in
 lemma productiveNTs_complete (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (nt : g.NT) (w : List T) (h : canDerive g nt w) :
     nt ∈ g.productiveNTs := by
-  convert @productive_mem_fixpoint T g _ g.productiveNTs _ _ nt w h;
-  · convert iterate_productiveStep_mono g ( Nat.zero_le _ ) using 1;
+  apply productive_mem_fixpoint g g.productiveNTs
+  · simpa [productiveNTs] using
+      (iterate_productiveStep_mono g (n := 0) (m := g.rules.card) (Nat.zero_le _))
   · exact productiveNTs_is_fixpoint g
+  · exact h
 
 /-! ## Part 7: Main Correctness -/
 
@@ -297,7 +297,10 @@ theorem language_eq_empty_iff (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT
   constructor <;> intro h;
   · contrapose! h;
     obtain ⟨ w, hw ⟩ := ChomskyNormalFormGrammar.productiveNTs_sound g g.initial h;
-    exact Set.Nonempty.ne_empty ⟨ w, by simpa [ ChomskyNormalFormGrammar.mem_language_iff, ChomskyNormalFormGrammar.canDerive_iff_derives ] using hw ⟩;
+    apply Set.Nonempty.ne_empty
+    refine ⟨w, ?_⟩
+    change g.Derives [Symbol.nonterminal g.initial] (w.map Symbol.terminal)
+    exact (canDerive_iff_derives g g.initial w).mp hw
   · contrapose! h;
     obtain ⟨w, hw⟩ : ∃ w : List T, g.Derives [Symbol.nonterminal g.initial] (w.map Symbol.terminal) := by
       exact Set.nonempty_iff_ne_empty.mpr h;
@@ -341,7 +344,7 @@ noncomputable def cf_emptiness_decidable
     · intro h
       refine ⟨?_, ?_⟩
       · rw [h]; exact fun x => x
-      · rw [← h_cnf, h]; exact Set.empty_diff _
+      · rw [← h_cnf, h]; exact Set.empty_sdiff _
     · rintro ⟨hnil, hcnf⟩
       apply Set.subset_eq_empty (fun w (hw : w ∈ (mathlib_cfg_of_cfg g).language) => ?_) rfl
       by_cases hwnil : w = []
@@ -413,7 +416,20 @@ def IsProductive (g : CF_grammar T) (nt : g.nt) : Prop :=
 omit [Fintype T] [DecidableEq T] in
 lemma CF_language_eq_empty_iff_not_productive (g : CF_grammar T) :
     CF_language g = (∅ : Set (List T)) ↔ ¬IsProductive g g.initial := by
-  unfold IsProductive; rw [Set.ext_iff]; unfold CF_language; aesop
+  change CF_language g = (0 : Language T) ↔ ¬IsProductive g g.initial
+  constructor
+  · intro h ⟨w, hw⟩
+    have hw' : w ∈ CF_language g := hw
+    rw [h] at hw'
+    exact hw'
+  · intro h
+    apply Set.ext
+    intro w
+    constructor
+    · intro hw
+      exact (h ⟨w, hw⟩).elim
+    · intro hw
+      exact hw.elim
 
 omit [Fintype T] in
 omit [DecidableEq T] in
@@ -475,13 +491,15 @@ lemma productive_sentential_form (g : CF_grammar T)
       exact h_append _ _ hw [ symbol.terminal _ ]);
     · obtain ⟨ w, hw ⟩ := h.1;
       obtain ⟨ w', hw' ⟩ := ih;
-      have h_concat : CF_derives g (symbol.nonterminal ‹_› :: syms) (List.map symbol.terminal w ++ syms) := by
+      have hleft : CF_derives g (symbol.nonterminal ‹_› :: syms) (List.map symbol.terminal w ++ syms) := by
         have h_concat : ∀ {α β : List (symbol T g.nt)}, CF_derives g α β → ∀ {γ : List (symbol T g.nt)}, CF_derives g (α ++ γ) (β ++ γ) := by
           exact fun {α β} a {γ} => CF_deri_with_postfix γ a;
         exact h_concat hw;
-      have h_concat : CF_derives g (List.map symbol.terminal w ++ syms) (List.map symbol.terminal w ++ List.map symbol.terminal w') := by
+      have hright : CF_derives g (List.map symbol.terminal w ++ syms) (List.map symbol.terminal w ++ List.map symbol.terminal w') := by
         exact CF_deri_with_prefix (map symbol.terminal w) hw';
-      exact ⟨ w ++ w', by simpa using Relation.ReflTransGen.trans ‹CF_derives g ( symbol.nonterminal _ :: syms ) ( map symbol.terminal w ++ syms ) › h_concat ⟩
+      refine ⟨w ++ w', ?_⟩
+      unfold CF_derives at hleft hright ⊢
+      simpa only [List.map_append] using Relation.ReflTransGen.trans hleft hright
 
 omit [Fintype T] [DecidableEq T] in
 lemma productive_from_rule (G : EncodedCFG T)
@@ -580,11 +598,13 @@ private lemma CF_derives_first_step (g : CF_grammar T) (nt : g.nt)
     (hd : CF_derives g [symbol.nonterminal nt] w)
     (hne : w ≠ [symbol.nonterminal nt]) :
     ∃ rhs, (nt, rhs) ∈ g.rules ∧ CF_derives g rhs w := by
-  -- Apply the definition of CF_derives to obtain the existence of such a rule.
   have h_step : ∃ w', CF_transforms g [symbol.nonterminal nt] w' ∧ CF_derives g w' w := by
-    induction hd;
-    · contradiction;
-    · grind +suggestions;
+    unfold CF_derives at hd
+    rcases Relation.ReflTransGen.cases_head hd with heq | ⟨w', hfirst, hrest⟩
+    · exact False.elim (hne heq.symm)
+    · refine ⟨w', hfirst, ?_⟩
+      unfold CF_derives
+      exact hrest
   obtain ⟨ w', hw₁, hw₂ ⟩ := h_step;
   rcases hw₁ with ⟨ r, hr, u, v, hu, hv ⟩;
   rcases hr with ( _ | ⟨ a, hr ⟩ ) <;> rcases u with ( _ | ⟨ b, u ⟩ ) <;> simp +decide at hu ⊢;
@@ -687,10 +707,13 @@ lemma prodNTsN_fixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) :
   have h_limit : List.length ((prodStepN nc rules)^[rules.length + 1] []) ≤ rules.length := by
     have h_limit : ∀ k, List.length ((prodStepN nc rules)^[k] []) ≤ rules.length := by
       intro k
-      have h_subset : ∀ x ∈ (prodStepN nc rules)^[k] [], ∃ rule ∈ rules, x = rule.1 % nc := by
+      have h_range : ∀ x ∈ (prodStepN nc rules)^[k] [], ∃ rule ∈ rules, x = rule.1 % nc := by
         exact fun x a => iterate_subset_rule_lhs nc rules k x a;
       have h_subset : List.toFinset ((prodStepN nc rules)^[k] []) ⊆ List.toFinset (List.map (fun rule => rule.1 % nc) rules) := by
-        intro x hx; specialize h_subset x; aesop;
+        intro x hx
+        rw [List.mem_toFinset] at hx ⊢
+        rcases h_range x hx with ⟨rule, hrule, rfl⟩
+        exact List.mem_map.mpr ⟨rule, hrule, rfl⟩
       have := Finset.card_le_card h_subset; simp_all +decide [  ] ;
       exact le_trans ( by rw [ List.toFinset_card_of_nodup ( iterate_nodup nc rules k ) ] ) ( this.trans ( List.toFinset_card_le _ ) |> le_trans <| by simp +decide [ List.length_map ] );
     exact h_limit _;
@@ -893,41 +916,54 @@ One step of the productive-nonterminals fixpoint is primitive recursive.
 private lemma prodStepN_primrec :
     Primrec (fun (p : (ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) =>
       prodStepN p.1.1 p.1.2 p.2) := by
-        have prodStepN_foldl_primrec : Primrec (fun (p : (ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) => (p.1.2.foldl (fun acc rule => if allNTsInListN p.1.1 rule.2 acc then let lhs := rule.1 % p.1.1; if (decide (lhs ∈ acc) : Bool) then acc else acc ++ [lhs] else acc) p.2)) := by
-          convert list_foldl_primrec _ _ _;
-          rotate_left;
-          exact Primcodable.prod;
-          exact fun p q => if allNTsInListN p.1.1 q.2.2 q.1 then let lhs := q.2.1 % p.1.1; if (decide (lhs ∈ q.1) : Bool) then q.1 else q.1 ++ [lhs] else q.1;
-          · exact Primrec.snd.comp ( Primrec.fst );
-          · exact Primrec.snd;
-          · refine' Primrec.of_eq _ _;
-            exact fun p => if allNTsInListN p.1.1.1 p.2.2.2 p.2.1 then let lhs := p.2.2.1 % p.1.1.1; if decide (lhs ∈ p.2.1) then p.2.1 else p.2.1 ++ [lhs] else p.2.1;
-            · convert Primrec.cond _ _ _;
-              rotate_left;
-              exact fun p => allNTsInListN p.1.1.1 p.2.2.2 p.2.1;
-              · convert allNTsInListN_primrec.comp _ using 1;
-                rotate_left;
-                exact T;
-                all_goals try infer_instance;
-                exact fun p => ( ( p.1.1.1, p.2.1 ), p.2.2.2 );
-                · exact Primrec.pair ( Primrec.pair ( Primrec.fst.comp ( Primrec.fst.comp ( Primrec.fst ) ) ) ( Primrec.fst.comp ( Primrec.snd ) ) ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd ) ) );
-                · exact map_inj.mp rfl;
-              · convert Primrec.cond _ _ _ using 1;
-                rotate_left;
-                exact fun p => decide ( p.2.2.1 % p.1.1.1 ∈ p.2.1 );
-                exact fun p => p.2.1;
-                exact fun p => p.2.1 ++ [ p.2.2.1 % p.1.1.1 ];
-                · convert nat_list_mem_primrec.comp _ _ using 1;
-                  · exact Primrec.nat_mod.comp ( Primrec.fst.comp ( Primrec.snd.comp ( Primrec.snd ) ) ) ( Primrec.fst.comp ( Primrec.fst.comp ( Primrec.fst ) ) );
-                  · exact Primrec.fst.comp ( Primrec.snd );
-                · exact Primrec.fst.comp ( Primrec.snd );
-                · exact Primrec.list_append.comp ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.list_cons.comp ( Primrec.nat_mod.comp ( Primrec.fst.comp ( Primrec.snd.comp ( Primrec.snd ) ) ) ( Primrec.fst.comp ( Primrec.fst.comp ( Primrec.fst ) ) ) ) ( Primrec.const [ ] ) );
-                · grind;
-              · exact Primrec.fst.comp ( Primrec.snd );
-              · grind +extAll;
-            · grind +revert;
-          · rfl;
-        convert prodStepN_foldl_primrec.comp ( Primrec.id ) using 1
+  unfold prodStepN
+  have hfold : Primrec₂ (fun
+      (p : (ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ)
+      (q : List ℕ × (ℕ × List (ℕ ⊕ T))) =>
+      if allNTsInListN p.1.1 q.2.2 q.1 then
+        let lhs := q.2.1 % p.1.1
+        if (decide (lhs ∈ q.1) : Bool) then q.1 else q.1 ++ [lhs]
+      else q.1) := by
+    apply Primrec₂.mk
+    have hnc : Primrec (fun p :
+        ((ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) ×
+          (List ℕ × (ℕ × List (ℕ ⊕ T))) => p.1.1.1) :=
+      Primrec.fst.comp (Primrec.fst.comp Primrec.fst)
+    have hacc : Primrec (fun p :
+        ((ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) ×
+          (List ℕ × (ℕ × List (ℕ ⊕ T))) => p.2.1) :=
+      Primrec.fst.comp Primrec.snd
+    have hrhs : Primrec (fun p :
+        ((ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) ×
+          (List ℕ × (ℕ × List (ℕ ⊕ T))) => p.2.2.2) :=
+      Primrec.snd.comp (Primrec.snd.comp Primrec.snd)
+    have hcond : Primrec (fun p :
+        ((ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) ×
+          (List ℕ × (ℕ × List (ℕ ⊕ T))) =>
+        allNTsInListN p.1.1.1 p.2.2.2 p.2.1) :=
+      allNTsInListN_primrec.comp
+        (Primrec.pair (Primrec.pair hnc hacc) hrhs)
+    have hlhs : Primrec (fun p :
+        ((ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) ×
+          (List ℕ × (ℕ × List (ℕ ⊕ T))) => p.2.2.1 % p.1.1.1) :=
+      Primrec.nat_mod.comp
+        (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)) hnc
+    have hmem : Primrec (fun p :
+        ((ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) ×
+          (List ℕ × (ℕ × List (ℕ ⊕ T))) =>
+        (decide (p.2.2.1 % p.1.1.1 ∈ p.2.1) : Bool)) :=
+      nat_list_mem_primrec.comp hlhs hacc
+    have happend : Primrec (fun p :
+        ((ℕ × List (ℕ × List (ℕ ⊕ T))) × List ℕ) ×
+          (List ℕ × (ℕ × List (ℕ ⊕ T))) =>
+        p.2.1 ++ [p.2.2.1 % p.1.1.1]) :=
+      Primrec.list_append.comp hacc
+        (Primrec.list_cons.comp hlhs (Primrec.const []))
+    apply (Primrec.cond hcond (Primrec.cond hmem hacc happend) hacc).of_eq
+    intro p
+    simp only [Bool.cond_eq_ite]
+  exact list_foldl_primrec
+    (Primrec.snd.comp Primrec.fst) Primrec.snd hfold
 
 omit [Fintype T] [DecidableEq T] in
 /-
@@ -936,52 +972,56 @@ The productive-nonterminals fixpoint is primitive recursive.
 private lemma prodNTsN_primrec :
     Primrec (fun (p : ℕ × List (ℕ × List (ℕ ⊕ T))) =>
       prodNTsN p.1 p.2) := by
-        unfold prodNTsN;
-        have h_iterate : Primrec (fun (p : (ℕ × List (ℕ × List (ℕ ⊕ T))) × ℕ) => (prodStepN p.1.1 p.1.2)^[p.2] []) := by
-          have h_iterate : Primrec (fun (p : (ℕ × List (ℕ × List (ℕ ⊕ T))) × ℕ × List ℕ) => (prodStepN p.1.1 p.1.2 p.2.2)) := by
-            convert prodStepN_primrec.comp _;
-            rotate_left;
-            rotate_left;
-            rotate_left;
-            all_goals try infer_instance;
-            exact fun p => ( p.1, p.2.2 );
-            · exact Primrec.pair ( Primrec.fst ) ( Primrec.snd.comp ( Primrec.snd ) );
-            · rfl;
-            · rfl;
-            · rfl;
-          convert Primrec.nat_rec _ _ using 1;
-          rotate_left;
-          exact ( ℕ × List ( ℕ × List ( ℕ ⊕ T ) ) );
-          exact List ℕ;
-          exact inferInstance;
-          exact Primcodable.list;
-          exact fun p => [];
-          exact fun p q => prodStepN p.1 p.2 q.2;
-          · exact Primrec.const [];
-          · convert h_iterate using 1;
-          · constructor <;> intro h <;> simp_all +decide [ Primrec₂ ];
-            · convert h using 1;
-              exact funext fun p => by induction p.2 <;> simp +decide [ *, Function.iterate_succ_apply' ] ;
-            · convert h using 1;
-              exact funext fun p => by induction p.2 <;> simp +decide [ *, Function.iterate_succ_apply' ] ;
-        convert h_iterate.comp ( show Primrec fun p : ℕ × List ( ℕ × List ( ℕ ⊕ T ) ) => ( ( p.1, p.2 ), p.2.length ) from ?_ ) using 1;
-        exact Primrec.pair ( Primrec.pair ( Primrec.fst ) ( Primrec.snd ) ) ( Primrec.list_length.comp ( Primrec.snd ) )
+  unfold prodNTsN
+  have hstep : Primrec₂ (fun
+      (p : ℕ × List (ℕ × List (ℕ ⊕ T))) (q : ℕ × List ℕ) =>
+      prodStepN p.1 p.2 q.2) := by
+    apply Primrec₂.mk
+    exact prodStepN_primrec.comp
+      (Primrec.pair Primrec.fst (Primrec.snd.comp Primrec.snd))
+  have hrec : Primrec₂ (fun
+      (p : ℕ × List (ℕ × List (ℕ ⊕ T))) (n : ℕ) =>
+      Nat.rec (motive := fun _ => List ℕ) []
+        (fun _ acc => prodStepN p.1 p.2 acc) n) :=
+    Primrec.nat_rec (Primrec.const ([] : List ℕ)) hstep
+  have happly : Primrec (fun p : ℕ × List (ℕ × List (ℕ ⊕ T)) =>
+      Nat.rec (motive := fun _ => List ℕ) []
+        (fun _ acc => prodStepN p.1 p.2 acc) p.2.length) :=
+    hrec.comp Primrec.id (Primrec.list_length.comp Primrec.snd)
+  apply happly.of_eq
+  intro p
+  have hrec_eq : ∀ n,
+      Nat.rec (motive := fun _ => List ℕ) []
+        (fun _ acc => prodStepN p.1 p.2 acc) n =
+        (prodStepN p.1 p.2)^[n] [] := by
+    intro n
+    induction n with
+    | zero => rfl
+    | succ n ih => simp [Function.iterate_succ_apply', ih]
+  exact hrec_eq p.2.length
 
 omit [Fintype T] [DecidableEq T] in
 theorem checkCFGEmpty_computable :
     Computable (checkCFGEmpty : EncodedCFG T → Bool) := by
-      unfold checkCFGEmpty;
-      -- The composition of primitive recursive functions is primitive recursive.
-      have h_comp : Primrec (fun G : EncodedCFG T => decide (G.initialIdx % G.ntCount ∈ prodNTsN G.ntCount G.rawRules)) := by
-        have h_mod : Primrec (fun G : EncodedCFG T => G.initialIdx % G.ntCount) := by
-          have h_mod : Primrec (fun p : ℕ × ℕ => p.1 % p.2) := by
-            exact Primrec.nat_mod.comp ( Primrec.fst ) ( Primrec.snd );
-          convert h_mod.comp ( Primrec.fst.comp ( Primrec.snd.comp ( Primrec.id ) ) |> Primrec.pair <| Primrec.succ.comp ( Primrec.fst.comp ( Primrec.id ) ) ) using 1;
-        have h_prodNTsN : Primrec (fun G : EncodedCFG T => prodNTsN G.ntCount G.rawRules) := by
-          convert prodNTsN_primrec.comp ( show Primrec ( fun G : EncodedCFG T => ( G.1 + 1, G.2.2 ) ) from ?_ ) using 1;
-          exact Primrec.pair ( Primrec.succ.comp ( Primrec.fst ) ) ( Primrec.snd.comp ( Primrec.snd ) );
-        convert Primrec.comp ( nat_list_mem_primrec ) ( Primrec.pair h_mod h_prodNTsN ) using 1;
-      convert Primrec.to_comp ( Primrec.cond h_comp ( Primrec.const Bool.false ) ( Primrec.const Bool.true ) ) using 1
+  unfold checkCFGEmpty
+  have hinitial : Primrec (fun G : EncodedCFG T => G.initialIdx) := by
+    unfold EncodedCFG.initialIdx
+    exact Primrec.fst.comp Primrec.snd
+  have hcount : Primrec (fun G : EncodedCFG T => G.ntCount) := by
+    unfold EncodedCFG.ntCount EncodedCFG.numNT
+    exact Primrec.succ.comp Primrec.fst
+  have hrules : Primrec (fun G : EncodedCFG T => G.rawRules) := by
+    unfold EncodedCFG.rawRules
+    exact Primrec.snd.comp Primrec.snd
+  have hmod : Primrec (fun G : EncodedCFG T => G.initialIdx % G.ntCount) :=
+    Primrec.nat_mod.comp hinitial hcount
+  have hprod : Primrec (fun G : EncodedCFG T =>
+      prodNTsN G.ntCount G.rawRules) :=
+    prodNTsN_primrec.comp (Primrec.pair hcount hrules)
+  have hmem : Primrec (fun G : EncodedCFG T =>
+      (decide (G.initialIdx % G.ntCount ∈ prodNTsN G.ntCount G.rawRules) : Bool)) :=
+    nat_list_mem_primrec.comp hmod hprod
+  exact (Primrec.not.comp hmem).to_comp
 
 omit [Fintype T] in
 omit [DecidableEq T] in

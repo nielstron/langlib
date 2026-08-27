@@ -82,14 +82,14 @@ public theorem overlayScheduleRun_pushFresh
           have := List.length_pos_of_ne_nil howned
           omega))
         pre post input_eq alpha (.index owned :: word)) := by
-    simpa [word] using hstartOverlay
+    exact hstartOverlay
   have hframes : List.Disjoint (owned.owner :: owners)
       (liveScheduleCursor (NFParse.push hr hlhs hc hrhs rest)
         (hall 0 (by
           have := List.length_pos_of_ne_nil howned
           omega))
         pre post input_eq alpha (.index owned :: word)).frameOwners := by
-    simpa [owners, word] using hframesOverlay
+    exact hframesOverlay
   let resources : ScheduleRunResources
       (NFParse.push hr hlhs hc hrhs rest) pre
       (liveScheduleCursor (NFParse.push hr hlhs hc hrhs rest)
@@ -97,23 +97,23 @@ public theorem overlayScheduleRun_pushFresh
           have := List.length_pos_of_ne_nil howned
           omega))
         pre post input_eq alpha (.index owned :: word)) := by
-    simpa [word] using rawResources
+    exact rawResources
   let startParkingContext : OverlayParkingContext resources
       (owned :: overlayTail) baseBlocks baseOwners := by
-    simpa [resources, word] using rawParkingContext
+    exact rawParkingContext
   have ownerLayout : EventOwnedLayout (NFParse.push hr hlhs hc hrhs rest)
       resources.window (owned.flags :: blocks) (owned.owner :: owners) := by
-    simpa [resources, blocks, owners] using ownerLayoutOverlay
+    exact ownerLayoutOverlay
   have shadowLayout : ShadowStartLayout (NFParse.push hr hlhs hc hrhs rest)
       resources.window (owned.flags :: blocks) (owned.owner :: owners) := by
-    simpa [resources, blocks, owners] using shadowLayoutOverlay
+    exact shadowLayoutOverlay
   have ticketOwnerLayout : resources.tickets.EventTicketLayout
       (NFParse.push hr hlhs hc hrhs rest) resources.window
       (owned.flags :: blocks) (owned.owner :: owners) := by
-    simpa [resources, blocks, owners] using ticketOwnerLayoutOverlay
+    exact ticketOwnerLayoutOverlay
   have ticketShadowContext : resources.TicketShadowContextExtends
       (owned.flags :: blocks) (owned.owner :: owners) := by
-    simpa [resources, blocks, owners] using ticketShadowContextOverlay
+    exact ticketShadowContextOverlay
   have ticketTransientHead : ∀ hinput : 0 < input.length,
       IndexTicket.transient hinput ∈
           (liveScheduleCursor (NFParse.push hr hlhs hc hrhs rest)
@@ -123,9 +123,9 @@ public theorem overlayScheduleRun_pushFresh
             pre post input_eq alpha (.index owned :: word)).indexTickets
               resources.tickets.ticketOf →
         resources.tickets.ticketOf owned.owner = IndexTicket.transient hinput := by
-    simpa [resources, word] using ticketTransientHeadOverlay
+    exact ticketTransientHeadOverlay
   have hactive : resources.ownerLedger.active = owned.owner :: owners := by
-    simpa [resources, owners] using hactiveOverlay
+    exact hactiveOverlay
   let parent : NFParse g A stack w := .push hr hlhs hc hrhs rest
   let parentUsed : parent.ConsumesAt 0 := hall 0 (by
     have := List.length_pos_of_ne_nil howned
@@ -137,10 +137,9 @@ public theorem overlayScheduleRun_pushFresh
   have hstart' : ScheduleInvariant startCursor := by
     simpa [startCursor, parent, parentTask, liveScheduleCursor] using hstart
   let startLedger : ScheduleOwnerLedger parent resources.window startCursor := by
-    simpa [startCursor, parent, parentTask, liveScheduleCursor] using
-      resources.ownerLedger
+    exact resources.ownerLedger
   have startActive : startLedger.active = owned.owner :: owners := by
-    simpa [startLedger, startCursor, parent, parentTask, liveScheduleCursor] using hactive
+    exact hactive
   have hinputPos : 0 < input.length := by
     have hw := rest.yield_length_pos
     have hlen := congrArg List.length input_eq
@@ -171,7 +170,7 @@ public theorem overlayScheduleRun_pushFresh
     simp
   have hfocusNoIndex :
       [startCursor.focus].filterMap ScheduleAtom.indexOwner? = [] := by
-    simp [startCursor, liveScheduleCursor, ScheduleAtom.indexOwner?]
+    simp [startCursor, ScheduleAtom.indexOwner?]
   have hheadFrameFresh : owned.owner ∉ startCursor.frameOwners := by
     have hframes' : List.Disjoint (owned.owner :: owners)
         startCursor.frameOwners := by
@@ -282,9 +281,10 @@ public theorem overlayScheduleRun_pushFresh
       List.filterMap_cons, List.filterMap_nil]
     rw [htaskOwner]
   have hframesEq : childCursor.frameOwners = startCursor.frameOwners := by
-    simp [childCursor, startCursor, liveScheduleCursor,
+    simp [childCursor, startCursor,
       ScheduleCursor.frameOwners, ScheduleCursor.word,
-      ScheduleAtom.closeOwner?, List.filterMap_append]
+      ScheduleAtom.closeOwner?, List.filterMap_append,
+      List.filterMap_cons]
   let childPrefixLedger : PrefixFrameLedger childCursor :=
     startLedger.prefixLedger.transport (by rfl) (by rw [hframesEq])
   let childOwnerLedger : ScheduleOwnerLedger rest resources.window.pushChild
@@ -411,7 +411,7 @@ public theorem overlayScheduleRun_pushFresh
     have heq := resources.ticketOwnerLedger.right_eq
     rw [resources.tickets.semanticCursor_right_indexOwners,
       startLedger.right_eq, List.map_append, resources.ticket_active_eq,
-      hactive, startActive] at heq
+      hactive] at heq
     have heq' :
         resources.tickets.semanticOwners (owned.owner :: owners) ++
             resources.tickets.semanticOwners startLedger.outside =
@@ -470,7 +470,7 @@ public theorem overlayScheduleRun_pushFresh
           normal.tickets.semanticOwners (owners ++ parkedOwners)) := by
       have hold := normal.fullShadowLayout
       rw [hcontextBlocks, hcontextOwners] at hold
-      simpa only [IndexTicketLedger.semanticOwners] using hold
+      exact hold
     have htailSemantic : childTickets.semanticOwners (owners ++ parkedOwners) =
         normal.tickets.semanticOwners (owners ++ parkedOwners) := by
       apply List.map_congr_left
@@ -903,20 +903,16 @@ public theorem overlayScheduleRun_pushFresh
         (hallRestOverlay 0 childOverlayLayout.flags_length_pos)
         pre post input_eq alpha
           (ScheduleOverlay.word (freshOwned :: owned :: overlayTail) baseWord)).frameOwners := by
-    simpa [freshOwned, owners, word] using hframesRest
+    exact hframesRest
   have hrestRun := restOverlay freshOwned (owned :: overlayTail) baseFlags hidden
     baseBlocks baseOwners baseWord baseUsed hstackRestOverlay baseLayout
     childOverlayLayout hallRestOverlay hboundaryRestOverlay (by
       simpa [freshOwned, blocks] using compatibleRest) hbaseUsed pre post input_eq
     alpha hstable (by
       simpa [freshOwned, word] using hchildInv) hframesRestOverlay hend
-    (by simpa [freshOwned, word] using childResources)
-    (by simpa [freshOwned, word] using childParkingContext) childFree hchildCredit
-    (by simpa [freshOwned, blocks, owners] using childOwnerLayout)
-    (by simpa [freshOwned, blocks, owners] using childShadowLayout)
-    (by simpa [freshOwned, blocks, owners] using childTicketOwnerLayout)
-    (by simpa [freshOwned, blocks, owners] using childTicketShadowContext)
-    (by simpa [freshOwned, word] using childTicketTransientHead)
+    childResources childParkingContext childFree hchildCredit
+    childOwnerLayout childShadowLayout childTicketOwnerLayout
+    childTicketShadowContext childTicketTransientHead
     (by simp [childResources, childOwnerLedger, freshOwned, owners])
     (by
       intro hinput hmem
@@ -943,8 +939,7 @@ public theorem overlayScheduleRun_pushFresh
       startCursor, childCursor, liveScheduleCursor, parentTask, childTask, parent,
       freshOwned, scheduleTaskOfParse, ScheduleCursor.erase, ScheduleAtom.workSym,
       ScheduleTask.workSym, List.map_append] using hstep
-  simpa [startState, childState, parent, parentTask, liveScheduleCursor,
-    scheduleStateOfCursor, word] using hpush.trans hrestRun
+  exact hpush.trans hrestRun
 
 end Aho
 end IndexedGrammar

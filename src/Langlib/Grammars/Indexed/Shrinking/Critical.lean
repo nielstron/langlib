@@ -103,11 +103,13 @@ public structure LocatedCritical (g : IndexedGrammar T)
   rebuild : ∀ {replacement : List T}, NFParse g nt stack replacement →
     NFParse g rootNT rootStack (leftContext ++ replacement ++ rightContext)
 
-private def parsedWord {g : IndexedGrammar T} {A : g.nt}
+-- These index-recovering helpers must remain transparent when elaborating
+-- dependent parse terms on Lean 4.33.
+private abbrev parsedWord {g : IndexedGrammar T} {A : g.nt}
     {sigma : List g.flag} {w : List T} (_ : NFParse g A sigma w) : List T :=
   w
 
-private def parsedStack {g : IndexedGrammar T} {A : g.nt}
+private abbrev parsedStack {g : IndexedGrammar T} {A : g.nt}
     {sigma : List g.flag} {w : List T} (_ : NFParse g A sigma w) : List g.flag :=
   sigma
 
@@ -259,7 +261,7 @@ public theorem exists_locatedCritical_of_not_allBetaIn
         whole_eq := by simp [parsedWord]
         critical := ⟨
           fun hbeta => hout (AllBetaIn.terminal hr hlhs hc hrhs hbeta),
-          by simp [q, ProperBetaIn, parsedStack, parsedWord]⟩
+          by simp [q, ProperBetaIn]⟩
         rebuild := fun replacement => by simpa using replacement
       }⟩
 
@@ -288,18 +290,26 @@ public theorem scopeAt_succ_length_le_of_allBetaIn
             simpa [parsedStack] using hk
           have hbeta := hbound rest.beta (beta_mem_of_allBetaIn restAll)
           have hlen := rest.beta_length_eq_scopeAt_zero_of_stack_ne_nil hstack
-          simpa [scopeAt, hlen] using hbeta
+          change (rest.scopeAt 0).length ≤ 1 * C
+          calc
+            (rest.scopeAt 0).length = rest.beta.length := hlen.symm
+            _ ≤ C := hbeta
+            _ = 1 * C := by simp
       | succ k =>
           have hk' : k + 1 < (parsedStack rest).length := by
             simp only [List.length_cons] at hk
             dsimp [parsedStack]
             omega
-          simpa [scopeAt, Nat.add_assoc] using ih k hk'
+          change (rest.scopeAt (k + 1)).length ≤
+            (rest.scopeAt k).length * C
+          exact ih k hk'
   | push hr hlhs hc hrhs rest _ restAll ih =>
       have hk' : (k + 1) + 1 < (parsedStack rest).length := by
         dsimp [parsedStack]
         omega
-      simpa [scopeAt, Nat.add_assoc] using ih (k + 1) hk'
+      change (rest.scopeAt ((k + 1) + 1)).length ≤
+        (rest.scopeAt (k + 1)).length * C
+      exact ih (k + 1) hk'
   | terminal hr hlhs hc hrhs _ =>
       simpa [scopeAt] using hC
 
@@ -333,14 +343,16 @@ public theorem yield_length_le_scopeAt_mul_of_bottom
             omega
           have hbottom' : (parsedStack rest).drop (k + 1) = [] := by
             simpa [parsedStack, Nat.add_assoc] using hbottom
-          simpa [scopeAt] using ih k hk' hbottom'
+          change _ ≤ (rest.scopeAt k).length * C
+          exact ih k hk' hbottom'
   | push hr hlhs hc hrhs rest _ restAll ih =>
       have hk' : k + 1 < (parsedStack rest).length := by
         dsimp [parsedStack]
         omega
       have hbottom' : (parsedStack rest).drop ((k + 1) + 1) = [] := by
         simpa [parsedStack, Nat.add_assoc] using hbottom
-      simpa [scopeAt, Nat.add_assoc] using ih (k + 1) hk' hbottom'
+      change _ ≤ (rest.scopeAt (k + 1)).length * C
+      exact ih (k + 1) hk' hbottom'
   | terminal hr hlhs hc hrhs _ =>
       simpa [scopeAt] using hC
 
@@ -380,13 +392,13 @@ public theorem beta_length_le_sq_of_critical
           have hbottom : (parsedStack rest).drop (0 + 1) = [] := by
             simpa [q, parsedStack] using hstack
           have hk : 0 < (parsedStack rest).length := by
-            simp [q, parsedStack]
+            simp [parsedStack]
           simpa [q, parsedWord] using
             yield_length_le_scopeAt_mul_of_bottom hC1 hbound hrestAll 0 hk hbottom
         have hscope : (rest.scopeAt 0).length ≤ C := by
           rw [← rest.beta_length_eq_scopeAt_zero_of_stack_ne_nil]
           · exact hrestBound
-          · simp [q, parsedStack]
+          · simp
         have hbetaYield : q.beta.length = (parsedWord q).length :=
           q.beta_length_eq_yield_of_stack_eq_nil hstack
         rw [hbetaYield]
@@ -399,7 +411,7 @@ public theorem beta_length_le_sq_of_critical
         have hscope : (rest.scopeAt 0).length ≤ C := by
           rw [← rest.beta_length_eq_scopeAt_zero_of_stack_ne_nil]
           · exact hrestBound
-          · simp [q, parsedStack]
+          · simp
         have hbetaScope : q.beta.length = (q.scopeAt 0).length :=
           q.beta_length_eq_scopeAt_zero_of_stack_ne_nil hstack
         rw [hbetaScope]

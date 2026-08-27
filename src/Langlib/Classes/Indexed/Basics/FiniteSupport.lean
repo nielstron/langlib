@@ -50,7 +50,7 @@ public theorem is_Indexed_noEpsilon_exists_finiteSupport_normalForm [Inhabited T
     change g'.Generates [] ↔ [] ∈ L
     constructor
     · intro hnil
-      haveI := hdec
+      have := hdec
       exact False.elim ((g'.not_generates_nil_of_noEpsilon
         (g'.noEpsilon_of_isNormalForm hNF)) hnil)
     · intro hnil
@@ -80,7 +80,7 @@ public theorem is_Indexed_noEpsilon_exists_fintype_normalForm_image [Inhabited T
   obtain ⟨S, L', hL', hmap⟩ :=
     is_Indexed_noEpsilon_exists_finiteAlphabet_Indexed_noEpsilon_image (L := L) hL
   by_cases hS : Nonempty {t : T // t ∈ S}
-  · haveI : Inhabited {t : T // t ∈ S} := ⟨Classical.choice hS⟩
+  · have : Inhabited {t : T // t ∈ S} := ⟨Classical.choice hS⟩
     obtain ⟨g, hnt, hflag, hdec, hNF, hlang⟩ :=
       is_Indexed_noEpsilon_exists_finiteSupport_normalForm (L := L') hL'
     refine ⟨{t : T // t ∈ S}, inferInstance, inferInstance, inferInstance,
@@ -136,7 +136,7 @@ public theorem is_Indexed_exists_fintype_normalForm_nonempty_image [Inhabited T]
   obtain ⟨S, L', hL', hmap⟩ :=
     is_Indexed_exists_finiteAlphabet_Indexed_image (L := L) hL
   by_cases hS : Nonempty {t : T // t ∈ S}
-  · haveI : Inhabited {t : T // t ∈ S} := ⟨Classical.choice hS⟩
+  · have : Inhabited {t : T // t ∈ S} := ⟨Classical.choice hS⟩
     obtain ⟨g, hlang⟩ := hL'
     obtain ⟨g', hnt, hflag, hdec, hNF, hgen⟩ :=
       g.exists_finiteSupport_normalForm_nonempty
@@ -145,9 +145,10 @@ public theorem is_Indexed_exists_fintype_normalForm_nonempty_image [Inhabited T]
     ext w
     constructor
     · rintro ⟨u, hgu, hwu⟩
-      haveI := hdec
+      have := hdec
       have hu_ne : u ≠ [] := by
         intro hu
+        change g'.Generates u at hgu
         have hnil : g'.Generates [] := by simpa [hu] using hgu
         exact (g'.not_generates_nil_of_noEpsilon
           (g'.noEpsilon_of_isNormalForm hNF)) hnil

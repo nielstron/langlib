@@ -74,7 +74,7 @@ public theorem is_CF_of_is_PDA {L : Language T} :
 public theorem is_PDA_of_isContextFree {L : Language T} (hL : L.IsContextFree) : is_PDA L := by
   obtain ⟨g, hfin, hg⟩ := ContextFreeGrammar.exists_fintype_nt L hL
   rw [← hg]
-  haveI := hfin
+  have := hfin
   exact is_PDA_of_mathlib_cfg g
 
 /-- The PDA-recognizable languages are exactly the context-free languages. -/

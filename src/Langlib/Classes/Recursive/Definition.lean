@@ -1,7 +1,7 @@
 module
 
 public import Mathlib.Computability.Language
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -53,7 +53,7 @@ halts, and it accepts exactly the words in the language.
 - `Recursive` — the class of all recursive languages.
 -/
 
-open Turing
+open Turing StateTransition
 
 variable {T : Type}
 
@@ -67,22 +67,20 @@ The machine uses the same tape convention as `is_TM`: `Option (T ⊕ Γ)`, where
 `none` is blank, `some (Sum.inl t)` is an input symbol, and `some (Sum.inr γ)` is
 a work symbol. The input word `w : List T` is written as
 `w.map (fun t => some (Sum.inl t))`. -/
-@[expose]
 public def is_Recursive {T : Type} (L : Language T) : Prop :=
   ∃ (Γ : Type) (_ : Fintype Γ)
     (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
     (M : TM0.Machine (Option (T ⊕ Γ)) Λ) (accept : Λ → Bool),
     (∀ w : List T,
-      (Turing.eval (TM0.step M)
+      (StateTransition.eval (TM0.step M)
         (TM0.init (w.map fun t => some (Sum.inl t)))).Dom) ∧
     (∀ w : List T,
-      ∀ h : (Turing.eval (TM0.step M)
+      ∀ h : (StateTransition.eval (TM0.step M)
           (TM0.init (w.map fun t => some (Sum.inl t)))).Dom,
         w ∈ L ↔
           accept
-            ((Turing.eval (TM0.step M)
+            ((StateTransition.eval (TM0.step M)
               (TM0.init (w.map fun t => some (Sum.inl t)))).get h).q = true)
 
 /-- The class of recursive (decidable) languages. -/
-@[expose]
-public def Recursive : Set (Language T) := setOf is_Recursive
+public def Recursive : Set (Language T) := Set.ofPred is_Recursive

@@ -24,7 +24,6 @@ noncomputable section
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- A grammar symbol is one of the characteristic `list` nonterminals. -/
-@[expose]
 public def IsListSymbol (M : DPDA Q T S) :
     symbol T (Nonterminal M) → Prop
   | symbol.nonterminal (PDA_to_CFG.N.list _ _ _) => True

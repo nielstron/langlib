@@ -38,12 +38,12 @@ public instance emptyGrammar_flag_fintype (T : Type) :
 public theorem emptyGrammar_noEpsilon (T : Type) :
     (emptyGrammar T).NoEpsilon' := by
   intro r hr
-  simp [emptyGrammar] at hr
+  exact (List.not_mem_nil hr).elim
 
 public theorem emptyGrammar_isNormalForm (T : Type) :
     (emptyGrammar T).IsNormalForm := by
   intro r hr
-  simp [emptyGrammar] at hr
+  exact (List.not_mem_nil hr).elim
 
 /-- The no-rule indexed grammar generates the empty language. -/
 public theorem emptyGrammar_language (T : Type) :
@@ -57,7 +57,7 @@ public theorem emptyGrammar_language (T : Type) :
       | nil => simp [emptyGrammar] at hEq
       | cons a rest => simp [emptyGrammar] at hEq
     · rcases hstep with ⟨r, u, v, σ, hr, _, _⟩
-      simp [emptyGrammar] at hr
+      exact (List.not_mem_nil hr).elim
   · intro h
     cases h
 

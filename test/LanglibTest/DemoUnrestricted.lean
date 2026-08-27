@@ -47,7 +47,7 @@ private def E_ := inner._E
 private def C_ := inner._C
 private def K_ := inner._K
 
-private def my_char : Type := symbol alphabet inner
+private abbrev my_char : Type := symbol alphabet inner
 
 private def a : my_char := symbol.terminal a_
 private def b : my_char := symbol.terminal b_
@@ -95,7 +95,7 @@ KE → ∅
           aabbbcccccc
 -/
 
-private def my_rule : Type := grule alphabet inner
+private abbrev my_rule : Type := grule alphabet inner
 
 private def S_LR   : my_rule := grule.mk  [] S_ [] [L, R]
 private def L_aLX  : my_rule := grule.mk  [] L_ [] [a, L, X]
@@ -111,7 +111,7 @@ private def M_K    : my_rule := grule.mk  [] M_ [] [K]
 private def KC_cK  : my_rule := grule.mk [K] C_ [] [c, K]
 private def KE_nil : my_rule := grule.mk [K] E_ [] []       -- shortens the word
 
-private def gr_mul : grammar alphabet :=
+private abbrev gr_mul : grammar alphabet :=
   grammar.mk inner S_
     [S_LR, L_aLX, R_BR, L_M, R_E, XB_BCX, CB_BC, XC_CX, XE_E, MB_bM, M_K, KC_cK, KE_nil]
 
@@ -122,9 +122,20 @@ macro "grammar_step" rule:term "," pref:term "," post:term : tactic =>
   `(tactic| (
     apply grammar_deri_of_tran_deri
     · refine ⟨$rule, ?_, $pref, $post, ?_, ?_⟩
-      · simp [gr_mul]
+      · change $rule ∈
+          [S_LR, L_aLX, R_BR, L_M, R_E, XB_BCX, CB_BC, XC_CX, XE_E, MB_bM, M_K,
+            KC_cK, KE_nil]
+        simp only [List.mem_cons, eq_self, true_or, or_true]
       · rfl
       · rfl
+  ))
+
+macro "rule_mem" : tactic =>
+  `(tactic| (
+    change _ ∈
+      [S_LR, L_aLX, R_BR, L_M, R_E, XB_BCX, CB_BC, XC_CX, XE_E, MB_bM, M_K,
+        KC_cK, KE_nil]
+    simp only [List.mem_cons, eq_self, true_or, or_true]
   ))
 
 
@@ -257,8 +268,8 @@ private lemma steps_L_aLX (m : ℕ) :
   | succ k ih =>
     apply grammar_deri_of_deri_tran ih
     refine ⟨L_aLX, ?_, List.replicate k a, List.replicate k X ++ [R], ?_, ?_⟩
-    · simp [gr_mul]
-    · simp [L, L_aLX, List.append_nil, List.append_assoc]
+    · rule_mem
+    · simp only [L_aLX, L, List.append_nil, List.append_assoc]
     · rw [List.replicate_succ_eq_append_singleton a]
       rw [List.replicate_succ_eq_singleton_append X]
       simp [L, L_aLX, List.append_assoc]
@@ -270,13 +281,12 @@ private lemma steps_R_BR (m n : ℕ) :
   induction n with
   | zero =>
     rw [List.replicate_zero, List.append_nil]
-    apply grammar_deri_self
   | succ k ih =>
     apply grammar_deri_of_deri_tran ih
     refine ⟨R_BR, ?_,
       List.replicate m a ++ [L] ++ List.replicate m X ++ List.replicate k B, [], ?_, ?_⟩
-    · simp [gr_mul]
-    · simp [R, R_BR, List.append_nil]
+    · rule_mem
+    · simp only [R_BR, R, List.append_nil, List.append_assoc]
     · rw [List.replicate_succ_eq_append_singleton B]
       simp [R, R_BR, List.append_nil, List.append_assoc]
 
@@ -289,15 +299,14 @@ private lemma aux_XC_skip (k : ℕ) :
   · constructor;
   · -- For the inductive step, we can use the rule XC_CX to replace X with CX.
     have h_step : grammar_transforms gr_mul ([X] ++ [C] ++ List.replicate k C) ([C] ++ [X] ++ List.replicate k C) := by
-      use XC_CX, by
-        simp +decide [ gr_mul ], [], List.replicate k C
-      generalize_proofs at *;
-      aesop;
+      refine ⟨XC_CX, ?_, [], List.replicate k C, rfl, rfl⟩
+      rule_mem
     -- Apply the induction hypothesis to the remaining part of the word.
     have h_ind : grammar_derives gr_mul ([C] ++ [X] ++ List.replicate k C) ([C] ++ List.replicate k C ++ [X]) := by
       convert grammar_deri_with_prefix _ ih using 1;
       all_goals rw [ List.append_assoc ] ;
-    simpa [ List.replicate ] using Relation.ReflTransGen.trans ( Relation.ReflTransGen.single h_step ) h_ind
+    simpa [List.replicate] using
+      grammar_deri_of_deri_deri (grammar_deri_of_tran h_step) h_ind
 
 /-
 `C^z ++ [B]` derives to `[B] ++ C^z` by repeatedly applying CB_BC.
@@ -316,10 +325,11 @@ private lemma aux_CB_bubble (z : ℕ) :
       aesop;
     have h_step2 : grammar_derives gr_mul ([C, B] ++ List.replicate z C) ([B, C] ++ List.replicate z C) := by
       apply grammar_deri_of_tran_deri;
-      use CB_BC;
-      exact ⟨ by simp +decide [ gr_mul ], [ ], List.replicate z C, rfl, rfl ⟩;
-      exact Relation.ReflTransGen.refl;
-    convert h_step.trans h_step2 using 1
+      · refine ⟨CB_BC, ?_, [], List.replicate z C, rfl, rfl⟩
+        rule_mem
+      · exact grammar_deri_self
+    simpa [List.replicate, List.append_assoc] using
+      grammar_deri_of_deri_deri h_step h_step2
 
 /-
 `[B,C]^n` derives to `B^n ++ C^n` by bubble-sorting.
@@ -327,26 +337,27 @@ private lemma aux_CB_bubble (z : ℕ) :
 private lemma aux_BC_sort (n : ℕ) :
     grammar_derives gr_mul ([B, C] ^ n) (List.replicate n B ++ List.replicate n C) := by
   -- By induction on $n$, we can show that $[C] ++ B^n$ derives to $B^n ++ [C]$.
-  have h_ind : ∀ n : ℕ, grammar_derives gr_mul ([C] ++ List.replicate n B) (List.replicate n B ++ [C]) := by
-    intro n;
-    induction n <;> simp_all +decide [ List.replicate_succ' ];
-    · constructor;
-    · rename_i n ih;
-      apply grammar_deri_of_deri_deri;
-      convert grammar_deri_with_postfix _ ih using 1;
-      convert grammar_deri_with_prefix _ ( aux_CB_bubble 1 ) using 1 ; simp +decide [ List.replicate ];
-  induction n <;> simp_all +decide [ List.n_times ];
-  · constructor;
-  · rename_i n ih;
-    -- By the induction hypothesis, we can derive $B^n ++ C^n$ from $[B, C]^n$.
-    have h_step : grammar_derives gr_mul ([B, C] ++ (List.replicate n [B, C]).flatten) ([B, C] ++ (List.replicate n B ++ List.replicate n C)) := by
-      apply grammar_deri_with_prefix; assumption;
-    -- Apply the induction hypothesis to derive $B^n ++ C^n ++ [C]$ from $[C] ++ B^n ++ C^n$.
-    have h_step2 : grammar_derives gr_mul ([B] ++ ([C] ++ (List.replicate n B ++ List.replicate n C))) ([B] ++ (List.replicate n B ++ [C] ++ List.replicate n C)) := by
-      apply grammar_deri_with_prefix;
-      convert grammar_deri_with_postfix _ ( h_ind n ) using 1;
-    convert h_step.trans ( h_step2 ) using 1;
-    exact Nat.recOn n ( by trivial ) fun n ih => by simp_all +decide [ List.replicate ] ;
+  have h_ind : ∀ k : ℕ,
+      grammar_derives gr_mul ([C] ++ List.replicate k B) (List.replicate k B ++ [C]) := by
+    intro k
+    induction k with
+    | zero => exact grammar_deri_self
+    | succ k ih =>
+      have h_postfix := grammar_deri_with_postfix [B] ih
+      have h_bubble : grammar_derives gr_mul
+          (List.replicate k B ++ [C] ++ [B]) (List.replicate k B ++ [B, C]) := by
+        simpa [List.replicate, List.append_assoc] using
+          grammar_deri_with_prefix (List.replicate k B) (aux_CB_bubble 1)
+      simpa [List.replicate_succ_eq_append_singleton, List.append_assoc] using
+        grammar_deri_of_deri_deri h_postfix h_bubble
+  induction n with
+  | zero => exact grammar_deri_self
+  | succ n ih =>
+    have h_prefix := grammar_deri_with_prefix [B, C] ih
+    have h_move := grammar_deri_with_prefix [B]
+      (grammar_deri_with_postfix (List.replicate n C) (h_ind n))
+    simpa [List.n_times, List.replicate_succ, List.append_assoc] using
+      grammar_deri_of_deri_deri h_prefix h_move
 
 /-
 `[X] ++ B^n` derives to `[B,C]^n ++ [X]` using XB_BCX.
@@ -354,17 +365,18 @@ private lemma aux_BC_sort (n : ℕ) :
 private lemma aux_XB_expand (n : ℕ) :
     grammar_derives gr_mul ([X] ++ List.replicate n B) ([B, C] ^ n ++ [X]) := by
   induction' n with n ih <;> simp_all +decide [ List.replicate_succ ];
-  · exact?;
+  · exact grammar_deri_self
   · -- Apply `XB_BCX` to get `[B, C, X] ++ B^n`.
     have h_trans_XB_BCX : grammar_derives gr_mul ([X] ++ B :: List.replicate n B) ([B, C, X] ++ List.replicate n B) := by
       apply grammar_deri_of_deri_tran;
       apply grammar_deri_self;
-      refine' ⟨ XB_BCX, _, _ ⟩ <;> simp +decide [ gr_mul ];
-      exists [ ], List.replicate n B;
+      refine ⟨XB_BCX, ?_, [], List.replicate n B, rfl, rfl⟩
+      rule_mem
     -- Apply `grammar_deri_with_prefix` to get `[B, C] ++ [B, C]^n ++ [X]`.
     have h_trans_prefix : grammar_derives gr_mul ([B, C] ++ X :: List.replicate n B) ([B, C] ++ [B, C] ^ n ++ [X]) := by
       apply grammar_deri_with_prefix; assumption;
-    convert h_trans_XB_BCX.trans h_trans_prefix using 1
+    simpa [List.n_times, List.replicate_succ, List.append_assoc] using
+      grammar_deri_of_deri_deri h_trans_XB_BCX h_trans_prefix
 
 /-
 The core of steps_quadratic: `X^m ++ B^n` derives to `B^n ++ C^(m*n) ++ X^m`.
@@ -373,9 +385,11 @@ private lemma aux_quadratic_core (m n : ℕ) :
     grammar_derives gr_mul
       (List.replicate m X ++ List.replicate n B)
       (List.replicate n B ++ List.replicate (m * n) C ++ List.replicate m X) := by
-  induction' m with m ih generalizing n <;> simp_all +decide [ Nat.succ_mul ];
-  · exact Relation.ReflTransGen.refl;
-  · -- Apply the induction hypothesis to the first part of the list.
+  induction m generalizing n with
+  | zero =>
+    simpa using (grammar_deri_self (g := gr_mul) (w := List.replicate n B))
+  | succ m ih =>
+    -- Apply the induction hypothesis to the first part of the list.
     have h_ind : grammar_derives gr_mul ([X] ++ List.replicate m X ++ List.replicate n B) ([X] ++ List.replicate n B ++ List.replicate (m * n) C ++ List.replicate m X) := by
       convert grammar_deri_with_prefix _ ( ih n ) using 1;
       rw [ ← List.append_assoc ];
@@ -383,17 +397,17 @@ private lemma aux_quadratic_core (m n : ℕ) :
     -- Apply the rule `XB_BCX` to get `[B, C]^n ++ [X] ++ C^(m*n) ++ X^m`.
     have h_expand : grammar_derives gr_mul ([X] ++ List.replicate n B ++ List.replicate (m * n) C ++ List.replicate m X) ([B, C] ^ n ++ [X] ++ List.replicate (m * n) C ++ List.replicate m X) := by
       have h_expand : grammar_derives gr_mul ([X] ++ List.replicate n B) ([B, C] ^ n ++ [X]) := by
-        exact?;
+        exact aux_XB_expand n
       apply_rules [ grammar_deri_with_postfix, grammar_deri_with_prefix ];
     -- Apply the rule `CB_BC` to get `B^n ++ C^n ++ [X] ++ C^(m*n) ++ X^m`.
     have h_sort : grammar_derives gr_mul ([B, C] ^ n ++ [X] ++ List.replicate (m * n) C ++ List.replicate m X) (List.replicate n B ++ List.replicate n C ++ [X] ++ List.replicate (m * n) C ++ List.replicate m X) := by
       have h_sort : grammar_derives gr_mul ([B, C] ^ n) (List.replicate n B ++ List.replicate n C) := by
-        exact?;
+        exact aux_BC_sort n
       apply_rules [ grammar_deri_with_postfix ];
     -- Apply the rule `XC_CX` to get `B^n ++ C^n ++ C^(m*n) ++ [X] ++ X^m`.
     have h_skip : grammar_derives gr_mul (List.replicate n B ++ List.replicate n C ++ [X] ++ List.replicate (m * n) C ++ List.replicate m X) (List.replicate n B ++ List.replicate n C ++ List.replicate (m * n) C ++ [X] ++ List.replicate m X) := by
       have h_skip : grammar_derives gr_mul ([X] ++ List.replicate (m * n) C) (List.replicate (m * n) C ++ [X]) := by
-        exact?;
+        exact aux_XC_skip (m * n)
       convert grammar_deri_with_prefix _ ( grammar_deri_with_postfix _ h_skip ) using 1 ; simp +decide [ List.append_assoc ];
       rotate_left;
       rotate_left;
@@ -401,7 +415,14 @@ private lemma aux_quadratic_core (m n : ℕ) :
       exact List.replicate m X;
       · rw [ List.append_assoc ];
       · grind;
-    grind +suggestions
+    have h_all := grammar_deri_of_deri_deri h_ind
+      (grammar_deri_of_deri_deri h_expand (grammar_deri_of_deri_deri h_sort h_skip))
+    have hmul : (m + 1) * n = n + m * n := by
+      calc
+        (m + 1) * n = m * n + n := Nat.succ_mul m n
+        _ = n + m * n := Nat.add_comm _ _
+    simpa only [hmul, List.replicate_add,
+      List.replicate_succ_eq_singleton_append, List.append_assoc] using h_all
 
 private lemma steps_quadratic (m n : ℕ) :
     grammar_derives gr_mul
@@ -410,7 +431,7 @@ private lemma steps_quadratic (m n : ℕ) :
         List.replicate m X ++ [E]) := by
   -- Apply the lemma `aux_quadratic_core` with $m$ and $n$.
   have h_aux : grammar_derives gr_mul (List.replicate m X ++ List.replicate n B) (List.replicate n B ++ List.replicate (m * n) C ++ List.replicate m X) := by
-    exact?;
+    exact aux_quadratic_core m n
   -- Apply the lemma `grammar_deri_with_prefix` with $pᵣ = List.replicate m a ++ [M]$ and `ass = h_aux`.
   have h_prefix : grammar_derives gr_mul (List.replicate m a ++ [M] ++ List.replicate m X ++ List.replicate n B) (List.replicate m a ++ [M] ++ List.replicate n B ++ List.replicate (m * n) C ++ List.replicate m X) := by
     convert grammar_deri_with_prefix _ h_aux using 1;
@@ -451,7 +472,7 @@ private lemma steps_MB_bM (m n : ℕ) :
       use MB_bM
       generalize_proofs at *;
       unfold gr_mul; simp +decide [ MB_bM ] ;
-      refine' ⟨ List.replicate m a ++ List.replicate k b, List.replicate ( n - ( k + 1 ) ) B ++ List.replicate ( m * n ) C ++ [ E ], _, _ ⟩ <;> simp +decide [ ← List.append_assoc ] ; ring!; (
+      refine' ⟨ List.replicate m a ++ List.replicate k b, List.replicate ( n - ( k + 1 ) ) B ++ List.replicate ( m * n ) C ++ [ E ], _, _ ⟩ <;> simp +decide [ ← List.append_assoc ] ; ring_nf!; (
       rw [ show n - k = 1 + ( n - ( 1 + k ) ) by omega, List.replicate_add ] ; aesop;);
       grind +suggestions
     generalize_proofs at *;
@@ -471,22 +492,22 @@ private lemma steps_KC_cK (m n : ℕ) :
   -- By induction on $k$, we can show that $K C^k$ derives to $c^k K$.
   have h_ind : ∀ k : ℕ, grammar_derives gr_mul ([K] ++ List.replicate k C) (List.replicate k c ++ [K]) := by
     intro k
-    induction' k with k ih
-    · exact grammar_deri_self
-    ·
+    induction k with
+    | zero => exact grammar_deri_self
+    | succ k ih =>
       -- Apply the KC_cK rule to the first C in the list.
-      have h_step : grammar_transforms gr_mul ([K] ++ List.replicate (k + 1) C) (List.replicate 1 c ++ [K] ++ List.replicate k C) := by
-        use KC_cK; simp [gr_mul];
-        exact ⟨ [ ], List.replicate k C, rfl, rfl ⟩;
-      have h_step : grammar_derives gr_mul (List.replicate 1 c ++ [K] ++ List.replicate k C) (List.replicate 1 c ++ List.replicate k c ++ [K]) := by
-        have h_step : grammar_derives gr_mul ([K] ++ List.replicate k C) (List.replicate k c ++ [K]) := by
-          assumption;
-        convert grammar_deri_with_prefix _ h_step using 1;
-        all_goals rw [ List.append_assoc ] ;
-      convert grammar_deri_of_deri_deri _ _ using 1;
-      exact List.replicate 1 c ++ [ K ] ++ List.replicate k C;
-      · exact?;
-      · convert h_step using 1;
+      have h_rule : grammar_transforms gr_mul
+          ([K] ++ List.replicate (k + 1) C)
+          (List.replicate 1 c ++ [K] ++ List.replicate k C) := by
+        refine ⟨KC_cK, ?_, [], List.replicate k C, rfl, rfl⟩
+        rule_mem
+      have h_tail : grammar_derives gr_mul
+          (List.replicate 1 c ++ [K] ++ List.replicate k C)
+          (List.replicate 1 c ++ List.replicate k c ++ [K]) := by
+        simpa only [List.append_assoc] using
+          grammar_deri_with_prefix (List.replicate 1 c) ih
+      simpa [List.replicate_succ, List.append_assoc] using
+        grammar_deri_of_deri_deri (grammar_deri_of_tran h_rule) h_tail
   convert grammar_deri_with_prefix _ ( grammar_deri_with_postfix _ ( h_ind ( m * n ) ) ) using 1;
   rotate_left;
   rotate_left;
@@ -540,14 +561,14 @@ private theorem multiplication_complete (m n : ℕ) :
       -- Apply the step_L_aLX lemma with m to get the desired derivation.
       have h_step1 : grammar_derives gr_mul [S] (List.replicate m a ++ [L] ++ List.replicate m X ++ [R]) := by
         have h_step1 : grammar_derives gr_mul [S] [L, R] := by
-          apply Relation.ReflTransGen.single;
-          use S_LR; simp +decide [gr_mul] ;
-          exists [ ], [ ]
-        exact h_step1.trans ( steps_L_aLX m )
+          apply grammar_deri_of_tran
+          refine ⟨S_LR, ?_, [], [], rfl, rfl⟩
+          rule_mem
+        exact grammar_deri_of_deri_deri h_step1 (steps_L_aLX m)
       generalize_proofs at *; (
       assumption);
     have h_seq2 : grammar_derives gr_mul (List.replicate m a ++ [L] ++ List.replicate m X ++ [R]) (List.replicate m a ++ [L] ++ List.replicate m X ++ List.replicate n B ++ [R]) := by
-      exact?;
+      exact steps_R_BR m n
     have h_seq3 : grammar_derives gr_mul (List.replicate m a ++ [L] ++ List.replicate m X ++ List.replicate n B ++ [R]) (List.replicate m a ++ [M] ++ List.replicate m X ++ List.replicate n B ++ [R]) := by
       apply grammar_deri_of_tran;
       use L_M; simp [gr_mul];
@@ -561,14 +582,15 @@ private theorem multiplication_complete (m n : ℕ) :
       · exists List.replicate m a ++ [ M ] ++ List.replicate m X ++ List.replicate n B, [ ];
         aesop;
       · constructor;
-    exact h_seq.trans ( h_seq2.trans ( h_seq3.trans h_seq4 ) );
+    exact grammar_deri_of_deri_deri h_seq
+      (grammar_deri_of_deri_deri h_seq2 (grammar_deri_of_deri_deri h_seq3 h_seq4))
   have h_rules : grammar_derives gr_mul (List.replicate m a ++ [M] ++ List.replicate m X ++ List.replicate n B ++ [E]) (List.replicate m a ++ List.replicate n b ++ [M] ++ List.replicate (m * n) C ++ [E]) := by
     apply grammar_deri_of_deri_deri (steps_quadratic m n)
     apply grammar_deri_of_deri_deri (steps_XE_E m n)
     apply steps_MB_bM m n;
   have h_rules : grammar_derives gr_mul (List.replicate m a ++ List.replicate n b ++ [M] ++ List.replicate (m * n) C ++ [E]) (List.replicate m a ++ List.replicate n b ++ List.replicate (m * n) c ++ [K] ++ [E]) := by
     have h_rules : grammar_derives gr_mul (List.replicate m a ++ List.replicate n b ++ [K] ++ List.replicate (m * n) C ++ [E]) (List.replicate m a ++ List.replicate n b ++ List.replicate (m * n) c ++ [K] ++ [E]) := by
-      exact?;
+      exact steps_KC_cK m n
     apply grammar_deri_of_deri_deri;
     rotate_right;
     exact List.replicate m a ++ List.replicate n b ++ [K] ++ List.replicate ( m * n ) C ++ [ E ];
@@ -586,8 +608,12 @@ private theorem multiplication_complete (m n : ℕ) :
     · exists List.replicate m a ++ List.replicate n b ++ List.replicate ( m * n ) c, [ ];
       aesop;
     · apply grammar_deri_self;
-  convert Relation.ReflTransGen.trans ‹grammar_derives gr_mul [ S ] _› ( Relation.ReflTransGen.trans ‹_› ( Relation.ReflTransGen.trans ‹_› ‹_› ) ) using 1;
-  unfold grammar_generates; aesop;
+  convert grammar_deri_of_deri_deri ‹grammar_derives gr_mul [S] _›
+    (grammar_deri_of_deri_deri ‹_› (grammar_deri_of_deri_deri ‹_› ‹_›)) using 1
+  · rfl
+  · rw [List.map_append, List.map_append,
+      List.map_replicate, List.map_replicate, List.map_replicate]
+    rfl
 
 -- example 3 * 3 = 9 reproved using the new theorem
 example : grammar_generates gr_mul

@@ -30,6 +30,7 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
+omit [Fintype T] in
 private theorem take_one_append_eq
     {common left right : List T}
     (h : left.take 1 = right.take 1) :
@@ -380,7 +381,7 @@ private theorem emptyStack_epsilon_view_for_positions (M : DPDA Q T S)
         | none =>
             left
             simpa [emptyStackPDA, PDA_FS_to_ES_pda,
-              PDA_FS_to_ES_eps] using h
+              PDA_FS_to_ES_eps, DPDA.toPDA] using h
         | some Z =>
             simp [emptyStackPDA, PDA_FS_to_ES_pda,
               PDA_FS_to_ES_eps] at h

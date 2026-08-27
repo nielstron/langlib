@@ -41,7 +41,7 @@ private theorem ProducesRightmost.avoids_of_avoids
     rw [hsource]
     simp [hp]
   · exact hrhs r hr hrhs'
-  · simpa using hs
+  · simp at hs
 
 private theorem ProducesRightmost.avoids_of_initial
     {G : CF_grammar T}
@@ -95,7 +95,11 @@ private theorem augment_rule_rhs_avoids (G : CF_grammar T)
     symbol.nonterminal G.augment.initial ∉ r.2 := by
   rcases List.mem_cons.mp hr with hstart | hmapped
   · subst r
-    simp [CF_grammar.augment, CF_grammar.augmentStartRule]
+    change symbol.nonterminal none ∉
+      [symbol.nonterminal (some G.initial)]
+    intro hmem
+    have heq := symbol.nonterminal.inj (List.mem_singleton.mp hmem)
+    cases heq
   · rcases List.mem_map.mp hmapped with ⟨r₀, _, rfl⟩
     exact none_not_mem_augmentString G r₀.2
 
@@ -110,7 +114,8 @@ private theorem augmentString_project_of_avoids (G : CF_grammar T)
       have ha : a ≠ symbol.nonterminal none := by
         intro heq
         apply hw
-        simp [heq]
+        rw [heq]
+        exact List.mem_cons_self
       have htail : symbol.nonterminal none ∉ w := by
         intro hmem
         exact hw (List.mem_cons_of_mem a hmem)
@@ -120,6 +125,7 @@ private theorem augmentString_project_of_avoids (G : CF_grammar T)
               CF_grammar.augmentString (G.projectAugmentString w) =
             symbol.terminal t :: w
           rw [ih htail]
+          rfl
       | nonterminal A =>
           cases A with
           | none => exact False.elim (ha rfl)
@@ -140,46 +146,36 @@ private theorem projectAugmentString_injective_of_avoids (G : CF_grammar T)
 
 @[simp]
 private theorem projectAugmentString_initial (G : CF_grammar T) :
-    G.projectAugmentString [symbol.nonterminal G.augment.initial] =
+    G.projectAugmentString
+        [symbol.nonterminal (none : Option G.nt)] =
       [symbol.nonterminal G.initial] := by
   rfl
 
 @[simp]
 private theorem projectAugmentString_prehandle (G : CF_grammar T)
-    (R : G.nt × List (symbol T G.nt))
+    (A : G.nt)
     (p : List (symbol T (Option G.nt))) (s : List T) :
     G.projectAugmentString
-        (p ++ [symbol.nonterminal (CF_grammar.augmentRule R).1] ++
-          s.map symbol.terminal) =
-      G.projectAugmentString p ++ [symbol.nonterminal R.1] ++
-        s.map symbol.terminal := by
+        (p ++ [symbol.nonterminal (some A)] ++
+          s.map (symbol.terminal (N := Option G.nt))) =
+      G.projectAugmentString p ++ [symbol.nonterminal A] ++
+        s.map (symbol.terminal (N := G.nt)) := by
   rw [G.projectAugmentString_append, G.projectAugmentString_append,
     G.projectAugmentString_map_terminal]
   rfl
 
 @[simp]
 private theorem projectAugmentString_post (G : CF_grammar T)
-    (R : G.nt × List (symbol T G.nt))
+    (rhs : List (symbol T G.nt))
     (p : List (symbol T (Option G.nt))) (s : List T) :
     G.projectAugmentString
-        (p ++ (CF_grammar.augmentRule R).2 ++ s.map symbol.terminal) =
-      G.projectAugmentString p ++ R.2 ++ s.map symbol.terminal := by
-  change G.projectAugmentString
-      (p ++ CF_grammar.augmentString R.2 ++ s.map symbol.terminal) = _
+        (p ++ CF_grammar.augmentString rhs ++
+          s.map (symbol.terminal (N := Option G.nt))) =
+      G.projectAugmentString p ++ rhs ++
+        s.map (symbol.terminal (N := G.nt)) := by
   rw [G.projectAugmentString_append, G.projectAugmentString_append,
     G.projectAugmentString_augmentString,
     G.projectAugmentString_map_terminal]
-
-@[simp]
-private theorem projectAugmentString_start_post (G : CF_grammar T)
-    (p : List (symbol T (Option G.nt))) (s : List T) :
-    G.projectAugmentString
-        (p ++ (CF_grammar.augmentStartRule G).2 ++ s.map symbol.terminal) =
-      G.projectAugmentString p ++ [symbol.nonterminal G.initial] ++
-        s.map symbol.terminal := by
-  rw [G.projectAugmentString_append, G.projectAugmentString_append,
-    G.projectAugmentString_map_terminal]
-  rfl
 
 private theorem prefix_avoids_of_prehandle_avoids
     {G : CF_grammar T} {A : G.nt}
@@ -198,12 +194,15 @@ private theorem mapped_prehandle_ne_initial (G : CF_grammar T)
         s.map symbol.terminal ≠
       [symbol.nonterminal G.augment.initial] := by
   intro h
-  have hlen := congrArg List.length h
-  simp only [List.length_append, List.length_singleton, List.length_map] at hlen
-  have hp : p = [] := List.length_eq_zero_iff.mp (by omega)
-  have hs : s = [] := List.length_eq_zero_iff.mp (by omega)
-  rw [hp, hs] at h
-  simp [CF_grammar.augmentRule, CF_grammar.augment] at h
+  have hmem :
+      symbol.nonterminal (T := T) (CF_grammar.augmentRule R).1 ∈
+        [symbol.nonterminal (T := T) G.augment.initial] := by
+    rw [← h]
+    exact List.mem_append_left _
+      (List.mem_append_right _ (List.mem_singleton_self _))
+  have heq := symbol.nonterminal.inj (List.mem_singleton.mp hmem)
+  change some R.1 = none at heq
+  cases heq
 
 /-! ## The characteristic start symbol is not reintroduced -/
 
@@ -218,15 +217,28 @@ private theorem characteristic_rule_rhs_avoids_initial (M : DPDA Q T S)
   rcases characteristicGrammar_rule_shape M hr with
     h | h | h | h | h
   · rcases h with ⟨q, rfl⟩
-    simp
+    exact List.not_mem_nil
   · rcases h with ⟨q, p, q', a, Z, alpha, _, rfl⟩
-    simp
+    intro hmem
+    rcases List.mem_cons.mp hmem with hhead | htail
+    · cases hhead
+    · have heq := symbol.nonterminal.inj (List.mem_singleton.mp htail)
+      cases heq
   · rcases h with ⟨q, p, q', Z, alpha, _, rfl⟩
-    simp
+    intro hmem
+    have heq := symbol.nonterminal.inj (List.mem_singleton.mp hmem)
+    cases heq
   · rcases h with ⟨q, q', p, Z, alpha, _, rfl⟩
-    simp
+    intro hmem
+    rcases List.mem_cons.mp hmem with hhead | htail
+    · have heq := symbol.nonterminal.inj hhead
+      cases heq
+    · have heq := symbol.nonterminal.inj (List.mem_singleton.mp htail)
+      cases heq
   · rcases h with ⟨p, rfl⟩
-    simp
+    intro hmem
+    have heq := symbol.nonterminal.inj (List.mem_singleton.mp hmem)
+    cases heq
 
 private theorem characteristic_post_avoids_initial (M : DPDA Q T S)
     {r : (characteristicGrammar M).nt ×
@@ -256,8 +268,13 @@ private theorem characteristic_post_avoids_initial (M : DPDA Q T S)
       omega
     have hrInitial : r.1 = (characteristicGrammar M).initial := by
       rw [hp, hs] at hstill
-      simpa using hstill
-    simpa [hp, hs] using characteristic_rule_rhs_avoids_initial M r hr
+      change [symbol.nonterminal r.1] =
+        [symbol.nonterminal (characteristicGrammar M).initial] at hstill
+      exact symbol.nonterminal.inj (List.cons.inj hstill).1
+    rw [hp, hs]
+    intro hmem
+    rw [List.map_nil, List.append_nil, List.nil_append] at hmem
+    exact characteristic_rule_rhs_avoids_initial M r hr hmem
   · have hpFree : symbol.nonterminal (characteristicGrammar M).initial ∉ p :=
       prefix_avoids_of_prehandle_avoids hfree
     intro hmem
@@ -265,8 +282,10 @@ private theorem characteristic_post_avoids_initial (M : DPDA Q T S)
     rcases hmem with (hp | hrhs) | hs
     · exact hpFree hp
     · exact characteristic_rule_rhs_avoids_initial M r hr hrhs
-    · simpa using hs
+    · rcases List.mem_map.mp hs with ⟨a, _, ha⟩
+      cases ha
 
+omit [Fintype T] in
 private theorem initial_prehandle_prefix_nil
     {G : CF_grammar T}
     (hrhs : ∀ r ∈ G.rules,
@@ -293,7 +312,10 @@ public theorem characteristic_isLR1_of_core (M : DPDA Q T S)
     (characteristicGrammar M).IsLRk 1 := by
   let G := characteristicGrammar M
   change G.augment.CoreIsLRk 1
+  unfold CF_grammar.augment
   intro r₁ r₂ hr₁ hr₂ p₁ p₂ s₁ s₂ y hd₁ hd₂ hform hlook
+  let p₁' : List (symbol T (Option G.nt)) := p₁
+  let p₂' : List (symbol T (Option G.nt)) := p₂
   rcases List.mem_cons.mp hr₁ with hstart₁ | hmapped₁ <;>
     rcases List.mem_cons.mp hr₂ with hstart₂ | hmapped₂
   · subst r₁
@@ -307,88 +329,135 @@ public theorem characteristic_isLR1_of_core (M : DPDA Q T S)
     rcases List.mem_map.mp hmapped₂ with ⟨R₂, hR₂, rfl⟩
     have : False := by
       have hd₂' : G.DerivesRightmost [symbol.nonterminal G.initial]
-          (G.projectAugmentString p₂ ++ [symbol.nonterminal R₂.1] ++
+          (G.projectAugmentString p₂' ++ [symbol.nonterminal R₂.1] ++
             s₂.map symbol.terminal) := by
         have h := G.derivesRightmost_project_augment hd₂
-        rw [projectAugmentString_initial,
-          projectAugmentString_prehandle] at h
+        change G.DerivesRightmost
+          (G.projectAugmentString
+            [symbol.nonterminal (none : Option G.nt)])
+          (G.projectAugmentString
+            (p₂' ++ [symbol.nonterminal (some R₂.1)] ++
+              s₂.map (symbol.terminal (N := Option G.nt)))) at h
+        rw [projectAugmentString_initial G,
+          projectAugmentString_prehandle G R₂.1 p₂' s₂] at h
         exact h
       have hpostFree := characteristic_post_avoids_initial M hR₂ hd₂'
       change symbol.nonterminal G.initial ∉
-        (G.projectAugmentString p₂ ++ R₂.2 ++
+        (G.projectAugmentString p₂' ++ R₂.2 ++
           s₂.map symbol.terminal) at hpostFree
       apply hpostFree
       have hproject := congrArg G.projectAugmentString hform
       have hproject' :
-          G.projectAugmentString p₂ ++ R₂.2 ++ s₂.map symbol.terminal =
-            G.projectAugmentString p₁ ++ [symbol.nonterminal G.initial] ++
+          G.projectAugmentString p₂' ++ R₂.2 ++ s₂.map symbol.terminal =
+            G.projectAugmentString p₁' ++ [symbol.nonterminal G.initial] ++
               y.map symbol.terminal := by
-        rw [projectAugmentString_post,
-          projectAugmentString_start_post] at hproject
+        change
+          G.projectAugmentString
+              (p₂' ++ CF_grammar.augmentString R₂.2 ++
+                s₂.map (symbol.terminal (N := Option G.nt))) =
+            G.projectAugmentString
+              (p₁' ++ [symbol.nonterminal (some G.initial)] ++
+                y.map (symbol.terminal (N := Option G.nt))) at hproject
+        rw [projectAugmentString_post G R₂.2 p₂' s₂,
+          projectAugmentString_prehandle G G.initial p₁' y] at hproject
         exact hproject
       rw [hproject']
-      simp
+      exact List.mem_append_left _
+        (List.mem_append_right _ List.mem_cons_self)
     contradiction
   · subst r₂
     rcases List.mem_map.mp hmapped₁ with ⟨R₁, hR₁, rfl⟩
     have : False := by
       have hd₁' : G.DerivesRightmost [symbol.nonterminal G.initial]
-          (G.projectAugmentString p₁ ++ [symbol.nonterminal R₁.1] ++
+          (G.projectAugmentString p₁' ++ [symbol.nonterminal R₁.1] ++
             s₁.map symbol.terminal) := by
         have h := G.derivesRightmost_project_augment hd₁
-        rw [projectAugmentString_initial,
-          projectAugmentString_prehandle] at h
+        change G.DerivesRightmost
+          (G.projectAugmentString
+            [symbol.nonterminal (none : Option G.nt)])
+          (G.projectAugmentString
+            (p₁' ++ [symbol.nonterminal (some R₁.1)] ++
+              s₁.map (symbol.terminal (N := Option G.nt)))) at h
+        rw [projectAugmentString_initial G,
+          projectAugmentString_prehandle G R₁.1 p₁' s₁] at h
         exact h
       have hpostFree := characteristic_post_avoids_initial M hR₁ hd₁'
       change symbol.nonterminal G.initial ∉
-        (G.projectAugmentString p₁ ++ R₁.2 ++
+        (G.projectAugmentString p₁' ++ R₁.2 ++
           s₁.map symbol.terminal) at hpostFree
       have hproject := congrArg G.projectAugmentString hform
       have hproject' :
-          G.projectAugmentString p₂ ++ [symbol.nonterminal G.initial] ++
+          G.projectAugmentString p₂' ++ [symbol.nonterminal G.initial] ++
               s₂.map symbol.terminal =
-            G.projectAugmentString p₁ ++ R₁.2 ++
+            G.projectAugmentString p₁' ++ R₁.2 ++
               y.map symbol.terminal := by
-        rw [projectAugmentString_start_post,
-          projectAugmentString_post] at hproject
+        change
+          G.projectAugmentString
+              (p₂' ++ [symbol.nonterminal (some G.initial)] ++
+                s₂.map (symbol.terminal (N := Option G.nt))) =
+            G.projectAugmentString
+              (p₁' ++ CF_grammar.augmentString R₁.2 ++
+                y.map (symbol.terminal (N := Option G.nt))) at hproject
+        rw [projectAugmentString_prehandle G G.initial p₂' s₂,
+          projectAugmentString_post G R₁.2 p₁' y] at hproject
         exact hproject
       have hmem : symbol.nonterminal G.initial ∈
-          G.projectAugmentString p₁ ++ R₁.2 ++
+          G.projectAugmentString p₁' ++ R₁.2 ++
             y.map symbol.terminal := by
         rw [← hproject']
-        simp
+        exact List.mem_append_left _
+          (List.mem_append_right _ List.mem_cons_self)
       simp only [List.mem_append] at hmem
       rcases hmem with hbase | hterminal
       · apply hpostFree
         simp only [List.mem_append]
         exact Or.inl hbase
-      · simpa using hterminal
+      · simp at hterminal
     contradiction
   · rcases List.mem_map.mp hmapped₁ with ⟨R₁, hR₁, rfl⟩
     rcases List.mem_map.mp hmapped₂ with ⟨R₂, hR₂, rfl⟩
     have hd₁' : G.DerivesRightmost [symbol.nonterminal G.initial]
-        (G.projectAugmentString p₁ ++ [symbol.nonterminal R₁.1] ++
+        (G.projectAugmentString p₁' ++ [symbol.nonterminal R₁.1] ++
           s₁.map symbol.terminal) := by
       have h := G.derivesRightmost_project_augment hd₁
-      rw [projectAugmentString_initial,
-        projectAugmentString_prehandle] at h
+      change G.DerivesRightmost
+        (G.projectAugmentString
+          [symbol.nonterminal (none : Option G.nt)])
+        (G.projectAugmentString
+          (p₁' ++ [symbol.nonterminal (some R₁.1)] ++
+            s₁.map (symbol.terminal (N := Option G.nt)))) at h
+      rw [projectAugmentString_initial G,
+        projectAugmentString_prehandle G R₁.1 p₁' s₁] at h
       exact h
     have hd₂' : G.DerivesRightmost [symbol.nonterminal G.initial]
-        (G.projectAugmentString p₂ ++ [symbol.nonterminal R₂.1] ++
+        (G.projectAugmentString p₂' ++ [symbol.nonterminal R₂.1] ++
           s₂.map symbol.terminal) := by
       have h := G.derivesRightmost_project_augment hd₂
-      rw [projectAugmentString_initial,
-        projectAugmentString_prehandle] at h
+      change G.DerivesRightmost
+        (G.projectAugmentString
+          [symbol.nonterminal (none : Option G.nt)])
+        (G.projectAugmentString
+          (p₂' ++ [symbol.nonterminal (some R₂.1)] ++
+            s₂.map (symbol.terminal (N := Option G.nt)))) at h
+      rw [projectAugmentString_initial G,
+        projectAugmentString_prehandle G R₂.1 p₂' s₂] at h
       exact h
     have hform' :
-        G.projectAugmentString p₂ ++ R₂.2 ++ s₂.map symbol.terminal =
-          G.projectAugmentString p₁ ++ R₁.2 ++ y.map symbol.terminal := by
+        G.projectAugmentString p₂' ++ R₂.2 ++ s₂.map symbol.terminal =
+          G.projectAugmentString p₁' ++ R₁.2 ++ y.map symbol.terminal := by
       have h := congrArg G.projectAugmentString hform
-      rw [projectAugmentString_post,
-        projectAugmentString_post] at h
+      change
+        G.projectAugmentString
+            (p₂' ++ CF_grammar.augmentString R₂.2 ++
+              s₂.map (symbol.terminal (N := Option G.nt))) =
+          G.projectAugmentString
+            (p₁' ++ CF_grammar.augmentString R₁.2 ++
+              y.map (symbol.terminal (N := Option G.nt))) at h
+      rw [projectAugmentString_post G R₂.2 p₂' s₂,
+        projectAugmentString_post G R₁.2 p₁' y] at h
       exact h
     have hsame := hcore R₁ R₂ hR₁ hR₂
-      (G.projectAugmentString p₁) (G.projectAugmentString p₂)
+      (G.projectAugmentString p₁') (G.projectAugmentString p₂')
       s₁ s₂ y hd₁' hd₂' hform' hlook
     have hfree₁ := derivesRightmost_initial_or_avoids
       (fun rule hRule => augment_rule_rhs_avoids G rule hRule) hd₁
@@ -402,8 +471,13 @@ public theorem characteristic_isLR1_of_core (M : DPDA Q T S)
       rcases hfree₂ with hstill | hav
       · exact False.elim (mapped_prehandle_ne_initial G R₂ p₂ s₂ hstill)
       · exact prefix_avoids_of_prehandle_avoids hav
-    exact ⟨projectAugmentString_injective_of_avoids G hp₁Free hp₂Free hsame.1,
-      by rw [hsame.2]⟩
+    have hp₁Free' : symbol.nonterminal G.augment.initial ∉ p₁' := by
+      simpa [p₁'] using hp₁Free
+    have hp₂Free' : symbol.nonterminal G.augment.initial ∉ p₂' := by
+      simpa [p₂'] using hp₂Free
+    have hp : p₁' = p₂' :=
+      projectAugmentString_injective_of_avoids G hp₁Free' hp₂Free' hsame.1
+    exact ⟨by simpa [p₁', p₂'] using hp, by rw [hsame.2]⟩
 
 end
 

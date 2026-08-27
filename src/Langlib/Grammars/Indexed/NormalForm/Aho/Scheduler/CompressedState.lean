@@ -370,7 +370,7 @@ end IndexOwnerPool
 
 
 /-- Start cursor for a plain parse task. -/
-public def plainScheduleCursor
+@[reducible] public def plainScheduleCursor
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     (parse : NFParse g A stack w) (unused : ¬ parse.ConsumesAt 0)
@@ -381,7 +381,7 @@ public def plainScheduleCursor
     .task (scheduleTaskOfParse parse pre post input_eq (.plain unused)), next :: tail⟩
 
 /-- Start cursor for a live parse task. -/
-public def liveScheduleCursor
+@[reducible] public def liveScheduleCursor
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     (parse : NFParse g A stack w) (used : parse.ConsumesAt 0)

@@ -36,12 +36,12 @@ private theorem is_CS_of_is_Indexed_of_finite_normalForm_core_of_inhabited [Inha
     (hL : is_Indexed L) : is_CS L := by
   obtain ⟨A, hA, hAdec, hAinh, f, g, hnt, hflag, hdec, hNF, hmap⟩ :=
     is_Indexed_exists_fintype_normalForm_nonempty_image (L := L) hL
-  haveI := hA
-  haveI := hAdec
-  haveI := hAinh
-  haveI := hnt
-  haveI := hflag
-  haveI := hdec
+  have := hA
+  have := hAdec
+  have := hAinh
+  have := hnt
+  have := hflag
+  have := hdec
   have hCSg : is_CS g.Language := hcore g hNF
   have hImage : is_CS (g.Language.homomorphicImage fun a => [f a]) :=
     is_CS_homomorphicImage_epsfree g.Language (fun a => [f a]) (fun _ => by simp) hCSg
@@ -59,7 +59,7 @@ public theorem is_CS_of_is_Indexed_of_finite_normalForm_core
     (hL : is_Indexed L) : is_CS L := by
   classical
   rcases isEmpty_or_nonempty T with hT | hT
-  · letI : Fintype T := ⟨∅, fun t => (hT.false t).elim⟩
+  · let : Fintype T := ⟨∅, fun t => (hT.false t).elim⟩
     apply is_CS_of_finite_language
     refine (Set.finite_singleton ([] : List T)).subset ?_
     intro w _
@@ -68,7 +68,7 @@ public theorem is_CS_of_is_Indexed_of_finite_normalForm_core
       | nil => rfl
       | cons t _ => exact (hT.false t).elim
     simpa only [Set.mem_singleton_iff] using hw
-  · letI : Inhabited T := ⟨Classical.choice hT⟩
+  · let : Inhabited T := ⟨Classical.choice hT⟩
     exact is_CS_of_is_Indexed_of_finite_normalForm_core_of_inhabited hcore hL
 
 /-- LBA-core variant of `is_CS_of_is_Indexed_of_finite_normalForm_core`. -/

@@ -123,7 +123,7 @@ public theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α 
               tauto ⟩ ⟩;
           · obtain ⟨ q', γ, ⟨ x, hx ⟩, y, hy ⟩ := ih ( by tauto ) hw;
             use q', γ, ⟨ x + 1, ?_ ⟩, y, hy;
-            exact PDA.reachesIn_of_one_n ( by exact PDA.reachesIn_one.mpr <| by exact Set.mem_union_left _ <| Set.mem_setOf.mpr ⟨ q₁, β, hβ, rfl ⟩ ) hx;
+            exact PDA.reachesIn_of_one_n ( by exact PDA.reachesIn_one.mpr <| by exact Set.mem_union_left _ <| Set.mem_ofPred.mpr ⟨ q₁, β, hβ, rfl ⟩ ) hx;
         · contrapose! ih;
           use q₁, p, a :: w, v, β ++ α, δ;
           simp_all +decide [  ];
@@ -157,7 +157,7 @@ variable {Q S : Type} [Fintype Q] [Fintype S]
 /-- The **prefix PDA**.
 States are `Q ⊕ Q` where `Sum.inl q` is *normal mode* and `Sum.inr q`
 is *verification mode*. -/
-@[expose]
+@[reducible]
 public noncomputable def prefixPDA (M : PDA Q T S) : PDA (Q ⊕ Q) T S where
   initial_state := Sum.inl M.initial_state
   start_symbol  := M.start_symbol
@@ -226,11 +226,7 @@ Switching from normal mode to verification mode (ε-step, stack unchanged).
 -/
 private theorem switch_step {q : Q} {w : List T} {Z : S} {β : List S} :
     (prefixPDA M).Reaches₁ ⟨Sum.inl q, w, Z :: β⟩ ⟨Sum.inr q, w, Z :: β⟩ := by
-  cases' w with a w' <;> simp +decide [ *, Reaches₁ ];
-  · simp +decide [ step ];
-    unfold prefixPDA; aesop;
-  · simp +decide [ step ];
-    unfold prefixPDA; aesop;
+  cases w <;> simp [PDA.Reaches₁, PDA.step, prefixPDA]
 
 /-
 If `M` reaches `⟨p, [], []⟩` from `⟨q, v, γ⟩`, then in verification mode
@@ -253,7 +249,8 @@ private theorem verify_reaches_of_M_reaches
         generalize_proofs at *; (
         cases' x₁ with a₁ x₁ <;> cases' Z₁ with Z₁ α₁ <;> simp_all +decide [ step ];
         · obtain ⟨ β, hβ₁, hβ₂, hβ₃ ⟩ := h_step; use β; simp_all +decide [ prefixPDA ] ;
-        · rcases h_step with ( ⟨ β, hβ, rfl, rfl ⟩ | ⟨ β, hβ, rfl, rfl ⟩ ) <;> [ exact ⟨ β, by unfold prefixPDA; aesop ⟩ ; exact ⟨ β, by unfold prefixPDA; aesop ⟩ ] ;);
+        · rcases h_step with ( ⟨ β, hβ, rfl, rfl ⟩ | ⟨ β, hβ, rfl, rfl ⟩ ) <;>
+            [ exact ⟨β, by aesop⟩; exact ⟨β, by aesop⟩ ] ;);
       exact h₃.trans ( h_step _ _ h₂ |> fun h => Relation.ReflTransGen.single h );
   obtain ⟨ n, hn ⟩ := reaches_iff_reachesIn.mp h; specialize h_ind n ⟨ q, v, γ ⟩ ⟨ p, [], [] ⟩ hn; aesop;
 
@@ -300,12 +297,18 @@ private theorem inr_step_preserves_input {q : Q} {w : List T}
     {γ : List S} {c : (prefixPDA M).conf}
     (h : (prefixPDA M).Reaches₁ ⟨Sum.inr q, w, γ⟩ c) :
     c.input = w := by
-  cases γ <;> cases w <;> simp_all +decide [ Reaches₁ ];
-  · cases h;
-  · cases h;
-  · cases h ; aesop;
-  · cases h ; aesop;
-    grind +revert
+  cases γ with
+  | nil => simp [PDA.Reaches₁, PDA.step] at h
+  | cons Z β =>
+      cases w with
+      | nil =>
+          simp [PDA.Reaches₁, PDA.step, prefixPDA] at h
+          obtain ⟨q', δ, _, rfl⟩ := h
+          rfl
+      | cons a w =>
+          simp [PDA.Reaches₁, PDA.step, prefixPDA] at h
+          obtain ⟨q', δ, _, rfl⟩ := h
+          rfl
 
 /-
 A single step from a `Sum.inr` state stays in `Sum.inr`.
@@ -342,8 +345,8 @@ private theorem inr_input_invariant {n : ℕ} {q : Q} {w : List T}
         obtain ⟨ q', hq' ⟩ := ih; rcases c₁ with ⟨ s₁, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ s₂, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ] ;
         cases γ₁ <;> simp_all +decide [ step ];
         cases w₁ <;> simp_all +decide [  ];
-        · unfold prefixPDA at hc₂; aesop;
-        · unfold prefixPDA at hc₂; aesop;
+        · aesop;
+        · aesop;
       apply h_last_step;
       exact reaches_of_reachesIn hc₁;
     obtain ⟨c'', hc₃, hc₄⟩ : ∃ c'', ReachesIn 1 ⟨Sum.inr q', w, c'.stack⟩ c'' ∧ c'' = c := by
@@ -367,15 +370,9 @@ private theorem inl_step_cases {c : (prefixPDA M).conf}
     (∃ q' : Q, ∃ w' : List T, ∃ α' : List S,
       c = ⟨Sum.inl q', w', α'⟩ ∧ M.Reaches₁ ⟨q, w, α⟩ ⟨q', w', α'⟩) ∨
     (c = ⟨Sum.inr q, w, α⟩) := by
-  cases w <;> cases α <;> simp_all +decide [ Reaches₁ ];
-  · unfold step at h; aesop;
-  · unfold step at h;
-    unfold prefixPDA at h; simp_all +decide [ Set.mem_setOf_eq ] ;
-    unfold step; aesop;
-  · unfold step at h; aesop;
-  · cases h <;> simp_all +decide [ step ];
-    · unfold prefixPDA at *; aesop;
-    · unfold prefixPDA at *; aesop;
+  cases w <;> cases α <;>
+    simp_all [PDA.Reaches₁, PDA.step, prefixPDA] <;>
+    aesop
 
 /-
 A single step in verification mode from empty input decomposes into an M-transition.
@@ -413,34 +410,27 @@ private theorem M_reaches_of_verify_reachesIn {n : ℕ}
     {q p : Q} {γ : List S}
     (h : (prefixPDA M).ReachesIn n ⟨Sum.inr q, [], γ⟩ ⟨Sum.inr p, [], []⟩) :
     ∃ v : List T, M.Reaches ⟨q, v, γ⟩ ⟨p, [], []⟩ := by
-  by_contra h_contra;
-  have h_ind : ∀ n q p γ, (prefixPDA M).ReachesIn n ⟨Sum.inr q, [], γ⟩ ⟨Sum.inr p, [], []⟩ → (∃ v : List T, M.Reaches ⟨q, v, γ⟩ ⟨p, [], []⟩) := by
-    intro n q p γ h
-    induction' n with n ih generalizing q p γ;
-    · cases h ; aesop;
-    · obtain ⟨c, hc⟩ : ∃ c : (prefixPDA M).conf, (prefixPDA M).ReachesIn 1 ⟨Sum.inr q, [], γ⟩ c ∧ (prefixPDA M).ReachesIn n c ⟨Sum.inr p, [], []⟩ := by
-        exact reachesIn_iff_split_first.mpr h;
-      rcases γ with ( _ | ⟨ Z, β ⟩ ) <;> simp_all +decide [  ];
-      · rcases hc with ⟨ ⟨ c, hc₁, hc₂ ⟩, hc₃ ⟩;
-        rename_i r₂ hr₂ hr₃;
-        rcases hr₂ with ⟨ ⟩;
-        rcases hr₃ with ⟨ ⟩;
-      · obtain ⟨q₁, δ, hc₁, hc₂⟩ : ∃ q₁ : Q, ∃ δ : List S, c = ⟨Sum.inr q₁, [], δ ++ β⟩ ∧ (((q₁, δ) ∈ M.transition_fun' q Z) ∨ (∃ a : T, (q₁, δ) ∈ M.transition_fun q a Z)) := by
-          apply verify_step_decompose;
-          grind +suggestions;
-        obtain ⟨v₁, hv₁⟩ : ∃ v₁ : List T, M.Reaches ⟨q₁, v₁, δ ++ β⟩ ⟨p, [], []⟩ := by
-          exact ih q₁ p ( δ ++ β ) ( by simpa only [ hc₁ ] using hc.2 );
-        cases' hc₂ with hc₂ hc₂;
-        · use v₁;
-          have h_eps_step : M.Reaches₁ ⟨q, v₁, Z :: β⟩ ⟨q₁, v₁, δ ++ β⟩ := by
-            exact M_eps_step hc₂;
-          exact Relation.ReflTransGen.head h_eps_step hv₁;
-        · obtain ⟨ a, ha ⟩ := hc₂;
-          use a :: v₁;
-          have h_step : M.Reaches₁ ⟨q, a :: v₁, Z :: β⟩ ⟨q₁, v₁, δ ++ β⟩ := by
-            exact M_read_step ha;
-          exact Relation.ReflTransGen.head h_step hv₁;
-  exact h_contra <| h_ind n q p γ h
+  induction n generalizing q p γ with
+  | zero =>
+      cases h
+      exact ⟨[], Relation.ReflTransGen.refl⟩
+  | succ n ih =>
+      obtain ⟨c, hfirst, hrest⟩ := PDA.reachesIn_iff_split_first.mpr h
+      have hstep : (prefixPDA M).Reaches₁ ⟨Sum.inr q, [], γ⟩ c :=
+        PDA.reaches₁_iff_reachesIn_one.mpr hfirst
+      cases γ with
+      | nil =>
+          simp [PDA.Reaches₁, PDA.step] at hstep
+      | cons Z β =>
+          obtain ⟨q₁, δ, hc, hmove⟩ := verify_step_decompose hstep
+          subst c
+          obtain ⟨v₁, hv₁⟩ := ih hrest
+          cases hmove with
+          | inl heps =>
+              exact ⟨v₁, Relation.ReflTransGen.head (M_eps_step heps) hv₁⟩
+          | inr hread =>
+              obtain ⟨a, ha⟩ := hread
+              exact ⟨a :: v₁, Relation.ReflTransGen.head (M_read_step ha) hv₁⟩
 
 /-
 Once in `Sum.inr` mode, the state stays `Sum.inr` after any number of steps.

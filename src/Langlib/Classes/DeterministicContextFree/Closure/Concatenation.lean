@@ -141,12 +141,12 @@ private lemma left_reaches₁_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T 
           rcases h with ⟨p, β, hp, hcfg⟩
           refine ⟨OptionalState.left p, β.map OptionalStack.left, ?_, ?_⟩
           · cases hε : M₁.epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, hε] at hp
+            | none => simp [hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, hε] at hp
+                simp [hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
-                simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε]
+                simp [optionalMarkedUnion, optEpsilonLeft, hε]
           · simpa [leftConf, List.map_append] using congrArg (leftConf M₁ M₂) hcfg
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h ⊢
@@ -155,23 +155,23 @@ private lemma left_reaches₁_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T 
             left
             refine ⟨OptionalState.left p, β.map OptionalStack.left, ?_, ?_⟩
             · cases ht : M₁.transition q a Z with
-              | none => simp [DPDA.toPDA, ht] at hp
+              | none => simp [ht] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, ht] at hp
+                  simp [ht] at hp
                   rcases hp with ⟨rfl, rfl⟩
-                  simp [DPDA.toPDA, optionalMarkedUnion, optTransitionLeft, ht]
+                  simp [optionalMarkedUnion, optTransitionLeft, ht]
             · simpa [leftConf, List.map_append] using congrArg (leftConf M₁ M₂) hcfg
           · rcases h with ⟨p, β, hp, hcfg⟩
             right
             refine ⟨OptionalState.left p, β.map OptionalStack.left, ?_, ?_⟩
             · cases hε : M₁.epsilon_transition q Z with
-              | none => simp [DPDA.toPDA, hε] at hp
+              | none => simp [hε] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, hε] at hp
+                  simp [hε] at hp
                   rcases hp with ⟨rfl, rfl⟩
-                  simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε]
+                  simp [optionalMarkedUnion, optEpsilonLeft, hε]
             · simpa [leftConf, List.map_append] using congrArg (leftConf M₁ M₂) hcfg
 
 private lemma left_reaches_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
@@ -204,12 +204,12 @@ private lemma right_reaches₁_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T
           rcases h with ⟨p, β, hp, hcfg⟩
           refine ⟨OptionalState.right p, β.map OptionalStack.right, ?_, ?_⟩
           · cases hε : M₂.epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, hε] at hp
+            | none => simp [hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, hε] at hp
+                simp [hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
-                simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε]
+                simp [optionalMarkedUnion, optEpsilonRight, hε]
           · simpa [rightConf, List.map_append] using congrArg (rightConf M₁ M₂) hcfg
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h ⊢
@@ -218,23 +218,23 @@ private lemma right_reaches₁_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T
             left
             refine ⟨OptionalState.right p, β.map OptionalStack.right, ?_, ?_⟩
             · cases ht : M₂.transition q a Z with
-              | none => simp [DPDA.toPDA, ht] at hp
+              | none => simp [ht] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, ht] at hp
+                  simp [ht] at hp
                   rcases hp with ⟨rfl, rfl⟩
-                  simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht]
+                  simp [optionalMarkedUnion, optTransitionRight, ht]
             · simpa [rightConf, List.map_append] using congrArg (rightConf M₁ M₂) hcfg
           · rcases h with ⟨p, β, hp, hcfg⟩
             right
             refine ⟨OptionalState.right p, β.map OptionalStack.right, ?_, ?_⟩
             · cases hε : M₂.epsilon_transition q Z with
-              | none => simp [DPDA.toPDA, hε] at hp
+              | none => simp [hε] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, hε] at hp
+                  simp [hε] at hp
                   rcases hp with ⟨rfl, rfl⟩
-                  simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε]
+                  simp [optionalMarkedUnion, optEpsilonRight, hε]
             · simpa [rightConf, List.map_append] using congrArg (rightConf M₁ M₂) hcfg
 
 private lemma right_reaches_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
@@ -267,42 +267,42 @@ private lemma left_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ 
           unfold PDA.Reaches₁ PDA.step at h
           rcases h with ⟨p, β, hp, hcfg⟩
           cases hε : M₁.epsilon_transition q Z with
-          | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+          | none => simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
           | some pβ =>
               rcases pβ with ⟨p', β'⟩
-              simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+              simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
               rcases hp with ⟨rfl, rfl⟩
               refine ⟨⟨p', [], β' ++ γ⟩, ?_, ?_⟩
               · simpa [leftConf, List.map_append] using hcfg
               · refine ⟨p', β', ?_, rfl⟩
-                simp [DPDA.toPDA, hε]
+                simp [hε]
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h
           rcases h with h | h
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases ht : M₁.transition q a Z with
-            | none => simp [DPDA.toPDA, optionalMarkedUnion, optTransitionLeft, ht] at hp
+            | none => simp [optionalMarkedUnion, optTransitionLeft, ht] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, optionalMarkedUnion, optTransitionLeft, ht] at hp
+                simp [optionalMarkedUnion, optTransitionLeft, ht] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [leftConf, List.map_append] using hcfg
                 · left
                   refine ⟨p', β', ?_, rfl⟩
-                  simp [DPDA.toPDA, ht]
+                  simp [ht]
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases hε : M₁.epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+            | none => simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+                simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', a :: w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [leftConf, List.map_append] using hcfg
                 · right
                   refine ⟨p', β', ?_, rfl⟩
-                  simp [DPDA.toPDA, hε]
+                  simp [hε]
 
 private lemma left_reaches_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
     {c : PDA.conf M₁.toPDA} {d : PDA.conf (optionalMarkedUnion M₁ M₂).toPDA} :
@@ -337,42 +337,42 @@ private lemma right_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
           unfold PDA.Reaches₁ PDA.step at h
           rcases h with ⟨p, β, hp, hcfg⟩
           cases hε : M₂.epsilon_transition q Z with
-          | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+          | none => simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
           | some pβ =>
               rcases pβ with ⟨p', β'⟩
-              simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+              simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
               rcases hp with ⟨rfl, rfl⟩
               refine ⟨⟨p', [], β' ++ γ⟩, ?_, ?_⟩
               · simpa [rightConf, List.map_append] using hcfg
               · refine ⟨p', β', ?_, rfl⟩
-                simp [DPDA.toPDA, hε]
+                simp [hε]
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h
           rcases h with h | h
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases ht : M₂.transition q a Z with
-            | none => simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht] at hp
+            | none => simp [optionalMarkedUnion, optTransitionRight, ht] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht] at hp
+                simp [optionalMarkedUnion, optTransitionRight, ht] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [rightConf, List.map_append] using hcfg
                 · left
                   refine ⟨p', β', ?_, rfl⟩
-                  simp [DPDA.toPDA, ht]
+                  simp [ht]
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases hε : M₂.epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+            | none => simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+                simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', a :: w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [rightConf, List.map_append] using hcfg
                 · right
                   refine ⟨p', β', ?_, rfl⟩
-                  simp [DPDA.toPDA, hε]
+                  simp [hε]
 
 private lemma right_reaches_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
     {c : PDA.conf M₂.toPDA} {d : PDA.conf (optionalMarkedUnion M₁ M₂).toPDA} :
@@ -406,19 +406,35 @@ private lemma left_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
       · simp [PDA.step] at hstep'
       · cases Z with
         | bottom =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | right Z₂ =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | left Z₁ =>
             cases x with
             | nil =>
                 unfold PDA.step at hstep'
                 rcases hstep' with ⟨p, β, hp, hcfg⟩
                 cases hε : M₁.epsilon_transition q Z₁ with
-                | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+                | none => simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
                 | some pβ =>
                     rcases pβ with ⟨p', β'⟩
-                    simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+                    simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
                     rcases hp with ⟨rfl, rfl⟩
                     cases hcfg
                     exact ⟨[], rfl⟩
@@ -428,13 +444,13 @@ private lemma left_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
                     unfold PDA.step at hstep'
                     rcases hstep' with hstep' | hstep'
                     · rcases hstep' with ⟨p, β, hp, hcfg⟩
-                      simp [DPDA.toPDA, optionalMarkedUnion] at hp
+                      simp [optionalMarkedUnion] at hp
                     · rcases hstep' with ⟨p, β, hp, hcfg⟩
                       cases hε : M₁.epsilon_transition q Z₁ with
-                      | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+                      | none => simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
                       | some pβ =>
                           rcases pβ with ⟨p', β'⟩
-                          simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+                          simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
                           rcases hp with ⟨rfl, rfl⟩
                           cases hcfg
                           obtain ⟨w, hw⟩ :=
@@ -445,10 +461,10 @@ private lemma left_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
                     rcases hstep' with hstep' | hstep'
                     · rcases hstep' with ⟨p, β, hp, hcfg⟩
                       cases ht : M₁.transition q a Z₁ with
-                      | none => simp [DPDA.toPDA, optionalMarkedUnion, optTransitionLeft, ht] at hp
+                      | none => simp [optionalMarkedUnion, optTransitionLeft, ht] at hp
                       | some pβ =>
                           rcases pβ with ⟨p', β'⟩
-                          simp [DPDA.toPDA, optionalMarkedUnion, optTransitionLeft, ht] at hp
+                          simp [optionalMarkedUnion, optTransitionLeft, ht] at hp
                           rcases hp with ⟨rfl, rfl⟩
                           cases hcfg
                           obtain ⟨w, hw⟩ :=
@@ -456,10 +472,10 @@ private lemma left_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
                           exact ⟨a :: w, by simp [hw]⟩
                     · rcases hstep' with ⟨p, β, hp, hcfg⟩
                       cases hε : M₁.epsilon_transition q Z₁ with
-                      | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+                      | none => simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
                       | some pβ =>
                           rcases pβ with ⟨p', β'⟩
-                          simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonLeft, hε] at hp
+                          simp [optionalMarkedUnion, optEpsilonLeft, hε] at hp
                           rcases hp with ⟨rfl, rfl⟩
                           cases hcfg
                           exact left_reachesIn_empty_payload M₁ M₂ n hrest
@@ -494,19 +510,35 @@ private lemma right_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DP
       · simp [PDA.step] at hstep'
       · cases Z with
         | bottom =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | left Z₁ =>
-            cases x <;> simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+            cases x with
+            | nil =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                exact ⟨[], rfl⟩
+            | cons a x' =>
+                simp [PDA.step, DPDA.toPDA, optionalMarkedUnion] at hstep'
+                rcases hstep' with hbad | hbad
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+                · exact ((Set.mem_empty_iff_false _).mp hbad).elim
         | right Z₂ =>
             cases x with
             | nil =>
                 unfold PDA.step at hstep'
                 rcases hstep' with ⟨p, β, hp, hcfg⟩
                 cases hε : M₂.epsilon_transition q Z₂ with
-                | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+                | none => simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
                 | some pβ =>
                     rcases pβ with ⟨p', β'⟩
-                    simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+                    simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
                     rcases hp with ⟨rfl, rfl⟩
                     cases hcfg
                     exact ⟨[], rfl⟩
@@ -516,13 +548,13 @@ private lemma right_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DP
                     unfold PDA.step at hstep'
                     rcases hstep' with hstep' | hstep'
                     · rcases hstep' with ⟨p, β, hp, hcfg⟩
-                      simp [DPDA.toPDA, optionalMarkedUnion] at hp
+                      simp [optionalMarkedUnion] at hp
                     · rcases hstep' with ⟨p, β, hp, hcfg⟩
                       cases hε : M₂.epsilon_transition q Z₂ with
-                      | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+                      | none => simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
                       | some pβ =>
                           rcases pβ with ⟨p', β'⟩
-                          simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+                          simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
                           rcases hp with ⟨rfl, rfl⟩
                           cases hcfg
                           obtain ⟨w, hw⟩ :=
@@ -533,10 +565,10 @@ private lemma right_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DP
                     rcases hstep' with hstep' | hstep'
                     · rcases hstep' with ⟨p, β, hp, hcfg⟩
                       cases ht : M₂.transition q a Z₂ with
-                      | none => simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht] at hp
+                      | none => simp [optionalMarkedUnion, optTransitionRight, ht] at hp
                       | some pβ =>
                           rcases pβ with ⟨p', β'⟩
-                          simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht] at hp
+                          simp [optionalMarkedUnion, optTransitionRight, ht] at hp
                           rcases hp with ⟨rfl, rfl⟩
                           cases hcfg
                           obtain ⟨w, hw⟩ :=
@@ -544,10 +576,10 @@ private lemma right_reachesIn_empty_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DP
                           exact ⟨a :: w, by simp [hw]⟩
                     · rcases hstep' with ⟨p, β, hp, hcfg⟩
                       cases hε : M₂.epsilon_transition q Z₂ with
-                      | none => simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+                      | none => simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
                       | some pβ =>
                           rcases pβ with ⟨p', β'⟩
-                          simp [DPDA.toPDA, optionalMarkedUnion, optEpsilonRight, hε] at hp
+                          simp [optionalMarkedUnion, optEpsilonRight, hε] at hp
                           rcases hp with ⟨rfl, rfl⟩
                           cases hcfg
                           exact right_reachesIn_empty_payload M₁ M₂ n hrest
@@ -582,7 +614,7 @@ private lemma optional_accepts_left (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ 
       unfold c0 PDA.Reaches₁ PDA.step
       left
       refine ⟨OptionalState.left M₁.initial_state, [OptionalStack.left M₁.start_symbol], ?_, ?_⟩
-      · simp [DPDA.toPDA, optionalMarkedUnion]
+      · simp [optionalMarkedUnion]
       · simp [leftConf]
     exact Relation.ReflTransGen.trans (Relation.ReflTransGen.single hfirst)
       (left_reaches_map M₁ M₂ hreach)
@@ -607,15 +639,12 @@ private lemma optional_accepts_right (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
       · cases heq
       · rcases c with ⟨p, input, stack⟩
         unfold PDA.Reaches₁ PDA.step at hstep
-        simp [DPDA.toPDA, hnoε] at hstep
-        rcases hstep with ⟨hp, hinput⟩
-        subst input
         cases ht : M₂.transition M₂.initial_state a M₂.start_symbol with
-        | none => simp [ht] at hp
+        | none => simp [DPDA.toPDA, hnoε, ht] at hstep
         | some pβ =>
             rcases pβ with ⟨p0, β0⟩
-            simp [ht] at hp
-            rcases hp with ⟨rfl, rfl⟩
+            simp [DPDA.toPDA, hnoε, ht] at hstep
+            rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
             refine ⟨OptionalState.right q, ?_, γ.map OptionalStack.right, ?_⟩
             · right
               right
@@ -624,13 +653,13 @@ private lemma optional_accepts_right (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
                   @PDA.Reaches₁ (OptionalState Q₁ Q₂) (Bool ⊕ T) (OptionalStack S₁ S₂) _ _ _
                     (optionalMarkedUnion M₁ M₂).toPDA
                     ⟨(optionalMarkedUnion M₁ M₂).initial_state,
-                      Sum.inr a :: w.map Sum.inr,
+                      Sum.inr a :: input.map Sum.inr,
                       [(optionalMarkedUnion M₁ M₂).start_symbol]⟩
-                    (rightConf M₁ M₂ ⟨p, w, stack⟩) := by
+                    (rightConf M₁ M₂ ⟨p, input, stack⟩) := by
                 unfold PDA.Reaches₁ PDA.step
                 left
                 refine ⟨OptionalState.right p, stack.map OptionalStack.right, ?_, ?_⟩
-                · simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht]
+                · simp [optionalMarkedUnion, optTransitionRight, ht]
                 · simp [rightConf]
               exact Relation.ReflTransGen.trans (Relation.ReflTransGen.single hfirst)
                 (right_reaches_map M₁ M₂ hrest)
@@ -655,6 +684,7 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
       | nil =>
           unfold PDA.Reaches₁ PDA.step at hstep
           simp [DPDA.toPDA, optionalMarkedUnion] at hstep
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
       | cons a xs =>
           cases a with
           | inl b =>
@@ -662,7 +692,7 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
               · unfold PDA.Reaches₁ PDA.step at hstep
                 rcases hstep with hstep | hstep
                 · rcases hstep with ⟨p, β, hp, hcfg⟩
-                  simp [DPDA.toPDA, optionalMarkedUnion] at hp
+                  simp [optionalMarkedUnion] at hp
                   rcases hp with ⟨rfl, rfl⟩
                   cases hcfg
                   obtain ⟨w, hxs⟩ := left_reaches_empty_payload M₁ M₂ hrest
@@ -671,6 +701,7 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
                         (optionalMarkedUnion M₁ M₂).toPDA
                         (leftConf M₁ M₂ ⟨M₁.initial_state, w, [M₁.start_symbol]⟩)
                         ⟨qf, [], γ⟩ := by
+                    unfold PDA.Reaches
                     simpa [leftConf, hxs] using hrest
                   rcases left_reaches_unmap M₁ M₂ hrest' with ⟨c', hc', hM⟩
                   rcases c' with ⟨q', w', γ'⟩
@@ -690,22 +721,22 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
                   left
                   exact ⟨w, by simp [hxs], ⟨q', hq', γ', hM⟩⟩
                 · rcases hstep with ⟨p, β, hp, hcfg⟩
-                  simp [DPDA.toPDA, optionalMarkedUnion] at hp
+                  simp [optionalMarkedUnion] at hp
               · unfold PDA.Reaches₁ PDA.step at hstep
                 rcases hstep with hstep | hstep
                 · rcases hstep with ⟨p, β, hp, hcfg⟩
-                  simp [DPDA.toPDA, optionalMarkedUnion] at hp
+                  simp [optionalMarkedUnion] at hp
                 · rcases hstep with ⟨p, β, hp, hcfg⟩
-                  simp [DPDA.toPDA, optionalMarkedUnion] at hp
+                  simp [optionalMarkedUnion] at hp
           | inr t =>
               unfold PDA.Reaches₁ PDA.step at hstep
               rcases hstep with hstep | hstep
               · rcases hstep with ⟨p, β, hp, hcfg⟩
                 cases ht : M₂.transition M₂.initial_state t M₂.start_symbol with
-                | none => simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht] at hp
+                | none => simp [optionalMarkedUnion, optTransitionRight, ht] at hp
                 | some pβ =>
                     rcases pβ with ⟨p0, β0⟩
-                    simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht] at hp
+                    simp [optionalMarkedUnion, optTransitionRight, ht] at hp
                     rcases hp with ⟨rfl, rfl⟩
                     cases hcfg
                     obtain ⟨w, hxs⟩ := right_reaches_empty_payload M₁ M₂ hrest
@@ -714,6 +745,7 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
                           (optionalMarkedUnion M₁ M₂).toPDA
                           (rightConf M₁ M₂ ⟨p0, w, β0⟩)
                           ⟨qf, [], γ⟩ := by
+                      unfold PDA.Reaches
                       simpa [rightConf, hxs] using hrest
                     rcases right_reaches_unmap M₁ M₂ hrest' with ⟨c', hc', hM⟩
                     rcases c' with ⟨q', w', γ'⟩
@@ -742,10 +774,10 @@ private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
                           unfold PDA.Reaches₁ PDA.step
                           left
                           refine ⟨p0, β0, ?_, by simp⟩
-                          simp [DPDA.toPDA, ht])
+                          simp [ht])
                         |>.trans hM
               · rcases hstep with ⟨p, β, hp, hcfg⟩
-                simp [DPDA.toPDA, optionalMarkedUnion] at hp
+                simp [optionalMarkedUnion] at hp
   · rintro (⟨w, rfl, hw⟩ | ⟨w, rfl, hw⟩)
     · exact optional_accepts_left M₁ M₂ hw
     · exact optional_accepts_right M₁ M₂ hnoε hw
@@ -902,12 +934,12 @@ private lemma quot_left_reaches₁_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q�
           rcases h with ⟨p, β, hp, hcfg⟩
           refine ⟨OptionalQuotState.left p, β.map OptionalStack.left, ?_, ?_⟩
           · cases hε : M₁.epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, hε] at hp
+            | none => simp [hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, hε] at hp
+                simp [hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
-                simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonLeft, hε]
+                simp [optionalMarkedUnionQuot, optQuotEpsilonLeft, hε]
           · simpa [quotLeftConf, List.map_append] using congrArg (quotLeftConf M₁ M₂) hcfg
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h ⊢
@@ -916,23 +948,23 @@ private lemma quot_left_reaches₁_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q�
             left
             refine ⟨OptionalQuotState.left p, β.map OptionalStack.left, ?_, ?_⟩
             · cases ht : M₁.transition q a Z with
-              | none => simp [DPDA.toPDA, ht] at hp
+              | none => simp [ht] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, ht] at hp
+                  simp [ht] at hp
                   rcases hp with ⟨rfl, rfl⟩
-                  simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotTransitionLeft, ht]
+                  simp [optionalMarkedUnionQuot, optQuotTransitionLeft, ht]
             · simpa [quotLeftConf, List.map_append] using congrArg (quotLeftConf M₁ M₂) hcfg
           · rcases h with ⟨p, β, hp, hcfg⟩
             right
             refine ⟨OptionalQuotState.left p, β.map OptionalStack.left, ?_, ?_⟩
             · cases hε : M₁.epsilon_transition q Z with
-              | none => simp [DPDA.toPDA, hε] at hp
+              | none => simp [hε] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, hε] at hp
+                  simp [hε] at hp
                   rcases hp with ⟨rfl, rfl⟩
-                  simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonLeft, hε]
+                  simp [optionalMarkedUnionQuot, optQuotEpsilonLeft, hε]
             · simpa [quotLeftConf, List.map_append] using congrArg (quotLeftConf M₁ M₂) hcfg
 
 private lemma quot_left_reaches_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
@@ -967,12 +999,12 @@ private lemma quot_right_reaches₁_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q
           rcases h with ⟨p, β, hp, hcfg⟩
           refine ⟨OptionalQuotState.right mark p, β.map OptionalStack.right, ?_, ?_⟩
           · cases hε : (quotientM M₂ mark).epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, hε] at hp
+            | none => simp [hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, hε] at hp
+                simp [hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
-                simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonRight, hε]
+                simp [optionalMarkedUnionQuot, optQuotEpsilonRight, hε]
           · simpa [quotRightConf, List.map_append] using congrArg (quotRightConf M₁ M₂ mark) hcfg
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h ⊢
@@ -981,23 +1013,23 @@ private lemma quot_right_reaches₁_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q
             left
             refine ⟨OptionalQuotState.right mark p, β.map OptionalStack.right, ?_, ?_⟩
             · cases ht : (quotientM M₂ mark).transition q a Z with
-              | none => simp [DPDA.toPDA, ht] at hp
+              | none => simp [ht] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, ht] at hp
+                  simp [ht] at hp
                   rcases hp with ⟨rfl, rfl⟩
-                  simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotTransitionRight, ht]
+                  simp [optionalMarkedUnionQuot, optQuotTransitionRight, ht]
             · simpa [quotRightConf, List.map_append] using congrArg (quotRightConf M₁ M₂ mark) hcfg
           · rcases h with ⟨p, β, hp, hcfg⟩
             right
             refine ⟨OptionalQuotState.right mark p, β.map OptionalStack.right, ?_, ?_⟩
             · cases hε : (quotientM M₂ mark).epsilon_transition q Z with
-              | none => simp [DPDA.toPDA, hε] at hp
+              | none => simp [hε] at hp
               | some pβ =>
                   rcases pβ with ⟨p', β'⟩
-                  simp [DPDA.toPDA, hε] at hp
+                  simp [hε] at hp
                   rcases hp with ⟨rfl, rfl⟩
-                  simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonRight, hε]
+                  simp [optionalMarkedUnionQuot, optQuotEpsilonRight, hε]
             · simpa [quotRightConf, List.map_append] using congrArg (quotRightConf M₁ M₂ mark) hcfg
 
 private lemma quot_right_reaches_map (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂) (mark : T)
@@ -1031,42 +1063,42 @@ private lemma quot_left_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA 
           unfold PDA.Reaches₁ PDA.step at h
           rcases h with ⟨p, β, hp, hcfg⟩
           cases hε : M₁.epsilon_transition q Z with
-          | none => simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonLeft, hε] at hp
+          | none => simp [optionalMarkedUnionQuot, optQuotEpsilonLeft, hε] at hp
           | some pβ =>
               rcases pβ with ⟨p', β'⟩
-              simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonLeft, hε] at hp
+              simp [optionalMarkedUnionQuot, optQuotEpsilonLeft, hε] at hp
               rcases hp with ⟨rfl, rfl⟩
               refine ⟨⟨p', [], β' ++ γ⟩, ?_, ?_⟩
               · simpa [quotLeftConf, List.map_append] using hcfg
               · refine ⟨p', β', ?_, rfl⟩
-                simp [DPDA.toPDA, hε]
+                simp [hε]
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h
           rcases h with h | h
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases ht : M₁.transition q a Z with
-            | none => simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotTransitionLeft, ht] at hp
+            | none => simp [optionalMarkedUnionQuot, optQuotTransitionLeft, ht] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotTransitionLeft, ht] at hp
+                simp [optionalMarkedUnionQuot, optQuotTransitionLeft, ht] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [quotLeftConf, List.map_append] using hcfg
                 · left
                   refine ⟨p', β', ?_, rfl⟩
-                  simp [DPDA.toPDA, ht]
+                  simp [ht]
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases hε : M₁.epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonLeft, hε] at hp
+            | none => simp [optionalMarkedUnionQuot, optQuotEpsilonLeft, hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonLeft, hε] at hp
+                simp [optionalMarkedUnionQuot, optQuotEpsilonLeft, hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', a :: w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [quotLeftConf, List.map_append] using hcfg
                 · right
                   refine ⟨p', β', ?_, rfl⟩
-                  simp [DPDA.toPDA, hε]
+                  simp [hε]
 
 private lemma quot_left_reaches_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
     {c : PDA.conf M₁.toPDA} {d : PDA.conf (optionalMarkedUnionQuot M₁ M₂).toPDA} :
@@ -1104,45 +1136,45 @@ private lemma quot_right_reaches₁_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA
           unfold PDA.Reaches₁ PDA.step at h
           rcases h with ⟨p, β, hp, hcfg⟩
           cases hε : (quotientM M₂ mark).epsilon_transition q Z with
-          | none => simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonRight, hε] at hp
+          | none => simp [optionalMarkedUnionQuot, optQuotEpsilonRight, hε] at hp
           | some pβ =>
               rcases pβ with ⟨p', β'⟩
-              simp [DPDA.toPDA, optionalMarkedUnionQuot,
+              simp [optionalMarkedUnionQuot,
                 optQuotEpsilonRight, hε] at hp
               rcases hp with ⟨rfl, rfl⟩
               refine ⟨⟨p', [], β' ++ γ⟩, ?_, ?_⟩
               · simpa [quotRightConf, List.map_append] using hcfg
               · refine ⟨p', β', ?_, rfl⟩
-                simp [DPDA.toPDA, hε]
+                simp [hε]
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h
           rcases h with h | h
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases ht : (quotientM M₂ mark).transition q a Z with
-            | none => simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotTransitionRight, ht] at hp
+            | none => simp [optionalMarkedUnionQuot, optQuotTransitionRight, ht] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, optionalMarkedUnionQuot,
+                simp [optionalMarkedUnionQuot,
                   optQuotTransitionRight, ht] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [quotRightConf, List.map_append] using hcfg
                 · left
                   refine ⟨p', β', ?_, rfl⟩
-                  simp [DPDA.toPDA, ht]
+                  simp [ht]
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases hε : (quotientM M₂ mark).epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, optionalMarkedUnionQuot, optQuotEpsilonRight, hε] at hp
+            | none => simp [optionalMarkedUnionQuot, optQuotEpsilonRight, hε] at hp
             | some pβ =>
                 rcases pβ with ⟨p', β'⟩
-                simp [DPDA.toPDA, optionalMarkedUnionQuot,
+                simp [optionalMarkedUnionQuot,
                   optQuotEpsilonRight, hε] at hp
                 rcases hp with ⟨rfl, rfl⟩
                 refine ⟨⟨p', a :: w, β' ++ γ⟩, ?_, ?_⟩
                 · simpa [quotRightConf, List.map_append] using hcfg
                 · right
                   refine ⟨p', β', ?_, rfl⟩
-                  simp [DPDA.toPDA, hε]
+                  simp [hε]
 
 private lemma quot_right_reaches_unmap (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂) (mark : T)
     {c : PDA.conf (quotientM M₂ mark).toPDA}
@@ -1178,7 +1210,7 @@ private lemma optionalQuot_accepts_left (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q
       unfold c0 PDA.Reaches₁ PDA.step
       left
       refine ⟨OptionalQuotState.left M₁.initial_state, [OptionalStack.left M₁.start_symbol], ?_, ?_⟩
-      · simp [DPDA.toPDA, optionalMarkedUnionQuot]
+      · simp [optionalMarkedUnionQuot]
       · simp [quotLeftConf]
     exact Relation.ReflTransGen.trans (Relation.ReflTransGen.single hfirst)
       (quot_left_reaches_map M₁ M₂ hreach)
@@ -1217,7 +1249,7 @@ private lemma optionalQuot_accepts_right (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA 
           left
           refine ⟨OptionalQuotState.right a (quotientM M₂ a).initial_state,
             [OptionalStack.right (quotientM M₂ a).start_symbol], ?_, ?_⟩
-          · simp [DPDA.toPDA, optionalMarkedUnionQuot]
+          · simp [optionalMarkedUnionQuot]
           · simp [quotRightConf]
         exact Relation.ReflTransGen.trans (Relation.ReflTransGen.single hfirst)
           (quot_right_reaches_map M₁ M₂ a hreach)
@@ -1234,7 +1266,7 @@ private lemma optionalQuot_accepts_marker_payload (M₁ : DPDA Q₁ T S₁) (M�
       unfold PDA.Reaches₁ PDA.step at hstep
       rcases hstep with hstep | hstep
       · rcases hstep with ⟨p, β, hp, hcfg⟩
-        simp [DPDA.toPDA, optionalMarkedUnionQuot] at hp
+        simp [optionalMarkedUnionQuot] at hp
         rcases hp with ⟨rfl, rfl⟩
         cases hcfg
         have hrest' :
@@ -1242,6 +1274,7 @@ private lemma optionalQuot_accepts_marker_payload (M₁ : DPDA Q₁ T S₁) (M�
               (optionalMarkedUnionQuot M₁ M₂).toPDA
               (quotLeftConf M₁ M₂ ⟨M₁.initial_state, w, [M₁.start_symbol]⟩)
               ⟨qf, [], γ⟩ := by
+          unfold PDA.Reaches
           simpa [quotLeftConf] using hrest
         rcases quot_left_reaches_unmap M₁ M₂ hrest' with ⟨c', hc', hM⟩
         rcases c' with ⟨q', w', γ'⟩
@@ -1260,7 +1293,7 @@ private lemma optionalQuot_accepts_marker_payload (M₁ : DPDA Q₁ T S₁) (M�
               simp at hqeq
         exact ⟨q', hq', γ', hM⟩
       · rcases hstep with ⟨p, β, hp, hcfg⟩
-        simp [DPDA.toPDA, optionalMarkedUnionQuot] at hp
+        simp [optionalMarkedUnionQuot] at hp
   · exact optionalQuot_accepts_left M₁ M₂
 
 private lemma optionalQuot_accepts_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
@@ -1283,6 +1316,7 @@ private lemma optionalQuot_accepts_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
               cases hbad
         · unfold PDA.Reaches₁ PDA.step at hstep
           simp [DPDA.toPDA, optionalMarkedUnionQuot] at hstep
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
     | cons a w =>
         rcases h with ⟨qf, hfinal, γ, hreach⟩
         rcases Relation.ReflTransGen.cases_head hreach with heq | ⟨c, hstep, hrest⟩
@@ -1291,7 +1325,7 @@ private lemma optionalQuot_accepts_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
           unfold PDA.Reaches₁ PDA.step at hstep
           rcases hstep with hstep | hstep
           · rcases hstep with ⟨p, β, hp, hcfg⟩
-            simp [DPDA.toPDA, optionalMarkedUnionQuot] at hp
+            simp [optionalMarkedUnionQuot] at hp
             rcases hp with ⟨rfl, rfl⟩
             cases hcfg
             have hrest' :
@@ -1300,6 +1334,7 @@ private lemma optionalQuot_accepts_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
                   (quotRightConf M₁ M₂ a ⟨(quotientM M₂ a).initial_state, w,
                     [(quotientM M₂ a).start_symbol]⟩)
                   ⟨qf, [], γ⟩ := by
+              unfold PDA.Reaches
               simpa [quotRightConf] using hrest
             rcases quot_right_reaches_unmap M₁ M₂ a hrest' with ⟨c', hc', hM⟩
             rcases c' with ⟨q', w', γ'⟩
@@ -1322,7 +1357,7 @@ private lemma optionalQuot_accepts_payload (M₁ : DPDA Q₁ T S₁) (M₂ : DPD
             change a :: w ∈ M₂.acceptsByFinalState at hquot
             exact hquot
           · rcases hstep with ⟨p, β, hp, hcfg⟩
-            simp [DPDA.toPDA, optionalMarkedUnionQuot] at hp
+            simp [optionalMarkedUnionQuot] at hp
   · exact optionalQuot_accepts_right M₁ M₂
 
 private theorem is_DCF_optional_marked_union_machine
@@ -1353,7 +1388,8 @@ private lemma markerStar_singleton_mem {T : Type} :
   rw [markerStar, Language.mem_kstar]
   refine ⟨[[marker]], by simp, ?_⟩
   intro y hy
-  simpa using hy
+  change y = [marker]
+  exact List.mem_singleton.mp hy
 
 private lemma markerStar_all_marker {T : Type} {p : List (Bool ⊕ T)}
     (hp : p ∈ markerStar T) :
@@ -1364,7 +1400,7 @@ private lemma markerStar_all_marker {T : Type} {p : List (Bool ⊕ T)}
   rw [List.mem_flatten] at ha
   rcases ha with ⟨block, hblock, ha⟩
   have hblock' := hblocks block hblock
-  rw [Set.mem_singleton_iff] at hblock'
+  change block = [marker] at hblock'
   subst block
   simpa using ha
 
@@ -1380,7 +1416,7 @@ private lemma mem_oneMarkerPayload_iff {T : Type} {x : List (Bool ⊕ T)} :
   rw [oneMarkerPayload, Language.mem_mul]
   constructor
   · rintro ⟨u, hu, v, hv, rfl⟩
-    rw [Set.mem_singleton_iff] at hu
+    change u = [marker] at hu
     subst u
     rcases hv with ⟨w, _hw, rfl⟩
     exact ⟨w, rfl⟩
@@ -1421,7 +1457,8 @@ public theorem DCF_optional_marked_union
       change x ∈ oneMarkerPayload T + payloadOnly T at hshape
       rw [Language.add_def] at hshape
       rcases hshape with hmarked | hunmarked
-      · rw [mem_oneMarkerPayload_iff] at hmarked
+      · change x ∈ (oneMarkerPayload T : Language (Bool ⊕ T)) at hmarked
+        rw [mem_oneMarkerPayload_iff] at hmarked
         rcases hmarked with ⟨w, rfl⟩
         left
         refine ⟨w, rfl, ?_⟩
@@ -1436,6 +1473,8 @@ public theorem DCF_optional_marked_union
         · change marker :: w.map Sum.inr ∈ oneMarkerPayload T + payloadOnly T
           rw [Language.add_def]
           left
+          change marker :: w.map Sum.inr ∈
+            (oneMarkerPayload T : Language (Bool ⊕ T))
           rw [mem_oneMarkerPayload_iff]
           exact ⟨w, rfl⟩
       · constructor
@@ -1506,19 +1545,32 @@ private theorem optional_concat_slice_eq_union
       ((markerStar T * (DPDA.optionalMarkedUnionQuot M₁ M₂).acceptsByFinalState) ⊓
         oneMarkerPayload T) at hx
     rcases hx with ⟨hcat, hone⟩
+    change marker :: x ∈ (oneMarkerPayload T : Language (Bool ⊕ T)) at hone
     rw [mem_oneMarkerPayload_iff] at hone
     rcases hone with ⟨w, hshape⟩
     cases hshape
+    change marker :: w.map Sum.inr ∈
+      (markerStar T * (DPDA.optionalMarkedUnionQuot M₁ M₂).acceptsByFinalState :
+        Language (Bool ⊕ T)) at hcat
     rw [marker_payload_mem_concat_iff M₁ M₂] at hcat
-    exact ⟨w, by simpa [Language.add_def] using hcat, rfl⟩
+    refine ⟨w, ?_, rfl⟩
+    change w ∈ (M₁.acceptsByFinalState + M₂.acceptsByFinalState : Language T)
+    exact (Language.mem_add _ _ _).mpr hcat
   · rintro ⟨w, hw, rfl⟩
     change (marker : Bool ⊕ T) :: w.map Sum.inr ∈
       ((markerStar T * (DPDA.optionalMarkedUnionQuot M₁ M₂).acceptsByFinalState) ⊓
         oneMarkerPayload T)
     constructor
-    · rw [marker_payload_mem_concat_iff M₁ M₂]
-      simpa [Language.add_def] using hw
-    · rw [mem_oneMarkerPayload_iff]
+    · change marker :: w.map Sum.inr ∈
+        (markerStar T * (DPDA.optionalMarkedUnionQuot M₁ M₂).acceptsByFinalState :
+          Language (Bool ⊕ T))
+      rw [marker_payload_mem_concat_iff M₁ M₂]
+      change w ∈ (M₁.acceptsByFinalState + M₂.acceptsByFinalState) at hw
+      rw [Language.mem_add] at hw
+      exact hw
+    · change marker :: w.map Sum.inr ∈
+        (oneMarkerPayload T : Language (Bool ⊕ T))
+      rw [mem_oneMarkerPayload_iff]
       exact ⟨w, rfl⟩
 
 /-- Deterministic context-free languages over `Bool ⊕ Fin 3` are not closed

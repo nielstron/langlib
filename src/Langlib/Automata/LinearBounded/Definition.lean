@@ -79,33 +79,28 @@ public structure Machine (Γ : Type*) (Λ : Type*) where
   initial : Λ
 
 /-- One step of nondeterministic computation. -/
-@[expose]
 public def Step {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg cfg' : DLBA.Cfg Γ Λ n) : Prop :=
   ∃ q' a d, (q', a, d) ∈ M.transition cfg.state cfg.tape.read ∧
     cfg' = ⟨q', (cfg.tape.write a).moveHead d⟩
 
 /-- Multi-step reachability: the reflexive-transitive closure of `Step`. -/
-@[expose]
 public def Reaches {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) : DLBA.Cfg Γ Λ n → DLBA.Cfg Γ Λ n → Prop :=
   Relation.ReflTransGen (Step M)
 
 /-- The LBA accepts from configuration `cfg` if some computation path reaches an accepting state. -/
-@[expose]
 public def Accepts {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg : DLBA.Cfg Γ Λ n) : Prop :=
   ∃ cfg' : DLBA.Cfg Γ Λ n, Reaches M cfg cfg' ∧ M.accept cfg'.state = true
 
 /-- Load a non-empty list onto a bounded tape. -/
-@[expose]
 public noncomputable def loadList {Γ : Type*} (w : List Γ) (hw : w ≠ []) :
     DLBA.BoundedTape Γ (w.length - 1) :=
   ⟨fun i => w.get ⟨i.val, by have := i.isLt; have := List.length_pos_of_ne_nil hw; omega⟩,
    ⟨0, by have := List.length_pos_of_ne_nil hw; omega⟩⟩
 
 /-- Initial configuration for a non-empty list input. -/
-@[expose]
 public noncomputable def initCfgList {Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (w : List Γ) (hw : w ≠ []) :
     DLBA.Cfg Γ Λ (w.length - 1) :=
@@ -117,7 +112,6 @@ noncomputable def LanguageOfMachine {Γ : Type*} {Λ : Type*}
   fun w => ∃ (hw : w ≠ []), Accepts M (initCfgList M w hw)
 
 /-- Recognition via an embedding from the input alphabet into the tape alphabet. -/
-@[expose]
 public noncomputable def LanguageViaEmbed {T Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (embed : T → Γ) : Language T :=
   fun w => ∃ (hw : w.map embed ≠ []),
@@ -128,7 +122,6 @@ public noncomputable def LanguageViaEmbed {T Γ : Type*} {Λ : Type*}
 *state* the recognized languages of the endmarker simulators (`Equivalence/EndmarkerTape.lean`,
 `Equivalence/EndmarkerToFlag.lean`), where `b` is always the *derived* value `decide (ε ∈ L)` — it
 is never a free parameter of any automaton model. -/
-@[expose]
 public noncomputable def LanguageRecognized {T Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (embed : T → Γ) (b : Bool) : Language T :=
   fun w => (b = true ∧ w = []) ∨ LanguageViaEmbed M embed w
@@ -154,7 +147,6 @@ abbrev rightMark : EndAlpha T Γ := Sum.inr true
 /-- The bracketed input tape `⊢ w ⊣`: `|w| + 2` cells, with the head at the left endmarker.
 Even the empty word gets the genuine two-cell tape `⊢⊣`, so no separate empty-word flag is
 needed. -/
-@[expose]
 public noncomputable def loadEnd (w : List T) : DLBA.BoundedTape (EndAlpha T Γ) (w.length + 1) :=
   ⟨fun k => if k.val = 0 then leftMark
             else if h : k.val - 1 < w.length then
@@ -163,14 +155,12 @@ public noncomputable def loadEnd (w : List T) : DLBA.BoundedTape (EndAlpha T Γ)
    ⟨0, Nat.succ_pos _⟩⟩
 
 /-- The initial configuration of an endmarker LBA on input `w`: start state, head on `⊢`. -/
-@[expose]
 public noncomputable def initCfgEnd {Λ : Type*} (M : Machine (EndAlpha T Γ) Λ) (w : List T) :
     DLBA.Cfg (EndAlpha T Γ) Λ (w.length + 1) :=
   ⟨M.initial, loadEnd w⟩
 
 /-- The language recognized by an endmarker LBA: the input is bracketed `⊢ w ⊣` and the machine
 accepts by an ordinary accepting run (it can accept `ε` by inspecting the adjacent `⊢⊣`). -/
-@[expose]
 public noncomputable def LanguageEnd {Λ : Type*} (M : Machine (EndAlpha T Γ) Λ) : Language T :=
   fun w => Accepts M (initCfgEnd M w)
 
@@ -180,11 +170,9 @@ end LBA
 linearly bounded automaton over the canonical endmarker alphabet `Option (T ⊕ Γ) ⊕ Bool`
 recognizes it with its input bracketed by endmarkers (`⊢ w ⊣`). The empty word is handled by the
 machine itself (it runs on the two-cell tape `⊢⊣`), with no external accept-empty flag. -/
-@[expose]
 public def is_LBA {T : Type} [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
   ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ) (_ : DecidableEq Γ) (_ : DecidableEq Λ)
     (M : LBA.Machine (LBA.EndAlpha T Γ) Λ),
     LBA.LanguageEnd M = L
 
-@[expose]
-public def LBA {T : Type} [Fintype T] [DecidableEq T] : Set (Language T) := setOf is_LBA
+public def LBA {T : Type} [Fintype T] [DecidableEq T] : Set (Language T) := Set.ofPred is_LBA

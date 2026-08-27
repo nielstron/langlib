@@ -42,7 +42,7 @@ def markAt (y : List α) (i : Fin y.length) : List (α × Bool) :=
 /-- The position corresponding to `i` after mapping a list. -/
 def mappedIndex {β : Type*} (f : α → β) (y : List α) (i : Fin y.length) :
     Fin (y.map f).length :=
-  ⟨i, by simpa⟩
+  ⟨i, by simp⟩
 
 /-- An index in the left list, viewed after appending a suffix. -/
 def leftIndex (y suffix : List α) (i : Fin y.length) : Fin (y ++ suffix).length :=
@@ -173,7 +173,7 @@ theorem RetainsAt.append_right_sublist {x y xr yr : List α}
   · simp only [eraseMarks, List.map_append]
     have hzmap : z.map Prod.fst = x := hzerase
     rw [hzmap]
-    simp [eraseMarks, unmarkedRight, List.map_map, Function.comp_def]
+    simp [unmarkedRight, List.map_map, Function.comp_def]
   · simpa [leftIndex] using List.mem_append_left unmarkedRight hzmarked
 
 /-- Prepend an arbitrary sublist while retaining an occurrence from the
@@ -189,7 +189,7 @@ theorem RetainsAt.append_left_sublist {xl yl x y : List α}
   · simp only [eraseMarks, List.map_append]
     have hzmap : z.map Prod.fst = x := hzerase
     rw [hzmap]
-    simp [eraseMarks, unmarkedLeft, List.map_map, Function.comp_def]
+    simp [unmarkedLeft, List.map_map, Function.comp_def]
   · simpa [shiftedIndex] using List.mem_append_right unmarkedLeft hzmarked
 
 /-- Pointwise maps preserve the selected occurrence. -/

@@ -100,7 +100,7 @@ def fsSingleRule (i : Nat) (r : IRule T g.nt g.flag) :
       mainRule :: pushRules
 
 /-- The flag-separated grammar. -/
-def flagSeparate : IndexedGrammar T where
+abbrev flagSeparate : IndexedGrammar T where
   nt := g.nt ⊕ (Nat × Nat)
   flag := g.flag
   initial := Sum.inl g.initial
@@ -468,7 +468,16 @@ theorem fsSingleRule_flagsSeparated (i : Nat) (r : IRule T g.nt g.flag)
         rcases hx with ( rfl | hx );
         · apply fsSingleRule_fs_mainRule;
           exact hti.resolve_left fun ⟨ a, ha ⟩ => hnp <| by simp +decide [ ha, IndexedGrammar.hasPush ] ;
-        · grind +suggestions
+        · rcases List.mem_filterMap.mp hx with ⟨⟨s, j⟩, _hs, heq⟩
+          cases s with
+          | terminal t => simp at heq
+          | nonterminal n fopt =>
+              cases fopt with
+              | none => simp at heq
+              | some f =>
+                  simp at heq
+                  subst r'
+                  exact fsSingleRule_fs_pushRule g n f (Sum.inr (i, j))
 
 theorem flagSeparate_flagsSeparated (hti : g.TerminalsIsolated) :
     (g.flagSeparate).FlagsSeparated := by
@@ -770,7 +779,8 @@ theorem fsLift_rule_simulation (r : IRule T g.nt g.flag) (i : Nat)
           simp [hpushFalse]
         · simp
       have hstrip := fsStripPushRhsSym_eq_fsLiftRhsSym_of_noPush g rhs hpushFalse
-      simpa [hstrip] using h₁.trans h₂
+      rw [hstrip] at h₂
+      exact h₁.trans h₂
     · have hpushTrue : rhs.any g.hasPush = true := by
         cases h : rhs.any g.hasPush <;> simp [h] at hpushFalse ⊢
       have h₁ :
@@ -816,7 +826,6 @@ theorem fsLift_rule_simulation (r : IRule T g.nt g.flag) (i : Nat)
                 apply rule_mem
                 unfold fsSingleRule
                 simp [hpushTrue]
-                right
                 exact ⟨IRhsSymbol.nonterminal n (some fp), j, hmem, rfl⟩
       exact h₁.trans (h₂.trans (resolveIntermediates g rhs i 1 hpushRules σ))
   · have hconsume : consume = none := by
@@ -908,11 +917,9 @@ theorem fsLift_derives {u v : List g.ISym}
 
 theorem flagSeparate_language_forward {w : List T}
     (h : g.Generates w) : (g.flagSeparate).Generates w := by
-  unfold IndexedGrammar.Generates at *;
-  convert fsLift_derives _ _;
-  case convert_3 => exact [ ISym.indexed g.initial [] ];
-  all_goals norm_cast;
-  exact Eq.symm (fsLiftISym_map_terminal g w)
+  unfold IndexedGrammar.Generates at h ⊢
+  rw [← fsLiftISym_map_terminal g w]
+  exact fsLift_derives g h
 
 noncomputable def fsUnsepIntermediate (idx : Nat × Nat) (σ : List g.flag) : List g.ISym :=
   match g.rules[idx.1]? with
@@ -1133,11 +1140,9 @@ private theorem fsUnsep_rule_step_of
         (by intro s j hmem; exact getElem?_of_mem_zipIdx hmem) σ
       have hleft := fsUnsepSym_inr_zero g i r hri h σ
       rw [hleft, hright]
-      exact deri_self g _
     | have hleft := fsUnsepSym_inr_zero g i r hri h σ
       have hright := fsUnsepSF_expand_strip_noPush g r.rhs h_1 σ
       rw [hleft, hright]
-      exact deri_self g _
     | rw [fsUnsepSF_expand_lift]
       simpa [fsUnsepSym, h] using fsUnsep_original_step g r hr_mem σ
     | have hi := getElem?_of_mem_zipIdx hri

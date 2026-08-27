@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Automata.DeterministicPushdown.Definition
 import Mathlib.Algebra.Order.Floor.Extended
@@ -73,11 +73,9 @@ variable {T : Type} [Fintype T]
 
 /-- A language `L` over a finite alphabet `T` is a **deterministic context-free language
     (DCF)** if there exists a DPDA that recognizes `L` via final-state acceptance. -/
-@[expose]
 public def is_DCF (L : Language T) : Prop :=
   is_DPDA L
 
 /-- The class of languages that are DCF -/
-@[expose]
 public def DCF : Set (Language T) :=
   DPDA.Class

@@ -420,7 +420,8 @@ public theorem paddedCompositeStep_of_evalStep_composite
     intro hnil
     subst input
     apply holdNe
-    simpa [encodeRunCells] using holdEncoded
+    rw [holdEncoded]
+    rfl
   refine ⟨input, oldConfig, newConfig, hinputNe, holdPos, hnewPos, ?_, ?_,
     ⟨cert, ?_⟩, ?_, ?_⟩
   · simpa [oldConfig, holdLen] using holdBound
@@ -463,7 +464,8 @@ public theorem paddedReachLanguage_of_rowReachLanguage
   rcases hmem with ⟨hne, row, hreach, hfinal⟩
   refine ⟨hne, row, ?_, (final_ahoRowSystem_iff g row).1 hfinal⟩
   simpa [inputRow, ahoRowSystem] using
-    hreach.mono (fun _ _ hstep => paddedRowStep_of_rowStep g hstep)
+    (@Relation.ReflTransGen.mono _ _ _
+      (fun _ _ hstep => paddedRowStep_of_rowStep g hstep)) _ _ hreach
 
 /-- The executable finite row system recognizes exactly semantic bounded Aho reachability. -/
 public theorem paddedReachLanguage_eq_rowReachLanguage

@@ -67,24 +67,33 @@ private lemma comap_reaches₁_sound (M : DPDA Q T₂ S) (f : T₁ → T₂)
     PDA.Reaches₁ c c' → PDA.Reaches₁ (comapConf M f c) (comapConf M f c') := by
   intro h
   rcases c with ⟨q, w, γ⟩
-  rcases c' with ⟨q', w', γ'⟩
   cases γ with
   | nil =>
       simp [PDA.Reaches₁, PDA.step] at h
   | cons Z γ =>
       cases w with
       | nil =>
-          simp [PDA.Reaches₁, PDA.step, comapConf, DPDA.comapInput, DPDA.toPDA] at h ⊢
-          exact h
+          unfold PDA.Reaches₁ PDA.step at h ⊢
+          rcases h with ⟨p, β, hp, hcfg⟩
+          refine ⟨p, β, ?_, ?_⟩
+          · simpa [DPDA.comapInput, DPDA.toPDA] using hp
+          · simpa [comapConf] using
+              congrArg (comapConf M f) hcfg
       | cons a w =>
-          simp [PDA.Reaches₁, PDA.step, comapConf, DPDA.comapInput, DPDA.toPDA] at h ⊢
+          unfold PDA.Reaches₁ PDA.step at h ⊢
           rcases h with h | h
-          · rcases h with ⟨β, hp, hw, hγ⟩
+          · rcases h with ⟨p, β, hp, hcfg⟩
             left
-            exact ⟨β, hp, by simp [hw], hγ⟩
-          · rcases h with ⟨β, hp, hw, hγ⟩
+            refine ⟨p, β, ?_, ?_⟩
+            · simpa [DPDA.comapInput, DPDA.toPDA] using hp
+            · simpa [comapConf] using
+                congrArg (comapConf M f) hcfg
+          · rcases h with ⟨p, β, hp, hcfg⟩
             right
-            exact ⟨β, hp, by simp [hw], hγ⟩
+            refine ⟨p, β, ?_, ?_⟩
+            · simpa [DPDA.comapInput, DPDA.toPDA] using hp
+            · simpa [comapConf] using
+                congrArg (comapConf M f) hcfg
 
 private lemma comap_reaches_sound (M : DPDA Q T₂ S) (f : T₁ → T₂)
     {c c' : PDA.conf (M.comapInput f).toPDA} :
@@ -102,32 +111,33 @@ private lemma comap_reaches₁_complete (M : DPDA Q T₂ S) (f : T₁ → T₂)
         PDA.Reaches₁ c c' ∧ comapConf M f c' = d' := by
   intro h
   rcases c with ⟨q, w, γ⟩
-  rcases d' with ⟨q', w', γ'⟩
   cases γ with
   | nil =>
       simp [PDA.Reaches₁, PDA.step, comapConf] at h
   | cons Z γ =>
       cases w with
       | nil =>
-          simp [PDA.Reaches₁, PDA.step, comapConf, DPDA.toPDA] at h
-          rcases h with ⟨β, hp, hw, hγ⟩
-          subst hw
-          subst hγ
-          exact ⟨⟨q', [], β ++ γ⟩, by
-            simp [PDA.Reaches₁, PDA.step, DPDA.comapInput, DPDA.toPDA, hp], rfl⟩
+          unfold PDA.Reaches₁ PDA.step at h
+          rcases h with ⟨p, β, hp, hcfg⟩
+          refine ⟨⟨p, [], β ++ γ⟩, ?_, ?_⟩
+          · unfold PDA.Reaches₁ PDA.step
+            exact ⟨p, β, by simpa [DPDA.comapInput, DPDA.toPDA] using hp, rfl⟩
+          · simpa [comapConf] using hcfg.symm
       | cons a w =>
-          simp [PDA.Reaches₁, PDA.step, comapConf, DPDA.toPDA] at h
+          unfold PDA.Reaches₁ PDA.step at h
           rcases h with h | h
-          · rcases h with ⟨β, hp, hw, hγ⟩
-            subst hw
-            subst hγ
-            exact ⟨⟨q', w, β ++ γ⟩, by
-              simp [PDA.Reaches₁, PDA.step, DPDA.comapInput, DPDA.toPDA, hp], rfl⟩
-          · rcases h with ⟨β, hp, hw, hγ⟩
-            subst hw
-            subst hγ
-            exact ⟨⟨q', a :: w, β ++ γ⟩, by
-              simp [PDA.Reaches₁, PDA.step, DPDA.comapInput, DPDA.toPDA, hp], rfl⟩
+          · rcases h with ⟨p, β, hp, hcfg⟩
+            refine ⟨⟨p, w, β ++ γ⟩, ?_, ?_⟩
+            · unfold PDA.Reaches₁ PDA.step
+              exact Or.inl ⟨p, β,
+                by simpa [DPDA.comapInput, DPDA.toPDA] using hp, rfl⟩
+            · simpa [comapConf] using hcfg.symm
+          · rcases h with ⟨p, β, hp, hcfg⟩
+            refine ⟨⟨p, a :: w, β ++ γ⟩, ?_, ?_⟩
+            · unfold PDA.Reaches₁ PDA.step
+              exact Or.inr ⟨p, β,
+                by simpa [DPDA.comapInput, DPDA.toPDA] using hp, rfl⟩
+            · simpa [comapConf] using hcfg.symm
 
 private lemma comap_reaches_complete_aux (M : DPDA Q T₂ S) (f : T₁ → T₂)
     {d d' : PDA.conf M.toPDA} (h : PDA.Reaches d d') :
@@ -173,7 +183,6 @@ public theorem comap_acceptsByFinalState (M : DPDA Q T₂ S) (f : T₁ → T₂)
 
 /-- Rename the input alphabet of a DPDA along `f`, decoding symbols in the image using `g`.
 Symbols outside the image of `f` have no transition. -/
-@[expose]
 public noncomputable def mapInput (M : DPDA Q T₁ S) (f : T₁ → T₂) (g : T₂ → T₁) : DPDA Q T₂ S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol
@@ -210,7 +219,12 @@ private lemma reaches₁_map {f : T₁ → T₂} {g : T₂ → T₁} (M : DPDA Q
   | cons Z γ =>
       cases w with
       | nil =>
-          simpa [PDA.Reaches₁, PDA.step, mapConf, DPDA.mapInput] using h
+          unfold PDA.Reaches₁ PDA.step at h ⊢
+          rcases h with ⟨p, β, hp, hcfg⟩
+          refine ⟨p, β, ?_, ?_⟩
+          · simpa [DPDA.toPDA, DPDA.mapInput] using hp
+          · simpa [mapConf] using
+              congrArg (mapConf (f := f) (g := g) M) hcfg
       | cons a w =>
           unfold PDA.Reaches₁ PDA.step at h ⊢
           rcases h with h | h
@@ -324,7 +338,7 @@ private lemma reaches₁_consumed_prefix {f : T₁ → T₂} {g : T₂ → T₁}
             have himg : ∃ b, f b = a := by
               by_cases h' : ∃ b, f b = a
               · exact h'
-              · simp [DPDA.toPDA, DPDA.mapInput, h'] at hp
+              · simp [DPDA.mapInput, h'] at hp
             exact himg
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases hcfg
@@ -351,10 +365,11 @@ public theorem map_acceptsByFinalState_of_injective [Nonempty T₁] {f : T₁ �
     (hf : Function.Injective f) (M : DPDA Q T₁ S) :
     (M.mapInput f (Function.invFun f)).acceptsByFinalState = Language.map f M.acceptsByFinalState := by
   classical
-  let g := Function.invFun f
-  have hfg : Function.LeftInverse g f := Function.leftInverse_invFun hf
+  have hfg : Function.LeftInverse (Function.invFun f) f :=
+    Function.leftInverse_invFun hf
   have hmap_eq :
-      ∀ v : List T₂, (∀ a ∈ v, ∃ b, f b = a) → List.map f (List.map g v) = v := by
+      ∀ v : List T₂, (∀ a ∈ v, ∃ b, f b = a) →
+        List.map f (List.map (Function.invFun f) v) = v := by
     intro v
     induction v with
     | nil =>
@@ -373,11 +388,14 @@ public theorem map_acceptsByFinalState_of_injective [Nonempty T₁] {f : T₁ �
     rcases reaches_consumed_prefix M hreach with ⟨x, hx, himg⟩
     have hw : w = x := by simpa using hx
     subst w
-    let u := List.map g x
+    change @PDA.Reaches Q T₂ S _ _ _
+      (M.mapInput f (Function.invFun f)).toPDA
+      ⟨M.initial_state, x, [M.start_symbol]⟩ ⟨q, [], γ⟩ at hreach
+    let u := List.map (Function.invFun f) x
     have huw : List.map f u = x := hmap_eq x himg
     have hreach' :
-        @PDA.Reaches Q T₂ S _ _ _ (M.mapInput f g).toPDA
-          (mapConf (f := f) (g := g) M
+        @PDA.Reaches Q T₂ S _ _ _ (M.mapInput f (Function.invFun f)).toPDA
+          (mapConf (f := f) (g := Function.invFun f) M
             (⟨M.initial_state, u, [M.start_symbol]⟩ : PDA.conf M.toPDA))
           ⟨q, [], γ⟩ := by
       simpa [mapConf, u, huw] using hreach

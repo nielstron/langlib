@@ -128,7 +128,7 @@ private lemma doubled_le_singled
     ) :
   n₁ ≤ n₂ := by
   by_contra contr
-  push_neg at contr
+  push Not at contr
   rw [List.append_assoc, List.append_assoc] at equ
   exact replicate_abc_nthLe_contradiction n₁pos contr _ _ equ
     (not_mem_bc_of_ne a_ b_ c_ a_neq_b a_neq_c)
@@ -142,7 +142,7 @@ private lemma doubled_ge_singled
     ) :
   n₁ ≥ n₂ := by
   by_contra contr
-  push_neg at contr
+  push Not at contr
   rw [List.append_assoc, List.append_assoc] at equ
   exact replicate_abc_nthLe_contradiction n₂pos contr _ _ equ.symm
     (not_mem_bc_of_ne a_ b_ c_ a_neq_b a_neq_c)
@@ -170,17 +170,17 @@ by
     exact ⟨0, by rw [hn₂, hm₂] at w_eq₂; exact w_eq₂⟩
   have n₁pos : n₁ > 0 := Nat.pos_of_ne_zero hn₁
   have n₂pos : n₂ > 0 := by
-    by_contra h; push_neg at h
+    by_contra h; push Not at h
     rw [Nat.eq_zero_of_le_zero h, List.replicate_zero, List.nil_append] at equ
     have a_in_equ := congr_arg (fun lis => a_ ∈ lis) equ
     simp [List.mem_append, List.mem_replicate, hn₁, neq_ab, neq_ac] at a_in_equ
   have m₂pos : m₂ > 0 := by
-    by_contra h; push_neg at h
+    by_contra h; push Not at h
     rw [Nat.eq_zero_of_le_zero h, List.replicate_zero, List.append_nil] at equ
     have b_in_equ := congr_arg (fun lis => b_ ∈ lis) equ
     simp [List.mem_append, List.mem_replicate, hn₁, neq_ba] at b_in_equ
   have m₁pos : m₁ > 0 := by
-    by_contra h; push_neg at h
+    by_contra h; push Not at h
     rw [Nat.eq_zero_of_le_zero h, List.replicate_zero, List.append_nil] at equ
     have c_in_equ := congr_arg (fun lis => c_ ∈ lis) equ
     simp [List.mem_append, List.mem_replicate, neq_ca, neq_cb, (show m₂ ≠ 0 by omega)] at c_in_equ

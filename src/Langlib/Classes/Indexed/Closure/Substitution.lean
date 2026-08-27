@@ -62,7 +62,7 @@ private noncomputable def substInnerRules [Fintype α]
     List (IRule β (SubstNT g gs) (SubstFlag g gs)) :=
   Finset.univ.toList.flatMap fun a => (gs a).rules.map (substLiftInnerRule g gs a)
 
-private noncomputable def indexedSubst [Fintype α]
+private noncomputable abbrev indexedSubst [Fintype α]
     (g : IndexedGrammar α) (gs : α → IndexedGrammar β) : IndexedGrammar β where
   nt := SubstNT g gs
   flag := SubstFlag g gs
@@ -303,15 +303,15 @@ private lemma outerEncode_injective [Fintype α]
       | terminal b τ =>
           simp [outerEncode] at h ⊢
           obtain ⟨hab, hσ⟩ := h
-          cases hab
-          exact ⟨rfl, List.map_injective_iff.mpr (by intro x y h; cases h; rfl) hσ⟩
+          exact ⟨hab.1, List.map_injective_iff.mpr
+            (by intro x y h; cases h; rfl) hσ⟩
       | indexed n τ => simp [outerEncode] at h
   | indexed n σ =>
       cases y with
       | terminal a τ => simp [outerEncode] at h
       | indexed m τ =>
           simp [outerEncode] at h ⊢
-          exact ⟨by cases h.1; rfl,
+          exact ⟨h.1,
             List.map_injective_iff.mpr (by intro x y h; cases h; rfl) h.2⟩
 
 private lemma map_eq_append_singleton_of_injective {γ δ : Type} {f : γ → δ}
@@ -471,8 +471,10 @@ private lemma innerDerives_to_derives [Fintype α]
     {u v : List (indexedSubst g gs).ISym}
     (h : Relation.ReflTransGen (InnerStep g gs) u v) :
     (indexedSubst g gs).Derives u v := by
+  unfold IndexedGrammar.Derives
   exact Relation.ReflTransGen.mono
-    (fun _ _ hs => (indexedSubst_step_iff g gs).mpr (Or.inr hs)) h
+    (r := InnerStep g gs) (p := (indexedSubst g gs).Transforms)
+    (fun _ _ hs => (indexedSubst_step_iff g gs).mpr (Or.inr hs)) u v h
 
 private lemma decorated_all_terminal_of_inner_derives [Fintype α]
     (g : IndexedGrammar α) (gs : α → IndexedGrammar β)
@@ -517,8 +519,8 @@ private lemma innerEncode_injective [Fintype α]
       | indexed m τ =>
           simp [innerEncode] at h ⊢
           obtain ⟨hn, hstack⟩ := h
-          cases hn
-          exact ⟨rfl, List.map_injective_iff.mpr (by intro x y h; cases h; rfl) hstack⟩
+          exact ⟨hn, List.map_injective_iff.mpr
+            (by intro x y h; cases h; rfl) hstack⟩
 
 private lemma innerEncode_expand [Fintype α]
     (g : IndexedGrammar α) (gs : α → IndexedGrammar β)
@@ -593,7 +595,9 @@ private lemma inner_unlift_step [Fintype α]
       | indexed n τ =>
           simp [innerEncode] at hs
           obtain ⟨hnt, hstack⟩ := hs
-          cases hnt
+          obtain ⟨hab, hn⟩ := hnt
+          subst b
+          cases hn
           have hsource'' : d.map (innerEncode g gs a suffix) =
               p ++ [(innerEncode g gs a suffix)
                 (IndexedGrammar.ISym.indexed r.lhs τ)] ++ q := by
@@ -627,7 +631,9 @@ private lemma inner_unlift_step [Fintype α]
       | indexed n τ =>
           simp [innerEncode] at hs
           obtain ⟨hnt, hstack⟩ := hs
-          cases hnt
+          obtain ⟨hab, hn⟩ := hnt
+          subst b
+          cases hn
           cases τ with
           | nil =>
               cases suffix with
@@ -911,9 +917,11 @@ private lemma outerDerives_to_derives [Fintype α]
     (g : IndexedGrammar α) (gs : α → IndexedGrammar β)
     {u v : List (indexedSubst g gs).ISym}
     (h : Relation.ReflTransGen (OuterStep g gs) u v) :
-    (indexedSubst g gs).Derives u v :=
-  Relation.ReflTransGen.mono
-    (fun _ _ hs => (indexedSubst_step_iff g gs).mpr (Or.inl hs)) h
+    (indexedSubst g gs).Derives u v := by
+  unfold IndexedGrammar.Derives
+  exact Relation.ReflTransGen.mono
+    (r := OuterStep g gs) (p := (indexedSubst g gs).Transforms)
+    (fun _ _ hs => (indexedSubst_step_iff g gs).mpr (Or.inl hs)) u v h
 
 private lemma inner_generate_blocks [Fintype α]
     (g : IndexedGrammar α) (gs : α → IndexedGrammar β)
@@ -942,14 +950,18 @@ private lemma inner_generate_blocks [Fintype α]
               [(outerEncode g gs) (OuterDecoratedSym.terminal a suffix)]
               (w.map (IndexedGrammar.ISym.terminal (g := indexedSubst g gs))) := by
             have := innerDerives_to_derives g gs hheadInner
-            simpa [outerEncode, innerEncode] using this
+            convert this using 1
+            · rfl
+            · induction w with
+              | nil => rfl
+              | cons b w ih => simp [innerEncode]
           have htail := ih hW.2
           have hleft := IndexedGrammar.deri_with_suffix
             (d.map (outerEncode g gs)) hhead
           have hright := IndexedGrammar.deri_with_prefix
             (w.map (IndexedGrammar.ISym.terminal (g := indexedSubst g gs))) htail
-          exact hleft.trans (by
-            simpa [List.map_append, List.append_assoc] using hright)
+          apply IndexedGrammar.deri_of_deri_deri hleft
+          simpa [List.map_append, List.append_assoc] using hright
 
 private theorem indexedSubst_language_superset [Fintype α]
     (g : IndexedGrammar α) (gs : α → IndexedGrammar β) :
@@ -972,8 +984,13 @@ private theorem indexedSubst_language_superset [Fintype α]
   have houter' := outerDerives_to_derives g gs houter
   change (indexedSubst g gs).Generates w
   unfold IndexedGrammar.Generates
-  have hfull := houter'.trans hinner
-  simpa [indexedSubst, hw] using hfull
+  have hfull := IndexedGrammar.deri_of_deri_deri houter' hinner
+  have hsource :
+      outerEncode g gs (OuterDecoratedSym.indexed g.initial []) =
+        (IndexedGrammar.ISym.indexed (SubstNT.outer g.initial) [] :
+          (indexedSubst g gs).ISym) := rfl
+  rw [hsource] at hfull
+  simpa [hw] using hfull
 
 private theorem indexedSubst_language [Fintype α]
     (g : IndexedGrammar α) (gs : α → IndexedGrammar β) :

@@ -111,7 +111,7 @@ public theorem toPDA_no_cycle_before_empty_stack (M : DPDA Q T S)
     (hreach : M.toPDA.Reaches c ⟨q, [], []⟩) : False := by
   apply M.toPDA_no_cycle_before_stuck hcycle hreach
   intro e hstep
-  simpa [PDA.Reaches₁, PDA.step] using hstep
+  simp [PDA.Reaches₁, PDA.step] at hstep
 
 /-- Two comparable configurations on a useful deterministic run cannot have
 distinct one-step edges which merge immediately.  Otherwise the longer

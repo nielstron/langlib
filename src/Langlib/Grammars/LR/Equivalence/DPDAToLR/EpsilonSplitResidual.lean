@@ -125,7 +125,6 @@ public theorem epsilonBearing_pairedRead_false (M : DPDA Q T S)
 The first two intervals are the two completed `single source top next`
 returns.  The last retained run is the genuinely nonempty epsilon-bearing
 tail from the first return endpoint to the epsilon child cut. -/
-@[expose]
 public def SplitRightEpsilonIntervalResidual (M : DPDA Q T S)
     (completedWord : List T) (next target : State M)
     (gamma : List (StackSymbol M))
@@ -223,7 +222,7 @@ public theorem EpsilonSplitTailData.splitRightIntervalResidual
             have hcycle := transGen_append_input_exact_residual hcycle₀
               (childWord ++ epsilonSuffix)
             exact emptyStack_no_useful_cycle M
-              (by simpa [PDA.conf.appendInput] using hcycle)
+              (by simpa [PDA.conf.appendInput, spineCutState, spineCutStack] using hcycle)
               epsilonUseful
           have gammaLength : gamma.length ≤
               PDA_to_CFG.max_push (emptyStackPDA M) := by

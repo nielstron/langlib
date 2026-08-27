@@ -92,9 +92,7 @@ inductive MyhillNT (T Γ Λ : Type) where
   | cellPending (lb rb dir : Bool) (q' : Λ) (a : Γ) (t : T) : MyhillNT T Γ Λ
   deriving DecidableEq
 
-instance [Fintype T] [Fintype Γ] [Fintype Λ] : Fintype (MyhillNT T Γ Λ) := by
-  have : Fintype (Bool × Bool × Option Λ × Γ × T) := inferInstance
-  have : Fintype (Bool × Bool × Bool × Λ × Γ × T) := inferInstance
+instance : Fintype (MyhillNT T Γ Λ) := by
   exact Fintype.ofEquiv
     (Unit ⊕ Unit ⊕ (Bool × Bool × Option Λ × Γ × T) ⊕ (Bool × Bool × Bool × Λ × Γ × T))
     { toFun := fun
@@ -296,7 +294,7 @@ theorem myhillAllRules_output_nonempty :
   aesop
 
 /-- The Myhill context-sensitive grammar recognizing the LBA's language. -/
-def myhillGrammar : CS_grammar T where
+@[reducible] def myhillGrammar : CS_grammar T where
   nt := MyhillNT T Γ Λ
   initial := MyhillNT.start
   rules := myhillAllRules M embed

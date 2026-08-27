@@ -15,20 +15,21 @@ between the grammar classes:
 - **Context-free ⊊ Indexed ⊊ Context-sensitive ⊊ Recursive ⊊ Recursively enumerable**
 - **Regular ⊊ Linear ⊊ CFL**
 
-The displayed chains are class-level shorthand. The per-alphabet strictness theorems carry
-the hypotheses listed below. In particular, `Indexed ⊊ CS` is proved for finite alphabets
-with at least two symbols, whereas `Indexed ⊆ CS` holds over every terminal type.
+The displayed chains are class-level shorthand. Every headline strictness theorem ranges
+over an arbitrary finite alphabet with the stated lower bound on its number of elements. In particular,
+`Indexed ⊊ CS` is proved for alphabets with at least 2 elements, whereas `Indexed ⊆ CS`
+holds over every terminal type.
 
 ## In Lean
 
-- Regular ⊊ DCFL: [`RG_strict_subclass_DCF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean).
-- Regular ⊊ Linear: `RG_strict_subclass_Linear`; Linear ⊊ CF: [`Linear_strict_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean), separated by `{0ⁿ1ⁿ2ᵐ3ᵐ}` via the [linear pumping lemma](linear-pumping-lemma.html).
-- DCFL ⊊ CFL: `is_CF_of_is_DCF` / `DCF_subclass_CF` (strictness via `DPDA_strict_subclass_PDA`).
-- CFL ⊊ Indexed: [`CF_strict_subclass_Indexed`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean) and [`CF_subclass_Indexed_and_exists_strict`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean).
-- Indexed ⊊ CS: [`Indexed_strict_subclass_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean), for a finite alphabet `T` satisfying `2 ≤ Fintype.card T`. Its inclusion half is the arbitrary-alphabet theorem `Indexed_subclass_CS`; see the [Aho simulation development](indexed-subset-context-sensitive.html).
+- Regular ⊊ DCFL: [`RG_strict_subclass_DCF_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/StrictDeterministicContextFree.lean), for every finite alphabet with at least 2 elements.
+- Regular ⊊ Linear: `RG_strict_subclass_Linear_of_card`, for every finite alphabet with at least 2 elements; Linear ⊊ CF: [`Linear_strict_subclass_CF_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean), for every finite alphabet with at least 4 elements, separated by `{0ⁿ1ⁿ2ᵐ3ᵐ}` via the [linear pumping lemma](linear-pumping-lemma.html).
+- DCFL ⊊ CFL: [`DCF_strict_subclass_CF_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/DeterministicContextFree/Inclusion/StrictContextFree.lean), for every finite alphabet with at least 3 elements.
+- CFL ⊊ Indexed: [`CF_strict_subclass_Indexed`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextFree/Inclusion/StrictIndexed.lean), for every finite alphabet with at least 3 elements; its inclusion half is `CF_subclass_Indexed`.
+- Indexed ⊊ CS: [`Indexed_strict_subclass_CS`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean), for every finite alphabet with at least 2 elements. Its inclusion half is the arbitrary-alphabet theorem `Indexed_subclass_CS`; see the [Aho simulation development](indexed-subset-context-sensitive.html).
 - CF ⊆ CS: `CF_subclass_CS`.
-- CS ⊊ Recursive: [`CS_strict_subclass_Recursive`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean) — by diagonalization; see the [dedicated page](context-sensitive-strict-subset-recursive.html).
-- Recursive ⊊ RE: see the [dedicated page](recursive-strict-subset-re.html).
+- CS ⊊ Recursive: [`CS_strict_subclass_Recursive_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean), for every finite alphabet with at least 1 element, by diagonalization; see the [dedicated page](context-sensitive-strict-subset-recursive.html).
+- Recursive ⊊ RE: `Recursive_strict_subclass_RE_of_card`, for every finite alphabet with at least 1 element; see the [dedicated page](recursive-strict-subset-re.html).
 
 ## Proof idea
 
@@ -37,21 +38,23 @@ class is one of the upper class) with strictness witnessed in one of two ways �
 *separating language* in the upper class but provably not the lower, or a *closure
 mismatch* where the two classes differ on a closure operation.
 
-- **Regular ⊊ DCFL** (`RG_strict_subclass_DCF`) and **Regular ⊊ Linear**
-  (`RG_strict_subclass_Linear`): the separating language is `{aⁿbⁿ}` (`anbn`), which
+- **Regular ⊊ DCFL** (`RG_strict_subclass_DCF_of_card`) and **Regular ⊊ Linear**
+  (`RG_strict_subclass_Linear_of_card`): the separating language is `{aⁿbⁿ}` (`anbn`), which
   is deterministic context-free (`anbn_is_DCF`) and linear but not regular
   (`anbn_not_isRegular`, via the regular pumping lemma); transported to a nontrivial
-  alphabet by an injective letter map.
-- **DCFL ⊊ CFL** (`DCF_strict_subclass_CF`): a *closure mismatch*, not a witness
-  language. Over `Fin 3` the DCF languages are closed under complement
+  alphabet with at least 2 elements by an injective letter map.
+- **DCFL ⊊ CFL** (`DCF_strict_subclass_CF_of_card`): a *closure mismatch*, not a witness
+  language. Over a 3-element alphabet, the DCF languages are closed under complement
   (`DCF_closedUnderComplement`) but the CF languages are not
   (`CF_notClosedUnderComplement`); `strict_subset_of_subset_different_property` turns
-  this differing closure property into proper containment.
-  `DPDA_strict_subclass_PDA` transfers this to the automaton classes.
-- **Linear ⊊ CFL** (`Linear_strict_subclass_CF`): the separating language is
-  `{0ⁿ1ⁿ2ᵐ3ᵐ}` over `Fin 4` (`anbncmdm`), context-free (`anbncmdm_is_CF`, a
+  this differing closure property into proper containment, then injective relabelling
+  transports it to every alphabet with at least 3 elements.
+  `DPDA_strict_subclass_PDA_of_card` gives the corresponding automaton-class statement.
+- **Linear ⊊ CFL** (`Linear_strict_subclass_CF_of_card`): the separating language is
+  `{0ⁿ1ⁿ2ᵐ3ᵐ}` over a 4-element alphabet (`anbncmdm`), context-free (`anbncmdm_is_CF`, a
   concatenation of two `{aⁿbⁿ}` blocks) but not linear (`anbncmdm_not_is_Linear`, via the
-  [linear pumping lemma](linear-pumping-lemma.html)).
+  [linear pumping lemma](linear-pumping-lemma.html)); injective relabelling transports it to
+  every alphabet with at least 4 elements.
 - **CFL ⊊ Indexed** (`CF_strict_subclass_Indexed`): the separating language is
   `{aⁿbⁿcⁿ}`, indexed (an indexed grammar with a stack-bottom marker forcing each
   nonterminal to consume exactly as many flags as were pushed) but not context-free.
@@ -63,9 +66,9 @@ mismatch* where the two classes differ on a closure operation.
   language. If the padded language were indexed, closure of indexed languages under
   arbitrary homomorphism would make the halting language indexed, hence context-sensitive
   and recursive, contradicting `haltingUnaryLanguage_not_Recursive`. This binary witness
-  is transported along an alphabet embedding to every finite `T` with
-  `2 ≤ Fintype.card T`; see the [dedicated page](indexed-subset-context-sensitive.html).
-- **CS ⊊ Recursive** (`CS_strict_subclass_Recursive`): by diagonalization over an
+  is transported along an alphabet embedding to every finite alphabet with at least
+  2 elements; see the [dedicated page](indexed-subset-context-sensitive.html).
+- **CS ⊊ Recursive** (`CS_strict_subclass_Recursive_of_card`): by diagonalization over an
   effective enumeration of context-sensitive grammars; see the
   [dedicated page](context-sensitive-strict-subset-recursive.html).
 - **Recursive ⊊ RE**: a closure mismatch — recursive languages are closed under

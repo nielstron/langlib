@@ -128,7 +128,7 @@ private lemma projectTape₁_write_pack {n : ℕ}
   | mk contents head =>
       apply tape_ext
       · funext i
-        simp only [projectTape₁, DLBA.BoundedTape.write, Function.update_apply,
+        simp only [projectTape₁, Function.update_apply,
           DLBA.BoundedTape.read]
         split <;> simp_all
       · rfl
@@ -141,7 +141,7 @@ private lemma projectTape₂_write_pack_left {n : ℕ}
   | mk contents head =>
       apply tape_ext
       · funext i
-        simp only [projectTape₂, DLBA.BoundedTape.write, Function.update_apply,
+        simp only [projectTape₂, Function.update_apply,
           DLBA.BoundedTape.read]
         split <;> simp_all
       · rfl
@@ -154,7 +154,7 @@ private lemma projectTape₂_write_pack {n : ℕ}
   | mk contents head =>
       apply tape_ext
       · funext i
-        simp only [projectTape₂, DLBA.BoundedTape.write, Function.update_apply,
+        simp only [projectTape₂, Function.update_apply,
           DLBA.BoundedTape.read]
         split <;> simp_all
       · rfl
@@ -167,7 +167,7 @@ private lemma projectTape₁_write_pack_right {n : ℕ}
   | mk contents head =>
       apply tape_ext
       · funext i
-        simp only [projectTape₁, DLBA.BoundedTape.write, Function.update_apply,
+        simp only [projectTape₁, Function.update_apply,
           DLBA.BoundedTape.read]
         split <;> simp_all
       · rfl
@@ -175,12 +175,12 @@ private lemma projectTape₁_write_pack_right {n : ℕ}
 private lemma projectTape₁_moveHead {n : ℕ}
     (t : DLBA.BoundedTape (PairAlpha T Γ₁ Γ₂) n) (d : DLBA.Dir) :
     projectTape₁ (t.moveHead d) = (projectTape₁ t).moveHead d := by
-  cases t <;> (cases d <;> rfl)
+  cases t ; (cases d <;> rfl)
 
 private lemma projectTape₂_moveHead {n : ℕ}
     (t : DLBA.BoundedTape (PairAlpha T Γ₁ Γ₂) n) (d : DLBA.Dir) :
     projectTape₂ (t.moveHead d) = (projectTape₂ t).moveHead d := by
-  cases t <;> (cases d <;> rfl)
+  cases t ; (cases d <;> rfl)
 
 private lemma initial_projects₁
     (M₁ : LBA.Machine (LBA.EndAlpha T Γ₁) Λ₁)
@@ -213,7 +213,7 @@ private lemma initial_projects₂
 private lemma write_read_same {A : Type*} {n : ℕ} (t : DLBA.BoundedTape A n) :
     t.write t.read = t := by
   apply tape_ext
-  · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.read]
+  · simp only [DLBA.BoundedTape.read]
     exact Function.update_eq_self _ _
   · rfl
 
@@ -237,9 +237,9 @@ private lemma run₁_step
   · apply cfg_ext
     · rfl
     · simp only [c', projectCfg₁, projectTape₁_moveHead, projectTape₁_write_pack]
-    · simp only [c', projectCfg₁, projectTape₁_moveHead, projectTape₁_write_pack]
+    · apply Fin.ext
+      rfl
   · simp only [c', projectTape₂_moveHead, projectTape₂_write_pack_left]
-    cases d <;> rfl
 
 private lemma run₂_step
     (M₁ : LBA.Machine (LBA.EndAlpha T Γ₁) Λ₁)
@@ -260,7 +260,8 @@ private lemma run₂_step
   · apply cfg_ext
     · rfl
     · simp only [c', projectCfg₂, projectTape₂_moveHead, projectTape₂_write_pack]
-    · simp only [c', projectCfg₂, projectTape₂_moveHead, projectTape₂_write_pack]
+    · apply Fin.ext
+      rfl
 
 private lemma run₁_step_inv
     (M₁ : LBA.Machine (LBA.EndAlpha T Γ₁) Λ₁)
@@ -286,9 +287,9 @@ private lemma run₁_step_inv
       · apply cfg_ext
         · rfl
         · simp only [projectCfg₁, projectTape₁_moveHead, projectTape₁_write_pack]
-        · simp only [projectCfg₁, projectTape₁_moveHead, projectTape₁_write_pack]
+        · apply Fin.ext
+          rfl
     · simp only [projectTape₂_moveHead, projectTape₂_write_pack_left]
-      cases d <;> rfl
   · rcases hswitch with ⟨hacc, heq⟩
     simp only [Prod.mk.injEq] at heq
     rcases heq with ⟨rfl, rfl, rfl⟩
@@ -317,7 +318,8 @@ private lemma run₂_step_inv
   · apply cfg_ext
     · rfl
     · simp only [projectCfg₂, projectTape₂_moveHead, projectTape₂_write_pack]
-    · simp only [projectCfg₂, projectTape₂_moveHead, projectTape₂_write_pack]
+    · apply Fin.ext
+      rfl
 
 private lemma run₁_reaches
     (M₁ : LBA.Machine (LBA.EndAlpha T Γ₁) Λ₁)
@@ -409,12 +411,12 @@ private lemma rewind_left_step
     simp [interTransition, hnot]
   · apply cfg_ext
     · rfl
-    · simp only [rewindCfg, atHead, DLBA.BoundedTape.write,
-        DLBA.BoundedTape.moveHead]
+    · simp only [rewindCfg, atHead,
+        ]
       exact (Function.update_eq_self _ _).symm
     · apply Fin.ext
-      simp [rewindCfg, atHead, DLBA.BoundedTape.write,
-        DLBA.BoundedTape.moveHead, p]
+      simp [rewindCfg, atHead,
+        ]
 
 private lemma rewind_reaches_zero
     (M₁ : LBA.Machine (LBA.EndAlpha T Γ₁) Λ₁)
@@ -443,7 +445,8 @@ private lemma rewind_zero_step
     have hcell := congrFun hcontents ⟨0, by omega⟩
     change view₂ (t.contents ⟨0, by omega⟩) =
       (LBA.loadEnd (T := T) (Γ := Γ₂) w).contents ⟨0, by omega⟩ at hcell
-    simpa [loadEnd_left_iff_zero] using hcell
+    exact hcell.trans ((loadEnd_left_iff_zero
+      (T := T) (Γ₂ := Γ₂) w ⟨0, by omega⟩).mpr rfl)
   refine ⟨.run₂ M₂.initial, t.contents ⟨0, by omega⟩, .stay, ?_, ?_⟩
   · change _ ∈ interTransition M₁ M₂ .rewind (t.contents ⟨0, by omega⟩)
     simp only [interTransition]
@@ -451,8 +454,8 @@ private lemma rewind_zero_step
     simp
   · apply cfg_ext
     · rfl
-    · simp only [rewindCfg, atHead, DLBA.BoundedTape.write,
-        DLBA.BoundedTape.moveHead]
+    · simp only [rewindCfg, atHead,
+        ]
       exact (Function.update_eq_self _ _).symm
     · rfl
 
@@ -537,16 +540,13 @@ private lemma interInv_step
         exact hcontents
       · apply Fin.ext
         change ((c.tape.write c.tape.read).moveHead .stay).head.val = 0
-        simpa only [DLBA.BoundedTape.moveHead] using hhead
+        exact (congrArg (fun t => t.head.val) (write_read_same c.tape)).trans hhead
     · simp only [interTransition, if_neg hleft, Set.mem_singleton_iff] at hmem
       rcases hmem with ⟨rfl, rfl, rfl⟩
       right; left
       refine ⟨hacc₁, rfl, ?_⟩
-      simp only [projectTape₂_moveHead]
-      have hwrite : projectTape₂ (c.tape.write c.tape.read) = projectTape₂ c.tape := by
-        rw [write_read_same]
-      rw [hwrite]
-      cases DLBA.Dir.left <;> exact hcontents
+      rw [write_read_same]
+      simpa only [projectTape₂, DLBA.BoundedTape.moveHead] using hcontents
   · rcases hrun₂ with ⟨hacc₁, c₂, hreach₂, hs, hp⟩
     obtain ⟨q', hs', hsource⟩ := run₂_step_inv M₁ M₂ hs hstep
     right; right
@@ -629,14 +629,14 @@ public theorem CS_closedUnderIntersection : ClosedUnderIntersection (α := T) is
   classical
   obtain ⟨Γ₁, Λ₁, hΓ₁, hΛ₁, hdΓ₁, hdΛ₁, M₁, hM₁⟩ := CS_subset_LBA hL₁
   obtain ⟨Γ₂, Λ₂, hΓ₂, hΛ₂, hdΓ₂, hdΛ₂, M₂, hM₂⟩ := CS_subset_LBA hL₂
-  letI : Fintype Γ₁ := hΓ₁
-  letI : Fintype Λ₁ := hΛ₁
-  letI : DecidableEq Γ₁ := hdΓ₁
-  letI : DecidableEq Λ₁ := hdΛ₁
-  letI : Fintype Γ₂ := hΓ₂
-  letI : Fintype Λ₂ := hΛ₂
-  letI : DecidableEq Γ₂ := hdΓ₂
-  letI : DecidableEq Λ₂ := hdΛ₂
+  let : Fintype Γ₁ := hΓ₁
+  let : Fintype Λ₁ := hΛ₁
+  let : DecidableEq Γ₁ := hdΓ₁
+  let : DecidableEq Λ₁ := hdΛ₁
+  let : Fintype Γ₂ := hΓ₂
+  let : Fintype Λ₂ := hΛ₂
+  let : DecidableEq Γ₂ := hdΓ₂
+  let : DecidableEq Λ₂ := hdΛ₂
   have hinter : is_LBA (L₁ ⊓ L₂) := by
     refine ⟨PairWork T Γ₁ Γ₂, InterState Λ₁ Λ₂,
       inferInstance, inferInstance, inferInstance, inferInstance, interMachine M₁ M₂, ?_⟩

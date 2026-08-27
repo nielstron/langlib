@@ -97,8 +97,6 @@ public theorem DCF_notClosedUnderUnion_pos :
       simp only [Language.add_def]
       change w ∈ lang_eq_any_pos ∧ w ∈ lang_any_eq_pos ↔
         ¬ (w ∈ lang_eq_any_posᶜ ⊔ lang_any_eq_posᶜ)
-      rw [show (lang_eq_any_posᶜ ⊔ lang_any_eq_posᶜ : Set (List (Fin 3))) =
-        Set.union lang_eq_any_posᶜ lang_any_eq_posᶜ by rfl]
       change w ∈ lang_eq_any_pos ∧ w ∈ lang_any_eq_pos ↔
         ¬ (w ∉ lang_eq_any_pos ∨ w ∉ lang_any_eq_pos)
       tauto]
@@ -172,7 +170,7 @@ private lemma mem_oneMarkerPositive_iff {x : List (Bool ⊕ Fin 3)} :
   rw [oneMarkerPositive, Language.mem_mul]
   constructor
   · rintro ⟨u, hu, v, hv, rfl⟩
-    rw [Set.mem_singleton_iff] at hu
+    change u = [marker] at hu
     subst u
     rcases hv with ⟨w, hw, rfl⟩
     exact ⟨w, rfl, hw⟩
@@ -205,7 +203,16 @@ private lemma starSeed_mem_cases {x : List (Bool ⊕ Fin 3)} (hx : x ∈ starSee
     x = [marker] ∨
       (∃ w, x = marker :: w.map Sum.inr ∧ w ∈ lang_not_eq_any_pos) ∨
       (∃ w, x = w.map Sum.inr ∧ w ∈ lang_not_any_eq_pos) := by
-  simpa [starSeed, optionalMarkedLanguage, Language.add_def] using hx
+  rw [starSeed, Language.add_def] at hx
+  rcases hx with hx | hx
+  · left
+    change x = [marker] at hx
+    exact hx
+  · right
+    change (exists w, x = marker :: w.map Sum.inr ∧
+        w ∈ lang_not_eq_any_pos) ∨
+      exists w, x = w.map Sum.inr ∧ w ∈ lang_not_any_eq_pos at hx
+    exact hx
 
 private lemma starSeed_marker_free_payload {x : List (Bool ⊕ Fin 3)}
     (hx : x ∈ starSeed) (hfree : (marker : Bool ⊕ Fin 3) ∉ x) :
@@ -381,23 +388,30 @@ private theorem star_seed_slice_eq_union :
   · intro hx
     change marker :: x ∈ (KStar.kstar starSeed) ⊓ oneMarkerPositive at hx
     rcases hx with ⟨hstar, hone⟩
-    rw [mem_oneMarkerPositive_iff] at hone
-    rcases hone with ⟨w, hshape, hwpos⟩
+    have hone' : marker :: x ∈ oneMarkerPositive := hone
+    rw [mem_oneMarkerPositive_iff] at hone'
+    rcases hone' with ⟨w, hshape, hwpos⟩
     cases hshape
-    rw [marker_payload_mem_starSeed_iff hwpos] at hstar
-    exact ⟨w, by simpa [Language.add_def] using hstar, rfl⟩
+    have hstar' : marker :: w.map Sum.inr ∈ KStar.kstar starSeed := hstar
+    rw [marker_payload_mem_starSeed_iff hwpos] at hstar'
+    exact ⟨w, hstar', rfl⟩
   · rintro ⟨w, hw, rfl⟩
+    rw [Language.add_def] at hw
+    change w ∈ lang_not_eq_any_pos ∨ w ∈ lang_not_any_eq_pos at hw
     have hwpos : w ∈ abcPositive := by
-      rw [Language.add_def] at hw
       rcases hw with hw | hw
       · exact hw.2
       · exact hw.2
     change marker :: w.map Sum.inr ∈ (KStar.kstar starSeed) ⊓ oneMarkerPositive
     constructor
-    · rw [marker_payload_mem_starSeed_iff hwpos]
-      simpa [Language.add_def] using hw
-    · rw [mem_oneMarkerPositive_iff]
-      exact ⟨w, rfl, hwpos⟩
+    · have hstar : marker :: w.map Sum.inr ∈ KStar.kstar starSeed := by
+        rw [marker_payload_mem_starSeed_iff hwpos]
+        simpa [Language.add_def] using hw
+      exact hstar
+    · have hone : marker :: w.map Sum.inr ∈ oneMarkerPositive := by
+        rw [mem_oneMarkerPositive_iff]
+        exact ⟨w, rfl, hwpos⟩
+      exact hone
 
 /-- Deterministic context-free languages over `Bool ⊕ Fin 3` are not closed
 under Kleene star. -/

@@ -83,7 +83,7 @@ private def suffixTargetBase (M : DPDA Q T S) (D : DFA T sigma) :
   | .inr (), _, .inr () => True
   | _, _, _ => False
 
-private def suffixTargetAccept (M : DPDA Q T S) (D : DFA T sigma) :
+@[reducible] private def suffixTargetAccept (M : DPDA Q T S) (D : DFA T sigma) :
     Set (DPDA.PAutState (Q × sigma))
   | .inl c => c.1 ∈ M.final_states /\ c.2 ∈ D.accept
   | .inr () => True
@@ -99,7 +99,7 @@ private def suffixDFA (M : DPDA Q T S) (D : DFA T sigma) (q : Q) (d : sigma) :
     (DPDA.PAutState.control (q, d)) (suffixTargetAccept M D)
 
 /-- Semantic meaning of a state in the continuation P-automaton. -/
-private def SuffixTarget (M : DPDA Q T S) (D : DFA T sigma) :
+@[reducible] private def SuffixTarget (M : DPDA Q T S) (D : DFA T sigma) :
     DPDA.PAutState (Q × sigma) -> List S -> Prop
   | .inl (q, d), gamma =>
       exists y qf gammaf,
@@ -108,6 +108,7 @@ private def SuffixTarget (M : DPDA Q T S) (D : DFA T sigma) :
         D.evalFrom d y ∈ D.accept /\ qf ∈ M.final_states
   | .inr (), _ => True
 
+omit [Fintype sigma] in
 private theorem suffixTarget_nil_iff (M : DPDA Q T S) (D : DFA T sigma)
     (r : DPDA.PAutState (Q × sigma)) :
     SuffixTarget M D r [] <-> r ∈ suffixTargetAccept M D := by
@@ -118,13 +119,15 @@ private theorem suffixTarget_nil_iff (M : DPDA Q T S) (D : DFA T sigma)
       · rintro ⟨y, qf, gammaf, hreach, hD, hqf⟩
         have hempty := PDA.reaches_on_empty_stack (pda := M.toPDA) hreach
         rcases hempty with ⟨rfl, rfl, rfl⟩
-        simpa using And.intro hqf hD
+        change q ∈ M.final_states ∧ d ∈ D.accept
+        exact And.intro hqf hD
       · rintro ⟨hq, hd⟩
         exact ⟨[], q, [], Relation.ReflTransGen.refl, by simpa, hq⟩
   | inr u =>
       cases u
       constructor <;> intro _ <;> trivial
 
+omit [Fintype sigma] in
 private theorem suffixSinkPath (M : DPDA Q T S) (D : DFA T sigma) (gamma : List S) :
     DPDA.RelPath (suffixSaturationRel M D)
       (DPDA.PAutState.sink : DPDA.PAutState (Q × sigma)) gamma DPDA.PAutState.sink := by
@@ -135,6 +138,7 @@ private theorem suffixSinkPath (M : DPDA Q T S) (D : DFA T sigma) (gamma : List 
         (base_subset_saturationRel (suffixRules M D) (base := suffixTargetBase M D) (by
           simp [suffixTargetBase, DPDA.PAutState.sink])) ih
 
+omit [Fintype sigma] in
 private theorem suffixRel_preservesTarget (M : DPDA Q T S) (D : DFA T sigma) :
     DPDA.RelationPreservesTarget (suffixSaturationRel M D) (SuffixTarget M D) := by
   intro p r Z hrel delta htarget
@@ -168,7 +172,11 @@ private theorem suffixRel_preservesTarget (M : DPDA Q T S) (D : DFA T sigma) :
     rcases hrule with hε | ⟨a, ha, hd'⟩
     · rcases hε with ⟨hε, rfl⟩
       refine ⟨y, qf, gammaf, Relation.ReflTransGen.head ?_ hreach, hD, hqf⟩
-      cases y <;> simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+      cases y with
+      | nil =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+      | cons a y =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
     · change d' = D.step d a at hd'
       subst d'
       refine ⟨a :: y, qf, gammaf, Relation.ReflTransGen.head ?_ hreach, ?_, hqf⟩
@@ -176,6 +184,7 @@ private theorem suffixRel_preservesTarget (M : DPDA Q T S) (D : DFA T sigma) :
       · simpa [DFA.evalFrom] using hD
   exact hrel semanticRel hbase hsat delta htarget
 
+omit [Fintype sigma] in
 private theorem suffixRel_path_sound (M : DPDA Q T S) (D : DFA T sigma)
     {p r : DPDA.PAutState (Q × sigma)} {gamma delta : List S}
     (hpath : DPDA.RelPath (suffixSaturationRel M D) p gamma r)
@@ -185,6 +194,7 @@ private theorem suffixRel_path_sound (M : DPDA Q T S) (D : DFA T sigma)
     (R := suffixSaturationRel M D) (Target := SuffixTarget M D)
     (suffixRel_preservesTarget M D) hpath htarget
 
+omit [Fintype sigma] in
 private theorem suffixDFA_sound (M : DPDA Q T S) (D : DFA T sigma)
     (q : Q) (d : sigma) (gamma : List S) :
     gamma ∈ (suffixDFA M D q d).accepts ->
@@ -195,8 +205,15 @@ private theorem suffixDFA_sound (M : DPDA Q T S) (D : DFA T sigma)
   intro h
   obtain ⟨r, hr, hpath⟩ := (DPDA.relDFA_accepts_iff (R := suffixSaturationRel M D)).1 h
   have ht : SuffixTarget M D r [] := (suffixTarget_nil_iff M D r).2 hr
-  simpa [SuffixTarget] using suffixRel_path_sound M D hpath ht
+  have hs := suffixRel_path_sound M D hpath ht
+  rw [List.append_nil] at hs
+  change ∃ y qf gammaf,
+    @PDA.Reaches Q T S _ _ _ M.toPDA
+      ⟨q, y, gamma⟩ ⟨qf, [], gammaf⟩ ∧
+    D.evalFrom d y ∈ D.accept ∧ qf ∈ M.final_states at hs
+  exact hs
 
+omit [Fintype sigma] in
 private theorem suffixPath_of_final (M : DPDA Q T S) (D : DFA T sigma)
     {q : Q} {d : sigma} {gamma : List S}
     (hq : q ∈ M.final_states) (hd : d ∈ D.accept) :
@@ -214,16 +231,17 @@ private theorem mem_source_transition_iff (M : DPDA Q T S)
     (q : Q) (a : T) (Z : S) (p : Q) (beta : List S) :
     (p, beta) ∈ M.toPDA.transition_fun q a Z <->
       M.transition q a Z = some (p, beta) := by
-  cases h : M.transition q a Z <;> simp [DPDA.toPDA, h]
+  cases h : M.transition q a Z <;> simp [h]
   exact eq_comm
 
 private theorem mem_source_epsilon_iff (M : DPDA Q T S)
     (q : Q) (Z : S) (p : Q) (beta : List S) :
     (p, beta) ∈ M.toPDA.transition_fun' q Z <->
       M.epsilon_transition q Z = some (p, beta) := by
-  cases h : M.epsilon_transition q Z <;> simp [DPDA.toPDA, h]
+  cases h : M.epsilon_transition q Z <;> simp [h]
   exact eq_comm
 
+omit [Fintype sigma] in
 private theorem suffixPath_complete_aux (M : DPDA Q T S) (D : DFA T sigma)
     {c0 cf : PDA.conf M.toPDA} (hreach : PDA.Reaches c0 cf) :
     cf.input = [] -> cf.state ∈ M.final_states ->
@@ -277,6 +295,7 @@ private theorem suffixPath_complete_aux (M : DPDA Q T S) (D : DFA T sigma)
                 hrule hbeta
             exact ⟨r, hr, DPDA.RelPath.cons hedge hdelta⟩
 
+omit [Fintype sigma] in
 private theorem suffixPath_complete (M : DPDA Q T S) (D : DFA T sigma)
     {q qf : Q} {d : sigma} {y : List T} {gamma gammaf : List S}
     (hreach : @PDA.Reaches Q T S _ _ _ M.toPDA
@@ -287,6 +306,7 @@ private theorem suffixPath_complete (M : DPDA Q T S) (D : DFA T sigma)
         (DPDA.PAutState.control (q, d)) gamma r :=
   suffixPath_complete_aux M D hreach rfl hqf d hd
 
+omit [Fintype sigma] in
 private theorem suffixDFA_complete (M : DPDA Q T S) (D : DFA T sigma)
     (q : Q) (d : sigma) (gamma : List S) :
     (exists y qf gammaf,
@@ -298,6 +318,7 @@ private theorem suffixDFA_complete (M : DPDA Q T S) (D : DFA T sigma)
   obtain ⟨r, hr, hpath⟩ := suffixPath_complete M D hreach hD hqf
   exact (DPDA.relDFA_accepts_iff (R := suffixSaturationRel M D)).2 ⟨r, hr, hpath⟩
 
+omit [Fintype sigma] in
 private theorem suffixDFA_correct (M : DPDA Q T S) (D : DFA T sigma)
     (q : Q) (d : sigma) (gamma : List S) :
     gamma ∈ (suffixDFA M D q d).accepts <->
@@ -330,12 +351,14 @@ private def Summary.Represents (M : DPDA Q T S) (D : DFA T sigma)
     (summary : Summary Q sigma) (gamma : List S) : Prop :=
   forall q, summary q = (suffixDFA M D q D.start).stackSummary gamma
 
+omit [Fintype sigma] in
 private theorem Summary.represents_id (M : DPDA Q T S) (D : DFA T sigma) :
     Summary.Represents M D Summary.id [] := by
   intro q
   funext x
   rfl
 
+omit [Fintype sigma] in
 private theorem Summary.Represents.above (M : DPDA Q T S) (D : DFA T sigma)
     {below : Summary Q sigma} {delta : List S}
     (h : Summary.Represents M D below delta) (beta : List S) :
@@ -355,6 +378,7 @@ private def annotate (M : DPDA Q T S) (D : DFA T sigma)
 
 private def eraseAnn : List (AnnSymbol Q S sigma) -> List S := List.map Prod.fst
 
+omit [Fintype sigma] in
 @[simp] private theorem eraseAnn_annotate (M : DPDA Q T S) (D : DFA T sigma)
     (below : Summary Q sigma) (beta : List S) :
     eraseAnn (annotate M D below beta) = beta := by
@@ -365,6 +389,7 @@ private def eraseAnn : List (AnnSymbol Q S sigma) -> List S := List.map Prod.fst
       rw [annotate, List.map_cons]
       exact congrArg (List.cons Z) (by simpa only [eraseAnn] using ih)
 
+omit [Fintype Q] [Fintype S] [Fintype sigma] in
 private theorem eraseAnn_append (gamma delta : List (AnnSymbol Q S sigma)) :
     eraseAnn (gamma ++ delta) = eraseAnn gamma ++ eraseAnn delta := by
   simp [eraseAnn]
@@ -375,6 +400,7 @@ private def WellAnnotated (M : DPDA Q T S) (D : DFA T sigma) :
   | (_, below) :: rest =>
       Summary.Represents M D below (eraseAnn rest) /\ WellAnnotated M D rest
 
+omit [Fintype sigma] in
 private theorem wellAnnotated_annotate_append (M : DPDA Q T S) (D : DFA T sigma)
     {below : Summary Q sigma} {rest : List (AnnSymbol Q S sigma)}
     (hbelow : Summary.Represents M D below (eraseAnn rest))
@@ -396,6 +422,7 @@ private def fullSummary (M : DPDA Q T S) (D : DFA T sigma) :
   | [] => Summary.id
   | (Z, below) :: _ => Summary.above M D below [Z]
 
+omit [Fintype sigma] in
 private theorem fullSummary_represents (M : DPDA Q T S) (D : DFA T sigma)
     {stack : List (AnnSymbol Q S sigma)} (h : WellAnnotated M D stack) :
     Summary.Represents M D (fullSummary M D stack) (eraseAnn stack) := by
@@ -415,12 +442,14 @@ private def acceptBit (M : DPDA Q T S) (D : DFA T sigma)
     classical
     exact if acceptsContinuation M D q summary then true else false
 
+omit [Fintype sigma] in
 private theorem acceptBit_eq_true_iff (M : DPDA Q T S) (D : DFA T sigma)
     (q : Q) (summary : Summary Q sigma) :
     acceptBit M D q summary = true <-> acceptsContinuation M D q summary := by
   classical
   simp [acceptBit]
 
+omit [Fintype sigma] in
 private theorem acceptsContinuation_correct (M : DPDA Q T S) (D : DFA T sigma)
     {q : Q} {summary : Summary Q sigma} {gamma : List S}
     (h : Summary.Represents M D summary gamma) :
@@ -437,7 +466,7 @@ private theorem acceptsContinuation_correct (M : DPDA Q T S) (D : DFA T sigma)
 
 /-- The quotient DPDA.  Its Boolean control component is the continuation query
 for the current source state and annotated stack. -/
-private def quotientDPDA (M : DPDA Q T S) (D : DFA T sigma) :
+@[reducible] private def quotientDPDA (M : DPDA Q T S) (D : DFA T sigma) :
     DPDA (Q × Bool) T (AnnSymbol Q S sigma) where
   initial_state :=
     (M.initial_state,
@@ -495,7 +524,7 @@ private theorem step_projects (M : DPDA Q T S) (D : DFA T sigma)
       · subst input
         subst c'
         cases ht : M.transition q a Z with
-        | none => simp [quotientDPDA, DPDA.toPDA, ht] at hmem
+        | none => simp [ht] at hmem
         | some out =>
             rcases out with ⟨p, beta⟩
             have hout : (st', betaAnn) =
@@ -504,10 +533,12 @@ private theorem step_projects (M : DPDA Q T S) (D : DFA T sigma)
               simpa only [quotientDPDA, DPDA.toPDA, ht, Set.mem_singleton_iff] using hmem
             rcases hout with ⟨rfl, rfl⟩
             simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, ht]
-            simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+            have herase : List.map Prod.fst (annotate M D below beta) = beta := by
+              simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+            rw [herase]
       · subst c'
         cases hε : M.epsilon_transition q Z with
-        | none => simp [quotientDPDA, DPDA.toPDA, hε] at hmem
+        | none => simp [hε] at hmem
         | some out =>
             rcases out with ⟨p, beta⟩
             have hout : (st', betaAnn) =
@@ -515,9 +546,17 @@ private theorem step_projects (M : DPDA Q T S) (D : DFA T sigma)
                   annotate M D below beta) := by
               simpa only [quotientDPDA, DPDA.toPDA, hε, Set.mem_singleton_iff] using hmem
             rcases hout with ⟨rfl, rfl⟩
-            cases input <;>
-              simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
-            all_goals simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+            cases input with
+            | nil =>
+                simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+                have herase : List.map Prod.fst (annotate M D below beta) = beta := by
+                  simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+                rw [herase]
+            | cons a input =>
+                simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
+                have herase : List.map Prod.fst (annotate M D below beta) = beta := by
+                  simpa only [eraseAnn] using eraseAnn_annotate M D below beta
+                rw [herase]
 
 private theorem reaches_projects (M : DPDA Q T S) (D : DFA T sigma)
     {c c' : PDA.conf (quotientDPDA M D).toPDA}
@@ -561,7 +600,7 @@ private theorem step_preserves_good (M : DPDA Q T S) (D : DFA T sigma)
       · subst input
         subst c'
         cases ht : M.transition q a Z with
-        | none => simp [quotientDPDA, DPDA.toPDA, ht] at hmem
+        | none => simp [ht] at hmem
         | some out =>
             rcases out with ⟨p, beta⟩
             have hout : (st', betaAnn) =
@@ -572,7 +611,7 @@ private theorem step_preserves_good (M : DPDA Q T S) (D : DFA T sigma)
             exact replacement_good M D hbelow hrest p beta input'
       · subst c'
         cases hε : M.epsilon_transition q Z with
-        | none => simp [quotientDPDA, DPDA.toPDA, hε] at hmem
+        | none => simp [hε] at hmem
         | some out =>
             rcases out with ⟨p, beta⟩
             have hout : (st', betaAnn) =
@@ -624,7 +663,11 @@ private theorem step_lifts (M : DPDA Q T S) (D : DFA T sigma)
         have hs : PDA.Reaches₁
             (⟨(q, b), input, (Z, below) :: rest⟩ :
               PDA.conf (quotientDPDA M D).toPDA) c' := by
-          cases input <;> simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, hε]
+          cases input with
+          | nil =>
+              simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, hε]
+          | cons a input =>
+              simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, hε]
         refine ⟨c', hs, ?_, step_preserves_good M D hc hs⟩
         apply PDA.conf.ext <;> simp [c', projectConf, eraseAnn]
         simpa only [eraseAnn] using eraseAnn_annotate M D below beta
@@ -727,7 +770,7 @@ private theorem quotientDPDA_correct (M : DPDA Q T S) (D : DFA T sigma) :
     have hgood0 : GoodConf M D c0 := by simpa [c0] using initial_good M D w
     have hproject0 : projectConf M D c0 =
         (⟨M.initial_state, w, [M.start_symbol]⟩ : PDA.conf M.toPDA) := by
-      simp [c0, projectConf, quotientDPDA, eraseAnn]
+      simp [c0, projectConf, eraseAnn]
     rw [← hproject0] at hpre
     obtain ⟨cmid, hlift, hproj, hgood⟩ := reaches_lifts M D hgood0 hpre
     rcases cmid with ⟨⟨qmid, bmid⟩, inputmid, stackmid⟩
@@ -744,7 +787,7 @@ private theorem quotientDPDA_correct (M : DPDA Q T S) (D : DFA T sigma) :
         ⟨y, qf, gammaf, by simpa [herase] using hsuffix, hy, hqf⟩
     have hb : bmid = true := by
       exact hgood.2.trans ((acceptBit_eq_true_iff M D qm _).2 hcont)
-    refine ⟨(qm, bmid), ?_, stackmid, by simpa [c0] using hlift⟩
+    refine ⟨(qm, bmid), ?_, stackmid, by simpa [c0, DPDA.toPDA] using hlift⟩
     change bmid = true
     exact hb
 
@@ -759,10 +802,10 @@ regular language, uniformly over every finite alphabet. -/
 public theorem is_DCF_rightQuotient_regular {L R : Language T}
     (hL : is_DCF L) (hR : R.IsRegular) : is_DCF (L / R) := by
   rcases hL with ⟨Q, S, hQ, hS, M, rfl⟩
-  letI : Fintype Q := hQ
-  letI : Fintype S := hS
+  let : Fintype Q := hQ
+  let : Fintype S := hS
   rcases hR with ⟨sigma, hsigma, D, hD⟩
-  letI : Fintype sigma := hsigma
+  let : Fintype sigma := hsigma
   refine ⟨Q × Bool, DCFRightQuotient.AnnSymbol Q S sigma,
     inferInstance, inferInstance, DCFRightQuotient.quotientDPDA M D, ?_⟩
   rw [DCFRightQuotient.quotientDPDA_correct M D, hD]

@@ -23,6 +23,7 @@ public inductive AbnAbStarPowPredNNT where
 deriving DecidableEq
 
 /-- Context-free grammar for `a b^n (a b*)^(n-1)`, `n >= 1`. -/
+@[reducible]
 public def grammarAbnAbStarPowPredN : CF_grammar Bool where
   nt := AbnAbStarPowPredNNT
   initial := .S
@@ -46,21 +47,21 @@ private def cWord (ns : List Nat) : List Bool :=
 
 private lemma bStepS : CF_transforms BG [bS] [ba, bb, bC] := by
   exact ⟨(.S, [.terminal false, .terminal true, .nonterminal .C]), [], [],
-    by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+    by simp, rfl, rfl⟩
 
 private lemma bStepC : CF_transforms BG [bC] [bb, bC, ba, bD] := by
   exact ⟨(.C, [.terminal true, .nonterminal .C, .terminal false, .nonterminal .D]),
-    [], [], by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+    [], [], by simp, rfl, rfl⟩
 
 private lemma bStopC : CF_transforms BG [bC] [] := by
-  exact ⟨(.C, []), [], [], by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+  exact ⟨(.C, []), [], [], by simp, rfl, rfl⟩
 
 private lemma bStepD : CF_transforms BG [bD] [bb, bD] := by
   exact ⟨(.D, [.terminal true, .nonterminal .D]), [], [],
-    by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+    by simp, rfl, rfl⟩
 
 private lemma bStopD : CF_transforms BG [bD] [] := by
-  exact ⟨(.D, []), [], [], by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+  exact ⟨(.D, []), [], [], by simp, rfl, rfl⟩
 
 private lemma bGenerateD (n : Nat) :
     CF_derives BG [bD] ((replicate n true).map symbol.terminal) := by
@@ -73,7 +74,7 @@ private lemma bGenerateD (n : Nat) :
 private lemma bGenerateC (ns : List Nat) :
     CF_derives BG [bC] ((cWord ns).map symbol.terminal) := by
   induction ns using List.reverseRecOn with
-  | nil => simpa [cWord] using CF_deri_of_tran bStopC
+  | nil => simpa [cWord, varyingBlocks] using CF_deri_of_tran bStopC
   | append_singleton ns q ih =>
       apply CF_deri_of_tran_deri bStepC
       have hc := CF_deri_with_prefix_and_postfix [bb] [ba, bD] ih
@@ -92,8 +93,9 @@ private lemma abnAbStarPowPredN_subset_grammar :
   apply CF_deri_of_tran_deri bStepS
   have hc := CF_deri_with_prefix [ba, bb] (bGenerateC ns)
   convert hc using 1
-  rw [← hlen]
-  simp [cWord, abBlock, List.map_append, replicate_succ]
+  · simp
+  · rw [← hlen]
+    simp [cWord, abBlock, List.map_append, replicate_succ]
 
 /-! ### Compositional soundness for the context-free grammar -/
 
@@ -152,7 +154,7 @@ private lemma bRuleSound
     (r : AbnAbStarPowPredNNT × List (symbol Bool AbnAbStarPowPredNNT))
     (hr : r ∈ BG.rules) (w : List Bool) (h : bFormSem r.2 w) :
     bSymSem (.nonterminal r.1) w := by
-  simp only [grammarAbnAbStarPowPredN, List.mem_cons, List.not_mem_nil,
+  simp only [List.mem_cons, List.not_mem_nil,
     or_false] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl
   · have h' : bFormSem [ba, bb, bC] w := h

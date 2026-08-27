@@ -29,7 +29,7 @@ Definitions:
 Inclusions:
 
 - [`RG_subclass_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/Linear.lean) / [`is_Linear_of_is_RG`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/Linear.lean) — every regular language is linear.
-- [`RG_strict_subclass_Linear`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) — regular is a **strict** subclass of linear.
+- [`RG_strict_subclass_Linear_of_card`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) — regular is a **strict** subclass of linear over every finite alphabet with at least 2 elements.
 - [`Linear_subclass_CF`](https://github.com/nielstron/langlib/blob/main/src/Langlib/Classes/Linear/Inclusion/ContextFree.lean) — every linear language is context-free.
 
 Example:
@@ -51,9 +51,9 @@ grammar.
 `linear_grammar_anbn` with rules `S → aSb` and `S → ε` (`anbn_is_Linear`, via
 `linear_grammar_anbn_language`). It is not regular (`anbn_not_isRegular`). Pushing
 the witness along an injective letter map (`map_anbn_is_Linear`,
-`map_anbn_not_isRegular`) makes `RG_strict_subclass_Linear` hold over any nontrivial
-alphabet: were `Linear ⊆ RG`, the mapped `anbn` would be regular, contradicting
-non-regularity.
+`map_anbn_not_isRegular`) gives `RG_strict_subclass_Linear_of_card` over every finite
+alphabet with at least 2 elements: were `Linear ⊆ RG`, the mapped `anbn` would be
+regular, contradicting non-regularity.
 
 **`Linear ⊆ CF`.** A linear rule already satisfies the context-free condition
 (`grammar_context_free_of_linear` just drops the `linear_output` clause), so

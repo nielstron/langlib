@@ -41,9 +41,9 @@ public theorem REPred_mem_of_is_RE [DecidableEq T] [Primcodable T]
     REPred (fun w : List T => w ∈ L) := by
   obtain ⟨g, hg⟩ := hL
   obtain ⟨g', hfin, hlang⟩ := grammar_equivalent_finiteNT g
-  haveI : Fintype g'.nt := Fintype.ofFinite _
-  haveI : DecidableEq g'.nt := Classical.decEq _
-  haveI : Primcodable g'.nt :=
+  have : Fintype g'.nt := Fintype.ofFinite _
+  have : DecidableEq g'.nt := Classical.decEq _
+  have : Primcodable g'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g'.nt)) (Fintype.truncEquivFin g'.nt).out
   have htest : Computable₂ (grammarTest g') := grammarTest_computable₂ g'
   have hpart : REPred (fun w : List T =>
@@ -66,10 +66,10 @@ public theorem REPred_mem_of_is_RE [DecidableEq T] [Primcodable T]
           (Computable.const false)
       exact Partrec.rfind hgEnc.partrec₂
     exact hdom.dom_re.of_eq fun w => by
-      simp [Nat.rfind_dom]
+      simp
       constructor
       · rintro ⟨n, hn⟩
-        exact ⟨Denumerable.ofNat (List (ℕ × ℕ)) n, hn⟩
+        exact ⟨Denumerable.ofNat (List (ℕ × ℕ)) n, by simpa using hn.1⟩
       · rintro ⟨seq, hseq⟩
         exact ⟨Encodable.encode seq, by simpa [Denumerable.ofNat_encode] using hseq⟩
   exact hpart.of_eq fun w => by
@@ -95,7 +95,9 @@ public theorem computablePred_of_isRE_of_isRE_compl [DecidableEq T] [Primcodable
     ComputablePred (fun w : List T => w ∈ L) := by
   rw [ComputablePred.computable_iff_re_compl_re']
   refine ⟨REPred_mem_of_is_RE h1, ?_⟩
-  exact (REPred_mem_of_is_RE h2).of_eq fun w => by rw [Set.mem_compl_iff]
+  exact (REPred_mem_of_is_RE h2).of_eq fun w => by
+    change (¬ w ∈ L) ↔ ¬ w ∈ L
+    rfl
 
 /-- **Post's theorem, recursive form.** A language that is recursively enumerable and
 whose complement is recursively enumerable is recursive (decided by an always-halting

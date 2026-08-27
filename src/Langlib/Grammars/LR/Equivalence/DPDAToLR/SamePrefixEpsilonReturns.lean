@@ -35,7 +35,6 @@ return compared with an arbitrary empty return at the same visible prefix.
 
 The two child indices remain `list q₁ [] q₁` and `list q₂ [] q₂`;
 assuming them equal here would be circular. -/
-@[expose]
 public def SamePrefixEpsilonReturnData (M : DPDA Q T S)
     (p : List (symbol T (Nonterminal M))) (q₁ q₂ : State M)
     (suffix₁ suffix₂ : List T) : Prop :=
@@ -65,7 +64,6 @@ public def SamePrefixEpsilonReturnData (M : DPDA Q T S)
 /-- The exact remaining semantic statement.  Unlike the earlier
 `SamePrefixEpsilonReturnResidual`, this property exposes the paired structural
 history required by an interval/ancestry proof. -/
-@[expose]
 public def SamePrefixEpsilonReturnsStateUnique (M : DPDA Q T S) : Prop :=
   ∀ (p : List (symbol T (Nonterminal M))) (q₁ q₂ : State M)
       (suffix₁ suffix₂ : List T),
@@ -140,7 +138,6 @@ public theorem zeroVisibleEmptyList_state_eq_of_anchor_position_eq
 disposed of equal-length computations.  Keeping the structural datum in the
 proposition prevents the unequal-count branch from discarding its grammar
 ancestry. -/
-@[expose]
 public def UnequalCountSamePrefixEpsilonReturnData (M : DPDA Q T S)
     (p : List (symbol T (Nonterminal M))) (q₁ q₂ : State M)
     (suffix₁ suffix₂ : List T) : Prop :=

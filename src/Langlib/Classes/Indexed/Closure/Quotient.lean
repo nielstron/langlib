@@ -53,7 +53,10 @@ private theorem Language.map_rightQuotient_of_injective
     have hv₁_eq : v₁ = v₀ := List.map_injective_iff.mpr hf hv₁
     subst v₁
     rw [← hw₀]
-    exact ⟨w₀, ⟨v₀, hv₀R, by simpa [hz_eq] using hzL⟩, rfl⟩
+    refine ⟨w₀, ⟨v₀, hv₀R, ?_⟩, rfl⟩
+    change L (w₀ ++ v₀)
+    change L z at hzL
+    simpa [hz_eq] using hzL
 
 /-- Nonclosure transports to every alphabet containing the three-symbol
 witness alphabet. -/
@@ -78,6 +81,7 @@ public theorem Indexed_notClosedUnderRightQuotient_of_card
     Fintype.equivFin CopyLetter
   let piA : alpha ≃ Fin (Fintype.card alpha) := Fintype.equivFin alpha
   have hCA : Fintype.card CopyLetter ≤ Fintype.card alpha := by
-    simpa using halpha
+    rw [show Fintype.card CopyLetter = 3 by rfl]
+    exact halpha
   exact Indexed_notClosedUnderRightQuotient_of_embedding
     (piC.toEmbedding.trans ((Fin.castLEEmb hCA).trans piA.symm.toEmbedding))

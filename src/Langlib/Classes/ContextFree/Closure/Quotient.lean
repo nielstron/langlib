@@ -57,8 +57,6 @@ import Mathlib.Topology.Sheaves.Init
 @[expose]
 public section
 
-
-
 /-! # Context-Free Right Quotients
 
 This file proves the sharp closure behavior for right quotients of context-free languages:
@@ -208,7 +206,9 @@ theorem blockLangDFA_accepts :
     have h_form : ∀ w : List (T ⊕ T), (blockLangDFA D).evalFrom (some (false, D.start)) w ∈ (blockLangDFA D).accept → ∃ u v : List T, w = u.map Sum.inl ++ v.map Sum.inr ∧ D.evalFrom D.start v ∈ D.accept := by
       intros w hw
       induction' w with x w ih;
-      · exact ⟨ [ ], [ ], rfl, by simpa using hw ⟩;
+      · refine ⟨[], [], rfl, ?_⟩
+        change D.start ∈ D.accept at hw
+        exact hw
       · cases x <;> simp +decide [ *, DFA.evalFrom ] at hw ⊢;
         · unfold blockLangDFA at *; simp_all +decide [ DFA.evalFrom ] ;
           rcases ih with ⟨ u, v, rfl, hv ⟩ ; use ( ‹_› :: u ), v; simp +decide [ *, List.map ] ;
@@ -229,7 +229,14 @@ theorem blockLangDFA_accepts :
                     intro w; induction' w using List.reverseRecOn with w ih <;> simp +decide [ * ] ;
                 exact absurd hw ( by erw [ h_foldl_none ] ; simp +decide );
               · obtain ⟨ v, hv₁, hv₂ ⟩ := ih _ hw; use ‹_› :: v; simp +decide [ hv₁, hv₂ ] ;
-          obtain ⟨ v, hv₁, hv₂ ⟩ := h_ind w ( D.step D.start ‹_› ) ( by simpa [ DFA.evalFrom ] using hw ) ; use [ ], ‹_› :: v; aesop;
+          have hw' : (blockLangDFA D).evalFrom
+              (some (true, D.step D.start ‹_›)) w ∈ (blockLangDFA D).accept := by
+            change (blockLangDFA D).evalFrom
+              (some (true, D.step D.start ‹_›)) w ∈ (blockLangDFA D).accept at hw
+            exact hw
+          obtain ⟨v, hv₁, hv₂⟩ := h_ind w (D.step D.start ‹_›) hw'
+          use [], ‹_› :: v
+          aesop
     exact h_form w hacc
   · -- (←) in blockLang ⟹ accepted
     rintro ⟨u, v, rfl, hv⟩
@@ -273,6 +280,86 @@ theorem is_CF_eraseInr (x : T ⊕ T) : is_CF (eraseInr x) := by
   | inl a => exact (is_CF_iff_isContextFree).mpr (isContextFree_singleton [a])
   | inr a => exact (is_CF_iff_isContextFree).mpr (isContextFree_singleton [])
 
+private lemma mem_prod_singleton_words_iff {A B : Type} (h : A → List B) :
+    ∀ w : List A, ∀ u : List B,
+      u ∈ (w.map fun x => ({h x} : Language B)).prod ↔ u = w.flatMap h
+  | [], u => by
+      change u ∈ ({[]} : Language B) ↔ u = []
+      rfl
+  | x :: xs, u => by
+      constructor
+      · intro hu
+        rw [show (List.map (fun x => ({h x} : Language B)) (x :: xs)).prod =
+            ({h x} : Language B) * (List.map (fun x => ({h x} : Language B)) xs).prod
+          by rfl] at hu
+        rw [Language.mul_def] at hu
+        rcases hu with ⟨u₁, hu₁, u₂, hu₂, rfl⟩
+        have hu₂' := (mem_prod_singleton_words_iff h xs u₂).1 hu₂
+        have hu₁' : u₁ = h x := Set.mem_singleton_iff.mp hu₁
+        simp [hu₁', hu₂']
+      · intro hu
+        subst hu
+        rw [show (List.map (fun x => ({h x} : Language B)) (x :: xs)).prod =
+            ({h x} : Language B) * (List.map (fun x => ({h x} : Language B)) xs).prod
+          by rfl]
+        rw [Language.mul_def]
+        refine ⟨h x, Set.mem_singleton _, xs.flatMap h, ?_, rfl⟩
+        exact (mem_prod_singleton_words_iff h xs _).2 rfl
+
+private def eraseInrWord : T ⊕ T → List T
+  | Sum.inl a => [a]
+  | Sum.inr _ => []
+
+private def untag : T ⊕ T → T
+  | Sum.inl a => a
+  | Sum.inr a => a
+
+private lemma map_untag_of_mem_tagSubst_prod :
+    ∀ (u : List T) (z : List (T ⊕ T)),
+      z ∈ (List.map tagSubst u).prod → List.map untag z = u
+  | [], z, hz => by
+      change z ∈ ({[]} : Language (T ⊕ T)) at hz
+      change z = [] at hz
+      subst z
+      rfl
+  | a :: u, z, hz => by
+      rw [show (List.map tagSubst (a :: u)).prod =
+          tagSubst a * (List.map tagSubst u).prod by rfl] at hz
+      rw [Language.mul_def] at hz
+      rcases hz with ⟨x, hx, y, hy, rfl⟩
+      have hx_cases : x = [Sum.inl a] ∨ x = [Sum.inr a] := by
+        change x = [Sum.inl a] ∨ x = [Sum.inr a] at hx
+        exact hx
+      have hy_eq := map_untag_of_mem_tagSubst_prod u y hy
+      rcases hx_cases with rfl | rfl <;> simp [untag, hy_eq]
+
+private lemma prod_eraseInr_tagged (p q : List T) :
+    (List.map eraseInr (List.map Sum.inl p ++ List.map Sum.inr q)).prod =
+      ({p} : Language T) := by
+  let tagged := List.map Sum.inl p ++ List.map Sum.inr q
+  have herase : List.map eraseInr tagged =
+      List.map (fun x => ({eraseInrWord x} : Language T)) tagged := by
+    apply List.map_congr_left
+    intro x _hx
+    cases x <;> rfl
+  ext x
+  rw [show List.map eraseInr (List.map Sum.inl p ++ List.map Sum.inr q) =
+      List.map (fun x => ({eraseInrWord x} : Language T)) tagged by
+      simpa [tagged] using herase]
+  change x ∈ (tagged.map fun y => ({eraseInrWord y} : Language T)).prod ↔ x = p
+  rw [mem_prod_singleton_words_iff]
+  have hinl : ∀ r : List T, (List.map Sum.inl r).flatMap eraseInrWord = r := by
+    intro r
+    induction r with
+    | nil => rfl
+    | cons a r ih => simp [eraseInrWord, ih]
+  have hinr : ∀ r : List T, (List.map Sum.inr r).flatMap eraseInrWord = [] := by
+    intro r
+    induction r with
+    | nil => rfl
+    | cons a r ih => simp [eraseInrWord, ih]
+  simp [tagged, List.flatMap_append, hinl p, hinr q]
+
 /-
 ═══════════════════════════════════════════════════════════════════
 § 5  Key set equality
@@ -291,31 +378,17 @@ theorem subst_inter_block_subst_eq_rightQuotient (L : Language T) (R : Language 
     rintro ⟨w', ⟨⟨u, hu, hw'_in_prod⟩, ⟨p, q, hw'_eq, hq⟩⟩, hw_in_prod⟩
     -- Since $w' \in (u.map tagSubst).prod$, we have $p ++ q = u$.
     have hpq_eq_u : p ++ q = u := by
-      have hpq_eq_u : ∀ {u : List T} {p q : List T}, (List.map Sum.inl p ++ List.map Sum.inr q) ∈ (List.map tagSubst u).prod → p ++ q = u := by
-        intros u p q hpq_eq_u; induction' u with u_head u_tail ih generalizing p q <;> simp_all +decide [ tagSubst ] ;
-        cases' hpq_eq_u with hpq_eq_u hpq_eq_u ; simp_all +decide [  ];
-        rcases hpq_eq_u with ⟨ hpq_eq_u₁, b, hb₁, hb₂ ⟩ ; rcases hpq_eq_u₁ with ( rfl | rfl ) <;> simp_all +decide [  ] ;
-        · cases p <;> cases q <;> simp_all +decide [ List.map ];
-          specialize @ih ‹_› [ ] ; aesop;
-        · cases p <;> cases q <;> simp_all +decide [ List.map ];
-          specialize @ih [ ] ‹_› ; aesop;
-      exact hpq_eq_u <| hw'_eq ▸ hw'_in_prod;
+      have htags : List.map Sum.inl p ++ List.map Sum.inr q ∈
+          (List.map tagSubst u).prod := hw'_eq ▸ hw'_in_prod
+      have hrecovered := map_untag_of_mem_tagSubst_prod u _ htags
+      simpa [List.map_append, List.map_map, Function.comp_def, untag] using hrecovered
     -- Since $w' = p.map Sum.inl ++ q.map Sum.inr$, we have $(w'.map eraseInr).prod = {p}$.
     have h_prod_eraseInr : (w'.map eraseInr).prod = {p} := by
-      -- Applying the definition of `List.prod` and the fact that `eraseInr` maps `Sum.inl` to `{[a]}` and `Sum.inr` to `{[]}`, we can simplify the expression.
-      have h_prod_eraseInr : ∀ (p q : List T), (List.map eraseInr (p.map Sum.inl ++ q.map Sum.inr)).prod = {p} := by
-        intros p q; induction' p with a p ih generalizing q <;> simp_all +decide [ List.prod_cons ] ;
-        · induction q <;> simp_all +decide [ List.prod_cons, List.prod_nil ];
-          · rfl;
-          · ext; simp [eraseInr];
-            simp +decide [ Language.mem_mul ];
-            grind;
-        · ext; simp [eraseInr];
-          exact ⟨ fun ⟨ u, hu, v, hv, h ⟩ => by cases hu; cases hv; aesop, fun h => by cases h; exact ⟨ [ a ], by aesop ⟩ ⟩;
-      rw [hw'_eq, h_prod_eraseInr];
+      rw [hw'_eq, prod_eraseInr_tagged]
     have hw_eq_p : w = p := by
       rw [h_prod_eraseInr] at hw_in_prod
-      simpa using hw_in_prod
+      change w = p at hw_in_prod
+      exact hw_in_prod
     have hpq_in_L : p ++ q ∈ L := by
       simpa [hpq_eq_u] using hu
     have hw_in_quotient : w ∈ L / R := by
@@ -334,10 +407,8 @@ theorem subst_inter_block_subst_eq_rightQuotient (L : Language T) (R : Language 
       exact h_prod _ _;
     refine' ⟨ _, ⟨ ⟨ w ++ v, hwv, h_tagSubst ⟩, _, _, rfl, hv ⟩, _ ⟩;
     clear h_tagSubst hwv hv;
-    induction w <;> simp_all +decide [ List.prod ];
-    · induction v <;> simp_all +decide [ Language.mul_def ];
-      exact ⟨ _, by tauto, _, by tauto, by tauto ⟩;
-    · exact ⟨ _, rfl, _, ‹_›, rfl ⟩
+    rw [prod_eraseInr_tagged]
+    rfl
 
 -- ═══════════════════════════════════════════════════════════════════
 -- § 6  Main theorems
@@ -442,8 +513,10 @@ private lemma mem_quotientDenominator_blocks {w : List Bool} (hw : w ∈ quotien
     ∃ ns : List ℕ, (∀ n ∈ ns, 0 < n) ∧ w = quotientRightBlocks ns ++ [true] := by
   rw [quotientDenominator, Language.mem_mul] at hw
   rcases hw with ⟨r, hr, t, ht, hrt⟩
-  rw [Set.mem_singleton_iff] at ht
-  subst ht
+  have ht_eq : t = [true] := by
+    change t = [true] at ht
+    exact ht
+  subst t
   rw [Language.mem_kstar] at hr
   rcases hr with ⟨blocks, rfl, hmem⟩
   rcases quotientRightBlocks_of_mem blocks hmem with ⟨ns, hns, hflat⟩
@@ -470,6 +543,18 @@ private lemma takeFalse_replicate_false_append {tail : List Bool} (m : ℕ)
         false :: List.replicate m false
       simp [isFalseBool, ih]
 
+private lemma takeTrue_replicate_true_append {tail : List Bool} (m : ℕ)
+    (htail : List.takeWhile isTrueBool tail = []) :
+    List.takeWhile isTrueBool (List.replicate m true ++ tail) =
+      List.replicate m true := by
+  induction m with
+  | zero => simpa using htail
+  | succ m ih =>
+      change List.takeWhile isTrueBool (true :: (List.replicate m true ++ tail)) =
+        true :: List.replicate m true
+      simp only [List.takeWhile_cons, isTrueBool, ↓reduceIte]
+      exact congrArg (true :: ·) ih
+
 private lemma takeFalse_prefix_rightBlocks (m : ℕ) (ms : List ℕ)
     (hpos : ∀ n ∈ ms, 0 < n) :
     (List.takeWhile isFalseBool
@@ -479,21 +564,48 @@ private lemma takeFalse_prefix_rightBlocks (m : ℕ) (ms : List ℕ)
 
 private lemma takeFalse_leftBlocks_cons (n : ℕ) (ns : List ℕ) (hn : 0 < n) :
     (List.takeWhile isFalseBool (quotientLeftBlocks (n :: ns))).length = 2 * n := by
-  simp [quotientLeftBlocks, isFalseBool, hn, List.append_assoc]
+  have htail : List.takeWhile isFalseBool
+      (List.replicate n true ++ quotientLeftBlocks ns) = [] := by
+    obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hn)
+    simp [isFalseBool]
+  rw [show quotientLeftBlocks (n :: ns) =
+      List.replicate (2 * n) false ++
+        (List.replicate n true ++ quotientLeftBlocks ns) by
+      simp [quotientLeftBlocks, List.append_assoc]]
+  rw [takeFalse_replicate_false_append (2 * n) htail]
+  simp
 
 private lemma takeTrue_rightBlocks_cons (n : ℕ) (ns : List ℕ) (hn : 0 < n) :
     (List.takeWhile isTrueBool (quotientRightBlocks (n :: ns) ++ [true])).length = n := by
-  simp [quotientRightBlocks, isTrueBool, hn, List.append_assoc]
+  have htail : List.takeWhile isTrueBool
+      (List.replicate n false ++ (quotientRightBlocks ns ++ [true])) = [] := by
+    obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hn)
+    simp [isTrueBool]
+  rw [show quotientRightBlocks (n :: ns) ++ [true] =
+      List.replicate n true ++
+        (List.replicate n false ++ (quotientRightBlocks ns ++ [true])) by
+      simp [quotientRightBlocks, List.append_assoc]]
+  rw [takeTrue_replicate_true_append n htail]
+  simp
 
 private lemma takeTrue_replicate_true_leftBlocks (n : ℕ) (ns : List ℕ)
     (_hn : 0 < n) (hns : ∀ p ∈ ns, 0 < p) :
     (List.takeWhile isTrueBool
       (List.replicate n true ++ quotientLeftBlocks ns)).length = n := by
-  cases ns with
-  | nil => simp [quotientLeftBlocks, isTrueBool]
-  | cons p ps =>
-      have hp : 0 < p := hns p (by simp)
-      simp [quotientLeftBlocks, isTrueBool, hp, List.append_assoc]
+  have htail : List.takeWhile isTrueBool (quotientLeftBlocks ns) = [] := by
+    cases ns with
+    | nil => simp [quotientLeftBlocks]
+    | cons p ps =>
+        have hp : 0 < p := hns p (by simp)
+        have htwo_p : 0 < 2 * p := Nat.mul_pos (by decide) hp
+        obtain ⟨m, hm⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt htwo_p)
+        rw [show quotientLeftBlocks (p :: ps) =
+            List.replicate (2 * p) false ++
+              (List.replicate p true ++ quotientLeftBlocks ps) by
+            simp [quotientLeftBlocks, List.append_assoc], hm]
+        simp [isTrueBool]
+  rw [takeTrue_replicate_true_append n htail]
+  simp
 
 private lemma quotient_block_parser : ∀ (ns : List ℕ) (m : ℕ) (ms : List ℕ),
     (∀ n ∈ ns, 0 < n) → (∀ n ∈ ms, 0 < n) →
@@ -641,11 +753,19 @@ lemma unaryPow2_subset_quotient_slice :
     exact Language.join_mem_kstar (quotientLeftWitnessBlocks_mem k)
   · rcases hw with ⟨k, rfl⟩
     unfold unaryFalseStar
-    rw [Language.mem_kstar]
-    refine ⟨List.replicate ((2 : ℕ) ^ (k + 1)) [false], ?_, ?_⟩
-    · induction ((2 : ℕ) ^ (k + 1)) <;> simp_all
-    · intro y hy
-      exact (List.mem_replicate.mp hy).2
+    let blocks := List.replicate ((2 : ℕ) ^ (k + 1)) [false]
+    have hblocks : ∀ y ∈ blocks, y ∈ ({[false]} : Language Bool) := by
+      intro y hy
+      change y = [false]
+      exact List.eq_of_mem_replicate hy
+    change unaryFalseStar (List.replicate ((2 : ℕ) ^ (k + 1)) false)
+    change KStar.kstar ({[false]} : Language Bool)
+      (List.replicate ((2 : ℕ) ^ (k + 1)) false)
+    change ∃ bs : List (List Bool),
+      List.replicate ((2 : ℕ) ^ (k + 1)) false = bs.flatten ∧
+        ∀ y ∈ bs, y ∈ ({[false]} : Language Bool)
+    refine ⟨blocks, ?_, hblocks⟩
+    simp [blocks]
 
 private lemma flatten_singleton_false_of_mem :
     ∀ blocks : List (List Bool),
@@ -653,7 +773,10 @@ private lemma flatten_singleton_false_of_mem :
         blocks.flatten = List.replicate blocks.length false
   | [], _ => by simp
   | b :: bs, hmem => by
-      have hb : b = [false] := by simpa using hmem b (by simp)
+      have hb : b = [false] := by
+        have hbmem := hmem b (by simp)
+        change b = [false] at hbmem
+        exact hbmem
       have hbs : ∀ y ∈ bs, y ∈ ({[false]} : Language Bool) := by
         intro y hy
         exact hmem y (by simp [hy])
@@ -714,7 +837,11 @@ private theorem Language.map_rightQuotient_injective {α β : Type} {f : α → 
     have hv₁_eq : v₁ = v₀ := List.map_injective_iff.mpr hf hv₁
     subst v₁
     rw [← hw₀]
-    exact ⟨w₀, ⟨v₀, hv₀R, by simpa [hz_eq] using hzL⟩, rfl⟩
+    have hwvL : w₀ ++ v₀ ∈ L := by
+      change L (w₀ ++ v₀)
+      change L z at hzL
+      simpa [hz_eq] using hzL
+    exact ⟨w₀, ⟨v₀, hv₀R, hwvL⟩, rfl⟩
 
 /-- CFLs are not closed under right quotient over any alphabet into which the binary
 witness alphabet embeds. -/

@@ -19,7 +19,6 @@ enumerable but not recursive; the recursive-enumerability proof lives in
 
 /-- Unary halting language: a word is accepted when its length decodes to a code that
 halts on input `0`.  This is the language of all halting Turing machines. -/
-@[expose]
 public def haltingUnaryLanguage : Language Unit :=
   fun w => ((Nat.Partrec.Code.ofNatCode w.length).eval 0).Dom
 

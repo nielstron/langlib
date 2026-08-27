@@ -25,6 +25,7 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
+omit [Fintype T] in
 private theorem take_one_append_eq
     {common left right : List T}
     (h : left.take 1 = right.take 1) :

@@ -55,7 +55,6 @@ public theorem shiftBuffer_observe_cons_of_last_none (k : ℕ) (hk : 0 < k)
 /-- Physical input still unread after preloading a `k`-symbol observation.
 If the word is shorter than the buffer, its marker has already been consumed;
 otherwise the suffix is embedded and followed by the fresh marker. -/
-@[expose]
 public def unreadAfter (k : ℕ) (w : List T) : List (Option T) :=
   if k ≤ w.length then (w.drop k).map some ++ [none] else []
 

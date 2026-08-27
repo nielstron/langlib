@@ -37,8 +37,8 @@ theorem noncontracting_finite_to_LBA [Fintype T] [DecidableEq T]
       (_ : DecidableEq Γ) (_ : DecidableEq Λ)
       (M : LBA.Machine (Option (T ⊕ Γ)) Λ),
       LBA.LanguageViaEmbed M (fun t => some (Sum.inl t)) = grammar_language g₀ := by
-  haveI : Fintype g₀.nt := Fintype.ofFinite _
-  haveI : DecidableEq g₀.nt := Classical.decEq _
+  have : Fintype g₀.nt := Fintype.ofFinite _
+  have : DecidableEq g₀.nt := Classical.decEq _
   refine ⟨KGamma g₀, KState g₀, inferInstance, inferInstance, inferInstance, inferInstance,
     kMachine g₀, ?_⟩
   funext w

@@ -57,6 +57,7 @@ concatenation.
 
 variable {T : Type}
 
+@[reducible]
 def combined_grammar (gₗ gᵣ : CF_grammar T) : CF_grammar T :=
 CF_grammar.mk
   (Option (gₗ.nt ⊕ gᵣ.nt))
@@ -81,6 +82,7 @@ private def oN₂_of_N {g₁ g₂ : CF_grammar T} : (combined_grammar g₁ g₂)
 | (some (Sum.inr nt)) => some nt
 
 
+@[reducible]
 private def g₁g (g₁ g₂ : CF_grammar T) : @lifted_grammar T :=
 lifted_grammar.mk g₁ (combined_grammar g₁ g₂) (some ∘ Sum.inl) (by
   -- prove `function.injective (some ∘ Sum.inl)` here
@@ -165,12 +167,12 @@ lifted_grammar.mk g₁ (combined_grammar g₁ g₂) (some ∘ Sum.inl) (by
           cases r₂_convert_r
           rcases r_ntype with ⟨n₁, r_ntype⟩
           simp [rule_of_rule₂] at r_ntype
-          cases r_ntype
 ) (by
   intro
   rfl
 )
 
+@[reducible]
 private def g₂g (g₁ g₂ : CF_grammar T) : @lifted_grammar T :=
 lifted_grammar.mk g₂ (combined_grammar g₁ g₂) (some ∘ Sum.inr) (by
   -- prove `function.injective (some ∘ Sum.inr)` here
@@ -243,7 +245,6 @@ lifted_grammar.mk g₂ (combined_grammar g₁ g₂) (some ∘ Sum.inr) (by
           rcases r_ntype with ⟨n₂, r_ntype⟩
           cases r₁_convert_r
           simp [rule_of_rule₁] at r_ntype
-          cases r_ntype
       | inr r_in =>
           rw [List.mem_map] at r_in
           rcases r_in with ⟨r₂, r₂_in, r₂_convert_r⟩
@@ -545,15 +546,10 @@ by
 private lemma self_of_lsTN₁ {g₁ g₂ : CF_grammar T} (stri : List (symbol T g₁.nt)) :
   lsTN₁_of_lsTN (@lsTN_of_lsTN₁ _ _ g₂ stri) = stri :=
 by
-  unfold lsTN_of_lsTN₁
-  unfold lsTN₁_of_lsTN
-  rw [List.filterMap_map]
-  have hfun :
-      (sTN₁_of_sTN (g₁ := g₁) (g₂ := g₂) ∘ sTN_of_sTN₁ (g₁ := g₁) (g₂ := g₂)) =
-        (fun x => some x) := by
-    funext x
-    simpa using (self_of_sTN₁ (g₁ := g₁) (g₂ := g₂) x)
-  simp [hfun, List.filterMap_some (l := stri)]
+  induction stri with
+  | nil => rfl
+  | cons a stri ih =>
+      simp [lsTN₁_of_lsTN, lsTN_of_lsTN₁, self_of_sTN₁]
 
 variable {g₁ g₂ : CF_grammar T}
 def combined_rule_of_rule₁ (r : g₁.nt × (List (symbol T g₁.nt))) :
@@ -566,15 +562,10 @@ def combined_rule_of_rule₂ (r : g₂.nt × (List (symbol T g₂.nt))) :
 private lemma self_of_lsTN₂ {g₁ g₂ : CF_grammar T} (stri : List (symbol T g₂.nt)) :
   lsTN₂_of_lsTN (@lsTN_of_lsTN₂ _ g₁ _ stri) = stri :=
 by
-  unfold lsTN_of_lsTN₂
-  unfold lsTN₂_of_lsTN
-  rw [List.filterMap_map]
-  have hfun :
-      (sTN₂_of_sTN (g₁ := g₁) (g₂ := g₂) ∘ sTN_of_sTN₂ (g₁ := g₁) (g₂ := g₂)) =
-        (fun x => some x) := by
-    funext x
-    simpa using (self_of_sTN₂ (g₁ := g₁) (g₂ := g₂) x)
-  simp [hfun]
+  induction stri with
+  | nil => rfl
+  | cons a stri ih =>
+      simp [lsTN₂_of_lsTN, lsTN_of_lsTN₂, self_of_sTN₂]
 
 private lemma lsTN_of_lsTN₁_of_good {g₁ g₂ : CF_grammar T}
     (w : List (symbol T (combined_grammar g₁ g₂).nt))

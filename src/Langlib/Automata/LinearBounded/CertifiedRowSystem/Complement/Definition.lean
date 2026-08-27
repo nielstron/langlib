@@ -76,7 +76,7 @@ public theorem no_final_iff_abstract_counting_certificate
             (FiniteReachabilityCounting.FinalRejection
               (rowEdge S) (inputRow S input) (Fintype.card (FixedRow A n)) count
               (rowFinal S)) := by
-  letI : DecidableRel (rowEdge S : FixedRow A n → FixedRow A n → Prop) :=
+  let : DecidableRel (rowEdge S : FixedRow A n → FixedRow A n → Prop) :=
     Classical.decRel _
   exact FiniteReachabilityCounting.no_reachable_final_iff_counting_certificate
     (rowEdge S) (inputRow S input)
@@ -123,7 +123,13 @@ public inductive ProtocolPhase where
   | finalWitness
   | finalFinish
   | accept
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, Repr
+
+public instance : Fintype ProtocolPhase :=
+  Fintype.ofList
+    [.input, .roundStart, .chooseInner, .path, .finishWitness, .finishOuter,
+      .finishRound, .finalChoose, .finalPath, .finalWitness, .finalFinish, .accept]
+    (by intro x; cases x <;> simp)
 
 /-- Source-alphabet tracks grouped to keep finite-instance synthesis shallow. -/
 public structure VertexTracks (A : Type*) [Fintype A] where
@@ -348,7 +354,14 @@ public inductive ProtocolAction where
   | finalPathStep
   | finalFinishWitness
   | finalFinish
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, Repr
+
+public instance : Fintype ProtocolAction :=
+  Fintype.ofList
+    [.boot, .beginRound, .beginFinal, .skipInner, .startPath, .pathStep,
+      .finishWitness, .finishOuter, .finishRound, .finalSkip, .finalStartPath,
+      .finalPathStep, .finalFinishWitness, .finalFinish]
+    (by intro x; cases x <;> simp)
 
 
 end Complement

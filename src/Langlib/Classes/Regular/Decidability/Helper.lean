@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Utilities.ComputabilityPredicates
 public import Langlib.Classes.ContextFree.Decidability.Helper
@@ -66,6 +66,7 @@ public instance [Primcodable T] : Primcodable (EncodedRG T) :=
   inferInstanceAs (Primcodable (ℕ × ℕ × List (ℕ × Option (T × Option ℕ))))
 
 /-- The right-hand side of a rule body in `EncodedCFG` symbol format. -/
+@[reducible]
 public def bodyToRHS : Option (T × Option ℕ) → List (ℕ ⊕ T)
   | none => []
   | some (a, none) => [Sum.inr a]
@@ -75,6 +76,7 @@ public def bodyToRHS : Option (T × Option ℕ) → List (ℕ ⊕ T)
 
 The nonterminal count and initial index are kept; each right-regular rule body is
 expanded to its context-free right-hand side via `bodyToRHS`. -/
+@[reducible]
 public def toCFG (c : EncodedRG T) : EncodedCFG T :=
   (c.1, c.2.1, c.2.2.map (fun r => (r.1, bodyToRHS r.2)))
 

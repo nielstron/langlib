@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2026 Niels Mündler. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Classes.Linear.Definition
 public import Langlib.Grammars.Unrestricted.Toolbox
@@ -50,7 +50,7 @@ public inductive Spine {T : Type} (g : grammar T) : g.nt → List T → Type
 namespace Spine
 
 /-- Soundness: a spine gives an actual derivation `B ⇒* w`. -/
-public def derives : {B : g.nt} → {w : List T} → Spine g B w →
+public theorem derives : {B : g.nt} → {w : List T} → Spine g B w →
     grammar_derives g [symbol.nonterminal B] (List.map symbol.terminal w)
   | _, _, last B m h =>
       grammar_deri_of_tran ⟨_, h, [], [], by simp, by simp⟩
@@ -315,7 +315,9 @@ public lemma splitAt_add : ∀ (i d : ℕ) {B : g.nt} {w : List T} (s : Spine g 
             splitAt_cons_succ_inner]
           refine ⟨ihC, ?_, ?_⟩
           · rw [ihu, List.append_assoc]
+            rfl
           · rw [ihy, List.append_assoc]
+            rfl
 
 /-- The root nonterminal of any spine is the input nonterminal of one of its rules. -/
 public lemma root_mem {B : g.nt} {w : List T} (s : Spine g B w) :

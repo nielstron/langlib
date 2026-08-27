@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Automata.FiniteState.Inclusion.DeterministicPushdown
 public import Langlib.Classes.DeterministicContextFree.Closure.Bijection
@@ -57,11 +57,11 @@ public theorem DFA_strict_subclass_DPDA_of_embedding (e : Bool ↪ T) :
   exact map_anbn_not_isRegular e.injective hregular
 
 /-- DFA languages are strictly contained in DPDA languages over every finite
-alphabet with at least two symbols. -/
+alphabet with at least 2 elements. -/
 public theorem DFA_strict_subclass_DPDA_of_card
     (hT : 2 ≤ Fintype.card T) :
     (DFA.Class : Set (Language T)) ⊂ DPDA.Class := by
-  letI : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
+  let : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
     (lt_of_lt_of_le (by decide) hT)
   obtain ⟨e⟩ := Function.Embedding.nonempty_of_card_le (by simpa using hT :
     Fintype.card Bool ≤ Fintype.card T)
@@ -86,11 +86,11 @@ public theorem NFA_strict_subclass_DPDA_of_embedding (e : Bool ↪ T) :
   exact map_anbn_not_isRegular e.injective hregular
 
 /-- NFA languages are strictly contained in DPDA languages over every finite
-alphabet with at least two symbols. -/
+alphabet with at least 2 elements. -/
 public theorem NFA_strict_subclass_DPDA_of_card
     (hT : 2 ≤ Fintype.card T) :
     (NFA.Class : Set (Language T)) ⊂ DPDA.Class := by
-  letI : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
+  let : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
     (lt_of_lt_of_le (by decide) hT)
   obtain ⟨e⟩ := Function.Embedding.nonempty_of_card_le (by simpa using hT :
     Fintype.card Bool ≤ Fintype.card T)

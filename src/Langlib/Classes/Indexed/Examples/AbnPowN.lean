@@ -2,7 +2,6 @@ module
 
 public import Langlib.Classes.Indexed.Basics.Shrinking
 public import Langlib.Examples.AbnPowN
-import Mathlib.Data.List.SplitOn
 import Mathlib.Data.List.Flatten
 
 @[expose]
@@ -25,7 +24,7 @@ private def isA (b : Bool) : Bool := !b
 
 private lemma splitOnA_replicate_true (n : Nat) :
     (replicate n true).splitOnP isA = [replicate n true] := by
-  apply List.splitOnP_eq_single
+  apply List.splitOnP_eq_singleton
   intro b hb
   have : b = true := by simpa using (List.eq_of_mem_replicate hb)
   subst b
@@ -40,7 +39,7 @@ private lemma splitOnA_blockPower (n m : Nat) :
       rw [show blockPower n (m + 1) =
         blockPower n m ++ false :: replicate n true by
           simpa [blockPower, abBlock] using blockPower_add n m 1]
-      rw [List.splitOnP_append_cons isA _ _ false (by decide), ih,
+      rw [List.splitOnP_append_cons _ _ (p := isA) (sep := false) (by decide), ih,
         splitOnA_replicate_true]
       simp [List.replicate_add]
 
@@ -56,8 +55,9 @@ private lemma replicate_true_mem_tail_splitOnA_of_gap_infix {n : Nat}
   rw [show pre ++ (false :: replicate n true ++ [false]) ++ post =
       pre ++ false :: (replicate n true ++ false :: post) by
         simp [List.append_assoc]]
-  rw [List.splitOnP_append_cons isA pre _ false (by decide)]
-  rw [List.splitOnP_append_cons isA (replicate n true) post false (by decide)]
+  rw [List.splitOnP_append_cons pre _ (p := isA) (sep := false) (by decide)]
+  rw [List.splitOnP_append_cons (replicate n true) post (p := isA)
+    (sep := false) (by decide)]
   rw [splitOnA_replicate_true]
   simp [hpre]
 
@@ -197,7 +197,7 @@ private lemma flatten_length_lt_of_proper_nonempty_sublist
       have hflatLe := hsub.flatten.length_le
       simp only [List.flatten_cons, List.length_append]
       omega
-  | cons₂ head hsub ih =>
+  | cons_cons head hsub ih =>
       have htailProper := hproper
       simp only [List.length_cons, Nat.add_lt_add_iff_right] at htailProper
       have htailLt := ih htailProper (fun piece hpiece =>
@@ -325,5 +325,3 @@ public theorem abnPowN_not_is_Indexed :
   have hnq : n = q := gap_rigid_in_blockPower hgapNew
   subst q
   exact (Nat.ne_of_lt hnewLengthLt) (congrArg List.length hshape)
-
-

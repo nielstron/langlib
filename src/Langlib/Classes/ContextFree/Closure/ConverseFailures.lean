@@ -68,7 +68,7 @@ there exist CF languages `L₁`, `L₂` whose intersection `L₁ ⊓ L₂` is no
 private lemma exists_nonCF_language :
     ∃ (T : Type) (L₁ L₂ : Language T), is_CF L₁ ∧ is_CF L₂ ∧ ¬ is_CF (L₁ ⊓ L₂) := by
   have h := nnyCF_of_CF_i_CF
-  push_neg at h
+  push Not at h
   obtain ⟨L₁, L₂, ⟨hL₁, hL₂⟩, hI⟩ := h
   exact ⟨(Fin 3), L₁, L₂, hL₁, hL₂, hI⟩
 

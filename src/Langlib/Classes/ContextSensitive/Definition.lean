@@ -16,17 +16,14 @@ all rules are non-contracting, except for an optional distinguished start rule `
 variable {T : Type}
 
 /-- The distinguished empty-word rule `S → ε`. -/
-@[expose]
 public def initial_epsilon_rule (g : grammar T) (r : grule T g.nt) : Prop :=
   r.input_L = [] ∧ r.input_N = g.initial ∧ r.input_R = [] ∧ r.output_string = []
 
 /-- The non-contracting rule condition for a single unrestricted grammar rule. -/
-@[expose]
 public def grule_noncontracting {N : Type} (r : grule T N) : Prop :=
   r.output_string.length ≥ r.input_L.length + 1 + r.input_R.length
 
 /-- The start symbol does not occur on the right-hand side of any rule. -/
-@[expose]
 public def initial_not_on_rhs (g : grammar T) : Prop :=
   ∀ r ∈ g.rules, symbol.nonterminal g.initial ∉ r.output_string
 
@@ -39,7 +36,6 @@ grammar: it guarantees that `S` only ever appears as the initial sentential form
 the erasing rule `S → ε` contributes exactly the empty word (and nothing else). Without it,
 rules such as `S → SS` together with `S → ε` would allow contracting derivations of
 non-empty words, taking the grammar outside the context-sensitive (linear-bounded) class. -/
-@[expose]
 public def grammar_context_sensitive (g : grammar T) : Prop :=
   (∀ r ∈ g.rules, initial_epsilon_rule g r ∨ grule_noncontracting r) ∧
   ((∃ r ∈ g.rules, initial_epsilon_rule g r) → initial_not_on_rhs g)
@@ -55,7 +51,6 @@ public theorem grammar_context_sensitive_of_noncontracting (g : grammar T)
   simp at this
 
 /-- Predicate that a language is context-sensitive. -/
-@[expose]
 public def is_CS (L : Language T) : Prop :=
   ∃ g : grammar T, grammar_context_sensitive g ∧ grammar_language g = L
 
@@ -66,11 +61,9 @@ public theorem is_CS_of_is_noncontracting {L : Language T} (h : is_noncontractin
   exact ⟨g, grammar_context_sensitive_of_noncontracting g hg, hL⟩
 
 /-- Characterization of context-sensitive languages via ε-free context-preserving grammars. -/
-@[expose]
 public def is_CS_via_csg (L : Language T) : Prop :=
   ∃ g : CS_grammar T, CS_language g = L
 
 /-- The class of context-sensitive languages. -/
-@[expose]
 public def CS : Set (Language T) :=
-  setOf is_CS
+  Set.ofPred is_CS

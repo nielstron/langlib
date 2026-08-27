@@ -58,8 +58,7 @@ open List
 variable {T : Type}
 
 /-- Convert a context-free grammar to an indexed grammar (with no flags). -/
-@[expose]
-public def indexed_of_cfg (g : CF_grammar T) : IndexedGrammar T where
+public abbrev indexed_of_cfg (g : CF_grammar T) : IndexedGrammar T where
   nt := g.nt
   flag := Empty
   initial := g.initial
@@ -126,7 +125,7 @@ private lemma stacks_empty (g : CF_grammar T)
       | IndexedGrammar.ISym.terminal _ => True
       | IndexedGrammar.ISym.indexed _ σ => σ = [] := by
         contrapose h;
-        push_neg at h;
+        push Not at h;
         obtain ⟨ s, hs₁, hs₂ ⟩ := h;
         cases s <;> simp_all +decide [ indexed_of_cfg ];
         cases ‹List ( indexed_of_cfg g ).flag› <;> tauto
@@ -183,7 +182,10 @@ public theorem indexed_of_cfg_language (g : CF_grammar T) :
     rwa [decode_terminal_map] at this
   · intro h
     have hd := cf_deri_to_indexed_deri g h
-    convert hd using 1 ; simp [cf_to_isym, List.map_map, Function.comp_def, indexed_of_cfg]
+    convert hd using 1
+    · rfl
+    · rw [List.map_map]
+      exact (cf_to_isym_terminal_map g w).symm
 
 
 /-- Every context-free language is an indexed language. -/

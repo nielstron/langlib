@@ -31,7 +31,6 @@ variable {Code Input Output : Type}
 /-- A uniform partial-recursive evaluator which is guaranteed to return on every
 input whenever its raw code satisfies `valid`.  No effectiveness assumption is
 made about the semantic promise itself. -/
-@[expose]
 public def ComputableOnPromise
     [Primcodable Code] [Primcodable Input] [Primcodable Output]
     (valid : Code → Prop) (eval : Code → Input →. Output) : Prop :=
@@ -39,7 +38,6 @@ public def ComputableOnPromise
 
 /-- A uniform partial-recursive Boolean evaluator which, on valid codes, always
 returns and returns `true` exactly when `relation c x` holds. -/
-@[expose]
 public def DecidesOnPromise
     [Primcodable Code] [Primcodable Input]
     (valid : Code → Prop) (eval : Code → Input →. Bool)
@@ -53,7 +51,6 @@ Boolean evaluator is total and correct at every input satisfying `valid`.
 Unlike `ComputablePred`, the evaluator may diverge away from the promise.  This is
 essential for semantic promises such as "this program halts on every word": the raw
 program syntax is effectively encoded even though validity itself is undecidable. -/
-@[expose]
 public def ComputablePredOnPromise [Primcodable Code]
     (valid : Code → Prop) (predicate : Code → Prop) : Prop :=
   ∃ eval : Code →. Bool, Partrec eval ∧

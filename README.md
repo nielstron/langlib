@@ -43,10 +43,15 @@ classes.
 |  |  |  | ⊊ [🔗](src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean)  |
 | Recursively Enumerable | Unrestricted [🔗](src/Langlib/Grammars/Unrestricted/Definition.lean) | ⇔ [🔗](src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean) | Turing-machines [🔗](src/Langlib/Automata/Turing/Definition.lean) |
 
-The strict inclusion Indexed ⊊ CS is formalized for finite alphabets with at least two
-symbols. The underlying inclusion Indexed ⊆ CS
+The strict inclusion Indexed ⊊ CS is formalized for finite alphabets with at least 2
+elements. The underlying inclusion Indexed ⊆ CS
 [🔗](src/Langlib/Classes/Indexed/Inclusion/ContextSensitive.lean) holds over every
 terminal type.
+
+All headline strict-inclusion theorems quantify over an arbitrary finite terminal
+alphabet: at least 2 elements for RG ⊊ Linear, RG ⊊ DCF, and Indexed ⊊ CS;
+at least 3 elements for DCF ⊊ CF and CF ⊊ Indexed; at least 4 elements for
+Linear ⊊ CF; and at least 1 element for CS ⊊ Recursive and Recursive ⊊ RE.
 
 **Additional results**
 
@@ -96,6 +101,25 @@ Additional CFL results:
 Additional CSL results:
 
 - [Terminal bijections](src/Langlib/Classes/ContextSensitive/Closure/Bijection.lean)
+
+### Palomar challenge
+
+The repository root contains a Palomar statement/proof split:
+
+- [`Challenge.lean`](Challenge.lean) imports only Mathlib and gives transparent
+  definitions plus the theorem statements for the grammar hierarchy, automata
+  characterizations, strict inclusions, and the closure table above.
+- [`Solution.lean`](Solution.lean) imports `Langlib`, whose existing declarations
+  supply the proofs registered in [`comparator.json`](comparator.json).
+
+The challenge intentionally excludes the decidability results for this submission.
+Its scope also reflects the current limits of the library: indexed languages are
+defined by indexed grammars, but nested-stack automata and their characterization
+are not yet formalized; linear languages currently have only their grammar
+characterization; deterministic LBAs are included in nondeterministic LBAs, but the
+reverse inclusion is not claimed; and the recursive-language class is presented by
+always-halting Mathlib `TM0` machines rather than by a second, proved-equivalent
+tape-machine model.
 
 ### Decidability
 
@@ -182,3 +206,9 @@ This repository started as a Lean 4 port of
 It further includes a port of the Pumping Lemma proof from [AlexLoitzl/pumping_cfg](https://github.com/AlexLoitzl/pumping_cfg/) and the equivalence proof between CFGs and PDAs from [shetzl/autth](https://github.com/shetzl/autth/tree/PDA).
 
 > A part of this repository was created with the help of [Aristotle](https://aristotle.harmonic.fun). It's an amazing tool for ambitious proofs. Special thanks to the developers to provide this tool to the community!
+
+## License
+
+The repository default is the [BSD 2-Clause License](LICENSE.md). Source files
+with an explicit Apache-2.0 header remain under those file-level terms; see the
+[licensing notice](NOTICE.md) and the included [Apache 2.0 text](licenses/Apache-2.0.txt).

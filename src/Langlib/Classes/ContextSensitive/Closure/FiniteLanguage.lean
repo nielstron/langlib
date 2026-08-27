@@ -37,21 +37,40 @@ public theorem finsetLanguage_is_CS [Fintype T] (s : Finset (List T)) :
   classical
   induction s using Finset.induction_on with
   | empty =>
-      simpa using emptyLanguage_is_CS T
+      have hempty :
+          (fun w : List T => w ∈ (∅ : Finset (List T))) = (⊥ : Language T) := by
+        rw [bot_eq_zero]
+        apply Language.ext
+        intro w
+        constructor
+        · intro hw
+          exact (Finset.notMem_empty w hw).elim
+        · intro hw
+          exact (Language.notMem_zero w hw).elim
+      rw [hempty]
+      exact emptyLanguage_is_CS T
   | insert w s hnot ih =>
       let Lw : Language T := fun u : List T => u = w
       let Ls : Language T := fun u : List T => u ∈ s
       have hsingle : is_CS Lw := by
-        simpa [Lw, singletonWordLanguage] using singletonWordLanguage_is_CS (T := T) w
+        have hLw : Lw = singletonWordLanguage w := by
+          change ({u : List T | u = w} : Set (List T)) = {w}
+          rfl
+        rw [hLw]
+        exact singletonWordLanguage_is_CS (T := T) w
       have hs : is_CS Ls := by
         simpa [Ls] using ih
       have hunion : is_CS (Lw + Ls) :=
         CS_closedUnderUnion Lw Ls hsingle hs
-      convert hunion using 1
-      ext u
-      simp only [Finset.mem_insert]
-      change (u = w ∨ u ∈ s) ↔ (u = w ∨ u ∈ s)
-      rfl
+      have hinsert :
+          (fun u : List T => u ∈ insert w s) = Lw + Ls := by
+        apply Language.ext
+        intro u
+        simp only [Finset.mem_insert, Language.mem_add]
+        change (u = w ∨ u ∈ s) ↔ (u = w ∨ u ∈ s)
+        rfl
+      rw [hinsert]
+      exact hunion
 
 /-- Every finite language over a finite alphabet is context-sensitive. -/
 public theorem is_CS_of_finite_language [Fintype T] {L : Language T}
@@ -60,9 +79,9 @@ public theorem is_CS_of_finite_language [Fintype T] {L : Language T}
   classical
   let s : Finset (List T) := Set.Finite.toFinset hfin
   have hs : (fun w : List T => w ∈ s) = L := by
-    ext w
-    simp [s, Set.Finite.mem_toFinset]
-    rfl
-  simpa [hs] using finsetLanguage_is_CS (T := T) s
+    change (s : Set (List T)) = (L : Set (List T))
+    exact hfin.coe_toFinset
+  rw [← hs]
+  exact finsetLanguage_is_CS (T := T) s
 
 end

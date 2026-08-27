@@ -61,7 +61,7 @@ that operate on contiguous blocks.
 - `tm0_cons_block`: prepending a constant is block-realizable
 -/
 
-open Turing
+open StateTransition Turing
 
 /-! ### Block Realizability Definitions -/
 
@@ -72,7 +72,6 @@ Given a tape `block ++ [sep] ++ suffix`, the TM0 transforms it to
 really the part before the first separator, that the active finite tape has no
 interior blanks, and that `f block` is again a valid block for the same
 separator. -/
-@[expose]
 public def TM0RealizesBlockSep (Γ : Type) [Inhabited Γ] (sep : Γ)
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -90,7 +89,6 @@ public def TM0RealizesBlockSep (Γ : Type) [Inhabited Γ] (sep : Γ)
 
 /-- Strong separator-delimited block realizability: no invariant is required
 of the suffix after the separator. -/
-@[expose]
 public def TM0RealizesBlockSepAnySuffix (Γ : Type) [Inhabited Γ] (sep : Γ)
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -111,7 +109,6 @@ public def TM0RealizesBlockSepAnySuffix (Γ : Type) [Inhabited Γ] (sep : Γ)
     Given a tape `block ++ [default] ++ suffix`, the TM0 transforms
     it to `f(block) ++ [default] ++ suffix`, leaving suffix unchanged.
     This enables "serialized" composition of elementary operations. -/
-@[expose]
 public def TM0RealizesBlock (Γ : Type) [Inhabited Γ] (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
     (M : TM0.Machine Γ Λ),
@@ -126,7 +123,6 @@ public def TM0RealizesBlock (Γ : Type) [Inhabited Γ] (f : List Γ → List Γ)
 
 /-- Strong blank-delimited block realizability: no invariant is required of
 the suffix after the delimiter. -/
-@[expose]
 public def TM0RealizesBlockAnySuffix (Γ : Type) [Inhabited Γ]
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -327,7 +323,8 @@ theorem tm0RealizesBlockSep_iterate {Γ : Type} [Inhabited Γ]
     unfold PFun.fix
     simp +decide [TM0.init]
     grind +suggestions
-  · convert tm0RealizesBlockSep_comp hf ih hf_nd hf_nsep using 1
+  · simpa only [Function.iterate_succ] using
+      tm0RealizesBlockSep_comp hf ih hf_nd hf_nsep
 
 /-- Iterated strong separator-delimited block operations preserve
 realizability. -/
@@ -350,7 +347,8 @@ theorem tm0RealizesBlockSepAnySuffix_iterate {Γ : Type} [Inhabited Γ]
       simp +decide [TM0.init]
       grind +suggestions
   | succ n ih =>
-      convert tm0RealizesBlockSepAnySuffix_comp hf ih hf_nd hf_nsep using 1
+      simpa only [Function.iterate_succ] using
+        tm0RealizesBlockSepAnySuffix_comp hf ih hf_nd hf_nsep
 
 /-- Iterated block operations preserve block-realizability. -/
 theorem tm0RealizesBlock_iterate {Γ : Type} [Inhabited Γ]
@@ -369,8 +367,7 @@ theorem tm0RealizesBlock_iterate {Γ : Type} [Inhabited Γ]
     unfold eval; simp +decide [ TM0.step ] ;
     unfold PFun.fix; simp +decide [ TM0.init ] ;
     grind +suggestions;
-  · convert tm0RealizesBlock_comp hf ih _ using 1;
-    exact hf_nd
+  · simpa only [Function.iterate_succ] using tm0RealizesBlock_comp hf ih hf_nd
 
 /-- Iteration of a non-defaultness-preserving function preserves non-defaultness. -/
 theorem iterate_preserves_nd {Γ₀ : Type} [Inhabited Γ₀]
@@ -430,10 +427,10 @@ public theorem tm0_reverse_blockSep_anySuffix {Γ : Type} [Inhabited Γ] [Decida
   have h_reaches := RevBlock.full_reaches sep block suffix hblock_nd hblock_nsep
   constructor
   · apply Part.dom_iff_mem.mpr
-    exact ⟨_, Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _ _⟩⟩
+    exact ⟨_, StateTransition.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _ _⟩⟩
   · intro h
     have h_mem := Part.get_mem h
-    have h_eval := Turing.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _ _⟩
+    have h_eval := StateTransition.mem_eval.mpr ⟨h_reaches, RevBlock.step_rewindDone _ _⟩
     exact (Part.mem_unique h_mem h_eval).symm ▸ rfl
 
 public theorem tm0_reverse_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
@@ -455,7 +452,6 @@ public theorem tm0_reverse_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fi
 
 /-- The simple cons machine: move left, write c, halt.
     Prepends `c` to the tape by writing at position −1. -/
-@[expose]
 public noncomputable def consSimpleMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (c : Γ) : @TM0.Machine Γ (Fin 3) ⟨0⟩ := fun q _ =>
   match q with
@@ -467,7 +463,7 @@ public theorem consSimpleMachine_halts {Γ : Type} [Inhabited Γ] [DecidableEq �
     (c : Γ) (l : List Γ) :
     (TM0Seq.evalCfg (consSimpleMachine c) l).Dom := by
   refine' Part.dom_iff_mem.mpr _
-  refine' ⟨ _, Turing.mem_eval.mpr ⟨ _, _ ⟩ ⟩
+  refine' ⟨ _, StateTransition.mem_eval.mpr ⟨ _, _ ⟩ ⟩
   exact ⟨ 2, Tape.write c ( Tape.move Dir.left ( Tape.mk₁ l ) ) ⟩
   · refine' Relation.ReflTransGen.head _ _
     exact ⟨ 1, Tape.move Dir.left ( Tape.mk₁ l ) ⟩
@@ -482,14 +478,18 @@ public theorem tape_write_move_left_mk₁ {Γ : Type} [Inhabited Γ]
   cases l <;> simp [Tape.mk₁, Tape.move, Tape.write];
   · unfold Tape.mk₂;
     unfold Tape.mk'; simp +decide [ ListBlank.mk ] ;
-    exact ⟨ rfl, rfl, rfl ⟩;
+    congr
+    change (ListBlank.mk ([] : List Γ)).tail.cons (ListBlank.mk []).head =
+      (ListBlank.mk [c]).tail
+    rw [ListBlank.cons_head_tail]
+    exact (ListBlank.tail_mk ([c] : List Γ)).symm
   · congr
 
 public theorem consSimpleMachine_eval_eq {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (c : Γ) (l : List Γ) :
     ⟨(2 : Fin 3), Tape.write c (Tape.move Dir.left (Tape.mk₁ l))⟩ ∈
       TM0Seq.evalCfg (consSimpleMachine c) l := by
-  refine' Turing.mem_eval.mpr _
+  refine' StateTransition.mem_eval.mpr _
   unfold consSimpleMachine; simp +decide [ TM0.step ]
   constructor
   rotate_right
@@ -592,7 +592,12 @@ public theorem tm0_prependList_blockSep_anySuffix {Γ : Type} [Inhabited Γ] [De
     (hpref_nsep : ∀ g ∈ pref, g ≠ sep) :
     TM0RealizesBlockSepAnySuffix Γ sep (fun block => pref ++ block) := by
   induction pref with
-  | nil => simpa using (tm0_id_blockSep_anySuffix (Γ := Γ) (sep := sep))
+  | nil =>
+    have hfun : (fun block : List Γ => ([] : List Γ) ++ block) = id := by
+      funext block
+      rfl
+    rw [hfun]
+    exact tm0_id_blockSep_anySuffix
   | cons c rest ih =>
     have hc_nd : c ≠ default := hpref_nd c List.mem_cons_self
     have hc_nsep : c ≠ sep := hpref_nsep c List.mem_cons_self
@@ -606,7 +611,12 @@ public theorem tm0_prependList_blockSep_anySuffix {Γ : Type} [Inhabited Γ] [De
         rcases hg with hg | hg
         · exact hrest_nsep g hg
         · exact hblock g hg)
-    simpa [Function.comp, List.cons_append] using hcomp
+    have hfun : ((fun x : List Γ => c :: x) ∘ fun block => rest ++ block) =
+        (fun block => (c :: rest) ++ block) := by
+      funext block
+      rfl
+    rw [← hfun]
+    exact hcomp
 
 public theorem tm0_prependList_blockSep {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fintype Γ]
     {sep : Γ} (pref : List Γ)

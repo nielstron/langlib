@@ -488,6 +488,7 @@ public theorem emptyStack_no_useful_stack_growth (M : DPDA Q T S)
             ⟨source, [], base.filterMap id⟩
             ⟨source, [],
               base.filterMap id ++ extra.filterMap id⟩ := by
+          rw [PDA.Reaches]
           simpa [List.filterMap_append] using
             hprojectTrans.to_reflTransGen
         by_cases hprojectExtra : extra.filterMap id = []
@@ -495,7 +496,9 @@ public theorem emptyStack_no_useful_stack_growth (M : DPDA Q T S)
               (@PDA.Reaches₁ _ _ _ _ _ _ M.firstFinal.toPDA)
               ⟨source, [], base.filterMap id⟩
               ⟨source, [], base.filterMap id⟩ := by
-            simpa [List.filterMap_append, hprojectExtra] using hprojectTrans
+            have hprojectTrans' := hprojectTrans
+            rw [List.filterMap_append, hprojectExtra, List.append_nil] at hprojectTrans'
+            exact hprojectTrans'
           have hcycleUseful : Relation.TransGen
               (@PDA.Reaches₁ _ _ _ _ _ _ M.firstFinal.toPDA)
               ⟨source, input,

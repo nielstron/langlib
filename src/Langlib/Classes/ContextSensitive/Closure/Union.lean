@@ -23,21 +23,21 @@ private inductive UnionNT (N₁ N₂ : Type) where
   | left : N₁ → UnionNT N₁ N₂
   | right : N₂ → UnionNT N₁ N₂
 
-private def unionStartLeft (g₁ g₂ : grammar T) :
+@[reducible] private def unionStartLeft (g₁ g₂ : grammar T) :
     grule T (UnionNT g₁.nt g₂.nt) where
   input_L := []
   input_N := UnionNT.start
   input_R := []
   output_string := [symbol.nonterminal (UnionNT.left g₁.initial)]
 
-private def unionStartRight (g₁ g₂ : grammar T) :
+@[reducible] private def unionStartRight (g₁ g₂ : grammar T) :
     grule T (UnionNT g₁.nt g₂.nt) where
   input_L := []
   input_N := UnionNT.start
   input_R := []
   output_string := [symbol.nonterminal (UnionNT.right g₂.initial)]
 
-private def ncUnionGrammar (g₁ g₂ : grammar T) : grammar T where
+@[reducible] private def ncUnionGrammar (g₁ g₂ : grammar T) : grammar T where
   nt := UnionNT g₁.nt g₂.nt
   initial := UnionNT.start
   rules :=
@@ -46,15 +46,15 @@ private def ncUnionGrammar (g₁ g₂ : grammar T) : grammar T where
     (g₁.rules.map (lift_rule_ (UnionNT.left : g₁.nt → UnionNT g₁.nt g₂.nt)) ++
       g₂.rules.map (lift_rule_ (UnionNT.right : g₂.nt → UnionNT g₁.nt g₂.nt)))
 
-private def sinkLeft (g₁ g₂ : grammar T) : UnionNT g₁.nt g₂.nt → Option g₁.nt
+@[reducible] private def sinkLeft (g₁ g₂ : grammar T) : UnionNT g₁.nt g₂.nt → Option g₁.nt
   | UnionNT.left n => some n
   | _ => none
 
-private def sinkRight (g₁ g₂ : grammar T) : UnionNT g₁.nt g₂.nt → Option g₂.nt
+@[reducible] private def sinkRight (g₁ g₂ : grammar T) : UnionNT g₁.nt g₂.nt → Option g₂.nt
   | UnionNT.right n => some n
   | _ => none
 
-private def lgLeft (g₁ g₂ : grammar T) : lifted_grammar_ T where
+@[reducible] private def lgLeft (g₁ g₂ : grammar T) : lifted_grammar_ T where
   g₀ := g₁
   g := ncUnionGrammar g₁ g₂
   lift_nt := UnionNT.left
@@ -82,21 +82,23 @@ private def lgLeft (g₁ g₂ : grammar T) : lifted_grammar_ T where
     rfl
   corresponding_rules := by
     intro r hr
-    simp only [ncUnionGrammar, List.mem_cons, List.mem_append, List.mem_map]
+    simp only [ncUnionGrammar]
+    simp only [List.mem_cons, List.mem_append, List.mem_map]
     exact Or.inr (Or.inr (Or.inl ⟨r, hr, rfl⟩))
   preimage_of_rules := by
     intro r hr
     rcases hr with ⟨hr, n, hn⟩
-    simp only [ncUnionGrammar, List.mem_cons, List.mem_append, List.mem_map] at hr
+    simp only [ncUnionGrammar] at hr
+    simp only [List.mem_cons, List.mem_append, List.mem_map] at hr
     rcases hr with rfl | rfl | hleft | hright
-    · simp [unionStartLeft] at hn
-    · simp [unionStartRight] at hn
+    · simp at hn
+    · simp at hn
     · rcases hleft with ⟨r₀, hr₀, rfl⟩
       exact ⟨r₀, hr₀, rfl⟩
     · rcases hright with ⟨r₀, _hr₀, rfl⟩
       simp [lift_rule_] at hn
 
-private def lgRight (g₁ g₂ : grammar T) : lifted_grammar_ T where
+@[reducible] private def lgRight (g₁ g₂ : grammar T) : lifted_grammar_ T where
   g₀ := g₂
   g := ncUnionGrammar g₁ g₂
   lift_nt := UnionNT.right
@@ -124,15 +126,17 @@ private def lgRight (g₁ g₂ : grammar T) : lifted_grammar_ T where
     rfl
   corresponding_rules := by
     intro r hr
-    simp only [ncUnionGrammar, List.mem_cons, List.mem_append, List.mem_map]
+    simp only [ncUnionGrammar]
+    simp only [List.mem_cons, List.mem_append, List.mem_map]
     exact Or.inr (Or.inr (Or.inr ⟨r, hr, rfl⟩))
   preimage_of_rules := by
     intro r hr
     rcases hr with ⟨hr, n, hn⟩
-    simp only [ncUnionGrammar, List.mem_cons, List.mem_append, List.mem_map] at hr
+    simp only [ncUnionGrammar] at hr
+    simp only [List.mem_cons, List.mem_append, List.mem_map] at hr
     rcases hr with rfl | rfl | hleft | hright
-    · simp [unionStartLeft] at hn
-    · simp [unionStartRight] at hn
+    · simp at hn
+    · simp at hn
     · rcases hleft with ⟨r₀, _hr₀, rfl⟩
       simp [lift_rule_] at hn
     · rcases hright with ⟨r₀, hr₀, rfl⟩
@@ -142,10 +146,11 @@ private theorem ncUnion_noncontracting (g₁ g₂ : grammar T)
     (h₁ : grammar_noncontracting g₁) (h₂ : grammar_noncontracting g₂) :
     grammar_noncontracting (ncUnionGrammar g₁ g₂) := by
   intro r hr
-  simp only [ncUnionGrammar, List.mem_cons, List.mem_append, List.mem_map] at hr
+  simp only [ncUnionGrammar] at hr
+  simp only [List.mem_cons, List.mem_append, List.mem_map] at hr
   rcases hr with rfl | rfl | hleft | hright
-  · simp [unionStartLeft]
-  · simp [unionStartRight]
+  · simp
+  · simp
   · rcases hleft with ⟨r₁, hr₁, rfl⟩
     simpa [grammar_noncontracting, lift_rule_, lift_string_] using h₁ r₁ hr₁
   · rcases hright with ⟨r₂, hr₂, rfl⟩
@@ -160,12 +165,14 @@ private lemma ncUnion_first_step {g₁ g₂ : grammar T}
   obtain ⟨r, hr, u, v, hbef, haft⟩ := h
   have huv : u = [] ∧ v = [] := by
     have hlen := congrArg List.length hbef
-    simp only [ncUnionGrammar, List.length_cons, List.length_nil, List.length_append] at hlen
+    simp only [ncUnionGrammar] at hlen
+    simp only [List.length_cons, List.length_nil, List.length_append] at hlen
     constructor <;> (rw [← List.length_eq_zero_iff]; omega)
   have hLR : r.input_L = [] ∧ r.input_R = [] := by
     have hlen := congrArg List.length hbef
     rw [huv.1, huv.2] at hlen
-    simp only [ncUnionGrammar, List.nil_append, List.append_nil, List.length_cons,
+    simp only [ncUnionGrammar] at hlen
+    simp only [List.nil_append, List.append_nil, List.length_cons,
       List.length_nil, List.length_append] at hlen
     constructor <;> (rw [← List.length_eq_zero_iff]; omega)
   rw [huv.1, huv.2] at hbef haft
@@ -176,7 +183,8 @@ private lemma ncUnion_first_step {g₁ g₂ : grammar T}
         symbol T (UnionNT g₁.nt g₂.nt)) = symbol.nonterminal UnionNT.start := by
       simpa [ncUnionGrammar] using hbef.symm
     exact symbol.nonterminal.inj hsym
-  simp only [ncUnionGrammar, List.mem_cons, List.mem_append, List.mem_map] at hr
+  simp only [ncUnionGrammar] at hr
+  simp only [List.mem_cons, List.mem_append, List.mem_map] at hr
   rcases hr with rfl | rfl | hleft | hright
   · left
     simpa [unionStartLeft] using haft
@@ -231,18 +239,18 @@ private theorem ncUnion_language (g₁ g₂ : grammar T) :
       refine grammar_deri_of_tran_deri (g := ncUnionGrammar g₁ g₂)
         (v := [symbol.nonterminal (UnionNT.left g₁.initial)]) ?_ ?_
       · exact ⟨unionStartLeft g₁ g₂, by simp [ncUnionGrammar], [], [], by simp [ncUnionGrammar, unionStartLeft],
-          by simp [unionStartLeft]⟩
+          by simp⟩
       · have hlift := lift_deri_ (lgLeft g₁ g₂) hw
-        simpa [lift_string_, lift_symbol_, ncUnionGrammar] using hlift
+        rwa [lift_string_map_terminal_] at hlift
     · change grammar_generates (ncUnionGrammar g₁ g₂) w
       change grammar_generates g₂ w at hw
       unfold grammar_generates at hw ⊢
       refine grammar_deri_of_tran_deri (g := ncUnionGrammar g₁ g₂)
         (v := [symbol.nonterminal (UnionNT.right g₂.initial)]) ?_ ?_
       · exact ⟨unionStartRight g₁ g₂, by simp [ncUnionGrammar], [], [], by simp [ncUnionGrammar, unionStartRight],
-          by simp [unionStartRight]⟩
+          by simp⟩
       · have hlift := lift_deri_ (lgRight g₁ g₂) hw
-        simpa [lift_string_, lift_symbol_, ncUnionGrammar] using hlift
+        rwa [lift_string_map_terminal_] at hlift
 
 private lemma diff_singleton_eq_of_not_mem {L : Language T} (hε : [] ∉ L) :
     L \ ({[]} : Set (List T)) = L := by
@@ -297,12 +305,15 @@ public theorem CS_closedUnderUnion : ClosedUnderUnion (α := T) is_CS := by
   have hG :
       grammar_language G = (L₁ + L₂) \ ({[]} : Set (List T)) := by
     dsimp [G]
-    rw [ncUnion_language, hlang₁', hlang₂', hlang₁, hlang₂, union_diff_singleton]
+    rw [ncUnion_language, hlang₁', hlang₂', hlang₁, hlang₂]
+    exact union_diff_singleton L₁ L₂
   by_cases hε : ([] : List T) ∈ L₁ + L₂
   · have hAdd := is_CS_insert_empty_of_noncontracting G hGnc
-    convert hAdd using 1
-    rw [hG]
-    exact (empty_or_diff_singleton_eq_of_mem hε).symm
+    have heq : (fun w : List T => w = [] ∨ grammar_language G w) = L₁ + L₂ := by
+      rw [hG]
+      exact empty_or_diff_singleton_eq_of_mem hε
+    rw [heq] at hAdd
+    exact hAdd
   · have hNoEmpty : grammar_language G = L₁ + L₂ := by
       rw [hG, diff_singleton_eq_of_not_mem hε]
     exact ⟨G, grammar_context_sensitive_of_noncontracting G hGnc, hNoEmpty⟩

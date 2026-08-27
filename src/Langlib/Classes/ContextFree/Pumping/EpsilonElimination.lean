@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 Authors: Alexander Loitzl
 -/
 
@@ -47,11 +47,9 @@ section NullableDerivations
 variable {g : ContextFreeGrammar T}
 
 /-- `NullableNonTerminal n` holds if `n` can be transformed into the empty string -/
-@[expose]
 public abbrev NullableNonTerminal (n : g.NT) : Prop := g.Derives [Symbol.nonterminal n] []
 
 /-- `NullableWord u` holds if `u` can be transformed into the empty string -/
-@[expose]
 public abbrev NullableWord (u : List (Symbol T g.NT)) : Prop := g.Derives u []
 
 private lemma DerivesIn.empty_of_append_left_aux {u v w : List (Symbol T g.NT)} {m : ℕ}
@@ -388,19 +386,16 @@ variable {N : Type uN} [DecidableEq N]
 
 /-- Check if a symbol is nullable (w.r.t. to set of nullable symbols `p`), i.e.,
  `symbol_is_nullable p s` only holds if `s` is a nonterminal and it is in `p` -/
-@[expose]
 public def symbolIsNullable (p : Finset N) (s : Symbol T N) : Bool :=
   match s with
   | Symbol.terminal _ => False
   | Symbol.nonterminal n => n ∈ p
 
 /-- A rule is nullable if all output symbols are nullable -/
-@[expose]
 public def ruleIsNullable (p : Finset N) (r : ContextFreeRule T N) : Bool :=
   ∀ s ∈ r.output, symbolIsNullable p s
 
 /-- Add the input of a rule as a nullable symbol to `p` if the rule is nullable -/
-@[expose]
 public def addIfNullable (r : ContextFreeRule T N) (p : Finset N) : Finset N :=
   if ruleIsNullable p r then insert r.input p else p
 
@@ -412,7 +407,6 @@ public lemma subset_addIfNullable (r : ContextFreeRule T N) (p : Finset N) :
 variable {g : ContextFreeGrammar T} [DecidableEq g.NT]
 
 /-- `generators g` is the set of all nonterminals that appear in the left hand side of rules of `g` -/
-@[expose]
 public noncomputable def generators (g : ContextFreeGrammar T) [DecidableEq g.NT] : Finset g.NT :=
   (g.rules.toList.map ContextFreeRule.input).toFinset
 
@@ -442,7 +436,6 @@ public lemma addIfNullable_subset_generators {r : ContextFreeRule T g.NT} {p : F
 
 /-- Single round of fixpoint iteration; adds `r.input` to the set of nullable symbols if all symbols in
  `r.output` are nullable -/
-@[expose]
 public noncomputable def addNullables (p : Finset g.NT) : Finset g.NT :=
   g.rules.toList.attach.foldr (fun ⟨r, _⟩ ↦ addIfNullable r) p
 
@@ -464,7 +457,7 @@ public lemma subset_addNullables (p : Finset g.NT) : p ⊆ (addNullables p) := b
 public lemma generators_limits_nullable {p : Finset g.NT}
     (hpg : p ⊆ g.generators) (hne : p ≠ addNullables p) :
     (g.generators).card - (addNullables p).card < (g.generators).card - p.card := by
-  have hp := HasSubset.Subset.ssubset_of_ne (subset_addNullables p) hne
+  have hp := LE.le.ssubset_of_ne (subset_addNullables p) hne
   apply Nat.sub_lt_sub_left
   · apply Nat.lt_of_lt_of_le
     · exact Finset.card_lt_card hp
@@ -472,7 +465,6 @@ public lemma generators_limits_nullable {p : Finset g.NT}
   · exact Finset.card_lt_card hp
 
 /-- Fixpoint iteration computing the set of nullable symbols of `g`. -/
-@[expose]
 public noncomputable def addNullablesIter (p : Finset g.NT) (hpg : p ⊆ g.generators) :=
   if p = addNullables p then
     p
@@ -485,7 +477,6 @@ public noncomputable def addNullablesIter (p : Finset g.NT) (hpg : p ⊆ g.gener
     exact generators_limits_nullable hpg hp
 
 /-- Compute the least-fixpoint of `add_nullable_iter`, i.e., all (and only) nullable symbols -/
-@[expose]
 public noncomputable def computeNullables (g : ContextFreeGrammar T) [DecidableEq g.NT] :=
   addNullablesIter ∅ g.generators.empty_subset
 
@@ -518,6 +509,7 @@ public lemma addNullables_mem_nullableNonTerminal (p : Finset g.NT) (hp : ∀ v 
   | nil => exact hp
   | cons a l ih =>
     simp only [List.foldr_cons, Finset.mem_toList, List.foldr_subtype, addIfNullable]
+    unfold addIfNullable at ih
     split <;> rename_i hd
     · simp only [Finset.mem_insert, forall_eq_or_imp]
       constructor
@@ -671,7 +663,6 @@ section EliminateEmpty
 variable {N : Type uN} [DecidableEq N]
 
 /-- Compute all possible combinations of leaving out nullable nonterminals from `u` -/
-@[expose]
 public def nullableCombinations (p : Finset N) (u : List (Symbol T N)) : List (List (Symbol T N)) :=
   match u with
   | [] => [[]]
@@ -683,7 +674,6 @@ public def nullableCombinations (p : Finset N) (u : List (Symbol T N)) : List (L
     | Symbol.terminal _ => (nullableCombinations p s).map (x :: ·)
 
 /-- Computes all variations of leaving out nullable symbols (except the empty string) of `r` -/
-@[expose]
 public def removeNullableRule (p : Finset N) (r : ContextFreeRule T N) :=
   let fltrmap : List (Symbol T N) → Option (ContextFreeRule T N)
     | [] => Option.none
@@ -693,7 +683,6 @@ public def removeNullableRule (p : Finset N) (r : ContextFreeRule T N) :=
 variable {g : ContextFreeGrammar T}
 
 /-- Compute all variations of leaving out nullable symbols (except the empty string) of `g`s rules -/
-@[expose]
 public noncomputable def removeNullables [DecidableEq T] [DecidableEq g.NT] (p : Finset g.NT) :=
   (g.rules.toList.map (removeNullableRule p)).flatten.toFinset
 
@@ -701,7 +690,6 @@ public noncomputable def removeNullables [DecidableEq T] [DecidableEq g.NT] (p :
 in `g` have a set of corresponding rules in g' in which some nullable symbols do not appear in
 the output. For example if `r: V -> ABC` is in `g` and `A` and `B` are nullable, the rules
 `r₁ : V -> ABC`, `r₂ : V -> BC`, `r₃ : V -> AC`, `r₄ : V -> C` will be in `g.eliminate_empty` -/
-@[expose]
 public noncomputable def eliminateEmpty [DecidableEq T] (g : ContextFreeGrammar T)
     [DecidableEq g.NT] : ContextFreeGrammar T :=
   ⟨g.NT, g.initial, removeNullables g.computeNullables⟩
@@ -793,12 +781,12 @@ public lemma mem_removeNullableRule_nullableRelated [DecidableEq T] {r': Context
 public lemma mem_eliminateEmpty [DecidableEq T] {r : ContextFreeRule T g.NT}
     (hrg : r ∈ g.eliminateEmpty.rules) :
     ∃ r' ∈ g.rules, r.input = r'.input ∧ NullableRelated r.output r'.output := by
-  simp only [eliminateEmpty, removeNullables, List.mem_toFinset, List.mem_flatten, List.mem_map,
-    Finset.mem_toList, exists_exists_and_eq_and] at hrg
-  obtain ⟨r', hgr', hr'⟩ := hrg
-  use r', hgr'
-  apply mem_removeNullableRule_nullableRelated
-  exact hr'
+  change r ∈
+    (g.rules.toList.map (removeNullableRule g.computeNullables)).flatten.toFinset at hrg
+  rw [List.mem_toFinset, List.mem_flatten] at hrg
+  obtain ⟨rs, hrs, hr⟩ := hrg
+  obtain ⟨r', hgr', rfl⟩ := List.mem_map.mp hrs
+  exact ⟨r', Finset.mem_toList.mp hgr', mem_removeNullableRule_nullableRelated (hrg := hr)⟩
 
 public lemma eliminateEmpty_produces_to_derives [DecidableEq T] {u v : List (Symbol T g.NT)}
     (huv : g.eliminateEmpty.Produces u v) :
@@ -920,7 +908,7 @@ public lemma derivesIn_non_empty_to_nullableRelated_derives {u v : List (Symbol 
   cases m with
   | zero =>
     cases huv
-    use u
+    exact ⟨u, NullableRelated.refl u, Derives.refl (g := g.eliminateEmpty) u⟩
   | succ n =>
     obtain ⟨u'', huu'', hvn⟩ := huv.head_of_succ
     obtain ⟨u', hru'', huw'⟩ := derivesIn_non_empty_to_nullableRelated_derives hv hvn
@@ -946,24 +934,33 @@ public lemma derivesIn_to_eliminateEmpty_derives {w : List (Symbol T g.NT)} {n :
     contradiction
 
 public theorem eliminateEmpty_correct : g.language \ {[]} = g.eliminateEmpty.language := by
-  apply Set.eq_of_subset_of_subset <;> intro w hw
-  · rw [Set.mem_diff] at hw
-    obtain ⟨hw', hw''⟩ := hw
+  ext w
+  change (w ∈ g.language ∧ w ∉ ({[]} : Language T)) ↔
+    w ∈ g.eliminateEmpty.language
+  constructor
+  · rintro ⟨hw', hw''⟩
     rw [mem_language_iff, g.derives_iff_derivesIn] at hw'
     obtain ⟨n, hgwn⟩ := hw'
+    rw [mem_language_iff]
     apply derivesIn_to_eliminateEmpty_derives
     · intro hw
-      rw [List.map_eq_nil_iff] at hw
-      rw [hw] at hw''
-      contradiction
+      have hw₀ : w = [] := List.map_eq_nil_iff.mp hw
+      rw [hw₀] at hw''
+      exact hw'' (by
+        change ([] : List T) ∈ ({[]} : Set (List T))
+        simp)
     · exact hgwn
-  · rw [mem_language_iff] at hw
-    rw [Set.mem_diff]
+  · intro hw
+    rw [mem_language_iff] at hw
     constructor
-    · exact eliminateEmpty_derives_to_derives hw
+    · rw [mem_language_iff]
+      exact eliminateEmpty_derives_to_derives hw
     · intro hw'
-      subst hw'
-      simpa using eliminateEmpty_derives_not_empty hw (List.cons_ne_nil _ [])
+      have heq : w = [] := by
+        change w ∈ ({[]} : Set (List T)) at hw'
+        simpa using hw'
+      subst w
+      exact (eliminateEmpty_derives_not_empty hw (List.cons_ne_nil _ [])) rfl
 
 end EliminateEmpty
 

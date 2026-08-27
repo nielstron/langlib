@@ -148,7 +148,6 @@ theorem derives_nil_of_append_left {g : IndexedGrammar T} {u v : List g.ISym}
         intro u v hw
         rw [List.nil_eq_append_iff] at hw
         rw [hw.1]
-        exact g.deri_self []
     | @head a c hstep hrest ih =>
         intro u v hw
         have hstep' : g.Transforms (u ++ v) c := by
@@ -173,7 +172,6 @@ theorem derives_nil_of_append_right {g : IndexedGrammar T} {u v : List g.ISym}
         intro u v hw
         rw [List.nil_eq_append_iff] at hw
         rw [hw.2]
-        exact g.deri_self []
     | @head a c hstep hrest ih =>
         intro u v hw
         have hstep' : g.Transforms (u ++ v) c := by
@@ -476,7 +474,7 @@ theorem NullableRhsSublist.sublist {g : IndexedGrammar T} {σ : List g.flag}
     kept.Sublist rhs := by
   induction h with
   | nil => exact List.Sublist.refl []
-  | keep s h ih => exact ih.cons₂ s
+  | keep s h ih => exact ih.cons_cons s
   | drop_none hnullable h ih =>
       rename_i A rhs kept
       exact List.Sublist.cons (IRhsSymbol.nonterminal A none) ih
@@ -668,6 +666,9 @@ theorem exists_nullableRhsSublist_derives_to_terminals {g : IndexedGrammar T}
             deri_with_prefix (g := g)
               (wh.map fun a => (ISym.terminal a : g.ISym)) hkept_der
           have hcomp := hleft.trans hright
+          change ReflTransGen g.Transforms
+            (g.expandRhs (s :: kept) σ)
+            (((wh ++ wt).map fun a => (ISym.terminal a : g.ISym)))
           simpa [expandRhs, List.map_append] using hcomp
         · intro _ hnil
           cases hnil
@@ -1061,6 +1062,7 @@ theorem prunedDerives_expandRhs_to_terminals_of_forall₂_derivesIn
       ((parts.flatMap fun p => p.2).map fun a => (ISym.terminal a : g.ISym)) := by
   induction hparts with
   | nil =>
+      unfold PrunedDerives
       exact ReflTransGen.refl
   | cons hhead _htail ih =>
       rename_i s part kept parts
@@ -1075,9 +1077,8 @@ theorem prunedDerives_expandRhs_to_terminals_of_forall₂_derivesIn
               simpa [expandRhs] using
                 derivesIn_terminal_singleton_eq (g := g) hder
             subst y
-            simpa [expandRhs] using
-              (ReflTransGen.refl :
-                g.PrunedDerives ([ISym.terminal t] : List g.ISym) [ISym.terminal t])
+            unfold PrunedDerives
+            exact ReflTransGen.refl
         | nonterminal A push =>
             cases push with
             | none =>
@@ -1182,6 +1183,7 @@ theorem exists_initial_rule_nullableRhsSublist_of_generates_nonempty
         have hrest' :
             g.Derives (g.expandRhs r.rhs [])
               (w.map fun a => (ISym.terminal a : g.ISym)) := by
+          unfold IndexedGrammar.Derives
           simpa using hrest
         rcases exists_nullableRhsSublist_derives_to_terminals
             (g := g) (rhs := r.rhs) (σ := []) (w := w) hrest' with
@@ -1390,7 +1392,9 @@ theorem isNullable_cases_rule {g : IndexedGrammar T} {A : g.nt} {σ : List g.fla
           simpa using hw₂
         subst mid
         left
-        exact ⟨r, hr, hA.symm, hc, by simpa [hσ] using hrest⟩
+        refine ⟨r, hr, hA.symm, hc, ?_⟩
+        unfold IndexedGrammar.Derives
+        simpa [hσ] using hrest
     | some f =>
         rw [hc] at hw₁
         rcases singleton_indexed_eq_context hw₁ with ⟨hu, hv, hA, hσ⟩
@@ -1400,7 +1404,9 @@ theorem isNullable_cases_rule {g : IndexedGrammar T} {A : g.nt} {σ : List g.fla
           simpa using hw₂
         subst mid
         right
-        exact ⟨f, ρ, r, hσ, hr, hA.symm, hc, by simpa using hrest⟩
+        refine ⟨f, ρ, r, hσ, hr, hA.symm, hc, ?_⟩
+        unfold IndexedGrammar.Derives
+        simpa using hrest
 
 /-- Nullability propagates backwards along a derivation. -/
 theorem isNullable_of_derives_nullable {g : IndexedGrammar T}
@@ -2288,7 +2294,7 @@ noncomputable def summaryRulesForRule {g : IndexedGrammar T} (S : NullableStackS
     (summaryPrunedRhsList S q r.rhs).filterMap fun kept =>
       if kept = [] then none else some (summaryRuleForKept S r q kept)
 
-noncomputable def epsilonElimSummary {g : IndexedGrammar T} (S : NullableStackSummary g) :
+noncomputable abbrev epsilonElimSummary {g : IndexedGrammar T} (S : NullableStackSummary g) :
     IndexedGrammar T where
   nt := g.nt × S.state
   flag := g.flag × S.state
@@ -2425,7 +2431,7 @@ theorem NullableRhsSublist.toSummary_eval {g : IndexedGrammar T}
       exact SummaryNullableRhsSublist.drop (hcomplete _ _ hnullable) ih
   | drop_some hnullable h ih =>
       exact SummaryNullableRhsSublist.drop (by
-        simpa using hcomplete _ _ hnullable) ih
+        simpa [SummaryDroppableRhsSymbol] using hcomplete _ _ hnullable) ih
 
 @[simp] theorem summaryLiftSF_nil {g : IndexedGrammar T}
     (S : NullableStackSummary g) :
@@ -2594,7 +2600,8 @@ private theorem summaryWellAnnotated_pop_tail {g : IndexedGrammar T}
       S.annotateStack (((f, q) :: σ).map Prod.fst)) :
     q = S.eval (σ.map Prod.fst) ∧
       σ = S.annotateStack (σ.map Prod.fst) := by
-  simpa [NullableStackSummary.annotateStack] using h
+  simpa [NullableStackSummary.eval,
+    NullableStackSummary.annotateStack] using h
 
 theorem summaryTransforms_project_pruned_and_wellAnnotated {g : IndexedGrammar T}
     (S : NullableStackSummary g)
@@ -2639,7 +2646,7 @@ theorem summaryTransforms_project_pruned_and_wellAnnotated {g : IndexedGrammar T
                 ((epsilonElimSummary S).expandRhs (summaryLiftRhs S q kept) σ) =
                 g.expandRhs kept (σ.map Prod.fst) :=
             summaryProject_expandRhs_lift S q kept σ
-          simpa [summaryProjectSF] using hexp
+          simpa [summaryRuleForKept, summaryProjectSF] using hexp
       have htargetWA :
           SummaryWellAnnotatedSF S w₂ := by
         subst w₂
@@ -2676,7 +2683,7 @@ theorem summaryTransforms_project_pruned_and_wellAnnotated {g : IndexedGrammar T
                 ((epsilonElimSummary S).expandRhs (summaryLiftRhs S q kept) σ) =
                 g.expandRhs kept (σ.map Prod.fst) :=
             summaryProject_expandRhs_lift S q kept σ
-          simpa [summaryProjectSF] using hexp
+          simpa [summaryRuleForKept, summaryProjectSF] using hexp
       have htargetWA :
           SummaryWellAnnotatedSF S w₂ := by
         subst w₂
@@ -2719,8 +2726,9 @@ theorem prunedDerives_project_of_epsilonElimSummary_generates {g : IndexedGramma
   rcases prunedDerives_project_of_summaryDerives (g := g) S hsound hgen
       (summaryLiftSF_wellAnnotated S [ISym.indexed g.initial []]) with
     ⟨hpruned, _hwa⟩
+  unfold PrunedDerives at hpruned ⊢
   simpa [Generates, summaryLiftSF, summaryLiftISym, summaryProjectSF,
-    summaryProjectISym] using hpruned
+    summaryProjectISym, Function.comp_def] using hpruned
 
 theorem summaryTransforms_lift_of_prunedTransforms {g : IndexedGrammar T}
     (S : NullableStackSummary g)
@@ -2781,7 +2789,10 @@ theorem epsilonElimSummary_generates_of_generates_nonempty {g : IndexedGrammar T
         (w.map fun a => (ISym.terminal a : g.ISym)) :=
     prunedDerives_initial_of_generates_nonempty (g := g) hgen hw
   have hlift := summaryDerives_lift_of_prunedDerives S hcomplete hpruned
-  simpa [Generates, summaryLiftSF, summaryLiftISym] using hlift
+  unfold IndexedGrammar.Generates
+  unfold IndexedGrammar.Derives at hlift ⊢
+  simpa [summaryLiftSF, summaryLiftISym, Function.comp_def,
+    NullableStackSummary.annotateStack] using hlift
 
 theorem generates_of_epsilonElimSummary_generates {g : IndexedGrammar T}
     (S : NullableStackSummary g)

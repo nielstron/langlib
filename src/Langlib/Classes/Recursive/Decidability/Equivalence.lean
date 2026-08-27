@@ -40,6 +40,7 @@ public theorem equivalence_undecidable [Nonempty T] :
     compileBool_valid emptyTest hemptyTest ()
   have hemptyLanguage : language (T := T) emptyCode = (∅ : Set (List T)) := by
     rw [language_compileBool emptyTest hemptyTest]
+    ext w
     simp [emptyTest]
   obtain ⟨evalEquivalent, hevalPartrec, hevalSpec⟩ := hEquivalent
   let evalEmpty : Code →. Bool := fun c ↦ evalEquivalent (c, emptyCode)

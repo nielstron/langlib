@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Automata.Pushdown.Definition
 import Mathlib.Algebra.Order.Floor.Extended
@@ -93,7 +93,7 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- Embed a DPDA into the nondeterministic PDA framework by converting each `Option`
     transition to the corresponding singleton or empty set. -/
-@[expose]
+@[reducible]
 public noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol
@@ -119,7 +119,6 @@ public noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
     a word `w` is accepted iff the DPDA, starting from its initial configuration,
     can reach a configuration with empty input and an accepting state
     (with any remaining stack contents). -/
-@[expose]
 public def acceptsByFinalState (M : DPDA Q T S) : Language T :=
   M.toPDA.acceptsByFinalState
 
@@ -130,12 +129,10 @@ variable {T : Type} [Fintype T]
 
 /-- A language over a finite terminal alphabet is accepted by some DPDA via final-state
 acceptance. -/
-@[expose]
 public def is_DPDA (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S) (M : DPDA Q T S),
     M.acceptsByFinalState = L
 
 /-- The class of DPDA-recognizable languages. -/
-@[expose]
 public def DPDA.Class : Set (Language T) :=
-  setOf is_DPDA
+  Set.ofPred is_DPDA

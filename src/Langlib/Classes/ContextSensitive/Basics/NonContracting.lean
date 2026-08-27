@@ -47,7 +47,7 @@ open Relation
 variable {T : Type}
 
 /-- The ε-free grammar obtained by deleting every contracting rule of `g`. -/
-private def gFilter (g : grammar T) : grammar T where
+@[reducible] private def gFilter (g : grammar T) : grammar T where
   nt := g.nt
   initial := g.initial
   rules := g.rules.filter
@@ -193,22 +193,24 @@ private lemma derives_nil_eq {g : grammar T} {β : List (symbol T g.nt)}
 /-- **Key lemma.** `gFilter g` generates exactly `L(g)` minus the empty word. -/
 private lemma gFilter_language (g : grammar T) (hg : grammar_context_sensitive g) :
     grammar_language (gFilter g) = grammar_language g \ {[]} := by
-  apply Set.eq_of_subset_of_subset
+  apply Language.ext
+  intro w
+  change grammar_generates (gFilter g) w ↔ grammar_generates g w ∧ w ≠ []
+  constructor
   · -- `⊆`: `gFilter`-derivations are `g`-derivations, and `[] ∉ L(gFilter g)`.
-    rintro w hw
-    have hwg : grammar_generates g w :=
-      gFilter_derives g (by simpa [grammar_generates] using hw)
+    intro hw
+    have hwg : grammar_generates g w := by
+      unfold grammar_generates at hw ⊢
+      exact gFilter_derives g hw
     refine ⟨hwg, ?_⟩
-    rw [Set.mem_singleton_iff]
     rintro rfl
     -- `[] ∉ L(gFilter g)` because `gFilter g` is non-contracting.
     have hd : grammar_derives (gFilter g) [symbol.nonterminal (gFilter g).initial] [] := by
-      simpa [grammar_generates] using hw
+      simpa only [grammar_generates, List.map_nil] using hw
     have hlen := nc_derives_length_le (gFilter_noncontracting g) hd
     simp at hlen
   · -- `⊇`: take `w ∈ L(g)`, `w ≠ []`, show `w ∈ L(gFilter g)`.
-    rintro w ⟨hw, hw0⟩
-    have hwne : w ≠ [] := fun h => hw0 (by rw [Set.mem_singleton_iff, h])
+    rintro ⟨hw, hwne⟩
     have hwne' : (w.map (symbol.terminal (N := g.nt))) ≠ [] := by
       simpa using hwne
     have hd : grammar_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal) := hw

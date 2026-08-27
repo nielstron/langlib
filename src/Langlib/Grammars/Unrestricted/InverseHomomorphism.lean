@@ -65,14 +65,12 @@ variable {T Γ NT : Type}
 
 /-- Lift symbols from `g` (over `Γ`) to the pullback grammar (over `T`).
 Terminals become decoding nonterminals; nonterminals are tagged. -/
-@[expose]
 public def liftSym : symbol Γ NT → symbol T (NT ⊕ Γ)
   | .terminal γ => .nonterminal (Sum.inr γ)
   | .nonterminal n => .nonterminal (Sum.inl n)
 
 /-- Project symbols from the pullback grammar back to `g`.
 Terminals in `T` are mapped via `encode`; nonterminals are untagged. -/
-@[expose]
 public def projSym (encode : T → Γ) : symbol T (NT ⊕ Γ) → symbol Γ NT
   | .terminal t => .terminal (encode t)
   | .nonterminal (Sum.inl n) => .nonterminal n
@@ -90,7 +88,6 @@ public theorem map_projSym_map_liftSym (encode : T → Γ) (l : List (symbol Γ 
 /-! ### Pullback grammar construction -/
 
 /-- Lift a grammar rule from `g` to the pullback grammar. -/
-@[expose]
 public def liftRule (r : grule Γ NT) : grule T (NT ⊕ Γ) where
   input_L := r.input_L.map liftSym
   input_N := Sum.inl r.input_N
@@ -98,7 +95,6 @@ public def liftRule (r : grule Γ NT) : grule T (NT ⊕ Γ) where
   output_string := r.output_string.map liftSym
 
 /-- A decode rule: `(Sum.inr (encode t)) → [terminal t]`. -/
-@[expose]
 public def decodeRule (encode : T → Γ) (t : T) : grule T (NT ⊕ Γ) where
   input_L := []
   input_N := Sum.inr (encode t)
@@ -107,7 +103,7 @@ public def decodeRule (encode : T → Γ) (t : T) : grule T (NT ⊕ Γ) where
 
 /-- The pullback grammar: given grammar `g` over `Γ` and `encode : T → Γ`,
 produces a grammar over `T` that generates `w` iff `g` generates `w.map encode`. -/
-@[expose]
+@[reducible]
 public noncomputable def pullbackGrammar (g : grammar Γ) (encode : T → Γ) [Fintype T] : grammar T where
   nt := g.nt ⊕ Γ
   initial := Sum.inl g.initial
@@ -125,14 +121,23 @@ public theorem transforms_proj (g : grammar Γ) (encode : T → Γ) [Fintype T]
     (sf₁ sf₂ : List (symbol T (g.nt ⊕ Γ)))
     (h : grammar_transforms (pullbackGrammar g encode) sf₁ sf₂) :
     grammar_derives g (sf₁.map (projSym encode)) (sf₂.map (projSym encode)) := by
-  obtain ⟨ r, hr, u, v, rfl, rfl ⟩ := h;
-  unfold pullbackGrammar at hr; simp_all +decide [ List.mem_append ] ;
-  rcases hr with ( ⟨ a, ha, rfl ⟩ | ⟨ a, ha, rfl ⟩ );
-  · -- Apply the definition of `liftRule` and `projSym` to simplify the goal.
-    have h_simp : List.map (projSym encode) (liftRule a).input_L = a.input_L ∧ List.map (projSym encode) (liftRule a).input_R = a.input_R ∧ List.map (projSym encode) (liftRule a).output_string = a.output_string := by
-      exact ⟨ map_projSym_map_liftSym encode a.input_L, map_projSym_map_liftSym encode a.input_R, map_projSym_map_liftSym encode a.output_string ⟩;
-    exact .single ⟨ a, ha, List.map ( projSym encode ) u, List.map ( projSym encode ) v, by aesop ⟩;
-  · convert Relation.ReflTransGen.refl using 1
+  obtain ⟨r, hr, u, v, hsf₁, hsf₂⟩ := h
+  change r ∈ g.rules.map (liftRule (NT := g.nt)) ++
+    Fintype.elems.toList.map (decodeRule (NT := g.nt) encode) at hr
+  rcases List.mem_append.mp hr with hr | hr
+  · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hr
+    apply Relation.ReflTransGen.single
+    refine ⟨a, ha, u.map (projSym encode), v.map (projSym encode), ?_, ?_⟩
+    · rw [hsf₁]
+      simp only [List.map_append, List.map_cons, List.map_nil, liftRule, projSym,
+        map_projSym_map_liftSym]
+    · rw [hsf₂]
+      simp only [List.map_append, liftRule, map_projSym_map_liftSym]
+  · obtain ⟨t, _ht, rfl⟩ := List.mem_map.mp hr
+    rw [hsf₁, hsf₂]
+    simp only [List.map_append, List.map_cons, List.map_nil, decodeRule, projSym,
+      List.append_nil]
+    exact Relation.ReflTransGen.refl
 
 /-
 Derivations in the pullback grammar project to derivations in `g`.
@@ -152,14 +157,12 @@ public theorem pullback_generates_implies_original (g : grammar Γ) (encode : T 
     (w : List T)
     (h : w ∈ grammar_language (pullbackGrammar g encode)) :
     w.map encode ∈ grammar_language g := by
-  contrapose! h;
-  intro hw;
-  obtain ⟨l₁, l₂, hl₁, hl₂, h⟩ : ∃ l₁ l₂, l₁ = [symbol.nonterminal (Sum.inl g.initial)] ∧ l₂ = w.map symbol.terminal ∧ grammar_derives (pullbackGrammar g encode) l₁ l₂ := by
-    exact ⟨ _, _, rfl, rfl, hw ⟩;
-  have h_proj : grammar_derives g (l₁.map (projSym encode)) (l₂.map (projSym encode)) := by
-    exact derives_proj g encode l₁ l₂ h;
-  simp_all +decide [ grammar_language ];
-  exact ‹List.map encode w ∉ setOf ( grammar_generates g ) › ( by simpa [ grammar_generates ] using h_proj )
+  change grammar_derives (pullbackGrammar g encode)
+    [symbol.nonterminal (Sum.inl g.initial)] (w.map symbol.terminal) at h
+  change grammar_derives g [symbol.nonterminal g.initial]
+    ((w.map encode).map symbol.terminal)
+  have h_proj := derives_proj g encode _ _ h
+  simpa [List.map_map, Function.comp_def, projSym] using h_proj
 
 /-! ### Backward direction: g generates encoded ⟹ pullback generates -/
 
@@ -200,9 +203,15 @@ public theorem decode_all (g : grammar Γ) (encode : T → Γ) [Fintype T]
   · constructor;
   · -- Apply the decode rule to the first element of the list.
     have h_decode : grammar_transforms (pullbackGrammar g encode) (List.map (fun t => symbol.nonterminal (Sum.inr (encode t))) (t :: w)) (symbol.terminal t :: List.map (fun t => symbol.nonterminal (Sum.inr (encode t))) w) := by
-      apply Exists.intro (decodeRule encode t);
-      simp +decide [ pullbackGrammar ];
-      exact ⟨ Or.inr ⟨ t, Fintype.complete t, rfl ⟩, [ ], List.map ( fun t => symbol.nonterminal ( Sum.inr ( encode t ) ) ) w, rfl, rfl ⟩;
+      refine ⟨decodeRule encode t, ?_, [],
+        w.map (fun t => symbol.nonterminal (Sum.inr (encode t))), ?_, ?_⟩
+      · change decodeRule encode t ∈ g.rules.map (liftRule (NT := g.nt)) ++
+          Fintype.elems.toList.map (decodeRule (NT := g.nt) encode)
+        apply List.mem_append.mpr
+        right
+        exact List.mem_map.mpr ⟨t, Finset.mem_toList.mpr (Fintype.complete t), rfl⟩
+      · simp only [decodeRule, List.map_cons, List.nil_append, List.singleton_append]
+      · simp only [decodeRule, List.nil_append, List.singleton_append]
     apply grammar_deri_of_deri_deri;
     exact .single h_decode;
     simpa using grammar_deri_with_prefix [ symbol.terminal t ] ih
@@ -215,15 +224,20 @@ public theorem original_generates_implies_pullback (g : grammar Γ) (encode : T 
     (w : List T)
     (h : w.map encode ∈ grammar_language g) :
     w ∈ grammar_language (pullbackGrammar g encode) := by
-  have := h;
-  convert this using 1;
-  constructor <;> intro h';
-  · exact this;
-  · convert Relation.ReflTransGen.trans _ _;
-    exact List.map ( fun t => symbol.nonterminal ( Sum.inr ( encode t ) ) ) w;
-    · convert pullback_derives_of_derives g encode _ _ h' using 1;
-      aesop;
-    · convert decode_all g encode w using 1
+  change grammar_derives g [symbol.nonterminal g.initial]
+    ((w.map encode).map symbol.terminal) at h
+  change grammar_derives (pullbackGrammar g encode)
+    [symbol.nonterminal (Sum.inl g.initial)] (w.map symbol.terminal)
+  have h_lift := pullback_derives_of_derives g encode _ _ h
+  have h_decode := decode_all g encode w
+  have h_mid : ((w.map encode).map (symbol.terminal (N := g.nt))).map
+      (liftSym (T := T)) =
+      w.map (fun t => (symbol.nonterminal (Sum.inr (encode t)) :
+        symbol T (g.nt ⊕ Γ))) := by
+    simp [List.map_map, Function.comp_def, liftSym]
+  rw [h_mid] at h_lift
+  have h_both := grammar_deri_of_deri_deri h_lift h_decode
+  simpa [List.map_map, Function.comp_def, liftSym] using h_both
 
 /-! ### Main theorem -/
 

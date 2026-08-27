@@ -57,7 +57,11 @@ public inductive EqAnyState where
   | seenB
   | trailC
   | onlyC
-  deriving DecidableEq, Fintype
+  deriving DecidableEq
+
+public instance : Fintype EqAnyState :=
+  Fintype.ofList [.start, .seenA, .seenB, .trailC, .onlyC]
+    (by intro x; cases x <;> simp)
 
 
 open EqAnyState ABCStack
@@ -75,7 +79,7 @@ private lemma replicate_append_cons_eq {α : Type} (n : ℕ) (x : α) (rest : Li
   | succ n ih => simp [List.replicate, ih]
 
 /-- DPDA recognizing `{aⁿbⁿcᵐ | n,m ≥ 0}`. -/
-@[expose]
+@[reducible]
 public def dpda_eq_any : DPDA EqAnyState (Fin 3) ABCStack where
   initial_state := EqAnyState.start
   start_symbol := bottom
@@ -105,6 +109,13 @@ public def dpda_eq_any : DPDA EqAnyState (Fin 3) ABCStack where
     | EqAnyState.seenB, bottom => some (trailC, [bottom])
     | _, _ => none
   no_mixed := by decide
+
+private lemma eq_any_reaches_single
+    {c c' : @PDA.conf EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA}
+    (h : @PDA.Reaches₁ EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA c c') :
+    @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA c c' := by
+  unfold PDA.Reaches
+  exact Relation.ReflTransGen.single h
 
 private lemma eq_any_step_read_a_init (rest : List (Fin 3)) :
     @PDA.Reaches₁ EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
@@ -172,12 +183,13 @@ private lemma eq_any_read_as (k : ℕ) (rest : List (Fin 3)) (stk : List ABCStac
     @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
       ⟨EqAnyState.seenA, replicate k a_ ++ rest, mark :: stk⟩
       ⟨EqAnyState.seenA, rest, replicate (k + 1) mark ++ stk⟩ := by
-  induction' k with k ih generalizing rest stk
-  · constructor
-  · specialize ih rest (mark :: stk)
-    convert ih.head _ using 1
-    · simp +decide [replicate_add]
-    · apply eq_any_step_read_a
+  induction k generalizing rest stk with
+  | zero => exact PDA.Reaches.refl _
+  | succ k ih =>
+      have hstep := eq_any_reaches_single (eq_any_step_read_a (replicate k a_ ++ rest) stk)
+      have hrest := ih rest (mark :: stk)
+      simpa [List.replicate, Nat.add_assoc, replicate_append_cons_self] using
+        PDA.Reaches.trans hstep hrest
 
 private lemma eq_any_read_bs (k : ℕ) (rest : List (Fin 3)) (stk : List ABCStack) :
     @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
@@ -208,24 +220,26 @@ private lemma dpda_eq_any_complete (n m : ℕ) :
   rcases n with _ | n
   · rcases m with _ | m
     · use EqAnyState.start
-      refine ⟨by simp [DPDA.toPDA, dpda_eq_any], [bottom], ?_⟩
+      refine ⟨by simp, [bottom], ?_⟩
       change @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
         ⟨EqAnyState.start, [], [bottom]⟩ ⟨EqAnyState.start, [], [bottom]⟩
       rfl
     · use onlyC
       constructor
-      · simp [DPDA.toPDA, dpda_eq_any]
+      · simp
       · use [bottom]
-        convert
-          Relation.ReflTransGen.trans
-            (Relation.ReflTransGen.single (eq_any_step_read_c_init _))
-            (eq_any_read_cs_only m []) using 1
-        simp +decide [List.replicate]
+        have hinit := eq_any_reaches_single (eq_any_step_read_c_init (replicate m c_))
+        have hrest :
+            @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
+              ⟨onlyC, replicate m c_, [bottom]⟩ ⟨onlyC, [], [bottom]⟩ := by
+          simpa using eq_any_read_cs_only m []
+        simpa [List.replicate] using
+          PDA.Reaches.trans hinit hrest
   · use trailC
     constructor
-    · simp [DPDA.toPDA, dpda_eq_any]
+    · simp
     · use [bottom]
-      refine Relation.ReflTransGen.trans (Relation.ReflTransGen.single (eq_any_step_read_a_init _)) ?_
+      refine PDA.Reaches.trans (eq_any_reaches_single (eq_any_step_read_a_init _)) ?_
       let restC := replicate m c_
       have h_as :
           @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
@@ -239,8 +253,8 @@ private lemma dpda_eq_any_complete (n m : ℕ) :
             ⟨EqAnyState.seenA, replicate (n + 1) b_ ++ restC,
               replicate (n + 1) mark ++ [bottom]⟩
             ⟨EqAnyState.seenB, replicate n b_ ++ restC, replicate n mark ++ [bottom]⟩ := by
-        convert Relation.ReflTransGen.single
-          (eq_any_step_read_b_from_a (replicate n b_ ++ restC) (replicate n mark ++ [bottom])) using 1
+        simpa [List.replicate] using eq_any_reaches_single
+          (eq_any_step_read_b_from_a (replicate n b_ ++ restC) (replicate n mark ++ [bottom]))
       have h_bs :
           @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
             ⟨EqAnyState.seenB, replicate n b_ ++ restC, replicate n mark ++ [bottom]⟩
@@ -250,18 +264,17 @@ private lemma dpda_eq_any_complete (n m : ℕ) :
           @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
             ⟨EqAnyState.seenB, restC, [bottom]⟩
             ⟨trailC, restC, [bottom]⟩ :=
-        Relation.ReflTransGen.single (eq_any_step_to_trail restC)
+        eq_any_reaches_single (eq_any_step_to_trail restC)
       have h_cs :
           @PDA.Reaches EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA
             ⟨trailC, restC, [bottom]⟩
             ⟨trailC, [], [bottom]⟩ := by
         simpa [restC] using eq_any_read_cs_trail m []
-      convert
-        Relation.ReflTransGen.trans h_as
-          (Relation.ReflTransGen.trans h_b0
-            (Relation.ReflTransGen.trans h_bs
-              (Relation.ReflTransGen.trans h_eps h_cs))) using 1 ;
-        simp +decide [List.replicate, List.append_assoc, restC]
+      simpa [List.replicate, List.append_assoc, restC] using
+        PDA.Reaches.trans h_as
+          (PDA.Reaches.trans h_b0
+            (PDA.Reaches.trans h_bs
+              (PDA.Reaches.trans h_eps h_cs)))
 
 private def EqAnyInv (w : List (Fin 3))
     (c : @PDA.conf EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA) : Prop :=
@@ -282,11 +295,10 @@ private lemma eq_any_inv_step_state_start (w input : List (Fin 3))
       ⟨EqAnyState.start, input, [bottom]⟩ c') :
     EqAnyInv w c' := by
   rcases input with _ | ⟨x, rest⟩ <;> simp_all +decide [PDA.Reaches₁]
-  · obtain ⟨p, β, hpβ, rfl⟩ := hstep
-    simp_all +decide [dpda_eq_any, DPDA.toPDA]
-  · fin_cases x <;> simp_all +decide [PDA.step, dpda_eq_any, DPDA.toPDA]
-    · exact ⟨1, 0, 0, by simp [a_], by aesop⟩
-    · exact ⟨0, 0, 1, by simp [c_], by aesop⟩
+  obtain ⟨p, β, hpβ, rfl⟩ := hstep
+  fin_cases x <;> simp_all +decide [dpda_eq_any, DPDA.toPDA]
+  · exact ⟨1, 0, 0, by simp [a_], by aesop⟩
+  · exact ⟨0, 0, 1, by simp [c_], by aesop⟩
 
 private lemma eq_any_inv_step_state_seenA (w : List (Fin 3)) (na : ℕ) (input : List (Fin 3))
     (c' : @PDA.conf EqAnyState (Fin 3) ABCStack _ _ _ dpda_eq_any.toPDA)
@@ -423,9 +435,9 @@ private lemma dpda_eq_any_sound (w : List (Fin 3))
   · rcases hstart with ⟨rfl, rfl, rfl, rfl, rfl⟩
     exact ⟨0, 0, by simpa using hw⟩
   · rcases hseenA with ⟨rfl, _, _, _, _⟩
-    simp [DPDA.toPDA, dpda_eq_any] at hq
+    simp at hq
   · rcases hseenB with ⟨rfl, _, _, _, _, _⟩
-    simp [DPDA.toPDA, dpda_eq_any] at hq
+    simp at hq
   · rcases htrail with ⟨rfl, hnb, rfl⟩
     subst nb
     exact ⟨na, nc, by simpa [List.append_assoc] using hw⟩

@@ -105,7 +105,6 @@ membership relation, and is therefore disallowed.
 
 It is the minimal effectivity demanded of a presentation, the common denominator
 across all classes (decidable membership implies it). -/
-@[expose]
 public def MembershipSemiDecidable [Primcodable Code] [Primcodable α]
     (languageOf : Code → Language α) : Prop :=
   REPred (fun p : Code × List α => p.2 ∈ languageOf p.1)
@@ -114,7 +113,6 @@ public def MembershipSemiDecidable [Primcodable Code] [Primcodable α]
 
 Soundness (`∃` direction, read right-to-left): every code denotes a language in `C`.
 Completeness (left-to-right): every language in `C` is denoted by some code. -/
-@[expose]
 public def Characterizes (C : Set (Language α)) (languageOf : Code → Language α) : Prop :=
   ∀ L, L ∈ C ↔ ∃ c, languageOf c = L
 
@@ -123,7 +121,6 @@ and every language in `C` has at least one valid code.
 
 The promise may be semantic.  For example, raw program syntax is computably
 encoded while `valid c` says that program `c` halts on every word. -/
-@[expose]
 public def CharacterizesOn (C : Set (Language α)) (valid : Code → Prop)
     (languageOf : Code → Language α) : Prop :=
   ∀ L, L ∈ C ↔ ∃ c, valid c ∧ languageOf c = L
@@ -148,7 +145,6 @@ membership is uniformly decidable.
 
 The input to the decision predicate is a pair `(c, w)`, with `c` the encoded
 presentation and `w` the candidate word. -/
-@[expose]
 public def ComputableMembership [Primcodable Code] [Primcodable α]
     (C : Set (Language α)) (languageOf : Code → Language α)
     (valid : Code → Prop := fun _ ↦ True) : Prop :=
@@ -159,7 +155,6 @@ public def ComputableMembership [Primcodable Code] [Primcodable α]
 /-- Uniform computability of **emptiness** for the class `C` under the encoding
 `languageOf`: the encoding is an adequate, effective presentation of `C` and
 "`languageOf c = ∅`" is uniformly decidable in the code `c`. -/
-@[expose]
 public def ComputableEmptiness [Primcodable Code] [Primcodable α]
     (C : Set (Language α)) (languageOf : Code → Language α)
     (valid : Code → Prop := fun _ ↦ True) : Prop :=
@@ -170,7 +165,6 @@ public def ComputableEmptiness [Primcodable Code] [Primcodable α]
 /-- Uniform computability of **universality** for the class `C` under the encoding
 `languageOf`: the encoding is an adequate, effective presentation of `C` and
 "`languageOf c = univ`" is uniformly decidable in the code `c`. -/
-@[expose]
 public def ComputableUniversality [Primcodable Code] [Primcodable α]
     (C : Set (Language α)) (languageOf : Code → Language α)
     (valid : Code → Prop := fun _ ↦ True) : Prop :=
@@ -181,7 +175,6 @@ public def ComputableUniversality [Primcodable Code] [Primcodable α]
 /-- Uniform computability of **equivalence** for the class `C` under the encoding
 `languageOf`: the encoding is an adequate, effective presentation of `C` and
 "`languageOf c₁ = languageOf c₂`" is uniformly decidable in the pair of codes. -/
-@[expose]
 public def ComputableEquivalence [Primcodable Code] [Primcodable α]
     (C : Set (Language α)) (languageOf : Code → Language α)
     (valid : Code → Prop := fun _ ↦ True) : Prop :=

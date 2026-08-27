@@ -67,8 +67,14 @@ public theorem is_Recursive_complement {L : Language T} (hL : is_Recursive L) :
     is_Recursive Lᶜ := by
   obtain ⟨ Γ, hΓ, Λ, hΛ, hΛf, M, accept, hHalt, hCorrect ⟩ := hL;
   -- Construct the complement decider using the same machine M but with acceptance predicate `fun q => !accept q`.
-  use Γ, hΓ, Λ, hΛ, hΛf, M, fun q => !accept q;
-  grind
+  refine ⟨Γ, hΓ, Λ, hΛ, hΛf, M, (fun q => !accept q), hHalt, ?_⟩
+  intro w hdom
+  change w ∉ L ↔
+    (!accept ((StateTransition.eval (TM0.step M)
+      (TM0.init (w.map fun t => some (Sum.inl t)))).get hdom).q) = true
+  rw [hCorrect w hdom]
+  cases accept ((StateTransition.eval (TM0.step M)
+    (TM0.init (w.map fun t => some (Sum.inl t)))).get hdom).q <;> simp
 
 /-- A language is recursive iff its complement is recursive. -/
 theorem Recursive_complement_iff {L : Language T} :

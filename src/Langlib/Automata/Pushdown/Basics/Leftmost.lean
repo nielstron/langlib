@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2024 Tobias Leichtfried. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 Authors: Tobias Leichtfried
 -/
 public import Mathlib.Computability.ContextFreeGrammar
@@ -219,14 +219,12 @@ open Symbol
 /-- Given a context-free grammar `g` and strings `u` and `v`
 `g.ProducesLeftmost u v` means that one application of a rule from `g` to the leftmost nonterminal
 of `u` send `u` to `v`. -/
-@[expose]
 public def ProducesLeftmost (g : ContextFreeGrammar T) (u v : List (Symbol T g.NT)) : Prop :=
   ∃ r ∈ g.rules, r.RewritesLeftmost u v
 
 /-- Given a context-free grammar `g` and strings `u` and `v`
 `g.DerivesLeftmost u v` means that `g` can transform `u` to `v` in some number of rewriting steps,
 by applying the transformation always to the leftmost symbol of `u`. -/
-@[expose]
 public abbrev DerivesLeftmost (g : ContextFreeGrammar T) :
     List (Symbol T g.NT) → List (Symbol T g.NT) → Prop :=
   Relation.ReflTransGen g.ProducesLeftmost

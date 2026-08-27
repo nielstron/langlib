@@ -40,6 +40,7 @@ public inductive CopyFlag where
 deriving DecidableEq
 
 /-- Indexed grammar producing a word from `A`, a separator, and its reversal. -/
+@[reducible]
 public def grammarAbnPowMCopy : IndexedGrammar CopyLetter where
   nt := CopyNT
   flag := CopyFlag
@@ -116,20 +117,20 @@ private lemma reverse_map_copyCode_blockPower (n m : Nat) :
 private lemma cStepS : CG.Transforms [cS []] [cX (cStack 0)] := by
   refine ⟨⟨.S, none, [.nonterminal .X (some .bottom)]⟩,
     [], [], [], ?_, rfl, ?_⟩
-  · simp [grammarAbnPowMCopy]
+  · simp
   · simp [IndexedGrammar.expandRhs, cStack]
 
 private lemma cStepX : CG.Transforms [cX (cStack 0)] [cZ (cStack 1)] := by
   refine ⟨⟨.X, none, [.nonterminal .Z (some .count)]⟩,
     [], [], cStack 0, ?_, rfl, ?_⟩
-  · simp [grammarAbnPowMCopy]
+  · simp
   · simp [IndexedGrammar.expandRhs, cStack, replicate_succ]
 
 private lemma cPushZ (n : Nat) :
     CG.Transforms [cZ (cStack n)] [cZ (cStack (n + 1))] := by
   refine ⟨⟨.Z, none, [.nonterminal .Z (some .count)]⟩,
     [], [], cStack n, ?_, rfl, ?_⟩
-  · simp [grammarAbnPowMCopy]
+  · simp
   · simp [IndexedGrammar.expandRhs, cStack_succ]
 
 private lemma cPushZMany (n : Nat) :
@@ -143,7 +144,7 @@ private lemma cStartPairs (n : Nat) :
       [cY (cStack n), cW (cStack n), cQ (cStack n)] := by
   refine ⟨⟨.Z, none, [.nonterminal .Y none, .nonterminal .W none,
     .nonterminal .Q none]⟩, [], [], cStack n, ?_, rfl, ?_⟩
-  · simp [grammarAbnPowMCopy]
+  · simp
   · simp [IndexedGrammar.expandRhs]
 
 private lemma cExpandW (n : Nat) :
@@ -151,7 +152,7 @@ private lemma cExpandW (n : Nat) :
       [cY (cStack n), cW (cStack n), cQ (cStack n)] := by
   refine ⟨⟨.W, none, [.nonterminal .Y none, .nonterminal .W none,
     .nonterminal .Q none]⟩, [], [], cStack n, ?_, rfl, ?_⟩
-  · simp [grammarAbnPowMCopy]
+  · simp
   · simp [IndexedGrammar.expandRhs]
 
 private lemma cExpandWMany (n k : Nat) :
@@ -177,7 +178,7 @@ private lemma cStopW (n : Nat) :
     CG.Transforms [cW (cStack n)] [csep] := by
   refine ⟨⟨.W, none, [.terminal .separator]⟩,
     [], [], cStack n, ?_, rfl, ?_⟩
-  · simp [grammarAbnPowMCopy]
+  · simp
   · simp [IndexedGrammar.expandRhs]
 
 private lemma cConsumeP (n : Nat) :
@@ -186,17 +187,17 @@ private lemma cConsumeP (n : Nat) :
   | zero =>
       exact Relation.ReflTransGen.single
         ⟨⟨.P, some .bottom, []⟩, [], [], [], by
-          simp [grammarAbnPowMCopy], by simp [cStack], by
+          simp, by simp [cStack], by
           simp [IndexedGrammar.expandRhs]⟩
   | succ n ih =>
       apply IndexedGrammar.deri_of_tran_deri
       · refine ⟨⟨.P, some .count,
           [.terminal .b, .nonterminal .P none]⟩,
           [], [], cStack n, ?_, ?_, rfl⟩
-        · simp [grammarAbnPowMCopy]
+        · simp
         · simp [cStack_succ]
       · convert IndexedGrammar.deri_with_prefix [cb] ih using 1 <;>
-          simp [replicate_succ]
+          simp [IndexedGrammar.expandRhs, replicate_succ]
 
 private lemma cConsumeQ (n : Nat) :
     CG.Derives [cQ (cStack n)] (replicate n cb ++ [ca]) := by
@@ -204,17 +205,17 @@ private lemma cConsumeQ (n : Nat) :
   | zero =>
       exact Relation.ReflTransGen.single
         ⟨⟨.Q, some .bottom, [.terminal .a]⟩,
-          [], [], [], by simp [grammarAbnPowMCopy], by simp [cStack], by
+          [], [], [], by simp, by simp [cStack], by
           simp [IndexedGrammar.expandRhs]⟩
   | succ n ih =>
       apply IndexedGrammar.deri_of_tran_deri
       · refine ⟨⟨.Q, some .count,
           [.terminal .b, .nonterminal .Q none]⟩,
           [], [], cStack n, ?_, ?_, rfl⟩
-        · simp [grammarAbnPowMCopy]
+        · simp
         · simp [cStack_succ]
       · convert IndexedGrammar.deri_with_prefix [cb] ih using 1 <;>
-          simp [replicate_succ, List.append_assoc]
+          simp [IndexedGrammar.expandRhs, replicate_succ]
 
 private lemma cGenerateY (n : Nat) :
     CG.Derives [cY (cStack n)]
@@ -222,9 +223,9 @@ private lemma cGenerateY (n : Nat) :
   apply IndexedGrammar.deri_of_tran_deri
   · refine ⟨⟨.Y, none, [.terminal .a, .nonterminal .P none]⟩,
       [], [], cStack n, ?_, rfl, rfl⟩
-    · simp [grammarAbnPowMCopy]
+    · simp
   · convert IndexedGrammar.deri_with_prefix [ca] (cConsumeP n) using 1 <;>
-      simp [copiedBlock, replicate_succ]
+      simp [IndexedGrammar.expandRhs, copiedBlock]
 
 private lemma cGenerateQ (n : Nat) :
     CG.Derives [cQ (cStack n)]
@@ -421,7 +422,7 @@ private lemma cFormSem_context {lhs : CG.ISym} {rhs u v : List CG.ISym}
     (cFormSem_append rhs v wrv).mp hrv
   rw [List.append_assoc]
   apply (cFormSem_append u ([lhs] ++ v) _).mpr
-  refine ⟨wu, wr ++ wv, hu, ?_, by simp [List.append_assoc]⟩
+  refine ⟨wu, wr ++ wv, hu, ?_, by simp⟩
   exact (cFormSem_append [lhs] v _).mpr
     ⟨wr, wv, cFormSem_singleton lhs wr |>.mpr (hsound wr hr), hv, rfl⟩
 
@@ -442,7 +443,7 @@ private lemma cRuleSound (r : IRule CopyLetter CopyNT CopyFlag)
     (h : cFormSem (CG.expandRhs r.rhs s) w) :
     cSymSem (.indexed r.lhs
       (match r.consume with | none => s | some f => f :: s)) w := by
-  simp only [grammarAbnPowMCopy, List.mem_cons, List.not_mem_nil,
+  simp only [List.mem_cons, List.not_mem_nil,
     or_false] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl
@@ -506,6 +507,7 @@ private lemma cRuleSound (r : IRule CopyLetter CopyNT CopyFlag)
         simpa [IndexedGrammar.expandRhs] using h)
     change ∀ n, cHeight s = some n → ∃ m, w = cShape n m
     intro n _hn
+    change w = [.separator] at h'
     exact ⟨0, by simpa [cShape] using h'⟩
   · have h' : cFormSem [ca, cP s] w := by
       simpa [IndexedGrammar.expandRhs] using h
@@ -555,6 +557,7 @@ private lemma cRuleSound (r : IRule CopyLetter CopyNT CopyFlag)
   · have h' : cSymSem ca w :=
       (cFormSem_singleton _ _).mp (by
         simpa [IndexedGrammar.expandRhs] using h)
+    change w = [.a] at h'
     exact ⟨0, rfl, by simpa [copiedBlock] using h'⟩
 
 private lemma cTransforms_sound {x y : List CG.ISym}

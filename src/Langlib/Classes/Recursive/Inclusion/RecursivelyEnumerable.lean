@@ -22,7 +22,7 @@ recursively enumerable.
 - `Recursive_subset_RE` — the class of recursive languages is contained in `RE`.
 -/
 
-open Turing
+open StateTransition Turing
 
 variable {T : Type}
 
@@ -32,7 +32,6 @@ variable {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
 
 /-- Lift a TM0 configuration from state type `Λ` to `Λ ⊕ Unit` by wrapping the
 state in `Sum.inl`. -/
-@[expose]
 public def liftCfg (c : TM0.Cfg Γ Λ) :
     @TM0.Cfg Γ (Λ ⊕ Unit) _ :=
   ⟨Sum.inl c.q, c.Tape⟩
@@ -40,7 +39,6 @@ public def liftCfg (c : TM0.Cfg Γ Λ) :
 /-- Construct a recogniser TM from a decider TM with acceptance predicate.
 The recogniser halts iff the decider would halt in an accepting state;
 when the decider rejects, the recogniser enters an infinite loop. -/
-@[expose]
 public def decider_to_recognizer
     (M : TM0.Machine Γ Λ) (accept : Λ → Bool) :
     @TM0.Machine Γ (Λ ⊕ Unit) ⟨Sum.inl default⟩ :=
@@ -72,13 +70,14 @@ public lemma recognizer_reaches_of_decider_reaches
     (hr : Reaches (TM0.step M) c c') :
     @Reaches _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (decider_to_recognizer M accept))
       (liftCfg c) (liftCfg c') := by
+  unfold StateTransition.Reaches at hr ⊢
   induction hr with
   | refl =>
       constructor
   | tail =>
       rename_i c' hc' ih
-      convert ih.tail _
-      convert recognizer_step_of_decider_step M accept _ _ hc'
+      apply ih.tail
+      simpa using recognizer_step_of_decider_step M accept _ _ hc'
 
 public lemma recognizer_halts_of_accept
     (c : TM0.Cfg Γ Λ)
@@ -108,12 +107,12 @@ public lemma recognizer_inr_reaches_inr (tape : Tape Γ)
   aesop
 
 public lemma recognizer_inr_never_halts (tape : Tape Γ) :
-    ¬ (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
+    ¬ (@StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
       (decider_to_recognizer M accept))
       (⟨Sum.inr (), tape⟩ : @TM0.Cfg _ (Λ ⊕ Unit) _)).Dom := by
   intro h
   obtain ⟨c, hc⟩ := Part.dom_iff_mem.mp h
-  rw [Turing.mem_eval] at hc
+  rw [StateTransition.mem_eval] at hc
   have := recognizer_inr_reaches_inr M accept tape c hc.1
   simp_all +decide [TM0.step]
   unfold decider_to_recognizer at hc
@@ -125,7 +124,7 @@ public lemma recognizer_diverges_of_reject
     (hreach : Reaches (TM0.step M) (TM0.init l) c)
     (hstep : TM0.step M c = none)
     (hrej : accept c.q = false) :
-    ¬ (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
+    ¬ (@StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
           (decider_to_recognizer M accept))
         (@TM0.init _ _ ⟨Sum.inl default⟩ _ l)).Dom := by
   have hrecognizer_step :
@@ -136,44 +135,46 @@ public lemma recognizer_diverges_of_reject
     unfold TM0.step at *
     aesop
   have hrecognizer_never_halts :
-      ¬ (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (decider_to_recognizer M accept))
+      ¬ (@StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _ (decider_to_recognizer M accept))
         (⟨Sum.inr (), c.Tape.move Dir.right⟩ : @TM0.Cfg _ (Λ ⊕ Unit) _)).Dom := by
     apply recognizer_inr_never_halts
-  convert hrecognizer_never_halts using 1
-  rw [Turing.reaches_eval]
-  exact Relation.ReflTransGen.trans
+  have hrecognizer_reaches := Relation.ReflTransGen.trans
     (recognizer_reaches_of_decider_reaches M accept _ _ hreach)
     (by exact Relation.ReflTransGen.single hrecognizer_step)
+  intro hdom
+  apply hrecognizer_never_halts
+  rw [← StateTransition.reaches_eval hrecognizer_reaches]
+  exact hdom
 
 public lemma recognizer_eval_dom_of_accept
     (l : List Γ)
-    (hdom : (Turing.eval (TM0.step M) (TM0.init l)).Dom)
-    (hacc : accept ((Turing.eval (TM0.step M) (TM0.init l)).get hdom).q = true) :
-    (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
+    (hdom : (StateTransition.eval (TM0.step M) (TM0.init l)).Dom)
+    (hacc : accept ((StateTransition.eval (TM0.step M) (TM0.init l)).get hdom).q = true) :
+    (@StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
       (decider_to_recognizer M accept))
       (@TM0.init _ _ ⟨Sum.inl default⟩ _ l)).Dom := by
   have hmem := Part.get_mem hdom
-  have heval := Turing.mem_eval.mp hmem
+  have heval := StateTransition.mem_eval.mp hmem
   have hreach := recognizer_reaches_of_decider_reaches M accept
     (TM0.init l) ((eval (TM0.step M) (TM0.init l)).get hdom) heval.1
   have hhalt := recognizer_halts_of_accept M accept
     ((eval (TM0.step M) (TM0.init l)).get hdom) heval.2 hacc
   rw [Part.dom_iff_mem]
   use liftCfg ((eval (TM0.step M) (TM0.init l)).get hdom)
-  rw [Turing.mem_eval]
+  rw [StateTransition.mem_eval]
   exact ⟨hreach, hhalt⟩
 
 public lemma recognizer_eval_not_dom_of_reject
     (l : List Γ)
-    (hdom : (Turing.eval (TM0.step M) (TM0.init l)).Dom)
-    (hrej : accept ((Turing.eval (TM0.step M) (TM0.init l)).get hdom).q = false) :
-    ¬ (@Turing.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
+    (hdom : (StateTransition.eval (TM0.step M) (TM0.init l)).Dom)
+    (hrej : accept ((StateTransition.eval (TM0.step M) (TM0.init l)).get hdom).q = false) :
+    ¬ (@StateTransition.eval _ (@TM0.step _ _ ⟨Sum.inl default⟩ _
       (decider_to_recognizer M accept))
       (@TM0.init _ _ ⟨Sum.inl default⟩ _ l)).Dom := by
   exact recognizer_diverges_of_reject M accept
     ((eval (TM0.step M) (TM0.init l)).get hdom) l
-    (Turing.mem_eval.mp (Part.get_mem hdom)).1
-    (Turing.mem_eval.mp (Part.get_mem hdom)).2
+    (StateTransition.mem_eval.mp (Part.get_mem hdom)).1
+    (StateTransition.mem_eval.mp (Part.get_mem hdom)).2
     hrej
 
 public lemma recognizer_tm0_eval_iff
@@ -181,10 +182,10 @@ public lemma recognizer_tm0_eval_iff
     (input : List T → List Γ)
     (M : TM0.Machine Γ Λ) (accept : Λ → Bool)
     (halts : ∀ w : List T,
-      (Turing.eval (TM0.step M) (TM0.init (input w))).Dom)
+      (StateTransition.eval (TM0.step M) (TM0.init (input w))).Dom)
     (hmem : ∀ w : List T,
-      ∀ h : (Turing.eval (TM0.step M) (TM0.init (input w))).Dom,
-        w ∈ L ↔ accept ((Turing.eval (TM0.step M)
+      ∀ h : (StateTransition.eval (TM0.step M) (TM0.init (input w))).Dom,
+        w ∈ L ↔ accept ((StateTransition.eval (TM0.step M)
           (TM0.init (input w))).get h).q = true)
     (w : List T) :
     w ∈ L ↔
@@ -194,11 +195,16 @@ public lemma recognizer_tm0_eval_iff
   · intro hwL
     have haccept : accept ((eval (TM0.step M) (TM0.init (input w))).get (halts w)).q = true :=
       (hmem w (halts w)).1 hwL
-    exact recognizer_eval_dom_of_accept M accept (input w) (halts w) haccept
+    simpa [TM0.eval] using
+      recognizer_eval_dom_of_accept M accept (input w) (halts w) haccept
   · contrapose!
     intro hw
-    convert recognizer_eval_not_dom_of_reject M accept (input w) (halts w) _
-    simpa [hw] using hmem w (halts w)
+    have hreject :
+        accept ((StateTransition.eval (TM0.step M) (TM0.init (input w))).get
+          (halts w)).q = false := by
+      simpa [hw] using hmem w (halts w)
+    simpa [TM0.eval] using
+      recognizer_eval_not_dom_of_reject M accept (input w) (halts w) hreject
 
 end RecognizerConstruction
 

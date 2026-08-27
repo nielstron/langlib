@@ -64,7 +64,6 @@ tags, showing the combined grammar generates exactly `L₁ + L₂`.
 
 variable {T : Type}
 
-@[expose]
 public def union_grammar (g₁ g₂ : grammar T) : grammar T :=
 grammar.mk (Option (g₁.nt ⊕ g₂.nt)) none (
   ⟨ [], none, [], [symbol.nonterminal (some (Sum.inl (g₁.initial)))] ⟩ :: (
@@ -191,15 +190,45 @@ by
       rcases List.mem_cons.1 rin with rfl | rin
       · -- First rule: initial → g₁.initial
         left; rw [aft] at deri; dsimp only at deri
-        convert sink_deri_ lg₁ deri (by
-          unfold good_string_; simp only [List.mem_singleton, forall_eq]; exact ⟨g₁.initial, rfl⟩)
-        exact (sink_string_map_terminal_ lg₁.sink_nt w).symm
+        have hsink := sink_deri_ lg₁ deri (by
+          unfold good_string_
+          intro a ha
+          change symbol T (Option (g₁.nt ⊕ g₂.nt)) at a
+          change a ∈ ([symbol.nonterminal (some (Sum.inl g₁.initial))] :
+            List (symbol T (Option (g₁.nt ⊕ g₂.nt)))) at ha
+          rw [List.mem_singleton] at ha
+          subst a
+          unfold good_letter_
+          change ∃ n₀ : g₁.nt,
+            (@oN₁_of_N T g₁ g₂) (some (Sum.inl g₁.initial)) = some n₀
+          exact ⟨g₁.initial, rfl⟩)
+        change grammar_derives g₁
+          (sink_string_ (@oN₁_of_N T g₁ g₂)
+            [symbol.nonterminal (some (Sum.inl g₁.initial))])
+          (sink_string_ (@oN₁_of_N T g₁ g₂) (List.map symbol.terminal w)) at hsink
+        rw [sink_string_map_terminal_ (@oN₁_of_N T g₁ g₂) w] at hsink
+        simpa [sink_string_, sink_symbol_, oN₁_of_N] using hsink
       rcases List.mem_cons.1 rin with rfl | rin
       · -- Second rule: initial → g₂.initial
         right; rw [aft] at deri; dsimp only at deri
-        convert sink_deri_ lg₂ deri (by
-          unfold good_string_; simp only [List.mem_singleton, forall_eq]; exact ⟨g₂.initial, rfl⟩)
-        exact (sink_string_map_terminal_ lg₂.sink_nt w).symm
+        have hsink := sink_deri_ lg₂ deri (by
+          unfold good_string_
+          intro a ha
+          change symbol T (Option (g₁.nt ⊕ g₂.nt)) at a
+          change a ∈ ([symbol.nonterminal (some (Sum.inr g₂.initial))] :
+            List (symbol T (Option (g₁.nt ⊕ g₂.nt)))) at ha
+          rw [List.mem_singleton] at ha
+          subst a
+          unfold good_letter_
+          change ∃ n₀ : g₂.nt,
+            (@oN₂_of_N T g₁ g₂) (some (Sum.inr g₂.initial)) = some n₀
+          exact ⟨g₂.initial, rfl⟩)
+        change grammar_derives g₂
+          (sink_string_ (@oN₂_of_N T g₁ g₂)
+            [symbol.nonterminal (some (Sum.inr g₂.initial))])
+          (sink_string_ (@oN₂_of_N T g₁ g₂) (List.map symbol.terminal w)) at hsink
+        rw [sink_string_map_terminal_ (@oN₂_of_N T g₁ g₂) w] at hsink
+        simpa [sink_string_, sink_symbol_, oN₂_of_N] using hsink
       · -- Impossible: initial can't match any lifted rule
         exfalso
         rcases List.mem_append.1 rin with rin | rin <;> {
@@ -219,10 +248,11 @@ by
     (v := [symbol.nonterminal (some (Sum.inl g₁.initial))]) ?_ ?_
   ·
     refine ⟨⟨ [], none, [], [symbol.nonterminal (some (Sum.inl (g₁.initial)))] ⟩, ?_, ?_⟩
-    · simp [union_grammar]
-    · refine ⟨[], [], ?_, ?_⟩ <;> simp [union_grammar]
+    · exact List.mem_cons_self
+    · refine ⟨[], [], rfl, rfl⟩
   ·
     have lifted := lift_deri_ (@lg₁ _ _ g₂) ass
+    unfold lg₁ at lifted
     rwa [lift_string_map_terminal_] at lifted
 
 public lemma in_union_of_in_L₂ {w : List T} (ass : w ∈ grammar_language g₂) :
@@ -236,10 +266,11 @@ by
     (v := [symbol.nonterminal (some (Sum.inr g₂.initial))]) ?_ ?_
   ·
     refine ⟨⟨ [], none, [], [symbol.nonterminal (some (Sum.inr (g₂.initial)))] ⟩, ?_, ?_⟩
-    · simp [union_grammar]
-    · refine ⟨[], [], ?_, ?_⟩ <;> simp [union_grammar]
+    · exact List.mem_cons_of_mem _ List.mem_cons_self
+    · refine ⟨[], [], rfl, rfl⟩
   ·
     have lifted := lift_deri_ (@lg₂ _ g₁ _) ass
+    unfold lg₂ at lifted
     rwa [lift_string_map_terminal_] at lifted
 
 

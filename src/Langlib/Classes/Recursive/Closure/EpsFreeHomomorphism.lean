@@ -180,7 +180,7 @@ private lemma mem_prod_singletons_iff_flatMap (w : List α) (h : α → List β)
             ({h a} : Language β) * (List.map (fun a => ({h a} : Language β)) w).prod by rfl] at hu
         rw [Language.mem_mul] at hu
         rcases hu with ⟨u₁, hu₁, u₂, hu₂, rfl⟩
-        have hu₁' : u₁ = h a := by simpa using hu₁
+        have hu₁' : u₁ = h a := Set.mem_singleton_iff.mp hu₁
         have hu₂' : u₂ = w.flatMap h := (ih u₂).mp hu₂
         simp [hu₁', hu₂']
       · intro hu
@@ -269,11 +269,11 @@ public theorem is_Recursive_epsFreeHomomorphism {α β : Type}
     is_Recursive L → is_Recursive (L.homomorphicImage h) := by
   intro hL
   classical
-  haveI : DecidableEq α := Classical.decEq _
-  haveI : DecidableEq β := Classical.decEq _
-  haveI : Primcodable α :=
+  have : DecidableEq α := Classical.decEq _
+  have : DecidableEq β := Classical.decEq _
+  have : Primcodable α :=
     Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
-  haveI : Primcodable β :=
+  have : Primcodable β :=
     Primcodable.ofEquiv (Fin (Fintype.card β)) (Fintype.truncEquivFin β).out
   obtain ⟨f, hf, hs⟩ :=
     ComputablePred.computable_iff.mp (Recursive_membership_computable hL)

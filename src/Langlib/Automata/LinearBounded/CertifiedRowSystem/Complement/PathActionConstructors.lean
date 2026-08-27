@@ -93,6 +93,7 @@ public theorem startsPath_iff_tracks
                   houter.2, hinner.2, hpath.2, hfuel.2, holdCount.2,
                   hnewCount.2, hseenCount.2, hfound.2⟩
 
+omit [Nonempty A] in
 private theorem pathStepLocal_of_tracks
     (phase : ProtocolPhase) (old new : ProtocolRow A)
     (h : old.length = new.length ∧

@@ -22,8 +22,8 @@ public theorem Recursive_notClosedUnderSubstitution :
   exact Recursive_notClosedUnderHomomorphism (by
     intro α β _ _ L h hL
     classical
-    haveI : DecidableEq β := Classical.decEq _
-    haveI : Primcodable β :=
+    have : DecidableEq β := Classical.decEq _
+    have : Primcodable β :=
       Primcodable.ofEquiv (Fin (Fintype.card β)) (Fintype.truncEquivFin β).out
     have hsingle : ∀ a : α, is_Recursive ({h a} : Language β) := by
       intro a

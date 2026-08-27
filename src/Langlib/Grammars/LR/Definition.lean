@@ -52,7 +52,6 @@ public def ProducesRightmost (u v : List (symbol T g.nt)) : Prop :=
   ∃ r ∈ g.rules, RewritesRightmost r u v
 
 /-- Rightmost derivation: reflexive-transitive closure of rightmost production. -/
-@[expose]
 public abbrev DerivesRightmost :
     List (symbol T g.nt) → List (symbol T g.nt) → Prop :=
   Relation.ReflTransGen g.ProducesRightmost
@@ -148,12 +147,11 @@ public theorem augmentString_map_terminal (w : List T) :
 
 @[simp]
 public theorem augmentStartRule_mem : augmentStartRule g ∈ g.augment.rules := by
-  simp [augment]
+  exact List.mem_cons_self
 
 public theorem augmentRule_mem {r : g.nt × List (symbol T g.nt)} (hr : r ∈ g.rules) :
     augmentRule r ∈ g.augment.rules := by
-  simp only [augment, List.mem_cons, List.mem_map]
-  exact Or.inr ⟨r, hr, rfl⟩
+  exact List.mem_cons_of_mem _ (List.mem_map.mpr ⟨r, hr, rfl⟩)
 
 /-- Forget the fresh start symbol.  The fresh start itself is sent to the
 original initial nonterminal, so the augmented start production projects to a
@@ -174,6 +172,14 @@ public theorem projectAugmentSymbol_augmentSymbol (a : symbol T g.nt) :
 public def projectAugmentString (w : List (symbol T (Option g.nt))) :
     List (symbol T g.nt) :=
   w.map g.projectAugmentSymbol
+
+private theorem projectAugmentString_append_singleton
+    (p q : List (symbol T (Option g.nt))) (a : symbol T (Option g.nt)) :
+    g.projectAugmentString (p ++ [a] ++ q) =
+      g.projectAugmentString p ++ [g.projectAugmentSymbol a] ++
+        g.projectAugmentString q := by
+  unfold projectAugmentString
+  rw [List.map_append, List.map_append, List.map_singleton]
 
 @[simp]
 public theorem projectAugmentString_append (u v : List (symbol T (Option g.nt))) :
@@ -239,8 +245,7 @@ public theorem augment_start_producesRightmost :
     g.augment.ProducesRightmost
       [symbol.nonterminal g.augment.initial]
       [symbol.nonterminal (some g.initial)] := by
-  refine ⟨augmentStartRule g, augmentStartRule_mem g, [], [], ?_, ?_⟩ <;>
-    simp [augment, augmentStartRule]
+  exact ⟨augmentStartRule g, augmentStartRule_mem g, [], [], rfl, rfl⟩
 
 /-- Lift an original rightmost derivation from its start symbol to a derivation
 from the fresh augmented start symbol. -/
@@ -255,13 +260,20 @@ public theorem augment_derivesRightmost
 public theorem transforms_augment
     {u v : List (symbol T g.nt)} (h : CF_transforms g u v) :
     CF_transforms g.augment (augmentString u) (augmentString v) := by
+  unfold augment
   rcases h with ⟨r, p, q, hr, hu, hv⟩
   refine ⟨augmentRule r, augmentString p, augmentString q,
     augmentRule_mem g hr, ?_, ?_⟩
-  · rw [hu]
-    simp [augmentRule, augmentString_append]
-  · rw [hv]
-    simp [augmentRule, augmentString_append]
+  · have hmap := congrArg augmentString hu
+    simp only [augmentString_append, augmentString_cons, augmentString_nil,
+      augmentSymbol_nonterminal] at hmap
+    change augmentString u = augmentString p ++
+      [symbol.nonterminal (some r.1)] ++ augmentString q
+    exact hmap
+  · have hmap := congrArg augmentString hv
+    simp only [augmentString_append] at hmap
+    change augmentString v = augmentString p ++ augmentString r.2 ++ augmentString q
+    exact hmap
 
 /-- An ordinary derivation embeds into the augmented grammar. -/
 public theorem derives_augment
@@ -276,8 +288,7 @@ public theorem augment_start_transforms :
     CF_transforms g.augment
       [symbol.nonterminal g.augment.initial]
       [symbol.nonterminal (some g.initial)] := by
-  refine ⟨augmentStartRule g, [], [], augmentStartRule_mem g, ?_, ?_⟩ <;>
-    simp [augment, augmentStartRule]
+  exact ⟨augmentStartRule g, [], [], augmentStartRule_mem g, rfl, rfl⟩
 
 /-- Lift an original derivation from its start symbol to a derivation from the
 fresh augmented start symbol. -/
@@ -295,29 +306,40 @@ public theorem derives_project_augment_of_transforms
     {u v : List (symbol T (Option g.nt))}
     (h : CF_transforms g.augment u v) :
     CF_derives g (g.projectAugmentString u) (g.projectAugmentString v) := by
+  unfold augment at h
   rcases h with ⟨r, p, q, hr, hu, hv⟩
   rcases List.mem_cons.mp hr with hstart | hmapped
   · subst r
     rw [hu, hv]
-    simpa [augmentStartRule, projectAugmentString, projectAugmentSymbol,
-      List.map_append] using
-      (Relation.ReflTransGen.refl :
-        CF_derives g
-          (g.projectAugmentString p ++ [symbol.nonterminal g.initial] ++
-            g.projectAugmentString q)
-          (g.projectAugmentString p ++ [symbol.nonterminal g.initial] ++
-            g.projectAugmentString q))
+    change CF_derives g
+      (g.projectAugmentString
+        (p ++ [symbol.nonterminal (none : Option g.nt)] ++ q))
+      (g.projectAugmentString
+        (p ++ [symbol.nonterminal (some g.initial)] ++ q))
+    have hnone := g.projectAugmentString_append_singleton p q
+      (symbol.nonterminal (none : Option g.nt))
+    have hsome := g.projectAugmentString_append_singleton p q
+      (symbol.nonterminal (some g.initial))
+    rw [hnone, hsome]
+    simp only [projectAugmentSymbol]
+    exact Relation.ReflTransGen.refl
   · rcases List.mem_map.mp hmapped with ⟨r₀, hr₀, heq⟩
     subst r
     apply Relation.ReflTransGen.single
     refine ⟨r₀, g.projectAugmentString p, g.projectAugmentString q, hr₀, ?_, ?_⟩
     · rw [hu]
-      simp [augmentRule, projectAugmentString, projectAugmentSymbol]
+      change g.projectAugmentString
+        (p ++ [symbol.nonterminal (some r₀.1)] ++ q) =
+          g.projectAugmentString p ++ [symbol.nonterminal r₀.1] ++
+            g.projectAugmentString q
+      have hmap := g.projectAugmentString_append_singleton p q
+        (symbol.nonterminal (some r₀.1))
+      simpa only [projectAugmentSymbol] using hmap
     · rw [hv]
-      simp only [g.projectAugmentString_append]
-      have hright : g.projectAugmentString (augmentRule r₀).2 = r₀.2 := by
-        exact g.projectAugmentString_augmentString r₀.2
-      rw [hright]
+      change g.projectAugmentString (p ++ augmentString r₀.2 ++ q) =
+        g.projectAugmentString p ++ r₀.2 ++ g.projectAugmentString q
+      simp [g.projectAugmentString_append, g.projectAugmentString_augmentString,
+        List.append_assoc]
 
 /-- Project an augmented derivation back to the original grammar. -/
 public theorem derives_project_augment
@@ -335,30 +357,49 @@ public theorem derivesRightmost_project_augment_of_produces
     {u v : List (symbol T (Option g.nt))}
     (h : g.augment.ProducesRightmost u v) :
     g.DerivesRightmost (g.projectAugmentString u) (g.projectAugmentString v) := by
+  unfold augment at h
   rcases h with ⟨r, hr, p, s, hu, hv⟩
   rcases List.mem_cons.mp hr with hstart | hmapped
   · subst r
     rw [hu, hv]
-    simpa [augmentStartRule, projectAugmentString, projectAugmentSymbol,
-      List.map_append] using
-      (Relation.ReflTransGen.refl :
-        g.DerivesRightmost
-          (g.projectAugmentString p ++ [symbol.nonterminal g.initial] ++
-            s.map symbol.terminal)
-          (g.projectAugmentString p ++ [symbol.nonterminal g.initial] ++
-            s.map symbol.terminal))
+    change g.DerivesRightmost
+      (g.projectAugmentString
+        (p ++ [symbol.nonterminal (none : Option g.nt)] ++
+          s.map (symbol.terminal (N := Option g.nt))))
+      (g.projectAugmentString
+        (p ++ [symbol.nonterminal (some g.initial)] ++
+          s.map (symbol.terminal (N := Option g.nt))))
+    have hnone := g.projectAugmentString_append_singleton p
+      (s.map (symbol.terminal (N := Option g.nt)))
+      (symbol.nonterminal (none : Option g.nt))
+    have hsome := g.projectAugmentString_append_singleton p
+      (s.map (symbol.terminal (N := Option g.nt)))
+      (symbol.nonterminal (some g.initial))
+    rw [hnone, hsome, g.projectAugmentString_map_terminal]
+    simp only [projectAugmentSymbol]
+    exact Relation.ReflTransGen.refl
   · rcases List.mem_map.mp hmapped with ⟨r₀, hr₀, heq⟩
     subst r
     apply Relation.ReflTransGen.single
     refine ⟨r₀, hr₀, g.projectAugmentString p, s, ?_, ?_⟩
     · rw [hu]
-      simp [augmentRule, projectAugmentString, projectAugmentSymbol]
+      change g.projectAugmentString
+        (p ++ [symbol.nonterminal (some r₀.1)] ++
+          s.map (symbol.terminal (N := Option g.nt))) =
+        g.projectAugmentString p ++ [symbol.nonterminal r₀.1] ++
+          s.map (symbol.terminal (N := g.nt))
+      have hmap := g.projectAugmentString_append_singleton p
+        (s.map (symbol.terminal (N := Option g.nt)))
+        (symbol.nonterminal (some r₀.1))
+      simpa only [projectAugmentSymbol,
+        g.projectAugmentString_map_terminal] using hmap
     · rw [hv]
-      simp only [g.projectAugmentString_append,
-        g.projectAugmentString_map_terminal]
-      have hright : g.projectAugmentString (augmentRule r₀).2 = r₀.2 := by
-        exact g.projectAugmentString_augmentString r₀.2
-      rw [hright]
+      change g.projectAugmentString
+          (p ++ augmentString r₀.2 ++ s.map (symbol.terminal (N := Option g.nt))) =
+        g.projectAugmentString p ++ r₀.2 ++
+          s.map (symbol.terminal (N := g.nt))
+      simp [g.projectAugmentString_append, g.projectAugmentString_augmentString,
+        g.projectAugmentString_map_terminal, List.append_assoc]
 
 /-- Project an augmented rightmost derivation back to the original grammar. -/
 public theorem derivesRightmost_project_augment
@@ -379,12 +420,26 @@ public theorem augment_language : CF_language g.augment = CF_language g := by
       [symbol.nonterminal g.augment.initial]
       (w.map (symbol.terminal (N := Option g.nt))) at hw
     have hp := derives_project_augment g hw
-    simpa [projectAugmentString, projectAugmentSymbol] using hp
+    change CF_derives g [symbol.nonterminal g.initial]
+      (w.map (symbol.terminal (N := g.nt)))
+    change CF_derives g
+      (g.projectAugmentString [symbol.nonterminal (none : Option g.nt)])
+      (g.projectAugmentString
+        (w.map (symbol.terminal (N := Option g.nt)))) at hp
+    rw [g.projectAugmentString_map_terminal] at hp
+    change CF_derives g [symbol.nonterminal g.initial]
+      (w.map (symbol.terminal (N := g.nt))) at hp
+    exact hp
   · intro hw
     change CF_derives g [symbol.nonterminal g.initial]
       (w.map (symbol.terminal (N := g.nt))) at hw
     have hlift := augment_derives g hw
-    simpa using hlift
+    change CF_derives g.augment [symbol.nonterminal g.augment.initial]
+      (w.map (symbol.terminal (N := Option g.nt)))
+    rw [g.augmentString_map_terminal] at hlift
+    change CF_derives g.augment [symbol.nonterminal g.augment.initial]
+      (w.map (symbol.terminal (N := Option g.nt))) at hlift
+    exact hlift
 
 /-- Knuth's semantic handle-uniqueness condition, before fresh-start
 augmentation.
@@ -450,7 +505,7 @@ public def is_LRk (k : ℕ) (L : Language T) : Prop :=
 of lookahead. -/
 @[expose]
 public def LRk (k : ℕ) : Set (Language T) :=
-  setOf (is_LRk k)
+  Set.ofPred (is_LRk k)
 
 /-- Language class generated by an LR(k) grammar for some finite `k`. -/
 @[expose]
@@ -460,7 +515,7 @@ public def is_LR (L : Language T) : Prop :=
 /-- The class of LR languages. -/
 @[expose]
 public def LR : Set (Language T) :=
-  setOf is_LR
+  Set.ofPred is_LR
 
 /-- Every LR(k) language is an LR language. -/
 public theorem is_LR_of_is_LRk {k : ℕ} {L : Language T} (h : is_LRk k L) : is_LR L :=

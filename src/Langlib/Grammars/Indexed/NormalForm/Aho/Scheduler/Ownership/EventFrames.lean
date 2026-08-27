@@ -50,7 +50,7 @@ public structure EventOwnedFrames
 namespace EventOwnedFrames
 
 /-- The empty frame stack has canonical provenance. -/
-public def nil
+public theorem nil
     {g : IndexedGrammar T} {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -59,7 +59,7 @@ public def nil
   owner_at _ hmem := by simp at hmem
 
 /-- Add a frame whose provenance is already known. -/
-public def cons
+public theorem cons
     {g : IndexedGrammar T} {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -75,7 +75,7 @@ public def cons
     · exact tail.owner_at candidate htail
 
 /-- Transport all frame classifications through an arbitrary change of active parse/window. -/
-public def transport
+public theorem transport
     {g : IndexedGrammar T} {input : List T}
     {A B : g.nt} {stack stack' : List g.flag} {w w' : List T}
     {parse : NFParse g A stack w} {residual : NFParse g B stack' w'}
@@ -89,7 +89,7 @@ public def transport
   owner_at owner hmem := shift owner (frames.owner_at owner hmem)
 
 /-- Frame provenance is insensitive to the traversal order of the open-frame ledger. -/
-public def perm
+public theorem perm
     {g : IndexedGrammar T} {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -135,7 +135,7 @@ public theorem first_owner
 /-- Open the first aligned block as a frame after an atomic pop.  The selected local endpoint
 becomes residual depth zero, while every existing canonical frame follows the continuation's
 event-owner transport. -/
-public def atomicPop
+public theorem atomicPop
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {stack stack' : List g.flag} {w : List T}
     {parse : NFParse g A stack w} {residual : NFParse g B stack' w}
@@ -186,7 +186,7 @@ public theorem outside_transport
       simpa [OutsideProductiveWindow, ProductiveOwnerWindow.transport, hcount] using hout)
 
 /-- Transport every framed event through the one-position event shift of a concrete pop. -/
-public def pop
+public theorem pop
     {g : IndexedGrammar T} {input : List T}
     {A B : g.nt} {f : g.flag} {stack : List g.flag} {w : List T}
     {r : IRule T g.nt g.flag}
@@ -218,7 +218,7 @@ public def pop
     exact howner.trans (window.eventOwner_pop_succ hd)
 
 /-- Every framed event of a push follows its canonical child preimage. -/
-public def push
+public theorem push
     {g : IndexedGrammar T} {input : List T}
     {A B : g.nt} {f : g.flag} {stack : List g.flag} {w : List T}
     {r : IRule T g.nt g.flag}
@@ -287,7 +287,7 @@ public theorem zero_outside_binaryRight
   omega
 
 /-- A parent frame restricts to the matching left event, or becomes outside the left window. -/
-public def binaryLeft
+public theorem binaryLeft
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B C : g.nt} {stack : List g.flag} {u v : List T}
     {r : IRule T g.nt g.flag}
@@ -332,7 +332,7 @@ public def binaryLeft
         omega
 
 /-- A parent frame restricts to the matching right event, or becomes outside the right window. -/
-public def binaryRight
+public theorem binaryRight
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B C : g.nt} {stack : List g.flag} {u v : List T}
     {r : IRule T g.nt g.flag}
@@ -389,7 +389,7 @@ public structure PrefixFrameLedger
 namespace PrefixFrameLedger
 
 /-- A cursor with no prefix indices and no open frames has an empty ledger. -/
-public def of_empty
+public theorem of_empty
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {cursor : ScheduleCursor g input}
     (hleft : cursor.left.filterMap ScheduleAtom.indexOwner? = [])
@@ -405,7 +405,7 @@ public theorem prefix_length_eq_frameCount
   exact ledger.owners_perm.length_eq
 
 /-- Transport a prefix/frame ledger across arbitrary owner permutations. -/
-public def transport
+public theorem transport
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {old new : ScheduleCursor g input}
     (ledger : PrefixFrameLedger old)
@@ -417,7 +417,7 @@ public def transport
 
 /-- Insert one matched prefix index and open frame.  The hypotheses are phrased as
 permutations so runner-specific zipper rearrangements remain outside this generic API. -/
-public def insert
+public theorem insert
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {old new : ScheduleCursor g input}
     (ledger : PrefixFrameLedger old)
@@ -431,7 +431,7 @@ public def insert
     exact (List.Perm.cons owner ledger.owners_perm).trans hframes.symm
 
 /-- Remove one matched prefix index and frame. -/
-public def remove
+public theorem remove
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {old new : ScheduleCursor g input}
     (ledger : PrefixFrameLedger old)

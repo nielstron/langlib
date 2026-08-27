@@ -106,11 +106,10 @@ The inverse-homomorphism DFA accepts exactly the preimage of `M.accepts` under
 -/
 theorem inverseHomDFA_correct :
     (inverseHomDFA M h).accepts = { w : List β | w.flatMap h ∈ M.accepts } := by
-      convert Set.ext _;
-      intro w;
-      convert ( DFA.mem_accepts _ );
-      rw [ inverseHomDFA_eval ];
-      rfl
+  ext w
+  change (inverseHomDFA M h).eval w ∈ (inverseHomDFA M h).accept ↔
+    M.eval (w.flatMap h) ∈ M.accept
+  rw [inverseHomDFA_eval, inverseHomDFA_accept]
 
 end InverseHomomorphism
 

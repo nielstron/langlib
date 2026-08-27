@@ -10,6 +10,6 @@ The language containing exactly the empty word `[]`.
 -/
 
 /-- The language containing exactly the empty word. -/
-@[expose] public def emptyWordLanguage (T : Type) : Language T := {[]}
+public def emptyWordLanguage (T : Type) : Language T := {[]}
 
 end

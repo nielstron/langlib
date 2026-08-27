@@ -112,6 +112,17 @@ private theorem IndexTicketLedger.release_owner_ticket_fresh
   apply hfresh
   simpa [ScheduleCursor.indexTickets] using hmem
 
+/-- The release operation retains the semantic-owner projection pointwise. -/
+private theorem IndexTicketLedger.release_semanticOwnerOf_eq
+    {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
+    {old new : ScheduleCursor g input}
+    (ledger : IndexTicketLedger old)
+    (owner : Fin (10 * input.length))
+    (hindices : old.indexOwners.Perm (owner :: new.indexOwners)) :
+    (ledger.release owner hindices).semanticOwnerOf = ledger.semanticOwnerOf := by
+  funext candidate
+  exact ledger.release_semanticOwnerOf owner hindices candidate
+
 /-- Execute and erase the first private overlay block when it contains no productive event.
 
 The marker-aware ordinary mutual hypothesis handles the singleton/base case.  The overlay
@@ -159,16 +170,16 @@ public theorem overlayScheduleRun_atomicPop
         simpa using resources
       have ownerLayout' : EventOwnedLayout parse resources'.window
           (head.flags :: blocks) (head.owner :: owners) := by
-        simpa [resources'] using ownerLayout
+        exact ownerLayout
       have shadowLayout' : ShadowStartLayout parse resources'.window
           (head.flags :: blocks) (head.owner :: owners) := by
-        simpa [resources'] using shadowLayout
+        exact shadowLayout
       have ticketOwnerLayout' : resources'.tickets.EventTicketLayout parse
           resources'.window (head.flags :: blocks) (head.owner :: owners) := by
-        simpa [resources'] using ticketOwnerLayout
+        exact ticketOwnerLayout
       have ticketShadowContext' : resources'.TicketShadowContextExtends
           (head.flags :: blocks) (head.owner :: owners) := by
-        simpa [resources'] using ticketShadowContext
+        exact ticketShadowContext
       have hall' : ∀ k < head.flags.length + protectedFlags.length,
           parse.ConsumesAt k := by
         intro k hk
@@ -178,7 +189,7 @@ public theorem overlayScheduleRun_atomicPop
           (head.flags.length + protectedFlags.length) := by
         simpa using hboundary
       let startParkingContext : OverlayParkingContext resources' [head] blocks owners := by
-        simpa [resources'] using parkingContext
+        exact parkingContext
       have ticketTransientHead' : ∀ hinput : 0 < input.length,
           IndexTicket.transient hinput ∈
               (liveScheduleCursor parse (hall' 0 (by
@@ -186,9 +197,9 @@ public theorem overlayScheduleRun_atomicPop
                 omega)) pre post input_eq alpha (.index head :: word)).indexTickets
                 resources'.tickets.ticketOf →
             resources'.tickets.ticketOf head.owner = IndexTicket.transient hinput := by
-        simpa [resources'] using ticketTransientHead
+        exact ticketTransientHead
       have hactive' : resources'.ownerLedger.active = head.owner :: owners := by
-        simpa [resources'] using hactive
+        exact hactive
       have transientHead' : ∀ hinput : 0 < input.length,
           ProductiveOwnerWindow.transientOwner (g := g) hinput ∈
               (liveScheduleCursor parse (hall' 0 (by
@@ -347,15 +358,17 @@ public theorem overlayScheduleRun_atomicPop
               (.index head :: word)).indexOwners.Perm
               (head.owner ::
                 (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).indexOwners) := by
-          simp [liveScheduleCursor, ScheduleCursor.indexOwners,
-            ScheduleCursor.word, ScheduleAtom.indexOwner?]
+          simp [ScheduleCursor.indexOwners,
+            ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_cons,
+            List.filterMap_append]
         have htasks :
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).taskOwners =
               (liveScheduleCursor parse parentUsed pre post input_eq alpha
                 (.index head :: word)).taskOwners := by
-          simp [liveScheduleCursor, ScheduleCursor.taskOwners,
+          simp [ScheduleCursor.taskOwners,
             ScheduleCursor.word, ScheduleAtom.taskOwner?, residualTask, parentTask,
-            hownerEq (.plain hunused)]
+            hownerEq (.plain hunused), List.filterMap_cons,
+            List.filterMap_append]
         have hrightLedger :
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).right.filterMap
                 ScheduleAtom.indexOwner? = [] ++ resources'.ownerLedger.outside := by
@@ -366,8 +379,8 @@ public theorem overlayScheduleRun_atomicPop
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).frameOwners =
               (liveScheduleCursor parse parentUsed pre post input_eq alpha
                 (.index head :: word)).frameOwners := by
-          simp [liveScheduleCursor, ScheduleCursor.frameOwners, ScheduleCursor.word,
-            ScheduleAtom.closeOwner?, List.filterMap_append]
+          simp [ScheduleCursor.frameOwners, ScheduleCursor.word,
+            ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons]
         have hsemanticFrames : EventOwnedFrames continuation.rest
             (resources'.window.transport hproductive)
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).frameOwners := by
@@ -423,7 +436,9 @@ public theorem overlayScheduleRun_atomicPop
               [] ++ resources'.ticketOwnerLedger.outside := by
           have hright := resources'.ticketOwnerLedger.right_eq
           rw [hticketActive] at hright
-          simpa [residualTickets, IndexTicketLedger.semanticCursor,
+          simp only [residualTickets, IndexTicketLedger.semanticCursor]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+          simpa [
             IndexTicketLedger.semanticOwnerOf, liveScheduleCursor,
             ScheduleCursor.relabelTicketOwners, ScheduleAtom.relabelTicketOwner,
             ScheduleAtom.indexOwner?] using hright
@@ -431,7 +446,8 @@ public theorem overlayScheduleRun_atomicPop
             resources'.tickets.semanticCursor.frameOwners := by
           rw [IndexTicketLedger.semanticCursor_frameOwners,
             IndexTicketLedger.semanticCursor_frameOwners, hframeEq]
-          simp [residualTickets]
+          simp only [residualTickets]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
         have hticketPrefix : PrefixFrameLedger residualTickets.semanticCursor :=
           resources'.ticketOwnerLedger.prefixLedger.transport
             (List.Perm.refl _)
@@ -459,7 +475,10 @@ public theorem overlayScheduleRun_atomicPop
                 resources'.ticketShadowLedger.outside := by
           have hright := resources'.ticketShadowLedger.right_eq
           rw [hticketShadowActive] at hright
-          simpa [residualTickets, IndexTicketLedger.semanticCursor,
+          simp only [residualTickets, IndexTicketLedger.semanticCursor,
+            IndexTicketLedger.semanticOwners]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+          simpa [
             IndexTicketLedger.semanticOwnerOf, IndexTicketLedger.semanticOwners,
             liveScheduleCursor,
             ScheduleCursor.relabelTicketOwners, ScheduleAtom.relabelTicketOwner,
@@ -480,7 +499,12 @@ public theorem overlayScheduleRun_atomicPop
         have residualFullShadowLayout : residualTickets.ShadowTicketLayout
             continuation.rest (resources'.window.transport hproductive)
               (blocks ++ parkedBlocks) parkedOwners := by
-          simpa [residualTickets] using oldResidualFullShadowLayout
+          change ShadowStartLayout continuation.rest
+            (resources'.window.transport hproductive) (blocks ++ parkedBlocks)
+            (parkedOwners.map residualTickets.semanticOwnerOf)
+          simp only [residualTickets]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+          simpa [IndexTicketLedger.semanticOwners] using oldResidualFullShadowLayout
         have residualFullShadowOwnersSubset : parkedOwners ⊆
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).indexOwners := by
           intro candidate hcandidate
@@ -555,8 +579,7 @@ public theorem overlayScheduleRun_atomicPop
           cases startParkingContext with
           | strict below =>
               have hp := below.release head.owner hindices
-              simpa [residualResources, residualTickets] using
-                hp.transport_mono (List.Perm.refl _) (by rfl)
+              exact hp.mono (by rfl)
           | attached restore =>
               rcases restore.base_head with
                 ⟨block, tailBlocks, tailOwners, hrestoreBlocks, _⟩
@@ -584,11 +607,12 @@ public theorem overlayScheduleRun_atomicPop
             simpa [residualTask, plainScheduleCursor] using hresidualInv)
           hend (by
             simpa [residualTask, plainScheduleCursor] using residualResources)
-          (by simp [residualResources]) (by
+          (by
+            change head.owner :: resources'.pool.free ≠ []
+            simp) (by
             simpa [residualTask, plainScheduleCursor] using residualParkingBelow)
           (by rfl) ShadowStartLayout.nil (by
-            simpa [residualTask, plainScheduleCursor, residualTickets] using
-              hticketTransientResidualFree) (by
+            exact hticketTransientResidualFree) (by
             simpa [residualTask, plainScheduleCursor] using htransientResidualFree)
           (by
             simpa [residualTask, plainScheduleCursor] using hscratchResidualFree)
@@ -616,15 +640,17 @@ public theorem overlayScheduleRun_atomicPop
               (.index head :: word)).indexOwners.Perm
               (head.owner ::
                 (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).indexOwners) := by
-          simp [liveScheduleCursor, ScheduleCursor.indexOwners,
-            ScheduleCursor.word, ScheduleAtom.indexOwner?]
+          simp [ScheduleCursor.indexOwners,
+            ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_cons,
+            List.filterMap_append]
         have htasks :
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).taskOwners =
               (liveScheduleCursor parse parentUsed pre post input_eq alpha
                 (.index head :: word)).taskOwners := by
-          simp [liveScheduleCursor, ScheduleCursor.taskOwners,
+          simp [ScheduleCursor.taskOwners,
             ScheduleCursor.word, ScheduleAtom.taskOwner?, residualTask, parentTask,
-            hownerEq (.live residualUsed)]
+            hownerEq (.live residualUsed), List.filterMap_cons,
+            List.filterMap_append]
         have hrightLedger :
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).right.filterMap
                 ScheduleAtom.indexOwner? = owners ++ resources'.ownerLedger.outside := by
@@ -635,8 +661,8 @@ public theorem overlayScheduleRun_atomicPop
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).frameOwners =
               (liveScheduleCursor parse parentUsed pre post input_eq alpha
                 (.index head :: word)).frameOwners := by
-          simp [liveScheduleCursor, ScheduleCursor.frameOwners, ScheduleCursor.word,
-            ScheduleAtom.closeOwner?, List.filterMap_append]
+          simp [ScheduleCursor.frameOwners, ScheduleCursor.word,
+            ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons]
         have hsemanticFrames : EventOwnedFrames continuation.rest
             (resources'.window.transport hproductive)
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).frameOwners := by
@@ -694,7 +720,10 @@ public theorem overlayScheduleRun_atomicPop
                 resources'.ticketOwnerLedger.outside := by
           have hright := resources'.ticketOwnerLedger.right_eq
           rw [hticketActive] at hright
-          simpa [residualTickets, IndexTicketLedger.semanticCursor,
+          simp only [residualTickets, IndexTicketLedger.semanticCursor,
+            IndexTicketLedger.semanticOwners]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+          simpa [
             IndexTicketLedger.semanticOwnerOf, IndexTicketLedger.semanticOwners,
             liveScheduleCursor, ScheduleCursor.relabelTicketOwners,
             ScheduleAtom.relabelTicketOwner, ScheduleAtom.indexOwner?] using hright
@@ -702,7 +731,8 @@ public theorem overlayScheduleRun_atomicPop
             resources'.tickets.semanticCursor.frameOwners := by
           rw [IndexTicketLedger.semanticCursor_frameOwners,
             IndexTicketLedger.semanticCursor_frameOwners, hframeEq]
-          simp [residualTickets]
+          simp only [residualTickets]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
         have hticketPrefix : PrefixFrameLedger residualTickets.semanticCursor :=
           resources'.ticketOwnerLedger.prefixLedger.transport
             (List.Perm.refl _)
@@ -730,7 +760,10 @@ public theorem overlayScheduleRun_atomicPop
                 resources'.ticketShadowLedger.outside := by
           have hright := resources'.ticketShadowLedger.right_eq
           rw [hticketShadowActive] at hright
-          simpa [residualTickets, IndexTicketLedger.semanticCursor,
+          simp only [residualTickets, IndexTicketLedger.semanticCursor,
+            IndexTicketLedger.semanticOwners]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+          simpa [
             IndexTicketLedger.semanticOwnerOf, IndexTicketLedger.semanticOwners,
             liveScheduleCursor, ScheduleCursor.relabelTicketOwners,
             ScheduleAtom.relabelTicketOwner, ScheduleAtom.indexOwner?] using hright
@@ -754,11 +787,21 @@ public theorem overlayScheduleRun_atomicPop
             heventShift hownerShift
         have residualTicketOwnerLayout : residualTickets.EventTicketLayout
             continuation.rest (resources'.window.transport hproductive) blocks owners := by
-          simpa [residualTickets] using oldResidualTicketOwnerLayout
+          change EventOwnedLayout continuation.rest
+            (resources'.window.transport hproductive) blocks
+            (owners.map residualTickets.semanticOwnerOf)
+          simp only [residualTickets]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+          simpa [IndexTicketLedger.semanticOwners] using oldResidualTicketOwnerLayout
         have residualFullShadowLayout : residualTickets.ShadowTicketLayout
             continuation.rest (resources'.window.transport hproductive)
               (blocks ++ parkedBlocks) (owners ++ parkedOwners) := by
-          simpa [residualTickets] using oldResidualFullShadowLayout
+          change ShadowStartLayout continuation.rest
+            (resources'.window.transport hproductive) (blocks ++ parkedBlocks)
+            ((owners ++ parkedOwners).map residualTickets.semanticOwnerOf)
+          simp only [residualTickets]
+          rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+          simpa [IndexTicketLedger.semanticOwners] using oldResidualFullShadowLayout
         have residualFullShadowOwnersSubset : owners ++ parkedOwners ⊆
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).indexOwners := by
           intro candidate hcandidate
@@ -867,19 +910,19 @@ public theorem overlayScheduleRun_atomicPop
             have residualParkingBelow : residualResources.tickets.ParkingBelow
                 residualResources.window := by
               have hp := below.release head.owner hindices
-              simpa [residualResources, residualTickets] using
-                hp.transport_mono (List.Perm.refl _) (by rfl)
+              exact hp.mono (by rfl)
             have hrun := (ordinaryIH continuation.rest hcount).2 protectedFlags hidden
               blocks owners word used rfl hprotected hallRest hboundaryRest baseLayout
               compatibleRest pre post input_eq alpha hstable (by
                 simpa [liveScheduleCursor, residualTask] using hresidualInv) hframesRest hend
               (by simpa [liveScheduleCursor, residualTask] using residualResources)
-              (by simp [residualResources]) (by
+              (by
+                change head.owner :: resources'.pool.free ≠ []
+                simp) (by
                 simpa [liveScheduleCursor, residualTask] using residualParkingBelow)
               residualOwnerLayout residualShadowLayout residualTicketOwnerLayout
-              ⟨parkedBlocks, parkedOwners, rfl, rfl⟩ (by
-                simpa [liveScheduleCursor, residualTask, residualTickets] using
-                  hticketTransientResidualFree) (by rfl)
+              ⟨parkedBlocks, parkedOwners, rfl, rfl⟩
+              (by exact hticketTransientResidualFree) (by rfl)
               (by simpa [liveScheduleCursor, residualTask] using htransientResidualFree)
               (by simpa [liveScheduleCursor, residualTask] using hscratchResidualFree)
             have hrun' : ScheduleReaches g input residualState
@@ -1000,29 +1043,30 @@ public theorem overlayScheduleRun_atomicPop
               htargetShadow (by
                 simpa [residualResources, residualTickets] using
                   hticketTransientResidualFree)
-            let restoredResources := restored.resources
             have hrun := (ordinaryIH continuation.rest hcount).2 protectedFlags hidden
               (baseHeadFlags :: baseTailBlocks) (marker :: baseTailOwners)
               word used rfl hprotected hallRest hboundaryRest baseLayout compatibleRest pre post
               input_eq alpha hstable (by
                 simpa [liveScheduleCursor, residualTask] using hresidualInv) hframesRest hend
-              (by simpa [restoredResources, liveScheduleCursor, residualTask] using
-                restoredResources)
-              (by simp [restoredResources, ActiveHeadTicketRestoration.resources,
-                residualResources])
-              (by simpa [restoredResources] using restored.parkingBelow)
-              (by simpa [restoredResources] using residualOwnerLayout)
-              (by simpa [restoredResources] using residualShadowLayout)
-              (by simpa [restoredResources] using restored.eventLayout)
+              restored.resources
               (by
-                simpa [restoredResources] using
-                  (show residualResources.TicketShadowContextExtends
-                    (baseHeadFlags :: baseTailBlocks)
-                    (marker :: baseTailOwners) from
-                    ⟨parkedBlocks, parkedOwners, rfl, rfl⟩))
-              (by simpa [restoredResources, liveScheduleCursor, residualTask] using
-                restored.transient_fresh)
-              (by simpa [restoredResources] using hactiveResidual)
+                change head.owner :: resources'.pool.free ≠ []
+                simp)
+              (by
+                simpa only [ActiveHeadTicketRestoration.resources] using restored.parkingBelow)
+              (by
+                simpa only [ActiveHeadTicketRestoration.resources] using residualOwnerLayout)
+              (by
+                simpa only [ActiveHeadTicketRestoration.resources] using residualShadowLayout)
+              (by
+                simpa only [ActiveHeadTicketRestoration.resources] using restored.eventLayout)
+              (by
+                exact ⟨parkedBlocks, parkedOwners, rfl, rfl⟩)
+              (by
+                simpa only [ActiveHeadTicketRestoration.resources] using
+                  restored.transient_fresh)
+              (by
+                simpa only [ActiveHeadTicketRestoration.resources] using hactiveResidual)
               (by simpa [liveScheduleCursor, residualTask] using htransientResidualFree)
               (by simpa [liveScheduleCursor, residualTask] using hscratchResidualFree)
             have hrun' : ScheduleReaches g input residualState
@@ -1072,36 +1116,34 @@ public theorem overlayScheduleRun_atomicPop
       have hframesHead : List.Disjoint (head.owner :: lowerOwners)
           (liveScheduleCursor parse (hall 0 overlayLayout.flags_length_pos)
             pre post input_eq alpha (.index head :: lowerWord)).frameOwners := by
-        simpa [lowerOwners, lowerWord, lowerOverlay] using hframes
+        exact hframes
       have hstartHead : ScheduleInvariant
           (liveScheduleCursor parse (hall 0 overlayLayout.flags_length_pos)
             pre post input_eq alpha (.index head :: lowerWord)) := by
-        simpa [lowerWord, lowerOverlay] using hstart
+        exact hstart
       let startResources : ScheduleRunResources parse pre
           (liveScheduleCursor parse (hall 0 overlayLayout.flags_length_pos)
             pre post input_eq alpha (.index head :: lowerWord)) := by
-        simpa [lowerWord, lowerOverlay] using resources
+        exact resources
       let startParkingContext : OverlayParkingContext startResources
           (head :: lowerOverlay) blocks owners := by
-        simpa [startResources, lowerWord, lowerOverlay] using parkingContext
+        exact parkingContext
       have ownerLayoutHead : EventOwnedLayout parse startResources.window
           (head.flags :: lowerBlocks) (head.owner :: lowerOwners) := by
-        simpa [startResources, lowerBlocks, lowerOwners, lowerOverlay] using ownerLayout
+        exact ownerLayout
       have shadowLayoutHead : ShadowStartLayout parse startResources.window
           (head.flags :: lowerBlocks) (head.owner :: lowerOwners) := by
-        simpa [startResources, lowerBlocks, lowerOwners, lowerOverlay] using shadowLayout
+        exact shadowLayout
       have ticketOwnerLayoutHead : startResources.tickets.EventTicketLayout parse
           startResources.window (head.flags :: lowerBlocks)
             (head.owner :: lowerOwners) := by
-        simpa [startResources, lowerBlocks, lowerOwners, lowerOverlay] using
-          ticketOwnerLayout
+        exact ticketOwnerLayout
       have ticketShadowLayoutHead : startResources.TicketShadowContextExtends
           (head.flags :: lowerBlocks) (head.owner :: lowerOwners) := by
-        simpa [startResources, lowerBlocks, lowerOwners, lowerOverlay] using
-          ticketShadowContext
+        exact ticketShadowContext
       have hactiveHead : startResources.ownerLedger.active =
           head.owner :: lowerOwners := by
-        simpa [startResources, lowerOwners, lowerOverlay] using hactive
+        exact hactive
       have ticketTransientHeadHead : ∀ hinput : 0 < input.length,
           IndexTicket.transient hinput ∈
               (liveScheduleCursor parse (hall 0 overlayLayout.flags_length_pos)
@@ -1109,7 +1151,7 @@ public theorem overlayScheduleRun_atomicPop
                   startResources.tickets.ticketOf →
             startResources.tickets.ticketOf head.owner =
               IndexTicket.transient hinput := by
-        simpa [startResources, lowerWord, lowerOverlay] using ticketTransientHead
+        exact ticketTransientHead
       have transientHeadHead : ∀ hinput : 0 < input.length,
           ProductiveOwnerWindow.transientOwner (g := g) hinput ∈
               (liveScheduleCursor parse (hall 0 overlayLayout.flags_length_pos)
@@ -1258,21 +1300,23 @@ public theorem overlayScheduleRun_atomicPop
           ⟨alpha ++ [.dollar], .task residualTask, lowerWord⟩ := by
         apply ScheduleInvariant.popErase alpha lowerWord parentTask residualTask head
           (hownerEq (.live residualUsed)) hunframed
-        simpa [liveScheduleCursor, parentTask] using hstart
+        simpa [liveScheduleCursor, parentTask] using hstartHead
       have hindices :
           (liveScheduleCursor parse parentUsed pre post input_eq alpha
             (.index head :: lowerWord)).indexOwners.Perm
             (head.owner ::
               (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).indexOwners) := by
-        simp [liveScheduleCursor, ScheduleCursor.indexOwners,
-          ScheduleCursor.word, ScheduleAtom.indexOwner?]
+        simp [ScheduleCursor.indexOwners,
+          ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_cons,
+          List.filterMap_append]
       have htasks :
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).taskOwners =
             (liveScheduleCursor parse parentUsed pre post input_eq alpha
               (.index head :: lowerWord)).taskOwners := by
-        simp [liveScheduleCursor, ScheduleCursor.taskOwners,
+        simp [ScheduleCursor.taskOwners,
           ScheduleCursor.word, ScheduleAtom.taskOwner?, residualTask, parentTask,
-          hownerEq (.live residualUsed)]
+          hownerEq (.live residualUsed), List.filterMap_cons,
+          List.filterMap_append]
       have hrightLedger :
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).right.filterMap
               ScheduleAtom.indexOwner? = lowerOwners ++ startResources.ownerLedger.outside := by
@@ -1283,8 +1327,8 @@ public theorem overlayScheduleRun_atomicPop
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).frameOwners =
             (liveScheduleCursor parse parentUsed pre post input_eq alpha
               (.index head :: lowerWord)).frameOwners := by
-        simp [liveScheduleCursor, ScheduleCursor.frameOwners, ScheduleCursor.word,
-          ScheduleAtom.closeOwner?, List.filterMap_append]
+        simp [ScheduleCursor.frameOwners, ScheduleCursor.word,
+          ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons]
       have hsemanticFrames : EventOwnedFrames continuation.rest
           (startResources.window.transport hproductive)
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).frameOwners := by
@@ -1342,7 +1386,10 @@ public theorem overlayScheduleRun_atomicPop
               startResources.ticketOwnerLedger.outside := by
         have hright := startResources.ticketOwnerLedger.right_eq
         rw [hticketActive] at hright
-        simpa [residualTickets, IndexTicketLedger.semanticCursor,
+        simp only [residualTickets, IndexTicketLedger.semanticCursor,
+          IndexTicketLedger.semanticOwners]
+        rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+        simpa [
           IndexTicketLedger.semanticOwnerOf, IndexTicketLedger.semanticOwners,
           liveScheduleCursor, ScheduleCursor.relabelTicketOwners,
           ScheduleAtom.relabelTicketOwner, ScheduleAtom.indexOwner?] using hright
@@ -1350,7 +1397,8 @@ public theorem overlayScheduleRun_atomicPop
           startResources.tickets.semanticCursor.frameOwners := by
         rw [IndexTicketLedger.semanticCursor_frameOwners,
           IndexTicketLedger.semanticCursor_frameOwners, hframeEq]
-        simp [residualTickets]
+        simp only [residualTickets]
+        rw [IndexTicketLedger.release_semanticOwnerOf_eq]
       have hticketPrefix : PrefixFrameLedger residualTickets.semanticCursor :=
         startResources.ticketOwnerLedger.prefixLedger.transport
           (List.Perm.refl _)
@@ -1378,7 +1426,10 @@ public theorem overlayScheduleRun_atomicPop
               startResources.ticketShadowLedger.outside := by
         have hright := startResources.ticketShadowLedger.right_eq
         rw [hticketShadowActive] at hright
-        simpa [residualTickets, IndexTicketLedger.semanticCursor,
+        simp only [residualTickets, IndexTicketLedger.semanticCursor,
+          IndexTicketLedger.semanticOwners]
+        rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+        simpa [
           IndexTicketLedger.semanticOwnerOf, IndexTicketLedger.semanticOwners,
           liveScheduleCursor, ScheduleCursor.relabelTicketOwners,
           ScheduleAtom.relabelTicketOwner, ScheduleAtom.indexOwner?] using hright
@@ -1402,11 +1453,21 @@ public theorem overlayScheduleRun_atomicPop
           heventShift hownerShift
       have residualTicketOwnerLayout : residualTickets.EventTicketLayout
           continuation.rest (startResources.window.transport hproductive) lowerBlocks lowerOwners := by
-        simpa [residualTickets] using oldResidualTicketOwnerLayout
+        change EventOwnedLayout continuation.rest
+          (startResources.window.transport hproductive) lowerBlocks
+          (lowerOwners.map residualTickets.semanticOwnerOf)
+        simp only [residualTickets]
+        rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+        simpa [IndexTicketLedger.semanticOwners] using oldResidualTicketOwnerLayout
       have residualFullShadowLayout : residualTickets.ShadowTicketLayout
           continuation.rest (startResources.window.transport hproductive)
             (lowerBlocks ++ parkedBlocks) (lowerOwners ++ parkedOwners) := by
-        simpa [residualTickets] using oldResidualFullShadowLayout
+        change ShadowStartLayout continuation.rest
+          (startResources.window.transport hproductive) (lowerBlocks ++ parkedBlocks)
+          ((lowerOwners ++ parkedOwners).map residualTickets.semanticOwnerOf)
+        simp only [residualTickets]
+        rw [IndexTicketLedger.release_semanticOwnerOf_eq]
+        simpa [IndexTicketLedger.semanticOwners] using oldResidualFullShadowLayout
       have residualFullShadowOwnersSubset : lowerOwners ++ parkedOwners ⊆
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).indexOwners := by
         intro candidate hcandidate
@@ -1479,7 +1540,8 @@ public theorem overlayScheduleRun_atomicPop
       have residualCredit : 0 < residualResources.charged := by
         rw [residualResources.charged_eq_indices]
         simp [lowerWord, lowerOverlay, ScheduleCursor.indexOwners,
-          ScheduleCursor.word, ScheduleAtom.indexOwner?]
+          ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_cons,
+          List.filterMap_append]
         omega
       have hallRest : ∀ k < lowerFlags.length,
           continuation.rest.ConsumesAt k := by
@@ -1504,7 +1566,7 @@ public theorem overlayScheduleRun_atomicPop
         rw [input_eq]
         simp
       let startState : ScheduleState g input :=
-        scheduleStateOfCursor pre.length hpos _ hstart
+        scheduleStateOfCursor pre.length hpos _ hstartHead
       let residualState : ScheduleState g input :=
         scheduleStateOfCursor pre.length hpos _ hresidualInv
       have hpop : ScheduleReaches g input startState residualState := by
@@ -1539,8 +1601,7 @@ public theorem overlayScheduleRun_atomicPop
         | strict below =>
             apply OverlayParkingContext.strict
             have hp := below.release head.owner hindices
-            simpa [residualResources, residualTickets] using
-              hp.transport_mono (List.Perm.refl _) (by rfl)
+            exact hp.mono (by rfl)
         | attached restore =>
             rcases restore with
               ⟨marker, baseHead, parkingBound, markerLive, markerTicket,
@@ -1564,8 +1625,7 @@ public theorem overlayScheduleRun_atomicPop
             have residualParkingBound : residualResources.tickets.ParkingAtOrBelow
                 residualResources.window := by
               have hp := parkingBound.release head.owner hindices
-              simpa [residualResources, residualTickets] using
-                hp.transport_mono (List.Perm.refl _) (by rfl)
+              exact hp.mono (by rfl)
             have residualMarkerLive : marker ∈
                 (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask)
                   lowerWord).indexOwners := by
@@ -1575,7 +1635,11 @@ public theorem overlayScheduleRun_atomicPop
               · exact hmem
             have residualMarkerTicket : residualTickets.ticketOf marker =
                 (startResources.window.transport hproductive).parkingTicket := by
-              simpa [residualTickets] using markerTicket
+              calc
+                residualTickets.ticketOf marker =
+                    startResources.tickets.ticketOf marker := by rfl
+                _ = startResources.window.parkingTicket := markerTicket
+                _ = (startResources.window.transport hproductive).parkingTicket := by rfl
             have residualRestoreOutside : OutsideProductiveWindow
                 (startResources.window.transport hproductive)
                 (IndexTicket.semanticOwner (g := g) restoreTicket) :=
@@ -1702,7 +1766,7 @@ public theorem overlayScheduleRun_atomicPop
             simp) (scheduleWordCursor alpha used) hend) := by
         simpa [residualState, residualTask, lowerWord, lowerOverlay,
           liveScheduleCursor, scheduleStateOfCursor] using hrun
-      simpa [startState, hstartHead, scheduleStateOfCursor] using hpop.trans hrun'
+      exact hpop.trans hrun'
 
 end Aho
 end IndexedGrammar

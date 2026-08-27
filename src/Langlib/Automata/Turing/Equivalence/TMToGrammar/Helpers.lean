@@ -52,7 +52,7 @@ as a sentential form of the grammar. The encoding represents a finite window of 
 tape as a sequence of `cell`/`headCell` nonterminals flanked by boundary markers.
 -/
 
-open Turing TMtoGrammarNT
+open Turing StateTransition TMtoGrammarNT
 
 variable {T : Type} [DecidableEq T] [Fintype T]
          {Λ : Type} [Inhabited Λ] [DecidableEq Λ] [Fintype Λ]
@@ -75,7 +75,6 @@ public structure TwoTrackConfig where
   rightCells : List (Option T × Option T)
 
 /-- Encode a `TwoTrackConfig` as a sentential form of the grammar. -/
-@[expose]
 public def encodeTwoTrack (cfg : @TwoTrackConfig T Λ) :
     List (symbol T (TMtoGrammarNT T Λ)) :=
   [.nonterminal leftBound] ++
@@ -86,7 +85,6 @@ public def encodeTwoTrack (cfg : @TwoTrackConfig T Λ) :
 
 /-- The initial two-track configuration for input `w`. The head is at the leftmost
 position (or on blank for empty input). -/
-@[expose]
 public def initTwoTrack (w : List T) : @TwoTrackConfig T Λ :=
   match w with
   | [] => ⟨[], default, none, none, []⟩
@@ -119,7 +117,7 @@ public theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : Li
       exact ⟨ Or.inl <| List.mem_cons_self, [ ], [ ], rfl, rfl ⟩;
     exact .single h1 |> Relation.ReflTransGen.trans <| .single <| by
       use ⟨[], genMore, [.nonterminal rightBound], [.nonterminal (headCell (default : Λ) none none), .nonterminal rightBound]⟩; simp +decide [ encodeTwoTrack, initTwoTrack ] ;
-      exact ⟨ by unfold tmToGrammar; simp +decide [ generationRules ], [ symbol.nonterminal leftBound ], [], by simp, by simp ⟩;
+      exact ⟨ by simp +decide [generationRules], [symbol.nonterminal leftBound], [], by simp, by simp ⟩;
   · -- Apply the induction hypothesis to the tail of the list.
     have h_ind : ∀ (ts : List T), grammar_derives (tmToGrammar T Λ M) [symbol.nonterminal start] ([symbol.nonterminal leftBound, symbol.nonterminal genMore] ++ ts.map (fun t => symbol.nonterminal (cell (some t) (some t))) ++ [symbol.nonterminal rightBound]) := by
       intro ts
@@ -145,7 +143,6 @@ public theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : Li
 After the TM halts, the grammar converts all nonterminals to terminals. -/
 
 /-- Encode the "halted" configuration: all cells converted to haltCells. -/
-@[expose]
 public def encodeHalted (originals : List (Option T)) :
     List (symbol T (TMtoGrammarNT T Λ)) :=
   [.nonterminal leftBound] ++
@@ -153,7 +150,6 @@ public def encodeHalted (originals : List (Option T)) :
   [.nonterminal rightBound]
 
 /-- Extract the original input from a list of originals (keep only `some` values). -/
-@[expose]
 public def extractInput (originals : List (Option T)) : List T :=
   originals.filterMap id
 
@@ -183,7 +179,8 @@ public theorem haltCells_to_terminals (M : Turing.TM0.Machine (Option T) Λ)
         use ⟨[], haltCell (some t), [], [symbol.terminal t]⟩; simp +decide [ tmToGrammar ] ;
         refine' ⟨ _, [ ], _, rfl, rfl ⟩;
         unfold cleanupRules; aesop;
-      · convert grammar_deri_with_prefix _ ih using 1
+      · simpa only [List.singleton_append] using
+          grammar_deri_with_prefix [symbol.terminal t] ih
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -201,7 +198,7 @@ public theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
     apply Relation.ReflTransGen.single
     use ⟨[], leftBound, [.nonterminal rightBound], []⟩
     simp;
-    unfold tmToGrammar; simp +decide [ cleanupRules ] ;
+    simp +decide [cleanupRules]
   · have h_transform : grammar_transforms (tmToGrammar T Λ M) ([symbol.nonterminal leftBound] ++ [symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest ++ [symbol.nonterminal rightBound]) ([symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest ++ [symbol.nonterminal rightBound]) := by
       -- Apply the rule that removes the left bound.
       use ⟨[], leftBound, [symbol.nonterminal (haltCell orig)], [symbol.nonterminal (haltCell orig)]⟩;
@@ -212,7 +209,10 @@ public theorem remove_boundaries (M : Turing.TM0.Machine (Option T) Λ)
     have h_transform : grammar_transforms (tmToGrammar T Λ M) ([symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest ++ [symbol.nonterminal rightBound]) ([symbol.nonterminal (haltCell orig)] ++ List.map (fun orig => symbol.nonterminal (haltCell orig)) rest) := by
       use ⟨[.nonterminal (haltCell (List.getLast! (orig :: rest)))] , rightBound, [], [.nonterminal (haltCell (List.getLast! (orig :: rest)))]⟩; simp_all +decide [ List.getLast! ] ;
       constructor;
-      · apply_rules [ List.mem_append_right ];
+      · right
+        right
+        unfold cleanupRules
+        apply_rules [ List.mem_append_right ];
         simp +decide [ allOptT ];
         cases h : ( orig :: rest ).getLast ( by simp +decide ) <;> aesop;
       · induction rest using List.reverseRecOn <;> simp_all +decide [ List.getLast ];
@@ -258,7 +258,6 @@ theorem cleanup_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
   exact List.mem_append_right _ hr
 
 /-- Get the originals from a TwoTrackConfig. -/
-@[expose]
 public def twoTrackOriginals (cfg : @TwoTrackConfig T Λ) : List (Option T) :=
   (cfg.leftCells.map Prod.fst) ++ [cfg.headOrig] ++ (cfg.rightCells.map Prod.fst)
 
@@ -268,7 +267,6 @@ The simulation phase shows that each TM0 step can be mirrored by a grammar
 derivation step on the encoded sentential form. -/
 
 /-- Compute the next TwoTrackConfig after one TM0 step. Returns `none` if the TM halts. -/
-@[expose]
 public noncomputable def stepTwoTrack
     (M : Turing.TM0.Machine (Option T) Λ)
     (cfg : @TwoTrackConfig T Λ) : Option (@TwoTrackConfig T Λ) :=
@@ -304,7 +302,8 @@ public theorem stepTwoTrack_preserves_extractInput
   · cases ‹Dir› <;> cases h' : cfg.rightCells <;> cases h'' : cfg.leftCells.reverse <;> simp_all +decide [ twoTrackOriginals ];
     all_goals subst_vars; simp +decide [ extractInput ] ;
     · cases cfg.headOrig <;> rfl;
-    · cases ‹Option T × Option T› ; aesop;
+    · cases ‹Option T × Option T›
+      exact (List.filterMap_append (f := fun x : Option T => x)).symm
   · unfold twoTrackOriginals; aesop;
 
 omit [DecidableEq T] in
@@ -319,7 +318,8 @@ omit [Inhabited Λ] [DecidableEq Λ] in
 Any element of `Λ` is in `allΛ`.
 -/
 public theorem mem_allΛ (q : Λ) : q ∈ allΛ Λ := by
-  convert Finset.mem_toList.mpr ( Finset.mem_univ q ) using 1
+  unfold allΛ
+  exact Finset.mem_toList.mpr (Finset.mem_univ q)
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -342,7 +342,7 @@ public theorem sim_write
     use mem_allΛ q, γ, mem_allOptT γ, by
       rw [ hM ];
       exact List.mem_map.mpr ⟨ orig, mem_allOptT orig, rfl ⟩;
-  · grind
+  · exact ⟨prefix_, suffix_, by simp [List.append_assoc], by simp [List.append_assoc]⟩
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -356,15 +356,25 @@ public theorem sim_move_right
     grammar_transforms (tmToGrammar T Λ M)
       (prefix_ ++ [.nonterminal (headCell q orig γ), .nonterminal (cell orig' γ')] ++ suffix_)
       (prefix_ ++ [.nonterminal (cell orig γ), .nonterminal (headCell q' orig' γ')] ++ suffix_) := by
-  constructor;
-  constructor;
-  apply sim_rule_mem;
-  convert List.mem_flatMap.mpr _;
-  exact ⟨ [ ], headCell q orig γ, [ symbol.nonterminal ( cell orig' γ' ) ], [ symbol.nonterminal ( cell orig γ ), symbol.nonterminal ( headCell q' orig' γ' ) ] ⟩;
-  · refine' ⟨ q, _, _ ⟩ <;> simp +decide [ allΛ ];
-    use γ; simp [hM];
-    exact ⟨ mem_allOptT γ, mem_allOptT orig, mem_allOptT orig', mem_allOptT γ' ⟩;
-  · grind
+  refine ⟨⟨[], headCell q orig γ, [.nonterminal (cell orig' γ')],
+      [.nonterminal (cell orig γ), .nonterminal (headCell q' orig' γ')]⟩, ?_,
+    prefix_, suffix_, ?_, ?_⟩
+  · apply sim_rule_mem
+    unfold simulationRules
+    rw [List.mem_flatMap]
+    refine ⟨q, mem_allΛ q, ?_⟩
+    rw [List.mem_flatMap]
+    refine ⟨γ, mem_allOptT γ, ?_⟩
+    rw [hM]
+    simp only [List.mem_append]
+    left
+    rw [List.mem_flatMap]
+    refine ⟨orig, mem_allOptT orig, ?_⟩
+    rw [List.mem_flatMap]
+    refine ⟨orig', mem_allOptT orig', ?_⟩
+    exact List.mem_map.mpr ⟨γ', mem_allOptT γ', rfl⟩
+  · simp [List.append_assoc]
+  · simp [List.append_assoc]
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -388,7 +398,7 @@ public theorem sim_move_right_boundary
     generalize_proofs at *;
     rw [ hM ] ; simp +decide [ allOptT ] ;
     cases orig <;> aesop;
-  · grind
+  · exact ⟨prefix_, suffix_, by simp [List.append_assoc], by simp [List.append_assoc]⟩
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -423,16 +433,21 @@ public theorem sim_move_left_boundary
     grammar_transforms (tmToGrammar T Λ M)
       (prefix_ ++ [.nonterminal leftBound, .nonterminal (headCell q orig γ)] ++ suffix_)
       (prefix_ ++ [.nonterminal leftBound, .nonterminal (headCell q' none none), .nonterminal (cell orig γ)] ++ suffix_) := by
-  refine' ⟨ _, _, _, _ ⟩;
-  exact ⟨ [ .nonterminal leftBound ], headCell q orig γ, [ ], [ .nonterminal leftBound, .nonterminal ( headCell q' none none ), .nonterminal ( cell orig γ ) ] ⟩;
-  any_goals exact prefix_;
-  · apply sim_rule_mem;
-    unfold simulationRules;
-    simp +decide [ List.mem_flatMap ];
-    refine' ⟨ q, _, γ, _, _ ⟩ <;> simp +decide [ hM, allΛ, allOptT ];
-    · cases γ <;> tauto;
-    · cases orig <;> aesop;
-  · grind +revert
+  refine ⟨⟨[.nonterminal leftBound], headCell q orig γ, [],
+      [.nonterminal leftBound, .nonterminal (headCell q' none none),
+        .nonterminal (cell orig γ)]⟩, ?_, prefix_, suffix_, ?_, ?_⟩
+  · apply sim_rule_mem
+    unfold simulationRules
+    rw [List.mem_flatMap]
+    refine ⟨q, mem_allΛ q, ?_⟩
+    rw [List.mem_flatMap]
+    refine ⟨γ, mem_allOptT γ, ?_⟩
+    rw [hM]
+    simp only [List.mem_append]
+    right
+    exact List.mem_map.mpr ⟨orig, mem_allOptT orig, rfl⟩
+  · simp [List.append_assoc]
+  · simp [List.append_assoc]
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -450,8 +465,12 @@ public theorem simulation_one_step
   cases' ‹TM0.Stmt ( Option T ) › with γ' hγ';
   · cases' γ' with γ' hγ';
     · rcases h' : cfg.leftCells.reverse with ( _ | ⟨ lo, lc ⟩ ) <;> simp_all +decide [ encodeTwoTrack ];
-      · convert grammar_deri_of_tran _ using 1;
-        convert sim_move_left_boundary M cfg.headState q' cfg.headOrig cfg.headCur h [ ] ( List.map ( fun x => symbol.nonterminal ( cell x.1 x.2 ) ) cfg.rightCells ++ [ symbol.nonterminal rightBound ] ) using 1 ; aesop ( simp_config := { singlePass := true } ) ;
+      · subst cfg'
+        apply grammar_deri_of_tran
+        simpa [encodeTwoTrack, h', List.append_assoc] using
+          sim_move_left_boundary M cfg.headState q' cfg.headOrig cfg.headCur h []
+            (List.map (fun x => symbol.nonterminal (cell x.1 x.2)) cfg.rightCells ++
+              [symbol.nonterminal rightBound])
       · convert grammar_deri_of_tran _ using 1;
         convert sim_move_left M cfg.headState q' cfg.headOrig cfg.headCur lo.1 lo.2 h ( [ symbol.nonterminal leftBound ] ++ List.map ( fun x => symbol.nonterminal ( cell x.1 x.2 ) ) lc.reverse ) ( List.map ( fun x => symbol.nonterminal ( cell x.1 x.2 ) ) cfg.rightCells ++ [ symbol.nonterminal rightBound ] ) using 1;
         · simp +decide [ List.map_reverse ];
@@ -469,7 +488,9 @@ public theorem simulation_one_step
         convert sim_move_right M headState q' headOrig headCur ro.1 ro.2 h ( [ .nonterminal leftBound ] ++ leftCells.map ( fun x => .nonterminal ( cell x.1 x.2 ) ) ) ( rc.map ( fun x => .nonterminal ( cell x.1 x.2 ) ) ++ [ .nonterminal rightBound ] ) using 1;
         · unfold encodeTwoTrack; aesop;
         · unfold encodeTwoTrack; aesop;
-  · unfold encodeTwoTrack at *;
+  · simp only [Option.some.injEq] at hstep
+    subst cfg'
+    unfold encodeTwoTrack at *;
     apply Relation.ReflTransGen.single;
     convert sim_write M cfg.headState q' cfg.headOrig cfg.headCur hγ' h _ _ using 1;
     rotate_left;
@@ -477,7 +498,7 @@ public theorem simulation_one_step
     exact [ symbol.nonterminal leftBound ] ++ List.map ( fun x => symbol.nonterminal ( cell x.1 x.2 ) ) cfg.leftCells;
     exact List.map ( fun x => symbol.nonterminal ( cell x.1 x.2 ) ) cfg.rightCells ++ [ symbol.nonterminal rightBound ];
     · simp +decide [ List.append_assoc ];
-    · grind
+    · simp [List.append_assoc]
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -603,7 +624,10 @@ public theorem propagate_halt_left
   · constructor;
   · rename_i h;
     specialize h_transforms ih.1 ih.2 anchor_orig ( prefix_ ++ List.map ( fun x => match x with | ( o, c ) => symbol.nonterminal ( cell o c ) ) cells ) ( suffix_ ) ; simp_all +decide [ List.map_append ] ;
-    exact Relation.ReflTransGen.trans ( Relation.ReflTransGen.single h_transforms ) ( h _ _ _ ) |> fun h => by simpa [ List.append_assoc ] using h;
+    have hderiv := Relation.ReflTransGen.trans
+      (Relation.ReflTransGen.single h_transforms) (h _ _ _)
+    change Relation.ReflTransGen (grammar_transforms (tmToGrammar T Λ M)) _ _
+    simpa [List.append_assoc] using hderiv
 
 omit [DecidableEq T] [DecidableEq Λ] in
 /-
@@ -633,7 +657,7 @@ public theorem halt_to_halted
     · convert grammar_deri_of_deri_deri _ _ using 1;
       exact [ symbol.nonterminal leftBound ] ++ cfg.leftCells.map ( fun ⟨ o, c ⟩ => symbol.nonterminal ( haltCell o ) ) ++ [ symbol.nonterminal ( haltCell cfg.headOrig ) ] ++ cfg.rightCells.map ( fun ⟨ o, c ⟩ => symbol.nonterminal ( haltCell o ) ) ++ [ symbol.nonterminal rightBound ];
       · convert propagate_halt_left M cfg.leftCells cfg.headOrig [ symbol.nonterminal leftBound ] ( cfg.rightCells.map ( fun ⟨ o, c ⟩ => symbol.nonterminal ( haltCell o ) ) ++ [ symbol.nonterminal rightBound ] ) using 1;
-        · grind;
+        · simp [List.append_assoc]
         · simp +decide [ List.append_assoc ];
       · convert grammar_deri_self using 1;
         unfold encodeHalted twoTrackOriginals; aesop;
@@ -748,7 +772,7 @@ public theorem sim_reaches_halts
     (tc : @TwoTrackConfig T Λ) (tmCfg : Turing.TM0.Cfg (Option T) Λ)
     (hcorr : TMCorresponds tc tmCfg)
     (tmCfg_halt : Turing.TM0.Cfg (Option T) Λ)
-    (hreaches : Turing.Reaches (Turing.TM0.step M) tmCfg tmCfg_halt)
+    (hreaches : StateTransition.Reaches (Turing.TM0.step M) tmCfg tmCfg_halt)
     (hhalt : Turing.TM0.step M tmCfg_halt = none) :
     ∃ tc_final : @TwoTrackConfig T Λ,
       grammar_derives (tmToGrammar T Λ M) (encodeTwoTrack tc) (encodeTwoTrack tc_final) ∧
@@ -778,11 +802,15 @@ public theorem tmToGrammar_generates_of_halts
     (h : (Turing.TM0.eval M (w.map Option.some)).Dom) :
     grammar_generates (tmToGrammar T Λ M) w := by
   -- By definition of `TM0.eval`, there exists a configuration `cfg` such that `cfg` is reachable from the initial configuration and `cfg` halts.
-  obtain ⟨cfg, hcfg⟩ : ∃ cfg : Turing.TM0.Cfg (Option T) Λ, Turing.Reaches (Turing.TM0.step M) (Turing.TM0.init (w.map some)) cfg ∧ Turing.TM0.step M cfg = none := by
-    -- By definition of `TM0.eval`, there exists a configuration `cfg` such that `cfg` is reachable from the initial configuration and `cfg` halts. Use this fact to conclude the proof.
-    have h_eval_dom : (Turing.eval (TM0.step M) (TM0.init (w.map some))).Dom := by
-      convert h using 1;
-    grind +suggestions;
+  obtain ⟨cfg, hcfg⟩ : ∃ cfg : Turing.TM0.Cfg (Option T) Λ, StateTransition.Reaches (Turing.TM0.step M) (Turing.TM0.init (w.map some)) cfg ∧ Turing.TM0.step M cfg = none := by
+    have h_eval_dom : (StateTransition.eval (TM0.step M) (TM0.init (w.map some))).Dom := by
+      rw [Part.dom_iff_mem] at h ⊢
+      rcases h with ⟨out, hout⟩
+      unfold TM0.eval at hout
+      rcases (Part.mem_map_iff _).mp hout with ⟨cfg, hcfg, -⟩
+      exact ⟨cfg, hcfg⟩
+    rcases Part.dom_iff_mem.mp h_eval_dom with ⟨cfg, hcfg⟩
+    exact ⟨cfg, StateTransition.mem_eval.mp hcfg⟩
   -- Apply `sim_reaches_halts` to obtain the final configuration `tc_final`.
   obtain ⟨tc_final, htc_final⟩ : ∃ tc_final : @TwoTrackConfig T Λ,
     grammar_derives (tmToGrammar T Λ M) (encodeTwoTrack (initTwoTrack w)) (encodeTwoTrack tc_final) ∧
@@ -793,7 +821,12 @@ public theorem tmToGrammar_generates_of_halts
   -- Apply `halt_to_halted` and `cleanup_derives` to conclude the proof.
   have h_final : grammar_derives (tmToGrammar T Λ M) (encodeTwoTrack tc_final) (List.map symbol.terminal (extractInput (twoTrackOriginals tc_final))) := by
     exact Relation.ReflTransGen.trans ( halt_to_halted M tc_final htc_final.2.1 ) ( cleanup_derives M _ );
-  exact Relation.ReflTransGen.trans ( generation_derives M w ) ( Relation.ReflTransGen.trans htc_final.1 h_final ) |> fun h => h |> fun h => h |> fun h => by simpa [ htc_final.2.2 ] using h;
+  unfold grammar_generates
+  change grammar_derives (tmToGrammar T Λ M) [symbol.nonterminal start]
+    (List.map symbol.terminal w)
+  rw [← htc_final.2.2]
+  exact Relation.ReflTransGen.trans (generation_derives M w)
+    (Relation.ReflTransGen.trans htc_final.1 h_final)
 
 -- The theorems `tmToGrammar_halts_of_generates`, `tmToGrammar_correct`,
 -- `tm_recognizable_implies_re`, and `re_iff_tm_recognizable` have been moved to

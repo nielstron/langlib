@@ -41,7 +41,7 @@ parse around the shrunken scope. -/
 private noncomputable def scopedShrinking_of_locatedCritical
     {g : IndexedGrammar T} [DecidableEq g.nt] (hNF : g.IsNormalForm)
     {Z : Finset (List (g.nt ⊕ T))} {C : Nat}
-    (hbound : ∀ z ∈ Z, z.length ≤ C)
+    (_hbound : ∀ z ∈ Z, z.length ≤ C)
     (hshort : ∀ z : List (g.nt ⊕ T), z.length ≤ 1 → z ∈ Z)
     (hbasis : ∀ (key : BetaKey g) (y : List (g.nt ⊕ T)),
       y ∈ frontierLanguage g key → y ∉ Z → ∀ i : Fin y.length,
@@ -64,7 +64,7 @@ private noncomputable def scopedShrinking_of_locatedCritical
       have hscope := located.parse.scopeWord_betaPieces
       rw [← hscope]
       simp [factors, pieces, scopeWord, List.flatten_eq_flatMap,
-        List.flatMap_map, Function.comp_def]
+        List.flatMap_map]
     exact located.whole_eq.trans
       (congrArg (fun middle =>
         located.leftContext ++ middle ++ located.rightContext) hfactor)

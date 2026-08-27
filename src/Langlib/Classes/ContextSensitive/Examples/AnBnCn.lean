@@ -153,14 +153,14 @@ private lemma anbncn_sort (n : ℕ) :
               convert anbncn_step_swap s₁ ( replicate m gB ++ s₂ ) using 1;
               · simp +decide [ List.append_assoc ];
               · simp +decide [ List.append_assoc ];
-            exact h_swap.trans ( by simpa [ List.replicate ] using ih ( s₁ ++ [ gB ] ) s₂ );
+            exact grammar_deri_of_deri_deri h_swap
+              (by simpa [List.replicate] using ih (s₁ ++ [gB]) s₂)
         induction' n with n ih;
         · constructor;
         · have h_swap_step : grammar_derives grammar_anbncn ([gB, gc] ++ (replicate n [gB, gc]).flatten) ([gB] ++ (replicate n gB) ++ [gc] ++ (replicate n gc)) := by
-            convert grammar_deri_of_deri_deri _ _ using 1;
-            exact [ gB, gc ] ++ replicate n gB ++ replicate n gc;
-            · convert grammar_deri_with_prefix [ gB, gc ] ih using 1;
-            · convert h_swap n [ gB ] ( replicate n gc ) using 1;
+            exact grammar_deri_of_deri_deri
+              (by simpa only [List.append_assoc] using grammar_deri_with_prefix [gB, gc] ih)
+              (by simpa [List.append_assoc] using h_swap n [gB] (replicate n gc))
           grind +revert
 
 -- Phase 3: conversion (left-to-right, using context-sensitive rules)
@@ -456,8 +456,7 @@ private lemma grammar_inv_step_conv_b (u v : List (symbol (Fin 3) grammar_anbncn
       · contrapose! h₄;
         obtain ⟨ u, v, h₁, x, hx, hx' ⟩ := h₄; use u, v; simp_all +decide [ List.map ] ;
         replace h₁ := congr_arg ( fun z => z.count gS ) h₁ ; simp_all +decide [  ];
-        simp_all +decide [ List.count_eq_zero_of_not_mem ];
-        omega
+        simp_all +decide [ List.count_eq_zero_of_not_mem ]
 
 private lemma grammar_inv_step
     (w₁ w₂ : List (symbol (Fin 3) grammar_anbncn.nt))
@@ -468,11 +467,11 @@ private lemma grammar_inv_step
   simp [grammar_anbncn] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl <;>
     (try { show grammar_inv _; convert grammar_inv_step_base u v (by convert hinv using 2 ; simp)
-           using 2 <;> simp; done }) <;>
+           using 2 ; simp; done }) <;>
     (try { show grammar_inv _; convert grammar_inv_step_expand u v (by convert hinv using 2 ; simp)
-           using 2 <;> simp; done }) <;>
+           using 2 ; simp; done }) <;>
     (try { show grammar_inv _; convert grammar_inv_step_swap u v (by convert hinv using 2 ; simp)
-           using 2 <;> simp; done }) <;>
+           using 2 ; simp; done }) <;>
     (try { show grammar_inv _; convert grammar_inv_step_conv_a u v (by convert hinv using 2 ; simp)
            using 2 <;> simp; done }) ;
     (try { show grammar_inv _; convert grammar_inv_step_conv_b u v (by convert hinv using 2 ; simp)

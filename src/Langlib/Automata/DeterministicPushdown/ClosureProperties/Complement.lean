@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Automata.DeterministicPushdown.Basics.Total
 public import Langlib.Automata.DeterministicPushdown.Totalization
@@ -52,7 +52,6 @@ namespace DPDA
 /-- Construct the **complement DPDA** by replacing the set of accepting states
     with its complement. This is a syntactic operation that swaps which states
     are accepting. -/
-@[expose]
 public def complement (M : DPDA Q T S) : DPDA Q T S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol

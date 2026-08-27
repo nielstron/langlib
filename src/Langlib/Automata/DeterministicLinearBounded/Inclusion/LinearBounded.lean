@@ -113,7 +113,7 @@ theorem dlba_halt_accept_implies_lba_step {Γ : Type*} {Λ : Type*} {n : ℕ} [D
       ⟨some cfg.state, cfg.tape⟩
       ⟨none, cfg.tape⟩ := by
   use none, cfg.tape.read, DLBA.Dir.stay;
-  simp_all +decide [ BoundedTape.write, BoundedTape.moveHead ];
+  simp_all +decide [ BoundedTape.moveHead ];
   unfold toLBA';
   unfold step at h_halt; aesop;
 
@@ -266,7 +266,7 @@ theorem dlba_language_eq_lba_language {T Γ : Type*} {Λ : Type*} [DecidableEq �
 theorem is_DLBA_subset_is_LBA {T : Type} [Fintype T] [DecidableEq T] {L : _root_.Language T}
     (h : is_DLBA L) : is_LBA L := by
   obtain ⟨ Γ, Λ, hΓ, hΛ, hdecΓ, hdecΛ, acceptEmpty, M, hM ⟩ := h
-  haveI := hΓ; haveI := hΛ; haveI := hdecΓ; haveI := hdecΛ
+  have := hΓ; have := hΛ; have := hdecΓ; have := hdecΛ
   -- Convert the DLBA to a bounded-tape LBA `toLBA' M`, then run it on `⊢ w ⊣` via `simMachine`,
   -- carrying the DLBA's empty-word decision into the simulator's `ε`-bit.
   refine ⟨ Γ, LBA.SimState (Option Λ), hΓ, inferInstance, hdecΓ, inferInstance,

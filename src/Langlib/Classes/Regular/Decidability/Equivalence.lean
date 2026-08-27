@@ -66,9 +66,10 @@ lemma eq_iff_symmDiff_eq_bot (L₁ L₂ : Language α) :
 lemma symmDiff_isRegular {L₁ L₂ : Language α}
     (h₁ : L₁.IsRegular) (h₂ : L₂.IsRegular) :
     (symmDiff L₁ L₂).IsRegular := by
-  convert Language.IsRegular.add' _ _ using 1;
-  · convert Language.IsRegular.inf' h₁ ( Language.IsRegular.compl h₂ ) using 1;
-  · convert Language.IsRegular.inf' h₂ ( Language.IsRegular.compl h₁ ) using 1
+  unfold symmDiff
+  exact Language.IsRegular.add'
+    (Language.IsRegular.inf' h₁ (Language.IsRegular.compl h₂))
+    (Language.IsRegular.inf' h₂ (Language.IsRegular.compl h₁))
 
 /-- Equivalence of two regular languages is decidable. -/
 noncomputable def regular_equivalence_decidable

@@ -49,19 +49,13 @@ namespace StarHelpers
 
 section star_helpers
 
-@[expose]
 public abbrev nn (N : Type) : Type := N ⊕ Fin 3
-@[expose]
 public abbrev ns (T N : Type) : Type := symbol T (nn N)
 
-@[expose]
 public def Z {N : Type} : ns T N := symbol.nonterminal (Sum.inr 0)
-@[expose]
 public def H {N : Type} : ns T N := symbol.nonterminal (Sum.inr 1)
-@[expose]
 public def R {N : Type} : ns T N := symbol.nonterminal (Sum.inr 2)
 
-@[expose]
 public def wrap_sym {N : Type} : symbol T N → ns T N
   | symbol.terminal t    => symbol.terminal t
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)
@@ -160,7 +154,8 @@ public lemma match_in_block {N : Type} {r₀ : grule T N}
       intro s hs; replace hu' := congr_arg ( fun l => s ∈ l ) hu'; simp_all +decide [ List.mem_append, List.mem_map ] ;
       exact hu'.imp fun x hx => hx.2;
     use [], x, u₁, v₁; simp_all +decide [  ] ;
-    exact List.map_injective_iff.mpr ( wrap_sym_injective ) <| by simpa using hu';
+    exact List.map_injective_iff.mpr ( wrap_sym_injective ) <| by
+      simpa [wrap_sym] using hu';
   · by_cases hx : x = [] <;> simp_all +decide [  ];
     grind
 

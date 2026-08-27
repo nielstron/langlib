@@ -26,7 +26,7 @@ public def EnumerationAccepts (action : ProtocolAction)
       (List.replicate old.length action) = some out ∧ enumerationDone out = true
 
 /-- Run an already selected action over aligned row suffixes. -/
-private noncomputable def evalEnumerationAccumulator :
+@[reducible] private noncomputable def evalEnumerationAccumulator :
     EnumerationAccumulator → ProtocolRow A → ProtocolRow A →
       Option EnumerationAccumulator
   | acc, [], [] => some acc
@@ -80,8 +80,8 @@ private theorem evalEnumeration_start_cons
       (evalEnumerationAccumulator (startEnumerationAccumulator action old new)
         (old :: olds) (new :: news)).map fun out => .mk .scan out := by
   simp only [List.length_cons, List.replicate_succ, evalEnumeration, enumerationStart,
-    enumerationStepCell, evalEnumerationAccumulator, Option.map]
-  simpa using evalEnumeration_scan_replicate
+    enumerationStepCell, evalEnumerationAccumulator]
+  simpa [startEnumerationAccumulator] using evalEnumeration_scan_replicate
     (scanEnumerationCell (startEnumerationAccumulator action old new) old new) olds news
 
 private theorem enumerationAccepts_iff
@@ -103,14 +103,14 @@ private theorem enumerationAccepts_iff
           simp
 
 /-- Conjunction of one cell-local Boolean check over two aligned rows. -/
-private noncomputable def checkRows
+@[reducible] private noncomputable def checkRows
     (check : ProtocolCell A → ProtocolCell A → Bool) :
     ProtocolRow A → ProtocolRow A → Bool
   | [], [] => true
   | old :: olds, new :: news => check old new && checkRows check olds news
   | _, _ => false
 
-private noncomputable def enumerationLocalOK
+@[reducible] private noncomputable def enumerationLocalOK
     (acc : EnumerationAccumulator) (old new : ProtocolCell A) : Bool :=
   match acc.action with
   | .beginRound => beginRoundLocalOK old new
@@ -228,6 +228,7 @@ private theorem evalEnumerationAccumulator_found
       | cons new news =>
           exact (ih h).trans (scanEnumerationCell_found acc old new)
 
+omit [Nonempty A] in
 private theorem checkRows_beginRound_iff (old new : ProtocolRow A) :
     checkRows (fun x y => beginRoundLocalOK x y) old new = true ↔
       BeginRoundSpec old new := by
@@ -251,7 +252,7 @@ private theorem checkRows_beginRound_iff (old new : ProtocolRow A) :
           simp [beginRoundLocalOK, BeginRoundSpec, CopiesPayload,
             HasPhase, sourceTrack, depthTrack, oldCountTrack, newCountTrack,
             seenCountTrack, outerTrack, innerTrack, pathTrack, fuelTrack,
-            foundTrack] <;> aesop
+            foundTrack]; aesop
 
 private def SkipInnerLocalSpec (overflow : Bool) (old new : ProtocolRow A) : Prop :=
   HasPhase .chooseInner old ∧
@@ -266,12 +267,14 @@ private def SkipInnerLocalSpec (overflow : Bool) (old new : ProtocolRow A) : Pro
   fuelTrack new = fuelTrack old ∧
   foundTrack new = foundTrack old
 
+omit [Nonempty A] [DecidableEq A] in
 private theorem hasPhase_if_iff (flag : Bool) (yes no : ProtocolPhase)
     (row : ProtocolRow A) :
     HasPhase (if flag then yes else no) row ↔
       (if flag then HasPhase yes row else HasPhase no row) := by
   cases flag <;> rfl
 
+omit [Nonempty A] in
 private theorem checkRows_skipInner_iff (overflow : Bool) (old new : ProtocolRow A) :
     checkRows (fun x y => skipInnerLocalOK overflow x y) old new = true ↔
       SkipInnerLocalSpec overflow old new := by
@@ -388,6 +391,7 @@ private def FinalSkipLocalSpec (overflow : Bool) (old new : ProtocolRow A) : Pro
   fuelTrack new = fuelTrack old ∧
   foundTrack new = foundTrack old
 
+omit [Nonempty A] in
 private theorem checkRows_finalSkip_iff (overflow : Bool) (old new : ProtocolRow A) :
     checkRows (fun x y => finalSkipLocalOK overflow x y) old new = true ↔
       FinalSkipLocalSpec overflow old new := by
@@ -413,6 +417,7 @@ private theorem checkRows_finalSkip_iff (overflow : Bool) (old new : ProtocolRow
               depthTrack, oldCountTrack, newCountTrack, seenCountTrack, outerTrack,
               pathTrack, fuelTrack, foundTrack] <;> aesop
 
+omit [Nonempty A] in
 private theorem checkRows_finalFinish_iff (old new : ProtocolRow A) :
     checkRows (fun x y => finalFinishLocalOK x y) old new = true ↔
       FinalFinishSpec old new := by
@@ -432,7 +437,7 @@ private theorem checkRows_finalFinish_iff (old new : ProtocolRow A) :
           rcases old with ⟨⟨os, od, oo, oi, op, ofu⟩, ⟨oc, onc, osc⟩, ob, oph⟩
           rcases new with ⟨⟨ns, nd, no, ni, np, nfu⟩, ⟨nc, nnc, nsc⟩, nb, nph⟩
           simp [finalFinishLocalOK, FinalFinishSpec, HasPhase, sourceTrack,
-            oldCountTrack, seenCountTrack] <;> aesop
+            oldCountTrack, seenCountTrack]; aesop
 
 private theorem evalEnumerationAccumulator_innerSucc
     {acc out : EnumerationAccumulator} {old new : ProtocolRow A}
@@ -551,6 +556,7 @@ private theorem evalEnumerationAccumulator_comparison
           simpa [oldCountTrack, newCountTrack, RowNumeral.DigitCodec.evalCompare,
             scanEnumerationCell, haction] using hrec
 
+omit [Nonempty A] [DecidableEq A] in
 private theorem length_eq_of_sourceTrack_eq {old new : ProtocolRow A}
     (h : sourceTrack new = sourceTrack old) : old.length = new.length := by
   have := congrArg List.length h

@@ -23,7 +23,7 @@ private theorem homLiftRule_context_sensitive (h : α → List β) {g : grammar 
   rcases hr with hε | hnc
   · left
     rcases hε with ⟨hL, hN, hR, hO⟩
-    simp [initial_epsilon_rule, hom_grammar, homLiftRule, homLiftStr, hL, hN, hR, hO]
+    simp [initial_epsilon_rule, hom_grammar, homLiftStr, hL, hN, hR, hO]
   · right
     simpa [grule_noncontracting, homLiftRule, homLiftStr]
       using hnc
@@ -31,7 +31,7 @@ private theorem homLiftRule_context_sensitive (h : α → List β) {g : grammar 
 private theorem homExpandRule_noncontracting (h : α → List β)
     (heps : IsEpsFreeHomomorphism h) (a : α) {N : Type} :
     grule_noncontracting (@homExpandRule α β N h a) := by
-  simp [grule_noncontracting, homExpandRule]
+  simp [grule_noncontracting]
   exact List.length_pos_iff.mpr (heps a)
 
 private theorem hom_grammar_context_sensitive (g : grammar α) (h : α → List β)
@@ -72,7 +72,7 @@ private theorem hom_grammar_context_sensitive (g : grammar α) (h : α → List 
       rcases hr' with ⟨r₀', hr₀', rfl⟩ | ⟨a, _ha, rfl⟩
       · -- Lifted rule: `S = inl g.initial` in output iff `g.initial` in `r₀'`'s output.
         have := hrhs r₀' hr₀'
-        simp only [hom_grammar, homLiftRule, homLiftStr]
+        simp only [hom_grammar, homLiftStr]
         intro hmem
         rw [List.mem_map] at hmem
         obtain ⟨s, hs, hseq⟩ := hmem
@@ -82,10 +82,10 @@ private theorem hom_grammar_context_sensitive (g : grammar α) (h : α → List 
             simp only [homLiftSym, symbol.nonterminal.injEq, Sum.inl.injEq] at hseq
             exact this (hseq ▸ hs)
       · -- Expand rule: output is all terminals, no nonterminal `S`.
-        simp [hom_grammar, homExpandRule]
+        simp [hom_grammar]
     · -- An expand rule has `input_N = Sum.inr a ≠ Sum.inl g.initial`, never the ε-rule.
       rcases hε with ⟨_, hN, _, _⟩
-      simp [hom_grammar, homExpandRule] at hN
+      simp [hom_grammar] at hN
 
 /-- Context-sensitive languages are closed under ε-free string homomorphism, without requiring
 the ambient terminal types themselves to be finite. -/

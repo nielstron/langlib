@@ -110,7 +110,8 @@ public theorem certStep_preserves_represents
           · change ExecRep g (normalizeCursor c'.work) form'
             rw [hc']
             simpa only [normalizeCursor, List.map_append, List.map_singleton,
-              List.map_cons, normalizeWorkSym, normalizeIndexMark] using hrep'
+              List.map_cons, normalizeWorkSym, normalizeIndexMark,
+              IndexMark.later, Bool.false_eq_true, if_false] using hrep'
           · rw [hc']
   | liveBinaryBoth A B C =>
       rcases hstep with ⟨haug, alpha, Z, beta, hc, hc'⟩
@@ -161,7 +162,8 @@ public theorem certStep_preserves_represents
       · change ExecRep g (normalizeCursor c'.work) form'
         rw [hc']
         simpa only [normalizeCursor, List.map_append, List.map_singleton,
-          List.map_cons, normalizeWorkSym, normalizeIndexMark] using hrep'
+          List.map_cons, normalizeWorkSym, normalizeIndexMark,
+          IndexMark.later, if_true] using hrep'
       · rw [hc']
   | livePushCompress A B f R d =>
       rcases hstep with ⟨haug, _hne, alpha, beta, hc, hc'⟩
@@ -210,7 +212,7 @@ public theorem certStep_preserves_represents
         · change ExecRep g (normalizeCursor c'.work) form'
           rw [hc']
           simpa only [normalizeCursor, List.map_append, List.map_singleton,
-            List.map_cons, normalizeWorkSym] using hrep'
+            List.map_cons, List.map_nil, normalizeWorkSym] using hrep'
         · rw [hc']
   | popLive R d A B =>
       rcases hstep with ⟨hedge, hlater, hframed | herase⟩
@@ -241,7 +243,7 @@ public theorem certStep_preserves_represents
         · change ExecRep g (normalizeCursor c'.work) form'
           rw [hc']
           simpa only [normalizeCursor, List.map_append, List.map_singleton,
-            List.map_cons, normalizeWorkSym] using hrep'
+            List.map_cons, List.map_nil, normalizeWorkSym] using hrep'
         · rw [hc']
   | matchTerminal a =>
       rcases hstep with ⟨hinput, alpha, Z, beta, hc, hc'⟩
@@ -253,7 +255,7 @@ public theorem certStep_preserves_represents
       · change ExecRep g (normalizeCursor c'.work) restForm
         rw [hc']
         simpa only [normalizeCursor, List.map_append, List.map_singleton,
-          List.map_cons, normalizeWorkSym] using hrep'
+          List.map_cons, List.map_nil, normalizeWorkSym] using hrep'
       · rw [hc']
   | eraseIndex R d =>
       rcases hstep with ⟨_herase, alpha, Z, beta, hc, hc'⟩
@@ -265,7 +267,7 @@ public theorem certStep_preserves_represents
       · change ExecRep g (normalizeCursor c'.work) form
         rw [hc']
         simpa only [normalizeCursor, List.map_append, List.map_singleton,
-          List.map_cons, normalizeWorkSym] using hrep'
+          List.map_cons, List.map_nil, normalizeWorkSym] using hrep'
       · rw [hc']
   | returnFrame =>
       rcases hstep with ⟨alpha, Z, beta, gamma, hZ, hfree, hc, hc'⟩
@@ -281,7 +283,7 @@ public theorem certStep_preserves_represents
       · change ExecRep g (normalizeCursor c'.work) form
         rw [hc']
         simpa only [normalizeCursor, List.map_append, List.map_singleton,
-          List.map_cons, normalizeWorkSym] using hrep'
+          List.map_cons, List.map_nil, normalizeWorkSym] using hrep'
       · rw [hc']
 
 end ControlDenotation

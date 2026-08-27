@@ -29,7 +29,6 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 /-- The two impossible operational outcomes of a genuinely distinct pair of
 useful empty returns.  This definition is syntax-independent and can be
 shared by both the concrete synchronization proof and its grammar adapter. -/
-@[expose]
 public def UsefulReturnObstruction (M : DPDA Q T S) : Prop :=
   (∃ (c : PDA.conf (emptyStackPDA M)) (final : State M),
       Relation.TransGen
@@ -322,11 +321,12 @@ public theorem ConcreteEmptyEdge.exists_prefixCompletion
 
 /-! ## Terminal displacement of two empty-return prefixes -/
 
+omit [Fintype T] in
 /-- Equality after appending terminal suffixes exposes the precise terminal
 displacement between the two visible prefixes.  Keeping this lemma in the
 concrete synchronization layer lets the hard semantic proof choose aligned
 terminal completions before returning to the syntax-facing adapter. -/
-public theorem concreteEmptyReturn_append_terminals_eq_cases
+public theorem concreteEmptyReturn_append_terminals_eq_cases [Fintype T]
     {N : Type} {p₁ p₂ : List (symbol T N)} {s₂ y : List T}
     (h : p₂ ++ s₂.map symbol.terminal =
       p₁ ++ y.map symbol.terminal) :
@@ -359,7 +359,6 @@ public theorem concreteEmptyReturn_append_terminals_eq_cases
 
 /-- Operational factorization of a concrete empty return after deliberately
 choosing a terminal completion of its visible prefix. -/
-@[expose]
 public def ConcreteEmptyReturnRun (M : DPDA Q T S)
     (completion suffix : List T) (q : State M) : Prop :=
   ∃ (beforeWord segmentWord : List T) (source : State M)
@@ -378,7 +377,6 @@ public def ConcreteEmptyReturnRun (M : DPDA Q T S)
 
 /-- One-step specialization for a transition-generated concrete empty
 return. -/
-@[expose]
 public def ConcreteEmptyTransitionRun (M : DPDA Q T S)
     (completion suffix : List T) (q : State M) : Prop :=
   ∃ (beforeWord segmentWord : List T) (source : State M)
@@ -553,7 +551,7 @@ public theorem concreteReadEmptyReturn_samePrefix_state_eq
     have ha : (characteristicGrammar M).DerivesRightmost
         [symbol.terminal a]
         ([a].map symbol.terminal) := Relation.ReflTransGen.refl
-    simpa [List.map_append] using hpBase.append_to_terminals ha
+    exact hpBase.append_to_terminals ha
   let anchor₁ : VisibleSpineAnchor M
       (base ++ [symbol.terminal a])
       (PDA_to_CFG.N.list q₁ [] q₁) suffix₁
@@ -728,7 +726,7 @@ public theorem concreteReadEmptyReturn_no_strictTerminalExtension
     have ha : (characteristicGrammar M).DerivesRightmost
         [symbol.terminal a]
         ([a].map symbol.terminal) := Relation.ReflTransGen.refl
-    simpa [List.map_append] using hpBase.append_to_terminals ha
+    exact hpBase.append_to_terminals ha
   obtain ⟨alignedContext, alignedParent⟩ :=
     concreteOperationalSpine_of_activeSpine M
       ((otherParent.operationalSpine M).activeSpine M) hp
@@ -861,7 +859,7 @@ public theorem concreteEmptyReturn_forward_displacement
   have hp₂' : (characteristicGrammar M).DerivesRightmost p₂
       ((completion ++ z).map symbol.terminal) := by
     rw [hp₂]
-    simpa [List.map_append] using hp₁.append_to_terminals hzDerives
+    exact hp₁.append_to_terminals hzDerives
   obtain ⟨context₁, child₁⟩ :=
     edge₁.exists_childSpineAtCompletion M hp₁
   obtain ⟨context₂, child₂⟩ :=
@@ -914,7 +912,7 @@ public theorem concreteEmptyReturn_backward_displacement
   have hp₁' : (characteristicGrammar M).DerivesRightmost p₁
       ((completion ++ z).map symbol.terminal) := by
     rw [hp₁]
-    simpa [List.map_append] using hp₂.append_to_terminals hzDerives
+    exact hp₂.append_to_terminals hzDerives
   obtain ⟨context₁, child₁⟩ :=
     edge₁.exists_childSpineAtCompletion M hp₁'
   obtain ⟨context₂, child₂⟩ :=
@@ -936,7 +934,6 @@ public theorem concreteEmptyReturn_backward_displacement
 /-- Concrete version of the syntax-facing paired empty-return classifier.
 The proof below will turn every genuinely distinct pair into one of the two
 public operational obstructions. -/
-@[expose]
 public def ConcreteEmptyReturnPairsClassified (M : DPDA Q T S) : Prop :=
   ∀ (p₁ p₂ : List (symbol T (Nonterminal M)))
       (q₁ q₂ : State M) (s₁ s₂ y : List T),
@@ -947,12 +944,11 @@ public def ConcreteEmptyReturnPairsClassified (M : DPDA Q T S) : Prop :=
     p₂ ++ s₂.map symbol.terminal =
       p₁ ++ y.map symbol.terminal →
     s₁.take 1 = y.take 1 →
-    (p₁ = p₂ ∧ q₁ = q₂) ∨ UsefulReturnObstruction M
+    (fun _ _ => (p₁ = p₂ ∧ q₁ = q₂) ∨ UsefulReturnObstruction M) edge₁ edge₂
 
 /-- The genuinely semantic residual, with the transition witness used as
 the left edge rather than carried redundantly beside another proof with the
 same indices. -/
-@[expose]
 public def ConcreteLeftTransitionReturnPairsClassified
     (M : DPDA Q T S) : Prop :=
   ∀ (p₁ p₂ : List (symbol T (Nonterminal M)))
@@ -967,7 +963,6 @@ public def ConcreteLeftTransitionReturnPairsClassified
 /-- Symmetric semantic residual in which the transition witness is the
 right edge.  The LR lookahead equation is directional, so this is not merely
 the preceding proposition with its arguments swapped. -/
-@[expose]
 public def ConcreteRightTransitionReturnPairsClassified
     (M : DPDA Q T S) : Prop :=
   ∀ (p₁ p₂ : List (symbol T (Nonterminal M)))

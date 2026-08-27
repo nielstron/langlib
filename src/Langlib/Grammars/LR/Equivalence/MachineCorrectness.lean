@@ -27,7 +27,6 @@ noncomputable section
 
 /-- Concrete machine configuration corresponding to a stable canonical
 parser configuration. -/
-@[expose]
 public def stableConfig (G : CF_grammar T) (k : ℕ) (hk : 0 < k)
     (c : CanonicalParser.Config T G) :
     PDA.conf (machine G k hk).toPDA :=
@@ -57,7 +56,8 @@ private theorem epsilon_reachesIn_one {Q A S : Type}
       ⟨p, input, beta ++ stack⟩ := by
   rw [← PDA.reaches₁_iff_reachesIn_one]
   cases input with
-  | nil => simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h]
+  | nil =>
+      simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h]
   | cons a input =>
       have hinput : M.transition q a Z = none :=
         M.no_mixed q Z (by simp [h]) a
@@ -151,9 +151,18 @@ private theorem no_step_from_accept (G : CF_grammar T) (k : ℕ)
   cases stack with
   | nil => simp [PDA.Reaches₁, PDA.step]
   | cons Z stack =>
-      cases input <;>
-        simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, machine,
-          inputTransition, epsilonTransition]
+      have hepsilon : (machine G k hk).epsilon_transition
+          Control.accept Z = none := by
+        simp [machine, epsilonTransition]
+      have hinput : ∀ a, (machine G k hk).transition
+          Control.accept a Z = none := by
+        intro a
+        simp [machine, inputTransition]
+      cases input with
+      | nil =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon]
+      | cons a input =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
 
 /-- The rejecting control has no outgoing transition. -/
 private theorem no_step_from_reject (G : CF_grammar T) (k : ℕ)
@@ -165,9 +174,18 @@ private theorem no_step_from_reject (G : CF_grammar T) (k : ℕ)
   cases stack with
   | nil => simp [PDA.Reaches₁, PDA.step]
   | cons Z stack =>
-      cases input <;>
-        simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, machine,
-          inputTransition, epsilonTransition]
+      have hepsilon : (machine G k hk).epsilon_transition
+          Control.reject Z = none := by
+        simp [machine, epsilonTransition]
+      have hinput : ∀ a, (machine G k hk).transition
+          Control.reject a Z = none := by
+        intro a
+        simp [machine, inputTransition]
+      cases input with
+      | nil =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon]
+      | cons a input =>
+          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
 
 private theorem reaches_from_accept_eq (G : CF_grammar T) (k : ℕ)
     (hk : 0 < k) {input : List (Option T)}
@@ -222,6 +240,7 @@ private theorem continue_after_positive_prefix (G : CF_grammar T) (k : ℕ)
     have heq := reaches_from_accept_eq G k hk hback
     exact False.elim (hd (congrArg PDA.conf.state heq))
 
+omit [Fintype T] in
 /-- Positive lookahead distinguishes every nonempty suffix from EOF. -/
 private theorem eq_nil_of_observe_eq_eof (k : ℕ) (hk : 0 < k)
     {w : List T} (h : observe k w = eofLookahead T k) : w = [] := by
@@ -231,6 +250,7 @@ private theorem eq_nil_of_observe_eq_eof (k : ℕ) (hk : 0 < k)
       have hzero := congrFun h ⟨0, hk⟩
       simp [observe, eofLookahead] at hzero
 
+omit [Fintype T] in
 /-- Once the back of a positive observation is EOF, shifting its head does
 not expose another physical input symbol. -/
 private theorem unreadAfter_cons_of_last_none (k : ℕ) (hk : 0 < k)
@@ -290,8 +310,8 @@ private theorem canonical_accepting_of_action (G : CF_grammar T)
   have hcand := reductionItem?_reductionCandidate G k hi
   rw [hstart, ruleAt_startRuleIndex] at hcand
   rcases hcand with ⟨_, p, s, hpre, _, hlook⟩
-  obtain ⟨rfl, rfl⟩ := fresh_prehandle_eq_root G (by
-    simpa [CF_grammar.augmentStartRule] using hpre)
+  unfold CF_grammar.augmentStartRule at hpre
+  obtain ⟨rfl, rfl⟩ := fresh_prehandle_eq_root G hpre
   have hnil : input = [] := by
     apply eq_nil_of_observe_eq_eof k hk
     simpa [eofLookahead, observe] using hlook.symm
@@ -468,7 +488,7 @@ private theorem machine_accept (G : CF_grammar T) (k : ℕ) (hk : 0 < k)
   have hepsilon : (machine G k hk).epsilon_transition
       (Control.parse (scanKernel G k gamma) (observe k ([] : List T))) Z =
       some (Control.accept, [Z]) := by
-    simp [machine, epsilonTransition, haction, observe, eofLookahead]
+    simp [machine, epsilonTransition, haction]
   have hraw := epsilon_reachesIn_one (machine G k hk)
     (input := ([] : List (Option T))) (stack := rest) hepsilon
   have hunread : unreadAfter k ([] : List T) = [] := by
@@ -498,7 +518,7 @@ public theorem marked_machine_accepts_of_canonical (G : CF_grammar T)
       ⟨q, [], stack⟩
   refine ⟨Control.accept, ?_, stackRep G k c.stack,
     hpreload'.trans (hparse.trans hfinal)⟩
-  simp [machine, DPDA.toPDA]
+  simp [machine]
 
 /-- Any accepting concrete run starting at a stable parser control projects
 to a canonical run ending in a canonical accepting configuration. -/

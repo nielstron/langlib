@@ -2,7 +2,7 @@ module
 
 public import Langlib.Automata.Turing.DSL.TakeWhileNeSepMachine
 public import Langlib.Automata.Turing.DSL.TM0BlockRealizability
-public import Mathlib.Computability.TMToPartrec
+public import Mathlib.Computability.TuringMachine.ToPartrec
 import Langlib.Automata.Turing.DSL.InnerBlockRealizability
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
@@ -62,7 +62,7 @@ The machine has four states:
   realizability for `dropUntilFirstSep`.
 -/
 
-open Turing PartrecToTM2 TM2to1
+open StateTransition Turing PartrecToTM2 TM2to1
 
 /-! ### Machine definition -/
 
@@ -81,7 +81,6 @@ instance : Fintype DUFSState where
   complete := by intro x; cases x <;> simp
 
 /-- The dropUntilFirstSep TM0 machine. -/
-@[expose]
 public noncomputable def dufsM {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (sep : Γ) : @TM0.Machine Γ DUFSState ⟨.erase⟩ := fun q a =>
   match q with
@@ -103,7 +102,7 @@ public theorem dufs_reaches_halts {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (sep : Γ) (hsep : sep ≠ default)
     (block suffix : List Γ)
     (hblock : ∀ g ∈ block, g ≠ default) :
-    ∃ q, Reaches (TM0.step (dufsM sep))
+    ∃ q, StateTransition.Reaches (TM0.step (dufsM sep))
       (TM0.init (block ++ default :: suffix))
       ⟨q, Tape.mk₁ (dropUntilFirstSep sep block ++ default :: suffix)⟩ ∧
     TM0.step (dufsM sep)
@@ -149,9 +148,9 @@ public theorem tm0_dropUntilFirstSep_block {Γ : Type} [Inhabited Γ] [Decidable
   intro block suffix hblock hsuffix hfblock
   obtain ⟨q, h_reaches, h_halts⟩ := dufs_reaches_halts sep hsep block suffix hblock
   constructor
-  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨h_reaches, h_halts⟩⟩
+  · exact Part.dom_iff_mem.mpr ⟨_, StateTransition.mem_eval.mpr ⟨h_reaches, h_halts⟩⟩
   · intro h
-    have h_mem := Turing.mem_eval.mpr ⟨h_reaches, h_halts⟩
+    have h_mem := StateTransition.mem_eval.mpr ⟨h_reaches, h_halts⟩
     exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
 
 /-- `dropUntilFirstSep sep` is strong blank-delimited block-realizable: the
@@ -165,9 +164,9 @@ theorem tm0_dropUntilFirstSep_blockAnySuffix
   intro block suffix hblock hfblock
   obtain ⟨q, h_reaches, h_halts⟩ := dufs_reaches_halts sep hsep block suffix hblock
   constructor
-  · exact Part.dom_iff_mem.mpr ⟨_, Turing.mem_eval.mpr ⟨h_reaches, h_halts⟩⟩
+  · exact Part.dom_iff_mem.mpr ⟨_, StateTransition.mem_eval.mpr ⟨h_reaches, h_halts⟩⟩
   · intro h
-    have h_mem := Turing.mem_eval.mpr ⟨h_reaches, h_halts⟩
+    have h_mem := StateTransition.mem_eval.mpr ⟨h_reaches, h_halts⟩
     exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
 
 /-- Separator-bounded `dropUntilFirstSep`, with an unrestricted suffix after

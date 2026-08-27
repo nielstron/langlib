@@ -54,17 +54,14 @@ variable {Q S : Type}
 
 /-- States of a P-automaton: original control states plus one distinguished sink
 state used by target automata for arbitrary stack suffixes. -/
-@[expose]
 public abbrev PAutState (Q : Type) := Q ⊕ Unit
 
 namespace PAutState
 
 /-- Embed an original DPDA state as a P-automaton state. -/
-@[expose]
 public def control (q : Q) : PAutState Q := Sum.inl q
 
 /-- Distinguished target/sink state. -/
-@[expose]
 public def sink : PAutState Q := Sum.inr ()
 
 end PAutState
@@ -109,7 +106,6 @@ public theorem mono {R₁ R₂ : PAutState Q → S → PAutState Q → Prop}
 end RelPath
 
 /-- The NFA whose transitions are exactly a stack-reading relation. -/
-@[expose]
 public def relNFA (R : PAutState Q → S → PAutState Q → Prop)
     (start : PAutState Q) (accept : Set (PAutState Q)) :
     NFA S (PAutState Q) where
@@ -135,7 +131,6 @@ public theorem relPath_iff_nonempty_nfa_path
         exact RelPath.cons hstep ih
 
 /-- The DFA obtained by subset construction from a stack-reading relation. -/
-@[expose]
 public def relDFA (R : PAutState Q → S → PAutState Q → Prop)
     (start : PAutState Q) (accept : Set (PAutState Q)) :
     DFA S (Set (PAutState Q)) :=
@@ -177,7 +172,6 @@ variable {T : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- A relation is saturated for the epsilon rules of a DPDA if every pushdown
 epsilon step can be summarized by a single stack-reading transition. -/
-@[expose]
 public def EpsilonStepSaturated (M : DPDA Q T S)
     (R : PAutState Q → S → PAutState Q → Prop) : Prop :=
   ∀ {q p : Q} {Z : S} {β : List S} {r : PAutState Q},
@@ -186,7 +180,6 @@ public def EpsilonStepSaturated (M : DPDA Q T S)
     R (PAutState.control q) Z r
 
 /-- Least saturated relation containing a base P-automaton relation. -/
-@[expose]
 public def epsilonSaturationRel (M : DPDA Q T S)
     (base : PAutState Q → S → PAutState Q → Prop) :
     PAutState Q → S → PAutState Q → Prop :=
@@ -211,7 +204,6 @@ public theorem epsilonSaturationRel_saturated (M : DPDA Q T S)
 /-- Base target relation for stopping epsilon phases.  A control state with no
 epsilon transition on the current top symbol is a target; the sink consumes the
 unexamined suffix. -/
-@[expose]
 public def stopTargetBase (M : DPDA Q T S) :
     PAutState Q → S → PAutState Q → Prop
   | .inl q, Z, .inr () => M.epsilon_transition q Z = none
@@ -220,19 +212,16 @@ public def stopTargetBase (M : DPDA Q T S) :
 
 /-- Empty stack is stable for every control state; after detecting a stable top,
 the sink accepts the remaining suffix. -/
-@[expose]
 public def stopTargetAccept : Set (PAutState Q) :=
   Set.univ
 
 /-- Saturated relation recognizing stacks from which the forced epsilon phase
 reaches a stable configuration. -/
-@[expose]
 public def stopSaturationRel (M : DPDA Q T S) :
     PAutState Q → S → PAutState Q → Prop :=
   epsilonSaturationRel M (stopTargetBase M)
 
 /-- Base target relation for epsilon reachability to a final state. -/
-@[expose]
 public def finalTargetBase (M : DPDA Q T S) :
     PAutState Q → S → PAutState Q → Prop
   | .inl q, _, .inr () => q ∈ M.final_states
@@ -240,26 +229,22 @@ public def finalTargetBase (M : DPDA Q T S) :
   | _, _, _ => False
 
 /-- Accepting P-automaton states for final-state epsilon reachability. -/
-@[expose]
 public def finalTargetAccept (M : DPDA Q T S) : Set (PAutState Q)
   | .inl q => q ∈ M.final_states
   | .inr () => True
 
 /-- Saturated relation recognizing stacks from which epsilon reachability can hit
 an original final state. -/
-@[expose]
 public def finalSaturationRel (M : DPDA Q T S) :
     PAutState Q → S → PAutState Q → Prop :=
   epsilonSaturationRel M (finalTargetBase M)
 
 /-- Candidate DFA for the stop-lookahead language at control state `q`. -/
-@[expose]
 public def stopSaturationDFA (M : DPDA Q T S) (q : Q) :
     DFA S (Set (PAutState Q)) :=
   relDFA (stopSaturationRel M) (PAutState.control q) stopTargetAccept
 
 /-- Candidate DFA for the epsilon-final-reachability language at control state `q`. -/
-@[expose]
 public def finalSaturationDFA (M : DPDA Q T S) (q : Q) :
     DFA S (Set (PAutState Q)) :=
   relDFA (finalSaturationRel M) (PAutState.control q) (finalTargetAccept M)
@@ -273,7 +258,6 @@ public theorem stopSaturationDFA_accepts_iff (M : DPDA Q T S) (q : Q) (γ : List
 
 /-- A relation preserves a target stack language if one transition consumes one
 stack symbol while preserving target membership for every suffix. -/
-@[expose]
 public def RelationPreservesTarget
     (R : PAutState Q → S → PAutState Q → Prop)
     (Target : PAutState Q → List S → Prop) : Prop :=
@@ -294,7 +278,6 @@ public theorem RelPath.preservesTarget
 
 /-- Semantic target for stopping: controls represent genuine DPDA configurations;
 the sink means the target has already been reached and the rest of the stack is ignored. -/
-@[expose]
 public def stopTarget (M : DPDA Q T S) : PAutState Q → List S → Prop
   | .inl q, γ => ∃ cstable, M.EpsilonStopsAt (q, γ) cstable
   | .inr (), _ => True
@@ -321,7 +304,8 @@ public theorem stopSaturationRel_preservesTarget (M : DPDA Q T S) :
         | inr u =>
             cases u
             exact ⟨(q, Z :: δ), Relation.ReflTransGen.refl, by
-              simpa [EpsilonStable] using hbase⟩
+              simpa [stopTargetBase, PAutState.control, PAutState.sink,
+                EpsilonStable] using hbase⟩
     | inr u =>
         cases u
         cases r with
@@ -355,7 +339,7 @@ public theorem stopSaturationDFA_sound (M : DPDA Q T S) (q : Q) (γ : List S) :
   intro h
   obtain ⟨r, hpath⟩ := (stopSaturationDFA_accepts_iff M q γ).1 h
   have htarget := stopSaturationRel_path_sound M hpath (stopTarget_nil M r)
-  simpa [stopTarget] using htarget
+  simpa [stopTarget, PAutState.control] using htarget
 
 public theorem stopSaturationRel_sink_path (M : DPDA Q T S) (γ : List S) :
     RelPath (stopSaturationRel M) (PAutState.sink : PAutState Q) γ PAutState.sink := by
@@ -430,7 +414,6 @@ public theorem finalSaturationDFA_accepts_iff (M : DPDA Q T S) (q : Q) (γ : Lis
   exact relDFA_accepts_iff
 
 /-- Semantic target for final-state epsilon reachability. -/
-@[expose]
 public def finalTarget (M : DPDA Q T S) : PAutState Q → List S → Prop
   | .inl q, γ =>
       ∃ qf γf, M.EpsilonReaches (q, γ) (qf, γf) ∧ qf ∈ M.final_states
@@ -506,7 +489,7 @@ public theorem finalSaturationDFA_sound (M : DPDA Q T S) (q : Q) (γ : List S) :
   obtain ⟨r, hr, hpath⟩ := (finalSaturationDFA_accepts_iff M q γ).1 h
   have htargetNil : finalTarget M r [] := (finalTarget_nil_iff M r).2 hr
   have htarget := finalSaturationRel_path_sound M hpath htargetNil
-  simpa [finalTarget] using htarget
+  simpa [finalTarget, PAutState.control] using htarget
 
 public theorem finalSaturationRel_sink_path (M : DPDA Q T S) (γ : List S) :
     RelPath (finalSaturationRel M) (PAutState.sink : PAutState Q) γ PAutState.sink := by

@@ -25,23 +25,34 @@ private def nonemptyPart (L : Language T) : Language T :=
 private theorem big_grammar_noncontracting (g1 g2 : grammar T)
     (h1 : grammar_noncontracting g1) (h2 : grammar_noncontracting g2) :
     grammar_noncontracting (big_grammar g1 g2) := by
+  simp only [grammar_noncontracting]
+  simp only [big_grammar]
   intro r hr
-  simp only [big_grammar, List.mem_cons, List.mem_append, List.mem_map] at hr
-  rcases hr with rfl | hrest
-  · simp
-  rcases hrest with hwrapped | hterm
-  · rcases hwrapped with hleft | hright
-    · rcases hleft with ⟨r1, hr1, rfl⟩
-      simpa [wrap_grule₁, List.length_map] using h1 r1 hr1
-    · rcases hright with ⟨r2, hr2, rfl⟩
-      simpa [wrap_grule₂, List.length_map] using h2 r2 hr2
-  · rcases hterm with hleft | hright
-    · simp only [rules_for_terminals₁, List.mem_map] at hleft
-      rcases hleft with ⟨t, _ht, rfl⟩
-      simp
-    · simp only [rules_for_terminals₂, List.mem_map] at hright
-      rcases hright with ⟨t, _ht, rfl⟩
-      simp
+  rcases List.mem_cons.mp hr with hstart | hrest
+  · subst r
+    simp only [List.length_nil, List.length_cons]
+    norm_num
+  rcases List.mem_append.mp hrest with hwrapped | hterm
+  · rcases List.mem_append.mp hwrapped with hleft | hright
+    · rcases List.mem_map.mp hleft with ⟨r1, hr1, rfl⟩
+      simp only [wrap_grule₁]
+      simp only [List.length_map]
+      exact h1 r1 hr1
+    · rcases List.mem_map.mp hright with ⟨r2, hr2, rfl⟩
+      simp only [wrap_grule₂]
+      simp only [List.length_map]
+      exact h2 r2 hr2
+  · rcases List.mem_append.mp hterm with hleft | hright
+    · rw [rules_for_terminals₁] at hleft
+      rcases List.mem_map.mp hleft with ⟨t, _ht, heq⟩
+      subst r
+      simp only [List.length_nil, List.length_cons]
+      norm_num
+    · rw [rules_for_terminals₂] at hright
+      rcases List.mem_map.mp hright with ⟨t, _ht, heq⟩
+      subst r
+      simp only [List.length_nil, List.length_cons]
+      norm_num
 
 private theorem big_grammar_language (g1 g2 : grammar T) :
     grammar_language (big_grammar g1 g2) = grammar_language g1 * grammar_language g2 := by

@@ -19,6 +19,22 @@ variable {T : Type}
 namespace IndexedGrammar
 namespace Aho
 
+private theorem WorkCursor.map_some_slots {g : IndexedGrammar T} (c : WorkCursor g) :
+    c.slots.map some =
+      c.left.map inactive ++ active c.focus :: c.right.map inactive := by
+  have map_inactive (xs : List (WorkSym g)) :
+      xs.map (fun z => some (WorkSlot.mk false z)) = xs.map inactive := by
+    induction xs with
+    | nil => rfl
+    | cons z zs ih =>
+        simp only [List.map_cons]
+        rw [ih]
+        rfl
+  simp only [WorkCursor.slots, List.map_append, List.map_cons, List.map_map,
+    Function.comp_def]
+  rw [map_inactive, map_inactive]
+  rfl
+
 /-! ## Nonproductive replacement -/
 
 private theorem replaceOneFalse_prefix_iff
@@ -90,7 +106,7 @@ private theorem WorkTrace.decodeReplaceOneFalse
         subst old
         subst new
         cases htail with
-        | nil => simp [workScanDone, advanceWorkState] at hdone
+        | nil => exact (of_decide_eq_true hdone).elim
         | @cons _stage old new next rows result hedgeFocus htailSuffix =>
             have hfocusWork :=
               (hshape (advanceWorkState state (inactive WorkSym.dollar)
@@ -162,10 +178,10 @@ public theorem workTraceAccepts_plainPushSkip_sound
   let oldCursor : WorkCursor g := ⟨alpha ++ [.dollar], .plain A, beta⟩
   let newCursor : WorkCursor g := ⟨alpha ++ [.dollar], .plain B, beta⟩
   refine ⟨oldCursor, newCursor, k, k, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨hpush, alpha, beta, rfl, rfl⟩
 
 /-! ## Productive prefix inversion -/
@@ -219,7 +235,7 @@ private theorem ProductivePrefixInv.mark_eq_self_of_boundary
       | index R d =>
           have heq : inactive (WorkSym.index R d) =
               inactive (WorkSym.index R d.markUsed) := by
-            simpa [ProductiveBoundaryOK, hold, hnew] using hboundary
+            simpa [ProductiveBoundaryOK, hold, hnew, inactive] using hboundary
           have hsym : WorkSym.index R d = WorkSym.index R d.markUsed := by
             have hslot : (⟨false, WorkSym.index R d⟩ : WorkSlot g) =
                 ⟨false, WorkSym.index R d.markUsed⟩ := by
@@ -305,7 +321,7 @@ public theorem WorkTrace.splitProductivePrefix
         subst old
         subst new
         cases htail with
-        | nil => simp [workScanDone, advanceWorkState] at hdone
+        | nil => exact (of_decide_eq_true hdone).elim
         | @cons _stage old new next rows result hedgeBoundary hrest =>
             have hboundaryWork := (workEdge_prefix_iff g cert .marked next
               (advanceWorkState state (inactive (WorkSym.index R d))
@@ -434,10 +450,10 @@ public theorem workTraceAccepts_plainTerminal_sound
   let newCursor : WorkCursor g :=
     ⟨markProductivePrefix alpha ++ [.dollar], .terminal a, beta⟩
   refine ⟨oldCursor, newCursor, k, k, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨hterminal, alpha, beta, rfl, rfl⟩
 
 /-! ## Shared nonproductive-prefix split -/
@@ -552,7 +568,7 @@ private theorem WorkTraceAccepts.decodeReplaceTwo
         stage.history old₁ new₁).mp (by simpa [hstage] using hw₁.2)
       rcases he₁ with ⟨rfl, rfl, rfl⟩
       cases tail₁ with
-      | nil => simp [workScanDone, advanceWorkState] at hdone
+      | nil => exact (of_decide_eq_true hdone).elim
       | @cons _stage₂ old₂ new₂ next₂ suffixRows result hedge₂ htail =>
           let stage₂ := advanceWorkState stage (active oldFocus) (active newFocus) .stage2
           have hw₂ := (hshape stage₂.phase next₂ stage₂.history old₂ new₂).mp
@@ -630,10 +646,10 @@ public theorem workTraceAccepts_livePushCompress_sound
     ⟨alpha ++ [.dollar], .live B,
       .index (cflagComp g (cflagBase g f) R) d :: beta⟩
   refine ⟨oldCursor, newCursor, k, k, ?_, ?_, ?_⟩
-  · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hold
-  · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-      List.map_map, Function.comp_def, List.append_assoc] using hnew
+  · rw [WorkCursor.map_some_slots]
+    simpa [oldCursor, List.map_append, List.append_assoc] using hold
+  · rw [WorkCursor.map_some_slots]
+    simpa [newCursor, List.map_append, List.append_assoc] using hnew
   · exact ⟨henabled.1, henabled.2, alpha, beta, rfl, rfl⟩
 
 end Aho

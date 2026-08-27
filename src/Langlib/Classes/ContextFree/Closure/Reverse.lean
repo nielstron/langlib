@@ -63,7 +63,6 @@ variable {T : Type}
 section reversal_defs
 
 /-- Reverse the right-hand side of every rule in a context-free grammar. -/
-@[expose]
 public def reversal_CF_grammar (g : CF_grammar T) : CF_grammar T :=
   CF_grammar.mk g.nt g.initial (List.map (
       fun r : g.nt × List (symbol T g.nt) => (r.fst, List.reverse r.snd)

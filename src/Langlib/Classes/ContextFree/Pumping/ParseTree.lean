@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 Authors: Alexander Loitzl
 -/
 
@@ -50,14 +50,12 @@ public inductive parseTree : g.NT → Type _ where
 namespace parseTree
 
 /-- The `yield` of a tree is the word the tree derives -/
-@[expose]
 public def yield {n : g.NT} (p : parseTree n) : List T :=
   match p with
   | leaf t _ => [t]
   | node t₁ t₂ _ => yield t₁ ++ yield t₂
 
 /-- The `height` of a tree -/
-@[expose]
 public def height {n : g.NT} (p : parseTree n) : ℕ :=
   match p with
   | leaf _ _ => 1

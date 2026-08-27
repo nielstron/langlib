@@ -72,7 +72,7 @@ producing a single `TM0RealizesBlockSep Γ sep₂` machine. The full constructio
 is then a three-machine composition: reverse(sep₁) → revFRev(sep₂) → reverse(sep₁).
 -/
 
-open Turing
+open StateTransition Turing
 
 /-! ### Inner Block Realizability Definition -/
 
@@ -151,7 +151,6 @@ theorem tm0RealizesInnerBlockSep_of_anySuffix
 This is the shape needed by invariant while-loop bodies: the whole active
 block is default-delimited, and an internal separator `sep₂` splits the
 preserved prefix from the inner block transformed by `f`. -/
-@[expose]
 public def TM0RealizesInnerBlockDefaultSep (Γ : Type) [Inhabited Γ] (sep₂ : Γ)
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -227,13 +226,16 @@ public inductive BoundaryReplaceSt where
   | goLeft
   | rewind
   | done
-  deriving DecidableEq, Fintype
+  deriving DecidableEq
+
+public instance : Fintype BoundaryReplaceSt where
+  elems := {.scan, .goLeft, .rewind, .done}
+  complete q := by cases q <;> simp
 
 instance : Inhabited BoundaryReplaceSt := ⟨.scan⟩
 
 /-- Scan to the first occurrence of `target`, replace it by `repl`, then rewind
 to the left edge of the active block. -/
-@[expose]
 public noncomputable def boundaryReplaceMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) : TM0.Machine Γ BoundaryReplaceSt :=
   fun q a =>
@@ -260,6 +262,7 @@ public theorem boundaryReplace_rewind_loop {Γ : Type} [Inhabited Γ] [Decidable
         ⟨revBlock.headI, ListBlank.mk revBlock.tail, ListBlank.mk acc⟩⟩
       ⟨BoundaryReplaceSt.rewind,
         ⟨default, ListBlank.mk [], ListBlank.mk (revBlock.reverse ++ acc)⟩⟩ := by
+  unfold StateTransition.Reaches
   induction revBlock generalizing acc with
   | nil => exact Relation.ReflTransGen.refl
   | cons a revBlock ih =>
@@ -273,8 +276,8 @@ public theorem boundaryReplace_rewind_loop {Γ : Type} [Inhabited Γ] [Decidable
       refine Relation.ReflTransGen.trans (b := mid) ?_ ?_
       · apply Relation.ReflTransGen.single
         simp [TM0.step, boundaryReplaceMachine, ha, mid, Tape.move]
-      · convert ih (a :: acc) hrest using 1
-        simp [List.reverse_cons, List.append_assoc]
+      · simpa [mid, Tape.move, List.reverse_cons, List.append_assoc] using
+          ih (a :: acc) hrest
 
 public theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) (block suffix revL : List Γ)
@@ -288,6 +291,7 @@ public theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq 
           ListBlank.mk (block ++ target :: suffix).tail⟩⟩
       ⟨BoundaryReplaceSt.done,
         Tape.mk₁ (revL.reverse ++ block ++ repl :: suffix)⟩ := by
+  unfold StateTransition.Reaches
   induction block generalizing revL suffix with
   | nil =>
       have h_write : Reaches (TM0.step (boundaryReplaceMachine target repl))
@@ -315,8 +319,8 @@ public theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq 
         simp [TM0.step, boundaryReplaceMachine, Tape.move, Tape.mk₁, Tape.mk₂,
           Tape.mk']
         exact listBlank_mk_append_default []
-      convert h_write.trans (h_left.trans (h_rewind.trans h_done)) using 1
-      simp [Tape.mk₁, Tape.mk₂, Tape.mk']
+      simpa [Tape.mk₁, Tape.mk₂, Tape.mk'] using
+        h_write.trans (h_left.trans (h_rewind.trans h_done))
   | cons a block ih =>
       have ha_default : a ≠ (default : Γ) := hblock_default a (by simp)
       have ha_target : a ≠ target := hblock_target a (by simp)
@@ -340,8 +344,8 @@ public theorem boundaryReplace_scan_gen {Γ : Type} [Inhabited Γ] [DecidableEq 
               ListBlank.mk (block ++ target :: suffix).tail⟩⟩ := by
         apply Relation.ReflTransGen.single
         simp [TM0.step, boundaryReplaceMachine, ha_target, Tape.move]
-      convert h_step.trans (ih suffix (a :: revL) hrest_default hrest_target hrevL') using 1
-      simp [List.reverse_cons, List.append_assoc]
+      simpa [List.reverse_cons, List.append_assoc] using
+        h_step.trans (ih suffix (a :: revL) hrest_default hrest_target hrevL')
 
 public theorem boundaryReplace_reaches {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) (block suffix : List Γ)
@@ -374,7 +378,7 @@ public theorem tm0_boundaryReplace {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
       ⟨BoundaryReplaceSt.done, Tape.mk₁ (block ++ repl :: suffix)⟩ ∈
         TM0Seq.evalCfg (boundaryReplaceMachine target repl)
           (block ++ target :: suffix) :=
-    Turing.mem_eval.mpr ⟨h_reaches, h_halt⟩
+    StateTransition.mem_eval.mpr ⟨h_reaches, h_halt⟩
   refine ⟨Part.dom_iff_mem.mpr ⟨_, h_mem⟩, ?_⟩
   intro h
   exact (Part.mem_unique (Part.get_mem h) h_mem).symm ▸ rfl
@@ -644,12 +648,15 @@ theorem tm0RealizesBlockSep_toInner_nondefault
   obtain ⟨Λ_rev, h_rev_inh, h_rev_fin, M_rev, hM_rev⟩ := hrev₁
   obtain ⟨Λ_rfr, h_rfr_inh, h_rfr_fin, M_rfr, hM_rfr⟩ := hrfr
   -- Build the composed machine with explicit instance passing
+  let h12Inhabited : Inhabited (Λ_rev ⊕ Λ_rfr) := ⟨Sum.inl default⟩
   let M12 := @TM0Seq.compose Γ Λ_rev h_rev_inh Λ_rfr h_rfr_inh M_rev M_rfr
+  let h123Inhabited : Inhabited ((Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev) :=
+    ⟨Sum.inl default⟩
   let M123 := @TM0Seq.compose Γ (Λ_rev ⊕ Λ_rfr) ⟨Sum.inl (@default _ h_rev_inh)⟩
     Λ_rev h_rev_inh M12 M_rev
   -- Provide the Inhabited and Fintype instances explicitly
   refine ⟨(Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev,
-    ⟨Sum.inl (Sum.inl (@default _ h_rev_inh))⟩,
+    h123Inhabited,
     @instFintypeSum _ _ (@instFintypeSum _ _ h_rev_fin h_rfr_fin) h_rev_fin,
     M123, ?_⟩
   -- Verify for each prefix, inner block, and suffix
@@ -722,14 +729,46 @@ theorem tm0RealizesBlockSep_toInner_nondefault
   --    = (f inner).reverse ++ sep₂ :: (pfx.reverse ++ sep₁ :: suffix)
   --    = mid ++ sep₁ :: suffix
   -- 4. mid.reverse ++ sep₁ :: suffix = pfx ++ sep₂ :: f inner ++ sep₁ :: suffix
-  have hM_rev_dom := @TM0Seq.evalCfg_dom_iff;
-  contrapose! hM_rev_dom;
-  use PUnit;
-  use inferInstance, PUnit;
-  use inferInstance;
-  use fun _ _ => some ( PUnit.unit, TM0.Stmt.move Dir.left );
-  unfold TM0Seq.evalCfg; simp +decide [ Turing.eval ] ;
-  grind +suggestions
+  let l₀ := outer ++ sep₁ :: suffix
+  let l₁ := inner.reverse ++ sep₂ :: (pfx.reverse ++ sep₁ :: suffix)
+  let l₂ := mid ++ sep₁ :: suffix
+  have hstep1_tape : ((TM0Seq.evalCfg M_rev l₀).get hstep1.1).Tape =
+      Tape.mk₁ l₁ := by
+    simpa [l₀, l₁, h_outer_rev, List.append_assoc] using hstep1.2 hstep1.1
+  have h12_tm : (TM0.eval M12 l₀).Dom :=
+    (TM0Seq.compose_dom_iff' M_rev M_rfr l₀ l₁ hstep1.1 hstep1_tape).2
+      ((TM0Seq.evalCfg_dom_iff M_rfr l₁).1 hstep2.1)
+  have h12 : (TM0Seq.evalCfg M12 l₀).Dom :=
+    (TM0Seq.evalCfg_dom_iff M12 l₀).2 h12_tm
+  have h12_tape : ((TM0Seq.evalCfg M12 l₀).get h12).Tape = Tape.mk₁ l₂ := by
+    calc
+      ((TM0Seq.evalCfg M12 l₀).get h12).Tape =
+          ((TM0Seq.evalCfg M_rfr l₁).get hstep2.1).Tape :=
+        TM0Seq.compose_evalCfg_tape M_rev M_rfr l₀ l₁ hstep1.1
+          hstep1_tape hstep2.1 h12
+      _ = Tape.mk₁ l₂ := by
+        simpa [l₁, l₂, mid, h_rfr_eq, List.append_assoc] using
+          hstep2.2 hstep2.1
+  have h123_tm : (TM0.eval M123 l₀).Dom :=
+    (TM0Seq.compose_dom_iff' M12 M_rev l₀ l₂ h12 h12_tape).2
+      ((TM0Seq.evalCfg_dom_iff M_rev l₂).1 hstep3.1)
+  have h123 : (TM0Seq.evalCfg M123 l₀).Dom :=
+    (TM0Seq.evalCfg_dom_iff M123 l₀).2 h123_tm
+  refine ⟨?_, ?_⟩
+  · simpa [M123, l₀, outer, List.append_assoc] using h123
+  · intro h
+    have h' : (TM0Seq.evalCfg M123 l₀).Dom := by
+      simpa [M123, l₀, outer, List.append_assoc] using h
+    have hout := TM0Seq.compose_evalCfg_tape M12 M_rev l₀ l₂ h12 h12_tape
+      hstep3.1 h'
+    calc
+      ((TM0Seq.evalCfg M123
+          (pfx ++ sep₂ :: inner ++ sep₁ :: suffix)).get h).Tape =
+          ((TM0Seq.evalCfg M123 l₀).get h').Tape := by
+        congr 3
+      _ = ((TM0Seq.evalCfg M_rev l₂).get hstep3.1).Tape := hout
+      _ = Tape.mk₁ (pfx ++ sep₂ :: f inner ++ sep₁ :: suffix) := by
+        simpa [l₂, h_mid_rev, List.append_assoc] using hstep3.2 hstep3.1
 
 /-- Strong suffix version of the prefix/suffix lift.
 

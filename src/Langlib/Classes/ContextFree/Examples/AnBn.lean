@@ -53,7 +53,7 @@ language is context-free.
 open Language List
 
 /-- Context-free grammar for the language `{aⁿbⁿ | n ∈ ℕ}` over `Bool`. -/
-@[expose]
+@[reducible]
 public def cfg_anbn : CF_grammar Bool where
   nt := Unit
   initial := ()
@@ -143,20 +143,28 @@ private lemma anbn_sub_CF_language_cfg_anbn :
           (List.replicate n (symbol.terminal false) ++ [symbol.terminal false, symbol.nonterminal (), symbol.terminal true] ++ List.replicate n (symbol.terminal true)) := by
         apply_rules [CF_deri_of_tran, CF_deri_with_prefix_and_postfix]
         use ((), [symbol.terminal false, symbol.nonterminal (), symbol.terminal true])
-        exact ⟨replicate n (symbol.terminal false), replicate n (symbol.terminal true), by simp +decide [cfg_anbn], by simp +decide, by simp +decide⟩
-      convert ih.trans h_step using 1
-      simp +decide [List.replicate_add]
-      exact Nat.recOn n rfl fun n ih => by rw [replicate_succ']; aesop
+        exact ⟨replicate n (symbol.terminal false), replicate n (symbol.terminal true), by simp +decide, by simp +decide, by simp +decide⟩
+      have hform :
+          List.replicate (n + 1) (symbol.terminal false) ++ [symbol.nonterminal ()] ++
+              List.replicate (n + 1) (symbol.terminal true) =
+            List.replicate n (symbol.terminal false) ++
+              [symbol.terminal false, symbol.nonterminal (), symbol.terminal true] ++
+              List.replicate n (symbol.terminal true) := by
+        rw [List.replicate_succ' (n := n) (a := symbol.terminal false),
+          List.replicate_succ (n := n) (a := symbol.terminal true)]
+        simp [List.append_assoc]
+      rw [hform]
+      exact ih.trans h_step
   have h_final : CF_derives cfg_anbn
       (List.replicate n (symbol.terminal false) ++ [symbol.nonterminal ()] ++ List.replicate n (symbol.terminal true))
       (List.replicate n (symbol.terminal false) ++ List.replicate n (symbol.terminal true)) := by
     apply_rules [CF_deri_of_tran, CF_deri_with_prefix_and_postfix]
     use ((), [])
-    exact ⟨replicate n (symbol.terminal false), replicate n (symbol.terminal true), by simp +decide [cfg_anbn], by simp +decide, by simp +decide⟩
-  apply_rules [CF_deri_of_deri_deri, h_deriv]
-  any_goals tauto
-  convert CF_deri_self using 1
-  aesop
+    exact ⟨replicate n (symbol.terminal false), replicate n (symbol.terminal true), by simp +decide, by simp +decide, by simp +decide⟩
+  change CF_derives cfg_anbn [symbol.nonterminal ()]
+    (List.map symbol.terminal (List.replicate n false ++ List.replicate n true))
+  rw [List.map_append, List.map_replicate, List.map_replicate]
+  exact (h_deriv n).trans h_final
 
 /-- The grammar `cfg_anbn` generates exactly `{aⁿbⁿ}`. -/
 public theorem CF_language_cfg_anbn : CF_language cfg_anbn = anbn := by

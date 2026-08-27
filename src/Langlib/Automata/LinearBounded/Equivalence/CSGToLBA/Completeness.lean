@@ -54,7 +54,7 @@ lemma kStep_sim_applyRule {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (n
     LBA.Step (kMachine g₀) ⟨KState.sim, ⟨c, i⟩⟩ ⟨KState.applyRule ri 0, ⟨c, i⟩⟩ := by
   refine kStep_echo_stay g₀ (st' := KState.applyRule ri 0) ?_
   rw [hc]
-  simp only [kTransition, Set.mem_union, Set.mem_setOf_eq]
+  simp only [kTransition, Set.mem_union, Set.mem_ofPred_eq]
   exact Or.inr ⟨ri, rfl⟩
 
 omit [Fintype T] [Fintype g₀.nt] in
@@ -85,7 +85,13 @@ lemma kStep_applyRule_continue {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : F
   · show (KState.applyRule ri (k + 1), some (Sum.inr (l, false, (patList g₀ g₀.rules[ri])[k.val]?)),
         DLBA.Dir.right) ∈ kTransition g₀ (KState.applyRule ri k) (c i)
     rw [hc]; simp only [kTransition]; rw [if_pos hm, if_pos hk]; simp
-  · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hlt]
+  · simp only [DLBA.BoundedTape.moveHead]
+    split
+    · rfl
+    · rename_i hnot
+      exfalso
+      apply hnot
+      simpa only [DLBA.BoundedTape.write] using hlt
 
 omit [Fintype T] [Fintype g₀.nt] in
 /-- Match the last output symbol (`k+1 = |out|`); the replacement is written and the pass ends
@@ -105,7 +111,13 @@ lemma kStep_applyRule_last {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (
   · show (KState.sim, some (Sum.inr (l, r, (patList g₀ g₀.rules[ri])[k.val]?)),
         DLBA.Dir.right) ∈ kTransition g₀ (KState.applyRule ri k) (c i)
     rw [hc]; simp only [kTransition]; rw [if_pos hm, if_neg hk', if_pos hk]; rfl
-  · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hlt]
+  · simp only [DLBA.BoundedTape.moveHead]
+    split
+    · rfl
+    · rename_i hnot
+      exfalso
+      apply hnot
+      simpa only [DLBA.BoundedTape.write] using hlt
 
 omit [Fintype T] [Fintype g₀.nt] in
 /-- Match the last output symbol when the cell is the rightmost (`i.val = n`); moving right
@@ -125,7 +137,13 @@ lemma kStep_applyRule_last_clamp {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i :
   · show (KState.sim, some (Sum.inr (l, r, (patList g₀ g₀.rules[ri])[k.val]?)),
         DLBA.Dir.right) ∈ kTransition g₀ (KState.applyRule ri k) (c i)
     rw [hc]; simp only [kTransition]; rw [if_pos hm, if_neg hk', if_pos hk]; rfl
-  · simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_neg hmv]
+  · simp only [DLBA.BoundedTape.moveHead]
+    split
+    · rename_i hpos
+      exfalso
+      apply hmv
+      simpa only [DLBA.BoundedTape.write] using hpos
+    · rfl
 
 omit [Fintype T] [Fintype g₀.nt] in
 /-- **The rule-application pass** (contiguous window). From `applyRule ri k` at cell `start+k`,
@@ -510,7 +528,8 @@ lemma list_split_filterMap {α : Type*} (L : List (Option α)) (u z : List α)
             simp only [List.cons_append, List.cons.injEq] at h
             obtain ⟨p, hp, ht, hd⟩ := ih u' h.2
             refine ⟨p + 1, by simp only [List.length_cons]; omega, ?_, ?_⟩
-            · simp only [List.take_succ_cons, List.filterMap_cons, id, h.1]; rw [ht]
+            · simp only [List.take_succ_cons, List.filterMap_cons, id, h.1]
+              exact congrArg (List.cons b) ht
             · simp only [List.drop_succ_cons]; exact hd
 
 /-- **One backward derivation step.** If the work track decodes to `u ++ output ++ v` for some

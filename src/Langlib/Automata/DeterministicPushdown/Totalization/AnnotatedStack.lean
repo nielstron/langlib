@@ -75,14 +75,12 @@ noncomputable instance instFintypeAnalysisSummary : Fintype (AnalysisSummary A) 
   exact Fintype.ofEquiv _ (AnalysisSummary.equivProd A).symm
 
 /-- The empty-suffix summary vector. -/
-@[expose]
 public def AnalysisSummary.id : AnalysisSummary A where
   stop := fun _ x => x
   accept := fun _ x => x
 
 /-- A summary vector represents an original stack suffix when every component is
 the DFA transition function induced by reading that suffix. -/
-@[expose]
 public def SummaryRepresents (summary : AnalysisSummary A) (γ : List S) : Prop :=
   (∀ q, summary.stop q = (A.stopDFA q).stackSummary γ) ∧
   (∀ q, summary.accept q = (A.acceptDFA q).stackSummary γ)
@@ -103,7 +101,6 @@ public theorem summaryRepresents_id : SummaryRepresents A (AnalysisSummary.id A)
   constructor <;> intro q <;> funext x <;> rfl
 
 /-- Update a summary vector by placing a block of original stack symbols above it. -/
-@[expose]
 public def AnalysisSummary.above (below : AnalysisSummary A) (γ : List S) : AnalysisSummary A where
   stop := fun q => (A.stopDFA q).summaryAbove (below.stop q) γ
   accept := fun q => (A.acceptDFA q).summaryAbove (below.accept q) γ
@@ -137,11 +134,9 @@ public theorem SummaryRepresents.cons {below : AnalysisSummary A} {γ : List S}
 /-- Stack symbols of the totalized machine.  `none` is the permanent bottom marker;
 `some (Z, s)` is an original stack symbol annotated with the summary vector of the
 original stack suffix below it. -/
-@[expose]
 public abbrev TotalStackSymbol := Option (S × AnalysisSummary A)
 
 /-- Annotate a replacement block above an already summarized suffix. -/
-@[expose]
 public def annotateAbove (below : AnalysisSummary A) : List S → List (TotalStackSymbol A)
   | [] => []
   | Z :: γ => some (Z, below.above A γ) :: annotateAbove below γ
@@ -158,7 +153,6 @@ public theorem annotateAbove_cons (below : AnalysisSummary A) (Z : S) (γ : List
   rfl
 
 /-- Erase annotations from a totalized stack, dropping the bottom marker. -/
-@[expose]
 public def eraseAnnotatedStack : List (TotalStackSymbol A) → List S
   | [] => []
   | none :: γ => eraseAnnotatedStack γ
@@ -180,7 +174,6 @@ public theorem eraseAnnotatedStack_append (γ δ : List (TotalStackSymbol A)) :
 
 /-- The annotation invariant for totalizer stacks.  Every original stack symbol stores
 a summary for the erased suffix below it; `none` is the unique bottom marker. -/
-@[expose]
 public def StackWellAnnotated : List (TotalStackSymbol A) → Prop
   | [] => True
   | none :: rest => rest = []
@@ -220,7 +213,6 @@ public theorem stackWellAnnotated_annotateAbove_bottom (γ : List S) :
     (stackWellAnnotated_none (A := A)) γ
 
 /-- Reachable totalizer stacks retain a permanent bottom marker. -/
-@[expose]
 public def StackHasBottom : List (TotalStackSymbol A) → Prop
   | [] => False
   | none :: rest => rest = []
@@ -252,7 +244,6 @@ public theorem stackHasBottom_annotateAbove_bottom (γ : List S) :
 
 /-- Does the semantic epsilon phase terminate from the configuration represented by
 the current top stack symbol? -/
-@[expose]
 public def topStops (q : Q) : TotalStackSymbol A → Prop
   | none => (A.stopDFA q).evalFrom (A.stopDFA q).start [] ∈ (A.stopDFA q).accept
   | some (Z, below) =>
@@ -276,7 +267,6 @@ theorem topAccepts_some_correct (q : Q) (Z : S) (below : AnalysisSummary A) :
   Iff.rfl
 
 /-- The full original-stack summary represented by the current top symbol. -/
-@[expose]
 public def fullSummaryOfTop : TotalStackSymbol A → AnalysisSummary A
   | none => AnalysisSummary.id A
   | some (Z, below) => below.above A [Z]
@@ -296,12 +286,10 @@ public theorem stackWellAnnotated_fullSummaryOfTop {top : TotalStackSymbol A}
       exact (hstack.1.cons (A := A) Z)
 
 /-- The stop lookahead evaluated from a full-stack summary. -/
-@[expose]
 public def stopsFromSummary (q : Q) (summary : AnalysisSummary A) : Prop :=
   summary.stop q (A.stopDFA q).start ∈ (A.stopDFA q).accept
 
 /-- The epsilon-acceptance lookahead evaluated from a full-stack summary. -/
-@[expose]
 public def acceptsFromSummary (q : Q) (summary : AnalysisSummary A) : Prop :=
   summary.accept q (A.acceptDFA q).start ∈ (A.acceptDFA q).accept
 
@@ -324,7 +312,6 @@ public theorem acceptsFromSummary_correct {summary : AnalysisSummary A} {γ : Li
   exact A.accept_correct q γ
 
 /-- Boolean form of `acceptsFromSummary`, used in the finite control. -/
-@[expose]
 public def acceptBit (q : Q) (summary : AnalysisSummary A) : Bool :=
   by
     classical

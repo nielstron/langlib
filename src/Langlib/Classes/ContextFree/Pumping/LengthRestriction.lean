@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2024 Alexander Loitzl. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 Authors: Alexander Loitzl
 -/
 
@@ -95,13 +95,11 @@ section RestrictLength
 variable {g : ContextFreeGrammar T}
 
 /-- Shorthand for the new type of nonterminals. -/
-@[expose]
 public abbrev NT' := g.NT ⊕ Σ r : ContextFreeRule T g.NT, Fin (r.output.length - 2)
 
 /-- Computes a cascade of rules generating `r.output` if it only contains nonterminals. For a rule
  r : n -> n₁n₂n₃n₄, generates rules n -> n₁m₂, m₂ -> n₂m₃, and m₃ -> n₃n₄. The type of of NT',
  encodes the correspondence between rules and the new nonterminals. -/
-@[expose]
 public def computeRulesRec (r : ContextFreeRule T g.NT) (i : Fin (r.output.length - 2)) :
     List (ChomskyNormalFormRule T g.NT') :=
   match i with
@@ -120,7 +118,6 @@ public def computeRulesRec (r : ContextFreeRule T g.NT) (i : Fin (r.output.lengt
 /-- We assume all rules' output is either a pair of nonterminals, a single terminal or a string of
  at least 3 nonterminals. In the first two cases we can directly translate them, otherwise we generate
  new rules using `compute_rules_rec`. -/
-@[expose]
 public def computeRules (r : ContextFreeRule T g.NT) : List (ChomskyNormalFormRule T g.NT') :=
   match hr : r.output with
   | [Symbol.nonterminal n₁, Symbol.nonterminal n₂] =>
@@ -134,20 +131,18 @@ public def computeRules (r : ContextFreeRule T g.NT) : List (ChomskyNormalFormRu
   | _ => []
 
 /-- Compute all `ChomskyNormalFormRule`s corresponding to the original `ContextFreeRule`s -/
-@[expose]
 public def restrictLengthRules [DecidableEq T] [DecidableEq g.NT] (l : List (ContextFreeRule T g.NT)) :=
   (l.map computeRules).flatten.toFinset
 
 end RestrictLength
 
 /-- Construct a `ChomskyNormalGrammar` corresponding to the original `ContextFreeGrammar` -/
-@[expose]
+@[reducible]
 public noncomputable def restrictLength [DecidableEq T] (g : ContextFreeGrammar T)
     [e : DecidableEq g.NT] :=
   ChomskyNormalFormGrammar.mk g.NT' (Sum.inl g.initial) (restrictLengthRules g.rules.toList)
 
 /-- A grammar is `Wellformed` if all rules are `ContextFreeRule.Wellformed` -/
-@[expose]
 public def Wellformed (g : ContextFreeGrammar T) : Prop := ∀ r ∈ g.rules, r.Wellformed
 
 section EmbedProject
@@ -155,7 +150,6 @@ section EmbedProject
 variable {g : ContextFreeGrammar T}
 
 /-- Intuitive embedding of symbols of the original grammar into symbols of the new grammar's type -/
-@[expose]
 public def embedSymbol (s : Symbol T g.NT) : Symbol T g.NT' :=
   match s with
   | Symbol.terminal t => Symbol.terminal t
@@ -168,7 +162,6 @@ public lemma embedSymbol_terminal {t : T} :
     embedSymbol (Symbol.terminal t) = (@Symbol.terminal T g.NT') t := by rfl
 
 /-- Intuitive embedding of strings of the original grammar into strings of the new grammar's type -/
-@[expose]
 public abbrev embedString (u : List (Symbol T g.NT)) : List (Symbol T g.NT') := u.map embedSymbol
 
 public lemma embedString_nonterminal {n : g.NT} :
@@ -189,7 +182,6 @@ public lemma embedString_append {u v : List (Symbol T g.NT)} :
   simp [embedString]
 
 /-- Projection from symbols of the new grammars type into symbols of the original grammar -/
-@[expose]
 public def projectSymbol (s : Symbol T g.NT') : List (Symbol T g.NT) :=
   match s with
   | Symbol.terminal t => [Symbol.terminal t]
@@ -197,7 +189,6 @@ public def projectSymbol (s : Symbol T g.NT') : List (Symbol T g.NT) :=
   | Symbol.nonterminal (Sum.inr ⟨r, ⟨i, _⟩⟩) => List.drop (r.output.length - 2 - i) r.output
 
 /-- Projection from strings of the new grammars type into strings of the original grammar -/
-@[expose]
 public abbrev projectString (u : List (Symbol T g.NT')) : List (Symbol T g.NT) :=
   (u.map projectSymbol).flatten
 

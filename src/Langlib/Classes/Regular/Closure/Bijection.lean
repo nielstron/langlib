@@ -63,9 +63,10 @@ namespace Language
 
 /-- Regular languages are closed under preimage along `List.map`. -/
 public theorem IsRegular.preimage {α β : Type*} {L : Language α} (h : L.IsRegular) (f : β → α) :
-    Language.IsRegular (((List.map f) ⁻¹' L : Set (List β))) := by
+  Language.IsRegular (((List.map f) ⁻¹' L : Set (List β))) := by
   rcases h with ⟨σ, hσ, M, hM⟩
-  exact ⟨σ, hσ, M.comap f, by simp [hM]⟩
+  refine ⟨σ, hσ, M.comap f, ?_⟩
+  rw [M.accepts_comap, hM]
 
 /-- Injective alphabet maps reflect regularity. -/
 public theorem IsRegular.of_map_injective {α β : Type*} {L : Language α} {f : α → β}
@@ -89,7 +90,11 @@ variable {T₁ T₂ : Type*}
 public theorem isRegular_of_bijemap_isRegular (π : T₁ ≃ T₂) (L : Language T₁) :
     L.IsRegular → (Language.bijemapLang L π).IsRegular := by
   intro h
-  simpa [Language.bijemapLang] using h.preimage π.symm
+  rcases h.preimage π.symm with ⟨σ, hσ, M, hM⟩
+  refine ⟨σ, hσ, M, ?_⟩
+  rw [hM]
+  ext w
+  rfl
 
 /-- Reverse direction of `isRegular_of_bijemap_isRegular`. -/
 public theorem isRegular_of_bijemap_isRegular_rev (π : T₁ ≃ T₂) (L : Language T₁) :

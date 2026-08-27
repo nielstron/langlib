@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Automata.DeterministicPushdown.Definition
 public import Langlib.Automata.FiniteState.Equivalence.Determinization
@@ -34,7 +34,6 @@ noncomputable section
 variable {T : Type} [Fintype T]
 
 /-- A DPDA that simulates a DFA while leaving its one-symbol stack unchanged. -/
-@[expose]
 public def DPDA_of_DFA {Q : Type} [Fintype Q] (M : DFA T Q) :
     DPDA Q T Unit where
   initial_state := M.start
@@ -56,6 +55,7 @@ public lemma DPDA_of_DFA_reaches {Q : Type} [Fintype Q] (M : DFA T Q) (q : Q)
     constructor
     unfold DPDA.toPDA
     simp +decide [DPDA_of_DFA]
+    exact Set.mem_singleton _
 
 /-- Any accepting run of the simulating DPDA is the corresponding DFA run. -/
 public lemma DPDA_of_DFA_reaches_unique {Q : Type} [Fintype Q] (M : DFA T Q)
@@ -68,20 +68,21 @@ public lemma DPDA_of_DFA_reaches_unique {Q : Type} [Fintype Q] (M : DFA T Q)
     intro H
     have := H.cases_head
     simp_all +decide [PDA.Reaches₁]
-    simp_all +decide [PDA.step]
     unfold DPDA_of_DFA at this
     aesop
   · obtain ⟨q'', hq'', h'⟩ := Relation.ReflTransGen.cases_head h
     rename_i h
     obtain ⟨c, hc₁, hc₂⟩ := h
-    cases hc₁
+    unfold PDA.Reaches₁ PDA.step at hc₁
+    rcases hc₁ with hread | hepsilon
     · unfold DPDA_of_DFA at *
       simp_all +decide
       unfold DPDA.toPDA at *
       simp_all +decide
       exact ih _ _ hc₂
-    · simp_all +decide [DPDA_of_DFA]
-      tauto
+    · rcases hepsilon with ⟨p, beta, hp, _hconf⟩
+      change (p, beta) ∈ (∅ : Set (Q × List Unit)) at hp
+      exact hp.elim
 
 /-- The stack-ignoring DPDA accepts exactly the language of its source DFA. -/
 public theorem DPDA_of_DFA_accepts {Q : Type} [Fintype Q] (M : DFA T Q) :

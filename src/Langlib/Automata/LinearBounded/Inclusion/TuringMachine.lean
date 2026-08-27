@@ -1,7 +1,7 @@
 module
 
 public import Langlib.Automata.LinearBounded.Definition
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -86,7 +86,7 @@ The TM0 halts if and only if the NLBA accepts the input.
 
 namespace LBA
 
-open Turing
+open StateTransition Turing
 
 /-! ## Initialization -/
 
@@ -301,20 +301,29 @@ first `k` elements of `List.ofFn w` and the tape head is at position `k`.
 theorem reading_phase_k_steps {Γ : Type*} {Λ : Type*} {n : ℕ}
     [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) (k : ℕ) (hk : k ≤ n + 1) :
-    Turing.Reaches (ntm0Step M n) (ntm0Init M w)
+    StateTransition.Reaches (ntm0Step M n) (ntm0Init M w)
       (⟨NSimState.reading (List.take k (List.ofFn w)),
         (Turing.Tape.move Turing.Dir.right)^[k]
           (Turing.Tape.mk₁ (encodeInput w))⟩ : NSimCfg Γ Λ n) := by
   induction' k with k ih;
   · constructor;
-  · convert ih ( Nat.le_of_succ_le hk ) |> fun h => h.tail _ using 1;
-    convert reading_single_step M ( List.take k ( List.ofFn w ) ) ( w ⟨ k, by linarith ⟩ ) _ _ using 1;
-    any_goals exact ( Turing.Tape.move Turing.Dir.right ) ^[ k ] ( Turing.Tape.mk₁ ( encodeInput w ) );
-    any_goals exact n;
-    · simp +decide [ List.take_add_one, Function.iterate_succ_apply' ];
-      grind;
-    · convert tape_mk1_move_right_head ( encodeInput w ) k using 1;
-      exact Eq.symm ( encodeInput_getI w k ( by linarith ) )
+  · have hprev := ih (Nat.le_of_succ_le hk)
+    have hstep : ntm0Step M n
+        (⟨NSimState.reading (List.take k (List.ofFn w)),
+          (Turing.Tape.move Turing.Dir.right)^[k]
+            (Turing.Tape.mk₁ (encodeInput w))⟩ : NSimCfg Γ Λ n) =
+        some (⟨NSimState.reading (List.take (k + 1) (List.ofFn w)),
+          (Turing.Tape.move Turing.Dir.right)^[k + 1]
+            (Turing.Tape.mk₁ (encodeInput w))⟩ : NSimCfg Γ Λ n) := by
+      convert reading_single_step M (List.take k (List.ofFn w))
+        (w ⟨k, by linarith⟩)
+        ((Turing.Tape.move Turing.Dir.right)^[k]
+          (Turing.Tape.mk₁ (encodeInput w))) _ using 1
+      · simp [List.take_add_one, Function.iterate_succ_apply']
+        grind
+      · convert tape_mk1_move_right_head (encodeInput w) k using 1
+        exact (encodeInput_getI w k (by linarith)).symm
+    exact hprev.tail (Option.mem_def.mpr hstep)
 
 /-
 After reading all `n + 1` symbols, the TM0 reaches the simulation phase with
@@ -323,9 +332,9 @@ the correct initial singleton configuration set.
 theorem reading_phase_complete {Γ : Type*} {Λ : Type*} {n : ℕ}
     [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) :
-    ∃ T, Turing.Reaches (ntm0Step M n) (ntm0Init M w)
+    ∃ T, StateTransition.Reaches (ntm0Step M n) (ntm0Init M w)
       (⟨NSimState.simulating {initCfg M w}, T⟩ : NSimCfg Γ Λ n) := by
-  obtain ⟨T₁, hT₁⟩ : ∃ T₁, Turing.Reaches (ntm0Step M n) (ntm0Init M w) (⟨NSimState.reading (List.ofFn w), T₁⟩ : NSimCfg Γ Λ n) ∧ T₁.head = none := by
+  obtain ⟨T₁, hT₁⟩ : ∃ T₁, StateTransition.Reaches (ntm0Step M n) (ntm0Init M w) (⟨NSimState.reading (List.ofFn w), T₁⟩ : NSimCfg Γ Λ n) ∧ T₁.head = none := by
     refine' ⟨ _, _, _ ⟩
     generalize_proofs at *;
     exact ( Turing.Tape.move Turing.Dir.right ) ^[ n + 1 ] ( Turing.Tape.mk₁ ( encodeInput w ) );
@@ -393,7 +402,7 @@ theorem simulation_reaches_iterStepFinset {Γ : Type*} {Λ : Type*} {n : ℕ}
     (T₀ : @Turing.Tape (Option Γ) ⟨none⟩) (k : ℕ)
     (hnacc : ∀ j < k, ¬hasAccepting M (iterStepFinset M S₀ j))
     (hgrow : ∀ j < k, stepFinset M (iterStepFinset M S₀ j) ≠ iterStepFinset M S₀ j) :
-    ∃ T, Turing.Reaches (ntm0Step M n)
+    ∃ T, StateTransition.Reaches (ntm0Step M n)
       (⟨NSimState.simulating S₀, T₀⟩ : NSimCfg Γ Λ n)
       (⟨NSimState.simulating (iterStepFinset M S₀ k), T⟩ : NSimCfg Γ Λ n) := by
   induction' k with k ih;
@@ -416,7 +425,7 @@ theorem tm0_halts_of_nlba_accepts {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (S₀ : Finset (DLBA.Cfg Γ Λ n))
     (T : @Turing.Tape (Option Γ) ⟨none⟩)
     (hacc : ∃ cfg ∈ S₀, Accepts M cfg) :
-    (Turing.eval (ntm0Step M n)
+    (StateTransition.eval (ntm0Step M n)
       (⟨NSimState.simulating S₀, T⟩ : NSimCfg Γ Λ n)).Dom := by
   -- By definition of `hasAccepting`, there exists some `j` such that `hasAccepting (iterStepFinset S₀ j)`.
   obtain ⟨j, hj⟩ : ∃ j, hasAccepting M (iterStepFinset M S₀ j) ∧ ∀ i < j, ¬hasAccepting M (iterStepFinset M S₀ i) := by
@@ -425,29 +434,22 @@ theorem tm0_halts_of_nlba_accepts {Γ : Type*} {Λ : Type*} {n : ℕ}
       obtain ⟨ cfg', hcfg' ⟩ := hcfg₂;
       exact Exists.elim ( reaches_mem_iterStepFinset M S₀ hcfg₁ hcfg'.1 ) fun k hk => ⟨ k, cfg', hk, hcfg'.2 ⟩;
     exact ⟨ Nat.find h_exists_j, Nat.find_spec h_exists_j, fun i hi => Nat.find_min h_exists_j hi ⟩
-  generalize_proofs at *; (
-  -- By definition of `iterStepFinset`, we know that `iterStepFinset M S₀ j` is reachable from `S₀`.
-  have h_reachable : ∃ T', Turing.Reaches (ntm0Step M n) ⟨NSimState.simulating S₀, T⟩ ⟨NSimState.simulating (iterStepFinset M S₀ j), T'⟩ := by
-    apply simulation_reaches_iterStepFinset M S₀ T j hj.2 (by
+  obtain ⟨T', hreach⟩ := simulation_reaches_iterStepFinset M S₀ T j hj.2 (by
     grind +suggestions)
-  generalize_proofs at *; (
-  have h_eval : (eval (ntm0Step M n) ⟨NSimState.simulating (iterStepFinset M S₀ j), h_reachable.choose⟩).Dom := by
-    have h_eval : ntm0Step M n ⟨NSimState.simulating (iterStepFinset M S₀ j), h_reachable.choose⟩ = none := by
-      exact simulation_halts_on_accept M _ _ hj.1
-    generalize_proofs at *; (
-    convert Part.dom_iff_mem.mpr _ using 1
-    generalize_proofs at *; (
-    exact ⟨ _, PFun.mem_fix_iff.mpr <| by aesop ⟩))
-  generalize_proofs at *; (
-  grind +suggestions)))
+  have hhalt : ntm0Step M n
+      (⟨NSimState.simulating (iterStepFinset M S₀ j), T'⟩ : NSimCfg Γ Λ n) = none :=
+    simulation_halts_on_accept M _ _ hj.1
+  exact Part.dom_iff_mem.mpr
+    ⟨⟨NSimState.simulating (iterStepFinset M S₀ j), T'⟩,
+      StateTransition.mem_eval.mpr ⟨hreach, hhalt⟩⟩
 
 /-
-If `Turing.Reaches f a b` and `(Turing.eval f b).Dom`, then
-`(Turing.eval f a).Dom`.
+If `StateTransition.Reaches f a b` and `(StateTransition.eval f b).Dom`, then
+`(StateTransition.eval f a).Dom`.
 -/
 theorem eval_dom_of_reaches {σ : Type*} (f : σ → Option σ) (a b : σ)
-    (hr : Turing.Reaches f a b) (hb : (Turing.eval f b).Dom) :
-    (Turing.eval f a).Dom := by
+    (hr : StateTransition.Reaches f a b) (hb : (StateTransition.eval f b).Dom) :
+    (StateTransition.eval f a).Dom := by
   grind +suggestions
 
 /-! ### Main Theorem -/
@@ -460,7 +462,7 @@ theorem lba_language_subset_tm0_language
     [Fintype Γ] [Fintype Λ] [DecidableEq Γ] [DecidableEq Λ]
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ)
     (hw : w ∈ LanguageN M n) :
-    (Turing.eval (ntm0Step M n) (ntm0Init M w)).Dom := by
+    (StateTransition.eval (ntm0Step M n) (ntm0Init M w)).Dom := by
   -- Step 1: The reading phase reaches the simulation phase
   obtain ⟨T, hreach⟩ := reading_phase_complete M w
   -- Step 2: The simulation phase halts because the NLBA accepts

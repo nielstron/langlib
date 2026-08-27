@@ -14,7 +14,6 @@ recursively enumerable; that proof lives in
 
 /-- Unary non-halting language: the complement of `haltingUnaryLanguage`, i.e. the language
 of all Turing machines that do not halt on input `0`. -/
-@[expose]
 public def nonHaltingUnaryLanguage : Language Unit :=
   haltingUnaryLanguageᶜ
 

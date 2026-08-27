@@ -25,7 +25,6 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 /-- A concrete retained production is the final edge of an active derivation
 spine.  The indices record both the visible child prehandle and its parent
 prehandle. -/
-@[expose]
 public def Introduces (M : DPDA Q T S)
     (childPrefix : List (symbol T (Nonterminal M)))
     (child : Nonterminal M) (childSuffix : List T)
@@ -101,7 +100,6 @@ public theorem Introduces.activeSpine (M : DPDA Q T S)
 /-- The semantic top-edge property needed by the nonbase LR-core cases: one
 visible active child and one symbol of following input determine its parent
 handle and the production which introduced it. -/
-@[expose]
 public def IntroducingEdgesUnique (M : DPDA Q T S) : Prop :=
   ∀ (childPrefix : List (symbol T (Nonterminal M)))
       (child : Nonterminal M) (suffix₁ suffix₂ : List T)

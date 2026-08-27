@@ -63,12 +63,10 @@ noncomputable instance instDecEqChainΓ' : DecidableEq ChainΓ :=
 /-! ### Distinguished ChainΓ cells -/
 
 /-- Map a Γ' value to its corresponding ChainΓ cell (without bottom marker). -/
-@[expose]
 public noncomputable def γ'ToChainΓ (γ' : Γ') : ChainΓ :=
   (false, Function.update (fun _ => none) K'.main (some γ'))
 
 /-- The ChainΓ cell for the bottom marker with cons. -/
-@[expose]
 public noncomputable def chainConsBottom : ChainΓ :=
   (true, Function.update (fun _ => none) K'.main (some Γ'.cons))
 
@@ -79,7 +77,6 @@ public theorem chainConsBottom_ne_default : chainConsBottom ≠ (default : Chain
 /-! ### Binary Representation -/
 
 /-- Binary representation of n as ChainΓ cells (LSB first, no markers). -/
-@[expose]
 public noncomputable def chainBinaryRepr (n : ℕ) : List ChainΓ :=
   (trNat n).map γ'ToChainΓ
 

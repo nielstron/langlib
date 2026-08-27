@@ -22,12 +22,19 @@ private inductive DenState where
   | finalB
   | readB
   | readA
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+private instance : Fintype DenState :=
+  Fintype.ofList [.boundary, .finalB, .readB, .readA]
+    (by intro x; cases x <;> simp)
 
 private inductive DenStack where
   | bottom
   | bmark
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+private instance : Fintype DenStack :=
+  Fintype.ofList [.bottom, .bmark] (by intro x; cases x <;> simp)
 
 private def transition : DenState → Bool → DenStack →
     Option (DenState × List DenStack)
@@ -57,43 +64,86 @@ private lemma step_boundary_true (rest : List Bool) :
     @PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.boundary, true :: rest, [.bottom]⟩
       ⟨.finalB, rest, [.bmark, .bottom]⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_finalB_true (rest : List Bool) (stk : List DenStack) :
     @PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.finalB, true :: rest, .bmark :: stk⟩
       ⟨.readB, rest, .bmark :: .bmark :: stk⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_finalB_false (rest : List Bool) (stk : List DenStack) :
     @PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.finalB, false :: rest, .bmark :: stk⟩
       ⟨.readA, rest, stk⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_readB_true (rest : List Bool) (stk : List DenStack) :
     @PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.readB, true :: rest, .bmark :: stk⟩
       ⟨.readB, rest, .bmark :: .bmark :: stk⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_readB_false (rest : List Bool) (stk : List DenStack) :
     @PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.readB, false :: rest, .bmark :: stk⟩
       ⟨.readA, rest, stk⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_readA_false (rest : List Bool) (stk : List DenStack) :
     @PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.readA, false :: rest, .bmark :: stk⟩
       ⟨.readA, rest, stk⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_readA_bottom (rest : List Bool) :
     @PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.readA, rest, [.bottom]⟩
       ⟨.boundary, rest, [.bottom]⟩ := by
-  cases rest <;> simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, epsilon]
+  unfold PDA.Reaches₁ PDA.step
+  cases rest with
+  | nil => exact ⟨_, _, Set.mem_singleton _, rfl⟩
+  | cons a rest => exact Set.mem_union_right _ ⟨_, _, Set.mem_singleton _, rfl⟩
+
+private lemma step_readA_bottom_eq (input : List Bool)
+    (c' : @PDA.conf DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA)
+    (hstep : @PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
+      ⟨.readA, input, [.bottom]⟩ c') :
+    c' = ⟨.boundary, input, [.bottom]⟩ := by
+  unfold PDA.Reaches₁ PDA.step at hstep
+  cases input with
+  | nil =>
+      rcases hstep with ⟨q, stack, htrans, hc⟩
+      change (q, stack) ∈ ({(.boundary, [.bottom])} : Set (DenState × List DenStack)) at htrans
+      rw [Set.mem_singleton_iff] at htrans
+      have hq := congrArg Prod.fst htrans
+      have hstack := congrArg Prod.snd htrans
+      simp only at hq hstack
+      subst q
+      subst stack
+      simpa using hc
+  | cons a rest =>
+      rw [Set.mem_union] at hstep
+      rcases hstep with hread | heps
+      · rcases hread with ⟨q, stack, htrans, _⟩
+        cases a <;>
+          change (q, stack) ∈ (∅ : Set (DenState × List DenStack)) at htrans
+        all_goals exact ((Set.mem_empty_iff_false _).mp htrans).elim
+      · rcases heps with ⟨q, stack, htrans, hc⟩
+        change (q, stack) ∈ ({(.boundary, [.bottom])} : Set (DenState × List DenStack)) at htrans
+        rw [Set.mem_singleton_iff] at htrans
+        have hq := congrArg Prod.fst htrans
+        have hstack := congrArg Prod.snd htrans
+        simp only at hq hstack
+        subst q
+        subst stack
+        simpa using hc
 
 private lemma replicate_bmark_append_cons (n : ℕ) (stk : List DenStack) :
     List.replicate n DenStack.bmark ++ DenStack.bmark :: stk =
@@ -113,6 +163,8 @@ private lemma read_more_b (n : ℕ) (rest : List Bool) (stk : List DenStack) :
     @PDA.Reaches DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.readB, List.replicate n true ++ rest, .bmark :: stk⟩
       ⟨.readB, rest, List.replicate n .bmark ++ .bmark :: stk⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA) _ _
   induction n generalizing rest stk with
   | zero => exact Relation.ReflTransGen.refl
   | succ n ih =>
@@ -127,6 +179,8 @@ private lemma read_more_a (n : ℕ) (rest : List Bool) (stk : List DenStack) :
     @PDA.Reaches DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.readA, List.replicate n false ++ rest, List.replicate n .bmark ++ stk⟩
       ⟨.readA, rest, stk⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA) _ _
   induction n generalizing rest stk with
   | zero => exact Relation.ReflTransGen.refl
   | succ n ih =>
@@ -140,6 +194,8 @@ private lemma run_right_block (n : ℕ) (rest : List Bool) :
       ⟨.boundary, List.replicate (n + 1) true ++ List.replicate (n + 1) false ++ rest,
         [.bottom]⟩
       ⟨.boundary, rest, [.bottom]⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA) _ _
   cases n with
   | zero =>
       simp only [List.replicate_succ, List.replicate_zero, List.nil_append, List.cons_append]
@@ -156,14 +212,27 @@ private lemma run_right_block (n : ℕ) (rest : List Bool) :
           (Relation.ReflTransGen.single (step_finalB_true _ _))
           (Relation.ReflTransGen.trans
             (by
-              simpa [List.append_assoc] using
-                read_more_b n (List.replicate (n + 2) false ++ rest) [.bmark, .bottom])
+              have hrun :=
+                read_more_b n (List.replicate (n + 2) false ++ rest) [.bmark, .bottom]
+              change Relation.ReflTransGen
+                (@PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA) _ _ at hrun
+              simpa [show n + 2 = n + 1 + 1 by omega, List.append_assoc] using hrun)
             (Relation.ReflTransGen.trans
               (by
-                simpa [List.replicate_succ, List.append_assoc, replicate_bmark_append_cons] using
-                  Relation.ReflTransGen.single
-                    (step_readB_false (List.replicate (n + 1) false ++ rest)
-                      (List.replicate (n + 1) .bmark ++ [.bottom])))
+                have h := Relation.ReflTransGen.single
+                  (step_readB_false (List.replicate (n + 1) false ++ rest)
+                    (List.replicate (n + 1) .bmark ++ [.bottom]))
+                convert h using 1 ;
+                  simp only [List.replicate_succ, List.cons_append]
+                apply PDA.conf.ext
+                · rfl
+                · rfl
+                change List.replicate n DenStack.bmark ++
+                    (List.replicate 2 DenStack.bmark ++ [.bottom]) =
+                  List.replicate 2 DenStack.bmark ++
+                    (List.replicate n DenStack.bmark ++ [.bottom])
+                rw [← List.append_assoc, ← List.append_assoc, ← List.replicate_add,
+                  ← List.replicate_add, show n + 2 = 2 + n by omega])
               (Relation.ReflTransGen.trans
                 (read_more_a (n + 1) rest [.bottom])
                 (Relation.ReflTransGen.single (step_readA_bottom rest))))))
@@ -180,6 +249,8 @@ private lemma run_right_blocks (blocks : List (List Bool))
     @PDA.Reaches DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA
       ⟨.boundary, blocks.flatten ++ rest, [.bottom]⟩
       ⟨.boundary, rest, [.bottom]⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA) _ _
   induction blocks with
   | nil => exact Relation.ReflTransGen.refl
   | cons b bs ih =>
@@ -195,12 +266,13 @@ private lemma quotientDenominator_complete {w : List Bool} (hw : w ∈ quotientD
     w ∈ dpda_quotientDenominator.acceptsByFinalState := by
   rw [quotientDenominator] at hw
   rcases hw with ⟨u, hu, v, hv, huw⟩
-  rw [Language.mem_kstar] at hu
-  rw [Set.mem_singleton_iff] at hv
+  change ∃ blocks : List (List Bool), u = blocks.flatten ∧
+    ∀ y ∈ blocks, y ∈ quotientRightBlock at hu
+  change v = [true] at hv
   subst v
   subst w
   rcases hu with ⟨blocks, rfl, hblocks⟩
-  refine ⟨.finalB, by simp [DPDA.toPDA, dpda_quotientDenominator], [.bmark, .bottom], ?_⟩
+  refine ⟨.finalB, by simp [dpda_quotientDenominator], [.bmark, .bottom], ?_⟩
   exact Relation.ReflTransGen.trans (run_right_blocks blocks hblocks [true])
     (Relation.ReflTransGen.single (step_boundary_true []))
 
@@ -228,7 +300,9 @@ private lemma quotientDenominator_of_star {p : List Bool}
     (hp : p ∈ KStar.kstar quotientRightBlock) :
     p ++ [true] ∈ quotientDenominator := by
   rw [quotientDenominator]
-  exact ⟨p, hp, [true], by rw [Set.mem_singleton_iff], rfl⟩
+  refine ⟨p, hp, [true], ?_, rfl⟩
+  change [true] = [true]
+  rfl
 
 private def DenInv (w : List Bool)
     (c : @PDA.conf DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA) : Prop :=
@@ -265,27 +339,37 @@ private lemma DenInv.step {w : List Bool}
     cases input with
     | nil =>
         simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
+        exact ((Set.mem_empty_iff_false _).mp hstep).elim
     | cons a rest =>
         cases a
         · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
+          rcases hstep with hstep | hstep <;>
+            exact ((Set.mem_empty_iff_false _).mp hstep).elim
         · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
+          rcases hstep with hstep | hstep
           rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
           refine ⟨rfl, p, hp, ?_⟩
           simp [hw]
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
   · rcases hinv with ⟨rfl, p, hp, hw⟩
     cases input with
     | nil =>
         simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
+        exact ((Set.mem_empty_iff_false _).mp hstep).elim
     | cons a rest =>
         cases a
         · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
+          rcases hstep with hstep | hstep
           rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
           refine ⟨p, 1, 0, by omega, hp, ?_, by simp⟩
           simp [hw]
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
         · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
+          rcases hstep with hstep | hstep
           rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
           refine ⟨p, 2, by omega, hp, ?_, by simp⟩
           simp [hw]
+          exact ((Set.mem_empty_iff_false _).mp hstep).elim
   · rcases hinv with ⟨p, m, hm, hp, hw, hstack⟩
     subst stack
     cases input with
@@ -298,6 +382,7 @@ private lemma DenInv.step {w : List Bool}
             | succ m =>
                 simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition,
                   epsilon, List.replicate_succ] at hstep
+                exact ((Set.mem_empty_iff_false _).mp hstep).elim
     | cons a rest =>
         cases m with
         | zero => omega
@@ -308,42 +393,49 @@ private lemma DenInv.step {w : List Bool}
                 cases a
                 · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition,
                     epsilon, List.replicate_succ] at hstep
+                  rcases hstep with hstep | hstep
                   rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
                   refine ⟨p, m + 2, m + 1, by omega, hp, ?_, by simp [List.replicate_succ]⟩
                   simp [hw, List.replicate_succ]
+                  exact ((Set.mem_empty_iff_false _).mp hstep).elim
                 · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition,
                     epsilon, List.replicate_succ] at hstep
+                  rcases hstep with hstep | hstep
                   rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
                   refine ⟨p, m + 3, by omega, hp, ?_, ?_⟩
                   · simp [hw, replicate_succ_true_append, List.append_assoc]
                   · simp [List.replicate_succ]
+                  exact ((Set.mem_empty_iff_false _).mp hstep).elim
   · rcases hinv with ⟨p, m, r, hr, hp, hw, hstack⟩
     subst stack
     cases r with
     | zero =>
-        cases input <;>
-          simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition, epsilon] at hstep
-        all_goals
-          rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
-          refine ⟨rfl, p ++ (List.replicate m true ++ List.replicate m false), ?_, ?_⟩
-          · exact denominatorStar_append_right_block hp (right_block_of_pos m (by omega))
-          · simp [hw, List.append_assoc]
+        have hc := step_readA_bottom_eq input ⟨q', input', stack'⟩ hstep
+        cases hc
+        refine ⟨rfl, p ++ (List.replicate m true ++ List.replicate m false), ?_, ?_⟩
+        · exact denominatorStar_append_right_block hp (right_block_of_pos m (by omega))
+        · simp [hw, List.append_assoc]
     | succ r =>
         cases input with
         | nil =>
             simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition,
               epsilon, List.replicate_succ] at hstep
+            exact ((Set.mem_empty_iff_false _).mp hstep).elim
         | cons a rest =>
             cases a
             · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition,
                 epsilon, List.replicate_succ] at hstep
+              rcases hstep with hstep | hstep
               rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
               refine ⟨p, m, r, by omega, hp, ?_, by simp⟩
               have hsub : m - r = (m - Nat.succ r) + 1 := by omega
               rw [hsub]
               simp [hw, List.replicate_add, List.append_assoc]
+              exact ((Set.mem_empty_iff_false _).mp hstep).elim
             · simp [PDA.Reaches₁, PDA.step, dpda_quotientDenominator, DPDA.toPDA, transition,
                 epsilon, List.replicate_succ] at hstep
+              rcases hstep with hstep | hstep <;>
+                exact ((Set.mem_empty_iff_false _).mp hstep).elim
 
 private lemma DenInv.reaches {w : List Bool}
     {c c' : @PDA.conf DenState Bool DenStack _ _ _ dpda_quotientDenominator.toPDA}
@@ -359,7 +451,7 @@ private lemma quotientDenominator_sound {w : List Bool}
     w ∈ quotientDenominator := by
   rcases h with ⟨q, hq, γ, hreach⟩
   have hinv := DenInv.reaches (DenInv.initial w) hreach
-  cases q <;> simp [DPDA.toPDA, dpda_quotientDenominator] at hq
+  cases q <;> simp [dpda_quotientDenominator] at hq
   change γ = [.bmark, .bottom] ∧ ∃ p, p ∈ KStar.kstar quotientRightBlock ∧
     w = p ++ [true] ++ [] at hinv
   rcases hinv with ⟨_, p, hp, hw⟩

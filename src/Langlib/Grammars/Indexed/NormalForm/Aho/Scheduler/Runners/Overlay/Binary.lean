@@ -164,7 +164,7 @@ public theorem overlayScheduleRun_binary
     simp
   have hfocusNoIndex :
       [startCursor.focus].filterMap ScheduleAtom.indexOwner? = [] := by
-    simp [startCursor, liveScheduleCursor, ScheduleAtom.indexOwner?]
+    simp [startCursor, ScheduleAtom.indexOwner?]
   have hheadFrameFresh : head.owner ∉ startCursor.frameOwners := by
     apply (List.disjoint_left.mp hframesStart)
     simp [fullOwners, overlay]
@@ -186,8 +186,8 @@ public theorem overlayScheduleRun_binary
   let normalResources := normal.resources
   have normalTicketShadowContext :
       normalResources.TicketShadowContextExtends fullBlocks fullOwners := by
-    simpa [normalResources, TicketHeadNormalization.resources, fullBlocks,
-      fullOwners, overlay] using ticketShadowContext
+    change resources.TicketShadowContextExtends fullBlocks fullOwners
+    simpa [fullBlocks, fullOwners, overlay] using ticketShadowContext
   have hstackVisible : stack = visible ++ hidden := by
     simpa [visible, overlay] using hstack
   have hmarkedParent : ScheduleInvariant
@@ -232,13 +232,16 @@ public theorem overlayScheduleRun_binary
         fullBlocks, fullOwners, overlay] using ownerLayout)
       (by simpa [normalResources, TicketHeadNormalization.resources,
         fullBlocks, fullOwners, overlay] using shadowLayout)
-      (by simpa [normalResources, fullBlocks, fullOwners, overlay] using
-        normal.eventLayout)
+      (by
+        change normal.tickets.EventTicketLayout parent resources.window
+          fullBlocks fullOwners
+        simpa [parent, fullBlocks, fullOwners, overlay] using normal.eventLayout)
       normalTicketShadowContext
       (by
         intro hinput
-        simpa [normalResources, startCursor, parent, parentTask, fullWord, overlay,
-          liveScheduleCursor] using normal.transient_fresh hinput)
+        change IndexTicket.transient hinput ∉
+          startCursor.indexTickets normal.tickets.ticketOf
+        exact normal.transient_fresh hinput)
       (by simpa [normalResources, TicketHeadNormalization.resources,
         fullOwners, overlay] using hactive)
       (by

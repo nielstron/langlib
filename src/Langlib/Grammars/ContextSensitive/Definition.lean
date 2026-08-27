@@ -51,18 +51,17 @@ public structure CS_grammar (T : Type) where
 variable {T : Type}
 
 /-- One step of context-sensitive transformation. -/
-@[expose]
+@[reducible]
 public def CS_transforms (g : CS_grammar T) (w₁ w₂ : List (symbol T g.nt))  : Prop :=
   ∃r : csrule T g.nt, ∃u v : List (symbol T g.nt), r ∈ g.rules ∧
   (w₁ = u ++ r.context_left ++ [symbol.nonterminal r.input_nonterminal] ++ r.context_right ++ v) ∧
   (w₂ = u ++ r.context_left ++ r.output_string ++ r.context_right ++ v)
 
 /-- Any number of steps of context-sensitive transformation; reflexive+transitive closure of `CS_transforms`. -/
-@[expose]
+@[reducible]
 public def CS_derives (g : CS_grammar T) : List (symbol T g.nt) → List (symbol T g.nt) → Prop :=
 Relation.ReflTransGen (CS_transforms g)
 
 /-- The Set of words that can be derived from the initial nonterminal. -/
-@[expose]
 public def CS_language (g : CS_grammar T) : Language T :=
 λ w : List T ↦ CS_derives g [symbol.nonterminal g.initial] (List.map symbol.terminal w)

@@ -31,6 +31,41 @@ section Sound
 
 variable [Fintype T] [DecidableEq T] (g₀ : grammar T) [Fintype g₀.nt] [DecidableEq g₀.nt]
 
+@[simp]
+private theorem boundedTape_write_head {Gamma : Type} {n : ℕ}
+    (t : DLBA.BoundedTape Gamma n) (a : Gamma) :
+    (t.write a).head = t.head := rfl
+
+private theorem boundedTape_write_moveHead_right_head_val_of_lt
+    {Gamma : Type} {n : ℕ} (t : DLBA.BoundedTape Gamma n) (a : Gamma)
+    (hlt : t.head.val < n) :
+    ((t.write a).moveHead DLBA.Dir.right).head.val = t.head.val + 1 := by
+  simp only
+  split
+  · rfl
+  · rename_i hnot
+    exact False.elim (hnot (by simpa only [boundedTape_write_head] using hlt))
+
+private theorem boundedTape_write_moveHead_right_head_val_of_not_lt
+    {Gamma : Type} {n : ℕ} (t : DLBA.BoundedTape Gamma n) (a : Gamma)
+    (hlt : ¬ t.head.val < n) :
+    ((t.write a).moveHead DLBA.Dir.right).head.val = t.head.val := by
+  simp only
+  split
+  · rename_i hpos
+    exact False.elim (hlt (by simpa only [boundedTape_write_head] using hpos))
+  · rfl
+
+private theorem boundedTape_write_moveHead_left_head_val_of_pos
+    {Gamma : Type} {n : ℕ} (t : DLBA.BoundedTape Gamma n) (a : Gamma)
+    (hpos : 0 < t.head.val) :
+    ((t.write a).moveHead DLBA.Dir.left).head.val = t.head.val - 1 := by
+  simp only
+  split
+  · rfl
+  · rename_i hnot
+    exact False.elim (hnot (by simpa only [boundedTape_write_head] using hpos))
+
 /-- Decode one tape cell to the sentential-form symbol it represents: a raw input cell
 `some (inl t)` decodes to `terminal t` (so the decoded form is unchanged during the init sweep),
 a work cell decodes to its work symbol, a blank to nothing. -/
@@ -104,7 +139,7 @@ lemma echo_moveHead_right {n : ℕ} (W : Fin (n + 1) → KWork g₀) (head : Fin
     (DLBA.BoundedTape.write (⟨fun k => mkCell g₀ k (W k), head⟩ : DLBA.BoundedTape (KCell g₀) n)
         a).moveHead DLBA.Dir.right
       = ⟨fun k => mkCell g₀ k (W k), ⟨head.val + 1, by omega⟩⟩ := by
-  simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hlt, ha,
+  simp only [DLBA.BoundedTape.moveHead, dif_pos hlt, ha,
     Function.update_eq_self]
 
 omit [Fintype T] [Fintype g₀.nt] in
@@ -203,7 +238,7 @@ lemma gotoLeft_check_sound {n : ℕ} {cfgacc : DLBA.Cfg (KCell g₀) (KState g�
             (some (Sum.inr (decide (head.val = 0), decide (head.val = n), W head)))).moveHead
             DLBA.Dir.stay
             = (⟨fun k => mkCell g₀ k (W k), head⟩ : DLBA.BoundedTape (KCell g₀) n) := by
-          simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+          simp only [DLBA.BoundedTape.moveHead]
           congr 1
           funext k; rw [Function.update_apply]; by_cases hk : k = head
           · subst hk; simp [mkCell]
@@ -227,7 +262,7 @@ lemma gotoLeft_check_sound {n : ℕ} {cfgacc : DLBA.Cfg (KCell g₀) (KState g�
             DLBA.Dir.left
             = (⟨fun k => mkCell g₀ k (W k), ⟨head.val - 1, by omega⟩⟩ :
                 DLBA.BoundedTape (KCell g₀) n) := by
-          simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hpos]
+          simp only [DLBA.BoundedTape.moveHead, dif_pos hpos]
           congr 1
           funext k; rw [Function.update_apply]; by_cases hk : k = head
           · subst hk; simp [mkCell]
@@ -293,14 +328,21 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
           Set.mem_singleton_iff, Prod.mk.injEq] at hmem
         obtain ⟨rfl, rfl, rfl⟩ := hmem
         refine Or.inr (Or.inl ⟨rfl, 1, ?_, le_refl 1, ?_⟩)
-        · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hc0]
+        · simp only [hc0]
           rw [show (some (Sum.inr (true, false, some (symbol.terminal (input b.tape.head))))
                   : KCell g₀) = tmpCell g₀ input b.tape.head from by simp [tmpCell, hh0],
             show cAt g₀ input 0 = cAt g₀ input b.tape.head.val from by rw [hh0], cAt_update, hh0]
-        · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
-          split_ifs with hn0
-          · left; exact ⟨by simp [hh0], by omega⟩
-          · right; exact ⟨by omega, by omega⟩
+        · by_cases hn0 : b.tape.head.val < n
+          · left
+            constructor
+            · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hn0]
+              omega
+            · omega
+          · right
+            constructor
+            · rw [boundedTape_write_moveHead_right_head_val_of_not_lt _ _ hn0]
+              omega
+            · omega
       · -- b = initSweep
         rw [hst] at hmem
         simp only [DLBA.BoundedTape.read, hci] at hmem
@@ -313,7 +355,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
           obtain ⟨rfl, rfl, rfl⟩ := hmem
           refine Or.inr (Or.inl ⟨rfl, i + 1, ?_, by omega, ?_⟩)
           · funext k
-            simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hci,
+            simp only [hci,
               Function.update_apply]
             by_cases hk : k = b.tape.head
             · subst hk; rw [if_pos rfl]
@@ -325,10 +367,17 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
               by_cases h1 : k.val < i
               · rw [if_pos h1, if_pos (show k.val < i + 1 by omega)]
               · rw [if_neg h1, if_neg (show ¬ k.val < i + 1 by omega)]
-          · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
-            split_ifs with hn0
-            · left; exact ⟨by simp [hhi], by omega⟩
-            · right; exact ⟨by omega, by omega⟩
+          · by_cases hn0 : b.tape.head.val < n
+            · left
+              constructor
+              · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hn0]
+                omega
+              · omega
+            · right
+              constructor
+              · rw [boundedTape_write_moveHead_right_head_val_of_not_lt _ _ hn0]
+                omega
+              · omega
         · -- clamp at the right end (cell already converted): enter `sim`
           have hcell : cAt g₀ input i b.tape.head
               = some (Sum.inr (decide (b.tape.head.val = 0), false,
@@ -340,7 +389,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
           refine Or.inr (Or.inr (Or.inl
             ⟨fun k => some (symbol.terminal (input k)), ?_, rfl, ?_⟩))
           · funext k
-            simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hci, Function.update_apply]
+            simp only [hci, Function.update_apply]
             by_cases hk : k = b.tape.head
             · subst hk; rw [if_pos rfl]; simp [mkCell, hhn]
             · rw [if_neg hk]
@@ -348,7 +397,6 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
               simp only [cAt, if_pos (show k.val < i by omega), tmpCell, mkCell,
                 decide_eq_false hkn]
           · rw [formW_of_forall_some g₀ _ (fun k => symbol.terminal (input k)) (fun _ => rfl)]
-            exact Relation.ReflTransGen.refl
       · -- b = sim
         rw [hst] at hmem
         simp only [DLBA.BoundedTape.read, hcW] at hmem
@@ -358,19 +406,19 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
               = fun k => mkCell g₀ k (W k) := by
           intro d
           cases d <;>
-          · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hcW]
+          · simp only [hcW]
             funext k; rw [Function.update_apply]; by_cases hk : k = b.tape.head
             · subst hk; simp [mkCell]
             · rw [if_neg hk]
         simp only [mkCell, kTransition, Set.mem_union, Set.mem_insert_iff,
-          Set.mem_singleton_iff, Set.mem_setOf_eq] at hmem
+          Set.mem_singleton_iff, Set.mem_ofPred_eq] at hmem
         rcases hmem with (h | h | h) | ⟨ri, h⟩
         · simp only [Prod.mk.injEq] at h; obtain ⟨rfl, rfl, rfl⟩ := h
-          exact Or.inr (Or.inr (Or.inl ⟨W, hcon _, rfl, hder⟩))
+          exact Or.inr (Or.inr (Or.inl ⟨W, hcon DLBA.Dir.left, rfl, hder⟩))
         · simp only [Prod.mk.injEq] at h; obtain ⟨rfl, rfl, rfl⟩ := h
-          exact Or.inr (Or.inr (Or.inl ⟨W, hcon _, rfl, hder⟩))
+          exact Or.inr (Or.inr (Or.inl ⟨W, hcon DLBA.Dir.right, rfl, hder⟩))
         · simp only [Prod.mk.injEq] at h; obtain ⟨rfl, rfl, rfl⟩ := h
-          exact Or.inr (Or.inr (Or.inr (Or.inl ⟨W, hcon _, rfl, hder⟩)))
+          exact Or.inr (Or.inr (Or.inr (Or.inl ⟨W, hcon DLBA.Dir.stay, rfl, hder⟩)))
         · simp only [Prod.mk.injEq] at h; obtain ⟨rfl, rfl, rfl⟩ := h
           have hpatlen : (patList g₀ g₀.rules[ri]).length
               ≤ (g₀.rules[ri]).output_string.length := by
@@ -379,10 +427,10 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
             omega
           refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
             ⟨W, W, ri, 0, ((List.ofFn W).take b.tape.head.val).filterMap id,
-              hcon _, rfl, Nat.zero_le _, hpatlen, fun p _ => rfl, ?_, ?_, hder⟩)))))
-          · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, Fin.val_zero,
+              hcon DLBA.Dir.stay, rfl, Nat.zero_le _, hpatlen, fun p _ => rfl, ?_, ?_, hder⟩)))))
+          · simp only [Fin.val_zero,
               List.take_zero, List.append_nil]
-          · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, Fin.val_zero,
+          · simp only [Fin.val_zero,
               List.take_zero, List.append_nil]
       · -- b = gotoLeft
         rw [hst] at hmem
@@ -395,11 +443,11 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
           simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hmem
           obtain ⟨rfl, rfl, rfl⟩ := hmem
           refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨W, false, ?_, rfl, hder, ?_⟩))))
-          · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hcW]
+          · simp only [hcW]
             funext k; rw [Function.update_apply]; by_cases hk : k = h
             · subst hk; simp [mkCell]
             · rw [if_neg hk]
-          · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+          · simp only
             rw [show b.tape.head.val = 0 from hh0]; simp
         · -- move left, stay in gotoLeft
           simp only [mkCell, kTransition] at hmem
@@ -408,7 +456,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
           simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hmem
           obtain ⟨rfl, rfl, rfl⟩ := hmem
           refine Or.inr (Or.inr (Or.inr (Or.inl ⟨W, ?_, rfl, hder⟩)))
-          simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hcW]
+          simp only [hcW]
           funext k; rw [Function.update_apply]; by_cases hk : k = h
           · subst hk; simp [mkCell]
           · rw [if_neg hk]
@@ -420,7 +468,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
             (DLBA.BoundedTape.write b.tape (mkCell g₀ b.tape.head x)).contents
               = fun k => mkCell g₀ k (W k) := by
           intro x hx
-          simp only [DLBA.BoundedTape.write, hcW]
+          simp only [hcW]
           funext k; rw [Function.update_apply]; by_cases hk : k = b.tape.head
           · subst hk; rw [if_pos rfl]; exact hx
           · rw [if_neg hk]
@@ -442,7 +490,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
                 obtain ⟨rfl, rfl, rfl⟩ := hmem
                 refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
                   ⟨W, ?_, rfl, ?_, hder⟩)))))
-                · simp only [DLBA.BoundedTape.moveHead]
+                · simp only
                   exact hcon none (by rw [hwh])
                 · rw [decodeForm_split_head g₀ W b.tape.head _ hacm, hdrop_nil hrn, hwh]; simp
           · -- h < n: move right, keep seen
@@ -453,10 +501,9 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
             simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hmem
             obtain ⟨rfl, rfl, rfl⟩ := hmem
             refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨W, seen, ?_, rfl, hder, ?_⟩))))
-            · simp only [DLBA.BoundedTape.moveHead]
+            · simp only
               exact hcon none (by rw [hwh])
-            · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
-              rw [dif_pos (show b.tape.head.val < n from hlt)]
+            · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
               show ((List.ofFn W).take (b.tape.head.val + 1)).filterMap id = _
               rw [take_succ_filterMap g₀ W b.tape.head, hacm, hwh]; simp
         · rcases symb with t | N
@@ -473,7 +520,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
                 obtain ⟨rfl, rfl, rfl⟩ := hmem
                 refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
                   ⟨W, ?_, rfl, ?_, hder⟩)))))
-                · simp only [DLBA.BoundedTape.moveHead]
+                · simp only
                   exact hcon _ (by rw [hwh])
                 · rw [decodeForm_split_head g₀ W b.tape.head _ hacm, hdrop_nil hrn, hwh, hsf]; simp
               · have hlt : b.tape.head.val < n := by have := b.tape.head.isLt; omega
@@ -484,10 +531,9 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
                 simp only [Set.mem_singleton_iff, Prod.mk.injEq] at hmem
                 obtain ⟨rfl, rfl, rfl⟩ := hmem
                 refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨W, true, ?_, rfl, hder, ?_⟩))))
-                · simp only [DLBA.BoundedTape.moveHead]
+                · simp only
                   exact hcon _ (by rw [hwh])
-                · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
-                  rw [dif_pos (show b.tape.head.val < n from hlt)]
+                · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
                   show ((List.ofFn W).take (b.tape.head.val + 1)).filterMap id = _
                   rw [take_succ_filterMap g₀ W b.tape.head, hacm, hsf, hwh]; simp
             · -- condition fails: stuck
@@ -514,17 +560,17 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
             obtain ⟨rfl, rfl, rfl⟩ := hmem
             refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
               ⟨W, W₀, ri, k, Aorig, ?_, rfl, hk, hpat, ?_, ?_, ?_, hder⟩)))))
-            · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hlt, hcW]
+            · simp only [hcW]
               funext p; rw [Function.update_apply]; by_cases hp : p = b.tape.head
               · subst hp; simp [mkCell, hwh]
               · rw [if_neg hp]
             · intro p hp
-              simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hlt] at hp
+              rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt] at hp
               exact hagree p (by omega)
-            · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hlt]
+            · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
               show ((List.ofFn W).take (b.tape.head.val + 1)).filterMap id = _
               rw [take_succ_filterMap g₀ W b.tape.head, htkW, hwh]; simp
-            · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hlt]
+            · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
               show ((List.ofFn W₀).take (b.tape.head.val + 1)).filterMap id = _
               rw [take_succ_filterMap g₀ W₀ b.tape.head, htkW₀,
                 show W₀ b.tape.head = none from by
@@ -579,22 +625,22 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
               refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
                 ⟨Function.update W b.tape.head ((patList g₀ g₀.rules[ri])[k.val]?), W₀, ri, k + 1,
                   Aorig, ?_, rfl, ?_, hpat, ?_, ?_, ?_, hder⟩)))))
-              · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hlt, hcW]
+              · simp only [hcW]
                 rw [show (some (Sum.inr (decide (b.tape.head.val = 0), decide (b.tape.head.val = n),
                       (patList g₀ g₀.rules[ri])[k.val]?)) : KCell g₀)
                     = mkCell g₀ b.tape.head ((patList g₀ g₀.rules[ri])[k.val]?) from rfl,
                   update_mkCell]
               · rw [hval]; omega
               · intro p hp
-                simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hlt] at hp
+                rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt] at hp
                 rw [Function.update_of_ne (fun he => by rw [he] at hp; omega)]
                 exact hagree p (by omega)
-              · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hlt]
+              · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
                 show ((List.ofFn (Function.update W b.tape.head _)).take
                   (b.tape.head.val + 1)).filterMap id = _
                 rw [take_succ_filterMap g₀ _ b.tape.head, Function.update_self, htkW'eq, hval,
                   List.append_assoc, peel]
-              · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, dif_pos hlt]
+              · rw [boundedTape_write_moveHead_right_head_val_of_lt _ _ hlt]
                 show ((List.ofFn W₀).take (b.tape.head.val + 1)).filterMap id = _
                 rw [take_succ_filterMap g₀ W₀ b.tape.head, htkW₀, hW₀h, hval, List.append_assoc]
                 congr 1
@@ -607,7 +653,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
               obtain ⟨rfl, rfl, rfl⟩ := hmem
               refine Or.inr (Or.inr (Or.inl
                 ⟨Function.update W b.tape.head ((patList g₀ g₀.rules[ri])[k.val]?), ?_, rfl, ?_⟩))
-              · simp only [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write, hcW]
+              · simp only [hcW]
                 rw [show (some (Sum.inr (decide (b.tape.head.val = 0), decide (b.tape.head.val = n),
                       (patList g₀ g₀.rules[ri])[k.val]?)) : KCell g₀)
                     = mkCell g₀ b.tape.head ((patList g₀ g₀.rules[ri])[k.val]?) from rfl, update_mkCell]

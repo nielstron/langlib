@@ -24,10 +24,11 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
+omit [Fintype T] in
 /-- If two prefixes become equal after terminal suffixes are appended, one
 prefix extends the other by a terminal word, and the same word is transferred
 between the suffixes. -/
-public theorem append_terminals_eq_cases
+public theorem append_terminals_eq_cases [Fintype T]
     {N : Type} {p₁ p₂ : List (symbol T N)} {s₂ y : List T}
     (h : p₂ ++ s₂.map symbol.terminal =
       p₁ ++ y.map symbol.terminal) :
@@ -58,9 +59,10 @@ public theorem append_terminals_eq_cases
     right
     exact ⟨z, by simpa [hbs] using hp, hy⟩
 
+omit [Fintype T] in
 /-- A displayed final nonterminal followed only by terminals is a unique
 right marker, even when arbitrary nonterminals occur in its prefix. -/
-public theorem cancel_final_nonterminal
+public theorem cancel_final_nonterminal [Fintype T]
     {N : Type} {p₁ p₂ : List (symbol T N)} {A₁ A₂ : N}
     {s₁ s₂ : List T}
     (h : p₂ ++ [symbol.nonterminal A₂] ++ s₂.map symbol.terminal =
@@ -104,7 +106,6 @@ public theorem cancel_final_nonterminal
     symbol.nonterminal.inj hmarker, hs⟩
 
 /-- Spine-native form of the remaining empty-return uniqueness property. -/
-@[expose]
 public def EmptyListSpinesUnique (M : DPDA Q T S) : Prop :=
   ∀ (q₁ q₂ : State M),
     (PDA_to_CFG.N.list q₁ [] q₁,
@@ -587,7 +588,7 @@ public theorem EmptyBaseEdge.prefixCompletion (M : DPDA Q T S)
       have ha : (characteristicGrammar M).DerivesRightmost
           [symbol.terminal a]
           ([a].map symbol.terminal) := Relation.ReflTransGen.refl
-      simpa [List.map_append] using hbefore.append_to_terminals ha
+      exact hbefore.append_to_terminals ha
   | @epsilon base suffix source Z q hparent htransition hrule =>
       exact prehandle_prefix_completion M hrule
         (hparent.derivesRightmost M)
@@ -596,12 +597,12 @@ public theorem EmptyBaseEdge.prefixCompletion (M : DPDA Q T S)
         prehandle_prefix_completion M hrule (hparent.derivesRightmost M)
       have hproductive : productive (characteristicGrammar M)
           (PDA_to_CFG.N.single source Z q) :=
-        characteristic_rule_rhs_productive_reduced M hrule (by simp)
+        characteristic_rule_rhs_productive_reduced M hrule
+          (List.mem_cons_self ..)
       obtain ⟨segmentWord, hsegment⟩ := hproductive
       have hsegment' := CF_grammar.derivesRightmost_of_derives hsegment
       refine ⟨beforeWord ++ segmentWord, ?_⟩
-      simpa [List.map_append] using
-        hbefore.append_to_terminals hsegment'
+      exact hbefore.append_to_terminals hsegment'
 
 /-- A chosen terminal completion of the visible prefix upgrades a normalized
 empty edge to its exact-context concrete form. -/
@@ -685,7 +686,6 @@ This is the empty-handle counterpart of `IntroducingEdgesUnique`.  The
 remaining proof is the useful-path/no-epsilon-cycle argument for the
 normalized DPDA; the adapters below contain the entire derivation-spine and
 rule-shape assembly. -/
-@[expose]
 public def EmptyReturnEdgesUnique (M : DPDA Q T S) : Prop :=
   ∀ (p₁ p₂ : List (symbol T (Nonterminal M)))
       (q₁ q₂ : State M) (s₁ s₂ y : List T),
@@ -696,7 +696,7 @@ public def EmptyReturnEdgesUnique (M : DPDA Q T S) : Prop :=
     p₂ ++ s₂.map symbol.terminal =
       p₁ ++ y.map symbol.terminal →
     s₁.take 1 = y.take 1 →
-    p₁ = p₂ ∧ q₁ = q₂
+    (fun _ _ => p₁ = p₂ ∧ q₁ = q₂) edge₁ edge₂
 
 /-- Precise paired-spine classifier still needed before invoking the
 cycle/growth kernels.  It says that a pair of normalized empty-return edges
@@ -705,8 +705,8 @@ contexts yield one of the two impossible useful self-embeddings above. -/
 private def EmptyReturnPairsClassified (M : DPDA Q T S) : Prop :=
   ∀ (p₁ p₂ : List (symbol T (Nonterminal M)))
       (q₁ q₂ : State M) (s₁ s₂ y : List T),
-    ∀ (edge₁ : EmptyBaseEdge M p₁ q₁ s₁)
-      (edge₂ : EmptyBaseEdge M p₂ q₂ s₂),
+    ∀ (_edge₁ : EmptyBaseEdge M p₁ q₁ s₁)
+      (_edge₂ : EmptyBaseEdge M p₂ q₂ s₂),
     (EmptyTransitionEdge M p₁ q₁ s₁ ∨
       EmptyTransitionEdge M p₂ q₂ s₂) →
     p₂ ++ s₂.map symbol.terminal =

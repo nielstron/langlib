@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2024 Alexander Loitzl, Martin Dvorak. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 Authors: Alexander Loitzl, Martin Dvorak
 -/
 
@@ -69,7 +69,6 @@ variable {T : Type uT}
 namespace ChomskyNormalFormGrammar
 
 /-- `generators g` is the set of nonterminals that appear in the left hand side of rules of `g` -/
-@[expose]
 public noncomputable def generators (g : ChomskyNormalFormGrammar.{uN, uT} T) [DecidableEq g.NT] :
     Finset g.NT :=
   (g.rules.toList.map ChomskyNormalFormRule.input).toFinset
@@ -81,7 +80,7 @@ public lemma pumping_string {u v : List (Symbol T g.NT)} {n : g.NT}
     g.Derives [Symbol.nonterminal n] (u^+^i ++ [Symbol.nonterminal n] ++ v^+^i) := by
   induction i with
   | zero =>
-    simpa using Derives.refl [Symbol.nonterminal n]
+    simpa [nTimes] using Derives.refl [Symbol.nonterminal n]
   | succ n ih =>
     apply ih.trans
     apply ((hg.append_left _).append_right _).trans
@@ -118,7 +117,7 @@ public lemma subtree_repeat_root_height_ind {n : g.NT} {p : parseTree n}
     rw [Nat.succ_eq_add_one, parseTree.height, add_comm, Nat.add_le_add_iff_left] at hp
     by_contra! was_goal
     have pidgeon : ¬(∃ f : { q // q ∈ (insert ⟨n, parseTree.leaf t hnt⟩ s) } → g.generators, f.Injective) := by
-      push_neg
+      push Not
       intro f hf
       have := pidgeonhole hf
       have : (insert ⟨n, parseTree.leaf t hnt⟩ s).card = s.card + 1 :=
@@ -352,4 +351,4 @@ public theorem Language.IsContextFree.pumping {T : Type} {L : Language T} (hL : 
   by_cases hw : w = []
   · simp [hw] at hw2
   · obtain ⟨u, v, x, y, z, hw, hvy, hvxy, hL⟩ := g.toCNF.pumping (g.toCNF_correct ▸ ⟨hwg, hw⟩) hw2
-    exact ⟨u, v, x, y, z, hw, hvy, hvxy, fun i => Set.diff_subset (g.toCNF_correct ▸ hL i)⟩
+    exact ⟨u, v, x, y, z, hw, hvy, hvxy, fun i => Set.sdiff_subset (g.toCNF_correct ▸ hL i)⟩

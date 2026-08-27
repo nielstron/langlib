@@ -43,7 +43,7 @@ def liftRule (r : IRule T g.nt g.flag) : IRule T (Option g.nt) g.flag where
 
 /-- The grammar with a fresh start symbol `none : Option g.nt`. Has one start rule
     `S' → S` (where `S' = none`, `S = some g.initial`) and all original rules lifted. -/
-def freshStart : IndexedGrammar T where
+abbrev freshStart : IndexedGrammar T where
   nt := Option g.nt
   flag := g.flag
   initial := none
@@ -105,8 +105,9 @@ theorem freshStart_language_forward {w : List T}
     exact ⟨ [ ], [ ], [ ], by unfold IndexedGrammar.freshStart; aesop ⟩;
   -- Apply the deri_of_tran_deri theorem to combine the derivations.
   apply deri_of_tran_deri h_start;
-  convert freshStart_lift_derives g h;
-  rw [map_liftISym_terminal]
+  have hd := freshStart_lift_derives g h
+  rw [← map_liftISym_terminal g w] at hd
+  simpa [liftISym] using hd
 
 /-! ### Backward direction: (freshStart g).Language ⊆ g.Language -/
 
@@ -254,7 +255,6 @@ theorem freshStart_first_step {w : List (g.freshStart).ISym}
     w = [.indexed (some g.initial) []] := by
   obtain ⟨ r, u, v, σ, hr, hu, hv ⟩ := ht; rcases r with ⟨ lhs, consume, rhs ⟩ ;
   cases u <;> cases v <;> cases consume <;> simp_all +decide;
-  unfold IndexedGrammar.freshStart at hr; simp_all +decide [ List.mem_cons ] ;
   unfold IndexedGrammar.liftRule at hr; aesop;
 
 /-

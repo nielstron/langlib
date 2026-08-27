@@ -92,6 +92,11 @@ public lemma CF_derivesIn_of_derives {w₁ w₂ : List (symbol T g.nt)}
     obtain ⟨n, hn⟩ := ih
     exact ⟨n + 1, .tail hn htran⟩
 
+private lemma CF_derivesIn_zero_eq {w₁ w₂ : List (symbol T g.nt)}
+    (h : CF_derivesIn g 0 w₁ w₂) : w₁ = w₂ := by
+  cases h
+  rfl
+
 private lemma CF_derives_of_derivesIn {n : ℕ} {w₁ w₂ : List (symbol T g.nt)}
     (h : CF_derivesIn g n w₁ w₂) : CF_derives g w₁ w₂ := by
   induction' h with n w₁ w₂ h ih;
@@ -189,7 +194,6 @@ variable {σ : Type} [Fintype σ]
 
 /-- Thread DFA states through a list of symbols, enumerating all valid
     annotated symbol lists with their ending DFA states. -/
-@[expose]
 public noncomputable def threadSymbols (M : DFA T σ)
     {N : Type} (syms : List (symbol T N)) (p : σ) :
     List (List (symbol T (Option (σ × N × σ))) × σ) :=
@@ -204,7 +208,7 @@ public noncomputable def threadSymbols (M : DFA T σ)
           (symbol.nonterminal (some (p, B, qmid)) :: out, q)
 
 /-- The product grammar of a CFG `g` and a DFA `M`. -/
-@[expose]
+@[reducible]
 public noncomputable def productGrammar (g : CF_grammar T) (M : DFA T σ) : CF_grammar T where
   nt := Option (σ × g.nt × σ)
   initial := none
@@ -348,7 +352,7 @@ public lemma forward_thread {M : DFA T σ} (N_bound : ℕ)
         grind +suggestions;
       -- By definition of `CF_derivesIn`, we know that `CF_derivesIn (productGrammar g M) n (symbol.nonterminal (some (p, B, qmid)) :: out_rest) (List.map symbol.terminal w)`.
       have hder_split : ∃ x y n₁ n₂, List.map symbol.terminal w = x ++ y ∧ CF_derivesIn (productGrammar g M) n₁ [symbol.nonterminal (some (p, B, qmid))] x ∧ CF_derivesIn (productGrammar g M) n₂ out_rest y ∧ n = n₁ + n₂ := by
-        have := CF_derivesIn_append_split ( show CF_derivesIn ( productGrammar g M ) n ( [ symbol.nonterminal ( some ( p, B, qmid ) ) ] ++ out_rest ) ( List.map symbol.terminal w ) from by simpa only [ hthread_out ] using hder ) ; aesop;
+        have := CF_derivesIn_append_split ( show CF_derivesIn ( productGrammar g M ) n ( [ symbol.nonterminal ( some ( p, B, qmid ) ) ] ++ out_rest ) ( List.map symbol.terminal w ) from by simpa only [ hthread_out, List.singleton_append ] using hder ) ; aesop;
       obtain ⟨ x, y, n₁, n₂, hxy, hx, hy, rfl ⟩ := hder_split
       have hxy_map : ∃ w₁ w₂, x = List.map symbol.terminal w₁ ∧ y = List.map symbol.terminal w₂ ∧ w = w₁ ++ w₂ := by
         have := append_eq_map_terminal hxy.symm; aesop;
@@ -358,7 +362,9 @@ public lemma forward_thread {M : DFA T σ} (N_bound : ℕ)
       have h_ind' : CF_derives g syms (List.map symbol.terminal w₂) ∧ M.evalFrom qmid w₂ = q := by
         exact ih out_rest qmid q w₂ n₂ ( by linarith ) hthread_out.2 ( by simpa only [ hy_map ] using hy ) |> fun h => ⟨ h.1, h.2 ⟩
       have h_final : CF_derives g (symbol.nonterminal B :: syms) (List.map symbol.terminal (w₁ ++ w₂)) := by
-        convert CF_deri_with_prefix _ h_ind'.1 |> CF_deri_of_deri_deri <| CF_deri_with_postfix _ h_ind.1 using 1 ; aesop ( simp_config := { singlePass := true } ) ;
+        convert CF_deri_with_prefix _ h_ind'.1 |> CF_deri_of_deri_deri <| CF_deri_with_postfix _ h_ind.1 using 1
+        · rfl
+        · simp only [List.map_append]
       have h_final' : M.evalFrom p (w₁ ++ w₂) = q := by
         rw [ DFA.evalFrom_of_append, h_ind.2, h_ind'.2 ]
       exact ⟨ h_final, h_final' ⟩
@@ -545,9 +551,18 @@ public theorem productGrammar_language (g : CF_grammar T) (M : DFA T σ) :
   have h_forward : ∃ f ∈ M.accept, CF_derives g [symbol.nonterminal g.initial] (w.map symbol.terminal) ∧ DFA.evalFrom M M.start w = f := by
     -- By definition of product grammar, if there's a derivation from [symbol.nonterminal none] to w.map symbol.terminal, then there must be a start rule that transforms none into [symbol.nonterminal (some (M.start, g.initial, f))] for some f in M.accept.
     obtain ⟨f, hf⟩ : ∃ f ∈ M.accept, CF_derivesIn (productGrammar g M) (n - 1) [symbol.nonterminal (some (M.start, g.initial, f))] (w.map symbol.terminal) := by
-      rcases n with ( _ | n ) <;> simp_all +decide [  ];
-      · cases w <;> cases hn;
-      · obtain ⟨ u, hu ⟩ := CF_derivesIn_head hn;
+      cases n with
+      | zero =>
+        exfalso
+        have heq := CF_derivesIn_zero_eq hn
+        have hmem : symbol.nonterminal none ∈ w.map (symbol.terminal (N := (productGrammar g M).nt)) := by
+          rw [← heq]
+          simp
+        rw [List.mem_map] at hmem
+        rcases hmem with ⟨a, _, ha⟩
+        cases ha
+      | succ n =>
+        obtain ⟨ u, hu ⟩ := CF_derivesIn_head (by simpa using hn);
         rcases hu with ⟨ ⟨ r, u, v, hr, hu, hv ⟩, hu' ⟩ ; simp_all +decide [ productGrammar ] ;
         rcases hr with ( ⟨ f, hf, rfl ⟩ | ⟨ a, b, hab, a', b', c', hc', rfl ⟩ ) <;> simp_all +decide [  ] ;
         · cases u <;> aesop;

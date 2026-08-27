@@ -70,13 +70,13 @@ public theorem re_implies_tm {T : Type} [DecidableEq T] [Fintype T]
     (L : Language T) (hL : is_RE L) : is_TM L := by
   obtain ⟨g, hg⟩ := hL
   obtain ⟨g', hfin, hlang⟩ := grammar_equivalent_finiteNT g
-  haveI : Fintype g'.nt := Fintype.ofFinite _
-  haveI : DecidableEq g'.nt := Classical.decEq _
+  have : Fintype g'.nt := Fintype.ofFinite _
+  have : DecidableEq g'.nt := Classical.decEq _
   rw [← hg, hlang]
   -- Get Primcodable instances
-  haveI : Primcodable T :=
+  have : Primcodable T :=
     Primcodable.ofEquiv (Fin (Fintype.card T)) (Fintype.truncEquivFin T).out
-  haveI : Primcodable g'.nt :=
+  have : Primcodable g'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g'.nt)) (Fintype.truncEquivFin g'.nt).out
   -- The grammar test is computable
   have hcomp := grammarTest_computable₂ g'

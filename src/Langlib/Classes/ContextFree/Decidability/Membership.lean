@@ -81,7 +81,6 @@ open ChomskyNormalFormGrammar
 /-- CYK-style predicate: can nonterminal `n` derive word `w` in CNF grammar `g`?
     Quantifies over rules (a Finset) instead of nonterminals, so does NOT require
     `Fintype g.NT`. -/
-@[expose]
 public noncomputable def canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : g.NT) : List T → Prop
   | [] => False
@@ -306,7 +305,7 @@ lemma primrec₂_ntSetBit : Primrec₂ (fun bv idx => ntSetBit bv idx) := by
     exact fun n => Nat.testBit n.1 n.2;
     exact fun n => n.1;
     exact fun n => n.1 + 2 ^ n.2;
-    · convert primrec₂_ntInSet using 1;
+    · simpa only [Primrec₂, ntInSet] using primrec₂_ntInSet
     · exact Primrec.fst;
     · have h_primrec_exp : Primrec (fun (n : ℕ) => 2 ^ n) := by
         have h_pow_two_primrec : Primrec (fun n => 2 ^ n) := by
@@ -433,27 +432,33 @@ lemma primrec₂_ruleStep (ntR lR rR : ℕ) :
          ntInSet (ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 +
             (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) rR
       then ntSetBit bv ntR else bv) := by
-  have h_primrec : Primrec (fun ctx : List ℕ × ℕ × ℕ × ℕ × ℕ => ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) := by
+  have h_leftValue : Primrec (fun ctx : List ℕ × ℕ × ℕ × ℕ × ℕ => ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) := by
     have h_getD : Primrec₂ (fun (l : List ℕ) (i : ℕ) => l.getD i 0) := by
       convert Primrec.list_getD 0 using 1;
     exact h_getD.comp ( Primrec.fst ) ( by exact Primrec.nat_add.comp ( Primrec.nat_mul.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd ) ) ) ) ( Primrec.fst.comp ( Primrec.snd ) ) ) ( Primrec.fst.comp ( Primrec.snd.comp ( Primrec.snd ) ) ) );
-  have h_primrec : Primrec (fun ctx : List ℕ × ℕ × ℕ × ℕ × ℕ => ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) := by
-    convert Primrec.list_getD 0 |> Primrec.comp <| Primrec.fst.comp ( Primrec.id ) |> Primrec.pair <| _ using 1;
-    apply_rules [ Primrec.nat_add.comp, Primrec.nat_mul.comp, Primrec.nat_sub.comp, Primrec.fst, Primrec.snd ];
-    all_goals try { exact Primrec.fst.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd ) ) ) };
-    · exact Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.id ) ) ) );
-    · exact Primrec.fst.comp ( Primrec.snd );
-    · exact Primrec.fst.comp ( Primrec.snd.comp ( Primrec.snd ) );
-    · exact Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.id ) ) ) );
-    · exact Primrec.const 1;
+  have h_rightValue : Primrec (fun ctx : List ℕ × ℕ × ℕ × ℕ × ℕ => ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) := by
+    exact (Primrec.list_getD 0).comp Primrec.fst
+      (Primrec.nat_add.comp
+        (Primrec.nat_mul.comp
+          (Primrec.nat_sub.comp
+            (Primrec.fst.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
+            (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))))
+          (Primrec.fst.comp Primrec.snd))
+        (Primrec.nat_add.comp
+          (Primrec.nat_add.comp
+            (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))
+            (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))))
+          (Primrec.const 1)))
   have h_primrec : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => if ntInSet (ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) lR && ntInSet (ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) rR then ntSetBit bv ntR else bv) := by
     have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => if ntInSet (ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) lR && ntInSet (ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) rR then true else false) := by
       have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => ntInSet (ctx.1.getD (ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1) 0) lR) := by
         have h_cond : Primrec₂ (fun (x : ℕ) (y : ℕ) => ntInSet x y) := by
           exact primrec₂_ntInSet;
-        convert h_cond.comp ( ‹Primrec fun ctx : List ℕ × ℕ × ℕ × ℕ × ℕ => ctx.1.getD ( ctx.2.2.2.2 * ctx.2.1 + ctx.2.2.1 ) 0›.comp ( Primrec.fst ) ) ( Primrec.const lR ) using 1;
+        exact Primrec₂.mk (h_cond.comp
+          (h_leftValue.comp Primrec.fst) (Primrec.const lR))
       have h_cond : Primrec₂ (fun (ctx : List ℕ × ℕ × ℕ × ℕ × ℕ) (bv : ℕ) => ntInSet (ctx.1.getD ((ctx.2.2.2.1 - ctx.2.2.2.2) * ctx.2.1 + (ctx.2.2.1 + ctx.2.2.2.2 + 1)) 0) rR) := by
-        convert Primrec₂.comp ( primrec₂_ntInSet ) ( h_primrec.comp ( Primrec.fst ) ) ( Primrec.const rR ) using 1;
+        exact Primrec₂.mk (primrec₂_ntInSet.comp
+          (h_rightValue.comp Primrec.fst) (Primrec.const rR))
       simp +zetaDelta at *;
       exact Primrec₂.comp ( Primrec.and ) ‹_› ‹_›
     convert Primrec.cond h_cond ( show Primrec₂ ( fun ( ctx : List ℕ × ℕ × ℕ × ℕ × ℕ ) ( bv : ℕ ) => ntSetBit bv ntR ) from ?_ ) ( show Primrec₂ ( fun ( ctx : List ℕ × ℕ × ℕ × ℕ × ℕ ) ( bv : ℕ ) => bv ) from ?_ ) using 1;
@@ -567,7 +572,13 @@ lemma primrec₂_cykStep (nd : List (ℕ × ℕ × ℕ)) :
   · convert primrec₂_cellValue nd using 1;
     constructor <;> intro h;
     · convert primrec₂_cellValue nd using 1;
-    · convert h.comp ( Primrec.snd.comp ( Primrec.snd.comp Primrec.fst ) |> Primrec.pair <| Primrec.list_length.comp ( Primrec.fst.comp Primrec.fst ) |> Primrec.pair <| Primrec.fst.comp ( Primrec.snd.comp Primrec.fst ) ) ( Primrec.snd ) using 1
+    · exact Primrec₂.mk (h.comp
+        (Primrec.pair
+          (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))
+          (Primrec.pair
+            (Primrec.list_length.comp (Primrec.fst.comp Primrec.fst))
+            (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))))
+        Primrec.snd)
 
 /-
 The full CYK table build is Primrec.
@@ -699,9 +710,9 @@ lemma foldl_rules_ntInSet (nd : List (ℕ × ℕ × ℕ)) (left_bv right_bv init
   induction' nd using List.reverseRecOn with nd hd ih generalizing init;
   · aesop;
   · by_cases h : ntInSet left_bv hd.2.1 && ntInSet right_bv hd.2.2 <;> simp_all +decide [ List.foldl_append ];
-    · by_cases h' : idx = hd.1 <;> simp_all +decide [ ntInSet_ntSetBit_self, ntInSet_ntSetBit_ne ];
-      · exact Or.inr ⟨ _, _, Or.inr rfl, h ⟩;
-      · grind;
+    · by_cases h' : idx = hd.1 <;>
+        simp_all +decide [ntInSet_ntSetBit_self, ntInSet_ntSetBit_ne] ;
+        grind
     · grind
 
 /-
@@ -896,9 +907,10 @@ lemma cykBuildTable_correct_step
   convert Bool.eq_iff_iff using 1;
   convert Iff.rfl using 2;
   convert foldl_splits_ntInSet nodeData ( cykBuildTable leafData nodeData w l ) w.length i l ( enc nt ) using 1;
-  · congr! 1;
-    congr! 1;
-    convert cykBuildTable_entry_step leafData nodeData w l i ( by linarith ) using 1;
+  · congr! 1
+    congr! 1
+    convert cykBuildTable_entry_step leafData nodeData w l i (by linarith) using 1
+    simp only [← List.getD_eq_getElem?_getD]
   · simp +decide [ List.mem_range ]
 
 open ChomskyNormalFormGrammar in
@@ -980,69 +992,27 @@ theorem cf_membership_computable
     (g : CF_grammar T) [Fintype g.nt] [DecidableEq g.nt]
     [Primcodable T] :
     ComputablePred (fun w : List T => w ∈ CF_language g) := by
-  obtain ⟨enc, enc_inj⟩ : ∃ enc : (mathlib_cfg_of_cfg g).toCNF.NT → ℕ, Function.Injective enc := by
-    have h_encodable : Encodable (mathlib_cfg_of_cfg g).toCNF.NT := by
-      have h_encodable : Encodable ((g.nt ⊕ T) ⊕ (r : ContextFreeRule T (g.nt ⊕ T)) × Fin (r.output.length - 2)) := by
-        have h_encodable : Countable ((g.nt ⊕ T) ⊕ (r : ContextFreeRule T (g.nt ⊕ T)) × Fin (r.output.length - 2)) := by
-          have h_countable : Countable (ContextFreeRule T (g.nt ⊕ T)) := by
-            have h_countable : Countable ((g.nt ⊕ T) × List (Symbol T (g.nt ⊕ T))) := by
-              infer_instance;
-            exact ( Equiv.ofBijective ( fun x => ( x.input, x.output ) ) ⟨ fun x y h => by cases x; cases y; aesop, fun x => by cases x; exact ⟨ ⟨ _, _ ⟩, rfl ⟩ ⟩ ) |> fun h => h.countable_iff.mpr h_countable;
-          infer_instance;
-        exact Encodable.ofCountable _;
-      exact h_encodable;
-    exact ⟨ _, Encodable.encode_injective ⟩;
-  obtain ⟨leafData, nodeData, h_leaf, h_node, h_node_range, h_leaf_range⟩ : ∃ leafData : List (ℕ × T), ∃ nodeData : List (ℕ × ℕ × ℕ),
-    (∀ nt t, (enc nt, t) ∈ leafData ↔ ChomskyNormalFormRule.leaf nt t ∈ (mathlib_cfg_of_cfg g).toCNF.rules) ∧
-    (∀ nt l r, (enc nt, enc l, enc r) ∈ nodeData ↔ ChomskyNormalFormRule.node nt l r ∈ (mathlib_cfg_of_cfg g).toCNF.rules) ∧
-    (∀ r ∈ nodeData, ∃ nt l r', r = (enc nt, enc l, enc r')) ∧
-    (∀ p ∈ leafData, ∃ nt, p.1 = enc nt) := by
-      refine' ⟨ _, _, _, _, _, _ ⟩;
-      exact (mathlib_cfg_of_cfg g).toCNF.rules.toList.filterMap (fun r => match r with | ChomskyNormalFormRule.leaf nt t => some (enc nt, t) | _ => none);
-      exact (mathlib_cfg_of_cfg g).toCNF.rules.toList.filterMap (fun r => match r with | ChomskyNormalFormRule.node nt l r => some (enc nt, enc l, enc r) | _ => none);
-      · intro nt t; simp +decide ;
-        constructor <;> intro h;
-        · obtain ⟨ a, ha, ha' ⟩ := h; rcases a with ( _ | _ | a ) <;> simp_all +decide ;
-          grind;
-        · exact ⟨ _, h, rfl ⟩;
-      · intro nt l r;
-        rw [ List.mem_filterMap ];
-        constructor;
-        · rintro ⟨ a, ha, ha' ⟩;
-          cases a <;> simp_all +decide [ enc_inj.eq_iff ];
-        · exact fun h => ⟨ ChomskyNormalFormRule.node nt l r, by simpa using h, rfl ⟩;
-      · grind;
-      · grind;
-  obtain ⟨emptyVal, h_empty⟩ : ∃ emptyVal : Bool, [] ∈ CF_language g ↔ emptyVal = true := by
-    by_cases h : [] ∈ CF_language g <;> [ exact ⟨ Bool.true, by simpa ⟩ ; exact ⟨ Bool.false, by simpa ⟩ ];
-  obtain ⟨f, hf⟩ : ∃ f : List T → Bool, Computable f ∧ ∀ w, w ∈ CF_language g ↔ f w = true := by
-    refine' ⟨ fun w => if w = [] then emptyVal else cykMemCheck leafData nodeData ( enc ( ( mathlib_cfg_of_cfg g ).toCNF.initial ) ) w, _, _ ⟩;
-    · convert Computable.cond _ _ _ using 1;
-      rotate_left;
-      exact fun w => w = [];
-      exact fun _ => emptyVal;
-      exact fun w => cykMemCheck leafData nodeData ( enc ( ( mathlib_cfg_of_cfg g ).toCNF.initial ) ) w;
-      · convert Computable.of_eq _ _;
-        exact fun w => w.length = 0;
-        · convert Computable.of_eq _ _;
-          exact fun w => Nat.recOn w.length ( Bool.true ) fun _ _ => Bool.false;
-          · convert Computable.nat_casesOn _ _ _ using 1;
-            · exact Computable.list_length;
-            · exact Computable.const Bool.true;
-            · exact Computable.const Bool.false;
-          · intro n; cases n <;> simp +decide ;
-        · aesop;
-      · exact Computable.const _;
-      · exact Primrec.to_comp ( primrec_cykMemCheck _ _ _ );
-      · grind;
-    · intro w; by_cases hw : w = [] <;> simp +decide [ hw, h_empty ] ;
-      rw [ CF_language_eq_mathlib_language ];
-      convert cykMemCheck_correct_cnf ( mathlib_cfg_of_cfg g |> ContextFreeGrammar.toCNF ) enc enc_inj leafData h_leaf nodeData h_node h_node_range h_leaf_range w hw |> Iff.symm using 1;
-      · rw [ ← ContextFreeGrammar.toCNF_correct ];
-        grind;
-      · exact Classical.typeDecidableEq (mathlib_cfg_of_cfg g).toCNF.NT;
-  convert hf.1 using 1;
-  constructor <;> intro h <;> rw [ ComputablePred ] at * <;> aesop
+  have hpos : 0 < Fintype.card g.nt :=
+    Fintype.card_pos_iff.mpr ⟨g.initial⟩
+  let e : g.nt ≃ Fin (Fintype.card g.nt - 1 + 1) :=
+    (Fintype.equivFin g.nt).trans
+      (finCongr (Nat.succ_pred_eq_of_pos hpos).symm)
+  let G : EncodedCFG T := ContextFree.EncodedCFG.encodeCFG g e
+  have hcheck : Computable (fun w : List T => checkMembershipEncoded (G, w)) :=
+    checkMembershipEncoded_computable'.comp
+      ((Computable.const G).pair Computable.id)
+  let P := fun w : List T => checkMembershipEncoded (G, w) = true
+  let d : DecidablePred P := fun _ => inferInstance
+  have hpcheck : ComputablePred P := by
+    refine ⟨d, ?_⟩
+    apply hcheck.of_eq
+    intro w
+    exact (@Bool.decide_coe (checkMembershipEncoded (G, w)) (d w)).symm
+  apply ComputablePred.of_eq hpcheck
+  intro w
+  rw [show P w = (checkMembershipEncoded (G, w) = true) from rfl,
+    checkMembershipEncoded_correct]
+  exact Set.ext_iff.mp (ContextFree.EncodedCFG.cf_language_encodeCFG g e) w
 
 /-
 Context-free membership is uniformly computable for encoded CFGs (raw `ComputablePred`
@@ -1051,13 +1021,16 @@ decider; the packaged `ComputableMembership` statement over the CF class lives i
 -/
 theorem contextFree_membership_computablePred [Primcodable T] :
     ComputablePred (fun p : EncodedCFG T × List T => p.2 ∈ contextFreeLanguageOf p.1) := by
-  constructor;
-  convert checkMembershipEncoded_computable' using 1;
-  all_goals try infer_instance;
-  ext ⟨G, w⟩; simp only;
-  rw [ eq_comm ];
-  grind +suggestions;
-  exact Classical.decPred _
+  let P := fun p : EncodedCFG T × List T => p.2 ∈ contextFreeLanguageOf p.1
+  let d : DecidablePred P := Classical.decPred _
+  refine ⟨d, ?_⟩
+  apply checkMembershipEncoded_computable'.of_eq
+  rintro ⟨G, w⟩
+  apply Bool.eq_iff_iff.mpr
+  change checkMembershipEncoded (G, w) = true ↔
+    @decide (P (G, w)) (d (G, w)) = true
+  rw [@decide_eq_true_eq (P (G, w)) (d (G, w))]
+  exact checkMembershipEncoded_correct G w
 
 /-- **Membership is uniformly computable** for the context-free languages: encoded
 context-free grammars are an adequate, effective presentation

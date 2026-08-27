@@ -64,12 +64,10 @@ open Langlib.TMCodeListEncode
 
 /-! ### Blank-preserving embedding -/
 
-@[expose]
 public noncomputable def directBlankEmb {T Γ₀ : Type} [DecidableEq Γ₀] [Inhabited Γ₀]
     (γ : Γ₀) : Option (T ⊕ Γ₀) :=
   if γ = default then none else some (Sum.inr γ)
 
-@[expose]
 public noncomputable def directBlankInv {T Γ₀ : Type} [Inhabited Γ₀]
     (a : Option (T ⊕ Γ₀)) : Γ₀ :=
   match a with
@@ -95,24 +93,19 @@ public theorem directBlankEmb_ne_default {T Γ₀ : Type} [DecidableEq Γ₀] [I
 
 /-! ### Direct shifted tape construction -/
 
-@[expose]
 public noncomputable def directChainCons : ChainΓ :=
   γ'ToChainΓ Γ'.cons
 
-@[expose]
 public noncomputable def shiftedNatBlock (n : ℕ) : List ChainΓ :=
   directChainCons :: (chainBinaryRepr n).reverse
 
-@[expose]
 public noncomputable def shiftedSymbolBlock {T : Type} [Primcodable T] (t : T) :
     List ChainΓ :=
   shiftedNatBlock (Encodable.encode t + 1)
 
-@[expose]
 public noncomputable def shiftedPayload {T : Type} [Primcodable T] : List T → List ChainΓ :=
   List.foldr (fun t acc => shiftedSymbolBlock t ++ acc) []
 
-@[expose]
 public noncomputable def shiftedChainTape {T : Type} [Primcodable T] (w : List T) :
     List ChainΓ :=
   chainConsBottom :: shiftedPayload w ++ [directChainCons]
@@ -170,14 +163,15 @@ public theorem trInit_trList_append_zero (ns : List ℕ) :
   rw [trList_eq_flatMap]
   simp [List.flatMap_append, PartrecToTM2.trNat, PartrecToTM2.trNum]
   rw [TM2to1.trInit]
+  unfold chainConsBottom shiftedNatBlock directChainCons chainBinaryRepr γ'ToChainΓ
+  unfold ChainΓ TM2to1.Γ'
   simp [List.reverse_append, List.reverse_flatMap, Function.comp_def,
     List.map_flatMap]
   constructor
-  · simp [chainConsBottom]
+  · rfl
   · apply List.flatMap_congr
-    intro n _hn
-    simp [shiftedNatBlock, directChainCons, chainBinaryRepr, γ'ToChainΓ,
-      PartrecToTM2.trNat, PartrecToTM2.trNum]
+    intro n _
+    simp [PartrecToTM2.trNat, PartrecToTM2.trNum]
 
 public theorem flatMap_shiftedNatBlock_map_encode
     {T : Type} [Primcodable T] (w : List T) :
@@ -203,12 +197,10 @@ public theorem trInit_trList_shiftedEncoding_eq
   simp [flatMap_shiftedNatBlock_map_encode, shiftedChainTape,
     shiftedNatBlock, directChainCons, chainBinaryRepr_zero]
 
-@[expose]
 public noncomputable def shiftedFoldAccStep {T : Type} [Primcodable T]
     (t : T) (acc : List ChainΓ) : List ChainΓ :=
   shiftedSymbolBlock t ++ acc
 
-@[expose]
 public noncomputable def shiftedFoldTapeStep
     (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] (t : T) :
     List (Option (T ⊕ ChainΓ)) → List (Option (T ⊕ ChainΓ)) :=
@@ -380,7 +372,7 @@ public theorem shiftedFoldRealizes
       rw [htape h]
       rfl⟩⟩
 
-@[expose]
+@[reducible]
 public noncomputable def shiftedFinishBlock {T : Type}
     (block : List (Option (T ⊕ ChainΓ))) : List (Option (T ⊕ ChainΓ)) :=
   some (Sum.inr chainConsBottom) :: block ++ [some (Sum.inr directChainCons)]
@@ -417,7 +409,14 @@ public theorem shiftedFinishBlock_realizes
     · exact hblock g hg
     · simp [Γ]
   have hcomp := tm0RealizesBlock_comp happ hcons happ_nd
-  simpa [shiftedFinishBlock, Function.comp, Γ] using hcomp
+  have hfun :
+      ((fun block : List Γ => some (Sum.inr chainConsBottom) :: block) ∘
+        fun block => block ++ [some (Sum.inr directChainCons)]) =
+        shiftedFinishBlock (T := T) := by
+    funext block
+    rfl
+  rw [← hfun]
+  exact hcomp
 
 public theorem shiftedFinishBlock_on_payload
     {T : Type} [Primcodable T] (w : List T) :
@@ -442,7 +441,6 @@ public theorem shiftedFinishBlock_on_payload
 It maps identity-encoded input `w` to the embedded Partrec-chain tape for
 `shiftedEncoding w`.  Since `T` is finite, this is implemented by the finite
 per-symbol substitution fold above rather than binary arithmetic on the tape. -/
-@[expose]
 public def ShiftedEncodingConverter
     (T : Type) [DecidableEq T] [Fintype T] [Primcodable T] : Prop :=
   ∃ (Λ_conv : Type) (_ : Inhabited Λ_conv) (_ : Fintype Λ_conv)
@@ -463,7 +461,7 @@ public theorem shifted_converter_exists
     ShiftedEncodingConverter T := by
   obtain ⟨Λ₁, hΛ₁i, hΛ₁f, M₁, hM₁⟩ := shiftedFoldRealizes (T := T)
   obtain ⟨Λ₂, hΛ₂i, hΛ₂f, M₂, hM₂⟩ := shiftedFinishBlock_realizes T
-  letI : Inhabited (Λ₁ ⊕ Λ₂) := ⟨Sum.inl default⟩
+  let : Inhabited (Λ₁ ⊕ Λ₂) := ⟨Sum.inl default⟩
   refine ⟨Λ₁ ⊕ Λ₂, inferInstance, inferInstance,
     TM0Seq.compose M₁ M₂, ?_⟩
   intro w
@@ -473,6 +471,29 @@ public theorem shifted_converter_exists
     (shiftedChainTape w).map (directBlankEmb (T := T))
   have h1_dom := (hM₁ w).1
   have h1_tape := (hM₁ w).2 h1_dom
+  have hinput :
+      w.map (some ∘ @Sum.inl T ChainΓ) =
+        w.map (fun x => some (Sum.inl x)) := by
+    apply List.map_congr_left
+    intro _ _
+    rfl
+  have heval1 :
+      TM0Seq.evalCfg M₁ (w.map (some ∘ @Sum.inl T ChainΓ)) =
+        TM0Seq.evalCfg M₁ (w.map (fun x => some (Sum.inl x))) :=
+    congrArg (TM0Seq.evalCfg M₁) hinput
+  have h1_dom' :
+      (TM0Seq.evalCfg M₁ (w.map (fun x => some (Sum.inl x)))).Dom := by
+    rw [← heval1]
+    exact h1_dom
+  have h1_tape' :
+      ((TM0Seq.evalCfg M₁ (w.map (fun x => some (Sum.inl x)))).get h1_dom').Tape =
+        Tape.mk₁ mid := by
+    have hget :
+        (TM0Seq.evalCfg M₁ (w.map (some ∘ @Sum.inl T ChainΓ))).get h1_dom =
+          (TM0Seq.evalCfg M₁ (w.map (fun x => some (Sum.inl x)))).get h1_dom' := by
+      apply Part.get_eq_get_of_eq
+      exact heval1
+    rw [← hget, h1_tape]
   have hmid_nd : ∀ g ∈ mid, g ≠ (default : Option (T ⊕ ChainΓ)) := by
     intro g hg
     rcases List.mem_map.mp hg with ⟨a, _ha, rfl⟩
@@ -509,8 +530,7 @@ public theorem shifted_converter_exists
         (w.map (fun x => some (Sum.inl x)))).Dom := by
     exact (TM0Seq.compose_dom_iff' M₁ M₂
       (w.map (fun x => some (Sum.inl x))) mid
-      (by simpa [Function.comp] using h1_dom)
-      (by simpa [mid, Function.comp] using h1_tape)).2 h2_dom_mid
+      h1_dom' h1_tape').2 h2_dom_mid
   refine ⟨hcomp_dom, ?_⟩
   intro h
   have htape_comp :
@@ -519,8 +539,7 @@ public theorem shifted_converter_exists
         Tape.mk₁ (out ++ []) := by
     rw [TM0Seq.compose_evalCfg_tape M₁ M₂
       (w.map (fun x => some (Sum.inl x))) mid
-      (by simpa [Function.comp] using h1_dom)
-      (by simpa [mid, Function.comp] using h1_tape)
+      h1_dom' h1_tape'
       h2_dom_mid h]
     rw [h2_tape_mid h2_dom_mid]
     simp
@@ -530,7 +549,6 @@ public theorem shifted_converter_exists
 /-! ### Local alphabet embedding -/
 
 /-- Embed a `ChainΓ` TM0 into `Option (T ⊕ ChainΓ)`, preserving blanks. -/
-@[expose]
 public noncomputable def directEmbedTM0 {T : Type}
     {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine ChainΓ Λ) :
@@ -567,7 +585,7 @@ public theorem code_implies_isTM_of_shifted_converter
   let c' := composedCode c
   obtain ⟨Λ₀, hΛ₀i, hΛ₀f, M₀, hM₀⟩ := code_to_tm0_fintype_general c'
   obtain ⟨Λ_conv, hΛci, hΛcf, M_conv, hM_conv⟩ := hconv
-  letI : Inhabited (Λ_conv ⊕ Λ₀) := ⟨Sum.inl default⟩
+  let : Inhabited (Λ_conv ⊕ Λ₀) := ⟨Sum.inl default⟩
   refine ⟨ChainΓ, inferInstance, Λ_conv ⊕ Λ₀, inferInstance,
     inferInstance,
     TM0Seq.compose M_conv (directEmbedTM0 (T := T) M₀), ?_⟩

@@ -68,7 +68,6 @@ open Turing
 variable {T : Type} [DecidableEq T]
 
 /-- Search test for membership in the intersection of two grammar languages. -/
-@[expose]
 public def reIntersectionTest (g₁ g₂ : grammar T) [DecidableEq g₁.nt] [DecidableEq g₂.nt]
     (p : List (ℕ × ℕ) × List (ℕ × ℕ)) (w : List T) : Bool :=
   grammarTest g₁ p.1 w && grammarTest g₂ p.2 w
@@ -96,15 +95,15 @@ public theorem RE_of_RE_i_RE [Fintype T] (L₁ L₂ : Language T) :
   obtain ⟨g₂, hg₂⟩ := hL₂
   obtain ⟨g₁', _hfin₁, hlang₁⟩ := grammar_equivalent_finiteNT g₁
   obtain ⟨g₂', _hfin₂, hlang₂⟩ := grammar_equivalent_finiteNT g₂
-  haveI : Fintype g₁'.nt := Fintype.ofFinite _
-  haveI : Fintype g₂'.nt := Fintype.ofFinite _
-  haveI : DecidableEq g₁'.nt := Classical.decEq _
-  haveI : DecidableEq g₂'.nt := Classical.decEq _
-  haveI : Primcodable T :=
+  have : Fintype g₁'.nt := Fintype.ofFinite _
+  have : Fintype g₂'.nt := Fintype.ofFinite _
+  have : DecidableEq g₁'.nt := Classical.decEq _
+  have : DecidableEq g₂'.nt := Classical.decEq _
+  have : Primcodable T :=
     Primcodable.ofEquiv (Fin (Fintype.card T)) (Fintype.truncEquivFin T).out
-  haveI : Primcodable g₁'.nt :=
+  have : Primcodable g₁'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g₁'.nt)) (Fintype.truncEquivFin g₁'.nt).out
-  haveI : Primcodable g₂'.nt :=
+  have : Primcodable g₂'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g₂'.nt)) (Fintype.truncEquivFin g₂'.nt).out
   let test := reIntersectionTest g₁' g₂'
   have hcomp : Computable₂ test := reIntersectionTest_computable₂ g₁' g₂'

@@ -45,16 +45,8 @@ This file transfers the class-level strictness theorem `DCF ⊊ CF` to the
 corresponding automaton classes.
 -/
 
-/-- DPDA final-state languages are a strict subclass of PDA languages over a
-three-symbol alphabet. -/
-theorem DPDA_strict_subclass_PDA :
-    (DPDA.Class : Set (Language (Fin 3))) ⊂ PDA.Class := by
-  rw [← CF_eq_PDA_Class]
-  change (DCF : Set (Language (Fin 3))) ⊂ (CF : Set (Language (Fin 3)))
-  exact DCF_strict_subclass_CF
-
 /-- DPDA final-state languages are a strict subclass of PDA languages over every
-finite alphabet with at least three symbols. -/
+finite alphabet with at least 3 elements. -/
 public theorem DPDA_strict_subclass_PDA_of_card {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T) :
     (DPDA.Class : Set (Language T)) ⊂ PDA.Class := by

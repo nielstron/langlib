@@ -49,7 +49,7 @@ since `List Empty = {[]}` and any language is either `∅` or `{[]}`.
 - `is_TM_of_empty`: every language over `Empty` is TM-recognizable.
 -/
 
-open Turing
+open Turing StateTransition
 
 /-- Every list of Empty elements is the empty list. -/
 theorem List.eq_nil_of_empty (l : List Empty) : l = [] := by
@@ -85,7 +85,7 @@ The never-halt TM diverges on any input.
 theorem neverHaltTM_diverges (Γ : Type) [Inhabited Γ] (l : List Γ) :
     ¬ (@TM0.eval Γ Unit ⟨()⟩ _ (neverHaltTM Γ) l).Dom := by
   simp [Turing.TM0.eval];
-  rw [ Turing.eval ];
+  rw [ StateTransition.eval ];
   unfold PFun.fix;
   simp +decide [ Part.assert ];
   intro x;

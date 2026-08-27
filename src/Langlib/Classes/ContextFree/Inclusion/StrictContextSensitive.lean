@@ -34,7 +34,7 @@ public theorem CF_subclass_CS_and_exists_strict :
     (∃ (T : Type) (L : Language T), is_CS L ∧ ¬ is_CF L) :=
   ⟨fun _ _ h => is_CS_of_is_CF h, ⟨Fin 3, lang_eq_eq, lang_eq_eq_is_CS, notCF_lang_eq_eq⟩⟩
 
-/-- For any finite alphabet with at least `3` symbols, the context-free languages form a
+/-- For every finite alphabet with at least 3 elements, the context-free languages form a
 strict subclass of the context-sensitive languages: `CF ⊂ CS`.
 
 The witness `{aⁿbⁿcⁿ}` (`lang_eq_eq`, over `Fin 3`) is relabeled into `T` along an

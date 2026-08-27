@@ -21,7 +21,6 @@ private theorem language_inter_eq_compl_union_compl (L₁ L₂ : Language T) :
   ext w
   simp only [Language.add_def]
   change w ∈ L₁ ∧ w ∈ L₂ ↔ ¬ (w ∈ L₁ᶜ ⊔ L₂ᶜ)
-  rw [show (L₁ᶜ ⊔ L₂ᶜ : Set (List T)) = Set.union L₁ᶜ L₂ᶜ by rfl]
   change w ∈ L₁ ∧ w ∈ L₂ ↔ ¬ (w ∉ L₁ ∨ w ∉ L₂)
   tauto
 

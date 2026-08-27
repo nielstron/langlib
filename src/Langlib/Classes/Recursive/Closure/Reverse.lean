@@ -14,7 +14,7 @@ reversal routine and `M` halt, and it accepts exactly when `M` accepts
 `w.reverse`, which is the definition of membership in `L.reverse`.
 -/
 
-open Turing
+open StateTransition Turing
 
 namespace RecursiveReverse
 
@@ -146,14 +146,14 @@ private theorem delayed_eval_mem
     (h₁_tape : ((TM0Seq.evalCfg M₁ l).get h₁).Tape = Tape.mk₁ l')
     (h₂ : (TM0Seq.evalCfg M₂ l').Dom) :
     ∃ c : TM0.Cfg Γ (Λ₁ ⊕ Λ₂),
-      c ∈ @Turing.eval (TM0.Cfg Γ (Λ₁ ⊕ Λ₂))
+      c ∈ @StateTransition.eval (TM0.Cfg Γ (Λ₁ ⊕ Λ₂))
         (@TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _
           (delayedCompose M₁ M₂))
         (@TM0.init Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _ l) ∧
       c.q = Sum.inr ((TM0Seq.evalCfg M₂ l').get h₂).q := by
   let c₁ := (TM0Seq.evalCfg M₁ l).get h₁
   have hM₁_mem := Part.get_mem h₁
-  have hM₁_eval := Turing.mem_eval.mp hM₁_mem
+  have hM₁_eval := StateTransition.mem_eval.mp hM₁_mem
   have hphase1 := delayed_phase1_reaches M₁ M₂ c₁ l hM₁_eval.1
   have hstep : @TM0.step Γ (Λ₁ ⊕ Λ₂) ⟨Sum.inl default⟩ _
       (delayedCompose M₁ M₂) ⟨Sum.inl c₁.q, c₁.Tape⟩ =
@@ -165,11 +165,11 @@ private theorem delayed_eval_mem
         ⟨Sum.inr (default : Λ₂), c₁.Tape⟩ :=
     hphase1.tail hstep
   have heval₂ :
-      Turing.eval (TM0.step M₂) ⟨default, c₁.Tape⟩ = TM0Seq.evalCfg M₂ l' := by
+      StateTransition.eval (TM0.step M₂) ⟨default, c₁.Tape⟩ = TM0Seq.evalCfg M₂ l' := by
     rw [h₁_tape]
     rfl
   have h₂_mem : (TM0Seq.evalCfg M₂ l').get h₂ ∈
-      Turing.eval (TM0.step M₂) ⟨default, c₁.Tape⟩ := by
+      StateTransition.eval (TM0.step M₂) ⟨default, c₁.Tape⟩ := by
     rw [heval₂]
     exact Part.get_mem h₂
   obtain ⟨c, hc_rel, hc_mem⟩ :=
@@ -181,7 +181,7 @@ private theorem delayed_eval_mem
         simp)
       h₂_mem
   refine ⟨c, ?_, hc_rel.1⟩
-  rw [Turing.reaches_eval hstart]
+  rw [StateTransition.reaches_eval hstart]
   exact hc_mem
 
 private theorem delayed_eval_accept
@@ -265,10 +265,10 @@ public theorem is_Recursive_reverse {L : Language T} (hL : is_Recursive L) :
     is_Recursive L.reverse := by
   classical
   obtain ⟨Γw, hΓwfin, Λ, hΛ, hΛfin, M, accept, hHalt, hCorrect⟩ := hL
-  letI : Fintype (Option (T ⊕ Γw)) := inferInstance
+  let : Fintype (Option (T ⊕ Γw)) := inferInstance
   obtain ⟨ΛR, hΛR, hΛRfin, MR, hMR⟩ :=
     (tm0_reverse_block_anySuffix (Γ := Option (T ⊕ Γw)))
-  letI : Inhabited (ΛR ⊕ Λ) := ⟨Sum.inl default⟩
+  let : Inhabited (ΛR ⊕ Λ) := ⟨Sum.inl default⟩
   refine ⟨Γw, hΓwfin, ΛR ⊕ Λ, inferInstance, inferInstance, delayedCompose MR M,
     sumAccept accept,
     ?_, ?_⟩
@@ -299,7 +299,9 @@ public theorem is_Recursive_reverse {L : Language T} (hL : is_Recursive L) :
       convert hacc.trans ((hCorrect w.reverse hdec).mp hw)
     · intro hcomp_accept
       apply (hCorrect w.reverse hdec).mpr
-      convert hacc.symm.trans hcomp_accept
+      change accept ((TM0Seq.evalCfg M
+        (w.reverse.map fun t => some (Sum.inl (α := T) (β := Γw) t))).get hdec).q = true
+      exact hacc.symm.trans hcomp_accept
 
 /-- Recursive languages over finite alphabets are closed under reversal. -/
 public theorem Recursive_closedUnderReverse :

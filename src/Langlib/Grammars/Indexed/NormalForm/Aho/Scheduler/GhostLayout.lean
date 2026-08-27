@@ -326,10 +326,18 @@ public theorem exists_selectedPrefixes {g : IndexedGrammar T} [Fintype g.nt]
         simp [List.append_assoc]
       · rw [hused]
         simp [List.append_assoc]
-      · simp [List.filterMap_append, hindex.filterMap_indexOwner_eq_nil,
-          ScheduleAtom.indexOwner?, howners]
-      · simp [List.filterMap_append, hindex.filterMap_indexOwner_eq_nil,
-          ScheduleAtom.indexOwner?, hownersUsed]
+      · rw [List.filterMap_append]
+        change beta.filterMap ScheduleAtom.indexOwner? ++
+          idx.owner :: selected.filterMap ScheduleAtom.indexOwner? =
+            idx.owner :: owners
+        rw [hindex.filterMap_indexOwner_eq_nil, howners]
+        rfl
+      · rw [List.filterMap_append]
+        change beta.filterMap ScheduleAtom.indexOwner? ++
+          idx.owner :: selectedUsed.filterMap ScheduleAtom.indexOwner? =
+            idx.owner :: owners
+        rw [hindex.filterMap_indexOwner_eq_nil, hownersUsed]
+        rfl
 
 /-- Marking selected indices preserves every owner carried by an open frame. -/
 public theorem frameOwners_eq {g : IndexedGrammar T} [Fintype g.nt]
@@ -433,6 +441,7 @@ namespace ScheduleCursor
           right.filterMap ScheduleAtom.taskOwner? := by
   cases focus <;>
     simp [ScheduleCursor.taskOwners, ScheduleCursor.word, List.filterMap_append,
+      List.filterMap_cons,
       ScheduleAtom.taskOwner?]
 
 @[simp] public theorem indexOwners_mk
@@ -445,6 +454,7 @@ namespace ScheduleCursor
           right.filterMap ScheduleAtom.indexOwner? := by
   cases focus <;>
     simp [ScheduleCursor.indexOwners, ScheduleCursor.word, List.filterMap_append,
+      List.filterMap_cons,
       ScheduleAtom.indexOwner?]
 
 @[simp] public theorem frameOwners_mk
@@ -457,6 +467,7 @@ namespace ScheduleCursor
           right.filterMap ScheduleAtom.closeOwner? := by
   cases focus <;>
     simp [ScheduleCursor.frameOwners, ScheduleCursor.word, List.filterMap_append,
+      List.filterMap_cons,
       ScheduleAtom.closeOwner?]
 
 end ScheduleCursor

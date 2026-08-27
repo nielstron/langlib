@@ -39,8 +39,8 @@ variable {T : Type} [Fintype T]
 public theorem is_LRk_one_of_is_DPDA {L : Language T}
     (h : is_DPDA L) : is_LRk 1 L := by
   rcases h with ⟨Q, S, hQ, hS, M, hM⟩
-  letI : Fintype Q := hQ
-  letI : Fintype S := hS
+  let : Fintype Q := hQ
+  let : Fintype S := hS
   exact ⟨DPDA_to_LR.characteristicGrammar M,
     DPDA_to_LR.characteristicGrammar_isLR1 M,
     (DPDA_to_LR.characteristicGrammar_language M).trans hM⟩

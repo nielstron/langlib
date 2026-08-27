@@ -27,12 +27,10 @@ finite nondeterministic LBA over the tape alphabet `Option (T ⊕ Γ)` (for an a
 alphabet `Γ`), with the input written canonically via `some ∘ Sum.inl`, on a tape of exactly `|w|`
 cells. Such a machine never runs on the empty input, so `[] ∉ L`; these are exactly the ε-free
 context-sensitive languages (`is_LBA_pos_iff`). -/
-@[expose]
 public def is_LBA_pos {T : Type} [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
   ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
     (_ : DecidableEq Γ) (_ : DecidableEq Λ)
     (M : LBA.Machine (Option (T ⊕ Γ)) Λ),
     LBA.LanguageViaEmbed M (fun t => some (Sum.inl t)) = L
 
-@[expose]
-public def LBA_pos {T : Type} [Fintype T] [DecidableEq T] : Set (Language T) := setOf is_LBA_pos
+public def LBA_pos {T : Type} [Fintype T] [DecidableEq T] : Set (Language T) := Set.ofPred is_LBA_pos

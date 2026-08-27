@@ -123,7 +123,7 @@ public def Accepts (w : List T) : Prop :=
 
 /-- The language accepted by a table-driven LR parser. -/
 public def language : Language T :=
-  setOf p.Accepts
+  Set.ofPred p.Accepts
 
 /-- The parser transition is deterministic because it is defined by a function. -/
 public theorem step_functional {c d₁ d₂ : Config T N State}

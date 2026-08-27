@@ -104,15 +104,15 @@ theorem RE_of_RE_rightQuotient_RE [DecidableEq T] [Fintype T]
   obtain ⟨gR, hgR⟩ := hR
   obtain ⟨gL', _hfinL, hlangL⟩ := grammar_equivalent_finiteNT gL
   obtain ⟨gR', _hfinR, hlangR⟩ := grammar_equivalent_finiteNT gR
-  haveI : Fintype gL'.nt := Fintype.ofFinite _
-  haveI : Fintype gR'.nt := Fintype.ofFinite _
-  haveI : DecidableEq gL'.nt := Classical.decEq _
-  haveI : DecidableEq gR'.nt := Classical.decEq _
-  haveI : Primcodable T :=
+  have : Fintype gL'.nt := Fintype.ofFinite _
+  have : Fintype gR'.nt := Fintype.ofFinite _
+  have : DecidableEq gL'.nt := Classical.decEq _
+  have : DecidableEq gR'.nt := Classical.decEq _
+  have : Primcodable T :=
     Primcodable.ofEquiv (Fin (Fintype.card T)) (Fintype.truncEquivFin T).out
-  haveI : Primcodable gL'.nt :=
+  have : Primcodable gL'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card gL'.nt)) (Fintype.truncEquivFin gL'.nt).out
-  haveI : Primcodable gR'.nt :=
+  have : Primcodable gR'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card gR'.nt)) (Fintype.truncEquivFin gR'.nt).out
   let test := reRightQuotientTest gL' gR'
   have hcomp : Computable₂ test := reRightQuotientTest_computable₂ gL' gR'
@@ -190,15 +190,15 @@ theorem RE_of_RE_rightQuotient_regular [DecidableEq T] [Fintype T]
   obtain ⟨g, hg⟩ := hL
   obtain ⟨g', _hfin, hlang⟩ := grammar_equivalent_finiteNT g
   obtain ⟨σ, _hσfin, M, hM⟩ := hR
-  haveI : Fintype g'.nt := Fintype.ofFinite _
-  haveI : DecidableEq g'.nt := Classical.decEq _
-  haveI : DecidableEq σ := Classical.decEq _
-  haveI : DecidablePred (· ∈ M.accept) := Classical.decPred _
-  haveI : Primcodable T :=
+  have : Fintype g'.nt := Fintype.ofFinite _
+  have : DecidableEq g'.nt := Classical.decEq _
+  have : DecidableEq σ := Classical.decEq _
+  have : DecidablePred (· ∈ M.accept) := Classical.decPred _
+  have : Primcodable T :=
     Primcodable.ofEquiv (Fin (Fintype.card T)) (Fintype.truncEquivFin T).out
-  haveI : Primcodable σ :=
+  have : Primcodable σ :=
     Primcodable.ofEquiv (Fin (Fintype.card σ)) (Fintype.truncEquivFin σ).out
-  haveI : Primcodable g'.nt :=
+  have : Primcodable g'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g'.nt)) (Fintype.truncEquivFin g'.nt).out
   let test := reRightQuotientRegularTest g' M
   have hcomp : Computable₂ test := reRightQuotientRegularTest_computable₂ g' M

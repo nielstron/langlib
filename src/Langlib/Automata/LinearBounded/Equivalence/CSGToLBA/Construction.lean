@@ -342,7 +342,7 @@ lemma kStep_echo_left {n : ℕ} {c : Fin (n + 1) → KCell g₀} {i : Fin (n + 1
     (hmem : (st', c i, DLBA.Dir.left) ∈ kTransition g₀ st (c i)) :
     LBA.Step (kMachine g₀) ⟨st, ⟨c, i⟩⟩ ⟨st', ⟨c, ⟨i.val - 1, by omega⟩⟩⟩ := by
   refine ⟨st', c i, DLBA.Dir.left, hmem, ?_⟩
-  simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, Function.update_eq_self,
+  simp only [DLBA.BoundedTape.moveHead, Function.update_eq_self,
     dif_pos hpos]
 
 omit [Fintype T] [Fintype g₀.nt] in
@@ -352,7 +352,7 @@ lemma kStep_echo_right {n : ℕ} {c : Fin (n + 1) → KCell g₀} {i : Fin (n + 
     (hmem : (st', c i, DLBA.Dir.right) ∈ kTransition g₀ st (c i)) :
     LBA.Step (kMachine g₀) ⟨st, ⟨c, i⟩⟩ ⟨st', ⟨c, ⟨i.val + 1, by omega⟩⟩⟩ := by
   refine ⟨st', c i, DLBA.Dir.right, hmem, ?_⟩
-  simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, Function.update_eq_self,
+  simp only [DLBA.BoundedTape.moveHead, Function.update_eq_self,
     dif_pos hlt]
 
 omit [Fintype T] [Fintype g₀.nt] in
@@ -361,7 +361,7 @@ lemma kStep_echo_stay {n : ℕ} {c : Fin (n + 1) → KCell g₀} {i : Fin (n + 1
     {st st' : KState g₀} (hmem : (st', c i, DLBA.Dir.stay) ∈ kTransition g₀ st (c i)) :
     LBA.Step (kMachine g₀) ⟨st, ⟨c, i⟩⟩ ⟨st', ⟨c, i⟩⟩ := by
   refine ⟨st', c i, DLBA.Dir.stay, hmem, ?_⟩
-  simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, Function.update_eq_self]
+  simp only [DLBA.BoundedTape.moveHead, Function.update_eq_self]
 
 /-- The tape carries correct boundary markers: cell `k` records `isLeftEnd = (k = 0)` and
 `isRightEnd = (k = n)`. -/
@@ -490,7 +490,8 @@ lemma accept_from_S {n : ℕ} (W : Fin (n + 1) → KWork g₀) (j : Fin (n + 1))
   · simp only [mkCell]; simp [kTransition]
   · refine (gotoLeft_reaches g₀ (marked_mkTape g₀ W) i).trans ?_
     have hsweep := check_sweep g₀ W j hj hother (0 : Fin (n + 1))
-    simpa using hsweep
+    change Relation.ReflTransGen (LBA.Step (kMachine g₀)) _ _ at hsweep
+    exact hsweep
 
 end Step
 
@@ -542,7 +543,7 @@ lemma kStep_convert_right {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1)
       ⟨KState.initSweep, ⟨cAt g₀ input (i.val + 1), ⟨i.val + 1, by omega⟩⟩⟩ := by
   refine ⟨KState.initSweep, tmpCell g₀ input i, DLBA.Dir.right,
     (kConvert_mem g₀ input i hd0 _).2 rfl, ?_⟩
-  simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hlt, cAt_update]
+  simp only [DLBA.BoundedTape.moveHead, dif_pos hlt, cAt_update]
 
 omit [Fintype T] [Fintype g₀.nt] in
 /-- The last conversion step (cell `n`): convert; moving right clamps, staying at `n`. -/
@@ -553,7 +554,7 @@ lemma kStep_convert_last {n : ℕ} (input : Fin (n + 1) → T) (i : Fin (n + 1))
   have hmv : ¬ i.val < n := by omega
   refine ⟨KState.initSweep, tmpCell g₀ input i, DLBA.Dir.right,
     (kConvert_mem g₀ input i hd0 _).2 rfl, ?_⟩
-  simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_neg hmv, cAt_update]
+  simp only [DLBA.BoundedTape.moveHead, dif_neg hmv, cAt_update]
 
 omit [Fintype T] [Fintype g₀.nt] in
 /-- The conversion sweep: from cell `i ≥ 1` (with cells `< i` converted), convert the rest of the
@@ -618,14 +619,14 @@ lemma init_to_tmpCell {n : ℕ} (input : Fin (n + 1) → T) :
     apply Relation.ReflTransGen.single
     refine ⟨KState.initSweep, tmpCell g₀ input ⟨0, by omega⟩, DLBA.Dir.right, hmem0, ?_⟩
     have hmv : ¬ (0 : ℕ) < 0 := by omega
-    simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_neg hmv]
+    simp only [DLBA.BoundedTape.moveHead, dif_neg hmv]
     refine cfg_eq g₀ rfl ?_ (Fin.ext (by simp [Fin.last]))
     rw [hupd]; exact (cAt_full g₀ input).symm
   · refine Relation.ReflTransGen.head
       (b := ⟨KState.initSweep, ⟨cAt g₀ input 1, ⟨1, by omega⟩⟩⟩) ?_ ?_
     · refine ⟨KState.initSweep, tmpCell g₀ input ⟨0, n.succ_pos⟩, DLBA.Dir.right, hmem0, ?_⟩
-      simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, dif_pos hn]
-      exact cfg_eq g₀ rfl hupd.symm (Fin.ext rfl)
+      simp only [DLBA.BoundedTape.moveHead, dif_pos hn]
+      exact cfg_eq g₀ rfl hupd.symm (Fin.ext (by simp))
     · have h1 : (1 : ℕ) ≤ 1 := le_refl 1
       have hcv := convert_sweep g₀ input ⟨1, by omega⟩ h1
       rwa [cAt_full] at hcv
@@ -644,7 +645,7 @@ lemma init_reaches {n : ℕ} (input : Fin (n + 1) → T) :
       (mkCell g₀ (Fin.last n) (some (symbol.terminal (input (Fin.last n)))))).contents
       = fun k => mkCell g₀ k (some (symbol.terminal (input k))) := by
     funext k
-    simp only [DLBA.BoundedTape.write, Function.update_apply]
+    simp only [Function.update_apply]
     by_cases hk : k = Fin.last n
     · rw [if_pos hk, hk]
     · rw [if_neg hk]

@@ -285,7 +285,6 @@ private theorem evalRowTriples_composite_start
     (by intros; rfl) .start
     (.composite cert .prefix (initialWorkScan g)) rows hne (by
       intro r
-      dsimp
       rw [rowStepCell_composite_start, rowStepCell_composite_same])
   calc
     evalRowTriples g .start
@@ -442,7 +441,8 @@ public theorem rowReachLanguage_of_paddedReachLanguage
   rcases hmem with ⟨hne, row, hreach, hfinal⟩
   refine ⟨hne, row, ?_, (final_ahoRowSystem_iff g row).2 hfinal⟩
   simpa [inputRow, ahoRowSystem] using
-    hreach.mono (fun _ _ hstep => rowStep_of_paddedRowStep g hstep)
+    (@Relation.ReflTransGen.mono _ _ _
+      (fun _ _ hstep => rowStep_of_paddedRowStep g hstep)) _ _ hreach
 
 end Aho
 end IndexedGrammar

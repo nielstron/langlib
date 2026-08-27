@@ -65,7 +65,6 @@ section reversal_defs
 
 /-- Reverse a single unrestricted rule by swapping and reversing the left/right context
 and reversing the output string. -/
-@[expose]
 public def reversal_grule {N : Type} (r : grule T N) : grule T N :=
   grule.mk r.input_R.reverse r.input_N r.input_L.reverse r.output_string.reverse
 
@@ -82,7 +81,6 @@ public lemma reversal_grule_reversal_grule {N : Type} :
   apply dual_of_reversal_grule
 
 /-- Reverse every rule of an unrestricted grammar. -/
-@[expose]
 public def reversal_grammar (g : grammar T) : grammar T :=
   grammar.mk g.nt g.initial (List.map reversal_grule g.rules)
 
@@ -101,10 +99,10 @@ private lemma derives_reversed (g : grammar T) (v : List (symbol T g.nt)) :
     grammar_derives (reversal_grammar g) [symbol.nonterminal (reversal_grammar g).initial] v →
       grammar_derives g [symbol.nonterminal g.initial] v.reverse := by
   intro hv
+  unfold reversal_grammar at hv
   induction hv with
   | refl =>
       rw [List.reverse_singleton]
-      exact grammar_deri_self
   | tail _ orig ih =>
       apply grammar_deri_of_deri_tran ih
       rcases orig with ⟨r, rin, x, y, bef, aft⟩

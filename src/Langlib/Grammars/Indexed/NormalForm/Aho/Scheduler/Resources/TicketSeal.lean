@@ -54,7 +54,7 @@ end EventOwnedLayout
 namespace ShadowStartLayout
 
 /-- Restrict a full shadow context to a known aligned prefix. -/
-public def appendLeft
+public theorem appendLeft
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -90,7 +90,7 @@ public def appendLeft
 
 /-- Prepend a fresh singleton block after rotating the old first owner to child shadow depth
 one.  All lower positive parent starts transport canonically one position deeper. -/
-public def pushFreshRotateHead
+public theorem pushFreshRotateHead
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {f : g.flag} {stack : List g.flag} {w : List T}
     {r : IRule T g.nt g.flag}
@@ -124,7 +124,8 @@ public def pushFreshRotateHead
         have hdepth : blockStart ([f] :: block :: blocks)
             (Fin.succ (0 : Fin (block :: blocks).length)) ∈
               rest.eventDepths := by
-          simpa [hstart] using hone
+          rw [hstart]
+          exact hone
         refine ⟨hdepth, ?_⟩
         have hget : blockOwnerAt (blocks := [f] :: block :: blocks)
             (newHead :: window.pushChild.shadowEventOwner 1 hone :: owners)
@@ -756,7 +757,8 @@ public def sealTransientHead
     intro heq
     apply hheadTarget
     apply IndexTicket.semanticOwner_injective
-    simpa [target, IndexTicketLedger.semanticOwnerOf] using heq.symm
+    rw [ProductiveOwnerWindow.semanticOwner_shadowEventTicket]
+    exact heq.symm
   have hactiveFresh : resources.window.shadowEventOwner 0 hzero ∉
       resources.ticketShadowLedger.active := by
     rcases hcontext with

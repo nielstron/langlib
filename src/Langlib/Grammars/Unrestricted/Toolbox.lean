@@ -84,11 +84,9 @@ by
       · simp [haft, List.append_assoc]
 
 
-@[expose]
 public def as_terminal {N : Type} : symbol T N → Option T
 | (symbol.terminal t)    => some t
 | (symbol.nonterminal _) => none
 
-@[expose]
 public def all_used_terminals (g : grammar T) : List T :=
 List.filterMap as_terminal (List.flatten (List.map grule.output_string g.rules))

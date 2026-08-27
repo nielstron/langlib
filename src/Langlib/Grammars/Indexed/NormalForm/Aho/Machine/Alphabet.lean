@@ -33,7 +33,11 @@ public inductive IndexMark where
   | firstUsed
   | laterPending
   | laterUsed
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+public instance : Fintype IndexMark where
+  elems := {.firstPending, .firstUsed, .laterPending, .laterUsed}
+  complete d := by cases d <;> simp
 
 /-- Mark the productive use of an index (Aho's operation `alpha ↦ alpha⁺`). -/
 public def IndexMark.markUsed : IndexMark → IndexMark

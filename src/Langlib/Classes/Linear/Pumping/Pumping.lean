@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2026 Niels Mündler. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Classes.Linear.Pumping.Spine
 public import Langlib.Classes.ContextFree.Pumping.Utils
@@ -78,7 +78,7 @@ public lemma exists_pump_indices {α : Type*} [DecidableEq α] (S : Finset α)
       omega
     have hij : Nat.find (hex p) < Nat.find (hex q) := by
       by_contra hcon
-      push_neg at hcon
+      push Not at hcon
       exact absurd (hmono hcon) (by omega)
     refine ⟨_, _, hij, hrr, hcnt, ?_⟩
     have hqb := hub q

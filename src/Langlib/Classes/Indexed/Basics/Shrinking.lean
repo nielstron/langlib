@@ -50,9 +50,9 @@ public theorem exists_indexedScopedOneFactorShrinking [Fintype T] [Inhabited T]
   obtain ⟨g₀, hg₀⟩ := hL
   obtain ⟨g, hnt, hflag, hdec, hNF, hgen⟩ :=
     g₀.exists_finiteSupport_normalForm_nonempty
-  letI := hnt
-  letI := hflag
-  letI := hdec
+  let := hnt
+  let := hflag
+  let := hdec
   obtain ⟨k, hk, hshrink⟩ :=
     IndexedGrammar.NFParse.exists_scopedOneFactorShrinking g hNF
   refine ⟨k, hk, ?_⟩

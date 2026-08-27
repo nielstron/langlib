@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2026 Harmonic, Niels Mündler. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Classes.ContextFree.Definition
 public import Langlib.Automata.DeterministicPushdown.Totalization.Definition
@@ -54,24 +54,8 @@ This file records the closure-mismatch route to strictness for the inclusion
 
 --/
 
-/-- If deterministic context-free languages are closed under complement over `Fin 3`, then
-they form a strict subclass of context-free languages over `Fin 3`.
-
-This isolates the useful closure-property proof pattern behind the unconditional
-strictness theorem below. -/
-public theorem DCF_strict_subclass_CF_of_closedUnderComplement
-    (hDCFcomp : ClosedUnderComplement (α := Fin 3) is_DCF) :
-    (DCF : Set (Language (Fin 3))) ⊂ (CF : Set (Language (Fin 3))) :=
-  strict_subset_of_subset_different_property
-    (P := is_DCF) (Q := is_CF)
-    (fun _ hL => DCF_subclass_CF hL)
-    (X := ClosedUnderComplement)
-    (fun hiff => ClosedUnderComplement_of_iff hiff)
-    hDCFcomp
-    CF_notClosedUnderComplement
-
 /-- If deterministic context-free languages are closed under complement over an alphabet
-with three distinguished symbols, then they form a strict subclass of context-free
+with 3 distinguished elements, then they form a strict subclass of context-free
 languages over that alphabet. -/
 theorem DCF_strict_subclass_CF_of_closedUnderComplement_of_three {T : Type} [Fintype T]
     (a b c : T) (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c)
@@ -86,7 +70,7 @@ theorem DCF_strict_subclass_CF_of_closedUnderComplement_of_three {T : Type} [Fin
     (CF_notClosedUnderComplement_of_three a b c hab hac hbc)
 
 /-- If deterministic context-free languages are closed under complement over a finite alphabet
-with at least three symbols, then they form a strict subclass of context-free languages over
+with at least 3 elements, then they form a strict subclass of context-free languages over
 that alphabet. -/
 theorem DCF_strict_subclass_CF_of_closedUnderComplement_of_card {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T)
@@ -100,14 +84,8 @@ theorem DCF_strict_subclass_CF_of_closedUnderComplement_of_card {T : Type} [Fint
     hDCFcomp
     (CF_notClosedUnderComplement_of_card hT)
 
-/-- Deterministic context-free languages are a strict subclass of context-free
-languages over a three-symbol alphabet. -/
-public theorem DCF_strict_subclass_CF :
-    (DCF : Set (Language (Fin 3))) ⊂ (CF : Set (Language (Fin 3))) :=
-  DCF_strict_subclass_CF_of_closedUnderComplement DCF_closedUnderComplement
-
 /-- Deterministic context-free languages are a strict subclass of context-free languages
-over any finite alphabet with at least three symbols. -/
+over any finite alphabet with at least 3 elements. -/
 theorem DCF_strict_subclass_CF_of_card {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T) :
     (DCF : Set (Language T)) ⊂ (CF : Set (Language T)) :=

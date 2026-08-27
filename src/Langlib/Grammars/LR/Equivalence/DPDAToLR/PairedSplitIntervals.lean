@@ -28,7 +28,6 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 /-- A counted, retained, productive interval represented by one split-right
 anchor.  `startSteps` is measured from the wrapper's global initial
 configuration on the entire completed visible-prefix word. -/
-@[expose]
 public def SplitRightInterval (M : DPDA Q T S)
     (completedWord _suffix : List T)
     (source : State M) (top : StackSymbol M) (returnState : State M)
@@ -108,12 +107,12 @@ public theorem splitRightInterval_of_anchor_data (M : DPDA Q T S)
   have hprefix' := (PDA.unconsumed_input_N
     (pda := emptyStackPDA M) leftWord).mp hprefix
   subst completedWord
-  simpa [PDA.conf.appendInput, List.append_assoc] using hprefix'
+  simpa [PDA.conf.appendInput, spineCutState, spineCutStack,
+    List.append_assoc] using hprefix'
 
 /-- The exhaustive relative order of two positive half-open return
 intervals `[start, start + length]`.  Equal starts and equal finishes are
 kept separate because they lead to different synchronization arguments. -/
-@[expose]
 public def ReturnIntervalOrder
     (start₁ length₁ start₂ length₂ : ℕ) : Prop :=
   (start₁ = start₂ ∧ start₁ + length₁ = start₂ + length₂) ∨

@@ -509,7 +509,7 @@ lemma ogdens_marked_path_decomp {n : g.NT} (p : parseTree n)
               exact Or.inl (ogden_pump_from_left hnc P offset h₂ hmc_bound hy hmc'' hd)
             · exact Or.inr (ogden_extend_right_via_left hnc P offset s hn's hy hmc'' hd)
         · -- recurse right
-          push_neg at hmh_le
+          push Not at hmh_le
           have hp₂ : g.generators.card ≤ t₂.markedHeight P (offset + t₁.yield.length) + (insert n s).card := by
             have := Nat.le_max_right (t₁.markedHeight P offset) (t₂.markedHeight P (offset + t₁.yield.length))
             omega
@@ -660,11 +660,14 @@ lemma ogdens_cnf {w : List T} (hwg : w ∈ g.language) (P : ℕ → Prop) [Decid
     have h_deriv : g.Derives [Symbol.nonterminal g.initial] (u₀.map Symbol.terminal ++ [Symbol.nonterminal n'] ++ z₀.map Symbol.terminal) := by
       convert hq.2.2.2 using 1 ; simp +decide [ List.append_assoc ]
     have h_deriv' : g.Derives [Symbol.nonterminal n'] ((u' ++ v ^+^ i ++ x ++ y ^+^ i ++ z').map Symbol.terminal) := by
-      grind
-    exact (by
-    convert h_deriv.trans _ using 1
-    generalize_proofs at *; (
-    grind +suggestions))
+      simpa only [List.map_append, List.append_assoc] using hq'.2.2.2 i
+    have h_context :=
+      (h_deriv'.append_right (z₀.map Symbol.terminal)).append_left
+        (u₀.map Symbol.terminal)
+    have h_total := h_deriv.trans (by
+      simpa only [List.append_assoc] using h_context)
+    simpa only [ChomskyNormalFormGrammar.Generates, List.map_append,
+      List.append_assoc] using h_total
 
 end parseTree
 end ChomskyNormalFormGrammar
@@ -691,7 +694,7 @@ theorem Language.IsContextFree.ogdens_lemma {L : Language T} (hL : L.IsContextFr
   · obtain ⟨u, v, x, y, z, hw, hvy, hvxy, hL⟩ :=
       ChomskyNormalFormGrammar.parseTree.ogdens_cnf
         (g.toCNF_correct ▸ ⟨hwg, hw⟩) P hw2
-    exact ⟨u, v, x, y, z, hw, hvy, hvxy, fun i => Set.diff_subset (g.toCNF_correct ▸ hL i)⟩
+    exact ⟨u, v, x, y, z, hw, hvy, hvxy, fun i => Set.sdiff_subset (g.toCNF_correct ▸ hL i)⟩
 
 /-- Ogden's lemma for context-free languages (project formulation). -/
 theorem CF_ogdens_lemma {L : Language T} (cf : is_CF L) :

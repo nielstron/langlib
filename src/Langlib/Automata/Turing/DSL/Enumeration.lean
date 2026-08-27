@@ -82,7 +82,6 @@ or is a no-op (`none`). The **range** of `e` is `{a | ∃ n, e n = some a}`.
 
 Note: an `Enum` may produce the same element multiple times; what matters is
 that every element in the intended set appears at least once. -/
-@[expose]
 public def Enum (α : Type*) := ℕ → Option α
 
 namespace Enum
@@ -90,7 +89,6 @@ namespace Enum
 variable {α β γ : Type*}
 
 /-- The range (set of produced elements) of an enumeration. -/
-@[expose]
 public def range (e : Enum α) : Set α :=
   { a | ∃ n, e n = some a }
 
@@ -109,7 +107,6 @@ theorem exact_iff_range_eq (e : Enum α) (S : Set α) :
 /-! ### Basic enumerations -/
 
 /-- Enumerate all natural numbers: `0, 1, 2, ...` -/
-@[expose]
 public def naturals : Enum ℕ := fun n => some n
 
 theorem naturals_range : naturals.range = Set.univ := by
@@ -122,7 +119,6 @@ theorem ofList_range (l : List α) : (ofList l).range = { a | a ∈ l } := by
   ext a; simp [range, ofList, List.mem_iff_getElem?]
 
 /-- Enumerate all elements of an `Encodable` type. -/
-@[expose]
 public def ofEncodable [Encodable α] : Enum α := fun n => Encodable.decode n
 
 theorem ofEncodable_range [Encodable α] : (ofEncodable (α := α)).range = Set.univ := by
@@ -149,7 +145,7 @@ def map (f : α → β) (e : Enum α) : Enum β :=
 
 theorem map_range (f : α → β) (e : Enum α) :
     (e.map f).range = f '' e.range := by
-  ext b; simp only [range, map, Set.mem_setOf_eq, Set.mem_image]
+  ext b; simp only [range, map, Set.mem_ofPred_eq, Set.mem_image]
   constructor
   · rintro ⟨n, h⟩
     cases he : e n with
@@ -164,7 +160,7 @@ def filterMap (f : α → Option β) (e : Enum α) : Enum β :=
 
 theorem filterMap_range (f : α → Option β) (e : Enum α) :
     (e.filterMap f).range = { b | ∃ a ∈ e.range, f a = some b } := by
-  ext b; simp only [range, filterMap, Set.mem_setOf_eq]
+  ext b; simp only [range, filterMap, Set.mem_ofPred_eq]
   constructor
   · rintro ⟨n, h⟩
     cases he : e n with
@@ -179,7 +175,7 @@ def filter (p : α → Bool) (e : Enum α) : Enum α :=
 
 theorem filter_range (p : α → Bool) (e : Enum α) :
     (e.filter p).range = { a ∈ e.range | p a = true } := by
-  ext a; simp only [range, filter, Set.mem_setOf_eq]
+  ext a; simp only [range, filter, Set.mem_ofPred_eq]
   constructor
   · rintro ⟨n, h⟩
     cases he : e n with
@@ -198,7 +194,6 @@ To enumerate all pairs `(a, b)` from two enumerations, we use the Cantor
 pairing function to dovetail. -/
 
 /-- Enumerate all pairs from two enumerations using dovetailing. -/
-@[expose]
 public def product (e₁ : Enum α) (e₂ : Enum β) : Enum (α × β) :=
   fun n =>
     let (i, j) := Nat.unpair n
@@ -208,7 +203,7 @@ public def product (e₁ : Enum α) (e₂ : Enum β) : Enum (α × β) :=
 
 public theorem product_range (e₁ : Enum α) (e₂ : Enum β) :
     (e₁.product e₂).range = { p | p.1 ∈ e₁.range ∧ p.2 ∈ e₂.range } := by
-  ext ⟨a, b⟩; simp only [range, product, Set.mem_setOf_eq]
+  ext ⟨a, b⟩; simp only [range, product, Set.mem_ofPred_eq]
   constructor
   · rintro ⟨n, h⟩
     cases he1 : e₁ (Nat.unpair n).1 with
@@ -233,7 +228,7 @@ def bind (e : Enum α) (f : α → Enum β) : Enum β :=
 
 theorem bind_range (e : Enum α) (f : α → Enum β) :
     (e.bind f).range = { b | ∃ a ∈ e.range, b ∈ (f a).range } := by
-  ext b; simp only [range, bind, Set.mem_setOf_eq]
+  ext b; simp only [range, bind, Set.mem_ofPred_eq]
   constructor
   · rintro ⟨n, h⟩
     cases he : e (Nat.unpair n).1 with

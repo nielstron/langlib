@@ -74,7 +74,8 @@ public lemma quotientLeftBlock_eq_singletons_core :
     rcases hw with ⟨u, hu, v, hv, rfl⟩
     rw [Language.mem_mul] at hu
     rcases hu with ⟨p, hp, q, ⟨n, hq⟩, rfl⟩
-    rw [Set.mem_singleton_iff] at hp hv
+    change p = [false, false] at hp
+    change v = [true] at hv
     subst hp
     subst hv
     refine ⟨n, ?_⟩

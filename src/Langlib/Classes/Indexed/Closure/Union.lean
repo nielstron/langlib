@@ -100,6 +100,7 @@ def liftRule2 {N₁ N₂ F₁ F₂ : Type} (r : IRule T N₂ F₂) :
     rhs := r.rhs.map liftRhs2 }
 
 /-- Indexed grammar for the union of two indexed languages. -/
+@[reducible]
 def indexed_union (g₁ g₂ : IndexedGrammar T) : IndexedGrammar T where
   nt := UnionNT g₁.nt g₂.nt
   flag := UnionFlag g₁.flag g₂.flag
@@ -123,6 +124,42 @@ def liftISym2 (g₁ g₂ : IndexedGrammar T) :
   | IndexedGrammar.ISym.terminal t => IndexedGrammar.ISym.terminal t
   | IndexedGrammar.ISym.indexed n σ =>
       IndexedGrammar.ISym.indexed (UnionNT.inr n) (σ.map UnionFlag.inr)
+
+private lemma liftISym1_injective (g₁ g₂ : IndexedGrammar T) :
+    Function.Injective (liftISym1 g₁ g₂) := by
+  intro x y h
+  cases x with
+  | terminal tx =>
+      cases y with
+      | terminal ty => simpa [liftISym1] using h
+      | indexed ny sy => simp [liftISym1] at h
+  | indexed nx sx =>
+      cases y with
+      | terminal ty => simp [liftISym1] at h
+      | indexed ny sy =>
+          simp only [liftISym1, IndexedGrammar.ISym.indexed.injEq,
+            UnionNT.inl.injEq] at h ⊢
+          exact ⟨h.1, List.map_injective_iff.mpr (by
+            intro a b hab
+            exact UnionFlag.inl.inj hab) h.2⟩
+
+private lemma liftISym2_injective (g₁ g₂ : IndexedGrammar T) :
+    Function.Injective (liftISym2 g₁ g₂) := by
+  intro x y h
+  cases x with
+  | terminal tx =>
+      cases y with
+      | terminal ty => simpa [liftISym2] using h
+      | indexed ny sy => simp [liftISym2] at h
+  | indexed nx sx =>
+      cases y with
+      | terminal ty => simp [liftISym2] at h
+      | indexed ny sy =>
+          simp only [liftISym2, IndexedGrammar.ISym.indexed.injEq,
+            UnionNT.inr.injEq] at h ⊢
+          exact ⟨h.1, List.map_injective_iff.mpr (by
+            intro a b hab
+            exact UnionFlag.inr.inj hab) h.2⟩
 
 lemma lift1_expandRhs (g₁ g₂ : IndexedGrammar T)
     (rhs : List (IRhsSymbol T g₁.nt g₁.flag)) (σ : List g₁.flag) :
@@ -230,7 +267,6 @@ lemma union_first_step (g₁ g₂ : IndexedGrammar T)
       rcases r with ⟨ lhs, consume, rhs ⟩;
       rcases consume with ( _ | f ) <;> simp_all +decide [ List.append_assoc ];
       · rcases u with ( _ | ⟨ _, _ ⟩ ) <;> rcases v with ( _ | ⟨ _, _ ⟩ ) <;> simp_all +decide;
-        unfold indexed_union at hr; simp_all +decide [ List.mem_append, List.mem_map ] ;
         unfold liftRule1 liftRule2 at hr; aesop;
       · cases u <;> cases v <;> aesop
 
@@ -296,12 +332,10 @@ lemma unlift1_tran (g₁ g₂ : IndexedGrammar T)
             rfl;
           · use r₁, u', v', σ';
             cases h : r₁.consume <;> simp_all +decide [ liftRule1 ];
-            · exact List.map_injective_iff.mpr ( show Function.Injective ( liftISym1 g₁ g₂ ) from by
-                                                  intro x y; cases x <;> cases y <;> simp +decide [ liftISym1 ] ;
-                                                  exact fun h₁ h₂ => ⟨ by injection h₁, by simpa using List.map_injective_iff.mpr ( show Function.Injective UnionFlag.inl from by rintro x y; aesop ) h₂ ⟩ ) <| by simpa using hw₁;
-            · exact List.map_injective_iff.mpr ( show Function.Injective ( liftISym1 g₁ g₂ ) from by
-                                                  intro x y; cases x <;> cases y <;> simp +decide [ liftISym1 ] ;
-                                                  exact fun h₁ h₂ => ⟨ by injection h₁, by simpa using List.map_injective_iff.mpr ( show Function.Injective ( UnionFlag.inl ) from by rintro x y; aesop ) h₂ ⟩ ) <| by simpa [ List.map_append ] using hw₁;
+            · exact List.map_injective_iff.mpr (liftISym1_injective g₁ g₂) <|
+                by simpa [liftISym1] using hw₁;
+            · exact List.map_injective_iff.mpr (liftISym1_injective g₁ g₂) <|
+                by simpa [liftISym1, List.map_append] using hw₁;
         · by_cases hr₂ : r ∈ List.map (liftRule2 : IRule T g₂.nt g₂.flag → IRule T (UnionNT g₁.nt g₂.nt) (UnionFlag g₁.flag g₂.flag)) g₂.rules;
           · obtain ⟨ r', hr', rfl ⟩ := List.mem_map.mp hr₂;
             rcases r' with ⟨ lhs, consume, rhs ⟩ ; simp_all +decide [ liftRule2 ] ;
@@ -367,18 +401,13 @@ lemma unlift2_tran (g₁ g₂ : IndexedGrammar T)
           · rcases h : r.consume with ( _ | f ) <;> simp_all +decide [ liftRule2 ];
             · use r₂, u', v', σ';
               rcases r₂consume : r₂.consume with ( _ | f ) <;> simp_all +decide [  ];
-              · have h_inj : Function.Injective (liftISym2 g₁ g₂) := by
-                  intro x y hxy; cases x <;> cases y <;> simp_all +decide [ liftISym2 ] ;
-                  exact ⟨ by injection hxy.1, by simpa using List.map_injective_iff.mpr ( show Function.Injective ( UnionFlag.inr : g₂.flag → ( indexed_union g₁ g₂ ).flag ) from by rintro x y; aesop ) hxy.2 ⟩;
-                exact List.map_injective_iff.mpr h_inj <| by aesop;
+              · exact List.map_injective_iff.mpr (liftISym2_injective g₁ g₂) <| by aesop;
               · lia;
             · cases h' : r₂.consume <;> simp_all +decide [  ];
               · grind;
               · use r₂, u', v', σ';
                 simp_all +decide [ List.append_assoc ];
-                exact List.map_injective_iff.mpr ( show Function.Injective ( liftISym2 g₁ g₂ ) from by
-                                                    intro x y; cases x <;> cases y <;> simp +decide [ liftISym2 ] ;
-                                                    exact fun h₁ h₂ => ⟨ by injection h₁, by simpa using List.map_injective_iff.mpr ( show Function.Injective UnionFlag.inr from by intros a b; aesop ) h₂ ⟩ ) <| by aesop;
+                exact List.map_injective_iff.mpr (liftISym2_injective g₁ g₂) <| by aesop;
         · by_cases hr₁ : r ∈ g₁.rules.map liftRule1;
           · -- Since $r$ is in $g₁.rules.map liftRule1$, its $lhs$ is of the form $UnionNT.inl n$.
             obtain ⟨n, hn⟩ : ∃ n : g₁.nt, r.lhs = UnionNT.inl n := by
@@ -457,6 +486,7 @@ lemma union_backward (g₁ g₂ : IndexedGrammar T) (w : List T)
     · have hlift : (indexed_union g₁ g₂).Derives
           ([IndexedGrammar.ISym.indexed g₁.initial []].map (liftISym1 g₁ g₂))
           (w.map IndexedGrammar.ISym.terminal) := by
+        change Relation.ReflTransGen (indexed_union g₁ g₂).Transforms _ _
         simpa [liftISym1] using hrest
       obtain ⟨wg, hwg_eq, hwg_deri⟩ := unlift1_deri g₁ g₂ hlift
       left; unfold IndexedGrammar.Generates
@@ -464,6 +494,7 @@ lemma union_backward (g₁ g₂ : IndexedGrammar T) (w : List T)
     · have hlift : (indexed_union g₁ g₂).Derives
           ([IndexedGrammar.ISym.indexed g₂.initial []].map (liftISym2 g₁ g₂))
           (w.map IndexedGrammar.ISym.terminal) := by
+        change Relation.ReflTransGen (indexed_union g₁ g₂).Transforms _ _
         simpa [liftISym2] using hrest
       obtain ⟨wg, hwg_eq, hwg_deri⟩ := unlift2_deri g₁ g₂ hlift
       right; unfold IndexedGrammar.Generates

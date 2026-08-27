@@ -121,6 +121,7 @@ lemma productive_of_mem_derives_terminal {g : CF_grammar T}
 
 open Classical in
 /-- Grammar with only fully productive rules (same nonterminal type, fewer rules). -/
+@[reducible]
 noncomputable def productiveGrammar (g : CF_grammar T) : CF_grammar T :=
   { g with rules := g.rules.filter (fun r => decide (fullyProductiveRule g r)) }
 
@@ -204,8 +205,7 @@ lemma productiveGrammar_language (g : CF_grammar T) :
     CF_language (productiveGrammar g) = CF_language g := by
       ext w;
       constructor <;> intro h;
-      · convert CF_derives_mono _ h using 1;
-        exact fun r hr => List.mem_of_mem_filter hr;
+      · exact CF_derives_mono (fun r hr => List.mem_of_mem_filter hr) h
       · -- By induction on the derivation steps, we can show that each step in the original derivation can be replaced by a step in the productive grammar.
         have h_ind : ∀ {s₁ s₂ : List (symbol T g.nt)}, CF_derives g s₁ s₂ → ∀ {w : List T}, CF_derives g s₂ (List.map symbol.terminal w) → CF_derives (productiveGrammar g) s₁ s₂ := by
           intros s₁ s₂ h₁ w h₂;
@@ -258,6 +258,7 @@ private def rulesOfRule (r : N × List (symbol T N)) :
 
 /-- The prefix grammar built from `g`.
     Nonterminals: `Bool × g.nt`; initial: `(true, g.initial)`. -/
+@[reducible]
 private def prefixGrammar (g : CF_grammar T) : CF_grammar T :=
   CF_grammar.mk (Bool × g.nt) (true, g.initial)
     (g.rules.flatMap rulesOfRule)
@@ -269,7 +270,6 @@ end PrefixGrammar
 section SteppedDerivation
 
 /-- Derivation in exactly `n` steps. -/
-@[expose]
 public def CF_derives_in (g : CF_grammar T) : ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
   | 0, w₁, w₂ => w₁ = w₂
   | n + 1, w₁, w₃ => ∃ w₂, CF_transforms g w₁ w₂ ∧ CF_derives_in g n w₂ w₃
@@ -398,7 +398,8 @@ private lemma full_nt_derives {g : CF_grammar T} {B : g.nt} {w : List T}
     (h : CF_derives g [symbol.nonterminal B] (List.map symbol.terminal w)) :
     CF_derives (prefixGrammar g) [symbol.nonterminal (false, B)] (List.map symbol.terminal w) := by
   have := full_lifting h
-  simpa [liftFull] using this
+  simpa only [List.map_cons, List.map_nil, liftFull,
+    map_liftFull_map_terminal] using this
 
 /-
 A sub-list of an all-terminal list is all-terminal. If u ++ v = map terminal w,
@@ -676,8 +677,12 @@ private lemma list_productive_derives {g : CF_grammar T}
         obtain ⟨w_s, hw_s⟩ : ∃ w_s : List T, CF_derives g [h] (List.map symbol.terminal w_s) := by
           rcases h with ( _ | _ ) <;> simp_all +decide [ productive ];
           exact ⟨ [ ‹_› ], by exact Relation.ReflTransGen.refl ⟩;
-        obtain ⟨ w_t, hw_t ⟩ := ih; use w_s ++ w_t; exact (by
-        convert CF_deri_with_postfix _ hw_s |> CF_deri_of_deri_deri <| CF_deri_with_prefix _ hw_t using 1 ; aesop;);
+        obtain ⟨ w_t, hw_t ⟩ := ih
+        refine ⟨w_s ++ w_t, ?_⟩
+        have hleft := CF_deri_with_postfix t hw_s
+        have hright := CF_deri_with_prefix (List.map symbol.terminal w_s) hw_t
+        simpa only [List.map_append, List.singleton_append] using
+          CF_deri_of_deri_deri hleft hright
 
 /-
 Classification of rules in the prefix grammar with LHS `(true, A)`.

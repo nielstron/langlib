@@ -26,6 +26,7 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
+omit [Fintype T] in
 private theorem take_one_append_eq
     {common left right : List T}
     (h : left.take 1 = right.take 1) :
@@ -424,7 +425,8 @@ public theorem concreteEpsilonEpsilon_heads_eq_of_zeroVisibleTail
           ⟨final₂, [], []⟩ :=
         (Relation.ReflTransGen.single parentStep₂).trans childUseful₂
       exact False.elim <| emptyStack_no_useful_cycle M
-        (by simpa [PDA.conf.appendInput] using hcycle) parentUseful₂
+        (by simpa [PDA.conf.appendInput, spineCutState, spineCutStack] using hcycle)
+        parentUseful₂
     · obtain ⟨restSteps, htailSteps⟩ :=
         Nat.exists_eq_succ_of_ne_zero hzero
       subst tailSteps
@@ -432,7 +434,7 @@ public theorem concreteEpsilonEpsilon_heads_eq_of_zeroVisibleTail
           (1 + restSteps)
           ⟨q₁, [], Z₁ :: context₁⟩
           ⟨q₂, [], Z₂ :: context₂⟩ := by
-        simpa [Nat.add_comm] using retainedTail
+        simpa [Nat.add_comm, spineCutState, spineCutStack] using retainedTail
       obtain ⟨firstState, firstInput, firstUpper, first, rest⟩ :=
         retainedTail'.split_add
       have hfirstInput : firstInput = [] := by
@@ -450,7 +452,7 @@ public theorem concreteEpsilonEpsilon_heads_eq_of_zeroVisibleTail
         have hlift := (PDA.unconsumed_input
           (pda := emptyStackPDA M) (childWord ++ suffix₁)).mp
           (PDA.reaches_of_reachesIn parentRun)
-        simpa [PDA.conf.appendInput] using hlift
+        simpa [PDA.conf.appendInput, spineCutState, spineCutStack] using hlift
       have global₂ : (emptyStackPDA M).Reaches
           ⟨(emptyStackPDA M).initial_state,
             preWord ++ (childWord ++ suffix₂),
@@ -459,7 +461,7 @@ public theorem concreteEpsilonEpsilon_heads_eq_of_zeroVisibleTail
         have hlift := (PDA.unconsumed_input
           (pda := emptyStackPDA M) (childWord ++ suffix₂)).mp
           (PDA.reaches_of_reachesIn parentRun)
-        simpa [PDA.conf.appendInput] using hlift
+        simpa [PDA.conf.appendInput, spineCutState, spineCutStack] using hlift
       have firstStep₀ : (emptyStackPDA M).Reaches₁
           ⟨q₁, [], Z₁ :: context₁⟩
           ⟨firstState, [], firstUpper ++ context₁⟩ :=
@@ -811,7 +813,6 @@ necessarily a `splitRight`/`splitRight` pair.
 Keeping the position inequality, rather than flattening the split
 constructor into a large tuple, preserves the two original structural
 spines for the interval argument which consumes this residual. -/
-@[expose]
 public def PairedSplitEpsilonEpsilonHeadsData (M : DPDA Q T S)
     (childPrefix : List (symbol T (Nonterminal M)))
     (q₁ q₂ next target : State M) (Z₁ Z₂ : StackSymbol M)
@@ -944,7 +945,6 @@ public theorem activeEpsilonEpsilon_heads_eq_or_pairedSplit
 /-- The exact unequal-position residual for two epsilon introductions.  It
 retains the normalized parent spines and their globally counted source cuts;
 no interval or hidden context has been compressed away. -/
-@[expose]
 public def UnequalCountEpsilonEpsilonHeadsData (M : DPDA Q T S)
     (childPrefix : List (symbol T (Nonterminal M)))
     (q₁ q₂ next target : State M) (Z₁ Z₂ : StackSymbol M)

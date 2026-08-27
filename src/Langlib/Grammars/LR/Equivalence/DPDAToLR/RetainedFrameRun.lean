@@ -207,7 +207,7 @@ private theorem RetainedFrameRun.eq_zero_of_start_stack
         apply List.append_cancel_right (bs := frame)
         simpa [hstack] using congrArg conf.stack hmiddle
       subst upper
-      simpa [PDA.Reaches₁, PDA.step] using last
+      simp [PDA.Reaches₁, PDA.step] at last
 
 /-- A retained-frame run starting with no stack above its retained suffix is
 necessarily reflexive: a PDA has no transition from the corresponding

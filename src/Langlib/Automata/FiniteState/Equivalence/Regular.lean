@@ -2,7 +2,7 @@ module
 
 /-
 Copyright (c) 2025 Harmonic. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
 public import Langlib.Automata.FiniteState.Definition
 public import Langlib.Classes.Regular.Definition
@@ -87,14 +87,12 @@ This file proves that right-regular grammars (Type-3) generate exactly Mathlib's
 
 
 /-- All nonterminals mentioned in a single RG rule. -/
-@[expose]
 public def RG_rule.nonterminals {N : Type} : RG_rule T N → List N
   | .cons A _ B => [A, B]
   | .single A _ => [A]
   | .epsilon A  => [A]
 
 /-- Finset of all nonterminals appearing in a grammar (including the initial symbol). -/
-@[expose]
 public def RG_grammar.nonterminalFinset (g : RG_grammar T) : Finset g.nt :=
   (g.initial :: (g.rules.flatMap RG_rule.nonterminals)).toFinset
 
@@ -109,11 +107,10 @@ public lemma RG_grammar.rule_nt_mem (g : RG_grammar T) {r : RG_rule T g.nt} (hr 
   right; exact ⟨r, hr, hn⟩
 
 /-- Finite nonterminal subtype: only those nonterminals that appear in the grammar. -/
-@[expose]
 public abbrev RG_grammar.FinNT (g : RG_grammar T) := { x : g.nt // x ∈ g.nonterminalFinset }
 
 /-- NFA with finite states constructed from a right-regular grammar. -/
-@[expose]
+@[reducible]
 public def NFA_of_RG (g : RG_grammar T) : NFA T (Option g.FinNT) where
   step
     | none, _ => ∅
@@ -140,11 +137,22 @@ public lemma NFA_of_RG_some_forward {g : RG_grammar T}
       induction' w using List.reverseRecOn with w a ih generalizing A B;
       · simp +decide [ NFA.evalFrom ];
         rintro rfl; exact RG_deri_self _;
-      · simp +decide [ NFA.evalFrom_append ];
-        intro h
+      · intro h
         obtain ⟨C, hC⟩ : ∃ C : g.FinNT, some ⟨C, C.2⟩ ∈ (NFA_of_RG g).evalFrom {some ⟨A, hA⟩} w ∧ some ⟨B, hB⟩ ∈ (NFA_of_RG g).step (some ⟨C, C.2⟩) a := by
-          simp_all +decide [ NFA.stepSet ];
-          rcases h with ⟨ i, hi, hi' ⟩ ; rcases i with ( _ | ⟨ C, hC ⟩ ) <;> tauto;
+          have hstep : some ⟨B, hB⟩ ∈
+              (NFA_of_RG g).stepSet
+                ((NFA_of_RG g).evalFrom {some ⟨A, hA⟩} w) a := by
+            simpa [NFA.evalFrom_append] using h
+          rcases NFA.mem_stepSet.mp hstep with ⟨i, hi, hi'⟩
+          rcases i with _ | ⟨C, hC⟩
+          · simp at hi'
+          · refine ⟨⟨C, hC⟩, hi, ?_⟩
+            dsimp only [NFA_of_RG] at hi'
+            rcases hi' with hcons | hsingle
+            · rcases hcons with ⟨D, hD, hEq⟩
+              have hCD : B = D := congrArg Subtype.val (Option.some.inj hEq)
+              simpa [hCD] using hD
+            · by_cases hs : RG_rule.single C a ∈ g.rules <;> simp [hs] at hsingle
         obtain ⟨hC₁, hC₂⟩ := hC;
         convert RG_deri_of_deri_tran ( ih A hA C C.2 hC₁ ) _ using 1;
         use RG_rule.cons C.val a B;
@@ -166,17 +174,19 @@ public lemma NFA_of_RG_none_forward {g : RG_grammar T}
           have h_step : none ∈ (NFA_of_RG g).stepSet ( (NFA_of_RG g).evalFrom {some ⟨A, hA⟩} w' ) a := by
             convert h using 1;
             simp +decide [ NFA.evalFrom ];
-          rw [ NFA.stepSet ] at h_step;
-          simp +zetaDelta at *;
-          rcases h_step with ⟨ i, hi, hi' ⟩ ; rcases i with ( _ | ⟨ C, hC ⟩ ) <;> tauto;
+          rcases NFA.mem_stepSet.mp h_step with ⟨i, hi, hi'⟩
+          rcases i with _ | ⟨C, hC⟩
+          · simp at hi'
+          · exact ⟨C, hC, hi, by simpa [NFA_of_RG] using hi'⟩
         obtain ⟨ hC₁, hC₂, hC₃ ⟩ := hC;
         have h_single : RG_rule.single C a ∈ g.rules := by
           unfold NFA_of_RG at hC₃; aesop;
         have h_derive : RG_derives g [symbol.nonterminal A] (List.map symbol.terminal w' ++ [symbol.nonterminal C]) := by
           exact NFA_of_RG_some_forward A hA C hC₁ w' hC₂;
-        convert h_derive.trans _ using 1;
-        convert ReflTransGen.single _ using 1;
-        use RG_rule.single C a, h_single, List.map symbol.terminal w', [] ; aesop
+        apply RG_deri_of_deri_tran h_derive
+        refine ⟨RG_rule.single C a, h_single, List.map symbol.terminal w', [], ?_, ?_⟩
+        · simp [RG_rule.lhs]
+        · simp [RG_rule.output, List.map_append]
 
 /-
 In an RG grammar, any sentential form reachable from `[nt A]` is either:
@@ -341,7 +351,9 @@ public theorem NFA_of_RG_accepts (g : RG_grammar T) :
       · intro hw
         obtain ⟨q, hq⟩ := hw;
         rcases q with ( _ | ⟨ A, hA ⟩ ) <;> simp_all +decide [ NFA_of_RG ];
-        · convert NFA_of_RG_none_forward _ _ _ hq using 1;
+        · change RG_derives g [symbol.nonterminal g.initial]
+            (List.map symbol.terminal w)
+          exact NFA_of_RG_none_forward _ _ _ hq
         · have h_derives : RG_derives g [symbol.nonterminal g.initial] (List.map symbol.terminal w ++ [symbol.nonterminal A]) := by
             apply NFA_of_RG_some_forward;
             exact hq.2;
@@ -383,7 +395,7 @@ public theorem isRegular_of_is_RG {L : Language T} (h : is_RG L) : L.IsRegular :
 variable [Fintype T]
 
 /-- Right-regular grammar constructed from a DFA over a finite alphabet. -/
-@[expose]
+@[reducible]
 public def RG_of_DFA {σ : Type} [Fintype σ] (M : DFA T σ) : RG_grammar T where
   nt := σ
   initial := M.start
@@ -446,7 +458,7 @@ public lemma RG_of_DFA_derives_simulation {σ : Type} [Fintype σ] (M : DFA T σ
               exact List.map symbol.terminal ( a :: w ) ++ [ symbol.nonterminal ( M.evalFrom q ( a :: w ) ) ];
               · assumption;
               · use RG_rule.cons (M.evalFrom q (a :: w)) ih (M.evalFrom q (a :: (w ++ [ih])));
-                simp +decide [ RG_of_DFA_cons_mem ];
+                simp +decide;
                 exact ⟨ [ symbol.terminal a ] ++ List.map symbol.terminal w, [ ], by simp +decide [ RG_rule.lhs, RG_rule.output ] ⟩
 
 /-
@@ -466,29 +478,27 @@ public lemma RG_of_DFA_derives_inv {σ : Type} [Fintype σ] (M : DFA T σ)
     (h : RG_derives (RG_of_DFA M) [symbol.nonterminal q] s) :
     (∃ p : List T, s = List.map symbol.terminal p ++ [symbol.nonterminal (M.evalFrom q p)]) ∨
     (∃ p : List T, s = List.map symbol.terminal p ∧ M.evalFrom q p ∈ M.accept) := by
-      induction' h with s' s h ih;
-      · exact Or.inl ⟨ [ ], rfl ⟩;
-      · rcases ‹_› with ( ⟨ p, rfl ⟩ | ⟨ p, rfl, hp ⟩ ) <;> simp_all +decide [ RG_transforms ];
-        · rcases ih with ⟨ r, hr, u, v, hu, rfl ⟩ ; rcases r with ( _ | _ | _ ) <;> simp_all +decide [ RG_rule.lhs, RG_rule.output ] ;
-          · rcases List.append_eq_append_iff.mp hu.symm with ( ⟨ x, hx ⟩ | ⟨ x, hx ⟩ ) <;> simp_all +decide [  ];
-            · rcases x with ( _ | ⟨ y, x ⟩ ) <;> simp_all +decide [  ];
-              · unfold RG_of_DFA at hr; simp_all +decide [  ] ;
-                exact Or.inl ⟨ p ++ [ ‹_› ], by aesop ⟩;
-              · rcases y with ( _ | _ ) <;> simp_all +decide [  ];
-                replace hx := congr_arg List.toFinset hx.1; rw [ Finset.ext_iff ] at hx; specialize hx ( symbol.nonterminal ‹_› ) ; aesop;
-            · rcases x with ( _ | ⟨ _, _ | x ⟩ ) <;> simp_all +decide [  ];
-              refine' Or.inl ⟨ p ++ [ ‹_› ], _ ⟩ ; simp +decide [ DFA.evalFrom ];
-              unfold RG_of_DFA at hr; aesop;
-          · exact absurd hr ( RG_of_DFA_no_single M _ _ );
-          · rw [ List.append_eq_append_iff ] at hu;
-            rcases hu with ( ⟨ as, rfl, hu ⟩ | ⟨ bs, hu, hv ⟩ ) <;> simp_all +decide [ List.append_eq_append_iff ];
-            · rcases as with ( _ | ⟨ _, _ | as ⟩ ) <;> simp_all +decide [  ];
-              exact Or.inr ⟨ p, rfl, by simpa [ hu.1 ] using RG_of_DFA_epsilon_mem_iff M _ |>.1 hr ⟩;
-            · cases bs <;> simp_all +decide [  ];
-              · exact Or.inr ⟨ p, hu.symm, by simpa [ RG_of_DFA_epsilon_mem_iff ] using hr ⟩;
-              · no_nonterminal (symbol.nonterminal ‹_›) at hu
-        · obtain ⟨ r, hr, u, v, huv, rfl ⟩ := ih;
-          no_nonterminal (symbol.nonterminal r.lhs) at huv
+  induction' h with s' s hder hstep
+  · exact Or.inl ⟨[], rfl⟩
+  · rcases ‹(∃ p : List T,
+        s' = List.map symbol.terminal p ++ [symbol.nonterminal (M.evalFrom q p)]) ∨
+        (∃ p : List T, s' = List.map symbol.terminal p ∧
+          M.evalFrom q p ∈ M.accept)› with hactive | hdone
+    · rcases hactive with ⟨p, rfl⟩
+      rcases RG_transforms_of_terminal_nt hstep with hcons | hsingle | hepsilon
+      · rcases hcons with ⟨a, q', hrule, rfl⟩
+        have hq' : q' = M.step (M.evalFrom q p) a :=
+          (RG_of_DFA_cons_mem_iff M _ _ _).mp hrule
+        subst q'
+        refine Or.inl ⟨p ++ [a], ?_⟩
+        simp [List.map_append, DFA.evalFrom]
+      · rcases hsingle with ⟨a, hrule, _⟩
+        exact absurd hrule (RG_of_DFA_no_single M _ _)
+      · rcases hepsilon with ⟨hrule, rfl⟩
+        exact Or.inr ⟨p, rfl, (RG_of_DFA_epsilon_mem_iff M _).mp hrule⟩
+    · rcases hdone with ⟨p, rfl, _hp⟩
+      rcases hstep with ⟨r, _hr, u, v, hsource, _htarget⟩
+      no_nonterminal (symbol.nonterminal r.lhs) at hsource
 
 /-
 The RG constructed from a DFA generates exactly the DFA's language.
@@ -526,5 +536,5 @@ theorem RG_eq_DFA {T: Type} [Fintype T] :
   (RG : Set (Language T)) = DFA.Class := by
     ext L
     refine Eq.to_iff ?_
-    simp only [RG, Set.mem_setOf_eq, DFA.Class, eq_iff_iff]
+    simp only [RG, DFA.Class, eq_iff_iff]
     exact is_RG_iff_isRegular

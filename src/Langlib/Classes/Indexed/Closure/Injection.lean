@@ -53,12 +53,12 @@ variable {T₁ T₂ : Type}
 
 namespace IndexedGrammar
 
-@[expose]
+@[reducible]
 public def mapIRhsSymbol (f : T₁ → T₂) {N F : Type} : IRhsSymbol T₁ N F → IRhsSymbol T₂ N F
   | .terminal t => .terminal (f t)
   | .nonterminal n push => .nonterminal n push
 
-@[expose]
+@[reducible]
 public def mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁) : IndexedGrammar T₂ where
   nt := g.nt
   flag := g.flag
@@ -68,7 +68,7 @@ public def mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁) : IndexedG
       consume := r.consume
       rhs := r.rhs.map (mapIRhsSymbol f) }
 
-@[expose]
+@[reducible]
 public def mapISym (f : T₁ → T₂) (g : IndexedGrammar T₁) :
     g.ISym → (g.mapTerminals f).ISym
   | .terminal t => .terminal (f t)
@@ -96,7 +96,7 @@ private lemma invISym_mapISym [Nonempty T₁] {f : T₁ → T₂} (hf : Function
     (g : IndexedGrammar T₁) (s : g.ISym) :
     invISym f g (mapISym f g s) = s := by
   cases s with
-  | terminal t => simp [mapISym, invISym, invOfInjective_apply hf]
+  | terminal t => simp [invISym, invOfInjective_apply hf]
   | indexed n σ => rfl
 
 private lemma expandRhs_mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁)
@@ -257,13 +257,28 @@ public theorem language_mapTerminals [Nonempty T₁] {f : T₁ → T₂} (hf : F
   constructor
   · intro h
     refine ⟨w.map (invOfInjective f), ?_, ?_⟩
-    · simpa [Language, Generates, invISym, List.map_map] using derives_inv_mapTerminals hf g h
+    · change g.Generates (w.map (invOfInjective f))
+      change g.Derives [ISym.indexed g.initial []]
+        ((w.map (invOfInjective f)).map ISym.terminal)
+      have hmap : (w.map ISym.terminal).map (invISym f g) =
+          (w.map (invOfInjective f)).map ISym.terminal := by
+        induction w with
+        | nil => rfl
+        | cons x xs ih => simp [invISym]
+      rw [← hmap]
+      simpa [invISym] using derives_inv_mapTerminals hf g h
     · exact map_invOfInjective_of_derives f g h
   · rintro ⟨u, hu, rfl⟩
     change (g.mapTerminals f).Derives [IndexedGrammar.ISym.indexed g.initial []]
       ((u.map f).map IndexedGrammar.ISym.terminal)
-    convert derives_mapTerminals f g hu using 1
-    simp [mapISym, List.map_map]
+    change g.Generates u at hu
+    have hmap : (u.map ISym.terminal).map (mapISym f g) =
+        (u.map f).map ISym.terminal := by
+      induction u with
+      | nil => rfl
+      | cons x xs ih => simp [mapISym]
+    rw [← hmap]
+    simpa [mapISym] using derives_mapTerminals f g hu
 
 end IndexedGrammar
 

@@ -22,12 +22,11 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
-public abbrev State (M : DPDA Q T S) := (Q × Bool) ⊕ Fin 2
-public abbrev StackSymbol (M : DPDA Q T S) := Option S
+public abbrev State (M : DPDA Q T S) := let _ := M; (Q × Bool) ⊕ Fin 2
+public abbrev StackSymbol (M : DPDA Q T S) := let _ := M; Option S
 public abbrev Nonterminal (M : DPDA Q T S) := PDA_to_CFG.N (emptyStackPDA M)
 
 /-- The five possible rule forms before translating Mathlib symbols. -/
-@[expose]
 public def MathlibRuleShape (M : DPDA Q T S)
     (r : ContextFreeRule T (Nonterminal M)) : Prop :=
   (∃ q : State M,
@@ -102,12 +101,15 @@ public theorem mathlib_rule_of_characteristic_rule (M : DPDA Q T S)
     (hr : r ∈ (characteristicGrammar M).rules) :
     ∃ R ∈ (mathlibCharacteristicGrammar M).rules,
       r = (R.input, lssymbol_of_lsSymbol R.output) := by
-  simp only [characteristicGrammar, productiveGrammar, List.mem_filter,
-    decide_eq_true_eq] at hr
-  have hrRaw := hr.1
-  simp only [rawCharacteristicGrammar, cfg_of_mathlib_cfg, List.mem_map] at hrRaw
-  obtain ⟨R, hR, rfl⟩ := hrRaw
-  refine ⟨R, ?_, rfl⟩
+  classical
+  change r ∈ List.filter
+    (fun r => decide (fullyProductiveRule (rawCharacteristicGrammar M) r))
+    (rawCharacteristicGrammar M).rules at hr
+  have hrRaw := (List.mem_filter.mp hr).1
+  change r ∈ (mathlibCharacteristicGrammar M).rules.toList.map
+    (fun R => (R.input, lssymbol_of_lsSymbol R.output)) at hrRaw
+  obtain ⟨R, hR, hmap⟩ := List.mem_map.mp hrRaw
+  refine ⟨R, ?_, hmap.symm⟩
   simpa using hR
 
 /-- Every retained rule is fully productive in the unfiltered characteristic
@@ -117,12 +119,13 @@ public theorem characteristic_rule_fullyProductive (M : DPDA Q T S)
       List (symbol T (characteristicGrammar M).nt)}
     (hr : r ∈ (characteristicGrammar M).rules) :
     fullyProductiveRule (rawCharacteristicGrammar M) r := by
-  simp only [characteristicGrammar, productiveGrammar, List.mem_filter,
-    decide_eq_true_eq] at hr
-  exact hr.2
+  classical
+  change r ∈ List.filter
+    (fun r => decide (fullyProductiveRule (rawCharacteristicGrammar M) r))
+    (rawCharacteristicGrammar M).rules at hr
+  exact of_decide_eq_true (List.mem_filter.mp hr).2
 
 /-- The five possible rule forms after translating to Langlib symbols. -/
-@[expose]
 public def RuleShape (M : DPDA Q T S)
     (r : (characteristicGrammar M).nt ×
       List (symbol T (characteristicGrammar M).nt)) : Prop :=

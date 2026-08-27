@@ -26,7 +26,7 @@ variable {T : Type} [Fintype T]
 recognized by the marker-free, input-sized LBA model. -/
 private theorem is_LBA_pos_diff_empty_of_is_CS [DecidableEq T]
     {L : Language T} (hL : is_CS L) :
-    is_LBA_pos (L \ ({[]} : Set (List T))) := by
+    is_LBA_pos (L \ ({[]} : Language T)) := by
   obtain ⟨g, hg, hlang⟩ := hL
   obtain ⟨g₀, _hfinite, hnc, hcore⟩ := exists_noncontracting_offEmpty_of_CS g hg
   apply is_LBA_pos_of_isCS_not_nil
@@ -35,11 +35,12 @@ private theorem is_LBA_pos_diff_empty_of_is_CS [DecidableEq T]
   · rintro ⟨_, hnil⟩
     exact hnil rfl
 
+omit [Fintype T] in
 /-- Complementing after deleting `ε` and then restricting back to nonempty words
 is the same as restricting the ordinary complement to nonempty words. -/
 private theorem diff_empty_complement_diff_empty (L : Language T) :
-    (L \ ({[]} : Set (List T)))ᶜ \ ({[]} : Set (List T)) =
-      Lᶜ \ ({[]} : Set (List T)) := by
+    (L \ ({[]} : Language T))ᶜ \ ({[]} : Language T) =
+      Lᶜ \ ({[]} : Language T) := by
   ext w
   constructor
   · rintro ⟨hnot, hwne⟩
@@ -51,11 +52,16 @@ private theorem diff_empty_complement_diff_empty (L : Language T) :
 context-sensitive. -/
 public theorem is_CS_complement {L : Language T} (hL : is_CS L) : is_CS Lᶜ := by
   classical
-  have hpos : is_LBA_pos (L \ ({[]} : Set (List T))) :=
+  have hpos : is_LBA_pos (L \ ({[]} : Language T)) :=
     is_LBA_pos_diff_empty_of_is_CS hL
   have hcomp := is_LBA_pos_complement hpos
-  rw [diff_empty_complement_diff_empty] at hcomp
-  exact is_CS_of_diff_empty_of_is_CS (is_LBA_pos_imp_isCS hcomp)
+  have hpredEq :
+      is_LBA_pos ((L \ ({[]} : Language T))ᶜ \ ({[]} : Language T)) =
+        is_LBA_pos (Lᶜ \ ({[]} : Language T)) :=
+    congrArg (fun K : Language T => is_LBA_pos K)
+      (diff_empty_complement_diff_empty L)
+  have hcomp' : is_LBA_pos (Lᶜ \ ({[]} : Language T)) := hpredEq.mp hcomp
+  exact is_CS_of_diff_empty_of_is_CS (is_LBA_pos_imp_isCS hcomp')
 
 /-- A language is context-sensitive if and only if its complement is. -/
 @[simp]

@@ -27,15 +27,18 @@ public theorem toPDA_step_deterministic (M : DPDA Q T S)
     d₁ = d₂ := by
   rcases c with ⟨q, input, stack⟩
   cases stack with
-  | nil => simp [PDA.Reaches₁, PDA.step] at h₁
+  | nil => simp [PDA.Reaches₁, PDA.step, Set.mem_empty_iff_false] at h₁
   | cons Z rest =>
       cases input with
       | nil =>
           cases hε : M.epsilon_transition q Z with
-          | none => simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε] at h₁
+          | none =>
+              simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε,
+                Set.mem_empty_iff_false] at h₁
           | some out =>
               rcases out with ⟨p, beta⟩
-              simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε] at h₁ h₂
+              simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε,
+                Set.mem_singleton_iff] at h₁ h₂
               exact h₁.trans h₂.symm
       | cons a input =>
           cases hε : M.epsilon_transition q Z with
@@ -43,15 +46,18 @@ public theorem toPDA_step_deterministic (M : DPDA Q T S)
               rcases out with ⟨p, beta⟩
               have hδ : M.transition q a Z = none :=
                 M.no_mixed q Z (by simp [hε]) a
-              simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ] at h₁ h₂
+              simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ,
+                Set.mem_empty_iff_false, Set.mem_singleton_iff] at h₁ h₂
               exact h₁.trans h₂.symm
           | none =>
               cases hδ : M.transition q a Z with
               | none =>
-                  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ] at h₁
+                  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ,
+                    Set.mem_empty_iff_false] at h₁
               | some out =>
                   rcases out with ⟨p, beta⟩
-                  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ] at h₁ h₂
+                  simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ,
+                    Set.mem_empty_iff_false, Set.mem_singleton_iff] at h₁ h₂
                   exact h₁.trans h₂.symm
 
 /-- Two computations of the same length from the same configuration have the

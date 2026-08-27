@@ -1,7 +1,7 @@
 module
 
 public import Langlib.Grammars.Unrestricted.Definition
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -86,12 +86,10 @@ public inductive TMtoGrammarNT where
 open TMtoGrammarNT
 
 /-- All values of `Option T`. -/
-@[expose]
 public noncomputable def allOptT : List (Option T) :=
   none :: (Finset.univ.val.toList.map some)
 
 /-- All values of `Λ`. -/
-@[expose]
 public noncomputable def allΛ : List Λ :=
   Finset.univ.val.toList
 
@@ -110,7 +108,6 @@ For input `[t₁, t₂, ..., tₙ]`, the derivation is:
   `→ ... → LB · genMore · cell(t₂) · ... · cell(tₙ) · RB`
   `→ LB · headCell(q₀, t₁) · cell(t₂) · ... · cell(tₙ) · RB`
 -/
-@[expose]
 public noncomputable def generationRules (_ : Turing.TM0.Machine (Option T) Λ) :
     List (grule T (TMtoGrammarNT T Λ)) :=
   -- S → leftBound genMore rightBound
@@ -139,7 +136,6 @@ For each `(q, γ)` with `M q γ = some (q', action)`:
 - **Move left**: `cell(o'', γ'') headCell(q, orig, γ) → headCell(q', o'', γ'') cell(orig, γ)`
   (with boundary extension when at the left edge)
 -/
-@[expose]
 public noncomputable def simulationRules (M : Turing.TM0.Machine (Option T) Λ) :
     List (grule T (TMtoGrammarNT T Λ)) :=
   (allΛ Λ).flatMap fun q =>
@@ -187,7 +183,6 @@ public noncomputable def simulationRules (M : Turing.TM0.Machine (Option T) Λ) 
 3. Replace halt markers with original terminal symbols (or ε for blanks)
 4. Remove boundary markers
 -/
-@[expose]
 public noncomputable def cleanupRules (M : Turing.TM0.Machine (Option T) Λ) :
     List (grule T (TMtoGrammarNT T Λ)) :=
   -- headCell → haltCell when M q γ = none (TM halts)
@@ -231,7 +226,7 @@ public noncomputable def cleanupRules (M : Turing.TM0.Machine (Option T) Λ) :
       [.nonterminal (haltCell orig)]⟩ : grule T (TMtoGrammarNT T Λ)))
 
 /-- The grammar simulating TM0 machine `M`. -/
-@[expose]
+@[reducible]
 public noncomputable def tmToGrammar (M : Turing.TM0.Machine (Option T) Λ) :
     grammar T where
   nt := TMtoGrammarNT T Λ

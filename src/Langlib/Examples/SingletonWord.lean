@@ -15,7 +15,6 @@ Chomsky hierarchy — a member of every language class; those corollaries live i
 -/
 
 /-- The language containing exactly the word `w`. -/
-@[expose]
 public def singletonWordLanguage {T : Type} (w : List T) : Language T := {w}
 
 end

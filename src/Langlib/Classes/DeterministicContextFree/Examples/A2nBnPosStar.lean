@@ -2,6 +2,7 @@ module
 
 public import Langlib.Classes.DeterministicContextFree.Definition
 public import Langlib.Examples.A2nBnPosStar
+import Langlib.Automata.DeterministicPushdown.Basics.Determinism
 import Mathlib.Tactic
 
 /-!
@@ -20,12 +21,19 @@ private inductive NumState where
   | oddA
   | evenA
   | readB
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+private instance : Fintype NumState :=
+  Fintype.ofList [.boundary, .oddA, .evenA, .readB]
+    (by intro x; cases x <;> simp)
 
 private inductive NumStack where
   | bottom
   | pair
-deriving DecidableEq, Fintype
+deriving DecidableEq
+
+private instance : Fintype NumStack :=
+  Fintype.ofList [.bottom, .pair] (by intro x; cases x <;> simp)
 
 private def transition : NumState → Bool → NumStack →
     Option (NumState × List NumStack)
@@ -55,43 +63,52 @@ private lemma step_boundary_false (rest : List Bool) :
     @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.boundary, false :: rest, [.bottom]⟩
       ⟨.oddA, rest, [.bottom]⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_odd_false_bottom (rest : List Bool) :
     @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.oddA, false :: rest, [.bottom]⟩
       ⟨.evenA, rest, [.pair, .bottom]⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_odd_false_pair (rest : List Bool) (stk : List NumStack) :
     @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.oddA, false :: rest, .pair :: stk⟩
       ⟨.evenA, rest, .pair :: .pair :: stk⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_even_false (rest : List Bool) (Z : NumStack) (stk : List NumStack) :
     @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.evenA, false :: rest, Z :: stk⟩
       ⟨.oddA, rest, Z :: stk⟩ := by
-  cases Z <;> simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  cases Z <;> exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_even_true_pair (rest : List Bool) (stk : List NumStack) :
     @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.evenA, true :: rest, .pair :: stk⟩
       ⟨.readB, rest, stk⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_readB_true_pair (rest : List Bool) (stk : List NumStack) :
     @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.readB, true :: rest, .pair :: stk⟩
       ⟨.readB, rest, stk⟩ := by
-  simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition]
+  unfold PDA.Reaches₁ PDA.step
+  exact Set.mem_union_left _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma step_readB_bottom (rest : List Bool) :
     @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.readB, rest, [.bottom]⟩
       ⟨.boundary, rest, [.bottom]⟩ := by
-  cases rest <;> simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, epsilon]
+  unfold PDA.Reaches₁ PDA.step
+  cases rest with
+  | nil => exact ⟨_, _, Set.mem_singleton _, rfl⟩
+  | cons a rest => exact Set.mem_union_right _ ⟨_, _, Set.mem_singleton _, rfl⟩
 
 private lemma replicate_two_mul_succ_false (n : ℕ) :
     List.replicate (2 * (n + 1)) false =
@@ -124,6 +141,8 @@ private lemma read_more_a_pairs (n : ℕ) (rest : List Bool) (stk : List NumStac
     @PDA.Reaches NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.evenA, List.replicate (2 * n) false ++ rest, .pair :: stk⟩
       ⟨.evenA, rest, List.replicate n .pair ++ .pair :: stk⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA) _ _
   induction n generalizing rest stk with
   | zero =>
       exact Relation.ReflTransGen.refl
@@ -142,6 +161,8 @@ private lemma read_b_pairs (n : ℕ) (rest : List Bool) (stk : List NumStack) :
     @PDA.Reaches NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.readB, List.replicate n true ++ rest, List.replicate n .pair ++ stk⟩
       ⟨.readB, rest, stk⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA) _ _
   induction n generalizing rest stk with
   | zero =>
       exact Relation.ReflTransGen.refl
@@ -156,6 +177,8 @@ private lemma finish_left_block (n : ℕ) (rest : List Bool) :
       ⟨.evenA, List.replicate (n + 1) true ++ rest,
         List.replicate n .pair ++ [.pair, .bottom]⟩
       ⟨.boundary, rest, [.bottom]⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA) _ _
   rw [List.replicate_succ, List.cons_append, replicate_pair_append_cons n [.bottom]]
   exact Relation.ReflTransGen.trans
     (Relation.ReflTransGen.single (step_even_true_pair _ _))
@@ -169,16 +192,21 @@ private lemma run_left_block (n : ℕ) (rest : List Bool) :
         List.replicate (2 * (n + 1)) false ++ List.replicate (n + 1) true ++ rest,
         [.bottom]⟩
       ⟨.boundary, rest, [.bottom]⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA) _ _
   rw [replicate_two_mul_succ_false]
   simp only [List.cons_append]
   exact Relation.ReflTransGen.trans
     (Relation.ReflTransGen.single (step_boundary_false _))
     (Relation.ReflTransGen.trans
-      (Relation.ReflTransGen.single (step_odd_false_bottom _))
+        (Relation.ReflTransGen.single (step_odd_false_bottom _))
       (Relation.ReflTransGen.trans
         (by
-          simpa [List.append_assoc] using
-            read_more_a_pairs n (List.replicate (n + 1) true ++ rest) [.bottom])
+          have hrun :=
+            read_more_a_pairs n (List.replicate (n + 1) true ++ rest) [.bottom]
+          change Relation.ReflTransGen
+            (@PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA) _ _ at hrun
+          simpa [List.append_assoc] using hrun)
         (finish_left_block n rest)))
 
 private lemma run_left_block_mem {u rest : List Bool} (hu : u ∈ quotientLeftBlock) :
@@ -193,6 +221,8 @@ private lemma run_left_blocks (blocks : List (List Bool))
     @PDA.Reaches NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.boundary, blocks.flatten ++ rest, [.bottom]⟩
       ⟨.boundary, rest, [.bottom]⟩ := by
+  change Relation.ReflTransGen
+    (@PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA) _ _
   induction blocks with
   | nil =>
       exact Relation.ReflTransGen.refl
@@ -209,7 +239,9 @@ private lemma quotientNumerator_complete {w : List Bool} (hw : w ∈ quotientNum
     w ∈ dpda_quotientNumerator.acceptsByFinalState := by
   rw [quotientNumerator, Language.mem_kstar] at hw
   rcases hw with ⟨blocks, rfl, hblocks⟩
-  refine ⟨.boundary, by simp [DPDA.toPDA, dpda_quotientNumerator], [.bottom], ?_⟩
+  refine ⟨.boundary, by simp [dpda_quotientNumerator], [.bottom], ?_⟩
+  change @PDA.Reaches NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
+    ⟨.boundary, blocks.flatten, [.bottom]⟩ ⟨.boundary, [], [.bottom]⟩
   simpa using run_left_blocks blocks hblocks []
 
 private lemma quotientNumerator_append_left_block {p b : List Bool}
@@ -262,10 +294,8 @@ private lemma boundary_false_inv (rest : List Bool)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.boundary, false :: rest, [.bottom]⟩ c') :
     c' = ⟨.oddA, rest, [.bottom]⟩ := by
-  rcases c' with ⟨q', input', stack'⟩
-  simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
-    List.replicate_succ]
-    using hstep
+  exact (dpda_quotientNumerator.toPDA_step_deterministic
+    (step_boundary_false rest) hstep).symm
 
 private lemma no_step_boundary_nil
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -274,6 +304,7 @@ private lemma no_step_boundary_nil
   rcases c' with ⟨q', input', stack'⟩
   simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon]
     at hstep
+  exact ((Set.mem_empty_iff_false _).mp hstep).elim
 
 private lemma no_step_odd_nil (m : ℕ)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -284,16 +315,22 @@ private lemma no_step_odd_nil (m : ℕ)
     simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
       List.replicate_succ]
       at hstep
+  all_goals exact ((Set.mem_empty_iff_false _).mp hstep).elim
 
 private lemma odd_false_inv (m : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.oddA, false :: rest, List.replicate m .pair ++ [.bottom]⟩ c') :
     c' = ⟨.evenA, rest, List.replicate (m + 1) .pair ++ [.bottom]⟩ := by
-  rcases c' with ⟨q', input', stack'⟩
-  cases m <;>
-    simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
-      List.replicate_succ, List.append_assoc] using hstep
+  cases m with
+  | zero =>
+      simpa using (dpda_quotientNumerator.toPDA_step_deterministic
+        (step_odd_false_bottom rest) hstep).symm
+  | succ m =>
+      simp only [List.replicate_succ, List.cons_append] at hstep
+      simpa [List.replicate_succ, List.append_assoc] using
+        (dpda_quotientNumerator.toPDA_step_deterministic
+          (step_odd_false_pair rest (List.replicate m .pair ++ [.bottom])) hstep).symm
 
 private lemma no_step_odd_true (m : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -304,6 +341,9 @@ private lemma no_step_odd_true (m : ℕ) (rest : List Bool)
     simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
       List.replicate_succ]
       at hstep
+  all_goals
+    rcases hstep with hstep | hstep <;>
+      exact ((Set.mem_empty_iff_false _).mp hstep).elim
 
 private lemma no_step_even_nil (m : ℕ)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -313,36 +353,35 @@ private lemma no_step_even_nil (m : ℕ)
   simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
     List.replicate_succ]
     at hstep
+  exact ((Set.mem_empty_iff_false _).mp hstep).elim
 
 private lemma even_false_inv (m : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.evenA, false :: rest, List.replicate (m + 1) .pair ++ [.bottom]⟩ c') :
     c' = ⟨.oddA, rest, List.replicate (m + 1) .pair ++ [.bottom]⟩ := by
-  rcases c' with ⟨q', input', stack'⟩
-  simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
-    List.replicate_succ]
-    using hstep
+  simp only [List.replicate_succ, List.cons_append] at hstep
+  simpa [List.replicate_succ, List.append_assoc] using
+    (dpda_quotientNumerator.toPDA_step_deterministic
+      (step_even_false rest .pair (List.replicate m .pair ++ [.bottom])) hstep).symm
 
 private lemma even_true_inv (m : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.evenA, true :: rest, List.replicate (m + 1) .pair ++ [.bottom]⟩ c') :
     c' = ⟨.readB, rest, List.replicate m .pair ++ [.bottom]⟩ := by
-  rcases c' with ⟨q', input', stack'⟩
-  simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
-    List.replicate_succ]
-    using hstep
+  simp only [List.replicate_succ, List.cons_append] at hstep
+  simpa [List.replicate_succ, List.append_assoc] using
+    (dpda_quotientNumerator.toPDA_step_deterministic
+      (step_even_true_pair rest (List.replicate m .pair ++ [.bottom])) hstep).symm
 
 private lemma readB_bottom_inv (input : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.readB, input, [.bottom]⟩ c') :
     c' = ⟨.boundary, input, [.bottom]⟩ := by
-  rcases c' with ⟨q', input', stack'⟩
-  cases input <;>
-    simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon]
-      using hstep
+  exact (dpda_quotientNumerator.toPDA_step_deterministic
+    (step_readB_bottom input) hstep).symm
 
 private lemma no_step_readB_pair_nil (r : ℕ)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -352,6 +391,7 @@ private lemma no_step_readB_pair_nil (r : ℕ)
   simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
     List.replicate_succ]
     at hstep
+  exact ((Set.mem_empty_iff_false _).mp hstep).elim
 
 private lemma no_step_readB_pair_false (r : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
@@ -361,16 +401,18 @@ private lemma no_step_readB_pair_false (r : ℕ) (rest : List Bool)
   simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
     List.replicate_succ]
     at hstep
+  rcases hstep with hstep | hstep <;>
+    exact ((Set.mem_empty_iff_false _).mp hstep).elim
 
 private lemma readB_true_pair_inv (r : ℕ) (rest : List Bool)
     (c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA)
     (hstep : @PDA.Reaches₁ NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
       ⟨.readB, true :: rest, List.replicate (r + 1) .pair ++ [.bottom]⟩ c') :
     c' = ⟨.readB, rest, List.replicate r .pair ++ [.bottom]⟩ := by
-  rcases c' with ⟨q', input', stack'⟩
-  simpa [PDA.Reaches₁, PDA.step, dpda_quotientNumerator, DPDA.toPDA, transition, epsilon,
-    List.replicate_succ]
-    using hstep
+  simp only [List.replicate_succ, List.cons_append] at hstep
+  simpa [List.replicate_succ, List.append_assoc] using
+    (dpda_quotientNumerator.toPDA_step_deterministic
+      (step_readB_true_pair rest (List.replicate r .pair ++ [.bottom])) hstep).symm
 
 private lemma NumInv.step {w : List Bool}
     {c c' : @PDA.conf NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA}
@@ -393,6 +435,8 @@ private lemma NumInv.step {w : List Bool}
         · rcases c' with ⟨q', input', stack'⟩
           simp [PDA.Reaches₁, PDA.step, dpda_quotientNumerator,
             DPDA.toPDA, transition, epsilon] at hstep
+          rcases hstep with hstep | hstep <;>
+            exact ((Set.mem_empty_iff_false _).mp hstep).elim
   · rcases hinv with ⟨p, hp, m, hw, hstack⟩
     subst stack
     cases input with
@@ -460,7 +504,7 @@ private lemma quotientNumerator_sound {w : List Bool}
     w ∈ quotientNumerator := by
   rcases h with ⟨q, hq, γ, hreach⟩
   have hinv := NumInv.reaches (NumInv.initial w) hreach
-  cases q <;> simp [DPDA.toPDA, dpda_quotientNumerator] at hq
+  cases q <;> simp [dpda_quotientNumerator] at hq
   change γ = [.bottom] ∧ ∃ p, p ∈ quotientNumerator ∧ w = p ++ [] at hinv
   rcases hinv with ⟨_, p, hp, hw⟩
   simpa [hw] using hp

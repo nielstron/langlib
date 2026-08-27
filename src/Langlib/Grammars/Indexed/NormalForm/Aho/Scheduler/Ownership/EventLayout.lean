@@ -291,7 +291,14 @@ public theorem outside_pushChild
     {owner : Fin (10 * input.length)}
     (hout : OutsideProductiveWindow window owner) :
     OutsideProductiveWindow window.pushChild owner := by
-  simpa [OutsideProductiveWindow] using hout
+  unfold OutsideProductiveWindow at hout ⊢
+  simp only [ProductiveOwnerWindow.pushChild_base]
+  have hcount :
+      (NFParse.push hr hlhs hc hrhs rest).productiveCount =
+        rest.productiveCount := by
+    simp [NFParse.productiveCount, NFParse.binaryCount, NFParse.terminalCount]
+  rw [hcount] at hout
+  exact hout
 
 /-- Specialized fresh-block transport for a unary push.  The new head may be either a canonical
 depth-one event block or an inherited owner outside the child window. -/

@@ -73,7 +73,7 @@ noncomputable def binSingleRule (i : Nat) (r : IRule T g.nt g.flag) :
       g.binarizeChain i (Sum.inl r.lhs) (x :: y :: rest) 0
 
 /-- The binarized grammar. -/
-noncomputable def binarize : IndexedGrammar T where
+noncomputable abbrev binarize : IndexedGrammar T where
   nt := g.nt ⊕ (Nat × Nat)
   flag := Option g.flag
   initial := Sum.inl g.initial
@@ -313,7 +313,10 @@ private lemma binarizeChain_simulates (i : Nat)
     · apply deri_of_tran;
       use ⟨ lhs, none, [ g.binLiftRhsSym s, g.binLiftRhsSym s' ] ⟩;
       use u, v, σ.map some;
-      exact ⟨ h_rules _ ( by simp +decide [ IndexedGrammar.binarizeChain ] ), by simp +decide [ List.append_assoc ], by simp +decide [ List.append_assoc ] ⟩;
+      exact ⟨ by
+        simpa [IndexedGrammar.binarize] using
+          h_rules _ (by simp +decide [IndexedGrammar.binarizeChain]),
+        by simp +decide [List.append_assoc], by simp +decide [List.append_assoc] ⟩;
     · obtain ⟨ n, rfl ⟩ := h_all.1;
       convert deri_of_tran_deri _ _ using 1;
       exact u ++ [ ISym.indexed ( Sum.inl n ) ( map some σ ), ISym.indexed ( Sum.inr ( i, idx ) ) ( map some σ ) ] ++ v;
@@ -365,9 +368,11 @@ private lemma binarize_forward_transforms
     use ⟨ Sum.inl r.lhs, none, [ IRhsSymbol.nonterminal ( Sum.inl B ) ( some ( some f ) ) ] ⟩, map g.liftBinISym u, map g.liftBinISym v, σ.map some; simp +decide [ *, IndexedGrammar.expandRhs ] ;
     exact ⟨ by
       obtain ⟨ i, hi ⟩ := List.mem_iff_get.mp hr;
-      convert binSingleRule_rules_mem g r i _ _ _ using 1;
-      · aesop;
-      · unfold IndexedGrammar.binSingleRule; aesop;, rfl, rfl ⟩;
+      have hi' : g.rules[i.val]? = some r := by
+        rw [← hi]
+        simp
+      refine ⟨r, i.val, List.mk_mem_zipIdx_iff_getElem?.mpr hi', ?_⟩
+      simp [IndexedGrammar.binSingleRule, IndexedGrammar.binLiftRhsSym, hf, hB], rfl, rfl ⟩;
   · rcases h with ⟨ B, hB₁, hB₂ ⟩ ; simp_all +decide [ List.map_append ] ;
     -- Apply the first rule to get indexed (Sum.inl B) (none :: σ.map some).
     have h_step1 : g.binarize.Transforms (u.map g.liftBinISym ++ [ISym.indexed (Sum.inl r.lhs) (σ.map some)] ++ v.map g.liftBinISym) (u.map g.liftBinISym ++ [ISym.indexed (Sum.inl B) (none :: σ.map some)] ++ v.map g.liftBinISym) := by
@@ -581,8 +586,10 @@ private lemma mem_binarize_rules_origin
     (r' : IRule T (g.nt ⊕ (Nat × Nat)) (Option g.flag))
     (hr' : r' ∈ g.binarize.rules) :
     ∃ (i : Nat) (r : IRule T g.nt g.flag), g.rules[i]? = some r ∧ r' ∈ g.binSingleRule i r := by
-  unfold IndexedGrammar.binarize at hr';
-  grind +suggestions
+  change r' ∈ (g.rules.zipIdx.map fun x => g.binSingleRule x.2 x.1).flatten at hr'
+  rcases List.mem_flatten.mp hr' with ⟨rs, hrs, hr'⟩
+  rcases List.mem_map.mp hrs with ⟨⟨r, i⟩, hri, rfl⟩
+  exact ⟨i, r, List.mk_mem_zipIdx_iff_getElem?.mp hri, hr'⟩
 
 private lemma derives_rule_expansion
     (r : IRule T g.nt g.flag) (hr : r ∈ g.rules) (σ : List g.flag) :
@@ -740,7 +747,6 @@ private lemma unbinarize_rule_step_of
           · have heq := unbinarize_binarizeChain_tail_eq g i 0 r hi hall σ
               (y :: z :: rest) (by simp [hrhs_eq]) (by simp) r' hr'
             rw [heq]
-            exact deri_self g _
 
 /-- For a rule from binSingleRule, unbinarizeSym of the LHS symbol gets derived to
     unbinarizeSF of the expandRhs of the RHS. -/
@@ -802,11 +808,11 @@ private lemma binarize_generates_backward
     (hfs : g.FlagsSeparated) (hfresh : g.StartNotOnRhs')
     {w : List T} (_hw : w ≠ []) (h : (g.binarize).Generates w) :
     g.Generates w := by
-  convert unbinarize_derives g hne hti hfs hfresh h;
-  -- By definition of `Generates`, we have that `g.Generates w` means `g.Derives [ISym.indexed g.initial []] (w.map ISym.terminal)`.
-  rw [IndexedGrammar.Generates];
-  convert Iff.rfl;
-  convert unbinarize_terminal g w
+  change g.binarize.Derives [ISym.indexed (Sum.inl g.initial) []]
+    (w.map (ISym.terminal (g := g.binarize))) at h
+  have hd := unbinarize_derives g hne hti hfs hfresh h
+  rw [unbinarize_initial g, unbinarize_terminal g w] at hd
+  exact hd
 
 /-! ### Main theorems -/
 
@@ -826,7 +832,7 @@ theorem binarize_generates_iff_all (hne : g.NoEpsilon') (hti : g.TerminalsIsolat
     constructor
     · intro hgen
       obtain ⟨hdec, hNF⟩ := g.binarize_isNormalForm hne hti hfs hfresh
-      letI := hdec
+      let := hdec
       have hne_bin : (g.binarize).NoEpsilon' :=
         (g.binarize).noEpsilon_of_isNormalForm hNF
       exact False.elim ((g.binarize).not_generates_nil_of_noEpsilon hne_bin hgen)

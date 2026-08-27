@@ -18,6 +18,23 @@ variable {T : Type}
 namespace IndexedGrammar
 namespace Aho
 
+private theorem WorkCursor.map_some_slots_pop {g : IndexedGrammar T}
+    (c : WorkCursor g) :
+    c.slots.map some =
+      c.left.map inactive ++ active c.focus :: c.right.map inactive := by
+  have map_inactive (xs : List (WorkSym g)) :
+      xs.map (fun z => some (WorkSlot.mk false z)) = xs.map inactive := by
+    induction xs with
+    | nil => rfl
+    | cons z zs ih =>
+        simp only [List.map_cons]
+        rw [ih]
+        rfl
+  simp only [WorkCursor.slots, List.map_append, List.map_cons, List.map_map,
+    Function.comp_def]
+  rw [map_inactive, map_inactive]
+  rfl
+
 /-! ## Two-slot right shifts used by pop -/
 
 private theorem WorkTrace.decodePlus2None
@@ -155,11 +172,9 @@ private theorem WorkTrace.decodePlus2Some
                   (by simp [advanceWorkState, inactive, holdEnded]) hdone with
                 ⟨beta, k, holdTail, hnewTail⟩
               refine ⟨symbol :: beta, k, ?_, ?_⟩
-              · simp only [oldProjection, List.map_cons, List.map_cons]
-                simpa [inactive] using
+              · simpa [oldProjection, inactive] using
                   congrArg (fun xs => inactive symbol :: xs) holdTail
-              · simp only [newProjection, List.map_cons, List.map_cons]
-                simpa [inactive] using
+              · simpa [newProjection, inactive] using
                   congrArg (fun xs => inactive z₀ :: xs) hnewTail
 
 private theorem WorkTrace.decodeInsertTwoAfterStage2
@@ -193,7 +208,7 @@ private theorem WorkTrace.decodeInsertTwoAfterStage2
         simpa [hstage] using hedge₀.2.2.2.2)
       rcases he₀ with ⟨rfl, hcarry₀, rfl⟩
       cases tail₀ with
-      | nil => simp [workScanDone, advanceWorkState] at hdone
+      | nil => exact (of_decide_eq_true hdone).elim
       | @cons _stage3 carry₁ new₁ next₁ suffixRows result hedge₁ htail =>
           let stage3 := advanceWorkState stage carry₀ (active newFocus) .stage3
           have he₁ := hstage3Edge next₁ stage3.history carry₁ new₁ (by
@@ -616,7 +631,7 @@ private theorem WorkTrace.decodePopEitherAfterStage1
         let minusState :=
           advanceWorkState stage (active (.live A)) (active newFocus) .minus1First
         cases htail₀ with
-        | nil => simp [workScanDone, advanceWorkState] at hdone
+        | nil => exact (of_decide_eq_true hdone).elim
         | @cons _minus old₁ new₁ next₁ suffixRows result hedge₁ htail =>
             have he₁ := hminusFirst next₁ minusState.history old₁ new₁ (by
               simpa [minusState, advanceWorkState] using hedge₁.2.2.2.2)
@@ -898,10 +913,10 @@ public theorem workTraceAccepts_popPlain_sound
       ⟨alpha ++ [.dollar] ++ beta ++ [.index R d.markUsed, .dollar],
         .plain B, .close :: gamma⟩
     refine ⟨oldCursor, newCursor, k + 2, k, ?_, ?_, ?_⟩
-    · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-        List.map_map, Function.comp_def, List.append_assoc] using hold
-    · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-        List.map_map, Function.comp_def, List.append_assoc] using hnew
+    · rw [WorkCursor.map_some_slots_pop]
+      simpa [oldCursor, List.append_assoc] using hold
+    · rw [WorkCursor.map_some_slots_pop]
+      simpa [newCursor, List.append_assoc] using hnew
     · exact ⟨hedge, Or.inl ⟨alpha, beta, gamma, hfree, rfl, rfl⟩⟩
   · rcases herase with ⟨alpha, gamma, k, hedge, hold, hnew⟩
     let oldCursor : WorkCursor g :=
@@ -909,10 +924,10 @@ public theorem workTraceAccepts_popPlain_sound
     let newCursor : WorkCursor g :=
       ⟨alpha ++ [.dollar], .plain B, gamma⟩
     refine ⟨oldCursor, newCursor, k, k + 1, ?_, ?_, ?_⟩
-    · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-        List.map_map, Function.comp_def, List.append_assoc] using hold
-    · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-        List.map_map, Function.comp_def, List.append_assoc] using hnew
+    · rw [WorkCursor.map_some_slots_pop]
+      simpa [oldCursor, List.append_assoc] using hold
+    · rw [WorkCursor.map_some_slots_pop]
+      simpa [newCursor, List.append_assoc] using hnew
     · exact ⟨hedge, Or.inr ⟨alpha, gamma, rfl, rfl⟩⟩
 
 private theorem popLive_stage1_iff
@@ -1048,10 +1063,10 @@ public theorem workTraceAccepts_popLive_sound
       ⟨alpha ++ [.dollar] ++ beta ++ [.index R d.markUsed, .dollar],
         .live B, .close :: gamma⟩
     refine ⟨oldCursor, newCursor, k + 2, k, ?_, ?_, ?_⟩
-    · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-        List.map_map, Function.comp_def, List.append_assoc] using hold
-    · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-        List.map_map, Function.comp_def, List.append_assoc] using hnew
+    · rw [WorkCursor.map_some_slots_pop]
+      simpa [oldCursor, List.append_assoc] using hold
+    · rw [WorkCursor.map_some_slots_pop]
+      simpa [newCursor, List.append_assoc] using hnew
     · exact ⟨hedge.1, hedge.2,
         Or.inl ⟨alpha, beta, gamma, hfree, rfl, rfl⟩⟩
   · rcases herase with ⟨alpha, gamma, k, hedge, hold, hnew⟩
@@ -1060,10 +1075,10 @@ public theorem workTraceAccepts_popLive_sound
     let newCursor : WorkCursor g :=
       ⟨alpha ++ [.dollar], .live B, gamma⟩
     refine ⟨oldCursor, newCursor, k, k + 1, ?_, ?_, ?_⟩
-    · simpa [oldCursor, WorkCursor.slots, inactive, active, List.map_append,
-        List.map_map, Function.comp_def, List.append_assoc] using hold
-    · simpa [newCursor, WorkCursor.slots, inactive, active, List.map_append,
-        List.map_map, Function.comp_def, List.append_assoc] using hnew
+    · rw [WorkCursor.map_some_slots_pop]
+      simpa [oldCursor, List.append_assoc] using hold
+    · rw [WorkCursor.map_some_slots_pop]
+      simpa [newCursor, List.append_assoc] using hnew
     · exact ⟨hedge.1, hedge.2, Or.inr ⟨alpha, gamma, rfl, rfl⟩⟩
 
 end Aho

@@ -110,14 +110,16 @@ private lemma allProgBool_primrec : Primrec allProgBool := by
     refine primrec_list_any (f := fun w : List HomAlphabet => w)
       (p := fun _ a => !isProg a) Primrec.id ?_
     exact Primrec₂.mk (Primrec.not.comp (isProg_primrec.comp Primrec.snd))
-  simpa [allProgBool] using Primrec.not.comp hAny
+  unfold allProgBool
+  exact Primrec.not.comp hAny
 
 private lemma allFuelBool_primrec : Primrec allFuelBool := by
   have hAny : Primrec (fun w : List HomAlphabet => w.any (fun a => !isFuel a)) := by
     refine primrec_list_any (f := fun w : List HomAlphabet => w)
       (p := fun _ a => !isFuel a) Primrec.id ?_
     exact Primrec₂.mk (Primrec.not.comp (isFuel_primrec.comp Primrec.snd))
-  simpa [allFuelBool] using Primrec.not.comp hAny
+  unfold allFuelBool
+  exact Primrec.not.comp hAny
 
 private def boundedHaltingHomTest (w : List HomAlphabet) : Bool :=
   let n := w.findIdx isDelim
@@ -152,6 +154,7 @@ private lemma boundedHaltingHomTest_computable :
     convert Nat.Partrec.Code.primrec_evaln.comp
       (((Primrec.list_length.comp hDrop).pair
         ((Primrec.ofNat Nat.Partrec.Code).comp hFind)).pair (Primrec.const 0)) using 1
+    simp only [Nat.Partrec.Code.ofNatCode_eq]
   have hSome : Primrec (fun w : List HomAlphabet =>
       (Nat.Partrec.Code.evaln (w.drop (w.findIdx isDelim + 1)).length
         (Nat.Partrec.Code.ofNatCode (w.findIdx isDelim)) 0).isSome) :=
@@ -268,7 +271,7 @@ private lemma mem_prod_singletons_iff_flatMap (w : List α) (h : α → List β)
             ({h a} : Language β) * (List.map (fun a => ({h a} : Language β)) w).prod by rfl] at hu
         rw [Language.mem_mul] at hu
         rcases hu with ⟨u₁, hu₁, u₂, hu₂, rfl⟩
-        have hu₁' : u₁ = h a := by simpa using hu₁
+        have hu₁' : u₁ = h a := Set.mem_singleton_iff.mp hu₁
         have hu₂' : u₂ = w.flatMap h := (ih u₂).mp hu₂
         simp [hu₁', hu₂']
       · intro hu

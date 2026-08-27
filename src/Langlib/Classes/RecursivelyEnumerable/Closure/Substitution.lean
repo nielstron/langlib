@@ -46,6 +46,7 @@ public section
 
 
 
+
 /-! # RE Closure Under Substitution
 
 This file proves that recursively enumerable languages over finite alphabets are
@@ -74,7 +75,15 @@ theorem RE_of_finite_iUnion [Fintype α] [Fintype ι] (L : ι → Language α)
     intro s
     induction s using Finset.induction_on with
     | empty =>
-        simpa using is_RE_of_isRegular (Language.isRegular_bot : (⊥ : Language α).IsRegular)
+        have hempty : ((⋃ i ∈ (∅ : Finset ι), L i) : Language α) = ⊥ := by
+          show (⋃ i, ⋃ (_ : i ∈ (∅ : Finset ι)),
+            (show Set (List α) from L i)) = ∅
+          ext w
+          rw [Set.mem_iUnion₂]
+          simp
+        rw [hempty]
+        exact is_RE_of_isRegular
+          (Language.isRegular_bot : (⊥ : Language α).IsRegular)
     | insert a s has ih =>
         let U : Language α := (⋃ i ∈ s, L i)
         have hEq : ((⋃ i ∈ insert a s, L i) : Language α) =
@@ -83,28 +92,45 @@ theorem RE_of_finite_iUnion [Fintype α] [Fintype ι] (L : ι → Language α)
           have hU_mp : w ∈ U → ∃ i, ∃ _ : i ∈ s, w ∈ L i := by
             intro hw
             change w ∈ (⋃ i ∈ s, L i : Set (List α)) at hw
-            simpa only [Set.mem_iUnion] using hw
+            exact Set.mem_iUnion₂.mp hw
           have hU_mpr : (∃ i, ∃ _ : i ∈ s, w ∈ L i) → w ∈ U := by
-            intro hw
+            rintro ⟨i, his, hwi⟩
             change w ∈ (⋃ i ∈ s, L i : Set (List α))
-            simpa only [Set.mem_iUnion] using hw
-          rw [Language.mem_add]
+            exact Set.mem_iUnion₂.mpr ⟨i, his, hwi⟩
+          change w ∈ (⋃ i, ⋃ (_ : i ∈ insert a s),
+              (show Set (List α) from L i)) ↔
+            w ∈ Set.union (show Set (List α) from L a)
+              (show Set (List α) from U)
+          rw [Set.mem_iUnion₂]
+          change (∃ i, ∃ _ : i ∈ insert a s, w ∈ L i) ↔
+            (w ∈ L a ∨ w ∈ U)
           constructor
           · intro hw
-            simp only [Set.mem_iUnion, Finset.mem_insert] at hw
             rcases hw with ⟨i, hi, hwi⟩
+            rw [Finset.mem_insert] at hi
             rcases hi with rfl | his
             · exact Or.inl hwi
             · exact Or.inr (hU_mpr ⟨i, his, hwi⟩)
           · intro hw
-            simp only [Set.mem_iUnion, Finset.mem_insert]
             rcases hw with hwa | hU
-            · exact ⟨a, Or.inl rfl, hwa⟩
+            · exact ⟨a, Finset.mem_insert_self a s, hwa⟩
             · obtain ⟨i, his, hwi⟩ := hU_mp hU
-              exact ⟨i, Or.inr his, hwi⟩
+              exact ⟨i, Finset.mem_insert_of_mem his, hwi⟩
         rw [hEq]
         exact RE_of_RE_u_RE (L a : Language α) U ⟨hL a, ih⟩
-  simpa using hfin Finset.univ
+  have hall : ((⋃ i, L i) : Language α) =
+      ((⋃ i ∈ Finset.univ, L i) : Language α) := by
+    show (⋃ i, (show Set (List α) from L i)) =
+      (⋃ i, ⋃ (_ : i ∈ Finset.univ), (show Set (List α) from L i))
+    ext w
+    rw [Set.mem_iUnion, Set.mem_iUnion₂]
+    constructor
+    · rintro ⟨i, hwi⟩
+      exact ⟨i, Finset.mem_univ i, hwi⟩
+    · rintro ⟨i, _, hwi⟩
+      exact ⟨i, hwi⟩
+  rw [hall]
+  exact hfin Finset.univ
 
 namespace Language
 

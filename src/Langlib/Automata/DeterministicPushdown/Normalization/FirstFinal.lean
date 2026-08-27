@@ -49,13 +49,11 @@ public noncomputable def firstFinal (M : DPDA Q T S) : DPDA (Q × Bool) T S := b
   simp [hδM]
 
 /-- Lift an original configuration, choosing the value of the first-final bit. -/
-@[expose]
 public def firstFinalLift (M : DPDA Q T S) (seen : Bool)
     (c : PDA.conf M.toPDA) : PDA.conf M.firstFinal.toPDA :=
   ⟨(c.state, seen), c.input, c.stack⟩
 
 /-- Forget the first-final bit in a normalized configuration. -/
-@[expose]
 public def firstFinalErase (M : DPDA Q T S)
     (c : PDA.conf M.firstFinal.toPDA) : PDA.conf M.toPDA :=
   ⟨c.state.1, c.input, c.stack⟩
@@ -97,7 +95,7 @@ public theorem firstFinalErase_step (M : DPDA Q T S)
       | nil => simp [PDA.Reaches₁, PDA.step] at h
       | cons Z rest =>
           simp only [PDA.Reaches₁, PDA.step, DPDA.toPDA, firstFinal,
-            Set.mem_setOf_eq, firstFinalErase] at h ⊢
+            Set.mem_ofPred_eq, firstFinalErase] at h ⊢
           rcases h with ⟨p', β, hε, hd⟩
           obtain ⟨hstate, rfl, rfl⟩ := PDA.conf.mk.inj hd
           obtain ⟨rfl, rfl⟩ := Prod.mk.inj hstate
@@ -113,7 +111,7 @@ public theorem firstFinalErase_step (M : DPDA Q T S)
       | nil => simp [PDA.Reaches₁, PDA.step] at h
       | cons Z restStack =>
           simp only [PDA.Reaches₁, PDA.step, DPDA.toPDA, firstFinal,
-            Set.mem_union, Set.mem_setOf_eq, firstFinalErase] at h ⊢
+            Set.mem_union, Set.mem_ofPred_eq, firstFinalErase] at h ⊢
           rcases h with hδ | hε
           · rcases hδ with ⟨p', β, hδ, hd⟩
             obtain ⟨hstate, rfl, rfl⟩ := PDA.conf.mk.inj hd
@@ -155,7 +153,7 @@ public theorem firstFinalLift_step (M : DPDA Q T S) (seen : Bool)
       cases stack with
       | nil => simp [PDA.Reaches₁, PDA.step] at h
       | cons Z rest =>
-          simp only [PDA.Reaches₁, PDA.step, DPDA.toPDA, Set.mem_setOf_eq] at h
+          simp only [PDA.Reaches₁, PDA.step, DPDA.toPDA, Set.mem_ofPred_eq] at h
           rcases h with ⟨p', β, hε, hd⟩
           obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hd
           cases hM : M.epsilon_transition q Z with
@@ -167,13 +165,14 @@ public theorem firstFinalLift_step (M : DPDA Q T S) (seen : Bool)
               refine ⟨seen || decide (q ∈ M.final_states), ?_, ?_⟩
               · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, firstFinal,
                   firstFinalLift, hM]
+                exact Set.mem_singleton _
               · simp [Bool.or_eq_true]
   | cons a restInput =>
       cases stack with
       | nil => simp [PDA.Reaches₁, PDA.step] at h
       | cons Z restStack =>
           simp only [PDA.Reaches₁, PDA.step, DPDA.toPDA, Set.mem_union,
-            Set.mem_setOf_eq] at h
+            Set.mem_ofPred_eq] at h
           rcases h with hδ | hε
           · rcases hδ with ⟨p', β, hδ, hd⟩
             obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hd
@@ -185,7 +184,7 @@ public theorem firstFinalLift_step (M : DPDA Q T S) (seen : Bool)
                 rcases hδ with ⟨rfl, rfl⟩
                 refine ⟨false, ?_, ?_⟩
                 · exact Or.inl ⟨(p, false), β, by
-                    simp [DPDA.toPDA, firstFinal, hM], rfl⟩
+                    simp [firstFinal, hM], rfl⟩
                 · simp
           · rcases hε with ⟨p', β, hε, hd⟩
             obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hd
@@ -197,7 +196,7 @@ public theorem firstFinalLift_step (M : DPDA Q T S) (seen : Bool)
                 rcases hε with ⟨rfl, rfl⟩
                 refine ⟨seen || decide (q ∈ M.final_states), ?_, ?_⟩
                 · exact Or.inr ⟨(p, seen || decide (q ∈ M.final_states)), β, by
-                    simp [DPDA.toPDA, firstFinal, hM], rfl⟩
+                    simp [firstFinal, hM], rfl⟩
                 · simp [Bool.or_eq_true]
 
 /-! ## Multi-step simulation and the seen-final trace invariant -/
@@ -265,7 +264,7 @@ public theorem firstFinal_acceptsByFinalState (M : DPDA Q T S) :
     · refine ⟨(q, false), ?_, γ, ?_⟩
       · change false = false ∧ q ∈ M.final_states
         exact ⟨rfl, by simpa [DPDA.toPDA] using hq⟩
-      · simpa [hSeen] using hlift
+      · simpa [hSeen, DPDA.toPDA, firstFinalLift, firstFinal] using hlift
     · obtain ⟨e, hereach, heinput, hefinal⟩ := hseen hSeen
       rcases e with ⟨qe, einput, estack⟩
       simp only at heinput
@@ -319,10 +318,10 @@ private theorem firstFinal_step_sets_seen_of_same_input (M : DPDA Q T S)
           simp only [PDA.Reaches₁, PDA.step] at hstep
           rcases hstep with ⟨p', β, hε, hd⟩
           cases hM : M.epsilon_transition q Z with
-          | none => simp [DPDA.toPDA, firstFinal, hM] at hε
+          | none => simp [firstFinal, hM] at hε
           | some out =>
               rcases out with ⟨pM, βM⟩
-              simp [DPDA.toPDA, firstFinal, hM] at hε
+              simp [firstFinal, hM] at hε
               rcases hε with ⟨rfl, rfl⟩
               exact (congrArg (fun e => e.state.2) hd).trans hmark
   | cons a restInput =>
@@ -330,7 +329,7 @@ private theorem firstFinal_step_sets_seen_of_same_input (M : DPDA Q T S)
       | nil => simp [PDA.Reaches₁, PDA.step] at hstep
       | cons Z restStack =>
           simp only [PDA.Reaches₁, PDA.step, Set.mem_union,
-            Set.mem_setOf_eq] at hstep
+            Set.mem_ofPred_eq] at hstep
           rcases hstep with hδ | hε
           · rcases hδ with ⟨p', β, hδ, hd⟩
             have hlength := congrArg (fun e => e.input.length) hd
@@ -338,10 +337,10 @@ private theorem firstFinal_step_sets_seen_of_same_input (M : DPDA Q T S)
             omega
           · rcases hε with ⟨p', β, hε, hd⟩
             cases hM : M.epsilon_transition q Z with
-            | none => simp [DPDA.toPDA, firstFinal, hM] at hε
+            | none => simp [firstFinal, hM] at hε
             | some out =>
                 rcases out with ⟨pM, βM⟩
-                simp [DPDA.toPDA, firstFinal, hM] at hε
+                simp [firstFinal, hM] at hε
                 rcases hε with ⟨rfl, rfl⟩
                 exact (congrArg (fun e => e.state.2) hd).trans hmark
 
