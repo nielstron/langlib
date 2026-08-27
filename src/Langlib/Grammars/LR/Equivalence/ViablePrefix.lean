@@ -119,7 +119,6 @@ public theorem before_eq_of_advances {G : CF_grammar T} {k : ℕ}
 
 /-- Semantic validity of an LR item for an already scanned grammar-symbol
 prefix. -/
-@[expose]
 public def Valid (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.nt)) (i : Item G k) : Prop :=
   ∃ (p : List (symbol T G.nt)) (s : List T),
@@ -130,7 +129,6 @@ public def Valid (G : CF_grammar T) (k : ℕ)
     observe k s = i.lookahead
 
 /-- The finite set of all semantically valid items at a prefix. -/
-@[expose]
 public noncomputable def validItems [Fintype T] (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.nt)) : Finset (Item G k) := by
   classical

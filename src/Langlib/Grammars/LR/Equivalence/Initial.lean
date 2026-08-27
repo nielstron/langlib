@@ -21,7 +21,6 @@ namespace CF_grammar.LRk
 variable {T : Type}
 
 /-- The rule-list index of the distinguished augmentation rule. -/
-@[expose]
 public def startRuleIndex (G : CF_grammar T) : RuleIndex G.augment :=
   ⟨0, by simp [CF_grammar.augment]⟩
 
@@ -31,7 +30,6 @@ public theorem ruleAt_startRuleIndex (G : CF_grammar T) :
   simp [ruleAt, startRuleIndex, CF_grammar.augment]
 
 /-- The canonical kernel item `[S' -> . S, EOF^k]`. -/
-@[expose]
 public def startItem (G : CF_grammar T) (k : ℕ) : Item G.augment k :=
   ⟨startRuleIndex G,
     ⟨⟨0, by simp [ruleAt_startRuleIndex, CF_grammar.augmentStartRule]⟩,
@@ -84,7 +82,6 @@ public theorem startItem_valid (G : CF_grammar T) (k : ℕ) :
   · simp
 
 /-- The raw kernel of the canonical viable-prefix automaton. -/
-@[expose]
 public def startKernel (G : CF_grammar T) (k : ℕ) : Finset (Item G.augment k) :=
   {startItem G k}
 

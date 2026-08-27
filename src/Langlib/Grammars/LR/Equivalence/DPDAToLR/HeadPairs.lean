@@ -60,7 +60,7 @@ private theorem reaches_eq_of_read_enabled
         have hreadNone := A.no_mixed q Z hsome a
         rw [hread] at hreadNone
         simp at hreadNone
-      simp [DPDA.toPDA, hepsilonNone] at hepsilon
+      simp [hepsilonNone] at hepsilon
 
 /-- Reading transitions of the FS-to-empty-stack machine necessarily lie in
 the simulation component and expose a genuine transition of the normalized
@@ -92,7 +92,7 @@ private theorem simulation_read_of_emptyStack_read
           rcases h with ⟨⟨next₀, gamma₀⟩, htransition, heq⟩
           cases hoption : M.firstFinal.transition q₀ a Z₀ with
           | none =>
-              simp [DPDA.toPDA, hoption] at htransition
+              simp [hoption] at htransition
           | some out =>
               have hout : out = (next₀, gamma₀) := by
                 have hout' : (next₀, gamma₀) = out := by
@@ -103,6 +103,7 @@ private theorem simulation_read_of_emptyStack_read
               exact ⟨q₀, next₀, Z₀, gamma₀,
                 rfl, rfl, rfl, rfl, hoption⟩
 
+omit [Fintype S] in
 private theorem simulation_stack_shape
     {Z : S} {context : List (Option S)} {stack : List S}
     (h : some Z :: context = stack.map some ++ [none]) :

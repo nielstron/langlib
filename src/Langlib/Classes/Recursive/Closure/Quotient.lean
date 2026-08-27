@@ -27,8 +27,8 @@ alphabet into which the binary witness alphabet embeds. -/
 public theorem Recursive_notClosedUnderRightQuotient_of_embedding {α : Type}
     [Fintype α] (e : Bool ↪ α) :
     ¬ ClosedUnderRightQuotient (α := α) is_Recursive := by
-  letI : DecidableEq α := Classical.decEq α
-  letI : Primcodable α :=
+  let : DecidableEq α := Classical.decEq α
+  let : Primcodable α :=
     Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
   intro hclosed
   apply Recursive_notClosedUnderRightQuotientWithRegular_of_embedding e
@@ -40,8 +40,8 @@ alphabet with at least two symbols. -/
 public theorem Recursive_notClosedUnderRightQuotient_of_card {α : Type}
     [Fintype α] (hα : 2 ≤ Fintype.card α) :
     ¬ ClosedUnderRightQuotient (α := α) is_Recursive := by
-  letI : DecidableEq α := Classical.decEq α
-  letI : Primcodable α :=
+  let : DecidableEq α := Classical.decEq α
+  let : Primcodable α :=
     Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
   intro hclosed
   apply Recursive_notClosedUnderRightQuotientWithRegular_of_card hα

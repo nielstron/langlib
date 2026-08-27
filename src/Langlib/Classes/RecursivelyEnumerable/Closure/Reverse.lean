@@ -65,7 +65,6 @@ section reversal_defs
 
 /-- Reverse a single unrestricted rule by swapping and reversing the left/right context
 and reversing the output string. -/
-@[expose]
 public def reversal_grule {N : Type} (r : grule T N) : grule T N :=
   grule.mk r.input_R.reverse r.input_N r.input_L.reverse r.output_string.reverse
 
@@ -82,7 +81,6 @@ public lemma reversal_grule_reversal_grule {N : Type} :
   apply dual_of_reversal_grule
 
 /-- Reverse every rule of an unrestricted grammar. -/
-@[expose]
 public def reversal_grammar (g : grammar T) : grammar T :=
   grammar.mk g.nt g.initial (List.map reversal_grule g.rules)
 

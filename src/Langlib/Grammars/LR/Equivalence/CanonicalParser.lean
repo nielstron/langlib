@@ -25,11 +25,9 @@ public structure Config (T : Type) (G : CF_grammar T) where
   stack : List (symbol T G.augment.nt)
   input : List T
 
-@[expose]
 public def Config.form (c : Config T G) : List (symbol T G.augment.nt) :=
   c.stack ++ c.input.map (symbol.terminal (N := G.augment.nt))
 
-@[expose]
 public def initialConfig (G : CF_grammar T) (w : List T) : Config T G :=
   ⟨[], w⟩
 
@@ -56,56 +54,59 @@ public abbrev Reaches (G : CF_grammar T) (k : ℕ) :
     Config T G → Config T G → Prop :=
   Relation.ReflTransGen (Step G k)
 
-@[expose]
 public def Accepting (G : CF_grammar T) (k : ℕ) (c : Config T G) : Prop :=
   c.input = [] ∧
     tableAction G k (scanKernel G k c.stack) (eofLookahead T k) = .accept
 
-@[expose]
 public def Accepts (G : CF_grammar T) (k : ℕ) (w : List T) : Prop :=
   ∃ c, Reaches G k (initialConfig G w) c ∧ Accepting G k c
 
+omit [Fintype T] in
 @[simp]
-public theorem lookaheadHead_observe_cons (k : ℕ) (hk : 0 < k)
+public theorem lookaheadHead_observe_cons [Fintype T] (k : ℕ) (hk : 0 < k)
     (a : T) (w : List T) :
     lookaheadHead k (observe k (a :: w)) = some a := by
   simp [lookaheadHead, hk, observe]
 
 /-- A convenient completed item naming a rule occurrence. -/
-@[expose]
 public def completedItem (G : CF_grammar T) (k : ℕ)
     (r : RuleIndex G.augment) (u : Lookahead T k) : Item G.augment k :=
   ⟨r, ⟨⟨(ruleAt G.augment r).2.length, by omega⟩, u⟩⟩
 
+omit [Fintype T] in
 @[simp]
-public theorem completedItem_complete (G : CF_grammar T) (k : ℕ)
+public theorem completedItem_complete [Fintype T] (G : CF_grammar T) (k : ℕ)
     (r : RuleIndex G.augment) (u : Lookahead T k) :
     (completedItem G k r u).Complete := rfl
 
+omit [Fintype T] in
 @[simp]
-public theorem completedItem_before (G : CF_grammar T) (k : ℕ)
+public theorem completedItem_before [Fintype T] (G : CF_grammar T) (k : ℕ)
     (r : RuleIndex G.augment) (u : Lookahead T k) :
     (completedItem G k r u).before = (ruleAt G.augment r).2 := by
   change (ruleAt G.augment r).2.take (ruleAt G.augment r).2.length = _
   simp
 
+omit [Fintype T] in
 @[simp]
-public theorem completedItem_lookahead (G : CF_grammar T) (k : ℕ)
+public theorem completedItem_lookahead [Fintype T] (G : CF_grammar T) (k : ℕ)
     (r : RuleIndex G.augment) (u : Lookahead T k) :
     (completedItem G k r u).lookahead = u := rfl
 
+omit [Fintype T] in
 /-- Fresh augmentation never inserts the fresh start symbol into an embedded
 right-hand side. -/
-public theorem fresh_not_mem_augmentString (G : CF_grammar T)
+public theorem fresh_not_mem_augmentString [Fintype T] (G : CF_grammar T)
     (w : List (symbol T G.nt)) :
     symbol.nonterminal none ∉ CF_grammar.augmentString w := by
   intro hmem
   rcases List.mem_map.mp hmem with ⟨X, _, hX⟩
   cases X <;> simp [CF_grammar.augmentSymbol] at hX
 
+omit [Fintype T] in
 /-- No augmented production has the fresh start nonterminal in its right-hand
 side. -/
-public theorem fresh_not_mem_rule_rhs (G : CF_grammar T)
+public theorem fresh_not_mem_rule_rhs [Fintype T] (G : CF_grammar T)
     {r : G.augment.nt × List (symbol T G.augment.nt)}
     (hr : r ∈ G.augment.rules) : symbol.nonterminal none ∉ r.2 := by
   rcases List.mem_cons.mp hr with hstart | hmapped
@@ -118,9 +119,10 @@ public theorem fresh_not_mem_rule_rhs (G : CF_grammar T)
   · rcases List.mem_map.mp hmapped with ⟨r, hr, rfl⟩
     exact fresh_not_mem_augmentString G r.2
 
+omit [Fintype T] in
 /-- A surviving occurrence of the fresh initial nonterminal can only be the
 untouched root configuration. -/
-public theorem fresh_prehandle_eq_root (G : CF_grammar T)
+public theorem fresh_prehandle_eq_root [Fintype T] (G : CF_grammar T)
     {p : List (symbol T G.augment.nt)} {s : List T}
     (h : G.augment.DerivesRightmost
       [symbol.nonterminal G.augment.initial]
@@ -210,8 +212,9 @@ public theorem shifts_to_handle (G : CF_grammar T) (k : ℕ) (hk : 0 < k)
       apply Relation.ReflTransGen.head (Step.shift hshift)
       simpa [List.append_assoc] using ih hboundary'
 
+omit [Fintype T] in
 /-- Prefix/terminal-suffix comparison at a rightmost handle boundary. -/
-public theorem split_at_handle_boundary
+public theorem split_at_handle_boundary [Fintype T]
     {N : Type} {gamma B : List (symbol T N)} {input s : List T}
     (hend : gamma = [] ∨ ∃ p A, gamma = p ++ [symbol.nonterminal A])
     (heq : gamma ++ input.map symbol.terminal =
@@ -255,9 +258,10 @@ public theorem split_at_handle_boundary
     subst bs
     exact ⟨[], by simpa using hgamma.symm, by simpa using hzs.symm⟩
 
+omit [Fintype T] in
 /-- The only terminal-suffix split of the one-symbol fresh root whose prefix is
 empty or ends in a nonterminal is the root itself with empty suffix. -/
-public theorem split_fresh_root (G : CF_grammar T)
+public theorem split_fresh_root [Fintype T] (G : CF_grammar T)
     {gamma : List (symbol T (Option G.nt))} {input : List T}
     (hend : gamma = [] ∨ ∃ p A, gamma = p ++ [symbol.nonterminal A])
     (heq : gamma ++ input.map symbol.terminal = [symbol.nonterminal none]) :
@@ -279,7 +283,6 @@ public theorem split_fresh_root (G : CF_grammar T)
 
 /-- Result of pruning a counted rightmost derivation: either the table has
 accepted, or the degenerate zero-step derivation has reached the fresh root. -/
-@[expose]
 public def BackOutcome (G : CF_grammar T) (k : ℕ) (c : Config T G) : Prop :=
   ∃ d, Reaches G k c d ∧
     (Accepting G k d ∨
@@ -401,7 +404,6 @@ public theorem parses_back_of_derivesRightmostIn
 /-- The parser stack never contains the fresh augmented start nonterminal.
 That symbol is recognized by the accept action rather than pushed by a
 reduction. -/
-@[expose]
 public def FreshFree (c : Config T G) : Prop :=
   symbol.nonterminal none ∉ c.stack
 

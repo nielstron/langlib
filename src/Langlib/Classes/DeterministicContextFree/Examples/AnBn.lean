@@ -50,7 +50,6 @@ This file constructs a deterministic pushdown automaton for the language
 open PDA List
 
 /-- DPDA recognizing `{aⁿbⁿ | n ≥ 0}` where `false = a` and `true = b`. -/
-@[expose]
 public def dpda_anbn : DPDA (Fin 4) Bool Bool where
   initial_state := 0
   start_symbol := false
@@ -184,7 +183,7 @@ private lemma inv_step_state0 (w : List Bool) (input : List Bool)
   rcases input with _ | ⟨a, rest⟩ <;> simp_all +decide [PDA.Reaches₁]
   · obtain ⟨p, β, hpβ, rfl⟩ := hstep
     unfold dpda_anbn at hpβ
-    simp_all +decide [DPDA.toPDA]
+    simp_all +decide
   · cases a
     · rcases hstep with (⟨p, β, hp, rfl⟩ | ⟨p, β, hp, rfl⟩) <;> simp_all +decide [dpda_anbn]
       · simp_all +decide [DPDA.toPDA]
@@ -226,7 +225,7 @@ private lemma inv_step_state1 (w : List Bool) (na : ℕ) (input : List Bool)
               refine ⟨k + 2, 0, ?_, Or.inr <| Or.inl ⟨rfl, by omega, rfl, ?_⟩⟩
               · simpa [replicate_add, List.append_assoc] using hw
               · rw [show k + 2 = 2 + k by omega, replicate_add]
-                simp [List.append_assoc]
+                simp
             · change (p, β) ∈ ({((2 : Fin 4), [])} : Set ((Fin 4) × List Bool)) at htrans
               rw [Set.mem_singleton_iff] at htrans
               have hp := congrArg Prod.fst htrans

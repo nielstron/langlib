@@ -1116,7 +1116,7 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
           hreach', Or.inl ⟨rfl, ?_⟩, ?_⟩)))))
       · exact moveHead_right_head_lt (cfg.tape.write a') hlt
       · have hccon : ((cfg.tape.write a').moveHead DLBA.Dir.right).contents cfg.tape.head = a' := by
-          rw [moveHead_contents]; simp [DLBA.BoundedTape.write]
+          rw [moveHead_contents]; simp
         rw [hccon]
         have e1 : c = b.set (cfg.tape.head.val + 1) (cellSym false rb2 (some q') bb t2) := by
           rw [hc, hb2, ← hul]; exact (set_at_succ_length _ _ _ _ _).symm
@@ -1179,7 +1179,7 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
         have hwh : (cfg.tape.write a').head.val = cfg.tape.head.val := rfl
         omega
       · have hccon : ((cfg.tape.write a').moveHead DLBA.Dir.left).contents cfg.tape.head = a' := by
-          rw [moveHead_contents]; simp [DLBA.BoundedTape.write]
+          rw [moveHead_contents]; simp
         rw [hccon]
         have e1 : c = b.set mm (cellSym lb1 false (some q') bb t1) := by
           rw [hc, hb2, ← hul]; exact (set_at_length _ _ _ _).symm
@@ -1289,12 +1289,12 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
       · refine hreach.tail ⟨q', a', DLBA.Dir.stay, ?_, rfl⟩
         rw [hq, ha] at htrans; exact htrans
       · have hh : ((cur.tape.write a').moveHead DLBA.Dir.stay).head.val = cur.tape.head.val := by
-          simp [moveHead_stay, DLBA.BoundedTape.write]
+          simp
         rw [hh]; exact hrel
       · have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
         have hcck : ((cur.tape.write a').moveHead DLBA.Dir.stay).contents k
             = cur.tape.contents k := by
-          rw [moveHead_contents]; simp [DLBA.BoundedTape.write, Function.update_of_ne hkne]
+          rw [moveHead_contents]; simp [Function.update_of_ne hkne]
         rw [hcck]
         have hcset : c = b.set cur.tape.head.val (cellSym lb rb (some q') a' t) := by
           rw [hc, hb2, ← hhd]; exact (set_at_length _ _ _ _).symm
@@ -1317,7 +1317,7 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
         rw [hcheq]; exact hrel
       · have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
         have hcck : ((cur.tape.write a').moveHead DLBA.Dir.right).contents k = cur.tape.contents k := by
-          rw [hmr]; simp [DLBA.BoundedTape.write, Function.update_of_ne hkne]
+          rw [hmr]; simp [Function.update_of_ne hkne]
         rw [hcck]
         have houtcell : cellSym lb true (some q') a' t = cellSym (decide (cur.tape.head.val = 0))
             (decide (cur.tape.head.val = m)) (some q') a' (worig cur.tape.head) := by
@@ -1345,7 +1345,7 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
         rw [hcheq]; exact hrel
       · have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
         have hcck : ((cur.tape.write a').moveHead DLBA.Dir.left).contents k = cur.tape.contents k := by
-          rw [hml]; simp [DLBA.BoundedTape.write, Function.update_of_ne hkne]
+          rw [hml]; simp [Function.update_of_ne hkne]
         rw [hcck]
         have houtcell : cellSym true rb (some q') a' t = cellSym (decide (cur.tape.head.val = 0))
             (decide (cur.tape.head.val = m)) (some q') a' (worig cur.tape.head) := by

@@ -32,7 +32,6 @@ variable {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
 
 /-- Lift a TM0 configuration from state type `Λ` to `Λ ⊕ Unit` by wrapping the
 state in `Sum.inl`. -/
-@[expose]
 public def liftCfg (c : TM0.Cfg Γ Λ) :
     @TM0.Cfg Γ (Λ ⊕ Unit) _ :=
   ⟨Sum.inl c.q, c.Tape⟩
@@ -40,7 +39,6 @@ public def liftCfg (c : TM0.Cfg Γ Λ) :
 /-- Construct a recogniser TM from a decider TM with acceptance predicate.
 The recogniser halts iff the decider would halt in an accepting state;
 when the decider rejects, the recogniser enters an infinite loop. -/
-@[expose]
 public def decider_to_recognizer
     (M : TM0.Machine Γ Λ) (accept : Λ → Bool) :
     @TM0.Machine Γ (Λ ⊕ Unit) ⟨Sum.inl default⟩ :=

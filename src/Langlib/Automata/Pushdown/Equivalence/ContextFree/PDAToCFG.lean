@@ -4,7 +4,7 @@ public import Langlib.Automata.Pushdown.Definition
 public import Langlib.Automata.Pushdown.Basics.CountingStepsLeftmost
 public import Mathlib.Algebra.Order.Monoid.Unbundled.WithTop
 public import Mathlib.Algebra.Ring.Nat
-public import Mathlib.Data.Nat.Lattice
+public import Mathlib.Order.Lattice.Nat
 import Mathlib.CategoryTheory.Category.Init
 import Mathlib.Data.Set.Finite.List
 import Mathlib.Tactic.Cases
@@ -55,7 +55,6 @@ open Symbol
 open PDA
 open ContextFreeGrammar
 
-@[expose]
 public abbrev AllStackPushes (M : PDA Q T S) : Set (List S) :=
   (Prod.snd '' ⋃(q : Q)(a : T)(Z : S), M.transition_fun q a Z) ∪
   Prod.snd '' ⋃(q : Q)(Z : S), M.transition_fun' q Z
@@ -91,11 +90,9 @@ public theorem allStackPushes_finite (M : PDA Q T S) : (AllStackPushes M).Finite
       exact a_finite
     simpa [AllStackPushes, A, B]
 
-@[expose]
 public abbrev AllStackPushes' (M : PDA Q T S): Finset (List S) :=
   (allStackPushes_finite M).toFinset
 
-@[expose]
 public abbrev max_push (M : PDA Q T S)  := max ((AllStackPushes' M).image List.length).max 1
 
 public inductive N (M: PDA Q T S)  where
@@ -105,13 +102,11 @@ public inductive N (M: PDA Q T S)  where
 
 
 
-@[expose]
 public abbrev N.IsAllowed: N M → Prop
   | N.start => True
   | N.single _ _ _ => True
   | N.list _ α _ => α.length ≤ max_push M
 
-@[expose]
 public abbrev AllowedNonterminals : Set (N M) := {n : N M | n.IsAllowed}
 
 public theorem allowedNonterminals_finite : (AllowedNonterminals : Set (N M)).Finite  := by
@@ -156,9 +151,9 @@ public theorem allowedNonterminals_finite : (AllowedNonterminals : Set (N M)).Fi
     · repeat rw [Set.mem_union]
       left
       right
-      rw [Set.mem_setOf] at hn
+      rw [Set.mem_ofPred] at hn
       dsimp [N.IsAllowed] at hn
-      have hα : α ∈ S₂ := by rw [Set.mem_setOf]; exact hn
+      have hα : α ∈ S₂ := by rw [Set.mem_ofPred]; exact hn
       rw [Set.mem_iUnion₂]
       use q, p
       apply Set.mem_biUnion hα
@@ -201,18 +196,14 @@ public theorem push_le_max_push' (α : List S)(q : Q)(Z : S)
   rcases h with ⟨x, hx, rfl⟩
   exact ⟨x, this hx, rfl⟩
 
-@[expose]
 public abbrev epsilon_rule (q : Q): Set (ContextFreeRule T (N M)) := {⟨N.list q [] q ,[]⟩}
 
-@[expose]
 public abbrev compute_rule (q p: Q) (a : T) (Z : S) : Set (ContextFreeRule T (N M)) :=
   (λ ⟨q₁,α⟩ ↦ ⟨N.single q Z p, [terminal a, nonterminal (N.list q₁ α p)]⟩) '' M.transition_fun q a Z
 
-@[expose]
 public abbrev compute_rule' (q p: Q) (Z : S) : Set (ContextFreeRule T (N M)) :=
   (λ ⟨q₁,α⟩ ↦ ⟨N.single q Z p, [nonterminal (N.list q₁ α p)]⟩) '' M.transition_fun' q Z
 
-@[expose]
 public abbrev split_rule (q₁:Q) :(n : N M) →  Set (ContextFreeRule T (N M))
   | N.start => ∅
   | N.single _ _ _=> ∅
@@ -220,11 +211,9 @@ public abbrev split_rule (q₁:Q) :(n : N M) →  Set (ContextFreeRule T (N M))
   | N.list q (Z::α)  p =>
     {⟨N.list q (Z::α) p, [nonterminal (N.single q Z q₁),nonterminal (N.list q₁ α p)]⟩}
 
-@[expose]
 public abbrev start_rule (q: Q): Set (ContextFreeRule T (N M)) :=
   {⟨N.start, [nonterminal (N.list (M.initial_state) [M.start_symbol] q)]⟩}
 
-@[expose]
 public abbrev RuleSet : Set (ContextFreeRule T (N M)) :=
   (⋃q:Q,  epsilon_rule q) ∪ (⋃(q:Q)(p:Q)(a:T)(Z:S), compute_rule q p a Z)
   ∪ (⋃(q:Q)(p:Q)(Z:S), compute_rule' q p Z) ∪ (⋃(q:Q)(n ∈ AllowedNonterminals), split_rule q n)
@@ -254,10 +243,8 @@ public theorem ruleSet_finite : (RuleSet : Set (ContextFreeRule T (N M))).Finite
     dsimp [start_rule]
     apply Set.finite_singleton
 
-@[expose]
 public abbrev rules : Finset (ContextFreeRule T (N M)) := ruleSet_finite.toFinset
 
-@[expose]
 public abbrev G (M : PDA Q T S) : ContextFreeGrammar T := {
   NT := N M
   initial := N.start
@@ -289,7 +276,7 @@ public theorem produces_split (q q₁ p : Q){α : List S}{Z : S}(h : (Z :: α).l
     simp only [Set.mem_iUnion]
     use q₁, N.list q (Z :: α) p
     refine ⟨?_,?_⟩
-    · rw [Set.mem_setOf]
+    · rw [Set.mem_ofPred]
       simp only [N.IsAllowed, h]
     · simp only [split_rule, Set.mem_singleton, r]
   use r, hr

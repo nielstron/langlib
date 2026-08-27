@@ -68,7 +68,7 @@ public theorem nnyCF_of_complement_CF : ¬ (∀ L : Language (Fin 3),
 by
   intro h
   have nny := nnyCF_of_CF_i_CF
-  push_neg at nny
+  push Not at nny
   rcases nny with ⟨L₁, L₂, ⟨hL₁, hL₂⟩, hyp_neg⟩
   specialize h
   have hu := CF_of_CF_u_CF (L₁ᶜ) (L₂ᶜ) ⟨h L₁ hL₁, h L₂ hL₂⟩

@@ -14,11 +14,9 @@ This file defines the class of recursively enumerable languages via unrestricted
 variable {T : Type}
 
 /-- Predicate that a language is recursively enumerable. -/
-@[expose]
 public def is_RE (L : Language T) : Prop :=
   ∃ g : grammar T, grammar_language g = L
 
 /-- The class of recursively enumerable languages. -/
-@[expose]
 public def RE : Set (Language T) :=
-  setOf is_RE
+  Set.ofPred is_RE

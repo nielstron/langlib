@@ -34,7 +34,6 @@ noncomputable section
 variable {T : Type} [Fintype T]
 
 /-- A DPDA that simulates a DFA while leaving its one-symbol stack unchanged. -/
-@[expose]
 public def DPDA_of_DFA {Q : Type} [Fintype Q] (M : DFA T Q) :
     DPDA Q T Unit where
   initial_state := M.start

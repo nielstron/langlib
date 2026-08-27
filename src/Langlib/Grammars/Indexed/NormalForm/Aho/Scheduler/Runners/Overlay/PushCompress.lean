@@ -396,7 +396,7 @@ public theorem overlayScheduleRun_pushCompress
         (.index newOwned :: tailWord)).indexOwners =
       (liveScheduleCursor parent parentUsed pre post input_eq alpha
         (.index head :: tailWord)).indexOwners := by
-    simp [liveScheduleCursor, newOwned, ScheduleCursor.indexOwners,
+    simp [newOwned, ScheduleCursor.indexOwners,
       ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_append,
       List.filterMap_cons]
   have htasks :
@@ -404,7 +404,7 @@ public theorem overlayScheduleRun_pushCompress
         (.index newOwned :: tailWord)).taskOwners =
       (liveScheduleCursor parent parentUsed pre post input_eq alpha
         (.index head :: tailWord)).taskOwners := by
-    simp [liveScheduleCursor, childTask, parentTask, ScheduleCursor.taskOwners,
+    simp [childTask, parentTask, ScheduleCursor.taskOwners,
       ScheduleCursor.word, ScheduleAtom.taskOwner?, List.filterMap_append,
       List.filterMap_cons, htaskOwner]
   have hframesEq :
@@ -412,7 +412,7 @@ public theorem overlayScheduleRun_pushCompress
         (.index newOwned :: tailWord)).frameOwners =
       (liveScheduleCursor parent parentUsed pre post input_eq alpha
         (.index head :: tailWord)).frameOwners := by
-    simp [liveScheduleCursor, newOwned, ScheduleCursor.frameOwners,
+    simp [newOwned, ScheduleCursor.frameOwners,
       ScheduleCursor.word, ScheduleAtom.closeOwner?, List.filterMap_append,
       List.filterMap_cons]
   let childPrefixLedger : PrefixFrameLedger

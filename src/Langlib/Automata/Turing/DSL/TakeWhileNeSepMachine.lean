@@ -91,7 +91,6 @@ theorem takeWhile_eq_comp_rev_drop_rev {Γ : Type} [Inhabited Γ] [DecidableEq �
 
 /-- Drop everything up to and including the FIRST occurrence of `sep`.
     If `sep ∉ l`, returns `[]`. -/
-@[expose]
 public def dropUntilFirstSep {Γ : Type} [DecidableEq Γ] (sep : Γ) : List Γ → List Γ
   | [] => []
   | c :: rest => if c = sep then rest else dropUntilFirstSep sep rest

@@ -239,7 +239,7 @@ private lemma quotientNumerator_complete {w : List Bool} (hw : w ∈ quotientNum
     w ∈ dpda_quotientNumerator.acceptsByFinalState := by
   rw [quotientNumerator, Language.mem_kstar] at hw
   rcases hw with ⟨blocks, rfl, hblocks⟩
-  refine ⟨.boundary, by simp [DPDA.toPDA, dpda_quotientNumerator], [.bottom], ?_⟩
+  refine ⟨.boundary, by simp [dpda_quotientNumerator], [.bottom], ?_⟩
   change @PDA.Reaches NumState Bool NumStack _ _ _ dpda_quotientNumerator.toPDA
     ⟨.boundary, blocks.flatten, [.bottom]⟩ ⟨.boundary, [], [.bottom]⟩
   simpa using run_left_blocks blocks hblocks []
@@ -504,7 +504,7 @@ private lemma quotientNumerator_sound {w : List Bool}
     w ∈ quotientNumerator := by
   rcases h with ⟨q, hq, γ, hreach⟩
   have hinv := NumInv.reaches (NumInv.initial w) hreach
-  cases q <;> simp [DPDA.toPDA, dpda_quotientNumerator] at hq
+  cases q <;> simp [dpda_quotientNumerator] at hq
   change γ = [.bottom] ∧ ∃ p, p ∈ quotientNumerator ∧ w = p ++ [] at hinv
   rcases hinv with ⟨_, p, hp, hw⟩
   simpa [hw] using hp

@@ -81,7 +81,6 @@ open ChomskyNormalFormGrammar
 /-- CYK-style predicate: can nonterminal `n` derive word `w` in CNF grammar `g`?
     Quantifies over rules (a Finset) instead of nonterminals, so does NOT require
     `Fintype g.NT`. -/
-@[expose]
 public noncomputable def canDerive (g : ChomskyNormalFormGrammar T) [DecidableEq g.NT]
     (n : g.NT) : List T → Prop
   | [] => False
@@ -712,7 +711,7 @@ lemma foldl_rules_ntInSet (nd : List (ℕ × ℕ × ℕ)) (left_bv right_bv init
   · aesop;
   · by_cases h : ntInSet left_bv hd.2.1 && ntInSet right_bv hd.2.2 <;> simp_all +decide [ List.foldl_append ];
     · by_cases h' : idx = hd.1 <;>
-        simp_all +decide [ntInSet_ntSetBit_self, ntInSet_ntSetBit_ne] <;>
+        simp_all +decide [ntInSet_ntSetBit_self, ntInSet_ntSetBit_ne] ;
         grind
     · grind
 

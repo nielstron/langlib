@@ -52,7 +52,6 @@ namespace DPDA
 /-- Construct the **complement DPDA** by replacing the set of accepting states
     with its complement. This is a syntactic operation that swaps which states
     are accepting. -/
-@[expose]
 public def complement (M : DPDA Q T S) : DPDA Q T S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol

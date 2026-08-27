@@ -60,7 +60,6 @@ public theorem retained_rule_base_or_finalList (M : DPDA Q T S)
     simpa using hp.noList M
 
 /-- The remaining semantic obligation for base productions. -/
-@[expose]
 public def EmptyListHandlesUnique (M : DPDA Q T S) : Prop :=
   ∀ (q₁ q₂ : State M),
     (PDA_to_CFG.N.list q₁ [] q₁,

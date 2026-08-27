@@ -51,11 +51,9 @@ singleton language `{h(a)}`.
 variable {α β : Type}
 
 /-- The image of a language `L` under a string homomorphism `h`. -/
-@[expose]
 public def Language.homomorphicImage (L : Language α) (h : α → List β) : Language β :=
   L.subst (fun a => ({h a} : Language β))
 
 /-- A string homomorphism is ε-free if no symbol maps to the empty string. -/
-@[expose]
 public def IsEpsFreeHomomorphism (h : α → List β) : Prop :=
   ∀ a, h a ≠ []

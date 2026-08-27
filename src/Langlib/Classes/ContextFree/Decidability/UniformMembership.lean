@@ -57,7 +57,6 @@ variable {T : Type} [DecidableEq T]
 
 /-- Match a rule's RHS against a substring of word `w`, starting from position `startPos`.
     Returns all possible end positions after matching the full RHS. -/
-@[expose]
 public def matchRHS (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
     (rhs : List (ℕ ⊕ T)) (startPos : ℕ) : List ℕ :=
   rhs.foldl (fun positions sym =>
@@ -72,7 +71,6 @@ public def matchRHS (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
   ) [startPos]
 
 /-- One step of the saturation. -/
-@[expose]
 public def satStep (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (S : List (ℕ × ℕ × ℕ)) : List (ℕ × ℕ × ℕ) :=
   rules.foldl (fun S' (rule : ℕ × List (ℕ ⊕ T)) =>
@@ -85,13 +83,11 @@ public def satStep (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List
   ) S
 
 /-- Iterate the saturation step. -/
-@[expose]
 public def satFixpoint (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))) (w : List T)
     (steps : ℕ) : List (ℕ × ℕ × ℕ) :=
   (satStep nc rules w)^[steps] []
 
 /-- Check membership of word `w` in the language of encoded CFG `G`. -/
-@[expose]
 public def checkMembershipEncoded [Fintype T] (p : EncodedCFG T × List T) : Bool :=
   let G := p.1
   let w := p.2
@@ -131,7 +127,6 @@ public lemma satFixpoint_mono (nc : ℕ) (rules : List (ℕ × List (ℕ ⊕ T))
 /-! ## Soundness Lemmas -/
 
 /-- Property that a triple represents a valid derivation. -/
-@[expose]
 public def TripleDerives (G : EncodedCFG T) (w : List T) (nt i j : ℕ) : Prop :=
   ∃ (hnt : nt < G.ntCount),
     i ≤ j ∧ j ≤ w.length ∧
@@ -139,7 +134,6 @@ public def TripleDerives (G : EncodedCFG T) (w : List T) (nt i j : ℕ) : Prop :
       ((w.drop i |>.take (j - i)).map symbol.terminal)
 
 /-- Property that all triples in a set represent valid derivations. -/
-@[expose]
 public def AllSound (G : EncodedCFG T) (w : List T) (S : List (ℕ × ℕ × ℕ)) : Prop :=
   ∀ nt i j, (nt, i, j) ∈ S → TripleDerives G w nt i j
 
@@ -254,7 +248,6 @@ public lemma satFixpoint_sound (G : EncodedCFG T) (w : List T) (steps : ℕ) :
 /-! ## matchRHS structural lemmas -/
 
 /-- The single-symbol matching step. -/
-@[expose]
 public def matchOneSym (w : List T) (nc : ℕ) (S : List (ℕ × ℕ × ℕ))
     (sym : ℕ ⊕ T) (pos : ℕ) : List ℕ :=
   match sym with
@@ -747,7 +740,7 @@ public lemma satFixpoint_converges (nc : ℕ) (rules : List (ℕ × List (ℕ �
   · exact satFixpoint_mono nc rules w n (nc * (w.length + 1) * (w.length + 1) + 1) h t hn;
   · -- By the stabilization argument, there exists some $k \leq B$ such that $satFixpoint k = satFixpoint (k + 1)$.
     obtain ⟨k, hk⟩ : ∃ k ≤ nc * (w.length + 1) * (w.length + 1), satFixpoint nc rules w k = satFixpoint nc rules w (k + 1) := by
-      by_contra h_contra; push_neg at h_contra; (
+      by_contra h_contra; push Not at h_contra; (
       -- By the properties of the sequence, if it is strictly increasing and bounded above, it must stabilize.
       have h_strict_mono : ∀ k ≤ nc * (w.length + 1) * (w.length + 1), (satFixpoint nc rules w k).length < (satFixpoint nc rules w (k + 1)).length := by
         intros k hk

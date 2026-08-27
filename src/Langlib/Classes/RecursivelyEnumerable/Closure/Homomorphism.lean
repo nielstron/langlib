@@ -95,19 +95,19 @@ open Turing
 section construction
 
 /-- Map a symbol by replacing terminals with nonterminal placeholders. -/
-@[expose, reducible]
+@[reducible]
 public def homLiftSym {N : Type} : symbol α N → symbol β (N ⊕ α)
   | symbol.terminal a    => symbol.nonterminal (Sum.inr a)
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)
 
 /-- Lift an entire string to placeholder form. -/
-@[expose, reducible]
+@[reducible]
 public def homLiftStr {N : Type} (s : List (symbol α N)) :
     List (symbol β (N ⊕ α)) :=
   s.map homLiftSym
 
 /-- Lift a rule to phase 1 form. -/
-@[expose, reducible]
+@[reducible]
 public def homLiftRule {N : Type} (r : grule α N) : grule β (N ⊕ α) :=
   ⟨homLiftStr r.input_L,
    Sum.inl r.input_N,
@@ -115,12 +115,12 @@ public def homLiftRule {N : Type} (r : grule α N) : grule β (N ⊕ α) :=
    homLiftStr r.output_string⟩
 
 /-- Create a phase 2 rule for terminal `a`. -/
-@[expose, reducible]
+@[reducible]
 public def homExpandRule {N : Type} (h : α → List β) (a : α) : grule β (N ⊕ α) :=
   ⟨[], Sum.inr a, [], (h a).map symbol.terminal⟩
 
 /-- The two-phase grammar for the homomorphic image. -/
-@[expose, reducible]
+@[reducible]
 public def hom_grammar (g : grammar α) (h : α → List β) : grammar β :=
   ⟨g.nt ⊕ α,
    Sum.inl g.initial,
@@ -552,7 +552,6 @@ public theorem hom_grammar_language_epsfree (g : grammar α) (h : α → List β
 /-- Search test for the homomorphic image of a grammar language.
 
 The witness contains both a preimage word and a derivation sequence for that preimage. -/
-@[expose]
 public def reHomomorphismTest [DecidableEq α] [DecidableEq β]
     (g : grammar α) [DecidableEq g.nt] (h : α → List β)
     (p : List α × List (ℕ × ℕ)) (w : List β) : Bool :=
@@ -578,17 +577,17 @@ public theorem reHomomorphismTest_computable₂ [DecidableEq α] [DecidableEq β
 public theorem RE_closed_under_homomorphism [Fintype α] [Fintype β]
     (L : Language α) (h : α → List β) (hL : is_RE L) :
     is_RE (L.homomorphicImage h) := by
-  haveI : DecidableEq α := Classical.decEq _
-  haveI : DecidableEq β := Classical.decEq _
+  have : DecidableEq α := Classical.decEq _
+  have : DecidableEq β := Classical.decEq _
   obtain ⟨g, hg⟩ := hL
   obtain ⟨g', _hfin, hlang⟩ := grammar_equivalent_finiteNT g
-  haveI : Fintype g'.nt := Fintype.ofFinite _
-  haveI : DecidableEq g'.nt := Classical.decEq _
-  haveI : Primcodable α :=
+  have : Fintype g'.nt := Fintype.ofFinite _
+  have : DecidableEq g'.nt := Classical.decEq _
+  have : Primcodable α :=
     Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
-  haveI : Primcodable β :=
+  have : Primcodable β :=
     Primcodable.ofEquiv (Fin (Fintype.card β)) (Fintype.truncEquivFin β).out
-  haveI : Primcodable g'.nt :=
+  have : Primcodable g'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g'.nt)) (Fintype.truncEquivFin g'.nt).out
   let test := reHomomorphismTest g' h
   have hcomp : Computable₂ test := reHomomorphismTest_computable₂ g' h

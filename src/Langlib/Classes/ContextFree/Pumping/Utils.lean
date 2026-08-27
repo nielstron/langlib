@@ -19,7 +19,6 @@ This file contains helper lemmas for repeated concatenation and derivation induc
 
 variable {α : Type _}
 
-@[expose]
 public def nTimes (l : List α) (n : ℕ) : List α :=
   (List.replicate n l).flatten
 

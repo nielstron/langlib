@@ -53,12 +53,12 @@ variable {T₁ T₂ : Type}
 
 namespace IndexedGrammar
 
-@[expose, reducible]
+@[reducible]
 public def mapIRhsSymbol (f : T₁ → T₂) {N F : Type} : IRhsSymbol T₁ N F → IRhsSymbol T₂ N F
   | .terminal t => .terminal (f t)
   | .nonterminal n push => .nonterminal n push
 
-@[expose, reducible]
+@[reducible]
 public def mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁) : IndexedGrammar T₂ where
   nt := g.nt
   flag := g.flag
@@ -68,7 +68,7 @@ public def mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁) : IndexedG
       consume := r.consume
       rhs := r.rhs.map (mapIRhsSymbol f) }
 
-@[expose, reducible]
+@[reducible]
 public def mapISym (f : T₁ → T₂) (g : IndexedGrammar T₁) :
     g.ISym → (g.mapTerminals f).ISym
   | .terminal t => .terminal (f t)
@@ -96,7 +96,7 @@ private lemma invISym_mapISym [Nonempty T₁] {f : T₁ → T₂} (hf : Function
     (g : IndexedGrammar T₁) (s : g.ISym) :
     invISym f g (mapISym f g s) = s := by
   cases s with
-  | terminal t => simp [mapISym, invISym, invOfInjective_apply hf]
+  | terminal t => simp [invISym, invOfInjective_apply hf]
   | indexed n σ => rfl
 
 private lemma expandRhs_mapTerminals (f : T₁ → T₂) (g : IndexedGrammar T₁)
@@ -264,7 +264,7 @@ public theorem language_mapTerminals [Nonempty T₁] {f : T₁ → T₂} (hf : F
           (w.map (invOfInjective f)).map ISym.terminal := by
         induction w with
         | nil => rfl
-        | cons x xs ih => simp [invISym, ih]
+        | cons x xs ih => simp [invISym]
       rw [← hmap]
       simpa [invISym] using derives_inv_mapTerminals hf g h
     · exact map_invOfInjective_of_derives f g h
@@ -276,7 +276,7 @@ public theorem language_mapTerminals [Nonempty T₁] {f : T₁ → T₂} (hf : F
         (u.map f).map ISym.terminal := by
       induction u with
       | nil => rfl
-      | cons x xs ih => simp [mapISym, ih]
+      | cons x xs ih => simp [mapISym]
     rw [← hmap]
     simpa [mapISym] using derives_mapTerminals f g hu
 

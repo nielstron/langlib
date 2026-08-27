@@ -66,7 +66,6 @@ variable {T : Type}
 /-! ## Extracting nonterminals from symbol lists -/
 
 /-- Extract all nonterminals from a list of symbols. -/
-@[expose]
 public def symbolsNTs {N : Type} : List (symbol T N) → List N
   | [] => []
   | symbol.terminal _ :: rest => symbolsNTs rest
@@ -98,17 +97,14 @@ lemma symbolsNTs_map_terminal {N : Type} (w : List T) :
 /-! ## Used nonterminals of a grammar -/
 
 /-- All nonterminals mentioned in a grammar rule. -/
-@[expose]
 public def ruleNTs {N : Type} (r : grule T N) : List N :=
   symbolsNTs r.input_L ++ [r.input_N] ++ symbolsNTs r.input_R ++ symbolsNTs r.output_string
 
 /-- The list of all nonterminals used in a grammar. -/
-@[expose]
 public def usedNTsList (g : grammar T) : List g.nt :=
   [g.initial] ++ g.rules.flatMap ruleNTs
 
 /-- The finite set of all nonterminals used in a grammar. -/
-@[expose]
 public def usedNTs (g : grammar T) : Finset g.nt :=
   (usedNTsList g).toFinset
 
@@ -126,31 +122,27 @@ public lemma inputN_mem_ruleNTs {N : Type} (r : grule T N) : r.input_N ∈ ruleN
 /-! ## The restricted grammar -/
 
 /-- The subtype of used nonterminals. -/
-@[expose]
 public abbrev UsedNT (g : grammar T) := { n : g.nt // n ∈ usedNTs g }
 
 instance usedNT_fintype (g : grammar T) : Fintype (UsedNT g) :=
   Fintype.subtype (usedNTs g) (fun _ => Iff.rfl)
 
 /-- Restrict a nonterminal to `UsedNT g`. Maps unused nonterminals to the initial symbol. -/
-@[expose]
 public def restrictNT (g : grammar T) (n : g.nt) : UsedNT g :=
   if h : n ∈ usedNTs g then ⟨n, h⟩ else ⟨g.initial, initial_mem_usedNTs g⟩
 
 /-- Restrict a symbol to `UsedNT g`. -/
-@[expose]
 public def restrictSym (g : grammar T) : symbol T g.nt → symbol T (UsedNT g)
   | symbol.terminal t => symbol.terminal t
   | symbol.nonterminal n => symbol.nonterminal (restrictNT g n)
 
 /-- Embed a symbol over `UsedNT g` back into a symbol over `g.nt`. -/
-@[expose]
 public def embedSym (g : grammar T) : symbol T (UsedNT g) → symbol T g.nt
   | symbol.terminal t => symbol.terminal t
   | symbol.nonterminal ⟨n, _⟩ => symbol.nonterminal n
 
 /-- The grammar restricted to its used nonterminals. -/
-@[expose, reducible]
+@[reducible]
 public def restrictGrammar (g : grammar T) : grammar T where
   nt := UsedNT g
   initial := ⟨g.initial, initial_mem_usedNTs g⟩
@@ -190,7 +182,6 @@ lemma embedSym_restrictSym {g : grammar T} {s : symbol T g.nt}
 /-! ## The `allNTsUsed` predicate -/
 
 /-- All nonterminals in a symbol list belong to `usedNTs g`. -/
-@[expose]
 public def allNTsUsed (g : grammar T) (l : List (symbol T g.nt)) : Prop :=
   ∀ n, symbol.nonterminal n ∈ l → n ∈ usedNTs g
 

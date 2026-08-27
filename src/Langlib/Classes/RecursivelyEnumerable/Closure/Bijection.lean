@@ -36,19 +36,16 @@ embeddings.
 variable {T₁ T₂ : Type}
 
 /-- Map a symbol along a terminal equivalence, leaving nonterminals unchanged. -/
-@[expose]
 public def map_symbol {N : Type} (π : T₁ ≃ T₂) : symbol T₁ N → symbol T₂ N
   | symbol.terminal t => symbol.terminal (π t)
   | symbol.nonterminal n => symbol.nonterminal n
 
 /-- Map a symbol back along the inverse equivalence. -/
-@[expose]
 public def map_symbol_inv {N : Type} (π : T₁ ≃ T₂) : symbol T₂ N → symbol T₁ N
   | symbol.terminal t => symbol.terminal (π.symm t)
   | symbol.nonterminal n => symbol.nonterminal n
 
 /-- Map terminals along an arbitrary function, leaving nonterminals unchanged. -/
-@[expose]
 public def map_symbol_fn {N : Type} (f : T₁ → T₂) : symbol T₁ N → symbol T₂ N
   | symbol.terminal t => symbol.terminal (f t)
   | symbol.nonterminal n => symbol.nonterminal n
@@ -75,18 +72,17 @@ lemma map_symbol_map_symbol_inv {N : Type} (π : T₁ ≃ T₂) (s : symbol T₂
   cases s <;> simp [map_symbol, map_symbol_inv]
 
 /-- Map an unrestricted grammar rule along a terminal equivalence. -/
-@[expose]
 public def bijection_grule {N : Type} (π : T₁ ≃ T₂) (r : grule T₁ N) : grule T₂ N :=
   grule.mk (r.input_L.map (map_symbol π)) r.input_N
     (r.input_R.map (map_symbol π)) (r.output_string.map (map_symbol π))
 
 /-- Map an unrestricted grammar along a terminal equivalence. -/
-@[expose, reducible]
+@[reducible]
 public def bijection_grammar (g : grammar T₁) (π : T₁ ≃ T₂) : grammar T₂ :=
   grammar.mk g.nt g.initial (g.rules.map (bijection_grule π))
 
 /-- Map an unrestricted grammar along an arbitrary terminal map. -/
-@[expose, reducible]
+@[reducible]
 public def map_grammar (g : grammar T₁) (f : T₁ → T₂) : grammar T₂ :=
   grammar.mk g.nt g.initial <|
     g.rules.map fun r =>

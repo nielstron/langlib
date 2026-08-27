@@ -27,7 +27,6 @@ variable {A T : Type} [Primcodable A] [Primcodable T]
 
 /-- The unary partial function which evaluates a jointly computable Boolean family
 after decoding its parameter/word pair. -/
-@[expose]
 public def compileBoolJoint (test : A → List T → Bool) : ℕ →. ℕ :=
   fun n => Part.bind (decode (α := A × List T) n) fun (p : A × List T) =>
     Part.some (encode (test p.1 p.2))
@@ -38,7 +37,6 @@ public theorem compileBoolJoint_partrec
   exact htest
 
 /-- A fixed code for the joint evaluator underlying `compileBool`. -/
-@[expose]
 public noncomputable def compileBoolBase
     (test : A → List T → Bool) (htest : Computable₂ test) :
     Nat.Partrec.Code :=
@@ -55,7 +53,6 @@ public theorem compileBoolBase_spec
 
 Although a base universal program is chosen noncomputably once, specialization in
 the parameter is the computable syntactic `Code.curry` operation. -/
-@[expose]
 public noncomputable def compileBool
     (test : A → List T → Bool) (htest : Computable₂ test) :
     A → Nat.Partrec.Code :=

@@ -24,14 +24,17 @@ the result directly.
 
 variable {T : Type} [Fintype T]
 
+omit [Fintype T] in
 /-- Every tagging language used by the quotient factorization is indexed. -/
 private theorem is_Indexed_tagSubst (a : T) : is_Indexed (tagSubst a) :=
   is_Indexed_of_is_CF (is_CF_tagSubst a)
 
+omit [Fintype T] in
 /-- Every erasing language used by the quotient factorization is indexed. -/
 private theorem is_Indexed_eraseInr (x : T ⊕ T) : is_Indexed (eraseInr x) :=
   is_Indexed_of_is_CF (is_CF_eraseInr x)
 
+omit [Fintype T] in
 /-- The regular block constraint used in the quotient factorization. -/
 private theorem blockLang_isRegular_of_isRegular {R : Language T}
     (hR : R.IsRegular) : (blockLang R).IsRegular := by

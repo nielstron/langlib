@@ -76,47 +76,38 @@ expressed as a property of an alphabet-indexed predicate
 variable {α : Type*}
 
 /-- A language class is closed under union. -/
-@[expose]
 public def ClosedUnderUnion (P : Language α → Prop) : Prop :=
   ∀ L₁ L₂ : Language α, P L₁ → P L₂ → P (L₁ + L₂)
 
 /-- A language class is closed under intersection. -/
-@[expose]
 public def ClosedUnderIntersection (P : Language α → Prop) : Prop :=
   ∀ L₁ L₂ : Language α, P L₁ → P L₂ → P (L₁ ⊓ L₂)
 
 /-- A language class is closed under complement. -/
-@[expose]
 public def ClosedUnderComplement (P : Language α → Prop) : Prop :=
   ∀ L : Language α, P L → P Lᶜ
 
 /-- A language class is closed under concatenation. -/
-@[expose]
 public def ClosedUnderConcatenation (P : Language α → Prop) : Prop :=
   ∀ L₁ L₂ : Language α, P L₁ → P L₂ → P (L₁ * L₂)
 
 /-- A language class is closed under Kleene star. -/
-@[expose]
 public def ClosedUnderKleeneStar (P : Language α → Prop) : Prop :=
   ∀ L : Language α, P L → P (KStar.kstar L)
 
 /-- A language class is closed under language reversal. -/
-@[expose]
 public def ClosedUnderReverse (P : Language α → Prop) : Prop :=
   ∀ L : Language α, P L → P L.reverse
 
 /-- A language class is closed under intersection with regular languages. -/
-@[expose]
 public def ClosedUnderIntersectionWithRegular (P : Language α → Prop) : Prop :=
   ∀ L : Language α, P L → ∀ R : Language α, R.IsRegular → P (L ⊓ R)
 
 /-- A language class is closed under right quotient (with any language from the same class). -/
-@[expose]
 public def ClosedUnderRightQuotient (P : Language α → Prop) : Prop :=
   ∀ L₁ L₂ : Language α, P L₁ → P L₂ → P (Language.rightQuotient L₁ L₂)
 
 /-- A language class is closed under right quotient with regular languages. -/
-@[expose]
 public def ClosedUnderRightQuotientWithRegular (P : Language α → Prop) : Prop :=
   ∀ L : Language α, P L → ∀ R : Language α, R.IsRegular → P (Language.rightQuotient L R)
 
@@ -124,14 +115,12 @@ public def ClosedUnderRightQuotientWithRegular (P : Language α → Prop) : Prop
 
 Here `isP` is a predicate on languages that is uniform across finite alphabets.
 Note: `Language.homomorphicImage` works in universe `Type`, so `isP` ranges over `Type`. -/
-@[expose]
 public def ClosedUnderHomomorphism
     (isP : ∀ {α : Type} [Fintype α], Language α → Prop) : Prop :=
   ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (h : α → List β),
     isP L → isP (L.homomorphicImage h)
 
 /-- A finite-alphabet-indexed language class is closed under ε-free string homomorphism. -/
-@[expose]
 public def ClosedUnderEpsFreeHomomorphism
     (isP : ∀ {α : Type} [Fintype α], Language α → Prop) : Prop :=
   ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (h : α → List β),
@@ -142,7 +131,6 @@ public def ClosedUnderEpsFreeHomomorphism
 The inverse homomorphic image of `L : Language β` under `h : α → List β` is
 `{ w : List α | w.flatMap h ∈ L }`. Both alphabets are finite, matching the
 finite-alphabet convention used by the other cross-alphabet closure predicates. -/
-@[expose]
 public def ClosedUnderInverseHomomorphism
     (isP : ∀ {α : Type} [Fintype α], Language α → Prop) : Prop :=
   ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language β) (h : α → List β),
@@ -152,7 +140,6 @@ public def ClosedUnderInverseHomomorphism
 
 Both alphabets are finite, matching the finite-alphabet convention used by the
 TM-recognizability bridge and the other cross-alphabet closure predicates. -/
-@[expose]
 public def ClosedUnderSubstitution
     (isP : ∀ {α : Type} [Fintype α], Language α → Prop) : Prop :=
   ∀ {α β : Type} [Fintype α] [Fintype β] (L : Language α) (f : α → Language β),
@@ -172,7 +159,7 @@ public theorem strict_subset_of_subset_different_property
     (hX_iff : ∀ {R S : Language α → Prop}, (∀ L, R L ↔ S L) → X R → X S)
     (hPX : X P)
     (hQnotX : ¬ X Q) :
-    (setOf P : Set (Language α)) ⊂ (setOf Q : Set (Language α)) := by
+    (Set.ofPred P : Set (Language α)) ⊂ (Set.ofPred Q : Set (Language α)) := by
   refine ⟨hsub, ?_⟩
   intro hQsubP
   apply hQnotX

@@ -23,11 +23,9 @@ would make `fun c => ¬ (c.eval 0).Dom` an `REPred`, contradicting Mathlib's
 
 open Nat.Partrec
 
-@[expose]
 public abbrev PartrecCode := Nat.Partrec.Code
 
 /-- The unary word whose length is the code number of a partial-recursive code. -/
-@[expose]
 public def codeUnaryWord (c : PartrecCode) : List Unit :=
   (List.range (Encodable.encode c)).map (fun _ => ())
 
@@ -56,9 +54,9 @@ public theorem REPred_codeUnaryWord_preimage {L : Language Unit} (hL : is_RE L) 
     REPred (fun c : PartrecCode => codeUnaryWord c ∈ L) := by
   obtain ⟨g, hg⟩ := hL
   obtain ⟨g', hfin, hlang⟩ := grammar_equivalent_finiteNT g
-  haveI : Fintype g'.nt := Fintype.ofFinite _
-  haveI : DecidableEq g'.nt := Classical.decEq _
-  haveI : Primcodable g'.nt :=
+  have : Fintype g'.nt := Fintype.ofFinite _
+  have : DecidableEq g'.nt := Classical.decEq _
+  have : Primcodable g'.nt :=
     Primcodable.ofEquiv (Fin (Fintype.card g'.nt)) (Fintype.truncEquivFin g'.nt).out
   let test : List (ℕ × ℕ) → PartrecCode → Bool :=
     fun seq c => grammarTest g' seq (codeUnaryWord c)
@@ -90,7 +88,7 @@ public theorem REPred_codeUnaryWord_preimage {L : Language Unit} (hL : is_RE L) 
           (Computable.const false)
       exact Partrec.rfind hgEnc.partrec₂
     exact hdom.dom_re.of_eq fun c => by
-      simp [Nat.rfind_dom]
+      simp
       constructor
       · rintro ⟨n, hn⟩
         exact ⟨Denumerable.ofNat (List (ℕ × ℕ)) n,

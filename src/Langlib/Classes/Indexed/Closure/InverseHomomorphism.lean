@@ -247,7 +247,7 @@ private lemma forward_form (g : IndexedGrammar T) (D : DFA T Q) (bound : ℕ)
             (IndexedGrammar.deri_with_suffix _ hleft)
             (IndexedGrammar.deri_with_prefix
               (u.map fun a => (IndexedGrammar.ISym.terminal a : g.ISym)) hright)
-      · simpa [DFA.evalFrom_of_append, hevalLeft, hevalRight]
+      · simp [DFA.evalFrom_of_append, hevalLeft, hevalRight]
 
 private lemma singleton_eq_append_singleton {X : Type} {a b : X}
     {u v : List X} (h : [a] = u ++ [b] ++ v) :
@@ -277,7 +277,7 @@ private lemma forward_key (g : IndexedGrammar T) (D : DFA T Q)
           have hsplit : (indexedDFAProduct g D).DerivesIn (1 + n)
               [.indexed (some (p, A, q)) σ]
               (w.map fun a => IndexedGrammar.ISym.terminal a) := by
-            convert hder using 1 <;> omega
+            convert hder using 1 ; omega
           rcases IndexedGrammar.derivesIn_split (m := 1) (n := n) hsplit with
             ⟨midForm, hfirst, hrest⟩
           rcases hfirst with ⟨before, hzero, hstep⟩
@@ -456,7 +456,7 @@ private lemma backward_key (g : IndexedGrammar T) (D : DFA T Q)
       | succ n =>
           have hsplit : g.DerivesIn (1 + n) [.indexed A σ]
               (w.map fun a => IndexedGrammar.ISym.terminal a) := by
-            convert hder using 1 <;> omega
+            convert hder using 1 ; omega
           rcases IndexedGrammar.derivesIn_split (m := 1) (n := n) hsplit with
             ⟨midForm, hfirst, hrest⟩
           rcases hfirst with ⟨before, hzero, hstep⟩
@@ -571,7 +571,7 @@ private theorem indexedDFAProduct_language (g : IndexedGrammar T) (D : DFA T Q) 
         have hsplit : (indexedDFAProduct g D).DerivesIn (1 + n)
             [.indexed none []]
             (w.map fun a => IndexedGrammar.ISym.terminal a) := by
-          convert hn using 1 <;> omega
+          convert hn using 1 ; omega
         rcases IndexedGrammar.derivesIn_split (m := 1) (n := n) hsplit with
           ⟨midForm, hfirst, hrest⟩
         rcases hfirst with ⟨before, hzero, hstep⟩
@@ -601,7 +601,7 @@ private theorem Indexed_inter_regular {L R : Language T}
     (hL : is_Indexed L) (hR : R.IsRegular) : is_Indexed (L ⊓ R) := by
   rcases hL with ⟨g, rfl⟩
   rcases Language.isRegular_iff.mp hR with ⟨Q', instQ', D, rfl⟩
-  letI : Fintype Q' := instQ'
+  let : Fintype Q' := instQ'
   exact ⟨indexedDFAProduct g D, indexedDFAProduct_language g D⟩
 
 private theorem Indexed_fInv {α β : Type} [Fintype α] [Fintype β]

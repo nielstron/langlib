@@ -181,6 +181,7 @@ private theorem ZeroVisibleFrontierExtension.useful_start
     (pda := emptyStackPDA M) future).mp (h.reachesIn M)
   exact (PDA.reaches_of_reachesIn lifted).trans useful
 
+omit [Fintype T] in
 private theorem take_one_append_eq
     {common left right : List T}
     (h : left.take 1 = right.take 1) :
@@ -413,7 +414,7 @@ private theorem productivePendingFrontierVisibleAnchor_rigid_aux
           subst next₂
           subst gamma₂
           subst context₂
-          exact ⟨by simpa [previousConsumed], rfl⟩
+          exact ⟨by simp [previousConsumed], rfl⟩
       | splitRight previous hlength hrule hleft hpositive hreturn =>
           have hlast := List.append_inj_right' hfrontier rfl
           cases (List.cons.inj hlast).1
@@ -580,7 +581,7 @@ private theorem productivePendingFrontierVisibleAnchor_rigid_aux
                 (take_one_append_eq (common := remaining₁) hlook.symm)
               subst extra
               simpa using hleft
-          exact ⟨by simpa [parentConsumed, leftWordEq], rfl⟩
+          exact ⟨by simp [parentConsumed, leftWordEq], rfl⟩
 termination_by rank
 decreasing_by
   all_goals

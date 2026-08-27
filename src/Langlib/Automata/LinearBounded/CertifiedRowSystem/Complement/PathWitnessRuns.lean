@@ -740,7 +740,7 @@ public theorem reachableWitness_run
           FinishOuterInvariant D input new depth oldCount newCount outerIndex
             (insert ⟨innerIndex, hinv.inner_lt⟩ selected))) := by
   let current : RankVertex A input.length := ⟨innerIndex, hinv.inner_lt⟩
-  letI : DecidableRel (rankEdge D input.length) := Classical.decRel _
+  let : DecidableRel (rankEdge D input.length) := Classical.decRel _
   have hpath : FiniteReachabilityCounting.PaddedPath
       (rankEdge D input.length) (protocolSourceRank D input) depth current := by
     apply (FiniteReachabilityCounting.mem_reached_iff_paddedPath
@@ -776,7 +776,7 @@ public theorem finalReachableWitness_run
           FinalFinishInvariant D input new depth count
             (insert ⟨innerIndex, hinv.inner_lt⟩ selected))) := by
   let current : RankVertex A input.length := ⟨innerIndex, hinv.inner_lt⟩
-  letI : DecidableRel (rankEdge D input.length) := Classical.decRel _
+  let : DecidableRel (rankEdge D input.length) := Classical.decRel _
   have hpath : FiniteReachabilityCounting.PaddedPath
       (rankEdge D input.length) (protocolSourceRank D input) depth current := by
     apply (FiniteReachabilityCounting.mem_reached_iff_paddedPath

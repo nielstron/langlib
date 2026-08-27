@@ -23,13 +23,11 @@ variable {T : Type}
 /-- Raw canonical kernel after scanning a grammar-symbol word.  Closure is
 performed by `goto` before every dot advancement, and once more when the state
 is inspected. -/
-@[expose]
 public noncomputable def scanKernel [Fintype T] (G : CF_grammar T) (k : ℕ) :
     List (symbol T G.augment.nt) → Finset (Item G.augment k) :=
   List.foldl (goto G.augment k) (startKernel G k)
 
 /-- The closed canonical item state after scanning `gamma`. -/
-@[expose]
 public noncomputable def itemState [Fintype T] (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.augment.nt)) : Finset (Item G.augment k) :=
   closure G.augment k (scanKernel G k gamma)

@@ -472,7 +472,7 @@ private lemma steps_MB_bM (m n : ℕ) :
       use MB_bM
       generalize_proofs at *;
       unfold gr_mul; simp +decide [ MB_bM ] ;
-      refine' ⟨ List.replicate m a ++ List.replicate k b, List.replicate ( n - ( k + 1 ) ) B ++ List.replicate ( m * n ) C ++ [ E ], _, _ ⟩ <;> simp +decide [ ← List.append_assoc ] ; ring!; (
+      refine' ⟨ List.replicate m a ++ List.replicate k b, List.replicate ( n - ( k + 1 ) ) B ++ List.replicate ( m * n ) C ++ [ E ], _, _ ⟩ <;> simp +decide [ ← List.append_assoc ] ; ring_nf!; (
       rw [ show n - k = 1 + ( n - ( 1 + k ) ) by omega, List.replicate_add ] ; aesop;);
       grind +suggestions
     generalize_proofs at *;

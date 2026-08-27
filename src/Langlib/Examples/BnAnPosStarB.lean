@@ -40,6 +40,5 @@ public section
 /-! # The language `{b^n a^n | n >= 1}* {b}` -/
 
 /-- Denominator language for the CFL/CFL quotient counterexample. -/
-@[expose]
 public def quotientDenominator : Language Bool :=
   KStar.kstar quotientRightBlock * {[true]}

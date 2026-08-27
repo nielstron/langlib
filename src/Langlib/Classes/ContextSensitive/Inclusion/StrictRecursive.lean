@@ -151,8 +151,8 @@ computability encoding internally, so callers need not choose one. -/
 public theorem CS_strict_subclass_Recursive_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :
     (CS : Set (Language T)) ⊂ (Recursive : Set (Language T)) := by
-  letI : Nonempty T := Fintype.card_pos_iff.mp (by omega)
-  letI : DecidableEq T := Classical.decEq T
-  letI : Primcodable T :=
+  let : Nonempty T := Fintype.card_pos_iff.mp (by omega)
+  let : DecidableEq T := Classical.decEq T
+  let : Primcodable T :=
     Primcodable.ofEquiv (Fin (Fintype.card T)) (Fintype.truncEquivFin T).out
   exact CS_strict_subclass_Recursive

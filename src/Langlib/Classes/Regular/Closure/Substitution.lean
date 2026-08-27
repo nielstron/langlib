@@ -78,7 +78,6 @@ variable (M : DFA α σ) (τ : α → Type) [inst_fin : ∀ a, Fintype (τ a)]
   (N : (a : α) → DFA β (τ a))
 
 /-- ε-NFA for the substitution of a DFA language by a family of DFA languages. -/
-@[expose]
 public noncomputable def substεNFA : εNFA β (σ ⊕ (σ × (Σ a : α, τ a))) where
   step := fun state c =>
     match state, c with
@@ -214,7 +213,7 @@ private lemma backward_eval (q : σ) (w : List α) (u : List β)
     Sum.inl (M.evalFrom q w) ∈ (substεNFA M τ N).evalFrom {Sum.inl q} u := by
   induction' w with a w ih generalizing q u;
   · cases hu;
-    exact Set.mem_setOf.mpr ( by tauto );
+    exact Set.mem_ofPred.mpr ( by tauto );
   · obtain ⟨ u₁, u₂, rfl, hu₁, hu₂ ⟩ : ∃ u₁ u₂, u = u₁ ++ u₂ ∧ u₁ ∈ (N a).accepts ∧ u₂ ∈ (List.map (fun a => (N a).accepts) w).prod := by
       rw [ mem_list_prod_iff_forall2 ] at hu;
       rcases hu with ⟨ W, rfl, hW ⟩ ; rcases W with ( _ | ⟨ u₁, W ⟩ ) <;> simp_all +decide [ List.forall₂_cons ] ;
@@ -270,7 +269,7 @@ private lemma εClosure_inr_cases (q : σ) (a : α) (t : τ a)
     rename_i h₁ h₂ h₃;
     rcases h₃ with ( rfl | ⟨ ht, h₃ ⟩ );
     · by_cases h : t ∈ ( N a ).accept <;> simp +decide [ h ] at h₁ ⊢;
-      exact Or.inr ( by exact Set.mem_setOf.mpr <| by tauto );
+      exact Or.inr ( by exact Set.mem_ofPred.mpr <| by tauto );
     · refine' Or.inr ⟨ ht, _ ⟩;
       apply_rules [ εNFA.εClosure.step ]
 
@@ -437,7 +436,7 @@ public theorem IsRegular.subst' {L : Language α} {f : α → Language β}
     (L.subst f).IsRegular := by
   obtain ⟨σ, _, M, rfl⟩ := hL
   choose τ_type τ_fin N_dfa hN using hf
-  haveI := τ_fin
+  have := τ_fin
   rw [show f = fun a => (N_dfa a).accepts from funext (fun a => (hN a).symm)]
   rw [← substεNFA_correct (M := M) (τ := τ_type) (N := N_dfa)]
   exact ⟨_, inferInstance, (substεNFA M τ_type N_dfa).toNFA.toDFA,

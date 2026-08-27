@@ -79,7 +79,6 @@ variable {Q T S σ : Type} [Fintype Q] [Fintype T] [Fintype S] [Fintype σ]
 namespace DPDA
 
 /-- The **product DPDA×DFA**: runs a DPDA and a DFA in parallel. -/
-@[expose]
 public def productDFA (M : DPDA Q T S) (D : DFA T σ) : DPDA (Q × σ) T S where
   initial_state := (M.initial_state, D.start)
   start_symbol := M.start_symbol
@@ -116,7 +115,7 @@ theorem productDFA_step_projects (M : DPDA Q T S) (D : DFA T σ)
   rcases c₁ with ⟨ ⟨ q₁, s₁ ⟩, w₁, γ₁ ⟩ ; rcases c₂ with ⟨ ⟨ q₂, s₂ ⟩, w₂, γ₂ ⟩ ; simp_all +decide [ Reaches₁ ];
   cases w₁ <;> cases γ₁ <;> simp_all +decide [ step ];
   · obtain ⟨ β, hβ, rfl, rfl ⟩ := h;
-    cases hβ' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ DPDA.toPDA ];
+    cases hβ' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide;
     · unfold DPDA.productDFA at hβ; aesop;
     · unfold DPDA.productDFA at hβ; aesop;
   · unfold DPDA.productDFA at *;
@@ -140,7 +139,7 @@ public theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
           ⟨a, tail, next, beta, hinput, htarget, hmem⟩
         subst c₂
         cases ht : M.transition q a Z with
-        | none => simp [productDFA, DPDA.toPDA, ht] at hmem
+        | none => simp [productDFA, ht] at hmem
         | some out =>
             rcases out with ⟨p, alpha⟩
             have hpair : (next, beta) = ((p, D.step s a), alpha) := by
@@ -154,7 +153,7 @@ public theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
       · rcases hepsilon with ⟨next, beta, htarget, hmem⟩
         subst c₂
         cases hε : M.epsilon_transition q Z with
-        | none => simp [productDFA, DPDA.toPDA, hε] at hmem
+        | none => simp [productDFA, hε] at hmem
         | some out =>
             rcases out with ⟨p, alpha⟩
             have hpair : (next, beta) = ((p, s), alpha) := by

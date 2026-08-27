@@ -57,7 +57,5 @@ public theorem is_DCF_of_is_DCF_total {L : Language T} (hL : is_DCF_total L) : i
 
 /-- The totalization/normalization principle needed for unconditional DCF complement
 closure: every final-state DPDA language has an equivalent deciding-DPDA presentation. -/
-@[expose]
 public def EveryDCFHasDeciderPresentation (T : Type) [Fintype T] : Prop :=
   ∀ L : Language T, is_DCF L → is_DCF_total L
-

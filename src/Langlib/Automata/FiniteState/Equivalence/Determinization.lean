@@ -24,14 +24,12 @@ variable {T : Type}
 
 /-- A language is `NFA`-recognizable if it is accepted by some nondeterministic
 finite automaton with a finite state type. -/
-@[expose]
 public def is_NFA (L : Language T) : Prop :=
   ∃ σ : Type, ∃ _ : Fintype σ, ∃ M : NFA T σ, M.accepts = L
 
 /-- The class of NFA-recognizable languages. -/
-@[expose]
 public def NFA.Class : Set (Language T) :=
-  setOf is_NFA
+  Set.ofPred is_NFA
 
 /-- Nondeterministic and deterministic finite automata recognize exactly the
 same languages. -/

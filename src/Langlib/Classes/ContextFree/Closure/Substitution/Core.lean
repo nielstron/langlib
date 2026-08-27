@@ -50,7 +50,6 @@ namespace ContextFreeGrammar
 The set of terminals used in a context-free grammar `g` is the set of all terminals appearing in the
 right-hand side of any rule in `g`.
 -/
-@[expose]
 public def usedTerminals {α : Type} [DecidableEq α] (g : ContextFreeGrammar α) :
   Finset α :=
   g.rules.sup fun r =>
@@ -60,7 +59,6 @@ public def usedTerminals {α : Type} [DecidableEq α] (g : ContextFreeGrammar α
 The rules from the substituting grammars `f a` are lifted to the combined non-terminal type
 `g.NT ⊕ (Σ a, (f a).NT)`. We only include rules for terminals `a` that are actually used in `g`.
 -/
-@[expose]
 public def subst_rules_f {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT] :
@@ -84,7 +82,6 @@ The rules of the original grammar `g` are transformed. Non-terminals `n` become 
 terminals `a` are replaced by the start symbol of the substituting grammar `f a`, which is
 `Sum.inr ⟨a, (f a).initial⟩`.
 -/
-@[expose]
 public def subst_rules_g {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β) :
@@ -106,7 +103,7 @@ public def subst_rules_g {α β : Type}
 The substitution grammar is constructed by taking the disjoint union of non-terminals and the union
 of the transformed rules from `g` and the lifted rules from `f`.
 -/
-@[expose, reducible]
+@[reducible]
 public def subst {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT] :
@@ -119,7 +116,6 @@ public def subst {α β : Type} [DecidableEq α] [DecidableEq β]
 the left component of the sum, and terminals are mapped to the start symbol of the corresponding
 substituting grammar.
 -/
-@[expose]
 public def liftSymbolG {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
     (s : Symbol α g.NT) : Symbol β (g.NT ⊕ (Σ a, (f a).NT)) :=
   match s with
@@ -130,7 +126,6 @@ public def liftSymbolG {α β : Type} (g : ContextFreeGrammar α) (f : α → Co
 `liftSymbolF` maps symbols from `f a` to the substitution grammar. Non-terminals are mapped to
 the right component of the sum, and terminals are kept as terminals.
 -/
-@[expose]
 public def liftSymbolF {α β : Type} (g : ContextFreeGrammar α) (f : α → ContextFreeGrammar β)
     (a : α) (s : Symbol β (f a).NT) : Symbol β (g.NT ⊕ (Σ a, (f a).NT)) :=
   match s with
@@ -506,7 +501,6 @@ private lemma derives_of_subst_derives_f {α β : Type} [DecidableEq α] [Decida
 /--
 `ProducesG` is the relation of single-step productions using only G-rules.
 -/
-@[expose]
 public def ProducesG {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β)
@@ -516,7 +510,6 @@ public def ProducesG {α β : Type}
 /--
 `ProducesF` is the relation of single-step productions using only F-rules.
 -/
-@[expose]
 public def ProducesF {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]
@@ -546,7 +539,6 @@ private lemma is_F_rule_output_no_inl {α β : Type} [DecidableEq α] [Decidable
 /--
 `DerivesG` is the relation of derivations using only G-rules.
 -/
-@[expose]
 public def DerivesG {α β : Type}
     (g : ContextFreeGrammar α)
     (f : α → ContextFreeGrammar β)
@@ -556,7 +548,6 @@ public def DerivesG {α β : Type}
 /--
 `DerivesF` is the relation of derivations using only F-rules.
 -/
-@[expose]
 public def DerivesF {α β : Type} [DecidableEq α] [DecidableEq β]
     (g : ContextFreeGrammar α) [DecidableEq g.NT]
     (f : α → ContextFreeGrammar β) [∀ a, DecidableEq (f a).NT]

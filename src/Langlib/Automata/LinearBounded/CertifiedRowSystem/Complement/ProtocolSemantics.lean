@@ -68,7 +68,7 @@ public theorem protocolReached_succ
       protocolReached D input k ∪
         Finset.univ.filter (fun v ↦
           ∃ u ∈ protocolReached D input k, rankEdge D input.length u v) := by
-  letI : DecidableRel (rankEdge D input.length) := Classical.decRel _
+  let : DecidableRel (rankEdge D input.length) := Classical.decRel _
   apply Finset.ext
   intro v
   simp [protocolReached, FiniteReachabilityCounting.reached_succ,
@@ -78,12 +78,13 @@ omit [DecidableEq A] in
 public theorem protocolReached_mono
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) (k : Nat) :
     protocolReached D input k ⊆ protocolReached D input (k + 1) := by
-  letI : DecidableRel (rankEdge D input.length) := Classical.decRel _
+  let : DecidableRel (rankEdge D input.length) := Classical.decRel _
   exact FiniteReachabilityCounting.reached_mono
     (rankEdge D input.length) (protocolSourceRank D input) k
 
+omit [DecidableEq A] in
 /-- A plateau layer is the complete reflexive-transitive reachable set. -/
-public theorem mem_protocolReached_iff_of_plateau
+public theorem mem_protocolReached_iff_of_plateau [DecidableEq A]
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) (depth : Nat)
     (hplateau : protocolReached D input depth =
       protocolReached D input (depth + 1))
@@ -91,7 +92,7 @@ public theorem mem_protocolReached_iff_of_plateau
     v ∈ protocolReached D input depth ↔
       Relation.ReflTransGen (rankEdge D input.length)
         (protocolSourceRank D input) v := by
-  letI : DecidableRel (rankEdge D input.length) := Classical.decRel _
+  let : DecidableRel (rankEdge D input.length) := Classical.decRel _
   constructor
   · intro hv
     exact FiniteReachabilityCounting.reached_sound
@@ -124,13 +125,14 @@ public theorem card_protocolReached_le_capacity
         Fintype.card (RankVertex A input.length) := Finset.card_le_univ _
     _ = Fintype.card A ^ input.length := by simp
 
+omit [DecidableEq A] in
 /-- A strict cardinal increase leaves room for the following depth numeral. -/
-public theorem depth_succ_lt_capacity_of_card_lt
+public theorem depth_succ_lt_capacity_of_card_lt [DecidableEq A]
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) (depth : Nat)
     (hgrowth : (protocolReached D input depth).card <
       (protocolReached D input (depth + 1)).card) :
     depth + 1 < Fintype.card A ^ input.length := by
-  letI : DecidableRel (rankEdge D input.length) := Classical.decRel _
+  let : DecidableRel (rankEdge D input.length) := Classical.decRel _
   have hne : protocolReached D input depth ≠ protocolReached D input (depth + 1) := by
     intro heq
     rw [heq] at hgrowth
@@ -142,8 +144,9 @@ public theorem depth_succ_lt_capacity_of_card_lt
   have hupper := card_protocolReached_le_capacity D input (depth + 1)
   omega
 
+omit [DecidableEq A] in
 /-- Source rejection can be stated entirely in the finite ranked graph. -/
-public theorem sourceRejects_iff_ranked
+public theorem sourceRejects_iff_ranked [DecidableEq A]
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) :
     SourceRejects D input ↔
       ¬ ∃ row : RankVertex A input.length,
@@ -205,9 +208,10 @@ public theorem foundFrom_eq_true_iff
       ∃ inner ∈ selected, inner = outer ∨ rankEdge D input.length inner outer := by
   simp [foundFrom]
 
+omit [DecidableEq A] in
 /-- If the selected inner scan is exactly the old reachable layer, its accumulated flag
 is precisely membership in the next reachable layer. -/
-public theorem foundFrom_full_iff
+public theorem foundFrom_full_iff [DecidableEq A]
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) (k : Nat)
     (outer : RankVertex A input.length) :
     foundFrom D input outer (protocolReached D input k) = true ↔
@@ -222,8 +226,9 @@ public theorem foundFrom_full_iff
     · exact ⟨outer, hold, Or.inl rfl⟩
     · exact ⟨inner, hinner, Or.inr hedge⟩
 
+omit [DecidableEq A] in
 /-- Extending the outer prefix classifies exactly its new rank. -/
-public theorem classifiedPrefix_succ
+public theorem classifiedPrefix_succ [DecidableEq A]
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) (depth outerIndex : Nat)
     (houter : outerIndex < Fintype.card A ^ input.length) :
     classifiedPrefix D input depth (outerIndex + 1) =
@@ -238,8 +243,9 @@ public theorem classifiedPrefix_succ
   · simp [hcurrent]
   · simp [hcurrent]
 
+omit [DecidableEq A] in
 /-- Cardinal form of `classifiedPrefix_succ`. -/
-public theorem card_classifiedPrefix_succ
+public theorem card_classifiedPrefix_succ [DecidableEq A]
     (D : CertifiedRowSystem I A Unit Q F) (input : List I) (depth outerIndex : Nat)
     (houter : outerIndex < Fintype.card A ^ input.length) :
     (classifiedPrefix D input depth (outerIndex + 1)).card =
@@ -482,9 +488,10 @@ public structure FinalFinishInvariant
 
 /-! ### Local preservation lemmas -/
 
+omit [DecidableEq A] in
 /-- The canonical boot target is the initial exact count state (`depth = 0`, count
 `= 1`). -/
-public theorem initialized_roundStartInvariant
+public theorem initialized_roundStartInvariant [DecidableEq A]
     (D : CertifiedRowSystem I A Unit Q F) {input : List I} (hinput : input ≠ []) :
     RoundStartInvariant D input
       (initializedProtocolRow (protocolSource D input)) 0 1 := by
@@ -525,9 +532,10 @@ public theorem initialized_roundStartInvariant
       fuel_zero := by simpa [hlen] using hfuel
       found_false := hfound }
 
+omit [DecidableEq A] in
 /-- Entering a round creates the empty inner-scan transcript at outer and inner rank
 zero. -/
-public theorem beginRound_preserves
+public theorem beginRound_preserves [DecidableEq A]
     {D : CertifiedRowSystem I A Unit Q F} {input : List I}
     {old new : ProtocolRow A} {depth count : Nat}
     (hinv : RoundStartInvariant D input old depth count)
@@ -569,9 +577,10 @@ public theorem beginRound_preserves
       path_zero := hpath.trans hinv.path_zero
       fuel_zero := hfuel.trans hinv.fuel_zero }
 
+omit [DecidableEq A] in
 /-- Skipping the current inner row advances its canonical rank.  The last rank moves
 to `finishOuter`; every earlier rank stays in `chooseInner`. -/
-public theorem skipInner_preserves
+public theorem skipInner_preserves [DecidableEq A]
     {D : CertifiedRowSystem I A Unit Q F} {input : List I}
     {old new : ProtocolRow A} {depth oldCount newCount outerIndex innerIndex : Nat}
     {selected : Finset (RankVertex A input.length)}
@@ -652,9 +661,10 @@ public theorem skipInner_preserves
         path_zero := hpath.trans hinv.path_zero
         fuel_zero := hfuel.trans hinv.fuel_zero }
 
+omit [DecidableEq A] in
 /-- Committing an exhaustively checked outer row advances the outer enumeration and
 the exact next-layer count. -/
-public theorem finishOuter_preserves
+public theorem finishOuter_preserves [DecidableEq A]
     {D : CertifiedRowSystem I A Unit Q F} {input : List I}
     {old new : ProtocolRow A} {depth oldCount newCount outerIndex : Nat}
     {selected : Finset (RankVertex A input.length)}
@@ -791,9 +801,10 @@ public theorem finishOuter_preserves
         path_zero := by simpa [hlen] using hpathZero
         fuel_zero := by simpa [hlen] using hfuelZero }
 
+omit [DecidableEq A] in
 /-- Finishing an exact count round either records a genuine plateau and starts the final
 scan, or advances to the next exact depth/count pair. -/
-public theorem finishRound_preserves
+public theorem finishRound_preserves [DecidableEq A]
     {D : CertifiedRowSystem I A Unit Q F} {input : List I}
     {old new : ProtocolRow A} {depth oldCount newCount : Nat}
     (hinput : input ≠ [])
@@ -961,8 +972,9 @@ public theorem finalSkip_preserves
         path_zero := hpath.trans hinv.path_zero
         fuel_zero := hfuel.trans hinv.fuel_zero }
 
+omit [DecidableEq A] in
 /-- The exact final scan proves that every globally reachable ranked row is nonfinal. -/
-public theorem finalFinish_rejects
+public theorem finalFinish_rejects [DecidableEq A]
     {D : CertifiedRowSystem I A Unit Q F} {input : List I}
     {old new : ProtocolRow A} {depth count : Nat}
     {selected : Finset (RankVertex A input.length)}

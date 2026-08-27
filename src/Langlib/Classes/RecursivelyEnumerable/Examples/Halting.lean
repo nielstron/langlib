@@ -23,7 +23,6 @@ machine, hence RE.
 open Nat.Partrec
 
 /-- Bounded halting test for the unary language. -/
-@[expose]
 public def haltingUnaryTest (k : ℕ) (w : List Unit) : Bool :=
   (Nat.Partrec.Code.evaln k (Nat.Partrec.Code.ofNatCode w.length) 0).isSome
 

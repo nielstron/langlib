@@ -79,7 +79,6 @@ attribute [instance] RegularEpsilonAnalysis.acceptFintype
 attribute [instance] RegularEpsilonAnalysis.acceptDecidableEq
 
 /-- The semantic epsilon-analysis existence theorem needed by the finite totalizer. -/
-@[expose]
 public def HasRegularEpsilonAnalysis (M : DPDA Q T S) : Prop :=
   Nonempty M.RegularEpsilonAnalysis
 
@@ -88,7 +87,6 @@ noncomputable section
 /-- The saturation construction supplies the finite regular epsilon analysis used
 by the totalizer.  For each control state `q`, the DFA state is the current set of
 P-automaton states reachable after reading the stack prefix. -/
-@[expose]
 public def regularEpsilonAnalysisOfSaturation (M : DPDA Q T S) :
     M.RegularEpsilonAnalysis where
   StopState := fun _ => Set (PAutState Q)

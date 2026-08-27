@@ -52,7 +52,6 @@ section PDA_FS_to_ES
 open Classical in
 /-- ε-transition function for the FS→ES PDA conversion.
     Defined as a top-level function to ensure good definitional reduction. -/
-@[expose]
 public noncomputable def PDA_FS_to_ES_eps {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
     (M : PDA Q T S) : (Q ⊕ Fin 2) → (Option S) → Set ((Q ⊕ Fin 2) × List (Option S))
   | Sum.inr 0, none => {(Sum.inl M.initial_state, [some M.start_symbol, none])}
@@ -66,7 +65,6 @@ public noncomputable def PDA_FS_to_ES_eps {Q T S : Type} [Fintype Q] [Fintype T]
 
 open Classical in
 /-- Input-reading transition function for the FS→ES PDA conversion. -/
-@[expose]
 public noncomputable def PDA_FS_to_ES_trans {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
     (M : PDA Q T S) : (Q ⊕ Fin 2) → T → (Option S) → Set ((Q ⊕ Fin 2) × List (Option S))
   | Sum.inl q, a, some s =>
@@ -75,7 +73,6 @@ public noncomputable def PDA_FS_to_ES_trans {Q T S : Type} [Fintype Q] [Fintype 
 
 open Classical in
 /-- The PDA that converts final-state acceptance to empty-stack acceptance. -/
-@[expose]
 public noncomputable def PDA_FS_to_ES_pda {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
     (M : PDA Q T S) : PDA (Q ⊕ Fin 2) T (Option S) where
   initial_state := Sum.inr 0
@@ -94,7 +91,6 @@ public noncomputable def PDA_FS_to_ES_pda {Q T S : Type} [Fintype Q] [Fintype T]
     · exact (by split_ifs <;> exact Set.toFinite _)
 
 /-- Lifting a configuration from the original PDA to the new PDA. -/
-@[expose]
 public def liftConf {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
     (M : PDA Q T S) (c : PDA.conf M) : PDA.conf (PDA_FS_to_ES_pda M) :=
   ⟨Sum.inl c.state, c.input, c.stack.map some ++ [none]⟩
@@ -277,7 +273,6 @@ lemma reverse_simulation_step {Q S : Type} [Fintype Q] [Fintype S]
         `M.Reaches ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, w', γ⟩`
     (3) the drain state `(inr 1, ...)` with a witness that some final state of M
         was reached on empty input. -/
-@[expose]
 public def FSES_Inv {Q S : Type} [Fintype Q] [Fintype S]
     (M : PDA Q T S) (w : List T) (c : PDA.conf (PDA_FS_to_ES_pda M)) : Prop :=
   (c = ⟨Sum.inr 0, w, [none]⟩) ∨
@@ -596,9 +591,9 @@ lemma ES_simulation_step {Q S : Type} [Fintype Q] [Fintype S]
       unfold step at h;
       rename_i q w α q' w' α';
       rcases w with ( _ | ⟨ a, w ⟩ ) <;> rcases α with ( _ | ⟨ Z, α ⟩ ) <;> simp_all +decide [ liftConf_ES ];
-      · obtain ⟨ β, hβ, rfl, rfl ⟩ := h; simp_all +decide [ step ] ;
+      · obtain ⟨ β, hβ, rfl, rfl ⟩ := h; simp_all +decide ;
         exact Set.mem_image_of_mem _ hβ;
-      · rcases h with ( ⟨ β, hβ, rfl, rfl ⟩ | ⟨ β, hβ, rfl, rfl ⟩ ) <;> simp_all +decide [ step ];
+      · rcases h with ( ⟨ β, hβ, rfl, rfl ⟩ | ⟨ β, hβ, rfl, rfl ⟩ ) <;> simp_all +decide;
         · exact Set.mem_image_of_mem _ hβ;
         · exact Set.mem_image_of_mem _ hβ
 
@@ -715,9 +710,9 @@ lemma ESFS_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
           · rcases h_step with ( ( ⟨ p, β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ ) | ⟨ p, β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ ) <;> simp_all +decide [ ESFS_Inv ];
             all_goals unfold PDA_ES_to_FS_pda at h₁; simp_all +decide [ PDA_ES_to_FS_trans, PDA_ES_to_FS_eps ] ;
             · rcases h₁ with ⟨ b, hb₁, rfl ⟩ ; use b ++ γ; simp_all +decide [ Reaches ] ;
-              exact h.tail ( by exact Set.mem_union_left _ <| Set.mem_setOf.mpr ⟨ p, b, hb₁, rfl ⟩ );
+              exact h.tail ( by exact Set.mem_union_left _ <| Set.mem_ofPred.mpr ⟨ p, b, hb₁, rfl ⟩ );
             · obtain ⟨ b, hb₁, hb₂ ⟩ := h₁; use b ++ γ; simp_all +decide [ List.map_append ] ;
-              exact h.tail ( by exact Set.mem_union_right _ <| Set.mem_setOf.mpr ⟨ p, b, hb₁, rfl ⟩ );
+              exact h.tail ( by exact Set.mem_union_right _ <| Set.mem_ofPred.mpr ⟨ p, b, hb₁, rfl ⟩ );
       · contrapose! h_step;
         simp +decide [ Reaches₁ ];
         unfold step; aesop;

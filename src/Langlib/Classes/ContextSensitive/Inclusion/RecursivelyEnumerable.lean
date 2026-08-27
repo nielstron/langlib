@@ -24,7 +24,7 @@ This file embeds context-sensitive grammars into unrestricted grammars and deriv
 variable {T : Type}
 
 
-@[expose, reducible]
+@[reducible]
 public def grammar_of_csg (g : CS_grammar T) : grammar T :=
 grammar.mk g.nt g.initial (List.map
   (fun r : csrule T g.nt => grule.mk

@@ -41,7 +41,7 @@ private theorem ProducesRightmost.avoids_of_avoids
     rw [hsource]
     simp [hp]
   · exact hrhs r hr hrhs'
-  · simpa using hs
+  · simp at hs
 
 private theorem ProducesRightmost.avoids_of_initial
     {G : CF_grammar T}
@@ -173,9 +173,6 @@ private theorem projectAugmentString_post (G : CF_grammar T)
           s.map (symbol.terminal (N := Option G.nt))) =
       G.projectAugmentString p ++ rhs ++
         s.map (symbol.terminal (N := G.nt)) := by
-  change G.projectAugmentString
-      (p ++ CF_grammar.augmentString rhs ++
-        s.map (symbol.terminal (N := Option G.nt))) = _
   rw [G.projectAugmentString_append, G.projectAugmentString_append,
     G.projectAugmentString_augmentString,
     G.projectAugmentString_map_terminal]
@@ -288,6 +285,7 @@ private theorem characteristic_post_avoids_initial (M : DPDA Q T S)
     · rcases List.mem_map.mp hs with ⟨a, _, ha⟩
       cases ha
 
+omit [Fintype T] in
 private theorem initial_prehandle_prefix_nil
     {G : CF_grammar T}
     (hrhs : ∀ r ∈ G.rules,
@@ -414,7 +412,7 @@ public theorem characteristic_isLR1_of_core (M : DPDA Q T S)
       · apply hpostFree
         simp only [List.mem_append]
         exact Or.inl hbase
-      · simpa using hterminal
+      · simp at hterminal
     contradiction
   · rcases List.mem_map.mp hmapped₁ with ⟨R₁, hR₁, rfl⟩
     rcases List.mem_map.mp hmapped₂ with ⟨R₂, hR₂, rfl⟩

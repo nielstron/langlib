@@ -73,21 +73,25 @@ private theorem scanPhases_none_eq_some_iff
   · rintro ⟨hhead, htail⟩
     exact ⟨hhead.symm, fun x hx ↦ (htail x hx).trans hhead.symm⟩
 
+omit [Nonempty A] [DecidableEq A] in
 private theorem scanBits_none_eq_some_iff_hasFound
     {row : ProtocolRow A} (hne : row ≠ []) (found : Bool) :
     scanBits .start (row.map (·.found)) = .value found ↔ HasFound found row := by
   rw [scanBits_none_eq_some_iff (by simpa using hne)]
   simp [HasFound]
 
+omit [Nonempty A] [DecidableEq A] in
 private theorem scanPhases_none_eq_some_iff_hasPhase
     {row : ProtocolRow A} (hne : row ≠ []) (phase : ProtocolPhase) :
     scanPhases .start (row.map (·.phase)) = .value phase ↔ HasPhase phase row := by
   rw [scanPhases_none_eq_some_iff (by simpa using hne)]
   simp [HasPhase]
 
+omit [DecidableEq A] in
 private theorem vertexNumeral_eq_rankRow (n : Nat) (v : RankVertex A n) :
     vertexNumeral n v.val = rankRow n v := rfl
 
+omit [DecidableEq A] in
 private theorem foundFrom_insert
     (D : CertifiedRowSystem I A Unit Q F) (input : List I)
     (outer inner : RankVertex A input.length)
@@ -99,6 +103,7 @@ private theorem foundFrom_insert
   simp [foundFrom]
   exact or_comm
 
+omit [Fintype A] [Nonempty A] [DecidableEq A] in
 private theorem stepDone_iff_of_evalUnit
     (D : CertifiedRowSystem I A Unit Q F) (old new : List A) (q : Q)
     (heval : D.evalStep D.stepStart old new (List.replicate old.length ()) = some q) :
@@ -427,7 +432,7 @@ public theorem finishWitness_preserves
     intro hmem
     have hpref := hinv.selected_prefix hmem
     rw [mem_rankPrefix] at hpref
-    exact (Nat.lt_irrefl innerIndex) (by simpa [current] using hpref)
+    exact (Nat.lt_irrefl innerIndex) (by simp [current] at hpref)
   have hinsertCard : (insert current selected).card = selected.card + 1 :=
     Finset.card_insert_of_notMem hcurrentNotMem
   have hselectedReachable :
@@ -623,7 +628,7 @@ public theorem finalWitness_preserves
     intro hmem
     have hpref := hinv.selected_prefix hmem
     rw [mem_rankPrefix] at hpref
-    exact (Nat.lt_irrefl innerIndex) (by simpa [current] using hpref)
+    exact (Nat.lt_irrefl innerIndex) (by simp [current] at hpref)
   have hinsertCard : (insert current selected).card = selected.card + 1 :=
     Finset.card_insert_of_notMem hcurrentNotMem
   have hselectedReachable :

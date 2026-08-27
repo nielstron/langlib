@@ -549,7 +549,7 @@ by
   induction stri with
   | nil => rfl
   | cons a stri ih =>
-      simp [lsTN₁_of_lsTN, lsTN_of_lsTN₁, self_of_sTN₁, ih]
+      simp [lsTN₁_of_lsTN, lsTN_of_lsTN₁, self_of_sTN₁]
 
 variable {g₁ g₂ : CF_grammar T}
 def combined_rule_of_rule₁ (r : g₁.nt × (List (symbol T g₁.nt))) :
@@ -565,7 +565,7 @@ by
   induction stri with
   | nil => rfl
   | cons a stri ih =>
-      simp [lsTN₂_of_lsTN, lsTN_of_lsTN₂, self_of_sTN₂, ih]
+      simp [lsTN₂_of_lsTN, lsTN_of_lsTN₂, self_of_sTN₂]
 
 private lemma lsTN_of_lsTN₁_of_good {g₁ g₂ : CF_grammar T}
     (w : List (symbol T (combined_grammar g₁ g₂).nt))

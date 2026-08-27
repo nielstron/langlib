@@ -49,19 +49,13 @@ namespace StarHelpers
 
 section star_helpers
 
-@[expose]
 public abbrev nn (N : Type) : Type := N ⊕ Fin 3
-@[expose]
 public abbrev ns (T N : Type) : Type := symbol T (nn N)
 
-@[expose]
 public def Z {N : Type} : ns T N := symbol.nonterminal (Sum.inr 0)
-@[expose]
 public def H {N : Type} : ns T N := symbol.nonterminal (Sum.inr 1)
-@[expose]
 public def R {N : Type} : ns T N := symbol.nonterminal (Sum.inr 2)
 
-@[expose]
 public def wrap_sym {N : Type} : symbol T N → ns T N
   | symbol.terminal t    => symbol.terminal t
   | symbol.nonterminal n => symbol.nonterminal (Sum.inl n)

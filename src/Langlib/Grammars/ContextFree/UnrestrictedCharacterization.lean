@@ -74,7 +74,6 @@ variable {T : Type}
 
 /-- Convert a context-free grammar to the corresponding unrestricted grammar
 with empty left and right contexts in every rule. -/
-@[expose]
 public def grammar_of_cfg (g : CF_grammar T) : grammar T :=
   grammar.mk g.nt g.initial (List.map (fun r : g.nt × List (symbol T g.nt) =>
     grule.mk [] r.fst [] r.snd) g.rules)
@@ -164,12 +163,10 @@ public theorem is_CF_via_cfg_implies_is_CF {L : Language T} (h : is_CF_via_cfg L
 
 /-- Convert an unrestricted grammar rule (from a context-free unrestricted grammar)
     into a context-free rule (a pair of nonterminal and output string). -/
-@[expose]
 public def cfrule_of_grule (r : grule T N) : N × List (symbol T N) :=
   (r.input_N, r.output_string)
 
 /-- Construct a `CF_grammar` from a context-free unrestricted grammar. -/
-@[expose]
 public def cfg_of_grammar (g : grammar T) (_hg : grammar_context_free g) :
     CF_grammar T where
   nt := g.nt
@@ -192,7 +189,7 @@ public lemma cfg_of_grammar_transforms_iff (g : grammar T) (hg : grammar_context
     change List (symbol T g.nt) at u v
     rcases hg a ha with ⟨hL, hR⟩
     refine ⟨a, ha, u, v, ?_, ?_⟩
-    · simp only [cfrule_of_grule, hL, hR, List.append_nil, List.nil_append]
+    · simp only [cfrule_of_grule, hL, hR, List.append_nil]
       rfl
     · rfl
   · rintro ⟨ r, hr, u, v, rfl, rfl ⟩;

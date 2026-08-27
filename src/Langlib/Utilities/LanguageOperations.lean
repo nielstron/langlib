@@ -38,7 +38,6 @@ public theorem mem_list_prod_iff_forall2 (S : List (Language α)) (w : List α) 
           rw [List.forall₂_cons] at h
           exact ⟨w, h.1, W.flatten, (ih _).mpr ⟨W, rfl, h.2⟩, rfl⟩
 
-@[expose]
 public def subst {α β : Type} (L : Language α) (f : α → Language β) : Language β :=
   {u | ∃ w ∈ L, u ∈ (w.map f).prod}
 
@@ -137,7 +136,6 @@ public theorem subst_singletons_eq_map {α β : Type} (L : Language α) (f : α 
 
 /-- The prefix language of `L` consists of all words that can be extended on the right to a word
 in `L`. -/
-@[expose]
 public def prefixLang (L : Language α) : Language α :=
   { w | ∃ v : List α, w ++ v ∈ L }
 
@@ -190,7 +188,6 @@ theorem prefixLang_prefixLang (L : Language α) :
 
 /-- The suffix language of `L` consists of all words that can be extended on the left to a word in
 `L`. -/
-@[expose]
 public def suffixLang (L : Language α) : Language α :=
   { w | ∃ v : List α, v ++ w ∈ L }
 
@@ -229,11 +226,9 @@ theorem suffixLang_mono {L₁ L₂ : Language α} (h : L₁ ≤ L₂) :
 
 variable {T : Type _}
 
-@[expose]
 public def bijemapLang {T' : Type _} (L : Language T) (π : T ≃ T') : Language T' :=
   fun w : List T' => List.map π.symm w ∈ L
 
-@[expose]
 public def permuteLang (L : Language T) (π : Equiv.Perm T) : Language T :=
   bijemapLang L π
 
@@ -271,7 +266,6 @@ theorem prefixLang_eq_reverse_suffixLang_reverse (L : Language T) :
 
 /-- The right quotient of `L` by `R`: the set of words `w` such that `w ++ v ∈ L` for some
 `v ∈ R`. This generalises `prefixLang` (which is `rightQuotient L Set.univ`). -/
-@[expose]
 public def rightQuotient (L : Language α) (R : Language α) : Language α :=
   { w | ∃ v ∈ R, w ++ v ∈ L }
 

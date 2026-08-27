@@ -77,7 +77,6 @@ variable {σ : Type*} [Fintype σ]
 States are `σ ⊕ Unit`. The fresh state `Sum.inr ()` is both the start and the
 sole accepting state. It has an ε-transition into the DFA's start state.
 Accepting states of the DFA have an ε-transition back to the fresh state. -/
-@[expose]
 public noncomputable def starεNFA (M : DFA α σ) : εNFA α (σ ⊕ Unit) where
   step := fun s c =>
     match s, c with
@@ -137,7 +136,7 @@ private lemma εClosure_inl_accept (q : σ) (hq : q ∈ M.accept) :
         unfold starεNFA at *; aesop;
       · simp +decide [ Set.subset_def, starεNFA ];
         refine' ⟨ _, _, _ ⟩;
-        · exact Set.mem_setOf.mpr ( by tauto );
+        · exact Set.mem_ofPred.mpr ( by tauto );
         · refine' εNFA.εClosure.step _ _ _ _;
           exact Sum.inl q;
           · grind;
@@ -172,7 +171,7 @@ private lemma evalFrom_append (S : Set (σ ⊕ Unit)) (u v : List α) :
       induction' u using List.reverseRecOn with u ih;
       · induction' v using List.reverseRecOn with v ih <;> simp_all +decide [ List.foldl_append ];
         refine' le_antisymm _ _;
-        · exact Set.mem_setOf_eq.mpr ( by tauto );
+        · exact Set.mem_ofPred_eq.mpr ( by tauto );
         · intro x hx;
           induction' hx with x hx ih;
           · exact hx;
@@ -206,7 +205,7 @@ private lemma evalFrom_mono (S T : Set (σ ⊕ Unit)) (w : List α) (h : S ⊆ T
       induction' w using List.reverseRecOn with w ih generalizing S T <;> simp_all +decide [ εNFA.evalFrom ];
       · intro x hx;
         induction' hx with x hx ih;
-        · exact Set.mem_setOf_eq.mpr ( by tauto );
+        · exact Set.mem_ofPred_eq.mpr ( by tauto );
         · apply_rules [ εNFA.εClosure.step ];
       · rename_i h';
         exact Set.biUnion_mono ( h' S T h ) fun _ _ => by tauto;
@@ -326,7 +325,7 @@ private lemma star_backward {w : List α}
       generalize_proofs at *;
       have h_ind : ∀ L : List (List α), (∀ y ∈ L, y ∈ M.accepts) → Sum.inr () ∈ (starεNFA M).evalFrom {Sum.inr ()} L.flatten := by
         intro L hL; induction' L with y L ih <;> simp_all +decide [  ] ;
-        · exact Set.mem_setOf.mpr ( by tauto );
+        · exact Set.mem_ofPred.mpr ( by tauto );
         · have h_eval_y : Sum.inl (M.evalFrom M.start y) ∈ (starεNFA M).evalFrom {Sum.inr ()} y := by
             have h_eval_y : Sum.inl (M.evalFrom M.start y) ∈ (starεNFA M).evalFrom {Sum.inl M.start} y := by
               grind +suggestions

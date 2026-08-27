@@ -26,7 +26,6 @@ variable {T : Type}
 public abbrev RuleIndex (G : CF_grammar T) := Fin G.rules.length
 
 /-- The production represented by a rule-list index. -/
-@[expose]
 public def ruleAt (G : CF_grammar T) (i : RuleIndex G) :
     G.nt × List (symbol T G.nt) :=
   G.rules.get i
@@ -50,17 +49,14 @@ public abbrev Lookahead (T : Type) (k : ℕ) := Fin k → Option T
 
 /-- Observe the first `k` terminals of a suffix, padding with the explicit EOF
 marker. -/
-@[expose]
 public def observe (k : ℕ) (w : List T) : Lookahead T k :=
   fun i => w[i.val]?
 
 /-- The all-EOF lookahead. -/
-@[expose]
 public def eofLookahead (T : Type) (k : ℕ) : Lookahead T k :=
   fun _ => none
 
 /-- Prefix a finite terminal word to a padded lookahead. -/
-@[expose]
 public def prependLookahead (k : ℕ) (z : List T) (u : Lookahead T k) :
     Lookahead T k :=
   fun i =>
@@ -91,48 +87,40 @@ public noncomputable instance instFintypeItem [Fintype T]
     (fun _ => inferInstance) inferInstance
 
 /-- The production index of an item. -/
-@[expose]
 public def Item.rule {G : CF_grammar T} {k : ℕ} (i : Item G k) : RuleIndex G :=
   i.1
 
 /-- The dot position of an item. -/
-@[expose]
 public def Item.position {G : CF_grammar T} {k : ℕ} (i : Item G k) :
     Position G i.rule :=
   i.2.1
 
 /-- The terminal lookahead of an item. -/
-@[expose]
 public def Item.lookahead {G : CF_grammar T} {k : ℕ} (i : Item G k) :
     Lookahead T k :=
   i.2.2
 
 /-- Symbols before the dot. -/
-@[expose]
 public def Item.before {G : CF_grammar T} {k : ℕ} (i : Item G k) :
     List (symbol T G.nt) :=
   (ruleAt G i.rule).2.take i.position.val
 
 /-- Symbols at and after the dot. -/
-@[expose]
 public def Item.after {G : CF_grammar T} {k : ℕ} (i : Item G k) :
     List (symbol T G.nt) :=
   (ruleAt G i.rule).2.drop i.position.val
 
 /-- The symbol immediately after the dot, if any. -/
-@[expose]
 public def Item.next? {G : CF_grammar T} {k : ℕ} (i : Item G k) :
     Option (symbol T G.nt) :=
   (ruleAt G i.rule).2[i.position.val]?
 
 /-- An item is complete when its dot is just past the right-hand side. -/
-@[expose]
 public def Item.Complete {G : CF_grammar T} {k : ℕ} (i : Item G k) : Prop :=
   i.position.val = (ruleAt G i.rule).2.length
 
 /-- Relational dot advancement.  A relational presentation avoids dependent
 casts between the position types while retaining a finite decidable relation. -/
-@[expose]
 public def Advances {G : CF_grammar T} {k : ℕ}
     (i : Item G k) (X : symbol T G.nt) (j : Item G k) : Prop :=
   j.rule = i.rule ∧
@@ -142,7 +130,6 @@ public def Advances {G : CF_grammar T} {k : ℕ}
 
 /-- The right-hand suffix after the nonterminal immediately following an
 item's dot. -/
-@[expose]
 public def Item.afterNext {G : CF_grammar T} {k : ℕ} (i : Item G k) :
     List (symbol T G.nt) :=
   i.after.drop 1
@@ -153,7 +140,6 @@ sentential suffix is `beta` and the enclosing item has lookahead `u`.
 This semantic `FIRST_k` relation is deliberately stated with rightmost
 derivations.  It is a finite decidable table by classical choice because its
 arguments range over the finite item universe. -/
-@[expose]
 public def CanFollow (G : CF_grammar T) (k : ℕ)
     (beta : List (symbol T G.nt)) (u v : Lookahead T k) : Prop :=
   ∃ z : List T,
@@ -161,7 +147,6 @@ public def CanFollow (G : CF_grammar T) (k : ℕ)
       prependLookahead k z u = v
 
 /-- One epsilon-closure edge between canonical items. -/
-@[expose]
 public def ClosureStep (G : CF_grammar T) (k : ℕ)
     (i j : Item G k) : Prop :=
   i.next? = some (symbol.nonterminal (ruleAt G j.rule).1) ∧
@@ -169,7 +154,6 @@ public def ClosureStep (G : CF_grammar T) (k : ℕ)
     CanFollow G k i.afterNext i.lookahead j.lookahead
 
 /-- Epsilon closure of a finite item set. -/
-@[expose]
 public noncomputable def closure [Fintype T] (G : CF_grammar T) (k : ℕ)
     (I : Finset (Item G k)) : Finset (Item G k) := by
   classical
@@ -205,7 +189,6 @@ public theorem closure_closure [Fintype T] (G : CF_grammar T) (k : ℕ)
       ⟨j, hj, Relation.ReflTransGen.refl⟩
 
 /-- Canonical goto on one grammar symbol. -/
-@[expose]
 public noncomputable def goto [Fintype T] (G : CF_grammar T) (k : ℕ)
     (I : Finset (Item G k)) (X : symbol T G.nt) : Finset (Item G k) := by
   classical

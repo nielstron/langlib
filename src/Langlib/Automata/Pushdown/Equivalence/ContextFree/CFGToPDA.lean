@@ -51,19 +51,15 @@ instance : Fintype Q where
   complete _ := by rw [Finset.mem_singleton]
 
 
-@[expose]
 public abbrev S (G : ContextFreeGrammar T) [Fintype G.NT] := Symbol T G.NT
 
-@[expose]
 public abbrev PDA' (G : ContextFreeGrammar T) [Fintype G.NT] := PDA Q T (S G)
 
-@[expose]
 public abbrev transition_fun (G : ContextFreeGrammar T) [Fintype G.NT] (_ : Q) (a : T) (Z : S G) : Set (Q × List (S G)) :=
   match Z with
   | terminal b => if a=b then {(Q.loop, [])} else ∅
   | _ => ∅
 
-@[expose]
 public abbrev transition_fun' (G : ContextFreeGrammar T) [Fintype G.NT] (_ : Q) (Z : S G) : Set (Q × List (S G)) :=
   match Z with
   | nonterminal N => { (Q.loop, α) | (α : List (S G)) (_ : ⟨N, α⟩ ∈ G.rules) }
@@ -73,7 +69,6 @@ public abbrev transition_fun' (G : ContextFreeGrammar T) [Fintype G.NT] (_ : Q) 
 -- ContextFreeGrammar.exists_fintype_nt from FiniteNT.lean,
 -- which shows every CFG has an equivalent one with finite nonterminals.
 -- See is_PDA_of_isContextFree in PDAEquivalence.lean for the full result.
-@[expose]
 public abbrev M (G : ContextFreeGrammar T) [Fintype G.NT] : PDA' G:= {
   initial_state := Q.loop
   start_symbol := nonterminal G.initial
@@ -89,7 +84,7 @@ public abbrev M (G : ContextFreeGrammar T) [Fintype G.NT] : PDA' G:= {
     rintro q (⟨x⟩|⟨N⟩)
     · exact Set.finite_empty
     · let R  := {r | r ∈ G.rules}
-      have hR : R.Finite := by simp only [SetLike.setOf_mem_eq, Finset.finite_toSet, R]
+      have hR : R.Finite := by simp only [SetLike.setOfPred_mem_eq, Finset.finite_toSet, R]
       let S  := (λ ⟨N, α⟩ ↦ (Q.loop, α)) ''  R
       have hS : S.Finite := by apply Set.Finite.image; exact hR
       let A := (transition_fun' G q (nonterminal N))
@@ -113,7 +108,7 @@ public theorem M_consumes_terminal (a : T) (w : List T) (α : List (S G)):
     (M G).ReachesIn 1 ⟨Q.loop, a::w, terminal a :: α⟩ ⟨Q.loop, w, α⟩ := by
   rw [reachesIn_one,step]
   apply Set.mem_union_left
-  rw [Set.mem_setOf]
+  rw [Set.mem_ofPred]
   use Q.loop, []
   simp [M, CFG_to_PDA.transition_fun]
 
@@ -149,7 +144,7 @@ public theorem G_rule_of_M_consumes_nonterminal {w w': List T}{α β: List (S G)
     ∃(γ : List (S G)), (⟨N,γ⟩ ∈ G.rules) ∧ β = γ ++ α ∧ w=w':= by
   intro h
   rw [reachesIn_one] at h
-  rcases w with _ | ⟨a, w'⟩ <;> simp only [step, transition_fun',transition_fun, Set.mem_setOf] at h
+  rcases w with _ | ⟨a, w'⟩ <;> simp only [step, transition_fun',transition_fun, Set.mem_ofPred] at h
   · obtain ⟨_,γ,hγ, h⟩ := h
     apply conf.mk.inj at h
     obtain ⟨γ', hr, hγ'⟩ := hγ
@@ -159,7 +154,7 @@ public theorem G_rule_of_M_consumes_nonterminal {w w': List T}{α β: List (S G)
     refine ⟨?_,?_⟩
     · exact h.2.2
     · exact h.2.1.symm
-  · rw [Set.mem_union, Set.mem_setOf,Set.mem_setOf] at h
+  · rw [Set.mem_union, Set.mem_ofPred,Set.mem_ofPred] at h
     rcases h with ⟨_,γ,hγ, h⟩ |  ⟨_,γ,hγ, h⟩
     · exfalso
       exact (Set.mem_empty_iff_false _).mp hγ
@@ -179,7 +174,7 @@ theorem M_terminal_stack_of_read (a : T) (w : List T) (α β : List (S G)):
   · contradiction
   · rw [Set.mem_union] at h
     rcases h with h|h
-    <;> rw [Set.mem_setOf] at h
+    <;> rw [Set.mem_ofPred] at h
     <;> obtain ⟨_,γ,hγ, hr⟩ := h
     <;> rcases Z with ⟨a₀⟩|⟨N⟩
     <;> dsimp [transition_fun,transition_fun'] at hγ
@@ -205,7 +200,7 @@ public theorem M_deterministic_step_of_terminal_stack_cons (a : T) (w v : List T
   · obtain ⟨_,β',h⟩ := h
     exfalso
     exact (Set.mem_empty_iff_false _).mp h.1
-  · rw [Set.mem_union, Set.mem_setOf,Set.mem_setOf] at h
+  · rw [Set.mem_union, Set.mem_ofPred,Set.mem_ofPred] at h
     rcases h with ⟨_, γ, hγ, h⟩|⟨_, γ ,hγ, -⟩
     · rcases dec_em (a = b) with h'|h'<;> simp only [transition_fun, Set.mem_ite_empty_right] at hγ
       · apply conf.mk.inj at h

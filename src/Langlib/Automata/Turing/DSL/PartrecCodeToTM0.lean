@@ -88,8 +88,8 @@ public theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
       erw [ Quotient.liftOn'_mk ] ; aesop;
     · simp +decide [ proj ];
       erw [ Quotient.eq'' ];
-      simp +decide [ BlankRel.setoid ];
-      induction (trList v) <;> simp_all +decide [BlankRel, BlankExtends]
+      simp +decide;
+      induction (trList v) <;> simp_all +decide
       rename_i head tail ih
       change BlankRel _ [] at ih ⊢
       simp only [BlankRel, BlankExtends] at ih ⊢
@@ -155,10 +155,10 @@ public theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
       rw [← List.map_reverse]
       cases h : (trList v).reverse with
       | nil =>
-          simp only [h, List.map, List.headI_nil, List.tail_nil]
+          simp only [List.map, List.headI_nil, List.tail_nil]
           congr
       | cons head tail =>
-          simp only [h, List.map]
+          simp only [List.map]
           change
             ((true, Function.update (fun _ => none) K'.main (some head)) :
                 Γ' K' (fun _ => PartrecToTM2.Γ')) ::
@@ -181,21 +181,15 @@ public theorem partrec_init_trCfg (c : ToPartrec.Code) (v : List ℕ) :
 
 /-! ### Chain Type Abbreviations -/
 
-@[expose]
 public abbrev ChainΓ := Γ' K' (fun _ : K' => PartrecToTM2.Γ')
-@[expose]
 public abbrev ChainΛ_TM1 := Λ' K' (fun _ => PartrecToTM2.Γ') PartrecToTM2.Λ' (Option PartrecToTM2.Γ')
-@[expose]
 public abbrev ChainTM1 := TM2to1.tr PartrecToTM2.tr
-@[expose]
 public abbrev ChainTM0 := TM1to0.tr ChainTM1
-@[expose]
 public abbrev ChainΛ_TM0 := TM1to0.Λ' ChainTM1
 
 instance : Fintype PartrecToTM2.K' :=
   Fintype.ofList [.main, .rev, .aux, .stack] (by intro x; cases x <;> simp)
 
-@[expose]
 public instance : Fintype PartrecToTM2.Γ' :=
   Fintype.ofList [.consₗ, .cons, .bit0, .bit1] (by intro x; cases x <;> simp)
 
@@ -233,7 +227,6 @@ public theorem code_to_tm0_halts (c : ToPartrec.Code) (v : List ℕ) :
 /-! ### Support Chain (for Fintype states) -/
 
 /-- The TM2 support set for a given code `c`. -/
-@[expose]
 public def chainSuppTM2 (c : ToPartrec.Code) : Finset PartrecToTM2.Λ' :=
   PartrecToTM2.codeSupp c PartrecToTM2.Cont'.halt
 
@@ -242,7 +235,6 @@ noncomputable def chainSuppTM1 (c : ToPartrec.Code) : Finset ChainΛ_TM1 :=
   TM2to1.trSupp PartrecToTM2.tr (chainSuppTM2 c)
 
 /-- The TM0 support set. -/
-@[expose]
 public noncomputable def chainSuppTM0 (c : ToPartrec.Code) : Finset ChainΛ_TM0 :=
   TM1to0.trStmts ChainTM1 (chainSuppTM1 c)
 
@@ -297,7 +289,7 @@ theorem code_to_tm0_fintype (c : ToPartrec.Code) :
         (TM0.eval M
           (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList [n]))).Dom := by
   -- Override Inhabited instance to match tr_supports
-  letI inhΛ' : Inhabited PartrecToTM2.Λ' :=
+  let inhΛ' : Inhabited PartrecToTM2.Λ' :=
     ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
   -- Build the support chain: TM2 → TM1 → TM0
   -- All using the non-canonical Inhabited instance
@@ -347,7 +339,7 @@ public theorem code_to_tm0_fintype_general (c : ToPartrec.Code) :
         (c.eval v).Dom ↔
         (TM0.eval M
           (TM2to1.trInit PartrecToTM2.K'.main (PartrecToTM2.trList v))).Dom := by
-  letI inhΛ' : Inhabited PartrecToTM2.Λ' :=
+  let inhΛ' : Inhabited PartrecToTM2.Λ' :=
     ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
   have hTM2 := PartrecToTM2.tr_supports c PartrecToTM2.Cont'.halt
   have hTM1 := TM2to1.tr_supports PartrecToTM2.tr hTM2

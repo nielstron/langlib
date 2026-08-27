@@ -52,9 +52,10 @@ public theorem characteristic_rule_rhs_productive_reduced (M : DPDA Q T S)
   productiveGrammar_allRulesFullyProductive
     (rawCharacteristicGrammar M) r hr A hA
 
+omit [Fintype T] in
 /-- A list whose nonterminals are productive has a terminal rightmost
 completion. -/
-public theorem derivesRightmost_terminal_of_all_productive
+public theorem derivesRightmost_terminal_of_all_productive [Fintype T]
     (G : CF_grammar T) {u : List (symbol T G.nt)}
     (hprod : ∀ A, symbol.nonterminal A ∈ u → productive G A) :
     ∃ w : List T,
@@ -79,6 +80,7 @@ public theorem derivesRightmost_terminal_of_all_productive
           refine ⟨wA ++ wu, ?_⟩
           simpa [List.map_append] using hA'.append_to_terminals hu
 
+omit [Fintype T] in
 /-- Full productivity is invariant under a derivation when every rule has a
 fully productive right side. -/
 private theorem all_productive_of_derivesRightmost

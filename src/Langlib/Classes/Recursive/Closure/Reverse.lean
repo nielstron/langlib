@@ -265,10 +265,10 @@ public theorem is_Recursive_reverse {L : Language T} (hL : is_Recursive L) :
     is_Recursive L.reverse := by
   classical
   obtain ⟨Γw, hΓwfin, Λ, hΛ, hΛfin, M, accept, hHalt, hCorrect⟩ := hL
-  letI : Fintype (Option (T ⊕ Γw)) := inferInstance
+  let : Fintype (Option (T ⊕ Γw)) := inferInstance
   obtain ⟨ΛR, hΛR, hΛRfin, MR, hMR⟩ :=
     (tm0_reverse_block_anySuffix (Γ := Option (T ⊕ Γw)))
-  letI : Inhabited (ΛR ⊕ Λ) := ⟨Sum.inl default⟩
+  let : Inhabited (ΛR ⊕ Λ) := ⟨Sum.inl default⟩
   refine ⟨Γw, hΓwfin, ΛR ⊕ Λ, inferInstance, inferInstance, delayedCompose MR M,
     sumAccept accept,
     ?_, ?_⟩

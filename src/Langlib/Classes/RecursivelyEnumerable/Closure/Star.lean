@@ -234,7 +234,7 @@ private lemma scan_word {g : grammar T} {word : List T}
             [symbol.terminal t, R], scan_rule_mem (hw t (by simp)), [],
             List.map symbol.terminal word ++ sfx, ?_, ?_⟩
           · simp [R]
-          · simp [List.append_assoc]
+          · simp
         have h_ind : grammar_derives (star_grammar g) ([symbol.terminal t] ++ [R] ++ List.map symbol.terminal word ++ sfx) ([symbol.terminal t] ++ List.map symbol.terminal word ++ [R] ++ sfx) := by
           simpa [List.append_assoc] using
             grammar_deri_with_prefix [symbol.terminal t]
@@ -1097,7 +1097,7 @@ private lemma star_case_3 {g : grammar T} {α' : List (ns T g.nt)}
             simpa [ List.map_append ] using hβγ, hx, by
             grind ⟩;
   · obtain ⟨ r₀, hr₀, rfl ⟩ := extract_wrapped_rule hr ( by simpa using h );
-    convert star_case_3_wrapped hw hβγ hx hr₀ hbef using 1 <;>
+    convert star_case_3_wrapped hw hβγ hx hr₀ hbef using 1 ;
       simp [wrap_gr]
 
 /-

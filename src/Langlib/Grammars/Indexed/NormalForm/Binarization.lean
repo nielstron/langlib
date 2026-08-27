@@ -832,7 +832,7 @@ theorem binarize_generates_iff_all (hne : g.NoEpsilon') (hti : g.TerminalsIsolat
     constructor
     · intro hgen
       obtain ⟨hdec, hNF⟩ := g.binarize_isNormalForm hne hti hfs hfresh
-      letI := hdec
+      let := hdec
       have hne_bin : (g.binarize).NoEpsilon' :=
         (g.binarize).noEpsilon_of_isNormalForm hNF
       exact False.elim ((g.binarize).not_generates_nil_of_noEpsilon hne_bin hgen)

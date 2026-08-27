@@ -39,7 +39,7 @@ variable {T : Type}
 
 
 /-- Context-free grammar for the empty Language (i.e., `∈` always gives `false`). -/
-@[expose, reducible]
+@[reducible]
 public def cfg_empty_lang : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 []
 
@@ -148,7 +148,7 @@ by
     · simp [hyp, cfg_empty_word]
 
 /-- Context-free grammar for a Language `{a}.star` where `a` is a given terminal symbol. -/
-@[expose, reducible]
+@[reducible]
 public def cfg_symbol_star (a : T) : CF_grammar T :=
 CF_grammar.mk (Fin 1) 0 [(0, [symbol.terminal a, symbol.nonterminal 0]), (0, [])]
 

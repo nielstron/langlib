@@ -65,14 +65,12 @@ variable {T Γ NT : Type}
 
 /-- Lift symbols from `g` (over `Γ`) to the pullback grammar (over `T`).
 Terminals become decoding nonterminals; nonterminals are tagged. -/
-@[expose]
 public def liftSym : symbol Γ NT → symbol T (NT ⊕ Γ)
   | .terminal γ => .nonterminal (Sum.inr γ)
   | .nonterminal n => .nonterminal (Sum.inl n)
 
 /-- Project symbols from the pullback grammar back to `g`.
 Terminals in `T` are mapped via `encode`; nonterminals are untagged. -/
-@[expose]
 public def projSym (encode : T → Γ) : symbol T (NT ⊕ Γ) → symbol Γ NT
   | .terminal t => .terminal (encode t)
   | .nonterminal (Sum.inl n) => .nonterminal n
@@ -90,7 +88,6 @@ public theorem map_projSym_map_liftSym (encode : T → Γ) (l : List (symbol Γ 
 /-! ### Pullback grammar construction -/
 
 /-- Lift a grammar rule from `g` to the pullback grammar. -/
-@[expose]
 public def liftRule (r : grule Γ NT) : grule T (NT ⊕ Γ) where
   input_L := r.input_L.map liftSym
   input_N := Sum.inl r.input_N
@@ -98,7 +95,6 @@ public def liftRule (r : grule Γ NT) : grule T (NT ⊕ Γ) where
   output_string := r.output_string.map liftSym
 
 /-- A decode rule: `(Sum.inr (encode t)) → [terminal t]`. -/
-@[expose]
 public def decodeRule (encode : T → Γ) (t : T) : grule T (NT ⊕ Γ) where
   input_L := []
   input_N := Sum.inr (encode t)
@@ -107,7 +103,7 @@ public def decodeRule (encode : T → Γ) (t : T) : grule T (NT ⊕ Γ) where
 
 /-- The pullback grammar: given grammar `g` over `Γ` and `encode : T → Γ`,
 produces a grammar over `T` that generates `w` iff `g` generates `w.map encode`. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def pullbackGrammar (g : grammar Γ) (encode : T → Γ) [Fintype T] : grammar T where
   nt := g.nt ⊕ Γ
   initial := Sum.inl g.initial
@@ -140,7 +136,7 @@ public theorem transforms_proj (g : grammar Γ) (encode : T → Γ) [Fintype T]
   · obtain ⟨t, _ht, rfl⟩ := List.mem_map.mp hr
     rw [hsf₁, hsf₂]
     simp only [List.map_append, List.map_cons, List.map_nil, decodeRule, projSym,
-      List.nil_append, List.append_nil, List.singleton_append]
+      List.append_nil]
     exact Relation.ReflTransGen.refl
 
 /-

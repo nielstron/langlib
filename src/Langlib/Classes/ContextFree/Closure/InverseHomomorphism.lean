@@ -168,14 +168,14 @@ lemma is_CF_sLang [Fintype α] : is_CF (sLang α β) := by
         use ⟨Unit, (), []⟩
         simp +decide [grammar_context_free, grammar_language]
         ext w
-        simp only [setOf]
+        simp only [Set.ofPred]
         unfold grammar_generates
         simp +decide
         constructor <;> intro h <;> cases w <;> simp_all +decide [grammar_derives]
         · cases h
-          cases ‹_› <;> aesop
+          cases ‹_› ; aesop
         · cases h
-          cases ‹grammar_transforms _ _ _› <;> aesop
+          cases ‹grammar_transforms _ _ _› ; aesop
         · contradiction
         · contradiction
     | @insert a s ha ih =>
@@ -199,7 +199,7 @@ lemma is_CF_sLang [Fintype α] : is_CF (sLang α β) := by
       (⋃ a ∈ (Finset.univ : Finset α), {[Sum.inl a]} : Language (α ⊕ β)) := by
     ext w
     simp only [sLang, Finset.mem_univ, Set.iUnion_true,
-      Set.iUnion_singleton_eq_range, Set.mem_setOf_eq, Set.mem_range]
+      Set.iUnion_singleton_eq_range]
     exact ⟨fun ⟨a, ha⟩ => ⟨a, ha.symm⟩, fun ⟨a, ha⟩ => ⟨a, ha.symm⟩⟩
   rw [heq]
   exact h_cfl_union Finset.univ

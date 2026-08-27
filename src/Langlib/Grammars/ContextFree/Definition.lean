@@ -29,28 +29,23 @@ public structure CF_grammar (T : Type) where
 variable {T : Type}
 
 /-- One step of context-free transformation. -/
-@[expose]
 public def CF_transforms (g : CF_grammar T) (w₁ w₂ : List (symbol T g.nt)) : Prop :=
 ∃ r : g.nt × List (symbol T g.nt), ∃ u v : List (symbol T g.nt),  r ∈ g.rules ∧
   (w₁ = u ++ [symbol.nonterminal r.fst] ++ v) ∧
   (w₂ = u ++ r.snd ++ v)
 
 /-- Any number of steps of context-free transformation; reflexive+transitive closure of `CF_transforms`. -/
-@[expose]
 public def CF_derives (g : CF_grammar T) : List (symbol T g.nt) → List (symbol T g.nt) → Prop :=
 Relation.ReflTransGen (CF_transforms g)
 
 /-- Accepts a string (a List of symbols) iff it can be derived from the initial nonterminal. -/
-@[expose]
 public def CF_generates_str (g : CF_grammar T) (s : List (symbol T g.nt)) : Prop :=
 CF_derives g [symbol.nonterminal g.initial] s
 
 /-- Accepts a word (a List of terminals) iff it can be derived from the initial nonterminal. -/
-@[expose]
 public def CF_generates (g : CF_grammar T) (w : List T) : Prop :=
 CF_generates_str g (List.map symbol.terminal w)
 
 /-- The Set of words that can be derived from the initial nonterminal. -/
-@[expose]
 public def CF_language (g : CF_grammar T) : Language T :=
-setOf (CF_generates g)
+Set.ofPred (CF_generates g)

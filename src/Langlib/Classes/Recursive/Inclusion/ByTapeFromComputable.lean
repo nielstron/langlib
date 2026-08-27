@@ -333,7 +333,7 @@ theorem code_to_tm0_tape (c : Code) :
             TM2to1.TrCfg (PartrecToTM2.halt vOut) cfg₁ →
             cfg₁ ∈ StateTransition.eval (TM1.step ChainTM1) (chainTM1Init c vIn) →
             cf.Tape = cfg₁.Tape := by
-  letI inhΛ' : Inhabited PartrecToTM2.Λ' :=
+  let inhΛ' : Inhabited PartrecToTM2.Λ' :=
     ⟨PartrecToTM2.trNormal c PartrecToTM2.Cont'.halt⟩
   have hTM2 := PartrecToTM2.tr_supports c PartrecToTM2.Cont'.halt
   have hTM1 := TM2to1.tr_supports PartrecToTM2.tr hTM2
@@ -391,7 +391,7 @@ theorem is_Recursive_byTape_of_computable_decide
   obtain ⟨Λ₀, hΛ₀i, hΛ₀f, M, hM⟩ := code_to_tm0_tape (composedCode (deciderCode f hf))
   -- The converter machine.
   obtain ⟨Λ_conv, hΛci, hΛcf, M_conv, hM_conv⟩ := shifted_converter_exists (T := T)
-  letI : Inhabited (Λ_conv ⊕ Λ₀) := ⟨Sum.inl default⟩
+  let : Inhabited (Λ_conv ⊕ Λ₀) := ⟨Sum.inl default⟩
   -- Core per-word fact: the composed machine halts, and its final config tape
   -- equals the embedded TM1 final tape for `halt (outWord f w)`.
   have hcore : ∀ w : List T,

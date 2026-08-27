@@ -90,7 +90,7 @@ variable [Fintype T] [DecidableEq T]
 /-- Every bounded-tape LBA language is context-sensitive (Myhill's direction). -/
 theorem is_LBA_pos_imp_isCS {L : Language T} (h : is_LBA_pos L) : is_CS L := by
   obtain ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M, rfl⟩ := h
-  haveI := hΓ; haveI := hΛ; haveI := hdΓ; haveI := hdΛ
+  have := hΓ; have := hΛ; have := hdΓ; have := hdΛ
   let emb : T ↪ Option (T ⊕ Γ) := ⟨fun t => some (Sum.inl t), fun _ _ h => by simpa using h⟩
   rw [show LBA.LanguageViaEmbed M (fun t => some (Sum.inl t))
         = CS_language (myhillGrammar M emb) from (myhill_language_eq M emb).symm]
@@ -124,7 +124,7 @@ theorem is_LBA_pos_of_isCS_not_nil {L : Language T} (hCS : is_CS L) (hne : [] �
   rw [hM]
   change (show Set (List T) from grammar_language g) \ {[]} =
     (show Set (List T) from grammar_language g)
-  apply Set.diff_singleton_eq_self
+  apply Set.sdiff_singleton_eq_self
   intro hempty
   apply hne
   change [] ∈ (show Set (List T) from grammar_language g)
@@ -154,7 +154,7 @@ theorem CS_subset_LBA : (CS : Set (Language T)) ⊆ LBA := by
   obtain ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M, hM⟩ :=
     KurodaConstruction.noncontracting_finite_to_LBA g₀ hfin hnc
   rw [hlang] at hM
-  haveI := hΓ; haveI := hΛ; haveI := hdΓ; haveI := hdΛ
+  have := hΓ; have := hΛ; have := hdΓ; have := hdΛ
   refine ⟨Γ, LBA.SimState Λ, inferInstance, inferInstance, inferInstance, inferInstance,
     LBA.simMachine M (decide ([] ∈ grammar_language g)), ?_⟩
   rw [LBA.language_simMachine_eq]
@@ -187,7 +187,7 @@ bounded-tape language `LanguageViaEmbed (flagMachine M')` (context-sensitive via
 theorem LBA_subset_CS : (LBA : Set (Language T)) ⊆ CS := by
   classical
   rintro L ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M', rfl⟩
-  haveI := hΓ; haveI := hΛ; haveI := hdΓ; haveI := hdΛ
+  have := hΓ; have := hΛ; have := hdΓ; have := hdΛ
   let emb : T ↪ Option (T ⊕ LBA.FoldCell T Γ) :=
     ⟨fun t => some (Sum.inl t), fun _ _ h => by simpa using h⟩
   have hcore : LBA.LanguageViaEmbed (LBA.flagMachine M') ⇑emb

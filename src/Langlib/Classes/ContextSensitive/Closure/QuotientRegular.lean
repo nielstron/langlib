@@ -252,8 +252,8 @@ finite alphabet into which the binary witness alphabet embeds. -/
 public theorem CS_notClosedUnderRightQuotientWithRegular_of_embedding {α : Type}
     [Fintype α] (e : Option Unit ↪ α) :
     ¬ ClosedUnderRightQuotientWithRegular (α := α) is_CS := by
-  letI : DecidableEq α := Classical.decEq α
-  letI : Primcodable α :=
+  let : DecidableEq α := Classical.decEq α
+  let : Primcodable α :=
     Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
   intro hclosed
   obtain ⟨g, hg⟩ := haltingUnaryLanguage_RE

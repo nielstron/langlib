@@ -61,7 +61,7 @@ alphabet with at least 2 elements. -/
 public theorem DFA_strict_subclass_DPDA_of_card
     (hT : 2 ≤ Fintype.card T) :
     (DFA.Class : Set (Language T)) ⊂ DPDA.Class := by
-  letI : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
+  let : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
     (lt_of_lt_of_le (by decide) hT)
   obtain ⟨e⟩ := Function.Embedding.nonempty_of_card_le (by simpa using hT :
     Fintype.card Bool ≤ Fintype.card T)
@@ -90,7 +90,7 @@ alphabet with at least 2 elements. -/
 public theorem NFA_strict_subclass_DPDA_of_card
     (hT : 2 ≤ Fintype.card T) :
     (NFA.Class : Set (Language T)) ⊂ DPDA.Class := by
-  letI : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
+  let : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
     (lt_of_lt_of_le (by decide) hT)
   obtain ⟨e⟩ := Function.Embedding.nonempty_of_card_le (by simpa using hT :
     Fintype.card Bool ≤ Fintype.card T)

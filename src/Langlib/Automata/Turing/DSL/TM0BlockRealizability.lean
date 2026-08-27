@@ -72,7 +72,6 @@ Given a tape `block ++ [sep] ++ suffix`, the TM0 transforms it to
 really the part before the first separator, that the active finite tape has no
 interior blanks, and that `f block` is again a valid block for the same
 separator. -/
-@[expose]
 public def TM0RealizesBlockSep (Γ : Type) [Inhabited Γ] (sep : Γ)
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -90,7 +89,6 @@ public def TM0RealizesBlockSep (Γ : Type) [Inhabited Γ] (sep : Γ)
 
 /-- Strong separator-delimited block realizability: no invariant is required
 of the suffix after the separator. -/
-@[expose]
 public def TM0RealizesBlockSepAnySuffix (Γ : Type) [Inhabited Γ] (sep : Γ)
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -111,7 +109,6 @@ public def TM0RealizesBlockSepAnySuffix (Γ : Type) [Inhabited Γ] (sep : Γ)
     Given a tape `block ++ [default] ++ suffix`, the TM0 transforms
     it to `f(block) ++ [default] ++ suffix`, leaving suffix unchanged.
     This enables "serialized" composition of elementary operations. -/
-@[expose]
 public def TM0RealizesBlock (Γ : Type) [Inhabited Γ] (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
     (M : TM0.Machine Γ Λ),
@@ -126,7 +123,6 @@ public def TM0RealizesBlock (Γ : Type) [Inhabited Γ] (f : List Γ → List Γ)
 
 /-- Strong blank-delimited block realizability: no invariant is required of
 the suffix after the delimiter. -/
-@[expose]
 public def TM0RealizesBlockAnySuffix (Γ : Type) [Inhabited Γ]
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -456,7 +452,6 @@ public theorem tm0_reverse_block {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fi
 
 /-- The simple cons machine: move left, write c, halt.
     Prepends `c` to the tape by writing at position −1. -/
-@[expose]
 public noncomputable def consSimpleMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (c : Γ) : @TM0.Machine Γ (Fin 3) ⟨0⟩ := fun q _ =>
   match q with
@@ -487,7 +482,6 @@ public theorem tape_write_move_left_mk₁ {Γ : Type} [Inhabited Γ]
     change (ListBlank.mk ([] : List Γ)).tail.cons (ListBlank.mk []).head =
       (ListBlank.mk [c]).tail
     rw [ListBlank.cons_head_tail]
-    change ListBlank.mk ([] : List Γ) = ListBlank.tail (ListBlank.mk [c])
     exact (ListBlank.tail_mk ([c] : List Γ)).symm
   · congr
 

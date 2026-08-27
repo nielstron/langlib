@@ -64,7 +64,6 @@ variable {T : Type} [DecidableEq T]
 /-- Given a grammar, a sentential form, a rule index, and a position,
 attempt to apply the rule at that position. Returns `none` if the rule
 doesn't match at that position. -/
-@[expose]
 public def applyRuleAt {N : Type} [DecidableEq N]
     (r : grule T N)
     (sf : List (symbol T N))
@@ -97,7 +96,6 @@ This is the core "derivation simulator": given a sequence of instructions
 1. Starts with `init`
 2. Applies rule `rules[rᵢ]` at position `pᵢ`
 3. Returns the final sentential form (or `none` if any step fails) -/
-@[expose]
 public def applyRuleSeq {N : Type} [DecidableEq N]
     (rules : List (grule T N))
     (init : List (symbol T N))
@@ -151,7 +149,6 @@ public theorem applyRuleSeq_derives (g : grammar T) [DecidableEq g.nt]
 
 /-- Extract the terminal word from a sentential form, if all symbols
 are terminals. Returns `none` if any nonterminal is present. -/
-@[expose]
 public def extractTerminals {N : Type} (sf : List (symbol T N)) : Option (List T) :=
   sf.foldr
     (fun s acc =>
@@ -188,7 +185,6 @@ Given a grammar `g`, a derivation sequence `seq`, and a target word `w`:
 2. Check if the result is exactly `w.map symbol.terminal`
 
 Returns `true` iff the derivation sequence witnesses `w ∈ grammar_language g`. -/
-@[expose]
 public def grammarTest (g : grammar T) [DecidableEq g.nt]
     (seq : List (ℕ × ℕ)) (w : List T) : Bool :=
   match applyRuleSeq g.rules [symbol.nonterminal g.initial] seq with

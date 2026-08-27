@@ -418,7 +418,7 @@ public structure ShadowStartLayout
 namespace ShadowStartLayout
 
 /-- The empty block partition has the empty shadow ledger. -/
-public def nil
+public theorem nil
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -429,7 +429,7 @@ public def nil
   owner_at i := Fin.elim0 i
 
 /-- A layout all of whose owners are outside the active shadow window. -/
-public def ofOutside
+public theorem ofOutside
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -446,7 +446,7 @@ public def ofOutside
 
 /-- Generic parse/window transport.  Local shadow tickets are transported explicitly; owners
 already outside the old window must remain outside the new one. -/
-public def transport
+public theorem transport
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {stack stack' : List g.flag} {w w' : List T}
     {parse : NFParse g A stack w} {residual : NFParse g B stack' w'}
@@ -472,7 +472,7 @@ public def transport
     · exact Or.inr (outside _ hout)
 
 /-- Prepend one block, shifting every old block start by its length. -/
-public def cons
+public theorem cons
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {stack stack' : List g.flag} {w w' : List T}
     {parse : NFParse g A stack w} {nextParse : NFParse g B stack' w'}
@@ -513,7 +513,7 @@ public def cons
         simpa [blockOwnerAt] using outside _ hout
 
 /-- Remove the first block, shifting every remaining start back by its length. -/
-public def tail
+public theorem tail
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {stack stack' : List g.flag} {w w' : List T}
     {parse : NFParse g A stack w} {residual : NFParse g B stack' w'}
@@ -554,7 +554,7 @@ public def tail
 
 /-- Restrict a shadow-start layout to the left binary child.  A ticket belonging to the binary
 root or the right subtree becomes outside the child's shadow window. -/
-public def binaryLeft
+public theorem binaryLeft
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B C : g.nt} {stack : List g.flag} {u v : List T}
     {r : IRule T g.nt g.flag}
@@ -604,7 +604,7 @@ public def binaryLeft
 
 /-- Restrict a shadow-start layout to the right binary child.  A ticket belonging to the
 binary root or the left subtree becomes outside the child's shadow window. -/
-public def binaryRight
+public theorem binaryRight
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B C : g.nt} {stack : List g.flag} {u v : List T}
     {r : IRule T g.nt g.flag}
@@ -655,7 +655,7 @@ public def binaryRight
 
 /-- Replace the owner of the first block while keeping all shadow-start classifications below
 it unchanged. -/
-public def reownerHead
+public theorem reownerHead
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -824,7 +824,7 @@ public structure ShadowOwnedFrames
 
 namespace ShadowOwnedFrames
 
-public def nil
+public theorem nil
     {g : IndexedGrammar T} {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -832,7 +832,7 @@ public def nil
     ShadowOwnedFrames parse window [] where
   owner_at _ hmem := by simp at hmem
 
-public def cons
+public theorem cons
     {g : IndexedGrammar T} {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}
@@ -846,7 +846,7 @@ public def cons
     · exact head
     · exact tail.owner_at candidate htail
 
-public def transport
+public theorem transport
     {g : IndexedGrammar T} {input : List T}
     {A B : g.nt} {stack stack' : List g.flag} {w w' : List T}
     {parse : NFParse g A stack w} {residual : NFParse g B stack' w'}
@@ -860,7 +860,7 @@ public def transport
   owner_at owner hmem := shift owner (frames.owner_at owner hmem)
 
 /-- Equal-count window transport preserves the outside-only frame invariant. -/
-public def transportEqual
+public theorem transportEqual
     {g : IndexedGrammar T} {input : List T}
     {A B : g.nt} {stack stack' : List g.flag} {w w' : List T}
     {parse : NFParse g A stack w} {residual : NFParse g B stack' w'}
@@ -872,7 +872,7 @@ public def transportEqual
   frames.transport (fun _ hout => OutsideShadowWindow.transport window hcount hout)
 
 /-- Parent frame tickets remain outside the left binary child shadow window. -/
-public def binaryLeft
+public theorem binaryLeft
     {g : IndexedGrammar T} {input : List T}
     {A B C : g.nt} {stack : List g.flag} {u v : List T}
     {r : IRule T g.nt g.flag}
@@ -889,7 +889,7 @@ public def binaryLeft
   frames.transport (fun _ hout => OutsideShadowWindow.binaryLeft window hout)
 
 /-- Parent frame tickets remain outside the right binary child shadow window. -/
-public def binaryRight
+public theorem binaryRight
     {g : IndexedGrammar T} {input : List T}
     {A B C : g.nt} {stack : List g.flag} {u v : List T}
     {r : IRule T g.nt g.flag}
@@ -905,7 +905,7 @@ public def binaryRight
     ShadowOwnedFrames right window.binaryRight owners :=
   frames.transport (fun _ hout => OutsideShadowWindow.binaryRight window hout)
 
-public def perm
+public theorem perm
     {g : IndexedGrammar T} {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w}

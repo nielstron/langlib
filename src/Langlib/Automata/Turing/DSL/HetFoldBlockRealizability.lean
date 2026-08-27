@@ -95,7 +95,6 @@ open StateTransition Turing
 
 /-- While-loop TM0 machine. Runs `M` repeatedly; when `M` halts at
 `q_continue`, it restarts `M`. When `M` halts at any other state, it halts. -/
-@[expose]
 public noncomputable def tm0WhileLoop {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     [DecidableEq Λ]
     (M : TM0.Machine Γ Λ) (q_continue : Λ) : TM0.Machine Γ Λ := fun q a =>
@@ -165,7 +164,6 @@ def TM0RealizesBlockCond {Γ : Type} [Inhabited Γ]
 
 /-- Iterate a step function while a condition holds, bounded by fuel.
     Returns the block after at most `n` applications of `step`. -/
-@[expose]
 public def blockIterateWhile {Γ : Type} (step : List Γ → List Γ) (cond : List Γ → Prop)
     [DecidablePred cond] : ℕ → List Γ → List Γ
   | 0, block => block
@@ -319,7 +317,7 @@ theorem tm0RealizesBlock_while {Γ : Type} [Inhabited Γ] [DecidableEq Γ] [Fint
       ∀ g ∈ result block, g ≠ default) :
     TM0RealizesBlock Γ result := by
   obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
-  haveI : DecidableEq Λ := Classical.decEq Λ
+  have : DecidableEq Λ := Classical.decEq Λ
   refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
   intro block suffix hblock hsuffix hresult
   obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock
@@ -380,7 +378,7 @@ variable {Gamma Tag : Type}
 
 The fold layer only knows how to decode the first cell as a tag.  The body
 already operates on the same alphabet as the tape block. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def prefixFoldStep
     (tagOf : Gamma → Option Tag) (F : Tag → List Gamma → List Gamma) :
     List Gamma → List Gamma
@@ -425,7 +423,6 @@ variable {Gamma Tag Acc : Type}
 
 /-- Generic separated block layout: remaining tags, one explicit separator,
 then accumulator content.  The concrete alphabet is supplied by the embeddings. -/
-@[expose]
 public def separatedMix (tagEmb : Tag → Gamma) (sep : Gamma) (accEmb : Acc → Gamma)
     (tags : List Tag) (acc : List Acc) : List Gamma :=
   tags.map tagEmb ++ [sep] ++ acc.map accEmb
@@ -438,7 +435,7 @@ the result back using `accEmb`.
 
 This is not the fold.  It is the alphabet/layout bridge that turns an
 accumulator-alphabet operation into an ambient-alphabet block operation. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def separatedAccLift
     (isTag : Gamma → Bool) (sep : Gamma) (decodeAcc : Gamma → Option Acc)
     (accEmb : Acc → Gamma) (f : Tag → List Acc → List Acc) (t : Tag) :
@@ -497,19 +494,16 @@ variable {T : Type} [DecidableEq T] [Fintype T]
 variable {Γ₀ : Type} [Inhabited Γ₀] [DecidableEq Γ₀] [Fintype Γ₀]
 
 /-- Check if a het block element is an `inl` tag. -/
-@[expose]
 public def isHetInl (x : Option (T ⊕ Γ₀)) : Bool :=
   match x with | some (Sum.inl _) => true | _ => false
 
 /-- Decode fold tags from the concrete heterogeneous alphabet. -/
-@[expose]
 public def hetTagDecode : Option (T ⊕ Γ₀) → Option T
   | some (Sum.inl t) => some t
   | _ => none
 
 /-- Condition: block starts with an `inl` tag (signals the while loop
     should continue). -/
-@[expose]
 public def hasHetInlHead : List (Option (T ⊕ Γ₀)) → Prop
   | (some (Sum.inl _)) :: _ => True
   | _ => False
@@ -525,36 +519,30 @@ instance : DecidablePred (@hasHetInlHead T Γ₀) := fun block =>
 accumulator.  The accumulator invariant excludes `default : Γ₀`, so
 `some (Sum.inr default)` is fresh for accumulator contents while still being a
 nonblank tape symbol. -/
-@[expose]
 public def hetSep : Option (T ⊕ Γ₀) :=
   some (Sum.inr default)
 
 /-- Embed fold tags into the concrete heterogeneous alphabet. -/
-@[expose]
 public def hetTagEmb (t : T) : Option (T ⊕ Γ₀) :=
   some (Sum.inl t)
 
 /-- Embed accumulator symbols into the concrete heterogeneous alphabet. -/
-@[expose]
 public def hetAccEmb (g : Γ₀) : Option (T ⊕ Γ₀) :=
   some (Sum.inr g)
 
 /-- Decode accumulator cells from the concrete heterogeneous alphabet. -/
-@[expose]
 public def hetAccDecode : Option (T ⊕ Γ₀) → Option Γ₀
   | some (Sum.inr g) => some g
   | _ => none
 
 /-- Mixed het block representation with an explicit separator:
 `inl` tags, then `sep`, then the `inr` accumulator. -/
-@[expose]
 public def hetMixSep (sep : Option (T ⊕ Γ₀)) (ts : List T) (acc : List Γ₀) :
     List (Option (T ⊕ Γ₀)) :=
   separatedMix (hetTagEmb (Γ₀ := Γ₀)) sep (hetAccEmb (T := T)) ts acc
 
 /-- Default concrete het layout separator.  Prefer proving generic facts about
 `hetMixSep` when the separator matters. -/
-@[expose]
 public def hetMix (ts : List T) (acc : List Γ₀) : List (Option (T ⊕ Γ₀)) :=
   hetMixSep (hetSep (T := T) (Γ₀ := Γ₀)) ts acc
 
@@ -565,7 +553,7 @@ public def hetMix (ts : List T) (acc : List Γ₀) : List (Option (T ⊕ Γ₀))
     The fact that `F t` preserves the remaining tags and updates only the
     accumulator is a function-level obligation, not part of this generic fold
     construction. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def hetFoldStep
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))) :
     List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
@@ -577,7 +565,6 @@ public noncomputable def hetFoldStep
     This directly models what the `tm0WhileLoop` machine computes:
     iterate `hetFoldStep` while `hasHetInlHead`, stopping when no more
     `inl` tags remain at the head. -/
-@[expose]
 public noncomputable def hetFoldWhile
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)))
     (block : List (Option (T ⊕ Γ₀))) : List (Option (T ⊕ Γ₀)) :=
@@ -590,7 +577,7 @@ public noncomputable def hetFoldWhile
 This is intentionally not part of the generic fold theorem.  Any machine
 realizability proof for this adapter must account for the alphabet/layout
 boundary explicitly. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def hetFoldAdaptSep
     (sep : Option (T ⊕ Γ₀))
     (f : T → List Γ₀ → List Γ₀) (t : T) :
@@ -600,7 +587,7 @@ public noncomputable def hetFoldAdaptSep
     (hetAccDecode (T := T)) (hetAccEmb (T := T)) f t
 
 /-- Concrete default separator instantiation of `hetFoldAdaptSep`. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def hetFoldAdapt
     (f : T → List Γ₀ → List Γ₀) (t : T) :
     List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀)) :=
@@ -825,7 +812,6 @@ public theorem hetFoldWhile_ne_default
     `inr` payloads are properly separated. Keeping the suffix empty
     prevents the block machine contract from needing to preserve unrelated
     heterogeneous tape cells beyond the active block. -/
-@[expose]
 public def TM0RealizesBlockCondInv {Γ : Type} [Inhabited Γ]
     (step : List Γ → List Γ) (cond : List Γ → Prop) [DecidablePred cond]
     (blockInv : List Γ → Prop) : Prop :=
@@ -848,7 +834,6 @@ public def TM0RealizesBlockCondInv {Γ : Type} [Inhabited Γ]
 /-- Well-formedness predicate for het blocks: the block is of the form
     `hetMix ts acc` for some tag list `ts` and accumulator `acc` with
     all accumulator elements non-default. -/
-@[expose]
 public def isWellFormedHetBlock (block : List (Option (T ⊕ Γ₀))) : Prop :=
   ∃ (ts : List T) (acc : List Γ₀), block = hetMix ts acc ∧
     ∀ g ∈ acc, g ≠ (default : Γ₀)
@@ -858,7 +843,6 @@ public def isWellFormedHetBlock (block : List (Option (T ⊕ Γ₀))) : Prop :=
 This is intentionally weaker than `TM0RealizesBlock`: the fold step erases
 one leading tag and then invokes the tag-specific body on the remaining
 `hetMix ts acc`. It never invokes that body on arbitrary malformed blocks. -/
-@[expose]
 public def TM0RealizesHetFoldBody
     (F : T → List (Option (T ⊕ Γ₀)) → List (Option (T ⊕ Γ₀))) : Prop :=
   ∃ (Λ : T → Type) (_ : ∀ t, Inhabited (Λ t)) (_ : ∀ t, Fintype (Λ t))
@@ -905,7 +889,7 @@ public theorem tm0RealizesBlock_while_inv {Γ : Type} [Inhabited Γ] [DecidableE
           ((TM0Seq.evalCfg M (block ++ [default])).get h).Tape =
             Tape.mk₁ (result block ++ [default]) := by
   obtain ⟨Λ, hΛi, hΛf, M, q_cont, hM⟩ := hbody
-  haveI : DecidableEq Λ := Classical.decEq Λ
+  have : DecidableEq Λ := Classical.decEq Λ
   refine ⟨Λ, hΛi, hΛf, tm0WhileLoop M q_cont, ?_⟩
   intro block hblockInv hblock hresult
   obtain ⟨n, hn_eq, hn_not_cond⟩ := hresult_eq block hblock hblockInv
@@ -958,25 +942,20 @@ public theorem tm0RealizesBlock_while_inv {Γ : Type} [Inhabited Γ] [DecidableE
 
 /-! ## Block Realizability -/
 
-@[expose]
 public abbrev HetFoldStepState (T : Type) (Λ : T → Type) :=
   Unit ⊕ Unit ⊕ T ⊕ (Σ t, Λ t)
 
 namespace HetFoldStepState
 
-@[expose]
 public def start {T : Type} {Λ : T → Type} : HetFoldStepState T Λ :=
   Sum.inl ()
 
-@[expose]
 public def cont {T : Type} {Λ : T → Type} : HetFoldStepState T Λ :=
   Sum.inr (Sum.inl ())
 
-@[expose]
 public def move {T : Type} {Λ : T → Type} (t : T) : HetFoldStepState T Λ :=
   Sum.inr (Sum.inr (Sum.inl t))
 
-@[expose]
 public def run {T : Type} {Λ : T → Type} (t : T) (q : Λ t) : HetFoldStepState T Λ :=
   Sum.inr (Sum.inr (Sum.inr ⟨t, q⟩))
 
@@ -985,7 +964,6 @@ instance {T : Type} {Λ : T → Type} : Inhabited (HetFoldStepState T Λ) :=
 
 end HetFoldStepState
 
-@[expose]
 public noncomputable def tm0HetFoldStepMachine
     {T Γ₀ : Type} [DecidableEq T]
     (Λ : T → Type) [∀ t, Inhabited (Λ t)]
@@ -1340,9 +1318,9 @@ public theorem tm0Het_fold_blockRealizable'
   obtain ⟨Λ₃, hΛ₃i, hΛ₃f, M₃, hM₃⟩ :=
     tm0_dropUntilFirstSep_block sep hsep_nd
 
-  letI : Inhabited (Λ₂ ⊕ Λ₃) := ⟨Sum.inl default⟩
+  let : Inhabited (Λ₂ ⊕ Λ₃) := ⟨Sum.inl default⟩
   let M₂₃ : TM0.Machine Γ (Λ₂ ⊕ Λ₃) := TM0Seq.compose M₂ M₃
-  letI : Inhabited (Λ₁ ⊕ (Λ₂ ⊕ Λ₃)) := ⟨Sum.inl default⟩
+  let : Inhabited (Λ₁ ⊕ (Λ₂ ⊕ Λ₃)) := ⟨Sum.inl default⟩
   let M : TM0.Machine Γ (Λ₁ ⊕ (Λ₂ ⊕ Λ₃)) := TM0Seq.compose M₁ M₂₃
 
   refine ⟨Λ₁ ⊕ (Λ₂ ⊕ Λ₃), inferInstance, inferInstance, M, ?_⟩

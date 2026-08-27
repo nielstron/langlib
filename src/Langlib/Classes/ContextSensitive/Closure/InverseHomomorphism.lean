@@ -444,7 +444,7 @@ private lemma denseScan_prependQuiet_before (M : LBA.Machine (VSym B Γ) Λ)
   | nil => simpa [quiet] using hscan
   | cons a pre ih =>
     simp only [quiet, List.map_cons, List.cons_append, List.length_cons,
-      List.replicate_succ, denseScan, List.map_cons, scanList, scanSlot, if_pos rfl]
+      List.replicate_succ, denseScan, List.map_cons, scanList, scanSlot]
     exact ih
 
 private lemma tailStep_nonempty {M : LBA.Machine (VSym B Γ) Λ} {old new}
@@ -582,7 +582,7 @@ private lemma denseScan_before_complete (M : LBA.Machine (VSym B Γ) Λ)
             ((b, none) :: (a, some q) :: quiet post)
             ((b, some q') :: (a', none) :: quiet post)
             (Role.leftDest :: roles) = some s := by
-          simp only [denseScan, List.map_cons, scanList, scanSlot, if_pos rfl]
+          simp only [denseScan, List.map_cons, scanList, scanSlot]
           exact hscan
         exact ⟨List.replicate pre.length Role.same ++ Role.leftDest :: roles, s,
           denseScan_prependQuiet_before M pre _ _ _ _ hbase, hs⟩
@@ -619,7 +619,7 @@ private lemma denseRun_iff_virtualStep (M : LBA.Machine (VSym B Γ) Λ)
   · rintro ⟨roles, s, hscan, hs⟩
     cases old with
     | nil =>
-      cases new <;> cases roles <;> simp [DenseRun, denseScan, scanList] at hscan
+      cases new <;> cases roles <;> simp [denseScan, scanList] at hscan
       subst s
       simp [scanAccept] at hs
     | cons x xs =>
@@ -754,7 +754,7 @@ private lemma denseRun_iff_virtualStep (M : LBA.Machine (VSym B Γ) Λ)
         rcases denseScan_before_complete M ht with ⟨roles, s, hscan, hs⟩
         exact ⟨Role.same :: roles, s, by
           simp only [quiet, List.map_cons, List.cons_append, denseScan, List.map_cons,
-            scanList, scanSlot, if_pos rfl]
+            scanList, scanSlot]
           exact hscan, hs⟩
 
     | left pre b post q q' a a' htr =>
@@ -766,7 +766,7 @@ private lemma denseRun_iff_virtualStep (M : LBA.Machine (VSym B Γ) Λ)
             ⟨a, a', q, post, rfl, rfl, htr⟩ with ⟨roles, s, hscan, hs⟩
         exact ⟨Role.leftDest :: roles, s, by
           simp only [quiet, List.map_nil, List.nil_append, denseScan, List.map_cons,
-            scanList, scanSlot, if_pos rfl]
+            scanList, scanSlot]
           exact hscan, hs⟩
       | cons c pre =>
         have ht : TailStep M
@@ -776,7 +776,7 @@ private lemma denseRun_iff_virtualStep (M : LBA.Machine (VSym B Γ) Λ)
         rcases denseScan_before_complete M ht with ⟨roles, s, hscan, hs⟩
         exact ⟨Role.same :: roles, s, by
           simp only [quiet, List.map_cons, List.cons_append, denseScan, List.map_cons,
-            scanList, scanSlot, if_pos rfl]
+            scanList, scanSlot]
           exact hscan, hs⟩
     | right pre q q' a a' b post htr =>
       cases pre with
@@ -796,7 +796,7 @@ private lemma denseRun_iff_virtualStep (M : LBA.Machine (VSym B Γ) Λ)
         rcases denseScan_before_complete M ht with ⟨roles, s, hscan, hs⟩
         exact ⟨Role.same :: roles, s, by
           simp only [quiet, List.map_cons, List.cons_append, denseScan, List.map_cons,
-            scanList, scanSlot, if_pos rfl]
+            scanList, scanSlot]
           exact hscan, hs⟩
     | rightClamp pre q q' a a' htr =>
       cases pre with
@@ -809,7 +809,7 @@ private lemma denseRun_iff_virtualStep (M : LBA.Machine (VSym B Γ) Λ)
         rcases denseScan_before_complete M ht with ⟨roles, s, hscan, hs⟩
         exact ⟨Role.same :: roles, s, by
           simp only [quiet, List.map_cons, List.cons_append, denseScan, List.map_cons,
-            scanList, scanSlot, if_pos rfl]
+            scanList, scanSlot]
           exact hscan, hs⟩
 
 /-! ## Logical rows and actual bounded-tape configurations -/
@@ -904,7 +904,7 @@ private lemma cfgView_headInfo (c : DLBA.Cfg (VSym B Γ) Λ n) :
 private lemma cfgView_map_fst (c : DLBA.Cfg (VSym B Γ) Λ n) :
     (cfgView c).map Prod.fst = tapeList c.tape := by
   unfold cfgView
-  simp only [List.map_append, List.map_cons, map_fst_quiet, List.map_nil]
+  simp only [List.map_append, List.map_cons, map_fst_quiet]
   have hb : c.tape.head.1 < (tapeList c.tape).length := by
     rw [tapeList_length]
     exact c.tape.head.isLt
@@ -965,7 +965,7 @@ private lemma cfgView_decompose
       exact List.getElem_ofFn (f := c.tape.contents) (h := hbhead)
     calc
       a = (tapeList c.tape)[pre.length]'hbpre := hsym.symm
-      _ = (tapeList c.tape)[c.tape.head.1]'hbhead := by simpa only [hlen]
+      _ = (tapeList c.tape)[c.tape.head.1]'hbhead := by simp only [hlen]
       _ = c.tape.read := hread
   exact ⟨hpre, hpost, ha, hq⟩
 
@@ -1017,7 +1017,7 @@ private lemma cfgView_write_stay [DecidableEq (VSym B Γ)]
     rw [tapeList_length]
     exact c.tape.head.isLt
   rw [List.set_eq_take_cons_drop a' hh]
-  simp only [DLBA.BoundedTape.read, DLBA.BoundedTape.write, Function.update_self]
+  simp only [DLBA.BoundedTape.read, Function.update_self]
   have hpre : ((tapeList c.tape).take c.tape.head.1).length = c.tape.head.1 := by
     simp [Nat.min_eq_left hh.le]
   rw [List.take_append_of_le_length (by rw [hpre])]
@@ -1038,14 +1038,14 @@ private lemma cfgView_write_left [DecidableEq (VSym B Γ)]
           rw [tapeList_length]; omega), some q') ::
         (a', none) :: quiet ((tapeList c.tape).drop (c.tape.head.1 + 1)) := by
   unfold cfgView
-  simp only [DLBA.Cfg.tape, DLBA.Cfg.state]
+  simp only
   rw [tapeList_moveHead, tapeList_write]
   simp only [DLBA.BoundedTape.write]
   simp only [DLBA.BoundedTape.moveHead, dif_pos hpos]
   have hh : c.tape.head.1 < (tapeList c.tape).length := by
     rw [tapeList_length]; exact c.tape.head.isLt
   rw [List.set_eq_take_cons_drop a' hh]
-  simp only [DLBA.BoundedTape.read, DLBA.BoundedTape.write, Function.update_apply]
+  simp only [DLBA.BoundedTape.read, Function.update_apply]
   have hne : (⟨c.tape.head.1 - 1, by omega⟩ : Fin (n + 1)) ≠ c.tape.head := by
     intro h
     have hv : c.tape.head.1 - 1 = c.tape.head.1 := by
@@ -1060,7 +1060,9 @@ private lemma cfgView_write_left [DecidableEq (VSym B Γ)]
   simp only [min_eq_left hsmall.le]
   have hbprev : c.tape.head.1 - 1 < (tapeList c.tape).length := by omega
   have hget : c.tape.contents ⟨c.tape.head.1 - 1, by
-      simpa [tapeList_length] using hbprev⟩ =
+      have hbprev' := hbprev
+      rw [tapeList_length] at hbprev'
+      exact hbprev'⟩ =
       (tapeList c.tape)[c.tape.head.1 - 1]'hbprev := by
     symm
     exact List.getElem_ofFn (f := c.tape.contents) (h := hbprev)
@@ -1070,7 +1072,8 @@ private lemma cfgView_write_left [DecidableEq (VSym B Γ)]
         [(tapeList c.tape)[c.tape.head.1 - 1]'(by rw [tapeList_length]; omega)] := by
     have := List.take_concat_get' (tapeList c.tape) (c.tape.head.1 - 1)
       hbprev
-    simpa [Nat.sub_add_cancel hpos] using this
+    rw [Nat.sub_add_cancel hpos] at this
+    exact this.symm
   rw [htake]
   simp only [List.append_assoc, List.cons_append, List.nil_append]
   congr 1
@@ -1097,7 +1100,7 @@ private lemma cfgView_write_right [DecidableEq (VSym B Γ)]
           rw [tapeList_length]; omega), some q') ::
         quiet ((tapeList c.tape).drop (c.tape.head.1 + 2)) := by
   unfold cfgView
-  simp only [DLBA.Cfg.tape, DLBA.Cfg.state]
+  simp only
   rw [tapeList_moveHead, tapeList_write]
   simp only [DLBA.BoundedTape.write]
   simp only [DLBA.BoundedTape.moveHead, dif_pos hpos]
@@ -1138,7 +1141,7 @@ private lemma cfgView_write_right [DecidableEq (VSym B Γ)]
   rw [hdiff]
   simp only [List.drop]
   rw [List.drop_drop]
-  congr 2 <;> omega
+  congr 2
 
 private lemma virtualStep_of_step [DecidableEq (VSym B Γ)]
     (M : LBA.Machine (VSym B Γ) Λ) {n : ℕ}
@@ -1160,8 +1163,10 @@ private lemma virtualStep_of_step [DecidableEq (VSym B Γ)]
       have htake : (tapeList c.tape).take c.tape.head.1 =
           (tapeList c.tape).take (c.tape.head.1 - 1) ++
             [(tapeList c.tape)[c.tape.head.1 - 1]'hbprev] := by
-        simpa [Nat.sub_add_cancel hpos] using
+        have htake' :=
           List.take_concat_get' (tapeList c.tape) (c.tape.head.1 - 1) hbprev
+        rw [Nat.sub_add_cancel hpos] at htake'
+        exact htake'.symm
       rw [show cfgView c =
           quiet ((tapeList c.tape).take (c.tape.head.1 - 1)) ++
             ((tapeList c.tape)[c.tape.head.1 - 1]'hbprev, none) ::
@@ -1215,7 +1220,7 @@ private lemma virtualStep_of_step [DecidableEq (VSym B Γ)]
         have htail : (tapeList c.tape).drop (c.tape.head.1 + 1) =
             (tapeList c.tape)[c.tape.head.1 + 1]'hbnext ::
               (tapeList c.tape).drop (c.tape.head.1 + 2) := by
-          simpa using List.drop_eq_getElem_cons (l := tapeList c.tape) hbnext
+          exact List.drop_eq_getElem_cons (l := tapeList c.tape) hbnext
         have hquiet : quiet (Λ := Λ) ((tapeList c.tape).drop (c.tape.head.1 + 1)) =
             ((tapeList c.tape)[c.tape.head.1 + 1]'hbnext, (none : Option Λ)) ::
               quiet (Λ := Λ) ((tapeList c.tape).drop (c.tape.head.1 + 2)) := by
@@ -1418,7 +1423,6 @@ private lemma blockSlots_blockOfFn
     blockSlots (blockOfFn f) = List.ofFn f := by
   rw [List.ofFn_succ]
   unfold blockSlots blockOfFn
-  congr 1
   rw [List.ofFn_succ_last]
   congr 1
 
@@ -1460,7 +1464,7 @@ private lemma exists_refillBlock (b : Block B Γ Λ W) (ys : List (VCell B Γ Λ
     fun i => zs[i.1]'(by rw [hzlen]; exact i.isLt)
   have hf : List.ofFn f = zs := by
     apply List.ext_getElem
-    · simpa [hzlen]
+    · simp [hzlen]
     · intro i hi₁ hi₂
       rw [List.getElem_ofFn]
   refine ⟨blockOfFn f, ?_, ?_⟩
@@ -2050,7 +2054,7 @@ private lemma any_filterMap_id (p : α → Bool) (xs : List (Option α)) :
       | none => false) := by
   induction xs with
   | nil => rfl
-  | cons x xs ih => cases x <;> simp [ih] <;> rfl
+  | cons x xs ih => cases x <;> simp <;> rfl
 
 private lemma blockAccepting_eq (M : LBA.Machine (VSym B Γ) Λ)
     (b : Block B Γ Λ W) :
@@ -2144,7 +2148,7 @@ private lemma cfgView_any_accepting (M : LBA.Machine (VSym B Γ) Λ)
       (quiet (Λ := Λ) xs).any (cellAccepting M) = false := by
     induction xs with
     | nil => rfl
-    | cons a xs ih => simpa [quiet, cellAccepting] using ih
+    | cons a xs ih => simp [quiet, cellAccepting]
   unfold cfgView
   rw [List.any_append, hquiet]
   simp [cellAccepting, hquiet]
@@ -2506,7 +2510,7 @@ private lemma rolesList_roleVector (rs : List (Role Λ))
     (h : rs.length = W + 2) : rolesList (roleVector (W := W) rs) = rs := by
   unfold rolesList roleVector
   apply List.ext_getElem
-  · simpa [h]
+  · simp [h]
   · intro i hi₁ hi₂
     rw [List.getElem_ofFn]
     rw [List.getElem?_eq_getElem (by omega)]
@@ -2829,10 +2833,10 @@ public theorem is_CS_inverseHomomorphicImage
   classical
   have hLBA : is_LBA L := CS_subset_LBA hL
   obtain ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M, hM⟩ := hLBA
-  letI : Fintype Γ := hΓ
-  letI : Fintype Λ := hΛ
-  letI : DecidableEq Γ := hdΓ
-  letI : DecidableEq Λ := hdΛ
+  let : Fintype Γ := hΓ
+  let : Fintype Λ := hΛ
+  let : DecidableEq Γ := hdΓ
+  let : DecidableEq Λ := hdΛ
   have hpre := inverseMachine_isCS (A := A) M h
   rw [show ({w : List A | w.flatMap h ∈ L} : Language A) =
       {w : List A | LBA.Accepts M (LBA.initCfgEnd M (w.flatMap h))} by

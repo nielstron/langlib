@@ -80,12 +80,10 @@ public inductive TotalState (Q : Type) where
 deriving DecidableEq, Fintype
 
 /-- Replacement block for an original stack update above a known suffix summary. -/
-@[expose]
 public def annotatedReplacement (below : AnalysisSummary A) (β : List S) : List (TotalStackSymbol A) :=
   annotateAbove A below β
 
 /-- Initial stack expansion: install the original start symbol above the permanent bottom. -/
-@[expose]
 public def initialReplacement : List (TotalStackSymbol A) :=
   annotateAbove A (AnalysisSummary.id A) [M.start_symbol] ++ [none]
 
@@ -154,11 +152,9 @@ public theorem initialSummaryRepresents :
     SummaryRepresents A ((AnalysisSummary.id A).above A [M.start_symbol]) [M.start_symbol] :=
   (summaryRepresents_id A).cons (A := A) M.start_symbol
 
-@[expose]
 public def initialSummary : AnalysisSummary A :=
   (AnalysisSummary.id A).above A [M.start_symbol]
 
-@[expose]
 public def initialAcceptBit : Bool :=
   acceptBit A M.initial_state (initialSummary A)
 
@@ -173,14 +169,13 @@ theorem initial_configuration_annotations :
       initialSummaryRepresents A⟩
 
 /-- The finite-control state corresponding to an original state and a resulting stack summary. -/
-@[expose]
 public def simState (q : Q) (summary : AnalysisSummary A) : TotalState Q :=
   TotalState.sim q (acceptBit A q summary)
 
 /-- The analyzed totalizer.  It follows terminating epsilon phases of `M`, treats
 divergent epsilon phases as stable decision points, and drains any remaining input
 to a rejecting state when the original computation cannot consume the next symbol. -/
-@[expose, reducible]
+@[reducible]
 public def totalizer : DPDA (TotalState Q) T (TotalStackSymbol A) := by
   classical
   refine

@@ -69,7 +69,6 @@ variable {Γ : Type} [Inhabited Γ]
 
 /-- Evaluate a TM0 machine and return the full output configuration
 (state + tape), rather than just the tape as `TM0.eval` does. -/
-@[expose]
 public def evalCfg {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (l : List Γ) : Part (TM0.Cfg Γ Λ) :=
   StateTransition.eval (TM0.step M) (TM0.init l)
@@ -81,7 +80,6 @@ public theorem evalCfg_dom_iff {Λ : Type} [Inhabited Λ]
   simp [evalCfg, TM0.eval, Part.map]
 
 /-- Evaluate a TM0 from an arbitrary configuration. -/
-@[expose]
 public def evalFromCfg {Λ : Type} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (cfg : TM0.Cfg Γ Λ) : Part (TM0.Cfg Γ Λ) :=
   StateTransition.eval (TM0.step M) cfg
@@ -94,7 +92,6 @@ public theorem evalFromCfg_init {Λ : Type} [Inhabited Λ]
 /-- Sequential composition of TM0 machines.
 When M₁ halts (returns `none`), we immediately invoke M₂ from its default state
 on the current tape symbol. -/
-@[expose]
 public noncomputable def compose
     {Λ₁ : Type} [Inhabited Λ₁] {Λ₂ : Type} [Inhabited Λ₂]
     (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ₂) :
@@ -278,7 +275,7 @@ theorem compose_dom_left (M₁ : TM0.Machine Γ Λ₁) (M₂ : TM0.Machine Γ Λ
   have h_not_halt : ∀ c : TM0.Cfg Γ Λ₁, Reaches (TM0.step M₁) (TM0.init l) c → ∃ c' : TM0.Cfg Γ Λ₁, TM0.step M₁ c = some c' := by
     intro c hc
     by_contra h_not_halt_c
-    push_neg at h_not_halt_c
+    push Not at h_not_halt_c
     have h_halt_c : TM0.step M₁ c = none := by
       cases h : TM0.step M₁ c <;> tauto
     have h_halt : (evalCfg M₁ l).Dom := by

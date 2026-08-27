@@ -71,10 +71,10 @@ public instance : Fintype CarryPhase where
 public instance : Fintype NoCarryPhase where
   elems := {.grab, .advance, .rewind, .rewindDone}; complete x := by cases x <;> simp
 
-@[expose]
 public abbrev RSt (Γ : Type) := (Γ × CarryPhase) ⊕ NoCarryPhase
-@[expose]
-public instance [Inhabited Γ] : Inhabited (RSt Γ) := ⟨Sum.inr .grab⟩
+public instance : Inhabited (RSt Γ) := by
+  let _ := (inferInstance : Inhabited Γ)
+  exact ⟨Sum.inr .grab⟩
 
 /-! ### Machine definition -/
 
@@ -83,7 +83,6 @@ public instance [Inhabited Γ] : Inhabited (RSt Γ) := ⟨Sum.inr .grab⟩
 * **grab / shifting / returning** use `sep` to detect the right block boundary
   and as the temporary "erased" marker when a cell is grabbed.
 * **rewind** uses `default` to find the left edge of the tape. -/
-@[expose]
 public noncomputable def MSep (Γ : Type) [Inhabited Γ] [DecidableEq Γ] (sep : Γ) :
     @TM0.Machine Γ (RSt Γ) ⟨Sum.inr .grab⟩ :=
   fun q a => match q with

@@ -33,20 +33,16 @@ public noncomputable instance instFintypeReductionCursor (G : CF_grammar T) :
   classical
   exact Sigma.instFintype
 
-@[expose]
 public def ReductionCursor.rule {G : CF_grammar T} (c : ReductionCursor G) :
     RuleIndex G.augment := c.1
 
-@[expose]
 public def ReductionCursor.remaining {G : CF_grammar T}
     (c : ReductionCursor G) : ℕ := c.2.val
 
-@[expose]
 public def fullCursor (G : CF_grammar T) (r : RuleIndex G.augment) :
     ReductionCursor G :=
   ⟨r, ⟨(ruleAt G.augment r).2.length, by omega⟩⟩
 
-@[expose]
 public def ReductionCursor.pred {G : CF_grammar T} (c : ReductionCursor G)
     (_h : 0 < c.remaining) : ReductionCursor G :=
   ⟨c.1, ⟨c.2.val - 1, by
@@ -54,26 +50,22 @@ public def ReductionCursor.pred {G : CF_grammar T} (c : ReductionCursor G)
     omega⟩⟩
 
 /-- Replace one slot in a fixed lookahead buffer. -/
-@[expose]
 public def setBuffer (u : Lookahead T k) (n : ℕ) (x : Option T) :
     Lookahead T k :=
   fun i => if i.val = n then x else u i
 
 /-- On consuming the explicit endmarker during preload, preserve the already
 loaded prefix and pad every remaining slot with EOF. -/
-@[expose]
 public def finishBuffer (u : Lookahead T k) (n : ℕ) : Lookahead T k :=
   fun i => if i.val < n then u i else none
 
 /-- Shift a positive lookahead buffer left and append one newly read symbol. -/
-@[expose]
 public def shiftBuffer (_hk : 0 < k) (u : Lookahead T k) (x : Option T) :
     Lookahead T k :=
   fun i =>
     if h : i.val + 1 < k then u ⟨i.val + 1, h⟩ else x
 
 /-- Last buffered symbol. -/
-@[expose]
 public def lastBuffer (hk : 0 < k) (u : Lookahead T k) : Option T :=
   u ⟨k - 1, by omega⟩
 
@@ -101,7 +93,6 @@ public noncomputable instance instFintypeStackSymbol
 
 /-- Kernel represented by a stack top, interpreting the bottom marker as the
 initial kernel. -/
-@[expose]
 public def kernelOfTop (G : CF_grammar T) (k : ℕ) :
     StackSymbol G k → KernelState G k
   | none => startKernel G k
@@ -109,14 +100,12 @@ public def kernelOfTop (G : CF_grammar T) (k : ℕ) :
 
 /-- Initial buffered control.  The positive-lookahead machine starts with an
 all-EOF scratch buffer and overwrites it from left to right. -/
-@[expose]
 public def initialControl (G : CF_grammar T) (k : ℕ) : Control G k :=
   .load ⟨0, by omega⟩ (eofLookahead T k)
 
 /-- Input-reading transitions.  Only preload and refill controls read the
 marked input; all parser operations are epsilon moves over already buffered
 symbols. -/
-@[expose]
 public noncomputable def inputTransition (G : CF_grammar T) (k : ℕ)
     (hk : 0 < k)
     (q : Control G k) (x : Option T) (Z : StackSymbol G k) :
@@ -140,7 +129,6 @@ public noncomputable def inputTransition (G : CF_grammar T) (k : ℕ)
   | _ => none
 
 /-- Epsilon transitions implementing table actions and finite reduction pops. -/
-@[expose]
 public noncomputable def epsilonTransition (G : CF_grammar T) (k : ℕ)
     (hk : 0 < k)
     (q : Control G k) (Z : StackSymbol G k) :
@@ -176,7 +164,6 @@ public noncomputable def epsilonTransition (G : CF_grammar T) (k : ℕ)
 
 /-- The concrete DPDA recognizing the explicitly endmarked canonical parser
 language. -/
-@[expose]
 public noncomputable def machine (G : CF_grammar T) (k : ℕ) (hk : 0 < k) :
     DPDA (Control G k) (Option T) (StackSymbol G k) where
   initial_state := initialControl G k

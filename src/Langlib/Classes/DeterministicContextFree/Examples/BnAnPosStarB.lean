@@ -222,8 +222,8 @@ private lemma run_right_block (n : ℕ) (rest : List Bool) :
                 have h := Relation.ReflTransGen.single
                   (step_readB_false (List.replicate (n + 1) false ++ rest)
                     (List.replicate (n + 1) .bmark ++ [.bottom]))
-                convert h using 1 <;>
-                  simp only [List.replicate_succ, List.cons_append, List.append_assoc]
+                convert h using 1 ;
+                  simp only [List.replicate_succ, List.cons_append]
                 apply PDA.conf.ext
                 · rfl
                 · rfl
@@ -272,7 +272,7 @@ private lemma quotientDenominator_complete {w : List Bool} (hw : w ∈ quotientD
   subst v
   subst w
   rcases hu with ⟨blocks, rfl, hblocks⟩
-  refine ⟨.finalB, by simp [DPDA.toPDA, dpda_quotientDenominator], [.bmark, .bottom], ?_⟩
+  refine ⟨.finalB, by simp [dpda_quotientDenominator], [.bmark, .bottom], ?_⟩
   exact Relation.ReflTransGen.trans (run_right_blocks blocks hblocks [true])
     (Relation.ReflTransGen.single (step_boundary_true []))
 
@@ -451,7 +451,7 @@ private lemma quotientDenominator_sound {w : List Bool}
     w ∈ quotientDenominator := by
   rcases h with ⟨q, hq, γ, hreach⟩
   have hinv := DenInv.reaches (DenInv.initial w) hreach
-  cases q <;> simp [DPDA.toPDA, dpda_quotientDenominator] at hq
+  cases q <;> simp [dpda_quotientDenominator] at hq
   change γ = [.bmark, .bottom] ∧ ∃ p, p ∈ KStar.kstar quotientRightBlock ∧
     w = p ++ [true] ++ [] at hinv
   rcases hinv with ⟨_, p, hp, hw⟩

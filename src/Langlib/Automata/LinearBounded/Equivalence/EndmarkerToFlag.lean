@@ -258,7 +258,7 @@ private theorem write_moveHead_left_head_of_pos {Γ' : Type*} {N : ℕ}
     (t : DLBA.BoundedTape Γ' N) (a : Γ') (hpos : 0 < t.head.val) :
     ((t.write a).moveHead DLBA.Dir.left).head =
       (⟨t.head.val - 1, by omega⟩ : Fin (N + 1)) := by
-  simp only [DLBA.BoundedTape.moveHead]
+  simp only
   split
   · rfl
   · rename_i hnot
@@ -269,7 +269,7 @@ private theorem write_moveHead_left_head_of_pos {Γ' : Type*} {N : ℕ}
 private theorem write_moveHead_left_head_of_not_pos {Γ' : Type*} {N : ℕ}
     (t : DLBA.BoundedTape Γ' N) (a : Γ') (hnot : ¬ 0 < t.head.val) :
     ((t.write a).moveHead DLBA.Dir.left).head = t.head := by
-  simp only [DLBA.BoundedTape.moveHead]
+  simp only
   split
   · rename_i hpos
     exfalso
@@ -281,19 +281,19 @@ private theorem write_moveHead_left_head_eq_sub {Γ' : Type*} {N : ℕ}
     (t : DLBA.BoundedTape Γ' N) (a : Γ') :
     ((t.write a).moveHead DLBA.Dir.left).head =
       (⟨t.head.val - 1, by omega⟩ : Fin (N + 1)) := by
-  simp only [DLBA.BoundedTape.moveHead]
+  simp only
   split
   · rfl
   · rename_i hnot
     apply Fin.ext
-    simp only [DLBA.BoundedTape.write] at hnot ⊢
+    simp only at hnot ⊢
     omega
 
 private theorem write_moveHead_right_head_of_lt {Γ' : Type*} {N : ℕ}
     (t : DLBA.BoundedTape Γ' N) (a : Γ') (hlt : t.head.val < N) :
     ((t.write a).moveHead DLBA.Dir.right).head =
       (⟨t.head.val + 1, by omega⟩ : Fin (N + 1)) := by
-  simp only [DLBA.BoundedTape.moveHead]
+  simp only
   split
   · rfl
   · rename_i hnot
@@ -304,7 +304,7 @@ private theorem write_moveHead_right_head_of_lt {Γ' : Type*} {N : ℕ}
 private theorem write_moveHead_right_head_of_not_lt {Γ' : Type*} {N : ℕ}
     (t : DLBA.BoundedTape Γ' N) (a : Γ') (hnot : ¬ t.head.val < N) :
     ((t.write a).moveHead DLBA.Dir.right).head = t.head := by
-  simp only [DLBA.BoundedTape.moveHead]
+  simp only
   split
   · rename_i hlt
     exfalso
@@ -348,7 +348,7 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
     have hprodhead : ∀ (s' : FState Λ) (w' : FAlpha T Γ),
         (⟨s', ((fold cfg).tape.write w').moveHead DLBA.Dir.stay⟩
           : DLBA.Cfg (FAlpha T Γ) (FState Λ) m).tape.head = (⟨0, by omega⟩ : Fin (m + 1)) := by
-      intro s' w'; simp only [moveHead_stay_head, write_head]
+      intro s' w'; simp only
       rw [show (fold cfg).tape.head = foldHead cfg.tape.head from rfl, hhd]
     rcases d' with _ | _ | _
     · -- left: clamp keeps head at cell 0
@@ -411,7 +411,7 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
       have hprodhead : ∀ (s' : FState Λ) (w' : FAlpha T Γ),
           (⟨s', ((fold cfg).tape.write w').moveHead DLBA.Dir.stay⟩
             : DLBA.Cfg (FAlpha T Γ) (FState Λ) m).tape.head = (⟨m, by omega⟩ : Fin (m + 1)) := by
-        intro s' w'; simp only [moveHead_stay_head, write_head]
+        intro s' w'; simp only
         rw [show (fold cfg).tape.head = foldHead cfg.tape.head from rfl, hhd]
       rcases d' with _ | _ | _
       · -- left: head → m+1 = interior
@@ -518,11 +518,11 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
             · rw [show (if decide (cfg.tape.head.val = 1) then DLBA.Dir.stay else DLBA.Dir.left)
                   = DLBA.Dir.stay from by simp [hb]]
               apply Fin.ext; rw [foldHead_val]
-              simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all
+              simp only [hfh]; split_ifs <;> simp_all
             · rw [show (if decide (cfg.tape.head.val = 1) then DLBA.Dir.stay else DLBA.Dir.left)
                   = DLBA.Dir.left from by simp [hb]]
               apply Fin.ext; rw [foldHead_val]
-              simp only [moveHead_left_head_val, write_head, hfh]; split_ifs <;> simp_all; omega
+              simp only [hfh]; split_ifs <;> simp_all; omega
       · -- right
         have hch : cfg'.tape.head = (⟨cfg.tape.head.val + 1, by omega⟩ : Fin (m + 3)) := by
           rw [hcfg']
@@ -550,13 +550,13 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
             · rw [show (if decide (cfg.tape.head.val = m + 1) then DLBA.Dir.stay else DLBA.Dir.right)
                   = DLBA.Dir.stay from by simp [hb]]
               apply Fin.ext; rw [foldHead_val]
-              simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all
+              simp only [hfh]; split_ifs <;> simp_all
             · rw [show (if decide (cfg.tape.head.val = m + 1) then DLBA.Dir.stay else DLBA.Dir.right)
                   = DLBA.Dir.right from by simp [hb]]
               apply Fin.ext; rw [foldHead_val]
               show (if cfg.tape.head.val + 1 = 0 then 0
                 else if cfg.tape.head.val + 1 = m + 2 then m else cfg.tape.head.val + 1 - 1) = _
-              simp only [moveHead_right_head_val, write_head, hfh]
+              simp only [hfh]
               simp only [dif_pos (show cfg.tape.head.val - 1 < m by omega)]
               split_ifs <;> omega
       · -- stay
@@ -570,7 +570,7 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
                 show cfg'.state = q' from rfl, hch, hmode]
           · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch]
             apply Fin.ext; rw [foldHead_val]
-            simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all
+            simp only [hfh]; split_ifs <;> simp_all
 /-- The simulation extends to whole `M'`-computations. -/
 theorem fold_reaches (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
     {cfg cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2)} (h : Reaches M' cfg cfg') :
@@ -602,10 +602,10 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
     have hprodhead : ∀ (s2 : FState Λ) (w2 : FAlpha T Γ),
         (⟨s2, ((fold cfg).tape.write w2).moveHead DLBA.Dir.stay⟩
           : DLBA.Cfg (FAlpha T Γ) (FState Λ) m).tape.head = (⟨0, by omega⟩ : Fin (m + 1)) := by
-      intro s2 w2; simp only [moveHead_stay_head, write_head]
+      intro s2 w2; simp only
       rw [show (fold cfg).tape.head = foldHead cfg.tape.head from rfl, hhd]
     rw [hmode] at hmem
-    simp only [flagMachine, flagTransition, Set.mem_setOf_eq] at hmem
+    simp only [flagMachine, flagTransition, Set.mem_ofPred_eq] at hmem
     obtain ⟨⟨q', a', d'⟩, hp, hpeq⟩ := hmem
     rw [hrd] at hp
     set wcell : FAlpha T Γ :=
@@ -683,10 +683,10 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
       have hprodhead : ∀ (s2 : FState Λ) (w2 : FAlpha T Γ),
           (⟨s2, ((fold cfg).tape.write w2).moveHead DLBA.Dir.stay⟩
             : DLBA.Cfg (FAlpha T Γ) (FState Λ) m).tape.head = (⟨m, by omega⟩ : Fin (m + 1)) := by
-        intro s2 w2; simp only [moveHead_stay_head, write_head]
+        intro s2 w2; simp only
         rw [show (fold cfg).tape.head = foldHead cfg.tape.head from rfl, hhd]
       rw [hmode] at hmem
-      simp only [flagMachine, flagTransition, Set.mem_setOf_eq] at hmem
+      simp only [flagMachine, flagTransition, Set.mem_ofPred_eq] at hmem
       obtain ⟨⟨q', a', d'⟩, hp, hpeq⟩ := hmem
       rw [hrd] at hp
       set wcell : FAlpha T Γ :=
@@ -775,7 +775,7 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
         · simp [h]
         · rw [if_neg (show cfg.tape.head.val - 1 ≠ m by omega)]; simp [h]
       rw [hmode] at hmem
-      simp only [flagMachine, flagTransition, Set.mem_setOf_eq] at hmem
+      simp only [flagMachine, flagTransition, Set.mem_ofPred_eq] at hmem
       obtain ⟨⟨q', a', d'⟩, hp, hpeq⟩ := hmem
       rw [hrd] at hp
       set wcell : FAlpha T Γ :=
@@ -823,11 +823,11 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
           · rw [show (if decide (cfg.tape.head.val = 1) then DLBA.Dir.stay else DLBA.Dir.left)
                 = DLBA.Dir.stay from by simp [hb]]
             apply Fin.ext; rw [foldHead_val]
-            simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all
+            simp only [hfh]; split_ifs <;> simp_all
           · rw [show (if decide (cfg.tape.head.val = 1) then DLBA.Dir.stay else DLBA.Dir.left)
                 = DLBA.Dir.left from by simp [hb]]
             apply Fin.ext; rw [foldHead_val]
-            simp only [moveHead_left_head_val, write_head, hfh]; split_ifs <;> simp_all; omega
+            simp only [hfh]; split_ifs <;> simp_all; omega
       · -- right
         refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩, ⟨q', a', DLBA.Dir.right, hp, rfl⟩, ?_⟩
         set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
@@ -856,13 +856,13 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
           · rw [show (if decide (cfg.tape.head.val = m + 1) then DLBA.Dir.stay else DLBA.Dir.right)
                 = DLBA.Dir.stay from by simp [hb]]
             apply Fin.ext; rw [foldHead_val]
-            simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all
+            simp only [hfh]; split_ifs <;> simp_all
           · rw [show (if decide (cfg.tape.head.val = m + 1) then DLBA.Dir.stay else DLBA.Dir.right)
                 = DLBA.Dir.right from by simp [hb]]
             apply Fin.ext; rw [foldHead_val]
             show (if cfg.tape.head.val + 1 = 0 then 0
               else if cfg.tape.head.val + 1 = m + 2 then m else cfg.tape.head.val + 1 - 1) = _
-            simp only [moveHead_right_head_val, write_head, hfh]
+            simp only [hfh]
             simp only [dif_pos (show cfg.tape.head.val - 1 < m by omega)]
             split_ifs <;> omega
       · -- stay
@@ -881,7 +881,7 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
               show cfg'.state = q' from rfl, hch, hmode]
         · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch]
           apply Fin.ext; rw [foldHead_val]
-          simp only [moveHead_stay_head, write_head, hfh]; split_ifs <;> simp_all
+          simp only [hfh]; split_ifs <;> simp_all
 
 /-! ### Init phase: the flag machine sets up the folded tape.
 
@@ -1081,7 +1081,7 @@ theorem rewind0_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ} (c : Fin (m + 1
     · rfl
     · show foldedTape c = Function.update (foldedTape c) ⟨0, by omega⟩ (foldedTape c ⟨0, by omega⟩)
       rw [Function.update_eq_self]
-    · apply Fin.ext; simp [DLBA.BoundedTape.moveHead, DLBA.BoundedTape.write]
+    · apply Fin.ext; simp
 
 /-- The whole init phase: from the input tape `c`, reach the simulation start at `M'.initial`
 on the head (`⊢`), with the tape fully folded. -/
@@ -1293,7 +1293,7 @@ theorem goodF_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
             (some (Sum.inr (cellCur (c₀ k), cellLeft (c₀ k), some rightMark)))).moveHead
             DLBA.Dir.right).read = none
         rw [DLBA.BoundedTape.read, hhead]
-        simp only [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead]
+        simp only
         rw [Function.update_of_ne hne]
         simp only [partialTape]
         rw [if_neg (show ¬ (⟨k.val + 1, by omega⟩ : Fin (m + 1)).val < k.val from by
@@ -1408,7 +1408,7 @@ theorem goodF_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
         rw [Function.update_eq_self,
           show (fold ⟨M'.initial, ⟨e₀, ⟨0, by omega⟩⟩⟩).tape.contents = foldContents e₀ from rfl,
           hbridge]
-      · simp only [moveHead_stay_head, write_head]
+      · simp only
         exact hk0'
     · -- no `⊢`: keep rewinding left.
       have hls : (cellLeft (foldedTape c₀ k)).isSome = false := by

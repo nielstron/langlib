@@ -165,7 +165,7 @@ public inductive ConsumeRoute (g : IndexedGrammar T) :
 namespace ConsumeRoute
 
 /-- Forget the chosen route and recover the proposition-valued consumption fact. -/
-public def toConsumesAt
+public theorem toConsumesAt
     {g : IndexedGrammar T} {A : g.nt} {stack : List g.flag} {w : List T}
     {p : NFParse g A stack w} {k : ℕ} : ConsumeRoute g p k → p.ConsumesAt k
   | .binaryLeft route => Or.inl route.toConsumesAt

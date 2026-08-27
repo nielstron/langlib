@@ -25,13 +25,13 @@ open Language
 variable {T₁ T₂ : Type}
 
 /-- Map a context-free rule along a terminal map, leaving nonterminals unchanged. -/
-@[expose, reducible]
+@[reducible]
 public def map_CF_rule {N : Type} (f : T₁ → T₂)
     (r : N × List (symbol T₁ N)) : N × List (symbol T₂ N) :=
   (r.1, r.2.map (map_symbol_fn f))
 
 /-- Map a context-free grammar along a terminal map, leaving nonterminals unchanged. -/
-@[expose, reducible]
+@[reducible]
 public def map_CF_grammar (g : CF_grammar T₁) (f : T₁ → T₂) : CF_grammar T₂ where
   nt := g.nt
   initial := g.initial

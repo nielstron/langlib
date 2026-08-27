@@ -148,7 +148,7 @@ private lemma anbn_first_step_no_fresh
   rcases h with ⟨r, hr, p, s, hu, hv⟩
   have hr := anbn_augment_rule_cases hr
   rcases hr with hr | hr | hr
-  all_goals simp only [hr, Prod.fst, Prod.snd] at hu hv
+  all_goals simp only [hr] at hu hv
   · have hl := congrArg List.length hu
     simp only [List.length_singleton, List.length_append, List.length_map] at hl
     have hp : p = [] := List.length_eq_zero_iff.mp (by omega)
@@ -180,7 +180,7 @@ private lemma anbn_step_no_fresh
   rcases h with ⟨r, hr, p, s, hsrc, hv⟩
   have hr := anbn_augment_rule_cases hr
   rcases hr with hr | hr | hr
-  all_goals simp only [hr, Prod.fst, Prod.snd] at hsrc hv
+  all_goals simp only [hr] at hsrc hv
   · exfalso
     apply hu
     rw [hsrc]
@@ -322,17 +322,17 @@ public theorem cfg_anbn_isLRk_one : cfg_anbn.IsLRk 1 := by
   have hr₁ := anbn_augment_rule_cases hr₁
   have hr₂ := anbn_augment_rule_cases hr₂
   rcases hr₁ with hr₁ | hr₁ | hr₁ <;> rcases hr₂ with hr₂ | hr₂ | hr₂
-  all_goals simp only [hr₁, hr₂, Prod.fst, Prod.snd] at hd₁ hd₂ hform
+  all_goals simp only [hr₁, hr₂] at hd₁ hd₂ hform
   · obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₁
     obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₂
     exact ⟨rfl, hr₁.trans hr₂.symm⟩
   · obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
     simp only [List.nil_append] at hform
-    cases n₂ <;> simp [replicate_succ, Function.id_def] at hform
+    cases n₂ <;> simp [replicate_succ] at hform
   · obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
-    simp only [List.nil_append, List.append_nil] at hform
+    simp only [List.nil_append] at hform
     cases n₂
     · change
         (replicate 0 false).map (symbol.terminal (N := Option Unit)) ++
@@ -344,7 +344,7 @@ public theorem cfg_anbn_isLRk_one : cfg_anbn.IsLRk 1 := by
   · obtain ⟨n₁, rfl, rfl⟩ := anbn_augmented_config hd₁
     obtain ⟨rfl, rfl⟩ := anbn_fresh_config hd₂
     simp only [List.nil_append] at hform
-    cases n₁ <;> simp [replicate_succ, Function.id_def] at hform
+    cases n₁ <;> simp [replicate_succ] at hform
   · obtain ⟨n₁, rfl, rfl⟩ := anbn_augmented_config hd₁
     obtain ⟨n₂, rfl, rfl⟩ := anbn_augmented_config hd₂
     have hn := anbn_recursive_prefix_unique hform
@@ -368,7 +368,7 @@ public theorem cfg_anbn_isLRk_one : cfg_anbn.IsLRk 1 := by
           [].map symbol.terminal =
         (replicate n₁ false).map symbol.terminal ++ [] ++
           y.map symbol.terminal at hform
-    simp only [List.map_nil, List.nil_append, List.append_nil] at hform
+    simp only [List.map_nil, List.append_nil] at hform
     have hmem :
         (symbol.nonterminal (T := Bool) (some ()) : symbol Bool (Option Unit)) ∈
           [symbol.nonterminal (some ())] := by simp
@@ -382,7 +382,7 @@ public theorem cfg_anbn_isLRk_one : cfg_anbn.IsLRk 1 := by
           (replicate n₂ true).map symbol.terminal =
         (replicate n₁ false).map symbol.terminal ++ [] ++
           y.map symbol.terminal at hform
-    simp only [List.nil_append, List.append_nil] at hform
+    simp only [List.append_nil] at hform
     have hmem : symbol.nonterminal (some ()) ∈
         (replicate n₂ false).map (symbol.terminal (N := Option Unit)) ++
           [symbol.terminal false, symbol.nonterminal (some ()), symbol.terminal true] ++
@@ -396,7 +396,7 @@ public theorem cfg_anbn_isLRk_one : cfg_anbn.IsLRk 1 := by
           (replicate n₂ true).map symbol.terminal =
         (replicate n₁ false).map symbol.terminal ++ [] ++
           y.map symbol.terminal at hform
-    simp only [List.nil_append, List.append_nil] at hform
+    simp only [List.append_nil] at hform
     have hwords : replicate n₂ false ++ replicate n₂ true =
         replicate n₁ false ++ y := by
       have hmap :

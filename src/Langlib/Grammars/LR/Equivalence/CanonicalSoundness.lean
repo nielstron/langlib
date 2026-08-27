@@ -82,7 +82,7 @@ public theorem accepts_sound (G : CF_grammar T) (k : ℕ) {w : List T}
     (([] : List (symbol T G.augment.nt)) ++
       w.map (symbol.terminal (N := G.augment.nt))) at hder
   rw [hgamma'] at hder
-  simp only [List.map_nil, List.append_nil, List.nil_append] at hder
+  simp only [List.map_nil, List.nil_append] at hder
   have hder' : G.augment.DerivesRightmost
       [symbol.nonterminal (some G.initial)]
       (w.map (symbol.terminal (N := G.augment.nt))) := by

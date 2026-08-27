@@ -171,7 +171,7 @@ public inductive AdjacentOverlayLayout
 namespace AdjacentOverlayLayout
 
 /-- The empty overlay prefix is the protected layout itself. -/
-public def empty
+public theorem empty
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {protectedFlags : List g.flag} {protectedBlocks : List (List g.flag)}
     {protectedOwners : List (Fin (10 * input.length))}
@@ -182,7 +182,7 @@ public def empty
   .nil
 
 /-- Put one mutable overlay block above a protected suffix. -/
-public def singleton
+public theorem singleton
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {protectedFlags : List g.flag} {protectedBlocks : List (List g.flag)}
     {protectedOwners : List (Fin (10 * input.length))}
@@ -199,7 +199,7 @@ public def singleton
   · exact .nil
 
 /-- Cons a new overlay event-boundary block above an existing overlay. -/
-public def push
+public theorem push
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {protectedFlags : List g.flag} {protectedBlocks : List (List g.flag)}
     {protectedOwners : List (Fin (10 * input.length))}

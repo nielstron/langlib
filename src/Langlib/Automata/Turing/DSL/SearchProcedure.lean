@@ -221,7 +221,7 @@ theorem existsPair_language {α β : Type*} (enumA : Enum α) (enumB : Enum β)
       { w | ∃ a ∈ enumA.range, ∃ b ∈ enumB.range, test a b w = true } := by
   ext w; simp [existsPair]; (
   simp +decide [SearchProc.language, SearchProc.accepts];
-  simp +decide only [product_range, Set.mem_setOf_eq];
+  simp +decide only [product_range, Set.mem_ofPred_eq];
   grind)
 
 end SearchProc

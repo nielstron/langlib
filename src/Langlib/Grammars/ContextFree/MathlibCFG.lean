@@ -54,21 +54,17 @@ direction), and concludes `is_CF_iff_isContextFree`.
 - `is_CF_iff_isContextFree`
 -/
 
-@[expose]
 public def Symbol_of_symbol {T N : Type} : symbol T N → Symbol T N
 | symbol.terminal t => Symbol.terminal t
 | symbol.nonterminal n => Symbol.nonterminal n
 
-@[expose]
 public def symbol_of_Symbol {T N : Type} : Symbol T N → symbol T N
 | Symbol.terminal t => symbol.terminal t
 | Symbol.nonterminal n => symbol.nonterminal n
 
-@[expose]
 public def lsSymbol_of_lssymbol {T N : Type} : List (symbol T N) → List (Symbol T N) :=
   List.map Symbol_of_symbol
 
-@[expose]
 public def lssymbol_of_lsSymbol {T N : Type} : List (Symbol T N) → List (symbol T N) :=
   List.map symbol_of_Symbol
 
@@ -94,18 +90,17 @@ public def lssymbol_of_lsSymbol {T N : Type} : List (Symbol T N) → List (symbo
   | cons h t ih =>
     simpa [lsSymbol_of_lssymbol, lssymbol_of_lsSymbol, List.map_map] using ih
 
-@[expose, reducible]
+@[reducible]
 public noncomputable def mathlib_cfg_of_cfg (g : CF_grammar T) : ContextFreeGrammar T :=
   by
     classical
     exact ⟨g.nt, g.initial, (g.rules.map fun r => ⟨r.fst, lsSymbol_of_lssymbol r.snd⟩).toFinset⟩
 
-@[expose, reducible]
+@[reducible]
 public noncomputable def cfg_of_mathlib_cfg (g : ContextFreeGrammar T) : CF_grammar T :=
   ⟨g.NT, g.initial, g.rules.toList.map fun r => (r.input, lssymbol_of_lsSymbol r.output)⟩
 
 /-- A context-free grammar has no ε-productions (every rule has a non-empty right-hand side). -/
-@[expose]
 public def CF_no_epsilon (g : CF_grammar T) : Prop :=
   ∀ r ∈ g.rules, r.snd ≠ []
 

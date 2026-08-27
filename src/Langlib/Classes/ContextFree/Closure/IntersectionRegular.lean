@@ -194,7 +194,6 @@ variable {σ : Type} [Fintype σ]
 
 /-- Thread DFA states through a list of symbols, enumerating all valid
     annotated symbol lists with their ending DFA states. -/
-@[expose]
 public noncomputable def threadSymbols (M : DFA T σ)
     {N : Type} (syms : List (symbol T N)) (p : σ) :
     List (List (symbol T (Option (σ × N × σ))) × σ) :=
@@ -209,7 +208,7 @@ public noncomputable def threadSymbols (M : DFA T σ)
           (symbol.nonterminal (some (p, B, qmid)) :: out, q)
 
 /-- The product grammar of a CFG `g` and a DFA `M`. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def productGrammar (g : CF_grammar T) (M : DFA T σ) : CF_grammar T where
   nt := Option (σ × g.nt × σ)
   initial := none

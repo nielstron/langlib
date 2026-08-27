@@ -150,7 +150,7 @@ public theorem active_subset_indexOwners
 
 /-- Pooled owners all lie beyond the semantic shadow window, so any block partition whose
 owners are active admits an all-outside shadow layout. -/
-public def genericShadowStartLayout
+public theorem genericShadowStartLayout
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A : g.nt} {stack : List g.flag} {w : List T}
     {parse : NFParse g A stack w} {pre : List T}

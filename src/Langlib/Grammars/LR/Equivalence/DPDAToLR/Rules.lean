@@ -22,12 +22,11 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
-public abbrev State (M : DPDA Q T S) := (Q × Bool) ⊕ Fin 2
-public abbrev StackSymbol (M : DPDA Q T S) := Option S
+public abbrev State (M : DPDA Q T S) := let _ := M; (Q × Bool) ⊕ Fin 2
+public abbrev StackSymbol (M : DPDA Q T S) := let _ := M; Option S
 public abbrev Nonterminal (M : DPDA Q T S) := PDA_to_CFG.N (emptyStackPDA M)
 
 /-- The five possible rule forms before translating Mathlib symbols. -/
-@[expose]
 public def MathlibRuleShape (M : DPDA Q T S)
     (r : ContextFreeRule T (Nonterminal M)) : Prop :=
   (∃ q : State M,
@@ -127,7 +126,6 @@ public theorem characteristic_rule_fullyProductive (M : DPDA Q T S)
   exact of_decide_eq_true (List.mem_filter.mp hr).2
 
 /-- The five possible rule forms after translating to Langlib symbols. -/
-@[expose]
 public def RuleShape (M : DPDA Q T S)
     (r : (characteristicGrammar M).nt ×
       List (symbol T (characteristicGrammar M).nt)) : Prop :=

@@ -68,7 +68,6 @@ public structure Rooted (Λ : Type*) (q₀ : Λ) where
 instance {Λ : Type*} {q₀ : Λ} : Inhabited (Rooted Λ q₀) := ⟨⟨q₀⟩⟩
 
 /-- Re-root a TM0 machine to start from state `q₀` instead of `default`. -/
-@[expose]
 public def tm0Reroot {Γ : Type*} {Λ : Type*} [Inhabited Λ]
     (M : TM0.Machine Γ Λ) (q₀ : Λ) :
     @TM0.Machine Γ (Rooted Λ q₀) ⟨⟨q₀⟩⟩ :=
@@ -133,7 +132,6 @@ theorem tm1to0_fintype_states
 /-! ### Re-rooting Support -/
 
 /-- Embedding function for `Rooted`: wraps a value into a `Rooted`. -/
-@[expose]
 public def rootedEmbFn {Λ : Type*} {q₀ : Λ} : Λ ↪ Rooted Λ q₀ :=
   ⟨fun q => ⟨q⟩, fun _ _ h => by cases h; rfl⟩
 
@@ -166,7 +164,6 @@ public theorem tm0Reroot_supports {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inha
 /-- Restrict + reroot a TM0: combine re-rooting and restriction into one step.
 Given `TM0.Supports M S` with `q₀ ∈ S`, produce a TM0 with `Fintype` states
 that halts on `l` iff the original does when started from `q₀`. -/
-@[expose]
 public noncomputable def tm0RestrictReroot {Γ : Type*} {Λ : Type*}
     [Inhabited Λ] [Inhabited Γ]
     (M : TM0.Machine Γ Λ) (S : Finset Λ) (hS : TM0.Supports M ↑S)
@@ -179,7 +176,7 @@ public noncomputable def tm0RestrictReroot {Γ : Type*} {Λ : Type*}
   Turing.TM0.restrict (tm0Reroot M q₀) (S.map rootedEmbFn)
     (tm0Reroot_supports M S hS q₀ hq₀)
 
-@[expose]
+@[instance_reducible]
 public noncomputable def tm0RestrictReroot_fintype {Λ : Type*}
     (S : Finset Λ) (q₀ : Λ) :
     Fintype { q : Rooted Λ q₀ // q ∈ S.map (rootedEmbFn (q₀ := q₀)) } :=

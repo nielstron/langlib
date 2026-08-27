@@ -134,10 +134,10 @@ private theorem source_epsilon_step
   cases input with
   | nil =>
       unfold PDA.Reaches₁ PDA.step
-      exact ⟨q', γ, by simp [DPDA.toPDA, hε], rfl⟩
+      exact ⟨q', γ, by simp [hε], rfl⟩
   | cons b input =>
       unfold PDA.Reaches₁ PDA.step
-      exact Set.mem_union_right _ ⟨q', γ, by simp [DPDA.toPDA, hε], rfl⟩
+      exact Set.mem_union_right _ ⟨q', γ, by simp [hε], rfl⟩
 
 private theorem source_input_step
     (M : DPDA Q β S) (q q' : Q) (b : β) (input : List β)
@@ -147,7 +147,7 @@ private theorem source_input_step
     @PDA.Reaches₁ _ β S _ _ _ M.toPDA
       ⟨q, b :: input, Z :: rest⟩ ⟨q', input, γ ++ rest⟩ := by
   unfold PDA.Reaches₁ PDA.step
-  exact Set.mem_union_left _ ⟨q', γ, by simp [DPDA.toPDA, hδ], rfl⟩
+  exact Set.mem_union_left _ ⟨q', γ, by simp [hδ], rfl⟩
 
 private theorem inverseHomomorphism_ready_step
     (M : DPDA Q β S) (h : α → List β)
@@ -162,11 +162,11 @@ private theorem inverseHomomorphism_ready_step
     unfold PDA.Reaches₁ PDA.step
     exact Set.mem_union_left _
       ⟨(q, some ⟨a, ⟨0, hlen⟩⟩), [Z], by
-        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hlen], rfl⟩
+        simp [DPDA.inverseHomomorphism, hlen], rfl⟩
   · simp only [dif_neg hlen]
     unfold PDA.Reaches₁ PDA.step
     exact Set.mem_union_left _
-      ⟨(q, none), [Z], by simp [DPDA.toPDA, DPDA.inverseHomomorphism, hlen], rfl⟩
+      ⟨(q, none), [Z], by simp [DPDA.inverseHomomorphism, hlen], rfl⟩
 
 private theorem inverseHomomorphism_epsilon_step
     (M : DPDA Q β S) (h : α → List β)
@@ -180,11 +180,11 @@ private theorem inverseHomomorphism_epsilon_step
   | nil =>
       unfold PDA.Reaches₁ PDA.step
       exact ⟨(q', some ⟨a, k⟩), γ, by
-        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hε], rfl⟩
+        simp [DPDA.inverseHomomorphism, hε], rfl⟩
   | cons b w =>
       unfold PDA.Reaches₁ PDA.step
       exact Set.mem_union_right _ ⟨(q', some ⟨a, k⟩), γ, by
-        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hε], rfl⟩
+        simp [DPDA.inverseHomomorphism, hε], rfl⟩
 
 private theorem inverseHomomorphism_drain_step
     (M : DPDA Q β S) (h : α → List β)
@@ -201,11 +201,11 @@ private theorem inverseHomomorphism_drain_step
   | nil =>
       unfold PDA.Reaches₁ PDA.step
       exact ⟨(q', invHomAdvance h a k), γ, by
-        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hε, hδ'], rfl⟩
+        simp [DPDA.inverseHomomorphism, hε, hδ'], rfl⟩
   | cons b w =>
       unfold PDA.Reaches₁ PDA.step
       exact Set.mem_union_right _ ⟨(q', invHomAdvance h a k), γ, by
-        simp [DPDA.toPDA, DPDA.inverseHomomorphism, hε, hδ'], rfl⟩
+        simp [DPDA.inverseHomomorphism, hε, hδ'], rfl⟩
 
 /-- Every inverse-machine step either stutters in, or is one step of, the source
 machine on the represented virtual input. -/

@@ -38,7 +38,6 @@ public theorem lrLookahead_eq_of_observe_eq {k : ℕ} {u v : List T}
 /-- A production is reducible at `gamma` with padded lookahead `u` when a
 rightmost derivation has reached its left-hand nonterminal and applying the
 production ends exactly at `gamma`. -/
-@[expose]
 public def ReductionCandidate (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.nt)) (u : Lookahead T k)
     (r : G.nt × List (symbol T G.nt)) : Prop :=
@@ -53,7 +52,6 @@ public def ReductionCandidate (G : CF_grammar T) (k : ℕ)
 whose terminal suffix has padded lookahead `u`.  The displayed terminal `a`
 is the first grammar symbol beyond `gamma`; retaining it makes strictness
 structural rather than an inequality on lengths. -/
-@[expose]
 public def LaterHandleCandidate (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.nt)) (u : Lookahead T k) : Prop :=
   ∃ (r : G.nt × List (symbol T G.nt)), r ∈ G.rules ∧

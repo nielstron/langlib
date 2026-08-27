@@ -76,7 +76,7 @@ public theorem no_final_iff_abstract_counting_certificate
             (FiniteReachabilityCounting.FinalRejection
               (rowEdge S) (inputRow S input) (Fintype.card (FixedRow A n)) count
               (rowFinal S)) := by
-  letI : DecidableRel (rowEdge S : FixedRow A n → FixedRow A n → Prop) :=
+  let : DecidableRel (rowEdge S : FixedRow A n → FixedRow A n → Prop) :=
     Classical.decRel _
   exact FiniteReachabilityCounting.no_reachable_final_iff_counting_certificate
     (rowEdge S) (inputRow S input)

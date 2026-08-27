@@ -75,7 +75,6 @@ public structure TwoTrackConfig where
   rightCells : List (Option T × Option T)
 
 /-- Encode a `TwoTrackConfig` as a sentential form of the grammar. -/
-@[expose]
 public def encodeTwoTrack (cfg : @TwoTrackConfig T Λ) :
     List (symbol T (TMtoGrammarNT T Λ)) :=
   [.nonterminal leftBound] ++
@@ -86,7 +85,6 @@ public def encodeTwoTrack (cfg : @TwoTrackConfig T Λ) :
 
 /-- The initial two-track configuration for input `w`. The head is at the leftmost
 position (or on blank for empty input). -/
-@[expose]
 public def initTwoTrack (w : List T) : @TwoTrackConfig T Λ :=
   match w with
   | [] => ⟨[], default, none, none, []⟩
@@ -145,7 +143,6 @@ public theorem generation_derives (M : Turing.TM0.Machine (Option T) Λ) (w : Li
 After the TM halts, the grammar converts all nonterminals to terminals. -/
 
 /-- Encode the "halted" configuration: all cells converted to haltCells. -/
-@[expose]
 public def encodeHalted (originals : List (Option T)) :
     List (symbol T (TMtoGrammarNT T Λ)) :=
   [.nonterminal leftBound] ++
@@ -153,7 +150,6 @@ public def encodeHalted (originals : List (Option T)) :
   [.nonterminal rightBound]
 
 /-- Extract the original input from a list of originals (keep only `some` values). -/
-@[expose]
 public def extractInput (originals : List (Option T)) : List T :=
   originals.filterMap id
 
@@ -262,7 +258,6 @@ theorem cleanup_rule_mem (M : Turing.TM0.Machine (Option T) Λ)
   exact List.mem_append_right _ hr
 
 /-- Get the originals from a TwoTrackConfig. -/
-@[expose]
 public def twoTrackOriginals (cfg : @TwoTrackConfig T Λ) : List (Option T) :=
   (cfg.leftCells.map Prod.fst) ++ [cfg.headOrig] ++ (cfg.rightCells.map Prod.fst)
 
@@ -272,7 +267,6 @@ The simulation phase shows that each TM0 step can be mirrored by a grammar
 derivation step on the encoded sentential form. -/
 
 /-- Compute the next TwoTrackConfig after one TM0 step. Returns `none` if the TM halts. -/
-@[expose]
 public noncomputable def stepTwoTrack
     (M : Turing.TM0.Machine (Option T) Λ)
     (cfg : @TwoTrackConfig T Λ) : Option (@TwoTrackConfig T Λ) :=

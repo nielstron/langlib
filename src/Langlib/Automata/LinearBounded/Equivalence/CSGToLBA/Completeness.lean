@@ -54,7 +54,7 @@ lemma kStep_sim_applyRule {n : ℕ} (c : Fin (n + 1) → KCell g₀) (i : Fin (n
     LBA.Step (kMachine g₀) ⟨KState.sim, ⟨c, i⟩⟩ ⟨KState.applyRule ri 0, ⟨c, i⟩⟩ := by
   refine kStep_echo_stay g₀ (st' := KState.applyRule ri 0) ?_
   rw [hc]
-  simp only [kTransition, Set.mem_union, Set.mem_setOf_eq]
+  simp only [kTransition, Set.mem_union, Set.mem_ofPred_eq]
   exact Or.inr ⟨ri, rfl⟩
 
 omit [Fintype T] [Fintype g₀.nt] in

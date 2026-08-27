@@ -47,21 +47,21 @@ private def cWord (ns : List Nat) : List Bool :=
 
 private lemma bStepS : CF_transforms BG [bS] [ba, bb, bC] := by
   exact ⟨(.S, [.terminal false, .terminal true, .nonterminal .C]), [], [],
-    by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+    by simp, rfl, rfl⟩
 
 private lemma bStepC : CF_transforms BG [bC] [bb, bC, ba, bD] := by
   exact ⟨(.C, [.terminal true, .nonterminal .C, .terminal false, .nonterminal .D]),
-    [], [], by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+    [], [], by simp, rfl, rfl⟩
 
 private lemma bStopC : CF_transforms BG [bC] [] := by
-  exact ⟨(.C, []), [], [], by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+  exact ⟨(.C, []), [], [], by simp, rfl, rfl⟩
 
 private lemma bStepD : CF_transforms BG [bD] [bb, bD] := by
   exact ⟨(.D, [.terminal true, .nonterminal .D]), [], [],
-    by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+    by simp, rfl, rfl⟩
 
 private lemma bStopD : CF_transforms BG [bD] [] := by
-  exact ⟨(.D, []), [], [], by simp [grammarAbnAbStarPowPredN], rfl, rfl⟩
+  exact ⟨(.D, []), [], [], by simp, rfl, rfl⟩
 
 private lemma bGenerateD (n : Nat) :
     CF_derives BG [bD] ((replicate n true).map symbol.terminal) := by
@@ -154,7 +154,7 @@ private lemma bRuleSound
     (r : AbnAbStarPowPredNNT × List (symbol Bool AbnAbStarPowPredNNT))
     (hr : r ∈ BG.rules) (w : List Bool) (h : bFormSem r.2 w) :
     bSymSem (.nonterminal r.1) w := by
-  simp only [grammarAbnAbStarPowPredN, List.mem_cons, List.not_mem_nil,
+  simp only [List.mem_cons, List.not_mem_nil,
     or_false] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl
   · have h' : bFormSem [ba, bb, bC] w := h

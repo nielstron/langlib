@@ -28,7 +28,6 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 argument.  The two anchors represent the same visible frontier and completed
 word.  If both physical cuts have useful futures with the same one-symbol
 lookahead, their control states and complete stacks agree. -/
-@[expose]
 public def ProductivePairedVisibleAnchorCutsEqual
     (M : DPDA Q T S) : Prop :=
   ∀ (p : List (symbol T (Nonterminal M))) (preWord : List T)
@@ -54,7 +53,6 @@ public def ProductivePairedVisibleAnchorCutsEqual
 
 /-- Boundary-sensitive strengthening of physical cut equality.  This is the
 form consumed directly by the existing leftmost-epsilon comparison API. -/
-@[expose]
 public def ProductivePairedVisibleAnchorPositionsEqual
     (M : DPDA Q T S) : Prop :=
   ∀ (p : List (symbol T (Nonterminal M))) (preWord : List T)
@@ -253,7 +251,6 @@ cycle/growth obstructions.
 The statement deliberately does not ask which edge is transition-generated:
 `ConcreteEmptyEdge.transitionEdge_of_strictTerminalExtension` already shows
 that the later edge is transition-generated. -/
-@[expose]
 public def StrictTerminalEmptyReturnPairsClassified
     (M : DPDA Q T S) : Prop :=
   ∀ (earlyPrefix latePrefix : List (symbol T (Nonterminal M)))
@@ -264,7 +261,7 @@ public def StrictTerminalEmptyReturnPairsClassified
     latePrefix = earlyPrefix ++ displacement.map symbol.terminal →
     displacement ≠ [] →
     earlySuffix.take 1 = (displacement ++ lateSuffix).take 1 →
-    UsefulReturnObstruction M
+    (fun _ _ => UsefulReturnObstruction M) earlyEdge lateEdge
 
 /-- The non-read fragment of a concrete empty edge.  A read-generated early
 edge is already incompatible with every strict terminal extension, so only
@@ -317,7 +314,6 @@ public theorem ConcreteNonreadEmptyEdge.edge (M : DPDA Q T S)
 
 /-- The actual strict-prefix residual after disposing of read-generated
 early edges. -/
-@[expose]
 public def StrictTerminalNonreadEmptyReturnPairsClassified
     (M : DPDA Q T S) : Prop :=
   ∀ (earlyPrefix latePrefix : List (symbol T (Nonterminal M)))
@@ -474,6 +470,7 @@ public theorem strictTerminalEmptyReturnPairsClassified_of_nonread
         (.split parent length rule left) lateTransition
         hprefix hdisplacement hlook
 
+omit [Fintype T] in
 private theorem take_one_nonempty_append_right
     {z left right : List T} (hz : z ≠ []) :
     (z ++ left).take 1 = (z ++ right).take 1 := by

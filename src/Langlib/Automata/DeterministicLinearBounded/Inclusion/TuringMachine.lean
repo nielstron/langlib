@@ -205,7 +205,7 @@ theorem tape_mk1_move_right_head {Γ : Type*} [Inhabited Γ]
     _ = (Turing.Tape.mk₁ l).nth (0 + k) := tape_iter_move_right_nth _ _ _
     _ = (Turing.Tape.mk₁ l).nth (k : ℤ) := by norm_num
     _ = l.getI k := by
-      simpa only [Tape.mk₁, Tape.mk₂, Tape.mk'_nth_nat, ListBlank.nth_mk]
+      simp only [Tape.mk₁, Tape.mk₂, Tape.mk'_nth_nat, ListBlank.nth_mk]
 
 /-
 The head of `Tape.mk₁ l` is `l.headI`.

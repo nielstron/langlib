@@ -64,7 +64,7 @@ by
           apply List.nthLe_mem
         exact no_a yes_a
       by_contra contr
-      push_neg at contr
+      push Not at contr
       cases contr with
       | intro first_letter_not_b first_letter_not_c =>
           exact elimin ((v ++ y).nthLe 0 nonempty) first_letter_not_a first_letter_not_b
@@ -83,10 +83,10 @@ by
   cases pumping with
   | intro n' pump' =>
       have zero_in_v : List.count_in v _a = 0 := by
-        rw [List.mem_append] at no_a; push_neg at no_a
+        rw [List.mem_append] at no_a; push Not at no_a
         exact List.count_in_zero_of_notin no_a.left
       have zero_in_y : List.count_in y _a = 0 := by
-        rw [List.mem_append] at no_a; push_neg at no_a
+        rw [List.mem_append] at no_a; push Not at no_a
         exact List.count_in_zero_of_notin no_a.right
       have count_a : List.count_in (u ++ List.n_times v 2 ++ x ++ List.n_times y 2 ++ z) _a = n + 1 := by
         count_contra
@@ -123,11 +123,11 @@ public lemma notCF_lang_eq_eq : ¬ is_CF lang_eq_eq := by
 
   have not_all_letters : a_ ∉ (v ++ y) ∨ b_ ∉ (v ++ y) ∨ c_ ∉ (v ++ y) := by
     by_contra contr
-    push_neg at contr
+    push Not at contr
     rcases contr with ⟨hva, -, hvc⟩
     have vxy_long : (v ++ x ++ y).length > n := by
       by_contra contr
-      push_neg at contr
+      push Not at contr
       have total_length_exactly : u.length + (v ++ x ++ y).length + z.length = 3 * n + 3 := by
         have total_length := congr_arg List.length concatenating
         simp only [List.length_append, List.length_replicate] at total_length
@@ -138,7 +138,7 @@ public lemma notCF_lang_eq_eq : ¬ is_CF lang_eq_eq := by
       have u_short : u.length ≤ n := by
         -- in contradiction with `hva: a_ ∈ v ++ y`
         by_contra u_too_much
-        push_neg at u_too_much
+        push Not at u_too_much
         have relaxed_a : a_ ∈ v ++ x ++ y ++ z := by
           cases (List.mem_append.1 hva) with
           | inl a_in_v =>
@@ -243,7 +243,7 @@ public lemma notCF_lang_eq_eq : ¬ is_CF lang_eq_eq := by
             cases orig_mth_is_c with
             | intro proof_m mth_is_c =>
                 by_contra mle
-                push_neg at mle
+                push Not at mle
                 have m_lt_len :
                     m < (List.replicate (n + 1) a_ ++ List.replicate (n + 1) b_).length := by
                   simp only [List.length_append, List.length_replicate]

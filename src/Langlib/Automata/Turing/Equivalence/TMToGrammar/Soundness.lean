@@ -71,7 +71,6 @@ variable {T : Type} [DecidableEq T] [Fintype T]
 /-- Extract the "original input character" from a grammar symbol.
 Terminals contribute their value. Nonterminals contribute their `orig` field (if `some`).
 Boundary markers, `start`, `genMore`, and `none`-orig nonterminals contribute nothing. -/
-@[expose]
 public def symbolOriginal : symbol T (TMtoGrammarNT T Λ) → Option T
   | .terminal t => some t
   | .nonterminal (cell (some t) _) => some t
@@ -81,7 +80,6 @@ public def symbolOriginal : symbol T (TMtoGrammarNT T Λ) → Option T
 
 /-- The "terminal content" of a sentential form: the list of original input characters.
 This is invariant under simulation and cleanup rules. -/
-@[expose]
 public def terminalContent (sf : List (symbol T (TMtoGrammarNT T Λ))) : List T :=
   sf.filterMap (symbolOriginal (Λ := Λ))
 
@@ -229,7 +227,6 @@ public theorem no_cell_rule (M : Turing.TM0.Machine (Option T) Λ)
 /-! ### The corrected forward invariant -/
 
 /-- Whether a symbol is a nonterminal. -/
-@[expose]
 public def isNonterminal : symbol T N → Prop
   | .terminal _ => False
   | .nonterminal _ => True

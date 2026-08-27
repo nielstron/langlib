@@ -164,7 +164,7 @@ public theorem overlayScheduleRun_binary
     simp
   have hfocusNoIndex :
       [startCursor.focus].filterMap ScheduleAtom.indexOwner? = [] := by
-    simp [startCursor, liveScheduleCursor, ScheduleAtom.indexOwner?]
+    simp [startCursor, ScheduleAtom.indexOwner?]
   have hheadFrameFresh : head.owner ∉ startCursor.frameOwners := by
     apply (List.disjoint_left.mp hframesStart)
     simp [fullOwners, overlay]

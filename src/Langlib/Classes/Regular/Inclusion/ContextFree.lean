@@ -62,7 +62,7 @@ noncomputable section
 variable {T : Type}
 
 /-- Convert a right-regular grammar to a context-free grammar. -/
-@[expose, reducible]
+@[reducible]
 public def CF_grammar_of_RG (g : RG_grammar T) : CF_grammar T where
   nt := g.nt
   initial := g.initial

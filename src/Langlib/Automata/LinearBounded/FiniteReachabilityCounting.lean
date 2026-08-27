@@ -344,7 +344,7 @@ def canonicalRound (k : Nat) :
   negative := by
     intro v hv
     rw [reached_succ, mem_grow] at hv
-    push_neg at hv
+    push Not at hv
     exact hv
 
 /-- Exact bounded-reachability counts always have a certificate. -/

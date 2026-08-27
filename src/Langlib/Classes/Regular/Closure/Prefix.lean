@@ -69,12 +69,10 @@ namespace DFA
 variable {α : Type*} {σ : Type*}
 
 /-- The set of states from which some accepting state is reachable. -/
-@[expose]
 public def reachableAccept (M : DFA α σ) : Set σ :=
   { s : σ | ∃ x : List α, M.evalFrom s x ∈ M.accept }
 
 /-- A DFA accepting the prefix language of the original DFA's language. -/
-@[expose]
 public def prefixDFA (M : DFA α σ) : DFA α σ where
   step := M.step
   start := M.start

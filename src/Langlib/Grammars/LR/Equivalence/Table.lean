@@ -26,7 +26,6 @@ public abbrev KernelState [Fintype T] (G : CF_grammar T) (k : ℕ) :=
   Finset (Item G.augment k)
 
 /-- A complete item enabled in a raw state at the displayed lookahead. -/
-@[expose]
 public def EnabledReduction [Fintype T] (G : CF_grammar T) (k : ℕ)
     (q : KernelState G k) (u : Lookahead T k) (i : Item G.augment k) : Prop :=
   i ∈ closure G.augment k q ∧ i.Complete ∧ i.lookahead = u
@@ -34,7 +33,6 @@ public def EnabledReduction [Fintype T] (G : CF_grammar T) (k : ℕ)
 /-- Choose one enabled reduction item.  The choice is deliberately finite and
 noncomputable: automata in this repository are mathematical transition
 functions, and LR(k) uniqueness later proves rule-independence. -/
-@[expose]
 public noncomputable def reductionItem? [Fintype T]
     (G : CF_grammar T) (k : ℕ) (q : KernelState G k)
     (u : Lookahead T k) : Option (Item G.augment k) := by
@@ -78,7 +76,6 @@ public theorem exists_reductionItem?_eq_some [Fintype T]
 immediately after the dot.  The total table below safely defaults to shifting
 whenever no semantic reduction is enabled; this predicate remains useful for
 the usual canonical-item characterization of reachable shifts. -/
-@[expose]
 public def ShiftEnabled [Fintype T] (G : CF_grammar T) (k : ℕ)
     (q : KernelState G k) (a : T) : Prop :=
   ∃ i ∈ closure G.augment k q,
@@ -94,14 +91,12 @@ public inductive TableAction (G : CF_grammar T) where
 /-- First buffered symbol, returning EOF for the degenerate zero-lookahead
 buffer.  The final construction uses `k+1`, so its reachable buffers are
 always nondegenerate. -/
-@[expose]
 public def lookaheadHead (k : ℕ) (u : Lookahead T k) : Option T :=
   if h : 0 < k then u ⟨0, h⟩ else none
 
 /-- Canonical table action.  A completed augmented-start item is acceptance;
 all other completed items are reductions.  If there is no reduction, a
 syntactically enabled terminal is shifted. -/
-@[expose]
 public noncomputable def tableAction [Fintype T] (G : CF_grammar T) (k : ℕ)
     (q : KernelState G k) (u : Lookahead T k) : TableAction G := by
   classical
@@ -114,7 +109,6 @@ public noncomputable def tableAction [Fintype T] (G : CF_grammar T) (k : ℕ)
       | none => .error
 
 /-- The raw goto state used after shifting or reducing a grammar symbol. -/
-@[expose]
 public noncomputable def nextKernel [Fintype T] (G : CF_grammar T) (k : ℕ)
     (q : KernelState G k) (X : symbol T G.augment.nt) : KernelState G k :=
   goto G.augment k q X

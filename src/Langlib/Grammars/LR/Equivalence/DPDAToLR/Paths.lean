@@ -23,6 +23,7 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
+omit [Fintype T] in
 @[simp]
 private theorem upper_lower_symbols (w : List (Symbol T N)) :
     lsSymbol_of_lssymbol (lssymbol_of_lsSymbol w) = w := by
@@ -33,12 +34,14 @@ private theorem upper_lower_symbols (w : List (Symbol T N)) :
         lsSymbol_of_lssymbol (lssymbol_of_lsSymbol w) = a :: w
       cases a <;> simp [Symbol_of_symbol, symbol_of_Symbol, ih]
 
+omit [Fintype T] in
 @[simp]
 private theorem lower_single_nonterminal {N : Type} (A : N) :
     lsSymbol_of_lssymbol [symbol.nonterminal (T := T) A] =
       [Symbol.nonterminal A] := by
   rfl
 
+omit [Fintype T] in
 @[simp]
 private theorem lower_terminal_string {N : Type} (w : List T) :
     lsSymbol_of_lssymbol (w.map (symbol.terminal (N := N))) =
@@ -51,11 +54,12 @@ private theorem lower_terminal_string {N : Type} (w : List T) :
         Symbol.terminal a :: w.map Symbol.terminal
       rw [ih]
 
+omit [Fintype T] in
 /-- Translate an arbitrary Langlib CFG derivation to the corresponding
 Mathlib CFG derivation.  The library's language-equivalence theorem only
 exposes the special case starting at the initial nonterminal, so the general
 form is recorded here. -/
-public theorem mathlib_derives_of_CF_derives (g : CF_grammar T)
+public theorem mathlib_derives_of_CF_derives [Fintype T] (g : CF_grammar T)
     {u v : List (symbol T g.nt)}
     (h : CF_derives g u v) :
     (mathlib_cfg_of_cfg g).Derives

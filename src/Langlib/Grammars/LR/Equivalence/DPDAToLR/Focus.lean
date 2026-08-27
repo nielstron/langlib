@@ -50,6 +50,7 @@ public inductive Focused (M : DPDA Q T S) :
         ⟨target, postWord, context⟩ ⟨final, [], []⟩) :
       Focused M (PDA_to_CFG.N.list q gamma target) preWord postWord
 
+omit [Fintype T] in
 private theorem terminal_word_eq_of_derives (G : CF_grammar T)
     {u v : List T}
     (h : G.DerivesRightmost (u.map symbol.terminal)
@@ -59,6 +60,7 @@ private theorem terminal_word_eq_of_derives (G : CF_grammar T)
   exact (List.map_injective_iff.mpr fun _ _ h =>
     symbol.terminal.inj h) heq.symm
 
+omit [Fintype T] in
 private theorem decompose_one_nonterminal
     {N : Type} {A B : N}
     {left right : List (symbol T N)}
@@ -75,6 +77,7 @@ private theorem decompose_one_nonterminal
         simpa using h.2.symm
       simp at hbad
 
+omit [Fintype T] in
 private theorem decompose_terminal_nonterminal
     {N : Type} {a : T} {A B : N}
     {left right : List (symbol T N)}
@@ -93,6 +96,7 @@ private theorem decompose_terminal_nonterminal
       subst left
       exact ⟨rfl, hA, hright⟩
 
+omit [Fintype T] in
 private theorem decompose_two_nonterminals
     {N : Type} {A B C : N}
     {left right : List (symbol T N)}
@@ -191,7 +195,7 @@ public theorem focused_of_derivation (M : DPDA Q T S)
         · rcases hbase with ⟨q, rfl⟩
           exfalso
           have hlen := congrArg List.length hrhs
-          simp only [Prod.snd, List.length_nil, List.length_append,
+          simp only [List.length_nil, List.length_append,
             List.length_singleton] at hlen
           omega
         · rcases hread with

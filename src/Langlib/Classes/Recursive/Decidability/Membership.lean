@@ -38,19 +38,16 @@ variable {T : Type} [Primcodable T]
 
 /-- Run a raw partial-recursive code on the encoding of a word and interpret an odd
 natural-number result as `true` and an even result as `false`. -/
-@[expose]
 public def evalBool (c : Nat.Partrec.Code) (w : List T) : Part Bool :=
   (c.eval (encode w)).map Nat.bodd
 
 /-- The semantic promise that a raw program code halts on every encoded word. -/
-@[expose]
 public def Valid (c : Nat.Partrec.Code) : Prop :=
   ∀ w : List T, (evalBool c w).Dom
 
 /-- The language denoted by a raw decider code: precisely the words on which its
 Boolean evaluation returns `true`.  This is meaningful for every raw code, although
 only `Valid` codes are promised to decide it totally. -/
-@[expose]
 public def language (c : Nat.Partrec.Code) : Language T :=
   {w | true ∈ evalBool c w}
 

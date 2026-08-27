@@ -170,7 +170,7 @@ public theorem overlayScheduleRun_pushFresh
     simp
   have hfocusNoIndex :
       [startCursor.focus].filterMap ScheduleAtom.indexOwner? = [] := by
-    simp [startCursor, liveScheduleCursor, ScheduleAtom.indexOwner?]
+    simp [startCursor, ScheduleAtom.indexOwner?]
   have hheadFrameFresh : owned.owner ∉ startCursor.frameOwners := by
     have hframes' : List.Disjoint (owned.owner :: owners)
         startCursor.frameOwners := by
@@ -281,10 +281,10 @@ public theorem overlayScheduleRun_pushFresh
       List.filterMap_cons, List.filterMap_nil]
     rw [htaskOwner]
   have hframesEq : childCursor.frameOwners = startCursor.frameOwners := by
-    simp [childCursor, startCursor, liveScheduleCursor,
+    simp [childCursor, startCursor,
       ScheduleCursor.frameOwners, ScheduleCursor.word,
       ScheduleAtom.closeOwner?, List.filterMap_append,
-      List.filterMap_cons, List.filterMap_nil]
+      List.filterMap_cons]
   let childPrefixLedger : PrefixFrameLedger childCursor :=
     startLedger.prefixLedger.transport (by rfl) (by rw [hframesEq])
   let childOwnerLedger : ScheduleOwnerLedger rest resources.window.pushChild

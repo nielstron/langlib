@@ -24,7 +24,6 @@ open CF_grammar.LRk
 variable {T : Type} [Fintype T]
 
 /-- Complete concrete stack representing a grammar-symbol parser stack. -/
-@[expose]
 public noncomputable def stackRep (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.augment.nt)) :
     List (StackSymbol G k) :=
@@ -42,9 +41,9 @@ public theorem stackRep_append_singleton (G : CF_grammar T) (k : ℕ)
     stackRep G k (gamma ++ [X]) =
       some (scanKernel G k (gamma ++ [X])) :: stackRep G k gamma := by
   simp only [stackRep, List.inits_append, List.inits, List.tail_cons,
-    List.map_append, List.map_singleton, scanKernel_append_singleton,
-    List.reverse_append, List.reverse_singleton, List.map_reverse,
-    List.map_map, Function.comp_apply]
+    List.map_singleton, scanKernel_append_singleton,
+    List.map_reverse,
+    List.map_map]
   rw [List.tail_append_singleton_of_ne_nil (by
     cases gamma <;> simp [List.inits])]
   simp

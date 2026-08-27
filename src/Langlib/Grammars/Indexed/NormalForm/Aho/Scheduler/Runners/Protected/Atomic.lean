@@ -486,10 +486,10 @@ public theorem protectedScheduleRun_atomicPop
               innerAlpha (.close idx.owner) tail).indexOwners =
             (liveScheduleCursor parse parentUsed pre post input_eq alpha
               (beta ++ .index idx :: tail)).indexOwners := by
-          simp [plainScheduleCursor, liveScheduleCursor, innerAlpha, selected,
+          simp [innerAlpha, selected,
             ScheduleCursor.indexOwners, ScheduleCursor.word,
             ScheduleAtom.indexOwner?, List.filterMap_append, List.filterMap_cons,
-            List.filterMap_nil, List.append_assoc]
+            List.append_assoc]
         have htasks :
             (plainScheduleCursor continuation.rest hunused pre post input_eq
               innerAlpha (.close idx.owner) tail).taskOwners.Perm
@@ -546,7 +546,7 @@ public theorem protectedScheduleRun_atomicPop
                 (liveScheduleCursor parse parentUsed pre post input_eq alpha
                   (beta ++ .index idx :: tail)).left.filterMap
                     ScheduleAtom.indexOwner?) := by
-          simp [plainScheduleCursor, liveScheduleCursor, innerAlpha, selected,
+          simp [innerAlpha, selected,
             hindex.filterMap_indexOwner_eq_nil, ScheduleAtom.indexOwner?,
             List.filterMap_append, List.filterMap_cons, List.filterMap_nil]
         have hprefixLedger : PrefixFrameLedger
@@ -902,10 +902,10 @@ public theorem protectedScheduleRun_atomicPop
                   (liveScheduleCursor parse parentUsed pre post input_eq alpha
                     (next :: gap ++ .index idx :: tail)).frameOwners := by
                 cases next <;>
-                  simp [liveScheduleCursor, selected,
+                  simp [selected,
                     ScheduleCursor.frameOwners, ScheduleCursor.word,
                     ScheduleAtom.closeOwner?, List.filterMap_append,
-                    List.filterMap_cons, List.filterMap_nil, List.append_assoc]
+                    List.filterMap_cons, List.append_assoc]
               intro hmem
               exact hframeFresh (heq ▸ hmem)
             have hendOwned : idx.owner ∈
@@ -1004,10 +1004,10 @@ public theorem protectedScheduleRun_atomicPop
               innerAlpha (.close idx.owner :: tail)).indexOwners =
             (liveScheduleCursor parse parentUsed pre post input_eq alpha
               (beta ++ .index idx :: tail)).indexOwners := by
-          simp [liveScheduleCursor, innerAlpha, selected,
+          simp [innerAlpha, selected,
             ScheduleCursor.indexOwners, ScheduleCursor.word,
             ScheduleAtom.indexOwner?, List.filterMap_append, List.filterMap_cons,
-            List.filterMap_nil, List.append_assoc]
+            List.append_assoc]
         have htasks :
             (liveScheduleCursor continuation.rest residualUsed pre post input_eq
               innerAlpha (.close idx.owner :: tail)).taskOwners.Perm
@@ -1063,7 +1063,7 @@ public theorem protectedScheduleRun_atomicPop
                 (liveScheduleCursor parse parentUsed pre post input_eq alpha
                   (beta ++ .index idx :: tail)).left.filterMap
                     ScheduleAtom.indexOwner?) := by
-          simp [liveScheduleCursor, innerAlpha, selected,
+          simp [innerAlpha, selected,
             hindex.filterMap_indexOwner_eq_nil, ScheduleAtom.indexOwner?,
             List.filterMap_append, List.filterMap_cons, List.filterMap_nil]
         have hprefixLedger : PrefixFrameLedger
@@ -1461,10 +1461,10 @@ public theorem protectedScheduleRun_atomicPop
                   (liveScheduleCursor parse parentUsed pre post input_eq alpha
                     (next :: gap ++ .index idx :: tail)).frameOwners := by
                 cases next <;>
-                  simp [liveScheduleCursor, selected,
+                  simp [selected,
                     ScheduleCursor.frameOwners, ScheduleCursor.word,
                     ScheduleAtom.closeOwner?, List.filterMap_append,
-                    List.filterMap_cons, List.filterMap_nil,
+                    List.filterMap_cons,
                     List.append_assoc, htailFrames]
               intro hmem
               exact hframeFresh (heq ▸ hmem)
@@ -1550,7 +1550,7 @@ namespace ShadowStartLayout
 with a ticket outside the child shadow window.  In the protected no-depth-one branch the
 second alternative parks the old protected head, while the new overlay head uses the
 transient ticket. -/
-private def pushFreshAlignHead
+private theorem pushFreshAlignHead
     {g : IndexedGrammar T} [Fintype g.nt] {input : List T}
     {A B : g.nt} {f : g.flag} {stack : List g.flag} {w : List T}
     {r : IRule T g.nt g.flag}
@@ -2046,10 +2046,10 @@ public theorem protectedScheduleRun_pushFresh
       List.filterMap_cons, List.filterMap_nil]
     rw [htaskOwner]
   have hframesEq : childCursor.frameOwners = startCursor.frameOwners := by
-    simp [childCursor, startCursor, liveScheduleCursor,
+    simp [childCursor, startCursor,
       ScheduleCursor.frameOwners, ScheduleCursor.word,
       ScheduleAtom.closeOwner?, List.filterMap_append,
-      List.filterMap_cons, List.filterMap_nil]
+      List.filterMap_cons]
   have childTicketFramesEq : childTickets.semanticCursor.frameOwners =
       startTickets.semanticCursor.frameOwners := by
     rw [childTickets.semanticCursor_frameOwners,

@@ -358,16 +358,16 @@ public theorem overlayScheduleRun_atomicPop
               (.index head :: word)).indexOwners.Perm
               (head.owner ::
                 (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).indexOwners) := by
-          simp [liveScheduleCursor, ScheduleCursor.indexOwners,
+          simp [ScheduleCursor.indexOwners,
             ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_cons,
-            List.filterMap_nil, List.filterMap_append]
+            List.filterMap_append]
         have htasks :
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).taskOwners =
               (liveScheduleCursor parse parentUsed pre post input_eq alpha
                 (.index head :: word)).taskOwners := by
-          simp [liveScheduleCursor, ScheduleCursor.taskOwners,
+          simp [ScheduleCursor.taskOwners,
             ScheduleCursor.word, ScheduleAtom.taskOwner?, residualTask, parentTask,
-            hownerEq (.plain hunused), List.filterMap_cons, List.filterMap_nil,
+            hownerEq (.plain hunused), List.filterMap_cons,
             List.filterMap_append]
         have hrightLedger :
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).right.filterMap
@@ -379,9 +379,8 @@ public theorem overlayScheduleRun_atomicPop
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).frameOwners =
               (liveScheduleCursor parse parentUsed pre post input_eq alpha
                 (.index head :: word)).frameOwners := by
-          simp [liveScheduleCursor, ScheduleCursor.frameOwners, ScheduleCursor.word,
-            ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons,
-            List.filterMap_nil]
+          simp [ScheduleCursor.frameOwners, ScheduleCursor.word,
+            ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons]
         have hsemanticFrames : EventOwnedFrames continuation.rest
             (resources'.window.transport hproductive)
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).frameOwners := by
@@ -641,16 +640,16 @@ public theorem overlayScheduleRun_atomicPop
               (.index head :: word)).indexOwners.Perm
               (head.owner ::
                 (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).indexOwners) := by
-          simp [liveScheduleCursor, ScheduleCursor.indexOwners,
+          simp [ScheduleCursor.indexOwners,
             ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_cons,
-            List.filterMap_nil, List.filterMap_append]
+            List.filterMap_append]
         have htasks :
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).taskOwners =
               (liveScheduleCursor parse parentUsed pre post input_eq alpha
                 (.index head :: word)).taskOwners := by
-          simp [liveScheduleCursor, ScheduleCursor.taskOwners,
+          simp [ScheduleCursor.taskOwners,
             ScheduleCursor.word, ScheduleAtom.taskOwner?, residualTask, parentTask,
-            hownerEq (.live residualUsed), List.filterMap_cons, List.filterMap_nil,
+            hownerEq (.live residualUsed), List.filterMap_cons,
             List.filterMap_append]
         have hrightLedger :
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).right.filterMap
@@ -662,9 +661,8 @@ public theorem overlayScheduleRun_atomicPop
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).frameOwners =
               (liveScheduleCursor parse parentUsed pre post input_eq alpha
                 (.index head :: word)).frameOwners := by
-          simp [liveScheduleCursor, ScheduleCursor.frameOwners, ScheduleCursor.word,
-            ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons,
-            List.filterMap_nil]
+          simp [ScheduleCursor.frameOwners, ScheduleCursor.word,
+            ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons]
         have hsemanticFrames : EventOwnedFrames continuation.rest
             (resources'.window.transport hproductive)
             (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) word).frameOwners := by
@@ -1308,16 +1306,16 @@ public theorem overlayScheduleRun_atomicPop
             (.index head :: lowerWord)).indexOwners.Perm
             (head.owner ::
               (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).indexOwners) := by
-        simp [liveScheduleCursor, ScheduleCursor.indexOwners,
+        simp [ScheduleCursor.indexOwners,
           ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_cons,
-          List.filterMap_nil, List.filterMap_append]
+          List.filterMap_append]
       have htasks :
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).taskOwners =
             (liveScheduleCursor parse parentUsed pre post input_eq alpha
               (.index head :: lowerWord)).taskOwners := by
-        simp [liveScheduleCursor, ScheduleCursor.taskOwners,
+        simp [ScheduleCursor.taskOwners,
           ScheduleCursor.word, ScheduleAtom.taskOwner?, residualTask, parentTask,
-          hownerEq (.live residualUsed), List.filterMap_cons, List.filterMap_nil,
+          hownerEq (.live residualUsed), List.filterMap_cons,
           List.filterMap_append]
       have hrightLedger :
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).right.filterMap
@@ -1329,9 +1327,8 @@ public theorem overlayScheduleRun_atomicPop
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).frameOwners =
             (liveScheduleCursor parse parentUsed pre post input_eq alpha
               (.index head :: lowerWord)).frameOwners := by
-        simp [liveScheduleCursor, ScheduleCursor.frameOwners, ScheduleCursor.word,
-          ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons,
-          List.filterMap_nil]
+        simp [ScheduleCursor.frameOwners, ScheduleCursor.word,
+          ScheduleAtom.closeOwner?, List.filterMap_append, List.filterMap_cons]
       have hsemanticFrames : EventOwnedFrames continuation.rest
           (startResources.window.transport hproductive)
           (ScheduleCursor.mk (alpha ++ [.dollar]) (.task residualTask) lowerWord).frameOwners := by
@@ -1544,7 +1541,7 @@ public theorem overlayScheduleRun_atomicPop
         rw [residualResources.charged_eq_indices]
         simp [lowerWord, lowerOverlay, ScheduleCursor.indexOwners,
           ScheduleCursor.word, ScheduleAtom.indexOwner?, List.filterMap_cons,
-          List.filterMap_nil, List.filterMap_append]
+          List.filterMap_append]
         omega
       have hallRest : ∀ k < lowerFlags.length,
           continuation.rest.ConsumesAt k := by

@@ -32,7 +32,7 @@ variable {T : Type}
 
 /-- `g₀` with a fresh start symbol `none`, plus rules `none → ε` and `none → S₀`,
 the original rules lifted along `some`. -/
-@[expose, reducible]
+@[reducible]
 def addEmpty_grammar (g₀ : grammar T) : grammar T :=
   grammar.mk (Option g₀.nt) none (
     ⟨[], none, [], []⟩ ::
@@ -40,7 +40,7 @@ def addEmpty_grammar (g₀ : grammar T) : grammar T :=
     List.map (lift_rule_ some) g₀.rules)
 
 /-- `g₀` lifts into `addEmpty_grammar g₀` along `some`, with `id` as the (total) sink. -/
-@[expose, reducible]
+@[reducible]
 def lg (g₀ : grammar T) : lifted_grammar_ T where
   g₀ := g₀
   g := addEmpty_grammar g₀
@@ -85,7 +85,7 @@ theorem addEmpty_context_sensitive (g₀ : grammar T) (h : grammar_noncontractin
       intro hmem
       rw [List.mem_map] at hmem
       obtain ⟨s, _, hs⟩ := hmem
-      cases s <;> simp [lift_symbol_, addEmpty_grammar] at hs
+      cases s <;> simp [lift_symbol_] at hs
 
 /-! ### Language equality -/
 

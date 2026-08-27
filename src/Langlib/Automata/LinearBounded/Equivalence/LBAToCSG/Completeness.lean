@@ -38,7 +38,6 @@ variable {T Γ Λ : Type} {n : ℕ}
 position, recording the boundary flags (`i = 0`, `i = n`), whether the head — and its
 state — sits at that cell, the current tape symbol, and the frozen original terminal
 `worig i`. -/
-@[expose]
 def encode (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n) :
     List (symbol T (MyhillNT T Γ Λ)) :=
   List.ofFn fun i => cellSym (decide (i.val = 0)) (decide (i.val = n))
@@ -74,11 +73,11 @@ theorem encode_set_head (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n) (q'
     · rw [List.getElem_set, if_pos hi, encode_getElem worig _ i hin]
       subst hi
       have hih : (⟨cfg.tape.head.val, hin⟩ : Fin (n + 1)) = cfg.tape.head := Fin.ext rfl
-      simp [hih, DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, Function.update_self]
+      simp [hih, Function.update_self]
     · rw [List.getElem_set, if_neg hi, encode_getElem worig cfg i hin,
         encode_getElem worig _ i hin]
       have hih : (⟨i, hin⟩ : Fin (n + 1)) ≠ cfg.tape.head := fun hc => hi (by rw [← hc])
-      simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead,
+      simp [
         Function.update_of_ne hih, if_neg hih]
 
 /-- **Run induction.** If a single LBA step is mirrored by a context-sensitive derivation of
@@ -290,7 +289,7 @@ theorem auxCells_split (embed : T → Γ) (tl : List T) (h : tl ≠ []) :
       | nil => simp [auxCells]
       | cons b rest' =>
           rw [auxCells_cons embed a (b :: rest') (by simp), ih (by simp)]
-          simp [List.dropLast_cons₂, List.getLast_cons]
+          simp [List.getLast_cons]
 
 /-- The full initial sentential form: the head cell (`lb = true`, state `M.initial`) at
 position 0, followed by `auxCells` for the rest of the input. -/
@@ -449,13 +448,13 @@ omit [Fintype Γ] [DecidableEq Γ] in
 /-- An interior `right` move increments the head position. -/
 theorem moveHead_right_head_lt (t : DLBA.BoundedTape Γ n) (h : t.head.val < n) :
     (t.moveHead DLBA.Dir.right).head.val = t.head.val + 1 := by
-  simp [DLBA.BoundedTape.moveHead, h]
+  simp [h]
 
 omit [Fintype Γ] [DecidableEq Γ] in
 /-- An interior `left` move decrements the head position. -/
 theorem moveHead_left_head_pos (t : DLBA.BoundedTape Γ n) (h : 0 < t.head.val) :
     (t.moveHead DLBA.Dir.left).head.val = t.head.val - 1 := by
-  simp [DLBA.BoundedTape.moveHead, h]
+  simp [h]
 
 omit [Fintype T] [Fintype Λ] [DecidableEq T] [DecidableEq Λ] in
 omit [Fintype Γ] [DecidableEq Γ] in
@@ -473,7 +472,7 @@ theorem encode_right_interior (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ 
   have hheadeq : ((cfg.tape.write a').moveHead DLBA.Dir.right).head
       = (⟨cfg.tape.head.val + 1, by omega⟩ : Fin (n + 1)) := by
     apply Fin.ext
-    simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hlt]
+    simp [hlt]
   have hcont : ((cfg.tape.write a').moveHead DLBA.Dir.right).contents
       = Function.update cfg.tape.contents cfg.tape.head a' := by
     rw [moveHead_contents]
@@ -507,7 +506,7 @@ theorem encode_left_interior (worig : Fin (n + 1) → T) (cfg : DLBA.Cfg Γ Λ n
   have hheadeq : ((cfg.tape.write a').moveHead DLBA.Dir.left).head
       = (⟨m, by omega⟩ : Fin (n + 1)) := by
     apply Fin.ext
-    simp [DLBA.BoundedTape.write, DLBA.BoundedTape.moveHead, hm]
+    simp [hm]
   have hcont : ((cfg.tape.write a').moveHead DLBA.Dir.left).contents
       = Function.update cfg.tape.contents cfg.tape.head a' := by
     rw [moveHead_contents]
@@ -789,7 +788,7 @@ theorem step_sim_right_boundary (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (wori
     CS_derives (myhillGrammar M embed) (encode worig cfg)
       (encode worig ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.right⟩) := by
   have hb' : (cfg.tape.write a').head.val = n := by
-    simp only [DLBA.BoundedTape.write]; exact hb
+    simp only; exact hb
   have hrs : (cfg.tape.write a').moveHead DLBA.Dir.right
       = (cfg.tape.write a').moveHead DLBA.Dir.stay := by
     rw [moveHead_right_at_right _ hb', moveHead_stay]
@@ -822,7 +821,7 @@ theorem step_sim_left_boundary (M : LBA.Machine Γ Λ) (embed : T ↪ Γ) (worig
     CS_derives (myhillGrammar M embed) (encode worig cfg)
       (encode worig ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.left⟩) := by
   have hb' : (cfg.tape.write a').head.val = 0 := by
-    simp only [DLBA.BoundedTape.write]; exact hb
+    simp only; exact hb
   have hrs : (cfg.tape.write a').moveHead DLBA.Dir.left
       = (cfg.tape.write a').moveHead DLBA.Dir.stay := by
     rw [moveHead_left_at_left _ hb', moveHead_stay]

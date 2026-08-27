@@ -81,7 +81,6 @@ instance : Fintype DUFSState where
   complete := by intro x; cases x <;> simp
 
 /-- The dropUntilFirstSep TM0 machine. -/
-@[expose]
 public noncomputable def dufsM {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (sep : Γ) : @TM0.Machine Γ DUFSState ⟨.erase⟩ := fun q a =>
   match q with

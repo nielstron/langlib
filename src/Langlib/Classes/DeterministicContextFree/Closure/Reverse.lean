@@ -34,11 +34,13 @@ variable {T : Type} [Fintype T]
 private def choiceMarkers : Language (Bool ⊕ T) :=
   ({[Sum.inl false]} : Language (Bool ⊕ T)) + {[Sum.inl true]}
 
+omit [Fintype T] in
 private theorem choiceMarkers_isRegular :
     (choiceMarkers (T := T)).IsRegular :=
   (singletonWordLanguage_isRegular [Sum.inl false]).add'
     (singletonWordLanguage_isRegular [Sum.inl true])
 
+omit [Fintype T] in
 /-- Reversing a marked choice and removing its final marker leaves the union of
 the two reversed, tagged payload languages. -/
 private theorem reverse_markedChoice_quotient (L₁ L₂ : Language T) :
@@ -99,6 +101,7 @@ private theorem reverse_markedChoice_quotient (L₁ L₂ : Language T) :
         simp only [markedChoice]
         exact Or.inr ⟨w, by simp [hmap], hw⟩
 
+omit [Fintype T] in
 /-- Inverse-tagging the union of two tagged languages recovers their union. -/
 private theorem inverse_tagged_union (L₁ L₂ : Language T) :
     ({w : List T |

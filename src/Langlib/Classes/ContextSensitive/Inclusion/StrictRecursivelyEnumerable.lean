@@ -44,7 +44,7 @@ computability instances internally and is best possible: strictness fails for th
 public theorem CS_strict_subclass_RE_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :
     (CS : Set (Language T)) ⊂ (RE : Set (Language T)) := by
-  letI : DecidableEq T := Classical.decEq T
+  let : DecidableEq T := Classical.decEq T
   have hCSRecursive :
       (CS : Set (Language T)) ⊂ (Recursive : Set (Language T)) :=
     CS_strict_subclass_Recursive_of_card hT

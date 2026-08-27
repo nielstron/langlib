@@ -35,6 +35,7 @@ private theorem is_LBA_pos_diff_empty_of_is_CS [DecidableEq T]
   · rintro ⟨_, hnil⟩
     exact hnil rfl
 
+omit [Fintype T] in
 /-- Complementing after deleting `ε` and then restricting back to nonempty words
 is the same as restricting the ordinary complement to nonempty words. -/
 private theorem diff_empty_complement_diff_empty (L : Language T) :

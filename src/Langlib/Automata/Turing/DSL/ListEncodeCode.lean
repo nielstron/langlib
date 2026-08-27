@@ -65,7 +65,6 @@ namespace Langlib.TMCodeListEncode
 /-! ### Code for `Nat.pair` -/
 
 /-- A `ToPartrec.Code` computing `Nat.pair` on two-element inputs. -/
-@[expose]
 public noncomputable def pairCode : Code :=
   (Code.exists_code (n := 2)
     (f := fun v => pure (Nat.pair v[0]! v[1]!))
@@ -99,7 +98,6 @@ public theorem pairCode_eval (a b : ℕ) :
 /-! ### Code for the right-fold list encoder -/
 
 /-- Swap the first two elements of a list. -/
-@[expose]
 public noncomputable def swap12 : Code :=
   Code.cons (Code.comp Code.head Code.tail)
     (Code.cons Code.head (Code.comp Code.tail Code.tail))
@@ -110,7 +108,6 @@ public theorem swap12_eval (a b : ℕ) (rest : List ℕ) :
   simp [Code.head]
 
 /-- Extract the first two elements of a list. -/
-@[expose]
 public noncomputable def extract2 : Code :=
   Code.cons Code.head (Code.comp Code.head Code.tail)
 
@@ -125,7 +122,6 @@ private theorem bind_eval_some (c : Code) (v : List ℕ) :
   exact Part.bind_some v (show List ℕ → Part (List ℕ) from c.eval)
 
 /-- One fold step: process an element and update the accumulator. -/
-@[expose]
 public noncomputable def foldStep : Code :=
   Code.cons
     (Code.comp Code.succ Code.zero')
@@ -144,7 +140,6 @@ public theorem foldStep_eval (e acc : ℕ) (rest : List ℕ) :
   simp
 
 /-- Done case: return `[0, acc]`, so `Code.fix` terminates with `[acc]`. -/
-@[expose]
 public noncomputable def foldDone : Code :=
   Code.cons Code.zero' Code.head
 
@@ -155,17 +150,14 @@ public theorem foldDone_eval (acc : ℕ) (rest : List ℕ) :
 
 /-- Fold body. It swaps the accumulator and next shifted input element before
 case-splitting on the shifted element. -/
-@[expose]
 public noncomputable def foldBody : Code :=
   Code.comp (Code.case foldDone foldStep) swap12
 
 /-- The Code computing the list-encoding fold on shifted, reversed input. -/
-@[expose]
 public noncomputable def listEncodeCode : Code :=
   Code.fix foldBody
 
 /-- Helper fold function matching Lean's `Encodable` list encoding. -/
-@[expose]
 public def foldAcc : List ℕ → ℕ → ℕ
   | [], acc => acc
   | e :: es, acc => foldAcc es (Nat.succ (Nat.pair e acc))
@@ -245,7 +237,6 @@ public theorem listEncodeCode_eval (es : List ℕ) :
 /-! ### Composing user code with the list encoder -/
 
 /-- Precompose a user Code with list encoding. -/
-@[expose]
 public noncomputable def composedCode (c : Code) : Code :=
   Code.comp c listEncodeCode
 
@@ -268,7 +259,6 @@ public theorem composedCode_eval (c : Code) (w : List ℕ) :
     _ = c.eval [Encodable.encode w] := bind_eval_some c _
 
 /-- The finite-symbol-friendly input expected by `composedCode`. -/
-@[expose]
 public def shiftedEncoding {T : Type} [Encodable T] (w : List T) : List ℕ :=
   0 :: (w.map Encodable.encode).reverse.map (· + 1) ++ [0]
 

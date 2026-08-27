@@ -276,6 +276,7 @@ public theorem ConcreteOperationalSpine.operationalSpine (M : DPDA Q T S)
         (Relation.ReflTransGen.refl)
         (Relation.ReflTransGen.refl)
 
+omit [Fintype T] in
 private theorem terminal_words_eq_of_derives (G : CF_grammar T)
     {u v : List T}
     (h : G.DerivesRightmost (u.map symbol.terminal)
@@ -285,6 +286,7 @@ private theorem terminal_words_eq_of_derives (G : CF_grammar T)
   exact (List.map_injective_iff.mpr fun _ _ hsymbol =>
     symbol.terminal.inj hsymbol) heq.symm
 
+omit [Fintype T] in
 private theorem decompose_one_nonterminal
     {N : Type} {A B : N}
     {left right : List (symbol T N)}
@@ -301,6 +303,7 @@ private theorem decompose_one_nonterminal
         simpa using h.2.symm
       simp at hbad
 
+omit [Fintype T] in
 private theorem decompose_terminal_nonterminal
     {N : Type} {a : T} {A B : N}
     {left right : List (symbol T N)}
@@ -318,6 +321,7 @@ private theorem decompose_terminal_nonterminal
       subst left
       exact ⟨rfl, hA, hright⟩
 
+omit [Fintype T] in
 private theorem decompose_two_nonterminals
     {N : Type} {A B C : N}
     {left right : List (symbol T N)}

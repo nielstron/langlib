@@ -57,7 +57,6 @@ variable {Γ : Type*} {Λ : Type*} [Inhabited Λ] [Inhabited Γ]
 /-- Restrict a TM0 machine to states in a finite support set `S`.
 Since the machine is supported by `S`, all transitions stay within `S`,
 so the restriction doesn't change behavior. -/
-@[expose]
 public noncomputable def restrict (M : Machine Γ Λ) (S : Finset Λ)
     (hS : Supports M ↑S) :
     @Machine Γ { q : Λ // q ∈ S } ⟨⟨default, hS.1⟩⟩ :=

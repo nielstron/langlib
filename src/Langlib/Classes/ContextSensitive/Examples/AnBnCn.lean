@@ -467,11 +467,11 @@ private lemma grammar_inv_step
   simp [grammar_anbncn] at hr
   rcases hr with rfl | rfl | rfl | rfl | rfl <;>
     (try { show grammar_inv _; convert grammar_inv_step_base u v (by convert hinv using 2 ; simp)
-           using 2 <;> simp; done }) <;>
+           using 2 ; simp; done }) <;>
     (try { show grammar_inv _; convert grammar_inv_step_expand u v (by convert hinv using 2 ; simp)
-           using 2 <;> simp; done }) <;>
+           using 2 ; simp; done }) <;>
     (try { show grammar_inv _; convert grammar_inv_step_swap u v (by convert hinv using 2 ; simp)
-           using 2 <;> simp; done }) <;>
+           using 2 ; simp; done }) <;>
     (try { show grammar_inv _; convert grammar_inv_step_conv_a u v (by convert hinv using 2 ; simp)
            using 2 <;> simp; done }) ;
     (try { show grammar_inv _; convert grammar_inv_step_conv_b u v (by convert hinv using 2 ; simp)

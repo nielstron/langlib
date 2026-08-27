@@ -25,7 +25,6 @@ variable {T : Type}
 
 /-- A language is recursive *by the tape-acceptance convention* if some always-halting
 TM0 leaves a designated `acceptSym` under the head exactly on the words of `L`. -/
-@[expose]
 public def is_Recursive_byTape (L : Language T) : Prop :=
   ∃ (Γ : Type) (_ : Fintype Γ) (_ : DecidableEq Γ)
     (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)

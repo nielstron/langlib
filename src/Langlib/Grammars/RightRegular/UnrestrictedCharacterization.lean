@@ -77,7 +77,7 @@ variable {T : Type}
 /-! ## Forward direction: RG_grammar → right-regular unrestricted grammar -/
 
 /-- Convert an `RG_rule` into a `grule` (unrestricted grammar rule). -/
-@[expose, reducible]
+@[reducible]
 public def grule_of_RG_rule {N : Type} (r : RG_rule T N) : grule T N where
   input_L := []
   input_N := r.lhs
@@ -85,7 +85,7 @@ public def grule_of_RG_rule {N : Type} (r : RG_rule T N) : grule T N where
   output_string := r.output
 
 /-- Build an unrestricted grammar from a right-regular grammar. -/
-@[expose, reducible]
+@[reducible]
 public def grammar_of_RG (g : RG_grammar T) : grammar T where
   nt := g.nt
   initial := g.initial
@@ -140,8 +140,7 @@ public lemma RG_transforms_of_grammar_of_RG {g : RG_grammar T}
   clear hr
   subst r
   refine ⟨rr, hrr, u, v, ?_, ?_⟩
-  · change w₁ = u ++ [symbol.nonterminal rr.lhs] ++ v
-    calc
+  · calc
       w₁ = u ++ [] ++ [symbol.nonterminal rr.lhs] ++ [] ++ v := h₁
       _ = u ++ [symbol.nonterminal rr.lhs] ++ v := by simp
   · exact h₂
@@ -183,7 +182,6 @@ public theorem is_RG_via_rg_implies_is_RG {L : Language T} (h : is_RG_via_rg L) 
 
 /-- Convert an unrestricted grammar rule (from a right-regular grammar) to an `RG_rule`.
     Uses the right-regular output property to determine the rule form. -/
-@[expose]
 public noncomputable def RG_rule_of_grule {N : Type} (r : grule T N)
     (_hr : right_regular_output r.output_string) : RG_rule T N :=
   if h₁ : ∃ a : T, ∃ B : N, r.output_string = [symbol.terminal a, symbol.nonterminal B] then
@@ -206,7 +204,7 @@ public lemma RG_rule_of_grule_output {N : Type} (r : grule T N)
       cases hr <;> aesop
 
 /-- Construct an `RG_grammar` from a right-regular unrestricted grammar. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def RG_of_grammar (g : grammar T) (hg : grammar_right_regular g) :
     RG_grammar T where
   nt := g.nt

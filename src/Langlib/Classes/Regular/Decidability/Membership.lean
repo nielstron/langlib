@@ -84,7 +84,7 @@ theorem dfa_membership_computablePred [Primcodable α] [Primcodable σ]
   exact ⟨inferInstance, h_dec.comp h_eval_comp⟩
 
 /-- Membership in a regular language is a computable predicate. -/
-noncomputable def regular_membership_computablePred
+theorem regular_membership_computablePred
     [Primcodable α] [Finite α]
     (L : Language α) (hL : L.IsRegular) :
     ComputablePred (· ∈ L) := by
@@ -93,7 +93,7 @@ noncomputable def regular_membership_computablePred
   obtain ⟨hfin, hσ'⟩ := hσ
   obtain ⟨M, hM⟩ := hσ'
   rw [← hM]
-  letI : Primcodable σ :=
+  let : Primcodable σ :=
     Primcodable.ofEquiv (Fin (Fintype.card σ)) (Fintype.equivFin σ)
   exact dfa_membership_computablePred M
 

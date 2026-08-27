@@ -27,13 +27,11 @@ variable {T : Type}
 
 /-- Append a fresh `none` endmarker after embedding every original terminal
 with `some`. -/
-@[expose]
 public def endmarked (L : Language T) : Language (Option T) :=
   {v | ∃ w ∈ L, v = w.map some ++ [none]}
 
 /-- The regular shape language consisting of any number of embedded terminals
 followed by exactly one endmarker. -/
-@[expose]
 public def endmarkedShape : Language (Option T) :=
   endmarked (⊤ : Language T)
 

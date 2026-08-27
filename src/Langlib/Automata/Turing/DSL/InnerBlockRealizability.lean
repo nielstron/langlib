@@ -151,7 +151,6 @@ theorem tm0RealizesInnerBlockSep_of_anySuffix
 This is the shape needed by invariant while-loop bodies: the whole active
 block is default-delimited, and an internal separator `sep₂` splits the
 preserved prefix from the inner block transformed by `f`. -/
-@[expose]
 public def TM0RealizesInnerBlockDefaultSep (Γ : Type) [Inhabited Γ] (sep₂ : Γ)
     (f : List Γ → List Γ) : Prop :=
   ∃ (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -237,7 +236,6 @@ instance : Inhabited BoundaryReplaceSt := ⟨.scan⟩
 
 /-- Scan to the first occurrence of `target`, replace it by `repl`, then rewind
 to the left edge of the active block. -/
-@[expose]
 public noncomputable def boundaryReplaceMachine {Γ : Type} [Inhabited Γ] [DecidableEq Γ]
     (target repl : Γ) : TM0.Machine Γ BoundaryReplaceSt :=
   fun q a =>
@@ -650,9 +648,9 @@ theorem tm0RealizesBlockSep_toInner_nondefault
   obtain ⟨Λ_rev, h_rev_inh, h_rev_fin, M_rev, hM_rev⟩ := hrev₁
   obtain ⟨Λ_rfr, h_rfr_inh, h_rfr_fin, M_rfr, hM_rfr⟩ := hrfr
   -- Build the composed machine with explicit instance passing
-  letI h12Inhabited : Inhabited (Λ_rev ⊕ Λ_rfr) := ⟨Sum.inl default⟩
+  let h12Inhabited : Inhabited (Λ_rev ⊕ Λ_rfr) := ⟨Sum.inl default⟩
   let M12 := @TM0Seq.compose Γ Λ_rev h_rev_inh Λ_rfr h_rfr_inh M_rev M_rfr
-  letI h123Inhabited : Inhabited ((Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev) :=
+  let h123Inhabited : Inhabited ((Λ_rev ⊕ Λ_rfr) ⊕ Λ_rev) :=
     ⟨Sum.inl default⟩
   let M123 := @TM0Seq.compose Γ (Λ_rev ⊕ Λ_rfr) ⟨Sum.inl (@default _ h_rev_inh)⟩
     Λ_rev h_rev_inh M12 M_rev

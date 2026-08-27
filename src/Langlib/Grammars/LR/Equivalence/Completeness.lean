@@ -24,7 +24,6 @@ variable {T : Type}
 
 /-- Semantic item validity with an exact count of the rightmost derivation
 steps reaching the item's prehandle. -/
-@[expose]
 public def ValidIn (G : CF_grammar T) (k n : ℕ)
     (gamma : List (symbol T G.nt)) (i : Item G k) : Prop :=
   ∃ (p : List (symbol T G.nt)) (s : List T),

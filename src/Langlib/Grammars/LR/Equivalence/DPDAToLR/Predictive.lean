@@ -25,8 +25,8 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
-public abbrev EState (M : DPDA Q T S) := (Q × Bool) ⊕ Fin 2
-public abbrev EStack (M : DPDA Q T S) := Option S
+public abbrev EState (M : DPDA Q T S) := let _ := M; (Q × Bool) ⊕ Fin 2
+public abbrev EStack (M : DPDA Q T S) := let _ := M; Option S
 
 /-- A transition signature records whether the move consumes the leading input
 symbol, together with its next control state and replacement stack. -/
@@ -46,7 +46,6 @@ public inductive HasFirstMove (M : DPDA Q T S) (q : EState M) (Z : EStack M) :
       HasFirstMove M q Z input ⟨false, p, alpha⟩
 
 /-- Remaining input after a move with the given signature. -/
-@[expose]
 public def inputAfter (M : DPDA Q T S) (sig : FirstMoveSignature M)
     (input : List T) : List T :=
   if sig.consumes then input.drop 1 else input
@@ -54,7 +53,6 @@ public def inputAfter (M : DPDA Q T S) (sig : FirstMoveSignature M)
 /-- An enabled first move is productive for a fixed characteristic-nonterminal
 target when its successor can net-pop the replacement stack and finish in that
 target state. -/
-@[expose]
 public def ProductiveFirstMove (M : DPDA Q T S) (q : EState M) (Z : EStack M)
     (input : List T) (target : EState M) (sig : FirstMoveSignature M) : Prop :=
   HasFirstMove M q Z input sig ∧

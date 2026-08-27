@@ -68,12 +68,10 @@ derivation followed by a right derivation, hence the generated language is
 
 
 -- new nonterminal type
-@[expose]
 public abbrev nnn (T N₁ N₂ : Type) : Type :=
 Option (N₁ ⊕ N₂) ⊕ (T ⊕ T)
 
 -- new symbol type
-@[expose]
 public abbrev nst (T N₁ N₂ : Type) : Type :=
 symbol T (nnn T N₁ N₂)
 
@@ -95,17 +93,14 @@ private lemma list_filter_map_eq_of_map_eq_map_some {α β : Type} {f : α → O
 
 section the_construction
 
-@[expose]
 public def wrap_symbol₁ {N₁ : Type} (N₂ : Type) : symbol T N₁ → nst T N₁ N₂
 | (symbol.terminal t)    => symbol.nonterminal (Sum.inr (Sum.inl t))
 | (symbol.nonterminal n) => symbol.nonterminal (Sum.inl (some (Sum.inl n)))
 
-@[expose]
 public def wrap_symbol₂ {N₂ : Type} (N₁ : Type) : symbol T N₂ → nst T N₁ N₂
 | (symbol.terminal t)    => symbol.nonterminal (Sum.inr (Sum.inr t))
 | (symbol.nonterminal n) => symbol.nonterminal (Sum.inl (some (Sum.inr n)))
 
-@[expose]
 public def wrap_grule₁ {N₁ : Type} (N₂ : Type) (r : grule T N₁) : grule T (nnn T N₁ N₂) :=
 grule.mk
   (List.map (wrap_symbol₁ N₂) r.input_L)
@@ -113,7 +108,6 @@ grule.mk
   (List.map (wrap_symbol₁ N₂) r.input_R)
   (List.map (wrap_symbol₁ N₂) r.output_string)
 
-@[expose]
 public def wrap_grule₂ {N₂ : Type} (N₁ : Type) (r : grule T N₂) : grule T (nnn T N₁ N₂) :=
 grule.mk
   (List.map (wrap_symbol₂ N₁) r.input_L)
@@ -121,16 +115,13 @@ grule.mk
   (List.map (wrap_symbol₂ N₁) r.input_R)
   (List.map (wrap_symbol₂ N₁) r.output_string)
 
-@[expose]
 public def rules_for_terminals₁ (N₂ : Type) (g : grammar T) : List (grule T (nnn T g.nt N₂)) :=
 List.map (fun t => grule.mk [] (Sum.inr (Sum.inl t)) [] [symbol.terminal t]) (all_used_terminals g)
 
-@[expose]
 public def rules_for_terminals₂ (N₁ : Type) (g : grammar T) : List (grule T (nnn T N₁ g.nt)) :=
 List.map (fun t => grule.mk [] (Sum.inr (Sum.inr t)) [] [symbol.terminal t]) (all_used_terminals g)
 
 -- the grammar for concatenation of `g₁` and `g₂` languages
-@[expose]
 public def big_grammar (g₁ g₂ : grammar T) : grammar T :=
 grammar.mk (nnn T g₁.nt g₂.nt) (Sum.inl none) (
   (grule.mk [] (Sum.inl none) [] [
@@ -309,7 +300,6 @@ section hard_direction
 
 section correspondence_for_terminals
 
-@[expose]
 public def corresponding_symbols {N₁ N₂ : Type} : nst T N₁ N₂ → nst T N₁ N₂ → Prop
 | symbol.terminal t,                               symbol.terminal t'                               => t = t'
 | symbol.nonterminal (Sum.inr (Sum.inl a)),        symbol.nonterminal (Sum.inr (Sum.inl a'))        => a = a'
@@ -349,7 +339,6 @@ public lemma corresponding_symbols_never₂ {N₁ N₂ : Type} {s₁ : symbol T 
 by
   cases s₁ <;> cases s₂ <;> simp [wrap_symbol₁, wrap_symbol₂, corresponding_symbols]
 
-@[expose]
 public def corresponding_strings {N₁ N₂ : Type} : List (nst T N₁ N₂) → List (nst T N₁ N₂) → Prop :=
 List.Forall₂ corresponding_symbols
 
@@ -445,7 +434,6 @@ end correspondence_for_terminals
 
 section unwrapping_nst
 
-@[expose]
 public def unwrap_symbol₁ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (symbol T N₁)
 | (symbol.terminal t)                               => some (symbol.terminal t)
 | (symbol.nonterminal (Sum.inr (Sum.inl a)))        => some (symbol.terminal a)
@@ -454,7 +442,6 @@ public def unwrap_symbol₁ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (sym
 | (symbol.nonterminal (Sum.inl (some (Sum.inr _n)))) => none
 | (symbol.nonterminal (Sum.inl none))               => none
 
-@[expose]
 public def unwrap_symbol₂ {N₁ N₂ : Type} : nst T N₁ N₂ → Option (symbol T N₂)
 | (symbol.terminal t)                               => some (symbol.terminal t)
 | (symbol.nonterminal (Sum.inr (Sum.inl _a)))        => none
@@ -1026,7 +1013,7 @@ public lemma induction_step_for_terminal_rule₂
       simp_all +decide [corresponding_strings]
     unfold corresponding_symbols at *
     aesop
-  convert corresponding_strings_append hl₂.2.1 h_replace using 1 <;> aesop
+  convert corresponding_strings_append hl₂.2.1 h_replace using 1 ; aesop
 
 set_option maxHeartbeats 800000 in
 public lemma big_induction

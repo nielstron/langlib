@@ -25,7 +25,6 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- Two steps with corresponding source inputs either both preserve their
 respective inputs, or both consume the same leading terminal. -/
-@[expose]
 public def CorrespondingInputStep
     (before₁ before₂ after₁ after₂ : List T) : Prop :=
   (after₁ = before₁ ∧ after₂ = before₂) ∨

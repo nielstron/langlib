@@ -27,11 +27,11 @@ rejects the empty word. -/
 public theorem is_LBA_pos_complement {L : Language T} (hL : is_LBA_pos L) :
     is_LBA_pos (Lᶜ \ ({[]} : Set (List T))) := by
   obtain ⟨Γ, Λ, hΓ, hΛ, hdΓ, hdΛ, M, hM⟩ := hL
-  letI : Fintype Γ := hΓ
-  letI : Fintype Λ := hΛ
-  letI : DecidableEq Γ := hdΓ
-  letI : DecidableEq Λ := hdΛ
-  letI : Nonempty (LBA.RowCell T (Option (T ⊕ Γ)) Λ) :=
+  let : Fintype Γ := hΓ
+  let : Fintype Λ := hΛ
+  let : DecidableEq Γ := hdΓ
+  let : DecidableEq Λ := hdΛ
+  let : Nonempty (LBA.RowCell T (Option (T ⊕ Γ)) Λ) :=
     ⟨LBA.RowCell.cfg none false M.initial⟩
   let S := LBA.certifiedRowSystem M (fun t : T => some (Sum.inl t))
   have hcomp := CertifiedRowSystem.is_LBA_pos_complement_rowReachLanguage S

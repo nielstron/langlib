@@ -42,7 +42,6 @@ public structure grammar (T : Type) where
 variable {T : Type}
 
 /-- One step of grammatical transformation. -/
-@[expose]
 public def grammar_transforms (g : grammar T) (w₁ w₂ : List (symbol T g.nt)) : Prop :=
   ∃ r : grule T g.nt,
     r ∈ g.rules ∧
@@ -51,17 +50,16 @@ public def grammar_transforms (g : grammar T) (w₁ w₂ : List (symbol T g.nt))
         (w₂ = u ++ r.output_string ++ v)
 
 /-- Any number of steps of grammatical transformation; reflexive+transitive closure of `grammar_transforms`. -/
-@[expose, reducible]
+@[reducible]
 public def grammar_derives (g : grammar T) :
     List (symbol T g.nt) → List (symbol T g.nt) → Prop :=
   Relation.ReflTransGen (grammar_transforms g)
 
 /-- Accepts a word (a list of terminals) iff it can be derived from the initial nonterminal. -/
-@[expose, reducible]
+@[reducible]
 public def grammar_generates (g : grammar T) (w : List T) : Prop :=
   grammar_derives g [symbol.nonterminal g.initial] (List.map symbol.terminal w)
 
 /-- The set of words that can be derived from the initial nonterminal. -/
-@[expose]
 public def grammar_language (g : grammar T) : Language T :=
-  setOf (grammar_generates g)
+  Set.ofPred (grammar_generates g)

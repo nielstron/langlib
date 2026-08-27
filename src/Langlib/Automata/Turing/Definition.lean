@@ -1,7 +1,7 @@
 module
 
 public import Mathlib.Computability.Language
-public import Mathlib.Computability.PostTuringMachine
+public import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Floor.Semifield
 import Mathlib.Algebra.Order.Interval.Basic
@@ -69,7 +69,6 @@ The input word `w : List T` is written on the tape by the fixed inclusion
 `T ↪ T ⊕ Γ`, producing `w.map (fun t => some (Sum.inl t))`.  The recognizer
 may choose only the finite work alphabet and the machine, not an arbitrary
 preprocessing map on input symbols. -/
-@[expose]
 public def is_TM {T : Type} [Fintype T] (L : Language T) : Prop :=
   ∃ (Γ : Type) (_ : Fintype Γ)
     (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -77,5 +76,4 @@ public def is_TM {T : Type} [Fintype T] (L : Language T) : Prop :=
     ∀ w : List T,
       w ∈ L ↔ (Turing.TM0.eval M (w.map (fun t => some (Sum.inl t)))).Dom
 
-@[expose]
-public def TM {T : Type} [Fintype T] : Set (Language T) := setOf is_TM
+public def TM {T : Type} [Fintype T] : Set (Language T) := Set.ofPred is_TM

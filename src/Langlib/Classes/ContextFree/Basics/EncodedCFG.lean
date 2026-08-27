@@ -68,54 +68,43 @@ and `×` has `Primcodable.prod`.
 /-! ## The Encoded Grammar Type -/
 
 /-- An encoded context-free grammar over terminal alphabet `T`. -/
-@[expose]
 public def EncodedCFG (T : Type) := ℕ × ℕ × List (ℕ × List (ℕ ⊕ T))
 
 namespace EncodedCFG
 
 variable {T : Type}
 
-@[expose]
 public instance [Primcodable T] : Primcodable (EncodedCFG T) :=
   inferInstanceAs (Primcodable (ℕ × ℕ × List (ℕ × List (ℕ ⊕ T))))
 
-@[expose]
 public instance [DecidableEq T] : DecidableEq (EncodedCFG T) :=
   @instDecidableEqProd _ _ inferInstance (@instDecidableEqProd _ _ inferInstance inferInstance)
 
-@[expose]
 public def numNT (G : EncodedCFG T) : ℕ := G.1
-@[expose]
 public def initialIdx (G : EncodedCFG T) : ℕ := G.2.1
-@[expose]
 public def rawRules (G : EncodedCFG T) : List (ℕ × List (ℕ ⊕ T)) := G.2.2
-@[expose]
 public def ntCount (G : EncodedCFG T) : ℕ := G.numNT + 1
 
 public lemma ntCount_pos (G : EncodedCFG T) : 0 < G.ntCount := by
   unfold ntCount numNT; omega
 
-@[expose]
 public def toNT (G : EncodedCFG T) (k : ℕ) : Fin G.ntCount :=
   ⟨k % G.ntCount, Nat.mod_lt k G.ntCount_pos⟩
 
-@[expose]
 public def toSymbol (G : EncodedCFG T) : ℕ ⊕ T → symbol T (Fin G.ntCount)
   | .inl k => symbol.nonterminal (G.toNT k)
   | .inr t => symbol.terminal t
 
-@[expose, reducible]
+@[reducible]
 public def toCFGrammar (G : EncodedCFG T) : CF_grammar T :=
   { nt := Fin G.ntCount
     initial := G.toNT G.initialIdx
     rules := G.rawRules.map fun (lhs, rhs) =>
       (G.toNT lhs, rhs.map G.toSymbol) }
 
-@[expose]
 public instance (G : EncodedCFG T) : Fintype (G.toCFGrammar).nt :=
   inferInstanceAs (Fintype (Fin G.ntCount))
 
-@[expose]
 public instance (G : EncodedCFG T) : DecidableEq (G.toCFGrammar).nt :=
   inferInstanceAs (DecidableEq (Fin G.ntCount))
 

@@ -42,7 +42,6 @@ private theorem append_empty_middle {α : Type} (p s : List α) :
 
 /-- Every nonterminal in a pending prefix is a characteristic `single`
 nonterminal.  Terminals may occur anywhere in the prefix. -/
-@[expose]
 public def PendingPrefix (M : DPDA Q T S)
     (p : List (symbol T (Nonterminal M))) : Prop :=
   ∀ A, symbol.nonterminal A ∈ p →
@@ -180,7 +179,6 @@ private theorem active_eq_of_prehandle_eq (M : DPDA Q T S)
 
 /-- The complete shape invariant for a rightmost-reachable characteristic
 sentential form. -/
-@[expose]
 public def CharacteristicFrontier (M : DPDA Q T S)
     (v : List (symbol T (Nonterminal M))) : Prop :=
   v = [symbol.nonterminal PDA_to_CFG.N.start] ∨
@@ -259,14 +257,13 @@ private theorem CharacteristicFrontier.producesRightmost
         exact append_pair_split p (symbol.terminal a)
           (symbol.nonterminal (PDA_to_CFG.N.list q' alpha t))
           (s.map symbol.terminal)⟩
-    change PendingPrefix M (p ++ [symbol.terminal a])
     exact hp.append_terminals M [a]
   · rcases hepsilonMove with ⟨q, t, q', Z, alpha, _, rfl⟩
     rw [htarget]
     right
     right
     right
-    exact ⟨p, q', t, alpha, s, hp, by simp <;> rfl⟩
+    exact ⟨p, q', t, alpha, s, hp, by simp; rfl⟩
   · rcases hsplit with ⟨q, q', t, Z, alpha, _, rfl⟩
     rw [htarget]
     right
@@ -285,7 +282,7 @@ private theorem CharacteristicFrontier.producesRightmost
     right
     right
     exact ⟨p, (emptyStackPDA M).initial_state, t,
-      [(emptyStackPDA M).start_symbol], s, hp, by simp <;> rfl⟩
+      [(emptyStackPDA M).start_symbol], s, hp, by simp; rfl⟩
 
 /-- Every rightmost-reachable sentential form of the reduced characteristic
 grammar has the frontier shape above. -/

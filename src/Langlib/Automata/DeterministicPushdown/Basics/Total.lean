@@ -61,7 +61,6 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
        empty input from the initial configuration.
     2. **Acceptance consistency**: all reachable empty-input configurations for a
        given word `w` agree on whether the state is accepting or not. -/
-@[expose]
 public def IsTotal (M : DPDA Q T S) : Prop :=
   (∀ w : List T, ∃ q γ, @PDA.Reaches Q T S _ _ _ M.toPDA
     ⟨M.initial_state, w, [M.start_symbol]⟩ ⟨q, [], γ⟩) ∧
@@ -79,7 +78,6 @@ variable {T : Type} [Fintype T]
 /-- A language represented by a **total** DPDA: a DPDA that decides every input
     (`DPDA.IsTotal`) and accepts the language by final state.  This is the target normal
     form used by deterministic context-free complement closure. -/
-@[expose]
 public def is_DCF_total (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S) (M : DPDA Q T S),
     M.IsTotal ∧ M.acceptsByFinalState = L

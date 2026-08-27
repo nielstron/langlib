@@ -32,7 +32,6 @@ namespace AcceptByTape
 variable {Γ : Type} [Inhabited Γ] [DecidableEq Γ] {Λ : Type} [Inhabited Λ]
 
 /-- Lift a TM0 configuration to the reader's state space `Λ ⊕ Bool`. -/
-@[expose]
 public def liftCfg (c : TM0.Cfg Γ Λ) : @TM0.Cfg Γ (Λ ⊕ Bool) _ :=
   ⟨Sum.inl c.q, c.Tape⟩
 
@@ -40,7 +39,6 @@ public def liftCfg (c : TM0.Cfg Γ Λ) : @TM0.Cfg Γ (Λ ⊕ Bool) _ :=
 one that signals acceptance by its final state. When `M` would halt, the reader reads
 the current symbol and halts in state `Sum.inr b` where `b` records whether the symbol
 was `acceptSym`. -/
-@[expose]
 public def readerMachine (M : TM0.Machine Γ Λ) (acceptSym : Γ) :
     @TM0.Machine Γ (Λ ⊕ Bool) ⟨Sum.inl default⟩ :=
   fun q γ =>
@@ -52,7 +50,6 @@ public def readerMachine (M : TM0.Machine Γ Λ) (acceptSym : Γ) :
     | Sum.inr _ => none
 
 /-- The state-based acceptance predicate of the reader. -/
-@[expose]
 public def readerAccept : Λ ⊕ Bool → Bool
   | Sum.inl _ => false
   | Sum.inr b => b

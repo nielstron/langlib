@@ -50,7 +50,7 @@ public inductive Spine {T : Type} (g : grammar T) : g.nt → List T → Type
 namespace Spine
 
 /-- Soundness: a spine gives an actual derivation `B ⇒* w`. -/
-public def derives : {B : g.nt} → {w : List T} → Spine g B w →
+public theorem derives : {B : g.nt} → {w : List T} → Spine g B w →
     grammar_derives g [symbol.nonterminal B] (List.map symbol.terminal w)
   | _, _, last B m h =>
       grammar_deri_of_tran ⟨_, h, [], [], by simp, by simp⟩

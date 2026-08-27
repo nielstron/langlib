@@ -36,7 +36,6 @@ public inductive LeftmostEpsilonPosition (M : DPDA Q T S)
 
 /-- The concrete PDA configuration represented by a position on a chosen
 unconsumed input tail. -/
-@[expose]
 public def LeftmostEpsilonPosition.conf (M : DPDA Q T S)
     (input : List T) : LeftmostEpsilonPosition M →
       PDA.conf (emptyStackPDA M)
@@ -48,7 +47,6 @@ public def LeftmostEpsilonPosition.conf (M : DPDA Q T S)
 
 /-- Forget the target-state index of a characteristic nonterminal while
 retaining its physical displayed-stack boundary. -/
-@[expose]
 public def leftmostEpsilonPositionOf (M : DPDA Q T S)
     (A : Nonterminal M) (context : List (StackSymbol M)) :
     LeftmostEpsilonPosition M :=
@@ -178,7 +176,6 @@ private theorem reaches_of_reaches₁ {P : PDA Q T S} {a b : PDA.conf P}
     ⟨1, PDA.reaches₁_iff_reachesIn_one.mp h⟩
 
 /-- Control state carried by a leftmost epsilon position. -/
-@[expose]
 public def LeftmostEpsilonPosition.state' (M : DPDA Q T S) :
     LeftmostEpsilonPosition M → State M
   | .root => (emptyStackPDA M).initial_state
@@ -186,7 +183,6 @@ public def LeftmostEpsilonPosition.state' (M : DPDA Q T S) :
   | .list q _ _ => q
 
 /-- Stack prefix displayed by a leftmost epsilon position. -/
-@[expose]
 public def LeftmostEpsilonPosition.upper (M : DPDA Q T S) :
     LeftmostEpsilonPosition M → List (StackSymbol M)
   | .root => [(emptyStackPDA M).start_symbol]
@@ -194,7 +190,6 @@ public def LeftmostEpsilonPosition.upper (M : DPDA Q T S) :
   | .list _ gamma _ => gamma
 
 /-- Hidden stack context carried below a leftmost epsilon position. -/
-@[expose]
 public def LeftmostEpsilonPosition.context' (M : DPDA Q T S) :
     LeftmostEpsilonPosition M → List (StackSymbol M)
   | .root => []

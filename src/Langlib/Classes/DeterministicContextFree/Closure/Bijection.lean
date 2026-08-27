@@ -183,7 +183,6 @@ public theorem comap_acceptsByFinalState (M : DPDA Q T₂ S) (f : T₁ → T₂)
 
 /-- Rename the input alphabet of a DPDA along `f`, decoding symbols in the image using `g`.
 Symbols outside the image of `f` have no transition. -/
-@[expose]
 public noncomputable def mapInput (M : DPDA Q T₁ S) (f : T₁ → T₂) (g : T₂ → T₁) : DPDA Q T₂ S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol
@@ -339,7 +338,7 @@ private lemma reaches₁_consumed_prefix {f : T₁ → T₂} {g : T₂ → T₁}
             have himg : ∃ b, f b = a := by
               by_cases h' : ∃ b, f b = a
               · exact h'
-              · simp [DPDA.toPDA, DPDA.mapInput, h'] at hp
+              · simp [DPDA.mapInput, h'] at hp
             exact himg
           · rcases h with ⟨p, β, hp, hcfg⟩
             cases hcfg

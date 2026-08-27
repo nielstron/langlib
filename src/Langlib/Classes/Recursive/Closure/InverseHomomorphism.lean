@@ -19,11 +19,11 @@ public theorem is_Recursive_inverseHomomorphism {α β : Type}
     is_Recursive L → is_Recursive ({w : List α | w.flatMap h ∈ L} : Language α) := by
   intro hL
   classical
-  haveI : DecidableEq α := Classical.decEq _
-  haveI : DecidableEq β := Classical.decEq _
-  haveI : Primcodable α :=
+  have : DecidableEq α := Classical.decEq _
+  have : DecidableEq β := Classical.decEq _
+  have : Primcodable α :=
     Primcodable.ofEquiv (Fin (Fintype.card α)) (Fintype.truncEquivFin α).out
-  haveI : Primcodable β :=
+  have : Primcodable β :=
     Primcodable.ofEquiv (Fin (Fintype.card β)) (Fintype.truncEquivFin β).out
   obtain ⟨f, hf, hs⟩ :=
     ComputablePred.computable_iff.mp (Recursive_membership_computable hL)

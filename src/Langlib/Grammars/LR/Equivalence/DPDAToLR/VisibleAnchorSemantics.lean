@@ -117,7 +117,7 @@ private theorem reaches_eq_of_read_enabled
         have hreadNone := A.no_mixed q Z hsome a
         rw [hread] at hreadNone
         simp at hreadNone
-      simp [DPDA.toPDA, hepsilonNone] at hepsilon
+      simp [hepsilonNone] at hepsilon
 
 /-- A reading transition of the final-state-to-empty-stack machine lies in
 the simulation component and is induced by a genuine normalized-DPDA read. -/
@@ -147,7 +147,7 @@ private theorem emptyStack_read_simulation_view (M : DPDA Q T S)
                 M.firstFinal.toPDA.transition_fun q₀ a Z₀ at h
           rcases h with ⟨⟨next₀, gamma₀⟩, htransition, heq⟩
           cases hoption : M.firstFinal.transition q₀ a Z₀ with
-          | none => simp [DPDA.toPDA, hoption] at htransition
+          | none => simp [hoption] at htransition
           | some out =>
               have hout : out = (next₀, gamma₀) := by
                 have hout' : (next₀, gamma₀) = out := by
@@ -158,6 +158,7 @@ private theorem emptyStack_read_simulation_view (M : DPDA Q T S)
               exact ⟨q₀, next₀, Z₀, gamma₀,
                 rfl, rfl, rfl, rfl, hoption⟩
 
+omit [Fintype S] in
 private theorem simulation_stack_shape
     {Z : S} {context : List (Option S)} {stack : List S}
     (h : some Z :: context = stack.map some ++ [none]) :

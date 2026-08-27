@@ -26,6 +26,7 @@ noncomputable section
 
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
+omit [Fintype T] in
 private theorem take_one_append_eq
     {common left right : List T}
     (h : left.take 1 = right.take 1) :
@@ -812,7 +813,6 @@ necessarily a `splitRight`/`splitRight` pair.
 Keeping the position inequality, rather than flattening the split
 constructor into a large tuple, preserves the two original structural
 spines for the interval argument which consumes this residual. -/
-@[expose]
 public def PairedSplitEpsilonEpsilonHeadsData (M : DPDA Q T S)
     (childPrefix : List (symbol T (Nonterminal M)))
     (q₁ q₂ next target : State M) (Z₁ Z₂ : StackSymbol M)
@@ -945,7 +945,6 @@ public theorem activeEpsilonEpsilon_heads_eq_or_pairedSplit
 /-- The exact unequal-position residual for two epsilon introductions.  It
 retains the normalized parent spines and their globally counted source cuts;
 no interval or hidden context has been compressed away. -/
-@[expose]
 public def UnequalCountEpsilonEpsilonHeadsData (M : DPDA Q T S)
     (childPrefix : List (symbol T (Nonterminal M)))
     (q₁ q₂ next target : State M) (Z₁ Z₂ : StackSymbol M)

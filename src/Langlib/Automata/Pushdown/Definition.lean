@@ -52,7 +52,6 @@ variable {pda : PDA Q T S}
 
 namespace conf
 
-@[expose]
 public abbrev appendInput (r : conf pda) (x : List T) : conf pda :=
   ⟨r.state, r.input++x, r.stack⟩
 
@@ -67,7 +66,7 @@ abbrev stackPostfixNontriv (r : conf pda) (β : List S): Prop :=
 
 end conf
 
-@[expose, reducible]
+@[reducible]
 public def step (r₁ : conf pda) : Set (conf pda) :=
   match r₁ with
     | ⟨q, a::w, Z::α⟩ =>
@@ -79,21 +78,19 @@ public def step (r₁ : conf pda) : Set (conf pda) :=
                                           r₂ = ⟨p, [], (β ++ α)⟩ }
     | ⟨_, _, []⟩ => ∅
 
-@[expose, reducible]
+@[reducible]
 public def Reaches₁ (r₁ r₂ : conf pda) : Prop := r₂ ∈ step r₁
-@[expose, reducible]
+@[reducible]
 public def Reaches : conf pda → conf pda → Prop := Relation.ReflTransGen Reaches₁
 
 public inductive ReachesIn : ℕ → conf pda → conf pda → Prop where
   | refl : (r₁ : conf pda)  → ReachesIn 0 r₁ r₁
   | step : {n: ℕ} → {r₁ r₂ r₃ : conf pda} → ReachesIn n r₁ r₂ → Reaches₁ r₂ r₃ → ReachesIn (n+1) r₁ r₃
 
-@[expose]
 public def acceptsByEmptyStack (pda : PDA Q T S) : Language T :=
   { w : List T | ∃ q : Q,
       Reaches (⟨pda.initial_state, w, [pda.start_symbol]⟩ : conf pda) ⟨q, [], []⟩ }
 
-@[expose]
 public def acceptsByFinalState (pda : PDA Q T S) : Language T :=
   { w : List T | ∃ q  ∈ pda.final_states, ∃ γ : List S,
       Reaches (⟨pda.initial_state, w, [pda.start_symbol]⟩ : conf pda) ⟨q, [], γ⟩ }
@@ -208,7 +205,7 @@ public theorem decreasing_input_one' (h : ReachesIn 1 r₁ r₂) :
     · dsimp [step] at h
       rw [Set.mem_union] at h           -- Convert membership of union to or
       rcases h with h|h                 -- Split cases on wether a read is happening
-      · rw [Set.mem_setOf] at h         -- Convert membeship of set builder to predicate
+      · rw [Set.mem_ofPred] at h         -- Convert membeship of set builder to predicate
         obtain ⟨p,β,h⟩ := h              -- We know that a is beeing read
         use [a]
         simp [h.2]                      -- Closes the goal
@@ -366,15 +363,15 @@ public theorem reaches₁_push {q : Q}{x : List T}{Z : S}{γ : List S}{c : pda.c
   rcases x with _ | ⟨a, y⟩
   · right
     simp only [Reaches₁, step] at h
-    obtain ⟨p, β, _, h⟩ := Set.mem_setOf.mp h
+    obtain ⟨p, β, _, h⟩ := Set.mem_ofPred.mp h
     use p, β
   · simp only [Reaches₁, step] at h
     rw [Set.mem_union] at h
     rcases h with h|h
-    · obtain ⟨p, β, _, h⟩ := Set.mem_setOf.mp h
+    · obtain ⟨p, β, _, h⟩ := Set.mem_ofPred.mp h
       left
       use a, y, p, β
-    · obtain ⟨p, β, _, h⟩ := Set.mem_setOf.mp h
+    · obtain ⟨p, β, _, h⟩ := Set.mem_ofPred.mp h
       right
       use p, β
 
@@ -425,14 +422,14 @@ public theorem Reaches₁.append_stack {x y : List T}{α β : List S}{q p : Q}(�
   · rcases x with _ | ⟨a, x'⟩
     · use 1
       rw [←reaches₁_iff_reachesIn_one, Reaches₁]
-      simp only [step, Set.mem_setOf_eq, conf.mk.injEq, List.cons_append]  at *
+      simp only [step, Set.mem_ofPred_eq, conf.mk.injEq, List.cons_append]  at *
       obtain ⟨p', β', h⟩ := h
       use p', β'
       use h.1, h.2.1, h.2.2.1
       simp [h]
     · use 1
       rw [←reaches₁_iff_reachesIn_one, Reaches₁]
-      simp only [step, Set.mem_setOf_eq, conf.mk.injEq, List.cons_append, Set.mem_union]  at *
+      simp only [step, Set.mem_ofPred_eq, conf.mk.injEq, List.cons_append, Set.mem_union]  at *
       rcases h with h|h
       case' h.inl => left
       case' h.inr => right
@@ -474,7 +471,7 @@ public lemma reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
     cases γ with
     | nil => simp
     | cons Z α =>
-      simp only [Set.mem_setOf_eq, conf.mk.injEq]
+      simp only [Set.mem_ofPred_eq, conf.mk.injEq]
       constructor <;> intro ⟨p, β, h1, h2⟩
       · exact ⟨p, β, ht' ▸ h1, h2⟩
       · exact ⟨p, β, ht'.symm ▸ h1, h2⟩
@@ -482,7 +479,7 @@ public lemma reaches1_of_same_transitions (P₁ P₂ : PDA Q T S)
     cases γ with
     | nil => simp
     | cons Z α =>
-      simp only [Set.mem_union, Set.mem_setOf_eq, conf.mk.injEq]
+      simp only [Set.mem_union, Set.mem_ofPred_eq, conf.mk.injEq]
       constructor <;> intro h
       · rcases h with ⟨p, β, h1, h2⟩ | ⟨p, β, h1, h2⟩
         · left; exact ⟨p, β, ht ▸ h1, h2⟩
@@ -509,13 +506,11 @@ end SameTransitions
 
 variable {T : Type} [Fintype T]
 
-@[expose]
 public def is_PDA_emptyStack (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByEmptyStack = L
 
 /-- A language over a finite terminal alphabet is accepted by some PDA via empty-stack
 acceptance. -/
-@[expose]
 public abbrev is_PDA (L : Language T) : Prop := is_PDA_emptyStack L
 
 @[simp]
@@ -525,14 +520,12 @@ public theorem is_PDA_emptyStack_iff_is_PDA {L : Language T} :
 
 /-- A language over a finite terminal alphabet is accepted by some PDA via final-state
 acceptance. -/
-@[expose]
 public def is_PDA_finalState (L : Language T) : Prop :=
   ∃ (Q S : Type) (_ : Fintype Q) (_ : Fintype S), ∃ M : PDA Q T S, M.acceptsByFinalState = L
 
 /-- The class of languages recognized by PDAs via empty-stack acceptance. -/
-@[expose]
 public def EmptyStackClass : Set (Language T) :=
-  setOf is_PDA
+  Set.ofPred is_PDA
 
 /-- The class of PDA-recognizable languages.
 
@@ -541,6 +534,5 @@ automaton structure. -/
 alias Class := PDA.EmptyStackClass
 
 /-- The class of languages recognized by PDAs via final-state acceptance. -/
-@[expose]
 public def FinalStateClass : Set (Language T) :=
-  setOf is_PDA_finalState
+  Set.ofPred is_PDA_finalState

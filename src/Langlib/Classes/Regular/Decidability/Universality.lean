@@ -95,7 +95,7 @@ public theorem subsetDFA_card_le_regularSearchBound (c : EncodedRG T) :
     _ ≤ 2 ^ ((toCFG c).ntCount + 1) :=
           Nat.pow_le_pow_right (by decide) hopt
     _ = regularSearchBound c := by
-          simp [regularSearchBound, toCFG, EncodedCFG.ntCount, EncodedCFG.numNT]
+          simp [regularSearchBound, EncodedCFG.ntCount, EncodedCFG.numNT]
 
 private theorem exists_short_regular_counterexample [Fintype T]
     (c : EncodedRG T) {w : List T} (hw : w ∉ regularLanguageOf c) :

@@ -136,7 +136,6 @@ public theorem VisibleSpineAnchor.exists_countedZeroVisibleInterval
 /-- Counted factorization of a concrete empty return.  `prefixSteps` locates
 the parent cut globally, while the positive `returnSteps` interval pops the
 selected top symbol without touching `context`. -/
-@[expose]
 public def CountedConcreteEmptyReturnInterval (M : DPDA Q T S)
     (completion suffix : List T) (q : State M) : Prop :=
   ∃ (beforeWord segmentWord : List T) (source : State M)

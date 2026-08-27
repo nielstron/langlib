@@ -70,9 +70,9 @@ public theorem tm_recognizable_implies_re
     (L : Language T) :
     is_TM L → is_RE L := by
   intro ⟨Γ, hΓf, Λ, hΛ, hFin, M, hM⟩
-  haveI := hΓf
-  haveI : DecidableEq Γ := Classical.decEq Γ
-  haveI : DecidableEq Λ := Classical.decEq Λ
+  have := hΓf
+  have : DecidableEq Γ := Classical.decEq Γ
+  have : DecidableEq Λ := Classical.decEq Λ
   let inputSym : T → T ⊕ Γ := Sum.inl
   -- Use existing tmToGrammar with the full nonblank tape alphabet.
   let g := tmToGrammar (T ⊕ Γ) Λ M

@@ -76,7 +76,7 @@ variable {σ₁ σ₂ : Type*} [Fintype σ₁] [Fintype σ₂]
 
 States are `σ₁ ⊕ σ₂`. On the left side we simulate `M₁`; on the right, `M₂`.
 Accepting states of `M₁` get an ε-transition to `M₂`'s start state. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def concatεNFA (M₁ : DFA α σ₁) (M₂ : DFA α σ₂) : εNFA α (σ₁ ⊕ σ₂) where
   step := fun s c =>
     match s, c with
@@ -159,7 +159,7 @@ private lemma evalFrom_inl_contains (q : σ₁) (w : List α) :
       · exact εNFA.εClosure.base _ ( by simp +decide );
       · simp_all +decide [ εNFA.evalFrom ];
         refine' Or.inl ⟨ _, ‹∀ q : σ₁, Sum.inl ( M₁.evalFrom q w ) ∈ List.foldl ( concatεNFA M₁ M₂ ).stepSet ( ( concatεNFA M₁ M₂ ).εClosure { Sum.inl q } ) w› q, _ ⟩;
-        exact εNFA.εClosure.base _ ( by simp +decide [ concatεNFA ] )
+        exact εNFA.εClosure.base _ ( by simp +decide )
 
 omit [Fintype σ₁] [Fintype σ₂] in
 /-
@@ -226,8 +226,8 @@ private lemma evalFrom_append (S : Set (σ₁ ⊕ σ₂)) (u v : List α) :
           split_ifs at hq <;> simp_all +decide [  ];
           · rcases hq with ( rfl | hq );
             · grind +suggestions;
-            · exact Set.mem_setOf_eq.mpr ( by tauto );
-          · exact Set.mem_setOf_eq.mpr ( by tauto );
+            · exact Set.mem_ofPred_eq.mpr ( by tauto );
+          · exact Set.mem_ofPred_eq.mpr ( by tauto );
       induction v using List.reverseRecOn <;> simp_all +decide [ Set.ext_iff ];
       intro b x hx hx' hb; induction u using List.reverseRecOn <;> simp_all +decide [ εNFA.stepSet ] ;
       · exact Or.inr ⟨ x, hx, hx' ⟩;

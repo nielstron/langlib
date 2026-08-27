@@ -344,7 +344,7 @@ noncomputable def cf_emptiness_decidable
     · intro h
       refine ⟨?_, ?_⟩
       · rw [h]; exact fun x => x
-      · rw [← h_cnf, h]; exact Set.empty_diff _
+      · rw [← h_cnf, h]; exact Set.empty_sdiff _
     · rintro ⟨hnil, hcnf⟩
       apply Set.subset_eq_empty (fun w (hw : w ∈ (mathlib_cfg_of_cfg g).language) => ?_) rfl
       by_cases hwnil : w = []

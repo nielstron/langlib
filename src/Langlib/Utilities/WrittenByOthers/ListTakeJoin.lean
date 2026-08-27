@@ -135,7 +135,7 @@ by
   have hPX : ∀ (r : ℕ), X ≤ r → ¬P r := by
     rintro r hr
     rw [←hP]
-    push_neg
+    push Not
     have ht : L.take r = L := (List.take_eq_self_iff L).2 hr
     simpa [hN, ht] using notall'
   obtain ⟨hm₁, hm₂⟩ := nat_get_max_spec ⟨0, hP0⟩ ⟨X, hPX⟩
@@ -149,7 +149,7 @@ by
   refine ⟨m, k, mlt, ?_, ?_⟩
   ·
     rw [←hP] at hm₁ hm₃
-    push_neg at hm₃
+    push Not at hm₃
     by_contra hk₁
     have hk₁' : (L.get ⟨m, mlt⟩).length ≤ k := le_of_not_gt hk₁
     obtain ⟨k', hk'⟩ := Nat.exists_eq_add_of_le hk₁'
@@ -203,7 +203,7 @@ by
       rwa [←hP] at hm₁
     have hn₂ : n < (List.flatten (L.take m.succ)).length := by
       rw [←hP] at hm₃
-      push_neg at hm₃
+      push Not at hm₃
       exact hm₃
     rw [List.take_append_of_le_length (le_of_lt hn₂)]
     have htake : L.take m.succ = L.take m ++ [L.get ⟨m, mlt⟩] := by

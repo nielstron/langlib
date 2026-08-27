@@ -159,7 +159,6 @@ noncomputable def dfa_emptiness_decidable
   infer_instance
 
 /-- Emptiness of a regular language is decidable. -/
-@[expose]
 public noncomputable def regular_emptiness_decidable
     [Fintype α] [DecidableEq α] (L : Language α) (hL : L.IsRegular) :
     Decidable (L = (∅ : Set (List α))) := by

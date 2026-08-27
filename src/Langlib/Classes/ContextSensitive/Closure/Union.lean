@@ -91,8 +91,8 @@ private inductive UnionNT (N₁ N₂ : Type) where
     simp only [ncUnionGrammar] at hr
     simp only [List.mem_cons, List.mem_append, List.mem_map] at hr
     rcases hr with rfl | rfl | hleft | hright
-    · simp [unionStartLeft] at hn
-    · simp [unionStartRight] at hn
+    · simp at hn
+    · simp at hn
     · rcases hleft with ⟨r₀, hr₀, rfl⟩
       exact ⟨r₀, hr₀, rfl⟩
     · rcases hright with ⟨r₀, _hr₀, rfl⟩
@@ -135,8 +135,8 @@ private inductive UnionNT (N₁ N₂ : Type) where
     simp only [ncUnionGrammar] at hr
     simp only [List.mem_cons, List.mem_append, List.mem_map] at hr
     rcases hr with rfl | rfl | hleft | hright
-    · simp [unionStartLeft] at hn
-    · simp [unionStartRight] at hn
+    · simp at hn
+    · simp at hn
     · rcases hleft with ⟨r₀, _hr₀, rfl⟩
       simp [lift_rule_] at hn
     · rcases hright with ⟨r₀, hr₀, rfl⟩
@@ -149,8 +149,8 @@ private theorem ncUnion_noncontracting (g₁ g₂ : grammar T)
   simp only [ncUnionGrammar] at hr
   simp only [List.mem_cons, List.mem_append, List.mem_map] at hr
   rcases hr with rfl | rfl | hleft | hright
-  · simp [unionStartLeft]
-  · simp [unionStartRight]
+  · simp
+  · simp
   · rcases hleft with ⟨r₁, hr₁, rfl⟩
     simpa [grammar_noncontracting, lift_rule_, lift_string_] using h₁ r₁ hr₁
   · rcases hright with ⟨r₂, hr₂, rfl⟩
@@ -239,7 +239,7 @@ private theorem ncUnion_language (g₁ g₂ : grammar T) :
       refine grammar_deri_of_tran_deri (g := ncUnionGrammar g₁ g₂)
         (v := [symbol.nonterminal (UnionNT.left g₁.initial)]) ?_ ?_
       · exact ⟨unionStartLeft g₁ g₂, by simp [ncUnionGrammar], [], [], by simp [ncUnionGrammar, unionStartLeft],
-          by simp [unionStartLeft]⟩
+          by simp⟩
       · have hlift := lift_deri_ (lgLeft g₁ g₂) hw
         rwa [lift_string_map_terminal_] at hlift
     · change grammar_generates (ncUnionGrammar g₁ g₂) w
@@ -248,7 +248,7 @@ private theorem ncUnion_language (g₁ g₂ : grammar T) :
       refine grammar_deri_of_tran_deri (g := ncUnionGrammar g₁ g₂)
         (v := [symbol.nonterminal (UnionNT.right g₂.initial)]) ?_ ?_
       · exact ⟨unionStartRight g₁ g₂, by simp [ncUnionGrammar], [], [], by simp [ncUnionGrammar, unionStartRight],
-          by simp [unionStartRight]⟩
+          by simp⟩
       · have hlift := lift_deri_ (lgRight g₁ g₂) hw
         rwa [lift_string_map_terminal_] at hlift
 

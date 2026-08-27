@@ -19,7 +19,6 @@ namespace DFA
 variable {S σ : Type}
 
 /-- The transition function induced by reading an entire stack suffix. -/
-@[expose]
 public def stackSummary (D : DFA S σ) (γ : List S) : σ → σ :=
   fun s => D.evalFrom s γ
 
@@ -35,7 +34,6 @@ public theorem stackSummary_append (D : DFA S σ) (γ δ : List S) :
   simp [stackSummary, DFA.evalFrom, List.foldl_append]
 
 /-- The summary of a block `γ` placed above a suffix whose summary is `below`. -/
-@[expose]
 public def summaryAbove (D : DFA S σ) (below : σ → σ) (γ : List S) : σ → σ :=
   below ∘ D.stackSummary γ
 

@@ -96,7 +96,7 @@ theorem recursivelyEnumerable_membership_not_computable :
   have h_nil : ComputablePred
       (fun c : Code => ([] : List Unit) ∈ partrecCodeDomainLanguageOf c) := by
     obtain ⟨dec, hcomp⟩ := h
-    letI : DecidablePred
+    let : DecidablePred
         (fun c : Code => ([] : List Unit) ∈ partrecCodeDomainLanguageOf c) :=
       fun c => dec (c, ([] : List Unit))
     exact ⟨inferInstance,

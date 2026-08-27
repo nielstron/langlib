@@ -91,7 +91,7 @@ section list_replicate
 
 public lemma replicate_succ_eq_singleton_append (s : α) (n : ℕ) :
   List.replicate n.succ s = [s] ++ List.replicate n s := by
-  simpa only [Nat.succ_eq_add_one, List.replicate_succ, List.singleton_append]
+  simp only [Nat.succ_eq_add_one, List.replicate_succ, List.singleton_append]
 
 public lemma replicate_succ_eq_append_singleton (s : α) (n : ℕ) :
   List.replicate n.succ s = List.replicate n s ++ [s] := by

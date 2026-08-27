@@ -15,21 +15,17 @@ satisfying the context-free rule-shape property.
 variable {T : Type}
 
 /-- An unrestricted grammar is context-free if every rule has empty left and right context. -/
-@[expose]
 public def grammar_context_free (g : grammar T) : Prop :=
   ∀ r ∈ g.rules, r.input_L = [] ∧ r.input_R = []
 
 /-- Predicate that a language is context-free. -/
-@[expose]
 public def is_CF (L : Language T) : Prop :=
   ∃ g : grammar T, grammar_context_free g ∧ grammar_language g = L
 
 /-- Characterization of context-free languages via `CF_grammar`. -/
-@[expose]
 public def is_CF_via_cfg (L : Language T) : Prop :=
   ∃ g : CF_grammar T, CF_language g = L
 
 /-- The class of context-free languages. -/
-@[expose]
 public def CF : Set (Language T) :=
-  setOf is_CF
+  Set.ofPred is_CF

@@ -64,7 +64,6 @@ tags, showing the combined grammar generates exactly `L₁ + L₂`.
 
 variable {T : Type}
 
-@[expose]
 public def union_grammar (g₁ g₂ : grammar T) : grammar T :=
 grammar.mk (Option (g₁.nt ⊕ g₂.nt)) none (
   ⟨ [], none, [], [symbol.nonterminal (some (Sum.inl (g₁.initial)))] ⟩ :: (

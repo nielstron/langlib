@@ -54,18 +54,15 @@ namespace DPDA
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- The stack/control part of a DPDA configuration, ignoring the unchanged input. -/
-@[expose]
 public abbrev EpsilonConf (Q S : Type) := Q × List S
 
 /-- One forced epsilon step on the control/stack part of a configuration. -/
-@[expose]
 public def EpsilonStep (M : DPDA Q T S) :
     EpsilonConf Q S → EpsilonConf Q S → Prop
   | (q, Z :: γ), (p, γ') => ∃ β, M.epsilon_transition q Z = some (p, β) ∧ γ' = β ++ γ
   | (_, []), _ => False
 
 /-- The deterministic successor function for one epsilon step, if one exists. -/
-@[expose]
 public def epsilonNext? (M : DPDA Q T S) : EpsilonConf Q S → Option (EpsilonConf Q S)
   | (q, Z :: γ) =>
       match M.epsilon_transition q Z with
@@ -74,19 +71,16 @@ public def epsilonNext? (M : DPDA Q T S) : EpsilonConf Q S → Option (EpsilonCo
   | (_, []) => none
 
 /-- Epsilon-only reachability on the control/stack part of a configuration. -/
-@[expose]
 public def EpsilonReaches (M : DPDA Q T S) :
     EpsilonConf Q S → EpsilonConf Q S → Prop :=
   Relation.ReflTransGen M.EpsilonStep
 
 /-- A control/stack configuration is stable when no epsilon transition is forced. -/
-@[expose]
 public def EpsilonStable (M : DPDA Q T S) : EpsilonConf Q S → Prop
   | (_, []) => True
   | (q, Z :: _) => M.epsilon_transition q Z = none
 
 /-- An epsilon phase stops at a stable control/stack configuration. -/
-@[expose]
 public def EpsilonStopsAt (M : DPDA Q T S) (c c' : EpsilonConf Q S) : Prop :=
   M.EpsilonReaches c c' ∧ M.EpsilonStable c'
 
@@ -249,11 +243,11 @@ public theorem epsilonStep_toPDA {M : DPDA Q T S} {c c' : EpsilonConf Q S} {w : 
     cases w with
     | nil =>
         change ⟨p, [], β ++ γ⟩ ∈ PDA.step (pda := M.toPDA) ⟨q, [], Z :: γ⟩
-        exact ⟨p, β, by simp [DPDA.toPDA, hβ], rfl⟩
+        exact ⟨p, β, by simp [hβ], rfl⟩
     | cons a w =>
         change ⟨p, a :: w, β ++ γ⟩ ∈ PDA.step (pda := M.toPDA) ⟨q, a :: w, Z :: γ⟩
         exact Set.mem_union_right _
-          ⟨p, β, by simp [DPDA.toPDA, hβ], rfl⟩
+          ⟨p, β, by simp [hβ], rfl⟩
 
 /-- Lift epsilon-only reachability to ordinary PDA reachability, preserving the input. -/
 public theorem epsilonReaches_toPDA {M : DPDA Q T S} {c c' : EpsilonConf Q S} {w : List T}
@@ -349,7 +343,7 @@ public theorem stable_reaches_nonempty_decompose {M : DPDA Q T S}
             refine ⟨p, δ, rfl, ?_⟩
             exact PDA.reaches_of_reachesIn hrest
       · obtain ⟨p', β, hβ, _⟩ := hempty
-        simp [DPDA.toPDA, hstable] at hβ
+        simp [hstable] at hβ
 
 public theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
     {c c' : EpsilonConf Q S} {qf : Q} {a : T} {w : List T} {γf : List S}
@@ -384,7 +378,7 @@ public theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
               (⟨r, input', stack'⟩ : M.toPDA.conf) = ⟨p', a :: w, δ ++ γ⟩) at hone
           rcases hone with hread | heps
           · obtain ⟨p', δ, hmem, _⟩ := hread
-            simp [DPDA.toPDA, hno] at hmem
+            simp [hno] at hmem
           obtain ⟨p', δ, hmem, hcfg⟩ := heps
           have hpair : (p', δ) = (p, β) := by
             simpa [DPDA.toPDA, hε] using hmem
@@ -439,7 +433,7 @@ public theorem epsilonStopsAt_of_toPDA_reaches_nonempty {M : DPDA Q T S}
                   (⟨r, input', stack'⟩ : M.toPDA.conf) = ⟨p', a :: w, δ ++ γ⟩) at hone
               rcases hone with hread | heps
               · obtain ⟨p', δ, hmem, _⟩ := hread
-                simp [DPDA.toPDA, hno] at hmem
+                simp [hno] at hmem
               obtain ⟨p', δ, hmem, hcfg⟩ := heps
               have hpair : (p', δ) = (p, β) := by
                 simpa [DPDA.toPDA, hε] using hmem

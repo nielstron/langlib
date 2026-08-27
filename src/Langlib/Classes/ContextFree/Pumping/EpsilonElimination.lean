@@ -47,11 +47,9 @@ section NullableDerivations
 variable {g : ContextFreeGrammar T}
 
 /-- `NullableNonTerminal n` holds if `n` can be transformed into the empty string -/
-@[expose]
 public abbrev NullableNonTerminal (n : g.NT) : Prop := g.Derives [Symbol.nonterminal n] []
 
 /-- `NullableWord u` holds if `u` can be transformed into the empty string -/
-@[expose]
 public abbrev NullableWord (u : List (Symbol T g.NT)) : Prop := g.Derives u []
 
 private lemma DerivesIn.empty_of_append_left_aux {u v w : List (Symbol T g.NT)} {m : ℕ}
@@ -388,19 +386,16 @@ variable {N : Type uN} [DecidableEq N]
 
 /-- Check if a symbol is nullable (w.r.t. to set of nullable symbols `p`), i.e.,
  `symbol_is_nullable p s` only holds if `s` is a nonterminal and it is in `p` -/
-@[expose]
 public def symbolIsNullable (p : Finset N) (s : Symbol T N) : Bool :=
   match s with
   | Symbol.terminal _ => False
   | Symbol.nonterminal n => n ∈ p
 
 /-- A rule is nullable if all output symbols are nullable -/
-@[expose]
 public def ruleIsNullable (p : Finset N) (r : ContextFreeRule T N) : Bool :=
   ∀ s ∈ r.output, symbolIsNullable p s
 
 /-- Add the input of a rule as a nullable symbol to `p` if the rule is nullable -/
-@[expose]
 public def addIfNullable (r : ContextFreeRule T N) (p : Finset N) : Finset N :=
   if ruleIsNullable p r then insert r.input p else p
 
@@ -412,7 +407,6 @@ public lemma subset_addIfNullable (r : ContextFreeRule T N) (p : Finset N) :
 variable {g : ContextFreeGrammar T} [DecidableEq g.NT]
 
 /-- `generators g` is the set of all nonterminals that appear in the left hand side of rules of `g` -/
-@[expose]
 public noncomputable def generators (g : ContextFreeGrammar T) [DecidableEq g.NT] : Finset g.NT :=
   (g.rules.toList.map ContextFreeRule.input).toFinset
 
@@ -442,7 +436,6 @@ public lemma addIfNullable_subset_generators {r : ContextFreeRule T g.NT} {p : F
 
 /-- Single round of fixpoint iteration; adds `r.input` to the set of nullable symbols if all symbols in
  `r.output` are nullable -/
-@[expose]
 public noncomputable def addNullables (p : Finset g.NT) : Finset g.NT :=
   g.rules.toList.attach.foldr (fun ⟨r, _⟩ ↦ addIfNullable r) p
 
@@ -472,7 +465,6 @@ public lemma generators_limits_nullable {p : Finset g.NT}
   · exact Finset.card_lt_card hp
 
 /-- Fixpoint iteration computing the set of nullable symbols of `g`. -/
-@[expose]
 public noncomputable def addNullablesIter (p : Finset g.NT) (hpg : p ⊆ g.generators) :=
   if p = addNullables p then
     p
@@ -485,7 +477,6 @@ public noncomputable def addNullablesIter (p : Finset g.NT) (hpg : p ⊆ g.gener
     exact generators_limits_nullable hpg hp
 
 /-- Compute the least-fixpoint of `add_nullable_iter`, i.e., all (and only) nullable symbols -/
-@[expose]
 public noncomputable def computeNullables (g : ContextFreeGrammar T) [DecidableEq g.NT] :=
   addNullablesIter ∅ g.generators.empty_subset
 
@@ -672,7 +663,6 @@ section EliminateEmpty
 variable {N : Type uN} [DecidableEq N]
 
 /-- Compute all possible combinations of leaving out nullable nonterminals from `u` -/
-@[expose]
 public def nullableCombinations (p : Finset N) (u : List (Symbol T N)) : List (List (Symbol T N)) :=
   match u with
   | [] => [[]]
@@ -684,7 +674,6 @@ public def nullableCombinations (p : Finset N) (u : List (Symbol T N)) : List (L
     | Symbol.terminal _ => (nullableCombinations p s).map (x :: ·)
 
 /-- Computes all variations of leaving out nullable symbols (except the empty string) of `r` -/
-@[expose]
 public def removeNullableRule (p : Finset N) (r : ContextFreeRule T N) :=
   let fltrmap : List (Symbol T N) → Option (ContextFreeRule T N)
     | [] => Option.none
@@ -694,7 +683,6 @@ public def removeNullableRule (p : Finset N) (r : ContextFreeRule T N) :=
 variable {g : ContextFreeGrammar T}
 
 /-- Compute all variations of leaving out nullable symbols (except the empty string) of `g`s rules -/
-@[expose]
 public noncomputable def removeNullables [DecidableEq T] [DecidableEq g.NT] (p : Finset g.NT) :=
   (g.rules.toList.map (removeNullableRule p)).flatten.toFinset
 
@@ -702,7 +690,6 @@ public noncomputable def removeNullables [DecidableEq T] [DecidableEq g.NT] (p :
 in `g` have a set of corresponding rules in g' in which some nullable symbols do not appear in
 the output. For example if `r: V -> ABC` is in `g` and `A` and `B` are nullable, the rules
 `r₁ : V -> ABC`, `r₂ : V -> BC`, `r₃ : V -> AC`, `r₄ : V -> C` will be in `g.eliminate_empty` -/
-@[expose]
 public noncomputable def eliminateEmpty [DecidableEq T] (g : ContextFreeGrammar T)
     [DecidableEq g.NT] : ContextFreeGrammar T :=
   ⟨g.NT, g.initial, removeNullables g.computeNullables⟩

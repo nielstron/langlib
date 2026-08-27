@@ -37,25 +37,20 @@ section functions_lift_sink
 
 variable {T N₀ N : Type}
 
-@[expose]
 public def lift_symbol_ (lift_N : N₀ → N) : symbol T N₀ → symbol T N
 | (symbol.terminal t)    => symbol.terminal t
 | (symbol.nonterminal n) => symbol.nonterminal (lift_N n)
 
-@[expose]
 public def sink_symbol_ (sink_N : N → Option N₀) : symbol T N → Option (symbol T N₀)
 | (symbol.terminal t)    => some (symbol.terminal t)
 | (symbol.nonterminal n) => Option.map symbol.nonterminal (sink_N n)
 
-@[expose]
 public def lift_string_ (lift_N : N₀ → N) : List (symbol T N₀) → List (symbol T N) :=
 List.map (lift_symbol_ lift_N)
 
-@[expose]
 public def sink_string_ (sink_N : N → Option N₀) : List (symbol T N) → List (symbol T N₀) :=
 List.filterMap (sink_symbol_ sink_N)
 
-@[expose]
 public def lift_rule_ (lift_N : N₀ → N) : grule T N₀ → grule T N :=
 fun r : grule T N₀ => grule.mk
   (lift_string_ lift_N r.input_L)
@@ -160,12 +155,10 @@ by
       · exact lift_tran_ step
 
 
-@[expose]
 public def good_letter_ {lg : lifted_grammar_ T} : symbol T lg.g.nt → Prop
 | (symbol.terminal _t)    => True
 | (symbol.nonterminal n) => (∃ n₀ : lg.g₀.nt, lg.sink_nt n = some n₀)
 
-@[expose]
 public def good_string_ {lg : lifted_grammar_ T} (s : List (symbol T lg.g.nt)) :=
 ∀ a ∈ s, good_letter_ a
 

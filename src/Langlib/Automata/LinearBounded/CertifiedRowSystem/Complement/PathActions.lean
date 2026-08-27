@@ -557,8 +557,7 @@ public theorem evalPathStep_done_iff
       refine ⟨?_, rfl, hsucc, ?_, by simp [out, pathStepStart, hlocalBool]⟩
       · simpa [pathStepStart, pathTrack] using hsourceEval
       · simpa [out, pathStepStart, RowNumeral.DigitCodec.compareRows] using hcompare
-    · change pathStepDone D out = true
-      rcases hsourceDone with hsame | hdone
+    · rcases hsourceDone with hsame | hdone
       · simp [pathStepDone, out, hsame.symm]
       · simp [pathStepDone, out, hdone]
 

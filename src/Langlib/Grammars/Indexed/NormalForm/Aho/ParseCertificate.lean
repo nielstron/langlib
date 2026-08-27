@@ -62,7 +62,7 @@ public inductive NFParse (g : IndexedGrammar T) :
 namespace NFParse
 
 /-- Forget the data-carrying tree and retain the proposition-valued certificate. -/
-public def toNFYield {g : IndexedGrammar T} {A : g.nt} {σ : List g.flag} {w : List T} :
+public theorem toNFYield {g : IndexedGrammar T} {A : g.nt} {σ : List g.flag} {w : List T} :
     NFParse g A σ w → NFYield g A σ w
   | .binary hr hlhs hc hrhs left right =>
       NFYield.binary hr hlhs hc hrhs left.toNFYield right.toNFYield

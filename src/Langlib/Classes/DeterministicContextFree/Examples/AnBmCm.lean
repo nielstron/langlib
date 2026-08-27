@@ -77,7 +77,7 @@ private lemma replicate_append_cons_eq {α : Type} (n : ℕ) (x : α) (rest : Li
   | succ n ih => simp [List.replicate, ih]
 
 /-- DPDA recognizing `{aⁿbᵐcᵐ | n,m ≥ 0}`. -/
-@[expose, reducible]
+@[reducible]
 public def dpda_any_eq : DPDA AnyEqState (Fin 3) ABCStack where
   initial_state := AnyEqState.start
   start_symbol := bottom

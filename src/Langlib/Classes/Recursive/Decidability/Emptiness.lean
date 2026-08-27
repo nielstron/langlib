@@ -33,7 +33,6 @@ variable {T : Type} [Primcodable T]
 
 /-- The total bounded-halting test used in the emptiness reduction.  The word
 length supplies the finite evaluation budget. -/
-@[expose]
 public def boundedHaltingTest (c : Code) (w : List T) : Bool :=
   (Code.evaln w.length c 0).isSome
 
@@ -50,7 +49,6 @@ public theorem boundedHaltingTest_computable₂ :
 
 /-- Effectively compile the bounded-halting test into a raw recursive-language
 decider code. -/
-@[expose]
 public noncomputable def boundedHaltingCode : Code → Code :=
   compileBool (boundedHaltingTest (T := T))
     (boundedHaltingTest_computable₂ (T := T))

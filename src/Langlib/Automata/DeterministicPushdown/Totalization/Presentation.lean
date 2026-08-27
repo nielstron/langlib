@@ -69,7 +69,6 @@ end DPDA
 variable {T : Type} [Fintype T]
 
 /-- Every finite DPDA has the regular epsilon analysis required by the totalizer. -/
-@[expose]
 public def EveryDPDAHasRegularEpsilonAnalysis (T : Type) [Fintype T] : Prop :=
   ∀ (Q S : Type) [Fintype Q] [Fintype S] (M : DPDA Q T S),
     M.HasRegularEpsilonAnalysis

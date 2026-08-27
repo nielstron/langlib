@@ -123,7 +123,7 @@ public theorem input_splitting_reachesIn {n : ℕ} {q p : Q} {w v : List T} {α 
               tauto ⟩ ⟩;
           · obtain ⟨ q', γ, ⟨ x, hx ⟩, y, hy ⟩ := ih ( by tauto ) hw;
             use q', γ, ⟨ x + 1, ?_ ⟩, y, hy;
-            exact PDA.reachesIn_of_one_n ( by exact PDA.reachesIn_one.mpr <| by exact Set.mem_union_left _ <| Set.mem_setOf.mpr ⟨ q₁, β, hβ, rfl ⟩ ) hx;
+            exact PDA.reachesIn_of_one_n ( by exact PDA.reachesIn_one.mpr <| by exact Set.mem_union_left _ <| Set.mem_ofPred.mpr ⟨ q₁, β, hβ, rfl ⟩ ) hx;
         · contrapose! ih;
           use q₁, p, a :: w, v, β ++ α, δ;
           simp_all +decide [  ];
@@ -157,7 +157,7 @@ variable {Q S : Type} [Fintype Q] [Fintype S]
 /-- The **prefix PDA**.
 States are `Q ⊕ Q` where `Sum.inl q` is *normal mode* and `Sum.inr q`
 is *verification mode*. -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def prefixPDA (M : PDA Q T S) : PDA (Q ⊕ Q) T S where
   initial_state := Sum.inl M.initial_state
   start_symbol  := M.start_symbol

@@ -110,7 +110,7 @@ alphabet with at least 2 elements. -/
 public theorem RG_strict_subclass_Linear_of_card {T : Type} [Fintype T]
     (hT : 2 ≤ Fintype.card T) :
     (RG : Set (Language T)) ⊂ (Linear : Set (Language T)) := by
-  letI : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
+  let : Nontrivial T := Fintype.one_lt_card_iff_nontrivial.mp
     (lt_of_lt_of_le (by decide) hT)
   exact RG_strict_subclass_Linear
 

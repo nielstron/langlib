@@ -40,7 +40,6 @@ public theorem Valid.reductionCandidate {G : CF_grammar T} {k : ℕ}
 /-- Semantic data attached to a shift item.  `z` is the terminal yield of the
 production suffix after the shifted terminal; consequently `a :: z`, followed
 by the item's own lookahead, is the current input lookahead. -/
-@[expose]
 public def ShiftItemCandidate (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.nt)) (u : Lookahead T k) (a : T)
     (i : Item G k) : Prop :=
@@ -103,7 +102,6 @@ public theorem ShiftItemCandidate.laterHandleCandidate
       · simp [List.map_append, List.append_assoc, htarget]
 
 /-- A reduction exposed by a canonical item state. -/
-@[expose]
 public def StateReduction [Fintype T] (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.augment.nt)) (u : Lookahead T k)
     (r : G.augment.nt × List (symbol T G.augment.nt)) : Prop :=
@@ -112,7 +110,6 @@ public def StateReduction [Fintype T] (G : CF_grammar T) (k : ℕ)
 
 /-- A terminal shift exposed by a canonical item state, filtered by productive
 continuation and the complete `k`-symbol input buffer. -/
-@[expose]
 public def StateShift [Fintype T] (G : CF_grammar T) (k : ℕ)
     (gamma : List (symbol T G.augment.nt)) (u : Lookahead T k)
     (a : T) : Prop :=

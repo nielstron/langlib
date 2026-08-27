@@ -270,7 +270,6 @@ end PrefixGrammar
 section SteppedDerivation
 
 /-- Derivation in exactly `n` steps. -/
-@[expose]
 public def CF_derives_in (g : CF_grammar T) : ℕ → List (symbol T g.nt) → List (symbol T g.nt) → Prop
   | 0, w₁, w₂ => w₁ = w₂
   | n + 1, w₁, w₃ => ∃ w₂, CF_transforms g w₁ w₂ ∧ CF_derives_in g n w₂ w₃

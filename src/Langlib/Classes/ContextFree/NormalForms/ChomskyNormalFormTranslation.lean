@@ -114,7 +114,7 @@ variable {T : Type}
 
 /-- Translation of `ContextFreeGrammar` to `ChomskyNormalFormGrammar`, composing the individual
  translation passes -/
-@[expose, reducible]
+@[reducible]
 public noncomputable def toCNF [DecidableEq T] (g : ContextFreeGrammar T) [DecidableEq g.NT] :
     ChomskyNormalFormGrammar T := by
   letI : DecidableEq g.eliminateEmpty.NT := by
@@ -232,10 +232,10 @@ public lemma eliminateUnitRules_output_nonUnit : ∀ r ∈ g.eliminateUnitRules.
     split <;> tauto
 
 public theorem toCNF_correct : g.language \ {[]} = g.toCNF.language := by
-  letI : DecidableEq g.eliminateEmpty.NT := by
+  let : DecidableEq g.eliminateEmpty.NT := by
     change DecidableEq g.NT
     infer_instance
-  letI : DecidableEq g.eliminateEmpty.eliminateUnitRules.NT := by
+  let : DecidableEq g.eliminateEmpty.eliminateUnitRules.NT := by
     change DecidableEq g.NT
     infer_instance
   unfold toCNF

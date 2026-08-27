@@ -40,6 +40,5 @@ public section
 /-! # The language `{a^(2n)b^n | n >= 1}*` -/
 
 /-- Numerator language for the CFL/CFL quotient counterexample. -/
-@[expose]
 public def quotientNumerator : Language Bool :=
   KStar.kstar quotientLeftBlock

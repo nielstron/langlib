@@ -38,7 +38,6 @@ namespace DCFEncodedCFG
 
 /-- The semantic promise that a raw encoded context-free grammar presents a
 deterministic context-free language. -/
-@[expose]
 public def Valid (G : EncodedCFG T) : Prop :=
   is_DCF (contextFreeLanguageOf G)
 
@@ -63,7 +62,6 @@ variable [DecidableEq T] [Primcodable T]
 
 /-- Run the existing encoded-CFG membership checker as a partial Boolean evaluator.
 It is in fact total even when the DCFL promise does not hold. -/
-@[expose]
 public def evalMembership (G : EncodedCFG T) (w : List T) : Part Bool :=
   Part.some (checkMembershipEncoded (G, w))
 

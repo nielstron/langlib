@@ -50,7 +50,6 @@ open Nat.Partrec
 /-- The domain language of a partial-recursive code, represented over `Unit`.
 
 The word length is the program input. -/
-@[expose]
 public def partrecCodeDomainLanguageOf (c : Code) : Language Unit :=
   fun w => (c.eval w.length).Dom
 
@@ -58,7 +57,6 @@ public def partrecCodeDomainLanguageOf (c : Code) : Language Unit :=
 
 Only singleton words are meaningful: `[(n, y)]` means that the code returns `y` on
 input `n`. -/
-@[expose]
 public def partrecCodeGraphLanguageOf (c : Code) : Language (ℕ × ℕ)
   | [(n, y)] => y ∈ c.eval n
   | _ => False

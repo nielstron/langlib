@@ -87,10 +87,10 @@ public lemma CF_lang_aux_ab : is_CF lang_aux_ab := by
                     apply List.mem_cons_self
                   have not_in : symbol.nonterminal r.fst ∉ List.replicate k a ++ List.replicate k b := by
                     rw [List.mem_append]
-                    push_neg
+                    push Not
                     constructor <;>
                       · rw [List.mem_replicate]
-                        push_neg
+                        push Not
                         intro trash
                         tauto
                   rw [bef] at not_in

@@ -87,14 +87,12 @@ This file proves that right-regular grammars (Type-3) generate exactly Mathlib's
 
 
 /-- All nonterminals mentioned in a single RG rule. -/
-@[expose]
 public def RG_rule.nonterminals {N : Type} : RG_rule T N → List N
   | .cons A _ B => [A, B]
   | .single A _ => [A]
   | .epsilon A  => [A]
 
 /-- Finset of all nonterminals appearing in a grammar (including the initial symbol). -/
-@[expose]
 public def RG_grammar.nonterminalFinset (g : RG_grammar T) : Finset g.nt :=
   (g.initial :: (g.rules.flatMap RG_rule.nonterminals)).toFinset
 
@@ -109,11 +107,10 @@ public lemma RG_grammar.rule_nt_mem (g : RG_grammar T) {r : RG_rule T g.nt} (hr 
   right; exact ⟨r, hr, hn⟩
 
 /-- Finite nonterminal subtype: only those nonterminals that appear in the grammar. -/
-@[expose]
 public abbrev RG_grammar.FinNT (g : RG_grammar T) := { x : g.nt // x ∈ g.nonterminalFinset }
 
 /-- NFA with finite states constructed from a right-regular grammar. -/
-@[expose, reducible]
+@[reducible]
 public def NFA_of_RG (g : RG_grammar T) : NFA T (Option g.FinNT) where
   step
     | none, _ => ∅
@@ -148,7 +145,7 @@ public lemma NFA_of_RG_some_forward {g : RG_grammar T}
             simpa [NFA.evalFrom_append] using h
           rcases NFA.mem_stepSet.mp hstep with ⟨i, hi, hi'⟩
           rcases i with _ | ⟨C, hC⟩
-          · simpa [NFA_of_RG] using hi'
+          · simp at hi'
           · refine ⟨⟨C, hC⟩, hi, ?_⟩
             dsimp only [NFA_of_RG] at hi'
             rcases hi' with hcons | hsingle
@@ -179,7 +176,7 @@ public lemma NFA_of_RG_none_forward {g : RG_grammar T}
             simp +decide [ NFA.evalFrom ];
           rcases NFA.mem_stepSet.mp h_step with ⟨i, hi, hi'⟩
           rcases i with _ | ⟨C, hC⟩
-          · simpa [NFA_of_RG] using hi'
+          · simp at hi'
           · exact ⟨C, hC, hi, by simpa [NFA_of_RG] using hi'⟩
         obtain ⟨ hC₁, hC₂, hC₃ ⟩ := hC;
         have h_single : RG_rule.single C a ∈ g.rules := by
@@ -398,7 +395,7 @@ public theorem isRegular_of_is_RG {L : Language T} (h : is_RG L) : L.IsRegular :
 variable [Fintype T]
 
 /-- Right-regular grammar constructed from a DFA over a finite alphabet. -/
-@[expose, reducible]
+@[reducible]
 public def RG_of_DFA {σ : Type} [Fintype σ] (M : DFA T σ) : RG_grammar T where
   nt := σ
   initial := M.start
@@ -461,7 +458,7 @@ public lemma RG_of_DFA_derives_simulation {σ : Type} [Fintype σ] (M : DFA T σ
               exact List.map symbol.terminal ( a :: w ) ++ [ symbol.nonterminal ( M.evalFrom q ( a :: w ) ) ];
               · assumption;
               · use RG_rule.cons (M.evalFrom q (a :: w)) ih (M.evalFrom q (a :: (w ++ [ih])));
-                simp +decide [ RG_of_DFA_cons_mem ];
+                simp +decide;
                 exact ⟨ [ symbol.terminal a ] ++ List.map symbol.terminal w, [ ], by simp +decide [ RG_rule.lhs, RG_rule.output ] ⟩
 
 /-
@@ -539,5 +536,5 @@ theorem RG_eq_DFA {T: Type} [Fintype T] :
   (RG : Set (Language T)) = DFA.Class := by
     ext L
     refine Eq.to_iff ?_
-    simp only [RG, Set.mem_setOf_eq, DFA.Class, eq_iff_iff]
+    simp only [RG, DFA.Class, eq_iff_iff]
     exact is_RG_iff_isRegular

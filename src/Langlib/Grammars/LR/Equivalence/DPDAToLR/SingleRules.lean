@@ -133,6 +133,7 @@ public theorem reaches_of_characteristic_derives_single (M : DPDA Q T S)
     simpa using hsplit.trans (hmiddle.trans hlast)
   exact reaches_of_mathlib_derives_list M (by simp) hderive'
 
+omit [Fintype T] in
 private theorem terminal_single_completion_eq (G : CF_grammar T)
     {a : T} {w : List T}
     (h : G.DerivesRightmost [symbol.terminal a]

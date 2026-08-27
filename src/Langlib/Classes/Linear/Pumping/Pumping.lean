@@ -78,7 +78,7 @@ public lemma exists_pump_indices {α : Type*} [DecidableEq α] (S : Finset α)
       omega
     have hij : Nat.find (hex p) < Nat.find (hex q) := by
       by_contra hcon
-      push_neg at hcon
+      push Not at hcon
       exact absurd (hmono hcon) (by omega)
     refine ⟨_, _, hij, hrr, hcnt, ?_⟩
     have hqb := hub q

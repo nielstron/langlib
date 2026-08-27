@@ -29,7 +29,6 @@ noncomputable section
 variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- Constructor-exact view of an epsilon-generated concrete empty edge. -/
-@[expose]
 public def ConcreteEpsilonEmptyEdge (M : DPDA Q T S)
     (p : List (symbol T (Nonterminal M))) (q : State M)
     (suffix : List T) : Prop :=
@@ -43,7 +42,6 @@ public def ConcreteEpsilonEmptyEdge (M : DPDA Q T S)
         (characteristicGrammar M).rules
 
 /-- Constructor-exact view of a structural split concrete empty edge. -/
-@[expose]
 public def ConcreteSplitEmptyEdge (M : DPDA Q T S)
     (p : List (symbol T (Nonterminal M))) (q : State M)
     (suffix : List T) : Prop :=
@@ -66,7 +64,6 @@ public def ConcreteSplitEmptyEdge (M : DPDA Q T S)
 
 /-- Exact residual after dispatching all same-prefix cases involving a read
 edge. -/
-@[expose]
 public def SamePrefixEpsilonReturnResidual (M : DPDA Q T S)
     (p : List (symbol T (Nonterminal M))) (q₁ q₂ : State M)
     (suffix₁ suffix₂ : List T) : Prop :=
@@ -119,7 +116,6 @@ public theorem concreteTransitionEmptyReturn_samePrefix_state_eq_or_residual
 /-- Counted form of a transition-generated return.  Unlike the general
 `CountedConcreteEmptyReturnInterval`, the retained return has exactly one
 PDA step. -/
-@[expose]
 public def CountedConcreteEmptyTransitionInterval (M : DPDA Q T S)
     (completion suffix : List T) (q : State M) : Prop :=
   ∃ (beforeWord segmentWord : List T) (source : State M)

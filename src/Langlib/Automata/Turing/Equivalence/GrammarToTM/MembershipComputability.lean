@@ -62,7 +62,6 @@ variable {T : Type} [DecidableEq T]
 
 /-! ### Primcodable instances -/
 
-@[expose]
 public noncomputable def symbolEquiv (T N : Type) : symbol T N ≃ T ⊕ N where
   toFun s := match s with
     | .terminal t => Sum.inl t
@@ -73,12 +72,10 @@ public noncomputable def symbolEquiv (T N : Type) : symbol T N ≃ T ⊕ N where
   left_inv s := by cases s <;> rfl
   right_inv s := by cases s <;> rfl
 
-@[expose]
 public noncomputable instance symbolPrimcodable {T N : Type}
     [Primcodable T] [Primcodable N] : Primcodable (symbol T N) :=
   Primcodable.ofEquiv (T ⊕ N) (symbolEquiv T N)
 
-@[expose]
 public noncomputable def gruleEquiv (T N : Type) :
     grule T N ≃ List (symbol T N) × N × List (symbol T N) × List (symbol T N) where
   toFun r := (r.input_L, r.input_N, r.input_R, r.output_string)
@@ -86,7 +83,6 @@ public noncomputable def gruleEquiv (T N : Type) :
   left_inv r := by cases r; rfl
   right_inv p := by obtain ⟨a, b, c, d⟩ := p; rfl
 
-@[expose]
 public noncomputable instance grulePrimcodable {T N : Type}
     [Primcodable T] [Primcodable N] : Primcodable (grule T N) :=
   Primcodable.ofEquiv _ (gruleEquiv T N)

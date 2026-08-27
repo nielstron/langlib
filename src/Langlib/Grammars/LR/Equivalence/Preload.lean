@@ -22,17 +22,19 @@ open CF_grammar.LRk
 
 variable {T : Type} [Fintype T]
 
+omit [Fintype T] in
 /-- Writing the next free slot of an observed short prefix extends that
 prefix by one terminal. -/
-public theorem setBuffer_observe_append_singleton (k : ℕ)
+public theorem setBuffer_observe_append_singleton [Fintype T] (k : ℕ)
     (xs : List T) (a : T) (hxs : xs.length < k) :
     setBuffer (observe k xs) xs.length (some a) =
       observe k (xs ++ [a]) := by
+  have _ := hxs
   funext i
   unfold setBuffer observe
   by_cases hi : i.val = xs.length
   · rw [if_pos hi]
-    simp [List.getElem?_append, hi]
+    simp [hi]
   · rw [if_neg hi]
     by_cases hlt : i.val < xs.length
     · simp [List.getElem?_append, hlt]
@@ -40,20 +42,23 @@ public theorem setBuffer_observe_append_singleton (k : ℕ)
       rw [List.getElem?_eq_none (by omega),
         List.getElem?_eq_none (by simp; omega)]
 
+omit [Fintype T] in
 /-- Padding after an early marker leaves the ordinary EOF-padded observation
 unchanged. -/
-public theorem finishBuffer_observe (k : ℕ) (xs : List T)
+public theorem finishBuffer_observe [Fintype T] (k : ℕ) (xs : List T)
     (hxs : xs.length < k) :
     finishBuffer (observe k xs) xs.length = observe k xs := by
+  have _ := hxs
   funext i
   unfold finishBuffer observe
   by_cases hi : i.val < xs.length
   · simp [hi]
   · rw [if_neg hi, List.getElem?_eq_none (by omega)]
 
+omit [Fintype T] in
 /-- Once a prefix of length `k` has been loaded, later terminals do not change
 the observation. -/
-public theorem observe_append_of_length_eq (k : ℕ) (xs ys : List T)
+public theorem observe_append_of_length_eq [Fintype T] (k : ℕ) (xs ys : List T)
     (hxs : xs.length = k) :
     observe k (xs ++ ys) = observe k xs := by
   funext i
@@ -61,13 +66,14 @@ public theorem observe_append_of_length_eq (k : ℕ) (xs ys : List T)
   rw [List.getElem?_append]
   simp [hxs, i.isLt]
 
+omit [Fintype T] in
 /-- The physical suffix after loading an exact `k`-terminal prefix. -/
-public theorem unreadAfter_append_of_length_eq (k : ℕ)
+public theorem unreadAfter_append_of_length_eq [Fintype T] (k : ℕ)
     (xs ys : List T) (hxs : xs.length = k) :
     unreadAfter k (xs ++ ys) = ys.map some ++ [none] := by
   unfold unreadAfter
   rw [if_pos (by simp [hxs])]
-  simp [hxs, List.drop_append]
+  simp [hxs]
 
 noncomputable section
 

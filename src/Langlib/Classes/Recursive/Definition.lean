@@ -67,7 +67,6 @@ The machine uses the same tape convention as `is_TM`: `Option (T ⊕ Γ)`, where
 `none` is blank, `some (Sum.inl t)` is an input symbol, and `some (Sum.inr γ)` is
 a work symbol. The input word `w : List T` is written as
 `w.map (fun t => some (Sum.inl t))`. -/
-@[expose]
 public def is_Recursive {T : Type} (L : Language T) : Prop :=
   ∃ (Γ : Type) (_ : Fintype Γ)
     (Λ : Type) (_ : Inhabited Λ) (_ : Fintype Λ)
@@ -84,5 +83,4 @@ public def is_Recursive {T : Type} (L : Language T) : Prop :=
               (TM0.init (w.map fun t => some (Sum.inl t)))).get h).q = true)
 
 /-- The class of recursive (decidable) languages. -/
-@[expose]
-public def Recursive : Set (Language T) := setOf is_Recursive
+public def Recursive : Set (Language T) := Set.ofPred is_Recursive

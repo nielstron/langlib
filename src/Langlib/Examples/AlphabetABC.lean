@@ -39,13 +39,10 @@ public section
 /-! # The three-symbol alphabet used by `a/b/c` examples -/
 
 /-- The symbol `a` in the shared `Fin 3` alphabet. -/
-@[expose]
 public def a_ : Fin 3 := 0
 
 /-- The symbol `b` in the shared `Fin 3` alphabet. -/
-@[expose]
 public def b_ : Fin 3 := 1
 
 /-- The symbol `c` in the shared `Fin 3` alphabet. -/
-@[expose]
 public def c_ : Fin 3 := 2

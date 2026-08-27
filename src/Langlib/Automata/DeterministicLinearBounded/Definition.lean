@@ -121,18 +121,18 @@ public structure BoundedTape (Γ : Type*) (n : ℕ) where
   deriving DecidableEq
 
 /-- Read the symbol under the head. -/
-@[simp, expose]
+@[simp]
 public def BoundedTape.read {Γ : Type*} {n : ℕ} (t : BoundedTape Γ n) : Γ :=
   t.contents t.head
 
 /-- Write a symbol at the current head position. -/
-@[expose, reducible]
+@[reducible]
 public def BoundedTape.write {Γ : Type*} {n : ℕ} (t : BoundedTape Γ n) (a : Γ) :
     BoundedTape Γ n :=
   { t with contents := Function.update t.contents t.head a }
 
 /-- Move the head, clamping at boundaries (left end = 0, right end = n). -/
-@[expose, reducible]
+@[reducible]
 public def BoundedTape.moveHead {Γ : Type*} {n : ℕ} (t : BoundedTape Γ n) (d : Dir) :
     BoundedTape Γ n :=
   { t with head :=
@@ -145,7 +145,6 @@ public def BoundedTape.moveHead {Γ : Type*} {n : ℕ} (t : BoundedTape Γ n) (d
     | Dir.right =>
       if h : t.head.val < n then ⟨t.head.val + 1, Nat.add_lt_add_right h 1⟩ else t.head }
 
-@[expose]
 public noncomputable instance BoundedTape.instFintype {Γ : Type*} {n : ℕ}
     [Fintype Γ] : Fintype (BoundedTape Γ n) :=
   Fintype.ofInjective
@@ -179,7 +178,6 @@ public structure Cfg (Γ : Type*) (Λ : Type*) (n : ℕ) where
   tape : BoundedTape Γ n
   deriving DecidableEq
 
-@[expose]
 public noncomputable instance Cfg.instFintype {Γ : Type*} {Λ : Type*} {n : ℕ}
     [Fintype Γ] [Fintype Λ] : Fintype (Cfg Γ Λ n) :=
   Fintype.ofInjective
@@ -191,7 +189,6 @@ public noncomputable instance Cfg.instFintype {Γ : Type*} {Λ : Type*} {n : ℕ
 /-- Execute one step of the DLBA. Returns `none` if the machine halts
 (i.e., the transition function returns `none` for the current state and symbol).
 The configuration just before halting can be inspected for acceptance. -/
-@[expose]
 public def step {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) : Option (Cfg Γ Λ n) :=
   match M.transition cfg.state cfg.tape.read with
@@ -200,7 +197,6 @@ public def step {Γ : Type*} {Λ : Type*} {n : ℕ}
 
 /-- Iterate the step function `k` times. Returns `some cfg'` if the machine is
 still running after `k` steps, or `none` if it halted at or before step `k`. -/
-@[expose]
 public def iterateStep {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) : ℕ → Option (Cfg Γ Λ n)
   | 0 => some cfg
@@ -257,7 +253,6 @@ noncomputable def haltingCfg {Γ : Type*} {Λ : Type*} {n : ℕ}
 
 /-- The machine **accepts** from configuration `cfg` if it halts and the last
 configuration before halting has an accepting state. -/
-@[expose]
 public def Accepts {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) : Prop :=
   ∃ k, iterateStep M cfg (k + 1) = none ∧
@@ -271,20 +266,17 @@ def Rejects {Γ : Type*} {Λ : Type*} {n : ℕ}
     ∃ cfg', iterateStep M cfg k = some cfg' ∧ M.accept cfg'.state = false
 
 /-- The initial configuration for input `w` on a tape of `n + 1` cells. -/
-@[expose]
 public def initCfg {Γ : Type*} {Λ : Type*} {n : ℕ}
     (M : Machine Γ Λ) (w : Fin (n + 1) → Γ) : Cfg Γ Λ n :=
   ⟨M.initial, ⟨w, ⟨0, Nat.zero_lt_succ n⟩⟩⟩
 
 /-- Load a non-empty list onto a bounded tape. -/
-@[expose]
 public noncomputable def loadList {Γ : Type*} (w : List Γ) (hw : w ≠ []) :
     BoundedTape Γ (w.length - 1) :=
   ⟨fun i => w.get ⟨i.val, by have := i.isLt; have := List.length_pos_of_ne_nil hw; omega⟩,
    ⟨0, by have := List.length_pos_of_ne_nil hw; omega⟩⟩
 
 /-- Initial configuration for a non-empty list input. -/
-@[expose]
 public noncomputable def initCfgList {Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (w : List Γ) (hw : w ≠ []) :
     Cfg Γ Λ (w.length - 1) :=
@@ -292,7 +284,6 @@ public noncomputable def initCfgList {Γ : Type*} {Λ : Type*}
 
 /-- The **language** recognized by a DLBA: the set of inputs (of each length) that
 the machine accepts. -/
-@[expose]
 public def Language {Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (n : ℕ) : Set (Fin (n + 1) → Γ) :=
   { w | Accepts M (initCfg M w) }
@@ -303,14 +294,12 @@ noncomputable def LanguageOfMachine {Γ : Type*} {Λ : Type*}
   fun w => ∃ (hw : w ≠ []), Accepts M (initCfgList M w hw)
 
 /-- Recognition via an embedding from the input alphabet into the tape alphabet. -/
-@[expose]
 public noncomputable def LanguageViaEmbed {T Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (embed : T → Γ) : _root_.Language T :=
   fun w => ∃ (hw : w.map embed ≠ []),
     Accepts M (initCfgList M (w.map embed) hw)
 
 /-- Recognition with an explicit decision for the empty word (see `LBA.LanguageRecognized`). -/
-@[expose]
 public noncomputable def LanguageRecognized {T Γ : Type*} {Λ : Type*}
     (M : Machine Γ Λ) (embed : T → Γ) (acceptEmpty : Bool) : _root_.Language T :=
   fun w => (acceptEmpty = true ∧ w = []) ∨ LanguageViaEmbed M embed w
@@ -475,7 +464,7 @@ theorem halts_iff_haltsWithin (M : Machine Γ Λ) (cfg : Cfg Γ Λ n) :
     -- By the pigeonhole principle, if the machine runs for more than the cardinality of the configuration space without halting, it must have visited the same configuration twice.
     obtain ⟨i, j, hij, hi⟩ : ∃ i j, i < j ∧ j ≤ Fintype.card (Cfg Γ Λ n) ∧ iterateStep M cfg i = iterateStep M cfg j ∧ (iterateStep M cfg i).isSome := by
       apply exists_iterate_eq_of_long_run M cfg;
-      exact fun k hk => by push_neg at h_contra; exact Option.isSome_iff_ne_none.mpr ( h_contra k hk ) ;
+      exact fun k hk => by push Not at h_contra; exact Option.isSome_iff_ne_none.mpr ( h_contra k hk ) ;
     exact not_halts_of_iterate_eq M cfg hij hi.2.1 ( by aesop ) h;
   · exact fun ⟨ k, hk₁, hk₂ ⟩ => ⟨ k, hk₂ ⟩
 
@@ -588,7 +577,6 @@ finite deterministic linearly bounded automaton over the tape alphabet `Option (
 (arbitrary finite work alphabet `Γ`), with the input written canonically via `some ∘ Sum.inl`
 and an explicit decision `acceptEmpty` for the empty word — the same convention as the
 Turing-machine/recursive definitions. -/
-@[expose]
 public def is_DLBA [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
   ∃ (Γ Λ : Type) (_ : Fintype Γ) (_ : Fintype Λ)
     (_ : DecidableEq Γ) (_ : DecidableEq Λ)
@@ -597,5 +585,4 @@ public def is_DLBA [Fintype T] [DecidableEq T] (L : Language T) : Prop :=
     DLBA.LanguageRecognized M (fun t => some (Sum.inl t)) acceptEmpty = L
 
 /-- The class of deterministic LBA languages. -/
-@[expose]
-public def DLBA [Fintype T] [DecidableEq T] : Set (Language T) := setOf is_DLBA
+public def DLBA [Fintype T] [DecidableEq T] : Set (Language T) := Set.ofPred is_DLBA

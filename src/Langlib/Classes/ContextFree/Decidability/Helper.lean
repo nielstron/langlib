@@ -39,7 +39,6 @@ public section
 
 
 /-- The language represented by an encoded context-free grammar. -/
-@[expose]
 public def contextFreeLanguageOf (G : EncodedCFG T) : Language T :=
   CF_language G.toCFGrammar
 
