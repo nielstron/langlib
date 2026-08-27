@@ -737,53 +737,57 @@ theorem TM_eq_RE {T : Type} [DecidableEq T] [Fintype T] :
 
 /-! ## Strict extended Chomsky hierarchy -/
 
+namespace ChomskyHierarchy
+
 /-- Over every finite alphabet with at least 2 elements, regular languages are
 strictly contained in linear languages. -/
 theorem RG_strict_subclass_Linear_of_card {T : Type} [Fintype T]
     (hT : 2 ≤ Fintype.card T) :
-    (RG : Set (Language T)) ⊂ Linear := by sorry
+    (RG : Set (Language T)) ⊂ (Linear : Set (Language T)) := by sorry
 
 /-- Over every finite alphabet with at least 4 elements, linear languages are
 strictly contained in context-free languages. -/
 theorem Linear_strict_subclass_CF_of_card {T : Type} [Fintype T]
     (hT : 4 ≤ Fintype.card T) :
-    (Linear : Set (Language T)) ⊂ CF := by sorry
+    (Linear : Set (Language T)) ⊂ (CF : Set (Language T)) := by sorry
 
 /-- Over every finite alphabet with at least 2 elements, regular languages are
 strictly contained in deterministic context-free languages. -/
 theorem RG_strict_subclass_DCF_of_card {T : Type} [Fintype T]
     (hT : 2 ≤ Fintype.card T) :
-    (RG : Set (Language T)) ⊂ DCF := by sorry
+    (RG : Set (Language T)) ⊂ (DCF : Set (Language T)) := by sorry
 
 /-- Over every finite alphabet with at least 3 elements, deterministic
 context-free languages are a strict subclass of context-free languages. -/
 theorem DCF_strict_subclass_CF_of_card {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T) :
-    (DCF : Set (Language T)) ⊂ CF := by sorry
+    (DCF : Set (Language T)) ⊂ (CF : Set (Language T)) := by sorry
 
 /-- Over every finite alphabet with at least 3 elements, context-free languages are
 strictly contained in indexed languages. -/
 theorem CF_strict_subclass_Indexed {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T) :
-    (CF : Set (Language T)) ⊂ Indexed := by sorry
+    (CF : Set (Language T)) ⊂ (Indexed : Set (Language T)) := by sorry
 
 /-- Over every finite alphabet with at least 2 elements, indexed languages are
 strictly contained in context-sensitive languages. -/
 theorem Indexed_strict_subclass_CS {T : Type} [Fintype T]
     (hT : 2 ≤ Fintype.card T) :
-    (Indexed : Set (Language T)) ⊂ CS := by sorry
+    (Indexed : Set (Language T)) ⊂ (CS : Set (Language T)) := by sorry
 
 /-- Over every finite alphabet with at least 1 element, context-sensitive
 languages are strictly contained in recursive languages. -/
 theorem CS_strict_subclass_Recursive_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :
-    (CS : Set (Language T)) ⊂ Recursive := by sorry
+    (CS : Set (Language T)) ⊂ (Recursive : Set (Language T)) := by sorry
 
 /-- Over every finite alphabet with at least 1 element, recursive languages are
 strictly contained in recursively enumerable languages. -/
 theorem Recursive_strict_subclass_RE_of_card {T : Type} [Fintype T]
     (hT : 1 ≤ Fintype.card T) :
-    (Recursive : Set (Language T)) ⊂ RE := by sorry
+    (Recursive : Set (Language T)) ⊂ (RE : Set (Language T)) := by sorry
+
+end ChomskyHierarchy
 
 /-- Linear languages are not closed under concatenation when the alphabet has at least 4 elements. -/
 theorem Linear_not_closedUnderConcatenation {T : Type} (e : Fin 4 ↪ T) :

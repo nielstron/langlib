@@ -153,16 +153,16 @@ status:
       file: "src/Langlib/Automata/Turing/Equivalence/RecursivelyEnumerable.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "Indexed_strict_subclass_CS"
-      file: "src/Langlib/Classes/Indexed/Inclusion/StrictContextSensitive.lean"
+    - declaration: "ChomskyHierarchy.Indexed_strict_subclass_CS"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "CS_strict_subclass_Recursive_of_card"
-      file: "src/Langlib/Classes/ContextSensitive/Inclusion/StrictRecursive.lean"
+    - declaration: "ChomskyHierarchy.CS_strict_subclass_Recursive_of_card"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "Recursive_strict_subclass_RE_of_card"
-      file: "src/Langlib/Classes/Recursive/Inclusion/StrictRecursivelyEnumerable.lean"
+    - declaration: "ChomskyHierarchy.Recursive_strict_subclass_RE_of_card"
+      file: "Solution.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
 
