@@ -2,14 +2,14 @@ module
 
 public import Langlib.Grammars.LR.Definition
 public import Langlib.Classes.ContextFree.Definition
-import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 
 /-!
 # LR(k) languages are context-free
 
-An LR(k) grammar is, by definition, one of the repository's context-free grammars
-(`CF_grammar`) carrying an extra determinacy property, so the language it generates
-is context-free.  This file records that inclusion at the language-class level.
+An LR(k) grammar is, by definition, an unrestricted grammar carrying both the
+context-free rule-shape property and the LR(k) determinacy property, so the
+language it generates is context-free.  This file records that inclusion at
+the language-class level.
 
 ## Main results
 
@@ -24,8 +24,8 @@ variable {T : Type}
 
 /-- Every LR(k) language is context-free. -/
 public theorem is_CF_of_is_LRk {k : ℕ} {L : Language T} (h : is_LRk k L) : is_CF L := by
-  obtain ⟨g, _hg, hL⟩ := h
-  exact is_CF_via_cfg_implies_is_CF ⟨g, hL⟩
+  obtain ⟨g, ⟨hcf, _hLR⟩, hL⟩ := h
+  exact ⟨g, hcf, hL⟩
 
 /-- Every LR language is context-free. -/
 public theorem is_CF_of_is_LR {L : Language T} (h : is_LR L) : is_CF L := by

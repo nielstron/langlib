@@ -297,8 +297,10 @@ alignment:
       module: "Langlib.Grammars.LR.Equivalence"
       status: "proved"
       note: >-
-        Existential finite-lookahead LR languages coincide with the DPDA-defined
-        deterministic context-free class.
+        The canonical LR(k) predicate is stated directly on unrestricted
+        grammars, with a proved compatibility characterization through
+        CF_grammar. Existential finite-lookahead LR languages coincide with the
+        DPDA-defined deterministic context-free class.
     - source: "Myhill-Kuroda characterization"
       lean: "CS_eq_LBA"
       module: "Langlib.Automata.LinearBounded.Equivalence.ContextSensitive"

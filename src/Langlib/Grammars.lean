@@ -167,6 +167,7 @@ public import Langlib.Grammars.LR.Inclusion.ContextFree
 public import Langlib.Grammars.LR.Inclusion.StrictContextFree
 public import Langlib.Grammars.LR.Parser
 public import Langlib.Grammars.LR.Rightmost
+public import Langlib.Grammars.LR.UnrestrictedCharacterization
 public import Langlib.Grammars.LeftRegular.Definition
 public import Langlib.Grammars.LeftRegular.Equivalence.RightRegular
 public import Langlib.Grammars.NonContracting.Definition

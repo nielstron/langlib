@@ -2,6 +2,7 @@ module
 
 public import Langlib.Grammars.LR.Equivalence.MachineCorrectness
 public import Langlib.Grammars.LR.Equivalence.Endmarker
+import Langlib.Grammars.LR.UnrestrictedCharacterization
 
 /-!
 # LR(k) grammars compile to deterministic pushdown automata
@@ -55,7 +56,7 @@ end CF_grammar.LRk
 DPDA, for every finite `k` (including zero lookahead). -/
 public theorem is_DPDA_of_is_LRk {T : Type} [Fintype T]
     {k : ℕ} {L : Language T} (h : is_LRk k L) : is_DPDA L := by
-  rcases h with ⟨G, hLR, hL⟩
+  rcases is_LRk_iff_is_LRk_via_cfg.mp h with ⟨G, hLR, hL⟩
   rw [← hL]
   exact CF_grammar.LRk.is_DPDA_CF_language_of_IsLRk G k hLR
 

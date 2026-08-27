@@ -4,7 +4,7 @@ module
 Copyright (c) 2026 Harmonic. All rights reserved.
 Released under Apache 2.0 license; see licenses/Apache-2.0.txt.
 -/
-public import Langlib.Grammars.LR.Definition
+public import Langlib.Grammars.LR.UnrestrictedCharacterization
 public import Langlib.Classes.RecursivelyEnumerable.Closure.Bijection
 import Langlib.Grammars.ContextFree.UnrestrictedCharacterization
 import Mathlib.Logic.Function.Basic
@@ -162,7 +162,8 @@ public theorem map_CF_grammar_isLRk_of_injective [Nonempty T₁] (g : CF_grammar
 public theorem is_LRk_map_injective [Nonempty T₁] {f : T₁ → T₂}
     (hf : Function.Injective f) {k : ℕ} {L : Language T₁}
     (hL : is_LRk k L) : is_LRk k (Language.map f L) := by
-  obtain ⟨g, hg, hlang⟩ := hL
+  apply is_LRk_iff_is_LRk_via_cfg.mpr
+  obtain ⟨g, hg, hlang⟩ := is_LRk_iff_is_LRk_via_cfg.mp hL
   refine ⟨map_CF_grammar g f, map_CF_grammar_isLRk_of_injective g hf hg, ?_⟩
   rw [map_CF_grammar_language_of_leftInverse g (Function.leftInverse_invFun hf), hlang]
 
