@@ -52,11 +52,15 @@ All headline strict-inclusion theorems quantify over an arbitrary finite termina
 alphabet: at least 2 elements for RG ⊊ Linear, RG ⊊ DCF, and Indexed ⊊ CS;
 at least 3 elements for DCF ⊊ CF and CF ⊊ Indexed; at least 4 elements for
 Linear ⊊ CF; and at least 1 element for CS ⊊ Recursive and Recursive ⊊ RE.
+Linear and DPDA-recognizable languages are
+[incomparable](src/Langlib/Classes/Linear/Inclusion/DeterministicContextFree.lean)
+over every finite alphabet with at least 4 elements.
 
 **Additional results**
 
 - Context Free Languages ⇔ [🔗](src/Langlib/Grammars/ContextFree/MathlibCFG.lean) Mathlib's `IsContextFree`.
 - Regular ⊊ [🔗](src/Langlib/Classes/Regular/Inclusion/StrictLinear.lean) Linear ⊊ [🔗](src/Langlib/Classes/Linear/Inclusion/StrictContextFree.lean) Context-free.
+- Linear and DPDA-recognizable languages are incomparable [🔗](src/Langlib/Classes/Linear/Inclusion/DeterministicContextFree.lean).
 - Regular ⊆ [🔗](src/Langlib/Classes/Regular/Inclusion/Recursive.lean) Recursive.
 - Context-free ⊆ [🔗](src/Langlib/Classes/ContextFree/Inclusion/Recursive.lean) Recursive.
 
@@ -108,7 +112,8 @@ The repository root contains a Palomar statement/proof split:
 
 - [`Challenge.lean`](Challenge.lean) imports only Mathlib and gives transparent
   definitions plus the theorem statements for the grammar hierarchy, automata
-  characterizations, strict inclusions, and the closure table above.
+  characterizations, strict inclusions, Linear/DPDA incomparability, and the
+  closure table above.
 - [`Solution.lean`](Solution.lean) imports `Langlib`, whose existing declarations
   supply the proofs registered in [`comparator.json`](comparator.json).
 

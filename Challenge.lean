@@ -11,7 +11,8 @@ This is the independent, Mathlib-only statement surface for the Palomar Registry
 It records the ordinary unrestricted-grammar definitions of the language classes,
 the finite, pushdown, linearly bounded, and Turing automaton presentations, the
 strict hierarchy (with explicit alphabet-size hypotheses), the proved
-grammar/automaton equivalences, and the closure and non-closure results.
+grammar/automaton equivalences, the incomparability of linear and deterministic
+context-free languages, and the closure and non-closure results.
 
 The wider repository also proves decidability and undecidability results.  Those
 results are deliberately outside this challenge.
@@ -687,49 +688,43 @@ def ClosedUnderSubstitution
 
 /-! ## Grammar/automaton equivalences -/
 
-/-- Right-regular unrestricted grammars recognize exactly Mathlib-regular languages. -/
-theorem is_RG_iff_isRegular {T : Type} [Fintype T] {L : Language T} :
-    is_RG L ↔ L.IsRegular := by sorry
+/-! ### Finite-state automata -/
 
 /-- The grammar-defined regular class equals the Mathlib-DFA class. -/
 theorem RG_eq_DFA {T : Type} [Fintype T] :
     (RG : Set (Language T)) = DFA.Class := by sorry
 
-/-- Mathlib NFAs and DFAs recognize the same languages. -/
-theorem is_NFA_iff_is_DFA {T : Type} {L : Language T} :
-    is_NFA L ↔ is_DFA L := by sorry
-
 /-- The Mathlib-NFA and Mathlib-DFA language classes coincide. -/
 theorem NFA_eq_DFA {T : Type} :
     (NFA.Class : Set (Language T)) = DFA.Class := by sorry
 
-/-- Context-free unrestricted grammars agree with Mathlib's context-free grammars. -/
-theorem is_CF_iff_isContextFree {T : Type} {L : Language T} :
-    is_CF L ↔ L.IsContextFree := by sorry
+/-! ### Pushdown automata -/
 
 /-- Context-free grammars and nondeterministic PDAs recognize the same class. -/
 theorem CF_eq_PDA_Class {T : Type} [Fintype T] :
     (CF : Set (Language T)) = PDA.Class := by sorry
 
-/-- PDA final-state and empty-stack acceptance recognize the same languages. -/
-theorem is_PDA_finalState_iff_is_PDA_emptyStack {T : Type} [Fintype T]
-    {L : Language T} : PDA.is_PDA_finalState L ↔ PDA.is_PDA_emptyStack L := by sorry
-
 /-- The PDA classes under final-state and empty-stack acceptance coincide. -/
 theorem PDA_FinalStateClass_eq_Class {T : Type} [Fintype T] :
     (PDA.FinalStateClass : Set (Language T)) = PDA.Class := by sorry
 
-/-- LR grammars and deterministic PDAs recognize the same languages. -/
-theorem is_LR_iff_is_DPDA {T : Type} [Fintype T] {L : Language T} :
-    is_LR L ↔ is_DPDA L := by sorry
+/-! ### Deterministic pushdown automata and LR grammars -/
 
-/-- The grammar-side LR class is the deterministic context-free class. -/
-theorem is_LR_iff_is_DCF {T : Type} [Fintype T] {L : Language T} :
-    is_LR L ↔ is_DCF L := by sorry
+/-- The grammar-side LR class equals the DPDA-recognizable class. -/
+theorem LR_eq_DPDA {T : Type} [Fintype T] :
+    (LR : Set (Language T)) = DPDA.Class := by sorry
+
+/-- The grammar-side LR and deterministic context-free classes coincide. -/
+theorem LR_eq_DCF {T : Type} [Fintype T] :
+    (LR : Set (Language T)) = DCF := by sorry
+
+/-! ### Linearly bounded automata -/
 
 /-- Context-sensitive grammars and nondeterministic endmarker LBAs recognize the same class. -/
 theorem CS_eq_LBA {T : Type} [Fintype T] [DecidableEq T] :
     (CS : Set (Language T)) = LBA := by sorry
+
+/-! ### Turing machines -/
 
 /-- Unrestricted grammars and Mathlib TM0 recognizers define the same class. -/
 theorem TM_eq_RE {T : Type} [DecidableEq T] [Fintype T] :
@@ -763,6 +758,14 @@ theorem DCF_strict_subclass_CF_of_card {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T) :
     (DCF : Set (Language T)) ⊂ (CF : Set (Language T)) := by sorry
 
+/-- Over every finite alphabet with at least 4 elements, the linear and
+DPDA-recognizable classes are incomparable: neither contains the other, and in
+particular they are unequal. -/
+theorem Linear_incomp_DPDA_of_card {T : Type} [Fintype T]
+    (hT : 4 ≤ Fintype.card T) :
+    IncompRel (· ⊆ ·) (Linear : Set (Language T))
+      (DPDA.Class : Set (Language T)) := by sorry
+
 /-- Over every finite alphabet with at least 3 elements, context-free languages are
 strictly contained in indexed languages. -/
 theorem CF_strict_subclass_Indexed {T : Type} [Fintype T]
@@ -789,10 +792,6 @@ theorem Recursive_strict_subclass_RE_of_card {T : Type} [Fintype T]
 
 end ChomskyHierarchy
 
-/-- Linear languages are not closed under concatenation when the alphabet has at least 4 elements. -/
-theorem Linear_not_closedUnderConcatenation {T : Type} (e : Fin 4 ↪ T) :
-    ¬ ClosedUnderConcatenation (@is_Linear T) := by sorry
-
 /-! ## Closure and non-closure results
 
 Each statement is the full abstract closure property.  A negated statement is
@@ -800,16 +799,13 @@ witnessed in the proof development by concrete languages over the indicated
 finite alphabet; it does not claim failure over every alphabet.
 -/
 
-/-- Three-letter alphabet used by the indexed right-quotient counterexample. -/
-inductive CopyLetter where
-  | a | b | separator
-deriving DecidableEq, Inhabited
+/-! ### Linear languages -/
 
-instance : Fintype CopyLetter where
-  elems := {CopyLetter.a, CopyLetter.b, CopyLetter.separator}
-  complete c := by cases c <;> simp
+/-- Linear languages are not closed under concatenation when the alphabet has at least 4 elements. -/
+theorem Linear_not_closedUnderConcatenation {T : Type} (e : Fin 4 ↪ T) :
+    ¬ ClosedUnderConcatenation (@is_Linear T) := by sorry
 
--- Regular languages
+/-! ### Regular languages -/
 theorem RG_closedUnderUnion {alpha : Type} [Fintype alpha] : ClosedUnderUnion (@is_RG alpha) := by sorry
 theorem RG_closedUnderIntersection {alpha : Type} [Fintype alpha] : ClosedUnderIntersection (@is_RG alpha) := by sorry
 theorem RG_closedUnderComplement {alpha : Type} [Fintype alpha] : ClosedUnderComplement (@is_RG alpha) := by sorry
@@ -826,7 +822,7 @@ theorem RG_closedUnderIntersectionWithRegular {alpha : Type} [Fintype alpha] : C
 theorem RG_closedUnderRightQuotient {alpha : Type} [Fintype alpha] : ClosedUnderRightQuotient (@is_RG alpha) := by sorry
 theorem RG_closedUnderRightQuotientWithRegular {alpha : Type} [Fintype alpha] : ClosedUnderRightQuotientWithRegular (@is_RG alpha) := by sorry
 
--- Deterministic context-free languages
+/-! ### Deterministic context-free languages -/
 theorem DCF_notClosedUnderUnion : ¬ ClosedUnderUnion (alpha := Fin 3) is_DCF := by sorry
 theorem DCF_notClosedUnderIntersection : ¬ ClosedUnderIntersection (alpha := Fin 3) is_DCF := by sorry
 theorem DCF_closedUnderComplement {T : Type} [Fintype T] :
@@ -854,7 +850,7 @@ theorem DCF_notClosedUnderRightQuotient :
 theorem DCF_closedUnderRightQuotientWithRegular {T : Type} [Fintype T] :
     ClosedUnderRightQuotientWithRegular (alpha := T) is_DCF := by sorry
 
--- Context-free languages
+/-! ### Context-free languages -/
 theorem CF_closedUnderUnion {T : Type} : ClosedUnderUnion (@is_CF T) := by sorry
 theorem CF_notClosedUnderIntersection : ¬ ClosedUnderIntersection (@is_CF (Fin 3)) := by sorry
 theorem CF_notClosedUnderComplement : ¬ ClosedUnderComplement (@is_CF (Fin 3)) := by sorry
@@ -870,7 +866,17 @@ theorem CF_notClosedUnderRightQuotient :
     ¬ ClosedUnderRightQuotient (alpha := Bool) is_CF := by sorry
 theorem CF_closedUnderRightQuotientWithRegular {T : Type} : ClosedUnderRightQuotientWithRegular (@is_CF T) := by sorry
 
--- Indexed languages
+/-! ### Indexed languages -/
+
+/-- Three-letter alphabet used by the indexed right-quotient counterexample. -/
+inductive CopyLetter where
+  | a | b | separator
+deriving DecidableEq, Inhabited
+
+instance : Fintype CopyLetter where
+  elems := {CopyLetter.a, CopyLetter.b, CopyLetter.separator}
+  complete c := by cases c <;> simp
+
 theorem Indexed_closedUnderUnion {T : Type} : ClosedUnderUnion (@is_Indexed T) := by sorry
 namespace IndexedIntersectionNonclosure
 theorem Indexed_notClosedUnderIntersection :
@@ -892,7 +898,7 @@ theorem Indexed_notClosedUnderRightQuotient :
     ¬ ClosedUnderRightQuotient (alpha := CopyLetter) is_Indexed := by sorry
 theorem Indexed_closedUnderRightQuotientWithRegular {T : Type} [Fintype T] : ClosedUnderRightQuotientWithRegular (@is_Indexed T) := by sorry
 
--- Context-sensitive languages
+/-! ### Context-sensitive languages -/
 theorem CS_closedUnderUnion {T : Type} : ClosedUnderUnion (@is_CS T) := by sorry
 theorem CS_closedUnderIntersection {T : Type} [Fintype T] [DecidableEq T] : ClosedUnderIntersection (@is_CS T) := by sorry
 theorem CS_closedUnderComplement {T : Type} [Fintype T] : ClosedUnderComplement (@is_CS T) := by sorry
@@ -909,7 +915,7 @@ theorem CS_notClosedUnderRightQuotient :
 theorem CS_notClosedUnderRightQuotientWithRegular :
     ¬ ClosedUnderRightQuotientWithRegular (alpha := Option Unit) is_CS := by sorry
 
--- Recursive languages
+/-! ### Recursive languages -/
 theorem Recursive_closedUnderUnion {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] : ClosedUnderUnion (@is_Recursive T) := by sorry
 theorem Recursive_closedUnderIntersection {T : Type} [DecidableEq T] [Fintype T] [Primcodable T] : ClosedUnderIntersection (@is_Recursive T) := by sorry
 theorem Recursive_closedUnderComplement {T : Type} : ClosedUnderComplement (@is_Recursive T) := by sorry
@@ -929,7 +935,7 @@ theorem Recursive_notClosedUnderRightQuotient :
 theorem Recursive_notClosedUnderRightQuotientWithRegular :
     ¬ ClosedUnderRightQuotientWithRegular (alpha := Bool) is_Recursive := by sorry
 
--- Recursively enumerable languages
+/-! ### Recursively enumerable languages -/
 theorem RE_closedUnderUnion {T : Type} : ClosedUnderUnion (@is_RE T) := by sorry
 theorem RE_closedUnderIntersection {T : Type} [DecidableEq T] [Fintype T] : ClosedUnderIntersection (@is_RE T) := by sorry
 theorem RE_notClosedUnderComplement : ¬ ClosedUnderComplement (@is_RE Unit) := by sorry

@@ -32,6 +32,12 @@ theorem DCF_strict_subclass_CF_of_card {T : Type} [Fintype T]
     (DCF : Set (Language T)) ⊂ (CF : Set (Language T)) :=
   _root_.DCF_strict_subclass_CF_of_card hT
 
+theorem Linear_incomp_DPDA_of_card {T : Type} [Fintype T]
+    (hT : 4 ≤ Fintype.card T) :
+    IncompRel (· ⊆ ·) (Linear : Set (Language T))
+      (DPDA.Class : Set (Language T)) :=
+  _root_.Linear_incomp_DPDA_of_card hT
+
 theorem CF_strict_subclass_Indexed {T : Type} [Fintype T]
     (hT : 3 ≤ Fintype.card T) :
     (CF : Set (Language T)) ⊂ (Indexed : Set (Language T)) :=

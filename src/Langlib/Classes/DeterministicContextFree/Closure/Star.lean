@@ -16,7 +16,7 @@ public import Langlib.Classes.Regular.Inclusion.DeterministicContextFree
 public import Langlib.Classes.Regular.Closure.Concatenation
 public import Langlib.Classes.Regular.Closure.Homomorphism
 public import Langlib.Classes.Regular.Closure.Star
-import Langlib.Examples.AbcPositive
+public import Langlib.Examples.AbcPositive
 import Langlib.Examples.AnBnCnPos
 import Langlib.Classes.DeterministicContextFree.Examples.AbcPositive
 
@@ -63,7 +63,10 @@ private lemma complement_not_pos_union_eq_eq_pos :
         exact hright.1 ⟨hi.2, h.2⟩
     · exact h.2
 
-private theorem notDCF_not_pos_union :
+/-- The union of the two positive unequal-count witnesses is not deterministic
+context-free. Its complement, restricted to `a⁺b⁺c⁺`, is the non-context-free
+language `{aⁿbⁿcⁿ | n ≥ 1}`. -/
+public theorem notDCF_not_pos_union :
     ¬ is_DCF (lang_not_eq_any_pos + lang_not_any_eq_pos) := by
   intro hUnion
   have hComp : is_DCF (lang_not_eq_any_pos + lang_not_any_eq_pos)ᶜ :=

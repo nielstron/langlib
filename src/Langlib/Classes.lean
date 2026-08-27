@@ -124,6 +124,7 @@ public import Langlib.Classes.DeterministicContextFree.Examples.AbcStack
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBmCm
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBn
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCm
+public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCmDm
 public import Langlib.Classes.DeterministicContextFree.Examples.AnBnCn
 public import Langlib.Classes.DeterministicContextFree.Examples.BnAnPosStarB
 public import Langlib.Classes.DeterministicContextFree.Examples.SingletonWord
@@ -159,11 +160,14 @@ public import Langlib.Classes.LR.Closure.Bijection
 public import Langlib.Classes.LR.Examples.AnBn
 public import Langlib.Classes.Linear.Basics.Map
 public import Langlib.Classes.Linear.Closure.Concatenation
+public import Langlib.Classes.Linear.Closure.Union
 public import Langlib.Classes.Linear.Definition
+public import Langlib.Classes.Linear.Examples.AbcPositive
 public import Langlib.Classes.Linear.Examples.AnBn
 public import Langlib.Classes.Linear.Examples.AnBnCmDm
 public import Langlib.Classes.Linear.Examples.SingletonWord
 public import Langlib.Classes.Linear.Inclusion.ContextFree
+public import Langlib.Classes.Linear.Inclusion.DeterministicContextFree
 public import Langlib.Classes.Linear.Inclusion.RecursivelyEnumerable
 public import Langlib.Classes.Linear.Inclusion.StrictContextFree
 public import Langlib.Classes.Linear.Pumping.Pumping

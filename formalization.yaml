@@ -117,7 +117,8 @@ status:
     automaton-recognized language classes; grammar/automaton equivalences for
     regular, context-free, deterministic context-free, context-sensitive, and
     recursively enumerable languages; the strict extended Chomsky hierarchy;
-    and a 13-operation closure/non-closure matrix for regular, deterministic
+    incomparability of the linear and deterministic context-free classes; and a
+    13-operation closure/non-closure matrix for regular, deterministic
     context-free, context-free, indexed, context-sensitive, recursive, and
     recursively enumerable languages. Decidability and undecidability results
     in the repository are intentionally excluded. Nested-stack automata and the
@@ -141,8 +142,12 @@ status:
       file: "src/Langlib/Automata/Pushdown/Equivalence/ContextFree.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
-    - declaration: "is_LR_iff_is_DCF"
+    - declaration: "LR_eq_DCF"
       file: "src/Langlib/Grammars/LR/Equivalence.lean"
+      sorry_count: 0
+      comparator_config: "comparator.json"
+    - declaration: "Linear_incomp_DPDA_of_card"
+      file: "src/Langlib/Classes/Linear/Inclusion/DeterministicContextFree.lean"
       sorry_count: 0
       comparator_config: "comparator.json"
     - declaration: "CS_eq_LBA"
@@ -268,32 +273,27 @@ review:
   notes: >-
     Submission preparation inventoried every selected declaration, checked
     theorem axioms and unresolved holes, and compared the Challenge signatures
-    with Langlib. The official pinned Palomar Comparator run passed all 112
-    selected declarations; NanoDa and Lean's default kernel both accepted the
-    exported solution. This is not independent human peer review.
+    with Langlib. This is not independent human peer review.
 
 alignment:
   namespace: "Root namespace, with a few theorem families in descriptive namespaces"
   statements:
     - source: "Regular grammars and finite automata"
-      lean: "is_RG_iff_isRegular; RG_eq_DFA; is_NFA_iff_is_DFA; NFA_eq_DFA"
+      lean: "RG_eq_DFA; NFA_eq_DFA"
       module: "Langlib.Automata.FiniteState"
       status: "proved"
       note: >-
         Right-regular unrestricted grammars, Mathlib regular languages, and
         finite DFA/NFA recognizers define the same language class.
     - source: "Context-free grammars and pushdown automata"
-      lean: >-
-        is_CF_iff_isContextFree; CF_eq_PDA_Class;
-        is_PDA_finalState_iff_is_PDA_emptyStack;
-        PDA_FinalStateClass_eq_Class
+      lean: "CF_eq_PDA_Class; PDA_FinalStateClass_eq_Class"
       module: "Langlib.Automata.Pushdown"
       status: "proved"
       note: >-
         The unrestricted-grammar CFL definition agrees with Mathlib's CFG
         predicate and with PDA recognition under either acceptance convention.
     - source: "Knuth's LR(k) languages and deterministic pushdown automata"
-      lean: "is_LR_iff_is_DPDA; is_LR_iff_is_DCF"
+      lean: "LR_eq_DPDA; LR_eq_DCF"
       module: "Langlib.Grammars.LR.Equivalence"
       status: "proved"
       note: >-
@@ -319,6 +319,7 @@ alignment:
         Linear_strict_subclass_CF_of_card;
         RG_strict_subclass_DCF_of_card;
         DCF_strict_subclass_CF_of_card;
+        Linear_incomp_DPDA_of_card;
         CF_strict_subclass_Indexed; Indexed_strict_subclass_CS;
         CS_strict_subclass_Recursive_of_card;
         Recursive_strict_subclass_RE_of_card
@@ -328,7 +329,8 @@ alignment:
         The two regular-to-context-free branches and the indexed,
         context-sensitive, recursive, and RE levels are strict over every
         finite alphabet with at least the number of elements stated in
-        Challenge.lean.
+        Challenge.lean. Linear and DPDA-recognizable languages are incomparable
+        once the alphabet has at least four elements.
     - source: "Linear languages are not closed under concatenation"
       lean: "Linear_not_closedUnderConcatenation"
       module: "Langlib.Classes.Linear.Closure.Concatenation"
