@@ -93,7 +93,7 @@ variable {Q T S : Type} [Fintype Q] [Fintype T] [Fintype S]
 
 /-- Embed a DPDA into the nondeterministic PDA framework by converting each `Option`
     transition to the corresponding singleton or empty set. -/
-@[expose]
+@[expose, reducible]
 public noncomputable def toPDA (M : DPDA Q T S) : PDA Q T S where
   initial_state := M.initial_state
   start_symbol := M.start_symbol

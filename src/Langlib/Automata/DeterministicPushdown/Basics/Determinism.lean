@@ -35,7 +35,6 @@ public theorem toPDA_step_deterministic (M : DPDA Q T S)
           | none =>
               simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε,
                 Set.mem_empty_iff_false] at h₁
-              exact h₁.elim
           | some out =>
               rcases out with ⟨p, beta⟩
               simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε,
@@ -49,26 +48,17 @@ public theorem toPDA_step_deterministic (M : DPDA Q T S)
                 M.no_mixed q Z (by simp [hε]) a
               simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ,
                 Set.mem_empty_iff_false, Set.mem_singleton_iff] at h₁ h₂
-              rcases h₁ with h₁ | h₁
-              · exact h₁.elim
-              rcases h₂ with h₂ | h₂
-              · exact h₂.elim
-              exact (Set.mem_singleton_iff.mp h₁).trans
-                (Set.mem_singleton_iff.mp h₂).symm
+              exact h₁.trans h₂.symm
           | none =>
               cases hδ : M.transition q a Z with
               | none =>
                   simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ,
                     Set.mem_empty_iff_false] at h₁
-                  rcases h₁ with h₁ | h₁ <;> exact h₁.elim
               | some out =>
                   rcases out with ⟨p, beta⟩
                   simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hδ,
                     Set.mem_empty_iff_false, Set.mem_singleton_iff] at h₁ h₂
-                  rcases h₁ with h₁ | h₁
-                  · exact (Set.mem_singleton_iff.mp h₁).trans
-                      (Set.mem_singleton_iff.mp (h₂.resolve_right fun h => h.elim)).symm
-                  · exact h₁.elim
+                  exact h₁.trans h₂.symm
 
 /-- Two computations of the same length from the same configuration have the
 same endpoint. -/

@@ -172,15 +172,12 @@ private theorem suffixRel_preservesTarget (M : DPDA Q T S) (D : DFA T sigma) :
       cases y with
       | nil =>
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
-          exact Set.mem_singleton _
       | cons a y =>
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
-          exact Set.mem_union_right _ (Set.mem_singleton _)
     · change d' = D.step d a at hd'
       subst d'
       refine ⟨a :: y, qf, gammaf, Relation.ReflTransGen.head ?_ hreach, ?_, hqf⟩
       · simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, ha]
-        exact Set.mem_union_left _ (Set.mem_singleton _)
       · simpa [DFA.evalFrom] using hD
   exact hrel semanticRel hbase hsat delta htarget
 
@@ -521,7 +518,6 @@ private theorem step_projects (M : DPDA Q T S) (D : DFA T sigma)
             have herase : List.map Prod.fst (annotate M D below beta) = beta := by
               simpa only [eraseAnn] using eraseAnn_annotate M D below beta
             rw [herase]
-            exact Set.mem_union_left _ (Set.mem_singleton _)
       · subst c'
         cases hε : M.epsilon_transition q Z with
         | none => simp [quotientDPDA, DPDA.toPDA, hε] at hmem
@@ -538,13 +534,11 @@ private theorem step_projects (M : DPDA Q T S) (D : DFA T sigma)
                 have herase : List.map Prod.fst (annotate M D below beta) = beta := by
                   simpa only [eraseAnn] using eraseAnn_annotate M D below beta
                 rw [herase]
-                exact Set.mem_singleton _
             | cons a input =>
                 simp [projectConf, eraseAnn, PDA.Reaches₁, PDA.step, DPDA.toPDA, hε]
                 have herase : List.map Prod.fst (annotate M D below beta) = beta := by
                   simpa only [eraseAnn] using eraseAnn_annotate M D below beta
                 rw [herase]
-                exact Set.mem_union_right _ (Set.mem_singleton _)
 
 private theorem reaches_projects (M : DPDA Q T S) (D : DFA T sigma)
     {c c' : PDA.conf (quotientDPDA M D).toPDA}
@@ -639,7 +633,6 @@ private theorem step_lifts (M : DPDA Q T S) (D : DFA T sigma)
             (⟨(q, b), a :: input', (Z, below) :: rest⟩ :
               PDA.conf (quotientDPDA M D).toPDA) c' := by
           simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, ht]
-          exact Set.mem_union_left _ (Set.mem_singleton _)
         refine ⟨c', hs, ?_, step_preserves_good M D hc hs⟩
         apply PDA.conf.ext <;> simp [c', projectConf, eraseAnn]
         simpa only [eraseAnn] using eraseAnn_annotate M D below beta
@@ -655,10 +648,8 @@ private theorem step_lifts (M : DPDA Q T S) (D : DFA T sigma)
           cases input with
           | nil =>
               simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, hε]
-              exact Set.mem_singleton _
           | cons a input =>
               simp [c', PDA.Reaches₁, PDA.step, quotientDPDA, DPDA.toPDA, hε]
-              exact Set.mem_union_right _ (Set.mem_singleton _)
         refine ⟨c', hs, ?_, step_preserves_good M D hc hs⟩
         apply PDA.conf.ext <;> simp [c', projectConf, eraseAnn]
         simpa only [eraseAnn] using eraseAnn_annotate M D below beta

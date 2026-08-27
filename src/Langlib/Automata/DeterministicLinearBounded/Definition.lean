@@ -126,13 +126,13 @@ public def BoundedTape.read {Γ : Type*} {n : ℕ} (t : BoundedTape Γ n) : Γ :
   t.contents t.head
 
 /-- Write a symbol at the current head position. -/
-@[expose]
+@[expose, reducible]
 public def BoundedTape.write {Γ : Type*} {n : ℕ} (t : BoundedTape Γ n) (a : Γ) :
     BoundedTape Γ n :=
   { t with contents := Function.update t.contents t.head a }
 
 /-- Move the head, clamping at boundaries (left end = 0, right end = n). -/
-@[expose]
+@[expose, reducible]
 public def BoundedTape.moveHead {Γ : Type*} {n : ℕ} (t : BoundedTape Γ n) (d : Dir) :
     BoundedTape Γ n :=
   { t with head :=

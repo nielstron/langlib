@@ -105,7 +105,6 @@ private lemma derives_reversed (g : grammar T) (v : List (symbol T g.nt)) :
   induction hv with
   | refl =>
       rw [List.reverse_singleton]
-      exact grammar_deri_self
   | tail _ orig ih =>
       apply grammar_deri_of_deri_tran ih
       rcases orig with ⟨r, rin, x, y, bef, aft⟩

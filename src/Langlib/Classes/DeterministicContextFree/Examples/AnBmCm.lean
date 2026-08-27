@@ -77,7 +77,7 @@ private lemma replicate_append_cons_eq {α : Type} (n : ℕ) (x : α) (rest : Li
   | succ n ih => simp [List.replicate, ih]
 
 /-- DPDA recognizing `{aⁿbᵐcᵐ | n,m ≥ 0}`. -/
-@[expose]
+@[expose, reducible]
 public def dpda_any_eq : DPDA AnyEqState (Fin 3) ABCStack where
   initial_state := AnyEqState.start
   start_symbol := bottom
@@ -102,11 +102,12 @@ public def dpda_any_eq : DPDA AnyEqState (Fin 3) ABCStack where
     | _, _ => none
   no_mixed := by decide
 
--- Lean 4.33 requires the constructed DPDA to be transparent while checking
--- dependent `toPDA` configuration and reachability types.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] dpda_any_eq DPDA.toPDA PDA.Reaches PDA.Reaches₁
-  PDA.step
+private lemma any_eq_reaches_single
+    {c c' : @PDA.conf AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA}
+    (h : @PDA.Reaches₁ AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA c c') :
+    @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA c c' := by
+  unfold PDA.Reaches
+  exact Relation.ReflTransGen.single h
 
 private lemma any_eq_step_read_a_start (rest : List (Fin 3)) :
     @PDA.Reaches₁ AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
@@ -166,12 +167,13 @@ private lemma any_eq_read_bs (k : ℕ) (rest : List (Fin 3)) (stk : List ABCStac
     @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
       ⟨AnyEqState.seenB, replicate k b_ ++ rest, mark :: stk⟩
       ⟨AnyEqState.seenB, rest, replicate k mark ++ mark :: stk⟩ := by
-  induction' k with k ih generalizing rest stk
-  · constructor
-  · specialize ih rest (mark :: stk)
-    convert ih.head _ using 1
-    · simp +decide [replicate_add]
-    · apply any_eq_step_read_b
+  induction k generalizing rest stk with
+  | zero => exact PDA.Reaches.refl _
+  | succ k ih =>
+      have hstep := any_eq_reaches_single (any_eq_step_read_b (replicate k b_ ++ rest) stk)
+      have hrest := ih rest (mark :: stk)
+      simpa [List.replicate, Nat.add_assoc, replicate_append_cons_self] using
+        PDA.Reaches.trans hstep hrest
 
 private lemma any_eq_read_cs (k : ℕ) (rest : List (Fin 3)) (stk : List ABCStack) :
     @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
@@ -206,8 +208,8 @@ private lemma dpda_any_eq_complete (n m : ℕ) :
           @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
             ⟨AnyEqState.start, replicate (m + 1) b_ ++ restC, [bottom]⟩
             ⟨AnyEqState.seenB, replicate m b_ ++ restC, [mark, bottom]⟩ := by
-        convert Relation.ReflTransGen.single (any_eq_step_read_b_start (replicate m b_ ++ restC)) using 1
-        · simp [List.replicate]
+        simpa [List.replicate] using any_eq_reaches_single
+          (any_eq_step_read_b_start (replicate m b_ ++ restC))
       have h_bs :
           @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
             ⟨AnyEqState.seenB, replicate m b_ ++ restC, [mark, bottom]⟩
@@ -217,10 +219,9 @@ private lemma dpda_any_eq_complete (n m : ℕ) :
           @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
             ⟨AnyEqState.seenB, restC, replicate m mark ++ [mark, bottom]⟩
             ⟨seenC, replicate m c_, replicate m mark ++ [bottom]⟩ := by
-        convert Relation.ReflTransGen.single
-          (any_eq_step_read_c_from_b (replicate m c_) (replicate m mark ++ [bottom])) using 1
-        · simp +decide [List.replicate, restC]
-          simpa [List.append_assoc] using replicate_append_cons_self m mark [bottom]
+        have hstep := any_eq_reaches_single
+          (any_eq_step_read_c_from_b (replicate m c_) (replicate m mark ++ [bottom]))
+        simpa [List.replicate, restC, List.append_assoc, replicate_append_cons_self] using hstep
       have h_cs :
           @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
             ⟨seenC, replicate m c_, replicate m mark ++ [bottom]⟩
@@ -229,14 +230,13 @@ private lemma dpda_any_eq_complete (n m : ℕ) :
       have h_eps :
           @PDA.Reaches AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA
             ⟨seenC, [], [bottom]⟩ ⟨matched, [], [bottom]⟩ :=
-        Relation.ReflTransGen.single (any_eq_step_to_matched [])
-      convert
-        Relation.ReflTransGen.trans h_as
-          (Relation.ReflTransGen.trans h_b0
-            (Relation.ReflTransGen.trans h_bs
-              (Relation.ReflTransGen.trans h_c0
-                (Relation.ReflTransGen.trans h_cs h_eps)))) using 1 ;
-        simp +decide [List.append_assoc, restC]
+        any_eq_reaches_single (any_eq_step_to_matched [])
+      simpa [List.append_assoc, restC] using
+        PDA.Reaches.trans h_as
+          (PDA.Reaches.trans h_b0
+            (PDA.Reaches.trans h_bs
+              (PDA.Reaches.trans h_c0
+                (PDA.Reaches.trans h_cs h_eps))))
 
 private def AnyEqInv (w : List (Fin 3))
     (c : @PDA.conf AnyEqState (Fin 3) ABCStack _ _ _ dpda_any_eq.toPDA) : Prop :=

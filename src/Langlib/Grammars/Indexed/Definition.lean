@@ -124,7 +124,7 @@ public def Transforms (g : IndexedGrammar T) (w₁ w₂ : List (ISym g)) : Prop 
     w₂ = u ++ expandRhs g r.rhs σ ++ v
 
 /-- Any number of steps of indexed-grammar transformation. -/
-@[expose]
+@[expose, reducible]
 public def Derives (g : IndexedGrammar T) : List (ISym g) → List (ISym g) → Prop :=
   ReflTransGen (Transforms g)
 

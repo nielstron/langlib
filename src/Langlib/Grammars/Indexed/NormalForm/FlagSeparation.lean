@@ -917,11 +917,9 @@ theorem fsLift_derives {u v : List g.ISym}
 
 theorem flagSeparate_language_forward {w : List T}
     (h : g.Generates w) : (g.flagSeparate).Generates w := by
-  unfold IndexedGrammar.Generates at *;
-  convert fsLift_derives _ _;
-  case convert_3 => exact [ ISym.indexed g.initial [] ];
-  all_goals norm_cast;
-  exact Eq.symm (fsLiftISym_map_terminal g w)
+  unfold IndexedGrammar.Generates at h ⊢
+  rw [← fsLiftISym_map_terminal g w]
+  exact fsLift_derives g h
 
 noncomputable def fsUnsepIntermediate (idx : Nat × Nat) (σ : List g.flag) : List g.ISym :=
   match g.rules[idx.1]? with
@@ -1142,11 +1140,9 @@ private theorem fsUnsep_rule_step_of
         (by intro s j hmem; exact getElem?_of_mem_zipIdx hmem) σ
       have hleft := fsUnsepSym_inr_zero g i r hri h σ
       rw [hleft, hright]
-      exact deri_self g _
     | have hleft := fsUnsepSym_inr_zero g i r hri h σ
       have hright := fsUnsepSF_expand_strip_noPush g r.rhs h_1 σ
       rw [hleft, hright]
-      exact deri_self g _
     | rw [fsUnsepSF_expand_lift]
       simpa [fsUnsepSym, h] using fsUnsep_original_step g r hr_mem σ
     | have hi := getElem?_of_mem_zipIdx hri

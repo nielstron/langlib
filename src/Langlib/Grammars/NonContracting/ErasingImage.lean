@@ -120,17 +120,12 @@ public noncomputable def swapRules [Fintype T] [Fintype N] :
   (activeSymbols (T := T) (N := N)).map swapRule
 
 /-- Padded simulation for a grammar whose terminal and nonterminal alphabets are finite. -/
-public noncomputable def finiteErasingImageGrammar [Fintype T] (g : grammar T)
+@[reducible] public noncomputable def finiteErasingImageGrammar [Fintype T] (g : grammar T)
     [Fintype g.nt] : grammar (Option T) where
   nt := Option g.nt
   initial := some g.initial
   rules := g.rules.map paddedRule ++ swapRules (T := T) (N := g.nt) ++
     [finishPaddingRule]
-
--- Lean 4.33 requires the constructed grammar to be transparent when checking
--- dependent sentential-form and derivation types involving its projections.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] finiteErasingImageGrammar grammar_derives
 
 @[simp] private theorem liftString_length (w : List (symbol T N)) :
     (liftString w).length = w.length := by

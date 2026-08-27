@@ -110,7 +110,7 @@ private def Side.other : Side → Side
   | .zero => .one
   | .one => .zero
 
-private def WorkCell.track (s : Side) (c : WorkCell A C) : Option A :=
+@[reducible] private def WorkCell.track (s : Side) (c : WorkCell A C) : Option A :=
   match s with
   | .zero => c.track0
   | .one => c.track1
@@ -215,37 +215,28 @@ private def transition (S : CertifiedRowSystem I A C Q F) :
   | .back _, _ => ∅
   | .accept, _ => ∅
 
-private def machine (S : CertifiedRowSystem I A C Q F) :
+@[reducible] private def machine (S : CertifiedRowSystem I A C Q F) :
     LBA.Machine (TapeCell I A C) (State Q F) where
   transition := transition S
   accept := fun q => match q with | .accept => true | _ => false
   initial := .initFirst
 
--- Lean 4.33 needs these structure-valued definitions reducible while checking
--- their dependent transition and tape projections.  Keep this local to the
--- compilation proof.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] machine DLBA.BoundedTape.write DLBA.BoundedTape.moveHead
-
 /-! ### Canonical tapes and verifier prefixes -/
 
-private def markedCell {n : ℕ} (k : Fin (n + 1))
+@[reducible] private def markedCell {n : ℕ} (k : Fin (n + 1))
     (a₀ a₁ : Option A) (cert : Option C) : TapeCell I A C :=
   some (.inr
     ⟨decide (k.val = 0), decide (k.val = n), a₀, a₁, cert⟩)
 
-private def markedTape {n : ℕ} (a₀ a₁ : Fin (n + 1) → Option A)
+@[reducible] private def markedTape {n : ℕ} (a₀ a₁ : Fin (n + 1) → Option A)
     (cert : Fin (n + 1) → Option C) : Fin (n + 1) → TapeCell I A C :=
   fun k => markedCell k (a₀ k) (a₁ k) (cert k)
 
-private def trackFn (side : Side) (a₀ a₁ : Fin (n + 1) → Option A) :
+@[reducible] private def trackFn (side : Side) (a₀ a₁ : Fin (n + 1) → Option A) :
     Fin (n + 1) → Option A :=
   match side with
   | .zero => a₀
   | .one => a₁
-
-set_option allowUnsafeReducibility true in
-attribute [local reducible] WorkCell.track markedCell markedTape trackFn
 
 private def optionRow (a : Fin (n + 1) → Option A) : List A :=
   (List.ofFn a).filterMap id
@@ -1208,9 +1199,6 @@ private def writeTrack1 (side : Side) (a₁ : Fin (n + 1) → Option A)
 private def writeCert (cert : Fin (n + 1) → Option C) (head : Fin (n + 1)) (c : C) :
     Fin (n + 1) → Option C :=
   Function.update cert head (some c)
-
-set_option allowUnsafeReducibility true in
-attribute [local reducible] writeTrack0 writeTrack1 writeCert
 
 private lemma update_markedTape_write (side : Side)
     (a₀ a₁ : Fin (n + 1) → Option A) (cert : Fin (n + 1) → Option C)

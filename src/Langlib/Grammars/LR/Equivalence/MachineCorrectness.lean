@@ -45,7 +45,6 @@ private theorem input_reachesIn_one {Q A S : Type}
       ⟨p, input, beta ++ stack⟩ := by
   rw [← PDA.reaches₁_iff_reachesIn_one]
   simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h]
-  exact Set.mem_union_left _ (Set.mem_singleton _)
 
 /-- A successful epsilon transition is one step of the embedded PDA. -/
 private theorem epsilon_reachesIn_one {Q A S : Type}
@@ -60,12 +59,10 @@ private theorem epsilon_reachesIn_one {Q A S : Type}
   cases input with
   | nil =>
       simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h]
-      exact Set.mem_singleton _
   | cons a input =>
       have hinput : M.transition q a Z = none :=
         M.no_mixed q Z (by simp [h]) a
       simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, h, hinput]
-      exact Set.mem_union_right _ (Set.mem_singleton _)
 
 /-- Pop a list of non-bottom frames and perform the final nonterminal goto.
 The exact count makes the macro usable in the reverse simulation as a
@@ -165,13 +162,8 @@ private theorem no_step_from_accept (G : CF_grammar T) (k : ℕ)
       cases input with
       | nil =>
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
-          exact fun h => h
       | cons a input =>
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
-          intro hd
-          rcases Set.mem_or_mem_of_mem_union hd with hd | hd
-          · exact hd
-          · exact hd
 
 /-- The rejecting control has no outgoing transition. -/
 private theorem no_step_from_reject (G : CF_grammar T) (k : ℕ)
@@ -193,13 +185,8 @@ private theorem no_step_from_reject (G : CF_grammar T) (k : ℕ)
       cases input with
       | nil =>
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
-          exact fun h => h
       | cons a input =>
           simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hepsilon, hinput]
-          intro hd
-          rcases Set.mem_or_mem_of_mem_union hd with hd | hd
-          · exact hd
-          · exact hd
 
 private theorem reaches_from_accept_eq (G : CF_grammar T) (k : ℕ)
     (hk : 0 < k) {input : List (Option T)}

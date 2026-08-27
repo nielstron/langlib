@@ -271,7 +271,9 @@ public theorem epsilonStep_of_toPDA_empty_step {M : DPDA Q T S} {q p : Q} {γ γ
   cases γ with
   | nil => simp [PDA.Reaches₁, PDA.step] at h
   | cons Z rest =>
-      simp [PDA.Reaches₁, PDA.step, DPDA.toPDA] at h
+      change ∃ r δ,
+        (r, δ) ∈ M.toPDA.transition_fun' q Z ∧
+          (⟨p, [], γ'⟩ : M.toPDA.conf) = ⟨r, [], δ ++ rest⟩ at h
       obtain ⟨r, δ, hmem, hcfg⟩ := h
       obtain ⟨rfl, _, rfl⟩ := PDA.conf.mk.inj hcfg
       cases hε : M.epsilon_transition q Z with
@@ -327,7 +329,11 @@ public theorem stable_reaches_nonempty_decompose {M : DPDA Q T S}
       obtain ⟨c, hone, hrest⟩ := PDA.reachesIn_iff_split_first.mpr hn
       rw [← PDA.reaches₁_iff_reachesIn_one] at hone
       rcases c with ⟨r, input', stack'⟩
-      simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hstable] at hone
+      change
+        (∃ p' β, (p', β) ∈ M.toPDA.transition_fun q a Z ∧
+          (⟨r, input', stack'⟩ : M.toPDA.conf) = ⟨p', w, β ++ γ⟩) ∨
+        (∃ p' β, (p', β) ∈ M.toPDA.transition_fun' q Z ∧
+          (⟨r, input', stack'⟩ : M.toPDA.conf) = ⟨p', a :: w, β ++ γ⟩) at hone
       rcases hone with hread | hempty
       · obtain ⟨p', β, hβ, hcfg⟩ := hread
         obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hcfg
@@ -342,7 +348,8 @@ public theorem stable_reaches_nonempty_decompose {M : DPDA Q T S}
             subst β
             refine ⟨p, δ, rfl, ?_⟩
             exact PDA.reaches_of_reachesIn hrest
-      · exact hempty.elim
+      · obtain ⟨p', β, hβ, _⟩ := hempty
+        simp [DPDA.toPDA, hstable] at hβ
 
 public theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
     {c c' : EpsilonConf Q S} {qf : Q} {a : T} {w : List T} {γf : List S}
@@ -370,10 +377,18 @@ public theorem toPDA_reaches_suffix_of_epsilonStep_nonempty {M : DPDA Q T S}
           rcases c with ⟨r, input', stack'⟩
           have hno : M.transition q a Z = none :=
             M.no_mixed q Z (by simp [hε]) a
-          simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hno] at hone
-          rcases hone with hempty | hone
-          · exact hempty.elim
-          have hcfg := Set.mem_singleton_iff.mp hone
+          change
+            (∃ p' δ, (p', δ) ∈ M.toPDA.transition_fun q a Z ∧
+              (⟨r, input', stack'⟩ : M.toPDA.conf) = ⟨p', w, δ ++ γ⟩) ∨
+            (∃ p' δ, (p', δ) ∈ M.toPDA.transition_fun' q Z ∧
+              (⟨r, input', stack'⟩ : M.toPDA.conf) = ⟨p', a :: w, δ ++ γ⟩) at hone
+          rcases hone with hread | heps
+          · obtain ⟨p', δ, hmem, _⟩ := hread
+            simp [DPDA.toPDA, hno] at hmem
+          obtain ⟨p', δ, hmem, hcfg⟩ := heps
+          have hpair : (p', δ) = (p, β) := by
+            simpa [DPDA.toPDA, hε] using hmem
+          obtain ⟨rfl, rfl⟩ := Prod.mk.inj hpair
           obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hcfg
           exact PDA.reaches_of_reachesIn hrest
 
@@ -417,13 +432,21 @@ public theorem epsilonStopsAt_of_toPDA_reaches_nonempty {M : DPDA Q T S}
               rcases c with ⟨r, input', stack'⟩
               have hno : M.transition q a Z = none :=
                 M.no_mixed q Z (by simp [hε]) a
-              simp [PDA.Reaches₁, PDA.step, DPDA.toPDA, hε, hno] at hone
-              rcases hone with hempty | hone
-              · exact hempty.elim
-              have hcfg := Set.mem_singleton_iff.mp hone
+              change
+                (∃ p' δ, (p', δ) ∈ M.toPDA.transition_fun q a Z ∧
+                  (⟨r, input', stack'⟩ : M.toPDA.conf) = ⟨p', w, δ ++ γ⟩) ∨
+                (∃ p' δ, (p', δ) ∈ M.toPDA.transition_fun' q Z ∧
+                  (⟨r, input', stack'⟩ : M.toPDA.conf) = ⟨p', a :: w, δ ++ γ⟩) at hone
+              rcases hone with hread | heps
+              · obtain ⟨p', δ, hmem, _⟩ := hread
+                simp [DPDA.toPDA, hno] at hmem
+              obtain ⟨p', δ, hmem, hcfg⟩ := heps
+              have hpair : (p', δ) = (p, β) := by
+                simpa [DPDA.toPDA, hε] using hmem
+              obtain ⟨rfl, rfl⟩ := Prod.mk.inj hpair
               obtain ⟨rfl, rfl, rfl⟩ := PDA.conf.mk.inj hcfg
-              have hstep : M.EpsilonStep (q, Z :: γ) (r, β ++ γ) :=
-                ⟨β, hε, rfl⟩
+              have hstep : M.EpsilonStep (q, Z :: γ) (r, δ ++ γ) :=
+                ⟨δ, hε, rfl⟩
               exact epsilonStopsAt_of_step hstep (ih hrest)
 
 end DPDA

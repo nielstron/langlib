@@ -237,9 +237,9 @@ private lemma run₁_step
   · apply cfg_ext
     · rfl
     · simp only [c', projectCfg₁, projectTape₁_moveHead, projectTape₁_write_pack]
-    · simp only [c', projectCfg₁, projectTape₁_moveHead, projectTape₁_write_pack]
+    · apply Fin.ext
+      rfl
   · simp only [c', projectTape₂_moveHead, projectTape₂_write_pack_left]
-    cases d <;> rfl
 
 private lemma run₂_step
     (M₁ : LBA.Machine (LBA.EndAlpha T Γ₁) Λ₁)
@@ -260,7 +260,8 @@ private lemma run₂_step
   · apply cfg_ext
     · rfl
     · simp only [c', projectCfg₂, projectTape₂_moveHead, projectTape₂_write_pack]
-    · simp only [c', projectCfg₂, projectTape₂_moveHead, projectTape₂_write_pack]
+    · apply Fin.ext
+      rfl
 
 private lemma run₁_step_inv
     (M₁ : LBA.Machine (LBA.EndAlpha T Γ₁) Λ₁)
@@ -286,9 +287,9 @@ private lemma run₁_step_inv
       · apply cfg_ext
         · rfl
         · simp only [projectCfg₁, projectTape₁_moveHead, projectTape₁_write_pack]
-        · simp only [projectCfg₁, projectTape₁_moveHead, projectTape₁_write_pack]
+        · apply Fin.ext
+          rfl
     · simp only [projectTape₂_moveHead, projectTape₂_write_pack_left]
-      cases d <;> rfl
   · rcases hswitch with ⟨hacc, heq⟩
     simp only [Prod.mk.injEq] at heq
     rcases heq with ⟨rfl, rfl, rfl⟩
@@ -317,7 +318,8 @@ private lemma run₂_step_inv
   · apply cfg_ext
     · rfl
     · simp only [projectCfg₂, projectTape₂_moveHead, projectTape₂_write_pack]
-    · simp only [projectCfg₂, projectTape₂_moveHead, projectTape₂_write_pack]
+    · apply Fin.ext
+      rfl
 
 private lemma run₁_reaches
     (M₁ : LBA.Machine (LBA.EndAlpha T Γ₁) Λ₁)
@@ -543,11 +545,8 @@ private lemma interInv_step
       rcases hmem with ⟨rfl, rfl, rfl⟩
       right; left
       refine ⟨hacc₁, rfl, ?_⟩
-      simp only [projectTape₂_moveHead]
-      have hwrite : projectTape₂ (c.tape.write c.tape.read) = projectTape₂ c.tape := by
-        rw [write_read_same]
-      rw [hwrite]
-      cases DLBA.Dir.left <;> exact hcontents
+      rw [write_read_same]
+      simpa only [projectTape₂, DLBA.BoundedTape.moveHead] using hcontents
   · rcases hrun₂ with ⟨hacc₁, c₂, hreach₂, hs, hp⟩
     obtain ⟨q', hs', hsource⟩ := run₂_step_inv M₁ M₂ hs hstep
     right; right

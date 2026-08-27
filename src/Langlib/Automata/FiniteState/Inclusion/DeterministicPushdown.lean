@@ -69,7 +69,6 @@ public lemma DPDA_of_DFA_reaches_unique {Q : Type} [Fintype Q] (M : DFA T Q)
     intro H
     have := H.cases_head
     simp_all +decide [PDA.Reaches₁]
-    simp_all +decide [PDA.step]
     unfold DPDA_of_DFA at this
     aesop
   · obtain ⟨q'', hq'', h'⟩ := Relation.ReflTransGen.cases_head h

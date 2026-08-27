@@ -296,7 +296,7 @@ theorem myhillAllRules_output_nonempty :
   aesop
 
 /-- The Myhill context-sensitive grammar recognizing the LBA's language. -/
-def myhillGrammar : CS_grammar T where
+@[reducible] def myhillGrammar : CS_grammar T where
   nt := MyhillNT T Γ Λ
   initial := MyhillNT.start
   rules := myhillAllRules M embed

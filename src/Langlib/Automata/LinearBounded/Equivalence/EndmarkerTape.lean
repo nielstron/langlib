@@ -96,12 +96,8 @@ def enc {n : ℕ} (c : Fin (n + 1) → Option (T ⊕ Γ)) : Fin (n + 3) → EndA
            else Sum.inl (c ⟨k.val - 1, by have := k.isLt; omega⟩)
 
 /-- Shift a marker-free head position `h` into the endmarker interior (cell `h + 1`). -/
-def encHead {n : ℕ} (h : Fin (n + 1)) : Fin (n + 3) := ⟨h.val + 1, by have := h.isLt; omega⟩
-
--- Lean 4.33 needs these structure-valued definitions reducible while checking
--- the dependent proofs carried by the encoded and moved head positions.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] encHead DLBA.BoundedTape.write DLBA.BoundedTape.moveHead
+@[reducible] def encHead {n : ℕ} (h : Fin (n + 1)) : Fin (n + 3) :=
+  ⟨h.val + 1, by have := h.isLt; omega⟩
 
 /-- Package an `M`-configuration as the corresponding `run`-phase simulator configuration. -/
 def φ {n : ℕ} (cfg : DLBA.Cfg (Option (T ⊕ Γ)) Λ n) :

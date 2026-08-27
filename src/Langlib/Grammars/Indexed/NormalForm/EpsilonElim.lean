@@ -148,7 +148,6 @@ theorem derives_nil_of_append_left {g : IndexedGrammar T} {u v : List g.ISym}
         intro u v hw
         rw [List.nil_eq_append_iff] at hw
         rw [hw.1]
-        exact g.deri_self []
     | @head a c hstep hrest ih =>
         intro u v hw
         have hstep' : g.Transforms (u ++ v) c := by
@@ -173,7 +172,6 @@ theorem derives_nil_of_append_right {g : IndexedGrammar T} {u v : List g.ISym}
         intro u v hw
         rw [List.nil_eq_append_iff] at hw
         rw [hw.2]
-        exact g.deri_self []
     | @head a c hstep hrest ih =>
         intro u v hw
         have hstep' : g.Transforms (u ++ v) c := by

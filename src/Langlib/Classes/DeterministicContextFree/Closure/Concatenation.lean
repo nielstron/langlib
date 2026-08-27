@@ -634,41 +634,35 @@ private lemma optional_accepts_right (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂
           exact ⟨rfl, hq⟩, [OptionalStack.bottom], Relation.ReflTransGen.refl⟩
       · unfold PDA.Reaches₁ PDA.step at hstep
         simp [DPDA.toPDA, hnoε] at hstep
-        exact ((Set.mem_empty_iff_false _).mp hstep).elim
   | cons a w =>
       rcases Relation.ReflTransGen.cases_head hreach with heq | ⟨c, hstep, hrest⟩
       · cases heq
       · rcases c with ⟨p, input, stack⟩
         unfold PDA.Reaches₁ PDA.step at hstep
-        simp [DPDA.toPDA, hnoε] at hstep
-        rcases hstep with hstep | hbad
-        · rcases hstep with ⟨p', β', hp, hcfg⟩
-          cases hcfg
-          cases ht : M₂.transition M₂.initial_state a M₂.start_symbol with
-          | none => simp [ht] at hp
-          | some pβ =>
-              rcases pβ with ⟨p0, β0⟩
-              simp [ht] at hp
-              rcases hp with ⟨rfl, rfl⟩
-              refine ⟨OptionalState.right q, ?_, γ.map OptionalStack.right, ?_⟩
-              · right
-                right
-                exact ⟨q, hq, rfl⟩
-              · have hfirst :
-                    @PDA.Reaches₁ (OptionalState Q₁ Q₂) (Bool ⊕ T) (OptionalStack S₁ S₂) _ _ _
-                      (optionalMarkedUnion M₁ M₂).toPDA
-                      ⟨(optionalMarkedUnion M₁ M₂).initial_state,
-                        Sum.inr a :: w.map Sum.inr,
-                        [(optionalMarkedUnion M₁ M₂).start_symbol]⟩
-                      (rightConf M₁ M₂ ⟨p, w, stack⟩) := by
-                  unfold PDA.Reaches₁ PDA.step
-                  left
-                  refine ⟨OptionalState.right p, stack.map OptionalStack.right, ?_, ?_⟩
-                  · simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht]
-                  · simp [rightConf]
-                exact Relation.ReflTransGen.trans (Relation.ReflTransGen.single hfirst)
-                  (right_reaches_map M₁ M₂ hrest)
-        · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+        cases ht : M₂.transition M₂.initial_state a M₂.start_symbol with
+        | none => simp [DPDA.toPDA, hnoε, ht] at hstep
+        | some pβ =>
+            rcases pβ with ⟨p0, β0⟩
+            simp [DPDA.toPDA, hnoε, ht] at hstep
+            rcases hstep with ⟨rfl, ⟨rfl, rfl⟩⟩
+            refine ⟨OptionalState.right q, ?_, γ.map OptionalStack.right, ?_⟩
+            · right
+              right
+              exact ⟨q, hq, rfl⟩
+            · have hfirst :
+                  @PDA.Reaches₁ (OptionalState Q₁ Q₂) (Bool ⊕ T) (OptionalStack S₁ S₂) _ _ _
+                    (optionalMarkedUnion M₁ M₂).toPDA
+                    ⟨(optionalMarkedUnion M₁ M₂).initial_state,
+                      Sum.inr a :: input.map Sum.inr,
+                      [(optionalMarkedUnion M₁ M₂).start_symbol]⟩
+                    (rightConf M₁ M₂ ⟨p, input, stack⟩) := by
+                unfold PDA.Reaches₁ PDA.step
+                left
+                refine ⟨OptionalState.right p, stack.map OptionalStack.right, ?_, ?_⟩
+                · simp [DPDA.toPDA, optionalMarkedUnion, optTransitionRight, ht]
+                · simp [rightConf]
+              exact Relation.ReflTransGen.trans (Relation.ReflTransGen.single hfirst)
+                (right_reaches_map M₁ M₂ hrest)
 
 private theorem optional_accepts_iff (M₁ : DPDA Q₁ T S₁) (M₂ : DPDA Q₂ T S₂)
     (hnoε : M₂.epsilon_transition M₂.initial_state M₂.start_symbol = none)

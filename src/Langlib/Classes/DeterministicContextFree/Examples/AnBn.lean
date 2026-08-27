@@ -76,7 +76,11 @@ private lemma step_read_a_init (rest : List Bool) :
 private lemma step_read_a (rest : List Bool) (stk : List Bool) :
     @PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
       ⟨1, false :: rest, true :: stk⟩ ⟨1, rest, true :: true :: stk⟩ := by
-  exact Set.mem_union_left _ ⟨_, _, by aesop⟩
+  unfold PDA.Reaches₁ PDA.step
+  apply Set.mem_union_left
+  refine ⟨1, [true, true], ?_, rfl⟩
+  unfold DPDA.toPDA dpda_anbn
+  exact Set.mem_singleton _
 
 private lemma step_read_b_from1 (rest : List Bool) (stk : List Bool) :
     @PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
@@ -95,8 +99,10 @@ private lemma step_read_b (rest : List Bool) (stk : List Bool) :
 private lemma step_epsilon_empty :
     @PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
       ⟨2, [], [false]⟩ ⟨3, [], []⟩ := by
-  constructor
-  aesop (simp_config := { decide := true })
+  unfold PDA.Reaches₁ PDA.step
+  refine ⟨3, [], ?_, rfl⟩
+  unfold DPDA.toPDA dpda_anbn
+  exact Set.mem_singleton _
 
 private lemma read_as (k : ℕ) (rest : List Bool) (stk : List Bool) :
     @PDA.Reaches (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
@@ -138,22 +144,20 @@ private lemma dpda_anbn_complete (n : ℕ) :
     exact ⟨by tauto, [false], by tauto⟩
   · use 3
     simp +decide [dpda_anbn]
-    constructor
-    · exact Or.inr rfl
-    · use []
-      change Relation.ReflTransGen (@PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA)
-        ⟨0, false :: (replicate n false ++ true :: replicate n true), [false]⟩ ⟨3, [], []⟩
-      have h₁ := Relation.ReflTransGen.single
-        (step_read_a_init (replicate n false ++ replicate (n + 1) true))
-      have h₂ := read_as n (replicate (n + 1) true) [false]
-      have h₃ := Relation.ReflTransGen.single
-        (step_read_b_from1 (replicate n true) (replicate n true ++ [false]))
-      have h₄ : @PDA.Reaches (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
-          ⟨2, replicate n true, replicate n true ++ [false]⟩ ⟨2, [], [false]⟩ := by
-        simpa using read_bs n [] [false]
-      have h₅ := Relation.ReflTransGen.single step_epsilon_empty
-      simpa [List.replicate_succ, List.append_assoc, Nat.succ_eq_add_one] using
-        h₁.trans (h₂.trans (h₃.trans (h₄.trans h₅)))
+    refine ⟨[], ?_⟩
+    change Relation.ReflTransGen (@PDA.Reaches₁ (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA)
+      ⟨0, false :: (replicate n false ++ true :: replicate n true), [false]⟩ ⟨3, [], []⟩
+    have h₁ := Relation.ReflTransGen.single
+      (step_read_a_init (replicate n false ++ replicate (n + 1) true))
+    have h₂ := read_as n (replicate (n + 1) true) [false]
+    have h₃ := Relation.ReflTransGen.single
+      (step_read_b_from1 (replicate n true) (replicate n true ++ [false]))
+    have h₄ : @PDA.Reaches (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA
+        ⟨2, replicate n true, replicate n true ++ [false]⟩ ⟨2, [], [false]⟩ := by
+      simpa using read_bs n [] [false]
+    have h₅ := Relation.ReflTransGen.single step_epsilon_empty
+    simpa [List.replicate_succ, List.append_assoc, Nat.succ_eq_add_one] using
+      h₁.trans (h₂.trans (h₃.trans (h₄.trans h₅)))
 
 private def AnBnInv (w : List Bool)
     (c : @PDA.conf (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA) : Prop :=
@@ -181,14 +185,11 @@ private lemma inv_step_state0 (w : List Bool) (input : List Bool)
   · obtain ⟨p, β, hpβ, rfl⟩ := hstep
     unfold dpda_anbn at hpβ
     simp_all +decide [DPDA.toPDA]
-  · cases a <;> simp_all +decide [step]
+  · cases a
     · rcases hstep with (⟨p, β, hp, rfl⟩ | ⟨p, β, hp, rfl⟩) <;> simp_all +decide [dpda_anbn]
       · simp_all +decide [DPDA.toPDA]
         exact ⟨1, 0, by aesop⟩
-      · simp_all +decide [DPDA.toPDA]
     · cases hstep <;> simp_all +decide [dpda_anbn]
-      · simp_all +decide [DPDA.toPDA]
-      · simp_all +decide [DPDA.toPDA]
 
 private lemma inv_step_state1 (w : List Bool) (na : ℕ) (input : List Bool)
     (c' : @PDA.conf (Fin 4) Bool Bool _ _ _ dpda_anbn.toPDA)

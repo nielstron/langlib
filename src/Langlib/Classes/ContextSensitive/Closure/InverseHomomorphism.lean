@@ -1038,6 +1038,7 @@ private lemma cfgView_write_left [DecidableEq (VSym B Γ)]
           rw [tapeList_length]; omega), some q') ::
         (a', none) :: quiet ((tapeList c.tape).drop (c.tape.head.1 + 1)) := by
   unfold cfgView
+  simp only [DLBA.Cfg.tape, DLBA.Cfg.state]
   rw [tapeList_moveHead, tapeList_write]
   simp only [DLBA.BoundedTape.write]
   simp only [DLBA.BoundedTape.moveHead, dif_pos hpos]
@@ -1096,6 +1097,7 @@ private lemma cfgView_write_right [DecidableEq (VSym B Γ)]
           rw [tapeList_length]; omega), some q') ::
         quiet ((tapeList c.tape).drop (c.tape.head.1 + 2)) := by
   unfold cfgView
+  simp only [DLBA.Cfg.tape, DLBA.Cfg.state]
   rw [tapeList_moveHead, tapeList_write]
   simp only [DLBA.BoundedTape.write]
   simp only [DLBA.BoundedTape.moveHead, dif_pos hpos]

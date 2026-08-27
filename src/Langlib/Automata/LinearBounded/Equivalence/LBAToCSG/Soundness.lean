@@ -1313,7 +1313,7 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
       · refine hreach.tail ⟨q', a', DLBA.Dir.right, ?_, rfl⟩
         rw [hq, ha] at htrans; exact htrans
       · have hcheq : ((cur.tape.write a').moveHead DLBA.Dir.right).head.val = cur.tape.head.val := by
-          rw [hmr]; rfl
+          rw [hmr]
         rw [hcheq]; exact hrel
       · have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
         have hcck : ((cur.tape.write a').moveHead DLBA.Dir.right).contents k = cur.tape.contents k := by
@@ -1341,7 +1341,7 @@ theorem soundInv_step_pending (M : LBA.Machine Γ Λ) (embed : T ↪ Γ)
       · refine hreach.tail ⟨q', a', DLBA.Dir.left, ?_, rfl⟩
         rw [hq, ha] at htrans; exact htrans
       · have hcheq : ((cur.tape.write a').moveHead DLBA.Dir.left).head.val = cur.tape.head.val := by
-          rw [hml]; rfl
+          rw [hml]
         rw [hcheq]; exact hrel
       · have hkne : k ≠ cur.tape.head := fun he => hknb (congrArg Fin.val he)
         have hcck : ((cur.tape.write a').moveHead DLBA.Dir.left).contents k = cur.tape.contents k := by

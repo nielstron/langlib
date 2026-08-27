@@ -267,10 +267,6 @@ lemma gotoLeft_check_sound {n : ℕ} {cfgacc : DLBA.Cfg (KCell g₀) (KState g�
           funext k; rw [Function.update_apply]; by_cases hk : k = head
           · subst hk; simp [mkCell]
           · rw [if_neg hk]
-          apply Fin.ext
-          exact boundedTape_write_moveHead_left_head_val_of_pos
-            (⟨fun k => mkCell g₀ k (W k), head⟩ : DLBA.BoundedTape (KCell g₀) n)
-            (some (Sum.inr (decide (head.val = 0), decide (head.val = n), W head))) hpos
         rw [htape] at hrest
         exact ih ⟨head.val - 1, by omega⟩ (by show head.val - 1 = e; omega) hrest
 
@@ -401,7 +397,6 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
               simp only [cAt, if_pos (show k.val < i by omega), tmpCell, mkCell,
                 decide_eq_false hkn]
           · rw [formW_of_forall_some g₀ _ (fun k => symbol.terminal (input k)) (fun _ => rfl)]
-            exact Relation.ReflTransGen.refl
       · -- b = sim
         rw [hst] at hmem
         simp only [DLBA.BoundedTape.read, hcW] at hmem
@@ -419,11 +414,11 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
           Set.mem_singleton_iff, Set.mem_setOf_eq] at hmem
         rcases hmem with (h | h | h) | ⟨ri, h⟩
         · simp only [Prod.mk.injEq] at h; obtain ⟨rfl, rfl, rfl⟩ := h
-          exact Or.inr (Or.inr (Or.inl ⟨W, hcon _, rfl, hder⟩))
+          exact Or.inr (Or.inr (Or.inl ⟨W, hcon DLBA.Dir.left, rfl, hder⟩))
         · simp only [Prod.mk.injEq] at h; obtain ⟨rfl, rfl, rfl⟩ := h
-          exact Or.inr (Or.inr (Or.inl ⟨W, hcon _, rfl, hder⟩))
+          exact Or.inr (Or.inr (Or.inl ⟨W, hcon DLBA.Dir.right, rfl, hder⟩))
         · simp only [Prod.mk.injEq] at h; obtain ⟨rfl, rfl, rfl⟩ := h
-          exact Or.inr (Or.inr (Or.inr (Or.inl ⟨W, hcon _, rfl, hder⟩)))
+          exact Or.inr (Or.inr (Or.inr (Or.inl ⟨W, hcon DLBA.Dir.stay, rfl, hder⟩)))
         · simp only [Prod.mk.injEq] at h; obtain ⟨rfl, rfl, rfl⟩ := h
           have hpatlen : (patList g₀ g₀.rules[ri]).length
               ≤ (g₀.rules[ri]).output_string.length := by
@@ -432,7 +427,7 @@ lemma sound_invariant {n : ℕ} (hnc : grammar_noncontracting g₀) (input : Fin
             omega
           refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
             ⟨W, W, ri, 0, ((List.ofFn W).take b.tape.head.val).filterMap id,
-              hcon _, rfl, Nat.zero_le _, hpatlen, fun p _ => rfl, ?_, ?_, hder⟩)))))
+              hcon DLBA.Dir.stay, rfl, Nat.zero_le _, hpatlen, fun p _ => rfl, ?_, ?_, hder⟩)))))
           · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write, Fin.val_zero,
               List.take_zero, List.append_nil]
           · simp only [DLBA.BoundedTape.moveHead, boundedTape_write_head, DLBA.BoundedTape.write, Fin.val_zero,

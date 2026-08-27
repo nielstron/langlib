@@ -378,7 +378,7 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
         · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hprodhead]
           apply Fin.ext; rw [foldHead_val]; simp only []; split_ifs <;> simp_all
     · -- stay
-      have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+      have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']
       refine ⟨FState.sim q' FMode.onLeft, wcell, DLBA.Dir.stay, ?_, ?_⟩
       · show _ ∈ flagTransition M' (FState.sim cfg.state (foldMode cfg.tape.head))
           (foldContents cfg.tape.contents (foldHead cfg.tape.head))
@@ -441,7 +441,7 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
                 show cfg'.state = q' from rfl, hch, hmode]
           · rw [show (fold cfg').tape.head = foldHead cfg'.tape.head from rfl, hch, hhd, hprodhead]
       · -- stay
-        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']
         refine ⟨FState.sim q' FMode.onRight, wcell, DLBA.Dir.stay, ?_, ?_⟩
         · show _ ∈ flagTransition M' (FState.sim cfg.state (foldMode cfg.tape.head))
             (foldContents cfg.tape.contents (foldHead cfg.tape.head))
@@ -557,10 +557,10 @@ theorem fold_step (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
               show (if cfg.tape.head.val + 1 = 0 then 0
                 else if cfg.tape.head.val + 1 = m + 2 then m else cfg.tape.head.val + 1 - 1) = _
               simp only [moveHead_right_head_val, write_head, hfh]
-              rw [if_pos (show cfg.tape.head.val - 1 < m by omega)]
+              simp only [dif_pos (show cfg.tape.head.val - 1 < m by omega)]
               split_ifs <;> omega
       · -- stay
-        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']
         refine ⟨FState.sim q' FMode.mid, wcell, DLBA.Dir.stay, ?_, ?_⟩
         · show _ ∈ flagTransition M' (FState.sim cfg.state (foldMode cfg.tape.head))
             (foldContents cfg.tape.contents (foldHead cfg.tape.head))
@@ -660,7 +660,7 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
       refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩, ⟨q', a', DLBA.Dir.stay, hp, rfl⟩, ?_⟩
       set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
         ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩ with hcfg'
-      have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+      have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']
       have hcont : (fold cfg').tape.contents
           = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
         hcontGen
@@ -741,7 +741,7 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
         refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩, ⟨q', a', DLBA.Dir.stay, hp, rfl⟩, ?_⟩
         set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
           ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩ with hcfg'
-        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']
         have hcont : (fold cfg').tape.contents
             = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
           hcontGen
@@ -863,13 +863,13 @@ theorem sim_step_inv (M' : Machine (EndAlpha T Γ) Λ) {m : ℕ}
             show (if cfg.tape.head.val + 1 = 0 then 0
               else if cfg.tape.head.val + 1 = m + 2 then m else cfg.tape.head.val + 1 - 1) = _
             simp only [moveHead_right_head_val, write_head, hfh]
-            rw [if_pos (show cfg.tape.head.val - 1 < m by omega)]
+            simp only [dif_pos (show cfg.tape.head.val - 1 < m by omega)]
             split_ifs <;> omega
       · -- stay
         refine ⟨⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩, ⟨q', a', DLBA.Dir.stay, hp, rfl⟩, ?_⟩
         set cfg' : DLBA.Cfg (EndAlpha T Γ) Λ (m + 2) :=
           ⟨q', (cfg.tape.write a').moveHead DLBA.Dir.stay⟩ with hcfg'
-        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']; simp
+        have hch : cfg'.tape.head = cfg.tape.head := by rw [hcfg']
         have hcont : (fold cfg').tape.contents
             = Function.update (foldContents cfg.tape.contents) (foldHead cfg.tape.head) wcell :=
           hcontGen

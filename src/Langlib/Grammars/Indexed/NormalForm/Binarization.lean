@@ -747,7 +747,6 @@ private lemma unbinarize_rule_step_of
           · have heq := unbinarize_binarizeChain_tail_eq g i 0 r hi hall σ
               (y :: z :: rest) (by simp [hrhs_eq]) (by simp) r' hr'
             rw [heq]
-            exact deri_self g _
 
 /-- For a rule from binSingleRule, unbinarizeSym of the LHS symbol gets derived to
     unbinarizeSF of the expandRhs of the RHS. -/

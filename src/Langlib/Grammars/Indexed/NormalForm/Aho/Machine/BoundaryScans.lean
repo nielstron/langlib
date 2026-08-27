@@ -35,7 +35,7 @@ public def initialFirstCell (g : IndexedGrammar T) (a : T) : RowCell g :=
   .run { input := a, consumed := false, block := initialBlock g }
 
 /-- A canonical blank-tail initialized cell. -/
-public def initialTailCell (g : IndexedGrammar T) (a : T) : RowCell g :=
+@[reducible] public def initialTailCell (g : IndexedGrammar T) (a : T) : RowCell g :=
   .run { input := a, consumed := false, block := blankBlock g }
 
 /-- The canonical final cell at the first input position. -/
@@ -43,13 +43,8 @@ public def finalFirstCell (g : IndexedGrammar T) (a : T) : RowCell g :=
   .run { input := a, consumed := true, block := finalBlock g }
 
 /-- A canonical blank-tail final cell. -/
-public def finalTailCell (g : IndexedGrammar T) (a : T) : RowCell g :=
+@[reducible] public def finalTailCell (g : IndexedGrammar T) (a : T) : RowCell g :=
   .run { input := a, consumed := true, block := blankBlock g }
-
--- Lean 4.33 needs these cell constructors transparent when reconciling maps
--- of the named functions with maps of their expanded record constructors.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] initialTailCell finalTailCell
 
 /-- Cell transition for the exact synchronized initialization scan. -/
 public noncomputable def initScanCell (g : IndexedGrammar T) :

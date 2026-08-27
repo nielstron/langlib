@@ -32,12 +32,6 @@ in `LBAToCSG/Soundness.lean`).
 
 namespace MyhillConstruction
 
--- Lean 4.33 no longer unfolds the result structures of these constructions
--- when checking dependent grammar-symbol and tape-head types.  Keep the
--- compatibility workaround local to the proof file.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] myhillGrammar DLBA.BoundedTape.write DLBA.BoundedTape.moveHead
-
 variable {T Γ Λ : Type} {n : ℕ}
 
 /-- Encoding of an LBA configuration as a Myhill sentential form: one `cell` per tape

@@ -368,11 +368,9 @@ private theorem source_reachesIn_epsilon_first
   | cons b input =>
       have hδnone := M.no_mixed q Z (by simp [hε]) b
       simp [PDA.step, DPDA.toPDA, hε, hδnone] at hone
-      rcases hone with hbad | hone
-      · exact ((Set.mem_empty_iff_false _).mp hbad).elim
-      · change c = (⟨qε, b :: input, γε ++ rest⟩ : PDA.conf M.toPDA) at hone
-        subst c
-        exact hrest
+      change c = (⟨qε, b :: input, γε ++ rest⟩ : PDA.conf M.toPDA) at hone
+      subst c
+      exact hrest
 
 private theorem source_reachesIn_input_first
     (M : DPDA Q β S) (n : ℕ)
@@ -386,11 +384,9 @@ private theorem source_reachesIn_input_first
   obtain ⟨c, hone, hrest⟩ := PDA.reachesIn_iff_split_first.mpr hreach
   rw [PDA.reachesIn_one] at hone
   simp [PDA.step, DPDA.toPDA, hε, hδ] at hone
-  rcases hone with hone | hbad
-  · change c = (⟨qδ, input, γδ ++ rest⟩ : PDA.conf M.toPDA) at hone
-    subst c
-    exact hrest
-  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
+  change c = (⟨qδ, input, γδ ++ rest⟩ : PDA.conf M.toPDA) at hone
+  subst c
+  exact hrest
 
 /-- Completeness of the buffered simulation.  The nonempty-stack hypothesis is
 used only to ensure that source letters with empty images can still be consumed.
@@ -516,9 +512,6 @@ private theorem inverseHomomorphism_accept_lift
                     rfl
                   rw [hinputEq] at hone
                   simp [PDA.step, DPDA.toPDA, hε, hδ', List.get_eq_getElem] at hone
-                  rcases hone with hbad | hbad
-                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
-                  · exact ((Set.mem_empty_iff_false _).mp hbad).elim
               | some out =>
                   rcases out with ⟨qδ, γδ⟩
                   have hfirst := source_input_step M q qδ ((h a).get k)

@@ -251,11 +251,6 @@ public def totalizer : DPDA (TotalState Q) T (TotalStackSymbol A) := by
                 · simp [hMε, hstop]
                 · simp [hMε, hstop] at hε
 
--- Lean 4.33 needs the constructed DPDA and the dependent PDA reachability
--- projections transparent while checking the simulation proofs below.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] DPDA.toPDA PDA.Reaches PDA.Reaches₁ PDA.step
-
 public theorem simState_mem_final_iff (q : Q) (summary : AnalysisSummary A) :
     simState A q summary ∈ (totalizer A).final_states ↔ acceptsFromSummary A q summary := by
   classical

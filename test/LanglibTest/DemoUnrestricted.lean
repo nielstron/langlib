@@ -281,7 +281,6 @@ private lemma steps_R_BR (m n : ℕ) :
   induction n with
   | zero =>
     rw [List.replicate_zero, List.append_nil]
-    apply grammar_deri_self
   | succ k ih =>
     apply grammar_deri_of_deri_tran ih
     refine ⟨R_BR, ?_,
@@ -611,7 +610,10 @@ private theorem multiplication_complete (m n : ℕ) :
     · apply grammar_deri_self;
   convert grammar_deri_of_deri_deri ‹grammar_derives gr_mul [S] _›
     (grammar_deri_of_deri_deri ‹_› (grammar_deri_of_deri_deri ‹_› ‹_›)) using 1
-  unfold grammar_generates; aesop;
+  · rfl
+  · rw [List.map_append, List.map_append,
+      List.map_replicate, List.map_replicate, List.map_replicate]
+    rfl
 
 -- example 3 * 3 = 9 reproved using the new theorem
 example : grammar_generates gr_mul

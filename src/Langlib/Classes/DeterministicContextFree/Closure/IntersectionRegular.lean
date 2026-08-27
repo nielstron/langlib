@@ -119,8 +119,7 @@ theorem productDFA_step_projects (M : DPDA Q T S) (D : DFA T σ)
     cases hβ' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ DPDA.toPDA ];
     · unfold DPDA.productDFA at hβ; aesop;
     · unfold DPDA.productDFA at hβ; aesop;
-  · unfold DPDA.toPDA at *; simp_all +decide [  ] ;
-    unfold DPDA.productDFA at *;
+  · unfold DPDA.productDFA at *;
     cases h' : M.transition q₁ ‹_› ‹_› <;> cases h'' : M.epsilon_transition q₁ ‹_› <;> simp_all +decide [ Set.mem_singleton_iff ];
     have := M.no_mixed q₁ ‹_›; aesop;
 
@@ -132,24 +131,38 @@ public theorem productDFA_step_dfa (M : DPDA Q T S) (D : DFA T σ)
     (h : @PDA.Reaches₁ (Q × σ) T S _ _ _ (M.productDFA D).toPDA c₁ c₂) :
     ∃ consumed : List T, c₁.input = consumed ++ c₂.input ∧
       c₂.state.2 = consumed.foldl D.step c₁.state.2 := by
-  rcases c₁ with ⟨ ⟨ q₁, s₁ ⟩, x₁, σ₁ ⟩ ; rcases c₂ with ⟨ ⟨ q₂, s₂ ⟩, x₂, σ₂ ⟩ ;
-  rcases x₁ with ( _ | ⟨ a, x₁ ⟩ ) <;> rcases σ₁ with ( _ | ⟨ Z, σ₁ ⟩ ) <;> simp_all +decide [ Reaches₁ ];
-  · cases h;
-  · cases h;
-    rename_i h;
-    obtain ⟨ β, hβ₁, hβ₂ ⟩ := h;
-    unfold DPDA.toPDA at hβ₁;
-    unfold DPDA.productDFA at hβ₁;
-    cases h : M.epsilon_transition q₁ Z <;> simp_all +decide;
-  · cases h;
-  · cases h;
-    · unfold DPDA.toPDA at *;
-      unfold DPDA.productDFA at *;
-      cases h : M.transition q₁ a Z <;> simp_all +decide [  ];
-      exact ⟨ [ a ], rfl, rfl ⟩;
-    · unfold DPDA.productDFA at *;
-      unfold DPDA.toPDA at *;
-      cases h : M.epsilon_transition q₁ Z <;> simp_all +decide [  ]
+  rcases c₁ with ⟨⟨q, s⟩, input, stack⟩
+  cases stack with
+  | nil => simp [PDA.Reaches₁, PDA.step] at h
+  | cons Z rest =>
+      rcases PDA.reaches₁_push h with hread | hepsilon
+      · rcases hread with
+          ⟨a, tail, next, beta, hinput, htarget, hmem⟩
+        subst c₂
+        cases ht : M.transition q a Z with
+        | none => simp [productDFA, DPDA.toPDA, ht] at hmem
+        | some out =>
+            rcases out with ⟨p, alpha⟩
+            have hpair : (next, beta) = ((p, D.step s a), alpha) := by
+              simpa only [productDFA, DPDA.toPDA, ht,
+                Set.mem_singleton_iff] using hmem
+            have hstate : next.2 = D.step s a :=
+              congrArg (fun z : (Q × σ) × List S => z.1.2) hpair
+            refine ⟨[a], ?_, ?_⟩
+            · simpa using hinput
+            · simpa using hstate
+      · rcases hepsilon with ⟨next, beta, htarget, hmem⟩
+        subst c₂
+        cases hε : M.epsilon_transition q Z with
+        | none => simp [productDFA, DPDA.toPDA, hε] at hmem
+        | some out =>
+            rcases out with ⟨p, alpha⟩
+            have hpair : (next, beta) = ((p, s), alpha) := by
+              simpa only [productDFA, DPDA.toPDA, hε,
+                Set.mem_singleton_iff] using hmem
+            have hstate : next.2 = s :=
+              congrArg (fun z : (Q × σ) × List S => z.1.2) hpair
+            exact ⟨[], rfl, hstate⟩
 
 /-
 One step in the DPDA lifts to one step in the product.
@@ -162,12 +175,10 @@ public theorem productDFA_step_lift (M : DPDA Q T S) (D : DFA T σ)
       ⟨(q, s), w, γ⟩ ⟨(q', s'), w', γ'⟩ := by
   unfold PDA.Reaches₁ at *;
   cases w <;> cases γ <;> simp_all +decide [ step ];
-  · unfold DPDA.toPDA at *;
-    unfold DPDA.productDFA at *;
+  · unfold DPDA.productDFA at *;
     cases h : M.epsilon_transition q ‹_› <;> simp_all +decide [  ];
     grind;
-  · simp_all +decide [ DPDA.toPDA ];
-    unfold DPDA.productDFA at *;
+  · unfold DPDA.productDFA at *;
     cases h : M.transition q ‹_› ‹_› <;> cases h' : M.epsilon_transition q ‹_› <;> simp_all +decide;
     · grind;
     · grind;

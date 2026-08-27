@@ -67,7 +67,7 @@ abbrev stackPostfixNontriv (r : conf pda) (β : List S): Prop :=
 
 end conf
 
-@[expose]
+@[expose, reducible]
 public def step (r₁ : conf pda) : Set (conf pda) :=
   match r₁ with
     | ⟨q, a::w, Z::α⟩ =>
@@ -79,9 +79,9 @@ public def step (r₁ : conf pda) : Set (conf pda) :=
                                           r₂ = ⟨p, [], (β ++ α)⟩ }
     | ⟨_, _, []⟩ => ∅
 
-@[expose]
+@[expose, reducible]
 public def Reaches₁ (r₁ r₂ : conf pda) : Prop := r₂ ∈ step r₁
-@[expose]
+@[expose, reducible]
 public def Reaches : conf pda → conf pda → Prop := Relation.ReflTransGen Reaches₁
 
 public inductive ReachesIn : ℕ → conf pda → conf pda → Prop where

@@ -1194,14 +1194,37 @@ by
       have := hw'.left;
       obtain ⟨w'', hw''⟩ : ∃ w'', grammar_transforms (big_grammar g₁ g₂) [symbol.nonterminal (big_grammar g₁ g₂).initial] w'' ∧ grammar_derives (big_grammar g₁ g₂) w'' w' := by
         have h_induction_step : ∀ {u v : List (symbol T (big_grammar g₁ g₂).nt)}, grammar_derives (big_grammar g₁ g₂) u v → u ≠ v → ∃ w, grammar_transforms (big_grammar g₁ g₂) u w ∧ grammar_derives (big_grammar g₁ g₂) w v := by
-          intros u v huv huv_ne;
-          have := huv;
-          cases this ; tauto;
-          grind +suggestions;
-        apply h_induction_step this;
-        cases w <;> simp +decide [ hw'.2 ] at hw' ⊢;
+          intro u v huv huv_ne
+          rcases grammar_tran_or_id_of_deri huv with huv_eq | hstep
+          · exact (huv_ne huv_eq).elim
+          · exact hstep
+        apply h_induction_step this
+        rw [hw'.2]
+        cases w <;> simp
       have h_initial_rule : ∀ r ∈ (big_grammar g₁ g₂).rules, r.input_N = (big_grammar g₁ g₂).initial → r.input_L = [] ∧ r.input_R = [] ∧ r.output_string = [symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))), symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))] := by
-        grind +locals;
+        intro r hr hN
+        change r ∈
+          (grule.mk [] (Sum.inl none) []
+            [symbol.nonterminal (Sum.inl (some (Sum.inl g₁.initial))),
+             symbol.nonterminal (Sum.inl (some (Sum.inr g₂.initial)))]) ::
+          ((List.map (wrap_grule₁ g₂.nt) g₁.rules ++
+            List.map (wrap_grule₂ g₁.nt) g₂.rules) ++
+            (rules_for_terminals₁ g₂.nt g₁ ++ rules_for_terminals₂ g₁.nt g₂)) at hr
+        rcases List.mem_cons.mp hr with rfl | hr
+        · exact ⟨rfl, rfl, rfl⟩
+        · rcases List.mem_append.mp hr with hlifted | hterminal
+          · rcases List.mem_append.mp hlifted with h₁ | h₂
+            · obtain ⟨r₁, _hr₁, rfl⟩ := List.mem_map.mp h₁
+              simp [big_grammar, wrap_grule₁] at hN
+            · obtain ⟨r₂, _hr₂, rfl⟩ := List.mem_map.mp h₂
+              simp [big_grammar, wrap_grule₂] at hN
+          · rcases List.mem_append.mp hterminal with h₁ | h₂
+            · unfold rules_for_terminals₁ at h₁
+              obtain ⟨t, _ht, rfl⟩ := List.mem_map.mp h₁
+              simp [big_grammar] at hN
+            · unfold rules_for_terminals₂ at h₂
+              obtain ⟨t, _ht, rfl⟩ := List.mem_map.mp h₂
+              simp [big_grammar] at hN
       dsimp [big_grammar] at hw''
       rcases hw''.1 with ⟨r, hr, u, v, hbef, haft⟩
       have hlen := congrArg List.length hbef

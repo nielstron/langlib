@@ -60,12 +60,6 @@ main results
 - `grammar_language_subset_csg_of_noncontracting` — forward correctness of the translation
 -/
 
--- Lean 4.33 requires these grammar and derivation definitions to be
--- transparent while checking dependent sentential-form types.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] grammar_of_csg grammar_derives grammar_generates
-  CS_derives CS_transforms
-
 /-- The unrestricted grammar obtained from a context-sensitive grammar (via `grammar_of_csg`)
     is non-contracting. -/
 theorem CS_is_noncontracting (g : CS_grammar T) :
@@ -223,7 +217,8 @@ lemma nc_simRules_output_nonempty (g : grammar T) (hg : grammar_noncontracting g
     linarith [hg grule hgrule]
 
 /-- Construct a context-sensitive grammar equivalent to a given non-contracting grammar. -/
-noncomputable def csg_of_noncontracting (g : grammar T) (hg : grammar_noncontracting g) :
+@[reducible] noncomputable def csg_of_noncontracting (g : grammar T)
+    (hg : grammar_noncontracting g) :
     CS_grammar T where
   nt := NC_NT g
   initial := .inl g.initial
@@ -235,11 +230,6 @@ noncomputable def csg_of_noncontracting (g : grammar T) (hg : grammar_noncontrac
     · exact nc_unliftRules_output_nonempty g r hr_unlift
     · have hmem : grule ∈ g.rules := (List.of_mem_zip hgrule).2
       exact nc_simRules_output_nonempty g hg ri grule hmem r hr_sim
-
--- Lean 4.33 requires the constructed grammar to be transparent when checking
--- dependent sentential-form and derivation types involving its projections.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] csg_of_noncontracting
 
 /-! ### Helper lemmas for language equivalence -/
 
@@ -902,7 +892,7 @@ lemma nc_locked_simRules_output_nonempty (g : grammar T)
   aesop
 
 /-- Locked CS grammar for a non-contracting grammar. -/
-noncomputable def locked_csg_of_noncontracting (g : grammar T)
+@[reducible] noncomputable def locked_csg_of_noncontracting (g : grammar T)
     (_hg : grammar_noncontracting g) : CS_grammar T where
   nt := NC_LockedNT g
   initial := .orig g.initial
@@ -913,10 +903,6 @@ noncomputable def locked_csg_of_noncontracting (g : grammar T)
     rcases hr with hr_unlift | ⟨ri, grule, _hgrule, hr_sim⟩
     · exact nc_locked_unliftRules_output_nonempty g r hr_unlift
     · exact nc_locked_simRules_output_nonempty g ri grule r hr_sim
-
--- The locked construction has the same projection-transparency requirement.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] locked_csg_of_noncontracting
 
 /-- A locked simulation rule is a rule of the locked constructed CS grammar. -/
 lemma nc_locked_simRule_mem (g : grammar T) (hg : grammar_noncontracting g)

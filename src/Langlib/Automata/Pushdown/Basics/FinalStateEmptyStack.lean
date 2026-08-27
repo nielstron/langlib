@@ -669,15 +669,34 @@ lemma ESFS_Inv_step {Q S : Type} [Fintype Q] [Fintype S]
     (h_step : PDA.Reaches₁ c₁ c₂) :
     ESFS_Inv M w c₂ := by
       rcases h_inv with ( rfl | ⟨ q, w', γ, rfl, h ⟩ | ⟨ w', rfl, q, h ⟩ );
-      · cases w <;> simp_all +decide [ Reaches₁ ];
-        · cases h_step;
-          unfold PDA_ES_to_FS_pda at *; simp_all +decide [ PDA_ES_to_FS_eps ] ;
-          exact Or.inr <| Or.inl ⟨ M.initial_state, [ ], [ M.start_symbol ], by aesop ⟩;
-        · cases h_step;
-          · rename_i h;
-            rcases h with ⟨ p, β, hp, rfl ⟩ ; unfold PDA_ES_to_FS_pda at hp; simp_all +decide [ PDA_ES_to_FS_trans ] ;
-          · unfold PDA_ES_to_FS_pda at *; simp_all +decide [ PDA_ES_to_FS_eps ] ;
-            exact Or.inr <| Or.inl ⟨ M.initial_state, _, _, rfl, Relation.ReflTransGen.refl ⟩;
+      · cases w with
+        | nil =>
+            unfold PDA.Reaches₁ PDA.step at h_step
+            rcases h_step with ⟨p, β, hp, rfl⟩
+            unfold PDA_ES_to_FS_pda PDA_ES_to_FS_eps at hp
+            have hp' : (p, β) =
+                (Sum.inl M.initial_state, [some M.start_symbol, none]) :=
+              Set.mem_singleton_iff.mp hp
+            cases hp'
+            unfold ESFS_Inv
+            exact Or.inr <| Or.inl
+              ⟨M.initial_state, [], [M.start_symbol], rfl, Relation.ReflTransGen.refl⟩
+        | cons a w =>
+            unfold PDA.Reaches₁ PDA.step at h_step
+            rcases h_step with hread | hepsilon
+            · rcases hread with ⟨p, β, hp, rfl⟩
+              unfold PDA_ES_to_FS_pda PDA_ES_to_FS_trans at hp
+              exact hp.elim
+            · rcases hepsilon with ⟨p, β, hp, rfl⟩
+              unfold PDA_ES_to_FS_pda PDA_ES_to_FS_eps at hp
+              have hp' : (p, β) =
+                  (Sum.inl M.initial_state, [some M.start_symbol, none]) :=
+                Set.mem_singleton_iff.mp hp
+              cases hp'
+              unfold ESFS_Inv
+              exact Or.inr <| Or.inl
+                ⟨M.initial_state, a :: w, [M.start_symbol], rfl,
+                  Relation.ReflTransGen.refl⟩
       · rcases γ with ( _ | ⟨ Z, γ ⟩ ) <;> simp_all +decide [ Reaches₁ ];
         · rcases w' with ( _ | ⟨ a, w' ⟩ ) <;> simp_all +decide [ step ];
           · rcases h_step with ( ⟨ a, β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ | ⟨ β, h₁, rfl ⟩ ) <;> simp_all +decide [ PDA_ES_to_FS_pda ];

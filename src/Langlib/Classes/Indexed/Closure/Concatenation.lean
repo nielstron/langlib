@@ -27,16 +27,11 @@ private def concatStartRule (g₁ g₂ : IndexedGrammar T) :
       [ IRhsSymbol.nonterminal (UnionNT.inl g₁.initial) none
       , IRhsSymbol.nonterminal (UnionNT.inr g₂.initial) none ] }
 
-private def indexedConcat (g₁ g₂ : IndexedGrammar T) : IndexedGrammar T where
+@[reducible] private def indexedConcat (g₁ g₂ : IndexedGrammar T) : IndexedGrammar T where
   nt := UnionNT g₁.nt g₂.nt
   flag := UnionFlag g₁.flag g₂.flag
   initial := UnionNT.start
   rules := [concatStartRule g₁ g₂] ++ g₁.rules.map liftRule1 ++ g₂.rules.map liftRule2
-
--- Lean 4.33 needs the constructed grammar transparent while checking its
--- dependent symbol, flag, transformation, and derivation types.
-set_option allowUnsafeReducibility true in
-attribute [local reducible] indexedConcat IndexedGrammar.Derives
 
 private def concatLiftISym1 (g₁ g₂ : IndexedGrammar T) :
     g₁.ISym → (indexedConcat g₁ g₂).ISym
